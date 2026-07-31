@@ -2,17 +2,13 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
-  Gauge,
-  type GaugeZone,
+  NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
-  Sparkline,
   useElementSize,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -115,8 +111,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (twr === undefined || !Number.isFinite(twr)) {
     return (
-      <Panel>
-        <PanelTitle>TWR</PanelTitle>
+      <Panel panelTitle="TWR">
         {/* Tiny widget has ~70 px of inner width, the full "No engine
             data" sentence clips to just "No". A single em-dash conveys
             "no data" without crowding the panel; the panel title alone
@@ -132,8 +127,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (variant === "tiny") {
     return (
-      <Panel>
-        <PanelTitle>TWR</PanelTitle>
+      <Panel panelTitle="TWR">
         <TinyBody>
           {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
               two-character value, which clips the leading digit of "1.82"
@@ -147,11 +141,12 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   }
 
   return (
-    <Panel>
-      <PanelTitle>TWR</PanelTitle>
-      {showSubtitle && (
-        <PanelSubtitle>Current stage · last {SPARK_WINDOW_SEC}s</PanelSubtitle>
-      )}
+    <Panel
+      panelTitle="TWR"
+      panelSubtitle={
+        showSubtitle ? `Current stage · last ${SPARK_WINDOW_SEC}s` : undefined
+      }
+    >
       <Body>
         <GaugeSlot ref={gaugeRef}>
           <Gauge

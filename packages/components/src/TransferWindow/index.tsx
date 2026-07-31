@@ -17,8 +17,6 @@ import {
   FieldRow,
   NULL_DISPLAY,
   Panel,
-  PanelTitle,
-  ScrollArea,
   Select,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useId, useMemo, useState } from "react";
@@ -223,16 +221,14 @@ function TransferWindowComponent({
 
   if (!orbit || !origin) {
     return (
-      <Panel>
-        <PanelTitle>Transfer Window</PanelTitle>
+      <Panel panelTitle="Transfer Window">
         <Placeholder>Waiting for vessel orbit...</Placeholder>
       </Panel>
     );
   }
   if (dests.length === 0 || !dest) {
     return (
-      <Panel>
-        <PanelTitle>Transfer Window</PanelTitle>
+      <Panel panelTitle="Transfer Window">
         <Placeholder>
           No transfer destinations. {origin.name ?? "The origin body"} has no
           sibling bodies to transfer to.
@@ -242,9 +238,9 @@ function TransferWindowComponent({
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>Transfer Window</PanelTitle>
+    <Panel
+      panelTitle="Transfer Window"
+      panelAside={
         <FieldRow>
           <FieldLabel htmlFor="transfer-dest">
             {origin.name ?? "Origin"} to
@@ -261,8 +257,8 @@ function TransferWindowComponent({
             ))}
           </RouteSelect>
         </FieldRow>
-      </TitleRow>
-
+      }
+    >
       <Body>
         {solution ? (
           // Responsive on the body's own width (container query): stacked when
@@ -706,37 +702,24 @@ registerComponent<TransferWindowConfig>({
 
 export { TransferWindowComponent };
 
-// The scrolling body: fills the Panel below the fixed title row and scrolls
-// its content within the tile (with ui-kit's fade/glow affordance). The
-// scrolling children lay out via the inner element, per ScrollArea's contract.
-// Full-bleed body (standing rule): the widget body reaches the widget edge,
-// the dashboard grid owns the outer gutter, and the ui-kit Panel no longer adds
-// its own padding. Text/readouts keep a local horizontal pad for readability;
-// the Δv map and the window rows bleed back out to the edges (negative margin =
-// this pad) so the chart uses the full width. The pad also cushions content
-// while the Panel padding removal is still landing across the fleet.
-// Text/readouts keep this much side padding; the chart and window rows go
-// full-bleed to the body edge (the padless Panel owns no inset).
-// One constant, six call sites: the six padded rows must not drift apart, so
-// the rung is applied here rather than at each site. Deliberately --space-12
-// and not the --space-16 panel inset: the step between these padded rows and
-// the full-bleed chart/window rows beside them is the point, and widening it
-// is a layout decision, not a token migration.
+// Internal padding for the two boxes that draw their own edge: the selectable
+// window row (a bordered button) and the expander beneath it. Panel.Body owns
+// the panel-wide inset now, so this is only about the gap between a box's
+// border and its own text. One constant, two call sites, so the pair cannot
+// drift apart.
 const TEXT_PAD = "var(--space-12)";
 // Container-query breakpoint (body inline-size) at which the chart flows from
 // under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
-const Body = styled(ScrollArea)`
+// Panel.Body already pads, scrolls and glows; all this adds is the query
+// container, so the content grid reflows on the body's own width rather than
+// the viewport's (a container cannot query itself, hence the wrapper).
+const Body = styled.div`
   flex: 1;
   min-height: 0;
-
-  [data-scroll-area-inner] {
-    /* query container so the layout reflows on the body's own width */
-    container-type: inline-size;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: var(--space-8);
-  }
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
 `;
 
 // Holds the dial + list + chart. Stacked (dial/list, then chart below) when
@@ -767,14 +750,6 @@ const LeftCol = styled.div`
   }
 `;
 
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  flex-wrap: wrap;
-`;
-
 const RouteSelect = styled(Select)`
   width: auto;
   min-width: 8rem;
@@ -784,7 +759,6 @@ const NowRow = styled.div`
   display: flex;
   gap: var(--space-16);
   align-items: center;
-  padding: 0 ${TEXT_PAD};
 `;
 
 // The chart box grows to fill whatever space the tile/column gives it, down to
@@ -850,7 +824,6 @@ const ListTitle = styled.div`
   font-size: var(--font-size-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 0 ${TEXT_PAD};
 `;
 
 const List = styled.ul`
@@ -949,7 +922,6 @@ const PorkchopWrap = styled.div`
 const PorkchopTitle = styled.div`
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-  padding: 0 ${TEXT_PAD};
 `;
 
 const Inspector = styled.div`
@@ -957,5 +929,4 @@ const Inspector = styled.div`
   color: var(--color-text-dim);
   font-variant-numeric: tabular-nums;
   min-height: 1.2em;
-  padding: 0 ${TEXT_PAD};
 `;
