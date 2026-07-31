@@ -533,10 +533,21 @@ function PanelRoot({
   children,
   ...rest
 }: PanelProps) {
+  // A panel only shows a status badge if it ALREADY has a header. An
+  // unmigrated widget (children only, its own bespoke title row inside) must
+  // not sprout a header and a padded body the moment its stream degrades:
+  // that would restructure the widget on a data transition, which is both a
+  // layout surprise and impossible to see coming in review. Such a widget
+  // simply keeps showing no badge until it moves to `panelTitle`.
+  const hasHeader =
+    panelTitle !== undefined ||
+    panelSubtitle !== undefined ||
+    panelBadges !== undefined;
+
   const derived = usePanelStreamStatus();
   const status = panelStatus ?? derived;
   const statusBadge =
-    status === null || status === "none" ? null : (
+    !hasHeader || status === null || status === "none" ? null : (
       <StreamStatusBadge status={status} />
     );
   // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
@@ -548,11 +559,6 @@ function PanelRoot({
         {statusBadge}
       </>
     );
-
-  const hasHeader =
-    panelTitle !== undefined ||
-    panelSubtitle !== undefined ||
-    aside !== undefined;
 
   if (!hasHeader) {
     return <PanelContainer {...rest}>{children}</PanelContainer>;
