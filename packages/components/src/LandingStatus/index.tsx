@@ -687,12 +687,12 @@ function LandingStatusComponent({
                     {/* Flush: each plot SVG already insets its content by 4,
                         so the frame supplies the edge and lets that inset be
                         the gutter rather than stacking a second one. */}
-                    <FramedDisplay flush>{reticleSquare}</FramedDisplay>
+                    <FramedDisplay>{reticleSquare}</FramedDisplay>
                   </div>
                   {crossSectionEl && (
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <SectionTitle>Cross-section</SectionTitle>
-                      <FramedDisplay flush>{crossSectionEl}</FramedDisplay>
+                      <FramedDisplay>{crossSectionEl}</FramedDisplay>
                     </div>
                   )}
                 </div>

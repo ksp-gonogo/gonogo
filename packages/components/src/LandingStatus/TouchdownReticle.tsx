@@ -21,7 +21,7 @@
  */
 
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { greatCircle } from "./geo";
 import { SiteMarker } from "./SiteMarker";
 
@@ -190,6 +190,9 @@ function reliefDataUri(
 }
 
 const SIZE = 160;
+// In viewBox units, so it scales with the rendered plot. Matches CrossSection's
+// own clip radius so the paired squares round identically at every tile size.
+const RELIEF_RADIUS = 4;
 const C = SIZE / 2;
 // Downrange distance (m) that maps to the reticle edge; beyond it the site
 // marker clamps to the rim and the true distance rides in the readout.
@@ -213,6 +216,8 @@ export function TouchdownReticle({
   terrainPatch,
   terrainPatchSize,
 }: Readonly<TouchdownReticleProps>) {
+  // Unique per instance: two reticles on one screen must not share a clip id.
+  const reliefClipId = useId();
   const heights = normHeights(terrainPatch, terrainPatchSize);
   const reliefUri = reliefDataUri(
     heights?.norm ?? null,
@@ -271,113 +276,131 @@ export function TouchdownReticle({
       {/* Neutral, BORDERLESS site panel. The verdict is carried by the widget's
             text banner below; a verdict-tinted box border read as inconsistent
             noise, so it's gone (the grey relief stays legible either way). */}
-      {/* Surface comes from the enclosing FramedDisplay now. The note above
-          still holds: the frame's border is neutral, never verdict-tinted, so
-          the verdict stays carried by the text banner alone. */}
+      {/* The surface and the border come from the enclosing FramedDisplay now.
+          The corner rounding does NOT: a CSS radius on the frame is a literal
+          pixel value, while this one is in viewBox units and therefore scales
+          with the plot, which is the whole reason the original read as rounded
+          at tile size and a 3px frame radius did not. So the relief keeps its
+          own clip, and the frame keeps its own edge, matching CrossSection. */}
+      <defs>
+        <clipPath id={reliefClipId}>
+          {/* Matches the relief image's own box (it draws inset by 5), so the
+              clip actually bites its corners rather than sitting outside them. */}
+          <rect
+            x={5}
+            y={5}
+            width={SIZE - 10}
+            height={SIZE - 10}
+            rx={RELIEF_RADIUS}
+          />
+        </clipPath>
+      </defs>
 
-      {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour
+      <g clipPath={`url(#${reliefClipId})`}>
+        {/* Terrain = direct altimetry. Smooth path: hypsometric bands + contour
             iso-lines painted to a canvas + up-scaled. Fallback (no canvas, e.g.
             jsdom): a per-cell banded grid so the DOM snapshot stays small. */}
-      {reliefUri ? (
-        <image
-          href={reliefUri}
-          x={5}
-          y={5}
-          width={SIZE - 10}
-          height={SIZE - 10}
-          preserveAspectRatio="none"
-        />
-      ) : (
-        heights &&
-        terrainPatchSize &&
-        (() => {
-          const n = terrainPatchSize;
-          const inner = SIZE - 8;
-          const cell = inner / n;
-          const out: ReactNode[] = [];
-          for (let r = 0; r < n; r++) {
-            for (let c = 0; c < n; c++) {
-              const band = Math.max(
-                0,
-                Math.min(
-                  HYPSO_BANDS - 1,
-                  Math.floor(heights.norm[r * n + c] * HYPSO_BANDS),
-                ),
-              );
-              out.push(
-                <rect
-                  key={`relief-${r}-${c}`}
-                  x={4 + c * cell}
-                  y={4 + r * cell}
-                  width={cell + 0.5}
-                  height={cell + 0.5}
-                  fill={bandColour(band)}
-                />,
-              );
+        {reliefUri ? (
+          <image
+            href={reliefUri}
+            x={5}
+            y={5}
+            width={SIZE - 10}
+            height={SIZE - 10}
+            preserveAspectRatio="none"
+          />
+        ) : (
+          heights &&
+          terrainPatchSize &&
+          (() => {
+            const n = terrainPatchSize;
+            const inner = SIZE - 8;
+            const cell = inner / n;
+            const out: ReactNode[] = [];
+            for (let r = 0; r < n; r++) {
+              for (let c = 0; c < n; c++) {
+                const band = Math.max(
+                  0,
+                  Math.min(
+                    HYPSO_BANDS - 1,
+                    Math.floor(heights.norm[r * n + c] * HYPSO_BANDS),
+                  ),
+                );
+                out.push(
+                  <rect
+                    key={`relief-${r}-${c}`}
+                    x={4 + c * cell}
+                    y={4 + r * cell}
+                    width={cell + 0.5}
+                    height={cell + 0.5}
+                    fill={bandColour(band)}
+                  />,
+                );
+              }
             }
-          }
-          return <g>{out}</g>;
-        })()
-      )}
+            return <g>{out}</g>;
+          })()
+        )}
 
-      {/* Vertex dots: one per height-grid point, radius (and brightness)
+        {/* Vertex dots: one per height-grid point, radius (and brightness)
             scaled by altitude, over the dimmed contour base. The dot field IS
             the terrain read; higher points read as larger, brighter dots. */}
-      {heights &&
-        terrainPatchSize &&
-        (() => {
-          const n = terrainPatchSize;
-          const inner = SIZE - 10;
-          const cell = inner / n;
-          const dots: ReactNode[] = [];
-          for (let r = 0; r < n; r++) {
-            for (let c = 0; c < n; c++) {
-              const h = heights.norm[r * n + c];
-              dots.push(
-                <circle
-                  key={`dot-${r}-${c}`}
-                  cx={5 + (c + 0.5) * cell}
-                  cy={5 + (r + 0.5) * cell}
-                  r={0.3 + h * 1.1}
-                  fill="var(--color-text-primary)"
-                  opacity={0.28 + h * 0.42}
-                />,
-              );
+        {heights &&
+          terrainPatchSize &&
+          (() => {
+            const n = terrainPatchSize;
+            const inner = SIZE - 10;
+            const cell = inner / n;
+            const dots: ReactNode[] = [];
+            for (let r = 0; r < n; r++) {
+              for (let c = 0; c < n; c++) {
+                const h = heights.norm[r * n + c];
+                dots.push(
+                  <circle
+                    key={`dot-${r}-${c}`}
+                    cx={5 + (c + 0.5) * cell}
+                    cy={5 + (r + 0.5) * cell}
+                    r={0.3 + h * 1.1}
+                    fill="var(--color-text-primary)"
+                    opacity={0.28 + h * 0.42}
+                  />,
+                );
+              }
             }
-          }
-          return <g>{dots}</g>;
-        })()}
+            return <g>{dots}</g>;
+          })()}
 
-      {/* Current → site: the primary spatial readout. A plain line (no head,
+        {/* Current → site: the primary spatial readout. A plain line (no head,
             the off-centre current crosshair and the centred site marker
             terminate it) from where you are to where you'll land. */}
-      {currentTip && (
-        <line
-          x1={currentTip.x}
-          y1={currentTip.y}
-          x2={C}
-          y2={C}
-          stroke="var(--color-text-primary)"
-          strokeWidth={2.5}
-        />
-      )}
+        {currentTip && (
+          <line
+            x1={currentTip.x}
+            y1={currentTip.y}
+            x2={C}
+            y2={C}
+            stroke="var(--color-text-primary)"
+            strokeWidth={2.5}
+          />
+        )}
 
-      {/* Predicted landing site (the ANCHOR): the shared target marker (same as
+        {/* Predicted landing site (the ANCHOR): the shared target marker (same as
           the side-on plot) so it clearly reads as "you'll land HERE". */}
-      <SiteMarker cx={C} cy={C} />
+        <SiteMarker cx={C} cy={C} />
 
-      {/* Current position: off-centre by the drift (a small, distinct white
+        {/* Current position: off-centre by the drift (a small, distinct white
             dot). Omitted when you're right over the site. */}
-      {currentTip && (
-        <circle
-          cx={currentTip.x}
-          cy={currentTip.y}
-          r={3.5}
-          fill="none"
-          stroke="var(--color-text-primary)"
-          strokeWidth={1.5}
-        />
-      )}
+        {currentTip && (
+          <circle
+            cx={currentTip.x}
+            cy={currentTip.y}
+            r={3.5}
+            fill="none"
+            stroke="var(--color-text-primary)"
+            strokeWidth={1.5}
+          />
+        )}
+      </g>
     </svg>
   );
 }
