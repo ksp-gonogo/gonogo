@@ -4,11 +4,10 @@ import {
   EmptyState,
   Field,
   FieldLabel,
+  NULL_DISPLAY,
   Panel,
-  PanelTitle,
   Select,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { GamepadGlyph } from "../GamepadGlyph";
@@ -85,8 +84,7 @@ function InputTesterComponent({
   };
 
   return (
-    <Panel>
-      <PanelTitle>INPUT TESTER</PanelTitle>
+    <Panel panelTitle="INPUT TESTER">
       <Field>
         <FieldLabel htmlFor="input-tester-device">Device</FieldLabel>
         <Select

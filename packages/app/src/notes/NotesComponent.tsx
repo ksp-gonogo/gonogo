@@ -13,10 +13,9 @@ import {
   ChevronUpIcon,
   CloseIcon,
   Panel,
-  PanelTitle,
   PrimaryButton,
   ScrollArea,
-} from "@ksp-gonogo/ui";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -89,8 +88,7 @@ function NotesView({
     setDraft("");
   };
   return (
-    <Panel>
-      <PanelTitle>NOTES</PanelTitle>
+    <Panel panelTitle="NOTES">
       <List>
         {ordered.length === 0 ? (
           <Empty>No notes yet: add one below.</Empty>

@@ -5,7 +5,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { BellIcon, EmptyState, Panel, PanelTitle } from "@ksp-gonogo/ui";
+import { BellIcon, EmptyState, Panel } from "@ksp-gonogo/ui-kit";
 import type { ComponentType, ReactNode } from "react";
 import styled from "styled-components";
 import {
@@ -260,8 +260,7 @@ const OBJECTIVES_SLOT: ObjectiveSourceContext = { Section: ObjectivesSection };
 
 function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   return (
-    <Panel>
-      <PanelTitle>OBJECTIVES</PanelTitle>
+    <Panel panelTitle="OBJECTIVES">
       <Sections>
         <AugmentSlot name="objectives.sections" props={OBJECTIVES_SLOT} />
       </Sections>
@@ -288,8 +287,9 @@ const Sections = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  padding: var(--space-4) var(--space-8) var(--space-8);
-  overflow: auto;
+  /* No inset and no scrolling of its own: Panel.Body owns both now, and
+     keeping this one's padding would inset the sections further than the
+     title above them. */
 
   /* When any source has rendered content, hide the frame's empty fallback. When
      every source renders nothing, this wrapper is genuinely empty (augments

@@ -6,6 +6,7 @@ import {
   type MismatchKind,
   useDataSources,
 } from "@ksp-gonogo/core";
+import { Placeholder } from "@ksp-gonogo/ui";
 import {
   BigReadout,
   FieldLabel,
@@ -16,11 +17,9 @@ import {
   IconButton,
   Input,
   Panel,
-  PanelTitle,
-  Placeholder,
   PrimaryButton,
   ReadoutCaption,
-} from "@ksp-gonogo/ui";
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
@@ -108,8 +107,7 @@ function DataSourceStatusComponent({
     const total = sources.length;
     const ok = sources.filter((s) => s.status === "connected").length;
     return (
-      <Panel>
-        <PanelTitle>SOURCES</PanelTitle>
+      <Panel panelTitle="SOURCES">
         <BigReadout $tone={ok === total && total > 0 ? "go" : "alert"}>
           {`${ok} / ${total}`}
           <ReadoutCaption>connected</ReadoutCaption>
@@ -120,8 +118,7 @@ function DataSourceStatusComponent({
 
   if (showCompactRows) {
     return (
-      <Panel>
-        <PanelTitle>Sources</PanelTitle>
+      <Panel panelTitle="Sources">
         {sources.length === 0 ? (
           <Placeholder>No data sources registered</Placeholder>
         ) : (
