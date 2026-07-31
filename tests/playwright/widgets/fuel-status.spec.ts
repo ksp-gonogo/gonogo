@@ -55,10 +55,17 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     });
 
     // Totals row: total ΔV (current-atmosphere default) + total burn.
+    // Scoped to the "Total ΔV" block (not just `pair.main`): the fixture's
+    // single propulsive stage has the same ΔV as the vessel total, so the
+    // per-stage stack row below also renders "1311 m/s" and an unscoped
+    // getByText would match both.
+    const totalDvBlock = pair.main
+      .getByText("Total ΔV", { exact: true })
+      .locator("xpath=..");
+    await expect(totalDvBlock).toBeVisible();
     await expect(
-      pair.main.getByText("Total ΔV", { exact: true }),
-    ).toBeVisible();
-    await expect(pair.main.getByText("1311 m/s", { exact: true })).toBeVisible({
+      totalDvBlock.getByText("1311 m/s", { exact: true }),
+    ).toBeVisible({
       timeout: 15_000,
     });
     await expect(
