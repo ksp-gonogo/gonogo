@@ -404,7 +404,7 @@ function OrbitViewComponent({
       panelAside={
         <AugmentSlot name="orbit-view.badges" props={badgesContext} />
       }
-      headerOverlay={drawingFillsPanel}
+      floatingHeader={drawingFillsPanel}
     >
       {!hasOrbit ? (
         <NoData>

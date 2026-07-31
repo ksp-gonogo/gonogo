@@ -51,6 +51,7 @@ import {
   Header,
   ImagingChip,
   MapBody,
+  MapFrame,
   MapOuter,
   MapSections,
   NoSignal,
@@ -1185,10 +1186,11 @@ function MapViewComponent({
   // here because the composed header renders the host-derived one, which
   // watches every topic this widget declares.
   //
-  // `bleedBody` rather than `headerOverlay`: the map does want every pixel,
-  // but this much chrome floating on top of it would cover more map than the
-  // reserved rows do, and a follow toggle sitting on the terrain it controls
-  // is harder to read than one pinned above it.
+  // No floating header here: this much chrome on top of the map would cover
+  // more of it than the reserved rows do, and a follow toggle sitting on the
+  // terrain it controls is harder to read than one pinned above it. The map
+  // gets its space from a MapFrame instead, which leaves the augment sections
+  // below it the body inset they need.
   const toolbar =
     (showBodyLabel && displayName) ||
     (showImagingChip && vesselOnThisBody && imagingStatus) ||
@@ -1226,61 +1228,62 @@ function MapViewComponent({
         </>
       }
       panelToolbar={toolbar}
-      bleedBody
     >
       <MapBody>
-        <MapOuter ref={outerRef}>
-          <CanvasContainer
-            ref={interactionRef}
-            style={
-              containerSize
-                ? { width: containerSize.w, height: containerSize.h }
-                : undefined
-            }
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerCancel}
-          >
-            <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
-            <OverlayCanvas ref={overlayRef} />
-            <PersistentDataCanvas ref={persistentDataRef} />
-            <PredictionCanvas ref={predictionRef} />
-            <DataCanvas ref={dataRef} />
-            {(lat === undefined || lon === undefined) && (
-              <NoSignal>
-                {targetBodyId === undefined
-                  ? "Waiting for telemetry..."
-                  : "No position data"}
-              </NoSignal>
-            )}
-            {baseLayerContext && (
-              <AugmentSlot name="map-view.base" props={baseLayerContext} />
-            )}
-            {getAugmentsForSlot("map-view.base")
-              .filter((a) => a.suppressesVanillaBase === true)
-              .map((a) => (
-                <VanillaSuppressionProbe
-                  key={a.id}
-                  augment={a}
-                  onAvailableChange={onSuppressAvailabilityChange}
+        <MapFrame flush>
+          <MapOuter ref={outerRef}>
+            <CanvasContainer
+              ref={interactionRef}
+              style={
+                containerSize
+                  ? { width: containerSize.w, height: containerSize.h }
+                  : undefined
+              }
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerCancel}
+            >
+              <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
+              <OverlayCanvas ref={overlayRef} />
+              <PersistentDataCanvas ref={persistentDataRef} />
+              <PredictionCanvas ref={predictionRef} />
+              <DataCanvas ref={dataRef} />
+              {(lat === undefined || lon === undefined) && (
+                <NoSignal>
+                  {targetBodyId === undefined
+                    ? "Waiting for telemetry..."
+                    : "No position data"}
+                </NoSignal>
+              )}
+              {baseLayerContext && (
+                <AugmentSlot name="map-view.base" props={baseLayerContext} />
+              )}
+              {getAugmentsForSlot("map-view.base")
+                .filter((a) => a.suppressesVanillaBase === true)
+                .map((a) => (
+                  <VanillaSuppressionProbe
+                    key={a.id}
+                    augment={a}
+                    onAvailableChange={onSuppressAvailabilityChange}
+                  />
+                ))}
+              {overlayContext && (
+                <OverlayAugmentLayer>
+                  <AugmentSlot name="map-view.overlay" props={overlayContext} />
+                </OverlayAugmentLayer>
+              )}
+              {overlayContext && showPois && (
+                <MapPoiLayer
+                  bodyId={targetBodyId}
+                  project={overlayContext.project}
+                  width={overlayContext.width}
+                  height={overlayContext.height}
                 />
-              ))}
-            {overlayContext && (
-              <OverlayAugmentLayer>
-                <AugmentSlot name="map-view.overlay" props={overlayContext} />
-              </OverlayAugmentLayer>
-            )}
-            {overlayContext && showPois && (
-              <MapPoiLayer
-                bodyId={targetBodyId}
-                project={overlayContext.project}
-                width={overlayContext.width}
-                height={overlayContext.height}
-              />
-            )}
-          </CanvasContainer>
-        </MapOuter>
+              )}
+            </CanvasContainer>
+          </MapOuter>
+        </MapFrame>
       </MapBody>
 
       <MapSections>

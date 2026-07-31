@@ -83,12 +83,10 @@ Three props cover the widgets whose header is more than a title row:
   series toggles). Use it when the controls are a row in their own right;
   crowding them into the aside squeezes the title at realistic tile widths, and
   putting them in the body scrolls them away from what they steer.
-- **`headerOverlay`** floats the header over the content and lets the body
-  bleed to the panel chrome without scrolling. For widgets that ARE a drawing
-  (an orbit view, a globe): the title keeps a panel-coloured backing so it
-  stays legible, and the drawing gets the whole tile. `bleedBody` is the same
-  full-bleed body without the float, for a drawing whose chrome is too heavy to
-  sit on top of it.
+- **`floatingHeader`** floats the header over the content and lets the body
+  bleed to the panel chrome without scrolling. Only for a widget that is
+  WHOLLY a drawing (an orbit view, a globe): the title keeps a panel-coloured
+  backing so it stays legible, and the drawing gets the whole tile.
 
 All three are reachable for hand-composition too, as `Panel.Toolbar` and the
 `overlay` / `bleed` props on `Panel.Header` and `Panel.Body`.
@@ -96,6 +94,13 @@ All three are reachable for hand-composition too, as `Panel.Toolbar` and the
 Visual content, an SVG diagram or a canvas, goes in `FramedDisplay` rather than
 fighting the body inset: the frame gives it a defined edge, and in a widget
 with a sidebar it does the dividing too.
+
+Reach for the frame first, and for `floatingHeader` only when the body holds
+nothing but the drawing. Most widgets are mixed, a diagram beside readouts, and
+cancelling the body inset for the diagram unpads the readouts with it. There is
+deliberately no standalone "unpad the body" prop for that reason; the float is
+attached to it because a widget with readouts would never ask for a title
+floating over them.
 
 
 Standing the kit up yourself: Storybook, a test, a preview outside the app:

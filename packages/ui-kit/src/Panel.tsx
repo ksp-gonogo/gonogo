@@ -225,7 +225,7 @@ export function PanelHeader({
   toolbar?: ReactNode;
   /**
    * Float the header over the content instead of reserving a row above it.
-   * Pair with a `Panel.Body bleed`, which is what `Panel headerOverlay` does.
+   * Pair with a `Panel.Body bleed`, which is what `Panel floatingHeader` does.
    */
   overlay?: boolean;
 }) {
@@ -314,11 +314,20 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
      would not be reproducible. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 0 1 auto; overflow: hidden;" : "")}
   /* Bleed: the content reaches the panel chrome on every side and never
-     scrolls. For the widgets that ARE a drawing (map, globe, plot): the inset
-     that makes a list readable only crops a canvas, and a canvas sized to its
-     container cannot overflow, so there is nothing to scroll. Written after
-     $fitToSize so the two can be combined without the order mattering, though
-     bleed alone is the usual case. */
+     scrolls.
+
+     This is the flag FramedDisplay exists to avoid, and it is deliberately
+     NOT reachable on its own. Cancelling the body inset is wrong for the
+     widget that is a diagram BESIDE readouts, because it unpads the readouts
+     too, and a standalone opt-out is the version a mixed widget reaches for.
+     That is not hypothetical: OrbitView once shipped unpadded data fields
+     next to its chart that way, and a bleedBody prop on Panel reproduced it
+     on MapView within a day of FramedDisplay landing, unpadding the augment
+     sections under the map.
+
+     So the only route here is floatingHeader, which no mixed widget wants:
+     you would not float a title over a list. Visual content in a mixed widget
+     goes in a FramedDisplay inside the ordinary padded body. */
   ${({ $bleed }) =>
     $bleed ? "flex: 1; overflow: hidden; padding: 0; gap: 0;" : ""}
 `;
@@ -646,10 +655,16 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * The header floats over the content rather than reserving a row above it,
    * and the body bleeds to the panel chrome and stops scrolling.
    *
-   * For the widgets that ARE a drawing: an orbit view, a map, a globe. Their
-   * content wants the whole tile, and cropping it to leave room for a title is
-   * the wrong trade at the sizes these run at. The title and the aside keep a
+   * For a widget that is WHOLLY a drawing: an orbit view, a globe. Its content
+   * wants the whole tile, and cropping it to leave room for a title is the
+   * wrong trade at the sizes these run at. The title and the aside keep a
    * panel-coloured backing so they stay legible over whatever passes beneath.
+   *
+   * Wholly is the load-bearing word. A widget with a diagram AND readouts
+   * wants `FramedDisplay` around the diagram inside the ordinary padded body,
+   * not this: the body inset it cancels is the one those readouts need. That
+   * this prop also floats the header is what keeps it honest, because a widget
+   * with readouts in it would never ask for a title floating over them.
    *
    * Deliberately NOT folded into `fitToSize`, though they do go together. That
    * prop is already set by widgets which want their content sized to the tile
@@ -657,17 +672,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * floating title the day the two merged. Two questions, two props: does the
    * content scroll, and does the header sit above it or on it.
    */
-  headerOverlay?: boolean;
-  /**
-   * The body reaches the panel chrome on every side and stops scrolling,
-   * while the header keeps its own row above it.
-   *
-   * For a widget that IS a drawing but whose chrome is too heavy to float: a
-   * map with a layer toolbar wants every pixel for the canvas, and would still
-   * rather have its controls pinned above the map than sitting on it.
-   * `headerOverlay` implies this; this is the half of it without the float.
-   */
-  bleedBody?: boolean;
+  floatingHeader?: boolean;
   /**
    * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
    * rather than handled here, so manual composition stays reproducible.
@@ -681,8 +686,7 @@ function PanelRoot({
   panelAside,
   panelStatus,
   panelToolbar,
-  headerOverlay,
-  bleedBody,
+  floatingHeader,
   fitToSize,
   children,
   ...rest
@@ -727,13 +731,13 @@ function PanelRoot({
             subtitle={panelSubtitle}
             aside={aside}
             toolbar={panelToolbar}
-            overlay={headerOverlay}
+            overlay={floatingHeader}
           />
           {/* Header order is deliberate: the header is written first so it
               stays first in the DOM, and therefore first in reading and tab
               order, whether it floats or reserves a row. Overlay is a paint
               change, not a structural one. */}
-          <PanelBody fitToSize={fitToSize} bleed={bleedBody || headerOverlay}>
+          <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
             {children}
           </PanelBody>
         </PanelGlow>

@@ -1,3 +1,4 @@
+import { FramedDisplay } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 
 export const Header = styled.div`
@@ -62,6 +63,21 @@ export const MapBody = styled.div`
   min-height: 0;
   display: flex;
   gap: var(--space-8);
+`;
+
+/**
+ * The frame around the map itself. Visual content gets an edge rather than the
+ * panel losing its inset: the augment sections below the map are text, and they
+ * need the inset that unpadding the whole body would take from them. See
+ * `FramedDisplay`'s own note on why the all-or-nothing flag was rejected.
+ *
+ * `flush`: the map is letterboxed to 2:1 inside this box, so it already carries
+ * dead space on one axis, and a gutter on top of that reads as a double border.
+ */
+export const MapFrame = styled(FramedDisplay)`
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 `;
 
 /**

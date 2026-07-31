@@ -58,10 +58,10 @@ describe("Panel toolbar", () => {
   });
 });
 
-describe("Panel headerOverlay", () => {
+describe("Panel floatingHeader", () => {
   it("floats the header and lets content run beneath it", () => {
     render(
-      <Panel panelTitle="ORBIT" headerOverlay>
+      <Panel panelTitle="ORBIT" floatingHeader>
         <p>globe</p>
       </Panel>,
     );
@@ -80,7 +80,7 @@ describe("Panel headerOverlay", () => {
     // would swallow drags across the top of every map it floats over, so it
     // gives them up and the boxes that hold real content take them back.
     render(
-      <Panel panelTitle="ORBIT" headerOverlay>
+      <Panel panelTitle="ORBIT" floatingHeader>
         <p>globe</p>
       </Panel>,
     );
@@ -92,7 +92,7 @@ describe("Panel headerOverlay", () => {
 
   it("backs the title box so it stays legible over the content", () => {
     render(
-      <Panel panelTitle="ORBIT" headerOverlay>
+      <Panel panelTitle="ORBIT" floatingHeader>
         <p>globe</p>
       </Panel>,
     );
@@ -105,7 +105,7 @@ describe("Panel headerOverlay", () => {
   it("keeps the header first in the DOM, so overlay is a paint change only", () => {
     // Reading and tab order must not depend on whether the header floats.
     render(
-      <Panel panelTitle="ORBIT" headerOverlay>
+      <Panel panelTitle="ORBIT" floatingHeader>
         <p>globe</p>
       </Panel>,
     );
