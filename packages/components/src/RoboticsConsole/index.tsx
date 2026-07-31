@@ -2,17 +2,10 @@ import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  EmptyState,
-  Panel,
-  PanelTitle,
-  StreamStatusBadge,
-  ToggleButton,
-} from "@ksp-gonogo/ui";
+import { EmptyState, Panel, ToggleButton } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -128,7 +121,6 @@ function RoboticsConsoleComponent({
   const roboticsRaw = useTelemetry("parts.robotics");
   const available = useTelemetry("robotics.available")?.available;
   const execute = useExecuteAction("data");
-  const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
   const servos = parseServos(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -173,11 +165,7 @@ function RoboticsConsoleComponent({
 
   if (servos.length === 0 || !selected) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>ROBOTICS</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+      <Panel panelTitle="ROBOTICS">
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -202,11 +190,7 @@ function RoboticsConsoleComponent({
   const showServoList = servos.length > 1 && rows >= 6;
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>ROBOTICS</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
+    <Panel panelTitle="ROBOTICS">
       <Body>
         <Readout>
           <Current>
@@ -303,14 +287,6 @@ function RoboticsConsoleComponent({
     </Panel>
   );
 }
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Body = styled.div`
   display: flex;

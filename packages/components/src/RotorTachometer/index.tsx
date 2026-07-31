@@ -2,19 +2,16 @@ import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
-  useDataStreamStatus,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { Gauge } from "@ksp-gonogo/ui";
 import {
   EmptyState,
-  Gauge,
   Panel,
-  PanelTitle,
-  StreamStatusBadge,
   ToggleButton,
   useElementSize,
-} from "@ksp-gonogo/ui";
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -130,7 +127,6 @@ function RotorTachometerComponent({
   const roboticsRaw = useTelemetry("parts.robotics");
   const available = useTelemetry("robotics.available")?.available;
   const execute = useExecuteAction("data");
-  const streamStatus = useDataStreamStatus("data", "parts.robotics");
 
   // Measure the gauge slot so the dial follows the column width instead of a
   // fixed 180px that clips in a narrow slot.
@@ -196,11 +192,7 @@ function RotorTachometerComponent({
 
   if (rotors.length === 0 || !selected) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>ROTORS</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-        </TitleRow>
+      <Panel panelTitle="ROTORS">
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -225,11 +217,7 @@ function RotorTachometerComponent({
   const gaugeH = Math.round(gaugeW * 0.58);
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>ROTORS</PanelTitle>
-        <StreamStatusBadge status={streamStatus} />
-      </TitleRow>
+    <Panel panelTitle="ROTORS">
       <Body>
         {showGauge && (
           <GaugeWrap ref={gaugeRef}>
@@ -371,14 +359,6 @@ function RotorTachometerComponent({
     </Panel>
   );
 }
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Body = styled.div`
   display: flex;

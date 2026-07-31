@@ -28,13 +28,11 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  NULL_DISPLAY,
   Panel,
-  PanelTitle,
   ScrollArea,
   Spinner,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -233,7 +231,6 @@ function TargetPickerComponent({
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
   const execute = useExecuteAction("data");
-  const streamStatus = useStreamStatusOptional("target.available");
 
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
@@ -383,12 +380,10 @@ function TargetPickerComponent({
 
   if (!showFull) {
     return (
-      <Panel>
-        <CompactTitleRow>
-          <PanelTitle>TARGET</PanelTitle>
-          <AugmentSlot name="target-picker.badges" props={{}} />
-          <StreamStatusBadge status={streamStatus} />
-        </CompactTitleRow>
+      <Panel
+        panelTitle="TARGET"
+        panelBadges={<AugmentSlot name="target-picker.badges" props={{}} />}
+      >
         <CompactCurrent>
           {tarName ? (
             <>
@@ -434,14 +429,10 @@ function TargetPickerComponent({
   };
 
   return (
-    <Panel>
-      <PickerHeader>
-        <PickerHeaderTitle>
-          <PanelTitle>TARGET PICKER</PanelTitle>
-          <AugmentSlot name="target-picker.badges" props={{}} />
-          <StreamStatusBadge status={streamStatus} />
-        </PickerHeaderTitle>
-      </PickerHeader>
+    <Panel
+      panelTitle="TARGET PICKER"
+      panelBadges={<AugmentSlot name="target-picker.badges" props={{}} />}
+    >
       <OrbitalEventChipsRow>
         <OrbitalEventChips />
       </OrbitalEventChipsRow>
@@ -634,34 +625,10 @@ function TargetPickerConfigComponent(
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const PickerHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-height: 0;
-`;
-
-const PickerHeaderTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-width: 0;
-`;
-
-const CompactTitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
-
 /** Chip row that collapses to zero height when there's no encounter / apsis
  *  data: keeps the header tight in the common steady-orbit case. */
 const OrbitalEventChipsRow = styled.div`
   display: flex;
-  margin-top: var(--space-4);
   &:empty {
     display: none;
   }

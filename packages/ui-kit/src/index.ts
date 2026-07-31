@@ -222,6 +222,14 @@ export {
   type TapeProps,
   type TapeZone,
 } from "./Tape";
+// Switch's sibling, and the other half of the toggle vocabulary: a row of
+// alternatives is a ToggleButton, a single labelled setting is a Switch.
+export {
+  ToggleButton,
+  type ToggleButtonProps,
+  type ToggleButtonSize,
+  type ToggleButtonTone,
+} from "./ToggleButton";
 export { Truncate } from "./Truncate";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {

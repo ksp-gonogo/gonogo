@@ -1,16 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  registerComponent,
-  useDataStreamStatus,
-  useTelemetry,
-} from "@ksp-gonogo/core";
-import {
-  EmptyState,
-  Panel,
-  PanelTitle,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
+import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { EmptyState, Panel } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /**
@@ -283,22 +273,19 @@ function DeployedScienceComponent(
 ) {
   const basesRaw = useTelemetry("science.deployed");
   const available = useTelemetry("game.dlc")?.breakingGround;
-  const basesStreamStatus = useDataStreamStatus("data", "deployed.bases");
 
   const bases = parseBases(basesRaw) ?? [];
 
   if (bases.length === 0) {
     return (
-      <Panel>
-        <TitleRow>
-          <PanelTitle>DEPLOYED SCIENCE</PanelTitle>
-          {/* Header escape-hatch badges slot (augment-slot-map: broad
-              escape-hatch). Any Uplink can drop an inline badge next to the
-              title. Renders nothing until an augment binds
-              `deployed-science.badges`. */}
-          <AugmentSlot name="deployed-science.badges" props={{}} />
-          <StreamStatusBadge status={basesStreamStatus} />
-        </TitleRow>
+      <Panel
+        panelTitle="DEPLOYED SCIENCE"
+        /* Header escape-hatch badges slot (augment-slot-map: broad escape-hatch).
+           Any Uplink can drop an inline badge next to the title, beside the
+           panel's own stream-status badge. Renders nothing until an augment
+           binds `deployed-science.badges`. */
+        panelBadges={<AugmentSlot name="deployed-science.badges" props={{}} />}
+      >
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -309,16 +296,14 @@ function DeployedScienceComponent(
   }
 
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>DEPLOYED SCIENCE</PanelTitle>
-        {/* Header escape-hatch badges slot (augment-slot-map: broad
-            escape-hatch). Any Uplink can drop an inline badge next to the
-            title. Renders nothing until an augment binds
-            `deployed-science.badges`. */}
-        <AugmentSlot name="deployed-science.badges" props={{}} />
-        <StreamStatusBadge status={basesStreamStatus} />
-      </TitleRow>
+    <Panel
+      panelTitle="DEPLOYED SCIENCE"
+      /* Header escape-hatch badges slot (augment-slot-map: broad escape-hatch).
+         Any Uplink can drop an inline badge next to the title, beside the
+         panel's own stream-status badge. Renders nothing until an augment
+         binds `deployed-science.badges`. */
+      panelBadges={<AugmentSlot name="deployed-science.badges" props={{}} />}
+    >
       <Body>
         {bases.map((base) => {
           const state = powerState(base);
@@ -373,14 +358,6 @@ function DeployedScienceComponent(
     </Panel>
   );
 }
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
 
 const Body = styled.div`
   display: flex;
