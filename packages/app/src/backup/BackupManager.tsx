@@ -7,6 +7,7 @@ import {
   PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
+import { SectionTitle } from "@ksp-gonogo/ui-kit";
 import { type ChangeEvent, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -74,7 +75,7 @@ export function BackupManager() {
   return (
     <Container>
       <Section>
-        <SectionTitle>Export</SectionTitle>
+        <SectionTitle as="h3">Export</SectionTitle>
         <Foot>
           Downloads a JSON file of this device's dashboard layouts, data-source
           configs, devices, alarms, notes and settings. Restore it on another
@@ -103,7 +104,7 @@ export function BackupManager() {
       </Section>
 
       <Section>
-        <SectionTitle>Restore</SectionTitle>
+        <SectionTitle as="h3">Restore</SectionTitle>
         <Foot>
           Restoring <strong>replaces</strong> your current layouts and settings
           with those in the file, then reloads the app. This can't be undone,
@@ -159,15 +160,6 @@ const Section = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
 `;
 
 const Foot = styled.div`

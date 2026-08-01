@@ -2,6 +2,7 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useModal } from "@ksp-gonogo/ui";
+import { SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -377,7 +378,9 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
 
       {summary.scienceBreakdown.length > 0 && (
         <DetailSection>
-          <SectionTitle>Science gathered</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            Science gathered
+          </SectionTitle>
           {summary.scienceBreakdown.map((s) => (
             <DetailRow key={s.subjectId}>
               <DetailRowTitle>{s.subjectTitle || s.subjectId}</DetailRowTitle>
@@ -389,7 +392,9 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
 
       {summary.crewBreakdown.length > 0 && (
         <DetailSection>
-          <SectionTitle>Crew</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            Crew
+          </SectionTitle>
           {summary.crewBreakdown.map((c) => (
             <DetailRow key={c.name}>
               <DetailRowTitle>
@@ -407,7 +412,9 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
 
       {summary.partBreakdown.length > 0 && (
         <DetailSection>
-          <SectionTitle>Parts ({summary.partBreakdown.length})</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            Parts ({summary.partBreakdown.length})
+          </SectionTitle>
           {summary.partBreakdown.map((p) => (
             <DetailRow key={p.partName}>
               <DetailRowTitle>
@@ -424,7 +431,9 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
 
       {summary.resourceBreakdown.length > 0 && (
         <DetailSection>
-          <SectionTitle>Resources</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            Resources
+          </SectionTitle>
           {summary.resourceBreakdown.map((r) => (
             <DetailRow key={r.resourceName}>
               <DetailRowTitle>
@@ -488,7 +497,9 @@ function CrashDetail({ summary }: { summary: CrashSummary }) {
 
       {summary.crewAboard.length > 0 && (
         <DetailSection>
-          <SectionTitle>Crew aboard ({summary.crewAboard.length})</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            Crew aboard ({summary.crewAboard.length})
+          </SectionTitle>
           {summary.crewAboard.map((name) => (
             <DetailRow key={name}>
               <DetailRowTitle>{name}</DetailRowTitle>
@@ -705,17 +716,6 @@ const DetailSection = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const DetailRow = styled.div`

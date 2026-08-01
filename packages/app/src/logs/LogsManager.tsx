@@ -10,6 +10,7 @@ import {
   Switch,
   Textarea,
 } from "@ksp-gonogo/ui";
+import { SectionTitle } from "@ksp-gonogo/ui-kit";
 import {
   type ChangeEvent,
   type FormEvent,
@@ -160,7 +161,7 @@ export function LogsManager() {
   return (
     <Container>
       <Section>
-        <SectionTitle>Active tags</SectionTitle>
+        <SectionTitle as="h3">Active tags</SectionTitle>
         <ModeRow>
           <ModeButton
             $active={state.mode === "all"}
@@ -203,7 +204,7 @@ export function LogsManager() {
       </Section>
 
       <Section>
-        <SectionTitle>Log buffer</SectionTitle>
+        <SectionTitle as="h3">Log buffer</SectionTitle>
         <BufferRow>
           <Count>{bufferSize} entries buffered</Count>
           <ActionRow>
@@ -222,7 +223,7 @@ export function LogsManager() {
       </Section>
 
       <Section>
-        <SectionTitle>Feedback</SectionTitle>
+        <SectionTitle as="h3">Feedback</SectionTitle>
         <ReportBug />
       </Section>
     </Container>
@@ -521,15 +522,6 @@ const Section = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
 `;
 
 const ModeRow = styled.div`

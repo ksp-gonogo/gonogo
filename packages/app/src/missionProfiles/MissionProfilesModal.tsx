@@ -6,6 +6,7 @@ import {
   PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
+import { SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";
@@ -185,7 +186,9 @@ export function MissionProfilesModal({
   return (
     <Wrap>
       <Section>
-        <SectionTitle>Save current dashboard</SectionTitle>
+        <SectionTitle as="h3" $rule>
+          Save current dashboard
+        </SectionTitle>
         <SaveRow>
           <Input
             type="text"
@@ -246,7 +249,9 @@ export function MissionProfilesModal({
       </Section>
 
       <Section>
-        <SectionTitle>Saved layouts</SectionTitle>
+        <SectionTitle as="h3" $rule>
+          Saved layouts
+        </SectionTitle>
         {profiles.length === 0 ? (
           <Empty>No saved layouts yet for this screen.</Empty>
         ) : (
@@ -343,17 +348,6 @@ const Section = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const SaveRow = styled.div`

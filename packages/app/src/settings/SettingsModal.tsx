@@ -24,7 +24,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui";
-import { Badge } from "@ksp-gonogo/ui-kit";
+import { Badge, SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
@@ -200,11 +200,15 @@ function DataSourcesPanel() {
   return (
     <SectionStack>
       <Section>
-        <SectionTitle>Game host</SectionTitle>
+        <SectionTitle as="h3" $rule>
+          Game host
+        </SectionTitle>
         <SitrepConnection />
       </Section>
       <Section>
-        <SectionTitle>Uplink health</SectionTitle>
+        <SectionTitle as="h3" $rule>
+          Uplink health
+        </SectionTitle>
         <UplinkHealthList />
       </Section>
       <UplinkLoaderSection />
@@ -228,7 +232,9 @@ function UplinkLoaderSection() {
   if (outcomes.length === 0) return null;
   return (
     <Section>
-      <SectionTitle>Loaded clients</SectionTitle>
+      <SectionTitle as="h3" $rule>
+        Loaded clients
+      </SectionTitle>
       <UplinkList>
         {outcomes.map((o) => (
           <UplinkItem key={o.id}>
@@ -361,7 +367,9 @@ function GeneralSettings({
     <SectionStack>
       {[...byCategory.entries()].map(([category, items]) => (
         <Section key={category}>
-          <SectionTitle>{category}</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            {category}
+          </SectionTitle>
           {items.map((def) => (
             <SettingRow key={def.id} def={def} />
           ))}
@@ -369,7 +377,9 @@ function GeneralSettings({
       ))}
       {showConsent && (
         <Section>
-          <SectionTitle>Privacy</SectionTitle>
+          <SectionTitle as="h3" $rule>
+            Privacy
+          </SectionTitle>
           <AnalyticsConsentRow />
         </Section>
       )}
@@ -520,17 +530,6 @@ const Section = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: var(--space-4);
 `;
 
 const Row = styled.div<{ $indented?: boolean }>`
