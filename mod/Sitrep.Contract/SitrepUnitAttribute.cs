@@ -36,6 +36,13 @@ namespace Sitrep.Contract
         // --- Length ---
         public const string Metres = "m";
 
+        // --- Area / volume ---
+        /// <summary>Square metres, KSP's own habitat surface unit.</summary>
+        public const string SquareMetres = "m²";
+
+        /// <summary>Cubic metres, KSP's own habitat volume unit.</summary>
+        public const string CubicMetres = "m³";
+
         // --- Speed ---
         public const string MetresPerSecond = "m/s";
 
@@ -213,6 +220,22 @@ namespace Sitrep.Contract
         /// this token says. It is not an SI quantity and never converts.</para>
         /// </summary>
         public const string ResourceUnits = "units";
+
+        /// <summary>
+        /// A flow of <see cref="ResourceUnits"/>, per second. Solar-panel
+        /// charge rates, fuel-cell output, converter throughput, life-support
+        /// consumption.
+        ///
+        /// <para>Per SECOND on the wire even where an operator reads per
+        /// minute or per hour, the same direction of travel as
+        /// <see cref="RadPerSecond"/> and kelvin-not-Celsius: the wire carries
+        /// the rate as sampled and the client scales for display.</para>
+        ///
+        /// <para>Its existence is also what lets the unit-suffixed field names
+        /// (<c>FoodRatePerSec</c>, <c>DegenPerSec</c>) be renamed: a name only
+        /// has to encode a unit while there is no way to declare one.</para>
+        /// </summary>
+        public const string ResourceUnitsPerSecond = "units/s";
 
         /// <summary>
         /// Free text meant for a human: a vessel name, a biome, a status

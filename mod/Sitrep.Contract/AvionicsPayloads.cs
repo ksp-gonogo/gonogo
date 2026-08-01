@@ -34,9 +34,11 @@ public sealed class AvionicsStatus
     /// <summary>Controllable-mass limit of the active avionics (tonnes), the MAX
     /// across parts of each part's summed <c>CurrentMassLimit</c>, matching
     /// <c>ControlLockerUtils.ShouldLock</c>. Null when no avionics is present.</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? ControllableMassTons { get; set; }
 
     /// <summary>Vessel current total mass (tonnes).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? VesselMassTons { get; set; }
 
     /// <summary>Derived: VesselMassTons &lt;= ControllableMassTons (the ascent go/no-go).</summary>

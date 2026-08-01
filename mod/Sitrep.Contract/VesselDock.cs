@@ -38,9 +38,11 @@ public class DockAlignment
     public Vec3 RelativeVelocity { get; set; } = new();
 
     /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided directly so a widget doesn't have to re-derive it every frame.</summary>
+    [SitrepUnit(Units.Metres)]
     public double Distance { get; set; }
 
     /// <summary>Dot product of the own port's and target port's forward vectors; see the class doc comment. Null only if either port's transform was unavailable this tick.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double? ForwardDot { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

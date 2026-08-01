@@ -27,6 +27,7 @@ public class CrewMember
     [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int? ExperienceLevel { get; set; }
 
     [SitrepUnit(Units.Id)]
@@ -52,8 +53,10 @@ public class CrewMember
 [SitrepTopic("vessel.crew")]
 public class VesselCrew
 {
+    [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int Capacity { get; set; }
 
     public List<CrewMember> Crew { get; set; } = new();

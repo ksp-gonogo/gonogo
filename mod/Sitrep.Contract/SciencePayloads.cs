@@ -49,6 +49,7 @@ public class ExperimentEntry
     [SitrepUnit(Units.Mits)]
     public double? DataAmount { get; set; }
 
+    [SitrepUnit(Units.Ratio)]
     public double? ScienceValueRatio { get; set; }
 
     public double? BaseTransmitValue { get; set; }
@@ -151,6 +152,7 @@ public class LabEntry
     [SitrepUnit(Units.Text)]
     public string? StatusText { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int? ScientistCount { get; set; }
 
     public double? ScienceRate { get; set; }

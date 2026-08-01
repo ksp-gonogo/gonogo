@@ -24,8 +24,11 @@ public class Meta
 {
     [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
+    [SitrepUnit(Units.Seconds)]
     public double ValidAt { get; set; }
+    [SitrepUnit(Units.Id)]
     public long Seq { get; set; }
+    [SitrepUnit(Units.Seconds)]
     public double DeliveredAt { get; set; }
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
@@ -51,6 +54,7 @@ public class Meta
     /// optional ones in both the TS codegen output and <c>EnvelopeCodec</c>'s
     /// hand-written field order.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public int TimelineEpoch { get; set; }
 
     public double? Confidence { get; set; }

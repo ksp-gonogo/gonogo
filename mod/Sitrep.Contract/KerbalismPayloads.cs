@@ -66,7 +66,9 @@ public class KerbalismSpaceWeather
     [SitrepUnit(Units.Flag)]
     public bool? InSunlight { get; set; }
     /// <summary>Shielding resource amount/capacity (0 in the default profile; present under RO/Habitat).</summary>
+    [SitrepUnit(Units.ResourceUnits)]
     public double? ShieldingAmount { get; set; }
+    [SitrepUnit(Units.ResourceUnits)]
     public double? ShieldingCapacity { get; set; }
 }
 
@@ -77,8 +79,11 @@ public class KerbalismSpaceWeather
 #endif
 public class KerbalismResource
 {
+    [SitrepUnit(Units.ResourceUnits)]
     public double? Amount { get; set; }
+    [SitrepUnit(Units.ResourceUnits)]
     public double? Capacity { get; set; }
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? Rate { get; set; }
 }
 
@@ -99,7 +104,9 @@ public class KerbalismHabitat
     public double? LivingSpace { get; set; }
     [SitrepUnit(Units.Ratio)]
     public double? Comfort { get; set; }
+    [SitrepUnit(Units.CubicMetres)]
     public double? Volume { get; set; }
+    [SitrepUnit(Units.SquareMetres)]
     public double? Surface { get; set; }
 }
 
@@ -114,6 +121,7 @@ public class KerbalismProcessEntry
     public string? Resource { get; set; }
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
+    [SitrepUnit(Units.ResourceUnits)]
     public double? Capacity { get; set; }
     [SitrepUnit(Units.Flag)]
     public bool? Running { get; set; }
@@ -142,6 +150,7 @@ public class KerbalismGreenhouseEntry
     [SitrepUnit(Units.Text)]
     public string? CropResource { get; set; }
     /// <summary>Derived continuous production rate, units/s (crop_size * crop_rate when active and lit; 0 when blocked).</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? FoodRatePerSec { get; set; }
     /// <summary>Natural light flux reaching the greenhouse, W/m^2 (<c>Greenhouse.Data.natural</c>).</summary>
     [SitrepUnit(Units.WattsPerSquareMetre)]
@@ -156,10 +165,13 @@ public class KerbalismGreenhouseEntry
     [SitrepUnit(Units.Text)]
     public string? Issue { get; set; }
     /// <summary>Part config: max lamp EC draw, units/s (<c>ec_rate</c>).</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? EcRateMaxPerSec { get; set; }
     /// <summary>Derived actual lamp EC draw this tick, units/s (0 when lamps are off or fully unlit by the sun).</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? LampEcDrawPerSec { get; set; }
     /// <summary>Part config: total light flux needed to grow, W/m^2 (<c>light_tolerance</c>).</summary>
+    [SitrepUnit(Units.WattsPerSquareMetre)]
     public double? LightToleranceWm2 { get; set; }
     /// <summary>Part config: minimum habitat pressure fraction required (<c>pressure_tolerance</c>).</summary>
     [SitrepUnit(Units.Ratio)]

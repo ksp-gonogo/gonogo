@@ -52,6 +52,7 @@ namespace Sitrep.Contract;
 public class KosTerminalFrame
 {
     /// <summary>The emitting CPU's <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>xterm-ready output bytes (already mapped from kOS's screen diff) to write into the terminal.</summary>
@@ -81,6 +82,7 @@ public class KosTerminalFrame
 public class KosTerminalOpenArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>
@@ -113,6 +115,7 @@ public class KosTerminalOpenArgs
 public class KosKeystrokeArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>The write-lease token from <see cref="KosTerminalOpenArgs.LeaseToken"/>; must match the CPU's current holder.</summary>
@@ -138,6 +141,7 @@ public class KosKeystrokeArgs
 public class KosTerminalResizeArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>The write-lease token; must match the CPU's current holder.</summary>
@@ -145,9 +149,11 @@ public class KosTerminalResizeArgs
     public string LeaseToken { get; set; } = "";
 
     /// <summary>Desired column count.</summary>
+    [SitrepUnit(Units.Count)]
     public int Cols { get; set; }
 
     /// <summary>Desired row count.</summary>
+    [SitrepUnit(Units.Count)]
     public int Rows { get; set; }
 }
 
@@ -165,6 +171,7 @@ public class KosTerminalResizeArgs
 public class KosTerminalCloseArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>The write-lease token to release; a non-matching token releases nothing.</summary>

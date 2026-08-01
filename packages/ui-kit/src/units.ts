@@ -52,9 +52,12 @@ export type KnownQuantityKind =
   // absent unit ("nobody said"). They exist so the contract can DECLARE the
   // non-quantities instead of skipping them, which is what makes a coverage
   // gate possible at all.
+  | "area"
+  | "volume"
   | "count"
   | "identifier"
   | "resourceUnits"
+  | "resourceFlow"
   | "text"
   | "flag"
   | "enumeration"
@@ -254,6 +257,9 @@ const DECIMALS: Record<string, number> = {
   count: 0,
   identifier: 0,
   resourceUnits: 1,
+  resourceFlow: 2,
+  area: 1,
+  volume: 1,
 };
 
 /**
@@ -311,9 +317,12 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   ratio: "fraction",
   "%": "percentage",
   Mit: "scienceData",
+  "m²": "area",
+  "m³": "volume",
   count: "count",
   id: "identifier",
   units: "resourceUnits",
+  "units/s": "resourceFlow",
   text: "text",
   flag: "flag",
   enum: "enumeration",

@@ -64,6 +64,7 @@ public class SetThrottleArgs
 public class SetActionGroupArgs
 {
     /// <summary>1..10. Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int Group { get; set; }
 
     [SitrepUnit(Units.Flag)]
@@ -164,6 +165,7 @@ public class SetTargetArgs
     public string? VesselId { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Part"/>, the docking port's KSP <c>Part.flightID</c>, resolved server-side against the parts of the vessel named by <see cref="VesselId"/>. Null for every other kind.</summary>
+    [SitrepUnit(Units.Id)]
     public uint? PartId { get; set; }
 
     /// <summary>
@@ -174,6 +176,7 @@ public class SetTargetArgs
     /// <see cref="Longitude"/> are measured against (a lat/lon pair has no
     /// meaning without one).
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Position"/> (a map-picked surface fix, e.g. a <c>spaceCenter.pois</c> entry's own coordinate).</summary>
@@ -195,6 +198,7 @@ public class SetTargetArgs
 #endif
 public class SetWarpIndexArgs
 {
+    [SitrepUnit(Units.Id)]
     public int Index { get; set; }
 }
 

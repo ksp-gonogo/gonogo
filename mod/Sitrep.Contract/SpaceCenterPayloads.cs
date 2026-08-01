@@ -49,6 +49,7 @@ public class LaunchSiteEntry
     public string? EditorFacility { get; set; }
 
     /// <summary>Index into <see cref="SystemBodies"/> of the body this site sits on; null when absent or unresolved (never a sentinel like -1).</summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
     /// <summary>Whether this is a stock KSP launch site (<c>PSystemSetup.IsStockLaunchSite</c>), false for Making History / Kerbal Konstructs sites.</summary>
@@ -134,6 +135,7 @@ public class CrewRosterEntry
     public string? Trait { get; set; }
 
     /// <summary>Experience level (<c>ProtoCrewMember.experienceLevel</c>), 0–5.</summary>
+    [SitrepUnit(Units.Count)]
     public int? ExperienceLevel { get; set; }
 
     /// <summary>Whether the kerbal is free to fly, <c>true</c> when the roster status is <c>Available</c>, <c>false</c> otherwise.</summary>
@@ -169,6 +171,7 @@ public class SavedShipEntry
     public string? Name { get; set; }
 
     /// <summary>Part count (<c>CraftProfileInfo.partCount</c>).</summary>
+    [SitrepUnit(Units.Count)]
     public int? PartCount { get; set; }
 
     /// <summary>Total mass in tonnes (<c>CraftProfileInfo.totalMass</c>).</summary>
@@ -206,6 +209,7 @@ public class SavedShipEntry
 public class SpaceCenterPartsAvailable
 {
     /// <summary>Count of buildable parts.</summary>
+    [SitrepUnit(Units.Count)]
     public int? Count { get; set; }
 }
 
@@ -247,6 +251,7 @@ public class SpaceCenterPoiEntry
     public string? Kind { get; set; }
 
     /// <summary>Index into <see cref="SystemBodies"/>; null when absent or unresolved (never a sentinel like -1).</summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
     [SitrepUnit(Units.Degrees)]
@@ -271,5 +276,6 @@ public class SpaceCenterPoiEntry
 
     public double? ContractFundsCompletion { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double? ContractDateDeadline { get; set; }
 }

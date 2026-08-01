@@ -33,6 +33,7 @@ namespace Sitrep.Contract;
 public class KosRunArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>
@@ -80,6 +81,7 @@ public class KosRunArgs
 public class KosRunResult
 {
     /// <summary>The emitting CPU's <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>Echoes the triggering <see cref="KosRunArgs.RequestId"/>.</summary>

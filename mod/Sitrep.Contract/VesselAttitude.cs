@@ -31,21 +31,27 @@ namespace Sitrep.Contract;
 public class VesselAttitude
 {
     /// <summary>CoM-referenced frame. Degrees, -90..90 (nose down/up).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double Pitch { get; set; }
 
     /// <summary>CoM-referenced frame. Degrees, 0..360.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double Heading { get; set; }
 
     /// <summary>CoM-referenced frame. Degrees, -180..180.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double Roll { get; set; }
 
     /// <summary>Root-part-referenced frame (see class doc). Degrees, -90..90.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double PitchRootFrame { get; set; }
 
     /// <summary>Root-part-referenced frame (see class doc). Degrees, 0..360.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double HeadingRootFrame { get; set; }
 
     /// <summary>Root-part-referenced frame (see class doc). Degrees, -180..180.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double RollRootFrame { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

@@ -35,9 +35,11 @@ public class TargetListEntry
     public string? VesselId { get; set; }
 
     /// <summary>Index into <c>system.bodies</c>: set for <see cref="TargetKind.Body"/>. Null otherwise.</summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
     /// <summary>KSP <c>Part.flightID</c>: set for <see cref="TargetKind.Part"/> (scoped by <see cref="VesselId"/>). Null otherwise.</summary>
+    [SitrepUnit(Units.Id)]
     public uint? PartId { get; set; }
 
     /// <summary>Vessel type: set for <see cref="TargetKind.Vessel"/> / <see cref="TargetKind.Part"/> (the owning vessel's type). Null otherwise.</summary>
@@ -55,6 +57,7 @@ public class TargetListEntry
     /// target comes off <c>vessel.target</c>. Null when a transform wasn't
     /// available this tick.
     /// </summary>
+    [SitrepUnit(Units.Metres)]
     public double? Distance { get; set; }
 
     /// <summary>True when this entry is the active vessel's current target (<c>FlightGlobals.fetch.VesselTarget</c>) right now.</summary>

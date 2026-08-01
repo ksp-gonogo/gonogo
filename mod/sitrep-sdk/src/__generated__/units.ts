@@ -29,6 +29,8 @@ export type KnownSitrepUnit =
   | "kg/m³"
   | "m"
   | "m/s"
+  | "m²"
+  | "m³"
   | "m³/s²"
   | "n/a"
   | "rad"
@@ -38,6 +40,7 @@ export type KnownSitrepUnit =
   | "t"
   | "text"
   | "units"
+  | "units/s"
   | "°"
 ;
 
@@ -70,10 +73,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     groups: "text",
   },
   "ActionGroupState": {
+    index: "id",
     name: "text",
     state: "flag",
   },
   "ActivateStrategyArgs": {
+    factor: "ratio",
     strategyId: "id",
   },
   "AddManeuverNodeArgs": {
@@ -83,6 +88,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     ut: "s",
   },
   "AlternatorEntry": {
+    outputRate: "units/s",
     partId: "id",
     partName: "text",
   },
@@ -94,8 +100,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "AvionicsStatus": {
     avionicsActive: "flag",
     controllable: "flag",
+    controllableMassTons: "t",
+    vesselMassTons: "t",
   },
   "BatteryEntry": {
+    current: "units",
+    max: "units",
     partId: "id",
     partName: "text",
   },
@@ -103,7 +113,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     description: "text",
     gravParameter: "m³/s²",
     hasOcean: "flag",
+    index: "id",
     name: "text",
+    parentIndex: "id",
     radius: "m",
     rotationPeriod: "s",
     sphereOfInfluence: "m",
@@ -111,6 +123,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerContract": {
     agent: "text",
+    dateAccepted: "s",
+    dateDeadline: "s",
+    dateExpire: "s",
     id: "id",
     state: "text",
     title: "text",
@@ -119,23 +134,35 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     state: "text",
     title: "text",
   },
+  "CareerFacility": {
+    currentTier: "count",
+    maxTier: "count",
+  },
   "CareerMode": {
     mode: "enum",
+  },
+  "CareerStrategies": {
+    activeCount: "count",
   },
   "CareerStrategy": {
     activateBlockedReason: "text",
     canActivate: "flag",
     canDeactivate: "flag",
+    dateActivated: "s",
     deactivateBlockedReason: "text",
     department: "text",
     description: "text",
     effect: "text",
+    factor: "ratio",
+    factorSliderDefault: "ratio",
+    factorSliderSteps: "count",
     hasFactorSlider: "flag",
     id: "id",
     isActive: "flag",
     title: "text",
   },
   "CareerTech": {
+    unlockedCount: "count",
     unlockedIds: "id",
   },
   "CareerTechNode": {
@@ -143,6 +170,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     parents: "id",
     title: "text",
     unlocked: "flag",
+  },
+  "ClosestApproach": {
+    distance: "m",
+    time: "s",
   },
   "CommandResult": {
     errorCode: "enum",
@@ -204,13 +235,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     highestGee: "g",
     highestSpeed: "m/s",
     highestSpeedOverLand: "m/s",
+    kerbalsKilled: "count",
     liftOff: "flag",
     missionEnd: "flag",
     missionTime: "s",
+    partsLost: "count",
     totalDistance: "m",
   },
   "CrashPartLost": {
     msg: "text",
+    partId: "id",
     partName: "text",
     partTitle: "text",
   },
@@ -232,6 +266,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     what: "text",
   },
   "CrewMember": {
+    experienceLevel: "count",
     name: "text",
     rosterStatus: "text",
     trait: "text",
@@ -239,6 +274,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CrewRosterEntry": {
     available: "flag",
+    experienceLevel: "count",
     name: "text",
     trait: "text",
     unavailableReason: "text",
@@ -258,6 +294,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scienceTransmittedPercentage: "%",
     situation: "text",
     vesselName: "text",
+  },
+  "DockAlignment": {
+    distance: "m",
+    forwardDot: "1",
   },
   "ErrorMsg": {
     code: "id",
@@ -288,6 +328,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     inoperable: "flag",
     location: "text",
     partName: "text",
+    scienceValueRatio: "ratio",
     situation: "text",
     subjectId: "id",
     title: "text",
@@ -301,17 +342,20 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "FlightEnded": {
     flightId: "id",
     reason: "enum",
+    ut: "s",
     vesselId: "id",
     vesselName: "text",
   },
   "FlightStarted": {
     flightId: "id",
+    ut: "s",
     vesselId: "id",
     vesselName: "text",
   },
   "FlightVesselChanged": {
     flightId: "id",
     previousVesselId: "id",
+    ut: "s",
     vesselId: "id",
     vesselName: "text",
   },
@@ -363,7 +407,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     active: "flag",
     artificial: "W/m²",
     cropResource: "text",
+    ecRateMaxPerSec: "units/s",
+    foodRatePerSec: "units/s",
     issue: "text",
+    lampEcDrawPerSec: "units/s",
+    lightToleranceWm2: "W/m²",
     natural: "W/m²",
     pressureTolerance: "ratio",
     radiationToleranceRadPerSec: "rad/s",
@@ -374,12 +422,20 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     poisoning: "ratio",
     pressure: "ratio",
     shielding: "ratio",
+    surface: "m²",
+    volume: "m³",
   },
   "KerbalismProcessEntry": {
     broken: "flag",
+    capacity: "units",
     resource: "text",
     running: "flag",
     title: "text",
+  },
+  "KerbalismResource": {
+    amount: "units",
+    capacity: "units",
+    rate: "units/s",
   },
   "KerbalismSpaceWeather": {
     blackout: "flag",
@@ -389,10 +445,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     magnetosphere: "flag",
     outerBelt: "flag",
     radiationRadPerSecond: "rad/s",
+    shieldingAmount: "units",
+    shieldingCapacity: "units",
     stormInProgress: "flag",
     stormIncoming: "flag",
   },
   "KerbcastCameraEntry": {
+    cameraId: "id",
     cameraName: "text",
     dockingPortNodeType: "text",
     dockingPortState: "text",
@@ -406,6 +465,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     panYaw: "°",
     panYawMaximum: "°",
     panYawMinimum: "°",
+    partId: "id",
     partName: "text",
     partTitle: "text",
     supportsPan: "flag",
@@ -413,23 +473,33 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
   },
   "KerbcastSetFieldOfViewArgs": {
+    cameraId: "id",
     fieldOfView: "°",
   },
+  "KerbcastSetPanArgs": {
+    cameraId: "id",
+    pitch: "°",
+    yaw: "°",
+  },
   "KosComputeStatus": {
+    lastGoodAt: "s",
     parseError: "text",
     paused: "flag",
     running: "flag",
     scriptError: "text",
   },
   "KosExecArgs": {
+    coreId: "id",
     scriptId: "id",
   },
   "KosKeystrokeArgs": {
     chars: "text",
+    coreId: "id",
     leaseToken: "id",
   },
   "KosProcessorInfo": {
     bootFilePath: "text",
+    coreId: "id",
     hasBooted: "flag",
     processorMode: "text",
     tag: "text",
@@ -439,24 +509,32 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "KosRunArgs": {
     command: "text",
+    coreId: "id",
     requestId: "id",
   },
   "KosRunResult": {
+    coreId: "id",
     error: "text",
     requestId: "id",
   },
   "KosTerminalCloseArgs": {
+    coreId: "id",
     leaseToken: "id",
   },
   "KosTerminalFrame": {
     chunk: "text",
+    coreId: "id",
     fullRepaint: "flag",
   },
   "KosTerminalOpenArgs": {
+    coreId: "id",
     leaseToken: "id",
   },
   "KosTerminalResizeArgs": {
+    cols: "count",
+    coreId: "id",
     leaseToken: "id",
+    rows: "count",
   },
   "LabEntry": {
     dataStorage: "Mit",
@@ -464,6 +542,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     isOperational: "flag",
     partName: "text",
     processingData: "flag",
+    scientistCount: "count",
     statusText: "text",
   },
   "LaunchArgs": {
@@ -473,6 +552,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     site: "text",
   },
   "LaunchSiteEntry": {
+    bodyIndex: "id",
     displayName: "text",
     editorFacility: "text",
     isStock: "flag",
@@ -481,17 +561,28 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     padVesselTitle: "text",
   },
   "ManeuverNode": {
+    dvNormal: "m/s",
+    dvPrograde: "m/s",
+    dvRadial: "m/s",
+    dvTotal: "m/s",
     id: "id",
+    ut: "s",
   },
   "Meta": {
     active: "flag",
+    deliveredAt: "s",
     quality: "enum",
+    seq: "id",
     source: "id",
     staleness: "enum",
+    timelineEpoch: "id",
+    validAt: "s",
     vantage: "id",
   },
   "OrbitEncounter": {
+    bodyIndex: "id",
     transitionType: "enum",
+    transitionUt: "s",
   },
   "OrbitEntry": {
     argPe: "°",
@@ -528,45 +619,67 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     tracking: "flag",
     type: "id",
   },
+  "PartResourceFlow": {
+    amount: "units",
+    flow: "units/s",
+    maxAmount: "units",
+    nominalFlow: "units/s",
+  },
+  "PartsPower": {
+    totalProductionEc: "units/s",
+  },
   "PayloadMeta": {
     quality: "enum",
     source: "id",
   },
   "PendingUplink": {
     command: "id",
+    dispatchedAt: "s",
     id: "id",
     label: "text",
+    oneWaySeconds: "s",
     topic: "id",
     vantage: "id",
   },
   "RecoveryCrewEntry": {
     isTourist: "flag",
+    levelsGained: "count",
     name: "text",
+    newLevel: "count",
     trait: "text",
+    xpGained: "count",
   },
   "RecoveryPartEntry": {
+    count: "count",
     partName: "text",
     partTitle: "text",
   },
   "RecoveryReport": {
+    capturedAtUT: "s",
     displayReputation: "flag",
     recoveryFactor: "text",
     recoveryLocation: "text",
     vesselName: "text",
   },
   "RecoveryResourceEntry": {
+    amount: "units",
     resourceName: "text",
   },
   "RecoveryScienceEntry": {
+    dataGathered: "Mit",
     subjectId: "id",
     subjectTitle: "text",
   },
   "ReliabilityPartEntry": {
     broken: "flag",
     critical: "flag",
+    durationConsumed: "ratio",
     group: "text",
+    ignitionsConsumed: "ratio",
     needsRepair: "flag",
     partId: "id",
+    reliabilityFraction: "ratio",
+    remainingRatedBurn: "s",
     title: "text",
   },
   "ReliabilitySummary": {
@@ -574,12 +687,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     malfunction: "flag",
     source: "id",
     unmodeled: "flag",
+    worstReliabilityFraction: "ratio",
   },
   "RemoveManeuverNodeArgs": {
     nodeId: "id",
   },
   "ResourceAmount": {
     active: "flag",
+    current: "units",
+    max: "units",
   },
   "RevertAvailability": {
     canRevertToEditor: "flag",
@@ -601,6 +717,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     facility: "text",
     missingParts: "text",
     name: "text",
+    partCount: "count",
     totalMass: "t",
   },
   "ScanAnomalyEntry": {
@@ -627,6 +744,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     inRange: "flag",
     maxAlt: "m",
     minAlt: "m",
+    type: "id",
   },
   "ScanningVesselEntry": {
     altitude: "m",
@@ -663,6 +781,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
   },
   "SetActionGroupArgs": {
+    group: "id",
     state: "flag",
   },
   "SetControlAxesArgs": {
@@ -689,21 +808,34 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     mode: "enum",
   },
   "SetTargetArgs": {
+    bodyIndex: "id",
     kind: "enum",
     latitude: "°",
     longitude: "°",
+    partId: "id",
     vesselId: "id",
   },
   "SetThrottleArgs": {
     value: "ratio",
   },
+  "SetWarpIndexArgs": {
+    index: "id",
+  },
   "SolarPanelEntry": {
+    chargeRate: "units/s",
     deployState: "text",
+    flowRate: "units/s",
     partId: "id",
     partName: "text",
+    sunAOA: "°",
+  },
+  "SpaceCenterPartsAvailable": {
+    count: "count",
   },
   "SpaceCenterPoiEntry": {
+    bodyIndex: "id",
     contractAgent: "text",
+    contractDateDeadline: "s",
     id: "id",
     kind: "id",
     label: "text",
@@ -723,6 +855,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dvVac: "m/s",
     endMass: "t",
     fuelMass: "t",
+    stage: "id",
     startMass: "t",
     thrustActual: "kN",
     thrustAsl: "kN",
@@ -732,6 +865,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     twrVac: "1",
   },
   "StageDeltaVSummary": {
+    stageCount: "count",
     totalBurnTime: "s",
     totalDvActual: "m/s",
     totalDvAsl: "m/s",
@@ -745,9 +879,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
   },
   "TargetListEntry": {
+    bodyIndex: "id",
+    distance: "m",
     isCurrent: "flag",
     kind: "enum",
     name: "text",
+    partId: "id",
     situation: "enum",
     vesselId: "id",
     vesselType: "enum",
@@ -776,9 +913,18 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "UpgradeFacilityArgs": {
     facilityId: "id",
   },
+  "VesselAttitude": {
+    heading: "°",
+    headingRootFrame: "°",
+    pitch: "°",
+    pitchRootFrame: "°",
+    roll: "°",
+    rollRootFrame: "°",
+  },
   "VesselComms": {
     connected: "flag",
     controlState: "enum",
+    signalStrength: "ratio",
   },
   "VesselControl": {
     abort: "flag",
@@ -789,6 +935,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     rcs: "flag",
     sas: "flag",
     sasMode: "enum",
+    throttle: "ratio",
+  },
+  "VesselCrew": {
+    capacity: "count",
+    count: "count",
   },
   "VesselFlight": {
     altitudeAsl: "m",
@@ -806,7 +957,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     verticalSpeed: "m/s",
   },
   "VesselIdentity": {
+    launchUt: "s",
     name: "text",
+    parentBodyIndex: "id",
     situation: "enum",
     vesselId: "id",
     vesselType: "enum",
@@ -830,7 +983,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     slopeSampleRadiusMeters: "m",
     terminalVelocity: "m/s",
     terrainElevationUnderVessel: "m",
+    terrainPatch: "m",
     terrainPatchExtentMeters: "m",
+    terrainPatchSize: "count",
   },
   "VesselOrbit": {
     argPe: "°",
@@ -840,6 +995,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     lan: "°",
     meanAnomalyAtEpoch: "rad",
     mu: "m³/s²",
+    referenceBodyIndex: "id",
     sma: "m",
   },
   "VesselOrbitTruth": {
@@ -851,6 +1007,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dryMass: "t",
     fuelLineTargetId: "id",
     id: "id",
+    inverseStage: "id",
     isPowerRelated: "flag",
     isRobotics: "flag",
     maxTemp: "K",
@@ -864,13 +1021,27 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "VesselPhysicsMode": {
     mode: "enum",
   },
+  "VesselPropulsion": {
+    availableThrust: "kN",
+    currentThrust: "kN",
+    dryMass: "t",
+    totalMass: "t",
+  },
   "VesselRosterEntry": {
+    bodyIndex: "id",
     commsConnected: "flag",
     commsControlSource: "enum",
+    crewCapacity: "count",
+    crewCount: "count",
     name: "text",
     situation: "enum",
     vesselId: "id",
     vesselType: "enum",
+  },
+  "VesselStructure": {
+    currentStage: "id",
+    partCount: "count",
+    stageCount: "count",
   },
   "VesselSurface": {
     biome: "text",
@@ -878,8 +1049,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     landedAt: "text",
   },
   "VesselTarget": {
+    bodyIndex: "id",
     kind: "enum",
     name: "text",
+    partId: "id",
     vesselId: "id",
   },
   "VesselThermal": {
@@ -895,6 +1068,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "WarpState": {
     paused: "flag",
     warpMode: "enum",
+    warpRate: "1",
+    warpRateIndex: "id",
   },
 };
 
@@ -906,6 +1081,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "avionics.status": {
     avionicsActive: "flag",
     controllable: "flag",
+    controllableMassTons: "t",
+    vesselMassTons: "t",
   },
   "career.mode": {
     mode: "enum",
@@ -965,6 +1142,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     dvVac: "m/s",
     endMass: "t",
     fuelMass: "t",
+    stage: "id",
     startMass: "t",
     thrustActual: "kN",
     thrustAsl: "kN",
@@ -974,6 +1152,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     twrVac: "1",
   },
   "dv.summary": {
+    stageCount: "count",
     totalBurnTime: "s",
     totalDvActual: "m/s",
     totalDvAsl: "m/s",
@@ -988,17 +1167,20 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "flight.ended": {
     flightId: "id",
     reason: "enum",
+    ut: "s",
     vesselId: "id",
     vesselName: "text",
   },
   "flight.started": {
     flightId: "id",
+    ut: "s",
     vesselId: "id",
     vesselName: "text",
   },
   "flight.vesselChanged": {
     flightId: "id",
     previousVesselId: "id",
+    ut: "s",
     vesselId: "id",
     vesselName: "text",
   },
@@ -1034,10 +1216,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     magnetosphere: "flag",
     outerBelt: "flag",
     radiationRadPerSecond: "rad/s",
+    shieldingAmount: "units",
+    shieldingCapacity: "units",
     stormInProgress: "flag",
     stormIncoming: "flag",
   },
   "kerbcast.cameras": {
+    cameraId: "id",
     cameraName: "text",
     dockingPortNodeType: "text",
     dockingPortState: "text",
@@ -1051,6 +1236,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     panYaw: "°",
     panYawMaximum: "°",
     panYawMinimum: "°",
+    partId: "id",
     partName: "text",
     partTitle: "text",
     supportsPan: "flag",
@@ -1059,6 +1245,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "kos.processors": {
     bootFilePath: "text",
+    coreId: "id",
     hasBooted: "flag",
     processorMode: "text",
     tag: "text",
@@ -1066,6 +1253,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "ksp.revertAvailability": {
     canRevertToEditor: "flag",
     canRevertToLaunch: "flag",
+  },
+  "parts.power": {
+    totalProductionEc: "units/s",
   },
   "parts.robotics": {
     counterClockwise: "flag",
@@ -1078,6 +1268,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     type: "id",
   },
   "recovery.lastSummary": {
+    capturedAtUT: "s",
     displayReputation: "flag",
     recoveryFactor: "text",
     recoveryLocation: "text",
@@ -1086,9 +1277,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "reliability.parts": {
     broken: "flag",
     critical: "flag",
+    durationConsumed: "ratio",
     group: "text",
+    ignitionsConsumed: "ratio",
     needsRepair: "flag",
     partId: "id",
+    reliabilityFraction: "ratio",
+    remainingRatedBurn: "s",
     title: "text",
   },
   "reliability.summary": {
@@ -1096,6 +1291,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     malfunction: "flag",
     source: "id",
     unmodeled: "flag",
+    worstReliabilityFraction: "ratio",
   },
   "robotics.available": {
     available: "flag",
@@ -1147,6 +1343,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     inoperable: "flag",
     location: "text",
     partName: "text",
+    scienceValueRatio: "ratio",
     situation: "text",
     subjectId: "id",
     title: "text",
@@ -1168,6 +1365,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     isOperational: "flag",
     partName: "text",
     processingData: "flag",
+    scientistCount: "count",
     statusText: "text",
   },
   "science.sensors": {
@@ -1179,11 +1377,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "spaceCenter.crewRoster": {
     available: "flag",
+    experienceLevel: "count",
     name: "text",
     trait: "text",
     unavailableReason: "text",
   },
   "spaceCenter.launchSites": {
+    bodyIndex: "id",
     displayName: "text",
     editorFacility: "text",
     isStock: "flag",
@@ -1191,8 +1391,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     padOccupied: "flag",
     padVesselTitle: "text",
   },
+  "spaceCenter.partsAvailable": {
+    count: "count",
+  },
   "spaceCenter.pois": {
+    bodyIndex: "id",
     contractAgent: "text",
+    contractDateDeadline: "s",
     id: "id",
     kind: "id",
     label: "text",
@@ -1204,6 +1409,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     facility: "text",
     missingParts: "text",
     name: "text",
+    partCount: "count",
     totalMass: "t",
   },
   "spaceCenter.scene": {
@@ -1213,10 +1419,21 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "time.warp": {
     paused: "flag",
     warpMode: "enum",
+    warpRate: "1",
+    warpRateIndex: "id",
+  },
+  "vessel.attitude": {
+    heading: "°",
+    headingRootFrame: "°",
+    pitch: "°",
+    pitchRootFrame: "°",
+    roll: "°",
+    rollRootFrame: "°",
   },
   "vessel.comms": {
     connected: "flag",
     controlState: "enum",
+    signalStrength: "ratio",
   },
   "vessel.control": {
     abort: "flag",
@@ -1227,6 +1444,15 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     rcs: "flag",
     sas: "flag",
     sasMode: "enum",
+    throttle: "ratio",
+  },
+  "vessel.crew": {
+    capacity: "count",
+    count: "count",
+  },
+  "vessel.dock": {
+    distance: "m",
+    forwardDot: "1",
   },
   "vessel.flight": {
     altitudeAsl: "m",
@@ -1244,7 +1470,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     verticalSpeed: "m/s",
   },
   "vessel.identity": {
+    launchUt: "s",
     name: "text",
+    parentBodyIndex: "id",
     situation: "enum",
     vesselId: "id",
     vesselType: "enum",
@@ -1268,7 +1496,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     slopeSampleRadiusMeters: "m",
     terminalVelocity: "m/s",
     terrainElevationUnderVessel: "m",
+    terrainPatch: "m",
     terrainPatchExtentMeters: "m",
+    terrainPatchSize: "count",
   },
   "vessel.orbit": {
     argPe: "°",
@@ -1278,6 +1508,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     lan: "°",
     meanAnomalyAtEpoch: "rad",
     mu: "m³/s²",
+    referenceBodyIndex: "id",
     sma: "m",
   },
   "vessel.orbit.truth": {
@@ -1286,14 +1517,27 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.physics.mode": {
     mode: "enum",
   },
+  "vessel.propulsion": {
+    availableThrust: "kN",
+    currentThrust: "kN",
+    dryMass: "t",
+    totalMass: "t",
+  },
+  "vessel.structure": {
+    currentStage: "id",
+    partCount: "count",
+    stageCount: "count",
+  },
   "vessel.surface": {
     biome: "text",
     heightFromTerrain: "m",
     landedAt: "text",
   },
   "vessel.target": {
+    bodyIndex: "id",
     kind: "enum",
     name: "text",
+    partId: "id",
     vesselId: "id",
   },
   "vessel.thermal": {

@@ -65,6 +65,7 @@ public class KerbcastCameraEntry
     /// 2nd+ camera module on a multi-camera part. Use <see cref="PartId"/> when
     /// you want part identity; use this when you want to talk to kerbcast.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public long? CameraId { get; set; }
 
     /// <summary>
@@ -72,6 +73,7 @@ public class KerbcastCameraEntry
     /// (<c>KerbcastCameraView.PartFlightId</c>): the join key onto
     /// <c>vessel.parts</c>. Null when the camera's part could not be read.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public long? PartId { get; set; }
 
     /// <summary>
@@ -188,6 +190,7 @@ public class KerbcastCameraEntry
 public class KerbcastSetFieldOfViewArgs
 {
     /// <summary>Target camera, identified by its <see cref="KerbcastCameraEntry.CameraId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public long CameraId { get; set; }
 
     /// <summary>Requested field of view, degrees. kerbcast clamps to the camera's own bounds.</summary>
@@ -206,11 +209,14 @@ public class KerbcastSetFieldOfViewArgs
 public class KerbcastSetPanArgs
 {
     /// <summary>Target camera, identified by its <see cref="KerbcastCameraEntry.CameraId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public long CameraId { get; set; }
 
     /// <summary>Requested yaw, degrees. kerbcast clamps to the camera's own bounds.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double Yaw { get; set; }
 
     /// <summary>Requested pitch, degrees. kerbcast clamps to the camera's own bounds.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double Pitch { get; set; }
 }

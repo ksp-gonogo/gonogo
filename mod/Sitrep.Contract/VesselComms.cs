@@ -57,6 +57,7 @@ public class VesselComms
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
 
+    [SitrepUnit(Units.Ratio)]
     public double SignalStrength { get; set; }
 
     [SitrepUnit(Units.Enumeration)]

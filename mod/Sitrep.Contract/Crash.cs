@@ -103,6 +103,7 @@ public class CrashReport
 public class CrashPartLost
 {
     /// <summary>The part's <c>flightID</c>.</summary>
+    [SitrepUnit(Units.Id)]
     public long PartId { get; set; }
 
     /// <summary>The part's <c>partInfo.name</c> (e.g. <c>"mk1pod.v2"</c>).</summary>
@@ -130,9 +131,11 @@ public class CrashPartLost
 public class CrashFlightStats
 {
     /// <summary>Kerbals killed earlier in the flight (before the final crash).</summary>
+    [SitrepUnit(Units.Count)]
     public int KerbalsKilled { get; set; }
 
     /// <summary>Cumulative parts destroyed across the flight.</summary>
+    [SitrepUnit(Units.Count)]
     public int PartsLost { get; set; }
 
     /// <summary>How the flight ended (e.g. <c>"CATASTROPHIC_FAILURE"</c>).</summary>

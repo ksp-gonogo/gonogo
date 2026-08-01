@@ -16,7 +16,9 @@ namespace Sitrep.Contract;
 #endif
 public class ResourceAmount
 {
+    [SitrepUnit(Units.ResourceUnits)]
     public double Current { get; set; }
+    [SitrepUnit(Units.ResourceUnits)]
     public double Max { get; set; }
 
     /// <summary>

@@ -25,12 +25,16 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.propulsion")]
 public class VesselPropulsion
 {
+    [SitrepUnit(Units.Tonnes)]
     public double TotalMass { get; set; }
 
+    [SitrepUnit(Units.Tonnes)]
     public double DryMass { get; set; }
 
+    [SitrepUnit(Units.Kilonewtons)]
     public double CurrentThrust { get; set; }
 
+    [SitrepUnit(Units.Kilonewtons)]
     public double AvailableThrust { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

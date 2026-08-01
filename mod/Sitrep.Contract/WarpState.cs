@@ -55,8 +55,10 @@ public enum WarpMode
 [SitrepTopic("time.warp")]
 public class WarpState
 {
+    [SitrepUnit(Units.Dimensionless)]
     public double WarpRate { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public int WarpRateIndex { get; set; }
 
     [SitrepUnit(Units.Enumeration)]

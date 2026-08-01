@@ -115,9 +115,11 @@ public class VesselLanding
     // ── Reticle relief patch (phase-later; cached, resampled on point drift) ─
 
     /// <summary>Flattened row-major NxN grid of terrain elevations (metres) around the predicted point, for the reticle's shaded relief. Null until the relief patch ships / when over the PQS budget (the reticle falls back to a flat roughness tint). Length is <see cref="TerrainPatchSize"/> squared.</summary>
+    [SitrepUnit(Units.Metres)]
     public double[]? TerrainPatch { get; set; }
 
     /// <summary>The N of the NxN <see cref="TerrainPatch"/> grid. Null when no patch.</summary>
+    [SitrepUnit(Units.Count)]
     public int? TerrainPatchSize { get; set; }
 
     /// <summary>Metres: the full width the <see cref="TerrainPatch"/> grid spans.</summary>

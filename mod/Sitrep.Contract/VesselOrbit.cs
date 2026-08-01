@@ -31,6 +31,7 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.orbit")]
 public class VesselOrbit
 {
+    [SitrepUnit(Units.Id)]
     public int ReferenceBodyIndex { get; set; }
 
     /// <summary>Semi-major axis, metres (see the class doc comment's units block).</summary>
@@ -92,8 +93,10 @@ public class OrbitEncounter
     [SitrepUnit(Units.Enumeration)]
     public TransitionType TransitionType { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double TransitionUt { get; set; }
 
     /// <summary>Index into <c>system.bodies</c> of the body being transitioned INTO; null if that body couldn't be resolved.</summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 }

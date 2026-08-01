@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 public class RecoveryReport
 {
     /// <summary>Universal time of the recovery capture.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double CapturedAtUT { get; set; }
 
     [SitrepUnit(Units.Text)]
@@ -81,6 +82,7 @@ public class RecoveryScienceEntry
     [SitrepUnit(Units.Text)]
     public string SubjectTitle { get; set; } = "";
 
+    [SitrepUnit(Units.Mits)]
     public double DataGathered { get; set; }
 
     public double ScienceAmount { get; set; }
@@ -104,6 +106,7 @@ public class RecoveryPartEntry
     [SitrepUnit(Units.Text)]
     public string PartTitle { get; set; } = "";
 
+    [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
     public double PartValue { get; set; }
@@ -125,6 +128,7 @@ public class RecoveryResourceEntry
     [SitrepUnit(Units.Text)]
     public string ResourceName { get; set; } = "";
 
+    [SitrepUnit(Units.ResourceUnits)]
     public double Amount { get; set; }
 
     public double UnitValue { get; set; }
@@ -151,9 +155,12 @@ public class RecoveryCrewEntry
     [SitrepUnit(Units.Flag)]
     public bool IsTourist { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public double XpGained { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int LevelsGained { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int NewLevel { get; set; }
 }

@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 public class KosProcessorInfo
 {
     /// <summary><c>kOSProcessor.KOSCoreId</c>: stable per game run, the handle every command targets.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary><c>kOSProcessor.Tag</c> (from the companion <c>KOSNameTag</c>): null when the part carries no name-tag.</summary>
@@ -71,6 +72,7 @@ public class KosComputeStatus
     public bool Running { get; set; }
 
     /// <summary>UT of the last successful <c>[KOSDATA]</c> parse, null until the first good parse.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? LastGoodAt { get; set; }
 
     /// <summary>Last script-author fault (runtime exception / <c>[KOSERROR]</c>), null when none.</summary>
@@ -101,6 +103,7 @@ public class KosComputeStatus
 public class KosExecArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public int CoreId { get; set; }
 
     /// <summary>The registered compute topic id whose script to run (its on-volume path is <c>0:/widget_scripts/&lt;id&gt;.ks</c>).</summary>

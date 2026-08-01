@@ -54,6 +54,7 @@ namespace Sitrep.Contract;
 #endif
 public class ScanSensorEntry
 {
+    [SitrepUnit(Units.Id)]
     public int? Type { get; set; }
 
     [SitrepUnit(Units.Degrees)]

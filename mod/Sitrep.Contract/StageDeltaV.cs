@@ -41,6 +41,7 @@ namespace Sitrep.Contract;
 public class StageDeltaVEntry
 {
     /// <summary><c>DeltaVStageInfo.stage</c>: the stage number this entry describes.</summary>
+    [SitrepUnit(Units.Id)]
     public int? Stage { get; set; }
 
     /// <summary><c>DeltaVStageInfo.deltaVinVac</c>: stage ΔV in vacuum (m/s).</summary>
@@ -135,6 +136,7 @@ public class StageDeltaVEntry
 public class StageDeltaVSummary
 {
     /// <summary><c>VesselDeltaV.OperatingStageInfo.Count</c>: the number of ΔV-producing stages.</summary>
+    [SitrepUnit(Units.Count)]
     public int? StageCount { get; set; }
 
     /// <summary><c>VesselDeltaV.TotalDeltaVVac</c>: total vessel ΔV in vacuum (m/s).</summary>

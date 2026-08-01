@@ -64,9 +64,11 @@ public enum TargetKind
 public class ClosestApproach
 {
     /// <summary>Universal Time (seconds) of the minimum separation at or after the sample's UT.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double Time { get; set; }
 
     /// <summary>Separation (metres) at <see cref="Time"/>.</summary>
+    [SitrepUnit(Units.Metres)]
     public double Distance { get; set; }
 }
 
@@ -128,6 +130,7 @@ public class VesselTarget
     /// own field. Null for a vessel/other target, or if the body name
     /// couldn't be resolved against <c>system.bodies</c> this tick.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
     /// <summary>
@@ -138,6 +141,7 @@ public class VesselTarget
     /// straight off <c>vessel.target</c> and hands it back into
     /// <see cref="SetTargetArgs.PartId"/> to re-target the same port.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public uint? PartId { get; set; }
 
     /// <summary>Metres, self-relative. Null only when the transform data needed to compute it wasn't available this tick.</summary>

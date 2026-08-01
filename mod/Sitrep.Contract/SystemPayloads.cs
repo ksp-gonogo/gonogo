@@ -52,9 +52,11 @@ public class BodyEntry
     public string? Name { get; set; }
 
     /// <summary>This body's position in the list: stable per session. Always present (the provider falls back to the list index when the raw field is missing), never null.</summary>
+    [SitrepUnit(Units.Id)]
     public int Index { get; set; }
 
     /// <summary>Index of the body this one orbits; null ONLY for the root star (no parent), never a sentinel like -1.</summary>
+    [SitrepUnit(Units.Id)]
     public int? ParentIndex { get; set; }
 
     /// <summary>Mean radius, metres; null when the live game doesn't have it yet (never 0/-1 as a stand-in).</summary>
@@ -249,6 +251,7 @@ public class VesselRosterEntry
     public Situation Situation { get; set; }
 
     /// <summary>Index into <see cref="SystemBodies"/> of this vessel's main body; null when absent or unresolved.</summary>
+    [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
     /// <summary>
@@ -259,9 +262,11 @@ public class VesselRosterEntry
     /// key rather than fabricate a zero); never used to distinguish "probe"
     /// from "unknown", that is <see cref="CrewCount"/> == 0 vs. null.
     /// </summary>
+    [SitrepUnit(Units.Count)]
     public int? CrewCount { get; set; }
 
     /// <summary>Seat capacity, same loaded/proto read as <see cref="CrewCount"/>. Null only if the read failed.</summary>
+    [SitrepUnit(Units.Count)]
     public int? CrewCapacity { get; set; }
 
     /// <summary>

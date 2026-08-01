@@ -25,6 +25,7 @@ public class ActivateStrategyArgs
     public string StrategyId { get; set; } = "";
 
     /// <summary>0..1 slider fraction; ignored by strategies without a factor slider.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double Factor { get; set; }
 }
 

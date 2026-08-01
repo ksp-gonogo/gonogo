@@ -36,6 +36,7 @@ public class ManeuverNode
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
+    [SitrepUnit(Units.Seconds)]
     public double Ut { get; set; }
 
     /// <summary>
@@ -44,15 +45,19 @@ public class ManeuverNode
     /// because one component came back bad); see
     /// <c>VesselViewProvider.BuildManeuver</c>.
     /// </summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvRadial { get; set; }
 
     /// <summary>Null only if KSP's own dv component was non-finite this tick; see <see cref="DvRadial"/>'s doc comment.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvNormal { get; set; }
 
     /// <summary>Null only if KSP's own dv component was non-finite this tick; see <see cref="DvRadial"/>'s doc comment.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvPrograde { get; set; }
 
     /// <summary>Null only if KSP's own dv magnitude was non-finite this tick; see <see cref="DvRadial"/>'s doc comment.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvTotal { get; set; }
 
     /// <summary>

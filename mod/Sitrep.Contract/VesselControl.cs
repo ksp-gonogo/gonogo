@@ -61,6 +61,7 @@ public class ActionGroupState
     /// indices up to 250. Consumers must NOT assume 10, nor assume the list
     /// is dense or sorted.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public int Index { get; set; }
 
     /// <summary>
@@ -133,6 +134,7 @@ public class VesselControl
     public bool? PrecisionControl { get; set; }
 
     /// <summary>0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? Throttle { get; set; }
 
     /// <summary>

@@ -24,12 +24,15 @@ namespace Sitrep.Contract;
 public class VesselStructure
 {
     /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule/high stages have LOW numbers); see the class doc comment.</summary>
+    [SitrepUnit(Units.Id)]
     public int CurrentStage { get; set; }
 
     /// <summary>Null when the vessel has no parts this tick.</summary>
+    [SitrepUnit(Units.Count)]
     public int? StageCount { get; set; }
 
     /// <summary>Null when the vessel has no parts this tick.</summary>
+    [SitrepUnit(Units.Count)]
     public int? PartCount { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

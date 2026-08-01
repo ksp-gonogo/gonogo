@@ -35,9 +35,11 @@ public class VesselIdentity
     public Situation Situation { get; set; }
 
     /// <summary>Index into the <c>system.bodies</c> collection; null when the vessel has no orbit driver yet (e.g. a just-spawned EVA before it attaches).</summary>
+    [SitrepUnit(Units.Id)]
     public int? ParentBodyIndex { get; set; }
 
     /// <summary>sampleUt - missionTime; null before the vessel's launch clock has started. See the class doc comment.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? LaunchUt { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

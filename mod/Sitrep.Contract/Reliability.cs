@@ -49,6 +49,7 @@ public class ReliabilitySummary
     [SitrepUnit(Units.Id)]
     public string? Source { get; set; }
     /// <summary>Worst engine reliability probability on the vessel (0..1), the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? WorstReliabilityFraction { get; set; }
 }
 
@@ -78,12 +79,16 @@ public class ReliabilityPartEntry
     public bool? Critical { get; set; }
     public double? MtbfHours { get; set; }
     /// <summary>Live/interpolated reliability probability (0..1): TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? ReliabilityFraction { get; set; }
     /// <summary>Seconds of rated burn left (TestFlight). Distinct from the Kerbalism-only DurationConsumed fraction. Null for Kerbalism.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? RemainingRatedBurn { get; set; }
     /// <summary>Fraction of rated ignitions CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? IgnitionsConsumed { get; set; }
     /// <summary>Fraction of rated duration CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? DurationConsumed { get; set; }
     [SitrepUnit(Units.Flag)]
     public bool? NeedsRepair { get; set; }

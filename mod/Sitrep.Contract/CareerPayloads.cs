@@ -78,8 +78,10 @@ public class CareerEconomy
 #endif
 public class CareerFacility
 {
+    [SitrepUnit(Units.Count)]
     public int? CurrentTier { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int? MaxTier { get; set; }
 
     public double? UpgradeCost { get; set; }
@@ -140,10 +142,13 @@ public class CareerContract
 
     public double? ReputationFailure { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double? DateAccepted { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double? DateDeadline { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double? DateExpire { get; set; }
 
     public List<CareerContractParameter> Parameters { get; set; } = new();
@@ -178,6 +183,7 @@ public class CareerStrategies
 
     public List<CareerStrategy> All { get; set; } = new();
 
+    [SitrepUnit(Units.Count)]
     public int ActiveCount { get; set; }
 }
 
@@ -203,8 +209,10 @@ public class CareerStrategy
     [SitrepUnit(Units.Flag)]
     public bool? IsActive { get; set; }
 
+    [SitrepUnit(Units.Ratio)]
     public double? Factor { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double? DateActivated { get; set; }
 
     public double? RequiredReputation { get; set; }
@@ -218,8 +226,10 @@ public class CareerStrategy
     [SitrepUnit(Units.Flag)]
     public bool? HasFactorSlider { get; set; }
 
+    [SitrepUnit(Units.Ratio)]
     public double? FactorSliderDefault { get; set; }
 
+    [SitrepUnit(Units.Count)]
     public int? FactorSliderSteps { get; set; }
 
     [SitrepUnit(Units.Flag)]
@@ -249,6 +259,7 @@ public class CareerStrategy
 #endif
 public class CareerTech
 {
+    [SitrepUnit(Units.Count)]
     public int UnlockedCount { get; set; }
 
     [SitrepUnit(Units.Id)]

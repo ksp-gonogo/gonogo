@@ -27,10 +27,13 @@ public class SolarPanelEntry
     [SitrepUnit(Units.Text)]
     public string? DeployState { get; set; }
 
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? FlowRate { get; set; }
 
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? ChargeRate { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? SunAOA { get; set; }
 }
 
@@ -50,8 +53,10 @@ public class BatteryEntry
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.ResourceUnits)]
     public double? Current { get; set; }
 
+    [SitrepUnit(Units.ResourceUnits)]
     public double? Max { get; set; }
 }
 
@@ -95,6 +100,7 @@ public class AlternatorEntry
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? OutputRate { get; set; }
 }
 
@@ -132,6 +138,7 @@ public class PartsPower
 
     public List<AlternatorEntry>? Alternators { get; set; }
 
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? TotalProductionEc { get; set; }
 }
 

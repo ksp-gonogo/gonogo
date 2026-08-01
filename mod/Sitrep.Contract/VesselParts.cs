@@ -98,6 +98,7 @@ public class VesselPart
     public double DryMass { get; set; }
 
     /// <summary><c>Part.inverseStage</c> (KSP's own inverted staging numbering, carried forward unchanged; see <see cref="VesselStructure.CurrentStage"/>).</summary>
+    [SitrepUnit(Units.Id)]
     public int InverseStage { get; set; }
 
     /// <summary><c>Part.maxTemp</c>: internal max temperature (K).</summary>
@@ -215,15 +216,19 @@ public class ActionBinding
 public class PartResourceFlow
 {
     /// <summary><c>PartResource.amount</c>: current stored amount.</summary>
+    [SitrepUnit(Units.ResourceUnits)]
     public double Amount { get; set; }
 
     /// <summary><c>PartResource.maxAmount</c>: storage capacity.</summary>
+    [SitrepUnit(Units.ResourceUnits)]
     public double MaxAmount { get; set; }
 
     /// <summary>Signed units/sec: positive = producing, negative = consuming. <c>null</c> when no cheaply-derivable module contributes.</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? Flow { get; set; }
 
     /// <summary>Same-sign 100%-efficiency cap (rated solar output). <c>null</c> when no module supports a nominal, or when it would equal <see cref="Flow"/>.</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? NominalFlow { get; set; }
 }
 
