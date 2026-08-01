@@ -80,10 +80,22 @@ const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
     { from: 1e6, symbol: "Mm", per: 1e6 },
     { from: 1e9, symbol: "Gm", per: 1e9 },
   ],
+  // Every threshold and divisor here is in KILOGRAMS, including the
+  // astronomical rungs, whose symbols are gram-based (1 Yg is 1e24 g, so
+  // 1e21 kg). Stating them in kg is not a convenience, it makes a real bug
+  // unrepresentable: SystemView's hand-rolled version applied gram thresholds
+  // straight to a kilogram value and labelled Kerbin's 5.29e22 kg as
+  // "52.91 Zg", one whole prefix tier too small. A single base unit per
+  // ladder means that mistake has nowhere to live.
   mass: [
     { from: 0, symbol: "kg", per: 1 },
     { from: 1e3, symbol: "t", per: 1e3 },
     { from: 1e6, symbol: "kt", per: 1e6 },
+    { from: 1e9, symbol: "Tg", per: 1e9 },
+    { from: 1e12, symbol: "Pg", per: 1e12 },
+    { from: 1e15, symbol: "Eg", per: 1e15 },
+    { from: 1e18, symbol: "Zg", per: 1e18 },
+    { from: 1e21, symbol: "Yg", per: 1e21 },
   ],
   force: [
     { from: 0, symbol: "N", per: 1 },

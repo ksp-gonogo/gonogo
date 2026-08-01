@@ -162,6 +162,17 @@ describe("SystemViewComponent", () => {
     );
     primeStream();
     await waitFor(() => expect(screen.getByText("Radius")).toBeInTheDocument());
+
+    // Assert the VALUES, not just that the labels rendered. This test used to
+    // check the "Radius" label alone, which meant the panel's two hand-rolled
+    // SI ladders were never covered at all: they could have printed anything.
+    // That is how the mass ladder shipped applying GRAM thresholds to a
+    // KILOGRAM value, labelling Kerbin one whole prefix tier low.
+    await waitFor(() =>
+      expect(screen.getByText("600.0 km")).toBeInTheDocument(),
+    );
+    // Kerbin's mass, derived from mu. 5.29e22 kg is 5.29e25 g, so Yg, not Zg.
+    expect(screen.getByText(/52\.\d+ Yg/)).toBeInTheDocument();
   });
 
   it("renders the child bodies of the frame in the diagram", async () => {

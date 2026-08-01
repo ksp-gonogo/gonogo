@@ -132,6 +132,19 @@ describe("formatQuantity", () => {
     });
   });
 
+  it("labels a planetary mass on the right prefix tier", () => {
+    // Kerbin, 5.2915e22 kg. SystemView's hand-rolled ladder applied GRAM
+    // thresholds to a KILOGRAM value and called this "52.91 Zg", one whole
+    // tier low. Note what that bug looked like: the DIGITS were right and only
+    // the label was wrong, which is exactly why it survived being read. The
+    // symbols here are gram-based but every threshold is in kg, so the
+    // mistake has nowhere to live.
+    expect(formatQuantity(5.2915e22, "kg")).toMatchObject({
+      value: "52.91",
+      symbol: "Yg",
+    });
+  });
+
   it("writes a gravitational parameter in scientific notation", () => {
     // Kerbin's mu. "3531600000000" is unreadable and there is no prefix anyone
     // writes for 1e12 m³/s², so the notation the literature uses wins.

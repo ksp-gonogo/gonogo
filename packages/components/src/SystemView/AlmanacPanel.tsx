@@ -1,4 +1,4 @@
-import { formatDuration } from "@ksp-gonogo/ui-kit";
+import { formatDuration, formatQuantity } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -214,30 +214,17 @@ export function AlmanacPanel({
   );
 }
 
+// Both of these are now one-line adapters onto the shared ladders. They stay
+// as named functions only because the call sites read better for it; the
+// scaling, the thresholds and the precision all come from ui-kit.
 function formatLength(metres: number): string {
-  const abs = Math.abs(metres);
-  if (abs >= 1e9) return `${(metres / 1e9).toFixed(2)} Gm`;
-  if (abs >= 1e6) return `${(metres / 1e6).toFixed(2)} Mm`;
-  if (abs >= 1e3) return `${(metres / 1e3).toFixed(1)} km`;
-  return `${metres.toFixed(0)} m`;
+  const { value, symbol } = formatQuantity(metres, "m");
+  return `${value} ${symbol}`;
 }
 
 function formatMass(kg: number): string {
-  // SI mass prefixes (Yg/Zg/Eg/Pg/Tg) are gram-based, not kilogram-based:
-  // the thresholds/divisors below used to be applied straight to `kg`
-  // (e.g. `kg >= 1e21` labelled "Zg"), which is off by the kg-to-g factor
-  // of 1000, one whole prefix tier too small a label for the number shown
-  // (Kerbin's ~5.29e22 kg rendered as "52.91 Zg" when 5.29e22 kg is
-  // 5.29e25 g, i.e. Yg territory, not Zg). Convert to grams first so the
-  // standard thresholds apply correctly.
-  const grams = kg * 1000;
-  const abs = Math.abs(grams);
-  if (abs >= 1e24) return `${(grams / 1e24).toFixed(2)} Yg`;
-  if (abs >= 1e21) return `${(grams / 1e21).toFixed(2)} Zg`;
-  if (abs >= 1e18) return `${(grams / 1e18).toFixed(2)} Eg`;
-  if (abs >= 1e15) return `${(grams / 1e15).toFixed(2)} Pg`;
-  if (abs >= 1e12) return `${(grams / 1e12).toFixed(2)} Tg`;
-  return `${kg.toFixed(0)} kg`;
+  const { value, symbol } = formatQuantity(kg, "kg");
+  return `${value} ${symbol}`;
 }
 
 function normalizeAngle(deg: number): number {
