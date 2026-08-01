@@ -416,10 +416,14 @@ export function GraphView({
     const seriesLabel = cfg.label ?? meta?.label ?? cfg.key;
     const unit = meta?.unit;
 
+    // Drop the subtitle when it would only repeat the title. Naming a
+    // one-series graph after its series is the obvious thing to do, so
+    // "Altitude / Altitude" was the common case rather than the edge one.
+    const readoutTitle = title ?? "GRAPH";
     return (
       <Panel
-        panelTitle={title ?? "GRAPH"}
-        panelSubtitle={seriesLabel}
+        panelTitle={readoutTitle}
+        panelSubtitle={seriesLabel === readoutTitle ? undefined : seriesLabel}
         panelAside={headerActions}
       >
         <ReadoutBody ref={containerRef}>
