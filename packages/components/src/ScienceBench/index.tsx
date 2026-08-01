@@ -11,6 +11,7 @@ import {
   Panel,
   PanelSubtitle,
   ScrollArea,
+  SectionTitle,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -640,14 +641,6 @@ const Section = styled.div`
   &:first-child {
     margin-top: var(--space-4);
   }
-`;
-
-const SectionTitle = styled.div`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
 `;
 
 const SectionMeta = styled.span`

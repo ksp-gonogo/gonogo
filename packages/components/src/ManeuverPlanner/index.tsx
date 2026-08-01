@@ -20,7 +20,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { CheckIcon, Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
+import { CheckIcon, Panel, ScrollArea, SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -444,7 +444,7 @@ function ManeuverPlannerComponent({
   function renderNodesSection() {
     return (
       <Section>
-        <SectionTitle>Planned nodes</SectionTitle>
+        <SectionTitle as="h4">Planned nodes</SectionTitle>
         <ManeuverNodeList
           nodes={nodes}
           completedNodes={completedNodes}
@@ -461,7 +461,7 @@ function ManeuverPlannerComponent({
   function renderNewManeuverSection() {
     return (
       <Section>
-        <SectionTitle>New maneuver</SectionTitle>
+        <SectionTitle as="h4">New maneuver</SectionTitle>
         <PresetInput
           api={inputsApi}
           telemetry={{
@@ -481,7 +481,7 @@ function ManeuverPlannerComponent({
   function renderWaitingPanel() {
     return (
       <WaitingPanel>
-        <SectionTitle>Waiting for telemetry</SectionTitle>
+        <SectionTitle as="h4">Waiting for telemetry</SectionTitle>
         <StatusList>
           {telemetryStatus.map((s) => (
             <StatusRow key={s.label}>
@@ -499,7 +499,7 @@ function ManeuverPlannerComponent({
   function renderHyperbolicPanel() {
     return (
       <WaitingPanel>
-        <SectionTitle>Hyperbolic trajectory</SectionTitle>
+        <SectionTitle as="h4">Hyperbolic trajectory</SectionTitle>
         <HyperbolicNotice>
           Escaping on a hyperbolic orbit (no apoapsis), maneuver planning is not
           available.
@@ -512,7 +512,7 @@ function ManeuverPlannerComponent({
     if (armedTriggers.length === 0) return null;
     return (
       <Section>
-        <SectionTitle>Armed triggers</SectionTitle>
+        <SectionTitle as="h4">Armed triggers</SectionTitle>
         <ArmedTriggersList
           triggers={armedTriggers}
           onCancel={handleCancelTrigger}
@@ -650,15 +650,6 @@ const Section = styled.section`
   flex-direction: column;
   gap: var(--space-4);
   padding-top: var(--space-4);
-`;
-
-const SectionTitle = styled.h4`
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-  margin: 0 0 var(--space-2) 0;
 `;
 
 const ScrollBody = styled(ScrollArea)`

@@ -9,7 +9,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { VesselDeltaV } from "@ksp-gonogo/data";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, SectionTitle } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { isSequence, type PlanResult } from "./planning";
@@ -60,7 +60,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
   if (!plan) return null;
   return (
     <PreviewSection>
-      <SectionTitle>Preview</SectionTitle>
+      <SectionTitle as="h4">Preview</SectionTitle>
       <PreviewContainer>
         <PreviewMain>
           <PreviewReadouts>
@@ -193,7 +193,7 @@ function SequencePreview({
         </Value>
       </PreviewGrid>
 
-      <SectionTitle>Burn 1</SectionTitle>
+      <SectionTitle as="h4">Burn 1</SectionTitle>
       <PreviewGrid>
         <Label>ΔV</Label>
         <Value>{burn1.prograde.toFixed(1)} m/s prograde</Value>
@@ -208,7 +208,7 @@ function SequencePreview({
 
       {burn2 && (
         <>
-          <SectionTitle>Burn 2</SectionTitle>
+          <SectionTitle as="h4">Burn 2</SectionTitle>
           <PreviewGrid>
             <Label>ΔV</Label>
             <Value>{burn2.prograde.toFixed(1)} m/s prograde</Value>
@@ -372,15 +372,6 @@ const PreviewSection = styled.section`
   flex-direction: column;
   gap: var(--space-6);
   padding-top: var(--space-4);
-`;
-
-const SectionTitle = styled.h4`
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-  margin: 0 0 var(--space-2) 0;
 `;
 
 const PreviewGrid = styled.dl`

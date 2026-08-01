@@ -20,6 +20,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ScrollArea,
+  SectionTitle,
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
@@ -485,7 +486,7 @@ function PowerSystemsComponent({
 
       <SectionsScroll $landscape={isLandscape}>
         <Section $landscape={isLandscape}>
-          <SectionTitle>
+          <SectionTitle as="h3">
             Producers
             {producers.length > 0 && (
               <SectionCount>· {producers.length}</SectionCount>
@@ -502,7 +503,7 @@ function PowerSystemsComponent({
           )}
         </Section>
         <Section $landscape={isLandscape}>
-          <SectionTitle>
+          <SectionTitle as="h3">
             Consumers
             {consumers.length > 0 && (
               <SectionCount>· {consumers.length}</SectionCount>
@@ -520,7 +521,7 @@ function PowerSystemsComponent({
         </Section>
         {idle.length > 0 && (
           <Section $landscape={isLandscape}>
-            <SectionTitle>
+            <SectionTitle as="h3">
               Idle
               <SectionCount>· {idle.length}</SectionCount>
             </SectionTitle>
@@ -780,14 +781,6 @@ const Section = styled.section<{ $landscape?: boolean }>`
   gap: var(--space-2);
   ${({ $landscape }) =>
     $landscape ? "flex: 1 1 0; min-width: 0; min-height: 0;" : ""}
-`;
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
 `;
 
 const SectionCount = styled.span`
