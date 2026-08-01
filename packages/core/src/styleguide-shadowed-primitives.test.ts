@@ -140,7 +140,6 @@ const BASELINE = new Set<string>([
   "Row@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
   "Row@packages/components/src/PowerSystems/index.tsx",
   "Row@packages/components/src/StationConnectView/index.tsx",
-  "Row@packages/components/src/TargetPicker/index.tsx",
   "Row@packages/ui/src/DataKeyMultiPicker.tsx",
   "RowName@packages/components/src/TargetPicker/index.tsx",
   "RowName@packages/serial/src/SerialDevicesMenu/index.tsx",

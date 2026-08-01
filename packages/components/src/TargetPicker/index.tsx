@@ -30,6 +30,7 @@ import {
   FieldLabel,
   NULL_DISPLAY,
   Panel,
+  Row,
   ScrollArea,
   Section,
   Spinner,
@@ -409,9 +410,11 @@ function TargetPickerComponent({
     const isPending = pendingTarget?.id === entryId(entry);
     return (
       <Row
+        as="button"
+        interactive
         key={`${keyPrefix}:${entryId(entry)}`}
         type="button"
-        $current={entry.isCurrent}
+        selected={entry.isCurrent}
         onClick={() => dispatchTarget(entry)}
       >
         <RowMain>
@@ -761,30 +764,6 @@ const SectionBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-hair);
-`;
-
-const Row = styled.button<{ $current: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-6);
-  background: ${({ $current }) =>
-    $current ? "var(--color-status-go-bg)" : "transparent"};
-  color: ${({ $current }) =>
-    $current ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
-  border: none;
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  text-align: left;
-  font-size: var(--font-size-sm);
-  &:hover {
-    background: var(--color-surface-panel);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
 `;
 
 const RowMain = styled.span`
