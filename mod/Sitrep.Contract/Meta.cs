@@ -57,6 +57,7 @@ public class Meta
     [SitrepUnit(Units.Id)]
     public int TimelineEpoch { get; set; }
 
+    [SitrepUnit(Units.NotApplicable)]
     public double? Confidence { get; set; }
 }
 

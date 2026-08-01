@@ -53,6 +53,29 @@ namespace Sitrep.Contract
         // --- Time ---
         public const string Seconds = "s";
 
+        /// <summary>
+        /// Hours. The ONE non-second duration on this wire, and it exists only
+        /// because <c>ReliabilityPartEntry.MtbfHours</c> genuinely carries hours:
+        /// TestFlight reports MTBF that way and the contract states what it is
+        /// carrying rather than converting.
+        ///
+        /// <para>Do not reach for this on anything new. Every other duration is
+        /// <see cref="Seconds"/>, and the field this exists for is itself a
+        /// rename candidate: once it is <c>Mtbf</c> in seconds, this token has no
+        /// remaining user and should go with it.</para>
+        /// </summary>
+        public const string Hours = "h";
+
+        // --- Rotation ---
+        /// <summary>
+        /// Revolutions per minute, KSP's own rotor unit
+        /// (<c>ModuleRoboticServoRotor.rpmLimit</c> and the live rotor speed
+        /// beside it). Angular velocity in rad/s everywhere else would be more
+        /// consistent and would also be a conversion, which this attribute does
+        /// not do.
+        /// </summary>
+        public const string Rpm = "rpm";
+
         // --- Temperature ---
         /// <summary>
         /// The only temperature the wire carries. There is deliberately no
@@ -160,6 +183,32 @@ namespace Sitrep.Contract
         /// hands over pre-multiplied.</para>
         /// </summary>
         public const string Percent = "%";
+
+        // --- Career currencies ------------------------------------------------
+        //
+        // KSP's three currencies. They are not physical quantities and they are
+        // not interchangeable with each other or with anything else, which is
+        // exactly why they are three separate tokens rather than one "amount":
+        // a formatter that treats reputation like funds will thousands-separate
+        // a number that never exceeds a few hundred, and one that treats funds
+        // like reputation will print 289848 where the operator needs 289,848.
+        //
+        // Their PRESENTATION is a client decision and is deliberately not stated
+        // here: see the units design's rule that the contract says what a value
+        // IS and each presentation site chooses how to show it.
+
+        /// <summary>
+        /// Career funds. Whole-currency, thousands-separated, and never scaled
+        /// onto a k/M ladder: an operator reading a launch cost needs the exact
+        /// figure, and "0.3 Mf" is not a number anyone can act on.
+        /// </summary>
+        public const string Funds = "funds";
+
+        /// <summary>Science points, the currency, not <see cref="Mits"/> of data volume.</summary>
+        public const string Science = "science";
+
+        /// <summary>Reputation points.</summary>
+        public const string Reputation = "rep";
 
         // --- Non-dimensional declarations -------------------------------------
         //

@@ -25,6 +25,7 @@ public class ServoSetTargetArgs
     public string PartId { get; set; } = "";
 
     /// <summary>Absolute target: hinge angle (degrees) or piston extension.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
 }
 
@@ -69,6 +70,7 @@ public class RotorSetValueArgs
     public string PartId { get; set; } = "";
 
     /// <summary>The absolute value to apply (rpm limit, torque-limit percent 0–100, or brake percent 0–200).</summary>
+    [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
 }
 

@@ -21,7 +21,9 @@ export type KnownSitrepUnit =
   | "dB"
   | "enum"
   | "flag"
+  | "funds"
   | "g"
+  | "h"
   | "id"
   | "kN"
   | "kPa"
@@ -36,7 +38,10 @@ export type KnownSitrepUnit =
   | "rad"
   | "rad/s"
   | "ratio"
+  | "rep"
+  | "rpm"
   | "s"
+  | "science"
   | "t"
   | "text"
   | "units"
@@ -126,7 +131,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dateAccepted: "s",
     dateDeadline: "s",
     dateExpire: "s",
+    fundsAdvance: "funds",
+    fundsCompletion: "funds",
+    fundsFailure: "funds",
     id: "id",
+    reputationCompletion: "rep",
+    reputationFailure: "rep",
+    scienceCompletion: "science",
     state: "text",
     title: "text",
   },
@@ -134,9 +145,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     state: "text",
     title: "text",
   },
+  "CareerEconomy": {
+    funds: "funds",
+    reputation: "rep",
+    science: "science",
+  },
   "CareerFacility": {
     currentTier: "count",
     maxTier: "count",
+    upgradeCost: "funds",
   },
   "CareerMode": {
     mode: "enum",
@@ -158,7 +175,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     factorSliderSteps: "count",
     hasFactorSlider: "flag",
     id: "id",
+    initialCostFunds: "funds",
+    initialCostReputation: "rep",
+    initialCostScience: "science",
     isActive: "flag",
+    requiredReputation: "rep",
     title: "text",
   },
   "CareerTech": {
@@ -168,6 +189,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CareerTechNode": {
     id: "id",
     parents: "id",
+    scienceCost: "science",
     title: "text",
     unlocked: "flag",
   },
@@ -291,7 +313,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     powerState: "text",
     scienceCompletedPercentage: "%",
+    scienceLimit: "science",
     scienceTransmittedPercentage: "%",
+    scienceValue: "science",
     situation: "text",
     vesselName: "text",
   },
@@ -318,20 +342,24 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     biome: "text",
     dataMits: "Mit",
     expTitle: "text",
+    remainingPotential: "science",
     situation: "text",
     subjectId: "id",
   },
   "ExperimentEntry": {
+    baseTransmitValue: "science",
     dataAmount: "Mit",
     deployed: "flag",
     experimentId: "id",
     inoperable: "flag",
+    labValue: "science",
     location: "text",
     partName: "text",
     scienceValueRatio: "ratio",
     situation: "text",
     subjectId: "id",
     title: "text",
+    transmitBonus: "1",
   },
   "FlightCurrent": {
     flightId: "id",
@@ -386,7 +414,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     trait: "text",
   },
   "KerbalismCrewRule": {
+    degenPerSec: "units/s",
+    fatalThreshold: "units",
     name: "text",
+    value: "units",
   },
   "KerbalismFeatures": {
     automation: "flag",
@@ -542,8 +573,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     isOperational: "flag",
     partName: "text",
     processingData: "flag",
+    scienceRate: "n/a",
     scientistCount: "count",
     statusText: "text",
+    storedScience: "science",
   },
   "LaunchArgs": {
     crew: "text",
@@ -570,6 +603,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Meta": {
     active: "flag",
+    confidence: "n/a",
     deliveredAt: "s",
     quality: "enum",
     seq: "id",
@@ -653,20 +687,32 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     count: "count",
     partName: "text",
     partTitle: "text",
+    partValue: "funds",
+    resourcesValue: "funds",
+    totalValue: "funds",
   },
   "RecoveryReport": {
     capturedAtUT: "s",
     displayReputation: "flag",
+    fundsEarned: "funds",
     recoveryFactor: "text",
     recoveryLocation: "text",
+    reputationEarned: "rep",
+    scienceEarned: "science",
+    totalFunds: "funds",
+    totalReputation: "rep",
+    totalScience: "science",
     vesselName: "text",
   },
   "RecoveryResourceEntry": {
     amount: "units",
     resourceName: "text",
+    totalValue: "funds",
+    unitValue: "funds",
   },
   "RecoveryScienceEntry": {
     dataGathered: "Mit",
+    scienceAmount: "science",
     subjectId: "id",
     subjectTitle: "text",
   },
@@ -676,6 +722,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     durationConsumed: "ratio",
     group: "text",
     ignitionsConsumed: "ratio",
+    mtbfHours: "h",
     needsRepair: "flag",
     partId: "id",
     reliabilityFraction: "ratio",
@@ -712,12 +759,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "RotorSetValueArgs": {
     partId: "id",
+    value: "ratio",
   },
   "SavedShipEntry": {
     facility: "text",
     missingParts: "text",
     name: "text",
     partCount: "count",
+    requiresFunds: "funds",
     totalMass: "t",
   },
   "ScanAnomalyEntry": {
@@ -746,6 +795,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     minAlt: "m",
     type: "id",
   },
+  "ScanTrackColor": {
+    a: "n/a",
+    b: "n/a",
+    g: "n/a",
+    r: "n/a",
+  },
   "ScanningVesselEntry": {
     altitude: "m",
     body: "text",
@@ -764,13 +819,24 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     type: "id",
   },
   "ServoEntry": {
+    brakePercentage: "%",
     counterClockwise: "flag",
+    currentAngle: "°",
+    currentExtension: "m",
+    currentRPM: "rpm",
+    maxTorque: "kN",
     motorState: "text",
+    normalizedOutput: "ratio",
     partId: "id",
     partName: "text",
+    rpmLimit: "rpm",
     servoIsLocked: "flag",
     servoIsMotorized: "flag",
     servoMotorIsEngaged: "flag",
+    servoMotorLimit: "%",
+    targetAngle: "°",
+    targetExtension: "m",
+    traverseVelocity: "n/a",
     type: "id",
   },
   "ServoSetEnabledArgs": {
@@ -779,6 +845,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "ServoSetTargetArgs": {
     partId: "id",
+    value: "ratio",
   },
   "SetActionGroupArgs": {
     group: "id",
@@ -836,6 +903,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     bodyIndex: "id",
     contractAgent: "text",
     contractDateDeadline: "s",
+    contractFundsAdvance: "funds",
+    contractFundsCompletion: "funds",
     id: "id",
     kind: "id",
     label: "text",
@@ -912,6 +981,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "UpgradeFacilityArgs": {
     facilityId: "id",
+  },
+  "Vec3": {
+    x: "n/a",
+    y: "n/a",
+    z: "n/a",
   },
   "VesselAttitude": {
     heading: "°",
@@ -1258,20 +1332,37 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalProductionEc: "units/s",
   },
   "parts.robotics": {
+    brakePercentage: "%",
     counterClockwise: "flag",
+    currentAngle: "°",
+    currentExtension: "m",
+    currentRPM: "rpm",
+    maxTorque: "kN",
     motorState: "text",
+    normalizedOutput: "ratio",
     partId: "id",
     partName: "text",
+    rpmLimit: "rpm",
     servoIsLocked: "flag",
     servoIsMotorized: "flag",
     servoMotorIsEngaged: "flag",
+    servoMotorLimit: "%",
+    targetAngle: "°",
+    targetExtension: "m",
+    traverseVelocity: "n/a",
     type: "id",
   },
   "recovery.lastSummary": {
     capturedAtUT: "s",
     displayReputation: "flag",
+    fundsEarned: "funds",
     recoveryFactor: "text",
     recoveryLocation: "text",
+    reputationEarned: "rep",
+    scienceEarned: "science",
+    totalFunds: "funds",
+    totalReputation: "rep",
+    totalScience: "science",
     vesselName: "text",
   },
   "reliability.parts": {
@@ -1280,6 +1371,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     durationConsumed: "ratio",
     group: "text",
     ignitionsConsumed: "ratio",
+    mtbfHours: "h",
     needsRepair: "flag",
     partId: "id",
     reliabilityFraction: "ratio",
@@ -1325,7 +1417,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     powerState: "text",
     scienceCompletedPercentage: "%",
+    scienceLimit: "science",
     scienceTransmittedPercentage: "%",
+    scienceValue: "science",
     situation: "text",
     vesselName: "text",
   },
@@ -1333,20 +1427,24 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     biome: "text",
     dataMits: "Mit",
     expTitle: "text",
+    remainingPotential: "science",
     situation: "text",
     subjectId: "id",
   },
   "science.experiments": {
+    baseTransmitValue: "science",
     dataAmount: "Mit",
     deployed: "flag",
     experimentId: "id",
     inoperable: "flag",
+    labValue: "science",
     location: "text",
     partName: "text",
     scienceValueRatio: "ratio",
     situation: "text",
     subjectId: "id",
     title: "text",
+    transmitBonus: "1",
   },
   "science.instruments": {
     dataIsCollectable: "flag",
@@ -1365,8 +1463,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     isOperational: "flag",
     partName: "text",
     processingData: "flag",
+    scienceRate: "n/a",
     scientistCount: "count",
     statusText: "text",
+    storedScience: "science",
   },
   "science.sensors": {
     active: "flag",
@@ -1398,6 +1498,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     bodyIndex: "id",
     contractAgent: "text",
     contractDateDeadline: "s",
+    contractFundsAdvance: "funds",
+    contractFundsCompletion: "funds",
     id: "id",
     kind: "id",
     label: "text",
@@ -1410,6 +1512,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     missingParts: "text",
     name: "text",
     partCount: "count",
+    requiresFunds: "funds",
     totalMass: "t",
   },
   "spaceCenter.scene": {

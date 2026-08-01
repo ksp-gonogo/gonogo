@@ -183,6 +183,7 @@ public class SavedShipEntry
     public string? Facility { get; set; }
 
     /// <summary>Funds needed before this can launch, the full craft cost (<c>CraftProfileInfo.totalCost</c>).</summary>
+    [SitrepUnit(Units.Funds)]
     public double? RequiresFunds { get; set; }
 
     /// <summary>Parts referenced by the craft that are not yet unlocked/purchased (<c>CraftProfileInfo.UnavailableShipParts</c>); an empty array when the craft is buildable as-is.</summary>
@@ -272,8 +273,10 @@ public class SpaceCenterPoiEntry
     [SitrepUnit(Units.Text)]
     public string? ContractAgent { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? ContractFundsAdvance { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? ContractFundsCompletion { get; set; }
 
     [SitrepUnit(Units.Seconds)]

@@ -183,27 +183,37 @@ public class ServoEntry
     [SitrepUnit(Units.Flag)]
     public bool? ServoMotorIsEngaged { get; set; }
 
+    [SitrepUnit(Units.Percent)]
     public double? ServoMotorLimit { get; set; }
 
     [SitrepUnit(Units.Text)]
     public string? MotorState { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? CurrentAngle { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? TargetAngle { get; set; }
 
+    [SitrepUnit(Units.NotApplicable)]
     public double? TraverseVelocity { get; set; }
 
+    [SitrepUnit(Units.Rpm)]
     public double? CurrentRPM { get; set; }
 
+    [SitrepUnit(Units.Rpm)]
     public double? RpmLimit { get; set; }
 
+    [SitrepUnit(Units.Ratio)]
     public double? NormalizedOutput { get; set; }
 
+    [SitrepUnit(Units.Percent)]
     public double? BrakePercentage { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double? CurrentExtension { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double? TargetExtension { get; set; }
 
     /// <summary>
@@ -219,6 +229,7 @@ public class ServoEntry
     /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c>: the
     /// scale <c>ServoMotorLimit</c> (a percentage) is a fraction of.
     /// </summary>
+    [SitrepUnit(Units.Kilonewtons)]
     public double? MaxTorque { get; set; }
 }
 

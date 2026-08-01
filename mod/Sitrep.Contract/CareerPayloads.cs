@@ -60,10 +60,13 @@ public class CareerStatus
 #endif
 public class CareerEconomy
 {
+    [SitrepUnit(Units.Funds)]
     public double? Funds { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double? Reputation { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? Science { get; set; }
 }
 
@@ -84,6 +87,7 @@ public class CareerFacility
     [SitrepUnit(Units.Count)]
     public int? MaxTier { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? UpgradeCost { get; set; }
 }
 
@@ -130,16 +134,22 @@ public class CareerContract
     [SitrepUnit(Units.Text)]
     public string? State { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? FundsAdvance { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? FundsCompletion { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? FundsFailure { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? ScienceCompletion { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double? ReputationCompletion { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double? ReputationFailure { get; set; }
 
     [SitrepUnit(Units.Seconds)]
@@ -215,12 +225,16 @@ public class CareerStrategy
     [SitrepUnit(Units.Seconds)]
     public double? DateActivated { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double? RequiredReputation { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double? InitialCostFunds { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? InitialCostScience { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double? InitialCostReputation { get; set; }
 
     [SitrepUnit(Units.Flag)]
@@ -281,6 +295,7 @@ public class CareerTechNode
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? ScienceCost { get; set; }
 
     [SitrepUnit(Units.Flag)]

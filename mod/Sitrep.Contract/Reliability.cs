@@ -77,6 +77,7 @@ public class ReliabilityPartEntry
     public bool? Broken { get; set; }
     [SitrepUnit(Units.Flag)]
     public bool? Critical { get; set; }
+    [SitrepUnit(Units.Hours)]
     public double? MtbfHours { get; set; }
     /// <summary>Live/interpolated reliability probability (0..1): TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
     [SitrepUnit(Units.Ratio)]

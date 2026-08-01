@@ -54,6 +54,10 @@ export type KnownQuantityKind =
   // gate possible at all.
   | "area"
   | "volume"
+  | "angularSpeed"
+  | "funds"
+  | "science"
+  | "reputation"
   | "count"
   | "identifier"
   | "resourceUnits"
@@ -260,6 +264,13 @@ const DECIMALS: Record<string, number> = {
   resourceFlow: 2,
   area: 1,
   volume: 1,
+  angularSpeed: 0,
+  // Currencies are whole numbers. KSP never pays out a fraction of a fund,
+  // and a reputation reading with two decimals implies a precision the game
+  // does not have.
+  funds: 0,
+  science: 1,
+  reputation: 1,
 };
 
 /**
@@ -278,6 +289,13 @@ const DECIMALS: Record<string, number> = {
  * behaviour beyond the label and keep their own branches below.
  */
 const DISPLAY_BY_KIND: Record<string, string> = {
+  // The currencies name a category, not a symbol, so each gets the short form
+  // the dashboard already uses ("289,848f" in the funds readouts, "13.97 rep"
+  // in Strategies). These are the TEXT fallbacks; §3 of the UI goal replaces
+  // them with a flask and a star, at which point they become the alt text.
+  funds: "f",
+  science: "sci",
+  reputation: "rep",
   count: "",
   identifier: "",
   text: "",
@@ -319,6 +337,11 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   Mit: "scienceData",
   "m²": "area",
   "m³": "volume",
+  h: "time",
+  rpm: "angularSpeed",
+  funds: "funds",
+  science: "science",
+  rep: "reputation",
   count: "count",
   id: "identifier",
   units: "resourceUnits",

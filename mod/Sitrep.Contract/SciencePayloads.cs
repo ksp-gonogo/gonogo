@@ -52,10 +52,13 @@ public class ExperimentEntry
     [SitrepUnit(Units.Ratio)]
     public double? ScienceValueRatio { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? BaseTransmitValue { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? TransmitBonus { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? LabValue { get; set; }
 
     [SitrepUnit(Units.Flag)]
@@ -144,6 +147,7 @@ public class LabEntry
     [SitrepUnit(Units.Mits)]
     public double? DataStorage { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? StoredScience { get; set; }
 
     [SitrepUnit(Units.Flag)]
@@ -155,6 +159,7 @@ public class LabEntry
     [SitrepUnit(Units.Count)]
     public int? ScientistCount { get; set; }
 
+    [SitrepUnit(Units.NotApplicable)]
     public double? ScienceRate { get; set; }
 
     [SitrepUnit(Units.Flag)]
@@ -203,8 +208,10 @@ public class DeployedEntry
     [SitrepUnit(Units.Percent)]
     public double? ScienceTransmittedPercentage { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? ScienceValue { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double? ScienceLimit { get; set; }
 
     [SitrepUnit(Units.Text)]
@@ -315,5 +322,6 @@ public class ExperimentBreakdownEntry
     public double? DataMits { get; set; }
 
     /// <summary>Absolute science still recoverable from this subject (<c>scienceCap - science</c>); <c>0</c> outside Career/Science mode.</summary>
+    [SitrepUnit(Units.Science)]
     public double? RemainingPotential { get; set; }
 }

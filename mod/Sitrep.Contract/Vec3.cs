@@ -17,8 +17,11 @@ namespace Sitrep.Contract;
 #endif
 public class Vec3
 {
+    [SitrepUnit(Units.NotApplicable)]
     public double X { get; set; }
+    [SitrepUnit(Units.NotApplicable)]
     public double Y { get; set; }
+    [SitrepUnit(Units.NotApplicable)]
     public double Z { get; set; }
 
     public Vec3()

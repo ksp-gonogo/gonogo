@@ -221,6 +221,7 @@ public class KerbalismCrewRule
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
     /// <summary>Current accumulator value ("problem") from KerbalData.rules.</summary>
+    [SitrepUnit(Units.ResourceUnits)]
     public double? Value { get; set; }
     /// <summary>
     /// Per-rule degeneration rate (units/s) from Profile.rules[].degeneration.
@@ -228,6 +229,7 @@ public class KerbalismCrewRule
     /// is a public double field (Profile/Rule.cs); values are set per-rule in
     /// GameData/KerbalismConfig/Profiles/Default.cfg.
     /// </summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? DegenPerSec { get; set; }
     /// <summary>
     /// Fatal accumulator threshold from Profile.rules[].fatal_threshold. Confirmed
@@ -235,6 +237,7 @@ public class KerbalismCrewRule
     /// default profile overrides it only for the radiation rule, to 50.0,
     /// GameData/KerbalismConfig/Profiles/Default.cfg's radiation Rule block).
     /// </summary>
+    [SitrepUnit(Units.ResourceUnits)]
     public double? FatalThreshold { get; set; }
 }
 

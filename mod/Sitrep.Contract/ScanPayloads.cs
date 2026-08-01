@@ -87,12 +87,16 @@ public class ScanSensorEntry
 #endif
 public class ScanTrackColor
 {
+    [SitrepUnit(Units.NotApplicable)]
     public int? R { get; set; }
 
+    [SitrepUnit(Units.NotApplicable)]
     public int? G { get; set; }
 
+    [SitrepUnit(Units.NotApplicable)]
     public int? B { get; set; }
 
+    [SitrepUnit(Units.NotApplicable)]
     public int? A { get; set; }
 }
 

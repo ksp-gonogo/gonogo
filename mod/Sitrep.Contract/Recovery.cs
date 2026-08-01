@@ -42,16 +42,22 @@ public class RecoveryReport
     [SitrepUnit(Units.Text)]
     public string RecoveryFactor { get; set; } = "";
 
+    [SitrepUnit(Units.Science)]
     public double ScienceEarned { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double TotalScience { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double FundsEarned { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double TotalFunds { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double ReputationEarned { get; set; }
 
+    [SitrepUnit(Units.Reputation)]
     public double TotalReputation { get; set; }
 
     /// <summary>Whether reputation applies to this save (off in Science/Sandbox), gates the reputation row client-side.</summary>
@@ -85,6 +91,7 @@ public class RecoveryScienceEntry
     [SitrepUnit(Units.Mits)]
     public double DataGathered { get; set; }
 
+    [SitrepUnit(Units.Science)]
     public double ScienceAmount { get; set; }
 }
 
@@ -109,10 +116,13 @@ public class RecoveryPartEntry
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double PartValue { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double ResourcesValue { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double TotalValue { get; set; }
 }
 
@@ -131,8 +141,10 @@ public class RecoveryResourceEntry
     [SitrepUnit(Units.ResourceUnits)]
     public double Amount { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double UnitValue { get; set; }
 
+    [SitrepUnit(Units.Funds)]
     public double TotalValue { get; set; }
 }
 
