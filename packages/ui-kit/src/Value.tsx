@@ -1,7 +1,13 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 
-export type ValueTone = "accent" | "default" | "muted";
+/**
+ * `faint` is the quietest tier, one step below `muted`: a secondary readout
+ * that should recede rather than compete, like the numeric echo beside an
+ * analog stick. Added because `VirtualDevice/AnalogPad` was keeping its own
+ * `Value` for this one colour.
+ */
+export type ValueTone = "accent" | "default" | "muted" | "faint";
 export type ValueSize = "xs" | "sm" | "base" | "lg";
 
 export interface ValueProps extends HTMLAttributes<HTMLSpanElement> {
@@ -28,6 +34,9 @@ const TONE_STYLES = {
   `,
   muted: css`
     color: var(--color-text-muted);
+  `,
+  faint: css`
+    color: var(--color-text-faint);
   `,
 } as const;
 

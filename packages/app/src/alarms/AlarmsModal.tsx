@@ -12,7 +12,13 @@ import {
   Input,
   PrimaryButton,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import {
+  Card,
+  NULL_DISPLAY,
+  type ReadoutTone,
+  SectionTitle,
+  Stack,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type {
@@ -403,7 +409,7 @@ export function AlarmsModal({
                 setRenameDraft("");
               };
               return (
-                <AlarmListItem key={a.id} $state={a.state}>
+                <AlarmListItem key={a.id} tone={ALARM_TONE[a.state]}>
                   <RowInfo>
                     {renaming ? (
                       <Input
@@ -1038,20 +1044,22 @@ const List = styled.ul`
   gap: var(--space-6);
 `;
 
-const AlarmListItem = styled.li<{ $state: Alarm["state"] }>`
+/** Alarm states, mapped onto the kit's tone vocabulary. */
+const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
+  firing: "alert",
+  arming: "warning",
+  pending: "default",
+  fired: "default",
+};
+
+// The third site to want a tone-accented card, after PerfBudgets and
+// StaffRoster. It drew a full state-coloured border where the kit draws a
+// leading accent rule, which is the deliberate delta.
+const AlarmListItem = styled(Card).attrs({ as: "li" as const })`
   display: flex;
   align-items: center;
   gap: var(--space-12);
   padding: var(--space-8) var(--space-10);
-  background: var(--color-surface-panel);
-  border: 1px solid
-    ${(p) =>
-      p.$state === "firing"
-        ? "var(--color-status-nogo-bg)"
-        : p.$state === "arming"
-          ? "var(--color-status-warning-bg)"
-          : "var(--color-surface-raised)"};
-  border-radius: var(--radius-sm);
 `;
 
 const RowInfo = styled.div`

@@ -142,9 +142,7 @@ const BASELINE = new Set<string>([
   "Panel@packages/components/src/ShipMap/index.tsx",
   "Readout@packages/components/src/SemiMajorAxis/index.tsx",
   "Row@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
-  "Row@packages/components/src/PerfBudgets/index.tsx",
   "Row@packages/components/src/PowerSystems/index.tsx",
-  "Row@packages/components/src/StaffRoster/index.tsx",
   "Row@packages/components/src/StationConnectView/index.tsx",
   "Row@packages/components/src/TargetPicker/index.tsx",
   "Row@packages/ui/src/DataKeyMultiPicker.tsx",
@@ -155,7 +153,6 @@ const BASELINE = new Set<string>([
   "Value@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
   "Value@packages/components/src/CurrentOrbit/index.tsx",
   "Value@packages/components/src/ManeuverPlanner/ManeuverPreview.tsx",
-  "Value@packages/serial/src/VirtualDevice/AnalogPad.tsx",
 ]);
 
 /** Every shadowing declaration on disk right now, baseline or not. */

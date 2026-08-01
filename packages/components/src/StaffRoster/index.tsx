@@ -6,7 +6,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { Badge, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
+import { Badge, Card, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type StaffRosterConfig = Record<string, never>;
@@ -224,9 +224,9 @@ function StaffRosterComponent({
     >
       <List $multiColumn={multiColumn}>
         {sorted.map((kerbal, i) => (
-          <Row
+          <CrewCard
             key={rowKeys[i]}
-            $available={kerbal.available}
+            dimmed={!kerbal.available}
             title={buildTooltip(kerbal)}
           >
             <Name>{kerbal.name}</Name>
@@ -292,7 +292,7 @@ function StaffRosterComponent({
                 props={{ staffName: kerbal.name, staffIndex: i }}
               />
             </Meta>
-          </Row>
+          </CrewCard>
         ))}
       </List>
     </Panel>
@@ -320,15 +320,12 @@ const List = styled.ul<{ $multiColumn: boolean }>`
          flex-direction: column;`}
 `;
 
-const Row = styled.li<{ $available: boolean }>`
+// The card and its dimmed state are the kit's; the column is this roster's.
+const CrewCard = styled(Card).attrs({ as: "li" as const })`
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-2);
-  padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-xs);
-  background: var(--color-surface-panel);
-  opacity: ${(p) => (p.$available ? 1 : 0.5)};
 `;
 
 const Name = styled.span`

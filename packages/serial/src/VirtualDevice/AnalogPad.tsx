@@ -1,3 +1,4 @@
+import { Value } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -72,7 +73,7 @@ export function AnalogPad({ label, onChange, onRelease }: Readonly<Props>) {
         <Centre />
         <Thumb style={{ left: thumbLeft }} $active={dragging} />
       </Track>
-      <Value>{pos.toFixed(2)}</Value>
+      <PadValue>{pos.toFixed(2)}</PadValue>
     </Wrap>
   );
 }
@@ -123,8 +124,11 @@ const Thumb = styled.div<{ $active: boolean }>`
   pointer-events: none;
 `;
 
-const Value = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
+// The tone and the type size are the kit's; only the right alignment, which
+// keeps the numeric echo pinned to the stick's edge, is local.
+const PadValue = styled(Value).attrs({
+  tone: "faint" as const,
+  size: "xs" as const,
+})`
   text-align: right;
 `;

@@ -2,9 +2,11 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { PerfBudget, registerComponent } from "@ksp-gonogo/core";
 import {
   BigReadout,
+  Card,
   EmptyState,
   Panel,
   ReadoutCaption,
+  type ReadoutTone,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -110,7 +112,7 @@ function PerfBudgetsComponent({
           const t: Tone =
             ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
           return (
-            <Row key={s.name} $tone={t}>
+            <BudgetCard key={s.name} tone={KIT_TONE[t]}>
               <RowHeader>
                 <Name>{s.name}</Name>
                 <Rate $tone={t}>
@@ -132,7 +134,7 @@ function PerfBudgetsComponent({
                   {s.exceedanceCount === 1 ? "" : "s"} since startup
                 </Footer>
               )}
-            </Row>
+            </BudgetCard>
           );
         })}
       </List>
@@ -160,6 +162,13 @@ function formatRate(n: number): string {
 
 type Tone = "under" | "near" | "over";
 
+/** This widget's budget tones, mapped onto the kit's tone vocabulary. */
+const KIT_TONE: Record<Tone, ReadoutTone> = {
+  under: "go",
+  near: "warning",
+  over: "alert",
+};
+
 const TONE_COLOR: Record<Tone, string> = {
   under: "var(--color-accent-fg)",
   near: "var(--color-status-warning-bg)",
@@ -179,14 +188,14 @@ const List = styled.ul`
   gap: var(--space-8);
 `;
 
-const Row = styled.li<{ $tone: Tone }>`
+// The card and its accent rule are the kit's; only the column this budget
+// lays its header and bar out in is local. TONE_COLOR stays because four other
+// styled parts still read it for text and bar fills, but the ROW's border is
+// the kit's now, driven by the same tone vocabulary every other surface uses.
+const BudgetCard = styled(Card).attrs({ as: "li" as const })`
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-6) var(--space-8);
-  background: var(--color-surface-panel);
-  border-left: 2px solid ${(p) => TONE_COLOR[p.$tone]};
-  border-radius: var(--radius-xs);
 `;
 
 const RowHeader = styled.div`
