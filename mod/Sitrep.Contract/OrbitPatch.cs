@@ -39,25 +39,35 @@ namespace Sitrep.Contract;
 #endif
 public class OrbitPatch
 {
+    [SitrepUnit(Units.Metres)]
     public double Sma { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double Ecc { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double Inc { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double Lan { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double ArgPe { get; set; }
 
+    [SitrepUnit(Units.Radians)]
     public double MeanAnomalyAtEpoch { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double Epoch { get; set; }
 
     /// <summary>Orbital period, seconds. Non-finite (hyperbolic/parabolic patches) is carried as-is, the client's `isPatchElliptical` guard is what filters those, not this field.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double Period { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double StartUt { get; set; }
 
+    [SitrepUnit(Units.Seconds)]
     public double EndUt { get; set; }
 
     public TransitionType PatchStartTransition { get; set; }
@@ -65,13 +75,17 @@ public class OrbitPatch
     public TransitionType PatchEndTransition { get; set; }
 
     /// <summary>Periapsis altitude above <see cref="ReferenceBody"/>'s mean radius, metres, `Orbit.PeA`.</summary>
+    [SitrepUnit(Units.Metres)]
     public double PeA { get; set; }
 
     /// <summary>Apoapsis altitude above <see cref="ReferenceBody"/>'s mean radius, metres, `Orbit.ApA`.</summary>
+    [SitrepUnit(Units.Metres)]
     public double ApA { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double SemiLatusRectum { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double SemiMinorAxis { get; set; }
 
     /// <summary>Body this patch orbits: matches `system.bodies`' NAME, not its index (see class doc).</summary>

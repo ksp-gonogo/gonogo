@@ -69,6 +69,7 @@ public class CommsConnectivity
 [SitrepTopic("comms.signalStrength")]
 public class CommsSignalStrength
 {
+    [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -131,7 +132,9 @@ public class CommsHop
     public string From { get; set; } = "";
     public string To { get; set; } = "";
     public CommsHopKind Kind { get; set; }
+    [SitrepUnit(Units.Metres)]
     public double? DistanceMeters { get; set; }
+    [SitrepUnit(Units.BitsPerSecond)]
     public double? BandRateBitsPerSec { get; set; }
 }
 
@@ -234,6 +237,7 @@ public enum CommsDelaySource
 [SitrepTopic("comms.delay")]
 public class CommsDelay
 {
+    [SitrepUnit(Units.Seconds)]
     public double? OneWaySeconds { get; set; }
     public CommsDelaySource Source { get; set; }
     public PayloadMeta Meta { get; set; } = new();
@@ -281,6 +285,7 @@ public class CommsLink
 [SitrepTopic("comms.linkQuality")]
 public class CommsLinkQuality
 {
+    [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -297,7 +302,9 @@ public class CommsLinkQuality
 [SitrepTopic("comms.dataRate")]
 public class CommsDataRate
 {
+    [SitrepUnit(Units.BitsPerSecond)]
     public double UpBitsPerSec { get; set; }
+    [SitrepUnit(Units.BitsPerSecond)]
     public double DownBitsPerSec { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -315,6 +322,7 @@ public class CommsDataRate
 [SitrepTopic("comms.linkMargin")]
 public class CommsLinkMargin
 {
+    [SitrepUnit(Units.Decibels)]
     public double DecibelMargin { get; set; }
     public bool ClosesLink { get; set; }
     public PayloadMeta Meta { get; set; } = new();

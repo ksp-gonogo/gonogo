@@ -65,35 +65,45 @@ public class VesselLanding
     // light them up without a contract change.
 
     /// <summary>Metres: terrain elevation above the body mean radius directly beneath the vessel. Currently null (see the Tier-1 note); the sub-vessel-fallback <see cref="PredictedTerrainElevation"/> carries the under-ship elevation.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? TerrainElevationUnderVessel { get; set; }
 
     /// <summary>Degrees, 0 = flat: under-vessel terrain slope. Currently null (see the Tier-1 note); under-vessel slope comes from the Tier-2 plane-fit via the sub-vessel sampling fallback.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? SlopeAngleUnderVessel { get; set; }
 
     // ── Tier 2: PQS-sampled at the PREDICTED touchdown point ─────────────────
 
     /// <summary>Degrees: predicted touchdown latitude. Terrain-independent: the client patch-walk supplies the point; this channel samples terrain there. Null when no touchdown is predicted within the horizon.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PredictedLatitude { get; set; }
 
     /// <summary>Degrees: predicted touchdown longitude. Always defined together with <see cref="PredictedLatitude"/>.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PredictedLongitude { get; set; }
 
     /// <summary>Metres: terrain elevation at the predicted touchdown point. <c>CelestialBody.TerrainAltitude(lat, lon, allowNegative: true)</c> so ocean floor reads honestly rather than clamping to a fabricated 0.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? PredictedTerrainElevation { get; set; }
 
     /// <summary>Degrees: terrain slope at the predicted touchdown point, from a plane fit over sampled heights (not an abs-average, which cannot tell a bowl from an incline). The tipover-risk readout, available while still descending.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PredictedSlopeAngle { get; set; }
 
     /// <summary>Degrees, 0 = north, clockwise: the downhill direction at the predicted point (which way the lander falls if it tips). Null below the noise floor.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PredictedSlopeHeading { get; set; }
 
     /// <summary>Metres: RESIDUAL standard deviation of sampled terrain height at the predicted point, AFTER removing the fitted slope plane (so tilt is not double-counted as roughness). Sampled over <see cref="RoughnessFootprintMeters"/> so it lives on GroundSurvey's calibrated sigma grade. The boulder-risk proxy.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? PredictedRoughness { get; set; }
 
     /// <summary>Metres: the footprint radius the roughness sigma was sampled over. Ships so the client can label honestly and so the shared sigma-grade transfers between GroundSurvey (flown track) and the reticle (touchdown patch).</summary>
+    [SitrepUnit(Units.Metres)]
     public double? RoughnessFootprintMeters { get; set; }
 
     /// <summary>Metres: the (tighter) radius the slope plane-fit samples span.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? SlopeSampleRadiusMeters { get; set; }
 
     /// <summary>KSP's biome name at the PREDICTED touchdown point (not the current position, that is <c>vessel.surface.biome</c>). Via <c>ScienceUtil.GetExperimentBiome</c> (which takes degrees). Null when the body has no biome map.</summary>
@@ -108,17 +118,21 @@ public class VesselLanding
     public int? TerrainPatchSize { get; set; }
 
     /// <summary>Metres: the full width the <see cref="TerrainPatch"/> grid spans.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? TerrainPatchExtentMeters { get; set; }
 
     // ── Atmosphere-aware descent (instantaneous terminal-velocity model) ─────
 
     /// <summary>m/s: terminal velocity at the CURRENT altitude/config, from the measured aggregate drag force against local gravity. Null outside an atmosphere. An ESTIMATE assuming current config holds (attitude, no pending chute).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? TerminalVelocity { get; set; }
 
     /// <summary>m/s: projected touchdown speed under a terminal descent to the ground (terminal velocity scaled to ground density). The atmosphere-aware replacement for the (wrong) vacuum impact speed. Null outside an atmosphere.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? ProjectedTouchdownSpeed { get; set; }
 
     /// <summary>Seconds: atmosphere-aware time to impact, integrating the terminal-velocity profile down the density column. Null outside an atmosphere.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? AtmosphericTimeToImpact { get; set; }
 
     /// <summary>The instantaneous descent regime: <c>"at-terminal"</c> / <c>"decelerating"</c> / <c>"accelerating"</c>. Null outside an atmosphere.</summary>

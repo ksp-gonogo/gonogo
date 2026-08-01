@@ -36,6 +36,8 @@ export type QuantityKind =
   | "time"
   | "angle"
   | "energyRate"
+  | "dataRate"
+  | "level"
   | "density"
   | "gravitationalParameter"
   | "dimensionless"
@@ -88,6 +90,12 @@ const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
     { from: 0, symbol: "Pa", per: 1 },
     { from: 1e3, symbol: "kPa", per: 1e3 },
     { from: 1e6, symbol: "MPa", per: 1e6 },
+  ],
+  dataRate: [
+    { from: 0, symbol: "bit/s", per: 1 },
+    { from: 1e3, symbol: "kbit/s", per: 1e3 },
+    { from: 1e6, symbol: "Mbit/s", per: 1e6 },
+    { from: 1e9, symbol: "Gbit/s", per: 1e9 },
   ],
 };
 
@@ -187,6 +195,8 @@ const DECIMALS: Partial<Record<QuantityKind, number>> = {
   time: 0,
   angle: 2,
   density: 4,
+  dataRate: 1,
+  level: 1,
   dimensionless: 2,
   fraction: 0,
 };
@@ -209,6 +219,11 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   "°": "angle",
   rad: "angle",
   kW: "energyRate",
+  "bit/s": "dataRate",
+  "kbit/s": "dataRate",
+  "Mbit/s": "dataRate",
+  "Gbit/s": "dataRate",
+  dB: "level",
   "kg/m³": "density",
   "m³/s²": "gravitationalParameter",
   "1": "dimensionless",

@@ -13,6 +13,8 @@
 export type SitrepUnit =
   | "1"
   | "K"
+  | "bit/s"
+  | "dB"
   | "g"
   | "kN"
   | "kPa"
@@ -36,6 +38,42 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "CommsDataRate": {
+    downBitsPerSec: "bit/s",
+    upBitsPerSec: "bit/s",
+  },
+  "CommsDelay": {
+    oneWaySeconds: "s",
+  },
+  "CommsHop": {
+    bandRateBitsPerSec: "bit/s",
+    distanceMeters: "m",
+  },
+  "CommsLinkMargin": {
+    decibelMargin: "dB",
+  },
+  "CommsLinkQuality": {
+    value: "ratio",
+  },
+  "CommsSignalStrength": {
+    value: "ratio",
+  },
+  "OrbitPatch": {
+    apA: "m",
+    argPe: "°",
+    ecc: "1",
+    endUt: "s",
+    epoch: "s",
+    inc: "°",
+    lan: "°",
+    meanAnomalyAtEpoch: "rad",
+    peA: "m",
+    period: "s",
+    semiLatusRectum: "m",
+    semiMinorAxis: "m",
+    sma: "m",
+    startUt: "s",
+  },
   "StageDeltaVEntry": {
     burnTime: "s",
     dryMass: "t",
@@ -79,6 +117,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     surfaceSpeed: "m/s",
     verticalSpeed: "m/s",
   },
+  "VesselLanding": {
+    atmosphericTimeToImpact: "s",
+    predictedLatitude: "°",
+    predictedLongitude: "°",
+    predictedRoughness: "m",
+    predictedSlopeAngle: "°",
+    predictedSlopeHeading: "°",
+    predictedTerrainElevation: "m",
+    projectedTouchdownSpeed: "m/s",
+    roughnessFootprintMeters: "m",
+    slopeAngleUnderVessel: "°",
+    slopeSampleRadiusMeters: "m",
+    terminalVelocity: "m/s",
+    terrainElevationUnderVessel: "m",
+    terrainPatchExtentMeters: "m",
+  },
   "VesselOrbit": {
     argPe: "°",
     ecc: "1",
@@ -88,6 +142,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     meanAnomalyAtEpoch: "rad",
     mu: "m³/s²",
     sma: "m",
+  },
+  "VesselPart": {
+    currentTemp: "K",
+    dryMass: "t",
+    maxTemp: "K",
+    skinMaxTemp: "K",
+    skinTemp: "K",
   },
   "VesselSurface": {
     heightFromTerrain: "m",
@@ -108,6 +169,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "comms.dataRate": {
+    downBitsPerSec: "bit/s",
+    upBitsPerSec: "bit/s",
+  },
+  "comms.delay": {
+    oneWaySeconds: "s",
+  },
+  "comms.linkMargin": {
+    decibelMargin: "dB",
+  },
+  "comms.linkQuality": {
+    value: "ratio",
+  },
+  "comms.signalStrength": {
+    value: "ratio",
+  },
   "dv.stages": {
     burnTime: "s",
     dryMass: "t",
@@ -144,6 +221,22 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     orbitalSpeed: "m/s",
     surfaceSpeed: "m/s",
     verticalSpeed: "m/s",
+  },
+  "vessel.landing": {
+    atmosphericTimeToImpact: "s",
+    predictedLatitude: "°",
+    predictedLongitude: "°",
+    predictedRoughness: "m",
+    predictedSlopeAngle: "°",
+    predictedSlopeHeading: "°",
+    predictedTerrainElevation: "m",
+    projectedTouchdownSpeed: "m/s",
+    roughnessFootprintMeters: "m",
+    slopeAngleUnderVessel: "°",
+    slopeSampleRadiusMeters: "m",
+    terminalVelocity: "m/s",
+    terrainElevationUnderVessel: "m",
+    terrainPatchExtentMeters: "m",
   },
   "vessel.orbit": {
     argPe: "°",

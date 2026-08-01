@@ -69,6 +69,18 @@ namespace Sitrep.Contract
         // --- Power ---
         public const string Kilowatts = "kW";
 
+        // --- Data rate ---
+        /// <summary>Bits per second, the unit RealAntennas reports link rates in.</summary>
+        public const string BitsPerSecond = "bit/s";
+
+        // --- Level ---
+        /// <summary>
+        /// Decibels. Logarithmic, so it is the one quantity here that must
+        /// never be prefix-scaled: "3.2 kdB" is not a thing, and a ladder
+        /// applied to a log scale is wrong rather than merely ugly.
+        /// </summary>
+        public const string Decibels = "dB";
+
         // --- Density ---
         public const string KilogramsPerCubicMetre = "kg/m³";
 

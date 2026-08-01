@@ -90,21 +90,26 @@ public class VesselPart
     public PartBounds Bounds { get; set; } = new();
 
     /// <summary><c>Part.mass</c>: dry mass (tonnes).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double DryMass { get; set; }
 
     /// <summary><c>Part.inverseStage</c> (KSP's own inverted staging numbering, carried forward unchanged; see <see cref="VesselStructure.CurrentStage"/>).</summary>
     public int InverseStage { get; set; }
 
     /// <summary><c>Part.maxTemp</c>: internal max temperature (K).</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double MaxTemp { get; set; }
 
     /// <summary><c>Part.skinMaxTemp</c> (K); <c>null</c> for the <c>-1</c> "no skin-thermal model" sentinel.</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double? SkinMaxTemp { get; set; }
 
     /// <summary><c>Part.temperature</c>: current internal temperature (K); <c>null</c> for the <c>-1</c> "not yet simulated" sentinel.</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double? CurrentTemp { get; set; }
 
     /// <summary><c>Part.skinTemperature</c>: current skin temperature (K).</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double? SkinTemp { get; set; }
 
     /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name, e.g. <c>"Engine"</c>).</summary>
