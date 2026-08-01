@@ -2,9 +2,12 @@ import {
   DashboardItemContext,
   getComponent,
   registerStockBodies,
+  useWidgetStreamStatus,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { PanelStatusProvider } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
@@ -51,16 +54,36 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
+  /**
+   * The dashboard host, reproduced. `GridItemContent` derives the status from
+   * the widget's REGISTERED dataRequirements and hands it to the panel, so a
+   * test that renders the widget bare cannot see the badge at all: the widget
+   * stopped owning one. Wiring the real derivation here is what keeps the L2
+   * guarantee under test rather than merely asserted.
+   */
+  function HostStatus({ children }: { children: ReactNode }) {
+    const status = useWidgetStreamStatus(
+      getComponent("landing-status")?.dataRequirements,
+    );
+    return (
+      <PanelStatusProvider status={status}>{children}</PanelStatusProvider>
+    );
+  }
+
   function renderWidget(size?: { w: number; h: number }) {
     return render(
       <stream.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "landing-stream" }}>
-          <LandingStatusComponent
-            id="landing-stream"
-            w={size?.w ?? 8}
-            h={size?.h ?? 10}
-          />
-        </DashboardItemContext.Provider>
+        <HostStatus>
+          <DashboardItemContext.Provider
+            value={{ instanceId: "landing-stream" }}
+          >
+            <LandingStatusComponent
+              id="landing-stream"
+              w={size?.w ?? 8}
+              h={size?.h ?? 10}
+            />
+          </DashboardItemContext.Provider>
+        </HostStatus>
       </stream.Provider>,
     );
   }
@@ -157,7 +180,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
   // while Orbiting/Escaping and under signal delay), so a badge bound to
   // vessel.flight read healthy even when the shown height had silently dropped
   // to the CoM fallback.
-  it("keeps the CoM-datum fallback, and declares vessel.surface so the panel's status covers it (L2)", async () => {
+  it("badges on the withheld vessel.surface datum, not the live vessel.flight fallback (L2)", async () => {
     // Small size renders the plain AGL readout (at wide sizes altitude is the
     // full-height rail, which carries no "AGL" text).
     renderWidget({ w: 4, h: 10 });
@@ -169,26 +192,33 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     });
     await screen.findByText("AGL");
 
-    // The badge itself is no longer this widget's to render: the host derives
-    // it from every declared requirement and the panel shows it. What this
-    // widget still owes that guarantee is the DECLARATION, so a withheld
-    // vessel.surface reaches the derivation at all. The original bug this test
-    // was written for (a badge hand-bound to the live fallback channel,
-    // vessel.flight, so a withheld primary datum read as healthy) cannot recur
-    // under a worst-of-all-requirements derivation, but only while the primary
-    // datum is one of them.
+    // The badge is the host's to render now, derived from every declared
+    // requirement rather than one key the widget picked. The guarantee is
+    // unchanged and is still asserted for real: a withheld PRIMARY datum badges
+    // the panel even though the fallback channel it degraded to is live.
+    //
+    // Two things have to hold for that, and only one of them is the ranking.
+    // The derivation SKIPS a requirement that is not carried, so declaring
+    // vessel.surface is load-bearing, not incidental: drop it from the
+    // registration and the withheld datum stops reaching the derivation at all
+    // and the panel goes quiet again, which is the original bug wearing a
+    // different hat.
     expect(getComponent("landing-status")?.dataRequirements).toContain(
       "vessel.surface",
     );
+    expect(screen.getByText("SYNCING")).toBeInTheDocument();
 
     // Once vessel.surface arrives the shown AGL switches to the lowest-point
-    // datum.
+    // datum. The badge does NOT clear here, and should not: the derivation is
+    // the worst status across every declared requirement, and this fixture
+    // deliberately never delivers several of them, so something on this panel
+    // genuinely is still out of date. Asserting it clears would only be
+    // asserting that the badge watches one hand-picked key again.
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });
     await waitFor(() =>
       expect(screen.getByText(/4\.80 km/)).toBeInTheDocument(),
     );
-    expect(screen.getByText(/4\.80 km/)).toBeInTheDocument();
   });
 });
