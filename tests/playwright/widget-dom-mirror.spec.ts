@@ -100,16 +100,27 @@ async function getHostPeerId(page: Page): Promise<string> {
 async function readOrbitAp(page: Page): Promise<string> {
   const handle = await page.waitForFunction(
     () => {
-      // Find the ORBIT panel by its title text, then walk up to the
-      // panel container. The panel renders Label/Value rows in DOM
-      // order: Ap label, Ap value, Pe label, Pe value, …
+      // Find the ORBIT panel by its title text, then walk up to the panel
+      // container. The panel renders Label/Value rows in DOM order: Ap
+      // label, Ap value, Pe label, Pe value, …
+      //
+      // Walk up to whichever ancestor owns a `[data-panel-body]` rather
+      // than trusting the title's immediate parent. The composed Panel
+      // nests the title in a wrapper inside `[data-panel-header]`, so the
+      // parent holds the title ALONE and a search rooted there finds no
+      // rows at all: this helper silently timed out for exactly that
+      // reason after the Panel migration.
       const titles = Array.from(document.querySelectorAll("*")).filter(
         (el) => el.textContent?.trim() === "ORBIT",
       );
       for (const title of titles) {
-        const panel = title.parentElement;
-        if (!panel) continue;
-        const labels = Array.from(panel.querySelectorAll("*")).filter(
+        let panel: Element | null = title.parentElement;
+        while (panel && !panel.querySelector("[data-panel-body]")) {
+          panel = panel.parentElement;
+        }
+        const body = panel?.querySelector("[data-panel-body]");
+        if (!body) continue;
+        const labels = Array.from(body.querySelectorAll("*")).filter(
           (el) => el.textContent?.trim() === "Ap",
         );
         if (labels.length === 0) continue;
