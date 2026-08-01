@@ -37,6 +37,8 @@ export type QuantityKind =
   | "angle"
   | "energyRate"
   | "dataRate"
+  | "doseRate"
+  | "irradiance"
   | "level"
   | "density"
   | "gravitationalParameter"
@@ -196,6 +198,8 @@ const DECIMALS: Partial<Record<QuantityKind, number>> = {
   angle: 2,
   density: 4,
   dataRate: 1,
+  doseRate: 4,
+  irradiance: 1,
   level: 1,
   dimensionless: 2,
   fraction: 0,
@@ -224,6 +228,8 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   "Mbit/s": "dataRate",
   "Gbit/s": "dataRate",
   dB: "level",
+  "rad/s": "doseRate",
+  "W/m²": "irradiance",
   "kg/m³": "density",
   "m³/s²": "gravitationalParameter",
   "1": "dimensionless",

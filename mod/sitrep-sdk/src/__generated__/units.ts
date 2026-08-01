@@ -13,6 +13,7 @@
 export type SitrepUnit =
   | "1"
   | "K"
+  | "W/m²"
   | "bit/s"
   | "dB"
   | "g"
@@ -24,6 +25,7 @@ export type SitrepUnit =
   | "m/s"
   | "m³/s²"
   | "rad"
+  | "rad/s"
   | "ratio"
   | "s"
   | "t"
@@ -88,6 +90,26 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     latitude: "°",
     longitude: "°",
     ut: "s",
+  },
+  "KerbalismCrewEntry": {
+    deathClockSec: "s",
+  },
+  "KerbalismGreenhouseEntry": {
+    artificial: "W/m²",
+    natural: "W/m²",
+    pressureTolerance: "ratio",
+    radiationToleranceRadPerSec: "rad/s",
+  },
+  "KerbalismHabitat": {
+    comfort: "ratio",
+    livingSpace: "ratio",
+    poisoning: "ratio",
+    pressure: "ratio",
+    shielding: "ratio",
+  },
+  "KerbalismSpaceWeather": {
+    habitatRadiationRadPerSecond: "rad/s",
+    radiationRadPerSecond: "rad/s",
   },
   "KerbcastCameraEntry": {
     fieldOfView: "°",
@@ -290,6 +312,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalDvActual: "m/s",
     totalDvAsl: "m/s",
     totalDvVac: "m/s",
+  },
+  "kerbalism.crew": {
+    deathClockSec: "s",
+  },
+  "kerbalism.spaceweather": {
+    habitatRadiationRadPerSecond: "rad/s",
+    radiationRadPerSecond: "rad/s",
   },
   "kerbcast.cameras": {
     fieldOfView: "°",

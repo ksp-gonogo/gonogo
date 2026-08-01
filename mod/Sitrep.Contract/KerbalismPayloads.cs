@@ -47,7 +47,9 @@ public class KerbalismSpaceWeather
     /// display values as <c>EnvHabitatRadiation * 3600.0</c>, the same
     /// per-second-to-per-hour factor the client applies here).
     /// </summary>
+    [SitrepUnit(Units.RadPerSecond)]
     public double? RadiationRadPerSecond { get; set; }
+    [SitrepUnit(Units.RadPerSecond)]
     public double? HabitatRadiationRadPerSecond { get; set; }
     public bool? Magnetosphere { get; set; }
     public bool? InnerBelt { get; set; }
@@ -80,10 +82,15 @@ public class KerbalismResource
 #endif
 public class KerbalismHabitat
 {
+    [SitrepUnit(Units.Ratio)]
     public double? Pressure { get; set; }
+    [SitrepUnit(Units.Ratio)]
     public double? Poisoning { get; set; }
+    [SitrepUnit(Units.Ratio)]
     public double? Shielding { get; set; }
+    [SitrepUnit(Units.Ratio)]
     public double? LivingSpace { get; set; }
+    [SitrepUnit(Units.Ratio)]
     public double? Comfort { get; set; }
     public double? Volume { get; set; }
     public double? Surface { get; set; }
@@ -125,8 +132,10 @@ public class KerbalismGreenhouseEntry
     /// <summary>Derived continuous production rate, units/s (crop_size * crop_rate when active and lit; 0 when blocked).</summary>
     public double? FoodRatePerSec { get; set; }
     /// <summary>Natural light flux reaching the greenhouse, W/m^2 (<c>Greenhouse.Data.natural</c>).</summary>
+    [SitrepUnit(Units.WattsPerSquareMetre)]
     public double? Natural { get; set; }
     /// <summary>Supplemental lamp light flux, W/m^2 (<c>Greenhouse.Data.artificial</c>).</summary>
+    [SitrepUnit(Units.WattsPerSquareMetre)]
     public double? Artificial { get; set; }
     /// <summary>Persisted on/off KSPField, the player's own toggle, independent of whether it is currently producing.</summary>
     public bool? Active { get; set; }
@@ -139,8 +148,10 @@ public class KerbalismGreenhouseEntry
     /// <summary>Part config: total light flux needed to grow, W/m^2 (<c>light_tolerance</c>).</summary>
     public double? LightToleranceWm2 { get; set; }
     /// <summary>Part config: minimum habitat pressure fraction required (<c>pressure_tolerance</c>).</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? PressureTolerance { get; set; }
     /// <summary>Part config: max radiation tolerated, rad/s (<c>radiation_tolerance</c>).</summary>
+    [SitrepUnit(Units.RadPerSecond)]
     public double? RadiationToleranceRadPerSec { get; set; }
 }
 
@@ -212,6 +223,7 @@ public class KerbalismCrewEntry
     public string? Trait { get; set; }
     public List<KerbalismCrewRule>? Rules { get; set; }
     /// <summary>Optional mod-computed soonest-fatal countdown (s). Null when not derivable. [fixture-confirm]</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? DeathClockSec { get; set; }
 }
 

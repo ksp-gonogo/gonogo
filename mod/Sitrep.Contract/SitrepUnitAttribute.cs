@@ -77,6 +77,19 @@ namespace Sitrep.Contract
         /// </summary>
         public const string BitsPerSecond = "bit/s";
 
+        // --- Radiation ---
+        /// <summary>
+        /// Absorbed dose rate, rad per second. Per SECOND on the wire even
+        /// though rad/h is what an operator reads: the wire carries the rate
+        /// as sampled and the client multiplies by 3600 for display, which is
+        /// the same direction of travel as kelvin-not-Celsius.
+        /// </summary>
+        public const string RadPerSecond = "rad/s";
+
+        // --- Irradiance ---
+        /// <summary>Radiant flux per unit area, watts per square metre.</summary>
+        public const string WattsPerSquareMetre = "W/m²";
+
         // --- Level ---
         /// <summary>
         /// Decibels. Logarithmic, so it is the one quantity here that must
