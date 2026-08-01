@@ -1,12 +1,12 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   getBody,
-  kelvinToCelsius,
   pressureAtAltitude,
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { formatQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {
@@ -216,14 +216,16 @@ function AtmosphereProfileComponent({
   );
 }
 
+// Kelvin on the wire, Celsius on screen: the conversion is a presentation
+// choice made through the shared unit layer, not something the wire pre-applies.
 function formatTempC(k: number): string {
-  return `${kelvinToCelsius(k).toFixed(0)} °C`;
+  const { value, symbol } = formatQuantity(k, "K", { as: "°C" });
+  return `${value} ${symbol}`;
 }
 
 function formatPressure(p: number): string {
-  if (p >= 1000) return `${(p / 1000).toFixed(1)} kPa`;
-  if (p >= 1) return `${p.toFixed(1)} Pa`;
-  return `${(p * 1000).toFixed(2)} mPa`;
+  const { value, symbol } = formatQuantity(p, "Pa");
+  return `${value} ${symbol}`;
 }
 
 const Wrap = styled.div`

@@ -102,8 +102,14 @@ const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
     { from: 1e3, symbol: "kN", per: 1e3 },
     { from: 1e6, symbol: "MN", per: 1e6 },
   ],
+  // Descends below the base unit, which the others have no need to. Upper
+  // atmosphere runs to fractions of a pascal, and AtmosphereProfile's
+  // hand-rolled version already carried an mPa rung for exactly that; the
+  // shared ladder has to cover it or migrating that widget would lose a real
+  // reading at altitude.
   pressure: [
-    { from: 0, symbol: "Pa", per: 1 },
+    { from: 0, symbol: "mPa", per: 1e-3 },
+    { from: 1, symbol: "Pa", per: 1 },
     { from: 1e3, symbol: "kPa", per: 1e3 },
     { from: 1e6, symbol: "MPa", per: 1e6 },
   ],
