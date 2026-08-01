@@ -30,6 +30,7 @@ public class ResourceAmount
     /// genuine zero reading. This is presence ONLY, flow/rate is a separate
     /// future channel (see this class's doc comment), deliberately not added here.
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool Active { get; set; } = true;
 }
 

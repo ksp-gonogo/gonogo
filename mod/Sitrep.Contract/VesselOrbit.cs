@@ -89,6 +89,7 @@ public class VesselOrbit
 #endif
 public class OrbitEncounter
 {
+    [SitrepUnit(Units.Enumeration)]
     public TransitionType TransitionType { get; set; }
 
     public double TransitionUt { get; set; }

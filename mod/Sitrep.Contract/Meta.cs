@@ -22,13 +22,18 @@ public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
 #endif
 public class Meta
 {
+    [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
     public double ValidAt { get; set; }
     public long Seq { get; set; }
     public double DeliveredAt { get; set; }
+    [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
+    [SitrepUnit(Units.Enumeration)]
     public Quality Quality { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
+    [SitrepUnit(Units.Enumeration)]
     public Staleness Staleness { get; set; }
 
     /// <summary>
@@ -74,6 +79,8 @@ public class Meta
 #endif
 public class PayloadMeta
 {
+    [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
+    [SitrepUnit(Units.Enumeration)]
     public Quality Quality { get; set; }
 }

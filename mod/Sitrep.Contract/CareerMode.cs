@@ -56,5 +56,6 @@ public enum GameMode
 #endif
 public class CareerMode
 {
+    [SitrepUnit(Units.Enumeration)]
     public GameMode Mode { get; set; }
 }

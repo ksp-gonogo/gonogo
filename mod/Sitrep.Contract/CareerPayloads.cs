@@ -116,12 +116,16 @@ public class CareerContracts
 #endif
 public class CareerContract
 {
+    [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Agent { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? State { get; set; }
 
     public double? FundsAdvance { get; set; }
@@ -152,8 +156,10 @@ public class CareerContract
 #endif
 public class CareerContractParameter
 {
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? State { get; set; }
 }
 
@@ -182,14 +188,19 @@ public class CareerStrategies
 #endif
 public class CareerStrategy
 {
+    [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Description { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Department { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? IsActive { get; set; }
 
     public double? Factor { get; set; }
@@ -204,20 +215,26 @@ public class CareerStrategy
 
     public double? InitialCostReputation { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? HasFactorSlider { get; set; }
 
     public double? FactorSliderDefault { get; set; }
 
     public int? FactorSliderSteps { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? CanActivate { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? ActivateBlockedReason { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? CanDeactivate { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? DeactivateBlockedReason { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Effect { get; set; }
 }
 
@@ -234,6 +251,7 @@ public class CareerTech
 {
     public int UnlockedCount { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public List<string> UnlockedIds { get; set; } = new();
 
     public List<CareerTechNode> Nodes { get; set; } = new();
@@ -246,13 +264,17 @@ public class CareerTech
 #endif
 public class CareerTechNode
 {
+    [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
     public double? ScienceCost { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Unlocked { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public List<string> Parents { get; set; } = new();
 }

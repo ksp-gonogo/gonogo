@@ -59,8 +59,10 @@ public class WarpState
 
     public int WarpRateIndex { get; set; }
 
+    [SitrepUnit(Units.Enumeration)]
     public WarpMode WarpMode { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

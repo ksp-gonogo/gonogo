@@ -57,6 +57,7 @@ public enum PhysicsMode
 [SitrepTopic("vessel.physics.mode")]
 public class VesselPhysicsMode
 {
+    [SitrepUnit(Units.Enumeration)]
     public PhysicsMode Mode { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

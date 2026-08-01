@@ -39,10 +39,14 @@ namespace Sitrep.Contract;
 public class ReliabilitySummary
 {
     /// <summary>True when the elected backend does not model reliability (Kerbalism with Features.Reliability off).</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? Unmodeled { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Malfunction { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Critical { get; set; }
     /// <summary>Which backend produced this: "kerbalism" | "testflight" | "none".</summary>
+    [SitrepUnit(Units.Id)]
     public string? Source { get; set; }
     /// <summary>Worst engine reliability probability on the vessel (0..1), the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
     public double? WorstReliabilityFraction { get; set; }
@@ -62,10 +66,15 @@ public class ReliabilitySummary
 [SitrepTopic("reliability.parts", isArray: true)]
 public class ReliabilityPartEntry
 {
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
+    [SitrepUnit(Units.Text)]
     public string? Group { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Broken { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Critical { get; set; }
     public double? MtbfHours { get; set; }
     /// <summary>Live/interpolated reliability probability (0..1): TestFlight's headline pre-burn go/no-go number. TestFlight fills it; null for Kerbalism.</summary>
@@ -76,6 +85,7 @@ public class ReliabilityPartEntry
     public double? IgnitionsConsumed { get; set; }
     /// <summary>Fraction of rated duration CONSUMED (1.0 = spent). Kerbalism-only; null for TestFlight.</summary>
     public double? DurationConsumed { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? NeedsRepair { get; set; }
 }
 

@@ -32,6 +32,7 @@ public class VesselOrbitTruth
 
     public Vec3 Velocity { get; set; } = new();
 
+    [SitrepUnit(Units.Flag)]
     public bool FrameRotating { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

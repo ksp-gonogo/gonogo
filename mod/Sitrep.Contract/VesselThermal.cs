@@ -28,6 +28,7 @@ public class ThermalHottestPart
     public double SkinMaxTemp { get; set; }
 
     /// <summary>Display name of the hottest part (<c>Part.partInfo.title</c>, falling back to <c>Part.name</c>, same convention as <see cref="Sitrep.Contract.VesselPart.Title"/>). Never null when <see cref="VesselThermal.HottestPart"/> itself is non-null.</summary>
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 }
 
@@ -84,6 +85,7 @@ public class VesselThermal
     public double? HottestEngineTempRatio { get; set; }
 
     /// <summary>True when ANY engine part's internal-temperature ratio is at or above 0.9, the same "&gt;90% max" threshold ThermalStatus's own inline alert copy already states. False (not null) whenever the vessel has engine parts and none crosses it; null only alongside a null <see cref="HottestEngineTempRatio"/> (no engine parts at all this tick).</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? AnyEnginesOverheating { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

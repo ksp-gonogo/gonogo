@@ -18,10 +18,13 @@ namespace Sitrep.Contract;
 #endif
 public class SolarPanelEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? DeployState { get; set; }
 
     public double? FlowRate { get; set; }
@@ -41,8 +44,10 @@ public class SolarPanelEntry
 #endif
 public class BatteryEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
     public double? Current { get; set; }
@@ -60,12 +65,16 @@ public class BatteryEntry
 #endif
 public class FuelCellEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Active { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Status { get; set; }
 }
 
@@ -80,8 +89,10 @@ public class FuelCellEntry
 #endif
 public class AlternatorEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
     public double? OutputRate { get; set; }
@@ -147,20 +158,27 @@ public class PartsPower
 #endif
 public class ServoEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? Type { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? ServoIsLocked { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? ServoIsMotorized { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? ServoMotorIsEngaged { get; set; }
 
     public double? ServoMotorLimit { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? MotorState { get; set; }
 
     public double? CurrentAngle { get; set; }
@@ -186,6 +204,7 @@ public class ServoEntry
     /// Mirrors <c>ModuleRoboticServoRotor.rotateCounterClockwise</c>: <c>true</c>
     /// means the rotor spins counter-clockwise.
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool? CounterClockwise { get; set; }
 
     /// <summary>
@@ -228,5 +247,6 @@ public class ServoEntry
 #endif
 public class RoboticsAvailability
 {
+    [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
 }

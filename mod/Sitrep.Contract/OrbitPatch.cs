@@ -70,8 +70,10 @@ public class OrbitPatch
     [SitrepUnit(Units.Seconds)]
     public double EndUt { get; set; }
 
+    [SitrepUnit(Units.Enumeration)]
     public TransitionType PatchStartTransition { get; set; }
 
+    [SitrepUnit(Units.Enumeration)]
     public TransitionType PatchEndTransition { get; set; }
 
     /// <summary>Periapsis altitude above <see cref="ReferenceBody"/>'s mean radius, metres, `Orbit.PeA`.</summary>
@@ -89,8 +91,10 @@ public class OrbitPatch
     public double SemiMinorAxis { get; set; }
 
     /// <summary>Body this patch orbits: matches `system.bodies`' NAME, not its index (see class doc).</summary>
+    [SitrepUnit(Units.Text)]
     public string ReferenceBody { get; set; } = "";
 
     /// <summary>Body this patch's trajectory most closely encounters, if any, null when there is none. Same "name, not index" convention as <see cref="ReferenceBody"/>.</summary>
+    [SitrepUnit(Units.Text)]
     public string? ClosestEncounterBody { get; set; }
 }

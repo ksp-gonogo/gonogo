@@ -54,10 +54,12 @@ public enum ControlState
 [SitrepTopic("vessel.comms")]
 public class VesselComms
 {
+    [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
 
     public double SignalStrength { get; set; }
 
+    [SitrepUnit(Units.Enumeration)]
     public ControlState ControlState { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

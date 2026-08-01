@@ -38,8 +38,10 @@ namespace Sitrep.Contract;
 public class GameDlc
 {
     /// <summary>Whether the Breaking Ground expansion ("Serenity") is installed, deployed science, robotics, surface features.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool BreakingGround { get; set; }
 
     /// <summary>Whether the Making History expansion is installed, mission builder, extra parts.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool MakingHistory { get; set; }
 }

@@ -42,6 +42,7 @@ public class VesselLanding
     /// <c>"vacuum-solved"</c>, <c>"atmospheric-aware"</c>, <c>"no-solution"</c>,
     /// <c>"terrain-assessed"</c>. Null before the first classification.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string? Outcome { get; set; }
 
     /// <summary>
@@ -53,6 +54,7 @@ public class VesselLanding
     /// whether they are seeing downrange or under-ship terrain. Null when no
     /// terrain was sampled.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string? SampleSource { get; set; }
 
     // ── Tier 1: under-vessel terrain (forward-compat placeholders) ───────────
@@ -107,6 +109,7 @@ public class VesselLanding
     public double? SlopeSampleRadiusMeters { get; set; }
 
     /// <summary>KSP's biome name at the PREDICTED touchdown point (not the current position, that is <c>vessel.surface.biome</c>). Via <c>ScienceUtil.GetExperimentBiome</c> (which takes degrees). Null when the body has no biome map.</summary>
+    [SitrepUnit(Units.Text)]
     public string? PredictedBiome { get; set; }
 
     // ── Reticle relief patch (phase-later; cached, resampled on point drift) ─
@@ -136,9 +139,11 @@ public class VesselLanding
     public double? AtmosphericTimeToImpact { get; set; }
 
     /// <summary>The instantaneous descent regime: <c>"at-terminal"</c> / <c>"decelerating"</c> / <c>"accelerating"</c>. Null outside an atmosphere.</summary>
+    [SitrepUnit(Units.Text)]
     public string? DescentRegime { get; set; }
 
     /// <summary>Parachute state affecting the estimate: <c>"none"</c> / <c>"armed"</c> (a future step change the instant model cannot see, flag the estimate) / <c>"deployed"</c> (drag already in the measurement, self-corrected). Null outside an atmosphere.</summary>
+    [SitrepUnit(Units.Text)]
     public string? ParachuteState { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

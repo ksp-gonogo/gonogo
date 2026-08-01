@@ -70,15 +70,19 @@ public class VesselParts
 public class VesselPart
 {
     /// <summary><c>Part.flightID</c> stringified: the tree/cross-channel join key. Empty string only for the uninitialized-0 sentinel (no live flight id yet).</summary>
+    [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
     /// <summary><c>Part.parent?.flightID</c> stringified; <c>null</c> for the root part.</summary>
+    [SitrepUnit(Units.Id)]
     public string? ParentId { get; set; }
 
     /// <summary><c>Part.partInfo.name</c> (the <c>AvailablePart.name</c> config id, e.g. <c>"solarPanels1"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
     /// <summary><c>Part.partInfo.title</c> (the display title, e.g. <c>"OX-STAT Photovoltaic Panels"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string Title { get; set; } = "";
 
     /// <summary><c>Part.orgPos</c>: the part's original vessel-local position (metres, vessel frame).</summary>
@@ -113,18 +117,23 @@ public class VesselPart
     public double? SkinTemp { get; set; }
 
     /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name, e.g. <c>"Engine"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string Category { get; set; } = "";
 
     /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), what ShipMap's <c>classifyPart</c> matches on.</summary>
+    [SitrepUnit(Units.Text)]
     public List<string> Modules { get; set; } = new();
 
     /// <summary><c>Part.isRobotic()</c>: a Breaking Ground robotic servo part.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool IsRobotics { get; set; }
 
     /// <summary>True when the part carries a solar panel, alternator, EC-producing converter, or an ElectricCharge resource capacity.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool IsPowerRelated { get; set; }
 
     /// <summary>For a fuel-line part, the stringified <c>flightID</c> of the part it feeds; <c>null</c> otherwise.</summary>
+    [SitrepUnit(Units.Id)]
     public string? FuelLineTargetId { get; set; }
 
     /// <summary>
@@ -171,9 +180,11 @@ public class VesselPart
 public class ActionBinding
 {
     /// <summary>The action's PAW label: <c>BaseAction.guiName</c> (e.g. "Toggle", "Extend Panel").</summary>
+    [SitrepUnit(Units.Text)]
     public string Action { get; set; } = "";
 
     /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty, an action bound to no group isn't emitted.</summary>
+    [SitrepUnit(Units.Text)]
     public List<string> Groups { get; set; } = new();
 }
 
@@ -228,15 +239,19 @@ public class PartResourceFlow
 public class PartModuleState
 {
     /// <summary>Discriminator: <c>solarPanel</c> / <c>radiator</c> / <c>antenna</c> / <c>parachute</c> / <c>engine</c> / <c>drill</c> / <c>landingGear</c>. (<c>cargoBay</c> is a defined vocabulary value with no module here; see <c>KspHost.BuildPartModuleStates</c>'s doc comment for why.)</summary>
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "";
 
     /// <summary>The standardised deploy/activation state: see <c>PartStateModule</c>'s doc comment for the per-type vocabulary.</summary>
+    [SitrepUnit(Units.Text)]
     public string State { get; set; } = "";
 
     /// <summary>Solar-panel-only: sun-tracking gimbal active. <c>null</c> for every other type.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? Tracking { get; set; }
 
     /// <summary>Engine-only: fuel-starved. <c>null</c> unless <c>true</c> (never emitted as a bare <c>false</c>).</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? Flameout { get; set; }
 }
 

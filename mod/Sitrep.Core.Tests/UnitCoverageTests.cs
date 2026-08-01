@@ -255,7 +255,9 @@ namespace Sitrep.Core.Tests
 
             File.WriteAllText(
                 ResolveBaselineSourcePath(),
-                JsonSerializer.Serialize(baseline, new JsonSerializerOptions { WriteIndented = true }));
+                // Trailing newline because the pre-commit hook runs biome over
+                // this file and JsonSerializer does not emit one.
+                JsonSerializer.Serialize(baseline, new JsonSerializerOptions { WriteIndented = true }) + "\n");
 
             Console.WriteLine($"Seeded {pending.Count} pending entries.");
         }

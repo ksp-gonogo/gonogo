@@ -24,6 +24,7 @@ namespace Sitrep.Contract;
 public class RevertToEditorArgs
 {
     /// <summary><c>"vab"</c> or <c>"sph"</c> (case-insensitive). Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
+    [SitrepUnit(Units.Text)]
     public string Editor { get; set; } = "";
 }
 
@@ -42,6 +43,7 @@ public class RevertToEditorArgs
 #endif
 public class SwitchVesselArgs
 {
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 }
 
@@ -67,13 +69,17 @@ public class SwitchVesselArgs
 #endif
 public class LaunchArgs
 {
+    [SitrepUnit(Units.Text)]
     public string ShipName { get; set; } = "";
 
     /// <summary><c>"VAB"</c> or <c>"SPH"</c> (case-insensitive). Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
+    [SitrepUnit(Units.Text)]
     public string Facility { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string Site { get; set; } = "LaunchPad";
 
     /// <summary>Kerbal names to seat, in order. Empty = launch unmanned.</summary>
+    [SitrepUnit(Units.Text)]
     public List<string> Crew { get; set; } = new();
 }

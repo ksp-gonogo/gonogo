@@ -27,12 +27,15 @@ namespace Sitrep.Contract;
 public class PendingUplink
 {
     /// <summary>== the dispatch <c>CommandRequest.RequestId</c>, the correlation key.</summary>
+    [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
     /// <summary>Wire command name (e.g. <c>kos.run</c>).</summary>
+    [SitrepUnit(Units.Id)]
     public string Command { get; set; } = "";
 
     /// <summary>Caller-supplied envelope label; empty ⇒ the renderer falls back to <see cref="Command"/>.</summary>
+    [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
     /// <summary>
@@ -42,6 +45,7 @@ public class PendingUplink
     /// it stays inside the prediction-only invariant; it lets a renderer
     /// scope entries to one part/terminal. Empty ⇒ unscoped.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 
     /// <summary>
@@ -51,6 +55,7 @@ public class PendingUplink
     /// prediction-only invariant. Future-proofs multiple command sources
     /// without a later contract migration.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
 
     /// <summary>UT the engine dispatched the command.</summary>

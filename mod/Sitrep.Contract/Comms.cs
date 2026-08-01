@@ -51,8 +51,11 @@ public enum CommsControlSource
 [SitrepTopic("comms.connectivity")]
 public class CommsConnectivity
 {
+    [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
+    [SitrepUnit(Units.Enumeration)]
     public CommsControlSource ControlSource { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool HasLocalControl { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -98,7 +101,9 @@ public enum CommsControlStateKind
 [SitrepTopic("comms.controlState")]
 public class CommsControlState
 {
+    [SitrepUnit(Units.Enumeration)]
     public CommsControlStateKind State { get; set; }
+    [SitrepUnit(Units.Text)]
     public string? Reason { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -129,8 +134,11 @@ public enum CommsHopKind
 #endif
 public class CommsHop
 {
+    [SitrepUnit(Units.Id)]
     public string From { get; set; } = "";
+    [SitrepUnit(Units.Id)]
     public string To { get; set; } = "";
+    [SitrepUnit(Units.Enumeration)]
     public CommsHopKind Kind { get; set; }
     [SitrepUnit(Units.Metres)]
     public double? DistanceMeters { get; set; }
@@ -161,7 +169,9 @@ public class CommsPath
 #endif
 public class CommsNetworkNode
 {
+    [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
+    [SitrepUnit(Units.Enumeration)]
     public CommsHopKind Kind { get; set; }
 }
 
@@ -172,8 +182,11 @@ public class CommsNetworkNode
 #endif
 public class CommsNetworkEdge
 {
+    [SitrepUnit(Units.Id)]
     public string A { get; set; } = "";
+    [SitrepUnit(Units.Id)]
     public string B { get; set; } = "";
+    [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
 }
 
@@ -239,6 +252,7 @@ public class CommsDelay
 {
     [SitrepUnit(Units.Seconds)]
     public double? OneWaySeconds { get; set; }
+    [SitrepUnit(Units.Enumeration)]
     public CommsDelaySource Source { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -270,6 +284,7 @@ public class CommsDelay
 [SitrepTopic("comms.link")]
 public class CommsLink
 {
+    [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }
@@ -324,6 +339,7 @@ public class CommsLinkMargin
 {
     [SitrepUnit(Units.Decibels)]
     public double DecibelMargin { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool ClosesLink { get; set; }
     public PayloadMeta Meta { get; set; } = new();
 }

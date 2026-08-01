@@ -69,9 +69,11 @@ public class ActionGroupState
     /// showed, now sourced from the mod rather than hardcoded client-side.
     /// An AGX backend reports the player's own names instead.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
     /// <summary>Whether the group is currently engaged.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool State { get; set; }
 }
 
@@ -100,18 +102,25 @@ public class ActionGroupState
 [SitrepTopic("vessel.control")]
 public class VesselControl
 {
+    [SitrepUnit(Units.Flag)]
     public bool? Sas { get; set; }
 
+    [SitrepUnit(Units.Enumeration)]
     public SasMode? SasMode { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Rcs { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Gear { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Brakes { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Lights { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Abort { get; set; }
 
     /// <summary>
@@ -120,6 +129,7 @@ public class VesselControl
     /// active flight scene (<c>FlightInputHandler.fetch</c> is null), never a
     /// sentinel default (R1(a)).
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool? PrecisionControl { get; set; }
 
     /// <summary>0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>

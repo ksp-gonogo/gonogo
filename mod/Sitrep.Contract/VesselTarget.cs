@@ -101,8 +101,10 @@ public class ClosestApproach
 [SitrepTopic("vessel.target")]
 public class VesselTarget
 {
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
+    [SitrepUnit(Units.Enumeration)]
     public TargetKind Kind { get; set; }
 
     /// <summary>
@@ -116,6 +118,7 @@ public class VesselTarget
     /// re-target command with no extra lookup. Null for a body/other target;
     /// see <see cref="BodyIndex"/> for the body case.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
     /// <summary>

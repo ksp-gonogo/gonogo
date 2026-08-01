@@ -187,7 +187,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// A label that happens to be stored as a number or a string: a
-        /// flightID, a body index, a kOS core id, a part id.
+        /// flightID, a body index, a part id, a subscription topic.
         ///
         /// <para>Distinct from <see cref="Count"/> because ARITHMETIC ON IT IS
         /// MEANINGLESS. Summing two counts is a count; summing two ids is

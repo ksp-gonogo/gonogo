@@ -41,11 +41,19 @@ describe("generated units", () => {
     expect(unitOf("vessel.orbit", "meanAnomalyAtEpoch")).toBe("rad");
   });
 
-  it("returns undefined for a field with no declared unit yet", () => {
-    // Coverage is partial by design; an unannotated field must read as "not stated",
-    // never as a guess and never as dimensionless.
+  it("declares the non-quantities rather than leaving them silent", () => {
+    // The rule this inverts: coverage used to be partial by design and an
+    // unannotated field read as "not stated". That made absence unfalsifiable,
+    // so a non-quantity now DECLARES itself and silence means someone forgot.
+    // A vessel name is text; it is not a quantity and it is no longer bare.
+    expect(unitOf("vessel.identity", "name")).toBe("text");
+  });
+
+  it("still returns undefined for a structural property", () => {
+    // The one legitimate absence left. A container has no dimension of its own:
+    // `meta` is a PayloadMeta and is described entirely by the units on its own
+    // fields, so the coverage gate exempts it BY TYPE rather than by name.
     expect(unitOf("vessel.flight", "meta")).toBeUndefined();
-    expect(unitOf("vessel.identity", "name")).toBeUndefined();
   });
 
   it("exposes nested payload shapes that are not Topics of their own", () => {
@@ -56,7 +64,11 @@ describe("generated units", () => {
   });
 
   it("returns an empty object, not undefined, for an unmapped lookup", () => {
-    expect(unitsForTopic("vessel.identity")).toEqual({});
+    // A Topic nothing has annotated yet still indexes cleanly. `vessel.identity`
+    // used to be the example and is now fully declared, so this needs a name no
+    // payload has: the guarantee is about the shape of a miss, not about which
+    // Topics happen to be bare this week.
+    expect(unitsForTopic("no.such.topic" as never)).toEqual({});
     expect(unitsForType("NoSuchType")).toEqual({});
   });
 

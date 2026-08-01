@@ -423,6 +423,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/UplinkPending.cs",
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      // The third file the same codegen run emits, from the same reflection over
+      // the same assembly. It joined this bucket when the unit-coverage ratchet
+      // annotated the kOS command-arg and terminal-frame payloads, so it now
+      // names their types the way its two siblings above already do. Generated,
+      // not authored; same class, same reason.
+      "mod/sitrep-sdk/src/__generated__/units.ts",
       // topics.test-d.ts / topics.test.ts / topics.ts stay in the kos bucket: each
       // still names a kos.* dynamic namespace or a Kos-prefixed contract type
       // (`kos.compute.*`, `kos.processors`, `KosProcessorInfo`) as a generic

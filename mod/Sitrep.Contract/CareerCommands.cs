@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 #endif
 public class ActivateStrategyArgs
 {
+    [SitrepUnit(Units.Id)]
     public string StrategyId { get; set; } = "";
 
     /// <summary>0..1 slider fraction; ignored by strategies without a factor slider.</summary>
@@ -34,6 +35,7 @@ public class ActivateStrategyArgs
 #endif
 public class DeactivateStrategyArgs
 {
+    [SitrepUnit(Units.Id)]
     public string StrategyId { get; set; } = "";
 }
 
@@ -48,6 +50,7 @@ public class DeactivateStrategyArgs
 #endif
 public class UnlockTechArgs
 {
+    [SitrepUnit(Units.Id)]
     public string TechId { get; set; } = "";
 }
 
@@ -65,6 +68,7 @@ public class UnlockTechArgs
 #endif
 public class ContractActionArgs
 {
+    [SitrepUnit(Units.Id)]
     public string ContractId { get; set; } = "";
 }
 
@@ -81,5 +85,6 @@ public class ContractActionArgs
 #endif
 public class UpgradeFacilityArgs
 {
+    [SitrepUnit(Units.Id)]
     public string FacilityId { get; set; } = "";
 }

@@ -42,6 +42,7 @@ public class KosRunArgs
     /// same role as <see cref="KosTerminalOpenArgs.LeaseToken"/>, but scoped
     /// to a single request/response instead of a session.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
 
     /// <summary>
@@ -49,6 +50,7 @@ public class KosRunArgs
     /// a human would press Enter (a trailing <c>\n</c> or <c>.\n</c>). Never
     /// parsed or rewritten by the mod.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string Command { get; set; } = "";
 }
 
@@ -81,11 +83,13 @@ public class KosRunResult
     public int CoreId { get; set; }
 
     /// <summary>Echoes the triggering <see cref="KosRunArgs.RequestId"/>.</summary>
+    [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
 
     /// <summary>Parsed <c>[KOSDATA]</c> field map: null on an error result.</summary>
     public Dictionary<string, object?>? Fields { get; set; }
 
     /// <summary>Explicit <c>[KOSERROR]</c> message: null on a data result.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Error { get; set; }
 }

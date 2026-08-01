@@ -31,15 +31,19 @@ public class KosProcessorInfo
     public int CoreId { get; set; }
 
     /// <summary><c>kOSProcessor.Tag</c> (from the companion <c>KOSNameTag</c>): null when the part carries no name-tag.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Tag { get; set; }
 
     /// <summary><c>kOSProcessor.HasBooted</c>: false while the CPU is still running its boot script.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool HasBooted { get; set; }
 
     /// <summary><c>kOSProcessor.BootFilePath</c>, stringified: null when no boot file is selected.</summary>
+    [SitrepUnit(Units.Text)]
     public string? BootFilePath { get; set; }
 
     /// <summary><c>kOSProcessor.ProcessorMode</c> as its enum name (<c>READY</c>/<c>OFF</c>/<c>STARVED</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string ProcessorMode { get; set; } = "";
 }
 
@@ -63,18 +67,22 @@ public class KosProcessorInfo
 public class KosComputeStatus
 {
     /// <summary>The per-topic loop is currently dispatching this script on its CPU.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool Running { get; set; }
 
     /// <summary>UT of the last successful <c>[KOSDATA]</c> parse, null until the first good parse.</summary>
     public double? LastGoodAt { get; set; }
 
     /// <summary>Last script-author fault (runtime exception / <c>[KOSERROR]</c>), null when none.</summary>
+    [SitrepUnit(Units.Text)]
     public string? ScriptError { get; set; }
 
     /// <summary>Last <c>[KOSDATA]</c> parse failure: null when none.</summary>
+    [SitrepUnit(Units.Text)]
     public string? ParseError { get; set; }
 
     /// <summary>The per-topic breaker has tripped (three consecutive script faults), dispatch is paused until <c>kos.reEnable</c>.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
 }
 
@@ -96,6 +104,7 @@ public class KosExecArgs
     public int CoreId { get; set; }
 
     /// <summary>The registered compute topic id whose script to run (its on-volume path is <c>0:/widget_scripts/&lt;id&gt;.ks</c>).</summary>
+    [SitrepUnit(Units.Id)]
     public string ScriptId { get; set; } = "";
 }
 
@@ -111,5 +120,6 @@ public class KosExecArgs
 public class KosReEnableArgs
 {
     /// <summary>The compute topic id whose breaker to clear.</summary>
+    [SitrepUnit(Units.Id)]
     public string ScriptId { get; set; } = "";
 }

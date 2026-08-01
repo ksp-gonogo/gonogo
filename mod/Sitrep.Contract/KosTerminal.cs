@@ -55,9 +55,11 @@ public class KosTerminalFrame
     public int CoreId { get; set; }
 
     /// <summary>xterm-ready output bytes (already mapped from kOS's screen diff) to write into the terminal.</summary>
+    [SitrepUnit(Units.Text)]
     public string Chunk { get; set; } = "";
 
     /// <summary>True for a self-contained repaint frame: the client clears the terminal before applying <see cref="Chunk"/>.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool FullRepaint { get; set; }
 }
 
@@ -88,6 +90,7 @@ public class KosTerminalOpenArgs
     /// must present the SAME token or is rejected. This is how the mod tells
     /// lease holders apart without a client identity on the command channel.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string LeaseToken { get; set; } = "";
 }
 
@@ -113,9 +116,11 @@ public class KosKeystrokeArgs
     public int CoreId { get; set; }
 
     /// <summary>The write-lease token from <see cref="KosTerminalOpenArgs.LeaseToken"/>; must match the CPU's current holder.</summary>
+    [SitrepUnit(Units.Id)]
     public string LeaseToken { get; set; } = "";
 
     /// <summary>The character(s) to type: one char, or a whole line in line-mode.</summary>
+    [SitrepUnit(Units.Text)]
     public string Chars { get; set; } = "";
 }
 
@@ -136,6 +141,7 @@ public class KosTerminalResizeArgs
     public int CoreId { get; set; }
 
     /// <summary>The write-lease token; must match the CPU's current holder.</summary>
+    [SitrepUnit(Units.Id)]
     public string LeaseToken { get; set; } = "";
 
     /// <summary>Desired column count.</summary>
@@ -162,5 +168,6 @@ public class KosTerminalCloseArgs
     public int CoreId { get; set; }
 
     /// <summary>The write-lease token to release; a non-matching token releases nothing.</summary>
+    [SitrepUnit(Units.Id)]
     public string LeaseToken { get; set; } = "";
 }

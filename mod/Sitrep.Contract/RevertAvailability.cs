@@ -45,8 +45,10 @@ namespace Sitrep.Contract;
 public class RevertAvailability
 {
     /// <summary>Can the active flight be reverted back to the editor (VAB/SPH)? Mirrors <c>FlightDriver.CanRevertToPrelaunch</c>.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool CanRevertToEditor { get; set; }
 
     /// <summary>Can the active flight be reverted to its launch (on-the-pad) state? Mirrors <c>FlightDriver.CanRevertToPostInit</c>.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool CanRevertToLaunch { get; set; }
 }

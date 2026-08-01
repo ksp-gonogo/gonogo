@@ -22,12 +22,16 @@ namespace Sitrep.Contract;
 public class VesselIdentity
 {
     /// <summary>The stable subject id (KSP's <c>Vessel.id</c> GUID, as a string), the currency of target/vessel-scoped commands (T-1 groundwork) and of <c>Meta.Source</c>'s "vessel:&lt;guid&gt;" provenance stamp.</summary>
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
+    [SitrepUnit(Units.Enumeration)]
     public VesselType VesselType { get; set; }
 
+    [SitrepUnit(Units.Enumeration)]
     public Situation Situation { get; set; }
 
     /// <summary>Index into the <c>system.bodies</c> collection; null when the vessel has no orbit driver yet (e.g. a just-spawned EVA before it attaches).</summary>

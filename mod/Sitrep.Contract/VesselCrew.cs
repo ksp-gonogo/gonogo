@@ -21,14 +21,18 @@ namespace Sitrep.Contract;
 #endif
 public class CrewMember
 {
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
 
     public int? ExperienceLevel { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? Type { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? RosterStatus { get; set; }
 }
 

@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 #endif
 public class SetFlyByWireArgs
 {
+    [SitrepUnit(Units.Flag)]
     public bool Enabled { get; set; }
 }
 

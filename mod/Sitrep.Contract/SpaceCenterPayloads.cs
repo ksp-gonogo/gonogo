@@ -37,24 +37,30 @@ namespace Sitrep.Contract;
 public class LaunchSiteEntry
 {
     /// <summary>Internal launch-site id (<c>LaunchSite.name</c>): the stable key used with <c>PSystemSetup</c>'s lookup APIs; null when the live game hasn't populated it.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
     /// <summary>Human-facing display name (<c>PSystemSetup.GetLaunchSiteDisplayName</c>, falling back to <c>LaunchSite.launchSiteName</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
 
     /// <summary>Which editor this site launches from (the pad-vs-runway distinction) as the <c>EditorFacility</c> enum name (<c>"None"</c>/<c>"VAB"</c>/<c>"SPH"</c>); a VAB site is a pad, an SPH site a runway.</summary>
+    [SitrepUnit(Units.Text)]
     public string? EditorFacility { get; set; }
 
     /// <summary>Index into <see cref="SystemBodies"/> of the body this site sits on; null when absent or unresolved (never a sentinel like -1).</summary>
     public int? BodyIndex { get; set; }
 
     /// <summary>Whether this is a stock KSP launch site (<c>PSystemSetup.IsStockLaunchSite</c>), false for Making History / Kerbal Konstructs sites.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? IsStock { get; set; }
 
     /// <summary>Whether a vessel is currently sitting on this pad. There is no clean stock per-site occupancy API, so for now this is populated ONLY on the stock KSC pad, derived from the active vessel being in the PRELAUNCH situation; every other site carries null (per-site true occupancy is a follow-up).</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? PadOccupied { get; set; }
 
     /// <summary>Name of the vessel occupying this pad, when derivable (depends on <see cref="PadOccupied"/>); null until per-site occupancy exists beyond the stock-pad PRELAUNCH derivation.</summary>
+    [SitrepUnit(Units.Text)]
     public string? PadVesselTitle { get; set; }
 }
 
@@ -83,9 +89,11 @@ public class LaunchSiteEntry
 public class SpaceCenterScene
 {
     /// <summary>The current scene, one of <c>"Flight"</c>/<c>"SpaceCenter"</c>/<c>"Editor"</c>/<c>"TrackingStation"</c>/<c>"MainMenu"</c>/<c>"Other"</c>.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Scene { get; set; }
 
     /// <summary>The launch site currently selected in the editor (<c>EditorLogic.launchSiteName</c>), the migration target for the legacy <c>kc.launchSite</c> key. Null outside the editor scene (EditorLogic isn't live), never a fabricated default.</summary>
+    [SitrepUnit(Units.Text)]
     public string? LaunchSite { get; set; }
 }
 
@@ -118,18 +126,22 @@ public class SpaceCenterScene
 public class CrewRosterEntry
 {
     /// <summary>Kerbal name (<c>ProtoCrewMember.name</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
     /// <summary>Specialisation (<c>ProtoCrewMember.trait</c>): <c>"Pilot"</c>/<c>"Engineer"</c>/<c>"Scientist"</c>/<c>"Tourist"</c>.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
 
     /// <summary>Experience level (<c>ProtoCrewMember.experienceLevel</c>), 0–5.</summary>
     public int? ExperienceLevel { get; set; }
 
     /// <summary>Whether the kerbal is free to fly, <c>true</c> when the roster status is <c>Available</c>, <c>false</c> otherwise.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
 
     /// <summary>Why the kerbal can't fly, derived from the roster status (<c>Assigned</c>→"On mission", <c>Dead</c>/<c>Missing</c>→the status name); empty string when <see cref="Available"/> is true.</summary>
+    [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
 }
 
@@ -153,6 +165,7 @@ public class CrewRosterEntry
 public class SavedShipEntry
 {
     /// <summary>Craft name (<c>CraftProfileInfo.shipName</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
     /// <summary>Part count (<c>CraftProfileInfo.partCount</c>).</summary>
@@ -163,12 +176,14 @@ public class SavedShipEntry
     public double? TotalMass { get; set; }
 
     /// <summary>Which editor built it: the <c>EditorFacility</c> enum name, <c>"VAB"</c> or <c>"SPH"</c> (<c>CraftProfileInfo.shipFacility</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string? Facility { get; set; }
 
     /// <summary>Funds needed before this can launch, the full craft cost (<c>CraftProfileInfo.totalCost</c>).</summary>
     public double? RequiresFunds { get; set; }
 
     /// <summary>Parts referenced by the craft that are not yet unlocked/purchased (<c>CraftProfileInfo.UnavailableShipParts</c>); an empty array when the craft is buildable as-is.</summary>
+    [SitrepUnit(Units.Text)]
     public string[]? MissingParts { get; set; }
 }
 
@@ -224,9 +239,11 @@ public class SpaceCenterPoiEntry
     /// kinds, <c>"contract:&lt;Waypoint.navigationId&gt;"</c> for
     /// <c>contractTarget</c>.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
     /// <summary><c>"ksc"</c> | <c>"launchSite"</c> | <c>"contractTarget"</c>.</summary>
+    [SitrepUnit(Units.Id)]
     public string? Kind { get; set; }
 
     /// <summary>Index into <see cref="SystemBodies"/>; null when absent or unresolved (never a sentinel like -1).</summary>
@@ -239,12 +256,15 @@ public class SpaceCenterPoiEntry
     public double? Longitude { get; set; }
 
     /// <summary>Display label: the launch site's display name, or the contract's title.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Label { get; set; }
 
     /// <summary><c>"active"</c> | <c>"available"</c> (null for <c>ksc</c>/<c>launchSite</c> kinds).</summary>
+    [SitrepUnit(Units.Text)]
     public string? Status { get; set; }
 
     /// <summary>Contract-issuing agent name; null for <c>ksc</c>/<c>launchSite</c> kinds.</summary>
+    [SitrepUnit(Units.Text)]
     public string? ContractAgent { get; set; }
 
     public double? ContractFundsAdvance { get; set; }

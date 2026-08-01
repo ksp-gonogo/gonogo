@@ -31,9 +31,11 @@ namespace Sitrep.Contract;
 public class VesselSurface
 {
     /// <summary>KSP's biome name at the vessel's current lat/long (e.g. "Highlands", "Shores"). Null when the body has no biome map (e.g. gas giants) or the lookup failed this tick.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Biome { get; set; }
 
     /// <summary>The named launch/landing site the vessel is currently at (e.g. "KSC_LaunchPad", "Runway"), null when landed/splashed somewhere with no named site, or when not landed/splashed at all.</summary>
+    [SitrepUnit(Units.Text)]
     public string? LandedAt { get; set; }
 
     /// <summary>Metres: KSP's own <c>heightFromTerrain</c>, accounting for the vessel's physical extent (see the class doc comment for how this differs from <c>vessel.flight.altitudeTerrain</c>). Null if unavailable this tick.</summary>

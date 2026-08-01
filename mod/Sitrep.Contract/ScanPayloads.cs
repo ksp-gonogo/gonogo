@@ -68,8 +68,10 @@ public class ScanSensorEntry
     [SitrepUnit(Units.Metres)]
     public double? BestAlt { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? InRange { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? BestRange { get; set; }
 }
 
@@ -124,10 +126,13 @@ public class ScanTrackColor
 #endif
 public class ScanningVesselEntry
 {
+    [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? VesselName { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Body { get; set; }
 
     [SitrepUnit(Units.Degrees)]
@@ -186,20 +191,28 @@ public class ScanningVesselEntry
 #endif
 public class ScanScienceEntry
 {
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? PartTitle { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? ExpId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Deployed { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? HasData { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Rerunnable { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Inoperable { get; set; }
 }
 
@@ -239,6 +252,7 @@ public class ScanScienceEntry
 #endif
 public class ScanAnomalyEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
     [SitrepUnit(Units.Degrees)]
@@ -247,7 +261,9 @@ public class ScanAnomalyEntry
     [SitrepUnit(Units.Degrees)]
     public double? Longitude { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Known { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Detail { get; set; }
 }

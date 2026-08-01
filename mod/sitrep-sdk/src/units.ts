@@ -17,12 +17,21 @@
 // the generated maps are plain data, and these helpers are what a consumer should
 // actually call, so the generated shape stays free to change.
 //
-// ── Coverage is partial, deliberately ───────────────────────────────────────────────
-// Annotation is being filled in field by field, and an unannotated field returns
-// `undefined` rather than a guess. `undefined` means "no declared unit yet", NOT
-// "dimensionless": a genuinely dimensionless quantity (Mach, eccentricity) carries the
-// explicit `"1"` token, and a 0..1 fraction carries `"ratio"`. A formatter must treat
-// those three cases differently, which is exactly why they are three distinct values.
+// ── Every scalar field declares something ───────────────────────────────────────────
+// This inverts the rule the mechanism shipped with ("only annotate what is KNOWN",
+// absence means not-yet-stated). Absence was not a cautious default but an
+// unfalsifiable one: a new unannotated number looked exactly like a boolean that never
+// needed annotating, so nothing could be enforced and coverage stalled at a fifth of
+// the surface. The non-quantities now have tokens of their own (`count`, `id`, `text`,
+// `flag`, `enum`, and `n/a` as a last resort), and `UnitCoverageTests` in
+// `Sitrep.Core.Tests` holds the line against a baseline that may only shrink.
+//
+// So `undefined` now means one of exactly two things: a STRUCTURAL property (a nested
+// payload or a list of them, described entirely by the units on its leaves), or a field
+// still in that shrinking baseline. It has never meant "dimensionless": a genuinely
+// dimensionless quantity (Mach, eccentricity) carries the explicit `"1"` token, a 0..1
+// fraction carries `"ratio"`, and a declared non-quantity carries `"n/a"`. A formatter
+// must treat all of those differently, which is why they are distinct values.
 
 import type {
   KnownSitrepUnit,

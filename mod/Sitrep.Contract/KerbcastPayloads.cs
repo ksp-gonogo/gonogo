@@ -80,24 +80,30 @@ public class KerbcastCameraEntry
     /// <see cref="IsDockingCamera"/> is derived from the part's modules rather
     /// than sniffed from this string.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string? CameraName { get; set; }
 
     /// <summary>The part's internal name (<c>Part.partInfo.name</c>), e.g. <c>DC.TurretCam</c>.</summary>
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
     /// <summary>The part's display title, e.g. <c>Clamp-O-Tron Docking Port Jr.</c>.</summary>
+    [SitrepUnit(Units.Text)]
     public string? PartTitle { get; set; }
 
     /// <summary>The vessel this camera is on, as <c>vessel:&lt;guid&gt;</c>. Null when unreadable.</summary>
+    [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
     /// <summary>Whether the camera can zoom, kerbcast runtime-detects this from the part type.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? SupportsZoom { get; set; }
 
     /// <summary>
     /// Whether the camera can pan. kerbcast derives this from a hardcoded
     /// per-part capability table, so it is false for most stock camera parts.
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool? SupportsPan { get; set; }
 
     /// <summary>Current field of view, degrees.</summary>
@@ -150,6 +156,7 @@ public class KerbcastCameraEntry
     /// <para>Null means "could not determine" (the part was unreadable),
     /// distinct from <c>false</c>, "read the part, it has no docking node".</para>
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool? IsDockingCamera { get; set; }
 
     /// <summary>
@@ -157,6 +164,7 @@ public class KerbcastCameraEntry
     /// <see cref="IsDockingCamera"/> is true, what this port can mate with.
     /// Null for a non-docking camera.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string? DockingPortNodeType { get; set; }
 
     /// <summary>
@@ -164,6 +172,7 @@ public class KerbcastCameraEntry
     /// <c>Acquire</c>) when <see cref="IsDockingCamera"/> is true. Null for a
     /// non-docking camera.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string? DockingPortState { get; set; }
 }
 

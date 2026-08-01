@@ -21,5 +21,6 @@ namespace Sitrep.Contract;
 #endif
 public class ExperimentActionArgs
 {
+    [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 }

@@ -18,6 +18,7 @@ namespace Sitrep.Contract;
 #endif
 public class SetEnabledArgs
 {
+    [SitrepUnit(Units.Flag)]
     public bool Enabled { get; set; }
 }
 
@@ -27,6 +28,7 @@ public class SetEnabledArgs
 #endif
 public class SetSasModeArgs
 {
+    [SitrepUnit(Units.Enumeration)]
     public SasMode Mode { get; set; }
 }
 
@@ -64,6 +66,7 @@ public class SetActionGroupArgs
     /// <summary>1..10. Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
     public int Group { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool State { get; set; }
 }
 
@@ -110,6 +113,7 @@ public class AddManeuverNodeArgs
 #endif
 public class UpdateManeuverNodeArgs
 {
+    [SitrepUnit(Units.Id)]
     public string NodeId { get; set; } = "";
 
     [SitrepUnit(Units.Seconds)]
@@ -131,6 +135,7 @@ public class UpdateManeuverNodeArgs
 #endif
 public class RemoveManeuverNodeArgs
 {
+    [SitrepUnit(Units.Id)]
     public string NodeId { get; set; } = "";
 }
 
@@ -151,9 +156,11 @@ public class RemoveManeuverNodeArgs
 #endif
 public class SetTargetArgs
 {
+    [SitrepUnit(Units.Enumeration)]
     public TargetKind Kind { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>. ALSO required when <see cref="Kind"/> is <see cref="TargetKind.Part"/>, the guid of the vessel that OWNS the target part (a part id is unique only within its vessel).</summary>
+    [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Part"/>, the docking port's KSP <c>Part.flightID</c>, resolved server-side against the parts of the vessel named by <see cref="VesselId"/>. Null for every other kind.</summary>
@@ -197,5 +204,6 @@ public class SetWarpIndexArgs
 #endif
 public class SetPausedArgs
 {
+    [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
 }

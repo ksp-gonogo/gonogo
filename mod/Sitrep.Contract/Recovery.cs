@@ -30,12 +30,15 @@ public class RecoveryReport
     /// <summary>Universal time of the recovery capture.</summary>
     public double CapturedAtUT { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
     /// <summary>Where the vessel came down: KSP's own recovery-location string (e.g. <c>"KSC"</c>, <c>"Water"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string RecoveryLocation { get; set; } = "";
 
     /// <summary>KSP's own recovery-factor display string (e.g. <c>"100%"</c>), the payout multiplier for landing precision.</summary>
+    [SitrepUnit(Units.Text)]
     public string RecoveryFactor { get; set; } = "";
 
     public double ScienceEarned { get; set; }
@@ -51,6 +54,7 @@ public class RecoveryReport
     public double TotalReputation { get; set; }
 
     /// <summary>Whether reputation applies to this save (off in Science/Sandbox), gates the reputation row client-side.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool DisplayReputation { get; set; }
 
     public List<RecoveryScienceEntry> ScienceBreakdown { get; set; } = new();
@@ -71,8 +75,10 @@ public class RecoveryReport
 #endif
 public class RecoveryScienceEntry
 {
+    [SitrepUnit(Units.Id)]
     public string SubjectId { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string SubjectTitle { get; set; } = "";
 
     public double DataGathered { get; set; }
@@ -91,9 +97,11 @@ public class RecoveryScienceEntry
 public class RecoveryPartEntry
 {
     /// <summary>The part's <c>partInfo.name</c> (e.g. <c>"mk1pod.v2"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string PartName { get; set; } = "";
 
     /// <summary>The part's <c>partInfo.title</c> (e.g. <c>"Mk1 Command Pod"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string PartTitle { get; set; } = "";
 
     public int Count { get; set; }
@@ -114,6 +122,7 @@ public class RecoveryPartEntry
 #endif
 public class RecoveryResourceEntry
 {
+    [SitrepUnit(Units.Text)]
     public string ResourceName { get; set; } = "";
 
     public double Amount { get; set; }
@@ -132,11 +141,14 @@ public class RecoveryResourceEntry
 #endif
 public class RecoveryCrewEntry
 {
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
     /// <summary>The kerbal's career trait (e.g. <c>"Pilot"</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string Trait { get; set; } = "";
 
+    [SitrepUnit(Units.Flag)]
     public bool IsTourist { get; set; }
 
     public double XpGained { get; set; }

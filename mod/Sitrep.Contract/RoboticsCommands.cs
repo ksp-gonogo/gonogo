@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 public class ServoSetTargetArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
     /// <summary>Absolute target: hinge angle (degrees) or piston extension.</summary>
@@ -42,8 +43,10 @@ public class ServoSetTargetArgs
 public class ServoSetEnabledArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
+    [SitrepUnit(Units.Flag)]
     public bool Enabled { get; set; }
 }
 
@@ -62,6 +65,7 @@ public class ServoSetEnabledArgs
 public class RotorSetValueArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
     /// <summary>The absolute value to apply (rpm limit, torque-limit percent 0–100, or brake percent 0–200).</summary>
@@ -82,5 +86,6 @@ public class RotorSetValueArgs
 public class RotorReverseArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 }

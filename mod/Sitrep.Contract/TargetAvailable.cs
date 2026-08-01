@@ -23,12 +23,15 @@ namespace Sitrep.Contract;
 #endif
 public class TargetListEntry
 {
+    [SitrepUnit(Units.Enumeration)]
     public TargetKind Kind { get; set; }
 
     /// <summary>Clean display name (KSP <c>GetDisplayName()</c>, falling back to <c>GetName()</c>).</summary>
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
     /// <summary>Stable vessel guid: set for <see cref="TargetKind.Vessel"/>, and the OWNING vessel for a <see cref="TargetKind.Part"/>. Null otherwise.</summary>
+    [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
     /// <summary>Index into <c>system.bodies</c>: set for <see cref="TargetKind.Body"/>. Null otherwise.</summary>
@@ -38,9 +41,11 @@ public class TargetListEntry
     public uint? PartId { get; set; }
 
     /// <summary>Vessel type: set for <see cref="TargetKind.Vessel"/> / <see cref="TargetKind.Part"/> (the owning vessel's type). Null otherwise.</summary>
+    [SitrepUnit(Units.Enumeration)]
     public VesselType? VesselType { get; set; }
 
     /// <summary>Flight situation: set for <see cref="TargetKind.Vessel"/>. Null otherwise.</summary>
+    [SitrepUnit(Units.Enumeration)]
     public Situation? Situation { get; set; }
 
     /// <summary>
@@ -53,6 +58,7 @@ public class TargetListEntry
     public double? Distance { get; set; }
 
     /// <summary>True when this entry is the active vessel's current target (<c>FlightGlobals.fetch.VesselTarget</c>) right now.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool IsCurrent { get; set; }
 }
 

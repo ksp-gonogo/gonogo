@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 public sealed class AvionicsStatus
 {
     /// <summary>True when an avionics unit is present + active on the vessel.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? AvionicsActive { get; set; }
 
     /// <summary>Controllable-mass limit of the active avionics (tonnes), the MAX
@@ -39,5 +40,6 @@ public sealed class AvionicsStatus
     public double? VesselMassTons { get; set; }
 
     /// <summary>Derived: VesselMassTons &lt;= ControllableMassTons (the ascent go/no-go).</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? Controllable { get; set; }
 }

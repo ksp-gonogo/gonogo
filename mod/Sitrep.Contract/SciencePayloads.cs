@@ -30,15 +30,20 @@ namespace Sitrep.Contract;
 #endif
 public class ExperimentEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
     /// <summary>"experiment" (a live science module) or "container" (a part storing collected results).</summary>
+    [SitrepUnit(Units.Text)]
     public string? Location { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? ExperimentId { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? SubjectId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
     [SitrepUnit(Units.Mits)]
@@ -52,10 +57,13 @@ public class ExperimentEntry
 
     public double? LabValue { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Deployed { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Inoperable { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 }
 
@@ -83,22 +91,31 @@ public class ExperimentEntry
 public class InstrumentEntry
 {
     /// <summary>The part's KSP <c>flightID</c> (stringified): the stable join key for this instrument.</summary>
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? ExperimentId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Deployed { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Inoperable { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Rerunnable { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Resettable { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? DataIsCollectable { get; set; }
 }
 
@@ -117,6 +134,7 @@ public class InstrumentEntry
 #endif
 public class LabEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
     [SitrepUnit(Units.Mits)]
@@ -127,14 +145,17 @@ public class LabEntry
 
     public double? StoredScience { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? ProcessingData { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? StatusText { get; set; }
 
     public int? ScientistCount { get; set; }
 
     public double? ScienceRate { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? IsOperational { get; set; }
 }
 
@@ -156,16 +177,22 @@ public class LabEntry
 #endif
 public class DeployedEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? VesselName { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Body { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Biome { get; set; }
 
+    [SitrepUnit(Units.Id)]
     public string? ExperimentId { get; set; }
 
     [SitrepUnit(Units.Percent)]
@@ -178,10 +205,13 @@ public class DeployedEntry
 
     public double? ScienceLimit { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? PowerState { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? ConnectionState { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? DeployedOnGround { get; set; }
 }
 
@@ -212,16 +242,21 @@ public class DeployedEntry
 public class SensorEntry
 {
     /// <summary>Flight-scoped <c>part.flightID</c> as a string (null when the sentinel 0), the join key that disambiguates symmetric same-named sensor parts.</summary>
+    [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
     /// <summary>The raw <c>SensorType</c> enum name (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) passed through as a string so modded types survive.</summary>
+    [SitrepUnit(Units.Id)]
     public string? Type { get; set; }
 
     /// <summary>The sensor's current human-readable readout string (KSP's <c>readoutInfo</c>, e.g. "293.1K" or "Off").</summary>
+    [SitrepUnit(Units.Text)]
     public string? Readout { get; set; }
 
+    [SitrepUnit(Units.Flag)]
     public bool? Active { get; set; }
 }
 
@@ -261,12 +296,16 @@ public class SensorEntry
 #endif
 public class ExperimentBreakdownEntry
 {
+    [SitrepUnit(Units.Id)]
     public string? SubjectId { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Biome { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 
+    [SitrepUnit(Units.Text)]
     public string? ExpTitle { get; set; }
 
     /// <summary>Summed <c>ScienceData.dataAmount</c> (mits) across every stored blob for this subject.</summary>

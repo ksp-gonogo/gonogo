@@ -76,8 +76,10 @@ public enum CommandErrorCode
 #endif
 public class CommandResult
 {
+    [SitrepUnit(Units.Flag)]
     public bool Success { get; set; } = true;
 
+    [SitrepUnit(Units.Enumeration)]
     public CommandErrorCode ErrorCode { get; set; } = CommandErrorCode.None;
 
     public static CommandResult Ok() => new CommandResult { Success = true };

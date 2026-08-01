@@ -28,8 +28,11 @@ public class EventMsg
 #if NETSTANDARD2_0
     [TsProperty(Type = "\"event\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "event";
+    [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
     public Meta Meta { get; set; } = new();
 }
@@ -89,10 +92,15 @@ public class ErrorMsg
 #if NETSTANDARD2_0
     [TsProperty(Type = "\"error\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "error";
+    [SitrepUnit(Units.Id)]
     public string? RequestId { get; set; }
+    [SitrepUnit(Units.Id)]
     public string? Topic { get; set; }
+    [SitrepUnit(Units.Id)]
     public string Code { get; set; } = "";
+    [SitrepUnit(Units.Text)]
     public string Message { get; set; } = "";
 }
 
@@ -105,7 +113,9 @@ public class Subscribe
 #if NETSTANDARD2_0
     [TsProperty(Type = "\"subscribe\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "subscribe";
+    [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 }
 
@@ -118,6 +128,8 @@ public class Unsubscribe
 #if NETSTANDARD2_0
     [TsProperty(Type = "\"unsubscribe\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "unsubscribe";
+    [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 }

@@ -48,6 +48,7 @@ public class SystemBodies
 public class BodyEntry
 {
     /// <summary>Body name (e.g. "Kerbin"); null when the live game hasn't populated it.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
     /// <summary>This body's position in the list: stable per session. Always present (the provider falls back to the list index when the raw field is missing), never null.</summary>
@@ -82,15 +83,18 @@ public class BodyEntry
     public double? RotationPeriod { get; set; }
 
     /// <summary>Whether the body is tidally locked to its parent (<c>CelestialBody.tidallyLocked</c>); null when absent.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? TidallyLocked { get; set; }
 
     /// <summary>Atmosphere descriptor; null when the body has no atmosphere (<c>!CelestialBody.atmosphere</c>), the "airless vs. no-data" distinction the whole payload's null-not-sentinel rule preserves.</summary>
     public AtmosphereEntry? Atmosphere { get; set; }
 
     /// <summary>Whether the body has a liquid ocean (<c>CelestialBody.ocean</c>); null when absent.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? HasOcean { get; set; }
 
     /// <summary>KSP's per-body flavour text (<c>CelestialBody.bodyDescription</c>); null when absent. May be a raw <c>#autoLOC…</c> localization tag the client suppresses.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Description { get; set; }
 
     // Deliberately NO "eccentricAnomaly" field: see the class doc.
@@ -116,6 +120,7 @@ public class AtmosphereEntry
     public double? Depth { get; set; }
 
     /// <summary>Whether the atmosphere is breathable / oxygenated (<c>CelestialBody.atmosphereContainsOxygen</c>); null when absent.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? HasOxygen { get; set; }
 
     /// <summary>Sea-level pressure, kPa (<c>CelestialBody.atmospherePressureSeaLevel</c>); null when absent.</summary>
@@ -228,15 +233,19 @@ public enum RosterCommsControlSource
 public class VesselRosterEntry
 {
     /// <summary>Stable subject id (KSP vessel GUID). Always present, entries without one are dropped.</summary>
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
     /// <summary>Display name; defaults to the empty string, never null.</summary>
+    [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
     /// <summary>Vessel type. On the wire this is the enum ORDINAL (the provider emits <c>(int)</c> of the parsed type); typed here to the shared <see cref="Sitrep.Contract.VesselType"/> enum, whose numeric members match those ordinals.</summary>
+    [SitrepUnit(Units.Enumeration)]
     public VesselType VesselType { get; set; }
 
     /// <summary>Flight situation. On the wire this is the enum ORDINAL; typed here to the shared <see cref="Sitrep.Contract.Situation"/> enum.</summary>
+    [SitrepUnit(Units.Enumeration)]
     public Situation Situation { get; set; }
 
     /// <summary>Index into <see cref="SystemBodies"/> of this vessel's main body; null when absent or unresolved.</summary>
@@ -270,6 +279,7 @@ public class VesselRosterEntry
     /// roster entry is expected to carry null here on every sample, not
     /// occasionally.
     /// </summary>
+    [SitrepUnit(Units.Flag)]
     public bool? CommsConnected { get; set; }
 
     /// <summary>
@@ -278,5 +288,6 @@ public class VesselRosterEntry
     /// as <see cref="CommsConnected"/>: including the permanent
     /// Debris/SpaceObject/Unknown-vessel-type case documented there.
     /// </summary>
+    [SitrepUnit(Units.Enumeration)]
     public RosterCommsControlSource? CommsControlSource { get; set; }
 }

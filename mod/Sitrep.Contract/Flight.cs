@@ -54,13 +54,17 @@ public enum FlightEndReason
 public class FlightCurrent
 {
     /// <summary>The mod-minted stable flight id: KSP's <c>Vessel.id</c> GUID as a string, the same currency <c>VesselIdentity.VesselId</c>/<c>CrashReport.VesselId</c> already use.</summary>
+    [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
     /// <summary>The vessel's current flight phase: reuses <see cref="Situation"/> (PreLaunch/Flying/Landed/…), not a parallel enum.</summary>
+    [SitrepUnit(Units.Enumeration)]
     public Situation Phase { get; set; }
 }
 
@@ -79,10 +83,13 @@ public class FlightCurrent
 [SitrepTopic("flight.started")]
 public class FlightStarted
 {
+    [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
     /// <summary>Universal time this flight began: the UUT the sampler first observed the vessel active (or the revert-target UT, for a flight started as a revert's counterpart).</summary>
@@ -105,12 +112,16 @@ public class FlightStarted
 [SitrepTopic("flight.ended")]
 public class FlightEnded
 {
+    [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
+    [SitrepUnit(Units.Enumeration)]
     public FlightEndReason Reason { get; set; }
 
     /// <summary>Universal time the flight ended. For <see cref="FlightEndReason.Reverted"/> this is the revert-TARGET UT (see <c>FlightLifecycleSampler</c>'s revert-epoch-consistency doc), not the wall-clock moment the player hit revert.</summary>
@@ -132,13 +143,17 @@ public class FlightEnded
 [SitrepTopic("flight.vesselChanged")]
 public class FlightVesselChanged
 {
+    [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
     /// <summary>The vessel id the operator's focus moved FROM, null on the very first observation (nothing to switch away from).</summary>
+    [SitrepUnit(Units.Id)]
     public string? PreviousVesselId { get; set; }
 
     public double Ut { get; set; }

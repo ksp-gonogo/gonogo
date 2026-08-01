@@ -33,6 +33,7 @@ public class ManeuverNode
     /// Empty string only for a node read off a recording captured BEFORE
     /// this field existed (replay of old data; never a live capture).
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
     public double Ut { get; set; }

@@ -51,12 +51,19 @@ public class KerbalismSpaceWeather
     public double? RadiationRadPerSecond { get; set; }
     [SitrepUnit(Units.RadPerSecond)]
     public double? HabitatRadiationRadPerSecond { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Magnetosphere { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? InnerBelt { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? OuterBelt { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? StormIncoming { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? StormInProgress { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Blackout { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? InSunlight { get; set; }
     /// <summary>Shielding resource amount/capacity (0 in the default profile; present under RO/Habitat).</summary>
     public double? ShieldingAmount { get; set; }
@@ -103,10 +110,14 @@ public class KerbalismHabitat
 #endif
 public class KerbalismProcessEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? Resource { get; set; }
+    [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
     public double? Capacity { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Running { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Broken { get; set; }
 }
 
@@ -128,6 +139,7 @@ public class KerbalismProcessEntry
 public class KerbalismGreenhouseEntry
 {
     /// <summary>The resource this greenhouse produces (stock: "Food").</summary>
+    [SitrepUnit(Units.Text)]
     public string? CropResource { get; set; }
     /// <summary>Derived continuous production rate, units/s (crop_size * crop_rate when active and lit; 0 when blocked).</summary>
     public double? FoodRatePerSec { get; set; }
@@ -138,8 +150,10 @@ public class KerbalismGreenhouseEntry
     [SitrepUnit(Units.WattsPerSquareMetre)]
     public double? Artificial { get; set; }
     /// <summary>Persisted on/off KSPField, the player's own toggle, independent of whether it is currently producing.</summary>
+    [SitrepUnit(Units.Flag)]
     public bool? Active { get; set; }
     /// <summary>Blocking reason string (<c>Greenhouse.Data.issue</c>), e.g. the localized "insufficient lighting". Empty when growing normally.</summary>
+    [SitrepUnit(Units.Text)]
     public string? Issue { get; set; }
     /// <summary>Part config: max lamp EC draw, units/s (<c>ec_rate</c>).</summary>
     public double? EcRateMaxPerSec { get; set; }
@@ -192,6 +206,7 @@ public class KerbalismLifeSupport
 #endif
 public class KerbalismCrewRule
 {
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
     /// <summary>Current accumulator value ("problem") from KerbalData.rules.</summary>
     public double? Value { get; set; }
@@ -219,7 +234,9 @@ public class KerbalismCrewRule
 [SitrepTopic("kerbalism.crew", isArray: true)]
 public class KerbalismCrewEntry
 {
+    [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
+    [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
     public List<KerbalismCrewRule>? Rules { get; set; }
     /// <summary>Optional mod-computed soonest-fatal countdown (s). Null when not derivable. [fixture-confirm]</summary>
@@ -238,17 +255,30 @@ public class KerbalismCrewEntry
 [SitrepTopic("kerbalism.features")]
 public class KerbalismFeatures
 {
+    [SitrepUnit(Units.Flag)]
     public bool? Reliability { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Radiation { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? SpaceWeather { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Shielding { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? LivingSpace { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Comfort { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Poisoning { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Pressure { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Habitat { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Supplies { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Science { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Automation { get; set; }
+    [SitrepUnit(Units.Flag)]
     public bool? Deploy { get; set; }
 }
