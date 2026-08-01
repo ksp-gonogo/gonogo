@@ -45,7 +45,20 @@ export type KnownQuantityKind =
   | "dimensionless"
   | "percentage"
   | "scienceData"
-  | "fraction";
+  | "fraction"
+  // Non-dimensional kinds. These say "this has no physical dimension", which
+  // is a different claim from `dimensionless` ("a real measurement that
+  // happens to have no unit", Mach and TWR) and a very different one from an
+  // absent unit ("nobody said"). They exist so the contract can DECLARE the
+  // non-quantities instead of skipping them, which is what makes a coverage
+  // gate possible at all.
+  | "count"
+  | "identifier"
+  | "resourceUnits"
+  | "text"
+  | "flag"
+  | "enumeration"
+  | "none";
 
 /**
  * A quantity kind, OPEN to kinds this package has never heard of.
@@ -236,6 +249,35 @@ const DECIMALS: Record<string, number> = {
   percentage: 1,
   scienceData: 1,
   fraction: 0,
+  // A count is integral: "3.00 crew" is wrong in a way "3.00 Mach" is not,
+  // which is the whole reason `count` is a separate kind from `dimensionless`.
+  count: 0,
+  identifier: 0,
+  resourceUnits: 1,
+};
+
+/**
+ * What to SHOW beside the number, when it differs from the token the wire
+ * carries.
+ *
+ * The catalog's rule is that a token is the operator-facing symbol, so a
+ * formatter with no special case can append it verbatim and still be right.
+ * The non-dimensional tokens deliberately break that rule: they name a
+ * CATEGORY, not a symbol, and "12 count" or "3 id" is not a readout. They
+ * render with no symbol at all, and the cost of the exception is paid here, in
+ * one table, rather than at every call site.
+ *
+ * `ratio` and `time` already showed the same thing is needed for real units
+ * (they display as `%` and as an interleaved duration), but both carry extra
+ * behaviour beyond the label and keep their own branches below.
+ */
+const DISPLAY_BY_KIND: Record<string, string> = {
+  count: "",
+  identifier: "",
+  text: "",
+  flag: "",
+  enumeration: "",
+  none: "",
 };
 
 /** The contract's unit symbols, mapped to what they measure. */
@@ -269,7 +311,22 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   ratio: "fraction",
   "%": "percentage",
   Mit: "scienceData",
+  count: "count",
+  id: "identifier",
+  units: "resourceUnits",
+  text: "text",
+  flag: "flag",
+  enum: "enumeration",
+  "n/a": "none",
 };
+
+/**
+ * The symbol shown beside a value: the kind's display override if it has one,
+ * otherwise the token itself.
+ */
+function displaySymbol(unit: string, kind: QuantityKind | undefined): string {
+  return kind === undefined ? unit : (DISPLAY_BY_KIND[kind] ?? unit);
+}
 
 /** What a unit symbol measures, or undefined for one we do not know. */
 export function kindOfUnit(
@@ -300,6 +357,15 @@ export interface UnitDefinition {
   ladder?: readonly Rung[];
   /** Render in scientific notation by default, as `gravitationalParameter` does. */
   scientific?: boolean;
+  /**
+   * What to show beside the number, when it is not the symbol itself. Set it
+   * to `""` for a token that names a category rather than a symbol, the way
+   * the built-in `count` and `id` do.
+   *
+   * Applies to the KIND, not the symbol, matching how `decimals` and `ladder`
+   * behave: a kind is the thing a presentation rule attaches to.
+   */
+  display?: string;
 }
 
 /**
@@ -324,6 +390,7 @@ export function registerUnit(def: UnitDefinition): void {
   if (def.decimals !== undefined) DECIMALS[def.kind] = def.decimals;
   if (def.ladder) LADDERS[def.kind] = def.ladder;
   if (def.scientific) SCIENTIFIC.add(def.kind);
+  if (def.display !== undefined) DISPLAY_BY_KIND[def.kind] = def.display;
 }
 
 export interface FormatQuantityOptions {
@@ -434,7 +501,7 @@ export function formatQuantity(
             ? SCIENTIFIC_SIGNIFICANT
             : opts.decimals + 1,
         ),
-        symbol: unit,
+        symbol: displaySymbol(unit, kind),
         rung: unit,
       };
     }
@@ -453,8 +520,15 @@ export function formatQuantity(
   const ladder = opts.scale === "never" ? undefined : LADDERS[kind];
   const decimals = opts.decimals ?? DECIMALS[kind] ?? 2;
 
+  // Where the non-dimensional kinds land: they have a kind (so they round to a
+  // sensible precision) and no ladder (so they never scale), and `displaySymbol`
+  // is what keeps "12 count" off the screen.
   if (!ladder) {
-    return { value: value.toFixed(decimals), symbol: unit, rung: unit };
+    return {
+      value: value.toFixed(decimals),
+      symbol: displaySymbol(unit, kind),
+      rung: unit,
+    };
   }
 
   // The declared unit is not necessarily the ladder's base. The contract

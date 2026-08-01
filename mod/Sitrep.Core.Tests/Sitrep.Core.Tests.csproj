@@ -25,5 +25,6 @@
     <None Include="../golden-fixtures/courier.json" Link="golden-fixtures/courier.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../golden-fixtures/kernel.json" Link="golden-fixtures/kernel.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../golden-fixtures/serialization.json" Link="golden-fixtures/serialization.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Sitrep.Contract/unit-coverage.baseline.json" Link="golden-fixtures/unit-coverage.baseline.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

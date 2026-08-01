@@ -5,10 +5,19 @@ namespace Sitrep.Contract
     /// <summary>
     /// The canonical unit tokens a <see cref="SitrepUnitAttribute"/> may carry.
     /// Every token is a <c>const string</c> so it can be used as an attribute
-    /// argument, and so codegen can emit the closed set as a TypeScript union
-    /// (<c>SitrepUnit</c> in the generated <c>units.ts</c>): both sides of the
-    /// wire then reject a typo at COMPILE time rather than shipping a second
-    /// spelling of an existing unit.
+    /// argument, and so codegen can emit the set as a TypeScript union
+    /// (<c>KnownSitrepUnit</c> in the generated <c>units.ts</c>): both sides of
+    /// the wire then reject a typo at COMPILE time rather than shipping a
+    /// second spelling of an existing unit.
+    ///
+    /// <para>This catalog is closed and the TypeScript <c>SitrepUnit</c> type
+    /// is NOT, and the asymmetry is deliberate. A third-party Uplink cannot add
+    /// a <c>const</c> to a class compiled into this assembly, so a closed wire
+    /// type would have meant an Uplink could never declare a unit at all. It
+    /// declares a plain string instead and teaches the client what the symbol
+    /// means with <c>registerUnit</c>. The catalog check in
+    /// <see cref="RtConfig"/> therefore applies to first-party payloads only,
+    /// which is exactly the set it can see.</para>
     ///
     /// <para>Spellings are the OPERATOR-FACING symbols already used by the
     /// client's existing presentation code (<c>kg/m³</c> per
@@ -144,6 +153,94 @@ namespace Sitrep.Contract
         /// hands over pre-multiplied.</para>
         /// </summary>
         public const string Percent = "%";
+
+        // --- Non-dimensional declarations -------------------------------------
+        //
+        // Every token below declares that a property has no PHYSICAL dimension,
+        // which is a different statement from every token above and a very
+        // different statement from silence.
+        //
+        // They exist because the old doctrine ("only annotate what is KNOWN",
+        // absence means not-yet-stated) made the absent case unfalsifiable: a
+        // new numeric field with no unit is indistinguishable from a boolean
+        // that never needed one, so nothing could ever be enforced. Giving the
+        // non-quantities a way to SAY SO is what lets the coverage gate treat a
+        // bare property as a defect.
+        //
+        // These break the append-verbatim rule the catalog otherwise follows:
+        // "12 count" and "3 id" are not readable, so the client maps them to an
+        // EMPTY display symbol (packages/ui-kit/src/units.ts). That is the cost
+        // of the tokens naming a category rather than a symbol, and it is paid
+        // in one place.
+
+        /// <summary>
+        /// An integral tally. Crew counts, part counts, stage numbers, retry
+        /// attempts.
+        ///
+        /// <para>Deliberately NOT <see cref="Dimensionless"/>. A dimensionless
+        /// number is a real measurement that happens to have no unit (Mach,
+        /// TWR, eccentricity) and is read to two decimals; a count is integral
+        /// and "3.00 crew" is wrong. Collapsing them loses precisely the
+        /// distinction this vocabulary exists to preserve.</para>
+        /// </summary>
+        public const string Count = "count";
+
+        /// <summary>
+        /// A label that happens to be stored as a number or a string: a
+        /// flightID, a body index, a kOS core id, a part id.
+        ///
+        /// <para>Distinct from <see cref="Count"/> because ARITHMETIC ON IT IS
+        /// MEANINGLESS. Summing two counts is a count; summing two ids is
+        /// nothing. A client that knows this will not offer an id as a graph
+        /// series or a statistic, which is the practical payoff.</para>
+        ///
+        /// <para>Also the reason ids must never be thousands-separated:
+        /// "1,234" is a different identifier from 1234 to a human reading it
+        /// back.</para>
+        /// </summary>
+        public const string Id = "id";
+
+        /// <summary>
+        /// KSP's per-resource "units", which mean something different for every
+        /// resource: a unit of LiquidFuel and a unit of Ore share a name and
+        /// nothing else, with different densities and different costs.
+        ///
+        /// <para>This vocabulary previously refused to name them at all (see
+        /// <see cref="Mits"/>, which contrasts itself against exactly this).
+        /// Refusing was right while absence meant "not stated"; under the new
+        /// rule the honest declaration is "this is in resource units, whose
+        /// meaning depends on the resource named beside it", and that is what
+        /// this token says. It is not an SI quantity and never converts.</para>
+        /// </summary>
+        public const string ResourceUnits = "units";
+
+        /// <summary>
+        /// Free text meant for a human: a vessel name, a biome, a status
+        /// message, a formatted timestamp.
+        /// </summary>
+        public const string Text = "text";
+
+        /// <summary>A two-state flag.</summary>
+        public const string Flag = "flag";
+
+        /// <summary>
+        /// One of a fixed set of named states. The set itself is the property's
+        /// enum type, which the generated TypeScript already carries; this only
+        /// says "the value is a member of a closed set", so a generic renderer
+        /// knows to look for a label rather than print the raw name.
+        /// </summary>
+        public const string Enumeration = "enum";
+
+        /// <summary>
+        /// Nothing useful to say. The LAST RESORT, and it should stay rare.
+        ///
+        /// <para>Reach for it only when none of the tokens above fit: an opaque
+        /// numeric whose meaning is the producer's business, a serialized blob,
+        /// a field kept for wire compatibility. If it is a quantity, a count, an
+        /// id, text, a flag or an enum, say so; every one of those tells a
+        /// consumer something, and this one tells it nothing.</para>
+        /// </summary>
+        public const string NotApplicable = "n/a";
     }
 
     /// <summary>
@@ -174,11 +271,35 @@ namespace Sitrep.Contract
     /// touch the wire: <c>Sitrep.Core.Serialization.JsonWriter</c> never reads
     /// it, so annotating a field costs zero bytes per tick.</para>
     ///
-    /// <para><b>Only annotate what is KNOWN.</b> An absent annotation reads as
-    /// "not yet stated" and a consumer falls back to rendering the number bare,
-    /// which is the status quo. A WRONG annotation is worse than none, because
-    /// a formatter will confidently mislabel it. Where a field's unit is
-    /// genuinely ambiguous, leave it off.</para>
+    /// <para><b>Every scalar property declares something.</b> This inverts the
+    /// rule this attribute shipped with ("only annotate what is KNOWN", absence
+    /// reads as not-yet-stated). Absence was not a safe default, it was an
+    /// unfalsifiable one: a new numeric field that nobody annotated looked
+    /// exactly like a boolean that never needed annotating, so no gate could
+    /// tell the defect from the non-case and the coverage stalled at a fifth of
+    /// the surface.
+    ///
+    /// <para>The non-quantities now have tokens of their own
+    /// (<see cref="Units.Count"/>, <see cref="Units.Id"/>,
+    /// <see cref="Units.Text"/>, <see cref="Units.Flag"/>,
+    /// <see cref="Units.Enumeration"/>, and
+    /// <see cref="Units.NotApplicable"/> as a last resort), so declaring is
+    /// always possible and silence always means someone forgot.
+    /// <c>UnitCoverageTests</c> in <c>Sitrep.Core.Tests</c> enforces it against
+    /// a baseline that may only shrink.</para>
+    ///
+    /// <para>What has NOT changed: <b>a WRONG annotation is worse than
+    /// none</b>, because a formatter will confidently mislabel it. Where a
+    /// field's unit is genuinely ambiguous, that is what
+    /// <see cref="Units.NotApplicable"/> is for. Guessing at a dimension to
+    /// clear the gate is the one failure mode this whole mechanism was built to
+    /// prevent, and it is worse than the bare readout it replaces.</para></para>
+    ///
+    /// <para>Structural properties are exempt because a container has no
+    /// dimension of its own: a nested contract POCO, or a collection of them,
+    /// is described entirely by the units on its leaves. The gate derives that
+    /// from the property TYPE rather than from a list of names, so it needs no
+    /// maintenance when a payload gains a sub-object.</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
     public sealed class SitrepUnitAttribute : Attribute

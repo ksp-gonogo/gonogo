@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
@@ -222,6 +224,90 @@ describe("formatQuantity", () => {
     expect(formatQuantity(undefined, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(Number.NaN, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(null, "m").value).toBe(NULL_DISPLAY);
+  });
+});
+
+describe("catalog coverage", () => {
+  it("knows a kind for every token the contract can declare", () => {
+    // The drift this catches: someone adds a token to Sitrep.Contract.Units,
+    // the codegen happily emits it, and every value carrying it renders with
+    // the raw token appended, so a readout reads "4200 kbit/s" one release and
+    // "4200 someNewToken" the next. Nothing else would have failed.
+    //
+    // Read out of the generated file rather than restated here, so this cannot
+    // pass by being updated in lockstep with the thing it is checking.
+    // Resolved from cwd rather than import.meta.url: this suite runs under
+    // jsdom, where import.meta.url is not a file: URL and fileURLToPath throws.
+    const src = readFileSync(
+      join(process.cwd(), "../../mod/sitrep-sdk/src/__generated__/units.ts"),
+      "utf8",
+    );
+    const known = src.slice(
+      src.indexOf("export type KnownSitrepUnit ="),
+      src.indexOf("export type SitrepUnit ="),
+    );
+    const tokens = [...known.matchAll(/\| "([^"]+)"/g)].map((m) => m[1]);
+
+    expect(tokens.length).toBeGreaterThan(0);
+    expect(tokens.filter((t) => kindOfUnit(t) === undefined)).toEqual([]);
+  });
+});
+
+/**
+ * The non-dimensional tokens. These exist so the contract can DECLARE a
+ * non-quantity rather than skip it, which is what makes a coverage gate
+ * possible; the presentation rules below are what stop that declaration from
+ * leaking onto the screen as a word.
+ */
+describe("non-dimensional units", () => {
+  it("shows a count as an integer with no symbol", () => {
+    // "12 count" is not a readout. The token names a category, so it renders
+    // with an empty symbol and the caller supplies its own label.
+    expect(formatQuantity(12, "count")).toMatchObject({
+      value: "12",
+      symbol: "",
+    });
+  });
+
+  it("rounds a count to an integer, where a dimensionless number keeps decimals", () => {
+    // The reason `count` is not `"1"`. Both are unitless; only one of them is
+    // integral, and "3.00 crew" is wrong in a way "3.00 Mach" is not.
+    expect(formatQuantity(3.4, "count").value).toBe("3");
+    expect(formatQuantity(3.4, "1").value).toBe("3.40");
+  });
+
+  it("shows an identifier bare and never scales it", () => {
+    // An id is a label. Climbing a ladder would turn flightID 1234 into
+    // "1.2 k-something", which is not the same identifier.
+    expect(formatQuantity(1234, "id")).toMatchObject({
+      value: "1234",
+      symbol: "",
+    });
+  });
+
+  it("keeps resource units, because that one IS a readable symbol", () => {
+    // The exception among the placeholders: "35.6 units" is how KSP itself
+    // reads, so this token does not get an empty display.
+    expect(formatQuantity(35.6, "units")).toMatchObject({
+      value: "35.6",
+      symbol: "units",
+    });
+  });
+
+  it("prints no symbol for the type-shaped tokens", () => {
+    // text / flag / enum reach a numeric formatter only by accident, but if
+    // one does, it must not append the word "flag" to the number.
+    for (const token of ["text", "flag", "enum", "n/a"]) {
+      expect(formatQuantity(1, token).symbol).toBe("");
+    }
+  });
+
+  it("still distinguishes a declared non-quantity from an undeclared field", () => {
+    // Both render bare, and they are NOT the same statement: "n/a" is someone
+    // saying there is nothing to say, `undefined` is nobody having looked. The
+    // rung carries the difference through, which is what a coverage tool reads.
+    expect(formatQuantity(5, "n/a").rung).toBe("n/a");
+    expect(formatQuantity(5, undefined).rung).toBe("");
   });
 });
 
