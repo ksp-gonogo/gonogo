@@ -5,7 +5,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { EmptyState, Panel, ToggleButton } from "@ksp-gonogo/ui-kit";
+import { EmptyState, Panel, ToggleButton, Unit } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -319,14 +319,6 @@ const Target = styled.span`
   font-size: var(--font-size-lg);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-`;
-
-const Unit = styled.span`
-  /* Off the type scale on purpose: em, so the unit stays a fixed ratio of
-     whatever size its parent readout renders at. A px rung severs that. */
-  font-size: 0.6em;
-  opacity: 0.7;
-  margin-left: var(--space-hair);
 `;
 
 const StatePill = styled.span<{ $atTarget: boolean }>`
