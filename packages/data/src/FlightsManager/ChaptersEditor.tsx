@@ -1,5 +1,5 @@
 import { getDataSource } from "@ksp-gonogo/core";
-import { Grid } from "@ksp-gonogo/ui-kit";
+import { Grid, Input } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { FlightChapterRecord, FlightRecord } from "../types";
@@ -162,20 +162,20 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
                 <ChapterRow key={c.id}>
                   {isEditing ? (
                     <>
-                      <Field
+                      <Input
                         type="text"
                         value={editLabel}
                         onChange={(e) => setEditLabel(e.target.value)}
                         aria-label="Chapter label"
                       />
-                      <Field
+                      <Input
                         type="text"
                         value={editStart}
                         onChange={(e) => setEditStart(e.target.value)}
                         aria-label="Chapter start (mm:ss)"
                         placeholder="mm:ss"
                       />
-                      <Field
+                      <Input
                         type="text"
                         value={editEnd}
                         onChange={(e) => setEditEnd(e.target.value)}
@@ -225,21 +225,21 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
       {editError && <ErrorText>{editError}</ErrorText>}
 
       <AddRow>
-        <Field
+        <Input
           type="text"
           placeholder="Chapter name"
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           aria-label="New chapter label"
         />
-        <Field
+        <Input
           type="text"
           placeholder="0:00"
           value={newStart}
           onChange={(e) => setNewStart(e.target.value)}
           aria-label="New chapter start (mm:ss)"
         />
-        <Field
+        <Input
           type="text"
           placeholder={formatElapsed(duration)}
           value={newEnd}
@@ -367,27 +367,6 @@ const AddRow = styled.div`
   gap: var(--space-6);
   align-items: center;
   margin-top: var(--space-4);
-`;
-
-const Field = styled.input`
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  font-family: inherit;
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  min-width: 0;
-  /* Focus-ring geometry, deliberately off the spacing ladder even though the
-     offset happens to equal --space-hair. The whole outline/outline-offset
-     pair is a WCAG indicator, not rhythm, so it must not inherit a later
-     retune of the spacing scale. (It is also the repo's only 1px offset
-     against a 2px house rule; the fix for that is to make it 2px, not to
-     tokenise it.) */
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 1px;
-  }
 `;
 
 const AddButton = styled.button`

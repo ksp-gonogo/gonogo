@@ -19,6 +19,7 @@ import {
   FieldLabel,
   NULL_DISPLAY,
   Panel,
+  RowName,
   ScrollArea,
   Section,
   SectionTitle,
@@ -819,13 +820,6 @@ const Row = styled.div`
   &:hover {
     background: var(--color-surface-panel);
   }
-`;
-
-const RowName = styled.span`
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;
 
 const RowEff = styled.span`
