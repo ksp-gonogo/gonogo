@@ -63,8 +63,11 @@ const Unit__Span = styled.span<{ $attached: boolean }>`
   /* Relative to the parent's font size, with a floor. Attached symbols keep
      full size: see the header on why shrinking drops them off their line. */
   font-size: ${({ $attached }) => ($attached ? "1em" : "max(0.72em, 10px)")};
-  /* Dims whatever colour it inherits, so the symbol keeps the value's tone. */
-  opacity: 0.72;
+  /* Dims whatever colour it inherits, so the symbol keeps the value's tone.
+     Attached symbols are exempt: a plane angle is part of the number's own
+     typography rather than a unit token beside it, so dimming it detaches it
+     from the value it belongs to. */
+  opacity: ${({ $attached }) => ($attached ? "1" : "0.72")};
   /* Scales with the text, so the gap does not look tight in a big readout and
      loose in a small one. Margin rather than a space character so the symbol
      cannot be split from its number by a line break. */

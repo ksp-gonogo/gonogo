@@ -66,6 +66,9 @@ describe("Unit", () => {
     const style = getComputedStyle(screen.getByText("\u00B0"));
     expect(style.marginInlineStart).toBe("0px");
     expect(style.fontSize).toBe("1em");
+    // Nor dimmed. A plane angle is part of the number's own typography, not a
+    // unit token beside it, so dimming detaches it from the value it belongs to.
+    expect(style.opacity).toBe("1");
   });
 
   it("does NOT attach degrees Celsius, which takes the normal space", () => {
