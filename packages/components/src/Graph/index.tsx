@@ -157,7 +157,12 @@ export interface ReferenceCurve {
 interface GraphViewProps {
   config: GraphConfig | undefined;
   referenceCurves?: ReadonlyArray<ReferenceCurve>;
-  /** Override the panel header. Defaults to "GRAPH". */
+  /**
+   * Override the panel header. Omit it and the header names what is actually
+   * plotted, e.g. "GRAPH VELOCITY x ALTITUDE & APOAPSIS". A widget built ON
+   * GraphView (EscapeProfile, AtmosphereProfile) plots one fixed thing and
+   * passes its own name instead.
+   */
   title?: string;
   /** Replaces the empty-state copy when no series are configured. */
   emptyState?: string;
@@ -181,7 +186,7 @@ interface GraphViewProps {
 export function GraphView({
   config,
   referenceCurves,
-  title = "GRAPH",
+  title,
   emptyState = "Configure series to begin graphing.",
   headerActions,
   w,
@@ -205,6 +210,46 @@ export function GraphView({
     [schema],
   );
   const xMeta = xIsTime ? null : (metaMap.get(xKey) ?? null);
+
+  /**
+   * A header that names what the chart MEASURES: "GRAPH m x m/s". "GRAPH"
+   * alone made every graph on a dashboard look identical until you read its
+   * legend.
+   *
+   * Units rather than series names, and this is the reason: units dedupe where
+   * names do not. Altitude plotted against apoapsis is two names but one unit,
+   * so the title says "m" once and is telling the truth about the axis; naming
+   * both would spend the header restating the legend. It also degrades well,
+   * since a graph gains series far more often than it gains units.
+   *
+   * A series whose key carries no unit in the schema contributes nothing, and
+   * if NOTHING carries one the header stays "GRAPH" and the legend does the
+   * work. (Several real keys are in this position: `v.horizontalVelocity` has
+   * no schema entry, so a chart of it alone is titled "GRAPH".)
+   */
+  const units = useMemo(() => {
+    if (title !== undefined) return "";
+    const seen: string[] = [];
+    for (const cfg of series) {
+      const unit = metaMap.get(cfg.key)?.unit;
+      if (unit && !seen.includes(unit)) seen.push(unit);
+    }
+    if (seen.length === 0) return "";
+    const against = xIsTime ? "" : `${xMeta?.unit ?? xMeta?.label ?? xKey} x `;
+    return `${against}${seen.join(" & ")}`;
+  }, [title, series, metaMap, xIsTime, xMeta, xKey]);
+
+  /** The series themselves, as a tooltip: the header says what is measured,
+   *  this says which readings are on the chart. */
+  const fullTitle = useMemo(
+    () =>
+      title !== undefined
+        ? undefined
+        : series
+            .map((cfg) => cfg.label ?? metaMap.get(cfg.key)?.label ?? cfg.key)
+            .join(", ") || undefined,
+    [title, series, metaMap],
+  );
 
   // Resolve variant up-front so the ResizeObserver below knows which element
   // to observe: chart and readout render different children behind the same
@@ -357,7 +402,7 @@ export function GraphView({
 
     return (
       <Panel
-        panelTitle={title}
+        panelTitle={title ?? "GRAPH"}
         panelSubtitle={seriesLabel}
         panelAside={headerActions}
       >
@@ -391,7 +436,24 @@ export function GraphView({
   }
 
   return (
-    <Panel panelTitle={title} panelAside={headerActions}>
+    <Panel
+      // PanelTitle uppercases, which is right for a word and WRONG for a unit
+      // symbol: "m" and "M" are metre and mega, "mm" and "MM" are not the same
+      // quantity. So the word is uppercased by the panel and the units opt out.
+      // A consumer passing its own title gets it through unchanged.
+      panelTitle={
+        title !== undefined ? (
+          title
+        ) : units ? (
+          <>
+            GRAPH <GraphUnits title={fullTitle}>{units}</GraphUnits>
+          </>
+        ) : (
+          "GRAPH"
+        )
+      }
+      panelAside={headerActions}
+    >
       {/* ChartArea is always rendered so the ResizeObserver effect (deps:
           []) attaches once and never has to re-attach when the chart's
           data state flips. The empty-state text overlays when there's no
@@ -899,6 +961,11 @@ const RemoveButton = styled.button`
   padding: 0 var(--space-4);
   flex-shrink: 0;
   &:hover { color: var(--color-text-primary); }
+`;
+
+/** Unit symbols are case-sensitive, so they opt out of the header's uppercase. */
+const GraphUnits = styled.span`
+  text-transform: none;
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────
