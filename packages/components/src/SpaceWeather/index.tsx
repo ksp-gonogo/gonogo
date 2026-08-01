@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, Panel } from "@ksp-gonogo/ui-kit";
+import { Badge, Panel, Section } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type SpaceWeatherConfig = Record<string, never>;
@@ -147,7 +147,7 @@ function StormTimeline({ state }: { state: StormState }) {
         : "No storm activity";
   let acc = 0;
   return (
-    <Section>
+    <StatSection>
       <SectionHead>
         <SectionLabel>Storm forecast</SectionLabel>
         <SectionValue $tone={state === "none" ? "go" : "warn"}>
@@ -188,7 +188,7 @@ function StormTimeline({ state }: { state: StormState }) {
         />
         <circle cx={nowPct} cy={1.6} r={1.6} fill="var(--color-text-primary)" />
       </svg>
-    </Section>
+    </StatSection>
   );
 }
 
@@ -428,11 +428,10 @@ function SpaceWeatherComponent({
 // Styles
 // ---------------------------------------------------------------------------
 
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-6);
+// Same shape as LifeSupportSystems': the kit's Section plus the spacing
+// above it, which is the only part that is this widget's business.
+const StatSection = styled(Section)`
+  margin-top: var(--space-8);
 `;
 
 const SectionHead = styled.div`

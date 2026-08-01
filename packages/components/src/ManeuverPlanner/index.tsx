@@ -20,7 +20,13 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { CheckIcon, Panel, ScrollArea, SectionTitle } from "@ksp-gonogo/ui-kit";
+import {
+  CheckIcon,
+  Panel,
+  ScrollArea,
+  SectionTitle,
+  Stack,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -443,7 +449,7 @@ function ManeuverPlannerComponent({
   // measured independently by the rule.
   function renderNodesSection() {
     return (
-      <Section>
+      <PaddedSection>
         <SectionTitle as="h4">Planned nodes</SectionTitle>
         <ManeuverNodeList
           nodes={nodes}
@@ -454,13 +460,13 @@ function ManeuverPlannerComponent({
           onEdit={handleEdit}
           onClearAll={handleClearAll}
         />
-      </Section>
+      </PaddedSection>
     );
   }
 
   function renderNewManeuverSection() {
     return (
-      <Section>
+      <PaddedSection>
         <SectionTitle as="h4">New maneuver</SectionTitle>
         <PresetInput
           api={inputsApi}
@@ -474,7 +480,7 @@ function ManeuverPlannerComponent({
             targetPeA,
           }}
         />
-      </Section>
+      </PaddedSection>
     );
   }
 
@@ -511,13 +517,13 @@ function ManeuverPlannerComponent({
   function renderArmedTriggersSection() {
     if (armedTriggers.length === 0) return null;
     return (
-      <Section>
+      <PaddedSection>
         <SectionTitle as="h4">Armed triggers</SectionTitle>
         <ArmedTriggersList
           triggers={armedTriggers}
           onCancel={handleCancelTrigger}
         />
-      </Section>
+      </PaddedSection>
     );
   }
 
@@ -645,10 +651,14 @@ export { ManeuverPlannerComponent };
 // Styles
 // ---------------------------------------------------------------------------
 
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+// forwardedAs, not as: styled-components CONSUMES `as` and renders that
+// element in place of the wrapped component, so `as: "section"` would silently
+// drop Stack entirely and leak `gap` to the DOM as an attribute. forwardedAs
+// passes it down to Stack, which has its own `as` prop for exactly this.
+const PaddedSection = styled(Stack).attrs({
+  forwardedAs: "section" as const,
+  gap: "sm" as const,
+})`
   padding-top: var(--space-4);
 `;
 

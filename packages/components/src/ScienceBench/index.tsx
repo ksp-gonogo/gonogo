@@ -11,6 +11,7 @@ import {
   Panel,
   PanelSubtitle,
   ScrollArea,
+  Section,
   SectionTitle,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
@@ -400,18 +401,18 @@ function ScienceBenchComponent({
 
         <Body>
           {showSensors && (
-            <Section>
+            <TitledGroup>
               <SectionTitle>Sensors</SectionTitle>
               <SensorList>
                 {sensors.map(([type, raw]) => (
                   <SensorRow key={type} type={type} raw={raw} />
                 ))}
               </SensorList>
-            </Section>
+            </TitledGroup>
           )}
 
           {showAboard && (
-            <Section>
+            <TitledGroup>
               <SectionTitle>
                 Aboard
                 {typeof sciCount === "number" && (
@@ -427,7 +428,7 @@ function ScienceBenchComponent({
               ) : (
                 <ExperimentList experiments={experiments} sciCount={sciCount} />
               )}
-            </Section>
+            </TitledGroup>
           )}
         </Body>
       </DimmedOverlay>
@@ -637,7 +638,11 @@ const Body = styled(ScrollArea)`
   }
 `;
 
-const Section = styled.div`
+// The odd one out: it was never a flex column at all, only a first-child
+// spacing shim wrapping a SectionTitle and a list. Function-wise it is a
+// titled group, so it becomes the kit's Section and gains that group's 2px
+// gap, which is the visual delta this conversion accepts.
+const TitledGroup = styled(Section)`
   &:first-child {
     margin-top: var(--space-4);
   }

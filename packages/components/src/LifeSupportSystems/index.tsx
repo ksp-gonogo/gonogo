@@ -6,7 +6,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, Panel } from "@ksp-gonogo/ui-kit";
+import { Badge, Panel, Section } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 // Side-effect import: registers the built-in `life-support.sections`
 // augment filler (the Greenhouse section) and the SlotRegistry declaration
@@ -310,7 +310,7 @@ function LifeSupportSystemsComponent({
           content (e.g. the last few px of a habitat/process row) is what
           gives, never the life-critical Power reading. */}
       <Body>
-        <Section>
+        <StatSection>
           <SectionHead>
             <SectionLabel>Consumables</SectionLabel>
             <SectionValue $tone="info">
@@ -373,10 +373,10 @@ function LifeSupportSystemsComponent({
               />
             </MeterStackTight>
           )}
-        </Section>
+        </StatSection>
 
         {!ultraCompact && (
-          <Section>
+          <StatSection>
             <SectionHead>
               <SectionLabel>Habitat</SectionLabel>
               <SectionValue $tone={d.pressurized ? "go" : "warn"}>
@@ -405,11 +405,11 @@ function LifeSupportSystemsComponent({
                 />
               </HabitatGrid>
             )}
-          </Section>
+          </StatSection>
         )}
 
         {!compact && (
-          <Section>
+          <StatSection>
             <SectionHead>
               <SectionLabel>Processes</SectionLabel>
               <SectionValue $tone={brokenCount > 0 ? "nogo" : "go"}>
@@ -426,7 +426,7 @@ function LifeSupportSystemsComponent({
                 </ProcessRowEl>
               ))}
             </ProcessGrid>
-          </Section>
+          </StatSection>
         )}
 
         {/* Augment sections, e.g. the built-in Greenhouse readout, compose
@@ -474,11 +474,10 @@ const Body = styled.div`
   overflow: hidden;
 `;
 
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-6);
+// gap:2px IS the kit's Section. Only the spacing above it and the
+// no-shrink (it sits in a scrolling column) are local.
+const StatSection = styled(Section)`
+  margin-top: var(--space-8);
   flex-shrink: 0;
 `;
 

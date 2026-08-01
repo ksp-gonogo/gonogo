@@ -7,7 +7,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { ConnStatus } from "../peer/PeerClientService";
@@ -72,7 +72,7 @@ function StationConnectionPanel({
         </StatusIndicator>
       </Row>
 
-      <Section>
+      <SeparatedSection>
         <Label>Switch host</Label>
         <SwitchRow>
           <Input
@@ -100,9 +100,9 @@ function StationConnectionPanel({
           Enter the four-character code shown on the new host. The current
           connection is dropped before the new one is attempted.
         </Hint>
-      </Section>
+      </SeparatedSection>
 
-      <Section>
+      <SeparatedSection>
         <GhostButton type="button" onClick={onDisconnect}>
           Disconnect
         </GhostButton>
@@ -110,7 +110,7 @@ function StationConnectionPanel({
           Clears the saved host and returns to the connect screen. Saved
           dashboard layout, alarms, and fog data stay on this device.
         </Hint>
-      </Section>
+      </SeparatedSection>
     </Wrap>
   );
 }
@@ -152,10 +152,8 @@ const Row = styled.div`
   gap: var(--space-12);
 `;
 
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+// The flex column comes from the kit; only the separator rule is local.
+const SeparatedSection = styled(Stack).attrs({ gap: "md" as const })`
   border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-12);
 `;

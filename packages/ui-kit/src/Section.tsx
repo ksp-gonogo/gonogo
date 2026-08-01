@@ -1,8 +1,16 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { Stack } from "./Stack";
 
 export interface SectionProps extends HTMLAttributes<HTMLDivElement> {
+  /**
+   * Rendered tag. Defaults to `div`. Declared for the same reason `Stack` and
+   * `Row` declare it, and added when PowerSystems adopted this in place of its
+   * own `styled.section`: a widget should not have to give up the semantic
+   * element to use the kit. It reached `Stack` through the rest spread before
+   * this, which worked and was invisible to a caller reading the type.
+   */
+  as?: ElementType;
   children?: ReactNode;
 }
 

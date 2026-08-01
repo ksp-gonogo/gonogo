@@ -20,6 +20,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ScrollArea,
+  Section,
   SectionTitle,
   Select,
   useModalSaveBar,
@@ -485,7 +486,7 @@ function PowerSystemsComponent({
       )}
 
       <SectionsScroll $landscape={isLandscape}>
-        <Section $landscape={isLandscape}>
+        <PanelSection $landscape={isLandscape}>
           <SectionTitle as="h3">
             Producers
             {producers.length > 0 && (
@@ -501,8 +502,8 @@ function PowerSystemsComponent({
               ))}
             </ContribList>
           )}
-        </Section>
-        <Section $landscape={isLandscape}>
+        </PanelSection>
+        <PanelSection $landscape={isLandscape}>
           <SectionTitle as="h3">
             Consumers
             {consumers.length > 0 && (
@@ -518,9 +519,9 @@ function PowerSystemsComponent({
               ))}
             </ContribList>
           )}
-        </Section>
+        </PanelSection>
         {idle.length > 0 && (
-          <Section $landscape={isLandscape}>
+          <PanelSection $landscape={isLandscape}>
             <SectionTitle as="h3">
               Idle
               <SectionCount>· {idle.length}</SectionCount>
@@ -530,7 +531,7 @@ function PowerSystemsComponent({
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
             </IdleList>
-          </Section>
+          </PanelSection>
         )}
         {/* Augment sections: e.g. a Kerbalism EC-broker breakdown:
             compose here, below the stock producer/consumer/idle readout. Empty
@@ -775,10 +776,13 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
   }
 `;
 
-const Section = styled.section<{ $landscape?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+// The kit's Section is exactly the gap:2px column; $landscape is the only
+// thing it does not cover, and it is genuinely this widget's layout mode.
+const PanelSection = styled(Section).attrs({
+  forwardedAs: "section" as const,
+})<{
+  $landscape?: boolean;
+}>`
   ${({ $landscape }) =>
     $landscape ? "flex: 1 1 0; min-width: 0; min-height: 0;" : ""}
 `;

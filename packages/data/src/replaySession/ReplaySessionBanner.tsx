@@ -1,4 +1,5 @@
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { Cluster } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";
 import {
@@ -33,7 +34,7 @@ export function ReplaySessionBanner() {
 
   return (
     <Bar role="region" aria-label="Replay controls">
-      <Section>
+      <BannerGroup>
         <PlayButton
           type="button"
           onClick={() =>
@@ -46,7 +47,7 @@ export function ReplaySessionBanner() {
         <Title>
           REPLAY: <Strong>{meta.vesselName || "Unnamed vessel"}</Strong>
         </Title>
-      </Section>
+      </BannerGroup>
 
       <SeekArea>
         <TimeText>{formatElapsed(elapsed)}</TimeText>
@@ -62,7 +63,7 @@ export function ReplaySessionBanner() {
         <TimeText>{formatElapsed(duration)}</TimeText>
       </SeekArea>
 
-      <Section>
+      <BannerGroup>
         <RatePicker
           value={String(snapshot.rate)}
           onChange={(e) => controller.setRate(Number(e.target.value))}
@@ -82,7 +83,7 @@ export function ReplaySessionBanner() {
         >
           Exit replay
         </ExitButton>
-      </Section>
+      </BannerGroup>
     </Bar>
   );
 }
@@ -121,10 +122,9 @@ const Bar = styled.div`
   letter-spacing: 0.04em;
 `;
 
-const Section = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
+// Named Section but shaped like a Cluster: a horizontal, centred row. The
+// counterpart is by function, not by name.
+const BannerGroup = styled(Cluster).attrs({ justify: "start" as const })`
   flex-shrink: 0;
 `;
 

@@ -10,6 +10,7 @@ import {
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { Stack } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
@@ -64,7 +65,7 @@ function VirtualDeviceComponent({
       <Title>{device.name}</Title>
       <Subtitle>{type.name}</Subtitle>
       {analogs.length > 0 && (
-        <Section>
+        <SpacedSection>
           {analogs.map((input) => (
             <AnalogPad
               key={input.id}
@@ -73,7 +74,7 @@ function VirtualDeviceComponent({
               onRelease={() => virtual?.inject(input.id, 0)}
             />
           ))}
-        </Section>
+        </SpacedSection>
       )}
       {buttons.length > 0 && (
         <ButtonGrid>
@@ -177,10 +178,7 @@ const Subtitle = styled.div`
   margin-bottom: var(--space-6);
 `;
 
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+const SpacedSection = styled(Stack).attrs({ gap: "md" as const })`
   margin-bottom: var(--space-10);
 `;
 

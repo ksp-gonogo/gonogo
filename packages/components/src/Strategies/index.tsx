@@ -13,6 +13,7 @@ import {
   Panel,
   PrimaryButton,
   ScrollArea,
+  Stack,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -314,7 +315,7 @@ function StrategiesComponent({
       }
     >
       <ScrollArea>
-        <Section aria-label="Active">
+        <DividedSection aria-label="Active">
           <SectionLabel>Active</SectionLabel>
           {active.length === 0 ? (
             <Empty>No active strategies.</Empty>
@@ -374,9 +375,9 @@ function StrategiesComponent({
               </StrategyCard>
             ))
           )}
-        </Section>
+        </DividedSection>
 
-        <Section aria-label="Available">
+        <DividedSection aria-label="Available">
           <SectionLabel>Available</SectionLabel>
           {available.length === 0 && softBlocked.length === 0 ? (
             <Empty>No strategies available right now.</Empty>
@@ -421,10 +422,10 @@ function StrategiesComponent({
               ))}
             </>
           )}
-        </Section>
+        </DividedSection>
 
         {ineligible.length > 0 && (
-          <Section aria-label="Locked">
+          <DividedSection aria-label="Locked">
             <SectionLabel>Locked</SectionLabel>
             {ineligible.map((s) => (
               <StrategyCard key={s.id}>
@@ -435,7 +436,7 @@ function StrategiesComponent({
                 <BlockedNote>{s.activateBlockedReason}</BlockedNote>
               </StrategyCard>
             ))}
-          </Section>
+          </DividedSection>
         )}
       </ScrollArea>
     </Panel>
@@ -638,10 +639,14 @@ const TinyFundsRow = styled.div`
   text-overflow: ellipsis;
 `;
 
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+// Gap moves 6px to 8px: the space scale is 2/4/8/12/16 and has no 6, so it
+// snaps to md. The padding and the dashed divider are this list's own.
+const DividedSection = styled(Stack).attrs({
+  // forwardedAs: `as` would be consumed by styled-components and render a bare
+  // <section>, dropping Stack's flex column. See ManeuverPlanner's note.
+  forwardedAs: "section" as const,
+  gap: "md" as const,
+})`
   padding: var(--space-8) var(--space-12);
   border-bottom: 1px dashed var(--color-border-subtle);
   &:last-child {
