@@ -1,6 +1,7 @@
 import type { DataSourceStatus } from "@ksp-gonogo/core";
 import { getDataSource, useDataSources } from "@ksp-gonogo/core";
 import {
+  ConfigForm,
   FieldLabel,
   FieldRow,
   FormActions,
@@ -90,7 +91,7 @@ export function SitrepConnection() {
       </ConnectionRow>
       {instructions && <SetupInstructions>{instructions}</SetupInstructions>}
       {editingConfig && (
-        <ConfigForm>
+        <ConfigForm $boxed>
           {schema.map((field) => {
             const inputId = `config-sitrep-${field.key}`;
             return (
@@ -186,16 +187,6 @@ const ConfigButton = styled(IconButton)<{ $active: boolean }>`
     $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
   font-size: var(--font-size-sm);
   padding: 0 var(--space-2);
-`;
-
-const ConfigForm = styled.div`
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-8) var(--space-10);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
 `;
 
 const SetupInstructions = styled.pre`

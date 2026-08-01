@@ -1,6 +1,6 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
 import { StarIcon } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { EmptyState, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
   useCallback,
@@ -934,11 +934,4 @@ const ClearAllButton = styled.button`
   padding: var(--space-4) var(--space-12);
   border-radius: var(--radius-xs);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
-`;
-
-const EmptyState = styled.div`
-  padding: var(--space-24) var(--space-16);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-faint);
-  text-align: center;
 `;

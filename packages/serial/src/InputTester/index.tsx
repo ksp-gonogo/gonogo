@@ -6,8 +6,10 @@ import {
   FieldLabel,
   NULL_DISPLAY,
   Panel,
+  type ReadoutTone,
   Select,
   Stack,
+  StatusPill,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -120,7 +122,9 @@ function InputTesterComponent({
         <>
           <StatusRow>
             <StatusLabel>Status</StatusLabel>
-            <StatusPill $status={status}>{status}</StatusPill>
+            <StatusPill $tone={STATUS_TONE[status] ?? "default"}>
+              {status}
+            </StatusPill>
             <Spacer />
             <Counts>
               {buttons.length} btn · {analogs.length} axis
@@ -224,6 +228,17 @@ registerComponent<InputTesterConfig>({
 
 export { InputTesterComponent };
 
+/**
+ * The kit's StatusPill is tone-driven; this widget's transport status is a raw
+ * string. Mapping it here is the conversion: the pill's colours stop being a
+ * private ternary and become the same three tones every other status surface
+ * in the dashboard uses.
+ */
+const STATUS_TONE: Record<string, ReadoutTone> = {
+  connected: "go",
+  error: "alert",
+};
+
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const StatusRow = styled.div`
@@ -237,26 +252,6 @@ const StatusLabel = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
-`;
-
-const StatusPill = styled.span<{ $status: string }>`
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  color: ${({ $status }) =>
-    $status === "connected"
-      ? "var(--color-status-go-fg)"
-      : $status === "error"
-        ? "var(--color-status-nogo-bg)"
-        : "var(--color-text-dim)"};
-  background: ${({ $status }) =>
-    $status === "connected"
-      ? "var(--color-status-go-bg)"
-      : $status === "error"
-        ? "var(--color-status-nogo-fg)"
-        : "var(--color-surface-raised)"};
 `;
 
 const Spacer = styled.span`
