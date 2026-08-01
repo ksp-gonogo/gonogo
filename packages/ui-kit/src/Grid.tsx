@@ -26,6 +26,12 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
   minColWidth?: string;
   /** Gap between cells, snapped to the space scale. Defaults to `sm`. */
   gap?: SpaceToken;
+  /**
+   * Row gap, when it differs from the column gap. A label/value grid usually
+   * wants its rows tighter than its columns, and `gap` alone forces one value
+   * on both axes; CommSignal was keeping its own grid for exactly that.
+   */
+  rowGap?: SpaceToken;
   children?: ReactNode;
 }
 
@@ -44,6 +50,7 @@ export function Grid({
   cols,
   minColWidth,
   gap = "sm",
+  rowGap,
   align = "center",
   children,
   ...rest
@@ -53,6 +60,7 @@ export function Grid({
       $cols={cols}
       $minColWidth={minColWidth}
       $gap={gap}
+      $rowGap={rowGap}
       $align={align}
       {...rest}
     >
@@ -65,11 +73,15 @@ const Grid__Root = styled.div<{
   $cols?: string;
   $minColWidth?: string;
   $gap: SpaceToken;
+  $rowGap?: SpaceToken;
   $align: GridAlign;
 }>`
   display: grid;
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
-  gap: ${({ theme, $gap }) => theme.space[$gap]};
+  gap: ${({ theme, $gap, $rowGap }) =>
+    $rowGap
+      ? `${theme.space[$rowGap]} ${theme.space[$gap]}`
+      : theme.space[$gap]};
   grid-template-columns: ${({ $cols, $minColWidth }) => {
     if ($cols) return $cols;
     if ($minColWidth) return `repeat(auto-fill, minmax(${$minColWidth}, 1fr))`;

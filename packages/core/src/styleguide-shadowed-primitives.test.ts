@@ -134,7 +134,6 @@ const BASELINE = new Set<string>([
   "Field@packages/app/src/components/MissionBanner.tsx",
   "Field@packages/components/src/LandingStatus/index.tsx",
   "Field@packages/components/src/ManeuverPlanner/TriggerEditor.tsx",
-  "Grid@packages/components/src/CommSignal/index.tsx",
   "Grid@packages/components/src/CurrentOrbit/index.tsx",
   "Panel@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
   "Readout@packages/components/src/SemiMajorAxis/index.tsx",

@@ -10,6 +10,7 @@ import {
   Cluster,
   EmptyState,
   formatDuration,
+  Grid,
   NULL_DISPLAY,
   Panel,
 } from "@ksp-gonogo/ui-kit";
@@ -202,7 +203,7 @@ function CommSignalComponent({
         </Cluster>
 
         {showDetailGrid && (
-          <Grid>
+          <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
             <GridLabel>Control</GridLabel>
             <GridValue $tone={control.tone}>{control.label}</GridValue>
             <GridLabel>Delay</GridLabel>
@@ -312,13 +313,6 @@ const StrengthPct = styled.span<{ $tone?: Tone }>`
       : "var(--color-text-primary)"};
   letter-spacing: 0.04em;
   font-weight: ${({ $tone }) => ($tone === "lost" ? 700 : 400)};
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-2) var(--space-10);
-  align-items: baseline;
 `;
 
 const GridLabel = styled.span`
