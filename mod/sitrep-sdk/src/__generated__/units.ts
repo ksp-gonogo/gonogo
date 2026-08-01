@@ -38,6 +38,16 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "AtmosphereEntry": {
+    depth: "m",
+    seaLevelPressure: "kPa",
+  },
+  "BodyEntry": {
+    gravParameter: "m³/s²",
+    radius: "m",
+    rotationPeriod: "s",
+    sphereOfInfluence: "m",
+  },
   "CommsDataRate": {
     downBitsPerSec: "bit/s",
     upBitsPerSec: "bit/s",
@@ -57,6 +67,30 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommsSignalStrength": {
     value: "ratio",
+  },
+  "CrashFlightStats": {
+    groundDistance: "m",
+    highestAltitude: "m",
+    highestGee: "g",
+    highestSpeed: "m/s",
+    highestSpeedOverLand: "m/s",
+    missionTime: "s",
+    totalDistance: "m",
+  },
+  "CrashReport": {
+    altitude: "m",
+    latitude: "°",
+    longitude: "°",
+    ut: "s",
+  },
+  "OrbitEntry": {
+    argPe: "°",
+    ecc: "1",
+    epoch: "s",
+    inc: "°",
+    lan: "°",
+    meanAnomalyAtEpoch: "rad",
+    sma: "m",
   },
   "OrbitPatch": {
     apA: "m",
@@ -184,6 +218,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "comms.signalStrength": {
     value: "ratio",
+  },
+  "crash.lastCrash": {
+    altitude: "m",
+    latitude: "°",
+    longitude: "°",
+    ut: "s",
   },
   "dv.stages": {
     burnTime: "s",

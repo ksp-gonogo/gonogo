@@ -57,6 +57,7 @@ public class BodyEntry
     public int? ParentIndex { get; set; }
 
     /// <summary>Mean radius, metres; null when the live game doesn't have it yet (never 0/-1 as a stand-in).</summary>
+    [SitrepUnit(Units.Metres)]
     public double? Radius { get; set; }
 
     /// <summary>Orbital elements; null ONLY for the root star (orbit is meaningless without a parent), the "sun has a bogus orbit" wart suppressed at the source.</summary>
@@ -69,12 +70,15 @@ public class BodyEntry
     /// (√(2μ/r)) and orbital period (2π√(a³/μ_parent)) from: so none of those
     /// ride the wire. Null when the live game hasn't populated it.
     /// </summary>
+    [SitrepUnit(Units.CubicMetresPerSecondSquared)]
     public double? GravParameter { get; set; }
 
     /// <summary>Sphere-of-influence radius, metres (<c>CelestialBody.sphereOfInfluence</c>); null when absent.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? SphereOfInfluence { get; set; }
 
     /// <summary>Sidereal rotation period, seconds (<c>CelestialBody.rotationPeriod</c>); a NEGATIVE value denotes retrograde rotation. Null when absent. Conveys the old Telemachus <c>rotates</c> bool (a body rotates iff this is finite and non-zero), so that bool is NOT emitted.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? RotationPeriod { get; set; }
 
     /// <summary>Whether the body is tidally locked to its parent (<c>CelestialBody.tidallyLocked</c>); null when absent.</summary>
@@ -108,12 +112,14 @@ public class BodyEntry
 public class AtmosphereEntry
 {
     /// <summary>Atmosphere height, metres (<c>CelestialBody.atmosphereDepth</c>); null when absent.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? Depth { get; set; }
 
     /// <summary>Whether the atmosphere is breathable / oxygenated (<c>CelestialBody.atmosphereContainsOxygen</c>); null when absent.</summary>
     public bool? HasOxygen { get; set; }
 
     /// <summary>Sea-level pressure, kPa (<c>CelestialBody.atmospherePressureSeaLevel</c>); null when absent.</summary>
+    [SitrepUnit(Units.Kilopascals)]
     public double? SeaLevelPressure { get; set; }
 }
 
@@ -139,24 +145,31 @@ public class AtmosphereEntry
 public class OrbitEntry
 {
     /// <summary>Semi-major axis, metres.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? Sma { get; set; }
 
     /// <summary>Eccentricity.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double? Ecc { get; set; }
 
     /// <summary>Inclination, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? Inc { get; set; }
 
     /// <summary>Longitude of ascending node, degrees; null for an undefined node (near-equatorial orbit).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? Lan { get; set; }
 
     /// <summary>Argument of periapsis, degrees; null for an undefined periapsis (near-circular orbit).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? ArgPe { get; set; }
 
     /// <summary>Mean anomaly at epoch, radians.</summary>
+    [SitrepUnit(Units.Radians)]
     public double? MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>Epoch UT, seconds.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? Epoch { get; set; }
 }
 

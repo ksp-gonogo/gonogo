@@ -44,8 +44,10 @@ public class CrashReport
     /// <summary>The detector's message (<c>EventReport.msg</c>): often empty.</summary>
     public string Msg { get; set; } = "";
 
+    [SitrepUnit(Units.Degrees)]
     public double Latitude { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double Longitude { get; set; }
 
     /// <summary>Parts lost in the destroying event.</summary>
@@ -71,9 +73,11 @@ public class CrashReport
     /// <summary>Names of the crew aboard at the crash.</summary>
     public List<string> CrewAboard { get; set; } = new();
 
+    [SitrepUnit(Units.Metres)]
     public double Altitude { get; set; }
 
     /// <summary>Universal time of the crash capture.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double Ut { get; set; }
 }
 
@@ -120,21 +124,28 @@ public class CrashFlightStats
     /// <summary>How the flight ended (e.g. <c>"CATASTROPHIC_FAILURE"</c>).</summary>
     public string FlightEndMode { get; set; } = "";
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double HighestSpeedOverLand { get; set; }
 
     public bool MissionEnd { get; set; }
 
+    [SitrepUnit(Units.GForce)]
     public double HighestGee { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double HighestAltitude { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double TotalDistance { get; set; }
 
     /// <summary>Mission time (seconds since launch) at the crash.</summary>
+    [SitrepUnit(Units.Seconds)]
     public double MissionTime { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double HighestSpeed { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double GroundDistance { get; set; }
 
     public bool LiftOff { get; set; }
