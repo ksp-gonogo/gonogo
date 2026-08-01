@@ -105,21 +105,28 @@ function kitExports(): Set<string> {
  * fails the build, a removed one is a cleanup and passes. It is a record of
  * a backlog, not an endorsement.
  *
- * 89 entries, and the distribution is the interesting part. Two thirds are
- * `Row` (23), `Section` (16) and `SectionTitle` (10): names generic enough
- * that a widget defining its own was never really reaching for the kit's.
- * That is a question about whether ui-kit should own bare `Row`/`Value`/
- * `Section` at all, not 49 renames waiting to happen.
+ * **Renaming is not how an entry leaves this list.** That was the first read
+ * of it and it was wrong: a rename satisfies the guard and leaves the
+ * hand-rolled component exactly where it was, now invisible. The list is an
+ * inventory of places the design system is not being used, so an entry leaves
+ * by being CONVERTED to its kit counterpart, accepting that the kit moves the
+ * visuals, or by being logged as genuinely different.
  *
- * The dangerous ones are the specific names, where a reader genuinely would
- * assume the kit's component: `Panel` (4), `Dial` (2), `ActionButton` (2),
- * `ConfigForm` (2), `PrimaryButton`, `EmptyState`, `StatusPill`. Those are
- * worth burning down first.
+ * The counterpart is by FUNCTION, not by name, and reading the name as the
+ * target is what produced the renames. The kit's `Row` is specifically a
+ * `styled.li` with `space-between` for a list row carrying a name and badges;
+ * most local components called `Row` are not that, and convert to `Cluster`,
+ * `Card`, `Stack` or `Grid` instead.
  *
- * `ToggleButton` in the Scansat Uplink is a third kind: a bare disclosure
- * button that happens to share the name, which is a rename rather than a
- * substitution. Navball's was the fourth and worst kind, a real substitute
- * with none of the ARIA, and it is already gone.
+ * Every entry also asks a second question: **should the kit grow to cover
+ * this?** Three sites wanting the same missing thing is the strongest signal
+ * the kit has a hole, and the `SectionTitle` sweep proved it twice: the kit's
+ * version was missing the bold weight that seven of nine copies set, and three
+ * modals had each written the same rule-under-the-heading by hand.
+ *
+ * Navball is why the guard exists at all: its local `ToggleButton` was a real
+ * substitute for the kit's with none of the ARIA, so eleven two-state controls
+ * announced no on/off state. It read as correct at every call site.
  */
 const BASELINE = new Set<string>([
   "ActionButton@packages/components/src/ContractManager/index.tsx",
@@ -186,29 +193,32 @@ const BASELINE = new Set<string>([
   "Value@packages/serial/src/VirtualDevice/AnalogPad.tsx",
 ]);
 
-describe("no local component shadows a ui-kit export", () => {
-  it("finds no shadowing declaration", () => {
-    const kit = kitExports();
-    const offenders: string[] = [];
+/** Every shadowing declaration on disk right now, baseline or not. */
+function currentShadows(): Set<string> {
+  const kit = kitExports();
+  const found = new Set<string>();
 
-    for (const root of SCANNED) {
-      for (const file of sourceFiles(join(REPO, root))) {
-        const text = readFileSync(file, "utf8");
-        // A file that IMPORTS the name from the kit and also declares it
-        // would not compile, so only look at files that do not import it.
-        for (const re of [LOCAL_STYLED_RE, LOCAL_COMPONENT_RE]) {
-          re.lastIndex = 0;
-          for (const [, name] of text.matchAll(re)) {
-            if (!kit.has(name)) continue;
-            const entry = `${name}@${relative(REPO, file)}`;
-            if (BASELINE.has(entry)) continue;
-            offenders.push(entry);
-          }
+  for (const root of SCANNED) {
+    for (const file of sourceFiles(join(REPO, root))) {
+      const text = readFileSync(file, "utf8");
+      // A file that IMPORTS the name from the kit and also declares it
+      // would not compile, so only look at files that do not import it.
+      for (const re of [LOCAL_STYLED_RE, LOCAL_COMPONENT_RE]) {
+        re.lastIndex = 0;
+        for (const [, name] of text.matchAll(re)) {
+          if (!kit.has(name)) continue;
+          found.add(`${name}@${relative(REPO, file)}`);
         }
       }
     }
+  }
 
-    const fresh = [...new Set(offenders)].sort();
+  return found;
+}
+
+describe("no local component shadows a ui-kit export", () => {
+  it("finds no shadowing declaration", () => {
+    const fresh = [...currentShadows()].filter((e) => !BASELINE.has(e)).sort();
     expect(
       fresh,
       `These declare a local component under a name @ksp-gonogo/ui-kit already
@@ -222,6 +232,30 @@ every call site and set aria-pressed on none of eleven controls.
 
 If you genuinely need a differently-named local component, rename it. Adding
 to BASELINE is for recording what was already there, not for new work.`,
+    ).toEqual([]);
+  });
+
+  it("holds no stale BASELINE entry", () => {
+    // Without this the baseline is a list, not a ratchet. A batch could
+    // convert six widgets, leave their six lines behind, and the count would
+    // never move; the next reader would then believe there was more debt than
+    // there is and, worse, a NEW shadow at one of those paths would be
+    // silently pre-forgiven.
+    //
+    // The C# unit-coverage ratchet asserts the same thing, and this one is
+    // where the idea came from, so it should have had it first.
+    const current = currentShadows();
+    const stale = [...BASELINE].filter((e) => !current.has(e)).sort();
+
+    expect(
+      stale,
+      `These BASELINE entries no longer shadow anything, so the baseline is
+overstating the remaining debt and pre-forgiving those paths:
+
+${stale.map((s) => `  ${s}`).join("\n")}
+
+Delete them. If a conversion or rename cleared one, that is the win: take the
+line out in the same commit.`,
     ).toEqual([]);
   });
 });
