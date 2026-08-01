@@ -63,9 +63,9 @@ public class VesselThermal
     /// <summary>Null = no part qualified as "hottest" (same no-valid-part condition as <see cref="MaxInternalTempRatio"/>).</summary>
     public ThermalHottestPart? HottestPart { get; set; }
 
-    /// <summary>Hottest heat-shield part's internal temperature in °C (the part carrying a <c>ModuleAblator</c>, <c>Part.temperature</c> in K minus 273.15). Null when the vessel carries no ablative heat shield this tick.</summary>
-    [SitrepUnit(Units.Celsius)]
-    public double? HeatShieldTempCelsius { get; set; }
+    /// <summary>Hottest heat-shield part's internal temperature (K, raw: the part carrying a <c>ModuleAblator</c>, <c>Part.temperature</c>). Null when the vessel carries no ablative heat shield this tick. Was °C until the units audit: the wire is SI, and a Celsius display is the client's choice to make.</summary>
+    [SitrepUnit(Units.Kelvin)]
+    public double? HeatShieldTemp { get; set; }
 
     /// <summary>The same heat shield's ablative heat flux (<c>ModuleAblator.flux</c>, kW). Null when the vessel carries no ablative heat shield this tick.</summary>
     [SitrepUnit(Units.Kilowatts)]

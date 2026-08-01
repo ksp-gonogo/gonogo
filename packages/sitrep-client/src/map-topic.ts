@@ -323,11 +323,12 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // the same convention VesselPart.title already uses).
   "therm.hottestPartName": "vessel.thermal.hottestPart.name",
 
-  // --- heat-shield thermal. VesselThermal now carries the hottest ablative
-  // heat shield's temperature (°C) and its ablator heat flux (kW), captured
-  // off the part's ModuleAblator. Plain raw-field walks onto the two new
-  // fields: ThermalStatus reads both as plain numbers.
-  "therm.heatShieldTempCelsius": "vessel.thermal.heatShieldTempCelsius",
+  // --- heat-shield thermal. VesselThermal carries the hottest ablative heat
+  // shield's temperature (K, the same unit as every other temperature on the
+  // channel) and its ablator heat flux (kW), captured off the part's
+  // ModuleAblator. Plain raw-field walks onto the two fields: ThermalStatus
+  // reads both as plain numbers and converts to °C for display.
+  "therm.heatShieldTemp": "vessel.thermal.heatShieldTemp",
   "therm.heatShieldFlux": "vessel.thermal.heatShieldFlux",
 
   // --- engine thermal. VesselThermal now scopes the same hottest-by-ratio
@@ -848,7 +849,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // v.atmosphericTemperature / v.externalTemperature are mapped on the
   // wire: see TELEMACHUS_CLEAN_HOMES above.
 
-  // --- thermal detail beyond headline ratios. heatShieldTempCelsius/
+  // --- thermal detail beyond headline ratios. heatShieldTemp/
   // heatShieldFlux, therm.hottestPartName (ThermalHottestPart.Name), and
   // the engine-scoped hottestEngineTemp/MaxTemp/TempRatio/
   // anyEnginesOverheating quartet are all mapped on the wire now,

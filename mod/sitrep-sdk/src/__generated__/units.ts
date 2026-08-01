@@ -24,7 +24,6 @@ export type SitrepUnit =
   | "ratio"
   | "s"
   | "°"
-  | "°C"
 ;
 
 /** Declared units for one payload shape, keyed by camelCased field name. */
@@ -71,7 +70,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "VesselThermal": {
     heatShieldFlux: "kW",
-    heatShieldTempCelsius: "°C",
+    heatShieldTemp: "K",
     hottestEngineMaxTemp: "K",
     hottestEngineTemp: "K",
     hottestEngineTempRatio: "ratio",
@@ -115,7 +114,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "vessel.thermal": {
     heatShieldFlux: "kW",
-    heatShieldTempCelsius: "°C",
+    heatShieldTemp: "K",
     hottestEngineMaxTemp: "K",
     hottestEngineTemp: "K",
     hottestEngineTempRatio: "ratio",

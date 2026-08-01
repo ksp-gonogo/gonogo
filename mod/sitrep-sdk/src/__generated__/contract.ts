@@ -1508,7 +1508,7 @@ export interface VesselThermal
 	maxSkinTempRatio?: number;
 	maxInternalTempRatio?: number;
 	hottestPart?: ThermalHottestPart;
-	heatShieldTempCelsius?: number;
+	heatShieldTemp?: number;
 	heatShieldFlux?: number;
 	hottestEngineTemp?: number;
 	hottestEngineMaxTemp?: number;

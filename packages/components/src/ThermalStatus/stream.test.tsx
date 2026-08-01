@@ -43,11 +43,12 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
     expect(fixture.transport.isSubscribed("vessel.thermal")).toBe(true);
 
     act(() => {
-      // therm.hottestPartTemp is already Celsius (rendered as-is);
-      // therm.hottestPartMaxTemp is Kelvin (kelvinToCelsius'd before
-      // render), matching the legacy Telemachus fork's own inconsistent
-      // units, which this widget's sentinel guards (isSentinelK vs
-      // isSentinelC) and variable naming (`rawHottestMaxK`) already encode.
+      // Both Kelvin, as `ThermalHottestPart` declares. This used to assert
+      // "287.5°C" because the widget read skinTemp as Celsius: the mapping to
+      // `vessel.thermal.hottestPart.skinTemp` had changed the unit underneath
+      // it and the assertion was updated to match the output rather than the
+      // physics. 287.5 K is 14.4 °C, which is what an unheated solar panel
+      // actually reads.
       fixture.emit("vessel.thermal", {
         hottestPart: {
           skinTemp: 287.5,
@@ -58,8 +59,8 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("287.5°C")).toBeTruthy());
-    // formatTempC drops to zero decimals once |value| >= 1000.
+    await waitFor(() => expect(screen.getByText("14.4°C")).toBeTruthy());
+    // formatTemp drops to zero decimals once |value| >= 1000.
     expect(screen.getByText("/ 2000°C max")).toBeTruthy();
     expect(screen.getByText("OX-STAT Photovoltaic Panels")).toBeTruthy();
     // No engine data was emitted this tick, the engine row still shows its

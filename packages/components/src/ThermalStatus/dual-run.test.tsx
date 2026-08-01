@@ -46,7 +46,7 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
           name: reentryWarning["therm.hottestPartName"],
         },
         maxInternalTempRatio: reentryWarning["therm.hottestPartTempRatio"],
-        heatShieldTempCelsius: reentryWarning["therm.heatShieldTempCelsius"],
+        heatShieldTemp: reentryWarning["therm.heatShieldTemp"],
         heatShieldFlux: reentryWarning["therm.heatShieldFlux"],
         hottestEngineTemp: reentryWarning["therm.hottestEngineTemp"],
         hottestEngineMaxTemp: reentryWarning["therm.hottestEngineMaxTemp"],
@@ -56,7 +56,9 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("1671°C")) {
+      // 1670.9 K is 1398 °C. This asserted "1671°C" while skinTemp was being
+      // read as Celsius.
+      if (!container.textContent?.includes("1398°C")) {
         throw new Error("stream leg has not rendered the thermal state yet");
       }
     });
@@ -64,7 +66,7 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     expect(screen.getByText("Heat Shield (2.5m)")).toBeInTheDocument();
     // "warm" appears twice: the compact pill and the hottest-part row's tag.
     expect(screen.getAllByText("warm").length).toBe(2);
-    // skinMaxTemp (2400 K) -> kelvinToCelsius -> 2127°C.
+    // skinMaxTemp (2400 K) -> 2127°C.
     expect(screen.getByText("/ 2127°C max")).toBeInTheDocument();
     expect(screen.getByText("1280°C")).toBeInTheDocument();
     expect(screen.getByText("· flux 3.25 MW")).toBeInTheDocument();

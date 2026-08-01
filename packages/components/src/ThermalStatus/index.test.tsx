@@ -167,8 +167,10 @@ describe("ThermalStatusComponent", () => {
         hottestEngineMaxTemp: 2273,
         hottestEngineTempRatio: 0.4,
         anyEnginesOverheating: false,
-        // Sentinel shield reading.
-        heatShieldTempCelsius: -271.1,
+        // Sentinel shield reading: ~2 K, the near-absolute-zero stand-in for
+        // "no heat shield fitted". Kelvin now, same as every other temperature
+        // on this channel.
+        heatShieldTemp: 2.05,
         heatShieldFlux: 0,
       });
     });

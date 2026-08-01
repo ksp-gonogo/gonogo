@@ -288,7 +288,6 @@ export interface TelemaachusSchema {
   "therm.hottestEngineTempRatio": number;
   "therm.anyEnginesOverheating": boolean;
   "therm.heatShieldTemp": number;
-  "therm.heatShieldTempCelsius": number;
   "therm.heatShieldFlux": number;
 
   // --- comm.*: CommNet signal state ---

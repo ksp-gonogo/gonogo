@@ -11,7 +11,7 @@
   "therm.hottestEngineMaxTemp": 2273,
   "therm.hottestEngineTempRatio": 0.96,
   "therm.anyEnginesOverheating": true,
-  "therm.heatShieldTempCelsius": -271.1,
+  "therm.heatShieldTemp": 2.05,
   "therm.heatShieldFlux": 0,
   "_stream": {
     "carriedChannels": ["vessel.thermal"],
@@ -28,7 +28,7 @@
             "skinMaxTemp": 2273,
             "name": "LV-T45 'Swivel'"
           },
-          "heatShieldTempCelsius": -271.1,
+          "heatShieldTemp": 2.05,
           "heatShieldFlux": 0,
           "hottestEngineTemp": 2180.0,
           "hottestEngineMaxTemp": 2273,

@@ -38,7 +38,7 @@ interface ThermalFixture {
   "therm.hottestEngineMaxTemp": number;
   "therm.hottestEngineTempRatio": number;
   "therm.anyEnginesOverheating": boolean;
-  "therm.heatShieldTempCelsius": number;
+  "therm.heatShieldTemp": number;
   "therm.heatShieldFlux": number;
 }
 
@@ -93,7 +93,7 @@ async function snapshotThermalStream(
       hottestEngineMaxTemp: fixture["therm.hottestEngineMaxTemp"],
       hottestEngineTempRatio: fixture["therm.hottestEngineTempRatio"],
       anyEnginesOverheating: fixture["therm.anyEnginesOverheating"],
-      heatShieldTempCelsius: fixture["therm.heatShieldTempCelsius"],
+      heatShieldTemp: fixture["therm.heatShieldTemp"],
       heatShieldFlux: fixture["therm.heatShieldFlux"],
     });
   });

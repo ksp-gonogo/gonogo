@@ -1015,8 +1015,11 @@ namespace Gonogo.KSP
 
             if (hottestShield != null)
             {
-                // Kelvin -> Celsius; flux passes through in the ablator's own units (kW).
-                result["heatShieldTempCelsius"] = hottestShieldTemp - 273.15;
+                // Kelvin, raw: the same unit as every other temperature on this
+                // channel. Celsius is a PRESENTATION choice and belongs in the
+                // client, not on the wire. Flux passes through in the ablator's
+                // own units (kW).
+                result["heatShieldTemp"] = hottestShieldTemp;
                 result["heatShieldFlux"] = hottestShieldFlux;
             }
 

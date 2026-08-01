@@ -11,7 +11,7 @@
   "therm.hottestEngineMaxTemp": 2273,
   "therm.hottestEngineTempRatio": 0.13,
   "therm.anyEnginesOverheating": false,
-  "therm.heatShieldTempCelsius": -271.1,
+  "therm.heatShieldTemp": 2.05,
   "therm.heatShieldFlux": 0,
   "_stream": {
     "carriedChannels": ["vessel.thermal"],
@@ -28,7 +28,7 @@
             "skinMaxTemp": 1200,
             "name": "Solar Panel (OX-STAT)"
           },
-          "heatShieldTempCelsius": -271.1,
+          "heatShieldTemp": 2.05,
           "heatShieldFlux": 0,
           "hottestEngineTemp": 290.0,
           "hottestEngineMaxTemp": 2273,

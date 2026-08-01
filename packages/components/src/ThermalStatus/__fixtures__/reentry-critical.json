@@ -11,7 +11,7 @@
   "therm.hottestEngineMaxTemp": 2273,
   "therm.hottestEngineTempRatio": 0.14,
   "therm.anyEnginesOverheating": false,
-  "therm.heatShieldTempCelsius": 2230.0,
+  "therm.heatShieldTemp": 2503.15,
   "therm.heatShieldFlux": 18750.0,
   "_stream": {
     "carriedChannels": ["vessel.thermal"],
@@ -28,7 +28,7 @@
             "skinMaxTemp": 2400,
             "name": "Heat Shield (2.5m)"
           },
-          "heatShieldTempCelsius": 2230.0,
+          "heatShieldTemp": 2503.15,
           "heatShieldFlux": 18750.0,
           "hottestEngineTemp": 310.0,
           "hottestEngineMaxTemp": 2273,

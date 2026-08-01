@@ -2,12 +2,12 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   clampSafe,
-  kelvinToCelsius,
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   EmptyState,
+  formatQuantity,
   NULL_DISPLAY,
   Panel,
   type ReadoutTone,
@@ -31,20 +31,23 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// Telemachus emits readings near absolute zero (~−271°C / ~2 K) when no
-// real value is available, typically when the corresponding part isn't
-// fitted (e.g. early-career rocket with no thermometer or heat shield) or
-// the science instrument hasn't been unlocked yet. Treat anything below
-// this threshold as "no data" rather than rendering bogus CRITICAL bars.
-// 50 K is well below any operational KSP part max (parts melt at thousands
-// of K) and well below any meaningful in-game temperature.
+// Readings near absolute zero (~2 K) stand in for "no real value", typically
+// when the corresponding part isn't fitted (e.g. early-career rocket with no
+// thermometer or heat shield) or the science instrument hasn't been unlocked
+// yet. Treat anything below this threshold as "no data" rather than rendering
+// bogus CRITICAL bars. 50 K is well below any operational KSP part max (parts
+// melt at thousands of K) and well below any meaningful in-game temperature.
+//
+// One threshold, because `vessel.thermal` is now uniformly Kelvin. It used to
+// need a Celsius twin, and that pair is what hid a real bug: `hottestPart.
+// skinTemp` is Kelvin on the contract but was read as Celsius here, so it
+// rendered ~273° high AND its guard (< −223 °C) could never fire on a kelvin
+// sentinel. Keeping one unit on the channel removes the choice that was being
+// got wrong.
 const THERMAL_SENTINEL_K = 50;
-const THERMAL_SENTINEL_C = kelvinToCelsius(THERMAL_SENTINEL_K);
 
 const isSentinelK = (k: number | undefined): boolean =>
   typeof k === "number" && Number.isFinite(k) && k < THERMAL_SENTINEL_K;
-const isSentinelC = (c: number | undefined): boolean =>
-  typeof c === "number" && Number.isFinite(c) && c < THERMAL_SENTINEL_C;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -100,10 +103,19 @@ const BAND_RANK: Record<Band, number> = {
   critical: 3,
 };
 
-function formatTempC(c: number | undefined): string {
-  if (c === undefined || !Number.isFinite(c)) return NULL_DISPLAY;
-  if (Math.abs(c) >= 1000) return `${c.toFixed(0)}°C`;
-  return `${c.toFixed(1)}°C`;
+// Takes Kelvin (what the channel carries) and shows Celsius (what an operator
+// reads). The conversion is a presentation choice made here, via the shared
+// unit layer, rather than something the wire pre-applies: see the note on
+// `Units.Kelvin` in the contract.
+function formatTemp(kelvin: number | undefined): string {
+  if (kelvin === undefined || !Number.isFinite(kelvin)) return NULL_DISPLAY;
+  const { value, symbol } = formatQuantity(kelvin, "K", {
+    as: "°C",
+    // Drop to whole degrees once the number is wide, so the readout's width
+    // stays stable as a part heats through the thousands.
+    decimals: Math.abs(kelvin - 273.15) >= 1000 ? 0 : 1,
+  });
+  return `${value}${symbol}`;
 }
 
 function formatKw(kw: number | undefined): string {
@@ -119,7 +131,7 @@ function ThermalStatusComponent({
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
   const rawHottestName = useTelemetry("vessel.thermal")?.hottestPart?.name;
-  const rawHottestTempC = useTelemetry("vessel.thermal")?.hottestPart?.skinTemp;
+  const rawHottestTempK = useTelemetry("vessel.thermal")?.hottestPart?.skinTemp;
   const rawHottestMaxK =
     useTelemetry("vessel.thermal")?.hottestPart?.skinMaxTemp;
   const rawHottestRatio = useTelemetry("vessel.thermal")?.maxInternalTempRatio;
@@ -130,13 +142,13 @@ function ThermalStatusComponent({
   const rawEngineOverheat =
     useTelemetry("vessel.thermal")?.anyEnginesOverheating;
 
-  const rawShieldTempC = useTelemetry("vessel.thermal")?.heatShieldTempCelsius;
+  const rawShieldTempK = useTelemetry("vessel.thermal")?.heatShieldTemp;
   const rawShieldFluxKw = useTelemetry("vessel.thermal")?.heatShieldFlux;
 
   // Connectivity indicator (mirroring the WarpControl pilot).
   // `therm.hottestPartTemp` is the widget's one representative MAPPED key
   // (-> `vessel.thermal.hottestPart.skinTemp`). The heat-shield rows are
-  // mapped too (`vessel.thermal.heatShieldTempCelsius`/`heatShieldFlux`), but
+  // mapped too (`vessel.thermal.heatShieldTemp`/`heatShieldFlux`), but
   // the engine rows still read GAPPED keys (map-topic.ts's
   // TELEMACHUS_KNOWN_GAPS "thermal detail beyond headline ratios") and stay on
   // legacy regardless, so a single representative mapped key drives this badge
@@ -146,13 +158,13 @@ function ThermalStatusComponent({
   // absolute-zero floor. The ratio is meaningless in that case and rendering
   // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
   const hottestSentinel =
-    isSentinelK(rawHottestMaxK) || isSentinelC(rawHottestTempC);
+    isSentinelK(rawHottestMaxK) || isSentinelK(rawHottestTempK);
   const engineSentinel =
     isSentinelK(rawEngineMaxK) || isSentinelK(rawEngineTempK);
-  const shieldSentinel = isSentinelC(rawShieldTempC);
+  const shieldSentinel = isSentinelK(rawShieldTempK);
 
   const hottestName = hottestSentinel ? undefined : rawHottestName;
-  const hottestTempC = hottestSentinel ? undefined : rawHottestTempC;
+  const hottestTempK = hottestSentinel ? undefined : rawHottestTempK;
   const hottestMaxK = hottestSentinel ? undefined : rawHottestMaxK;
   const hottestRatio = hottestSentinel ? undefined : rawHottestRatio;
 
@@ -163,15 +175,8 @@ function ThermalStatusComponent({
   // no engine is fitted at all, so honour the same guard.
   const engineOverheat = engineSentinel ? undefined : rawEngineOverheat;
 
-  const shieldTempC = shieldSentinel ? undefined : rawShieldTempC;
+  const shieldTempK = shieldSentinel ? undefined : rawShieldTempK;
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
-
-  const engineTempC =
-    engineTempK === undefined ? undefined : kelvinToCelsius(engineTempK);
-  const engineMaxC =
-    engineMaxK === undefined ? undefined : kelvinToCelsius(engineMaxK);
-  const hottestMaxC =
-    hottestMaxK === undefined ? undefined : kelvinToCelsius(hottestMaxK);
 
   const hottestBand = bandFromRatio(hottestRatio);
   const engineBand = engineOverheat ? "critical" : bandFromRatio(engineRatio);
@@ -184,9 +189,9 @@ function ThermalStatusComponent({
 
   const noData =
     hottestName === undefined &&
-    hottestTempC === undefined &&
+    hottestTempK === undefined &&
     engineTempK === undefined &&
-    shieldTempC === undefined;
+    shieldTempK === undefined;
 
   // Selective rendering: pill is always shown; rows drop from the bottom
   // (heat shield first, then engine, then hottest-part) as height shrinks.
@@ -194,7 +199,7 @@ function ThermalStatusComponent({
   const rows = h ?? 7;
   const showHottestRow = rows >= 5;
   const showEngineRow = rows >= 6;
-  const hasShieldData = shieldTempC !== undefined || shieldFluxKw !== undefined;
+  const hasShieldData = shieldTempK !== undefined || shieldFluxKw !== undefined;
   const showShieldRow = rows >= 7 && hasShieldData;
   // Inline alert fires at hot (90-97%) and critical (≥97%), the
   // hot band is the "still time to act" warning; without an alert at
@@ -256,9 +261,9 @@ function ThermalStatusComponent({
                       />
                     </TempMeter>
                     <TempReadout>
-                      <TempValue>{formatTempC(hottestTempC)}</TempValue>
-                      {hottestMaxC !== undefined && (
-                        <MaxTag>/ {formatTempC(hottestMaxC)} max</MaxTag>
+                      <TempValue>{formatTemp(hottestTempK)}</TempValue>
+                      {hottestMaxK !== undefined && (
+                        <MaxTag>/ {formatTemp(hottestMaxK)} max</MaxTag>
                       )}
                     </TempReadout>
                   </RowBody>
@@ -283,9 +288,9 @@ function ThermalStatusComponent({
                       />
                     </TempMeter>
                     <TempReadout>
-                      <TempValue>{formatTempC(engineTempC)}</TempValue>
-                      {engineMaxC !== undefined && (
-                        <MaxTag>/ {formatTempC(engineMaxC)} max</MaxTag>
+                      <TempValue>{formatTemp(engineTempK)}</TempValue>
+                      {engineMaxK !== undefined && (
+                        <MaxTag>/ {formatTemp(engineMaxK)} max</MaxTag>
                       )}
                     </TempReadout>
                   </RowBody>
@@ -297,7 +302,7 @@ function ThermalStatusComponent({
                   <RowLabel>Heat shield</RowLabel>
                   <RowBody>
                     <TempReadout>
-                      <TempValue>{formatTempC(shieldTempC)}</TempValue>
+                      <TempValue>{formatTemp(shieldTempK)}</TempValue>
                       <MaxTag>· flux {formatKw(shieldFluxKw)}</MaxTag>
                     </TempReadout>
                   </RowBody>
@@ -490,7 +495,7 @@ registerComponent<ThermalStatusConfig>({
     "therm.hottestEngineMaxTemp",
     "therm.hottestEngineTempRatio",
     "therm.anyEnginesOverheating",
-    "therm.heatShieldTempCelsius",
+    "therm.heatShieldTemp",
     "therm.heatShieldFlux",
   ],
   defaultConfig: {},

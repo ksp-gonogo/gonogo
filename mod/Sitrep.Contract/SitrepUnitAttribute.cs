@@ -38,8 +38,16 @@ namespace Sitrep.Contract
         public const string Seconds = "s";
 
         // --- Temperature ---
+        /// <summary>
+        /// The only temperature the wire carries. There is deliberately no
+        /// Celsius token: <c>HeatShieldTemp</c> used to send °C and it made the
+        /// channel self-inconsistent (every other temperature beside it was K),
+        /// which is how a client came to render a kelvin reading with a °C
+        /// suffix. Celsius is a PRESENTATION unit, and the client asks for it by
+        /// name (<c>formatQuantity(v, "K", { as: "°C" })</c>). Leaving the token
+        /// out means the mistake cannot be spelled.
+        /// </summary>
         public const string Kelvin = "K";
-        public const string Celsius = "°C";
 
         // --- Pressure ---
         public const string Kilopascals = "kPa";

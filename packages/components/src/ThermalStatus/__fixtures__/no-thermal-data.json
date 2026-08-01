@@ -11,7 +11,7 @@
   "therm.hottestEngineMaxTemp": 2.05,
   "therm.hottestEngineTempRatio": 1.0,
   "therm.anyEnginesOverheating": false,
-  "therm.heatShieldTempCelsius": -271.1,
+  "therm.heatShieldTemp": 2.05,
   "therm.heatShieldFlux": 0,
   "_stream": {
     "carriedChannels": ["vessel.thermal"],
@@ -28,7 +28,7 @@
             "skinMaxTemp": 2.05,
             "name": ""
           },
-          "heatShieldTempCelsius": -271.1,
+          "heatShieldTemp": 2.05,
           "heatShieldFlux": 0,
           "hottestEngineTemp": 2.05,
           "hottestEngineMaxTemp": 2.05,
