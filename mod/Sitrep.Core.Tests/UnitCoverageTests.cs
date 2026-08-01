@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Sitrep.Contract;
@@ -138,20 +140,111 @@ namespace Sitrep.Core.Tests
                 // test, the same constraint WirePayloadCoverageTests works under.
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false));
 
+        /// <summary>
+        /// `TypeName.PropertyName` for every property carrying a
+        /// <see cref="SitrepUnitAttribute"/>, read straight out of the assembly's
+        /// METADATA.
+        ///
+        /// <para><b>Why not <c>PropertyInfo.IsDefined</c>.</b> It looks equivalent
+        /// and passes locally, and it fails on a clean checkout with
+        /// <c>FileNotFoundException: Reinforced.Typings</c>. Filtering custom
+        /// attributes has to RESOLVE each attribute's type to compare it against
+        /// the filter, so one property carrying a <c>[TsProperty]</c> is enough to
+        /// throw, and <c>Reinforced.Typings</c> is compile-time-only by explicit
+        /// design (see <see cref="SitrepContractAttribute"/>). It passed here only
+        /// because a local codegen run leaves that DLL in <c>bin/</c>; CI has no
+        /// such run and went red.
+        ///
+        /// <para>The type-level check above survives because no contract TYPE
+        /// carries an attribute that fails to resolve, which is exactly why this
+        /// hazard is easy to walk into: the same call is safe one level up.</para>
+        ///
+        /// <para>A <c>MetadataReader</c> compares attribute names as strings and
+        /// resolves nothing, so it cannot be made to fail this way. The
+        /// alternative, referencing Reinforced.Typings from this test project,
+        /// would fix the symptom by breaking the rule the contract states: nothing
+        /// reflecting over it should need an external assembly.</para>
+        /// </summary>
+        private static HashSet<string> AnnotatedFromMetadata()
+        {
+            var annotated = new HashSet<string>(StringComparer.Ordinal);
+            using var stream = File.OpenRead(typeof(CommsDelay).Assembly.Location);
+            using var pe = new PEReader(stream);
+            var md = pe.GetMetadataReader();
+
+            // The attribute's own type name, as a string, never resolved. An
+                // attribute defined in this assembly reaches us as a
+                // MethodDefinition; one from a referenced assembly as a
+                // MemberReference. SitrepUnitAttribute is always the former, but
+                // both are read so an unrecognised shape returns null rather than
+                // throwing, which is the whole point of not resolving.
+            string? AttributeTypeName(EntityHandle ctor)
+            {
+                switch (ctor.Kind)
+                {
+                    case HandleKind.MethodDefinition:
+                        var declaring = md.GetMethodDefinition((MethodDefinitionHandle)ctor).GetDeclaringType();
+                        return md.GetString(md.GetTypeDefinition(declaring).Name);
+                    case HandleKind.MemberReference:
+                        var parent = md.GetMemberReference((MemberReferenceHandle)ctor).Parent;
+                        return parent.Kind == HandleKind.TypeReference
+                            ? md.GetString(md.GetTypeReference((TypeReferenceHandle)parent).Name)
+                            : null;
+                    default:
+                        return null;
+                }
+            }
+
+            bool CarriesUnitAttribute(CustomAttributeHandleCollection handles)
+            {
+                foreach (var handle in handles)
+                {
+                    if (AttributeTypeName(md.GetCustomAttribute(handle).Constructor)
+                        == nameof(SitrepUnitAttribute))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            foreach (var typeHandle in md.TypeDefinitions)
+            {
+                var type = md.GetTypeDefinition(typeHandle);
+                var typeName = md.GetString(type.Name);
+                foreach (var propHandle in type.GetProperties())
+                {
+                    var prop = md.GetPropertyDefinition(propHandle);
+                    if (CarriesUnitAttribute(prop.GetCustomAttributes()))
+                    {
+                        annotated.Add(typeName + "." + md.GetString(prop.Name));
+                    }
+                }
+            }
+
+            return annotated;
+        }
+
         /// <summary>Every scalar property, annotated or not, as `Type.Property`.</summary>
         private static SortedDictionary<string, bool> Surface()
         {
+            var annotated = AnnotatedFromMetadata();
             var surface = new SortedDictionary<string, bool>(StringComparer.Ordinal);
             foreach (var t in ContractTypes())
             {
                 foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
+                    // PropertyType is plain reflection and resolves nothing beyond
+                    // the contract's own types, so the scalar test is safe here.
+                    // Only the ATTRIBUTE lookup had to move to metadata.
                     if (!RequiresUnit(p))
                     {
                         continue;
                     }
 
-                    surface[t.Name + "." + p.Name] = p.IsDefined(typeof(SitrepUnitAttribute), false);
+                    var key = t.Name + "." + p.Name;
+                    surface[key] = annotated.Contains(key);
                 }
             }
 
