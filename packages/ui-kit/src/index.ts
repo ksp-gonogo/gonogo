@@ -129,7 +129,7 @@ export {
   formatDuration,
 } from "./formatDuration";
 export { formatKspDate } from "./formatKspDate";
-export { Grid, type GridProps } from "./Grid";
+export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
   ArrowLeftIcon,
   ArrowRightIcon,

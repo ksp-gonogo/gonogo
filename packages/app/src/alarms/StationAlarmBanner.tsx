@@ -1,3 +1,4 @@
+import { Cluster, Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
@@ -39,19 +40,19 @@ export function StationAlarmBanner({
 
   return (
     <Wrap role="alert">
-      <BannerStack>
+      <Stack gap="sm">
         {individuals.map((a) => (
-          <BannerLine key={a.id}>
+          <Cluster justify="start" align="baseline" wrap key={a.id}>
             <Label>Fired</Label>
             <AlarmName>{a.name}</AlarmName>
             <FiredHint>{describe(a)}</FiredHint>
             <AckButton type="button" onClick={() => onAcknowledge(a.id)}>
               Acknowledge
             </AckButton>
-          </BannerLine>
+          </Cluster>
         ))}
         {cpCollapse && (
-          <BannerLine>
+          <Cluster justify="start" align="baseline" wrap>
             <Label>Fired</Label>
             <AlarmName>
               {cpCollapse.count} contract objectives completed
@@ -64,9 +65,9 @@ export function StationAlarmBanner({
             >
               Acknowledge all
             </AckButton>
-          </BannerLine>
+          </Cluster>
         )}
-      </BannerStack>
+      </Stack>
     </Wrap>
   );
 }
@@ -115,19 +116,6 @@ const Wrap = styled.div`
       transform: translateX(0) scaleX(1);
     }
   }
-`;
-
-const BannerStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
-
-const BannerLine = styled.div`
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-8);
-  flex-wrap: wrap;
 `;
 
 const Label = styled.span`

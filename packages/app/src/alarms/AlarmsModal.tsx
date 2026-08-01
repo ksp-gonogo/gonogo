@@ -12,7 +12,7 @@ import {
   Input,
   PrimaryButton,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type {
@@ -225,8 +225,8 @@ export function AlarmsModal({
 
   return (
     <Wrap>
-      <ModalSection>
-        <ModalSectionTitle>Add alarm</ModalSectionTitle>
+      <Stack as="section" gap="md">
+        <SectionTitle as="h3">Add alarm</SectionTitle>
         <KindRow role="tablist" aria-label="Trigger kind">
           <KindButton
             type="button"
@@ -382,12 +382,12 @@ export function AlarmsModal({
             can be scheduled.
           </WaitingNote>
         )}
-      </ModalSection>
+      </Stack>
 
       <RecommendedPresets snapshotRef={snapshotRef} onAdd={onAdd} />
 
-      <ModalSection>
-        <ModalSectionTitle>Scheduled ({sorted.length})</ModalSectionTitle>
+      <Stack as="section" gap="md">
+        <SectionTitle as="h3">Scheduled ({sorted.length})</SectionTitle>
         {sorted.length === 0 ? (
           <Empty>No alarms set.</Empty>
         ) : (
@@ -508,7 +508,7 @@ export function AlarmsModal({
             })}
           </List>
         )}
-      </ModalSection>
+      </Stack>
     </Wrap>
   );
 }
@@ -898,21 +898,6 @@ const Wrap = styled.div`
   gap: var(--space-16);
   min-width: 480px;
   max-width: 640px;
-`;
-
-const ModalSection = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-10);
-`;
-
-const ModalSectionTitle = styled.h3`
-  margin: 0;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
 `;
 
 const KindRow = styled.div`

@@ -1,5 +1,5 @@
 import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
@@ -86,7 +86,7 @@ export function AlarmBanner() {
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
-      <BannerLine>
+      <Cluster justify="start" align="baseline" wrap>
         <Label>Warp</Label>
         <BannerValue>{formatWarp(snap.warp.index, snap.warp.rate)}</BannerValue>
         {warpToTargetRate !== null && (
@@ -151,7 +151,7 @@ export function AlarmBanner() {
         ) : (
           <Quiet>No alarms set</Quiet>
         )}
-      </BannerLine>
+      </Cluster>
     </Wrap>
   );
 }
@@ -174,7 +174,7 @@ export function SafetyMarginPill() {
   if (snap.warpTo === null && !warpToCandidate) return null;
   return (
     <Wrap $tone="set" role="status">
-      <BannerLine>
+      <Cluster justify="start" align="baseline" wrap>
         <Label>Safety</Label>
         <SafetyInput
           type="number"
@@ -190,7 +190,7 @@ export function SafetyMarginPill() {
           title="Real seconds before arming: higher = step down earlier"
         />
         <Label>s</Label>
-      </BannerLine>
+      </Cluster>
     </Wrap>
   );
 }
@@ -229,7 +229,7 @@ export function FiredAlarmPills() {
     <>
       {extras.map((a) => (
         <Wrap key={a.id} $tone="fire" role="alert">
-          <BannerLine>
+          <Cluster justify="start" align="baseline" wrap>
             <Label>Fired</Label>
             <AlarmName>{a.name}</AlarmName>
             <AckButton
@@ -238,12 +238,12 @@ export function FiredAlarmPills() {
             >
               Ack
             </AckButton>
-          </BannerLine>
+          </Cluster>
         </Wrap>
       ))}
       {cpCollapse && headline !== null && (
         <Wrap $tone="fire" role="alert">
-          <BannerLine>
+          <Cluster justify="start" align="baseline" wrap>
             <Label>Fired</Label>
             <AlarmName>
               {cpCollapse.count} contract objectives completed
@@ -251,7 +251,7 @@ export function FiredAlarmPills() {
             <AckButton type="button" onClick={ackAllCollapsed}>
               Ack all
             </AckButton>
-          </BannerLine>
+          </Cluster>
         </Wrap>
       )}
     </>
@@ -270,7 +270,7 @@ export function UnscheduledWarpPill() {
   if (!snap.unscheduledWarp) return null;
   return (
     <Wrap $tone="arm" role="alert">
-      <BannerLine>
+      <Cluster justify="start" align="baseline" wrap>
         <Label>Unscheduled warp</Label>
         <BannerValue>{snap.unscheduledWarp.index}×</BannerValue>
         <AckButton
@@ -279,7 +279,7 @@ export function UnscheduledWarpPill() {
         >
           Ack
         </AckButton>
-      </BannerLine>
+      </Cluster>
     </Wrap>
   );
 }
@@ -477,13 +477,6 @@ const Wrap = styled.div<{ $tone: Tone }>`
       transform: translateX(0) scaleX(1);
     }
   }
-`;
-
-const BannerLine = styled.div`
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-8);
-  flex-wrap: wrap;
 `;
 
 const Label = styled.span`

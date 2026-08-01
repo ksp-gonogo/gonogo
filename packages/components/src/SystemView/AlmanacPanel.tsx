@@ -1,4 +1,4 @@
-import { formatDuration, formatQuantity } from "@ksp-gonogo/ui-kit";
+import { formatDuration, formatQuantity, Grid } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -200,10 +200,15 @@ export function AlmanacPanel({
           <Hint>Awaiting body data...</Hint>
         ) : (
           rows.map((row) => (
-            <AlmanacLine key={`${row.label}=${row.value}`}>
+            <Grid
+              cols="1fr auto"
+              gap="md"
+              align="baseline"
+              key={`${row.label}=${row.value}`}
+            >
               <RowLabel>{row.label}</RowLabel>
               <RowValue>{row.value}</RowValue>
-            </AlmanacLine>
+            </Grid>
           ))
         )}
       </Rows>
@@ -281,13 +286,6 @@ const Rows = styled.div`
   flex-direction: column;
   gap: var(--space-hair);
   margin-top: var(--space-6);
-`;
-
-const AlmanacLine = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--space-8);
-  align-items: baseline;
 `;
 
 const RowLabel = styled.span`
