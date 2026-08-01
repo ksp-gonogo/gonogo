@@ -229,14 +229,30 @@ export function GraphView({
    */
   const units = useMemo(() => {
     if (title !== undefined) return "";
-    const seen: string[] = [];
-    for (const cfg of series) {
+    // Units belong to AXES, not to the series list. Two units on one axis are
+    // two things measured against the same scale, so they read "m & m/s"; two
+    // AXES are two scales plotted against each other, so they read "m x m/s".
+    // Flattening both into one separator lost that distinction, which is the
+    // whole information the header carries. Uses the same resolveAxes the plot
+    // does, so the header cannot describe a different arrangement than the one
+    // drawn (a series left on "auto" is assigned by unit, not by position).
+    const axes = resolveAxes(series, metaMap);
+    const byAxis: Record<"primary" | "secondary", string[]> = {
+      primary: [],
+      secondary: [],
+    };
+    series.forEach((cfg, i) => {
       const unit = metaMap.get(cfg.key)?.unit;
-      if (unit && !seen.includes(unit)) seen.push(unit);
-    }
-    if (seen.length === 0) return "";
+      if (!unit) return;
+      const bucket = byAxis[axes[i]];
+      if (!bucket.includes(unit)) bucket.push(unit);
+    });
+    const sides = [byAxis.primary, byAxis.secondary]
+      .filter((u) => u.length > 0)
+      .map((u) => u.join(" & "));
+    if (sides.length === 0) return "";
     const against = xIsTime ? "" : `${xMeta?.unit ?? xMeta?.label ?? xKey} x `;
-    return `${against}${seen.join(" & ")}`;
+    return `${against}${sides.join(" x ")}`;
   }, [title, series, metaMap, xIsTime, xMeta, xKey]);
 
   /** The series themselves, as a tooltip: the header says what is measured,

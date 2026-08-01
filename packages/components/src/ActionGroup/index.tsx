@@ -322,7 +322,22 @@ function ActionGroupView({
   };
 
   return (
-    <Panel>
+    // The panel names the WIDGET; the group's own name is a control, not a
+    // heading. It is an inline rename affordance (a button that swaps in a text
+    // input), and `panelTitle` renders its argument inside PanelTitle's h3, so
+    // passing it through would nest a button and an input in a heading and
+    // uppercase the operator's own label into the bargain. It reads as the
+    // first line of the body instead, which is where a control belongs.
+    <Panel
+      panelTitle="ACTION GROUP"
+      panelAside={
+        /* Badges only. The bell and the toggle act on the group NAME, so they
+           belong on its line in the body: in the aside they wrapped onto their
+           own row ABOVE the label, which read as chrome for the panel rather
+           than controls for the group. */
+        <AugmentSlot name="action-group.badges" props={slotContext} />
+      }
+    >
       <Header>
         <LabelArea
           role={editing ? undefined : "button"}
@@ -360,10 +375,6 @@ function ActionGroupView({
           )}
         </LabelArea>
         <HeaderRight>
-          {/* Inline per-group badges: an Uplink can surface a subsystem
-              indicator here without a bespoke slot. Renders nothing
-              until an augment binds `action-group.badges`. */}
-          <AugmentSlot name="action-group.badges" props={slotContext} />
           {showBell && group.toggle && (
             <AlarmIconButton
               type="button"
@@ -502,10 +513,12 @@ const Header = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-8);
-  /* Full-bleed standard: the Panel no longer imposes a uniform inset, and this
-     bespoke header (not PanelTitle) carried none of its own, so it self-pads
-     to the standard local inset to stay readable. */
-  padding: var(--space-12) var(--space-16) var(--space-8);
+  /* Wraps rather than crushing the label: at a narrow tile the controls drop
+     UNDER the name they act on, which keeps both readable and keeps them
+     associated. */
+  flex-wrap: wrap;
+  /* No padding: Panel.Body supplies the inset now. This used to self-pad
+     because the widget rendered its own header against a padless panel. */
 `;
 
 const LabelArea = styled.div`
