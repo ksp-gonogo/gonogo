@@ -117,8 +117,12 @@ const HOST_UIKIT_VERSION = readExportedStringConst(
   resolve(packagesDir, "ui-kit/src/version.ts"),
   "UI_KIT_VERSION",
 );
-const HOST_CONTRACT_MAJOR = 4;
-const HOST_CONTRACT_MINOR = 7;
+// Mirrors mod/Sitrep.Contract/ContractVersion.cs, which vite cannot read.
+// Bump BOTH together: this pair is what the app advertises to the Uplink
+// loader's compat check, so if it lags the contract the app claims to be built
+// against a shape it is not. 4.7 -> 5.0 with the kelvin-only thermal channel.
+const HOST_CONTRACT_MAJOR = 5;
+const HOST_CONTRACT_MINOR = 0;
 
 // The first-party Uplink clients built as standalone, runtime-loadable ESM
 // bundles (Phase B: scansat + kos, the loader was proven on scansat first in

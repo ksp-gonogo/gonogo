@@ -17,6 +17,22 @@
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
   </ItemGroup>
+  <!-- Reinforced.Typings at RUNTIME, for this test host only.
+       Sitrep.Contract deliberately keeps RT out of its runtime closure
+       (PrivateAssets="all"), because in KSP anything scanning assemblies
+       would try to resolve Reinforced.Typings.dll, which is never deployed.
+       That is still right and this does not change it.
+       These tests are the one consumer that loads the netstandard2.0 build
+       on a full runtime, and that build DOES carry the [TsEnum]/[TsInterface]
+       attributes (they are compiled under #if NETSTANDARD2_0; the net472
+       build KSP loads has none). Resolving a custom attribute is not
+       optional there: Enum.TryParse<TargetKind> walks the enum's attributes
+       to find FlagsAttribute, so it threw FileNotFoundException on a type
+       nothing in the test even mentions. A test project is never deployed to
+       GameData, so satisfying it here cannot leak into the game. -->
+  <ItemGroup>
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" />
+  </ItemGroup>
   <ItemGroup>
     <!-- The CI "lying minor" contract-shape gate's baseline; see
          ContractShapeGateTests's doc comment. Wired in the same

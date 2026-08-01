@@ -58,7 +58,34 @@ namespace Sitrep.Contract
         /// See
         /// <c>local_docs/Wednesday Work/2026-07-16-comms-delay-nullable-when-no-path.md</c>.</para>
         /// </summary>
-        public const int Major = 4;
+        /// <remarks>
+        /// <para><b>Bumped 4 -&gt; 5 (Minor reset to 0): the thermal channel
+        /// carries kelvin only.</b> Removed
+        /// <c>VesselThermal.HeatShieldTempCelsius</c>, replaced by
+        /// <see cref="VesselThermal.HeatShieldTemp"/> in K. A removed member on
+        /// a wire-visible type is breaking by definition, which is why this is a
+        /// Major and not a rename dressed as a Minor.</para>
+        ///
+        /// <para>Why it was worth one: that field was the ONLY temperature on
+        /// <c>vessel.thermal</c> not in kelvin, and the inconsistency was not
+        /// cosmetic, it was actively causing a wrong readout. ThermalStatus read
+        /// <c>hottestPart.skinTemp</c> (declared K, and genuinely K) as though it
+        /// were Celsius, displayed it about 273 degrees high, and guarded it with
+        /// a Celsius sentinel that could never fire on a kelvin value, so a
+        /// vessel with no thermometer showed "2.0 degC" instead of dropping the
+        /// row. Both the unit tests and the Playwright stream fixture had been
+        /// updated to match that output rather than the physics. One unit per
+        /// channel removes the choice that was being got wrong, and Celsius
+        /// becomes what it always should have been: a presentation unit the
+        /// client asks for by name. <c>Units.Celsius</c> is deleted from the
+        /// vocabulary for the same reason, so the mistake cannot be respelled.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as the Major 2 -&gt; 3
+        /// revert and the Major 3 -&gt; 4 collapse: the mod is still pre-release
+        /// with NO external Uplinks, and the app and mod ship together, so no
+        /// artifact exists that was built against the old shape.</para>
+        /// </remarks>
+        public const int Major = 5;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -246,7 +273,11 @@ namespace Sitrep.Contract
         /// Consolidated onto staging alongside the 5 -&gt; 6 action-bindings bump
         /// (both additive field sets coexist). See
         /// <c>docs/superpowers/plans/2026-07-23-target-api-plan.md</c>.</para>
+        ///
+        /// <para>Reset 7 -&gt; 0 alongside the Major 4 -&gt; 5 bump (the
+        /// kelvin-only thermal channel; see <see cref="Major"/>). Every additive
+        /// change on the Major-4 line above is carried forward into Major 5.</para>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 0;
     }
 }
