@@ -59,7 +59,12 @@ export {
   TextButton,
 } from "./Button";
 export { Card, type CardProps } from "./Card";
-export { Cluster, type ClusterJustify, type ClusterProps } from "./Cluster";
+export {
+  Cluster,
+  type ClusterAlign,
+  type ClusterJustify,
+  type ClusterProps,
+} from "./Cluster";
 export {
   ComboboxListbox,
   type ComboboxListboxProps,

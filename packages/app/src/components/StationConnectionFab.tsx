@@ -7,7 +7,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Stack } from "@ksp-gonogo/ui-kit";
+import { Cluster, NULL_DISPLAY, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { ConnStatus } from "../peer/PeerClientService";
@@ -61,16 +61,16 @@ function StationConnectionPanel({
 
   return (
     <Wrap>
-      <Row>
+      <Cluster>
         <Label>Host ID</Label>
         <Code>{hostId ?? NULL_DISPLAY}</Code>
-      </Row>
-      <Row>
+      </Cluster>
+      <Cluster>
         <Label>Status</Label>
         <StatusIndicator tone={statusTone(connStatus)} live>
           {statusLabel(connStatus)}
         </StatusIndicator>
-      </Row>
+      </Cluster>
 
       <SeparatedSection>
         <Label>Switch host</Label>
@@ -143,13 +143,6 @@ const Wrap = styled.div`
   gap: var(--space-16);
   min-width: 260px;
   color: var(--color-text-primary);
-`;
-
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
 `;
 
 // The flex column comes from the kit; only the separator rule is local.

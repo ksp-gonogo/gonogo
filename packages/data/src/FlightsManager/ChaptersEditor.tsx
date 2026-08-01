@@ -1,4 +1,5 @@
 import { getDataSource } from "@ksp-gonogo/core";
+import { Grid } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { FlightChapterRecord, FlightRecord } from "../types";
@@ -158,7 +159,7 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
             .map((c) => {
               const isEditing = editingId === c.id;
               return (
-                <Row key={c.id}>
+                <ChapterRow key={c.id}>
                   {isEditing ? (
                     <>
                       <Field
@@ -216,7 +217,7 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
                       </Actions>
                     </>
                   )}
-                </Row>
+                </ChapterRow>
               );
             })}
         </List>
@@ -282,11 +283,12 @@ const List = styled.div`
   margin-bottom: var(--space-8);
 `;
 
-const Row = styled.div`
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto auto auto;
-  gap: var(--space-10);
-  align-items: center;
+// Gap moves 10px to 8px. The scale is 2/4/8/12/16, 10 sits exactly between
+// two rungs, and the convention here is nearest-with-ties-to-the-smaller.
+const ChapterRow = styled(Grid).attrs({
+  cols: "minmax(120px, 1fr) auto auto auto",
+  gap: "md" as const,
+})`
   font-size: var(--font-size-sm);
 `;
 

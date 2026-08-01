@@ -12,6 +12,7 @@ import {
   Panel,
   type ReadoutTone,
   ScrollArea,
+  Section,
   StatusPill,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
@@ -243,7 +244,7 @@ function ThermalStatusComponent({
           {(showHottestRow || showEngineRow || showShieldRow) && (
             <RowsScroll>
               {showHottestRow && (
-                <Row>
+                <ReadoutGroup>
                   <RowHeader>
                     <RowLabel>Hottest part</RowLabel>
                     <BandTag $band={hottestBand}>
@@ -267,11 +268,11 @@ function ThermalStatusComponent({
                       )}
                     </TempReadout>
                   </RowBody>
-                </Row>
+                </ReadoutGroup>
               )}
 
               {showEngineRow && (
-                <Row>
+                <ReadoutGroup>
                   <RowHeader>
                     <RowLabel>Hottest engine</RowLabel>
                     <BandTag $band={engineBand}>
@@ -294,11 +295,11 @@ function ThermalStatusComponent({
                       )}
                     </TempReadout>
                   </RowBody>
-                </Row>
+                </ReadoutGroup>
               )}
 
               {showShieldRow && (
-                <Row>
+                <ReadoutGroup>
                   <RowLabel>Heat shield</RowLabel>
                   <RowBody>
                     <TempReadout>
@@ -306,7 +307,7 @@ function ThermalStatusComponent({
                       <MaxTag>· flux {formatKw(shieldFluxKw)}</MaxTag>
                     </TempReadout>
                   </RowBody>
-                </Row>
+                </ReadoutGroup>
               )}
             </RowsScroll>
           )}
@@ -384,13 +385,11 @@ const RowsScroll = styled(ScrollArea)`
   margin-bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));
 `;
 
-const Row = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-
+// The column and its 2px gap are the kit's Section; only the spacing
+// BETWEEN consecutive readouts is this widget's. 6px snaps to the scale.
+const ReadoutGroup = styled(Section)`
   & + & {
-    margin-top: var(--space-6);
+    margin-top: var(--space-8);
   }
 `;
 

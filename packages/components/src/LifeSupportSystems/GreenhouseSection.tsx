@@ -1,5 +1,6 @@
 import { registerAugment } from "@ksp-gonogo/core";
 import { Badge, type BadgeTone } from "@ksp-gonogo/ui";
+import { Section } from "@ksp-gonogo/ui-kit";
 // biome-ignore lint/style/noRestrictedImports: this augment renders inside LifeSupportSystems' own Panel, which is itself still styled-components throughout (not yet migrated to ui-kit), matching the host's existing pattern rather than mixing two styling systems in one widget.
 import styled from "styled-components";
 
@@ -104,7 +105,7 @@ function GreenhouseEntryRow({
 }) {
   const blocked = g.active && g.issue.length > 0;
   return (
-    <Row>
+    <Section>
       <RowHead>
         <RowTitle>{titlePrefix}</RowTitle>
         <Badge
@@ -121,7 +122,7 @@ function GreenhouseEntryRow({
         {fmtRatePerDay(g.foodRatePerSec)}
       </ValueLine>
       {blocked && <IssueText>{g.issue}</IssueText>}
-    </Row>
+    </Section>
   );
 }
 
@@ -168,12 +169,6 @@ const SectionLabel = styled.span`
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-`;
-
-const Row = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
 `;
 
 const RowHead = styled.div`

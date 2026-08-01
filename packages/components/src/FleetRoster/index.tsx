@@ -7,7 +7,13 @@ import {
 } from "@ksp-gonogo/core";
 import { RosterCommsControlSource, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, EmptyState, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  EmptyState,
+  Grid,
+  NULL_DISPLAY,
+  Panel,
+} from "@ksp-gonogo/ui-kit";
 import { Fragment, useMemo } from "react";
 import styled from "styled-components";
 
@@ -291,7 +297,7 @@ function FleetRosterComponent({
             const showUpdates = !compact && updatesAugmentPresent;
             return (
               <Fragment key={v.id}>
-                <Row $compact={compact}>
+                <VesselRow cols={compact ? GRID_COMPACT : GRID_FULL}>
                   <NameCell title={v.name}>
                     <LinkDot
                       $tone={COMMS_TONE[v.comms]}
@@ -314,7 +320,7 @@ function FleetRosterComponent({
                       {comms.label}
                     </CommsTag>
                   </LinkCell>
-                </Row>
+                </VesselRow>
                 {showUpdates && (
                   <UpdatesBlock>
                     <AugmentSlot
@@ -406,11 +412,10 @@ const ColLabel = styled.div<{ $right?: boolean }>`
   min-width: 0;
 `;
 
-const Row = styled.div<{ $compact: boolean }>`
-  display: grid;
-  grid-template-columns: ${({ $compact }) =>
-    $compact ? GRID_COMPACT : GRID_FULL};
-  align-items: center;
+// The grid and its centring come from the kit; the fixed row height is the
+// roster's own, because the list virtualises against it. `cols` is passed per
+// instance rather than baked in, since it depends on the compact breakpoint.
+const VesselRow = styled(Grid).attrs({ gap: "sm" as const })`
   height: ${ROW_HEIGHT}px;
 `;
 

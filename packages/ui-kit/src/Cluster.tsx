@@ -3,10 +3,19 @@ import styled from "styled-components";
 import type { SpaceToken } from "./Stack";
 
 export type ClusterJustify = "between" | "start" | "end";
+export type ClusterAlign = "center" | "start" | "baseline";
 
 export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
   /** `justify-content` shorthand. Defaults to `between`. */
   justify?: ClusterJustify;
+  /**
+   * `align-items` shorthand. Defaults to `center`, which is right for a row of
+   * single-line items and wrong the moment one side is taller than the other:
+   * a settings row whose control wraps to two lines wants its label at the
+   * TOP, not floating in the middle of it. Added for that case rather than
+   * leaving the widget with its own flex row.
+   */
+  align?: ClusterAlign;
   /** Gap between children, snapped to the space scale. Defaults to `md`. */
   gap?: SpaceToken;
   /**
@@ -25,6 +34,12 @@ const JUSTIFY_CONTENT: Record<ClusterJustify, string> = {
   end: "flex-end",
 };
 
+const ALIGN_ITEMS: Record<ClusterAlign, string> = {
+  center: "center",
+  start: "flex-start",
+  baseline: "baseline",
+};
+
 /**
  * The single most-repeated block in the dashboard: a horizontal row with
  * centred items, spread-out justification, and a `min-width: 0` so a
@@ -33,13 +48,20 @@ const JUSTIFY_CONTENT: Record<ClusterJustify, string> = {
  */
 export function Cluster({
   justify = "between",
+  align = "center",
   gap = "md",
   wrap = false,
   children,
   ...rest
 }: ClusterProps) {
   return (
-    <Cluster__Root $justify={justify} $gap={gap} $wrap={wrap} {...rest}>
+    <Cluster__Root
+      $justify={justify}
+      $align={align}
+      $gap={gap}
+      $wrap={wrap}
+      {...rest}
+    >
       {children}
     </Cluster__Root>
   );
@@ -47,11 +69,12 @@ export function Cluster({
 
 const Cluster__Root = styled.div<{
   $justify: ClusterJustify;
+  $align: ClusterAlign;
   $gap: SpaceToken;
   $wrap: boolean;
 }>`
   display: flex;
-  align-items: center;
+  align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
   justify-content: ${({ $justify }) => JUSTIFY_CONTENT[$justify]};
   gap: ${({ theme, $gap }) => theme.space[$gap]};
   ${({ $wrap }) => ($wrap ? "flex-wrap: wrap;" : "")}

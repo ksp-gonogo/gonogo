@@ -5,6 +5,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
+import { Cluster } from "@ksp-gonogo/ui-kit";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -121,10 +122,10 @@ function StationLinkPanel() {
           reconnect automatically.
         </StatusIndicator>
       )}
-      <Row>
+      <Cluster>
         <Label>Share code</Label>
         <Code>{shareCode}</Code>
-      </Row>
+      </Cluster>
       <UrlRow>
         <Label>Link</Label>
         <UrlValue href={url} target="_blank" rel="noreferrer">
@@ -268,13 +269,6 @@ const Wrap = styled.div`
   gap: var(--space-16);
   min-width: 260px;
   color: var(--color-text-primary);
-`;
-
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
 `;
 
 const UrlRow = styled.div`

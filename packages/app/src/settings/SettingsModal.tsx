@@ -24,7 +24,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui";
-import { Badge, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { Badge, Cluster, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
@@ -401,7 +401,7 @@ function AnalyticsConsentRow() {
     () => analyticsConsentService.isEnabled(),
   );
   return (
-    <Row>
+    <SettingLine>
       <RowText>
         <RowLabel>Send technical analytics</RowLabel>
         <RowDesc>
@@ -416,7 +416,7 @@ function AnalyticsConsentRow() {
         }
         aria-label="Send technical analytics"
       />
-    </Row>
+    </SettingLine>
   );
 }
 
@@ -449,7 +449,7 @@ function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
     () => (source ? def.read(source) : false),
   );
   return (
-    <Row>
+    <SettingLine>
       <RowText>
         <RowLabel>{def.label}</RowLabel>
         {def.description && <RowDesc>{def.description}</RowDesc>}
@@ -462,7 +462,7 @@ function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
         disabled={source === undefined}
         aria-label={def.label}
       />
-    </Row>
+    </SettingLine>
   );
 }
 
@@ -491,7 +491,7 @@ function ClientPrefRow({
   const inert = def.dependsOn !== undefined && !parentValue;
 
   return (
-    <Row $indented={def.dependsOn !== undefined}>
+    <SettingLine $indented={def.dependsOn !== undefined}>
       <RowText>
         <RowLabel>{def.label}</RowLabel>
         {def.description && <RowDesc>{def.description}</RowDesc>}
@@ -502,7 +502,7 @@ function ClientPrefRow({
         disabled={inert}
         aria-label={def.label}
       />
-    </Row>
+    </SettingLine>
   );
 }
 
@@ -526,11 +526,13 @@ const SectionStack = styled.div`
   min-height: 0;
 `;
 
-const Row = styled.div<{ $indented?: boolean }>`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-16);
+// align="start" is what unblocked this one: the row's label must sit at the
+// TOP when its control wraps to two lines, and Cluster only centred. The
+// indent for a dependent setting is genuinely this modal's.
+const SettingLine = styled(Cluster).attrs({
+  align: "start" as const,
+  gap: "xl" as const,
+})<{ $indented?: boolean }>`
   /* Interpolated, so no CSS token pass reaches it. Migrated by hand onto the
      same 20 -> 16 snap the Empty padding below takes, otherwise this
      dependent-setting indent is the one 20px left in the file. */
