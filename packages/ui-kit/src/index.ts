@@ -174,7 +174,8 @@ export {
 export { NULL_DISPLAY, NullValue } from "./NullValue";
 // ── Panel family ─────────────────────────────────────────────────────────────
 // `Panel` is a compound component: `Panel.Container`, `.Title`, `.Subtitle`,
-// `.Toolbar`, `.Glow` and `.Body` are reachable from it, so a widget that needs
+// `.Toolbar`, `.Glow`, `.Body`, `.Split` and `.Sidebar` are reachable from it, so
+// a widget that needs
 // a variant can hand-compose the same arrangement. The named exports below are the same
 // objects, kept for widgets that render them as children; prefer
 // `<Panel panelTitle="…">` in new code. See README.md's Panel section.
@@ -186,6 +187,10 @@ export {
   PanelGlow,
   PanelHeader,
   type PanelProps,
+  PanelSidebar,
+  type PanelSidebarSide,
+  PanelSplit,
+  type PanelSplitProps,
   PanelStatusProvider,
   PanelSubtitle,
   PanelTitle,

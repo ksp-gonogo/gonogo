@@ -14,6 +14,7 @@ import {
 } from "react";
 import styled from "styled-components";
 import { StreamStatusBadge } from "./StreamStatusBadge";
+import { useElementSize } from "./useElementSize";
 
 interface PanelContextValue {
   scroller: HTMLElement | null;
@@ -519,6 +520,174 @@ export const ScrollArea = forwardRef<
   );
 });
 
+// ---------------------------------------------------------------------------
+// Sidebar: a second region beside (or below) the body
+// ---------------------------------------------------------------------------
+
+/**
+ * Where the sidebar sits relative to the body, in LOGICAL terms rather than
+ * left/right/top/bottom.
+ *
+ * One prop covers both axes that way, and `end` is the right edge in LTR and
+ * the left edge in RTL for free, because grid tracks and `order` both flow in
+ * the inline direction the writing mode defines.
+ *
+ * `end` is the default because a sidebar is secondary content: an almanac
+ * annotating a diagram should not precede the diagram in reading order, and
+ * placing it at `start` would put it there visually while the DOM says
+ * otherwise.
+ *
+ * `auto` means the panel chooses. Today that is: the axis from the tile's
+ * shape (see `PanelSplit`) and `end` within it, which is what the two
+ * arrangements a sidebar widget actually wants both resolve to, a right-hand
+ * column on a wide tile and a bottom strip on a tall one.
+ */
+export type PanelSidebarSide = "auto" | "start" | "end";
+
+/** Sidebar beside the body (inline) or under it (block). Derived, never passed. */
+type PanelSidebarAxis = "inline" | "block";
+
+/* Defaults differ per axis because the two arrangements are not the same
+   measurement. A column beside a diagram wants an absolute width, wide enough
+   for a label/value pair and no wider whatever the tile does. A strip under it
+   is competing with the diagram for the tile's height, so it wants a share
+   rather than a number, or a short tile loses the diagram entirely. */
+const SIDEBAR_INLINE_SIZE = "14rem";
+const SIDEBAR_BLOCK_SIZE = "40%";
+
+function sidebarTracks(side: "start" | "end", size: string): string {
+  return side === "start"
+    ? `minmax(0, ${size}) minmax(0, 1fr)`
+    : `minmax(0, 1fr) minmax(0, ${size})`;
+}
+
+const PanelSplit__Box = styled.div<{
+  $axis: PanelSidebarAxis;
+  $side: "start" | "end";
+  $size: string;
+}>`
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  gap: 0;
+  /* Every track is minmax(0, ...), including the flexible one. Without the
+     min-0 a track floors at its content's min-content size, so a sidebar
+     carrying its own ScrollArea sizes to the un-scrolled content, overflows
+     the panel, and gets hard-clipped by the container's overflow:hidden
+     instead of scrolling. SystemView learned this the slow way and left the
+     note that this rule is copied from. */
+  ${({ $axis, $side, $size }) =>
+    $axis === "inline"
+      ? `grid-template-columns: ${sidebarTracks($side, $size)};
+         grid-template-rows: minmax(0, 1fr);`
+      : `grid-template-columns: minmax(0, 1fr);
+         grid-template-rows: ${sidebarTracks($side, $size)};`}
+
+  /* Visual placement only. The sidebar is always written AFTER the body, so
+     reading and tab order never depend on which edge it is drawn against, and
+     it moves with the order property rather than by being emitted first. Same
+     principle as the floating header, which is a paint change and not a
+     structural one.
+
+     Owned here rather than by Panel.Sidebar so exactly one place knows the
+     arrangement: a split whose tracks said start beside a sidebar whose order
+     said end would be a silently broken hand-composition. */
+  ${({ $side }) =>
+    $side === "start" ? "& > [data-panel-sidebar] { order: -1; }" : ""}
+`;
+
+export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
+  /** See `PanelSidebarSide`. Defaults to `auto`. */
+  side?: PanelSidebarSide;
+  /**
+   * Size of the sidebar track: a width on the inline axis, a height on the
+   * block axis. Defaults to `14rem` and `40%` respectively.
+   */
+  size?: string;
+}
+
+/**
+ * The grid that holds `Panel.Body` and `Panel.Sidebar`.
+ *
+ * It exists as a named part because `Panel` is exclusively a composition of
+ * named parts: a sidebar arrangement a widget could not reproduce by hand
+ * would be the one arrangement in this file that is not reachable.
+ *
+ * The axis is MEASURED rather than queried. A container query would express
+ * "wider than tall" more directly, but two things argue against it: jsdom
+ * evaluates no container queries at all, so the axis switch, the one piece of
+ * behaviour here that is a decision rather than a rule, could not be tested;
+ * and `container-type: size` imposes size containment in both axes on a box
+ * whose whole job is to hand its height to two scrolling children.
+ *
+ * Measuring THIS box is deliberate: its border box is fixed by `flex: 1` and
+ * does not change when the grid template flips between axes. Measuring the
+ * body instead would shrink it when the sidebar mounts, flip the reading, and
+ * oscillate.
+ */
+export function PanelSplit({
+  side = "auto",
+  size,
+  children,
+  ...rest
+}: PanelSplitProps) {
+  // Seeded square, which the `>=` below resolves to the inline axis: an
+  // unmeasured panel (first paint, and jsdom forever) gets the side-by-side
+  // arrangement, the one that suits the tile shapes widgets default to.
+  const { ref, size: measured } = useElementSize<HTMLDivElement>({
+    w: 1,
+    h: 1,
+  });
+  const axis: PanelSidebarAxis = measured.w >= measured.h ? "inline" : "block";
+  const resolvedSide = side === "auto" ? "end" : side;
+  const resolvedSize =
+    size ?? (axis === "inline" ? SIDEBAR_INLINE_SIZE : SIDEBAR_BLOCK_SIZE);
+  return (
+    /* `data-panel-split` is a stable targeting hook, the same contract as
+       `data-panel-header` and `data-panel-body`, and it carries the resolved
+       axis so the decision is inspectable from outside. */
+    <PanelSplit__Box
+      ref={ref}
+      data-panel-split={axis}
+      $axis={axis}
+      $side={resolvedSide}
+      $size={resolvedSize}
+      {...rest}
+    >
+      {children}
+    </PanelSplit__Box>
+  );
+}
+
+const PanelSidebar__Box = styled.div`
+  display: flex;
+  flex-direction: column;
+  /* Grid items floor at min-content in both axes by default, which would let
+     the ScrollArea below grow the track rather than scroll inside it. */
+  min-width: 0;
+  min-height: 0;
+`;
+
+/**
+ * Secondary content beside or below the body: an almanac for the diagram, a
+ * legend for the plot, a detail pane for the selected row.
+ *
+ * It carries its OWN `ScrollArea` and is never inside `Panel.Body`, which is
+ * the whole point of it being a region rather than more body content:
+ * scrolling an almanac must not scroll the diagram it annotates off the tile.
+ */
+export function PanelSidebar({
+  children,
+  ...rest
+}: ComponentPropsWithoutRef<"div">) {
+  return (
+    <PanelSidebar__Box data-panel-sidebar="" {...rest}>
+      <ScrollArea>{children}</ScrollArea>
+    </PanelSidebar__Box>
+  );
+}
+
 const PanelGlow__Root = styled.div`
   position: relative;
   display: flex;
@@ -696,6 +865,30 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * rather than handled here, so manual composition stays reproducible.
    */
   fitToSize?: boolean;
+  /**
+   * Secondary content beside or below the body, in its own scrolling region:
+   * an almanac for a diagram, a legend for a plot, a detail pane for the
+   * selected row.
+   *
+   * Leaving it unset changes nothing at all. There is no grid, no extra box,
+   * and the body is the same element it has always been, so a widget that
+   * does not ask for a sidebar cannot be affected by one existing.
+   *
+   * The sidebar is a REGION, not a column of body content. Content that
+   * scrolls with the body belongs in the body; this is for content whose
+   * scrolling must not move what it annotates.
+   */
+  panelSidebar?: ReactNode;
+  /**
+   * Which edge the sidebar sits against, logically. See `PanelSidebarSide`.
+   * Defaults to `auto`.
+   */
+  sidebarSide?: PanelSidebarSide;
+  /**
+   * Size of the sidebar track: a width when it sits beside the body, a height
+   * when it sits under it. Defaults to `14rem` and `40%` respectively.
+   */
+  sidebarSize?: string;
 }
 
 function PanelRoot({
@@ -706,6 +899,9 @@ function PanelRoot({
   panelToolbar,
   floatingHeader,
   fitToSize,
+  panelSidebar,
+  sidebarSide,
+  sidebarSize,
   children,
   ...rest
 }: PanelProps) {
@@ -740,6 +936,11 @@ function PanelRoot({
   if (!hasHeader) {
     return <PanelContainer {...rest}>{children}</PanelContainer>;
   }
+  const body = (
+    <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
+      {children}
+    </PanelBody>
+  );
   return (
     <PanelContextProvider>
       <PanelContainer {...rest}>
@@ -754,10 +955,23 @@ function PanelRoot({
           {/* Header order is deliberate: the header is written first so it
               stays first in the DOM, and therefore first in reading and tab
               order, whether it floats or reserves a row. Overlay is a paint
-              change, not a structural one. */}
-          <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
-            {children}
-          </PanelBody>
+              change, not a structural one.
+
+              No sidebar means no split either: the body stays a direct child
+              of the glow, the exact element tree every existing widget already
+              renders. Adding an always-present grid wrapper would have been
+              tidier to write and would have re-laid-out forty widgets that
+              never asked for one. */}
+          {panelSidebar === undefined ? (
+            body
+          ) : (
+            <PanelSplit side={sidebarSide} size={sidebarSize}>
+              {body}
+              {/* Written after the body on purpose; `sidebarSide` moves it
+                  visually and never in the DOM. */}
+              <PanelSidebar>{panelSidebar}</PanelSidebar>
+            </PanelSplit>
+          )}
         </PanelGlow>
       </PanelContainer>
     </PanelContextProvider>
@@ -773,6 +987,8 @@ export const Panel = Object.assign(PanelRoot, {
   Subtitle: PanelSubtitle,
   Glow: PanelGlow,
   Body: PanelBody,
+  Split: PanelSplit,
+  Sidebar: PanelSidebar,
   Status: PanelStatusProvider,
   useStreamStatus: usePanelStreamStatus,
 });

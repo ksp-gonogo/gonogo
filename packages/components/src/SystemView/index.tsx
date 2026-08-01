@@ -20,13 +20,11 @@ import {
   FieldHint,
   FieldLabel,
   Panel,
-  PanelSubtitle,
-  PanelTitle,
   Select,
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { quantiseUt } from "../MapView/predictionThrottle";
@@ -464,38 +462,19 @@ function SystemViewComponent({
         })()
       : null;
 
-  // Diagram column size: feeds the SVG viewBox aspect. This is the 1fr grid
-  // child, so it legitimately shrinks when the side almanac mounts.
+  // Diagram size: feeds the SVG viewBox aspect. It measures the diagram's own
+  // box inside the panel body, so it legitimately shrinks when the almanac
+  // mounts beside it. (The tile-shaped measurement that used to sit here, and
+  // the side/bottom almanac gates it fed, are the panel's job now:
+  // `sidebarSide="auto"` measures the split container, whose border box does
+  // not move when the arrangement flips, and picks the axis from it.)
   const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
 
-  // Whole-tile size: drives the portrait/landscape decision. Measured on the
-  // grid *container* (Body), whose border-box is fixed by `flex:1` and does NOT
-  // change when the inner grid-template flips between side/bottom almanac. (If
-  // orientation were derived from the diagram column instead, mounting the side
-  // panel would shrink that column, flip the reading to portrait, and oscillate.)
-  const { ref: tileRef, size: tileSize } = useElementSize({ w: 360, h: 280 });
-
-  // Selective rendering: diagram needs real area; almanac sidebar is
-  // wide chrome. At small sizes collapse to a text "Frame: X" summary.
+  // Selective rendering: the diagram needs real area. At small sizes collapse
+  // to a text "Frame: X" summary, with no almanac beside it.
   const cols = w ?? 10;
   const rows = h ?? 12;
   const showDiagram = rows >= 5 && cols >= 5;
-  // Orientation is taken from the *measured pixel* aspect, not raw grid
-  // units: grid rows are shorter than columns are wide, so a 10×12
-  // (rows>cols) tile is actually near-square in pixels and must keep the
-  // side panel. Only a clearly taller-than-wide tile (e.g. 5×18) reads as
-  // portrait and flows the almanac to the bottom. The threshold (1.3) keeps
-  // near-square tiles on the side layout.
-  const isPortrait = tileSize.h > tileSize.w * 1.3;
-  // Almanac placement: beside the diagram needs spare *width* (cols ≥ 9);
-  // stacked below needs spare *height* (rows ≥ 12, since the bottom strip
-  // eats vertical room the diagram would otherwise use). Splitting the gate
-  // by axis means both aspect extremes can show the almanac: a wide-short
-  // 18×5 keeps the side panel (its own ScrollArea handles the short height),
-  // a tall-narrow 5×18 gets the bottom strip.
-  const showSideAlmanac = !isPortrait && rows >= 5 && cols >= 9;
-  const showBottomAlmanac = isPortrait && rows >= 12;
-  const showAlmanac = showSideAlmanac || showBottomAlmanac;
 
   // Slot props. `badges` carries just the frame name for labelling.
   // `overlay` carries the diagram's parent-centric projection so an augment can
@@ -528,20 +507,50 @@ function SystemViewComponent({
     };
   }, [parentName, children, vesselOrbit, size]);
 
+  const almanac = (
+    <AlmanacPanel
+      body={panelBody}
+      phaseAngleDeg={panelPhaseAngle}
+      isVesselParent={panelIsVesselParent}
+      hohmannIdealDeg={panelHohmann?.ideal ?? null}
+      hohmannDeltaDeg={panelHohmann?.delta ?? null}
+      encounterDirection={
+        // The vessel's next SOI transition (client-derived from
+        // `vessel.orbit.encounter`), shown on the panel body it targets.
+        encounterExists !== 0 &&
+        encounterBody != null &&
+        panelBody !== null &&
+        panelBody.name === encounterBody
+          ? encounterExists === -1
+            ? "escape"
+            : "encounter"
+          : null
+      }
+      encounterTimeSec={
+        // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel
+        // wants seconds-to-event, so subtract the view-UT.
+        encounterTimeUt != null && nowUt !== null
+          ? encounterTimeUt - nowUt
+          : null
+      }
+      nextApsisType={
+        derived?.nextApsisType === -1 || derived?.nextApsisType === 1
+          ? derived.nextApsisType
+          : null
+      }
+      nextApsisTimeSec={
+        typeof derived?.timeToNextApsis === "number"
+          ? derived.timeToNextApsis
+          : null
+      }
+    />
+  );
+
   return (
-    <Panel>
-      <TitleRow>
-        <PanelTitle>SYSTEM</PanelTitle>
-        <TitleControls>
-          {/* Header slots: an inline `.badges` escape-hatch and an `.actions`
-              control row, both alongside the widget's own header. Empty until an
-              Uplink binds: an empty slot renders nothing. */}
-          <AugmentSlot name="system-view.badges" props={badgesContext} />
-          <AugmentSlot name="system-view.actions" props={{}} />
-        </TitleControls>
-      </TitleRow>
-      <PanelSubtitle>
-        {bodies.length === 0
+    <Panel
+      panelTitle="SYSTEM"
+      panelSubtitle={
+        bodies.length === 0
           ? "Waiting for body data..."
           : parentName === null
             ? "Pick a frame in the widget config."
@@ -549,15 +558,26 @@ function SystemViewComponent({
               ? `Frame: ${parentName} · next ${
                   encounterExists === -1 ? "escape" : "encounter"
                 }: ${encounterBody}`
-              : `Frame: ${parentName}`}
-      </PanelSubtitle>
+              : `Frame: ${parentName}`
+      }
+      panelAside={
+        // Header slots: an inline `.badges` escape-hatch and an `.actions`
+        // control row, both beside the panel's own title. Empty until an
+        // Uplink binds: an empty slot renders nothing.
+        <>
+          <AugmentSlot name="system-view.badges" props={badgesContext} />
+          <AugmentSlot name="system-view.actions" props={{}} />
+        </>
+      }
+      // The almanac is a second scrolling region, not more body content:
+      // reading it must not scroll the diagram it describes off the tile.
+      // `auto` measures the tile and picks the axis, which is the pair of
+      // arrangements this widget used to compute for itself (a right-hand
+      // column on a wide tile, a bottom strip on a tall one).
+      panelSidebar={showDiagram ? almanac : undefined}
+    >
       {showDiagram ? (
-        <Body
-          ref={tileRef}
-          $almanac={
-            showSideAlmanac ? "side" : showBottomAlmanac ? "bottom" : "none"
-          }
-        >
+        <DiagramFrame flush>
           <DiagramWrap ref={wrapRef}>
             {parentName !== null && bodies.length > 0 && (
               <SystemDiagram
@@ -587,46 +607,7 @@ function SystemViewComponent({
               </OverlayLayer>
             )}
           </DiagramWrap>
-          {showAlmanac && (
-            <AlmanacPanel
-              placement={showBottomAlmanac ? "bottom" : "side"}
-              body={panelBody}
-              phaseAngleDeg={panelPhaseAngle}
-              isVesselParent={panelIsVesselParent}
-              hohmannIdealDeg={panelHohmann?.ideal ?? null}
-              hohmannDeltaDeg={panelHohmann?.delta ?? null}
-              encounterDirection={
-                // The vessel's next SOI transition (client-derived from
-                // `vessel.orbit.encounter`), shown on the panel body it targets.
-                encounterExists !== 0 &&
-                encounterBody != null &&
-                panelBody !== null &&
-                panelBody.name === encounterBody
-                  ? encounterExists === -1
-                    ? "escape"
-                    : "encounter"
-                  : null
-              }
-              encounterTimeSec={
-                // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel
-                // wants seconds-to-event, so subtract the view-UT.
-                encounterTimeUt != null && nowUt !== null
-                  ? encounterTimeUt - nowUt
-                  : null
-              }
-              nextApsisType={
-                derived?.nextApsisType === -1 || derived?.nextApsisType === 1
-                  ? derived.nextApsisType
-                  : null
-              }
-              nextApsisTimeSec={
-                typeof derived?.timeToNextApsis === "number"
-                  ? derived.timeToNextApsis
-                  : null
-              }
-            />
-          )}
-        </Body>
+        </DiagramFrame>
       ) : (
         <CompactBody>
           <CompactValue>{parentName ?? NULL_DISPLAY}</CompactValue>
@@ -723,29 +704,6 @@ function SystemViewConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled.div<{ $almanac: "side" | "bottom" | "none" }>`
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  /* "side": almanac is a fixed 200px right column (wide/near-square tiles).
-     "bottom": almanac is a flexible strip under the diagram, capped to ~45%
-     of the tile height so a tall-narrow column keeps the diagram legible.
-     "none": diagram fills the whole tile. Every track is min-0 so the grid
-     caps its child rather than letting the almanac's ScrollArea overflow and
-     get hard-clipped by this container's overflow:hidden. */
-  ${({ $almanac }) =>
-    $almanac === "side"
-      ? "grid-template-columns: minmax(0, 1fr) 200px; grid-template-rows: minmax(0, 1fr);"
-      : $almanac === "bottom"
-        ? "grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 45%);"
-        : "grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);"}
-  gap: 0;
-  margin-top: var(--space-6);
-  border: 1px solid var(--color-surface-panel);
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-`;
-
 const CompactBody = styled.div`
   flex: 1;
   display: flex;
@@ -770,14 +728,25 @@ const CompactSub = styled.div`
   letter-spacing: 0.05em;
 `;
 
+/* The frame around the diagram. It replaces the widget's old grid border AND
+   the almanac's divider rule: with the visual framed, the frame's own edge is
+   what separates it from the sidebar, whichever edge the sidebar lands on.
+   Flush because SystemDiagram already reserves its own padding inside the
+   viewBox, so an inner gutter here reads as a double border. */
+const DiagramFrame = styled(FramedDisplay)`
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+`;
+
 const DiagramWrap = styled.div`
   position: relative;
+  flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  background: var(--color-surface-app);
   svg {
     display: block;
     flex: 1;
@@ -790,21 +759,6 @@ const OverlayLayer = styled.div`
   /* Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment
      re-enables pointer events on its own elements when it needs them. */
   pointer-events: none;
-`;
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
-
-const TitleControls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  min-width: 0;
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────

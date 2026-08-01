@@ -74,7 +74,7 @@ whether it wraps the body or sits beside it. `fitToSize` on either `Panel` or
 
 ### Heavier chrome
 
-Three props cover the widgets whose header is more than a title row:
+Four props cover the widgets whose chrome is more than a title row:
 
 - **`panelAside`** is the small slot beside the title: a chip, a badge, one
   select. Reach for it first.
@@ -87,9 +87,39 @@ Three props cover the widgets whose header is more than a title row:
   bleed to the panel chrome without scrolling. Only for a widget that is
   WHOLLY a drawing (an orbit view, a globe): the title keeps a panel-coloured
   backing so it stays legible, and the drawing gets the whole tile.
+- **`panelSidebar`** is a second region beside or below the body, with its own
+  scroller: an almanac for a diagram, a legend for a plot, a detail pane for
+  the selected row. It is for content whose scrolling must not move what it
+  annotates; content that should scroll *with* the body is just body content.
 
-All three are reachable for hand-composition too, as `Panel.Toolbar` and the
-`overlay` / `bleed` props on `Panel.Header` and `Panel.Body`.
+```tsx
+<Panel panelTitle="SYSTEM" panelSidebar={<Almanac />} sidebarSize="14rem">
+  <FramedDisplay>
+    <SystemDiagram />
+  </FramedDisplay>
+</Panel>
+```
+
+`sidebarSide` is `"auto" | "start" | "end"` and takes logical edges rather than
+left/right/top/bottom, so one prop covers both axes and `end` is the right edge
+in LTR and the left edge in RTL for free. `end` is the default because a
+sidebar is secondary content and should not precede what it annotates in
+reading order. Whichever edge you pick, the sidebar is always written after the
+body in the DOM and moves visually only, so reading and tab order never depend
+on the arrangement.
+
+`auto` lets the panel pick the axis from the tile's measured shape, not from a
+pixel breakpoint: wider than tall puts the sidebar beside the body, taller than
+wide puts it underneath. `sidebarSize` sizes that track, defaulting to `14rem`
+beside and `40%` underneath, because a column next to a diagram wants an
+absolute width while a strip under one is competing for the tile's height.
+
+Leaving `panelSidebar` unset changes nothing: no grid, no extra box, and the
+body is the element it has always been.
+
+All four are reachable for hand-composition too, as `Panel.Toolbar`,
+`Panel.Split` + `Panel.Sidebar`, and the `overlay` / `bleed` props on
+`Panel.Header` and `Panel.Body`.
 
 Visual content, an SVG diagram or a canvas, goes in `FramedDisplay` rather than
 fighting the body inset: the frame gives it a defined edge, and in a widget
