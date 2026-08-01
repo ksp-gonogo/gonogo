@@ -1,5 +1,6 @@
 import { formatDuration } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { Cluster } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /**
@@ -45,7 +46,7 @@ export function OrbitalEventChips() {
   if (!hasEncounter && !hasApsis) return null;
 
   return (
-    <Row>
+    <Cluster justify="start" wrap>
       {hasEncounter && (
         <Chip $variant={encounterKind === "escape" ? "warn" : "go"}>
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>
@@ -63,15 +64,9 @@ export function OrbitalEventChips() {
           </ChipValue>
         </Chip>
       )}
-    </Row>
+    </Cluster>
   );
 }
-
-const Row = styled.div`
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-`;
 
 const Chip = styled.div<{ $variant: "go" | "warn" | "neutral" }>`
   display: inline-flex;

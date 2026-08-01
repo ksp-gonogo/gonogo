@@ -161,7 +161,6 @@ const BASELINE = new Set<string>([
   "Row@packages/components/src/StationConnectView/index.tsx",
   "Row@packages/components/src/TargetPicker/index.tsx",
   "Row@packages/components/src/ThermalStatus/index.tsx",
-  "Row@packages/components/src/shared/OrbitalEventChips.tsx",
   "Row@packages/data/src/FlightsManager/ChaptersEditor.tsx",
   "Row@packages/serial/src/InputMappingTab.tsx",
   "Row@packages/serial/src/SerialDevicesMenu/index.tsx",

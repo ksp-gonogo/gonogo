@@ -9,6 +9,13 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
   justify?: ClusterJustify;
   /** Gap between children, snapped to the space scale. Defaults to `md`. */
   gap?: SpaceToken;
+  /**
+   * Let children wrap onto further lines. Off by default: a cluster that wraps
+   * silently is how a row of controls turns into a ragged block at a narrow
+   * width without anyone noticing, so wrapping is opted into by the chip strips
+   * and tag lists that actually want it.
+   */
+  wrap?: boolean;
   children?: ReactNode;
 }
 
@@ -27,11 +34,12 @@ const JUSTIFY_CONTENT: Record<ClusterJustify, string> = {
 export function Cluster({
   justify = "between",
   gap = "md",
+  wrap = false,
   children,
   ...rest
 }: ClusterProps) {
   return (
-    <Cluster__Root $justify={justify} $gap={gap} {...rest}>
+    <Cluster__Root $justify={justify} $gap={gap} $wrap={wrap} {...rest}>
       {children}
     </Cluster__Root>
   );
@@ -40,10 +48,12 @@ export function Cluster({
 const Cluster__Root = styled.div<{
   $justify: ClusterJustify;
   $gap: SpaceToken;
+  $wrap: boolean;
 }>`
   display: flex;
   align-items: center;
   justify-content: ${({ $justify }) => JUSTIFY_CONTENT[$justify]};
   gap: ${({ theme, $gap }) => theme.space[$gap]};
+  ${({ $wrap }) => ($wrap ? "flex-wrap: wrap;" : "")}
   min-width: 0;
 `;
