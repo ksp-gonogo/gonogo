@@ -5,6 +5,7 @@ import {
   getComponent,
 } from "@ksp-gonogo/core";
 import { CloseIcon } from "@ksp-gonogo/ui";
+import { Box } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
@@ -105,7 +106,7 @@ export function PushedDashboardOverlay() {
 
   return (
     <Backdrop>
-      <Panel>
+      <OverlaySurface>
         <Header>
           <Title>PUSHED FROM STATIONS</Title>
           <Count>
@@ -125,7 +126,7 @@ export function PushedDashboardOverlay() {
             />
           ))}
         </Viewport>
-      </Panel>
+      </OverlaySurface>
     </Backdrop>
   );
 }
@@ -214,14 +215,17 @@ const Backdrop = styled.div`
   pointer-events: none;
 `;
 
-const Panel = styled.div`
+// Same shape as ComponentOverlay's: the kit's Box carries the surface, border
+// and radius; the fill-and-cap geometry is this overlay's.
+const OverlaySurface = styled(Box).attrs({
+  surface: "sunken" as const,
+  bordered: true,
+  radius: "lg" as const,
+})`
   pointer-events: auto;
   width: 100%;
   height: 100%;
   max-width: 1600px;
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;

@@ -1,6 +1,7 @@
 import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
+import { Box } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ShipDiagram } from "./ShipDiagram";
@@ -185,7 +186,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   }, [parts, size]);
 
   return (
-    <Panel>
+    <MapSurface>
       {renderBody(
         topology,
         parts,
@@ -197,7 +198,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         badgesContext,
         overlayContext,
       )}
-    </Panel>
+    </MapSurface>
   );
 }
 
@@ -281,12 +282,13 @@ function renderBody(
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Panel = styled.div`
+// A full-height app-surface column, not a widget Panel. The surface is the
+// kit's Box; the column and its height are this map's.
+const MapSurface = styled(Box).attrs({ surface: "app" as const })`
   display: flex;
   flex-direction: column;
   height: 100%;
   box-sizing: border-box;
-  background: var(--color-surface-app);
 `;
 
 const Placeholder = styled.div`

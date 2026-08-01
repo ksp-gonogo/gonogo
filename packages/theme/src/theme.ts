@@ -94,6 +94,8 @@ export interface ThemeRadii {
   xs: string;
   sm: string;
   md: string;
+  /** Widest square corner: overlay and dialog surfaces. */
+  lg: string;
   /** Fully rounded: chips, avatars, toggle knobs. */
   pill: string;
 }

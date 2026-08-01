@@ -16,6 +16,7 @@ import {
   useFabCluster,
   useModal,
 } from "@ksp-gonogo/ui";
+import { Box } from "@ksp-gonogo/ui-kit";
 import type { KeyboardEvent, ReactNode } from "react";
 import {
   createContext,
@@ -303,7 +304,7 @@ export function ComponentOverlay({
 
       {open && (
         <Backdrop onClick={closeOverlay}>
-          <Panel
+          <OverlaySurface
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label="Add a component"
@@ -380,7 +381,7 @@ export function ComponentOverlay({
                 );
               })}
             </List>
-          </Panel>
+          </OverlaySurface>
         </Backdrop>
       )}
     </>
@@ -445,10 +446,13 @@ const Backdrop = styled.div`
   z-index: var(--z-backdrop);
 `;
 
-const Panel = styled.div`
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+// The surface, border and radius are the kit's Box; the spotlight geometry is
+// this overlay's. lg was the missing radius that kept this hand-rolled.
+const OverlaySurface = styled(Box).attrs({
+  surface: "panel" as const,
+  bordered: true,
+  radius: "lg" as const,
+})`
   width: 560px;
   max-width: 95vw;
   /* Spotlight-style stable height: regardless of how many results match,

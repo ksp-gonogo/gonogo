@@ -3,7 +3,7 @@ import styled from "styled-components";
 import type { SpaceToken } from "./Stack";
 
 export type BoxSurface = "app" | "panel" | "raised" | "sunken";
-export type BoxRadius = "xs" | "sm" | "md" | "pill";
+export type BoxRadius = "xs" | "sm" | "md" | "lg" | "pill";
 export type BoxPad = SpaceToken | [SpaceToken, SpaceToken];
 
 export interface BoxProps extends HTMLAttributes<HTMLDivElement> {
