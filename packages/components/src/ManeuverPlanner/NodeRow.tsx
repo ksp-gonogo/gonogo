@@ -1,7 +1,7 @@
 import { formatDuration } from "@ksp-gonogo/core";
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { IconButton, NULL_DISPLAY, PrimaryButton } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { LabeledInput } from "./LabeledInput";
@@ -57,14 +57,14 @@ export function NodeRow({
       </NodeMain>
       <RowActions>
         {onEdit && !completed && (
-          <ActionButton
+          <StepButton
             type="button"
             $active={editing}
             onClick={() => setEditing((v) => !v)}
             aria-label={editing ? "Close editor" : "Edit node"}
           >
             <PencilIcon size={12} />
-          </ActionButton>
+          </StepButton>
         )}
         {onDelete && (
           <DeleteButton
@@ -142,13 +142,13 @@ function NodeEditor({
         <SecondaryButton type="button" onClick={onCancel} disabled={saving}>
           Cancel
         </SecondaryButton>
-        <PrimaryButton
+        <CompactPrimaryButton
           type="button"
           onClick={() => void onSave({ ut, radial, normal, prograde })}
           disabled={saving || !dirty}
         >
           {saving ? "Saving..." : "Save"}
-        </PrimaryButton>
+        </CompactPrimaryButton>
       </EditActions>
     </EditGrid>
   );
@@ -198,7 +198,9 @@ const RowActions = styled.div`
   gap: var(--space-4);
 `;
 
-const ActionButton = styled.button<{ $active: boolean }>`
+// The cursor, hover and colour transition come from the kit's IconButton;
+// the bordered 22x22 box and its $active background are this row's.
+const StepButton = styled(IconButton)<{ $active: boolean }>`
   background: ${({ $active }) =>
     $active ? "var(--color-surface-raised)" : "transparent"};
   border: 1px solid var(--color-border-subtle);
@@ -206,14 +208,10 @@ const ActionButton = styled.button<{ $active: boolean }>`
   width: 22px;
   height: 22px;
   border-radius: var(--radius-xs);
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  &:hover {
-    background: var(--color-surface-raised);
-    color: var(--color-text-primary);
-  }
+  padding: 0;
 `;
 
 const DeleteButton = styled.button`
@@ -260,18 +258,12 @@ const EditActions = styled.div`
   padding-top: var(--space-4);
 `;
 
-const PrimaryButton = styled.button`
-  background: var(--color-accent-bg);
-  color: var(--color-accent-fg);
-  border: 1px solid var(--color-accent-fg);
+// The accent treatment and hover come from the kit; only the compact sizing
+// and the align-self it sets for form footers are overridden here.
+const CompactPrimaryButton = styled(PrimaryButton)`
+  align-self: auto;
   font-size: var(--font-size-xs);
   padding: var(--space-4) var(--space-10);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 
 const SecondaryButton = styled.button`

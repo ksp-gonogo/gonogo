@@ -129,8 +129,6 @@ function kitExports(): Set<string> {
  * announced no on/off state. It read as correct at every call site.
  */
 const BASELINE = new Set<string>([
-  "ActionButton@packages/components/src/ContractManager/index.tsx",
-  "ActionButton@packages/components/src/ManeuverPlanner/NodeRow.tsx",
   "Box@packages/ui/src/DataKeyMultiPicker.tsx",
   "Dial@packages/components/src/TransferWindow/index.tsx",
   "Field@packages/app/src/components/MissionBanner.tsx",
@@ -142,7 +140,6 @@ const BASELINE = new Set<string>([
   "Panel@packages/app/src/components/ComponentOverlay.tsx",
   "Panel@packages/app/src/pushToMain/PushedDashboardOverlay.tsx",
   "Panel@packages/components/src/ShipMap/index.tsx",
-  "PrimaryButton@packages/components/src/ManeuverPlanner/NodeRow.tsx",
   "Readout@packages/components/src/SemiMajorAxis/index.tsx",
   "Row@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
   "Row@packages/components/src/PerfBudgets/index.tsx",
@@ -150,8 +147,6 @@ const BASELINE = new Set<string>([
   "Row@packages/components/src/StaffRoster/index.tsx",
   "Row@packages/components/src/StationConnectView/index.tsx",
   "Row@packages/components/src/TargetPicker/index.tsx",
-  "Row@packages/serial/src/InputMappingTab.tsx",
-  "Row@packages/serial/src/SerialDevicesMenu/index.tsx",
   "Row@packages/ui/src/DataKeyMultiPicker.tsx",
   "RowName@packages/components/src/TargetPicker/index.tsx",
   "RowName@packages/serial/src/SerialDevicesMenu/index.tsx",

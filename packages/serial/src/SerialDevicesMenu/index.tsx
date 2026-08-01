@@ -1,4 +1,5 @@
 import { Button, GhostButton, Tabs, useModal } from "@ksp-gonogo/ui";
+import { Card } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { CHROMIUM_ONLY_SURFACES } from "../capabilities";
@@ -226,7 +227,7 @@ function DeviceRow({
   };
 
   return (
-    <Row>
+    <DeviceCard>
       <RowHead>
         <RowName>{device.name}</RowName>
         <Status $status={status}>{status}</Status>
@@ -313,7 +314,7 @@ function DeviceRow({
           Remove
         </GhostButton>
       </RowActions>
-    </Row>
+    </DeviceCard>
   );
 }
 
@@ -356,7 +357,7 @@ function TypesTab() {
       </Toolbar>
       {editableTypes.length === 0 && <Empty>No device types yet.</Empty>}
       {editableTypes.map((type) => (
-        <Row key={type.id}>
+        <DeviceCard key={type.id}>
           <RowHead>
             <RowName>{type.name}</RowName>
           </RowHead>
@@ -374,7 +375,7 @@ function TypesTab() {
               Remove
             </GhostButton>
           </RowActions>
-        </Row>
+        </DeviceCard>
       ))}
     </List>
   );
@@ -460,10 +461,9 @@ const WebSerialUnavailableBanner = styled.div`
   }
 `;
 
-const Row = styled.div`
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+// Same shape as InputMappingTab's: the kit's Card plus this menu's own
+// padding and the column it lays its head and body out in.
+const DeviceCard = styled(Card)`
   padding: var(--space-10) var(--space-12);
   display: flex;
   flex-direction: column;

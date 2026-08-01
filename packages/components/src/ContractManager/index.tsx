@@ -12,7 +12,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { BellIcon, Panel } from "@ksp-gonogo/ui-kit";
+import { BellIcon, GhostButton, Panel } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
@@ -669,18 +669,16 @@ const ActiveActions = styled.div`
   margin-top: var(--space-4);
 `;
 
-const ActionButton = styled.button`
+// The ghost treatment, its documented AA-passing colour and its hover come
+// from the kit; only the compact type and padding are this widget's.
+const CompactGhostButton = styled(GhostButton)`
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: var(--space-4) var(--space-10);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--color-surface-raised);
-  cursor: pointer;
-  font-family: inherit;
 `;
 
-const AcceptButton = styled(ActionButton)`
+const AcceptButton = styled(CompactGhostButton)`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   border-color: transparent;
@@ -690,7 +688,7 @@ const AcceptButton = styled(ActionButton)`
   }
 `;
 
-const DeclineButtonStyled = styled(ActionButton)`
+const DeclineButtonStyled = styled(CompactGhostButton)`
   background: transparent;
   color: var(--color-text-muted);
 
@@ -700,7 +698,7 @@ const DeclineButtonStyled = styled(ActionButton)`
   }
 `;
 
-const ConfirmDeclineButton = styled(ActionButton)`
+const ConfirmDeclineButton = styled(CompactGhostButton)`
   background: var(--color-status-nogo-bg);
   color: var(--color-status-nogo-on-bg);
   border-color: transparent;
@@ -721,7 +719,7 @@ const ConfirmDeclineButton = styled(ActionButton)`
   }
 `;
 
-const CancelButtonStyled = styled(ActionButton)`
+const CancelButtonStyled = styled(CompactGhostButton)`
   background: transparent;
   color: var(--color-text-faint);
   font-size: var(--font-size-2xs);
@@ -733,7 +731,7 @@ const CancelButtonStyled = styled(ActionButton)`
   }
 `;
 
-const ConfirmCancelButton = styled(ActionButton)`
+const ConfirmCancelButton = styled(CompactGhostButton)`
   background: var(--color-status-nogo-bg);
   color: var(--color-status-nogo-on-bg);
   border-color: transparent;

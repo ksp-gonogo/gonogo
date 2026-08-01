@@ -8,6 +8,7 @@ import {
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { Card } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import type { InputBinding, InputMappings } from "./bindings";
@@ -230,7 +231,7 @@ export function InputMappingTab({
             listeningFor !== null && listeningFor !== action.id;
 
           return (
-            <Row key={action.id} $listening={isListening}>
+            <BindingCard key={action.id} $listening={isListening}>
               <Field>
                 <FieldLabel htmlFor={selectId}>{action.label}</FieldLabel>
                 {action.description && (
@@ -289,7 +290,7 @@ export function InputMappingTab({
                   </BoundReadout>
                 )}
               </Field>
-            </Row>
+            </BindingCard>
           );
         })}
       </List>
@@ -315,14 +316,12 @@ const List = styled.div`
   gap: var(--space-12);
 `;
 
-const Row = styled.div<{ $listening: boolean }>`
-  background: var(--color-surface-raised);
-  border: 1px solid
-    ${({ $listening }) =>
-      $listening
-        ? "var(--color-status-info-fg)"
-        : "var(--color-border-subtle)"};
-  border-radius: var(--radius-md);
+// The surface, radius and padding come from the kit's Card; only the border
+// that reacts to the listening state is this tab's. Card is sunken where this
+// was raised, which is the deliberate delta.
+const BindingCard = styled(Card)<{ $listening: boolean }>`
+  border-color: ${({ $listening }) =>
+    $listening ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
   padding: var(--space-10) var(--space-12);
   transition: border-color var(--duration-instant) var(--ease-linear);
 `;
