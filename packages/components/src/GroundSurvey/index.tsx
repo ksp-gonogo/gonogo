@@ -6,13 +6,10 @@ import {
   FieldHint,
   FieldLabel,
   Input,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ProfileStrip } from "./ProfileStrip";
@@ -97,29 +94,38 @@ function GroundSurveyComponent({
     surveyState: survey.surveyState,
   };
 
+  // The impact prediction rides in the subtitle rather than the body: it is
+  // the same kind of thing as the line above it, dim metadata describing the
+  // survey the title names, and it gates on the same height tier
+  // (`rows >= 4`) as the subtitle itself. In the body it would sit inset
+  // above the strip and read as a stray readout that had lost its label.
+  const subtitle =
+    showSubtitle || showPrediction ? (
+      <>
+        {showSubtitle && subtitleFor(survey, freezeBelowM, surveyCeilingM)}
+        {showPrediction && (
+          <PredictionReadout
+            lat={survey.predictedLat as number}
+            lon={survey.predictedLon as number}
+          />
+        )}
+      </>
+    ) : undefined;
+
   return (
-    <Panel>
-      <Header>
-        <Titles>
-          <PanelTitle>GROUND SURVEY</PanelTitle>
-          {showSubtitle && (
-            <PanelSubtitle>
-              {subtitleFor(survey, freezeBelowM, surveyCeilingM)}
-            </PanelSubtitle>
-          )}
-          {showPrediction && (
-            <PredictionReadout
-              lat={survey.predictedLat as number}
-              lon={survey.predictedLon as number}
-            />
-          )}
-        </Titles>
+    <Panel
+      panelTitle="GROUND SURVEY"
+      panelSubtitle={subtitle}
+      // The aside lays its children out as a wrapping row; this stack wants a
+      // column, so it brings its own.
+      panelAside={
         <BadgeArea>
           <SmoothnessBadge verdict={verdict} />
           {showSpeed && <SpeedReadout speed={survey.surfaceSpeed} />}
           <AugmentSlot name="ground-survey.badges" props={badgesContext} />
         </BadgeArea>
-      </Header>
+      }
+    >
       {showStrip && (
         <StripWrap ref={wrapRef}>
           <ProfileStrip
@@ -267,30 +273,16 @@ function GroundSurveyConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Header = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
-
-const Titles = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1 1 auto;
-`;
-
+/* A column inside the panel's aside slot, which lays its own children out as
+   a wrapping row: the badge, the speed and any augment stack vertically and
+   stay right-aligned to each other. The header row handles the wrapping onto
+   a second line at narrow widths, so this no longer needs to grow to claim
+   one. */
 const BadgeArea = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-2);
-  /* Grow to full width when wrapped onto its own line at narrow widths so the
-     badge + speed stay a coherent right-aligned cluster instead of floating
-     mid-line. At wide widths Titles' flex-grow keeps this pinned top-right. */
-  flex: 1 0 auto;
 `;
 
 const BadgeWrap = styled.div<{ $tone: SmoothnessVerdict["badge"] }>`
@@ -348,11 +340,13 @@ const Prediction = styled.div`
   margin-top: var(--space-2);
 `;
 
+/* Keeps its own border and radius: it is a box that draws itself, not padding
+   compensating for a padless panel. The `margin-top` that used to hold it off
+   the header IS gone, though, the panel body's inset supplies that now. */
 const StripWrap = styled.div`
   flex: 1;
   min-height: 100px;
   display: flex;
-  margin-top: var(--space-6);
   border: 1px solid var(--color-surface-panel);
   border-radius: var(--radius-xs);
   svg {

@@ -20,16 +20,12 @@ import {
   FieldLabel,
   Input,
   LineChart,
-  Panel,
-  PanelSubtitle,
-  PanelTitle,
   ReadoutCaption,
   Select,
   Sparkline,
   useModalSaveBar,
-  WidgetHeader,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import {
   type ReactNode,
   useCallback,
@@ -166,9 +162,15 @@ interface GraphViewProps {
   /** Replaces the empty-state copy when no series are configured. */
   emptyState?: string;
   /**
-   * Right-aligned slot in the header row, next to the title (e.g. a
-   * `StreamStatusBadge`). Renders nothing when omitted, every existing
-   * `GraphView` consumer is unaffected.
+   * Right-aligned slot in the panel header, beside the title. Forwarded
+   * straight to `panelAside`, so it takes whatever that slot takes: a state
+   * chip, a small control, an `AugmentSlot`.
+   *
+   * Not the place for a stream-status badge any more. The panel renders one
+   * itself from the status the host derived across the whole widget's
+   * `dataRequirements`, which is both less wiring and more accurate than a
+   * hand-picked representative key; a badge passed in here would sit beside
+   * that one rather than instead of it.
    */
   headerActions?: ReactNode;
   /** Current widget grid size: used to resolve the `"auto"` display variant. */
@@ -354,11 +356,11 @@ export function GraphView({
     const unit = meta?.unit;
 
     return (
-      <Panel>
-        <WidgetHeader actions={headerActions}>
-          <PanelTitle>{title}</PanelTitle>
-        </WidgetHeader>
-        <PanelSubtitle>{seriesLabel}</PanelSubtitle>
+      <Panel
+        panelTitle={title}
+        panelSubtitle={seriesLabel}
+        panelAside={headerActions}
+      >
         <ReadoutBody ref={containerRef}>
           <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
             {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
@@ -389,36 +391,35 @@ export function GraphView({
   }
 
   return (
-    <Panel>
-      <WidgetHeader actions={headerActions}>
-        <PanelTitle>{title}</PanelTitle>
-      </WidgetHeader>
+    <Panel panelTitle={title} panelAside={headerActions}>
       {/* ChartArea is always rendered so the ResizeObserver effect (deps:
           []) attaches once and never has to re-attach when the chart's
           data state flips. The empty-state text overlays when there's no
           data to plot. */}
-      <ChartArea ref={containerRef}>
-        {size && (
-          <LineChart
-            series={chartSeries}
-            xDomain={xDomain}
-            xTickFormat={xTickFormat}
-            yDomainPrimary={config?.yDomainPrimary}
-            yDomainSecondary={config?.yDomainSecondary}
-            yScalePrimary={config?.yScalePrimary}
-            yScaleSecondary={config?.yScaleSecondary}
-            thresholds={config?.thresholds as ThresholdRule[] | undefined}
-            width={size.w}
-            height={size.h}
-          />
-        )}
-        {hasThirdUnit && (
-          <AxisWarning>Add explicit axes to plot 3+ units</AxisWarning>
-        )}
-        {series.length === 0 && overlaySeries.length === 0 && (
-          <EmptyStateOverlay>{emptyState}</EmptyStateOverlay>
-        )}
-      </ChartArea>
+      <ChartFrame flush>
+        <ChartArea ref={containerRef}>
+          {size && (
+            <LineChart
+              series={chartSeries}
+              xDomain={xDomain}
+              xTickFormat={xTickFormat}
+              yDomainPrimary={config?.yDomainPrimary}
+              yDomainSecondary={config?.yDomainSecondary}
+              yScalePrimary={config?.yScalePrimary}
+              yScaleSecondary={config?.yScaleSecondary}
+              thresholds={config?.thresholds as ThresholdRule[] | undefined}
+              width={size.w}
+              height={size.h}
+            />
+          )}
+          {hasThirdUnit && (
+            <AxisWarning>Add explicit axes to plot 3+ units</AxisWarning>
+          )}
+          {series.length === 0 && overlaySeries.length === 0 && (
+            <EmptyStateOverlay>{emptyState}</EmptyStateOverlay>
+          )}
+        </ChartArea>
+      </ChartFrame>
       {/* Invisible data-fetcher components, one per series + one for X when non-time */}
       {series.map((cfg) => (
         <GraphSeries
@@ -800,10 +801,25 @@ function parseDomain(
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+/* The plot is visual content, so it gets a frame rather than an argument with
+   the body inset. `flush`: LineChart already draws inside its own MARGIN, so
+   the frame's gutter would read as a double border.
+
+   A frame rather than `floatingHeader`, even though the chart variant's body
+   holds nothing but the drawing: LineChart stamps its series legend top-left
+   INSIDE the plot, which is exactly where a floating title would land. The
+   readout variant is mixed content anyway (a big number and a sparkline), and
+   one widget wants one kind of header across both its variants. */
+const ChartFrame = styled(FramedDisplay)`
+  flex: 1;
+  min-height: 0;
+`;
+
 const ChartArea = styled.div`
   flex: 1;
   position: relative;
   min-height: 0;
+  min-width: 0;
 `;
 
 const ReadoutBody = styled.div`
