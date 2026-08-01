@@ -70,7 +70,11 @@ namespace Sitrep.Contract
         public const string Kilowatts = "kW";
 
         // --- Data rate ---
-        /// <summary>Bits per second, the unit RealAntennas reports link rates in.</summary>
+        /// <summary>
+        /// Bits per second, for link rates. Named generically on purpose: the
+        /// contract is Domain-neutral and must not know which Uplink happens to
+        /// populate a channel.
+        /// </summary>
         public const string BitsPerSecond = "bit/s";
 
         // --- Level ---
