@@ -14,6 +14,7 @@ export type SitrepUnit =
   | "1"
   | "K"
   | "g"
+  | "kN"
   | "kPa"
   | "kW"
   | "kg/m³"
@@ -23,6 +24,7 @@ export type SitrepUnit =
   | "rad"
   | "ratio"
   | "s"
+  | "t"
   | "°"
 ;
 
@@ -34,6 +36,28 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "StageDeltaVEntry": {
+    burnTime: "s",
+    dryMass: "t",
+    dvActual: "m/s",
+    dvAsl: "m/s",
+    dvVac: "m/s",
+    endMass: "t",
+    fuelMass: "t",
+    startMass: "t",
+    thrustActual: "kN",
+    thrustAsl: "kN",
+    thrustVac: "kN",
+    twrActual: "1",
+    twrAsl: "1",
+    twrVac: "1",
+  },
+  "StageDeltaVSummary": {
+    totalBurnTime: "s",
+    totalDvActual: "m/s",
+    totalDvAsl: "m/s",
+    totalDvVac: "m/s",
+  },
   "ThermalHottestPart": {
     internalTemp: "K",
     maxTemp: "K",
@@ -84,6 +108,28 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "dv.stages": {
+    burnTime: "s",
+    dryMass: "t",
+    dvActual: "m/s",
+    dvAsl: "m/s",
+    dvVac: "m/s",
+    endMass: "t",
+    fuelMass: "t",
+    startMass: "t",
+    thrustActual: "kN",
+    thrustAsl: "kN",
+    thrustVac: "kN",
+    twrActual: "1",
+    twrAsl: "1",
+    twrVac: "1",
+  },
+  "dv.summary": {
+    totalBurnTime: "s",
+    totalDvActual: "m/s",
+    totalDvAsl: "m/s",
+    totalDvVac: "m/s",
+  },
   "vessel.flight": {
     altitudeAsl: "m",
     altitudeTerrain: "m",

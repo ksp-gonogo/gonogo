@@ -44,45 +44,59 @@ public class StageDeltaVEntry
     public int? Stage { get; set; }
 
     /// <summary><c>DeltaVStageInfo.deltaVinVac</c>: stage ΔV in vacuum (m/s).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvVac { get; set; }
 
     /// <summary><c>DeltaVStageInfo.deltaVatASL</c>: stage ΔV at sea level (m/s).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvAsl { get; set; }
 
     /// <summary><c>DeltaVStageInfo.deltaVActual</c>: stage ΔV at the current situation (m/s).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? DvActual { get; set; }
 
     /// <summary><c>DeltaVStageInfo.stageBurnTime</c>: full-throttle burn time for the stage (s).</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? BurnTime { get; set; }
 
     /// <summary><c>DeltaVStageInfo.TWRVac</c>: thrust-to-weight ratio in vacuum.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double? TwrVac { get; set; }
 
     /// <summary><c>DeltaVStageInfo.TWRASL</c>: thrust-to-weight ratio at sea level.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double? TwrAsl { get; set; }
 
     /// <summary><c>DeltaVStageInfo.TWRActual</c>: thrust-to-weight ratio at the current situation.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double? TwrActual { get; set; }
 
     /// <summary><c>DeltaVStageInfo.thrustVac</c>: stage thrust in vacuum (kN).</summary>
+    [SitrepUnit(Units.Kilonewtons)]
     public double? ThrustVac { get; set; }
 
     /// <summary><c>DeltaVStageInfo.thrustASL</c>: stage thrust at sea level (kN).</summary>
+    [SitrepUnit(Units.Kilonewtons)]
     public double? ThrustAsl { get; set; }
 
     /// <summary><c>DeltaVStageInfo.thrustActual</c>: stage thrust at the current situation (kN).</summary>
+    [SitrepUnit(Units.Kilonewtons)]
     public double? ThrustActual { get; set; }
 
     /// <summary><c>DeltaVStageInfo.startMass</c>: stage start mass (tonnes).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? StartMass { get; set; }
 
     /// <summary><c>DeltaVStageInfo.endMass</c>: stage end (burnout) mass (tonnes).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? EndMass { get; set; }
 
     /// <summary><c>DeltaVStageInfo.dryMass</c>: stage dry mass (tonnes).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? DryMass { get; set; }
 
     /// <summary><c>DeltaVStageInfo.fuelMass</c>: stage fuel mass (tonnes).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? FuelMass { get; set; }
 
     /// <summary>
@@ -124,14 +138,18 @@ public class StageDeltaVSummary
     public int? StageCount { get; set; }
 
     /// <summary><c>VesselDeltaV.TotalDeltaVVac</c>: total vessel ΔV in vacuum (m/s).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? TotalDvVac { get; set; }
 
     /// <summary><c>VesselDeltaV.TotalDeltaVASL</c>: total vessel ΔV at sea level (m/s).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? TotalDvAsl { get; set; }
 
     /// <summary><c>VesselDeltaV.TotalDeltaVActual</c>: total vessel ΔV at the current situation (m/s).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double? TotalDvActual { get; set; }
 
     /// <summary><c>VesselDeltaV.TotalBurnTime</c>: total full-throttle burn time across all stages (s).</summary>
+    [SitrepUnit(Units.Seconds)]
     public double? TotalBurnTime { get; set; }
 }

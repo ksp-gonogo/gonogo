@@ -353,7 +353,16 @@ export function formatQuantity(
     return { value: value.toFixed(decimals), symbol: unit, rung: unit };
   }
 
-  const magnitude = Math.abs(value);
+  // The declared unit is not necessarily the ladder's base. The contract
+  // carries what KSP sends, and KSP sends tonnes and kN, so a field can arrive
+  // already partway up its own ladder. Normalise to base before choosing a
+  // rung, or the comparison comes out in the wrong dimension entirely: 5 t
+  // measured against KILOGRAM thresholds falls to the bottom rung and renders
+  // "5.00 kg", a 1000x error wearing a plausible label.
+  const declared = ladder.find((r) => r.symbol === unit);
+  const base = declared ? value * declared.per : value;
+
+  const magnitude = Math.abs(base);
   let chosen = ladder[0];
   for (const rung of ladder) {
     if (magnitude >= rung.from) chosen = rung;
@@ -374,7 +383,7 @@ export function formatQuantity(
   }
 
   return {
-    value: (value / chosen.per).toFixed(decimals),
+    value: (base / chosen.per).toFixed(decimals),
     symbol: chosen.symbol,
     rung: chosen.symbol,
   };

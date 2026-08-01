@@ -49,6 +49,20 @@ namespace Sitrep.Contract
         /// </summary>
         public const string Kelvin = "K";
 
+        // --- Mass ---
+        /// <summary>
+        /// Tonnes, because that is the unit KSP reports mass in
+        /// (<c>DeltaVStageInfo.startMass</c> and friends) and this attribute
+        /// states what the wire ALREADY carries rather than requesting a
+        /// conversion. The client's ladder normalises to kilograms before
+        /// scaling, so a tonne value still climbs and falls correctly.
+        /// </summary>
+        public const string Tonnes = "t";
+
+        // --- Force ---
+        /// <summary>Kilonewtons, KSP's own thrust unit (<c>DeltaVStageInfo.thrustVac</c>).</summary>
+        public const string Kilonewtons = "kN";
+
         // --- Pressure ---
         public const string Kilopascals = "kPa";
 

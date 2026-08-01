@@ -94,6 +94,35 @@ describe("formatQuantity", () => {
     });
   });
 
+  it("ladders from the unit the field is actually in, not from the base unit", () => {
+    // The contract carries what KSP sends, and KSP sends tonnes and kN. A
+    // ladder keyed on kilograms compares a TONNE magnitude against KILOGRAM
+    // thresholds, so 5 t fell to the bottom rung and rendered "5.00 kg": a
+    // 1000x error under a label that looks entirely plausible. This is the
+    // exact failure the module exists to prevent, so it is pinned here.
+    expect(formatQuantity(5, "t")).toMatchObject({
+      value: "5.00",
+      symbol: "t",
+    });
+    expect(formatQuantity(250, "kN")).toMatchObject({
+      value: "250.0",
+      symbol: "kN",
+    });
+  });
+
+  it("still climbs from a non-base unit", () => {
+    // 2500 t is 2.5 kt: normalising to base must not cost the ladder its climb.
+    expect(formatQuantity(2500, "t")).toMatchObject({
+      value: "2.50",
+      symbol: "kt",
+    });
+    // And back down: 0.4 t is 400 kg.
+    expect(formatQuantity(0.4, "t")).toMatchObject({
+      value: "400.00",
+      symbol: "kg",
+    });
+  });
+
   it("writes a gravitational parameter in scientific notation", () => {
     // Kerbin's mu. "3531600000000" is unreadable and there is no prefix anyone
     // writes for 1e12 m³/s², so the notation the literature uses wins.
