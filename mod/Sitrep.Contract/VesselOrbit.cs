@@ -33,24 +33,35 @@ public class VesselOrbit
 {
     public int ReferenceBodyIndex { get; set; }
 
+    /// <summary>Semi-major axis, metres (see the class doc comment's units block).</summary>
+    [SitrepUnit(Units.Metres)]
     public double Sma { get; set; }
 
+    /// <summary>Eccentricity: dimensionless by definition, hence the explicit "1" token rather than no annotation.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double Ecc { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double Inc { get; set; }
 
     /// <summary>Null = undefined ascending node (KSP's own LAN is NaN for a near-equatorial orbit, inc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? Lan { get; set; }
 
     /// <summary>Null = undefined periapsis (KSP's own argumentOfPeriapsis is NaN for a near-circular orbit, ecc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? ArgPe { get; set; }
 
+    /// <summary>RADIANS, not degrees. The KSP-native degrees/radians split this record deliberately keeps (see the class doc comment) is exactly the kind of trap a machine-readable unit exists to defuse.</summary>
+    [SitrepUnit(Units.Radians)]
     public double MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every other UT-typed field on this record (matches KSP's own <c>Orbit.epoch</c> units).</summary>
+    [SitrepUnit(Units.Seconds)]
     public double Epoch { get; set; }
 
     /// <summary>Parent body's standard gravitational parameter (GM): self-sufficient propagation, no separate body lookup required.</summary>
+    [SitrepUnit(Units.CubicMetresPerSecondSquared)]
     public double Mu { get; set; }
 
     /// <summary>Null = no upcoming SOI transition on the current trajectory (the common case); NEVER a sentinel (kills O-9).</summary>

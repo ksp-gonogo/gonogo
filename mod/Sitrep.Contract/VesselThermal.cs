@@ -14,9 +14,17 @@ namespace Sitrep.Contract;
 #endif
 public class ThermalHottestPart
 {
+    /// <summary>Kelvin (KSP's <c>Part.temperature</c>). All four readings on this record share the unit, which is what makes the ratios on <see cref="VesselThermal"/> dimensionless.</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double InternalTemp { get; set; }
+
+    [SitrepUnit(Units.Kelvin)]
     public double MaxTemp { get; set; }
+
+    [SitrepUnit(Units.Kelvin)]
     public double SkinTemp { get; set; }
+
+    [SitrepUnit(Units.Kelvin)]
     public double SkinMaxTemp { get; set; }
 
     /// <summary>Display name of the hottest part (<c>Part.partInfo.title</c>, falling back to <c>Part.name</c>, same convention as <see cref="Sitrep.Contract.VesselPart.Title"/>). Never null when <see cref="VesselThermal.HottestPart"/> itself is non-null.</summary>
@@ -45,27 +53,34 @@ public class ThermalHottestPart
 public class VesselThermal
 {
     /// <summary>Null = no part this tick had a valid (&gt; 0) <c>skinMaxTemp</c>, typed, never 0.0.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? MaxSkinTempRatio { get; set; }
 
     /// <summary>Null = no part this tick had a valid (&gt; 0) <c>maxTemp</c>, typed, never 0.0.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? MaxInternalTempRatio { get; set; }
 
     /// <summary>Null = no part qualified as "hottest" (same no-valid-part condition as <see cref="MaxInternalTempRatio"/>).</summary>
     public ThermalHottestPart? HottestPart { get; set; }
 
     /// <summary>Hottest heat-shield part's internal temperature in °C (the part carrying a <c>ModuleAblator</c>, <c>Part.temperature</c> in K minus 273.15). Null when the vessel carries no ablative heat shield this tick.</summary>
+    [SitrepUnit(Units.Celsius)]
     public double? HeatShieldTempCelsius { get; set; }
 
     /// <summary>The same heat shield's ablative heat flux (<c>ModuleAblator.flux</c>, kW). Null when the vessel carries no ablative heat shield this tick.</summary>
+    [SitrepUnit(Units.Kilowatts)]
     public double? HeatShieldFlux { get; set; }
 
     /// <summary>Internal temperature (K, raw: same unit as <see cref="ThermalHottestPart.InternalTemp"/>) of whichever part carrying a <c>ModuleEngines</c>/<c>ModuleEnginesFX</c> module has the highest internal-temperature ratio. Null when the vessel carries no engine parts this tick.</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double? HottestEngineTemp { get; set; }
 
     /// <summary>That same engine part's max internal temperature (K, raw). Null under the same no-engine-parts condition as <see cref="HottestEngineTemp"/>.</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double? HottestEngineMaxTemp { get; set; }
 
     /// <summary>That same engine part's internal-temperature ratio (<c>temperature / maxTemp</c>). Null under the same no-engine-parts condition as <see cref="HottestEngineTemp"/>.</summary>
+    [SitrepUnit(Units.Ratio)]
     public double? HottestEngineTempRatio { get; set; }
 
     /// <summary>True when ANY engine part's internal-temperature ratio is at or above 0.9, the same "&gt;90% max" threshold ThermalStatus's own inline alert copy already states. False (not null) whenever the vessel has engine parts and none crosses it; null only alongside a null <see cref="HottestEngineTempRatio"/> (no engine parts at all this tick).</summary>

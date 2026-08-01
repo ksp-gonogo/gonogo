@@ -316,6 +316,21 @@ public static class RtConfig
         {
             EmitTopicMap(topicMapOut!);
         }
+
+        // --- Field -> unit map (see SitrepUnitAttribute) ---
+        // Same shape of problem, and same answer, as the topic map above:
+        // Reinforced.Typings emits TYPES, and a unit is a runtime VALUE a
+        // formatter has to look up, so it cannot live in contract.ts at all
+        // (rtcli emits interfaces + enums; there is no hook for an arbitrary
+        // const map). codegen.sh sets SITREP_UNITMAP_OUT and we reflect over
+        // the [SitrepUnit]-tagged properties to write units.ts alongside.
+        // Keeping it a SEPARATE artifact also means contract.ts stays exactly
+        // what rtcli produced, with no post-processing step to drift.
+        var unitMapOut = Environment.GetEnvironmentVariable("SITREP_UNITMAP_OUT");
+        if (!string.IsNullOrEmpty(unitMapOut))
+        {
+            EmitUnitMap(unitMapOut!);
+        }
     }
 
     /// <summary>
@@ -384,6 +399,156 @@ public static class RtConfig
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (topic-map) -> " + outPath);
+    }
+
+    /// <summary>
+    /// Writes the generated field -> unit map (<c>SitrepUnit</c>,
+    /// <c>GENERATED_TYPE_UNITS</c> and <c>GENERATED_TOPIC_UNITS</c>) consumed by
+    /// <c>mod/sitrep-sdk/src/units.ts</c>. Every property carrying
+    /// <see cref="SitrepUnitAttribute"/> contributes one entry under its
+    /// declaring type's generated interface name, keyed by the CAMEL-CASED
+    /// property name so the key matches the emitted TS field exactly
+    /// (<c>CamelCaseForProperties</c> above lowercases the leading character and
+    /// changes nothing else, hence the same one-character transform here).
+    ///
+    /// <para>Two views come out of the one scan. <c>GENERATED_TYPE_UNITS</c> is
+    /// keyed by interface name and covers NESTED payload shapes too (e.g.
+    /// <see cref="ThermalHottestPart"/>), which no Topic names directly.
+    /// <c>GENERATED_TOPIC_UNITS</c> is the ergonomic view for a widget, which
+    /// holds a Topic id rather than a type name; for an <c>IsArray</c> Topic the
+    /// entry describes the ELEMENT's fields, since that is what a consumer
+    /// indexes into.</para>
+    ///
+    /// <para>The <c>SitrepUnit</c> union is emitted from the whole
+    /// <see cref="Units"/> catalog, not merely the tokens currently in use, so
+    /// it is the stable vocabulary a client-side formatter can switch over
+    /// exhaustively while annotation coverage is still being filled in.</para>
+    /// </summary>
+    private static void EmitUnitMap(string outPath)
+    {
+        // The closed vocabulary: every public const string on Units.
+        var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var field in typeof(Units).GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (field.IsLiteral && field.FieldType == typeof(string))
+            {
+                vocabulary.Add((string)field.GetRawConstantValue());
+            }
+        }
+
+        var byType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        var byTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        foreach (var type in typeof(RtConfig).Assembly.GetTypes())
+        {
+            var fields = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
+                if (unit == null)
+                {
+                    continue;
+                }
+
+                if (!vocabulary.Contains(unit.Unit))
+                {
+                    // A token outside the Units catalog is the drift this whole
+                    // mechanism exists to prevent, so fail the codegen run
+                    // rather than emit a value outside the SitrepUnit union
+                    // (which would not even typecheck downstream).
+                    throw new InvalidOperationException(
+                        "[SitrepUnit] on " + type.Name + "." + prop.Name + " carries \"" + unit.Unit +
+                        "\", which is not a Sitrep.Contract.Units constant. Add it to the Units catalog.");
+                }
+
+                fields.Add(CamelCase(prop.Name), unit.Unit);
+            }
+
+            if (fields.Count == 0)
+            {
+                continue;
+            }
+
+            byType.Add(type.Name, fields);
+
+            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
+            if (topic != null)
+            {
+                byTopic.Add(topic.TopicId, fields);
+            }
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("//     This code was generated by the Sitrep contract unit-map codegen\n");
+        sb.Append("//     (Sitrep.Contract.RtConfig.EmitUnitMap, invoked from mod/codegen.sh).\n");
+        sb.Append("//     Changes to this file may cause incorrect behavior and will be lost if\n");
+        sb.Append("//     the code is regenerated.\n");
+        sb.Append("//\n");
+        sb.Append("// Derived by reflecting over every [SitrepUnit]-tagged property in\n");
+        sb.Append("// Sitrep.Contract. Keys are the camelCased field names as they appear in\n");
+        sb.Append("// ./contract.ts. A field ABSENT here has no declared unit yet (the default),\n");
+        sb.Append("// which is not the same as being dimensionless: dimensionless is the\n");
+        sb.Append("// explicit \"1\" token.\n\n");
+
+        sb.Append("/** The closed unit vocabulary (Sitrep.Contract.Units). */\n");
+        sb.Append("export type SitrepUnit =\n");
+        foreach (var token in vocabulary)
+        {
+            sb.Append("  | \"").Append(token).Append("\"\n");
+        }
+        sb.Append(";\n\n");
+
+        sb.Append("/** Declared units for one payload shape, keyed by camelCased field name. */\n");
+        sb.Append("export type UnitsByField = Readonly<Record<string, SitrepUnit>>;\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * Keyed by the generated interface name in ./contract.ts. Covers NESTED\n");
+        sb.Append(" * payload shapes that no Topic names directly.\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {\n");
+        AppendMapBody(sb, byType);
+        sb.Append("};\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * Keyed by Topic id. For an array Topic the entry describes the ELEMENT's\n");
+        sb.Append(" * fields, which is what a consumer indexes into.\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {\n");
+        AppendMapBody(sb, byTopic);
+        sb.Append("};\n");
+
+        File.WriteAllText(outPath, sb.ToString());
+        Console.WriteLine("codegen (unit-map) -> " + outPath);
+    }
+
+    private static void AppendMapBody(
+        StringBuilder sb,
+        SortedDictionary<string, SortedDictionary<string, string>> map)
+    {
+        foreach (var outer in map)
+        {
+            sb.Append("  \"").Append(outer.Key).Append("\": {\n");
+            foreach (var inner in outer.Value)
+            {
+                sb.Append("    ").Append(inner.Key).Append(": \"").Append(inner.Value).Append("\",\n");
+            }
+            sb.Append("  },\n");
+        }
+    }
+
+    /// <summary>
+    /// Mirrors <c>CamelCaseForProperties</c>: lowercase the leading character,
+    /// leave the rest alone (so <c>DynamicPressureKPa</c> stays
+    /// <c>dynamicPressureKPa</c> and <c>GForce</c> becomes <c>gForce</c>, both
+    /// exactly as they appear in the emitted contract.ts).
+    /// </summary>
+    private static string CamelCase(string name)
+    {
+        if (string.IsNullOrEmpty(name) || !char.IsUpper(name[0]))
+        {
+            return name;
+        }
+
+        return char.ToLowerInvariant(name[0]) + name.Substring(1);
     }
 }
 #endif

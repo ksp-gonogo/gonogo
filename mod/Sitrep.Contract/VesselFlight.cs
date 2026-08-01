@@ -23,33 +23,53 @@ namespace Sitrep.Contract;
 public class VesselFlight
 {
     /// <summary>Degrees. PRESENT means valid, no (0,0) no-data sentinel (V-10); absence is the whole channel being unavailable.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double Latitude { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double Longitude { get; set; }
 
+    /// <summary>Altitude above sea level, metres (KSP's <c>Vessel.altitude</c>).</summary>
+    [SitrepUnit(Units.Metres)]
     public double AltitudeAsl { get; set; }
 
     /// <summary>Height above terrain (AGL, radar altitude), metres, NOT derivable from orbital elements, hence streamed raw.</summary>
+    [SitrepUnit(Units.Metres)]
     public double AltitudeTerrain { get; set; }
 
+    /// <summary>Metres per second (KSP's <c>Vessel.verticalSpeed</c>), signed: negative is descending.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double VerticalSpeed { get; set; }
 
+    /// <summary>Speed relative to the surface, metres per second (KSP's <c>Vessel.srfSpeed</c>).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double SurfaceSpeed { get; set; }
 
+    /// <summary>Speed relative to the parent body's inertial frame, metres per second (KSP's <c>Vessel.obt_speed</c>).</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public double OrbitalSpeed { get; set; }
 
+    /// <summary>Multiples of standard gravity (KSP's <c>Vessel.geeForce</c>).</summary>
+    [SitrepUnit(Units.GForce)]
     public double GForce { get; set; }
 
+    [SitrepUnit(Units.Kilopascals)]
     public double DynamicPressureKPa { get; set; }
 
+    /// <summary>Mach number: dimensionless by definition, so it carries the explicit "1" unit token rather than being left unannotated.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public double Mach { get; set; }
 
+    /// <summary>Atmospheric density at the vessel's position, kg/m³ (KSP's <c>Vessel.atmDensity</c>).</summary>
+    [SitrepUnit(Units.KilogramsPerCubicMetre)]
     public double AtmDensity { get; set; }
 
     /// <summary>Skin/ambient external temperature the vessel is exposed to, Kelvin (Vessel.externalTemperature).</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double ExternalTemperature { get; set; }
 
     /// <summary>Ambient atmospheric temperature at the vessel's position, Kelvin (Vessel.atmosphericTemperature).</summary>
+    [SitrepUnit(Units.Kelvin)]
     public double AtmosphericTemperature { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

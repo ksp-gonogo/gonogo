@@ -37,6 +37,7 @@ public class VesselSurface
     public string? LandedAt { get; set; }
 
     /// <summary>Metres: KSP's own <c>heightFromTerrain</c>, accounting for the vessel's physical extent (see the class doc comment for how this differs from <c>vessel.flight.altitudeTerrain</c>). Null if unavailable this tick.</summary>
+    [SitrepUnit(Units.Metres)]
     public double? HeightFromTerrain { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

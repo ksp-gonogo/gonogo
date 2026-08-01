@@ -14,4 +14,12 @@ export {
   type TopicPayload,
   type TopicPayloadMap,
 } from "./topics";
+export {
+  type SitrepUnit,
+  type UnitsByField,
+  unitOf,
+  unitOfTypeField,
+  unitsForTopic,
+  unitsForType,
+} from "./units";
 export { SDK_VERSION } from "./version.generated";

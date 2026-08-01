@@ -6,7 +6,7 @@
 // Derived by reflecting over every [SitrepTopic]-tagged payload type in
 // Sitrep.Contract: the attribute's TopicId is the map key and the tagged
 // type's generated interface (its plain C# name in ./contract.ts) is the
-// value: with `[]` appended for the IsArray channels whose payload is a
+// value, with `[]` appended for the IsArray channels whose payload is a
 // bare JSON array of the element type.
 
 import type {
