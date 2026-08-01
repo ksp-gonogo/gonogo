@@ -11,7 +11,7 @@
  *   vessel.thermal.maxInternalTempRatio         → ~0.256  (nominal, <0.75)
  *   vessel.thermal.hottestEngineTempRatio       → ~0.173  (nominal)
  *   vessel.thermal.anyEnginesOverheating        → false
- *   vessel.thermal.heatShieldTempCelsius        → -273.15 (absolute-zero
+ *   vessel.thermal.heatShieldTemp               → 0 K (absolute-zero
  *                                                  sentinel: widget drops
  *                                                  the shield row entirely)
  *

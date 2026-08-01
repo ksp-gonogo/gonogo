@@ -256,14 +256,21 @@ export const SNAPSHOT = {
 
   "vessel.thermal": {
     maxInternalTempRatio: 0.255867417565087,
+    // Kelvin, like every other temperature on this channel. Recorded in
+    // Celsius while the part and engine readings disagreed about their unit:
+    // maxInternalTempRatio (0.255867) x maxTemp (1200) is 307.04 K, which is
+    // exactly the old 33.8909 plus 273.15, whereas the engine pair below
+    // already ratioed as raw Kelvin. Below 50 K reads as the no-instrument
+    // sentinel, so the Celsius value now drops the row it is meant to fill.
     hottestPart: {
-      internalTemp: 33.8909010781041,
+      internalTemp: 307.0409010781041,
       maxTemp: 1200,
-      skinTemp: 33.8909010781041,
+      skinTemp: 307.0409010781041,
       skinMaxTemp: 1200,
       name: "Mk1 Command Pod",
     },
-    heatShieldTempCelsius: -273.15,
+    // Absolute zero: the "no heat shield fitted" sentinel, in Kelvin now.
+    heatShieldTemp: 0,
     heatShieldFlux: 0,
     hottestEngineTemp: 346.046298629391,
     hottestEngineMaxTemp: 2000,
