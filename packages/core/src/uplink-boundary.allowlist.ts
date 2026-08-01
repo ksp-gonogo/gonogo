@@ -241,6 +241,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/ScanPayloads.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      // Same codegen run as topic-map.ts above, same reflection over the same
+      // assembly: it names a payload type for every field carrying a
+      // [SitrepUnit], and ScanPayloads.cs (already listed here) now carries
+      // them. Generated output, not core reaching into a mod.
+      "mod/sitrep-sdk/src/__generated__/units.ts",
       // topics.test-d.ts stays: it still type-asserts the GENERATED
       // `scansat.scanningVessels` Topic (a real Sitrep.Contract payload,
       // `ScanningVesselEntry[]`). Only the bare-primitive `scansat.available` (which

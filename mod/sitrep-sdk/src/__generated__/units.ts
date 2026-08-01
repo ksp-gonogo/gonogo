@@ -150,6 +150,26 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sma: "m",
     startUt: "s",
   },
+  "SavedShipEntry": {
+    totalMass: "t",
+  },
+  "ScanAnomalyEntry": {
+    latitude: "°",
+    longitude: "°",
+  },
+  "ScanSensorEntry": {
+    bestAlt: "m",
+    fov: "°",
+    maxAlt: "m",
+    minAlt: "m",
+  },
+  "ScanningVesselEntry": {
+    altitude: "m",
+    groundTrackLonHalfDeg: "°",
+    groundTrackWidthDeg: "°",
+    subLatitude: "°",
+    subLongitude: "°",
+  },
   "SetControlAxesArgs": {
     pitch: "1",
     pitchTrim: "1",
@@ -167,6 +187,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "SetThrottleArgs": {
     value: "ratio",
+  },
+  "SpaceCenterPoiEntry": {
+    latitude: "°",
+    longitude: "°",
   },
   "StageDeltaVEntry": {
     burnTime: "s",
@@ -330,6 +354,20 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     panYaw: "°",
     panYawMaximum: "°",
     panYawMinimum: "°",
+  },
+  "scansat.scanningVessels": {
+    altitude: "m",
+    groundTrackLonHalfDeg: "°",
+    groundTrackWidthDeg: "°",
+    subLatitude: "°",
+    subLongitude: "°",
+  },
+  "spaceCenter.pois": {
+    latitude: "°",
+    longitude: "°",
+  },
+  "spaceCenter.savedShips": {
+    totalMass: "t",
   },
   "vessel.flight": {
     altitudeAsl: "m",

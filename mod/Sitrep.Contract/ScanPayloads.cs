@@ -56,12 +56,16 @@ public class ScanSensorEntry
 {
     public int? Type { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? Fov { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double? MinAlt { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double? MaxAlt { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double? BestAlt { get; set; }
 
     public bool? InRange { get; set; }
@@ -126,16 +130,21 @@ public class ScanningVesselEntry
 
     public string? Body { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? SubLatitude { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? SubLongitude { get; set; }
 
+    [SitrepUnit(Units.Metres)]
     public double? Altitude { get; set; }
 
     public List<ScanSensorEntry>? Sensors { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? GroundTrackWidthDeg { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? GroundTrackLonHalfDeg { get; set; }
 
     public ScanTrackColor? TrackColor { get; set; }
@@ -232,8 +241,10 @@ public class ScanAnomalyEntry
 {
     public string? Name { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? Latitude { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? Longitude { get; set; }
 
     public bool? Known { get; set; }

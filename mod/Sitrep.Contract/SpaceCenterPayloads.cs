@@ -159,6 +159,7 @@ public class SavedShipEntry
     public int? PartCount { get; set; }
 
     /// <summary>Total mass in tonnes (<c>CraftProfileInfo.totalMass</c>).</summary>
+    [SitrepUnit(Units.Tonnes)]
     public double? TotalMass { get; set; }
 
     /// <summary>Which editor built it: the <c>EditorFacility</c> enum name, <c>"VAB"</c> or <c>"SPH"</c> (<c>CraftProfileInfo.shipFacility</c>).</summary>
@@ -231,8 +232,10 @@ public class SpaceCenterPoiEntry
     /// <summary>Index into <see cref="SystemBodies"/>; null when absent or unresolved (never a sentinel like -1).</summary>
     public int? BodyIndex { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? Latitude { get; set; }
 
+    [SitrepUnit(Units.Degrees)]
     public double? Longitude { get; set; }
 
     /// <summary>Display label: the launch site's display name, or the contract's title.</summary>
