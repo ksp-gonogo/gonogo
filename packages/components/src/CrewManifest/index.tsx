@@ -9,6 +9,7 @@ import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
+  Cluster,
   EmptyState,
   NULL_DISPLAY,
   Panel,
@@ -544,7 +545,7 @@ function renderBody({
         const rules = showMeters ? rulesByName.get(name) : undefined;
         return (
           <RosterItem key={name}>
-            <Row>
+            <Cluster justify="start">
               {/* Leading per-crew avatar slot: a square cell where an Uplink's
                   avatar augment composes. The fallback bullet is a base
                   layer under the slot, with no augment bound (or the augment
@@ -572,7 +573,7 @@ function renderBody({
                   props={{ crewName: name, crewIndex: index }}
                 />
               </Badges>
-            </Row>
+            </Cluster>
             {rules && <SurvivalMeters rules={rules} stage1Sec={stage1Sec} />}
           </RosterItem>
         );
@@ -629,12 +630,6 @@ const RosterItem = styled.li`
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-`;
-
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
 `;
 
 // Per-kerbal survival meters block, indented under the name line.

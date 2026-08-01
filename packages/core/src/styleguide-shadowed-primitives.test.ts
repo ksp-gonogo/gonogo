@@ -153,8 +153,6 @@ const BASELINE = new Set<string>([
   "Row@packages/app/src/components/StationConnectionFab.tsx",
   "Row@packages/app/src/components/StationLinkFab.tsx",
   "Row@packages/app/src/settings/SettingsModal.tsx",
-  "Row@packages/components/src/CrewManifest/index.tsx",
-  "Row@packages/components/src/DataSourceStatus/index.tsx",
   "Row@packages/components/src/FleetRoster/index.tsx",
   "Row@packages/components/src/LifeSupportSystems/GreenhouseSection.tsx",
   "Row@packages/components/src/PerfBudgets/index.tsx",

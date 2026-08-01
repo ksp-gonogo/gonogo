@@ -9,6 +9,7 @@ import {
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   BigReadout,
+  Cluster,
   FieldLabel,
   FieldRow,
   FormActions,
@@ -146,7 +147,7 @@ function DataSourceStatusComponent({
             const isConfiguring = configuringId === source.id;
             return (
               <Item key={source.id}>
-                <Row>
+                <Cluster justify="start">
                   <Indicator $status={source.status} />
                   <Name>{source.name}</Name>
                   <RemoteVersionPill sourceId={source.id} />
@@ -176,7 +177,7 @@ function DataSourceStatusComponent({
                       <GearIcon size={14} />
                     </ConfigButton>
                   )}
-                </Row>
+                </Cluster>
                 {source.status === "disconnected" &&
                   (() => {
                     const instructions = getDataSource(
@@ -287,12 +288,6 @@ const CompactRow = styled.li`
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-4) 0;
-`;
-
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
 `;
 
 const Name = styled.span`
