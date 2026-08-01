@@ -247,9 +247,9 @@ export function Tape({
         {/* Ground line */}
         {groundLine !== undefined && span > 0 && (
           <line
-            x1={TRACK_X - 4}
+            x1={trackX - 4}
             y1={yOf(groundLine)}
-            x2={TRACK_X + TRACK_W + 4}
+            x2={trackX + TRACK_W + 4}
             y2={yOf(groundLine)}
             stroke="var(--color-text-primary)"
             strokeWidth={2}
@@ -262,9 +262,9 @@ export function Tape({
           return (
             <g key={`tick-${t}`}>
               <line
-                x1={TRACK_X - 4}
+                x1={mirrored ? trackX + TRACK_W + 4 : trackX - 4}
                 y1={y}
-                x2={TRACK_X}
+                x2={mirrored ? trackX + TRACK_W : trackX}
                 y2={y}
                 stroke="var(--color-border-subtle)"
                 strokeWidth={1}
@@ -290,7 +290,11 @@ export function Tape({
           return (
             <g key={`marker-${m.value}-${m.label ?? ""}`}>
               <polygon
-                points={`${TRACK_X + TRACK_W},${y} ${TRACK_X + TRACK_W + 5},${y - 3} ${TRACK_X + TRACK_W + 5},${y + 3}`}
+                points={
+                  mirrored
+                    ? `${trackX},${y} ${trackX - 5},${y - 3} ${trackX - 5},${y + 3}`
+                    : `${trackX + TRACK_W},${y} ${trackX + TRACK_W + 5},${y - 3} ${trackX + TRACK_W + 5},${y + 3}`
+                }
                 fill={color}
               />
               {m.label && (
@@ -310,10 +314,13 @@ export function Tape({
         })}
 
         {/* Current-value pointer + flag */}
+        {/* Spans the track, so it follows the mirror. It used to be pinned to
+            the unmirrored TRACK_X, which left the pointer on the opposite side
+            from the track it points at whenever labelSide flipped. */}
         <line
-          x1={TRACK_X - 6}
+          x1={trackX - 6}
           y1={pointerY}
-          x2={TRACK_X + TRACK_W + 6}
+          x2={trackX + TRACK_W + 6}
           y2={pointerY}
           stroke="var(--color-accent-fg)"
           strokeWidth={2}

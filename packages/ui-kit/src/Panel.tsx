@@ -187,6 +187,13 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--space-4, 4px);
+  /* Grow to fill the line it lands on. Alone this only right-aligns the whole
+     aside, which is right for the common case (a chip or two) but not for an
+     aside carrying a headline readout AND badges: that widget wants its state
+     reading left and only the badges floating right, which it gets by making
+     its own aside content a full-width row. Growing the box is what gives it a
+     row to align within; a shrink-to-fit box has none. */
+  flex-grow: 1;
   /* Wraps internally too, so a multi-chip aside stacks its own contents
      rather than forcing the whole aside onto a third row. */
   flex-wrap: wrap;

@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
-import { Gauge, Sparkline } from "@ksp-gonogo/ui";
+import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
   Cluster,
@@ -25,7 +25,7 @@ import {
   StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
@@ -134,26 +134,47 @@ function StackedField({
 }
 
 /**
- * The visible height of the enclosing `Panel.Body`, in pixels.
+ * The visible height of the enclosing `Panel.Body`, in pixels, and the callback
+ * ref that finds it.
  *
  * The rail wants to be the full height of the widget as DISPLAYED, which is the
  * scroller's own box, not the height of the content inside it. No percentage
  * expresses that from within: a child's `height: 100%` resolves against the
  * flex row it sits in, which is as tall as the content and therefore too tall
- * the moment anything overflows. So measure the scroller and use the number.
+ * the moment anything overflows.
+ *
+ * A CALLBACK ref, not `useRef` + `useEffect`. The row this measures from only
+ * exists once a descent is streaming, and an effect keyed on a ref object runs
+ * exactly once, on the first render, when that row is not mounted yet: it found
+ * nothing, returned, and never ran again, so the height stayed 0 and the rail
+ * silently fell back to its content height. A callback ref runs on every attach
+ * and detach, which is the actual lifecycle here.
  */
-function useScrollerHeight(ref: React.RefObject<HTMLElement | null>): number {
-  const [h, setH] = useState(0);
-  useEffect(() => {
-    const box = ref.current?.closest("[data-panel-body]");
+function useScrollerHeight(): [(node: HTMLElement | null) => void, number] {
+  const [height, setHeight] = useState(0);
+  const observer = useRef<ResizeObserver | null>(null);
+  const measure = useCallback((node: HTMLElement | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    const box = node?.closest("[data-panel-body]");
     if (!(box instanceof HTMLElement)) return;
-    const update = () => setH(box.clientHeight);
-    update();
-    const ro = new ResizeObserver(update);
+    // clientHeight is the PADDING box. The rail lives inside the content box,
+    // so using clientHeight made it overrun the visible bottom by exactly the
+    // body's vertical inset, which is what clipped its footer label.
+    const contentHeight = () => {
+      const cs = getComputedStyle(box);
+      return (
+        box.clientHeight -
+        Number.parseFloat(cs.paddingTop || "0") -
+        Number.parseFloat(cs.paddingBottom || "0")
+      );
+    };
+    setHeight(contentHeight());
+    const ro = new ResizeObserver(() => setHeight(contentHeight()));
     ro.observe(box);
-    return () => ro.disconnect();
-  }, [ref]);
-  return h;
+    observer.current = ro;
+  }, []);
+  return [measure, height];
 }
 
 const DESCENT_HISTORY_MAX = 60;
@@ -161,8 +182,7 @@ const DESCENT_HISTORY_MAX = 60;
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
-  const bodyRowRef = useRef<HTMLDivElement>(null);
-  const scrollerHeight = useScrollerHeight(bodyRowRef);
+  const [measureScroller, scrollerHeight] = useScrollerHeight();
 
   const vs = useStream<VesselState>("vessel.state");
   const bodyName = vs?.parentBodyName ?? undefined;
@@ -219,29 +239,6 @@ function LandingStatusComponent({
     requiredDv != null && availableDv != null
       ? requiredDv <= availableDv
       : null;
-
-  // TWR is thrust-to-weight (can-I-take-off / hover capability) and is meaningful
-  // even when idle on the surface, so fall back to a static thrust/mass ÷ local
-  // gravity when the burn solve isn't producing one (landed, no active descent).
-  // Same units as the solver: availableThrust(kN)/totalMass(t) = m/s²; g = μ/r².
-  const staticMaxAccel =
-    propulsion?.availableThrust != null &&
-    propulsion.totalMass != null &&
-    propulsion.totalMass > 0
-      ? propulsion.availableThrust / propulsion.totalMass
-      : null;
-  const localGravity =
-    orbit?.mu != null && body?.radius != null && body.radius > 0
-      ? orbit.mu / (body.radius + (heightFromTerrain ?? 0)) ** 2
-      : null;
-  const twr =
-    solution.maxAccel != null &&
-    solution.gravity != null &&
-    solution.gravity > 0
-      ? solution.maxAccel / solution.gravity
-      : staticMaxAccel != null && localGravity != null && localGravity > 0
-        ? staticMaxAccel / localGravity
-        : null;
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
   // when the vessel.landing channel carries a terminal velocity, only in an
@@ -329,23 +326,10 @@ function LandingStatusComponent({
     />
   ) : null;
 
-  const twrGaugeEl = (
-    <Gauge
-      value={twr ?? 0}
-      min={0}
-      max={3}
-      width={132}
-      height={84}
-      zones={[
-        { from: 0, to: 1, color: "var(--color-status-nogo-fg)" },
-        { from: 1, to: 1.5, color: "var(--color-status-warning-fg)" },
-        { from: 1.5, to: 3, color: "var(--color-status-go-fg)" },
-      ]}
-      valueLabel={twr == null ? NULL_DISPLAY : twr.toFixed(2)}
-      unitLabel="TWR"
-      ariaLabel={`TWR ${twr == null ? "unknown" : twr.toFixed(2)}`}
-    />
-  );
+  // TWR is its own widget. It was here because a descent wants it, but a
+  // dashboard that wants it can place the TWR widget beside this one, and
+  // carrying a second copy cost this panel a whole band of vertical space it
+  // needs for the plots.
 
   const comDatumNote = usingComDatum ? (
     <Value tone="muted" size="xs">
@@ -513,7 +497,6 @@ function LandingStatusComponent({
   const detailStack = (
     <Stack gap="sm">
       {crossSectionEl}
-      {scopeShown && twrGaugeEl}
       {boardEl}
       {velocityEl}
       {readoutsStack}
@@ -608,18 +591,38 @@ function LandingStatusComponent({
       // above the readout it qualifies. They are the standing state of the link
       // rather than part of the descent readout, which is what the aside is for.
       panelAside={
-        <Cluster gap="sm">
+        // The state and the round trip read left, where they sit naturally
+        // beside the title; only the BADGES float right. A single right-aligned
+        // block would drag the headline state over with it, which reads as a
+        // right-aligned title rather than a left-to-right instrument line.
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--space-8)",
+            width: "100%",
+          }}
+        >
           {commitLayerEl}
           {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
             <Value tone="muted">
               RT {formatDuration(clocks.roundTripSeconds, { ms: true })}
             </Value>
           )}
-          <StatusPill $tone={REGIME_TONE[clocks.regime]}>
-            {REGIME_LABEL[clocks.regime]}
-          </StatusPill>
-          <AugmentSlot name="landing-status.badges" props={badgesContext} />
-        </Cluster>
+          <span
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-4)",
+            }}
+          >
+            <StatusPill $tone={REGIME_TONE[clocks.regime]}>
+              {REGIME_LABEL[clocks.regime]}
+            </StatusPill>
+            <AugmentSlot name="landing-status.badges" props={badgesContext} />
+          </span>
+        </div>
       }
     >
       {board === "not-descending" && !landed ? (
@@ -630,7 +633,7 @@ function LandingStatusComponent({
         // paying its own inset, which is how the widget ended up with five
         // different insets and read tight. The body owns one inset now.
         <div
-          ref={bodyRowRef}
+          ref={measureScroller}
           style={{
             display: "flex",
             flex: 1,
@@ -655,6 +658,7 @@ function LandingStatusComponent({
                 // An instrument dimension, not a spacing rung: the width the
                 // scale's labels and track need.
                 width: 64,
+
                 position: "sticky",
                 top: 0,
                 alignSelf: "flex-start",
@@ -676,14 +680,6 @@ function LandingStatusComponent({
           <div style={{ flex: 1, minWidth: 0 }}>
             {showReticle ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {/* Top band: commit text (inset) + the larger TWR gauge pinned
-                    to the top-right corner (bleeds). */}
-                {/* The commit readout used to sit here beside the gauge; it
-                    is the panel's headline state, so it is in the header now
-                    and the gauge has the band to itself. */}
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <div style={{ flex: "0 0 auto" }}>{twrGaugeEl}</div>
-                </div>
                 {/* Two equal, ALIGNED altimetry squares in a shared row, same
                     top, size, baseline: bleeding to the right edge. */}
                 <div style={{ display: "flex", gap: "var(--space-8)" }}>
