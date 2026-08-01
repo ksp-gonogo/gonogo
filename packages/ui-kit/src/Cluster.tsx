@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import type { SpaceToken } from "./Stack";
 
-export type ClusterJustify = "between" | "start" | "end";
+export type ClusterJustify = "between" | "start" | "center" | "end";
 export type ClusterAlign = "center" | "start" | "baseline";
 
 export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
@@ -31,6 +31,10 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
 const JUSTIFY_CONTENT: Record<ClusterJustify, string> = {
   between: "space-between",
   start: "flex-start",
+  // Added when Navball's "Dial" turned out to be a centring box and nothing
+  // else. Centring is the most basic justification there is and the kit
+  // simply did not offer it.
+  center: "center",
   end: "flex-end",
 };
 

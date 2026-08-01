@@ -1,4 +1,4 @@
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export interface AttitudeIndicatorProps {
@@ -58,7 +58,7 @@ export function AttitudeIndicator({
 
   return (
     <Wrap aria-hidden={!ready}>
-      <Dial>
+      <Cluster justify="center">
         <svg
           width={size}
           height={size}
@@ -163,7 +163,7 @@ export function AttitudeIndicator({
             <circle cx={cx} cy={cy} r={2} fill="var(--color-accent-fg)" />
           </g>
         </svg>
-      </Dial>
+      </Cluster>
 
       <HeadingStrip>
         <HeadingTicker
@@ -229,12 +229,6 @@ const Wrap = styled.div`
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-4);
-`;
-
-const Dial = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const HeadingStrip = styled.div`

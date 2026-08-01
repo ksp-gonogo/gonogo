@@ -17,7 +17,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Grid, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -396,7 +396,7 @@ function MainView({
           ABORT: triggered by {abort.stationName}
         </AbortBanner>
       )}
-      <Grid>
+      <StationBoard>
         {stations.length === 0 && <Empty>No stations connected</Empty>}
         {stations.map((s) => {
           const cellState = deriveCellState(s, launched, abort);
@@ -431,7 +431,7 @@ function MainView({
             </Cell>
           );
         })}
-      </Grid>
+      </StationBoard>
     </MainLayout>
   );
 }
@@ -673,11 +673,13 @@ const AbortBanner = styled.div`
   text-transform: uppercase;
 `;
 
-const Grid = styled.div`
+// The auto-fill track and the gap come from the kit; filling the panel and
+// packing rows to the top are this board's own.
+const StationBoard = styled(Grid).attrs({
+  minColWidth: "140px",
+  gap: "md" as const,
+})`
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-8);
   align-content: start;
 `;
 
