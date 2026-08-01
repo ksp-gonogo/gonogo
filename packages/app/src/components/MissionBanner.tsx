@@ -1,5 +1,5 @@
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { formatKspDate } from "@ksp-gonogo/ui-kit";
+import { formatKspDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /**
@@ -45,7 +45,7 @@ export function MissionBanner() {
     <Banner role="group" aria-label="Mission status">
       {fields.map((field) => (
         <Field key={field.label}>
-          <FieldLabel>{field.label}</FieldLabel>
+          <ReadoutCaption>{field.label}</ReadoutCaption>
           <FieldValue>{field.value}</FieldValue>
         </Field>
       ))}
@@ -69,13 +69,6 @@ const Field = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: var(--space-6);
-`;
-
-const FieldLabel = styled.span`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
 `;
 
 const FieldValue = styled.span`

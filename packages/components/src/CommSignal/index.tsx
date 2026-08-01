@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
+  Cluster,
   EmptyState,
   formatDuration,
   NULL_DISPLAY,
@@ -189,7 +190,7 @@ function CommSignalComponent({
       </LiveStatus>
 
       <Body $row={isLandscape}>
-        <Readout>
+        <Cluster justify="start" wrap>
           <Bars role="img" aria-label={`Signal ${bars} of 4`}>
             {[1, 2, 3, 4].map((i) => (
               <Bar key={i} $lit={i <= bars} $tone={control.tone} />
@@ -198,7 +199,7 @@ function CommSignalComponent({
           <StrengthPct $tone={connected === false ? "lost" : undefined}>
             {headline}
           </StrengthPct>
-        </Readout>
+        </Cluster>
 
         {showDetailGrid && (
           <Grid>
@@ -271,13 +272,6 @@ const Body = styled.div<{ $row?: boolean }>`
     p.$row &&
     `align-items: center;
      & > * { flex: 1 1 0; min-width: 0; }`}
-`;
-
-const Readout = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-10);
 `;
 
 const Bars = styled.div`

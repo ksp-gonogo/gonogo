@@ -1,5 +1,6 @@
 import type { DataKey } from "@ksp-gonogo/core";
 import { DataKeyPicker, GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
+import { FieldLabel } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { THRESHOLD_OPS, type ThresholdOp } from "./triggerTypes";
@@ -111,13 +112,6 @@ const Field = styled.div`
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
-`;
-
-const FieldLabel = styled.label`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 `;
 
 const OpRow = styled.div`

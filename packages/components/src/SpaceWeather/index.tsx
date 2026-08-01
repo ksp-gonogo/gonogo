@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, Panel, Section } from "@ksp-gonogo/ui-kit";
+import { Badge, Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 type SpaceWeatherConfig = Record<string, never>;
@@ -389,7 +389,7 @@ function SpaceWeatherComponent({
 
       {!compact && (
         <FluxSection>
-          <FieldLabel>Solar-wind flux</FieldLabel>
+          <SpacedCaption>Solar-wind flux</SpacedCaption>
           <ChartSlot>
             <SolarWindChart
               radiation={d.radiationRadPerHour}
@@ -541,11 +541,11 @@ const DoseCaption = styled.div`
   letter-spacing: 0.06em;
 `;
 
-const FieldLabel = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+// ReadoutCaption, not FieldLabel: these caption read-only values, and the
+// kit's FieldLabel is a <label>, which belongs to a form control. Only the
+// spacing above is this widget's; the type treatment is the kit's.
+const SpacedCaption = styled(ReadoutCaption)`
+  display: block;
   margin-top: var(--space-8);
 `;
 

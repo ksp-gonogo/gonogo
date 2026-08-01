@@ -1,4 +1,4 @@
-import { Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Cluster, Grid, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export interface AttitudeIndicatorProps {
@@ -190,7 +190,7 @@ export function AttitudeIndicator({
         <HeadingPointer />
       </HeadingStrip>
 
-      <Readout>
+      <Grid cols="repeat(3, 1fr)" gap="md">
         <Cell>
           <Lab>HDG</Lab>
           <Val>{ready ? `${safeHeading.toFixed(0)}°` : NULL_DISPLAY}</Val>
@@ -203,7 +203,7 @@ export function AttitudeIndicator({
           <Lab>ROL</Lab>
           <Val>{ready ? `${safeRoll.toFixed(0)}°` : NULL_DISPLAY}</Val>
         </Cell>
-      </Readout>
+      </Grid>
     </Wrap>
   );
 }
@@ -290,12 +290,6 @@ const HeadingPointer = styled.div`
   width: 1px;
   background: var(--color-accent-fg);
   pointer-events: none;
-`;
-
-const Readout = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-6);
 `;
 
 const Cell = styled.div`

@@ -5,7 +5,13 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { EmptyState, Panel, ToggleButton, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Cluster,
+  EmptyState,
+  Panel,
+  ToggleButton,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -192,7 +198,7 @@ function RoboticsConsoleComponent({
   return (
     <Panel panelTitle="ROBOTICS">
       <Body>
-        <Readout>
+        <Cluster justify="start" align="baseline" wrap>
           <Current>
             {Math.round(selected.current)}
             <Unit>{unit}</Unit>
@@ -207,7 +213,7 @@ function RoboticsConsoleComponent({
               {selected.atTarget ? "AT TARGET" : "MOVING"}
             </StatePill>
           )}
-        </Readout>
+        </Cluster>
 
         <Controls>
           <ControlRow>
@@ -294,13 +300,6 @@ const Body = styled.div`
   gap: var(--space-8);
   padding: var(--space-4) var(--space-8) var(--space-8);
   overflow: auto;
-`;
-
-const Readout = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-6);
 `;
 
 const Current = styled.span`
