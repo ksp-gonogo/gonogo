@@ -75,7 +75,7 @@ export function DataKeyMultiPicker({
                 const checked = value.has(opt.key);
                 const id = `dkmp-${opt.key}`;
                 return (
-                  <Row key={opt.key} $checked={checked}>
+                  <KeyOptionRow key={opt.key} $checked={checked}>
                     <HiddenCheckbox
                       id={id}
                       type="checkbox"
@@ -83,13 +83,13 @@ export function DataKeyMultiPicker({
                       onChange={() => toggle(opt.key)}
                     />
                     <RowLabel htmlFor={id}>
-                      <Box $checked={checked}>
+                      <CheckIndicator $checked={checked}>
                         {checked && <CheckIcon size={11} strokeWidth={3} />}
-                      </Box>
+                      </CheckIndicator>
                       <ItemLabel>{opt.label ?? opt.key}</ItemLabel>
                       {opt.unit && <ItemUnit>{opt.unit}</ItemUnit>}
                     </RowLabel>
-                  </Row>
+                  </KeyOptionRow>
                 );
               })}
             </Group>
@@ -153,7 +153,7 @@ const GroupHeader = styled.div`
   background: var(--color-surface-panel);
 `;
 
-const Row = styled.div<{ $checked: boolean }>`
+const KeyOptionRow = styled.div<{ $checked: boolean }>`
   background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "transparent")};
 
   &:hover {
@@ -178,7 +178,7 @@ const RowLabel = styled.label`
   user-select: none;
 `;
 
-const Box = styled.span<{ $checked: boolean }>`
+const CheckIndicator = styled.span<{ $checked: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -142,9 +142,9 @@ function CurrentOrbitComponent({
       panelSubtitle={showSubtitle ? refBody : undefined}
     >
       <Body ref={bodyRef} $landscape={isLandscape}>
-        <Grid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
+        <OrbitGrid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
           <Label>Ap</Label>
-          <Value $accent="ap">
+          <OrbitValue $accent="ap">
             {/* Hyperbolic/escape trajectories have no apoapsis, Telemachus
                 emits its sentinel (999999999 m) which would read as a real
                 "1000.00 Mm". Render an em-dash so the operator doesn't
@@ -154,14 +154,14 @@ function CurrentOrbitComponent({
               : hyperbolic
                 ? NULL_DISPLAY
                 : formatDistance(apoapsisA)}
-          </Value>
+          </OrbitValue>
 
           <Label>Pe</Label>
           {/* Sub-surface periapsis (negative altitude) means the vessel
               will impact terrain, promote the readout to the nogo
               alert colour so the operator notices at a glance instead
               of reading "Pe = -5 km" as just another low number. */}
-          <Value
+          <OrbitValue
             $accent={
               periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"
             }
@@ -169,23 +169,23 @@ function CurrentOrbitComponent({
             {periapsisA === undefined
               ? NULL_DISPLAY
               : formatDistance(periapsisA)}
-          </Value>
+          </OrbitValue>
 
           {showInclinationRow && (
             <>
               <Label>Inc</Label>
-              <Value>
+              <OrbitValue>
                 {inclination === undefined
                   ? NULL_DISPLAY
                   : `${inclination.toFixed(1)}°`}
-              </Value>
+              </OrbitValue>
             </>
           )}
 
           {showApProgressRows && (
             <>
               <Label>t-Ap</Label>
-              <Value $accent="ap">
+              <OrbitValue $accent="ap">
                 {/* On hyperbolic orbits there's no apoapsis to reach,
                     Telemachus emits 0 which reads as "arriving now" on a
                     countdown. Render an em-dash so the operator doesn't
@@ -195,10 +195,10 @@ function CurrentOrbitComponent({
                   : hyperbolic
                     ? NULL_DISPLAY
                     : formatDuration(timeToAp)}
-              </Value>
+              </OrbitValue>
 
               <Label>t-Pe</Label>
-              <Value $accent="pe">
+              <OrbitValue $accent="pe">
                 {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
                     elliptical solver degrades timeToPe to null (and a legacy
                     0-sentinel source would read as "arriving now"), render an
@@ -209,21 +209,21 @@ function CurrentOrbitComponent({
                   : hyperbolic
                     ? NULL_DISPLAY
                     : formatDuration(timeToPe)}
-              </Value>
+              </OrbitValue>
             </>
           )}
 
           {showEccentricityRows && (
             <>
               <Label>Ecc</Label>
-              <Value>
+              <OrbitValue>
                 {eccentricity === undefined
                   ? NULL_DISPLAY
                   : eccentricity.toFixed(4)}
-              </Value>
+              </OrbitValue>
 
               <Label>T</Label>
-              <Value>
+              <OrbitValue>
                 {/* Period is undefined on a hyperbolic orbit (the
                     trajectory never closes); Telemachus emits 0 which
                     is again indistinguishable from "now". */}
@@ -232,10 +232,10 @@ function CurrentOrbitComponent({
                   : hyperbolic
                     ? NULL_DISPLAY
                     : formatDuration(period)}
-              </Value>
+              </OrbitValue>
             </>
           )}
-        </Grid>
+        </OrbitGrid>
 
         {showDiagramSlot && (
           <MiniDiagramWrap $landscape={isLandscape}>
@@ -304,7 +304,7 @@ const Body = styled.div<{ $landscape: boolean }>`
   gap: var(--space-8);
 `;
 
-const Grid = styled.div<{
+const OrbitGrid = styled.div<{
   $landscape: boolean;
   $tight: boolean;
   $narrow: boolean;
@@ -326,7 +326,7 @@ const Grid = styled.div<{
     /* Narrow panels (3–4 cols) shrink long values rather than clip them;
        the tiny tier (small on both axes) goes one step smaller still.
 
-       The narrow tier stays a literal 12px, paired with Value's literal
+       The narrow tier stays a literal 12px, paired with OrbitValue's literal
        13px base below: --font-size-sm covers both 13 and 12, so tokenising
        the pair collapses two tiers into one and makes narrow a no-op on
        desktop, and a 13px no-op on a coarse pointer, which is exactly the
@@ -354,10 +354,10 @@ const accentColor = {
   alert: "var(--color-status-nogo-bg)",
 };
 
-const Value = styled.span<{ $accent?: "ap" | "pe" | "alert" }>`
+const OrbitValue = styled.span<{ $accent?: "ap" | "pe" | "alert" }>`
   /* Off-scale on purpose: this 13px is the top of a three-tier ladder
      (13 base / 12 narrow / 10 tight) and --font-size-sm is 12px, so
-     tokenising it merges the base into the narrow tier the Grid override
+     tokenising it merges the base into the narrow tier the OrbitGrid override
      above exists to step down to. The two must stay one rung apart. */
   font-size: 13px;
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};

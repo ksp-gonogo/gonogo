@@ -131,13 +131,13 @@ function PreviewBody({
   return (
     <PreviewGrid>
       <Label>ΔV</Label>
-      <Value>{plan.requiredDeltaV.toFixed(1)} m/s</Value>
+      <PreviewValue>{plan.requiredDeltaV.toFixed(1)} m/s</PreviewValue>
 
       <Label>Burn in</Label>
-      <Value>{formatDuration(plan.ut - (currentUT ?? 0))}</Value>
+      <PreviewValue>{formatDuration(plan.ut - (currentUT ?? 0))}</PreviewValue>
 
       <Label>Available</Label>
-      <Value>
+      <PreviewValue>
         <ValueNum>
           {vesselDeltaV.totalVac === 0
             ? NULL_DISPLAY
@@ -148,7 +148,7 @@ function PreviewBody({
             {feasible ? "OK" : "SHORT"}
           </FeasibilityChip>
         )}
-      </Value>
+      </PreviewValue>
 
       <ProjectedRows projected={plan.projected} body={body} />
     </PreviewGrid>
@@ -176,10 +176,10 @@ function SequencePreview({
     <>
       <PreviewGrid>
         <Label>Total ΔV</Label>
-        <Value>{seq.totalDeltaV.toFixed(1)} m/s</Value>
+        <PreviewValue>{seq.totalDeltaV.toFixed(1)} m/s</PreviewValue>
 
         <Label>Available</Label>
-        <Value>
+        <PreviewValue>
           <ValueNum>
             {vesselDeltaV.totalVac === 0
               ? NULL_DISPLAY
@@ -190,15 +190,17 @@ function SequencePreview({
               {feasible ? "OK" : "SHORT"}
             </FeasibilityChip>
           )}
-        </Value>
+        </PreviewValue>
       </PreviewGrid>
 
       <SectionTitle as="h4">Burn 1</SectionTitle>
       <PreviewGrid>
         <Label>ΔV</Label>
-        <Value>{burn1.prograde.toFixed(1)} m/s prograde</Value>
+        <PreviewValue>{burn1.prograde.toFixed(1)} m/s prograde</PreviewValue>
         <Label>Burn in</Label>
-        <Value>{formatDuration(burn1.ut - (currentUT ?? 0))}</Value>
+        <PreviewValue>
+          {formatDuration(burn1.ut - (currentUT ?? 0))}
+        </PreviewValue>
         <ProjectedRows
           projected={seq.transferEllipse}
           body={body}
@@ -211,9 +213,13 @@ function SequencePreview({
           <SectionTitle as="h4">Burn 2</SectionTitle>
           <PreviewGrid>
             <Label>ΔV</Label>
-            <Value>{burn2.prograde.toFixed(1)} m/s prograde</Value>
+            <PreviewValue>
+              {burn2.prograde.toFixed(1)} m/s prograde
+            </PreviewValue>
             <Label>Burn in</Label>
-            <Value>{formatDuration(burn2.ut - (currentUT ?? 0))}</Value>
+            <PreviewValue>
+              {formatDuration(burn2.ut - (currentUT ?? 0))}
+            </PreviewValue>
             <ProjectedRows
               projected={seq.finalProjected}
               body={body}
@@ -241,28 +247,28 @@ function ProjectedRows({
     return (
       <>
         <Label>Projection</Label>
-        <Value>escape / invalid</Value>
+        <PreviewValue>escape / invalid</PreviewValue>
       </>
     );
   }
   return (
     <>
       <Label>{prefix} Ap</Label>
-      <Value $accent="ap">
+      <PreviewValue $accent="ap">
         {formatDistance(projected.ApR - (body?.radius ?? 0))}
-      </Value>
+      </PreviewValue>
       <Label>{prefix} Pe</Label>
-      <Value $accent="pe">
+      <PreviewValue $accent="pe">
         {formatDistance(projected.PeR - (body?.radius ?? 0))}
-      </Value>
+      </PreviewValue>
       <Label>{prefix} Ecc</Label>
-      <Value>{projected.eccentricity.toFixed(4)}</Value>
+      <PreviewValue>{projected.eccentricity.toFixed(4)}</PreviewValue>
       <Label>{prefix} T</Label>
-      <Value>{formatDuration(projected.period)}</Value>
+      <PreviewValue>{formatDuration(projected.period)}</PreviewValue>
       {projected.inclination !== undefined && (
         <>
           <Label>{prefix} Inc</Label>
-          <Value>{projected.inclination.toFixed(2)}°</Value>
+          <PreviewValue>{projected.inclination.toFixed(2)}°</PreviewValue>
         </>
       )}
     </>
@@ -394,7 +400,7 @@ const accentColor = {
   pe: "var(--color-tag-blue-fg)",
 };
 
-const Value = styled.dd<{ $accent?: "ap" | "pe" }>`
+const PreviewValue = styled.dd<{ $accent?: "ap" | "pe" }>`
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;

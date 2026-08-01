@@ -418,7 +418,7 @@ function TargetPickerComponent({
         onClick={() => dispatchTarget(entry)}
       >
         <RowMain>
-          <RowName>{entry.name}</RowName>
+          <EntryName>{entry.name}</EntryName>
           {subtitle && <RowSubtitle>{subtitle}</RowSubtitle>}
         </RowMain>
         <RowDistance>
@@ -773,7 +773,7 @@ const RowMain = styled.span`
   min-width: 0;
 `;
 
-const RowName = styled.span`
+const EntryName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

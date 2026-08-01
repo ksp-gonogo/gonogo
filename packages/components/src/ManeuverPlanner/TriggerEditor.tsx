@@ -34,7 +34,7 @@ export function TriggerEditor({
   return (
     <Editor>
       <EditorTitle>When this condition holds</EditorTitle>
-      <Field>
+      <EditorField>
         <FieldLabel>Telemetry key</FieldLabel>
         <DataKeyPicker
           keys={numericKeys}
@@ -43,9 +43,9 @@ export function TriggerEditor({
           placeholder="Search telemetry..."
           clearable
         />
-      </Field>
+      </EditorField>
       <OpRow>
-        <Field>
+        <EditorField>
           <FieldLabel htmlFor="mnv-trigger-op">Operator</FieldLabel>
           <OpSelect
             id="mnv-trigger-op"
@@ -58,8 +58,8 @@ export function TriggerEditor({
               </option>
             ))}
           </OpSelect>
-        </Field>
-        <Field>
+        </EditorField>
+        <EditorField>
           <FieldLabel htmlFor="mnv-trigger-value">Value</FieldLabel>
           <ValueInput
             id="mnv-trigger-value"
@@ -68,7 +68,7 @@ export function TriggerEditor({
             value={triggerValueDraft}
             onChange={(e) => setTriggerValueDraft(e.target.value)}
           />
-        </Field>
+        </EditorField>
       </OpRow>
       <Actions>
         <GhostButton type="button" onClick={onClose}>
@@ -106,7 +106,7 @@ const EditorTitle = styled.div`
   color: var(--color-text-dim);
 `;
 
-const Field = styled.div`
+const EditorField = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

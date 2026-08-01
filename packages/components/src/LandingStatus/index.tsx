@@ -94,7 +94,7 @@ function readOneWaySeconds(
 }
 
 /** A labelled value row inside a two-column readout grid. */
-function Field({
+function GridCellPair({
   label,
   children,
   tone,
@@ -411,17 +411,19 @@ function LandingStatusComponent({
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
-          <Field label="Terminal">{formatMps(landing?.terminalVelocity)}</Field>
-          <Field label="Touchdown">
+          <GridCellPair label="Terminal">
+            {formatMps(landing?.terminalVelocity)}
+          </GridCellPair>
+          <GridCellPair label="Touchdown">
             {formatMps(landing?.projectedTouchdownSpeed)}
-          </Field>
-          <Field label="Impact in">
+          </GridCellPair>
+          <GridCellPair label="Impact in">
             {landing?.atmosphericTimeToImpact == null
               ? NULL_DISPLAY
               : formatDuration(landing.atmosphericTimeToImpact, { ms: true })}
-          </Field>
+          </GridCellPair>
           {landing?.descentRegime && (
-            <Field label="Regime">{landing.descentRegime}</Field>
+            <GridCellPair label="Regime">{landing.descentRegime}</GridCellPair>
           )}
         </Grid>
         <Value tone="muted" size="xs">
@@ -446,10 +448,12 @@ function LandingStatusComponent({
       <Section>
         <SectionTitle>Velocity</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
-          <Field label="Vertical">{formatMps(solution.verticalSpeed)}</Field>
-          <Field label="Horizontal">
+          <GridCellPair label="Vertical">
+            {formatMps(solution.verticalSpeed)}
+          </GridCellPair>
+          <GridCellPair label="Horizontal">
             {formatMps(solution.horizontalSpeed)}
-          </Field>
+          </GridCellPair>
         </Grid>
       </Section>
     ) : null;
@@ -460,7 +464,9 @@ function LandingStatusComponent({
     <Section>
       <SectionTitle>Height</SectionTitle>
       <Grid cols="auto 1fr" gap="xs">
-        <Field label="AGL">{formatMeters(heightFromTerrain)}</Field>
+        <GridCellPair label="AGL">
+          {formatMeters(heightFromTerrain)}
+        </GridCellPair>
       </Grid>
       {/* The CoM-datum caveat is carried once by `comDatumNote` (in the detail
           stack / right column), so it isn't repeated here. */}
@@ -472,7 +478,9 @@ function LandingStatusComponent({
       <Section>
         <SectionTitle>Divert</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
-          <Field label="Target range">{formatMeters(vs.targetDistance)}</Field>
+          <GridCellPair label="Target range">
+            {formatMeters(vs.targetDistance)}
+          </GridCellPair>
         </Grid>
       </Section>
     ) : null;

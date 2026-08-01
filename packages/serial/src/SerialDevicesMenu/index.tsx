@@ -229,7 +229,7 @@ function DeviceRow({
   return (
     <DeviceCard>
       <RowHead>
-        <RowName>{device.name}</RowName>
+        <DeviceName>{device.name}</DeviceName>
         <Status $status={status}>{status}</Status>
       </RowHead>
       <RowMeta>
@@ -359,7 +359,7 @@ function TypesTab() {
       {editableTypes.map((type) => (
         <DeviceCard key={type.id}>
           <RowHead>
-            <RowName>{type.name}</RowName>
+            <DeviceName>{type.name}</DeviceName>
           </RowHead>
           <RowMeta>
             {type.inputs.length} input{type.inputs.length === 1 ? "" : "s"} ·
@@ -477,7 +477,7 @@ const RowHead = styled.div`
   gap: var(--space-8);
 `;
 
-const RowName = styled.span`
+const DeviceName = styled.span`
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-weight: 600;

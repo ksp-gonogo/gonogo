@@ -70,7 +70,7 @@ function CoveragePanel(ctx: SlotProps<"map-view.sections">) {
   if (!bodyName) return null;
 
   return (
-    <Panel role="region" aria-label={`Scan coverage for ${bodyName}`}>
+    <CoverageColumn role="region" aria-label={`Scan coverage for ${bodyName}`}>
       {COVERAGE_TYPES.map(({ type, label }) => (
         <CoverageRow
           key={type}
@@ -80,7 +80,7 @@ function CoveragePanel(ctx: SlotProps<"map-view.sections">) {
           range={rangeByType.get(type)}
         />
       ))}
-    </Panel>
+    </CoverageColumn>
   );
 }
 
@@ -101,10 +101,10 @@ function CoverageRow({
   );
   const value = typeof pct === "number" ? pct : 0;
   return (
-    <Row>
+    <CoverageGrid>
       <Label>{label}</Label>
       <Track $pct={value} />
-      <Value>{value.toFixed(0)}%</Value>
+      <CoverageValue>{value.toFixed(0)}%</CoverageValue>
       {range?.bestRange ? (
         <Chip $variant="best">best</Chip>
       ) : range?.inRange ? (
@@ -112,15 +112,15 @@ function CoverageRow({
       ) : (
         <Chip $variant="idle">{NULL_DISPLAY}</Chip>
       )}
-    </Row>
+    </CoverageGrid>
   );
 }
 
-const Panel = styled.div`
+const CoverageColumn = styled.div`
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  /* This 3px and Row's 6px below are one decision, not two: the vertical row
+  /* This 3px and CoverageGrid's 6px below are one decision, not two: the vertical row
      gap is deliberately half the horizontal cell gap. Both stay literal
      because the 3 -> 2 snap alone would turn that 2:1 into 3:1. */
   gap: 3px;
@@ -129,11 +129,11 @@ const Panel = styled.div`
   border-top: 1px solid var(--color-surface-raised);
 `;
 
-const Row = styled.div`
+const CoverageGrid = styled.div`
   display: grid;
   grid-template-columns: 48px 1fr 40px auto;
   align-items: center;
-  /* Half of this is Panel's row gap above; see the note there. */
+  /* Half of this is CoverageColumn's row gap above; see the note there. */
   gap: 6px;
 `;
 
@@ -164,7 +164,7 @@ const Track = styled.div<{ $pct: number }>`
   }
 `;
 
-const Value = styled.span`
+const CoverageValue = styled.span`
   /* Literal: this sits in a fixed 40px grid column and must never truncate
      (see below). --font-size-base is 15px under @media (pointer: coarse),
      i.e. on the tier-1 Steam Deck, which is the wrong direction for a

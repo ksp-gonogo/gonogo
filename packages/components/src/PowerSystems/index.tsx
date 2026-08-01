@@ -555,7 +555,7 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
       ? Math.abs(flow / nominalFlow)
       : null;
   return (
-    <Row>
+    <PowerRow>
       <RowName>{partTitle}</RowName>
       {eff !== null && (
         <RowEff title={`${(eff * 100).toFixed(0)}% of nominal`}>
@@ -566,7 +566,7 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
         {sign === "pos" ? "+" : ""}
         {flow.toFixed(2)}
       </RowValue>
-    </Row>
+    </PowerRow>
   );
 }
 
@@ -809,7 +809,7 @@ const IdleList = styled(ContribList)`
   opacity: 0.55;
 `;
 
-const Row = styled.div`
+const PowerRow = styled.div`
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: var(--space-6);

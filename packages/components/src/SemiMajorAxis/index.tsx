@@ -46,7 +46,7 @@ function SemiMajorAxisComponent({
   const showSubtitle = rows >= 5 && cols >= 4;
   const showSparkline = rows >= 4 && cols >= 3;
 
-  // Readout font scales with available width so the value (e.g.
+  // SmaDisplay font scales with available width so the value (e.g.
   // "2.87 Mm", "680.0 km") doesn't wrap onto two lines at narrow column
   // counts. Wrap was the underlying cause of the readout overlapping the
   // subtitle on small widgets: keep it on one line and the layout
@@ -102,13 +102,13 @@ function SemiMajorAxisComponent({
       }
     >
       <Body>
-        <Readout
+        <SmaDisplay
           role="status"
           aria-live="polite"
           style={{ fontSize: `${readoutFontPx}px` }}
         >
           {formatDistance(sma)}
-        </Readout>
+        </SmaDisplay>
         {showSparkline && (
           <SparkSlot ref={sparkRef}>
             <Sparkline
@@ -134,7 +134,7 @@ const Body = styled.div`
   min-height: 0;
 `;
 
-const Readout = styled.div`
+const SmaDisplay = styled.div`
   /* Off the type scale: display tier (the scale stops at 16px), and in any
      case overridden at runtime by the inline readoutFontPx style. */
   font-size: 28px;

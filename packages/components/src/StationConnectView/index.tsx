@@ -61,7 +61,7 @@ export function StationConnectView({
       <ConnectBox>
         <h1>Connect to Mission Control</h1>
         <p>Enter the 4-character host ID shown on the main screen.</p>
-        <Row>
+        <ConnectRow>
           <HostInput
             value={hostInput}
             onChange={(e) => onHostInputChange(e.target.value)}
@@ -78,7 +78,7 @@ export function StationConnectView({
           >
             {connStatus === "connecting" ? "Connecting..." : "Connect"}
           </ConnectButton>
-        </Row>
+        </ConnectRow>
         {nameEditor && <NameRow>{nameEditor}</NameRow>}
         {hostNotFound && everConnected && (
           <ReconnectMsg role="status" aria-live="polite">
@@ -218,7 +218,7 @@ const ConnectBox = styled.div`
   }
 `;
 
-const Row = styled.div`
+const ConnectRow = styled.div`
   display: flex;
   gap: 8px;
 
@@ -286,10 +286,10 @@ const ConnectButton = styled.button`
   }
 
   /* Touch devices: comfortable tap target height. The button is already
-     full-width on ≤480px phones via the stacked Row (flex column +
+     full-width on ≤480px phones via the stacked ConnectRow (flex column +
      align-items: stretch): we deliberately do NOT force width:100% here
      because on a wider coarse-pointer device (landscape phone, tablet) the
-     Row is still horizontal, and a full-width flex child would crush the
+     ConnectRow is still horizontal, and a full-width flex child would crush the
      host input beside it. Height-only keeps the 44px target everywhere
      without breaking the wide horizontal layout. */
   @media (pointer: coarse) {

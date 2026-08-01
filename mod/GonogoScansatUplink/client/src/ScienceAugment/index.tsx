@@ -88,7 +88,7 @@ function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
 
   return (
     <Wrap>
-      <ToggleButton
+      <DisclosureButton
         type="button"
         aria-expanded={expanded}
         aria-controls={panelId}
@@ -96,7 +96,7 @@ function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
         onClick={() => setExpanded((v) => !v)}
       >
         <Badge tone="info">SCANSAT {experiments.length}</Badge>
-      </ToggleButton>
+      </DisclosureButton>
       {expanded && (
         <Dropdown id={panelId} role="region" aria-label="SCANsat science">
           <RowList>
@@ -114,7 +114,7 @@ const Wrap = styled.div`
   position: relative;
 `;
 
-const ToggleButton = styled.button`
+const DisclosureButton = styled.button`
   display: inline-flex;
   background: none;
   border: none;

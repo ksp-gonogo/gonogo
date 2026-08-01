@@ -407,7 +407,7 @@ function PhaseDial({ solution }: { solution: TransferSolution }) {
         ? "var(--color-status-warning-bg)"
         : "var(--color-text-dim)";
   return (
-    <Dial
+    <PhaseDialSvg
       viewBox="0 0 100 100"
       role="img"
       aria-label={`Current phase ${solution.currentPhaseDeg.toFixed(0)} degrees, ideal ${solution.idealPhaseDeg.toFixed(0)} degrees, ${STATUS_LABEL[solution.status]}`}
@@ -439,7 +439,7 @@ function PhaseDial({ solution }: { solution: TransferSolution }) {
         strokeWidth={2}
       />
       <circle cx={cur.x} cy={cur.y} r={3} fill={color} />
-    </Dial>
+    </PhaseDialSvg>
   );
 }
 
@@ -781,7 +781,7 @@ const MapSvg = styled.svg`
   display: block;
 `;
 
-const Dial = styled.svg`
+const PhaseDialSvg = styled.svg`
   width: 96px;
   height: 96px;
   flex-shrink: 0;

@@ -105,12 +105,36 @@ function kitExports(): Set<string> {
  * fails the build, a removed one is a cleanup and passes. It is a record of
  * a backlog, not an endorsement.
  *
- * **Renaming is not how an entry leaves this list.** That was the first read
- * of it and it was wrong: a rename satisfies the guard and leaves the
- * hand-rolled component exactly where it was, now invisible. The list is an
- * inventory of places the design system is not being used, so an entry leaves
- * by being CONVERTED to its kit counterpart, accepting that the kit moves the
- * visuals, or by being logged as genuinely different.
+ * **EMPTY, and it must stay that way.** 89 entries at the start of the sweep,
+ * zero now, so a new shadow is a build failure rather than a line someone can
+ * add to a list.
+ *
+ * **The order matters, and getting it wrong is how this list grew.** An entry
+ * leaves in one of two ways, and the second is only available after the first
+ * has been tried and written up:
+ *
+ * 1. **Convert** to the kit's counterpart, accepting that the kit moves the
+ *    visuals. This is the default and it cleared roughly 70 entries.
+ * 2. **Rename for what it actually is**, once an adversarial look has shown
+ *    the widget does something the kit genuinely cannot, and that reason is
+ *    recorded. This is what the failure message below has always advised, and
+ *    it is correct precisely BECAUSE the component is different: leaving a
+ *    disclosure button called `ToggleButton` is an active hazard, since a
+ *    reader assumes the kit's two-state control and its `aria-pressed`.
+ *
+ * A rename done INSTEAD of step 1 is the failure mode. It satisfies the guard
+ * and leaves a hand-rolled duplicate of something the kit already offers,
+ * now invisible to the thing that was inventorying it. That happened once,
+ * to nine components, and all nine were put back and redone.
+ *
+ * **Before accepting that a widget is special, ask what the KIT is missing.**
+ * Ten additions came out of this sweep (`Cluster.wrap`/`align`/`center`,
+ * `Grid.align`/`rowGap`, `Section.as`, `SectionTitle`'s weight and `$rule`,
+ * `ConfigForm.$boxed`, `Card.tone`/`dimmed`, `Value`'s `faint` tone,
+ * `Row.interactive`/`selected`, `BoxRadius.lg`), and eight of them came from
+ * an entry that read as "genuinely different" until the question was turned
+ * around. The sharpest: three components were logged as needing a `Surface`
+ * primitive the kit lacked, and the real gap was one missing enum member.
  *
  * The counterpart is by FUNCTION, not by name, and reading the name as the
  * target is what produced the renames. The kit's `Row` is specifically a
@@ -128,27 +152,7 @@ function kitExports(): Set<string> {
  * substitute for the kit's with none of the ARIA, so eleven two-state controls
  * announced no on/off state. It read as correct at every call site.
  */
-const BASELINE = new Set<string>([
-  "Box@packages/ui/src/DataKeyMultiPicker.tsx",
-  "Dial@packages/components/src/TransferWindow/index.tsx",
-  "Field@packages/app/src/components/MissionBanner.tsx",
-  "Field@packages/components/src/LandingStatus/index.tsx",
-  "Field@packages/components/src/ManeuverPlanner/TriggerEditor.tsx",
-  "Grid@packages/components/src/CurrentOrbit/index.tsx",
-  "Panel@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
-  "Readout@packages/components/src/SemiMajorAxis/index.tsx",
-  "Row@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
-  "Row@packages/components/src/PowerSystems/index.tsx",
-  "Row@packages/components/src/StationConnectView/index.tsx",
-  "Row@packages/ui/src/DataKeyMultiPicker.tsx",
-  "RowName@packages/components/src/TargetPicker/index.tsx",
-  "RowName@packages/serial/src/SerialDevicesMenu/index.tsx",
-  "Stack@packages/ui/src/BannerStack.tsx",
-  "ToggleButton@mod/GonogoScansatUplink/client/src/ScienceAugment/index.tsx",
-  "Value@mod/GonogoScansatUplink/client/src/CoveragePanel/index.tsx",
-  "Value@packages/components/src/CurrentOrbit/index.tsx",
-  "Value@packages/components/src/ManeuverPlanner/ManeuverPreview.tsx",
-]);
+const BASELINE = new Set<string>([]);
 
 /** Every shadowing declaration on disk right now, baseline or not. */
 function currentShadows(): Set<string> {

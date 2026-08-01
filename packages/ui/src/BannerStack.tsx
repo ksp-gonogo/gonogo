@@ -25,10 +25,10 @@ export interface BannerStackProps {
  * + 16 gap) so it never touches the FAB.
  */
 export function BannerStack({ children }: BannerStackProps) {
-  return <Stack>{children}</Stack>;
+  return <ToastStack>{children}</ToastStack>;
 }
 
-const Stack = styled.div`
+const ToastStack = styled.div`
   position: fixed;
   /* All four numbers below stay off the spacing ladder deliberately: 88 is
      24 + 48 + 16 and 112 is 88 + 24, arithmetic on the FAB's geometry rather

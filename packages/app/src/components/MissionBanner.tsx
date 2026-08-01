@@ -44,10 +44,10 @@ export function MissionBanner() {
   return (
     <Banner role="group" aria-label="Mission status">
       {fields.map((field) => (
-        <Field key={field.label}>
+        <InlinePair key={field.label}>
           <ReadoutCaption>{field.label}</ReadoutCaption>
           <FieldValue>{field.value}</FieldValue>
-        </Field>
+        </InlinePair>
       ))}
     </Banner>
   );
@@ -65,7 +65,7 @@ const Banner = styled.div`
   font-variant-numeric: tabular-nums;
 `;
 
-const Field = styled.span`
+const InlinePair = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: var(--space-6);
