@@ -24,14 +24,18 @@
 // explicit `"1"` token, and a 0..1 fraction carries `"ratio"`. A formatter must treat
 // those three cases differently, which is exactly why they are three distinct values.
 
-import type { SitrepUnit, UnitsByField } from "./__generated__/units";
+import type {
+  KnownSitrepUnit,
+  SitrepUnit,
+  UnitsByField,
+} from "./__generated__/units";
 import {
   GENERATED_TOPIC_UNITS,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
 import type { TopicId } from "./topics";
 
-export type { SitrepUnit, UnitsByField };
+export type { KnownSitrepUnit, SitrepUnit, UnitsByField };
 
 const EMPTY: UnitsByField = Object.freeze({});
 

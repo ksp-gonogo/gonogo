@@ -1,3 +1,4 @@
+import type { SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import { formatQuantity, kindOfUnit, registerUnit } from "./units";
@@ -268,6 +269,36 @@ describe("registerUnit", () => {
   it("lets a third party opt into scientific notation", () => {
     registerUnit({ symbol: "qx", kind: "hugeThing", scientific: true });
     expect(formatQuantity(4.2e15, "qx").value).toBe("4.200×10¹⁵");
+  });
+
+  it("carries an Uplink's own unit end to end, wire type to rendered string", () => {
+    // The seam, joined up. `SitrepUnit` is the type a wire payload's declared unit
+    // arrives as, and it is open precisely so this line compiles: an Uplink cannot
+    // add to `Sitrep.Contract.Units`, so if that type were closed it could never
+    // declare a unit at all and this whole extension point would be decorative.
+    //
+    // Nothing about "kerbals/hour" exists anywhere in the contract. It goes in as a
+    // declared unit, is taught to the kit here, and comes out formatted.
+    const declared: SitrepUnit = "kerbals/hour";
+
+    // Before registration it still renders, bare: the fallback is a floor.
+    expect(formatQuantity(1500, declared).symbol).toBe("kerbals/hour");
+
+    registerUnit({
+      symbol: declared,
+      kind: "crewFlow",
+      decimals: 1,
+      ladder: [
+        { from: 0, symbol: "kerbals/hour", per: 1 },
+        { from: 1e3, symbol: "kkerbals/hour", per: 1e3 },
+      ],
+    });
+
+    expect(kindOfUnit(declared)).toBe("crewFlow");
+    expect(formatQuantity(1500, declared)).toMatchObject({
+      value: "1.5",
+      symbol: "kkerbals/hour",
+    });
   });
 
   it("does not disturb the built-ins it sits beside", () => {

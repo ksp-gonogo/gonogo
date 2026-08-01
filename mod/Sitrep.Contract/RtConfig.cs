@@ -451,13 +451,23 @@ public static class RtConfig
 
                 if (!vocabulary.Contains(unit.Unit))
                 {
-                    // A token outside the Units catalog is the drift this whole
-                    // mechanism exists to prevent, so fail the codegen run
-                    // rather than emit a value outside the SitrepUnit union
-                    // (which would not even typecheck downstream).
+                    // A token outside the catalog is drift for anything compiled
+                    // INTO this assembly, and everything reflected here is, so
+                    // this stays a hard failure. First-party payloads keep their
+                    // typo-safety.
+                    //
+                    // It is deliberately NOT the rule for a third-party Uplink.
+                    // An Uplink cannot add to Units (it is a const-string class
+                    // in this assembly), so a closed union would mean an Uplink
+                    // could never declare a unit at all. The generated
+                    // SitrepUnit type is open for exactly that reason: known
+                    // tokens still autocomplete and a mod's own symbol is still
+                    // assignable. See the union emitted below.
                     throw new InvalidOperationException(
                         "[SitrepUnit] on " + type.Name + "." + prop.Name + " carries \"" + unit.Unit +
-                        "\", which is not a Sitrep.Contract.Units constant. Add it to the Units catalog.");
+                        "\", which is not a Sitrep.Contract.Units constant. Add it to the Units catalog. " +
+                        "(A third-party Uplink does not go through this check: it declares its unit as a " +
+                        "plain string and registers the kind client-side via registerUnit.)");
                 }
 
                 fields.Add(CamelCase(prop.Name), unit.Unit);
@@ -489,13 +499,29 @@ public static class RtConfig
         sb.Append("// which is not the same as being dimensionless: dimensionless is the\n");
         sb.Append("// explicit \"1\" token.\n\n");
 
-        sb.Append("/** The closed unit vocabulary (Sitrep.Contract.Units). */\n");
-        sb.Append("export type SitrepUnit =\n");
+        sb.Append("/** Every token first-party payloads use (Sitrep.Contract.Units). */\n");
+        sb.Append("export type KnownSitrepUnit =\n");
         foreach (var token in vocabulary)
         {
             sb.Append("  | \"").Append(token).Append("\"\n");
         }
         sb.Append(";\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * A declared unit. OPEN on purpose.\n");
+        sb.Append(" *\n");
+        sb.Append(" * The known tokens above still autocomplete, and a typo in first-party\n");
+        sb.Append(" * code is still caught at codegen time by the catalog check. The open arm\n");
+        sb.Append(" * exists because a third-party Uplink CANNOT add to Sitrep.Contract.Units:\n");
+        sb.Append(" * it is a const-string class compiled into the contract assembly. Closing\n");
+        sb.Append(" * this union would therefore have meant an Uplink could never declare a\n");
+        sb.Append(" * unit at all, which contradicts third parties being first-class.\n");
+        sb.Append(" *\n");
+        sb.Append(" * A consumer teaches the client what an unknown symbol MEANS by calling\n");
+        sb.Append(" * registerUnit from @ksp-gonogo/ui-kit. Until it does, the value still\n");
+        sb.Append(" * renders, bare and unscaled.\n");
+        sb.Append(" */\n");
+        sb.Append("export type SitrepUnit = KnownSitrepUnit | (string & {});\n\n");
 
         sb.Append("/** Declared units for one payload shape, keyed by camelCased field name. */\n");
         sb.Append("export type UnitsByField = Readonly<Record<string, SitrepUnit>>;\n\n");

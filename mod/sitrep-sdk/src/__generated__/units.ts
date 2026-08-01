@@ -9,8 +9,8 @@
 // which is not the same as being dimensionless: dimensionless is the
 // explicit "1" token.
 
-/** The closed unit vocabulary (Sitrep.Contract.Units). */
-export type SitrepUnit =
+/** Every token first-party payloads use (Sitrep.Contract.Units). */
+export type KnownSitrepUnit =
   | "%"
   | "1"
   | "K"
@@ -33,6 +33,22 @@ export type SitrepUnit =
   | "t"
   | "°"
 ;
+
+/**
+ * A declared unit. OPEN on purpose.
+ *
+ * The known tokens above still autocomplete, and a typo in first-party
+ * code is still caught at codegen time by the catalog check. The open arm
+ * exists because a third-party Uplink CANNOT add to Sitrep.Contract.Units:
+ * it is a const-string class compiled into the contract assembly. Closing
+ * this union would therefore have meant an Uplink could never declare a
+ * unit at all, which contradicts third parties being first-class.
+ *
+ * A consumer teaches the client what an unknown symbol MEANS by calling
+ * registerUnit from @ksp-gonogo/ui-kit. Until it does, the value still
+ * renders, bare and unscaled.
+ */
+export type SitrepUnit = KnownSitrepUnit | (string & {});
 
 /** Declared units for one payload shape, keyed by camelCased field name. */
 export type UnitsByField = Readonly<Record<string, SitrepUnit>>;

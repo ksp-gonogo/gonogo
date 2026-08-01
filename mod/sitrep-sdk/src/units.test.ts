@@ -60,16 +60,22 @@ describe("generated units", () => {
     expect(unitsForType("NoSuchType")).toEqual({});
   });
 
-  it("only ever emits tokens from the closed SitrepUnit vocabulary", () => {
+  it("only ever emits tokens from the KnownSitrepUnit vocabulary", () => {
     // The emitter throws on an off-catalogue token, so this asserts the generated
     // union and the generated values cannot drift apart.
+    //
+    // `SitrepUnit` itself is open, so that it can carry a unit a third-party
+    // Uplink declares, and an open union can assert nothing. The thing worth
+    // holding is narrower and is what this checks: everything generated FROM
+    // THIS ASSEMBLY is catalogued, because everything here went through the
+    // catalog check. The open arm is for symbols that never pass through here.
     const src = readFileSync(
       fileURLToPath(new URL("./__generated__/units.ts", import.meta.url)),
       "utf8",
     );
     const union = src.slice(
+      src.indexOf("export type KnownSitrepUnit ="),
       src.indexOf("export type SitrepUnit ="),
-      src.indexOf("export type UnitsByField"),
     );
     const vocabulary = new Set(
       [...union.matchAll(/\| "([^"]+)"/g)].map((m) => m[1]),

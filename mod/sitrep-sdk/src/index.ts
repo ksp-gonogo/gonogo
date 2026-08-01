@@ -15,6 +15,7 @@ export {
   type TopicPayloadMap,
 } from "./topics";
 export {
+  type KnownSitrepUnit,
   type SitrepUnit,
   type UnitsByField,
   unitOf,
