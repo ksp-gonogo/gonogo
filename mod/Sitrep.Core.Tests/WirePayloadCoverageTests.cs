@@ -197,6 +197,13 @@ namespace Sitrep.Core.Tests
             "KerbalismSpaceWeather", "KerbalismLifeSupport", "KerbalismResource",
             "KerbalismHabitat", "KerbalismProcessEntry", "KerbalismCrewRule",
             "KerbalismCrewEntry", "KerbalismFeatures",
+            // KerbalismGreenhouseEntry is contract-and-TS-shape only: nothing
+            // builds or publishes it yet (there is no BuildGreenhouse to match
+            // its siblings above, only a GonogoDevTools dump that reads the
+            // PartModules by hand). It cannot be dropped at the wire boundary
+            // because it never reaches it. Move it out of this list the moment
+            // a producer publishes it raw.
+            "KerbalismGreenhouseEntry",
             // vessel.landing: VesselViewProvider.ToWire(VesselLanding) flattens it to
             // a Dictionary<string, object?> before Publish, same as every other
             // vessel.* POCO above; JsonWriter only ever sees the dictionary.

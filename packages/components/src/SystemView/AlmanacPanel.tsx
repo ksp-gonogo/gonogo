@@ -1,4 +1,3 @@
-import { ScrollArea } from "@ksp-gonogo/ui";
 import { formatDuration } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
@@ -255,12 +254,13 @@ function normalizeAngle(deg: number): number {
 const WrapOuter = styled.aside`
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
   padding: var(--space-8) var(--space-10);
   min-width: 0;
   /* min-height:0 is load-bearing: the panel sidebar this sits in is a grid
-     cell, and grid items default to min-height:auto, which would let the inner
-     ScrollArea grow past the cell and get hard-clipped by the parent's
-     overflow:hidden instead of scrolling. Capping it here lets it engage. */
+     cell, and grid items default to min-height:auto, which would let this box
+     grow past the cell and get hard-clipped by the parent's overflow:hidden
+     instead of letting the sidebar's own scroller engage. */
   min-height: 0;
   max-width: 100%;
   background: var(--color-surface-panel);
@@ -268,21 +268,12 @@ const WrapOuter = styled.aside`
   color: var(--color-text-muted);
 `;
 
-const WrapScroll = styled(ScrollArea)`
-  flex: 1;
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-`;
-
 function Wrap({ children }: { children: ReactNode }) {
-  return (
-    <WrapOuter>
-      <WrapScroll>{children}</WrapScroll>
-    </WrapOuter>
-  );
+  /* No ScrollArea of its own. `Panel.Sidebar` supplies one, and a second inside
+     it scrolled nothing: the outer one took the overflow and this one sized to
+     its content, so it was inert chrome plus a duplicate glow. The layout it
+     carried (column + gap) moves onto the box that is left. */
+  return <WrapOuter>{children}</WrapOuter>;
 }
 
 const Title = styled.div`

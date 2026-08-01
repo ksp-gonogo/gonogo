@@ -537,12 +537,13 @@ export const ScrollArea = forwardRef<
  * placing it at `start` would put it there visually while the DOM says
  * otherwise.
  *
- * `auto` means the panel chooses. Today that is: the axis from the tile's
- * shape (see `PanelSplit`) and `end` within it, which is what the two
- * arrangements a sidebar widget actually wants both resolve to, a right-hand
- * column on a wide tile and a bottom strip on a tall one.
+ * There is deliberately no `auto`. The AXIS is always derived (see
+ * `PanelSplit`), so an `auto` side would only ever have meant `end`, and a
+ * value that is identical to another value is a promise the API is not
+ * keeping. Dropping it says what actually happens; it can be added later if
+ * the panel ever gains a real reason to pick a side.
  */
-export type PanelSidebarSide = "auto" | "start" | "end";
+export type PanelSidebarSide = "start" | "end";
 
 /** Sidebar beside the body (inline) or under it (block). Derived, never passed. */
 type PanelSidebarAxis = "inline" | "block";
@@ -619,7 +620,7 @@ const PanelSplit__Box = styled.div<{
 `;
 
 export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
-  /** See `PanelSidebarSide`. Defaults to `auto`. */
+  /** See `PanelSidebarSide`. Defaults to `end`. */
   side?: PanelSidebarSide;
   /**
    * Size of the sidebar track: a width on the inline axis, a height on the
@@ -648,7 +649,7 @@ export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
  * oscillate.
  */
 export function PanelSplit({
-  side = "auto",
+  side = "end",
   size,
   children,
   ...rest
@@ -678,7 +679,7 @@ export function PanelSplit({
     measured.w >= sidebarInline * 2;
   const axis: PanelSidebarAxis =
     measured.w >= measured.h && roomBeside ? "inline" : "block";
-  const resolvedSide = side === "auto" ? "end" : side;
+
   const resolvedSize =
     size ?? (axis === "inline" ? SIDEBAR_INLINE_SIZE : SIDEBAR_BLOCK_SIZE);
   return (
@@ -689,7 +690,7 @@ export function PanelSplit({
       ref={ref}
       data-panel-split={axis}
       $axis={axis}
-      $side={resolvedSide}
+      $side={side}
       $size={resolvedSize}
       {...rest}
     >
