@@ -90,6 +90,16 @@ namespace Sitrep.Contract
         /// <summary>Radiant flux per unit area, watts per square metre.</summary>
         public const string WattsPerSquareMetre = "W/m²";
 
+        // --- Science data ---
+        /// <summary>
+        /// Mits, KSP's own unit of science data volume
+        /// (<c>ScienceData.dataAmount</c>). Not an SI quantity and not
+        /// convertible to one, but a real named unit with a fixed meaning in
+        /// game, which is what separates it from the unitless "resource units"
+        /// this vocabulary deliberately refuses to name.
+        /// </summary>
+        public const string Mits = "Mit";
+
         // --- Level ---
         /// <summary>
         /// Decibels. Logarithmic, so it is the one quantity here that must
@@ -120,6 +130,20 @@ namespace Sitrep.Contract
 
         /// <summary>A pure number carrying no unit and no implied scaling (e.g. Mach).</summary>
         public const string Dimensionless = "1";
+
+        /// <summary>
+        /// A value that is ALREADY 0..100. Distinct from <see cref="Ratio"/>
+        /// and the distinction is load-bearing: a ratio is multiplied by 100
+        /// for display, a percentage must never be, and confusing the two
+        /// yields either 0.62% or 6250%. Both are plausible enough on screen
+        /// to go unnoticed, which is why they are separate tokens rather than
+        /// one with a convention.
+        ///
+        /// <para>Prefer <see cref="Ratio"/> for anything the mod computes
+        /// itself; this exists for values KSP or a third-party mod already
+        /// hands over pre-multiplied.</para>
+        /// </summary>
+        public const string Percent = "%";
     }
 
     /// <summary>

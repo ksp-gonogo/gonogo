@@ -43,6 +43,8 @@ export type QuantityKind =
   | "density"
   | "gravitationalParameter"
   | "dimensionless"
+  | "percentage"
+  | "scienceData"
   | "fraction";
 
 /** One rung of a scaling ladder: a threshold in base units and its symbol. */
@@ -202,6 +204,8 @@ const DECIMALS: Partial<Record<QuantityKind, number>> = {
   irradiance: 1,
   level: 1,
   dimensionless: 2,
+  percentage: 1,
+  scienceData: 1,
   fraction: 0,
 };
 
@@ -234,6 +238,8 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   "m³/s²": "gravitationalParameter",
   "1": "dimensionless",
   ratio: "fraction",
+  "%": "percentage",
+  Mit: "scienceData",
 };
 
 /** What a unit symbol measures, or undefined for one we do not know. */

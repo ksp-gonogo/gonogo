@@ -11,8 +11,10 @@
 
 /** The closed unit vocabulary (Sitrep.Contract.Units). */
 export type SitrepUnit =
+  | "%"
   | "1"
   | "K"
+  | "Mit"
   | "W/m²"
   | "bit/s"
   | "dB"
@@ -91,6 +93,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     longitude: "°",
     ut: "s",
   },
+  "DeployedEntry": {
+    scienceCompletedPercentage: "%",
+    scienceTransmittedPercentage: "%",
+  },
+  "ExperimentBreakdownEntry": {
+    dataMits: "Mit",
+  },
+  "ExperimentEntry": {
+    dataAmount: "Mit",
+  },
   "KerbalismCrewEntry": {
     deathClockSec: "s",
   },
@@ -124,6 +136,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "KerbcastSetFieldOfViewArgs": {
     fieldOfView: "°",
+  },
+  "LabEntry": {
+    dataStorage: "Mit",
+    dataStored: "Mit",
   },
   "OrbitEntry": {
     argPe: "°",
@@ -361,6 +377,20 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     groundTrackWidthDeg: "°",
     subLatitude: "°",
     subLongitude: "°",
+  },
+  "science.deployed": {
+    scienceCompletedPercentage: "%",
+    scienceTransmittedPercentage: "%",
+  },
+  "science.experimentBreakdown": {
+    dataMits: "Mit",
+  },
+  "science.experiments": {
+    dataAmount: "Mit",
+  },
+  "science.lab": {
+    dataStorage: "Mit",
+    dataStored: "Mit",
   },
   "spaceCenter.pois": {
     latitude: "°",

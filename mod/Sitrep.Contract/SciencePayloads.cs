@@ -41,6 +41,7 @@ public class ExperimentEntry
 
     public string? Title { get; set; }
 
+    [SitrepUnit(Units.Mits)]
     public double? DataAmount { get; set; }
 
     public double? ScienceValueRatio { get; set; }
@@ -118,8 +119,10 @@ public class LabEntry
 {
     public string? PartName { get; set; }
 
+    [SitrepUnit(Units.Mits)]
     public double? DataStored { get; set; }
 
+    [SitrepUnit(Units.Mits)]
     public double? DataStorage { get; set; }
 
     public double? StoredScience { get; set; }
@@ -165,8 +168,10 @@ public class DeployedEntry
 
     public string? ExperimentId { get; set; }
 
+    [SitrepUnit(Units.Percent)]
     public double? ScienceCompletedPercentage { get; set; }
 
+    [SitrepUnit(Units.Percent)]
     public double? ScienceTransmittedPercentage { get; set; }
 
     public double? ScienceValue { get; set; }
@@ -265,6 +270,7 @@ public class ExperimentBreakdownEntry
     public string? ExpTitle { get; set; }
 
     /// <summary>Summed <c>ScienceData.dataAmount</c> (mits) across every stored blob for this subject.</summary>
+    [SitrepUnit(Units.Mits)]
     public double? DataMits { get; set; }
 
     /// <summary>Absolute science still recoverable from this subject (<c>scienceCap - science</c>); <c>0</c> outside Career/Science mode.</summary>

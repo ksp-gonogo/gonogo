@@ -54,6 +54,15 @@ describe("formatQuantity", () => {
       value: "42",
       symbol: "%",
     });
+    // The other half, and the reason "%" is its own token rather than a
+    // convention on "ratio": a value KSP already hands over as 0..100 must
+    // pass through untouched. Multiplying it again gives 6250%, and dividing
+    // a ratio by mistake gives 0.62%. Both look plausible enough on screen to
+    // survive review, which is exactly why they cannot share a token.
+    expect(formatQuantity(62.5, "%")).toMatchObject({
+      value: "62.5",
+      symbol: "%",
+    });
   });
 
   it("renders an undeclared unit bare rather than guessing", () => {
