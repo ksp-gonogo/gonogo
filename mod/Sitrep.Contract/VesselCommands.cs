@@ -37,6 +37,7 @@ public class SetSasModeArgs
 public class SetThrottleArgs
 {
     /// <summary>0..1: validated (not silently clamped) at admission; out of range yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/> (A-10's inconsistency fixed at the send gate).</summary>
+    [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
 }
 
@@ -82,12 +83,16 @@ public class SetActionGroupArgs
 #endif
 public class AddManeuverNodeArgs
 {
+    [SitrepUnit(Units.Seconds)]
     public double Ut { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double Prograde { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double Normal { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double RadialOut { get; set; }
 }
 
@@ -107,12 +112,16 @@ public class UpdateManeuverNodeArgs
 {
     public string NodeId { get; set; } = "";
 
+    [SitrepUnit(Units.Seconds)]
     public double Ut { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double Prograde { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double Normal { get; set; }
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public double RadialOut { get; set; }
 }
 
@@ -161,9 +170,11 @@ public class SetTargetArgs
     public int? BodyIndex { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Position"/> (a map-picked surface fix, e.g. a <c>spaceCenter.pois</c> entry's own coordinate).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? Latitude { get; set; }
 
     /// <summary>Required when <see cref="Kind"/> is <see cref="TargetKind.Position"/>.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? Longitude { get; set; }
 }
 

@@ -38,6 +38,12 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "AddManeuverNodeArgs": {
+    normal: "m/s",
+    prograde: "m/s",
+    radialOut: "m/s",
+    ut: "s",
+  },
   "AtmosphereEntry": {
     depth: "m",
     seaLevelPressure: "kPa",
@@ -83,6 +89,20 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     longitude: "°",
     ut: "s",
   },
+  "KerbcastCameraEntry": {
+    fieldOfView: "°",
+    fieldOfViewMaximum: "°",
+    fieldOfViewMinimum: "°",
+    panPitch: "°",
+    panPitchMaximum: "°",
+    panPitchMinimum: "°",
+    panYaw: "°",
+    panYawMaximum: "°",
+    panYawMinimum: "°",
+  },
+  "KerbcastSetFieldOfViewArgs": {
+    fieldOfView: "°",
+  },
   "OrbitEntry": {
     argPe: "°",
     ecc: "1",
@@ -107,6 +127,24 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     semiMinorAxis: "m",
     sma: "m",
     startUt: "s",
+  },
+  "SetControlAxesArgs": {
+    pitch: "1",
+    pitchTrim: "1",
+    roll: "1",
+    rollTrim: "1",
+    x: "1",
+    y: "1",
+    yaw: "1",
+    yawTrim: "1",
+    z: "1",
+  },
+  "SetTargetArgs": {
+    latitude: "°",
+    longitude: "°",
+  },
+  "SetThrottleArgs": {
+    value: "ratio",
   },
   "StageDeltaVEntry": {
     burnTime: "s",
@@ -135,6 +173,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxTemp: "K",
     skinMaxTemp: "K",
     skinTemp: "K",
+  },
+  "UpdateManeuverNodeArgs": {
+    normal: "m/s",
+    prograde: "m/s",
+    radialOut: "m/s",
+    ut: "s",
   },
   "VesselFlight": {
     altitudeAsl: "m",
@@ -246,6 +290,17 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalDvActual: "m/s",
     totalDvAsl: "m/s",
     totalDvVac: "m/s",
+  },
+  "kerbcast.cameras": {
+    fieldOfView: "°",
+    fieldOfViewMaximum: "°",
+    fieldOfViewMinimum: "°",
+    panPitch: "°",
+    panPitchMaximum: "°",
+    panPitchMinimum: "°",
+    panYaw: "°",
+    panYawMaximum: "°",
+    panYawMinimum: "°",
   },
   "vessel.flight": {
     altitudeAsl: "m",

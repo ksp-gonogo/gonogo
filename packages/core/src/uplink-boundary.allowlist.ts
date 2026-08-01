@@ -114,6 +114,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/RtConfig.cs",
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      // The third file the same codegen run emits, from the same reflection
+      // over the same assembly: it names a payload type for every field
+      // carrying a [SitrepUnit]. Same class as its two siblings above, and
+      // for the same reason.
+      "mod/sitrep-sdk/src/__generated__/units.ts",
       // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
       // (2026-07-20). It statically imports every first-party Uplink client
       // (kerbcast/kos/scansat) so their `registerBarePrimitiveTopic` calls fire

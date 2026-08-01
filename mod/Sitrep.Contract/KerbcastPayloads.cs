@@ -101,30 +101,39 @@ public class KerbcastCameraEntry
     public bool? SupportsPan { get; set; }
 
     /// <summary>Current field of view, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? FieldOfView { get; set; }
 
     /// <summary>Narrowest field of view the camera allows, degrees (fully zoomed in).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? FieldOfViewMinimum { get; set; }
 
     /// <summary>Widest field of view the camera allows, degrees (fully zoomed out).</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? FieldOfViewMaximum { get; set; }
 
     /// <summary>Current pan yaw, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PanYaw { get; set; }
 
     /// <summary>Current pan pitch, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PanPitch { get; set; }
 
     /// <summary>Minimum pan yaw the camera allows, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PanYawMinimum { get; set; }
 
     /// <summary>Maximum pan yaw the camera allows, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PanYawMaximum { get; set; }
 
     /// <summary>Minimum pan pitch the camera allows, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PanPitchMinimum { get; set; }
 
     /// <summary>Maximum pan pitch the camera allows, degrees.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double? PanPitchMaximum { get; set; }
 
     /// <summary>
@@ -173,6 +182,7 @@ public class KerbcastSetFieldOfViewArgs
     public long CameraId { get; set; }
 
     /// <summary>Requested field of view, degrees. kerbcast clamps to the camera's own bounds.</summary>
+    [SitrepUnit(Units.Degrees)]
     public double FieldOfView { get; set; }
 }
 

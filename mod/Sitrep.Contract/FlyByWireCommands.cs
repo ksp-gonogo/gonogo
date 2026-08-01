@@ -45,21 +45,30 @@ public class SetFlyByWireArgs
 #endif
 public class SetControlAxesArgs
 {
+    [SitrepUnit(Units.Dimensionless)]
     public double? Pitch { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? Yaw { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? Roll { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? X { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? Y { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? Z { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? PitchTrim { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? YawTrim { get; set; }
 
+    [SitrepUnit(Units.Dimensionless)]
     public double? RollTrim { get; set; }
 }
