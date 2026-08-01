@@ -94,6 +94,78 @@ describe("formatQuantity", () => {
     });
   });
 
+  it("writes a gravitational parameter in scientific notation", () => {
+    // Kerbin's mu. "3531600000000" is unreadable and there is no prefix anyone
+    // writes for 1e12 m³/s², so the notation the literature uses wins.
+    const out = formatQuantity(3.5316e12, "m³/s²");
+    expect(out.value).toBe("3.532×10¹²");
+    expect(out.symbol).toBe("m³/s²");
+  });
+
+  it("uses real superscripts, not the programmer's e-form", () => {
+    // "3.5e12" reads as part of the number to anyone who isn't a programmer.
+    expect(formatQuantity(3.5316e12, "m³/s²").value).not.toContain("e");
+    expect(formatQuantity(0.00042, "m", { scale: "scientific" }).value).toBe(
+      "4.200×10⁻⁴",
+    );
+  });
+
+  it("has a zero for scientific notation, which has no exponent", () => {
+    // log10(0) is -Infinity, so this is the one input the general path cannot
+    // compute at all.
+    expect(formatQuantity(0, "m³/s²").value).toBe("0");
+  });
+
+  it("shows a duration as composite KSP time, not as a decimal ladder", () => {
+    // Time climbs by 60 and 6 and 426, and reads two tiers at once. A KSP day
+    // is 6h, which is exactly the kind of thing a hand-rolled ladder gets wrong.
+    expect(formatQuantity(8100, "s")).toMatchObject({
+      value: "2h 15m",
+      // Interleaved with the number, so there is no symbol to pull out.
+      symbol: "",
+    });
+    expect(formatQuantity(21_600, "s").value).toBe("1d");
+  });
+
+  it("still gives raw seconds when asked not to scale", () => {
+    // The escape hatch: "never" means the plain base-unit number, which opts out
+    // of the composite presentation as well as of any ladder.
+    expect(formatQuantity(8100, "s", { scale: "never" })).toMatchObject({
+      value: "8100",
+      symbol: "s",
+    });
+  });
+
+  it("shows kelvin as Celsius on request, offset and all", () => {
+    // The presentation half of "SI on the wire": the field IS kelvin, the
+    // operator READS Celsius, and neither one has to lie about it. An offset
+    // conversion is also precisely what a multiplicative ladder cannot do.
+    expect(formatQuantity(300, "K", { as: "°C" })).toMatchObject({
+      value: "27",
+      symbol: "°C",
+    });
+  });
+
+  it("shows an acceleration in gees on request", () => {
+    // 9.80665 m/s², the SI definition. KSP uses a single global constant for
+    // this rather than a per-body value, and Kerbin's surface gravity is 9.81,
+    // so the two readings coincide.
+    expect(formatQuantity(29.42, "m/s²", { as: "g" })).toMatchObject({
+      value: "3.00",
+      symbol: "g",
+    });
+  });
+
+  it("refuses a cross-kind presentation unit rather than inventing a number", () => {
+    // Asking for a length in kelvin is a bug, not a preference. Converting it
+    // would produce a wrong number under a right-looking label, which is the
+    // exact failure this module exists to prevent, so the true unit survives.
+    expect(formatQuantity(12_400, "m", { as: "K" })).toMatchObject({
+      value: "12.4",
+      symbol: "km",
+    });
+  });
+
   it("degrades to the null display rather than printing NaN", () => {
     expect(formatQuantity(undefined, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(Number.NaN, "m").value).toBe(NULL_DISPLAY);

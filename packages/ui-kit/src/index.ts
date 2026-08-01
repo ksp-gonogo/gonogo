@@ -252,6 +252,7 @@ export {
   formatQuantity,
   kindOfUnit,
   type QuantityKind,
+  STANDARD_GRAVITY,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {

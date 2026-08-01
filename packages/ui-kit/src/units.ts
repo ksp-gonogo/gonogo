@@ -1,3 +1,4 @@
+import { formatDuration } from "./formatDuration";
 import { NULL_DISPLAY } from "./NullValue";
 
 /**
@@ -58,8 +59,12 @@ interface Rung {
  *    "3.4 km/s" in a burn plan is correct and useless. A caller that genuinely
  *    wants a scaled speed asks for it.
  *  - `temperature`, because kelvin has no prefix convention in this domain, and
- *    a Celsius display would be an OFFSET conversion, which a ladder cannot
- *    express.
+ *    a Celsius display is an OFFSET conversion, which a multiplicative ladder
+ *    cannot express. It is a presentation unit instead: see `as`.
+ *  - `time`, which does not climb by thousands. It has its own composite
+ *    formatter, wired in below.
+ *  - `gravitationalParameter`, whose values are ~1e12 and have no named
+ *    prefixes anyone uses. Scientific notation instead: see `SCIENTIFIC`.
  *  - `angle`, `fraction`, `dimensionless`, which have no magnitudes to climb.
  */
 const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
@@ -87,6 +92,84 @@ const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
 };
 
 /**
+ * Kinds that render in scientific notation when nothing says otherwise.
+ *
+ * A ladder is the wrong tool for a quantity whose exponent is both huge and
+ * unnamed. Kerbin's gravitational parameter is 3.5316e12 m³/s²: there is no
+ * conventional prefix for it, "3531600000000" is unreadable, and "3.53 Tm³/s²"
+ * is a unit nobody writes. Scientific notation is what the astrodynamics
+ * literature actually uses, so it is what a reader recognises.
+ */
+const SCIENTIFIC = new Set<QuantityKind>(["gravitationalParameter"]);
+
+/** Significant figures in a scientific mantissa, unless the caller overrides. */
+const SCIENTIFIC_SIGNIFICANT = 4;
+
+const SUPERSCRIPT: Record<string, string> = {
+  "0": "⁰",
+  "1": "¹",
+  "2": "²",
+  "3": "³",
+  "4": "⁴",
+  "5": "⁵",
+  "6": "⁶",
+  "7": "⁷",
+  "8": "⁸",
+  "9": "⁹",
+  "-": "⁻",
+};
+
+/**
+ * `3.532×10¹²`, not `3.532e12`.
+ *
+ * Real superscript digits rather than the `e` form because this is a readout, not
+ * a REPL: `e12` is programmer notation and reads as part of the number to
+ * everyone else. Unicode superscripts need no markup, so the result stays a
+ * plain string that a caller can put in an axis label or an `aria-label`.
+ */
+function toScientific(value: number, significant: number): string {
+  if (value === 0) return "0";
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
+  const mantissa = value / 10 ** exponent;
+  // `significant` counts digits, and the mantissa always has exactly one before
+  // the point, so the rest are decimals.
+  const digits = String(exponent)
+    .split("")
+    .map((c) => SUPERSCRIPT[c] ?? c)
+    .join("");
+  return `${mantissa.toFixed(Math.max(0, significant - 1))}×10${digits}`;
+}
+
+/**
+ * Standard gravity, the SI definition. KSP agrees: `PhysicsGlobals.
+ * GravitationalAcceleration` is a single global constant rather than a per-body
+ * value, and Kerbin's own surface gravity (mu/r² = 3.5316e12 / 600000²) comes
+ * out at 9.81 m/s², so "one gee" and "one Kerbin gee" are the same number and
+ * the ambiguity is unobservable in-game.
+ */
+export const STANDARD_GRAVITY = 9.80665;
+
+/**
+ * Presentation conversions: what a value may be SHOWN as, given what it IS.
+ *
+ * The wire is canonical SI and stays that way; an operator who wants Celsius or
+ * gees is making a display choice, and a display choice belongs here rather than
+ * in the contract. Keyed source→target, `target = value / per + offset`, which
+ * covers the offset conversions (kelvin) that a ladder structurally cannot.
+ *
+ * Only within a kind. Converting a length to a mass is not a preference, it is a
+ * bug, and `formatQuantity` refuses it rather than inventing a number.
+ */
+const CONVERSIONS: Record<string, { per: number; offset: number }> = {
+  "K→°C": { per: 1, offset: -273.15 },
+  "°C→K": { per: 1, offset: 273.15 },
+  "m/s²→g": { per: STANDARD_GRAVITY, offset: 0 },
+  "g→m/s²": { per: 1 / STANDARD_GRAVITY, offset: 0 },
+  "rad→°": { per: Math.PI / 180, offset: 0 },
+  "°→rad": { per: 180 / Math.PI, offset: 0 },
+};
+
+/**
  * How much precision a kind is read at, as decimal places on the SCALED value.
  *
  * Per kind rather than per magnitude, so a readout holds a stable digit count
@@ -101,6 +184,7 @@ const DECIMALS: Partial<Record<QuantityKind, number>> = {
   force: 1,
   pressure: 2,
   temperature: 0,
+  time: 0,
   angle: 2,
   density: 4,
   dimensionless: 2,
@@ -140,10 +224,22 @@ export function kindOfUnit(
 
 export interface FormatQuantityOptions {
   /**
-   * `"auto"` climbs the kind's ladder, `"never"` holds the base unit. Defaults
-   * to auto where a ladder exists.
+   * `"auto"` climbs the kind's ladder (or uses the kind's default presentation,
+   * such as scientific notation or a composite duration), `"never"` holds the
+   * base unit and formats it as a plain number, `"scientific"` forces
+   * scientific notation. Defaults to auto.
    */
-  scale?: "auto" | "never";
+  scale?: "auto" | "never" | "scientific";
+  /**
+   * Show the value in a different unit OF THE SAME KIND: `as: "°C"` on a kelvin
+   * field, `as: "g"` on an m/s² one. This is the presentation half of "SI on
+   * the wire": the contract states what a field IS, and this states what the
+   * operator wants to READ, without either one lying to the other.
+   *
+   * A cross-kind request is refused rather than converted, and the value renders
+   * in its true unit.
+   */
+  as?: string;
   /** Override the kind's decimal places. */
   decimals?: number;
   /**
@@ -185,6 +281,22 @@ export function formatQuantity(
     return { value: NULL_DISPLAY, symbol: "", rung: unit ?? "" };
   }
 
+  // Apply the operator's presentation unit BEFORE anything else, so everything
+  // downstream (ladder, precision, notation) reasons about the unit actually
+  // being shown. Refused outright when the kinds differ: a wrong number under a
+  // right-looking label is the failure this whole module exists to prevent.
+  if (opts.as !== undefined && opts.as !== unit && unit !== undefined) {
+    const conversion = CONVERSIONS[`${unit}→${opts.as}`];
+    if (conversion && kindOfUnit(opts.as) === kindOfUnit(unit)) {
+      const { as: _as, ...rest } = opts;
+      return formatQuantity(
+        value / conversion.per + conversion.offset,
+        opts.as,
+        rest,
+      );
+    }
+  }
+
   const kind = kindOfUnit(unit);
 
   // A fraction is 0..1 and shown as a percentage; a percentage that is already
@@ -204,6 +316,34 @@ export function formatQuantity(
       symbol: unit === undefined || unit === "1" ? "" : unit,
       rung: unit ?? "",
     };
+  }
+
+  // `"never"` means "give me the plain base-unit number", so it opts out of the
+  // composite and scientific presentations as well as the ladder. A caller that
+  // wants to do its own arithmetic on the string needs that escape hatch.
+  if (opts.scale !== "never") {
+    if (opts.scale === "scientific" || SCIENTIFIC.has(kind)) {
+      return {
+        value: toScientific(
+          value,
+          opts.decimals === undefined
+            ? SCIENTIFIC_SIGNIFICANT
+            : opts.decimals + 1,
+        ),
+        symbol: unit,
+        rung: unit,
+      };
+    }
+
+    // Time is a ladder, just not a decimal one: it climbs by 60 and 6 and 426
+    // rather than by 1000, and it shows two tiers at once because "2h 15m" is
+    // how a countdown is read. `formatDuration` already encodes all of that,
+    // including KSP's 6-hour day, so this delegates rather than restating it.
+    // The symbol comes back empty because the parts are interleaved with the
+    // number and cannot be split off the way "12.4" and "km" can.
+    if (kind === "time") {
+      return { value: formatDuration(value), symbol: "", rung: "s" };
+    }
   }
 
   const ladder = opts.scale === "never" ? undefined : LADDERS[kind];
