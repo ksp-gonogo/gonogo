@@ -41,6 +41,15 @@ export interface TapeMarker {
 }
 
 export interface TapeProps {
+  /**
+   * Which side of the track the scale labels sit on. Default "left", the track
+   * hard against the right edge with its numbers outboard.
+   *
+   * "right" mirrors it: the track hugs the left edge and the numbers read
+   * inboard. That is what a tape running down the LEFT edge of a widget wants,
+   * so its numbers face the content they annotate instead of the panel border.
+   */
+  labelSide?: "left" | "right";
   /** Current value: the pointer position. */
   value: number;
   /** Bottom of the scale. */
@@ -91,6 +100,7 @@ function defaultNumber(v: number): string {
 }
 
 export function Tape({
+  labelSide = "left",
   value,
   min,
   max,
@@ -144,7 +154,15 @@ export function Tape({
 
   const trackTop = PAD_TOP;
   const trackBottom = PAD_TOP + usable;
-  const rightX = TRACK_X + TRACK_W + 6;
+  // Mirror the whole scale about the track when the labels read inboard.
+  const mirrored = labelSide === "right";
+  const trackX = mirrored ? width - TRACK_X - TRACK_W : TRACK_X;
+  // The side the numeric scale is drawn on, and the opposite side used for
+  // zone/marker callouts.
+  const labelX = mirrored ? trackX + TRACK_W + 6 : trackX - 6;
+  const labelAnchor = mirrored ? "start" : "end";
+  const rightX = mirrored ? trackX - 6 : trackX + TRACK_W + 6;
+  const calloutAnchor = mirrored ? "end" : "start";
 
   const ticks: number[] = [];
   if (tickStep && tickStep > 0 && span > 0) {
@@ -185,7 +203,7 @@ export function Tape({
       >
         {/* Track */}
         <rect
-          x={TRACK_X}
+          x={trackX}
           y={trackTop}
           width={TRACK_W}
           height={usable}
@@ -203,7 +221,7 @@ export function Tape({
           return (
             <g key={`zone-${lo}-${hi}-${z.label ?? ""}`}>
               <rect
-                x={TRACK_X}
+                x={trackX}
                 y={yHi}
                 width={TRACK_W}
                 height={h}
@@ -214,6 +232,7 @@ export function Tape({
                 <text
                   x={rightX}
                   y={(yHi + yLo) / 2}
+                  textAnchor={calloutAnchor}
                   dominantBaseline="middle"
                   fontSize={9}
                   fill="var(--color-text-faint)"
@@ -251,9 +270,9 @@ export function Tape({
                 strokeWidth={1}
               />
               <text
-                x={TRACK_X - 6}
+                x={labelX}
                 y={y}
-                textAnchor="end"
+                textAnchor={labelAnchor}
                 dominantBaseline="middle"
                 fontSize={8}
                 fill="var(--color-text-faint)"
@@ -276,7 +295,8 @@ export function Tape({
               />
               {m.label && (
                 <text
-                  x={rightX + 2}
+                  x={mirrored ? rightX - 2 : rightX + 2}
+                  textAnchor={calloutAnchor}
                   y={y}
                   dominantBaseline="middle"
                   fontSize={9}
@@ -299,9 +319,9 @@ export function Tape({
           strokeWidth={2}
         />
         <text
-          x={TRACK_X - 8}
+          x={mirrored ? labelX + 2 : labelX - 2}
           y={Math.max(trackTop + 4, Math.min(trackBottom - 4, pointerY))}
-          textAnchor="end"
+          textAnchor={labelAnchor}
           dominantBaseline="middle"
           fontSize={11}
           fontWeight="bold"
@@ -313,7 +333,7 @@ export function Tape({
         {/* Unit shown once (the ticks + flag are unit-less to fit the scale). */}
         {unit && (
           <text
-            x={TRACK_X + TRACK_W / 2}
+            x={trackX + TRACK_W / 2}
             y={trackTop - 3}
             textAnchor="middle"
             fontSize={8}

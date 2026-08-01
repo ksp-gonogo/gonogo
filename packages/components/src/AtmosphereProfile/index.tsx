@@ -4,11 +4,9 @@ import {
   kelvinToCelsius,
   pressureAtAltitude,
   registerComponent,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { formatStreamStatus, StreamStatusBadge } from "@ksp-gonogo/ui";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {
@@ -74,10 +72,6 @@ function AtmosphereProfileComponent({
   const liveAirTemp = flight?.atmosphericTemperature;
   const liveSkinTemp = flight?.externalTemperature;
   // Connectivity indicator (mirrors the pattern used elsewhere in this widget
-  // family): left on the legacy `useDataStreamStatus` two-arg shim
-  // (untouched by this migration; `v.altitude` still resolves to the same
-  // `vessel.state.altitudeAsl` subtopic the badge tracks).
-  const streamStatus = useDataStreamStatus("data", "v.altitude");
 
   const cols = w ?? 8;
   const rows = h ?? 8;
@@ -176,17 +170,6 @@ function AtmosphereProfileComponent({
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
-          // `GraphView`'s `WidgetHeader` always renders its actions wrapper
-          // when the prop is truthy, even if the child itself renders
-          // nothing: unlike the other migrated widgets (which inline
-          // `StreamStatusBadge` directly in a flex title row), this leaves
-          // an empty `<div>` in the header for the common "live" case
-          // unless we gate on `formatStreamStatus` ourselves.
-          headerActions={
-            formatStreamStatus(streamStatus) !== null ? (
-              <StreamStatusBadge status={streamStatus} />
-            ) : undefined
-          }
           emptyState={
             body
               ? `No atmosphere on ${body.name}.`

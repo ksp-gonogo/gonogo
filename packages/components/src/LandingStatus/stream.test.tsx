@@ -221,4 +221,17 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       expect(screen.getByText(/4\.80 km/)).toBeInTheDocument(),
     );
   });
+
+  it("surfaces the round trip in the header, which is what replaced the warnings", async () => {
+    // UNCOMMANDABLE and PAST COMMIT POINT were removed as two readings of one
+    // fact. The round trip is the instrument datum underneath both, so it has
+    // to be on screen for that removal to be a simplification rather than a
+    // loss. It lives in the panel header beside the regime.
+    renderWidget({ w: 12, h: 16 });
+    act(() => {
+      emitMunDescent();
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
+    });
+    await waitFor(() => expect(screen.getByText(/^RT /)).toBeInTheDocument());
+  });
 });

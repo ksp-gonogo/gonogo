@@ -354,7 +354,18 @@ export function PanelBody({
     [register],
   );
   return (
-    <PanelBody__Box ref={ref} $fitToSize={fitToSize} $bleed={bleed} {...rest}>
+    /* `data-panel-body` is a stable targeting hook, the same contract as
+       PanelHeader's `data-panel-header`. A widget with a full-height element
+       beside scrolling content needs the SCROLLER's visible height, which is
+       this box, and walking up by ancestor count would break the moment the
+       composition changed. */
+    <PanelBody__Box
+      ref={ref}
+      data-panel-body=""
+      $fitToSize={fitToSize}
+      $bleed={bleed}
+      {...rest}
+    >
       {children}
     </PanelBody__Box>
   );

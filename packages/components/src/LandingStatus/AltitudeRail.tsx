@@ -73,6 +73,7 @@ export function AltitudeRail({
       <div style={{ flex: 1, minHeight: 0, width: "100%" }}>
         <Tape
           fillHeight
+          labelSide="right"
           width={64}
           value={agl}
           min={0}
@@ -84,10 +85,10 @@ export function AltitudeRail({
           ariaLabel="Altitude above terrain"
         />
       </div>
-      {/* The Tape (visual) bleeds to the panel edge, but this label is TEXT,
-          give it a readable local left inset (matches the commit text) so it
-          isn't jammed against the edge. */}
-      <div style={{ alignSelf: "stretch", paddingLeft: "var(--space-12)" }}>
+      {/* The scale reads inboard now (labelSide="right"), so the cue sits with
+          the numbers rather than against the panel border. Panel.Body supplies
+          the outer inset, so this needs none of its own. */}
+      <div style={{ alignSelf: "stretch" }}>
         <Value tone={near ? "accent" : "muted"} size="xs">
           {suicideBurnCountdown == null
             ? "no burn"

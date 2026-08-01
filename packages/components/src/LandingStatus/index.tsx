@@ -10,6 +10,7 @@ import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
+  Cluster,
   EmptyState,
   FramedDisplay,
   formatDuration,
@@ -24,10 +25,10 @@ import {
   StatusPill,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
-import { CommitLayer } from "./CommitLayer";
+import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { CrossSection } from "./CrossSection";
 import { deriveDelayClocks } from "./clocks";
 import { greatCircle } from "./geo";
@@ -132,11 +133,37 @@ function StackedField({
   );
 }
 
+/**
+ * The visible height of the enclosing `Panel.Body`, in pixels.
+ *
+ * The rail wants to be the full height of the widget as DISPLAYED, which is the
+ * scroller's own box, not the height of the content inside it. No percentage
+ * expresses that from within: a child's `height: 100%` resolves against the
+ * flex row it sits in, which is as tall as the content and therefore too tall
+ * the moment anything overflows. So measure the scroller and use the number.
+ */
+function useScrollerHeight(ref: React.RefObject<HTMLElement | null>): number {
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    const box = ref.current?.closest("[data-panel-body]");
+    if (!(box instanceof HTMLElement)) return;
+    const update = () => setH(box.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [ref]);
+  return h;
+}
+
 const DESCENT_HISTORY_MAX = 60;
 
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
+  const bodyRowRef = useRef<HTMLDivElement>(null);
+  const scrollerHeight = useScrollerHeight(bodyRowRef);
+
   const vs = useStream<VesselState>("vessel.state");
   const bodyName = vs?.parentBodyName ?? undefined;
   const body = bodyName ? getBody(bodyName) : undefined;
@@ -575,8 +602,24 @@ function LandingStatusComponent({
       // Host-derived now, so the hand-picked `vessel.surface` badge goes: the
       // panel watches every topic this widget declares instead of the one key
       // that hook chose.
+      // The delay chrome belongs to the panel, not to the body. The regime and
+      // the round trip used to be an internal "Delay" section with its own
+      // heading, a second header inside a widget that already had one, sitting
+      // above the readout it qualifies. They are the standing state of the link
+      // rather than part of the descent readout, which is what the aside is for.
       panelAside={
-        <AugmentSlot name="landing-status.badges" props={badgesContext} />
+        <Cluster gap="sm">
+          {commitLayerEl}
+          {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
+            <Value tone="muted">
+              RT {formatDuration(clocks.roundTripSeconds, { ms: true })}
+            </Value>
+          )}
+          <StatusPill $tone={REGIME_TONE[clocks.regime]}>
+            {REGIME_LABEL[clocks.regime]}
+          </StatusPill>
+          <AugmentSlot name="landing-status.badges" props={badgesContext} />
+        </Cluster>
       }
     >
       {board === "not-descending" && !landed ? (
@@ -587,16 +630,40 @@ function LandingStatusComponent({
         // paying its own inset, which is how the widget ended up with five
         // different insets and read tight. The body owns one inset now.
         <div
+          ref={bodyRowRef}
           style={{
             display: "flex",
             flex: 1,
             minHeight: 0,
             alignItems: "stretch",
-            gap: "var(--space-8)",
+            // One rung up from space-8. This widget reads tight at close
+            // quarters and the plots, rail and readouts all abut each other.
+            gap: "var(--space-12)",
           }}
         >
           {showRail && (
-            <div style={{ flex: "0 0 auto", width: 64 }}>
+            // Sticky, not scrolling. The rail is the instrument's spatial
+            // spine: an altitude scale that slides out of view while the
+            // readouts it indexes stay put is worse than useless. It sits in
+            // the scrolling body (so it takes the panel inset like everything
+            // else) but pins itself to the top of it. `align-self: flex-start`
+            // is what lets sticky engage: a stretched flex child is already as
+            // tall as the container and has nothing to stick within.
+            <div
+              style={{
+                flex: "0 0 auto",
+                // An instrument dimension, not a spacing rung: the width the
+                // scale's labels and track need.
+                width: 64,
+                position: "sticky",
+                top: 0,
+                alignSelf: "flex-start",
+                // The scroller's visible height, measured. Full display height
+                // of the widget, so the scale spans what the operator can see
+                // however far the readouts below it have scrolled.
+                height: scrollerHeight > 0 ? scrollerHeight : undefined,
+              }}
+            >
               <AltitudeRail
                 aglMeters={heightFromTerrain ?? null}
                 ignitionAltitude={landed ? null : solution.ignitionAltitude}
@@ -611,13 +678,15 @@ function LandingStatusComponent({
               <div style={{ display: "flex", flexDirection: "column" }}>
                 {/* Top band: commit text (inset) + the larger TWR gauge pinned
                     to the top-right corner (bleeds). */}
-                <div style={{ display: "flex", alignItems: "flex-start" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>{commitLayerEl}</div>
+                {/* The commit readout used to sit here beside the gauge; it
+                    is the panel's headline state, so it is in the header now
+                    and the gauge has the band to itself. */}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <div style={{ flex: "0 0 auto" }}>{twrGaugeEl}</div>
                 </div>
                 {/* Two equal, ALIGNED altimetry squares in a shared row, same
                     top, size, baseline: bleeding to the right edge. */}
-                <div style={{ display: "flex", gap: "var(--space-6)" }}>
+                <div style={{ display: "flex", gap: "var(--space-8)" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <SectionTitle>Touchdown site</SectionTitle>
                     {/* Flush: each plot SVG already insets its content by 4,
@@ -638,7 +707,7 @@ function LandingStatusComponent({
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: "var(--space-8)",
+                    gap: "var(--space-12)",
                   }}
                 >
                   {verdictBannerEl}
@@ -650,10 +719,7 @@ function LandingStatusComponent({
                 </div>
               </div>
             ) : (
-              <>
-                {commitLayerEl}
-                {detailStack}
-              </>
+              detailStack
             )}
           </div>
         </div>

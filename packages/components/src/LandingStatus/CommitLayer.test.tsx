@@ -34,21 +34,18 @@ describe("CommitLayer", () => {
     expect(screen.getByText("BURN LOCKED")).toBeInTheDocument();
   });
 
-  it("labels the impact-command deadline as the COMMIT POINT", () => {
-    render(
-      <CommitLayer
-        {...live}
-        regime="staged"
-        live={false}
-        roundTripSeconds={8}
-        commitInSeconds={5}
-        blindInSeconds={40}
-      />,
-    );
-    expect(screen.getByText(/commit point in/i)).toBeInTheDocument();
-  });
-
-  it("flags UNCOMMANDABLE when the round-trip exceeds the remaining burn window", () => {
+  // COMMIT POINT and UNCOMMANDABLE used to be asserted here, and the slot that
+  // held them was asserted to reserve its own height so toggling it could not
+  // reflow the widget. Both lines are gone: they stated the same fact in two
+  // vocabularies (the round trip exceeds the window left), and the round trip
+  // itself is now in the panel header, where the operator reads the arithmetic
+  // rather than its conclusion twice. The reflow guarantee went with them,
+  // there being no slot left to toggle.
+  //
+  // What survives from those tests is the live region, which is the part that
+  // was never about the wording: a sustained delay state announces politely,
+  // and only the instantaneous ignition cue is allowed to interrupt.
+  it("announces a sustained delay state politely, not assertively", () => {
     render(
       <CommitLayer
         {...live}
@@ -60,44 +57,20 @@ describe("CommitLayer", () => {
         committed
       />,
     );
-    expect(screen.getByText(/UNCOMMANDABLE/i)).toBeInTheDocument();
-    // The mission-state banner is a polite live region.
-    expect(screen.getByRole("status")).toHaveTextContent(/UNCOMMANDABLE/i);
+    const region = screen.getByRole("status");
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toHaveTextContent(/BURN LOCKED/i);
   });
 
-  it("reserves the UNCOMMANDABLE slot so toggling it does not reflow the widget height", () => {
-    const delayed = {
-      ...live,
-      regime: "autonomous" as const,
-      live: false,
-      roundTripSeconds: 8.4,
-      commitInSeconds: -1,
-      committed: true,
-    };
-    // countdown 30 > rt 8.4 ⇒ commandable (line NOT shown), but the slot must
-    // still be present to hold the space.
-    const commandable = render(
-      <CommitLayer {...delayed} suicideBurnCountdown={30} />,
+  it("interrupts only for the ignition cue", () => {
+    // The one ABORT-class event in this widget, per the a11y rule that reserves
+    // assertive for events that must cut through.
+    render(
+      <CommitLayer {...live} roundTripSeconds={0} suicideBurnCountdown={0} />,
     );
-    const slotA = commandable.container.querySelector(
-      '[data-testid="uncommandable-slot"]',
-    );
-    expect(slotA).not.toBeNull();
-    expect(slotA).not.toHaveTextContent(/UNCOMMANDABLE/i);
-    commandable.unmount();
-
-    // countdown 3 < rt 8.4 ⇒ uncommandable; SAME slot now carries the text.
-    const uncommandable = render(
-      <CommitLayer {...delayed} suicideBurnCountdown={3} />,
-    );
-    const slotB = uncommandable.container.querySelector(
-      '[data-testid="uncommandable-slot"]',
-    );
-    expect(slotB).not.toBeNull();
-    expect(slotB).toHaveTextContent(/UNCOMMANDABLE/i);
-    // The two lines are inline <Value> spans; the slot must stack them so
-    // "UNCOMMANDABLE" and the "RT … left" line don't run onto one line.
-    expect((slotB as HTMLElement).style.flexDirection).toBe("column");
+    const region = screen.getByRole("alert");
+    expect(region).toHaveAttribute("aria-live", "assertive");
+    expect(region).toHaveTextContent(/IGNITE/i);
   });
 
   it("shows a landed state instead of stale descent countdowns once down", () => {

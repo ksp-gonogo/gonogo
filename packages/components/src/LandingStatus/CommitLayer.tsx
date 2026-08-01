@@ -23,27 +23,23 @@
  */
 
 import {
-  Cluster,
   formatDuration,
   NULL_DISPLAY,
   Readout,
   ReadoutCaption,
   type ReadoutTone,
   Section,
-  SectionTitle,
-  StatusPill,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { LandingRegime } from "./clocks";
 
-const REGIME_LABEL: Record<LandingRegime, string> = {
+export const REGIME_LABEL: Record<LandingRegime, string> = {
   live: "LIVE",
   staged: "STAGED",
   autonomous: "AUTONOMOUS",
   "no-path": "NO LINK",
 };
 
-const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
+export const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
   live: "go",
   staged: "warning",
   autonomous: "alert",
@@ -81,7 +77,7 @@ export function CommitLayer({
   // Uncommandable: a full round-trip no longer fits inside the remaining burn
   // window, so a command sent now cannot be confirmed (or corrected) in time.
   // Void once landed: there is no burn window left.
-  const uncommandable =
+  const _uncommandable =
     !landed &&
     roundTripSeconds != null &&
     roundTripSeconds > 0 &&
@@ -140,72 +136,21 @@ export function CommitLayer({
   const alarmed = urgent;
 
   return (
-    <>
-      <Section>
-        <SectionTitle>Delay</SectionTitle>
-        <Cluster justify="start" gap="sm">
-          <StatusPill $tone={REGIME_TONE[regime]}>
-            {REGIME_LABEL[regime]}
-          </StatusPill>
-        </Cluster>
-        {/* RT on its OWN line (not crammed beside the pill) so the readouts +
-            TWR above can move up and fill the right column. */}
-        {roundTripSeconds != null && roundTripSeconds > 0 && (
-          <Value tone="muted">
-            RT {formatDuration(roundTripSeconds, { ms: true })}
-          </Value>
-        )}
-      </Section>
+    <Section
+      role={alarmed ? "alert" : "status"}
+      aria-live={alarmed ? "assertive" : "polite"}
+    >
+      <Readout $tone={heroTone}>
+        {heroValue}
+        {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
+      </Readout>
 
-      <Section
-        role={alarmed ? "alert" : "status"}
-        aria-live={alarmed ? "assertive" : "polite"}
-      >
-        <Readout $tone={heroTone}>
-          {heroValue}
-          {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
-        </Readout>
-
-        {/* Fixed two-line slot. UNCOMMANDABLE pops in and out mid-descent; if
-            the lines were conditionally mounted the whole widget would jump
-            taller/shorter each time. Reserve the space always (same two lines,
-            same sizes) and only flip visibility, so it appears/clears in place
-            without reflowing. The lines are inline <Value> spans, so the slot
-            stacks them as a flex column (otherwise they'd flow onto one line). */}
-        <div
-          data-testid="uncommandable-slot"
-          aria-hidden={uncommandable ? undefined : true}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            ...(uncommandable ? undefined : { visibility: "hidden" }),
-          }}
-        >
-          <Value tone="accent" size="sm">
-            {uncommandable ? "UNCOMMANDABLE" : " "}
-          </Value>
-          <Value tone="accent" size="xs">
-            {uncommandable
-              ? `RT ${formatDuration(roundTripSeconds as number, {
-                  ms: true,
-                })} > ${formatDuration(countdown as number, { ms: true })} left`
-              : " "}
-          </Value>
-        </div>
-
-        {/* The COMMIT POINT (T_impact − 2N): the last instant a command can be
-            sent and its RESULT still be seen before impact. Past it the outcome
-            is fixed and merely not-yet-visible under delay. */}
-        {!landed && !live && blindInSeconds != null && (
-          <Value tone={blind ? "accent" : "muted"} size="sm">
-            {blind
-              ? "PAST COMMIT POINT"
-              : `Commit point in ${formatDuration(blindInSeconds, {
-                  ms: true,
-                })}`}
-          </Value>
-        )}
-      </Section>
-    </>
+      {/* UNCOMMANDABLE and PAST COMMIT POINT both used to sit here, and both
+            said the same thing twice: the round trip is longer than the window
+            left, so nothing you send now lands in time. The round trip is the
+            instrument datum, and it is in the panel header beside the regime,
+            so the operator can read the arithmetic rather than be told its
+            conclusion twice in two vocabularies. */}
+    </Section>
   );
 }
