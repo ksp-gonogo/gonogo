@@ -242,6 +242,16 @@ export {
   type ToggleButtonTone,
 } from "./ToggleButton";
 export { Truncate } from "./Truncate";
+// ── Units ───────────────────────────────────────────────────────────────────
+// The contract declares what a field IS; these decide how to SHOW it. The wire
+// is canonical SI and never pre-scaled, so every ladder lives here.
+export {
+  type FormatQuantityOptions,
+  type FormattedQuantity,
+  formatQuantity,
+  kindOfUnit,
+  type QuantityKind,
+} from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {
   Value,

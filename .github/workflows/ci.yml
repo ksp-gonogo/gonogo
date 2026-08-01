@@ -89,6 +89,16 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # The generated TypeScript SDK is committed, so it can silently disagree
+      # with the C# contract it is generated from. `codegen:check` regenerates
+      # and diffs. It existed before this step and nothing ran it, which is how
+      # a topic-map comment drifted: an em-dash pass edited the generated file
+      # and the source differently and no gate noticed. Units now flow through
+      # the same pipeline, so a drift here means the app formats against a stale
+      # unit map. Runs in THIS job because codegen.sh is pure dotnet (no node).
+      - name: Generated SDK is in sync with the contract
+        run: bash mod/codegen.sh && git diff --exit-code -- mod/sitrep-sdk/src/__generated__
+
       # The headless kOS terminal harness (GonogoKosUplink.Tests/Headless) needs
       # kOS.Safe.dll + kOS.dll, which live in the private ksp-managed
       # reference-assembly repo (GameData/kOS/Plugins/): the same repo the
