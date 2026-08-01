@@ -7,7 +7,7 @@ import {
   PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
-import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { type ChangeEvent, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -74,7 +74,7 @@ export function BackupManager() {
 
   return (
     <Container>
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3">Export</SectionTitle>
         <Foot>
           Downloads a JSON file of this device's dashboard layouts, data-source
@@ -101,9 +101,9 @@ export function BackupManager() {
             Export backup
           </Button>
         </ActionRow>
-      </Section>
+      </Stack>
 
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3">Restore</SectionTitle>
         <Foot>
           Restoring <strong>replaces</strong> your current layouts and settings
@@ -144,7 +144,7 @@ export function BackupManager() {
             </Button>
           </ConfirmRow>
         ) : null}
-      </Section>
+      </Stack>
     </Container>
   );
 }
@@ -154,12 +154,6 @@ const Container = styled.div`
   flex-direction: column;
   gap: var(--space-16);
   min-width: 420px;
-`;
-
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 `;
 
 const Foot = styled.div`

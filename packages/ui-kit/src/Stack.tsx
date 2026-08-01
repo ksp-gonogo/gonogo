@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 
 export type SpaceToken = "xs" | "sm" | "md" | "lg" | "xl";
@@ -6,6 +6,12 @@ export type SpaceToken = "xs" | "sm" | "md" | "lg" | "xl";
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /** Gap between children, snapped to the space scale. Defaults to `sm`. */
   gap?: SpaceToken;
+  /**
+   * Rendered tag. Defaults to `div`. Declared for the same reason `Row`
+   * declares it: a widget adopting this in place of its own `styled.section`
+   * should not have to give up the semantic element to do so.
+   */
+  as?: ElementType;
   children?: ReactNode;
 }
 

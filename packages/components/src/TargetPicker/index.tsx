@@ -31,6 +31,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ScrollArea,
+  Section,
   Spinner,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -708,12 +709,6 @@ const ListScroll = styled(ScrollArea)`
     flex-direction: column;
     gap: var(--space-8);
   }
-`;
-
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
 `;
 
 const SuggestedHeading = styled.div`

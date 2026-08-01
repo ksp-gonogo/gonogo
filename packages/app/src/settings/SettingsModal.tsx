@@ -24,7 +24,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui";
-import { Badge, SectionTitle } from "@ksp-gonogo/ui-kit";
+import { Badge, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
@@ -199,18 +199,18 @@ export function SettingsModal({
 function DataSourcesPanel() {
   return (
     <SectionStack>
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3" $rule>
           Game host
         </SectionTitle>
         <SitrepConnection />
-      </Section>
-      <Section>
+      </Stack>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3" $rule>
           Uplink health
         </SectionTitle>
         <UplinkHealthList />
-      </Section>
+      </Stack>
       <UplinkLoaderSection />
     </SectionStack>
   );
@@ -231,7 +231,7 @@ function UplinkLoaderSection() {
   );
   if (outcomes.length === 0) return null;
   return (
-    <Section>
+    <Stack as="section" gap="md">
       <SectionTitle as="h3" $rule>
         Loaded clients
       </SectionTitle>
@@ -261,7 +261,7 @@ function UplinkLoaderSection() {
           </UplinkItem>
         ))}
       </UplinkList>
-    </Section>
+    </Stack>
   );
 }
 
@@ -366,22 +366,22 @@ function GeneralSettings({
   return (
     <SectionStack>
       {[...byCategory.entries()].map(([category, items]) => (
-        <Section key={category}>
+        <Stack as="section" gap="md" key={category}>
           <SectionTitle as="h3" $rule>
             {category}
           </SectionTitle>
           {items.map((def) => (
             <SettingRow key={def.id} def={def} />
           ))}
-        </Section>
+        </Stack>
       ))}
       {showConsent && (
-        <Section>
+        <Stack as="section" gap="md">
           <SectionTitle as="h3" $rule>
             Privacy
           </SectionTitle>
           <AnalyticsConsentRow />
-        </Section>
+        </Stack>
       )}
     </SectionStack>
   );
@@ -524,12 +524,6 @@ const SectionStack = styled.div`
   gap: var(--space-16);
   overflow-y: auto;
   min-height: 0;
-`;
-
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 `;
 
 const Row = styled.div<{ $indented?: boolean }>`

@@ -6,7 +6,7 @@ import {
   PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
-import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";
@@ -185,7 +185,7 @@ export function MissionProfilesModal({
 
   return (
     <Wrap>
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3" $rule>
           Save current dashboard
         </SectionTitle>
@@ -246,9 +246,9 @@ export function MissionProfilesModal({
           bottom of the screen when KSP enters that scene, or auto-load if
           "Switch automatically" is on.
         </Hint>
-      </Section>
+      </Stack>
 
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3" $rule>
           Saved layouts
         </SectionTitle>
@@ -318,7 +318,7 @@ export function MissionProfilesModal({
             ))}
           </List>
         )}
-      </Section>
+      </Stack>
     </Wrap>
   );
 }
@@ -342,12 +342,6 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: var(--space-16);
   min-width: 420px;
-`;
-
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
 `;
 
 const SaveRow = styled.div`

@@ -10,7 +10,7 @@ import {
   Switch,
   Textarea,
 } from "@ksp-gonogo/ui";
-import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import {
   type ChangeEvent,
   type FormEvent,
@@ -160,7 +160,7 @@ export function LogsManager() {
 
   return (
     <Container>
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3">Active tags</SectionTitle>
         <ModeRow>
           <ModeButton
@@ -201,9 +201,9 @@ export function LogsManager() {
           Changes persist to <code>localStorage.LOG_TAGS</code> and apply
           immediately.
         </Foot>
-      </Section>
+      </Stack>
 
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3">Log buffer</SectionTitle>
         <BufferRow>
           <Count>{bufferSize} entries buffered</Count>
@@ -220,12 +220,12 @@ export function LogsManager() {
           The buffer keeps the most recent entries in memory. Download after
           reproducing a bug and share the file.
         </Foot>
-      </Section>
+      </Stack>
 
-      <Section>
+      <Stack as="section" gap="md">
         <SectionTitle as="h3">Feedback</SectionTitle>
         <ReportBug />
-      </Section>
+      </Stack>
     </Container>
   );
 }
@@ -516,12 +516,6 @@ const Container = styled.div`
   flex-direction: column;
   gap: var(--space-16);
   min-width: 420px;
-`;
-
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 `;
 
 const ModeRow = styled.div`

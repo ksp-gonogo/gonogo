@@ -7,6 +7,7 @@ import {
   NULL_DISPLAY,
   Panel,
   Select,
+  Stack,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -134,7 +135,7 @@ function InputTesterComponent({
           )}
 
           {analogs.length > 0 && (
-            <Section>
+            <Stack gap="md">
               <SectionLabel>Axes</SectionLabel>
               {analogs.map((input) => {
                 const raw = values[input.id];
@@ -173,11 +174,11 @@ function InputTesterComponent({
                   </AnalogRow>
                 );
               })}
-            </Section>
+            </Stack>
           )}
 
           {buttons.length > 0 && (
-            <Section>
+            <Stack gap="md">
               <SectionLabel>Buttons</SectionLabel>
               <ButtonGrid>
                 {buttons.map((input) => {
@@ -198,7 +199,7 @@ function InputTesterComponent({
                   );
                 })}
               </ButtonGrid>
-            </Section>
+            </Stack>
           )}
         </>
       )}
@@ -264,12 +265,6 @@ const Spacer = styled.span`
 
 const Counts = styled.span`
   color: var(--color-text-faint);
-`;
-
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
 `;
 
 const SectionLabel = styled.div`
