@@ -39,19 +39,19 @@ export function StationAlarmBanner({
 
   return (
     <Wrap role="alert">
-      <Stack>
+      <BannerStack>
         {individuals.map((a) => (
-          <Row key={a.id}>
+          <BannerLine key={a.id}>
             <Label>Fired</Label>
             <AlarmName>{a.name}</AlarmName>
             <FiredHint>{describe(a)}</FiredHint>
             <AckButton type="button" onClick={() => onAcknowledge(a.id)}>
               Acknowledge
             </AckButton>
-          </Row>
+          </BannerLine>
         ))}
         {cpCollapse && (
-          <Row>
+          <BannerLine>
             <Label>Fired</Label>
             <AlarmName>
               {cpCollapse.count} contract objectives completed
@@ -64,9 +64,9 @@ export function StationAlarmBanner({
             >
               Acknowledge all
             </AckButton>
-          </Row>
+          </BannerLine>
         )}
-      </Stack>
+      </BannerStack>
     </Wrap>
   );
 }
@@ -117,13 +117,13 @@ const Wrap = styled.div`
   }
 `;
 
-const Stack = styled.div`
+const BannerStack = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 `;
 
-const Row = styled.div`
+const BannerLine = styled.div`
   display: flex;
   align-items: baseline;
   gap: var(--space-8);

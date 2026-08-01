@@ -225,8 +225,8 @@ export function AlarmsModal({
 
   return (
     <Wrap>
-      <Section>
-        <SectionTitle>Add alarm</SectionTitle>
+      <ModalSection>
+        <ModalSectionTitle>Add alarm</ModalSectionTitle>
         <KindRow role="tablist" aria-label="Trigger kind">
           <KindButton
             type="button"
@@ -382,12 +382,12 @@ export function AlarmsModal({
             can be scheduled.
           </WaitingNote>
         )}
-      </Section>
+      </ModalSection>
 
       <RecommendedPresets snapshotRef={snapshotRef} onAdd={onAdd} />
 
-      <Section>
-        <SectionTitle>Scheduled ({sorted.length})</SectionTitle>
+      <ModalSection>
+        <ModalSectionTitle>Scheduled ({sorted.length})</ModalSectionTitle>
         {sorted.length === 0 ? (
           <Empty>No alarms set.</Empty>
         ) : (
@@ -403,7 +403,7 @@ export function AlarmsModal({
                 setRenameDraft("");
               };
               return (
-                <Row key={a.id} $state={a.state}>
+                <AlarmListItem key={a.id} $state={a.state}>
                   <RowInfo>
                     {renaming ? (
                       <Input
@@ -421,7 +421,7 @@ export function AlarmsModal({
                         }}
                       />
                     ) : (
-                      <RowName>
+                      <AlarmListName>
                         <Badge tone="neutral" size="md">
                           {a.trigger.kind === "time" ? "TIME" : "COND"}
                         </Badge>
@@ -433,7 +433,7 @@ export function AlarmsModal({
                               : `FIRES ${a.onFire.length} ACTIONS`}
                           </Badge>
                         )}
-                      </RowName>
+                      </AlarmListName>
                     )}
                     <RowMeta>{describeTrigger(a, snapshot.ut)}</RowMeta>
                     {a.onFire && a.onFire.length > 0 && (
@@ -503,12 +503,12 @@ export function AlarmsModal({
                       </>
                     )}
                   </RowActions>
-                </Row>
+                </AlarmListItem>
               );
             })}
           </List>
         )}
-      </Section>
+      </ModalSection>
     </Wrap>
   );
 }
@@ -900,13 +900,13 @@ const Wrap = styled.div`
   max-width: 640px;
 `;
 
-const Section = styled.section`
+const ModalSection = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--space-10);
 `;
 
-const SectionTitle = styled.h3`
+const ModalSectionTitle = styled.h3`
   margin: 0;
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -1053,7 +1053,7 @@ const List = styled.ul`
   gap: var(--space-6);
 `;
 
-const Row = styled.li<{ $state: Alarm["state"] }>`
+const AlarmListItem = styled.li<{ $state: Alarm["state"] }>`
   display: flex;
   align-items: center;
   gap: var(--space-12);
@@ -1077,7 +1077,7 @@ const RowInfo = styled.div`
   min-width: 0;
 `;
 
-const RowName = styled.div`
+const AlarmListName = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-8);

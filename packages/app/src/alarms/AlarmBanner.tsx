@@ -86,9 +86,9 @@ export function AlarmBanner() {
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
-      <Row>
+      <BannerLine>
         <Label>Warp</Label>
-        <Value>{formatWarp(snap.warp.index, snap.warp.rate)}</Value>
+        <BannerValue>{formatWarp(snap.warp.index, snap.warp.rate)}</BannerValue>
         {warpToTargetRate !== null && (
           <>
             <WarpArrow aria-hidden="true">
@@ -151,7 +151,7 @@ export function AlarmBanner() {
         ) : (
           <Quiet>No alarms set</Quiet>
         )}
-      </Row>
+      </BannerLine>
     </Wrap>
   );
 }
@@ -174,7 +174,7 @@ export function SafetyMarginPill() {
   if (snap.warpTo === null && !warpToCandidate) return null;
   return (
     <Wrap $tone="set" role="status">
-      <Row>
+      <BannerLine>
         <Label>Safety</Label>
         <SafetyInput
           type="number"
@@ -190,7 +190,7 @@ export function SafetyMarginPill() {
           title="Real seconds before arming: higher = step down earlier"
         />
         <Label>s</Label>
-      </Row>
+      </BannerLine>
     </Wrap>
   );
 }
@@ -229,7 +229,7 @@ export function FiredAlarmPills() {
     <>
       {extras.map((a) => (
         <Wrap key={a.id} $tone="fire" role="alert">
-          <Row>
+          <BannerLine>
             <Label>Fired</Label>
             <AlarmName>{a.name}</AlarmName>
             <AckButton
@@ -238,12 +238,12 @@ export function FiredAlarmPills() {
             >
               Ack
             </AckButton>
-          </Row>
+          </BannerLine>
         </Wrap>
       ))}
       {cpCollapse && headline !== null && (
         <Wrap $tone="fire" role="alert">
-          <Row>
+          <BannerLine>
             <Label>Fired</Label>
             <AlarmName>
               {cpCollapse.count} contract objectives completed
@@ -251,7 +251,7 @@ export function FiredAlarmPills() {
             <AckButton type="button" onClick={ackAllCollapsed}>
               Ack all
             </AckButton>
-          </Row>
+          </BannerLine>
         </Wrap>
       )}
     </>
@@ -270,16 +270,16 @@ export function UnscheduledWarpPill() {
   if (!snap.unscheduledWarp) return null;
   return (
     <Wrap $tone="arm" role="alert">
-      <Row>
+      <BannerLine>
         <Label>Unscheduled warp</Label>
-        <Value>{snap.unscheduledWarp.index}×</Value>
+        <BannerValue>{snap.unscheduledWarp.index}×</BannerValue>
         <AckButton
           type="button"
           onClick={() => host.acknowledgeUnscheduledWarp()}
         >
           Ack
         </AckButton>
-      </Row>
+      </BannerLine>
     </Wrap>
   );
 }
@@ -479,7 +479,7 @@ const Wrap = styled.div<{ $tone: Tone }>`
   }
 `;
 
-const Row = styled.div`
+const BannerLine = styled.div`
   display: flex;
   align-items: baseline;
   gap: var(--space-8);
@@ -493,7 +493,7 @@ const Label = styled.span`
   color: var(--color-text-dim);
 `;
 
-const Value = styled.span`
+const BannerValue = styled.span`
   font-weight: 700;
   color: var(--color-text-primary);
 `;

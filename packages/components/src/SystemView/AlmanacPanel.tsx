@@ -200,10 +200,10 @@ export function AlmanacPanel({
           <Hint>Awaiting body data...</Hint>
         ) : (
           rows.map((row) => (
-            <Row key={`${row.label}=${row.value}`}>
+            <AlmanacLine key={`${row.label}=${row.value}`}>
               <RowLabel>{row.label}</RowLabel>
               <RowValue>{row.value}</RowValue>
-            </Row>
+            </AlmanacLine>
           ))
         )}
       </Rows>
@@ -283,7 +283,7 @@ const Rows = styled.div`
   margin-top: var(--space-6);
 `;
 
-const Row = styled.div`
+const AlmanacLine = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--space-8);
