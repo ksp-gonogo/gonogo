@@ -552,6 +552,27 @@ type PanelSidebarAxis = "inline" | "block";
    for a label/value pair and no wider whatever the tile does. A strip under it
    is competing with the diagram for the tile's height, so it wants a share
    rather than a number, or a short tile loses the diagram entirely. */
+/**
+ * Resolve a CSS length to pixels, for the two units a sidebar size is realistically
+ * written in. Returns undefined for anything else (percentages, ch, clamp), and
+ * the caller then falls back to the aspect reading rather than guessing.
+ */
+function resolveCssLength(value: string): number | undefined {
+  const n = Number.parseFloat(value);
+  if (!Number.isFinite(n)) return undefined;
+  if (value.endsWith("px")) return n;
+  if (value.endsWith("rem")) {
+    const root =
+      typeof document === "undefined"
+        ? 16
+        : Number.parseFloat(
+            getComputedStyle(document.documentElement).fontSize || "16",
+          );
+    return n * (Number.isFinite(root) ? root : 16);
+  }
+  return undefined;
+}
+
 const SIDEBAR_INLINE_SIZE = "14rem";
 const SIDEBAR_BLOCK_SIZE = "40%";
 
@@ -639,7 +660,24 @@ export function PanelSplit({
     w: 1,
     h: 1,
   });
-  const axis: PanelSidebarAxis = measured.w >= measured.h ? "inline" : "block";
+  // Aspect alone is not enough, and a render proved it: a 6x6 tile is square,
+  // so `w >= h` chose the inline axis, and a 14rem sidebar on a ~232px tile
+  // left about 8px for the body. The diagram vanished entirely.
+  //
+  // So the inline axis also needs absolute room: the body must keep at least as
+  // much as the sidebar takes. Below that the sidebar goes under, where it has
+  // the full width and the body keeps its own.
+  //
+  // Only applied once really measured. The seed is 1x1, and treating that as
+  // "no room" would flip every unmeasured panel (first paint, and jsdom, which
+  // runs no layout) to the block axis.
+  const sidebarInline = resolveCssLength(size ?? SIDEBAR_INLINE_SIZE);
+  const roomBeside =
+    measured.w <= 1 ||
+    sidebarInline === undefined ||
+    measured.w >= sidebarInline * 2;
+  const axis: PanelSidebarAxis =
+    measured.w >= measured.h && roomBeside ? "inline" : "block";
   const resolvedSide = side === "auto" ? "end" : side;
   const resolvedSize =
     size ?? (axis === "inline" ? SIDEBAR_INLINE_SIZE : SIDEBAR_BLOCK_SIZE);

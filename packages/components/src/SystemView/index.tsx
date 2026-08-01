@@ -475,6 +475,14 @@ function SystemViewComponent({
   const cols = w ?? 10;
   const rows = h ?? 12;
   const showDiagram = rows >= 5 && cols >= 5;
+  // The almanac needs room of its own ON TOP of the diagram's. Panel picks the
+  // AXIS, and correctly refuses to put a 14rem sidebar beside a 232px tile, but
+  // it cannot know that at that size the widget would rather be a diagram than
+  // a squashed diagram over a clipped table. So the widget decides whether to
+  // offer one at all. The thresholds are the old showSideAlmanac / bottom gates,
+  // collapsed into one: either axis having room is enough, since Panel chooses
+  // which.
+  const showAlmanac = showDiagram && (cols >= 9 || rows >= 12);
 
   // Slot props. `badges` carries just the frame name for labelling.
   // `overlay` carries the diagram's parent-centric projection so an augment can
@@ -574,7 +582,7 @@ function SystemViewComponent({
       // `auto` measures the tile and picks the axis, which is the pair of
       // arrangements this widget used to compute for itself (a right-hand
       // column on a wide tile, a bottom strip on a tall one).
-      panelSidebar={showDiagram ? almanac : undefined}
+      panelSidebar={showAlmanac ? almanac : undefined}
     >
       {showDiagram ? (
         <DiagramFrame flush>
