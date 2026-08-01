@@ -25,7 +25,7 @@ import { NULL_DISPLAY } from "./NullValue";
  * `m` and `km` are interchangeable and `m` and `m/s` are not, and it selects
  * the ladder and the precision rule.
  */
-export type QuantityKind =
+export type KnownQuantityKind =
   | "length"
   | "speed"
   | "acceleration"
@@ -47,8 +47,19 @@ export type QuantityKind =
   | "scienceData"
   | "fraction";
 
+/**
+ * A quantity kind, OPEN to kinds this package has never heard of.
+ *
+ * The `string & {}` arm is what lets a third-party Uplink introduce its own
+ * dimension (a resource rate, a mod's bespoke scale) while the known kinds
+ * still autocomplete. Closing this union would have made
+ * `registerUnit({ kind: "resourceRate" })` a type error, and "third parties
+ * are first-class" is a principle of this design rather than a nicety.
+ */
+export type QuantityKind = KnownQuantityKind | (string & {});
+
 /** One rung of a scaling ladder: a threshold in base units and its symbol. */
-interface Rung {
+export interface Rung {
   /** Values at or above this magnitude (in base units) use this rung. */
   from: number;
   symbol: string;
@@ -73,7 +84,7 @@ interface Rung {
  *    prefixes anyone uses. Scientific notation instead: see `SCIENTIFIC`.
  *  - `angle`, `fraction`, `dimensionless`, which have no magnitudes to climb.
  */
-const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
+const LADDERS: Record<string, readonly Rung[]> = {
   length: [
     { from: 0, symbol: "m", per: 1 },
     { from: 1e3, symbol: "km", per: 1e3 },
@@ -130,7 +141,7 @@ const LADDERS: Partial<Record<QuantityKind, readonly Rung[]>> = {
  * is a unit nobody writes. Scientific notation is what the astrodynamics
  * literature actually uses, so it is what a reader recognises.
  */
-const SCIENTIFIC = new Set<QuantityKind>(["gravitationalParameter"]);
+const SCIENTIFIC = new Set<string>(["gravitationalParameter"]);
 
 /** Significant figures in a scientific mantissa, unless the caller overrides. */
 const SCIENTIFIC_SIGNIFICANT = 4;
@@ -206,7 +217,7 @@ const CONVERSIONS: Record<string, { per: number; offset: number }> = {
  * as the value moves. An instrument whose width changes every frame reads as a
  * fault, which is also why anything live should render in tabular numerals.
  */
-const DECIMALS: Partial<Record<QuantityKind, number>> = {
+const DECIMALS: Record<string, number> = {
   length: 1,
   speed: 1,
   acceleration: 2,
@@ -265,6 +276,54 @@ export function kindOfUnit(
   symbol: string | undefined,
 ): QuantityKind | undefined {
   return symbol === undefined ? undefined : KIND_BY_SYMBOL[symbol];
+}
+
+export interface UnitDefinition {
+  /** The symbol the wire carries, exactly. Case-sensitive: `m` and `M` differ. */
+  symbol: string;
+  /**
+   * What it measures. May be a kind this package has never heard of; supplying
+   * a new one is how an Uplink introduces a dimension of its own.
+   */
+  kind: QuantityKind;
+  /** Decimal places on the scaled value. Defaults to the kind's, then to 2. */
+  decimals?: number;
+  /**
+   * Scaling rungs, ascending, stated in the kind's BASE unit. Registering one
+   * replaces the kind's ladder outright rather than merging, because a
+   * half-overridden ladder is worse than either whole one.
+   *
+   * Every threshold and divisor must be in the same base unit. That is the
+   * invariant behind `mass`: its symbols are gram-based while its numbers are
+   * kilograms, and mixing the two is what made a real prefix bug possible.
+   */
+  ladder?: readonly Rung[];
+  /** Render in scientific notation by default, as `gravitationalParameter` does. */
+  scientific?: boolean;
+}
+
+/**
+ * Teach the formatter a unit it does not ship with.
+ *
+ * This is the extension point that makes "third parties are first-class" true
+ * rather than aspirational. An Uplink publishing a topic the contract has never
+ * seen calls this at module load, exactly as it would call `registerComponent`
+ * or `registerTheme`, and its readouts then scale, round and label like a
+ * first-party one.
+ *
+ * Without it an unknown symbol still renders, bare and unscaled, which is the
+ * right FALLBACK and a poor ceiling: it means a third party cannot have a
+ * ladder or a precision rule at all.
+ *
+ * Last registration wins, so an app may override a built-in deliberately. There
+ * is no unregister: units are declared at module load and live for the session,
+ * the same lifecycle every other registry here has.
+ */
+export function registerUnit(def: UnitDefinition): void {
+  KIND_BY_SYMBOL[def.symbol] = def.kind;
+  if (def.decimals !== undefined) DECIMALS[def.kind] = def.decimals;
+  if (def.ladder) LADDERS[def.kind] = def.ladder;
+  if (def.scientific) SCIENTIFIC.add(def.kind);
 }
 
 export interface FormatQuantityOptions {

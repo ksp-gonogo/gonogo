@@ -250,9 +250,13 @@ export {
   type FormatQuantityOptions,
   type FormattedQuantity,
   formatQuantity,
+  type KnownQuantityKind,
   kindOfUnit,
   type QuantityKind,
+  type Rung,
+  registerUnit,
   STANDARD_GRAVITY,
+  type UnitDefinition,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {

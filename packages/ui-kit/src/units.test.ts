@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
-import { formatQuantity, kindOfUnit } from "./units";
+import { formatQuantity, kindOfUnit, registerUnit } from "./units";
 
 /**
  * These pin the rules that a naive implementation gets wrong. Each one exists
@@ -218,6 +218,71 @@ describe("formatQuantity", () => {
   });
 
   it("degrades to the null display rather than printing NaN", () => {
+    expect(formatQuantity(undefined, "m").value).toBe(NULL_DISPLAY);
+    expect(formatQuantity(Number.NaN, "m").value).toBe(NULL_DISPLAY);
+    expect(formatQuantity(null, "m").value).toBe(NULL_DISPLAY);
+  });
+});
+
+/**
+ * The extension point, tested from the outside in: everything below uses only
+ * what a third-party Uplink can import, and a unit and a KIND this package has
+ * never heard of.
+ */
+describe("registerUnit", () => {
+  it("renders an unknown unit bare rather than dropping it", () => {
+    // The fallback, and the reason registration is a ceiling rather than a
+    // gate: a unit nobody taught the kit still reaches the operator. It just
+    // cannot scale or round, because nothing knows what it measures.
+    const out = formatQuantity(1234.5, "widgets/fortnight");
+    expect(out.symbol).toBe("widgets/fortnight");
+    expect(out.value).toContain("1234.5");
+  });
+
+  it("gives a third-party unit a kind, a precision and a ladder", () => {
+    // An Uplink publishing a resource-rate topic the contract has never seen.
+    // "resourceRate" is not in KnownQuantityKind, which is exactly the point:
+    // a closed kind union would have made this a type error.
+    registerUnit({
+      symbol: "EC/s",
+      kind: "resourceRate",
+      decimals: 2,
+      ladder: [
+        { from: 0, symbol: "EC/s", per: 1 },
+        { from: 1e3, symbol: "kEC/s", per: 1e3 },
+      ],
+    });
+
+    expect(kindOfUnit("EC/s")).toBe("resourceRate");
+    expect(formatQuantity(4.5, "EC/s")).toMatchObject({
+      value: "4.50",
+      symbol: "EC/s",
+    });
+    // And it climbs its own ladder, which is the half a bare fallback cannot do.
+    expect(formatQuantity(2500, "EC/s")).toMatchObject({
+      value: "2.50",
+      symbol: "kEC/s",
+    });
+  });
+
+  it("lets a third party opt into scientific notation", () => {
+    registerUnit({ symbol: "qx", kind: "hugeThing", scientific: true });
+    expect(formatQuantity(4.2e15, "qx").value).toBe("4.200×10¹⁵");
+  });
+
+  it("does not disturb the built-ins it sits beside", () => {
+    // Registration is additive. A third party teaching the kit its own unit
+    // must not be able to shift what metres or kelvin do.
+    expect(formatQuantity(12_400, "m")).toMatchObject({
+      value: "12.4",
+      symbol: "km",
+    });
+    expect(formatQuantity(300, "K", { as: "°C" }).value).toBe("27");
+  });
+});
+
+describe("formatQuantity, null handling", () => {
+  it("still degrades to the null display", () => {
     expect(formatQuantity(undefined, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(Number.NaN, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(null, "m").value).toBe(NULL_DISPLAY);
