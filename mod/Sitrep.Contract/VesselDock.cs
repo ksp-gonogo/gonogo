@@ -32,9 +32,11 @@ namespace Sitrep.Contract;
 public class DockAlignment
 {
     /// <summary>Metres, own-port-relative (target port minus own port).</summary>
+    [SitrepUnit(Units.Metres)]
     public Vec3 RelativePosition { get; set; } = new();
 
     /// <summary>m/s, own-port-relative.</summary>
+    [SitrepUnit(Units.MetresPerSecond)]
     public Vec3 RelativeVelocity { get; set; } = new();
 
     /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided directly so a widget doesn't have to re-derive it every frame.</summary>

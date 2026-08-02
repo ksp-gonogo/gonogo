@@ -315,7 +315,20 @@ namespace Sitrep.Contract
         /// <c>Meta.Confidence</c> removal; see <see cref="Major"/>). Every
         /// additive change on the Major-5 line above is carried forward into
         /// Major 6.</para>
+        ///
+        /// <para>Major-6 line, Bumped 0 -&gt; 1: additive-only Minor for the
+        /// bidirectional control-channel mechanism, the new
+        /// <see cref="SitrepControlChannelAttribute"/> plus its first annotation
+        /// on <see cref="VesselControl.Throttle"/> (channel
+        /// <c>vessel.control.throttle</c>, pairing the existing
+        /// <c>vessel.control</c> read field with the existing
+        /// <c>vessel.control.setThrottle</c> command). A new attribute type and a
+        /// metadata annotation on an existing property, no wire member added,
+        /// removed or retyped, so it cannot break an Uplink built against an older
+        /// Minor. The write command and read field stay two separate wire keys;
+        /// only the SDK unifies them. See
+        /// <c>local_docs/design/plans/2026-08-02-bidirectional-control-channels-plan.md</c>.</para>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

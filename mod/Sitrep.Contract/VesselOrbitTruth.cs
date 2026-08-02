@@ -28,8 +28,10 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.orbit.truth")]
 public class VesselOrbitTruth
 {
+    [SitrepUnit(Units.Metres)]
     public Vec3 Position { get; set; } = new();
 
+    [SitrepUnit(Units.MetresPerSecond)]
     public Vec3 Velocity { get; set; } = new();
 
     [SitrepUnit(Units.Flag)]

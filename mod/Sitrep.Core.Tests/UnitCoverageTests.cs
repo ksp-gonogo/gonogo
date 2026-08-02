@@ -78,8 +78,20 @@ namespace Sitrep.Core.Tests
         internal static bool RequiresUnit(PropertyInfo prop)
         {
             var element = ElementType(Unwrap(prop.PropertyType));
-            return IsScalar(element);
+            return IsScalar(element) || IsVec3(element);
         }
+
+        /// <summary>
+        /// A <c>Vec3</c>-typed field is a composite that carries a real unit,
+        /// not a structural container to be exempted. The ONE canonical Vec3 is
+        /// used at sites carrying three different units, so the unit sits on the
+        /// FIELD and codegen propagates it to the three scalar leaves (see
+        /// <c>RtConfig.EmitUnitMap</c>). The gate therefore requires an
+        /// annotation on the Vec3 field itself, exactly as it does a scalar.
+        /// Matched by name so this test needs no reference back to the Vec3
+        /// type, the same string-only discipline the metadata scan keeps.
+        /// </summary>
+        private static bool IsVec3(Type t) => t.FullName == "Sitrep.Contract.Vec3";
 
         private static Type Unwrap(Type t) => Nullable.GetUnderlyingType(t) ?? t;
 

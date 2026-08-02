@@ -323,6 +323,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "DockAlignment": {
     distance: "m",
     forwardDot: "1",
+    "relativePosition.x": "m",
+    "relativePosition.y": "m",
+    "relativePosition.z": "m",
+    "relativeVelocity.x": "m/s",
+    "relativeVelocity.y": "m/s",
+    "relativeVelocity.z": "m/s",
   },
   "ErrorMsg": {
     code: "id",
@@ -646,6 +652,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     semiMinorAxis: "m",
     sma: "m",
     startUt: "s",
+  },
+  "PartBounds": {
+    "center.x": "m",
+    "center.y": "m",
+    "center.z": "m",
+    "size.x": "m",
+    "size.y": "m",
+    "size.z": "m",
   },
   "PartModuleState": {
     flameout: "flag",
@@ -1074,6 +1088,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "VesselOrbitTruth": {
     frameRotating: "flag",
+    "position.x": "m",
+    "position.y": "m",
+    "position.z": "m",
+    "velocity.x": "m/s",
+    "velocity.y": "m/s",
+    "velocity.z": "m/s",
   },
   "VesselPart": {
     category: "text",
@@ -1088,9 +1108,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     modules: "text",
     name: "text",
     parentId: "id",
+    "position.x": "m",
+    "position.y": "m",
+    "position.z": "m",
     skinMaxTemp: "K",
     skinTemp: "K",
     title: "text",
+    "up.x": "1",
+    "up.y": "1",
+    "up.z": "1",
   },
   "VesselPhysicsMode": {
     mode: "enum",
@@ -1127,6 +1153,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kind: "enum",
     name: "text",
     partId: "id",
+    "relativePosition.x": "m",
+    "relativePosition.y": "m",
+    "relativePosition.z": "m",
+    "relativeVelocity.x": "m/s",
+    "relativeVelocity.y": "m/s",
+    "relativeVelocity.z": "m/s",
     vesselId: "id",
   },
   "VesselThermal": {
@@ -1556,6 +1588,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.dock": {
     distance: "m",
     forwardDot: "1",
+    "relativePosition.x": "m",
+    "relativePosition.y": "m",
+    "relativePosition.z": "m",
+    "relativeVelocity.x": "m/s",
+    "relativeVelocity.y": "m/s",
+    "relativeVelocity.z": "m/s",
   },
   "vessel.flight": {
     altitudeAsl: "m",
@@ -1616,6 +1654,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "vessel.orbit.truth": {
     frameRotating: "flag",
+    "position.x": "m",
+    "position.y": "m",
+    "position.z": "m",
+    "velocity.x": "m/s",
+    "velocity.y": "m/s",
+    "velocity.z": "m/s",
   },
   "vessel.physics.mode": {
     mode: "enum",
@@ -1641,6 +1685,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     kind: "enum",
     name: "text",
     partId: "id",
+    "relativePosition.x": "m",
+    "relativePosition.y": "m",
+    "relativePosition.z": "m",
+    "relativeVelocity.x": "m/s",
+    "relativeVelocity.y": "m/s",
+    "relativeVelocity.z": "m/s",
     vesselId: "id",
   },
   "vessel.thermal": {

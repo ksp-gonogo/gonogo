@@ -331,6 +331,19 @@ public static class RtConfig
         {
             EmitUnitMap(unitMapOut!);
         }
+
+        // --- Control-channel map (see SitrepControlChannelAttribute) ---
+        // Same shape of problem, and same answer, as the topic and unit maps:
+        // rtcli emits TYPES, and a control channel is a runtime pairing (read
+        // topic field + write command) the SDK looks up, so it needs its own
+        // artifact. codegen.sh sets SITREP_CHANNELMAP_OUT and we reflect over the
+        // [SitrepControlChannel]-tagged read properties to write control-channels.ts
+        // alongside. No-op when the env var is unset.
+        var channelMapOut = Environment.GetEnvironmentVariable("SITREP_CHANNELMAP_OUT");
+        if (!string.IsNullOrEmpty(channelMapOut))
+        {
+            EmitChannelMap(channelMapOut!);
+        }
     }
 
     /// <summary>
@@ -470,7 +483,28 @@ public static class RtConfig
                         "plain string and registers the kind client-side via registerUnit.)");
                 }
 
-                fields.Add(CamelCase(prop.Name), unit.Unit);
+                var field = CamelCase(prop.Name);
+                if (prop.PropertyType == typeof(Vec3))
+                {
+                    // A [SitrepUnit] on a Vec3-TYPED field states the unit of
+                    // the WHOLE vector. There is ONE canonical Vec3 shape used
+                    // at sites carrying three different units, so no unit can
+                    // sit on the Vec3 type itself (its own X/Y/Z carry the
+                    // NotApplicable placeholder). The wire carries three scalar
+                    // leaves (field.x / field.y / field.z), so the composite
+                    // field's unit propagates to each leaf: a consumer
+                    // formatting a component then reads the same unit it would
+                    // for a plain scalar. Leaf names come off the Vec3 shape
+                    // itself, so they track a rename of X/Y/Z.
+                    foreach (var leaf in Vec3LeafNames())
+                    {
+                        fields.Add(field + "." + leaf, unit.Unit);
+                    }
+                }
+                else
+                {
+                    fields.Add(field, unit.Unit);
+                }
             }
 
             if (fields.Count == 0)
@@ -555,10 +589,151 @@ public static class RtConfig
             sb.Append("  \"").Append(outer.Key).Append("\": {\n");
             foreach (var inner in outer.Value)
             {
-                sb.Append("    ").Append(inner.Key).Append(": \"").Append(inner.Value).Append("\",\n");
+                // A Vec3 field propagates onto dotted leaf keys (position.x),
+                // which are not valid bare object keys in TypeScript; quote
+                // anything that is not a plain identifier. Existing scalar keys
+                // are all identifiers, so this leaves them untouched.
+                var key = IsIdentifierKey(inner.Key) ? inner.Key : "\"" + inner.Key + "\"";
+                sb.Append("    ").Append(key).Append(": \"").Append(inner.Value).Append("\",\n");
             }
             sb.Append("  },\n");
         }
+    }
+
+    /// <summary>
+    /// True when <paramref name="key"/> is a plain JS/TS identifier and so can
+    /// be an unquoted object key. A propagated Vec3 leaf (<c>position.x</c>)
+    /// carries a dot and is not, so it gets quoted.
+    /// </summary>
+    private static bool IsIdentifierKey(string key)
+    {
+        if (key.Length == 0)
+        {
+            return false;
+        }
+
+        var first = key[0];
+        if (!char.IsLetter(first) && first != '_' && first != '$')
+        {
+            return false;
+        }
+
+        for (var i = 1; i < key.Length; i++)
+        {
+            var c = key[i];
+            if (!char.IsLetterOrDigit(c) && c != '_' && c != '$')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Writes the generated control-channel map
+    /// (<c>GeneratedControlChannel</c> + <c>GENERATED_CONTROL_CHANNELS</c> +
+    /// <c>GeneratedControlChannelId</c>) consumed by
+    /// <c>mod/sitrep-sdk/src/control-channels.ts</c>. Each
+    /// <see cref="SitrepControlChannelAttribute"/>-tagged READ property
+    /// contributes one row: the owning type's <see cref="SitrepTopicAttribute"/>
+    /// is the read topic (throws if the owning type has none, enforcing that the
+    /// read half is a real Topic field), the camelCased property name is the read
+    /// field, and the attribute carries the paired write command + its args type +
+    /// the camelCased value field. Read and write stay TWO wire keys; the SDK
+    /// wraps them into one handle.
+    /// </summary>
+    private static void EmitChannelMap(string outPath)
+    {
+        var rows = new List<(string Id, string ReadTopic, string ReadField, string WriteCommand, string ArgsType, string ValueField)>();
+        foreach (var type in typeof(RtConfig).Assembly.GetTypes())
+        {
+            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                var attr = prop.GetCustomAttribute<SitrepControlChannelAttribute>();
+                if (attr == null)
+                {
+                    continue;
+                }
+
+                if (topic == null)
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepControlChannel] on " + type.Name + "." + prop.Name +
+                        " requires its owning type to carry [SitrepTopic]: the read half must be a real Topic field.");
+                }
+
+                rows.Add((
+                    attr.ChannelId,
+                    topic.TopicId,
+                    CamelCase(prop.Name),
+                    attr.WriteCommand,
+                    attr.Args.Name,
+                    CamelCase(attr.ValueField)));
+            }
+        }
+
+        rows.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+
+        var sb = new StringBuilder();
+        sb.Append("//     This code was generated by the Sitrep contract control-channel codegen\n");
+        sb.Append("//     (Sitrep.Contract.RtConfig.EmitChannelMap, invoked from mod/codegen.sh).\n");
+        sb.Append("//     Changes to this file may cause incorrect behavior and will be lost if\n");
+        sb.Append("//     the code is regenerated.\n");
+        sb.Append("//\n");
+        sb.Append("// Derived by reflecting over every [SitrepControlChannel]-tagged read property\n");
+        sb.Append("// in Sitrep.Contract: the property's owning [SitrepTopic] is the read topic, the\n");
+        sb.Append("// camelCased property name is the read field, and the attribute carries the\n");
+        sb.Append("// paired write command + its typed args + the camelCased value field. Read and\n");
+        sb.Append("// write stay two wire keys; the SDK unifies them into one handle (see\n");
+        sb.Append("// ../control-channels.ts).\n\n");
+
+        sb.Append("export interface GeneratedControlChannel {\n");
+        sb.Append("  readonly id: string;\n");
+        sb.Append("  readonly readTopic: string;\n");
+        sb.Append("  readonly readField: string;\n");
+        sb.Append("  readonly writeCommand: string;\n");
+        sb.Append("  readonly argsType: string;\n");
+        sb.Append("  readonly valueField: string;\n");
+        sb.Append("}\n\n");
+
+        sb.Append("export const GENERATED_CONTROL_CHANNELS = [\n");
+        foreach (var r in rows)
+        {
+            sb.Append("  { id: \"").Append(r.Id)
+                .Append("\", readTopic: \"").Append(r.ReadTopic)
+                .Append("\", readField: \"").Append(r.ReadField)
+                .Append("\", writeCommand: \"").Append(r.WriteCommand)
+                .Append("\", argsType: \"").Append(r.ArgsType)
+                .Append("\", valueField: \"").Append(r.ValueField)
+                .Append("\" },\n");
+        }
+        sb.Append("] as const satisfies readonly GeneratedControlChannel[];\n\n");
+
+        sb.Append("export type GeneratedControlChannelId =\n");
+        sb.Append("  (typeof GENERATED_CONTROL_CHANNELS)[number][\"id\"];\n");
+
+        File.WriteAllText(outPath, sb.ToString());
+        Console.WriteLine("codegen (control-channel-map) -> " + outPath);
+    }
+
+    /// <summary>
+    /// The camelCased wire-leaf names of the canonical <see cref="Vec3"/> shape
+    /// (<c>x</c>, <c>y</c>, <c>z</c>), read off the type itself rather than
+    /// hard-coded so a rename of Vec3's components moves the propagated leaf
+    /// keys with it. Order is irrelevant: <see cref="EmitUnitMap"/> writes into
+    /// a sorted map.
+    /// </summary>
+    private static List<string> Vec3LeafNames()
+    {
+        var names = new List<string>();
+        foreach (var prop in typeof(Vec3).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            names.Add(CamelCase(prop.Name));
+        }
+
+        return names;
     }
 
     /// <summary>

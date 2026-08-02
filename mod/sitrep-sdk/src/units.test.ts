@@ -49,6 +49,37 @@ describe("generated units", () => {
     expect(unitOf("vessel.identity", "name")).toBe("text");
   });
 
+  it("propagates a Vec3 field's unit to its x/y/z wire components", () => {
+    // A [SitrepUnit] on a Vec3-TYPED field states the unit of the whole
+    // vector; there is one canonical Vec3 shape carrying three different units
+    // across the wire, so the unit cannot sit on the Vec3 type itself. Codegen
+    // propagates the field-level unit onto the three scalar leaves the wire
+    // actually carries (position.x / position.y / position.z), so a consumer
+    // formatting a component reads the same unit it would for a plain scalar.
+    expect(unitOf("vessel.orbit.truth", "position.x")).toBe("m");
+    expect(unitOf("vessel.orbit.truth", "position.y")).toBe("m");
+    expect(unitOf("vessel.orbit.truth", "position.z")).toBe("m");
+    expect(unitOf("vessel.orbit.truth", "velocity.x")).toBe("m/s");
+    expect(unitOf("vessel.orbit.truth", "velocity.y")).toBe("m/s");
+    expect(unitOf("vessel.orbit.truth", "velocity.z")).toBe("m/s");
+  });
+
+  it("propagates a direction vector's dimensionless unit, not a length", () => {
+    // VesselPart.Up is a unit vector: a direction, not a position. It carries
+    // the explicit dimensionless "1" token so a formatter does not append "m"
+    // to a component that has no length. Reached through the type-keyed view
+    // because VesselPart is nested under vessel.parts, not a Topic of its own.
+    expect(unitOfTypeField("VesselPart", "up.x")).toBe("1");
+    expect(unitOfTypeField("VesselPart", "position.x")).toBe("m");
+  });
+
+  it("propagates a Vec3 unit on a NESTED shape no Topic names", () => {
+    // PartBounds hangs off VesselPart.Bounds, so its Vec3 leaves are only
+    // reachable through the type view, the same way ThermalHottestPart is.
+    expect(unitOfTypeField("PartBounds", "size.x")).toBe("m");
+    expect(unitOfTypeField("PartBounds", "center.z")).toBe("m");
+  });
+
   it("still returns undefined for a structural property", () => {
     // The one legitimate absence left. A container has no dimension of its own:
     // `meta` is a PayloadMeta and is described entirely by the units on its own

@@ -134,6 +134,7 @@ public class VesselControl
     public bool? PrecisionControl { get; set; }
 
     /// <summary>0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>
+    [SitrepControlChannel("vessel.control.throttle", "vessel.control.setThrottle", typeof(SetThrottleArgs), nameof(SetThrottleArgs.Value))]
     [SitrepUnit(Units.Ratio)]
     public double? Throttle { get; set; }
 

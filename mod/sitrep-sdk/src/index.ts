@@ -4,6 +4,12 @@ export * from "./__generated__/contract";
 // publish. See ./api for why these are host-injected shims, not core re-exports.
 export * from "./api";
 export { parseServerMessage } from "./client";
+export {
+  type ControlChannelHandle,
+  type ControlChannelId,
+  controlChannelIds,
+  getControlChannel,
+} from "./control-channels";
 export * from "./envelope";
 export {
   getAllKnownTopicIds,

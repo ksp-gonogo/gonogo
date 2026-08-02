@@ -86,9 +86,11 @@ public class VesselPart
     public string Title { get; set; } = "";
 
     /// <summary><c>Part.orgPos</c>: the part's original vessel-local position (metres, vessel frame).</summary>
+    [SitrepUnit(Units.Metres)]
     public Vec3 Position { get; set; } = new();
 
     /// <summary>The part's local up axis (<c>Part.orgRot * Vector3.up</c>), for orienting flow/thrust glyphs. <c>null</c> on a snapshot recorded before this field existed.</summary>
+    [SitrepUnit(Units.Dimensionless)]
     public Vec3? Up { get; set; }
 
     public PartBounds Bounds { get; set; } = new();
@@ -275,8 +277,10 @@ public class PartModuleState
 public class PartBounds
 {
     /// <summary><c>Part.prefabSize</c>: the part's untransformed bounding-box extents (metres).</summary>
+    [SitrepUnit(Units.Metres)]
     public Vec3 Size { get; set; } = new();
 
     /// <summary><c>Part.boundsCentroidOffset</c>: mesh-centre offset from <see cref="VesselPart.Position"/> (metres, vessel-local); <c>null</c> when absent.</summary>
+    [SitrepUnit(Units.Metres)]
     public Vec3? Center { get; set; }
 }
