@@ -9,7 +9,7 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
+import { formatQuantity, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ProfileStrip } from "./ProfileStrip";
@@ -192,10 +192,17 @@ function formatCoord(value: number, axis: "lat" | "lon"): string {
   return `${Math.abs(value).toFixed(2)}°${hemi}`;
 }
 
+// The shared `length` ladder with this widget's own precision. A survey
+// distance wants two decimals at the km rung (10 m of resolution over a
+// traverse) and none at the metre rung, which is finer than the ladder's
+// one-decimal default in one direction and coarser in the other. The rungs
+// are shared; only the precision is local, and it is a prop rather than a
+// reimplementation.
 function formatMetres(m: number): string {
-  const abs = Math.abs(m);
-  if (abs >= 1000) return `${(m / 1000).toFixed(2)} km`;
-  return `${m.toFixed(0)} m`;
+  const { value, symbol } = formatQuantity(m, "m", {
+    decimals: Math.abs(m) >= 1000 ? 2 : 0,
+  });
+  return `${value} ${symbol}`;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────

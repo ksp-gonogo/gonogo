@@ -14,6 +14,7 @@ import {
   EmptyState,
   FramedDisplay,
   formatDuration,
+  formatQuantity,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -66,11 +67,17 @@ function formatMps(v: number | null | undefined): string {
   return `${v.toFixed(0)} m/s`;
 }
 
+// The shared `length` ladder with this widget's own precision. A descent
+// readout wants two decimals between 1 and 10 km (10 m of altitude, which is
+// the difference between a landing and a crater) and whole metres in the last
+// kilometre. The rungs are shared; only the precision is local.
 function formatMeters(m: number | null | undefined): string {
   if (m === null || m === undefined || !Number.isFinite(m)) return NULL_DISPLAY;
-  if (Math.abs(m) >= 10_000) return `${(m / 1000).toFixed(1)} km`;
-  if (Math.abs(m) >= 1000) return `${(m / 1000).toFixed(2)} km`;
-  return `${m.toFixed(0)} m`;
+  const abs = Math.abs(m);
+  const { value, symbol } = formatQuantity(m, "m", {
+    decimals: abs >= 10_000 ? 1 : abs >= 1000 ? 2 : 0,
+  });
+  return `${value} ${symbol}`;
 }
 
 function formatDv(v: number | null | undefined): string {
