@@ -151,6 +151,21 @@ const LADDERS: Record<string, readonly Rung[]> = {
     { from: 1e6, symbol: "Mbit/s", per: 1e6 },
     { from: 1e9, symbol: "Gbit/s", per: 1e9 },
   ],
+  // Based in watts even though nothing on the wire is: the contract declares
+  // kW because that is what KSP's thermal API hands out, and the normalise-to-
+  // base step above turns that into the right rung. Basing the ladder in kW
+  // instead would work until the first field that arrives in plain watts.
+  //
+  // The MW rung is load-bearing, not decorative. A reentry heat shield runs to
+  // several thousand kW, and ThermalStatus's hand-rolled formatter carried an
+  // MW rung for exactly that; without one here, migrating it would render peak
+  // reentry flux as a four-digit kW number.
+  energyRate: [
+    { from: 0, symbol: "W", per: 1 },
+    { from: 1e3, symbol: "kW", per: 1e3 },
+    { from: 1e6, symbol: "MW", per: 1e6 },
+    { from: 1e9, symbol: "GW", per: 1e9 },
+  ],
 };
 
 /**
@@ -251,6 +266,9 @@ const DECIMALS: Record<string, number> = {
   angle: 2,
   density: 4,
   dataRate: 1,
+  // One decimal reads right at the kW rung a flux readout mostly sits at
+  // (`842.3 kW`), and stays legible at MW (`2.4 MW`).
+  energyRate: 1,
   doseRate: 4,
   irradiance: 1,
   level: 1,

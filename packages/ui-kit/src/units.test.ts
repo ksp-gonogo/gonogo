@@ -135,6 +135,27 @@ describe("formatQuantity", () => {
     });
   });
 
+  it("climbs the energy-rate ladder from the kW the contract declares", () => {
+    // Heat flux arrives in kW (KSP's thermal API), so the ladder's watt base
+    // has to be normalised through before a rung is chosen. A reentry heat
+    // shield runs to several thousand kW, and ThermalStatus's hand-rolled
+    // formatter carried the MW rung that made that readable; dropping it in
+    // the migration would put peak reentry flux back to four digits of kW.
+    expect(formatQuantity(842.3, "kW")).toMatchObject({
+      value: "842.3",
+      symbol: "kW",
+    });
+    expect(formatQuantity(2400, "kW")).toMatchObject({
+      value: "2.4",
+      symbol: "MW",
+    });
+    // And down below the declared unit: 0.25 kW is 250 W.
+    expect(formatQuantity(0.25, "kW")).toMatchObject({
+      value: "250.0",
+      symbol: "W",
+    });
+  });
+
   it("labels a planetary mass on the right prefix tier", () => {
     // Kerbin, 5.2915e22 kg. SystemView's hand-rolled ladder applied GRAM
     // thresholds to a KILOGRAM value and called this "52.91 Zg", one whole

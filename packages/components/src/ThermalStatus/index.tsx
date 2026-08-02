@@ -119,10 +119,13 @@ function formatTemp(kelvin: number | undefined): string {
   return `${value}${symbol}`;
 }
 
+// Heat-shield flux arrives in kW and climbs to MW at reentry peak. Both rungs
+// live in the shared `energyRate` ladder now, so this is only the null guard
+// and the spacing the readout wants.
 function formatKw(kw: number | undefined): string {
   if (kw === undefined || !Number.isFinite(kw)) return NULL_DISPLAY;
-  if (Math.abs(kw) >= 1000) return `${(kw / 1000).toFixed(2)} MW`;
-  return `${kw.toFixed(1)} kW`;
+  const { value, symbol } = formatQuantity(kw, "kW");
+  return `${value} ${symbol}`;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
