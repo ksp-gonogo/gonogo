@@ -380,10 +380,109 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
 };
 
 /**
+ * What each displayed symbol is CALLED, for the accessibility tree.
+ *
+ * A symbol is written for the eye and read badly by everything else: a screen
+ * reader announces `km` as "kay em", and `°` as nothing whatsoever, so a
+ * degrees readout announces as a bare number. An icon is worse still, since it
+ * is `aria-hidden` twice over.
+ *
+ * Keyed on the DISPLAYED symbol rather than the wire token, because that is
+ * what a reader actually meets: the currencies display as `f`/`sci`/`rep`, and
+ * a laddered value displays as whichever rung it climbed to, so `km` and `Mm`
+ * need their own entries rather than inheriting one from `m`.
+ *
+ * There is no exception list for "symbols that read well enough". `km` is
+ * decodable where `°` is not, but an exception list is the thing that rots,
+ * and the map is the same map either way.
+ */
+const WORD_BY_SYMBOL: Record<string, string> = {
+  // Length, and its rungs.
+  m: "metres",
+  km: "kilometres",
+  Mm: "megametres",
+  Gm: "gigametres",
+  Tm: "terametres",
+  // Mass. The astronomical rungs are gram-based symbols on a kilogram ladder,
+  // which is exactly why saying them out loud is worth doing.
+  kg: "kilograms",
+  t: "tonnes",
+  kt: "kilotonnes",
+  Tg: "teragrams",
+  Pg: "petagrams",
+  Eg: "exagrams",
+  Zg: "zettagrams",
+  Yg: "yottagrams",
+  // Force and torque.
+  N: "newtons",
+  kN: "kilonewtons",
+  MN: "meganewtons",
+  kN·m: "kilonewton metres",
+  // Pressure.
+  mPa: "millipascals",
+  Pa: "pascals",
+  kPa: "kilopascals",
+  MPa: "megapascals",
+  // Rates.
+  W: "watts",
+  kW: "kilowatts",
+  MW: "megawatts",
+  GW: "gigawatts",
+  "bit/s": "bits per second",
+  "kbit/s": "kilobits per second",
+  "Mbit/s": "megabits per second",
+  "Gbit/s": "gigabits per second",
+  // Motion.
+  "m/s": "metres per second",
+  "m/s\u00B2": "metres per second squared",
+  g: "gee",
+  rpm: "revolutions per minute",
+  // Angle. These announce as nothing at all without a word.
+  "\u00B0": "degrees",
+  "\u2032": "arcminutes",
+  "\u2033": "arcseconds",
+  rad: "radians",
+  // Temperature. `K` announces as the letter, `\u00B0C` as "cee".
+  K: "kelvin",
+  "\u00B0C": "degrees celsius",
+  // Everything else the contract declares.
+  s: "seconds",
+  h: "hours",
+  dB: "decibels",
+  "rad/s": "radians per second",
+  "W/m\u00B2": "watts per square metre",
+  "kg/m\u00B3": "kilograms per cubic metre",
+  "m\u00B3/s\u00B2": "cubic metres per second squared",
+  "m\u00B2": "square metres",
+  "m\u00B3": "cubic metres",
+  "%": "percent",
+  Mit: "mits",
+  units: "units",
+  "units/s": "units per second",
+  // The currencies, as displayed. `f` is a letter and `sci`/`rep` are
+  // abbreviations; none of the three says what it is out loud, and `sci` and
+  // `rep` are rendered as icons, which say nothing at all.
+  f: "funds",
+  sci: "science",
+  rep: "reputation",
+};
+
+/**
+ * What a displayed symbol is called, or undefined for one with no word (the
+ * category kinds display as an empty string and have nothing to announce).
+ */
+export function wordForSymbol(symbol: string): string | undefined {
+  return WORD_BY_SYMBOL[symbol];
+}
+
+/**
  * The symbol shown beside a value: the kind's display override if it has one,
  * otherwise the token itself.
  */
-function displaySymbol(unit: string, kind: QuantityKind | undefined): string {
+export function displaySymbol(
+  unit: string,
+  kind: QuantityKind | undefined,
+): string {
   return kind === undefined ? unit : (DISPLAY_BY_KIND[kind] ?? unit);
 }
 

@@ -6,7 +6,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { CurrencyUnit, Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
+import { Panel, ScrollArea, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -400,7 +400,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           {sciAvailable !== null && (
             <TinySci>
               {Math.round(sciAvailable)}
-              <CurrencyUnit kind="science" />
+              <Unit>science</Unit>
             </TinySci>
           )}
         </TinyBody>
@@ -440,7 +440,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       {sciAvailable !== null && (
         <SciReadout title="Available science">
           · {Math.round(sciAvailable)}
-          <CurrencyUnit kind="science" />
+          <Unit>science</Unit>
         </SciReadout>
       )}
     </span>
@@ -714,7 +714,7 @@ function TechGraph({
                 ) : (
                   <GraphCost $ds={ds}>
                     {p.node.scienceCost}
-                    <CurrencyUnit kind="science" />
+                    <Unit>science</Unit>
                   </GraphCost>
                 )}
               </GraphCardMeta>
@@ -769,7 +769,7 @@ function DetailPanel({
         {node.state !== "Available" && (
           <Cost>
             {node.scienceCost}
-            <CurrencyUnit kind="science" />
+            <Unit>science</Unit>
           </Cost>
         )}
         {node.parents.length > 0 && (
@@ -817,7 +817,7 @@ function DetailPanel({
           ) : armed ? (
             <ConfirmBtn type="button" onClick={unlock.onConfirm}>
               Confirm unlock: {node.scienceCost}
-              <CurrencyUnit kind="science" />
+              <Unit>science</Unit>
             </ConfirmBtn>
           ) : (
             <ArmBtn
@@ -895,7 +895,7 @@ function NodeRow({
           {display !== "owned" && (
             <Cost $insufficient={unaffordable}>
               {node.scienceCost}
-              <CurrencyUnit kind="science" />
+              <Unit>science</Unit>
             </Cost>
           )}
           <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
@@ -932,7 +932,7 @@ function NodeRow({
                       {p.entryCost > 0 && !p.purchased && (
                         <PartCost>
                           {p.entryCost.toLocaleString()}
-                          <CurrencyUnit kind="funds" />
+                          <Unit>funds</Unit>
                         </PartCost>
                       )}
                       {p.purchased && <PartPurchased>✓</PartPurchased>}
@@ -951,7 +951,7 @@ function NodeRow({
               ) : armed ? (
                 <ConfirmBtn type="button" onClick={onConfirm}>
                   Confirm unlock: {node.scienceCost}
-                  <CurrencyUnit kind="science" />
+                  <Unit>science</Unit>
                 </ConfirmBtn>
               ) : (
                 <ArmBtn

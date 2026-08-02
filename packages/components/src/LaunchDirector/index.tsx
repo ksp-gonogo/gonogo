@@ -18,12 +18,12 @@ import {
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CurrencyUnit,
   formatQuantity,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
   Spinner,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -408,7 +408,7 @@ function LaunchDirectorComponent({
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
                 · {Math.round(careerFunds).toLocaleString()}
-                <CurrencyUnit kind="funds" />
+                <Unit>funds</Unit>
               </FundsReadout>
             )}
           </span>
@@ -514,14 +514,14 @@ function LaunchDirectorComponent({
                       {s.requiresFunds > fundsAvailable && (
                         <BlockedTag title="Insufficient funds">
                           {s.requiresFunds.toFixed(0)}
-                          <CurrencyUnit kind="funds" />
+                          <Unit>funds</Unit>
                         </BlockedTag>
                       )}
                       {s.requiresFunds <= fundsAvailable &&
                         s.requiresFunds > 0 && (
                           <CostTag>
                             {s.requiresFunds.toFixed(0)}
-                            <CurrencyUnit kind="funds" />
+                            <Unit>funds</Unit>
                           </CostTag>
                         )}
                       {s.missingParts.length > 0 && (

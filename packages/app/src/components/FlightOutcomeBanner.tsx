@@ -2,7 +2,7 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useModal } from "@ksp-gonogo/ui";
-import { CurrencyUnit, SectionTitle } from "@ksp-gonogo/ui-kit";
+import { SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -294,16 +294,16 @@ export function FlightOutcomeBanner() {
         <BannerStats>
           <Stat>
             +{Math.round(outcome.fundsEarned).toLocaleString()}
-            <CurrencyUnit kind="funds" />
+            <Unit>funds</Unit>
           </Stat>
           <Stat>
             +{outcome.scienceEarned.toFixed(1)}
-            <CurrencyUnit kind="science" />
+            <Unit>science</Unit>
           </Stat>
           {outcome.displayReputation && (
             <Stat>
               +{outcome.reputationEarned.toFixed(1)}
-              <CurrencyUnit kind="rep" />
+              <Unit>rep</Unit>
             </Stat>
           )}
         </BannerStats>
@@ -395,7 +395,7 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
               <DetailRowTitle>{s.subjectTitle || s.subjectId}</DetailRowTitle>
               <DetailRowValue>
                 +{s.scienceAmount.toFixed(1)}
-                <CurrencyUnit kind="science" />
+                <Unit>science</Unit>
               </DetailRowValue>
             </DetailRow>
           ))}
@@ -435,7 +435,7 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
               </DetailRowTitle>
               <DetailRowValue>
                 {Math.round(p.totalValue).toLocaleString()}
-                <CurrencyUnit kind="funds" />
+                <Unit>funds</Unit>
               </DetailRowValue>
             </DetailRow>
           ))}
@@ -454,7 +454,7 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
               </DetailRowTitle>
               <DetailRowValue>
                 {Math.round(r.totalValue).toLocaleString()}
-                <CurrencyUnit kind="funds" />
+                <Unit>funds</Unit>
               </DetailRowValue>
             </DetailRow>
           ))}

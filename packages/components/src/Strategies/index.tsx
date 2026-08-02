@@ -8,13 +8,13 @@ import {
 } from "@ksp-gonogo/core";
 import {
   Button,
-  CurrencyUnit,
   GhostButton,
   NULL_DISPLAY,
   Panel,
   PrimaryButton,
   ScrollArea,
   Stack,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -305,19 +305,19 @@ function StrategiesComponent({
           <Sep>·</Sep>
           <Tally>
             {formatNumber(funds)}
-            <CurrencyUnit kind="funds" />
+            <Unit>funds</Unit>
           </Tally>
           {(w ?? 9) >= 6 && (
             <>
               <Sep>·</Sep>
               <Tally>
                 {formatNumber(reputation)}
-                <CurrencyUnit kind="rep" />
+                <Unit>rep</Unit>
               </Tally>
               <Sep>·</Sep>
               <Tally>
                 {formatNumber(science)}
-                <CurrencyUnit kind="science" />
+                <Unit>science</Unit>
               </Tally>
             </>
           )}
@@ -532,13 +532,13 @@ function AvailableRow({
         {s.initialCostFunds > 0 && (
           <CostChip $insufficient={overBudget(scaledFunds, funds)}>
             {formatNumber(scaledFunds)}
-            <CurrencyUnit kind="funds" />
+            <Unit>funds</Unit>
           </CostChip>
         )}
         {s.initialCostScience > 0 && (
           <CostChip $insufficient={overBudget(scaledScience, science)}>
             {formatNumber(scaledScience)}
-            <CurrencyUnit kind="science" />
+            <Unit>science</Unit>
           </CostChip>
         )}
         {s.initialCostReputation > 0 && (
@@ -547,7 +547,7 @@ function AvailableRow({
             title={`Nominal ${formatNumber(s.initialCostReputation * factorScale)}; the rep curve bumps the real charge to ${formatNumber(scaledRep)}.`}
           >
             {formatNumber(scaledRep)}
-            <CurrencyUnit kind="rep" />
+            <Unit>rep</Unit>
           </CostChip>
         )}
         {s.initialCostFunds === 0 &&

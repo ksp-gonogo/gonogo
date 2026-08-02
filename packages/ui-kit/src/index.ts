@@ -87,11 +87,6 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
-export {
-  type CurrencyKind,
-  CurrencyUnit,
-  type CurrencyUnitProps,
-} from "./CurrencyUnit";
 export { configEqual } from "./configEqual";
 export {
   DataKeyPicker,
@@ -264,6 +259,7 @@ export { Unit } from "./Unit";
 // The contract declares what a field IS; these decide how to SHOW it. The wire
 // is canonical SI and never pre-scaled, so every ladder lives here.
 export {
+  displaySymbol,
   type FormatQuantityOptions,
   type FormattedQuantity,
   formatQuantity,
@@ -274,6 +270,7 @@ export {
   registerUnit,
   STANDARD_GRAVITY,
   type UnitDefinition,
+  wordForSymbol,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {
