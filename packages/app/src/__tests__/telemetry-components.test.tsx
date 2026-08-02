@@ -249,9 +249,9 @@ describe("DistanceToTargetComponent", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
-    // formatDistance(12_000_000) = '12.00 Mm'
+    // formatDistance(12_000_000) = '12.0 Mm'
     await waitFor(() =>
-      expect(screen.getByText("12.00 Mm")).toBeInTheDocument(),
+      expect(screen.getByText("12.0 Mm")).toBeInTheDocument(),
     );
   });
 

@@ -111,6 +111,12 @@ const LADDERS: Record<string, readonly Rung[]> = {
     { from: 1e3, symbol: "km", per: 1e3 },
     { from: 1e6, symbol: "Mm", per: 1e6 },
     { from: 1e9, symbol: "Gm", per: 1e9 },
+    // Out of reach in the stock system (Eeloo's apoapsis is ~114 Gm) and even
+    // in the usual planet packs, but core's hand-rolled `formatDistance`
+    // carried a Tm rung and eight widgets read through it. Keeping the rung
+    // means the migration is a pure delegation rather than a silent ceiling at
+    // "1500.0 Gm" for anyone running an outer-planets install.
+    { from: 1e12, symbol: "Tm", per: 1e12 },
   ],
   // Every threshold and divisor here is in KILOGRAMS, including the
   // astronomical rungs, whose symbols are gram-based (1 Yg is 1e24 g, so

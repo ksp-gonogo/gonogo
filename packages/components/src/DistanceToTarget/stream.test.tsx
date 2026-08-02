@@ -126,7 +126,10 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     expect(screen.getByText(`2.9° · -2.1° · ${NULL_DISPLAY}`)).toBeTruthy();
     // vessel.dock.distance (62) headlines the HUD in preference to the
     // general tar.distance figure.
-    expect(screen.getByText("62 m")).toBeTruthy();
+    // One decimal: distances go through the shared `length` ladder now,
+    // which is what lets a final-approach gap read "0.4 m" instead of
+    // rounding to "0 m".
+    expect(screen.getByText("62.0 m")).toBeTruthy();
 
     teardownMockDataSource(legacyAux);
   });

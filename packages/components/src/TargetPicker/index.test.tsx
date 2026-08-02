@@ -201,7 +201,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     expect(screen.getByText("Flag Marker")).toBeInTheDocument();
     // Distance is populated + shown for the Other bucket, same as every other
     // category.
-    expect(screen.getByText(/340\s*m/)).toBeInTheDocument();
+    expect(screen.getByText(/340\.0\s*m/)).toBeInTheDocument();
   });
 
   it("builds Suggested from the 2 closest bodies + 2 closest vessels + all parts, hidden SpaceObject excluded", async () => {
@@ -456,7 +456,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     await waitFor(() => {
       expect(screen.getByText("Docking Port")).toBeInTheDocument();
       // |relativePosition| = hypot(30,40,0) = 50 m.
-      expect(screen.getByText("50 m")).toBeInTheDocument();
+      expect(screen.getByText("50.0 m")).toBeInTheDocument();
     });
   });
 

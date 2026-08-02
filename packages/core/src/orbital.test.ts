@@ -181,7 +181,10 @@ describe("formatDuration", () => {
 
 describe("formatDistance", () => {
   it("formats metres", () => {
-    expect(formatDistance(320)).toBe("320 m");
+    // One decimal at every rung, including this one, since the shared `length`
+    // ladder sets precision per kind. The hand-rolled version this delegates
+    // to rounded metres to whole numbers and used two decimals above Mm.
+    expect(formatDistance(320)).toBe("320.0 m");
   });
 
   it("formats kilometres", () => {
@@ -189,11 +192,17 @@ describe("formatDistance", () => {
   });
 
   it("formats Megametres", () => {
-    expect(formatDistance(1_500_000_000)).toBe("1.50 Gm");
+    expect(formatDistance(3_400_000)).toBe("3.4 Mm");
+  });
+
+  it("formats Gigametres", () => {
+    expect(formatDistance(1_500_000_000)).toBe("1.5 Gm");
   });
 
   it("formats Terametres", () => {
-    expect(formatDistance(1.5e12)).toBe("1.50 Tm");
+    // Out of reach in the stock system, but the rung is carried so an
+    // outer-planets install does not hit a ceiling of "1500.0 Gm".
+    expect(formatDistance(1.5e12)).toBe("1.5 Tm");
   });
 
   it("returns the null placeholder for Infinity", () => {

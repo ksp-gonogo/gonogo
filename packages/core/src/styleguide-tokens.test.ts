@@ -82,6 +82,12 @@ const EXCEPTIONS: Exception[] = [
       "The ladders themselves. Every rung in this file is a literal by definition, and flagging them would be flagging the answer as the offence. The rest of packages/theme/src IS scanned: defaultDarkTheme.ts held its own raw px for space and radii long after the migration precisely because the whole package used to be excluded, so the exclusion is now the one file rather than the directory.",
   },
   {
+    path: "packages/ui-kit/src/VisuallyHidden.tsx",
+    families: ["spacing"],
+    reason:
+      "The clip-rect visually-hidden recipe, whose whole point is to occupy no layout. Its 1px box and -1px margin are a matched pair that cancel each other out: the box exists so screen readers still reach the text, and the negative margin removes the pixel it would otherwise take. Neither number is a spacing decision, and putting either on the ladder would change the box to a size the recipe does not work at.",
+  },
+  {
     path: "packages/app/src/styles/react-resizable.css",
     families: "all",
     reason:

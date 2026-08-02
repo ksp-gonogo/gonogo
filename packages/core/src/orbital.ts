@@ -9,7 +9,7 @@
  * Telemachus output). Radians are only used internally.
  */
 
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { formatQuantity, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { BodyDefinition } from "./bodies";
 import { degToRad } from "./utils/math";
 
@@ -210,17 +210,21 @@ export function formatDuration(seconds: number): string {
 
 /**
  * Format a distance in metres to a compact human-readable string.
- * Examples: "42,350.0 km", "1.24 Gm", "320 m".
+ * Examples: `42350.0 km`, `1.2 Gm`, `320.0 m`.
  * Returns NULL_DISPLAY for non-finite values.
+ *
+ * This was a fourth hand-rolled SI ladder and is now a thin wrapper over the
+ * shared `length` one, kept only so its eight consumers keep a single-argument
+ * call. Two things changed with the delegation, both deliberate: the shared
+ * ladder carries one decimal at every rung rather than two above Mm and zero
+ * at m, and its rungs are the ones the contract's declared units resolve
+ * against, so a length that arrives already in km ladders correctly instead of
+ * being read as metres.
  */
 export function formatDistance(metres: number): string {
   if (!Number.isFinite(metres)) return NULL_DISPLAY;
-  const abs = Math.abs(metres);
-  if (abs >= 1e12) return `${(metres / 1e12).toFixed(2)} Tm`;
-  if (abs >= 1e9) return `${(metres / 1e9).toFixed(2)} Gm`;
-  if (abs >= 1e6) return `${(metres / 1e6).toFixed(2)} Mm`;
-  if (abs >= 1e3) return `${(metres / 1e3).toFixed(1)} km`;
-  return `${Math.round(metres)} m`;
+  const { value, symbol } = formatQuantity(metres, "m");
+  return `${value} ${symbol}`;
 }
 
 /**
