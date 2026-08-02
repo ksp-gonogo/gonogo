@@ -87,6 +87,11 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
+export {
+  type CurrencyKind,
+  CurrencyUnit,
+  type CurrencyUnitProps,
+} from "./CurrencyUnit";
 export { configEqual } from "./configEqual";
 export {
   DataKeyPicker,
@@ -150,10 +155,12 @@ export {
   GearIcon,
   HalfHeightIcon,
   HalfWidthIcon,
+  HeartIcon,
   HistoryIcon,
   type IconProps,
   JoystickIcon,
   LayersIcon,
+  MicroscopeIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
@@ -166,7 +173,11 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
-export { KSP_DAY_SECONDS, KSP_YEAR_DAYS, KSP_YEAR_SECONDS } from "./kspTime";
+export {
+  KSP_DAY_SECONDS,
+  KSP_YEAR_DAYS,
+  KSP_YEAR_SECONDS,
+} from "./kspTime";
 export {
   ModalChromeContext,
   type ModalChromeValue,
@@ -271,5 +282,6 @@ export {
   type ValueSize,
   type ValueTone,
 } from "./Value";
+export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";

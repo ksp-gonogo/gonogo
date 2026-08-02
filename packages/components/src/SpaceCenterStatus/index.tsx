@@ -8,7 +8,12 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
-import { NULL_DISPLAY, Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
+import {
+  CurrencyUnit,
+  NULL_DISPLAY,
+  Panel,
+  ScrollArea,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -258,7 +263,8 @@ function SpaceCenterStatusComponent({
             {padLine}
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
-                · {Math.round(careerFunds).toLocaleString()}f
+                · {Math.round(careerFunds).toLocaleString()}
+                <CurrencyUnit kind="funds" />
               </FundsReadout>
             )}
           </span>

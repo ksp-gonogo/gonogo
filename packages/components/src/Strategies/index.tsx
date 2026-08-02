@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   Button,
+  CurrencyUnit,
   GhostButton,
   NULL_DISPLAY,
   Panel,
@@ -302,13 +303,22 @@ function StrategiesComponent({
             {overCap && ` / ${inferredCap}`}
           </Tally>
           <Sep>·</Sep>
-          <Tally>{formatNumber(funds)}f</Tally>
+          <Tally>
+            {formatNumber(funds)}
+            <CurrencyUnit kind="funds" />
+          </Tally>
           {(w ?? 9) >= 6 && (
             <>
               <Sep>·</Sep>
-              <Tally>{formatNumber(reputation)} rep</Tally>
+              <Tally>
+                {formatNumber(reputation)}
+                <CurrencyUnit kind="rep" />
+              </Tally>
               <Sep>·</Sep>
-              <Tally>{formatNumber(science)} sci</Tally>
+              <Tally>
+                {formatNumber(science)}
+                <CurrencyUnit kind="science" />
+              </Tally>
             </>
           )}
         </HeaderMeta>
@@ -521,12 +531,14 @@ function AvailableRow({
       <CostRow>
         {s.initialCostFunds > 0 && (
           <CostChip $insufficient={overBudget(scaledFunds, funds)}>
-            {formatNumber(scaledFunds)}f
+            {formatNumber(scaledFunds)}
+            <CurrencyUnit kind="funds" />
           </CostChip>
         )}
         {s.initialCostScience > 0 && (
           <CostChip $insufficient={overBudget(scaledScience, science)}>
-            {formatNumber(scaledScience)} sci
+            {formatNumber(scaledScience)}
+            <CurrencyUnit kind="science" />
           </CostChip>
         )}
         {s.initialCostReputation > 0 && (
@@ -534,7 +546,8 @@ function AvailableRow({
             $insufficient={overBudget(scaledRep, reputation)}
             title={`Nominal ${formatNumber(s.initialCostReputation * factorScale)}; the rep curve bumps the real charge to ${formatNumber(scaledRep)}.`}
           >
-            {formatNumber(scaledRep)} rep
+            {formatNumber(scaledRep)}
+            <CurrencyUnit kind="rep" />
           </CostChip>
         )}
         {s.initialCostFunds === 0 &&

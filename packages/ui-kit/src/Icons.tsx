@@ -11,11 +11,13 @@ import {
   Columns2,
   Database,
   FileText,
+  Heart,
   History,
   Joystick,
   Layers,
   type LucideProps,
   Maximize,
+  Microscope,
   Minimize,
   Pause,
   Pencil,
@@ -73,6 +75,15 @@ export const PencilIcon = makeIcon(Pencil);
 export const CheckIcon = makeIcon(Check);
 export const GearIcon = SettingsIcon;
 export const StarIcon = makeIcon(Star);
+/**
+ * Reputation, per the currency-icon trial. Close to the in-game glyph.
+ *
+ * Star previously also meant "starred flight" in FlightsManager; that moved to
+ * HeartIcon so one glyph does not carry two unrelated meanings.
+ */
+export const HeartIcon = makeIcon(Heart);
+/** Science, per the currency-icon trial. */
+export const MicroscopeIcon = makeIcon(Microscope);
 export const PlayIcon = makeIcon(Play);
 export const PauseIcon = makeIcon(Pause);
 export const StopIcon = makeIcon(Square);

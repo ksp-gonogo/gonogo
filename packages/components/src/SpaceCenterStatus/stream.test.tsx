@@ -84,7 +84,11 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("· 78,401f")).toBeTruthy());
+    // See LaunchDirector's stream test: the funds marker is a nested
+    // element, so match the number and assert the announced text.
+    await waitFor(() =>
+      expect(screen.getByText("· 78,401").textContent).toBe("· 78,401f funds"),
+    );
     expect(screen.getByText("214")).toBeTruthy();
 
     teardownMockDataSource(legacyAux);

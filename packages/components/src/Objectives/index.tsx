@@ -5,7 +5,12 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { BellIcon, EmptyState, Panel } from "@ksp-gonogo/ui-kit";
+import {
+  BellIcon,
+  EmptyState,
+  Panel,
+  VisuallyHidden,
+} from "@ksp-gonogo/ui-kit";
 import type { ComponentType, ReactNode } from "react";
 import styled from "styled-components";
 import {
@@ -365,15 +370,6 @@ const Sourced = styled.span`
 const Desc = styled.span`
   font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
-`;
-
-const VisuallyHidden = styled.span`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 `;
 
 registerComponent<ObjectivesConfig>({

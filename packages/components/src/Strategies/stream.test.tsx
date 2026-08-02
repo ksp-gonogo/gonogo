@@ -52,9 +52,15 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
       });
     });
 
-    await waitFor(() => expect(screen.getByText("289,848f")).toBeTruthy());
-    expect(screen.getByText("420 rep")).toBeTruthy();
-    expect(screen.getByText("145 sci")).toBeTruthy();
+    // `getByText` concatenates only an element's direct text nodes, so it
+    // finds the bare number; `CurrencyUnit` puts its glyph and the word that
+    // replaces it in a nested span. The full `textContent` is what a screen
+    // reader announces, so assert that: the glyphs are aria-hidden, and
+    // without the hidden word these tallies would read as three bare numbers.
+    const funds = await screen.findByText("289,848");
+    expect(funds.textContent).toBe("289,848f funds");
+    expect(screen.getByText("420").textContent).toBe("420 reputation");
+    expect(screen.getByText("145").textContent).toBe("145 science");
   });
 
   it("renders a strategy card derived from career.status.strategies.all", async () => {

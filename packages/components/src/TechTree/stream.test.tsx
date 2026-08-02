@@ -70,7 +70,13 @@ describe("TechTree: genuinely runs off the stream (M3/M3b career batch)", () => 
       });
     });
 
-    await waitFor(() => expect(screen.getByText("· 4854 sci")).toBeTruthy());
+    // `getByText` concatenates only an element's direct text nodes, so it
+    // sees "· 4854" and not the word inside `CurrencyUnit`'s nested
+    // visually-hidden span. The full `textContent` is what a screen reader
+    // announces, and asserting it covers both halves: the microscope glyph is
+    // aria-hidden, so losing the hidden word would leave a bare number.
+    const sci = await screen.findByText("· 4854");
+    expect(sci.textContent).toBe("· 4854 science");
     expect(screen.getByText("General Rocketry")).toBeTruthy();
   });
 });

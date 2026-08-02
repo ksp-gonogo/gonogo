@@ -94,7 +94,12 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
       ]);
     });
 
-    await waitFor(() => expect(screen.getByText("· 42,500f")).toBeTruthy());
+    // `getByText` concatenates only direct text nodes, so it finds the
+    // number without `CurrencyUnit`'s nested glyph + visually-hidden word;
+    // `textContent` is what the readout announces.
+    await waitFor(() =>
+      expect(screen.getByText("· 42,500").textContent).toBe("· 42,500f funds"),
+    );
     expect(screen.getByText("Kerbal X")).toBeTruthy();
 
     // The crew picker only renders once a ship is selected.

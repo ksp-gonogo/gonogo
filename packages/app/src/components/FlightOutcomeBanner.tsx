@@ -2,7 +2,7 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useModal } from "@ksp-gonogo/ui";
-import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { CurrencyUnit, SectionTitle } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -292,10 +292,19 @@ export function FlightOutcomeBanner() {
         <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
         <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
         <BannerStats>
-          <Stat>+{Math.round(outcome.fundsEarned).toLocaleString()}f</Stat>
-          <Stat>+{outcome.scienceEarned.toFixed(1)} sci</Stat>
+          <Stat>
+            +{Math.round(outcome.fundsEarned).toLocaleString()}
+            <CurrencyUnit kind="funds" />
+          </Stat>
+          <Stat>
+            +{outcome.scienceEarned.toFixed(1)}
+            <CurrencyUnit kind="science" />
+          </Stat>
           {outcome.displayReputation && (
-            <Stat>+{outcome.reputationEarned.toFixed(1)} rep</Stat>
+            <Stat>
+              +{outcome.reputationEarned.toFixed(1)}
+              <CurrencyUnit kind="rep" />
+            </Stat>
           )}
         </BannerStats>
         <BannerHint>Tap for breakdown</BannerHint>
@@ -384,7 +393,10 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
           {summary.scienceBreakdown.map((s) => (
             <DetailRow key={s.subjectId}>
               <DetailRowTitle>{s.subjectTitle || s.subjectId}</DetailRowTitle>
-              <DetailRowValue>+{s.scienceAmount.toFixed(1)} sci</DetailRowValue>
+              <DetailRowValue>
+                +{s.scienceAmount.toFixed(1)}
+                <CurrencyUnit kind="science" />
+              </DetailRowValue>
             </DetailRow>
           ))}
         </DetailSection>
@@ -422,7 +434,8 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
                 {p.count > 1 && ` ×${p.count}`}
               </DetailRowTitle>
               <DetailRowValue>
-                {Math.round(p.totalValue).toLocaleString()}f
+                {Math.round(p.totalValue).toLocaleString()}
+                <CurrencyUnit kind="funds" />
               </DetailRowValue>
             </DetailRow>
           ))}
@@ -440,7 +453,8 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
                 {r.resourceName} · {r.amount.toFixed(1)}u
               </DetailRowTitle>
               <DetailRowValue>
-                {Math.round(r.totalValue).toLocaleString()}f
+                {Math.round(r.totalValue).toLocaleString()}
+                <CurrencyUnit kind="funds" />
               </DetailRowValue>
             </DetailRow>
           ))}

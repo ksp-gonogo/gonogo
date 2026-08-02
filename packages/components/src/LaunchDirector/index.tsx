@@ -17,7 +17,13 @@ import {
   type TargetListEntry,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Panel, ScrollArea, Spinner } from "@ksp-gonogo/ui-kit";
+import {
+  CurrencyUnit,
+  NULL_DISPLAY,
+  Panel,
+  ScrollArea,
+  Spinner,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -400,7 +406,8 @@ function LaunchDirectorComponent({
                 : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
-                · {Math.round(careerFunds).toLocaleString()}f
+                · {Math.round(careerFunds).toLocaleString()}
+                <CurrencyUnit kind="funds" />
               </FundsReadout>
             )}
           </span>
@@ -505,12 +512,16 @@ function LaunchDirectorComponent({
                     <ShipCost>
                       {s.requiresFunds > fundsAvailable && (
                         <BlockedTag title="Insufficient funds">
-                          {s.requiresFunds.toFixed(0)}f
+                          {s.requiresFunds.toFixed(0)}
+                          <CurrencyUnit kind="funds" />
                         </BlockedTag>
                       )}
                       {s.requiresFunds <= fundsAvailable &&
                         s.requiresFunds > 0 && (
-                          <CostTag>{s.requiresFunds.toFixed(0)}f</CostTag>
+                          <CostTag>
+                            {s.requiresFunds.toFixed(0)}
+                            <CurrencyUnit kind="funds" />
+                          </CostTag>
                         )}
                       {s.missingParts.length > 0 && (
                         <BlockedTag

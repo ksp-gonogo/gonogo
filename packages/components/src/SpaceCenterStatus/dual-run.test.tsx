@@ -93,10 +93,14 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
       });
     });
 
+    // The funds marker is a nested element (`CurrencyUnit`), and `getByText`
+    // concatenates only direct text nodes, so match the number and assert the
+    // announced text on the element it lands on.
     await waitFor(() =>
       expect(
-        screen.getByText(`· ${midCareer["career.funds"].toLocaleString()}f`),
-      ).toBeTruthy(),
+        screen.getByText(`· ${midCareer["career.funds"].toLocaleString()}`)
+          .textContent,
+      ).toBe(`· ${midCareer["career.funds"].toLocaleString()}f funds`),
     );
     expect(screen.getByLabelText(/VAB tier \d of \d/)).toBeTruthy();
     expect(

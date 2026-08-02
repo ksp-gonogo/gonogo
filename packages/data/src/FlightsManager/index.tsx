@@ -1,5 +1,5 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
-import { StarIcon } from "@ksp-gonogo/ui";
+import { HeartIcon } from "@ksp-gonogo/ui";
 import { EmptyState, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
@@ -330,8 +330,8 @@ export function FlightsManager({
                   />
                 </ThCheckbox>
                 <ThStar>
-                  <StarIcon size={12} fill="currentColor" aria-hidden="true" />
-                  <SrOnly>Starred (exempt from auto-delete)</SrOnly>
+                  <HeartIcon size={12} fill="currentColor" aria-hidden="true" />
+                  <SrOnly>Kept (exempt from auto-delete)</SrOnly>
                 </ThStar>
                 <Th>Vessel</Th>
                 <Th>Launched</Th>
@@ -369,11 +369,11 @@ export function FlightsManager({
                           aria-pressed={Boolean(f.starred)}
                           title={
                             f.starred
-                              ? "Starred: kept from auto-delete"
-                              : "Star to keep from auto-delete"
+                              ? "Kept from auto-delete"
+                              : "Keep from auto-delete"
                           }
                         >
-                          <StarIcon
+                          <HeartIcon
                             size={14}
                             fill={f.starred ? "currentColor" : "none"}
                           />

@@ -78,7 +78,10 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     expect(scope.getByText("Duna Transfer Stage")).toBeTruthy();
     expect(scope.getByText("SSTO Spaceplane")).toBeTruthy();
     // ... the funds-blocked one is tagged ...
-    expect(scope.getByText("180000f")).toBeTruthy();
+    // The value and its funds marker are separate elements now, and
+    // `getByText` sees only an element's direct text nodes, so this matches
+    // the bare number and asserts the announced text on the element itself.
+    expect(scope.getByText("180000").textContent).toBe("180000f funds");
     // ... and the parts-locked one's missing part shows in its title.
     expect(scope.getByText("2 locked")).toBeTruthy();
     // Subtitle reflects the launchable/total count for the fixture's mix.

@@ -6,7 +6,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
+import { CurrencyUnit, Panel, ScrollArea } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
@@ -398,7 +398,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
             <TinyLabel>RESEARCHABLE</TinyLabel>
           </TinyCount>
           {sciAvailable !== null && (
-            <TinySci>{Math.round(sciAvailable)} sci</TinySci>
+            <TinySci>
+              {Math.round(sciAvailable)}
+              <CurrencyUnit kind="science" />
+            </TinySci>
           )}
         </TinyBody>
       </Panel>
@@ -436,7 +439,8 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       researchable
       {sciAvailable !== null && (
         <SciReadout title="Available science">
-          · {Math.round(sciAvailable)} sci
+          · {Math.round(sciAvailable)}
+          <CurrencyUnit kind="science" />
         </SciReadout>
       )}
     </span>
@@ -708,7 +712,10 @@ function TechGraph({
                 {ds === "owned" ? (
                   <GraphOwned>✓ owned</GraphOwned>
                 ) : (
-                  <GraphCost $ds={ds}>{p.node.scienceCost} sci</GraphCost>
+                  <GraphCost $ds={ds}>
+                    {p.node.scienceCost}
+                    <CurrencyUnit kind="science" />
+                  </GraphCost>
                 )}
               </GraphCardMeta>
             </GraphCard>
@@ -759,7 +766,12 @@ function DetailPanel({
       </DetailHead>
       {node.description && <Description>{node.description}</Description>}
       <DetailMeta>
-        {node.state !== "Available" && <Cost>{node.scienceCost} sci</Cost>}
+        {node.state !== "Available" && (
+          <Cost>
+            {node.scienceCost}
+            <CurrencyUnit kind="science" />
+          </Cost>
+        )}
         {node.parents.length > 0 && (
           <ParentsInline>
             requires{" "}
@@ -804,7 +816,8 @@ function DetailPanel({
             </PendingBtn>
           ) : armed ? (
             <ConfirmBtn type="button" onClick={unlock.onConfirm}>
-              Confirm unlock: {node.scienceCost} sci
+              Confirm unlock: {node.scienceCost}
+              <CurrencyUnit kind="science" />
             </ConfirmBtn>
           ) : (
             <ArmBtn
@@ -880,7 +893,10 @@ function NodeRow({
         </NodeTitle>
         <NodeMeta>
           {display !== "owned" && (
-            <Cost $insufficient={unaffordable}>{node.scienceCost} sci</Cost>
+            <Cost $insufficient={unaffordable}>
+              {node.scienceCost}
+              <CurrencyUnit kind="science" />
+            </Cost>
           )}
           <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
           {/* Per-node inline badges slot. Renders nothing until an Uplink binds
@@ -914,7 +930,10 @@ function NodeRow({
                     <PartMeta>
                       {p.category && <PartCategory>{p.category}</PartCategory>}
                       {p.entryCost > 0 && !p.purchased && (
-                        <PartCost>{p.entryCost.toLocaleString()}f</PartCost>
+                        <PartCost>
+                          {p.entryCost.toLocaleString()}
+                          <CurrencyUnit kind="funds" />
+                        </PartCost>
                       )}
                       {p.purchased && <PartPurchased>✓</PartPurchased>}
                     </PartMeta>
@@ -931,7 +950,8 @@ function NodeRow({
                 </PendingBtn>
               ) : armed ? (
                 <ConfirmBtn type="button" onClick={onConfirm}>
-                  Confirm unlock: {node.scienceCost} sci
+                  Confirm unlock: {node.scienceCost}
+                  <CurrencyUnit kind="science" />
                 </ConfirmBtn>
               ) : (
                 <ArmBtn
