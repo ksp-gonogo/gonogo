@@ -25,7 +25,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     // the UX: high (DIVERT site far downrange), ignition (burn band lit +
     // commit window, MARGINAL), final (SAFE, gear down, near touchdown). Large
     // size so the Touchdown Reticle + Descent Scope + Commit Layer all render.
+    // NOTE: the four `landing-status/*` configs are all the SAME widget
+    // (`landing-status`): four RENDER SCENARIOS of it, not four widgets.
     widgetId: "landing-status",
+    label: "landing-status/descent-gif",
     fixturesPath: "LandingStatus/__render__",
     outPath: "renders/landing-widget",
     // Full-content capture at the real 12-col tile width, the whole tile,
@@ -38,10 +41,26 @@ const WIDGETS: WidgetRenderConfig[] = [
     // one near-touchdown frame each so the hillshade + SAFE/MARGINAL/DIVERT
     // verdict tracks the terrain. Same widget, a dedicated fixtures dir.
     widgetId: "landing-status",
-    label: "landing-terrains",
+    label: "landing-status/terrains",
     fixturesPath: "LandingStatus/__render_terrains__",
-    outPath: "renders/landing-terrains",
+    outPath: "renders/landing-status/terrains",
+    fullContent: true,
     modes: [{ name: "full-w12", w: 12, h: 16 }],
+  },
+  {
+    // Atmospheric descent showcase: the mod's terminal-velocity model (from
+    // measured drag) rendered across every regime (accelerating / at-terminal /
+    // decelerating / chute-deployed) plus the honest ESTIMATE fallback when the
+    // mod ships no terminal velocity. Same widget, a dedicated fixtures dir.
+    widgetId: "landing-status",
+    label: "landing-status/atmospheric",
+    fixturesPath: "LandingStatus/__render_atmospheric__",
+    outPath: "renders/landing-status/atmospheric",
+    fullContent: true,
+    modes: [
+      { name: "tall-8x12", w: 8, h: 12 },
+      { name: "standard-6x9", w: 6, h: 9 },
+    ],
   },
   {
     // MapView paints to <canvas> (equirectangular body texture + fog
@@ -241,9 +260,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // The distinct-state scenario matrix (final-approach / suicide-burn /
+    // landed / atmospheric / no-landing-vector). Full-content so tall states
+    // aren't cropped: the modes vary the WIDTH + the height-gated rows the
+    // widget shows, and fullContent captures the whole result uncropped.
     widgetId: "landing-status",
+    label: "landing-status/scenarios",
     fixturesPath: "LandingStatus/__fixtures__",
-    outPath: "renders/landing-status-widget",
+    outPath: "renders/landing-status/scenarios",
+    fullContent: true,
     modes: [
       // Minimum size: suicide-burn row only.
       { name: "compact-4x5", w: 4, h: 5 },

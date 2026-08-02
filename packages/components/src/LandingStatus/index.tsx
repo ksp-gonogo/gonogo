@@ -32,6 +32,7 @@ import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { CrossSection } from "./CrossSection";
 import { deriveDelayClocks } from "./clocks";
+import { DescentEnvelope } from "./DescentEnvelope";
 import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
@@ -90,6 +91,73 @@ function Metres({ m }: { m: number | null | undefined }) {
 function formatDv(v: number | null | undefined): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
   return `${v.toFixed(0)} m/s`;
+}
+
+interface StageLike {
+  stage?: number;
+  dvActual?: number;
+  dvVac?: number;
+  startMass?: number;
+  endMass?: number;
+}
+
+/**
+ * Active-engine burn parameters for the rocket-equation suicide-burn solve: the
+ * effective exhaust velocity `ve` (= Isp·g0) and the burnout mass.
+ *
+ * PREFER the ACTIVE stage (`dv.stages` matched by `vessel.structure.currentStage`)
+ * because those are the engine(s) actually flying the landing burn: its ΔV +
+ * mass ratio fix that engine's ve (atmosphere-adjusted, from the "actual" ΔV),
+ * and its end mass is the burn's floor. `dv.summary.totalDvActual` is the
+ * WHOLE-VESSEL multi-stage total, so it must NOT be used directly here: on a
+ * multi-stage craft it's an average across engines with different Isp.
+ *
+ * Fall back to the whole-vessel `dv.summary` + `propulsion.dryMass` only when the
+ * per-stage data is absent: exact for a single-stage lander (the common landing
+ * case: total == active stage), a coarse average otherwise, still better than a
+ * constant-decel guess. Returns `{}` when nothing usable is on the wire.
+ */
+export function deriveActiveBurnParams(
+  stages: readonly StageLike[] | undefined,
+  currentStage: number | undefined,
+  propulsion: { totalMass?: number; dryMass?: number } | undefined,
+  summary: { totalDvActual?: number; totalDvVac?: number } | undefined,
+): { exhaustVelocity?: number; burnoutMass?: number } {
+  const active = stages?.find((s) => s.stage === currentStage);
+  if (active) {
+    const dv = active.dvActual ?? active.dvVac;
+    const { startMass, endMass } = active;
+    if (
+      dv != null &&
+      dv > 0 &&
+      startMass != null &&
+      endMass != null &&
+      startMass > endMass &&
+      endMass > 0
+    ) {
+      return {
+        exhaustVelocity: dv / Math.log(startMass / endMass),
+        burnoutMass: endMass,
+      };
+    }
+  }
+  const dv = summary?.totalDvActual ?? summary?.totalDvVac;
+  const totalMass = propulsion?.totalMass;
+  const dryMass = propulsion?.dryMass;
+  if (
+    dv != null &&
+    dv > 0 &&
+    totalMass != null &&
+    dryMass != null &&
+    totalMass > dryMass &&
+    dryMass > 0
+  ) {
+    return {
+      exhaustVelocity: dv / Math.log(totalMass / dryMass),
+      burnoutMass: dryMass,
+    };
+  }
+  return {};
 }
 
 /**
@@ -193,6 +261,25 @@ function useScrollerHeight(): [(node: HTMLElement | null) => void, number] {
 
 const DESCENT_HISTORY_MAX = 60;
 
+// Atmospheric terrain-plot gating. The plots (top-down site + cross-section) are
+// a pinpoint-landing view, meaningful only once the predicted touchdown point
+// has SETTLED (a jumpy high-altitude prediction is drag noise, not a site). Show
+// them on an atmospheric board when the predicted point is moving slowly OR the
+// vessel is already low (final approach under chutes), never at hypersonic entry.
+const PREDICTION_STABLE_M = 250; // predicted point moves < this per tick ⇒ settled
+const ATMO_PLOTS_ALT_GATE = 10_000; // …or below this AGL, show them regardless
+
+// Landing-ZONE heuristic (no dispersion on the wire, so derived): the touchdown
+// point could drift by ~this fraction of the remaining horizontal travel; floored
+// at the terrain-sample footprint so it never reads tighter than we actually know.
+const LANDING_ZONE_DISPERSION = 0.12;
+const LANDING_ZONE_FLOOR_M = 30;
+// The reticle / cross-section SLIDING scale: the spatial full-scale zooms to
+// contain the drift + the zone (so a close approach fills the plot instead of
+// sitting as a dot at a fixed 3 km scale), clamped to a sane window.
+const RETICLE_SPAN_MIN_M = 300;
+const RETICLE_SPAN_MAX_M = 6000;
+
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
@@ -208,8 +295,18 @@ function LandingStatusComponent({
   const propulsion = useTelemetry("vessel.propulsion");
   const orbit = useTelemetry("vessel.orbit");
   const summary = useTelemetry("dv.summary");
+  const dvStages = useTelemetry("dv.stages");
+  const structure = useTelemetry("vessel.structure");
   const commsDelay = useTelemetry("comms.delay");
   const landing = useTelemetry("vessel.landing");
+
+  // ve + burnout mass of the ACTIVE engine(s), see `deriveActiveBurnParams`.
+  const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
+    dvStages,
+    structure?.currentStage,
+    propulsion,
+    summary,
+  );
 
   // Burn datum: the vessel's LOWEST point above terrain. Falls back to the CoM
   // radar altitude with a visible note when `vessel.surface` is nulled (Orbiting
@@ -227,6 +324,8 @@ function LandingStatusComponent({
     bodyRadius: body?.radius,
     availableThrust: propulsion?.availableThrust,
     totalMass: propulsion?.totalMass,
+    exhaustVelocity,
+    burnoutMass,
   });
 
   // Touched down: a landed (or splashed) vessel can still report a residual
@@ -246,6 +345,17 @@ function LandingStatusComponent({
     timeToImpact: solution.timeToImpact,
     landed,
   });
+
+  // No viable landing vector: a real vacuum solution exists but the full-vector
+  // burn can't be nulled within the remaining altitude, so even an optimal burn
+  // still hits the ground at `bestSpeedAtImpact`: there is no descent trajectory
+  // to a safe touchdown. Distinct from a NOMINAL committed burn (bestSpeedAtImpact
+  // 0 = the burn fits and a safe landing IS coming); do NOT conflate the two.
+  const noLandingVector =
+    !landed &&
+    solution.state === "vacuum-solved" &&
+    solution.bestSpeedAtImpact != null &&
+    solution.bestSpeedAtImpact > 0.5;
 
   const availableDv = summary?.totalDvActual ?? summary?.totalDvVac;
   const requiredDv = solution.burnDeltaV;
@@ -278,6 +388,32 @@ function LandingStatusComponent({
     });
   }, [currentVs]);
 
+  // Prediction stability: how far the predicted touchdown point moved since the
+  // last tick (great-circle metres). A settled prediction is the real signal that
+  // a pinpoint site is worth drawing on an atmospheric descent.
+  const prevPredictedRef = useRef<{ lat: number; lon: number } | null>(null);
+  const [predictionMovement, setPredictionMovement] = useState<number | null>(
+    null,
+  );
+  const predLat = landing?.predictedLatitude;
+  const predLon = landing?.predictedLongitude;
+  const bodyRadius = body?.radius;
+  useEffect(() => {
+    if (predLat == null || predLon == null || bodyRadius == null) {
+      prevPredictedRef.current = null;
+      setPredictionMovement(null);
+      return;
+    }
+    const prev = prevPredictedRef.current;
+    if (prev) {
+      setPredictionMovement(
+        greatCircle(prev.lat, prev.lon, predLat, predLon, bodyRadius)
+          .distanceMeters,
+      );
+    }
+    prevPredictedRef.current = { lat: predLat, lon: predLon };
+  }, [predLat, predLon, bodyRadius]);
+
   const badgesContext: LandingStatusBadgesContext = {
     bodyName: bodyName ?? null,
     atmospheric,
@@ -291,7 +427,24 @@ function LandingStatusComponent({
   const showRail = showScope;
   // The reticle is the centerpiece, shown once terrain was sampled (predicted
   // point or the sub-vessel fallback) and there's width to make it prominent.
-  const showReticle = width >= 10 && landing?.sampleSource != null;
+  // The two-plot row FLEX-WRAPS (see below), so from ~8 wide it degrades by
+  // STACKING the plots rather than dropping the top-down one; only below the
+  // scope width do we fall back to plain readouts.
+  // On an ATMOSPHERIC board the terrain plots re-appear only once the predicted
+  // point has settled (or the vessel is already low), see the gate constants.
+  // On a vacuum board a sample alone is enough (the burn solve is the site).
+  const predictionStable =
+    predictionMovement != null && predictionMovement < PREDICTION_STABLE_M;
+  const lowApproach =
+    heightFromTerrain != null && heightFromTerrain < ATMO_PLOTS_ALT_GATE;
+  const atmosphericPlotsShown =
+    atmospheric &&
+    landing?.sampleSource != null &&
+    (predictionStable || lowApproach);
+  const showReticle =
+    width >= 8 &&
+    landing?.sampleSource != null &&
+    (!atmospheric || atmosphericPlotsShown);
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle,
     roughnessSigma: landing?.predictedRoughness,
@@ -304,7 +457,8 @@ function LandingStatusComponent({
   // valid velocity/height readouts. Once landed we KEEP the spatial scope (the
   // plots showing the vessel now AT the site) even though the burn solution has
   // gone idle: a "touchdown confirmed" view, not a blank panel.
-  const scopeShown = (board === "vacuum-solved" || landed) && showScope;
+  const scopeShown =
+    (board === "vacuum-solved" || landed || atmosphericPlotsShown) && showScope;
 
   // ── Section fragments (composed into the layout below) ─────────────────────
 
@@ -326,6 +480,38 @@ function LandingStatusComponent({
       : null;
   const driftBearingDeg = siteDrift?.bearingDeg ?? null;
 
+  // Landing ZONE (a circle of possible touchdown, not a pinpoint). No dispersion
+  // on the wire, so derived: a fraction of the remaining horizontal travel
+  // (shrinks as the descent closes), floored at the terrain-sample footprint so
+  // it never reads tighter than the terrain we actually sampled. Only when a
+  // site was sampled at all.
+  const timeToImpactForZone = atmospheric
+    ? (landing?.atmosphericTimeToImpact ?? null)
+    : solution.timeToImpact;
+  const landingZoneRadiusM =
+    landing?.sampleSource != null
+      ? Math.max(
+          landing?.roughnessFootprintMeters ?? 0,
+          LANDING_ZONE_FLOOR_M,
+          solution.horizontalSpeed != null && timeToImpactForZone != null
+            ? LANDING_ZONE_DISPERSION *
+                solution.horizontalSpeed *
+                timeToImpactForZone
+            : 0,
+        )
+      : null;
+
+  // Sliding spatial scale: zoom the reticle / cross-section to contain the drift
+  // and the zone, so a close approach fills the plot (was a fixed 3 km scale).
+  const reticleSpanMeters = Math.min(
+    RETICLE_SPAN_MAX_M,
+    Math.max(
+      RETICLE_SPAN_MIN_M,
+      (siteDrift?.distanceMeters ?? 0) * 1.4,
+      (landingZoneRadiusM ?? 0) * 2.4,
+    ),
+  );
+
   // The side-on cross-section plot (terrain profile along the ground track +
   // the velocity vector in the vertical plane), paired with the top-down reticle.
   const crossSectionEl = scopeShown ? (
@@ -337,6 +523,7 @@ function LandingStatusComponent({
       horizontalSpeed={solution.horizontalSpeed}
       aglMeters={heightFromTerrain ?? null}
       driftMeters={siteDrift?.distanceMeters ?? null}
+      spanMeters={reticleSpanMeters}
     />
   ) : null;
 
@@ -344,6 +531,20 @@ function LandingStatusComponent({
   // dashboard that wants it can place the TWR widget beside this one, and
   // carrying a second copy cost this panel a whole band of vertical space it
   // needs for the plots.
+
+  // The velocity-altitude envelope: a square plot, shown whenever the mod's
+  // terminal-velocity model is present (atmospheric-aware board). Composed as a
+  // plot alongside the reticle + cross-section (see the plots row / detail stack).
+  const envelopeEl =
+    board === "atmospheric-aware" ? (
+      <DescentEnvelope
+        currentSpeed={flight?.surfaceSpeed ?? null}
+        currentAltitude={heightFromTerrain ?? null}
+        terminalVelocity={landing?.terminalVelocity ?? null}
+        projectedTouchdownSpeed={landing?.projectedTouchdownSpeed ?? null}
+        atmosphereColor={body?.atmosphereColor ?? null}
+      />
+    ) : null;
 
   const comDatumNote = usingComDatum ? (
     <Value tone="muted" size="xs">
@@ -367,57 +568,68 @@ function LandingStatusComponent({
       </StackedField>
     </Grid>
   ) : board === "vacuum-solved" ? (
-    <Grid minColWidth="130px" gap="sm">
-      <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
-      <StackedField label="Burn duration">
-        {solution.burnDuration == null
-          ? NULL_DISPLAY
-          : formatDuration(solution.burnDuration, { ms: true })}
-      </StackedField>
-      <StackedField label="Available dV">{formatDv(availableDv)}</StackedField>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "start",
-        }}
-      >
-        <ReadoutCaption>Affordable</ReadoutCaption>
-        {affordable == null ? (
-          <Value tone="muted">{NULL_DISPLAY}</Value>
-        ) : (
-          <Badge tone={affordable ? "go" : "nogo"} size="sm">
-            {affordable ? "yes" : "insufficient dV"}
-          </Badge>
-        )}
-      </div>
-      <StackedField label="Touchdown (coast)">
-        {formatMps(solution.speedAtImpact)}
-      </StackedField>
-      <StackedField label="Touchdown (burn now)">
-        {solution.bestSpeedAtImpact == null
-          ? NULL_DISPLAY
-          : formatMps(solution.bestSpeedAtImpact)}
-      </StackedField>
-      <StackedField label="Impact in">
-        {landed || solution.timeToImpact == null
-          ? NULL_DISPLAY
-          : formatDuration(solution.timeToImpact, { ms: true })}
-      </StackedField>
-      {vs?.targetDistance != null && (
-        <StackedField label="Target range">
-          {<Metres m={vs.targetDistance} />}
+    // Under NO LANDING VECTOR every number here (burn dV you can afford, dV in
+    // the tank, coast speed) is moot context, not a positive: dim the whole
+    // grid so it can't read as reassurance against the ABORT hero above.
+    <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
+      <Grid minColWidth="130px" gap="sm">
+        <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
+        <StackedField label="Burn duration">
+          {solution.burnDuration == null
+            ? NULL_DISPLAY
+            : formatDuration(solution.burnDuration, { ms: true })}
         </StackedField>
-      )}
-      {scopeShown && descentHistory.length >= 2 && (
-        <Sparkline
-          values={descentHistory}
-          width={120}
-          height={24}
-          ariaLabel="Descent-rate trend"
-        />
-      )}
-    </Grid>
+        <StackedField label="Available dV">
+          {formatDv(availableDv)}
+        </StackedField>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "start",
+          }}
+        >
+          <ReadoutCaption>Affordable</ReadoutCaption>
+          {noLandingVector ? (
+            // Fuel isn't the wall (there's no path at all): a green "yes" here
+            // would contradict the ABORT above, so mute it.
+            <Value tone="muted">n/a · no path</Value>
+          ) : affordable == null ? (
+            <Value tone="muted">{NULL_DISPLAY}</Value>
+          ) : (
+            <Badge tone={affordable ? "go" : "nogo"} size="sm">
+              {affordable ? "yes" : "insufficient dV"}
+            </Badge>
+          )}
+        </div>
+        <StackedField label="Touchdown (coast)">
+          {formatMps(solution.speedAtImpact)}
+        </StackedField>
+        <StackedField label="Touchdown (burn now)">
+          {solution.bestSpeedAtImpact == null
+            ? NULL_DISPLAY
+            : formatMps(solution.bestSpeedAtImpact)}
+        </StackedField>
+        <StackedField label="Impact in">
+          {landed || solution.timeToImpact == null
+            ? NULL_DISPLAY
+            : formatDuration(solution.timeToImpact, { ms: true })}
+        </StackedField>
+        {vs?.targetDistance != null && (
+          <StackedField label="Target range">
+            {<Metres m={vs.targetDistance} />}
+          </StackedField>
+        )}
+        {scopeShown && descentHistory.length >= 2 && (
+          <Sparkline
+            values={descentHistory}
+            width={120}
+            height={24}
+            ariaLabel="Descent-rate trend"
+          />
+        )}
+      </Grid>
+    </div>
   ) : null;
 
   const boardEl =
@@ -445,11 +657,39 @@ function LandingStatusComponent({
           {landing?.parachuteState === "armed" ? " · excludes chute" : ""}
         </Value>
       </Section>
+    ) : board === "atmospheric-estimate" ? (
+      // Descending in atmosphere but the mod shipped no terminal velocity yet
+      // (drag not measurable this tick / stale source). Not "unmodelled": show
+      // the honest state: the velocity + air density, and that the vessel is
+      // still above terminal with drag building. An estimate, labelled as one.
+      <Section>
+        <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
+        <Grid cols="auto 1fr" gap="xs">
+          <GridCellPair label="Vertical">
+            {formatMps(solution.verticalSpeed)}
+          </GridCellPair>
+          <GridCellPair label="Horizontal">
+            {formatMps(solution.horizontalSpeed)}
+          </GridCellPair>
+          <GridCellPair label="Air density">
+            {flight?.atmDensity == null || !Number.isFinite(flight.atmDensity)
+              ? NULL_DISPLAY
+              : flight.atmDensity < 0.001
+                ? "negligible"
+                : `${flight.atmDensity.toFixed(3)} kg/m³`}
+          </GridCellPair>
+        </Grid>
+        <Value tone="muted" size="xs">
+          {flight?.atmDensity != null && flight.atmDensity < 0.001
+            ? "negligible drag · near free-fall, terminal velocity resolves as air thickens"
+            : "above terminal · drag building, terminal velocity resolves as descent continues"}
+        </Value>
+      </Section>
     ) : board === "atmospheric-unmodelled" ? (
       <Section>
-        <Badge tone="warn" size="sm">
-          descent unmodelled
-        </Badge>
+        <Value tone="muted" size="xs">
+          descent in atmosphere · no terrain model (no body data)
+        </Value>
       </Section>
     ) : board === "no-solution" ? (
       <Section>
@@ -458,7 +698,11 @@ function LandingStatusComponent({
     ) : null;
 
   const velocityEl =
-    !scopeShown && solution.horizontalSpeed != null ? (
+    // The atmospheric-estimate board carries its own velocity split, so don't
+    // repeat it in the standalone Velocity section.
+    !scopeShown &&
+    board !== "atmospheric-estimate" &&
+    solution.horizontalSpeed != null ? (
       <Section>
         <SectionTitle>Velocity</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
@@ -488,7 +732,7 @@ function LandingStatusComponent({
   ) : null;
 
   const divertEl =
-    !landed && vs?.targetDistance != null ? (
+    !landed && !noLandingVector && vs?.targetDistance != null ? (
       <Section>
         <SectionTitle>Divert</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
@@ -510,15 +754,23 @@ function LandingStatusComponent({
       blindInSeconds={clocks.blindInSeconds}
       blind={clocks.blind}
       landed={landed}
+      noLandingVector={noLandingVector}
+      impactSpeed={solution.bestSpeedAtImpact}
     />
   );
 
-  // Everything that isn't the reticle: the cross-section, TWR, numbers + notes,
-  // in the order they matter. Non-relevant fragments are null and drop out. Used
-  // at sizes without the reticle (below the wide-size two-plots layout).
+  // Everything that isn't the reticle: the cross-section, envelope, numbers +
+  // notes, in the order they matter. Non-relevant fragments are null and drop
+  // out. Used at sizes without the reticle (below the wide-size plots layout).
   const detailStack = (
     <Stack gap="sm">
       {crossSectionEl}
+      {envelopeEl && (
+        <div style={{ maxWidth: 240 }}>
+          <SectionTitle>Descent envelope</SectionTitle>
+          {envelopeEl}
+        </div>
+      )}
       {boardEl}
       {velocityEl}
       {readoutsStack}
@@ -542,12 +794,19 @@ function LandingStatusComponent({
       sampleSource={landing?.sampleSource ?? null}
       terrainPatch={landing?.terrainPatch ?? null}
       terrainPatchSize={landing?.terrainPatchSize ?? null}
+      spanMeters={reticleSpanMeters}
+      zoneRadiusMeters={landingZoneRadiusM}
     />
   ) : null;
 
+  // Site-hazard verdict (slope / roughness). When there's NO LANDING VECTOR the
+  // site verdict is moot (you can't reach a safe touchdown ANYWHERE), so the
+  // banner reads ABORT (not "DIVERT to a better patch", and never a green
+  // "SAFE" that would contradict the alert hero above).
   const hazard = hazardVerdict.verdict;
+  const bannerLabel = noLandingVector ? "ABORT" : (hazard ?? "NO SITE");
   const bannerTone: ReadoutTone =
-    hazard === "DIVERT"
+    noLandingVector || hazard === "DIVERT"
       ? "alert"
       : hazard === "MARGINAL"
         ? "warning"
@@ -556,7 +815,7 @@ function LandingStatusComponent({
           : "default";
   const verdictBannerEl = showReticle ? (
     <div role="status" aria-live="polite">
-      <StatusPill $tone={bannerTone}>{hazard ?? "NO SITE"}</StatusPill>
+      <StatusPill $tone={bannerTone}>{bannerLabel}</StatusPill>
     </div>
   ) : null;
 
@@ -702,10 +961,20 @@ function LandingStatusComponent({
           <div style={{ flex: 1, minWidth: 0 }}>
             {showReticle ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {/* Two equal, ALIGNED altimetry squares in a shared row, same
-                    top, size, baseline: bleeding to the right edge. */}
-                <div style={{ display: "flex", gap: "var(--space-8)" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                {/* The plots in a shared FLEX-WRAP row: touchdown-site,
+                    cross-section, and (on an atmospheric-aware board) the descent
+                    envelope. Equal flex bases, so they lay out LANDSCAPE 3-across
+                    when wide and degrade gracefully to 2-over-1 then a single
+                    stacked column as width drops, no plot ever dropped. */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "var(--space-6)",
+                    padding: "var(--space-8) 0",
+                  }}
+                >
+                  <div style={{ flex: "1 1 200px", minWidth: 200 }}>
                     <SectionTitle>Touchdown site</SectionTitle>
                     {/* Flush: each plot SVG already insets its content by 4,
                         so the frame supplies the edge and lets that inset be
@@ -713,9 +982,15 @@ function LandingStatusComponent({
                     <FramedDisplay>{reticleSquare}</FramedDisplay>
                   </div>
                   {crossSectionEl && (
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ flex: "1 1 200px", minWidth: 200 }}>
                       <SectionTitle>Cross-section</SectionTitle>
                       <FramedDisplay>{crossSectionEl}</FramedDisplay>
+                    </div>
+                  )}
+                  {envelopeEl && (
+                    <div style={{ flex: "1 1 200px", minWidth: 200 }}>
+                      <SectionTitle>Descent envelope</SectionTitle>
+                      <FramedDisplay>{envelopeEl}</FramedDisplay>
                     </div>
                   )}
                 </div>
@@ -770,6 +1045,8 @@ registerComponent<LandingStatusConfig>({
     "vessel.propulsion",
     "vessel.landing",
     "dv.summary",
+    "dv.stages",
+    "vessel.structure",
     "comms.delay",
   ],
   defaultConfig: {},

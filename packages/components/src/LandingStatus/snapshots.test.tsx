@@ -236,7 +236,7 @@ async function snapshotLandingStatusFixture(
   return html;
 }
 
-const config = getWidget("landing-status");
+const config = getWidget("landing-status/descent-gif");
 if (!config) throw new Error("landing-status missing from widgets.ts");
 
 describe("LandingStatus DOM snapshots", () => {

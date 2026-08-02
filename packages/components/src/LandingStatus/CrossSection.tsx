@@ -35,6 +35,9 @@ export interface CrossSectionProps {
   /** Distance from the vessel to the predicted site, metres, drives the
    * vessel's horizontal convergence onto the site as the landing nears. */
   driftMeters?: number | null;
+  /** Spatial full-scale (metres) for the drift convergence, SLIDING, shared
+   * with the reticle so both plots zoom together. Defaults to the fixed 3 km. */
+  spanMeters?: number | null;
 }
 
 function fmtSpeed(v: number | null): string {
@@ -104,6 +107,7 @@ export function CrossSection({
   horizontalSpeed,
   aglMeters,
   driftMeters,
+  spanMeters,
 }: Readonly<CrossSectionProps>) {
   const clipId = useId();
   const profile = sliceProfile(patch, patchSize, bearingDeg);
@@ -156,7 +160,9 @@ export function CrossSection({
   //    arrives AT the predicted point rather than sailing past it.
   const SITE_FRAC = 0.5; // site sits at the slice centre
   const MIN_VESSEL_FRAC = 0.12; // furthest upwind, at/above full-scale drift
-  const DRIFT_FULLSCALE_M = 3000; // matches the top-down reticle
+  // Sliding scale, shared with the top-down reticle (defaults to the fixed 3 km).
+  const DRIFT_FULLSCALE_M =
+    spanMeters != null && spanMeters > 0 ? spanMeters : 3000;
   const driftFrac =
     driftMeters != null && driftMeters > 0
       ? Math.min(1, driftMeters / DRIFT_FULLSCALE_M)

@@ -21,30 +21,36 @@ import styled from "styled-components";
  * It deliberately does NOT scroll or size itself. The caller decides how much
  * room the visual gets, because only the caller knows whether the diagram or
  * the numbers beside it should win when space is short.
+ *
+ * The visual fills the frame to its rounded edge by default: a FramedDisplay
+ * only ever wraps a visual, and a visual wants the whole box. Most SVGs carry
+ * their own viewBox margin, so an inner gutter reads as a double border. The
+ * rare content that has no margin of its own can opt into the gutter with
+ * `padded`.
  */
 export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
   children?: ReactNode;
   /**
-   * Removes the inner gutter between the frame and its contents. For a visual
-   * that already carries its own margin (most SVGs with a viewBox do) the
-   * gutter reads as a double border.
+   * Adds an inner gutter between the frame and its contents. Off by default
+   * because the visual should fill to the rounded edge; opt in only for
+   * content that carries no margin of its own.
    */
-  flush?: boolean;
+  padded?: boolean;
 }
 
 export function FramedDisplay({
   children,
-  flush,
+  padded,
   ...rest
 }: FramedDisplayProps) {
   return (
-    <FramedDisplay__Box $flush={flush} {...rest}>
+    <FramedDisplay__Box $padded={padded} {...rest}>
       {children}
     </FramedDisplay__Box>
   );
 }
 
-const FramedDisplay__Box = styled.div<{ $flush?: boolean }>`
+const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
   position: relative;
   display: flex;
   min-height: 0;
@@ -56,7 +62,7 @@ const FramedDisplay__Box = styled.div<{ $flush?: boolean }>`
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  padding: ${({ $flush }) => ($flush ? "0" : "var(--space-4)")};
+  padding: ${({ $padded }) => ($padded ? "var(--space-4)" : "0")};
 
   /* A child SVG or canvas fills the frame. Without this an SVG with no
      explicit size renders at its intrinsic 300x150 and floats in the corner,

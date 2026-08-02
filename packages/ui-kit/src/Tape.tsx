@@ -144,7 +144,13 @@ export function Tape({
   const fmt = (v: number) => (format ? format(v) : defaultFormat(v, unit));
   const label = (v: number) => (format ? format(v) : defaultNumber(v));
 
-  const usable = h - PAD_TOP - PAD_BOTTOM;
+  // Floored: a `fillHeight` rail measures whatever the surrounding layout
+  // leaves it (e.g. LandingStatus's AltitudeRail squeezed by sibling
+  // content at a small tile size), and can come in under the fixed top+bottom
+  // padding. An unclamped `usable` then goes negative and the track `<rect>`
+  // below throws (SVG rejects a negative `height`). Flooring at 0 degrades
+  // to a collapsed track instead of a crash.
+  const usable = Math.max(0, h - PAD_TOP - PAD_BOTTOM);
   // value -> y: max at the top (y = PAD_TOP), min at the bottom.
   const yOf = (v: number): number => {
     if (!(span > 0)) return PAD_TOP + usable;

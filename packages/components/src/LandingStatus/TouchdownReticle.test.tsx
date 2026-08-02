@@ -23,6 +23,24 @@ describe("TouchdownReticle", () => {
     expect(img.getAttribute("aria-label")).toMatch(/predicted/);
   });
 
+  it("draws the landing-zone ring when a zone radius is given (dashed area, not a pinpoint)", () => {
+    const { container } = render(
+      <TouchdownReticle {...base} spanMeters={800} zoneRadiusMeters={200} />,
+    );
+    // A dashed circle centred on the site (160-box centre = 80,80).
+    const ring = container.querySelector("circle[stroke-dasharray]");
+    expect(ring).not.toBeNull();
+    expect(ring?.getAttribute("cx")).toBe("80");
+    expect(ring?.getAttribute("cy")).toBe("80");
+    // 200 m at an 800 m span over the (C-18)=62 px radius → ~15.5 px.
+    expect(Number(ring?.getAttribute("r"))).toBeCloseTo(15.5, 0);
+  });
+
+  it("omits the zone ring when no radius is provided", () => {
+    const { container } = render(<TouchdownReticle {...base} />);
+    expect(container.querySelector("circle[stroke-dasharray]")).toBeNull();
+  });
+
   // The verdict banner + biome/source readout are now composed by the widget
   // (below the plots) so the reticle stays a bare square that aligns with the
   // cross-section; the source still rides the reticle's accessible label.

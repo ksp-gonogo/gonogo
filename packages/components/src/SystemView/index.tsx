@@ -585,7 +585,7 @@ function SystemViewComponent({
       panelSidebar={showAlmanac ? almanac : undefined}
     >
       {showDiagram ? (
-        <DiagramFrame flush>
+        <DiagramFrame>
           <DiagramWrap ref={wrapRef}>
             {parentName !== null && bodies.length > 0 && (
               <SystemDiagram

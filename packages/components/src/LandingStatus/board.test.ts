@@ -15,10 +15,12 @@ describe("deriveBoard", () => {
     ).toBe("not-descending");
   });
 
-  it("an atmospheric body suppresses the vacuum solve (even when it would solve)", () => {
+  it("an atmospheric body suppresses the vacuum solve, showing an honest estimate while descending", () => {
+    // Descending in atmosphere with body data but no mod terminal velocity: an
+    // honest partial read (atmospheric-estimate), never a silent "unmodelled".
     expect(
       deriveBoard({ solutionState: "vacuum-solved", atmospheric: true }),
-    ).toBe("atmospheric-unmodelled");
+    ).toBe("atmospheric-estimate");
   });
 
   it("an atmospheric body shows the atmosphere-aware estimate when the source provides one", () => {
@@ -39,10 +41,20 @@ describe("deriveBoard", () => {
     ).toBe("not-descending");
   });
 
-  it("an atmospheric body suppresses even a no-solution vacuum result", () => {
+  it("an atmospheric body with NO body data (no-solution) has nothing to show, unmodelled", () => {
     expect(
       deriveBoard({ solutionState: "no-solution", atmospheric: true }),
     ).toBe("atmospheric-unmodelled");
+  });
+
+  it("the mod's terminal-velocity read still wins over the estimate fallback", () => {
+    expect(
+      deriveBoard({
+        solutionState: "vacuum-solved",
+        atmospheric: true,
+        atmosphereAware: true,
+      }),
+    ).toBe("atmospheric-aware");
   });
 
   it("a vacuum body with missing data is no-solution", () => {

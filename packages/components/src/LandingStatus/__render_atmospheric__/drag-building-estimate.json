@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "scenario": "kerbin-reentry-atmospheric",
+    "scenario": "atmospheric-drag-building-estimate",
     "synthetic": true,
-    "notes": "SYNTHETIC (model-generated, NOT captured). Kerbin reentry (~28 km, 210 m/s down) in an atmosphere, the atmospheric board: terminal velocity, projected touchdown, aerobraking regime + the ambient (air density / temp) section, suicide-burn demoted."
+    "notes": "SYNTHETIC. Very high Kerbin reentry (~45 km, 295 m/s down) in near-vacuum-thin air where the mod reports NO terminal velocity yet (drag not measurable). Exercises the honest ESTIMATE fallback (velocity + air density + an above-terminal / drag-building note) instead of a blank 'descent unmodelled'. vessel.landing is intentionally absent."
   },
   "_stream": {
     "carriedChannels": [
@@ -14,8 +14,7 @@
       "vessel.propulsion",
       "vessel.control",
       "dv.summary",
-      "comms.delay",
-      "vessel.landing"
+      "comms.delay"
     ],
     "pinnedUt": 10,
     "emits": [
@@ -36,8 +35,8 @@
       {
         "channel": "vessel.identity",
         "value": {
-          "vesselId": "synthetic-reentry",
-          "name": "Synthetic Reentry",
+          "vesselId": "atmo-estimate",
+          "name": "Reentry Capsule",
           "vesselType": 0,
           "situation": 6,
           "parentBodyIndex": 1,
@@ -48,8 +47,8 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 680000,
-          "ecc": 0.12,
+          "sma": 700000,
+          "ecc": 0.16,
           "inc": 0,
           "lan": 0,
           "argPe": 0,
@@ -57,23 +56,21 @@
           "epoch": 10,
           "mu": 3531600000000
         },
-        "meta": {
-          "quality": 1
-        }
+        "meta": { "quality": 1 }
       },
       {
         "channel": "vessel.flight",
         "value": {
-          "latitude": -0.047,
-          "longitude": -74.623,
-          "altitudeAsl": 28000,
-          "altitudeTerrain": 28000,
-          "verticalSpeed": -210.4,
-          "surfaceSpeed": 220,
-          "orbitalSpeed": 220,
-          "atmDensity": 0.087,
-          "atmosphericTemperature": 240.15,
-          "externalTemperature": 1850
+          "latitude": -0.05,
+          "longitude": -74.6,
+          "altitudeAsl": 45000,
+          "altitudeTerrain": 45000,
+          "verticalSpeed": -295,
+          "surfaceSpeed": 300,
+          "orbitalSpeed": 300,
+          "atmDensity": 0.006,
+          "atmosphericTemperature": 210.15,
+          "externalTemperature": 900
         }
       },
       {
@@ -81,7 +78,7 @@
         "value": {
           "biome": "Shores",
           "landedAt": null,
-          "heightFromTerrain": 28000
+          "heightFromTerrain": 45000
         }
       },
       {
@@ -95,36 +92,15 @@
       },
       {
         "channel": "vessel.control",
-        "value": {
-          "gear": false,
-          "brakes": false
-        }
+        "value": { "gear": false, "brakes": false }
       },
       {
         "channel": "dv.summary",
-        "value": {
-          "totalDvActual": 400,
-          "totalDvVac": 450
-        }
+        "value": { "totalDvActual": 400, "totalDvVac": 450 }
       },
       {
         "channel": "comms.delay",
-        "value": {
-          "source": 1,
-          "oneWaySeconds": 1.2
-        }
-      },
-      {
-        "channel": "vessel.landing",
-        "value": {
-          "outcome": "atmosphere-modelled",
-          "sampleSource": null,
-          "terminalVelocity": 220,
-          "projectedTouchdownSpeed": 8.4,
-          "atmosphericTimeToImpact": 95,
-          "descentRegime": "hypersonic",
-          "parachuteState": "stowed"
-        }
+        "value": { "source": 1, "oneWaySeconds": 1.2 }
       }
     ]
   }

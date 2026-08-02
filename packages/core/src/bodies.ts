@@ -50,6 +50,14 @@ export interface BodyDefinition {
   /** Fallback display colour (CSS colour string) used when no texture is available. */
   color?: string;
   /**
+   * Atmosphere tint colour (CSS hex/rgb): the hue of this body's sky/haze,
+   * used by widgets that render an atmospheric context wash (e.g. the
+   * descent-envelope plot's haze gradient). Only meaningful when
+   * `hasAtmosphere` is true; leave unset for airless bodies so consumers
+   * fall back to a neutral default.
+   */
+  atmosphereColor?: string;
+  /**
    * Longitude correction in degrees added to Telemachus v.long before mapping
    * to canvas/texture coordinates. Compensates for differences between the
    * texture's prime meridian and KSP's coordinate system.

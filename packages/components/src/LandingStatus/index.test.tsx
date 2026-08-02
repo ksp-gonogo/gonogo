@@ -142,7 +142,8 @@ describe("LandingStatusComponent", () => {
       // The spec's worked Mun case: h=5km, descending 50 m/s but carrying
       // 540 m/s of (mostly horizontal) surface speed, aMax=20 m/s^2.
       // g≈1.63 -> horizontal≈538 m/s, best burn-now touchdown≈328 m/s (NOT 0),
-      // and the burn no longer fits the remaining altitude (IGNITE now).
+      // and the burn cannot be nulled within the remaining altitude, there is
+      // no descent trajectory to a safe touchdown.
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
@@ -160,10 +161,13 @@ describe("LandingStatusComponent", () => {
     expect(
       await screen.findByRole("img", { name: /ground speed 538 m\/s/i }),
     ).toBeInTheDocument();
-    // Burn-now touchdown is a large nonzero speed, the fatal-direction fix.
-    expect(screen.getByText(/328 m\/s/)).toBeInTheDocument();
-    // The burn no longer fits: ignite now, not a comfortable countdown.
-    expect(screen.getByText("IGNITE")).toBeInTheDocument();
+    // Burn-now touchdown is a large nonzero speed (the fatal-direction fix),
+    // and it's LED as the killer fact under the hero (UNAVOIDABLE IMPACT), as
+    // well as detailed in the readout grid.
+    expect(screen.getAllByText(/328 m\/s/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
+    // No viable safe trajectory exists, so the hero reads NO LANDING VECTOR.
+    expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
   });
 
   it("splits velocity into vertical and horizontal (the vector at a wide size)", async () => {
@@ -271,11 +275,14 @@ describe("LandingStatusComponent", () => {
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/descent unmodelled/i)).toBeInTheDocument();
-    // Vacuum burn/touchdown sections are suppressed, not hedged.
+    // No mod terminal velocity → honest ESTIMATE read, not "descent unmodelled".
+    expect(
+      screen.getByText("Atmospheric descent (estimate)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
+    // Vacuum burn section stays suppressed, not hedged.
     expect(screen.queryByText("Burn")).toBeNull();
-    expect(screen.queryByText("Touchdown")).toBeNull();
-    // But the (drag-independent) velocity split still shows.
+    // The (drag-independent) velocity split still shows (inside the estimate).
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
   });
 
@@ -309,6 +316,73 @@ describe("LandingStatusComponent", () => {
     // The armed-chute caveat surfaces (terse); the unmodelled badge is gone.
     expect(screen.getByText(/excludes chute/i)).toBeInTheDocument();
     expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
+  });
+
+  it("re-shows the terrain plots on an atmospheric board near touchdown (low + sampled)", async () => {
+    renderWidget({ w: 12, h: 16 });
+    act(() => {
+      emitVessel(stream, {
+        body: KERBIN,
+        quality: Quality.Loaded,
+        // 1.5 km AGL, below the atmospheric-plots altitude gate.
+        descent: {
+          heightFromTerrain: 1500,
+          verticalSpeed: 9,
+          surfaceSpeed: 11,
+        },
+      });
+      stream.emit("vessel.landing", {
+        outcome: "atmospheric-aware",
+        sampleSource: "predicted",
+        predictedLatitude: 0.01,
+        predictedLongitude: 0.01,
+        predictedSlopeAngle: 4,
+        predictedBiome: "Grasslands",
+        terminalVelocity: 9.5,
+        projectedTouchdownSpeed: 8.2,
+        atmosphericTimeToImpact: 160,
+        descentRegime: "at-terminal",
+        parachuteState: "deployed",
+      });
+    });
+    // The top-down site plot re-appears (was suppressed on atmospheric boards).
+    expect(await screen.findByText("Touchdown site")).toBeInTheDocument();
+    // …alongside the atmospheric-aware descent read (both, near touchdown).
+    expect(
+      screen.getByText("Atmospheric descent (estimate)"),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the terrain plots hidden high in the atmosphere (unsettled site)", async () => {
+    renderWidget({ w: 12, h: 16 });
+    act(() => {
+      emitVessel(stream, {
+        body: KERBIN,
+        quality: Quality.Loaded,
+        // 35 km AGL, above the gate; a single tick gives no stability signal.
+        descent: {
+          heightFromTerrain: 35000,
+          verticalSpeed: 900,
+          surfaceSpeed: 920,
+        },
+      });
+      stream.emit("vessel.landing", {
+        outcome: "atmospheric-aware",
+        sampleSource: "predicted",
+        predictedLatitude: 0.5,
+        predictedLongitude: 0.5,
+        terminalVelocity: 1400,
+        projectedTouchdownSpeed: 8,
+        atmosphericTimeToImpact: 55,
+        descentRegime: "accelerating",
+        parachuteState: "stowed",
+      });
+    });
+    // The aware board shows, but NOT the pinpoint site plot (prediction unsettled).
+    expect(
+      await screen.findByText("Atmospheric descent (estimate)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Touchdown site")).toBeNull();
   });
 
   it("renders the touchdown reticle + hazard verdict at a large size", async () => {
@@ -426,11 +500,12 @@ describe("LandingStatusComponent", () => {
     expect(screen.queryByRole("button", { name: /toggle brakes/i })).toBeNull();
   });
 
-  it("escalates to role=alert when the burn is already committed (ignite now)", async () => {
+  it("escalates to role=alert on a no-landing-vector (ABORT-class) state", async () => {
     renderWidget();
     act(() => {
-      // The worked Mun case: the burn no longer fits, so ignition is now, the
-      // live-regime hero reads IGNITE and the section escalates to role=alert.
+      // The worked Mun case: the burn can't be nulled in the remaining altitude
+      // (540 m/s surface, h=5km), no safe trajectory, so the hero reads NO
+      // LANDING VECTOR and the section escalates to role=alert (assertive).
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
@@ -443,7 +518,7 @@ describe("LandingStatusComponent", () => {
       });
     });
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toMatch(/IGNITE/);
+    expect(alert.textContent).toMatch(/NO LANDING VECTOR/);
   });
 
   it("has no axe violations", async () => {

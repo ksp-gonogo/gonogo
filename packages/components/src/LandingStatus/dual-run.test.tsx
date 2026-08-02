@@ -3,7 +3,6 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import kerbinReentry from "./__fixtures__/kerbin-reentry-atmospheric.json";
 import { LandingStatusComponent } from "./index";
 
 /**
@@ -13,11 +12,13 @@ import { LandingStatusComponent } from "./index";
  * flag / radius come from the static stock-body registry (`getBody`), with NO
  * legacy fallback at all (see `stream.test.tsx`).
  *
- * The `kerbin-reentry-atmospheric` fixture is a descent on an ATMOSPHERIC body.
- * The rebooted widget has no drag model, so on atmospheric bodies it SUPPRESSES
- * the vacuum burn/touchdown numbers entirely (rather than hedge a wrong one) and
- * shows the "descent unmodelled" note. This proves that whole gate fires off the
- * real stream pipeline.
+ * The `kerbin-reentry-atmospheric` fixture is a descent on an ATMOSPHERIC body
+ * with NO mod terminal-velocity read on the wire. The widget suppresses the
+ * (wrong-for-atmosphere) vacuum burn numbers but shows an HONEST estimate board
+ *, velocity + air density + an above-terminal / drag-building note, rather
+ * than a silent "descent unmodelled". This proves that gate fires off the real
+ * stream pipeline. (When the mod DOES ship a terminal velocity, the fuller
+ * atmospheric-aware board shows instead, see the render fixtures.)
  */
 const CARRIED = [
   "vessel.state",
@@ -86,17 +87,20 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
         },
         { quality: Quality.Loaded },
       );
+      // Kerbin reentry: ~28 km AGL, descending 210 m/s, in atmosphere. (Literals
+      //, the __fixtures__ scenario JSON migrated to the _stream format and no
+      // longer exposes the old flat `v.*` keys this test used to read.)
       stream.emit("vessel.flight", {
         latitude: 0,
         longitude: 0,
         altitudeAsl: 0,
-        altitudeTerrain: kerbinReentry["v.heightFromTerrain"],
-        verticalSpeed: kerbinReentry["v.verticalSpeed"],
+        altitudeTerrain: 28000,
+        verticalSpeed: -210.4,
         surfaceSpeed: 220,
         orbitalSpeed: 220,
-        atmDensity: kerbinReentry["v.atmosphericDensity"],
-        atmosphericTemperature: kerbinReentry["v.atmosphericTemperature"],
-        externalTemperature: kerbinReentry["v.externalTemperature"],
+        atmDensity: 0.087,
+        atmosphericTemperature: 240.15,
+        externalTemperature: 1850,
       });
     });
 
@@ -104,12 +108,17 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();
-    // No drag model -> the vacuum numbers are suppressed with a visible note.
-    expect(screen.getByText(/descent unmodelled/i)).toBeInTheDocument();
-    // The burn/touchdown sections are gone, not merely muted.
+    // No mod terminal velocity on the wire -> an HONEST atmospheric estimate
+    // (velocity + air density + above-terminal note), never a silent "descent
+    // unmodelled". A real in-atmosphere descent must not read blank.
+    expect(
+      screen.getByText("Atmospheric descent (estimate)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
+    expect(screen.getByText(/drag building/i)).toBeInTheDocument();
+    // The vacuum burn section stays suppressed (no drag solve to hedge).
     expect(screen.queryByText("Burn")).toBeNull();
-    expect(screen.queryByText("Touchdown")).toBeNull();
-    // But the drag-independent velocity split still renders.
+    // The drag-independent velocity split renders (inside the estimate board).
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
     expect(screen.queryByText("No landing in progress")).toBeNull();
   });

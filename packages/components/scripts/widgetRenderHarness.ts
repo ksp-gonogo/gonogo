@@ -127,6 +127,11 @@ export interface WidgetRenderConfig {
   outPath: string;
   /** Grid-size variants to render every fixture at. */
   modes: SizeMode[];
+  /** Force full-content capture for THIS config even when the caller (e.g. the
+   * visual gate) renders fixed-tile by default, grows `#root` to the whole
+   * widget so nothing is cropped below the fold. For composed instruments whose
+   * content scrolls in a real cell (LandingStatus) but must be reviewed whole. */
+  fullContent?: boolean;
 }
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
@@ -269,7 +274,16 @@ export async function renderWidgets(
     );
 
     for (const config of configs) {
-      await renderOneWidget(page, config, outSuffix, outBase, fullContent);
+      // A config can force full-content capture for itself (e.g. LandingStatus,
+      // whose composed instrument scrolls in a real cell) even when the caller
+      // renders fixed-tile by default (the visual gate).
+      await renderOneWidget(
+        page,
+        config,
+        outSuffix,
+        outBase,
+        config.fullContent ?? fullContent,
+      );
     }
 
     // An uncaught exception during a render means the widget did not render.

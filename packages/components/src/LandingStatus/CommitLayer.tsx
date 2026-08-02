@@ -59,6 +59,14 @@ export interface CommitLayerProps {
   /** True once the vessel has touched down, the descent clocks are then void
    * and the hero shows a settled LANDED state instead of a stale countdown. */
   landed?: boolean;
+  /** True when no viable descent trajectory reaches a safe touchdown (an optimal
+   * burn still can't arrest the vessel in the remaining altitude): the hero
+   * reads NO LANDING VECTOR. Distinct from a nominal committed burn (which HAS a
+   * vector); never set that case. */
+  noLandingVector?: boolean;
+  /** The unavoidable touchdown speed (`bestSpeedAtImpact`, m/s): the killer fact
+   * led under a NO LANDING VECTOR hero. Ignored unless `noLandingVector`. */
+  impactSpeed?: number | null;
 }
 
 export function CommitLayer({
@@ -71,6 +79,8 @@ export function CommitLayer({
   blindInSeconds,
   blind,
   landed = false,
+  noLandingVector = false,
+  impactSpeed = null,
 }: Readonly<CommitLayerProps>) {
   const countdown = suicideBurnCountdown;
 
@@ -95,6 +105,12 @@ export function CommitLayer({
     heroValue = "LANDED";
     heroCaption = "TOUCHDOWN CONFIRMED";
     heroTone = "go";
+  } else if (noLandingVector) {
+    // No descent trajectory reaches a safe touchdown: the vessel is committed
+    // to a hard impact whatever it does now. Distinct from a nominal commit.
+    heroValue = "NO LANDING VECTOR";
+    heroCaption = "";
+    heroTone = "alert";
   } else if (live) {
     heroCaption = "SUICIDE BURN";
     if (countdown == null) {
@@ -130,10 +146,11 @@ export function CommitLayer({
     }
   }
 
-  // Only the instantaneous ignition cue interrupts (assertive). Uncommandable /
-  // blind are sustained states, announce them politely, per the a11y rule that
-  // reserves assertive for ABORT-class events.
-  const alarmed = urgent;
+  // The instantaneous ignition cue AND a no-landing-vector (imminent unavoidable
+  // impact) interrupt (assertive): both are ABORT-class. Uncommandable / blind
+  // are sustained states, announced politely, per the a11y rule that reserves
+  // assertive for ABORT-class events.
+  const alarmed = urgent || noLandingVector;
 
   return (
     <Section
@@ -144,6 +161,17 @@ export function CommitLayer({
         {heroValue}
         {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
       </Readout>
+
+      {/* Lead with the killer fact: under NO LANDING VECTOR the vessel is
+            committed to a hard impact, so the unavoidable touchdown speed is the
+            single number that matters, everything else (fuel, thrust, site) is
+            moot. */}
+      {noLandingVector && impactSpeed != null && (
+        <Readout $tone="alert">
+          {`${Math.round(impactSpeed)} m/s`}
+          <ReadoutCaption>UNAVOIDABLE IMPACT</ReadoutCaption>
+        </Readout>
+      )}
 
       {/* UNCOMMANDABLE and PAST COMMIT POINT both used to sit here, and both
             said the same thing twice: the round trip is longer than the window

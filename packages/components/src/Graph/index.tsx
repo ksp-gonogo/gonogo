@@ -478,7 +478,7 @@ export function GraphView({
           []) attaches once and never has to re-attach when the chart's
           data state flips. The empty-state text overlays when there's no
           data to plot. */}
-      <ChartFrame flush>
+      <ChartFrame>
         <ChartArea ref={containerRef}>
           {size && (
             <LineChart

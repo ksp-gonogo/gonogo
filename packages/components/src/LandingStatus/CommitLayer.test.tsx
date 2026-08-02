@@ -34,6 +34,39 @@ describe("CommitLayer", () => {
     expect(screen.getByText("BURN LOCKED")).toBeInTheDocument();
   });
 
+  it("reads NO LANDING VECTOR when no viable safe trajectory exists", () => {
+    render(
+      <CommitLayer
+        {...live}
+        regime="autonomous"
+        live={false}
+        roundTripSeconds={16}
+        commitInSeconds={-2}
+        committed
+        noLandingVector
+      />,
+    );
+    expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
+    // It supersedes the nominal committed hero, not both.
+    expect(screen.queryByText("BURN LOCKED")).toBeNull();
+  });
+
+  it("keeps BURN LOCKED for a nominal committed burn (a vector still exists)", () => {
+    render(
+      <CommitLayer
+        {...live}
+        regime="autonomous"
+        live={false}
+        roundTripSeconds={16}
+        commitInSeconds={-2}
+        committed
+        noLandingVector={false}
+      />,
+    );
+    expect(screen.getByText("BURN LOCKED")).toBeInTheDocument();
+    expect(screen.queryByText("NO LANDING VECTOR")).toBeNull();
+  });
+
   // COMMIT POINT and UNCOMMANDABLE used to be asserted here, and the slot that
   // held them was asserted to reserve its own height so toggling it could not
   // reflow the widget. Both lines are gone: they stated the same fact in two

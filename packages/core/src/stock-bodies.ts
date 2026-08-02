@@ -57,6 +57,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     maxAtmosphere: 90000,
     // 5 atm at sea level, very thick.
     atmosphere: { surfacePressure: 506_625, scaleHeight: 7_000 },
+    // Eve's signature purple sky/haze.
+    atmosphereColor: "#8850c0",
     rotationPeriod: 80500,
   });
 
@@ -88,6 +90,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     maxAtmosphere: 70000,
     // 1 atm at sea level, ~Earth-like.
     atmosphere: { surfacePressure: 101_325, scaleHeight: 5_600 },
+    // Kerbin's familiar blue sky.
+    atmosphereColor: "#5a8fd8",
     rotationPeriod: 21549.425,
     // Sweet spot modelled on real low-Earth-orbit imaging scaled for Kerbin:
     // below the atmosphere gives no useful data, deep space gives too little
@@ -143,6 +147,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     maxAtmosphere: 50000,
     // ~0.067 atm at sea level: too thin for jet engines, just enough for chutes.
     atmosphere: { surfacePressure: 6_755, scaleHeight: 2_700 },
+    // Duna's dusty rust-orange sky.
+    atmosphereColor: "#c8683c",
     rotationPeriod: 65517.859,
   });
 
@@ -184,6 +190,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     maxAtmosphere: 200000,
     // ~15 atm at "sea level" (datum), gas giant, there's no surface to land on.
     atmosphere: { surfacePressure: 1_519_875, scaleHeight: 20_000 },
+    // Jool's deep green gas-giant haze.
+    atmosphereColor: "#8aa84a",
     rotationPeriod: 36000,
   });
 
@@ -199,6 +207,8 @@ export function registerStockBodies(baseUrl = "bodies"): void {
     maxAtmosphere: 50000,
     // ~0.6 atm at sea level: breathable-ish on Jool's tropical moon.
     atmosphere: { surfacePressure: 60_795, scaleHeight: 4_000 },
+    // Laythe's blue-green tropical-ocean sky.
+    atmosphereColor: "#3a9a8a",
     rotationPeriod: 52980.879,
   });
 

@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "scenario": "kerbin-reentry-atmospheric",
+    "scenario": "atmospheric-chute-armed",
     "synthetic": true,
-    "notes": "SYNTHETIC (model-generated, NOT captured). Kerbin reentry (~28 km, 210 m/s down) in an atmosphere, the atmospheric board: terminal velocity, projected touchdown, aerobraking regime + the ambient (air density / temp) section, suicide-burn demoted."
+    "notes": "SYNTHETIC. Kerbin final (~2.5 km, 90 m/s down) with a parachute ARMED but not yet deployed: the terminal-velocity model EXCLUDES the chute (its drag isn't in the aggregate yet), so the read is captioned accordingly: the real touchdown will be far softer once it pops."
   },
   "_stream": {
     "carriedChannels": [
@@ -36,8 +36,8 @@
       {
         "channel": "vessel.identity",
         "value": {
-          "vesselId": "synthetic-reentry",
-          "name": "Synthetic Reentry",
+          "vesselId": "atmo-chute",
+          "name": "Reentry Capsule",
           "vesselType": 0,
           "situation": 6,
           "parentBodyIndex": 1,
@@ -48,8 +48,8 @@
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
-          "sma": 680000,
-          "ecc": 0.12,
+          "sma": 615000,
+          "ecc": 0.01,
           "inc": 0,
           "lan": 0,
           "argPe": 0,
@@ -57,31 +57,29 @@
           "epoch": 10,
           "mu": 3531600000000
         },
-        "meta": {
-          "quality": 1
-        }
+        "meta": { "quality": 1 }
       },
       {
         "channel": "vessel.flight",
         "value": {
-          "latitude": -0.047,
-          "longitude": -74.623,
-          "altitudeAsl": 28000,
-          "altitudeTerrain": 28000,
-          "verticalSpeed": -210.4,
-          "surfaceSpeed": 220,
-          "orbitalSpeed": 220,
-          "atmDensity": 0.087,
-          "atmosphericTemperature": 240.15,
-          "externalTemperature": 1850
+          "latitude": -0.05,
+          "longitude": -74.6,
+          "altitudeAsl": 2500,
+          "altitudeTerrain": 2500,
+          "verticalSpeed": -90,
+          "surfaceSpeed": 92,
+          "orbitalSpeed": 92,
+          "atmDensity": 0.7,
+          "atmosphericTemperature": 278.15,
+          "externalTemperature": 300
         }
       },
       {
         "channel": "vessel.surface",
         "value": {
-          "biome": "Shores",
+          "biome": "Grasslands",
           "landedAt": null,
-          "heightFromTerrain": 28000
+          "heightFromTerrain": 2500
         }
       },
       {
@@ -95,35 +93,26 @@
       },
       {
         "channel": "vessel.control",
-        "value": {
-          "gear": false,
-          "brakes": false
-        }
+        "value": { "gear": false, "brakes": false }
       },
       {
         "channel": "dv.summary",
-        "value": {
-          "totalDvActual": 400,
-          "totalDvVac": 450
-        }
+        "value": { "totalDvActual": 400, "totalDvVac": 450 }
       },
       {
         "channel": "comms.delay",
-        "value": {
-          "source": 1,
-          "oneWaySeconds": 1.2
-        }
+        "value": { "source": 1, "oneWaySeconds": 1.2 }
       },
       {
         "channel": "vessel.landing",
         "value": {
           "outcome": "atmosphere-modelled",
           "sampleSource": null,
-          "terminalVelocity": 220,
-          "projectedTouchdownSpeed": 8.4,
-          "atmosphericTimeToImpact": 95,
-          "descentRegime": "hypersonic",
-          "parachuteState": "stowed"
+          "terminalVelocity": 95,
+          "projectedTouchdownSpeed": 80,
+          "atmosphericTimeToImpact": 30,
+          "descentRegime": "at-terminal",
+          "parachuteState": "armed"
         }
       }
     ]

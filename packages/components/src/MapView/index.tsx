@@ -1231,7 +1231,7 @@ function MapViewComponent({
       panelToolbar={toolbar}
     >
       <MapBody>
-        <MapFrame flush>
+        <MapFrame>
           <MapOuter ref={outerRef}>
             <CanvasContainer
               ref={interactionRef}

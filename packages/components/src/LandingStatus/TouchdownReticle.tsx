@@ -44,6 +44,12 @@ export interface TouchdownReticleProps {
   terrainPatch?: readonly number[] | null;
   /** The N of the NxN terrain patch. */
   terrainPatchSize?: number | null;
+  /** Spatial full-scale (metres to the reticle edge), SLIDING: zooms in as the
+   * approach closes. Defaults to the fixed 3 km scale when not provided. */
+  spanMeters?: number | null;
+  /** Radius (metres) of the landing ZONE: the circle of possible touchdown
+   * around the predicted point (a derived dispersion, not a pinpoint). */
+  zoneRadiusMeters?: number | null;
 }
 
 /**
@@ -215,9 +221,14 @@ export function TouchdownReticle({
   sampleSource,
   terrainPatch,
   terrainPatchSize,
+  spanMeters,
+  zoneRadiusMeters,
 }: Readonly<TouchdownReticleProps>) {
   // Unique per instance: two reticles on one screen must not share a clip id.
   const reliefClipId = useId();
+  // Sliding spatial scale (metres to the rim); falls back to the fixed default.
+  const span =
+    spanMeters != null && spanMeters > 0 ? spanMeters : DRIFT_FULLSCALE_M;
   const heights = normHeights(terrainPatch, terrainPatchSize);
   const reliefUri = reliefDataUri(
     heights?.norm ?? null,
@@ -253,9 +264,15 @@ export function TouchdownReticle({
   // off-centre by the drift, in the direction OPPOSITE the downrange bearing
   // (site → vessel), scaled to the reticle and clamped to the rim for far sites.
   const offLen =
-    drift != null
-      ? Math.min(1, drift.distanceMeters / DRIFT_FULLSCALE_M) * (C - 18)
-      : 0;
+    drift != null ? Math.min(1, drift.distanceMeters / span) * (C - 18) : 0;
+
+  // The landing ZONE: a ring of possible touchdown around the centred site,
+  // radius mapped through the same sliding scale (clamped so it stays legible
+  // inside the box). A dispersion cue, not a pinpoint.
+  const zonePx =
+    zoneRadiusMeters != null && zoneRadiusMeters > 0
+      ? Math.max(4, Math.min(C - 8, (zoneRadiusMeters / span) * (C - 18)))
+      : null;
   const currentTip =
     drift != null && offLen > 2
       ? atHeading(drift.bearingDeg + 180, offLen)
@@ -384,8 +401,25 @@ export function TouchdownReticle({
           />
         )}
 
+        {/* Landing ZONE: the circle of possible touchdown around the predicted
+            point (drift + drag dispersion). A translucent fill + dashed rim so it
+            reads as an area, not a hard edge; the site marker sits on top. */}
+        {zonePx != null && (
+          <circle
+            cx={C}
+            cy={C}
+            r={zonePx}
+            fill="var(--color-accent-fg)"
+            fillOpacity={0.08}
+            stroke="var(--color-accent-fg)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+            opacity={0.6}
+          />
+        )}
+
         {/* Predicted landing site (the ANCHOR): the shared target marker (same as
-          the side-on plot) so it clearly reads as "you'll land HERE". */}
+            the side-on plot) so it clearly reads as "you'll land HERE". */}
         <SiteMarker cx={C} cy={C} />
 
         {/* Current position: off-centre by the drift (a small, distinct white
