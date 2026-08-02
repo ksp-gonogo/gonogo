@@ -80,6 +80,16 @@ public class ScanSensorEntry
 /// SCANsat's combined per-vessel <c>trackColor</c> (a stock <c>Color32</c>,
 /// 0-255 channels): reused as the tint for the minimap / MapView footprint so
 /// the overlay matches the in-game ground track.
+///
+/// <para>Each channel is a <see cref="Units.Count"/>: an integral 0..255 byte
+/// straight off the source <c>Color32</c> (the producer rounds <c>Color</c>'s
+/// 0..1 floats to bytes before sending, see
+/// <c>Gonogo.ScansatUplink.ScanningVessels</c>), not a 0..1 ratio. A single
+/// hex string would model this more cleanly, but the remodel's blast radius
+/// (the pure builder, two parallel client schemas, two render sites that
+/// index r/g/b, several fixtures, and a second breaking wire retype riding
+/// the same Major) was judged not worth forcing: annotating the channels as
+/// the counts they are is the honest, non-breaking statement.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -87,16 +97,16 @@ public class ScanSensorEntry
 #endif
 public class ScanTrackColor
 {
-    [SitrepUnit(Units.NotApplicable)]
+    [SitrepUnit(Units.Count)]
     public int? R { get; set; }
 
-    [SitrepUnit(Units.NotApplicable)]
+    [SitrepUnit(Units.Count)]
     public int? G { get; set; }
 
-    [SitrepUnit(Units.NotApplicable)]
+    [SitrepUnit(Units.Count)]
     public int? B { get; set; }
 
-    [SitrepUnit(Units.NotApplicable)]
+    [SitrepUnit(Units.Count)]
     public int? A { get; set; }
 }
 

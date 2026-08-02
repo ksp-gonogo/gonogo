@@ -20,7 +20,7 @@ namespace Sitrep.Core.Serialization
     /// (Axiom, browser devtools) without extra translation.
     ///
     /// Applied UNIFORMLY: both the fixed-schema numeric fields (e.g.
-    /// <c>Meta.ValidAt</c>/<c>DeliveredAt</c>/<c>Confidence</c>,
+    /// <c>Meta.ValidAt</c>/<c>DeliveredAt</c>,
     /// <c>CommandRequest.SentAt</c>) and the free-form generic
     /// <c>Payload</c>/<c>Args</c>/<c>Result</c> value trees go through the
     /// exact same <see cref="TryEncode"/> / <see cref="TryDecode"/> pair,

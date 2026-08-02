@@ -80,18 +80,7 @@ namespace Sitrep.Core.Tests
             var meta = EnvelopeCodec.ParseMeta(vector.GetProperty("json").GetString()!);
 
             Assert.True(double.IsNaN(meta.ValidAt), "validAt should decode to NaN");
-            Assert.True(double.IsPositiveInfinity(meta.DeliveredAt), "deliveredAt should decode to +Infinity");
-            Assert.True(meta.Confidence.HasValue, "confidence should be present");
-            Assert.True(double.IsNegativeInfinity(meta.Confidence!.Value), "confidence should decode to -Infinity");
-        }
-
-        [Fact]
-        public void MetaNoConfidenceFixtureLeavesConfidenceNullRatherThanZeroOrNaN()
-        {
-            var vector = FindVector("meta-no-confidence");
-            var meta = EnvelopeCodec.ParseMeta(vector.GetProperty("json").GetString()!);
-
-            Assert.Null(meta.Confidence);
+            Assert.True(double.IsNegativeInfinity(meta.DeliveredAt), "deliveredAt should decode to -Infinity");
         }
 
         [Fact]

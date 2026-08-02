@@ -49,16 +49,10 @@ public class Meta
     /// never be told apart from one on an abandoned pre-rewind timeline.
     /// A client compares this against its own last-seen epoch to detect a
     /// rewind atomically, without re-deriving it from a backward `validAt`
-    /// jump (which a reordered/coalesced delivery could mask). Placed before
-    /// the optional <see cref="Confidence"/> below: required fields precede
-    /// optional ones in both the TS codegen output and <c>EnvelopeCodec</c>'s
-    /// hand-written field order.
+    /// jump (which a reordered/coalesced delivery could mask).
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int TimelineEpoch { get; set; }
-
-    [SitrepUnit(Units.NotApplicable)]
-    public double? Confidence { get; set; }
 }
 
 /// <summary>

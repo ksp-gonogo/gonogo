@@ -26,7 +26,6 @@ export type KnownSitrepUnit =
   | "h"
   | "id"
   | "kN"
-  | "kN·m"
   | "kPa"
   | "kW"
   | "kg/m³"
@@ -43,6 +42,7 @@ export type KnownSitrepUnit =
   | "rpm"
   | "s"
   | "science"
+  | "science/day"
   | "t"
   | "text"
   | "units"
@@ -360,7 +360,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     situation: "text",
     subjectId: "id",
     title: "text",
-    transmitBonus: "1",
+    transmitBonus: "ratio",
   },
   "FlightCurrent": {
     flightId: "id",
@@ -574,7 +574,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     isOperational: "flag",
     partName: "text",
     processingData: "flag",
-    scienceRate: "n/a",
+    scienceRate: "science/day",
     scientistCount: "count",
     statusText: "text",
     storedScience: "science",
@@ -604,7 +604,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Meta": {
     active: "flag",
-    confidence: "n/a",
     deliveredAt: "s",
     quality: "enum",
     seq: "id",
@@ -797,10 +796,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     type: "id",
   },
   "ScanTrackColor": {
-    a: "n/a",
-    b: "n/a",
-    g: "n/a",
-    r: "n/a",
+    a: "count",
+    b: "count",
+    g: "count",
+    r: "count",
   },
   "ScanningVesselEntry": {
     altitude: "m",
@@ -825,7 +824,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     currentAngle: "°",
     currentExtension: "m",
     currentRPM: "rpm",
-    maxTorque: "kN·m",
+    maxTorque: "kN",
     motorState: "text",
     normalizedOutput: "ratio",
     partId: "id",
@@ -1338,7 +1337,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     currentAngle: "°",
     currentExtension: "m",
     currentRPM: "rpm",
-    maxTorque: "kN·m",
+    maxTorque: "kN",
     motorState: "text",
     normalizedOutput: "ratio",
     partId: "id",
@@ -1445,7 +1444,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     situation: "text",
     subjectId: "id",
     title: "text",
-    transmitBonus: "1",
+    transmitBonus: "ratio",
   },
   "science.instruments": {
     dataIsCollectable: "flag",
@@ -1464,7 +1463,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     isOperational: "flag",
     partName: "text",
     processingData: "flag",
-    scienceRate: "n/a",
+    scienceRate: "science/day",
     scientistCount: "count",
     statusText: "text",
     storedScience: "science",

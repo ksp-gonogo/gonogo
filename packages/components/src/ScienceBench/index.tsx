@@ -33,7 +33,10 @@ const SENSOR_UNITS: Record<SensorType, string> = {
   temp: "K",
   pres: "kPa",
   grav: "m/s²",
-  acc: "m/s²",
+  // The accelerometer reads vessel.geeForce, already in gees, per KSP's own
+  // ModuleEnviroSensor formatting (#autoLOC_7001413 = " g"). GRAV formats a
+  // true acceleration (#autoLOC_237120 = "m/s^2") and stays as-is.
+  acc: "g",
 };
 
 /** The mod's `SensorEntry.type` string (`Sitrep.Contract.SensorType` enum name, `TEMP`/`PRES`/`GRAV`/`ACC`) for each widget-facing sensor type. */

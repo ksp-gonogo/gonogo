@@ -9,9 +9,9 @@
  * IS `JSON.stringify` itself, plus the NaN/Infinity sentinel policy defined
  * here (see the big comment on `safeStringify` below). Each vector is one
  * representative message (every envelope variant, a Meta with normal
- * values, a Meta with an optional field omitted, and NaN/Infinity cases in
- * both a fixed-schema numeric field AND a free-form payload value) plus the
- * exact JSON string `safeStringify` produces for it.
+ * values, a second Meta with the non-default enum values, and NaN/Infinity
+ * cases in both a fixed-schema numeric field AND a free-form payload value)
+ * plus the exact JSON string `safeStringify` produces for it.
  *
  * `Sitrep.Core.Tests/EnvelopeSerializationGoldenFixtureTests.cs` parses each
  * vector's `json` with the C# `EnvelopeCodec`, re-serializes the result, and
@@ -107,15 +107,13 @@ const metaNormal: Meta = {
   active: true,
   staleness: Staleness.Fresh,
   timelineEpoch: 0,
-  confidence: 0.87,
 };
 
-// `confidence` is optional, omitted here (not present as `undefined`) to
-// exercise the "optional field entirely absent from the wire" case, which
-// `JSON.stringify` already handles for free (an absent property never
-// appears), and which `EnvelopeCodec`'s writer must replicate deliberately
-// (it does NOT write `"confidence":null`).
-const metaNoConfidence: Meta = {
+// A second Meta shape with the non-default enum values (Loaded / HeldStale)
+// and a non-zero timelineEpoch, so the fixtures exercise more than one point
+// in each field's range. Meta carries no optional fields, so every field is
+// always present on the wire.
+const metaLoaded: Meta = {
   source: "vessel-1",
   validAt: 0,
   seq: 1,
@@ -127,19 +125,19 @@ const metaNoConfidence: Meta = {
   timelineEpoch: 3,
 };
 
-// The NaN/Infinity fixture case called for by Task 7: three of Meta's own
-// numeric fields hit all three sentinel tokens at once.
+// The NaN/Infinity fixture case: Meta's two numeric fields carry NaN and
+// -Infinity, and the free-form payload path below carries +Infinity, so all
+// three sentinel tokens are exercised across the fixture set.
 const metaNonFinite: Meta = {
   source: "vessel-1",
   validAt: Number.NaN,
   seq: 42,
-  deliveredAt: Number.POSITIVE_INFINITY,
+  deliveredAt: Number.NEGATIVE_INFINITY,
   vantage: "KSC",
   quality: Quality.OnRails,
   active: true,
   staleness: Staleness.LastBeforeBlackout,
   timelineEpoch: 2,
-  confidence: Number.NEGATIVE_INFINITY,
 };
 
 const streamDataNumber: StreamData<number> = {
@@ -163,7 +161,7 @@ const streamDataNanPayload: StreamData<Record<string, unknown>> = {
   type: "stream-data",
   topic: "vessel.orbit.eccentricAnomaly",
   payload: { eccentricAnomaly: Number.NaN, apoapsis: Number.POSITIVE_INFINITY },
-  meta: metaNoConfidence,
+  meta: metaLoaded,
 };
 
 const eventMsg: EventMsg = {
@@ -215,9 +213,9 @@ const unsubscribe: Unsubscribe = {
 const vectors: Vector[] = [
   { name: "meta-normal", kind: "meta", json: safeStringify(metaNormal) },
   {
-    name: "meta-no-confidence",
+    name: "meta-loaded",
     kind: "meta",
-    json: safeStringify(metaNoConfidence),
+    json: safeStringify(metaLoaded),
   },
   {
     name: "meta-nan-infinity",

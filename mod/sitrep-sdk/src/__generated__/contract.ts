@@ -619,7 +619,6 @@ export interface Meta
 	active: boolean;
 	staleness: Staleness;
 	timelineEpoch: number;
-	confidence?: number;
 }
 export interface PayloadMeta
 {

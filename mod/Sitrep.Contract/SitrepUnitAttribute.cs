@@ -102,21 +102,6 @@ namespace Sitrep.Contract
         /// <summary>Kilonewtons, KSP's own thrust unit (<c>DeltaVStageInfo.thrustVac</c>).</summary>
         public const string Kilonewtons = "kN";
 
-        /// <summary>
-        /// Kilonewton-metres, a TORQUE. Distinct from
-        /// <see cref="Kilonewtons"/> and the distinction is load-bearing: a
-        /// force and a moment are different dimensions, and a formatter that
-        /// climbs the force ladder for a torque will happily print "1.2 MN"
-        /// for a rotor.
-        ///
-        /// <para>Exists for <c>ServoEntry.MaxTorque</c>, which was annotated
-        /// kN on the strength of its own doc comment saying so. A decompile of
-        /// <c>ModuleRoboticServoRotor</c> shows the value feeds a Unity
-        /// angular drive's <c>maximumForce</c>, which on an angular drive is a
-        /// moment, so the comment was wrong and the annotation followed it.</para>
-        /// </summary>
-        public const string KilonewtonMetres = "kN·m";
-
         // --- Pressure ---
         public const string Kilopascals = "kPa";
 
@@ -221,6 +206,18 @@ namespace Sitrep.Contract
 
         /// <summary>Science points, the currency, not <see cref="Mits"/> of data volume.</summary>
         public const string Science = "science";
+
+        /// <summary>
+        /// Science currency generated per GAME-DAY (Kerbin's 21600s day on a
+        /// stock save, longer under RSS), not per second. Exists for
+        /// <c>LabEntry.ScienceRate</c>: the host reads it off
+        /// <c>ModuleScienceConverter.CalculateScienceRate</c>, which
+        /// decompiles to <c>Day * scientists * dataAmount *
+        /// dataProcessingMultiplier * scienceMultiplier /
+        /// 10^researchTime</c>, where <c>Day = KSPUtil.dateTimeFormatter.Day</c>:
+        /// the per-tick rate scaled up by a full day.
+        /// </summary>
+        public const string SciencePerDay = "science/day";
 
         /// <summary>Reputation points.</summary>
         public const string Reputation = "rep";

@@ -76,12 +76,6 @@ namespace Sitrep.Core.Serialization
             AppendField(sb, "timelineEpoch");
             JsonWriter.AppendInteger(sb, meta.TimelineEpoch);
 
-            if (meta.Confidence.HasValue)
-            {
-                AppendField(sb, "confidence");
-                JsonWriter.AppendNumber(sb, meta.Confidence.Value);
-            }
-
             sb.Append('}');
         }
 
@@ -98,7 +92,6 @@ namespace Sitrep.Core.Serialization
                 Active = RequireBool(raw, "active"),
                 Staleness = (Staleness)(int)RequireDouble(raw, "staleness"),
                 TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),
-                Confidence = TryGetDouble(raw, "confidence"),
             };
         }
 
@@ -436,11 +429,6 @@ namespace Sitrep.Core.Serialization
                 return d;
             }
             throw new FormatException($"Missing or non-numeric required field \"{key}\".");
-        }
-
-        private static double? TryGetDouble(Dictionary<string, object?> raw, string key)
-        {
-            return raw.TryGetValue(key, out var value) && value is double d ? d : (double?)null;
         }
 
         private static bool RequireBool(Dictionary<string, object?> raw, string key)

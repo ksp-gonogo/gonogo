@@ -55,7 +55,12 @@ public class ExperimentEntry
     [SitrepUnit(Units.Science)]
     public double? BaseTransmitValue { get; set; }
 
-    [SitrepUnit(Units.Dimensionless)]
+    /// <summary>
+    /// Transmit-value multiplier, 0..1. Every <c>xmitDataScalar</c> across
+    /// the installed part cfgs is at most 1.0, so this is a bounded ratio,
+    /// not an open-ended dimensionless number.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
     public double? TransmitBonus { get; set; }
 
     [SitrepUnit(Units.Science)]
@@ -159,7 +164,12 @@ public class LabEntry
     [SitrepUnit(Units.Count)]
     public int? ScientistCount { get; set; }
 
-    [SitrepUnit(Units.NotApplicable)]
+    /// <summary>
+    /// Science generated per GAME-DAY, not per second. The host reads this
+    /// off <c>ModuleScienceConverter.CalculateScienceRate</c>, whose
+    /// decompile multiplies the per-tick rate by a full day.
+    /// </summary>
+    [SitrepUnit(Units.SciencePerDay)]
     public double? ScienceRate { get; set; }
 
     [SitrepUnit(Units.Flag)]

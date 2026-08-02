@@ -31,7 +31,6 @@ export type KnownQuantityKind =
   | "acceleration"
   | "mass"
   | "force"
-  | "torque"
   | "pressure"
   | "temperature"
   | "time"
@@ -46,6 +45,7 @@ export type KnownQuantityKind =
   | "dimensionless"
   | "percentage"
   | "scienceData"
+  | "scienceRate"
   | "fraction"
   // Non-dimensional kinds. These say "this has no physical dimension", which
   // is a different claim from `dimensionless` ("a real measurement that
@@ -265,7 +265,6 @@ const DECIMALS: Record<string, number> = {
   acceleration: 2,
   mass: 2,
   force: 1,
-  torque: 1,
   pressure: 2,
   temperature: 0,
   time: 0,
@@ -281,6 +280,7 @@ const DECIMALS: Record<string, number> = {
   dimensionless: 2,
   percentage: 1,
   scienceData: 1,
+  scienceRate: 1,
   fraction: 0,
   // A count is integral: "3.00 crew" is wrong in a way "3.00 Mach" is not,
   // which is the whole reason `count` is a separate kind from `dimensionless`.
@@ -340,7 +340,6 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   t: "mass",
   N: "force",
   kN: "force",
-  kN·m: "torque",
   Pa: "pressure",
   kPa: "pressure",
   K: "temperature",
@@ -362,6 +361,7 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   ratio: "fraction",
   "%": "percentage",
   Mit: "scienceData",
+  "science/day": "scienceRate",
   "m²": "area",
   "m³": "volume",
   h: "time",
@@ -413,11 +413,10 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   Eg: "exagrams",
   Zg: "zettagrams",
   Yg: "yottagrams",
-  // Force and torque.
+  // Force.
   N: "newtons",
   kN: "kilonewtons",
   MN: "meganewtons",
-  kN·m: "kilonewton metres",
   // Pressure.
   mPa: "millipascals",
   Pa: "pascals",
@@ -457,6 +456,7 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   "m\u00B3": "cubic metres",
   "%": "percent",
   Mit: "mits",
+  "science/day": "science per day",
   units: "units",
   "units/s": "units per second",
   // The currencies, as displayed. `f` is a letter and `sci`/`rep` are

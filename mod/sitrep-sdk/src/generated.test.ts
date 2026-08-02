@@ -34,7 +34,7 @@ describe("generated contract.ts", () => {
   });
   it("emits optional properties", () => {
     expect(src).toMatch(/requestId\?:/);
-    expect(src).toMatch(/confidence\?:/);
+    expect(src).toMatch(/oneWaySeconds\?:/);
   });
   it("emits the wire payload types, not just the envelope", () => {
     expect(src).toMatch(/export interface VesselOrbit\b/);

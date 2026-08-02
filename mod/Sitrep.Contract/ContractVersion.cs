@@ -84,8 +84,28 @@ namespace Sitrep.Contract
         /// revert and the Major 3 -&gt; 4 collapse: the mod is still pre-release
         /// with NO external Uplinks, and the app and mod ship together, so no
         /// artifact exists that was built against the old shape.</para>
+        ///
+        /// <para><b>Bumped 5 -&gt; 6 (Minor reset to 0): the dead
+        /// <c>Meta.Confidence</c> field leaves the wire.</b> Removed the
+        /// optional <c>Meta.Confidence</c> (<c>double?</c>). A removed member on
+        /// a wire-visible type is breaking by definition, which is why this is a
+        /// Major and not a quiet Minor.</para>
+        ///
+        /// <para>Why it was worth one: the field had no producer. The mod
+        /// declared it and the serializer wrote it only when
+        /// <c>meta.Confidence.HasValue</c>, but nothing ever SET it on an
+        /// outgoing frame (the only <c>Confidence =</c> in the mod was the
+        /// deserializer, reading an incoming frame), so it was always null on
+        /// the wire and always omitted from the JSON. It was a slot every
+        /// consumer had to account for and none could ever read. Removing it is
+        /// the honest state. Jon approved the removal (2026-08-02). Sanctioned
+        /// on the same standing grounds as every Major above: the mod is still
+        /// pre-release with NO external Uplinks, and the app and mod ship
+        /// together, so no artifact exists that was built against the old shape.
+        /// See
+        /// <c>local_docs/design/specs/2026-08-02-units-game-RESOLVED-local-files.md</c>.</para>
         /// </remarks>
-        public const int Major = 5;
+        public const int Major = 6;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -277,6 +297,24 @@ namespace Sitrep.Contract
         /// <para>Reset 7 -&gt; 0 alongside the Major 4 -&gt; 5 bump (the
         /// kelvin-only thermal channel; see <see cref="Major"/>). Every additive
         /// change on the Major-4 line above is carried forward into Major 5.</para>
+        ///
+        /// <para>Bumped 0 -&gt; 1: PROVENANCE ONLY, no wire member added,
+        /// removed, or retyped. Four units findings applied:
+        /// <see cref="PartsPayloads.ServoEntry.MaxTorque"/> retagged
+        /// <see cref="Units.Kilonewtons"/> (was <c>kN·m</c>, now deleted from
+        /// the vocabulary); <see cref="ExperimentEntry.TransmitBonus"/>
+        /// retagged <see cref="Units.Ratio"/> (was
+        /// <see cref="Units.Dimensionless"/>); <see cref="LabEntry.ScienceRate"/>
+        /// retagged the new <see cref="Units.SciencePerDay"/> token (was
+        /// <see cref="Units.NotApplicable"/>). All three are metadata-only
+        /// retags of the <c>SitrepUnit</c> ATTRIBUTE, not the member's wire
+        /// type, so none trips the contract-shape gate. See
+        /// <c>local_docs/design/specs/2026-08-02-units-game-RESOLVED-local-files.md</c>.</para>
+        ///
+        /// <para>Reset 1 -&gt; 0 alongside the Major 5 -&gt; 6 bump (the
+        /// <c>Meta.Confidence</c> removal; see <see cref="Major"/>). Every
+        /// additive change on the Major-5 line above is carried forward into
+        /// Major 6.</para>
         /// </summary>
         public const int Minor = 0;
     }

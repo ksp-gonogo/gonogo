@@ -225,20 +225,20 @@ public class ServoEntry
     public bool? CounterClockwise { get; set; }
 
     /// <summary>
-    /// Rotor torque ceiling in kN·m (rotor entries only, <c>null</c> for
+    /// Rotor torque ceiling in kN (rotor entries only, <c>null</c> for
     /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c>: the
     /// scale <c>ServoMotorLimit</c> (a percentage) is a fraction of.
     ///
-    /// <para>The unit is INFERRED rather than read off a label:
-    /// <c>maxTorque</c> is a bare <c>[KSPField]</c> with no <c>guiUnits</c>.
-    /// It flows through <c>totalTorque</c> into <c>SetJointDrive</c>, which
-    /// assigns it to <c>maximumForce</c> on an angular drive, and
-    /// <c>maximumForce</c> on an ANGULAR drive is a moment. The same product
-    /// does reach the editor as <c>motorOutputInformation</c>, so it is not
-    /// an invisible value, but its displayed unit string is a localization
-    /// token that is not resolvable outside a full KSP install.</para>
+    /// <para>The unit is kN, per KSP's own editor UI: <c>maxTorque</c> feeds
+    /// <c>motorOutputInformation</c>, the part's editor-visible display,
+    /// formatted with localization token <c>#autoLOC_8002342</c>
+    /// ("&lt;&lt;1&gt;&gt;kN max: Extra mass &lt;&lt;2&gt;&gt;t"). A
+    /// decompile of <c>ModuleRoboticServoRotor</c> shows the same value also
+    /// feeds a Unity angular drive's <c>maximumForce</c>, which on an
+    /// angular drive is technically a moment, but the wire states what KSP's
+    /// own UI labels it, and that label is kN.</para>
     /// </summary>
-    [SitrepUnit(Units.KilonewtonMetres)]
+    [SitrepUnit(Units.Kilonewtons)]
     public double? MaxTorque { get; set; }
 }
 
