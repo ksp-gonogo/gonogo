@@ -155,7 +155,7 @@ describe("SystemViewComponent", () => {
   });
 
   it("renders almanac fields when they're available", async () => {
-    render(
+    const { container } = render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
       </fixture.Provider>,
@@ -168,11 +168,9 @@ describe("SystemViewComponent", () => {
     // SI ladders were never covered at all: they could have printed anything.
     // That is how the mass ladder shipped applying GRAM thresholds to a
     // KILOGRAM value, labelling Kerbin one whole prefix tier low.
-    await waitFor(() =>
-      expect(screen.getByText("600.0 km")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(container.textContent).toContain("600.0km"));
     // Kerbin's mass, derived from mu. 5.29e22 kg is 5.29e25 g, so Yg, not Zg.
-    expect(screen.getByText(/52\.\d+ Yg/)).toBeInTheDocument();
+    expect(container.textContent).toMatch(/52\.\d+Yg/);
   });
 
   it("renders the child bodies of the frame in the diagram", async () => {

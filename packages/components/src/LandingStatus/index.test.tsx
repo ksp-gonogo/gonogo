@@ -210,7 +210,7 @@ describe("LandingStatusComponent", () => {
 
   it("uses the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
     // Small size renders the plain Height readout (km-formatted AGL).
-    renderWidget({ w: 4, h: 10 });
+    const { container } = renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -228,12 +228,16 @@ describe("LandingStatusComponent", () => {
         heightFromTerrain: 2755,
       });
     });
-    expect(await screen.findByText(/2\.75 km/)).toBeInTheDocument();
-    expect(screen.queryByText(/2\.80 km/)).toBeNull();
+    // The number and its unit are separate elements now (a <Quantity>), so
+    // getByText, which concatenates only DIRECT text nodes, never sees the
+    // pair. The container does.
+    await screen.findByText("2.75");
+    expect(container.textContent).toContain("2.75km");
+    expect(container.textContent).not.toContain("2.80km");
   });
 
   it("falls back to the CoM altitude when vessel.surface is absent", async () => {
-    renderWidget({ w: 4, h: 10 });
+    const { container } = renderWidget({ w: 4, h: 10 });
     act(() => {
       emitVessel(stream, {
         body: MUN,
@@ -246,7 +250,8 @@ describe("LandingStatusComponent", () => {
         availableThrust: 3,
       });
     });
-    expect(await screen.findByText(/2\.80 km/)).toBeInTheDocument();
+    await screen.findByText("2.80");
+    expect(container.textContent).toContain("2.80km");
     expect(screen.getByText(/centre-of-mass/i)).toBeInTheDocument();
   });
 

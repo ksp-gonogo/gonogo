@@ -14,10 +14,10 @@ import {
   EmptyState,
   FramedDisplay,
   formatDuration,
-  formatQuantity,
   Grid,
   NULL_DISPLAY,
   Panel,
+  Quantity,
   ReadoutCaption,
   type ReadoutTone,
   Section,
@@ -71,13 +71,20 @@ function formatMps(v: number | null | undefined): string {
 // readout wants two decimals between 1 and 10 km (10 m of altitude, which is
 // the difference between a landing and a crater) and whole metres in the last
 // kilometre. The rungs are shared; only the precision is local.
-function formatMeters(m: number | null | undefined): string {
+// The shared `length` ladder with this widget's own precision. A descent
+// readout wants two decimals between 1 and 10 km (10 m of altitude, which is
+// the difference between a landing and a crater) and whole metres in the last
+// kilometre. The rungs are shared; only the precision is local.
+function Metres({ m }: { m: number | null | undefined }) {
   if (m === null || m === undefined || !Number.isFinite(m)) return NULL_DISPLAY;
   const abs = Math.abs(m);
-  const { value, symbol } = formatQuantity(m, "m", {
-    decimals: abs >= 10_000 ? 1 : abs >= 1000 ? 2 : 0,
-  });
-  return `${value} ${symbol}`;
+  return (
+    <Quantity
+      value={m}
+      unit="m"
+      decimals={abs >= 10_000 ? 1 : abs >= 1000 ? 2 : 0}
+    />
+  );
 }
 
 function formatDv(v: number | null | undefined): string {
@@ -399,7 +406,7 @@ function LandingStatusComponent({
       </StackedField>
       {vs?.targetDistance != null && (
         <StackedField label="Target range">
-          {formatMeters(vs.targetDistance)}
+          {<Metres m={vs.targetDistance} />}
         </StackedField>
       )}
       {scopeShown && descentHistory.length >= 2 && (
@@ -472,7 +479,7 @@ function LandingStatusComponent({
       <SectionTitle>Height</SectionTitle>
       <Grid cols="auto 1fr" gap="xs">
         <GridCellPair label="AGL">
-          {formatMeters(heightFromTerrain)}
+          {<Metres m={heightFromTerrain} />}
         </GridCellPair>
       </Grid>
       {/* The CoM-datum caveat is carried once by `comDatumNote` (in the detail
@@ -486,7 +493,7 @@ function LandingStatusComponent({
         <SectionTitle>Divert</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
           <GridCellPair label="Target range">
-            {formatMeters(vs.targetDistance)}
+            {<Metres m={vs.targetDistance} />}
           </GridCellPair>
         </Grid>
       </Section>

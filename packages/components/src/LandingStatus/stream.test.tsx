@@ -183,7 +183,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
   it("badges on the withheld vessel.surface datum, not the live vessel.flight fallback (L2)", async () => {
     // Small size renders the plain AGL readout (at wide sizes altitude is the
     // full-height rail, which carries no "AGL" text).
-    renderWidget({ w: 4, h: 10 });
+    const { container } = renderWidget({ w: 4, h: 10 });
 
     // A full descent WITH flight flowing but vessel.surface WITHHELD: the
     // widget falls back to the CoM datum (usingComDatum) and keeps rendering.
@@ -217,9 +217,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });
-    await waitFor(() =>
-      expect(screen.getByText(/4\.80 km/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(container.textContent).toContain("4.80km"));
   });
 
   it("surfaces the round trip in the header, which is what replaced the warnings", async () => {

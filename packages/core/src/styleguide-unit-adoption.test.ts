@@ -47,12 +47,8 @@ const JOIN = String.raw`\$\{value\} ?\$\{symbol\}`;
  * and drop the count. Never raise one.
  */
 const BASELINE: Record<string, number> = {
-  "packages/components/src/AtmosphereProfile/index.tsx": 2,
   "packages/components/src/ContractManager/index.tsx": 1,
   "packages/components/src/GroundSurvey/index.tsx": 1,
-  "packages/components/src/LandingStatus/index.tsx": 1,
-  "packages/components/src/LaunchDirector/index.tsx": 1,
-  "packages/components/src/SystemView/AlmanacPanel.tsx": 2,
   "packages/core/src/orbital.ts": 1,
 };
 

@@ -18,9 +18,9 @@ import {
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  formatQuantity,
   NULL_DISPLAY,
   Panel,
+  Quantity,
   ScrollArea,
   Spinner,
   Unit,
@@ -710,7 +710,7 @@ function InFlightPanel({
         </FlightStatRow>
         <FlightStatRow>
           <StatLabel>Altitude</StatLabel>
-          <StatValue>{formatAltitude(altitudeMeters)}</StatValue>
+          <StatValue>{<Altitude m={altitudeMeters} />}</StatValue>
         </FlightStatRow>
       </FlightStats>
       <PadActions>
@@ -845,10 +845,9 @@ function formatMissionTime(s: number | null): string {
 // Through the shared `length` ladder rather than a local km ceiling: this is
 // the in-flight altitude readout, and a Mun transfer sits at ~12 Mm, which the
 // hand-rolled version rendered as "12000.0 km".
-function formatAltitude(m: number | null): string {
+function Altitude({ m }: { m: number | null }) {
   if (m === null || !Number.isFinite(m)) return NULL_DISPLAY;
-  const { value, symbol } = formatQuantity(m, "m");
-  return `${value} ${symbol}`;
+  return <Quantity value={m} unit="m" />;
 }
 
 function ArmedButton({

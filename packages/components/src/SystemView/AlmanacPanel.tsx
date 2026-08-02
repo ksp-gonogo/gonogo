@@ -1,4 +1,4 @@
-import { formatDuration, formatQuantity, Grid } from "@ksp-gonogo/ui-kit";
+import { formatDuration, Grid, Quantity } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -31,7 +31,7 @@ export interface AlmanacPanelProps {
 
 interface AlmanacRow {
   label: string;
-  value: string;
+  value: ReactNode;
 }
 
 function buildRows(
@@ -47,10 +47,16 @@ function buildRows(
 ): AlmanacRow[] {
   const rows: AlmanacRow[] = [];
   if (body.radius !== null) {
-    rows.push({ label: "Radius", value: formatLength(body.radius) });
+    rows.push({
+      label: "Radius",
+      value: <Quantity value={body.radius} unit="m" />,
+    });
   }
   if (body.mass !== null) {
-    rows.push({ label: "Mass", value: formatMass(body.mass) });
+    rows.push({
+      label: "Mass",
+      value: <Quantity value={body.mass} unit="kg" />,
+    });
   }
   if (body.geeASL !== null) {
     rows.push({
@@ -68,26 +74,32 @@ function buildRows(
     rows.push({ label: "", value: "Tidally locked" });
   }
   if (body.soi !== null) {
-    rows.push({ label: "SOI", value: formatLength(body.soi) });
+    rows.push({ label: "SOI", value: <Quantity value={body.soi} unit="m" /> });
   }
   if (body.hasAtmosphere === true) {
     rows.push({
       label: "Atmosphere",
       value:
-        body.maxAtmosphere !== null
-          ? `${formatLength(body.maxAtmosphere)} ${
-              body.hasOxygen === true ? "(O₂)" : "(no O₂)"
-            }`
-          : body.hasOxygen === true
-            ? "Yes (O₂)"
-            : "Yes",
+        body.maxAtmosphere !== null ? (
+          <>
+            <Quantity value={body.maxAtmosphere} unit="m" />{" "}
+            {body.hasOxygen === true ? "(O₂)" : "(no O₂)"}
+          </>
+        ) : body.hasOxygen === true ? (
+          "Yes (O₂)"
+        ) : (
+          "Yes"
+        ),
     });
   } else if (body.hasAtmosphere === false) {
     rows.push({ label: "Atmosphere", value: "None" });
   }
   if (body.hasOcean === true) rows.push({ label: "", value: "Has ocean" });
   if (body.hillSphere !== null) {
-    rows.push({ label: "Hill sphere", value: formatLength(body.hillSphere) });
+    rows.push({
+      label: "Hill sphere",
+      value: <Quantity value={body.hillSphere} unit="m" />,
+    });
   }
   if (body.rotates === false) {
     rows.push({ label: "", value: "Does not rotate" });
@@ -219,18 +231,10 @@ export function AlmanacPanel({
   );
 }
 
-// Both of these are now one-line adapters onto the shared ladders. They stay
-// as named functions only because the call sites read better for it; the
-// scaling, the thresholds and the precision all come from ui-kit.
-function formatLength(metres: number): string {
-  const { value, symbol } = formatQuantity(metres, "m");
-  return `${value} ${symbol}`;
-}
-
-function formatMass(kg: number): string {
-  const { value, symbol } = formatQuantity(kg, "kg");
-  return `${value} ${symbol}`;
-}
+// Both of these render through the shared unit layer, so the symbol keeps its
+// styling and the unit is announced as a word. The row's `value` is a node
+// rather than a string for exactly this reason: a joined string cannot carry
+// either.
 
 function normalizeAngle(deg: number): number {
   let d = deg % 360;

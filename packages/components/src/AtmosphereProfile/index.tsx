@@ -6,7 +6,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { formatQuantity } from "@ksp-gonogo/ui-kit";
+import { Quantity, speakQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {
@@ -200,14 +200,18 @@ function AtmosphereProfileComponent({
           {typeof liveAirTemp === "number" && Number.isFinite(liveAirTemp) && (
             <LiveChipRow>
               <LiveChipLabel>Air</LiveChipLabel>
-              <LiveChipValue>{formatTempC(liveAirTemp)}</LiveChipValue>
+              <LiveChipValue>
+                <TempC k={liveAirTemp} />
+              </LiveChipValue>
             </LiveChipRow>
           )}
           {typeof liveSkinTemp === "number" &&
             Number.isFinite(liveSkinTemp) && (
               <LiveChipRow>
                 <LiveChipLabel>Skin</LiveChipLabel>
-                <LiveChipValue>{formatTempC(liveSkinTemp)}</LiveChipValue>
+                <LiveChipValue>
+                  <TempC k={liveSkinTemp} />
+                </LiveChipValue>
               </LiveChipRow>
             )}
         </LiveChip>
@@ -218,14 +222,15 @@ function AtmosphereProfileComponent({
 
 // Kelvin on the wire, Celsius on screen: the conversion is a presentation
 // choice made through the shared unit layer, not something the wire pre-applies.
-function formatTempC(k: number): string {
-  const { value, symbol } = formatQuantity(k, "K", { as: "°C" });
-  return `${value} ${symbol}`;
+function TempC({ k }: { k: number }) {
+  return <Quantity value={k} unit="K" as="°C" />;
 }
 
+// A string rather than a node: this feeds a chart annotation's `label`, which
+// is measured and positioned as text. `speakQuantity` gives the word instead
+// of the symbol, which is the right trade for a label a reader hears.
 function formatPressure(p: number): string {
-  const { value, symbol } = formatQuantity(p, "Pa");
-  return `${value} ${symbol}`;
+  return speakQuantity(p, "Pa");
 }
 
 const Wrap = styled.div`

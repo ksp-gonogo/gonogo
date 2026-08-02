@@ -253,7 +253,7 @@ describe("LaunchDirectorComponent", () => {
 
   it("shows the in-flight panel with altitude + revert affordances when scene is Flight", async () => {
     const user = userEvent.setup();
-    renderWidget();
+    const { container } = renderWidget();
     act(() => {
       stream.emit("spaceCenter.savedShips", []);
       emitScene(stream, "Flight");
@@ -271,7 +271,7 @@ describe("LaunchDirectorComponent", () => {
     // missionTime (`vessel.state.met`) is null in the Loaded/measured basis
     // (see this file's doc comment): the panel shows its NULL_DISPLAY placeholder.
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
-    expect(screen.getByText("72.4 km")).toBeInTheDocument();
+    expect(container.textContent).toContain("72.4km");
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
     expect(screen.getByText("Revert to VAB")).toBeInTheDocument();
 
