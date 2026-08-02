@@ -10,7 +10,12 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  useCommand,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
   Button,
@@ -19,6 +24,8 @@ import {
   FieldHint,
   FieldLabel,
   formatDuration,
+  InFlightList,
+  type InFlightListItem,
   NULL_DISPLAY,
   Panel,
   Select,
@@ -56,6 +63,24 @@ const SAS_MODES = [
   "Maneuver",
 ] as const;
 type SasMode = (typeof SAS_MODES)[number];
+
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe), same mapping as ActionGroup/RoboticsConsole's own: a discrete
+ * SAS/RCS/FBW command's visible effect is it reaching the craft, so this
+ * counts down to the reach ETA throughout.
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
 
 interface NavballConfig {
   /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2); see the component body's ternary comment for which raw key backs which frame. */
@@ -169,10 +194,52 @@ function NavballComponent({
   // vessel.attitude topic): so it stays a stable status source across
   // config changes rather than switching with `useCoM`.
 
+  // Continuous/analog controls (throttle, pitch/yaw/roll axes, RCS
+  // translation, trim) stay on the legacy string-action path: K5 in the
+  // command-surface delay audit, a control-theory problem (closing a loop
+  // with 2x one-way delay of dead time), not a UI-wiring one. Fixing it
+  // needs a select-then-commit `CommandGroup` design, out of scope here.
   const execute = useExecuteAction("data");
+
+  // Delayed vessel commands (command-surface-delay-audit #9,#11): SAS/RCS
+  // toggle, SAS mode, and FBW arm/disarm are all discrete, absolute-set
+  // vessel commands (the same toggle-invert shape ActionGroup migrated),
+  // so they ride `useCommand` instead of the legacy string-action path.
+  const sasCmd = useCommand("vessel.control.setSas");
+  const rcsCmd = useCommand("vessel.control.setRcs");
+  const sasModeCmd = useCommand("vessel.control.setSasMode");
+  const fbwCmd = useCommand("vessel.control.setFlyByWire");
+
+  // Raw (uncoerced) current values for the toggle-invert guard: `sasOn`/
+  // `rcsOn` above already collapse "unknown" to `false` for DISPLAY, but
+  // inverting an unresolved value would be a blind guess (never dispatch an
+  // ambiguous toggle as a blind set, same contract map-command.ts's
+  // `toggleHome` documents).
+  const sasRaw = control?.sas;
+  const rcsRaw = control?.rcs;
+
+  const toggleSas = () => {
+    if (typeof sasRaw !== "boolean") return;
+    void sasCmd.send({ enabled: !sasRaw }, { label: "Toggle SAS" });
+  };
+  const toggleRcs = () => {
+    if (typeof rcsRaw !== "boolean") return;
+    void rcsCmd.send({ enabled: !rcsRaw }, { label: "Toggle RCS" });
+  };
+  const setSasMode = (mode: SasMode) => {
+    // SAS_MODES is hand-ordered to match the SasMode C# enum ordinal
+    // exactly (see map-command.ts's SAS_MODE_ORDINALS doc comment), so the
+    // array index IS the ordinal, no separate lookup table needed here.
+    void sasModeCmd.send(
+      { mode: SAS_MODES.indexOf(mode) },
+      { label: `SAS mode: ${mode}` },
+    );
+  };
 
   // FBW arm/disarm with auto-disarm on unmount. State mirrors the latest
   // arm command rather than a Telemachus key, no readback for FBW.
+  // `setFlyByWire` is absolute-set (state travels in the arg itself), no
+  // invert needed, unlike SAS/RCS.
   const [fbwArmed, setFbwArmed] = useState(false);
   const fbwArmedRef = useRef(false);
   useEffect(() => {
@@ -183,16 +250,18 @@ function NavballComponent({
       // Component unmounting: release control regardless of state. Don't
       // wait for the render-cycle setFbwArmed(false), the effect cleanup
       // is the last reliable place to fire.
-      if (fbwArmedRef.current) void execute("v.setFbW[0]");
+      if (fbwArmedRef.current) {
+        void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
+      }
     };
-  }, [execute]);
+  }, [fbwCmd.send]);
 
   const armFbw = () => {
-    void execute("v.setFbW[1]");
+    void fbwCmd.send({ enabled: true }, { label: "Arm FBW" });
     setFbwArmed(true);
   };
   const disarmFbw = () => {
-    void execute("v.setFbW[0]");
+    void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
     setFbwArmed(false);
   };
 
@@ -227,11 +296,11 @@ function NavballComponent({
     },
     "toggle-sas": (payload) => {
       if (!isButtonPress(payload)) return;
-      void execute("f.sas");
+      toggleSas();
     },
     "toggle-rcs": (payload) => {
       if (!isButtonPress(payload)) return;
-      void execute("f.rcs");
+      toggleRcs();
     },
     "toggle-precision": (payload) => {
       if (!isButtonPress(payload)) return;
@@ -242,28 +311,18 @@ function NavballComponent({
     },
     "kill-rotation": (payload) => {
       if (!isButtonPress(payload)) return;
-      void execute("f.setSASMode[StabilityAssist]");
+      setSasMode("StabilityAssist");
     },
-    "sas-stability": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[StabilityAssist]"),
-    "sas-prograde": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[Prograde]"),
-    "sas-retrograde": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[Retrograde]"),
-    "sas-normal": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[Normal]"),
-    "sas-antinormal": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[Antinormal]"),
-    "sas-radial-in": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[RadialIn]"),
-    "sas-radial-out": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[RadialOut]"),
-    "sas-target": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[Target]"),
-    "sas-anti-target": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[AntiTarget]"),
-    "sas-maneuver": (p) =>
-      isButtonPress(p) && void execute("f.setSASMode[Maneuver]"),
+    "sas-stability": (p) => isButtonPress(p) && setSasMode("StabilityAssist"),
+    "sas-prograde": (p) => isButtonPress(p) && setSasMode("Prograde"),
+    "sas-retrograde": (p) => isButtonPress(p) && setSasMode("Retrograde"),
+    "sas-normal": (p) => isButtonPress(p) && setSasMode("Normal"),
+    "sas-antinormal": (p) => isButtonPress(p) && setSasMode("Antinormal"),
+    "sas-radial-in": (p) => isButtonPress(p) && setSasMode("RadialIn"),
+    "sas-radial-out": (p) => isButtonPress(p) && setSasMode("RadialOut"),
+    "sas-target": (p) => isButtonPress(p) && setSasMode("Target"),
+    "sas-anti-target": (p) => isButtonPress(p) && setSasMode("AntiTarget"),
+    "sas-maneuver": (p) => isButtonPress(p) && setSasMode("Maneuver"),
     "set-throttle": (p) => {
       if (p.kind !== "analog") return;
       const v = clamp(p.value as number, 0, 1);
@@ -471,11 +530,20 @@ function NavballComponent({
             fbwArmed={fbwArmed}
             onArmFbw={armFbw}
             onDisarmFbw={disarmFbw}
+            onToggleSas={toggleSas}
+            onToggleRcs={toggleRcs}
+            onSetSasMode={setSasMode}
             execute={execute}
             showFbwDelayWarning={showFbwDelayWarning}
             delaySeconds={
               typeof delaySeconds === "number" ? delaySeconds : null
             }
+            inFlight={toInFlightListItems([
+              ...sasCmd.inFlight,
+              ...rcsCmd.inFlight,
+              ...sasModeCmd.inFlight,
+              ...fbwCmd.inFlight,
+            ])}
           />
         )}
       </Body>
@@ -493,9 +561,15 @@ interface ControlSurfaceProps {
   fbwArmed: boolean;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
+  onToggleSas: () => void;
+  onToggleRcs: () => void;
+  onSetSasMode: (mode: SasMode) => void;
+  /** Continuous/analog controls only (throttle): see K5 note above. */
   execute: (action: string) => Promise<void>;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
+  /** In-flight SAS/RCS/SAS-mode/FBW commands, folded in from `useCommand`. */
+  inFlight: InFlightListItem[];
 }
 
 function ControlSurface({
@@ -508,9 +582,13 @@ function ControlSurface({
   fbwArmed,
   onArmFbw,
   onDisarmFbw,
+  onToggleSas,
+  onToggleRcs,
+  onSetSasMode,
   execute,
   showFbwDelayWarning,
   delaySeconds,
+  inFlight,
 }: ControlSurfaceProps) {
   return (
     <ControlWrap>
@@ -519,13 +597,14 @@ function ControlSurface({
           Vessel not controllable: buttons disabled.
         </Banner>
       )}
+      <InFlightList items={inFlight} ariaLabel="Navball commands: in flight" />
       <Group>
         <GroupLabel>SAS</GroupLabel>
         <ButtonGrid>
           <ToggleButton
             type="button"
             active={sasOn}
-            onClick={() => void execute("f.sas")}
+            onClick={onToggleSas}
             disabled={disabled}
           >
             {sasOn ? "SAS ON" : "SAS OFF"}
@@ -533,7 +612,7 @@ function ControlSurface({
           <ToggleButton
             type="button"
             active={rcsOn}
-            onClick={() => void execute("f.rcs")}
+            onClick={onToggleRcs}
             disabled={disabled}
           >
             {rcsOn ? "RCS ON" : "RCS OFF"}
@@ -552,7 +631,7 @@ function ControlSurface({
               key={mode}
               type="button"
               active={sasMode === mode}
-              onClick={() => void execute(`f.setSASMode[${mode}]`)}
+              onClick={() => onSetSasMode(mode)}
               disabled={disabled}
             >
               {modeShort(mode)}

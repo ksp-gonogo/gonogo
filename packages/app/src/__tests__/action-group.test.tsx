@@ -34,13 +34,13 @@ function withItemContext(instanceId: string, children: ReactNode) {
  * integration tests drive the group's state through a real
  * `TelemetryProvider` + `TimelineStore` pipeline.
  *
- * The legacy `fakeTelemachus` fixture is still mounted alongside, because the
- * WRITE path is unchanged: `useExecuteAction("data")` still fires `f.ag1` at
- * the `DataSource` (`vessel.control.setActionGroup` isn't in `carriedChannels`
- * here, so `mapCommand` deliberately falls back to legacy). That split; reads
- * off the stream, writes still legacy: is exactly the widget's real shape at
- * this point in the migration, so the test mirrors it rather than faking
- * either half.
+ * The WRITE path is migrated too (command-surface-delay-audit): the toggle
+ * fires `useCommand`, which dispatches straight through `TelemetryClient` to
+ * the transport, so `stream.transport.sentCommands` is the write-path
+ * assertion point, not the legacy fake's `executedActions`. The legacy
+ * `fakeTelemachus` fixture is still mounted alongside purely because a couple
+ * of untouched tests below (the alarm bell) exercise `group.toggle`, an
+ * identifier string unrelated to dispatch mechanism.
  */
 function makeControlStream() {
   const transport = new StubTransport();
@@ -83,7 +83,7 @@ function makeControlStream() {
     );
   }
 
-  return { Provider, emitControl };
+  return { Provider, emitControl, transport };
 }
 
 /** One custom group's named-list entry, for an `emitControl` patch. */
@@ -161,8 +161,16 @@ describe("ActionGroup component", () => {
 
     await user.click(screen.getByRole("button", { name: /toggle ag1/i }));
 
-    // The click dispatches the toggle at the DataSource (write path unchanged).
-    expect(fake.executedActions).toContain("f.ag1");
+    // The click dispatches the toggle via `useCommand`: an AGX/stock custom
+    // (`group.index !== undefined`) always resolves to the shared
+    // `setActionGroup` command, keyed by index and inverting the current state.
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setActionGroup",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ group: 1, state: true });
+    });
 
     // KSP echoes the new state back on the READ channel the widget actually
     // watches. Emitted explicitly here because the echo now arrives on
@@ -252,7 +260,15 @@ describe("ActionGroup component", () => {
 
     await user.click(screen.getByRole("button", { name: /toggle sas/i }));
 
-    expect(fake.executedActions).toContain("f.sas");
+    // SAS is a stock singleton: its toggle resolves to the dedicated
+    // `setSas` command, inverting the current (false) value.
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setSas",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ enabled: true });
+    });
 
     stream.emitControl({ sas: true });
 

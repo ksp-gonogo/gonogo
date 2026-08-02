@@ -158,9 +158,14 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
     );
   });
 
-  it("Delete falls back to legacy execute() with the resolved id when vessel.maneuver.remove isn't carried", async () => {
+  it("Delete still dispatches vessel.maneuver.remove with the REAL id even when the command topic isn't in the carried allowlist", async () => {
+    // useCommand (delayed-command-ux migration) dispatches unconditionally
+    // via the client, no carried-channels gate and no legacy DataSource
+    // fallback: the allowlist below deliberately omits
+    // "vessel.maneuver.remove" (the READ, "vessel.maneuver", still is, so
+    // the real id resolves) to prove the command topic being un-carried no
+    // longer matters.
     const fixture = setupStreamFixture({
-      // Read IS carried (so the real id resolves), only the COMMAND isn't.
       carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
       pinnedUt: 1_000_000,
     });
@@ -168,18 +173,12 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 
-    const executed: string[] = [];
-    const legacyAux = await setupMockDataSource({
-      keys: [],
-      onExecute: (action) => {
-        executed.push(action);
-      },
-    });
-
     render(
       <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "mnv-cmd-legacy" }}>
-          <ManeuverPlannerComponent id="mnv-cmd-legacy" config={{}} />
+        <DashboardItemContext.Provider
+          value={{ instanceId: "mnv-cmd-uncarried" }}
+        >
+          <ManeuverPlannerComponent id="mnv-cmd-uncarried" config={{}} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -197,16 +196,11 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
       deleteBtn.click();
     });
 
-    // The real id still resolved (the READ is carried), it's the command
-    // dispatch itself that falls back to the legacy DataSource, carrying
-    // that same resolved id along with it (map-command.ts's documented
-    // accepted-risk note for this edge case).
     await waitFor(() =>
-      expect(executed).toEqual([`o.removeManeuverNode[${REAL_NODE_ID}]`]),
+      expect(commandHandler).toHaveBeenCalledWith("vessel.maneuver.remove", {
+        nodeId: REAL_NODE_ID,
+      }),
     );
-    expect(commandHandler).not.toHaveBeenCalled();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("Delete falls back to the plain positional index when no stream id has arrived at all", async () => {

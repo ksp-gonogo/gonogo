@@ -7,13 +7,8 @@ import {
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -25,11 +20,9 @@ import { TargetPickerComponent } from "./index";
  * `target.available` channel (`useTelemetry("target.available")`: the
  * CANONICAL one-arg Topic read, which has no legacy fallback at all, so
  * every test here needs a real `TelemetryProvider` mounted, unlike the old
- * Bodies-tree/Vessels-roster/Current-tab widget this replaces). The `"data"`
- * `MockDataSource` is only wired for `useExecuteAction("data")`'s legacy
- * fallback: none of `carriedChannels` below include `vessel.target.set`,
- * so every dispatch in this file resolves through that fallback and lands
- * on `onExecute` as the literal legacy action string.
+ * Bodies-tree/Vessels-roster/Current-tab widget this replaces). Set/clear
+ * dispatch (delayed-command-ux migration) rides the same stream via
+ * `useCommand`, asserted against `fixture.transport.sentCommands`.
  */
 function renderPicker(
   fixture: StreamFixture,
@@ -151,18 +144,10 @@ const FULL_ENTRIES = [
 ];
 
 describe("TargetPickerComponent: Suggested + categorised list", () => {
-  let dataFixture: MockDataSourceFixture;
   let fixture: StreamFixture;
-  let onExecute: ReturnType<typeof vi.fn>;
 
-  beforeEach(async () => {
-    onExecute = vi.fn();
-    dataFixture = await setupMockDataSource({ keys: [], onExecute });
+  beforeEach(() => {
     fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(dataFixture);
   });
 
   it("shows a waiting hint before target.available arrives", () => {
@@ -348,7 +333,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     expect(screen.getByText(/No targets match/i)).toBeInTheDocument();
   });
 
-  it("dispatches tar.setTargetBody[index] on a Body row", async () => {
+  it("dispatches vessel.target.set with the Body kind and bodyIndex on a Body row", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
@@ -358,11 +343,15 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     const rows = await screen.findAllByRole("button", { name: /^Kerbin/ });
     await user.click(rows[0]);
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("tar.setTargetBody[1]");
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.target.set",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ kind: 1, bodyIndex: 1 });
     });
   });
 
-  it("dispatches tar.setTargetVessel[vesselId] on a Vessel row", async () => {
+  it("dispatches vessel.target.set with the Vessel kind and vesselId on a Vessel row", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
@@ -372,13 +361,15 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     const row = await screen.findByRole("button", { name: /Relay Three/ });
     await user.click(row);
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith(
-        "tar.setTargetVessel[vessel-relay-3]",
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.target.set",
       );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ kind: 0, vesselId: "vessel-relay-3" });
     });
   });
 
-  it("dispatches tar.setTargetPart[vesselId,partId] on a Part row", async () => {
+  it("dispatches vessel.target.set with the Part kind, vesselId and partId on a Part row", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
@@ -388,9 +379,15 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     const rows = await screen.findAllByRole("button", { name: /Port Alpha/ });
     await user.click(rows[0]);
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith(
-        "tar.setTargetPart[vessel-relay-1,11]",
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.target.set",
       );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({
+        kind: 4,
+        vesselId: "vessel-relay-1",
+        partId: 11,
+      });
     });
   });
 
@@ -406,7 +403,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     }
   });
 
-  it("renders current target details and clears via tar.clearTarget", async () => {
+  it("renders current target details and clears via vessel.target.clear", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     act(() => {
@@ -434,7 +431,11 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
 
     await user.click(screen.getByRole("button", { name: "Clear target" }));
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("tar.clearTarget");
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.target.clear",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toBeNull();
     });
   });
 
@@ -491,17 +492,14 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
 });
 
 describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
-  let dataFixture: MockDataSourceFixture;
   let fixture: StreamFixture;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     clearActionHandlers();
-    dataFixture = await setupMockDataSource({ keys: [] });
     fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
   });
 
   afterEach(() => {
-    teardownMockDataSource(dataFixture);
     clearAugments();
   });
 

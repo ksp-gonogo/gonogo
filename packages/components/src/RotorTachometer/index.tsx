@@ -2,12 +2,15 @@ import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { Gauge } from "@ksp-gonogo/ui";
 import {
   EmptyState,
+  InFlightList,
+  type InFlightListItem,
   Panel,
   ToggleButton,
   useElementSize,
@@ -121,12 +124,41 @@ const rotorActions = [
 
 export type RotorTachometerActions = typeof rotorActions;
 
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe): mirrors RoboticsConsole's own mapping. A rotor command's visible
+ * effect is it reaching the craft, so this counts down to the reach ETA
+ * throughout, same reasoning as that widget's own helper.
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
+
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
   const roboticsRaw = useTelemetry("parts.robotics");
   const available = useTelemetry("robotics.available")?.available;
-  const execute = useExecuteAction("data");
+
+  // Delayed vessel commands (Breaking Ground robotics-audit-migration): rotor
+  // RPM/torque/brake/motor/lock/direction are actuated on the craft, subject
+  // to signal delay, so this dispatches over `useCommand` (not the legacy
+  // `useExecuteAction` string path) for per-command in-flight state, same
+  // shape as RoboticsConsole/MechJeb.
+  const rpmCmd = useCommand("robotics.rotor.setRpmLimit");
+  const torqueCmd = useCommand("robotics.rotor.setTorqueLimit");
+  const brakeCmd = useCommand("robotics.rotor.setBrake");
+  const motorCmd = useCommand("robotics.rotor.setMotor");
+  const lockCmd = useCommand("robotics.rotor.setLock");
+  const reverseCmd = useCommand("robotics.rotor.reverse");
 
   // Measure the gauge slot so the dial follows the column width instead of a
   // fixed 180px that clips in a narrow slot.
@@ -137,23 +169,39 @@ function RotorTachometerComponent({
   const selected =
     rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
 
-  const setRpmLimit = (id: string, rpm: number) =>
-    void execute(
-      `robotics.rotor.setRpmLimit[${id},${Math.round(clamp(rpm, 0, ROTOR_MAX_RPM))}]`,
-    );
-  const setTorqueLimit = (id: string, pct: number) =>
-    void execute(
-      `robotics.rotor.setTorqueLimit[${id},${Math.round(clamp(pct, 0, 100))}]`,
-    );
-  const setBrake = (id: string, pct: number) =>
-    void execute(
-      `robotics.rotor.setBrake[${id},${Math.round(clamp(pct, 0, 200))}]`,
-    );
+  const setRpmLimit = (id: string, rpm: number) => {
+    const value = Math.round(clamp(rpm, 0, ROTOR_MAX_RPM));
+    void rpmCmd.send({ partId: id, value }, { label: `RPM cap ${value}` });
+  };
+  const setTorqueLimit = (id: string, pct: number) => {
+    const value = Math.round(clamp(pct, 0, 100));
+    void torqueCmd.send({ partId: id, value }, { label: `Torque ${value}%` });
+  };
+  const setBrake = (id: string, pct: number) => {
+    const value = Math.round(clamp(pct, 0, 200));
+    void brakeCmd.send({ partId: id, value }, { label: `Brake ${value}%` });
+  };
   const setMotor = (id: string, engaged: boolean) =>
-    void execute(`robotics.rotor.setMotor[${id},${engaged}]`);
+    void motorCmd.send(
+      { partId: id, enabled: engaged },
+      { label: `Motor ${engaged ? "on" : "off"}` },
+    );
   const setLock = (id: string, locked: boolean) =>
-    void execute(`robotics.rotor.setLock[${id},${locked}]`);
-  const reverse = (id: string) => void execute(`robotics.rotor.reverse[${id}]`);
+    void lockCmd.send(
+      { partId: id, enabled: locked },
+      { label: locked ? "Lock" : "Unlock" },
+    );
+  const reverse = (id: string) =>
+    void reverseCmd.send({ partId: id }, { label: "Reverse" });
+
+  const inFlight = toInFlightListItems([
+    ...rpmCmd.inFlight,
+    ...torqueCmd.inFlight,
+    ...brakeCmd.inFlight,
+    ...motorCmd.inFlight,
+    ...lockCmd.inFlight,
+    ...reverseCmd.inFlight,
+  ]);
 
   useActionInput<RotorTachometerActions>({
     rpmUp: (p) => {
@@ -241,6 +289,8 @@ function RotorTachometerComponent({
             />
           </GaugeWrap>
         )}
+
+        <InFlightList items={inFlight} ariaLabel="Rotor commands: in flight" />
 
         <Controls>
           <ControlRow>

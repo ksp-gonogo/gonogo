@@ -1,13 +1,21 @@
 /**
  * GOLDEN end-to-end test: a byte on the serial port triggers the ActionGroup's
- * toggle action, which fires `useExecuteAction("data")` and then reflects
- * back through the (fake) data source. No internal mocks for the serial
+ * toggle action, which fires `useCommand` and dispatches straight through the
+ * Sitrep `TelemetryClient` to the transport. No internal mocks for the serial
  * half: real WebSerialTransport (via MockWebSerial), real
  * SerialDeviceService, real InputDispatcher, real dispatchAction, real
- * useActionInput, real useExecuteAction. The Telemachus half is a
- * `MockDataSource`-backed fixture (see `fixtures/fakeTelemachus.ts`) instead
- * of a real WS/HTTP round trip: the legacy `TelemachusDataSource` this test
- * used to drive against was deleted alongside `dataSources/telemachus.ts`.
+ * useActionInput, real useCommand.
+ *
+ * Was `serial-to-telemachus.test.tsx`, driving the legacy
+ * `useExecuteAction("data")` write path against a `MockDataSource`-backed
+ * `fakeTelemachus` fixture. That fixture and the write path it stood in for
+ * are both gone: ActionGroup's toggle now rides `useCommand`
+ * (command-surface-delay-audit), so this test dispatches the AGX
+ * `setActionGroup` command straight at a `StubTransport` and asserts
+ * `transport.sentCommands`, the same read+write stream this widget actually
+ * uses in production (see `ActionGroup/index.test.tsx` for the componentwide
+ * unit coverage of every group's command mapping; this file exists to prove
+ * the serial → dispatch cascade reaches that path end-to-end).
  */
 
 import { ActionGroupComponent } from "@ksp-gonogo/components";
@@ -33,28 +41,18 @@ import {
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  type FakeTelemachusHandle,
-  setupFakeTelemachus,
-} from "./fixtures/fakeTelemachus";
-
-let fake: FakeTelemachusHandle | null = null;
 
 beforeEach(() => {
   clearRegistry();
 });
 
 afterEach(() => {
-  fake?.buffered.disconnect();
-  fake = null;
   clearActionHandlers();
 });
 
-describe("serial → action → telemachus end-to-end", () => {
-  it("emits bytes from a virtual serial port → toggles AG1 via useExecuteAction", async () => {
-    // ── 1. Wire up the fake data source + mock navigator.serial ─────────
-    fake = await setupFakeTelemachus({});
-
+describe("serial → action → sitrep command end-to-end", () => {
+  it("emits bytes from a virtual serial port → toggles AG1 via useCommand", async () => {
+    // ── 1. Mock navigator.serial ─────────────────────────────────────────
     const mock = new MockWebSerial();
     mock.install({ force: true });
     const port = mock.createPort();
@@ -105,12 +103,12 @@ describe("serial → action → telemachus end-to-end", () => {
       ],
     });
 
-    // ActionGroup's READ path is the canonical `vessel.control` stream now (its
-    // legacy shim read is gone), so AG1's state is fed through a real
-    // TelemetryProvider. The WRITE path under test here, serial byte →
-    // parser → InputDispatcher → dispatchAction → useExecuteAction → the fake
-    // source: is untouched by that, which is exactly what this test exists to
-    // prove end-to-end.
+    // Both ActionGroup's READ path (the canonical `vessel.control` stream)
+    // and its WRITE path (`useCommand`) ride the same `TelemetryClient` now,
+    // so a single `StubTransport` carries the whole cascade under test:
+    // serial byte → parser → InputDispatcher → dispatchAction →
+    // useActionInput → handleToggle → useCommand.send → client.dispatch →
+    // transport.send.
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const store = new TimelineStore(
@@ -151,32 +149,40 @@ describe("serial → action → telemachus end-to-end", () => {
       </TelemetryProvider>,
     );
 
-    fake.seed();
     emitAg1(false);
 
     await waitFor(() => expect(screen.getByText("OFF")).toBeInTheDocument());
 
     // ── 4. Drive the serial port: press button A ──────────────────────
     // Drive the full cascade (serial read → parser → InputDispatcher →
-    // ActionGroup handler → dispatchAction → executeAction → fake source →
-    // subscriber → setState) inside a single act scope. The raw microtask
-    // drains that used to live here ran outside act, so the trailing
-    // setState landed outside React's act boundary and tripped a warning.
+    // ActionGroup handler → dispatchAction → useCommand.send →
+    // client.dispatch → transport.send) inside a single act scope. The raw
+    // microtask drains that used to live here ran outside act, so the
+    // trailing setState landed outside React's act boundary and tripped a
+    // warning.
     await act(async () => {
       await port.emitData(" 1 0 \n");
       // Drain enough microtasks for the full async cascade to settle.
       for (let i = 0; i < 10; i++) await Promise.resolve();
     });
 
-    // ── 5. Assert the fake source saw the execute + UI reflects the toggle ──
-    await waitFor(() => expect(fake?.executedActions).toContain("f.ag1"));
+    // ── 5. Assert the transport saw the command + UI reflects the toggle ──
+    // AG1 is an AGX/stock custom (`group.index !== undefined`), so its toggle
+    // resolves to the shared `setActionGroup` command, keyed by index and
+    // inverting the current (false) state.
+    await waitFor(() => {
+      const sent = transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setActionGroup",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ group: 1, state: true });
+    });
 
     // KSP echoes the new state back on the channel the widget reads.
     emitAg1(true);
     await waitFor(() => expect(screen.getByText("ON")).toBeInTheDocument());
 
-    // Unmount so pending subscribers are torn down before we disconnect the
-    // data source in afterEach.
+    // Unmount so pending subscribers are torn down before disposal.
     unmount();
 
     dispatcher.dispose();

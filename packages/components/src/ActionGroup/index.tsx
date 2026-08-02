@@ -12,9 +12,10 @@ import {
   useActionGroupFrom,
   useActionGroups,
   useActionInput,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
@@ -29,7 +30,11 @@ import {
   ToggleButton,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import {
+  InFlightList,
+  type InFlightListItem,
+  NULL_DISPLAY,
+} from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -143,6 +148,91 @@ function resolveGroupValue(
 }
 
 // ---------------------------------------------------------------------------
+// Delayed-command dispatch (command-surface-delay-audit #1-4): every toggle
+// this widget fires (Stage, Abort, SAS/RCS/Gear/Brake/Light, AGX customs)
+// actuates the vessel, so it rides `useCommand` instead of the legacy
+// `useExecuteAction` string path, the same toggle -> absolute bridge
+// `map-command.ts`'s `toggleHome`/`actionGroupHome` apply, but built here
+// directly off the group's already-known live `value` (this widget already
+// reads it for the state pill), no separate current-value store sample
+// needed.
+// ---------------------------------------------------------------------------
+
+/** Sentinel: the current value isn't a boolean yet (unknown/numeric Stage
+ * read through the wrong branch), so a toggle can't safely be inverted.
+ * Mirrors `map-command.ts`'s own `INVALID` contract: never dispatch an
+ * ambiguous toggle as a blind set. */
+const TOGGLE_INVALID: unique symbol = Symbol("action-group-toggle-invalid");
+
+/**
+ * The mapped absolute-set command for one group's toggle, or `null` when the
+ * group has no toggle (Precision Control) or isn't recognized. Keyed the
+ * same way `map-command.ts`'s `TELEMACHUS_COMMAND_HOMES`/`actionGroupHome`
+ * are: an AGX custom (`group.index !== undefined`) always resolves to the
+ * shared `setActionGroup` command regardless of name; Stage has its own
+ * unconditional (non-invert) command; the remaining stock singletons each
+ * have a dedicated absolute-set command.
+ */
+export function toggleCommandFor(group: ActionGroup): string | null {
+  if (group.name === "Stage") return "vessel.control.stage";
+  if (group.index !== undefined) return "vessel.control.setActionGroup";
+  switch (group.name) {
+    case "SAS":
+      return "vessel.control.setSas";
+    case "RCS":
+      return "vessel.control.setRcs";
+    case "Light":
+      return "vessel.control.setLights";
+    case "Gear":
+      return "vessel.control.setGear";
+    case "Brake":
+      return "vessel.control.setBrakes";
+    case "Abort":
+      return "vessel.control.setAbort";
+    default:
+      return null; // Precision Control (read-only) or an unrecognized group.
+  }
+}
+
+/**
+ * Builds the wire args for `toggleCommandFor(group)`'s command, inverting
+ * the group's own live `value`. Stage takes no args (its handler ignores
+ * them, matching `map-command.ts`'s `f.stage` home) and needs no invert.
+ * Every other group is `TOGGLE_INVALID` unless `value` is a real boolean:
+ * an unresolved/stale read must never be blindly inverted.
+ */
+export function buildToggleArgs(
+  group: ActionGroup,
+  value: unknown,
+): unknown | typeof TOGGLE_INVALID {
+  if (group.name === "Stage") return null;
+  if (typeof value !== "boolean") return TOGGLE_INVALID;
+  const nextState = !value;
+  if (group.index !== undefined) {
+    return { group: group.index, state: nextState };
+  }
+  return { enabled: nextState };
+}
+
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe), same shape as RoboticsConsole/RotorTachometer's own mapping: a
+ * toggle's visible effect is it reaching the craft, so this counts down to
+ * the reach ETA throughout.
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -210,16 +300,24 @@ function ActionGroupView({
   // `vessel.control` / `vessel.structure` Topics by the wrappers above, the
   // last `useTelemetry("data", group.value)` shim read is gone, and with it
   // `mapTopic.coverage`'s dynamic-key blind spot: the ACTION_GROUPS registry
-  // no longer carries read keys at all. The `.toggle` side is still
-  // `useExecuteAction` (`f.abort` -> `vessel.control.setAbort` rides the
-  // toggle -> absolute bridge in `map-command.ts`, same as `f.sas`/`f.rcs`).
+  // no longer carries read keys at all. The `.toggle` side rides `useCommand`
+  // (delayed-command-ux migration): `toggleCommandFor`/`buildToggleArgs`
+  // below apply the same toggle -> absolute bridge `map-command.ts`'s
+  // `toggleHome`/`actionGroupHome` do, off the group's own already-known
+  // `value` instead of a separate store sample.
   // These two reads have clean canonical homes of their own:
   //  - `t.isPaused`     -> `time.warp.paused`
   //  - `comm.connected` -> `comms.link.connected`
   const isPaused = useTelemetry("time.warp")?.paused;
   const commConnected = useTelemetry("comms.link")?.connected;
-  const execute = useExecuteAction("data");
   const openAlarms = useAlarmsLauncher();
+
+  // The toggle command name depends on which group this instance is
+  // configured for (fixed per mount, changes only on a config edit), so it's
+  // recomputed every render and handed to `useCommand`, which is fine to
+  // call with a varying string, hooks don't care about argument identity.
+  const toggleCommand = group ? toggleCommandFor(group) : null;
+  const toggleCmd = useCommand(toggleCommand ?? "");
 
   // Inline label editing state
   const [editing, setEditing] = useState(false);
@@ -227,7 +325,10 @@ function ActionGroupView({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleToggle = () => {
-    if (group?.toggle) void execute(group.toggle);
+    if (!group?.toggle || !toggleCommand) return;
+    const args = buildToggleArgs(group, value);
+    if (args === TOGGLE_INVALID) return;
+    void toggleCmd.send(args, { label: `Toggle ${currentLabel}` });
   };
 
   useActionInput<ActionGroupActions>({
@@ -412,6 +513,12 @@ function ActionGroupView({
         >
           {unavailableReason}
         </UnavailableNotice>
+      )}
+      {getSizeBucket(w, h) !== "tiny" && (
+        <InFlightList
+          items={toInFlightListItems(toggleCmd.inFlight)}
+          ariaLabel={`${currentLabel}: in flight`}
+        />
       )}
       {/* Richer whole-widget status block: the section-level counterpart to the
           inline badges. An Uplink describing what this group toggles

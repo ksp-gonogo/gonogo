@@ -6,7 +6,6 @@ import {
   getBody,
   registerComponent,
   resolveTargetName,
-  useExecuteAction,
   useOrbitElements,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -15,19 +14,23 @@ import {
   useValueKeys,
   useVesselDeltaV,
 } from "@ksp-gonogo/data";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import {
+  useCommand,
   useStream,
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
   CheckIcon,
+  InFlightList,
+  type InFlightListItem,
   Panel,
   ScrollArea,
   SectionTitle,
   Stack,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
@@ -84,6 +87,24 @@ declare module "@ksp-gonogo/core" {
 
 // Stable empty reference so slot re-renders don't churn mounted augments.
 const EMPTY_SLOT_PROPS: Record<string, never> = {};
+
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe), same mapping as ActionGroup/RoboticsConsole/TargetPicker/
+ * ScienceOfficer's own: a maneuver-node add/update/remove's visible effect
+ * is it reaching the craft, so this counts down to the reach ETA throughout.
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
 
 function ManeuverPlannerComponent({
   config,
@@ -155,7 +176,15 @@ function ManeuverPlannerComponent({
   // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`): see
   // useVesselDeltaV.ts's `normalizeStage` reconciliation.
   const vesselDeltaV = useVesselDeltaV();
-  const execute = useExecuteAction("data");
+
+  // Delayed vessel commands (command-surface-delay-audit #15-17): adding,
+  // updating and removing a maneuver node all actuate the craft's flight
+  // plan, subject to signal delay, so this rides `useCommand` against the
+  // real `vessel.maneuver.add`/`.update`/`.remove` commands instead of the
+  // legacy `useExecuteAction` string path.
+  const addNodeCmd = useCommand("vessel.maneuver.add");
+  const updateNodeCmd = useCommand("vessel.maneuver.update");
+  const removeNodeCmd = useCommand("vessel.maneuver.remove");
 
   // The maneuver-node id round-trip. `o.maneuverNodes` itself (behind
   // `useManeuverNodes` above) now rides the stream (the `vessel.maneuver.
@@ -186,7 +215,20 @@ function ManeuverPlannerComponent({
     return typeof real === "string" && real.length > 0 ? real : String(index);
   }
 
-  const { completedNodes } = useBurnCompletionTracker(nodes, execute);
+  // Stable across renders (deps only on the sitrep-client hook's own stable
+  // `send`): passed to a `useEffect` dependency array inside
+  // `useBurnCompletionTracker`, a fresh closure every render would tear down
+  // and reschedule its auto-removal timers on every unrelated re-render.
+  const removeNode = useCallback(
+    (nodeId: string) => {
+      void removeNodeCmd.send(
+        { nodeId },
+        { label: "Auto-remove completed node" },
+      );
+    },
+    [removeNodeCmd.send],
+  );
+  const { completedNodes } = useBurnCompletionTracker(nodes, removeNode);
 
   // Armed conditional triggers come from a service, host service on the
   // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
@@ -330,8 +372,17 @@ function ManeuverPlannerComponent({
   async function dispatchPlanBurns(toDispatch: PlanResult): Promise<void> {
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
     for (const b of burns) {
-      const action = `o.addManeuverNode[${b.ut.toFixed(3)},${b.radial.toFixed(3)},${b.normal.toFixed(3)},${b.prograde.toFixed(3)}]`;
-      await execute(action);
+      // Same RADIAL, NORMAL, PROGRADE wire order as before (see handleCommit's
+      // own comment): only the transport changed, not the arg shape.
+      await addNodeCmd.send(
+        {
+          ut: b.ut,
+          radialOut: b.radial,
+          normal: b.normal,
+          prograde: b.prograde,
+        },
+        { label: "Add maneuver node" },
+      );
     }
   }
 
@@ -389,7 +440,10 @@ function ManeuverPlannerComponent({
 
   async function handleDelete(id: number) {
     try {
-      await execute(`o.removeManeuverNode[${resolveNodeId(id)}]`);
+      await removeNodeCmd.send(
+        { nodeId: resolveNodeId(id) },
+        { label: "Remove maneuver node" },
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -399,9 +453,17 @@ function ManeuverPlannerComponent({
     // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
     // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
     // RADIAL, NORMAL, PROGRADE: *not* prograde-first.
-    const action = `o.updateManeuverNode[${resolveNodeId(id)},${patch.ut.toFixed(3)},${patch.radial.toFixed(3)},${patch.normal.toFixed(3)},${patch.prograde.toFixed(3)}]`;
     try {
-      await execute(action);
+      await updateNodeCmd.send(
+        {
+          nodeId: resolveNodeId(id),
+          ut: patch.ut,
+          radialOut: patch.radial,
+          normal: patch.normal,
+          prograde: patch.prograde,
+        },
+        { label: "Update maneuver node" },
+      );
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -413,7 +475,10 @@ function ManeuverPlannerComponent({
     // Remove from the highest index down: removing index 0 first would
     // shift every subsequent id and break the loop.
     for (let i = nodes.length - 1; i >= 0; i--) {
-      await execute(`o.removeManeuverNode[${resolveNodeId(i)}]`);
+      await removeNodeCmd.send(
+        { nodeId: resolveNodeId(i) },
+        { label: "Remove maneuver node" },
+      );
     }
   }
 
@@ -536,6 +601,14 @@ function ManeuverPlannerComponent({
       panelSubtitle={refBody ?? undefined}
     >
       <ScrollBody>
+        <InFlightList
+          items={toInFlightListItems([
+            ...addNodeCmd.inFlight,
+            ...updateNodeCmd.inFlight,
+            ...removeNodeCmd.inFlight,
+          ])}
+          ariaLabel="Maneuver commands: in flight"
+        />
         {renderNodesSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}

@@ -2,12 +2,15 @@ import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   Cluster,
   EmptyState,
+  InFlightList,
+  type InFlightListItem,
   Panel,
   ToggleButton,
   Unit,
@@ -162,12 +165,41 @@ const roboticsActions = [
 
 export type RoboticsConsoleActions = typeof roboticsActions;
 
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe): a discrete servo command has no "reply" leg worth showing
+ * separately from "reach", so this counts down to the reach ETA throughout
+ * (unlike MechJeb's autopilot commands, a servo actuation's visible effect
+ * IS it reaching the craft, there's no separate confirmation payload the
+ * operator is waiting on beyond that).
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
+
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
   const roboticsRaw = useTelemetry("parts.robotics");
   const available = useTelemetry("robotics.available")?.available;
-  const execute = useExecuteAction("data");
+
+  // Delayed vessel commands (Breaking Ground robotics-audit-migration): the
+  // servo motor/lock/target are actuated on the craft, subject to the same
+  // signal delay as any other flight-control command, so this widget
+  // dispatches over `useCommand` (not the legacy `useExecuteAction` string
+  // path) to pick up per-command in-flight state for free, same shape as
+  // MechJeb.
+  const targetCmd = useCommand("robotics.servo.setTarget");
+  const motorCmd = useCommand("robotics.servo.setMotor");
+  const lockCmd = useCommand("robotics.servo.setLock");
 
   const servos = parseServos(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -177,11 +209,26 @@ function RoboticsConsoleComponent({
   // The dispatched value is type-formatted too: sending Math.round of a
   // metre extension would command the piston to a whole metre.
   const setTarget = (id: string, type: ServoType, value: number) =>
-    void execute(`robotics.servo.setTarget[${id},${formatPos(type, value)}]`);
+    void targetCmd.send(
+      { partId: id, value: Number(formatPos(type, value)) },
+      { label: `Target ${formatPos(type, value)}${unitFor(type)}` },
+    );
   const setMotor = (id: string, engaged: boolean) =>
-    void execute(`robotics.servo.setMotor[${id},${engaged}]`);
+    void motorCmd.send(
+      { partId: id, enabled: engaged },
+      { label: `Motor ${engaged ? "on" : "off"}` },
+    );
   const setLock = (id: string, locked: boolean) =>
-    void execute(`robotics.servo.setLock[${id},${locked}]`);
+    void lockCmd.send(
+      { partId: id, enabled: locked },
+      { label: locked ? "Lock" : "Unlock" },
+    );
+
+  const inFlight = toInFlightListItems([
+    ...targetCmd.inFlight,
+    ...motorCmd.inFlight,
+    ...lockCmd.inFlight,
+  ]);
 
   useActionInput<RoboticsConsoleActions>({
     targetUp: (p) => {
@@ -257,6 +304,11 @@ function RoboticsConsoleComponent({
             </StatePill>
           )}
         </Cluster>
+
+        <InFlightList
+          items={inFlight}
+          ariaLabel="Robotics commands: in flight"
+        />
 
         <Controls>
           <ControlRow>

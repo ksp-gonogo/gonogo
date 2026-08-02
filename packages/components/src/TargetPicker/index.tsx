@@ -9,11 +9,12 @@ import {
   registerComponent,
   resolveTargetName,
   useActionInput,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import {
   type StreamStatusValue,
+  useCommand,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -28,6 +29,8 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  InFlightList,
+  type InFlightListItem,
   NULL_DISPLAY,
   Panel,
   Row,
@@ -183,6 +186,24 @@ function sortByDistance(list: readonly TargetListEntry[]): TargetListEntry[] {
   });
 }
 
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe), same mapping as ActionGroup/RoboticsConsole's own: setting a target
+ * is a single vessel command whose visible effect is it reaching the craft,
+ * so this counts down to the reach ETA throughout.
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
+
 /** Native per-topic stream status (copy of DistanceToTarget/OrbitView's
  * helper): `"disconnected"` when no `TelemetryProvider` is mounted. */
 function useStreamStatusOptional(topic: string): StreamStatusValue {
@@ -232,7 +253,15 @@ function TargetPickerComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
-  const execute = useExecuteAction("data");
+  // Delayed vessel commands (command-surface-delay-audit #18-20): setting or
+  // clearing the KSP target is dispatched to the craft, subject to signal
+  // delay, so this rides `useCommand` instead of the legacy
+  // `useExecuteAction` string path. Both `tar.setTargetBody/Vessel/Part`
+  // resolve to the SAME `vessel.target.set` command (map-command.ts), keyed
+  // by the `TargetKind` ordinal already on the entry (the same enum
+  // `target.available` entries carry `entry.kind` as).
+  const setTargetCmd = useCommand("vessel.target.set");
+  const clearTargetCmd = useCommand("vessel.target.clear");
 
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
@@ -244,7 +273,7 @@ function TargetPickerComponent({
   useActionInput<TargetPickerActions>({
     "clear-target": (payload) => {
       if (payload.kind !== "button" || payload.value !== true) return;
-      void execute("tar.clearTarget");
+      void clearTargetCmd.send(null, { label: "Clear target" });
     },
   });
 
@@ -270,18 +299,32 @@ function TargetPickerComponent({
 
   const dispatchTarget = (entry: TargetListEntry) => {
     const id = entryId(entry);
+    const label = `Target ${entry.name}`;
     if (entry.kind === TargetKind.Body) {
       if (entry.bodyIndex === undefined) return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
-      void execute(`tar.setTargetBody[${entry.bodyIndex}]`);
+      void setTargetCmd.send(
+        { kind: TargetKind.Body, bodyIndex: entry.bodyIndex },
+        { label },
+      );
     } else if (entry.kind === TargetKind.Vessel) {
       if (!entry.vesselId) return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
-      void execute(`tar.setTargetVessel[${entry.vesselId}]`);
+      void setTargetCmd.send(
+        { kind: TargetKind.Vessel, vesselId: entry.vesselId },
+        { label },
+      );
     } else if (entry.kind === TargetKind.Part) {
       if (!entry.vesselId || entry.partId === undefined) return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
-      void execute(`tar.setTargetPart[${entry.vesselId},${entry.partId}]`);
+      void setTargetCmd.send(
+        {
+          kind: TargetKind.Part,
+          vesselId: entry.vesselId,
+          partId: entry.partId,
+        },
+        { label },
+      );
     }
     // T1: an `Other`/unknown-kind entry (a modded ITargetable) has no id-based
     // `tar.setTarget*` command to re-select it: the producer only surfaces one
@@ -292,7 +335,7 @@ function TargetPickerComponent({
   };
   const clearTarget = () => {
     setPendingTarget(null);
-    void execute("tar.clearTarget");
+    void clearTargetCmd.send(null, { label: "Clear target" });
   };
 
   // ── target.available -> Suggested + categorised sections ─────────────────
@@ -472,6 +515,13 @@ function TargetPickerComponent({
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         aria-label="Filter targets"
+      />
+      <InFlightList
+        items={toInFlightListItems([
+          ...setTargetCmd.inFlight,
+          ...clearTargetCmd.inFlight,
+        ])}
+        ariaLabel="Target commands: in flight"
       />
       {available === undefined ? (
         <Hint>Waiting for target list...</Hint>

@@ -7,11 +7,7 @@ import {
 } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { parseServos, RoboticsConsoleComponent } from "./index";
 
@@ -19,11 +15,10 @@ import { parseServos, RoboticsConsoleComponent } from "./index";
  * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
  * `parts.robotics` is its whole identity list and `robotics.available` its
- * DLC-presence flag, both canonical stream reads (`useTelemetry`, no legacy
- * fallback). Command dispatch (`robotics.servo.*`) still routes through the
- * legacy `DataSource`'s `execute()`: no mod command handler exists for it
- * yet: so a plain `setupMockDataSource` registered under `"data"` captures
- * those calls; it carries no keys of its own and is never read from.
+ * DLC-presence flag (canonical stream reads, `useTelemetry`), and
+ * `robotics.servo.*` command dispatch (delayed-command-ux robotics
+ * migration) rides the same stream via `useCommand`, asserted against
+ * `fixture.transport.sentCommands` rather than a legacy `MockDataSource`.
  */
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
@@ -114,16 +109,9 @@ describe("RoboticsConsoleComponent", () => {
 
   it("renders current/target and fires setTarget when increasing", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     renderConsole(fixture);
@@ -137,9 +125,13 @@ describe("RoboticsConsoleComponent", () => {
     expect(await screen.findByText(/AT TARGET/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Increase target/i }));
-    expect(onExecute).toHaveBeenCalledWith("robotics.servo.setTarget[11,35]");
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.servo.setTarget",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "11", value: 35 });
+    });
   });
 
   it("labels a piston in metres, not percent", async () => {
@@ -194,16 +186,9 @@ describe("RoboticsConsoleComponent", () => {
 
   it("toggles the motor with the inverse of current state", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     renderConsole(fixture);
@@ -215,23 +200,20 @@ describe("RoboticsConsoleComponent", () => {
     });
 
     await user.click(await screen.findByRole("button", { name: /Motor on/i }));
-    expect(onExecute).toHaveBeenCalledWith("robotics.servo.setMotor[11,false]");
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.servo.setMotor",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "11", enabled: false });
+    });
   });
 
   it("selects a joint from the list and targets it", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     renderConsole(fixture);
@@ -250,12 +232,16 @@ describe("RoboticsConsoleComponent", () => {
 
     await user.click(await screen.findByRole("button", { name: /Piston B/i }));
     await user.click(screen.getByRole("button", { name: /Increase target/i }));
-    // Metre scale, and a metre-scale step. This asserted 65 from a target of
-    // 60, which is a piston 60 METRES long being nudged 5 metres: the percent
-    // reading the widget's label used to imply.
-    expect(onExecute).toHaveBeenCalledWith("robotics.servo.setTarget[22,0.65]");
-
-    teardownMockDataSource(legacyAux);
+    // Metre scale, and a metre-scale step. This asserted 0.65 from a target
+    // of 0.6, which is a piston 0.6 METRES long being nudged 5 CENTIMETRES:
+    // the percent reading the widget's label used to imply.
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.servo.setTarget",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "22", value: 0.65 });
+    });
   });
 });
 

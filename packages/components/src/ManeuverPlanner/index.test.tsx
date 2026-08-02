@@ -566,19 +566,18 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   it("flashes a completed node green for 10s then auto-removes it from KSP", async () => {
-    buffered.disconnect();
-    clearRegistry();
+    // Auto-remove (delayed-command-ux migration) dispatches unconditionally
+    // via `useCommand` against the real stream: no carried-gate, no legacy
+    // fallback, so it's captured off `utFixture`'s command handler, same
+    // pattern the trigger-fire tests above use.
     const calls: string[] = [];
-    source = new MockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-      onExecute: (action) => {
-        calls.push(action);
-      },
+    utFixture.transport.setCommandHandler((command, args) => {
+      if (command === "vessel.maneuver.remove") {
+        const a = args as { nodeId?: string };
+        calls.push(`o.removeManeuverNode[${a?.nodeId}]`);
+      }
+      return null;
     });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
 
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
@@ -699,24 +698,34 @@ describe("ManeuverPlannerComponent", () => {
     expect(reopenedInput.value).toBe("0");
   });
 
-  it("sends o.updateManeuverNode with edited values via the per-node editor", async () => {
+  it("sends vessel.maneuver.update with edited values via the per-node editor", async () => {
     const user = userEvent.setup();
     // Edit flow: click Edit on a planned-node row, change the prograde, Save.
-    // Verifies the action string and arg order: `o.updateManeuverNode[id, ut,
-    // radial, normal, prograde]`: same vector convention as add.
-    buffered.disconnect();
-    clearRegistry();
-    const calls: string[] = [];
-    source = new MockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-      onExecute: (action) => {
-        calls.push(action);
-      },
+    // Verifies the dispatched args and vector convention: `{nodeId, ut,
+    // radialOut, normal, prograde}`, same convention as add. Dispatch
+    // (delayed-command-ux migration) is unconditional via `useCommand`
+    // against the real stream, captured off `utFixture`'s command handler.
+    const calls: Array<{
+      nodeId?: string;
+      ut?: number;
+      radialOut?: number;
+      normal?: number;
+      prograde?: number;
+    }> = [];
+    utFixture.transport.setCommandHandler((command, args) => {
+      if (command === "vessel.maneuver.update") {
+        calls.push(
+          args as {
+            nodeId?: string;
+            ut?: number;
+            radialOut?: number;
+            normal?: number;
+            prograde?: number;
+          },
+        );
+      }
+      return null;
     });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
 
     render(
       <utFixture.Provider>
@@ -754,41 +763,43 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(saveBtn);
 
     expect(calls).toHaveLength(1);
-    const match =
-      /^o\.updateManeuverNode\[(\d+),([^,]+),([^,]+),([^,]+),([^\]]+)\]$/.exec(
-        calls[0],
-      );
-    expect(match).not.toBeNull();
-    if (!match) return;
-    const [, id, ut, radial, normal, prograde] = match;
-    expect(Number(id)).toBe(0);
-    expect(Number(ut)).toBeCloseTo(1_000_120, 0);
-    expect(Number(radial)).toBe(0);
-    expect(Number(normal)).toBe(0);
-    expect(Number(prograde)).toBe(45);
+    const sent = calls[0];
+    expect(sent.nodeId).toBe("0");
+    expect(sent.ut).toBeCloseTo(1_000_120, 0);
+    expect(sent.radialOut).toBe(0);
+    expect(sent.normal).toBe(0);
+    expect(sent.prograde).toBe(45);
   });
 
-  it("sends o.addManeuverNode args in [ut, radial, normal, prograde] order", async () => {
+  it("sends vessel.maneuver.add args with the [radialOut, normal, prograde] vector convention", async () => {
     const user = userEvent.setup();
     // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde),
-    // confirmed by kOS's Node.cs. Telemachus passes its `[ut,x,y,z]` args
-    // straight to OnGizmoUpdated(Vector3d(x,y,z), ut), so the on-wire
-    // order is [ut, radial, normal, prograde]. Mixing this up turns a
-    // pure-prograde Hohmann burn into a pure-radial one, vessel ends
-    // up pointing straight up instead of along velocity.
-    buffered.disconnect();
-    clearRegistry();
-    const calls: string[] = [];
-    source = new MockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-      onExecute: (action) => {
-        calls.push(action);
-      },
+    // confirmed by kOS's Node.cs. Telemachus passed its `[ut,x,y,z]` args
+    // straight to OnGizmoUpdated(Vector3d(x,y,z), ut) in that order. Mixing
+    // this up turns a pure-prograde Hohmann burn into a pure-radial one,
+    // vessel ends up pointing straight up instead of along velocity.
+    // Dispatch (delayed-command-ux migration) is unconditional via
+    // `useCommand` against the real stream, captured off `utFixture`'s
+    // command handler.
+    const calls: Array<{
+      ut?: number;
+      radialOut?: number;
+      normal?: number;
+      prograde?: number;
+    }> = [];
+    utFixture.transport.setCommandHandler((command, args) => {
+      if (command === "vessel.maneuver.add") {
+        calls.push(
+          args as {
+            ut?: number;
+            radialOut?: number;
+            normal?: number;
+            prograde?: number;
+          },
+        );
+      }
+      return null;
     });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
 
     render(
       <utFixture.Provider>
@@ -803,17 +814,12 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(addBtn);
 
     // Default preset is circularize-apo: a positive prograde burn,
-    // normal=0, radial=0. So the action string should have the
-    // prograde value in the LAST slot, not the first.
+    // normal=0, radial=0.
     expect(calls).toHaveLength(1);
-    const match =
-      /^o\.addManeuverNode\[([^,]+),([^,]+),([^,]+),([^\]]+)\]$/.exec(calls[0]);
-    expect(match).not.toBeNull();
-    if (!match) return;
-    const [, , radial, normal, prograde] = match;
-    expect(Number(radial)).toBe(0);
-    expect(Number(normal)).toBe(0);
-    expect(Number(prograde)).toBeGreaterThan(0);
+    const sent = calls[0];
+    expect(sent.radialOut).toBe(0);
+    expect(sent.normal).toBe(0);
+    expect(sent.prograde).toBeGreaterThan(0);
   });
 });
 

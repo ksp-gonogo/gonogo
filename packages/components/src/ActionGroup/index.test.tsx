@@ -1,14 +1,10 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearAugments,
   clearRegistry,
   DashboardItemContext,
-  MockDataSource,
   registerAugment,
-  registerDataSource,
 } from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import {
   act,
   render as rtlRender,
@@ -43,37 +39,17 @@ function unmountAll() {
 }
 
 /**
- * The widget no longer READS anything off the legacy `data` source. Its group
- * values come off the canonical `vessel.control` / `vessel.structure` stream
- * (the `useTelemetry("data", group.value)` shim is gone; see `emitControl`),
- * and `isPaused` / `commConnected` are canonical stream reads too
- * (`time.warp.paused` / `comms.link.connected`). The MockDataSource below
- * survives only for the WRITE path: `useExecuteAction("data")` still dispatches
- * each group's `.toggle`, which `onExecute` records into `executed`.
+ * The widget reads nothing off a legacy `data` source: group values come off
+ * the canonical `vessel.control` / `vessel.structure` stream (see
+ * `emitControl`), `isPaused` / `commConnected` off `time.warp` / `comms.link`,
+ * and the toggle dispatch itself (delayed-command-ux migration) rides
+ * `useCommand`, asserted against `fixture.transport.sentCommands`.
  */
-const KEYS: DataKey[] = [];
-
 describe("ActionGroupComponent", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-  let executed: string[];
   let fixture: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     clearRegistry();
-    executed = [];
-    source = new MockDataSource({
-      keys: KEYS,
-      onExecute: (action) => {
-        executed.push(action);
-      },
-    });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
-    // Every read this widget makes is canonical now: the group values off
-    // `vessel.control` / `vessel.structure`, and isPaused / commConnected off
-    // `time.warp` / `comms.link`. Nothing falls back to the legacy source.
     fixture = setupStreamFixture({
       carriedChannels: [
         "vessel.control",
@@ -87,7 +63,6 @@ describe("ActionGroupComponent", () => {
 
   afterEach(() => {
     unmountAll();
-    buffered.disconnect();
     clearActionHandlers();
   });
 
@@ -232,8 +207,61 @@ describe("ActionGroupComponent", () => {
     const user = userEvent.setup();
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
     emitControl({ sas: false });
+    await screen.findByText("OFF");
     await user.click(screen.getByRole("button", { name: /toggle sas/i }));
-    expect(executed).toEqual(["f.sas"]);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setSas",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ enabled: true });
+    });
+  });
+
+  it("fires the stage command unconditionally, with no value invert", async () => {
+    const user = userEvent.setup();
+    renderGroup({ actionGroupId: "Stage" }, { w: 3, h: 3 });
+    act(() => {
+      fixture.emit("vessel.structure", { currentStage: 4 });
+    });
+    await screen.findByText("4");
+    await user.click(screen.getByRole("button", { name: /toggle stage/i }));
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.stage",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toBeNull();
+    });
+  });
+
+  it("fires the AGX setActionGroup command keyed by index, not name", async () => {
+    const user = userEvent.setup();
+    renderGroup({ actionGroupId: "AG3" }, { w: 3, h: 3 });
+    emitControl({
+      actionGroups: [{ index: 3, name: "AG3", state: true }],
+    });
+    await screen.findByText("ON");
+    await user.click(screen.getByRole("button", { name: /toggle ag3/i }));
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setActionGroup",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ group: 3, state: false });
+    });
+  });
+
+  it("does not dispatch a toggle while the current value is still unknown", async () => {
+    const user = userEvent.setup();
+    renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
+    // No emitControl: value is undefined, an ambiguous invert.
+    await user.click(screen.getByRole("button", { name: /toggle sas/i }));
+    expect(
+      fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setSas",
+      ),
+    ).toBeUndefined();
   });
 
   it("disables the pill for a group with no toggle key (Precision Control)", () => {

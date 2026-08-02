@@ -162,13 +162,20 @@ describe("NavballComponent", () => {
     expect(await screen.findByText("SAS: Prograde")).toBeInTheDocument();
   });
 
-  it("displays the control surface and fires Telemachus actions", async () => {
+  it("displays the control surface and dispatches vessel.control.setSasMode", async () => {
+    // SAS-mode dispatch (delayed-command-ux migration) rides useCommand
+    // directly, unconditionally: no more legacy-execute fallback to assert
+    // against, see fixture.transport.sentCommands instead.
     const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     emitReads(fixture, { comms: { controlState: 4 } });
     await user.click(await screen.findByRole("button", { name: /^PRO$/ }));
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("f.setSASMode[Prograde]");
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setSasMode",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ mode: 1 });
     });
   });
 
@@ -184,6 +191,8 @@ describe("NavballComponent", () => {
   });
 
   it("arms FBW on click and disarms on unmount", async () => {
+    // FBW arm/disarm (delayed-command-ux migration) rides useCommand
+    // directly against vessel.control.setFlyByWire, unconditionally.
     const user = userEvent.setup();
     const { fixture, unmount } = renderNavball(
       { controlMode: true },
@@ -193,12 +202,18 @@ describe("NavballComponent", () => {
     const armButton = await screen.findByRole("button", { name: /Arm FBW/ });
     await user.click(armButton);
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("v.setFbW[1]");
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setFlyByWire",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ enabled: true });
     });
-    onExecute.mockClear();
     unmount();
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("v.setFbW[0]");
+      const sent = [...fixture.transport.sentCommands]
+        .reverse()
+        .find((c) => c.command === "vessel.control.setFlyByWire");
+      expect(sent?.args).toEqual({ enabled: false });
     });
   });
 
@@ -234,11 +249,18 @@ describe("NavballComponent", () => {
         .find((el) => /High signal delay/i.test(el.textContent ?? ""));
     }
 
-    async function armFbw(user: ReturnType<typeof userEvent.setup>) {
+    async function armFbw(
+      user: ReturnType<typeof userEvent.setup>,
+      fixture: StreamFixture,
+    ) {
       const armButton = await screen.findByRole("button", { name: /Arm FBW/ });
       await user.click(armButton);
       await waitFor(() => {
-        expect(onExecute).toHaveBeenCalledWith("v.setFbW[1]");
+        expect(
+          fixture.transport.sentCommands.find(
+            (c) => c.command === "vessel.control.setFlyByWire",
+          ),
+        ).toBeDefined();
       });
     }
 
@@ -246,7 +268,7 @@ describe("NavballComponent", () => {
       const user = userEvent.setup();
       const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
       emitReads(fixture, { comms: { controlState: 4 }, delaySeconds: 2.5 });
-      await armFbw(user);
+      await armFbw(user, fixture);
 
       expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
       const delayStatus = findDelayStatus();
@@ -266,7 +288,7 @@ describe("NavballComponent", () => {
       const user = userEvent.setup();
       const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
       emitReads(fixture, { comms: { controlState: 4 }, delaySeconds: 0.2 });
-      await armFbw(user);
+      await armFbw(user, fixture);
 
       expect(screen.queryByText(/FBW.*DELAY/)).not.toBeInTheDocument();
       expect(findDelayStatus()).toBeUndefined();
@@ -279,7 +301,7 @@ describe("NavballComponent", () => {
         CONTROL_SIZE,
       );
       emitReads(fixture, { comms: { controlState: 4 }, delaySeconds: 3 });
-      await armFbw(user);
+      await armFbw(user, fixture);
       await waitFor(() => {
         expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
       });

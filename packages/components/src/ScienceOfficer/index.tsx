@@ -3,13 +3,16 @@ import {
   AugmentSlot,
   getWidgetShape,
   registerComponent,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
   Cluster,
   formatNumber,
+  InFlightList,
+  type InFlightListItem,
   Panel,
   ScienceExperimentRow,
   ScrollArea,
@@ -207,21 +210,42 @@ export function parseLab(raw: unknown): LabStatus[] | null {
   return out;
 }
 
+/**
+ * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
+ * safe), same mapping as ActionGroup/RoboticsConsole/TargetPicker's own: a
+ * deploy/transmit's visible effect is it reaching the craft, so this counts
+ * down to the reach ETA throughout.
+ */
+function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label || item.command,
+    etaSeconds:
+      item.predictedPhase === "in-transit"
+        ? item.reachEtaSeconds
+        : item.replyEtaSeconds,
+    phase: item.predictedPhase,
+  }));
+}
+
 function ScienceOfficerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ScienceOfficerConfig>>) {
   // The instrument list reads the canonical `science.instruments` Topic
-  // (old `sci.instruments`); parseInstruments accepts both wire shapes. The
-  // sci.deploy[...]/sci.transmit[...] spend commands still route through the
-  // legacy `execute()` (map-command.ts's science.experiment.deploy/transmit).
+  // (old `sci.instruments`); parseInstruments accepts both wire shapes.
+  // Deploy/transmit are commands dispatched to the craft (command-surface-
+  // delay-audit #35/#36), subject to signal delay, so they ride `useCommand`
+  // against the real `science.experiment.deploy`/`.transmit` commands
+  // instead of the legacy `useExecuteAction` string path.
   const instrumentsRaw = useTelemetry("science.instruments");
   // No pre-aggregated data field on the wire, derive the vessel-wide total
   // client-side from the same `science.experiments` Topic ScienceBench uses,
   // same aggregate semantics as the old Telemachus "Total science data (mits)".
   const experimentsRaw = useTelemetry("science.experiments");
   const instruments = parseInstruments(instrumentsRaw);
-  const execute = useExecuteAction("data");
+  const deployCmd = useCommand("science.experiment.deploy");
+  const transmitCmd = useCommand("science.experiment.transmit");
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
   // science.lab is a NEW capability (no legacy sci.instruments equivalent,
@@ -302,6 +326,13 @@ function ScienceOfficerComponent({
       }
     >
       {showLab && <LabSection labs={labs} />}
+      <InFlightList
+        items={toInFlightListItems([
+          ...deployCmd.inFlight,
+          ...transmitCmd.inFlight,
+        ])}
+        ariaLabel="Science commands: in flight"
+      />
       <Body $row={isLandscape}>
         {grouped.map(({ expId, items }) => (
           <Section key={expId}>
@@ -311,9 +342,17 @@ function ScienceOfficerComponent({
                 <Fragment key={inst.partId}>
                   <ScienceExperimentRow
                     instrument={inst}
-                    onDeploy={(partId) => void execute(`sci.deploy[${partId}]`)}
+                    onDeploy={(partId) =>
+                      void deployCmd.send(
+                        { partId },
+                        { label: `Deploy ${inst.partTitle}` },
+                      )
+                    }
                     onTransmit={(partId) =>
-                      void execute(`sci.transmit[${partId}]`)
+                      void transmitCmd.send(
+                        { partId },
+                        { label: `Transmit ${inst.partTitle}` },
+                      )
                     }
                   />
                   {/* Per-instrument section slot: passes this instrument

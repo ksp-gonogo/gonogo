@@ -6,11 +6,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RotorTachometerComponent } from "./index";
 
@@ -30,11 +26,8 @@ function render(ui: ReactElement) {
  * RotorTachometer runs genuinely off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
  * `parts.robotics` (filtered to `type === "rotor"`) is its whole identity
- * list, not a merge onto a separate legacy read. Command dispatch
- * (`robotics.rotor.*`) still routes through the legacy `DataSource`'s
- * `execute()`: no mod command handler exists for it yet, so a plain
- * `setupMockDataSource` registered under `"data"` captures those calls; it
- * carries no keys of its own and is never emitted to.
+ * list, and `robotics.rotor.*` command dispatch rides the same stream via
+ * `useCommand`, asserted against `fixture.transport.sentCommands`.
  */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
@@ -44,16 +37,9 @@ afterEach(() => {
 
 describe("RotorTachometer: genuinely runs off the stream", () => {
   it("builds the rotor list from parts.robotics and drives commands with its string partId", async () => {
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     const { container } = render(
@@ -105,11 +91,13 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
     await act(async () => {
       screen.getByRole("button", { name: /Raise RPM cap/i }).click();
     });
-    expect(onExecute).toHaveBeenCalledWith(
-      "robotics.rotor.setRpmLimit[101,310]",
-    );
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.rotor.setRpmLimit",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "101", value: 310 });
+    });
   });
 
   it("selects among coaxial same-named rotors by their distinct partId", async () => {

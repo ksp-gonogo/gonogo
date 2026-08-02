@@ -6,11 +6,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RoboticsConsoleComponent } from "./index";
 
@@ -29,12 +25,9 @@ function render(ui: ReactElement) {
 /**
  * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
- * `parts.robotics` is its whole identity list (partId-keyed selection),
- * not a merge onto a separate legacy read. Command dispatch
- * (`robotics.servo.*`) still routes through the legacy `DataSource`'s
- * `execute()`: no mod command handler exists for it yet, so a plain
- * `setupMockDataSource` registered under `"data"` captures those calls; it
- * carries no keys of its own and is never emitted to.
+ * `parts.robotics` is its whole identity list (partId-keyed selection), and
+ * `robotics.servo.*` command dispatch rides the same stream via
+ * `useCommand`, asserted against `fixture.transport.sentCommands`.
  */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
@@ -44,16 +37,9 @@ afterEach(() => {
 
 describe("RoboticsConsole: genuinely runs off the stream", () => {
   it("builds the hinge/piston list from parts.robotics and drives commands with its string partId", async () => {
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: ["parts.robotics", "robotics.available"],
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     const { container } = render(
@@ -101,9 +87,13 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
     await act(async () => {
       screen.getByRole("button", { name: /Increase target/i }).click();
     });
-    expect(onExecute).toHaveBeenCalledWith("robotics.servo.setTarget[11,65]");
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.servo.setTarget",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "11", value: 65 });
+    });
   });
 
   it("selects among symmetric same-named hinges by their distinct partId", async () => {

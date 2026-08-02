@@ -21,37 +21,37 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 /**
- * The command-table proof for Navball ("validate the vessel-control command
- * widgets' command side"), mirroring `ActionGroup/stream.test.tsx`'s pilot
- * pattern but covering the
- * three DISTINCT `map-command.ts` arg-shape bridges Navball's own control
- * surface exercises (the widget code is unchanged, this is test/validation
- * work proving the transparent command shim genuinely routes each one, not
- * a rewrite of the widget):
+ * The command-table proof for Navball's control surface, covering the
+ * DISTINCT `map-command.ts`-shaped arg bridges it exercises (the widget
+ * code proves each one dispatches with the right envelope, not a re-
+ * derivation of `map-command.test.ts`'s own coverage):
  *
- * 1. **toggle -> absolute**: the SAS ON/OFF button (`f.sas` ->
- *    `vessel.control.setSas`), same bridge `ActionGroup`'s pilot already
- *    covers, reproduced here because Navball's `ControlSurface` fires it
- *    through its own button rather than `ActionGroupComponent`'s.
- * 2. **positional -> named (enum)**: a SAS-mode button (`f.setSASMode
- *    [Prograde]` -> `vessel.control.setSasMode`, name -> ordinal bridge).
- * 3. **positional -> named (direct-actuation, no state to invert)**, the
- *    throttle ZERO button (`f.throttleZero` -> `vessel.control.setThrottle`).
+ * 1. **toggle -> absolute (delayed-command-ux migration)**: the SAS ON/OFF
+ *    button dispatches `vessel.control.setSas` directly via `useCommand`,
+ *    same bridge shape `ActionGroup`'s own migration uses, built off the
+ *    already-known live `sas` value instead of a `mapCommand` current-value
+ *    sample. Unconditional now: no carried-channels gate, no legacy
+ *    `DataSource` fallback (see `toggleSas` in index.tsx).
+ * 2. **positional -> named enum (delayed-command-ux migration)**: a SAS-mode
+ *    button dispatches `vessel.control.setSasMode` directly via
+ *    `useCommand`, the mode name resolved to its ordinal off `SAS_MODES`'
+ *    own array position (see `setSasMode` in index.tsx). Also unconditional.
+ * 3. **positional -> named, no invert (UNMIGRATED, K5, out of scope)**: the
+ *    throttle ZERO button. Continuous/analog controls (throttle, pitch/yaw/
+ *    roll axes, RCS translation, trim) stay on the legacy `useExecuteAction`
+ *    string path + the carried-gated `map-command.ts` shim: closing a
+ *    control loop across signal delay is a control-theory problem needing a
+ *    select-then-commit `CommandGroup` design, not a hook swap. Proven here
+ *    still falling back to the legacy `DataSource` when its command topic
+ *    isn't carried, exactly as before.
  *
- * Every mapped action Navball declares that ISN'T one of these three bridge
- * shapes (`f.rcs`/`f.setThrottle`/`f.throttleFull`: each the SAME bridge as
- * one of the three above, just a different key) is covered at the
- * `map-command.ts` unit level already; this file's job is proving the
- * WIDGET's real button click genuinely reaches `TelemetryClient.dispatch`
- * end-to-end, not re-deriving `map-command.test.ts`'s own coverage.
- *
- * `f.throttleUp`/`f.throttleDown`/`arm-fbw`/`disarm-fbw`
- * (`v.setFbW`)/`set-pitch`/`set-yaw`/`set-roll`/`translate-*`/`set-*-trim`
- * are all `KNOWN_COMMAND_GAPS`, deliberately NOT exercised here; they stay
- * command-legacy (see `map-command.ts`'s own gap list). `Twr` (the other
- * Navball/Twr command-validation candidate) declares `actions: []`: no
- * `useExecuteAction` call at all, so there is nothing to validate there;
- * it's command-legacy by having no command surface whatsoever.
+ * `f.throttleUp`/`f.throttleDown`/`set-pitch`/`set-yaw`/`set-roll`/
+ * `translate-*`/`set-*-trim` are the same unmigrated continuous-control
+ * shape as throttle ZERO, not separately exercised here. `arm-fbw`/
+ * `disarm-fbw` (`vessel.control.setFlyByWire`) DID migrate alongside SAS/
+ * SAS-mode (same discrete-command shape) but aren't separately proven in
+ * this file; `Twr` (the other Navball/Twr command-validation candidate)
+ * declares `actions: []`: no command surface at all to validate.
  *
  * Every test renders Navball in `controlMode: true` at a size that clears
  * `showControlSurface`'s gate (rows>=18, cols>=7) so the real DOM buttons
@@ -131,7 +131,11 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     );
   });
 
-  it("SAS toggle falls back to legacy execute() when the command topic isn't carried", async () => {
+  it("SAS toggle still dispatches vessel.control.setSas even when the command topic isn't in the carried allowlist", async () => {
+    // useCommand (delayed-command-ux migration) dispatches unconditionally
+    // via the client: no carried-channels gate, no legacy DataSource
+    // fallback. Proves the carried allowlist genuinely stopped mattering for
+    // this bridge.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
@@ -139,24 +143,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 
-    clearRegistry();
-    const executed: string[] = [];
-    const legacySource = new MockDataSource({
-      onExecute: (action) => {
-        executed.push(action);
-      },
-    });
-    const buffered = new BufferedDataSource({
-      source: legacySource,
-      store: new MemoryStore(),
-    });
-    registerDataSource(buffered);
-    await buffered.connect();
-
-    const { unmount } = renderControlNavball(
-      "nav-cmd-sas-legacy",
-      fixture.Provider,
-    );
+    renderControlNavball("nav-cmd-sas-uncarried", fixture.Provider);
 
     act(() => {
       fixture.emit("vessel.control", {
@@ -176,16 +163,11 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       button.click();
     });
 
-    await waitFor(() => expect(executed).toEqual(["f.sas"]));
-    expect(commandHandler).not.toHaveBeenCalled();
-
-    // Unmount BEFORE tearing the registry down: `clearRegistry()` notifies
-    // every live `useDataSourceSubscription`, so clearing while the widget
-    // is still mounted schedules a setState from outside React's act
-    // boundary. Dropping the tree first leaves nothing to notify.
-    unmount();
-    buffered.disconnect();
-    clearRegistry();
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
+        enabled: false,
+      }),
+    );
   });
 
   it("SAS-mode Prograde button dispatches vessel.control.setSasMode when promoted (bridge 3: positional -> named enum)", async () => {
@@ -212,7 +194,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     );
   });
 
-  it("SAS-mode Prograde button falls back to legacy execute() when the command topic isn't carried", async () => {
+  it("SAS-mode Prograde button still dispatches vessel.control.setSasMode even when the command topic isn't in the carried allowlist", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
@@ -220,36 +202,18 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     const commandHandler = vi.fn(() => ({ ok: true }));
     fixture.transport.setCommandHandler(commandHandler);
 
-    clearRegistry();
-    const executed: string[] = [];
-    const legacySource = new MockDataSource({
-      onExecute: (action) => {
-        executed.push(action);
-      },
-    });
-    const buffered = new BufferedDataSource({
-      source: legacySource,
-      store: new MemoryStore(),
-    });
-    registerDataSource(buffered);
-    await buffered.connect();
-
-    const { unmount } = renderControlNavball(
-      "nav-cmd-mode-legacy",
-      fixture.Provider,
-    );
+    renderControlNavball("nav-cmd-mode-uncarried", fixture.Provider);
 
     const button = await screen.findByRole("button", { name: "PRO" });
     act(() => {
       button.click();
     });
 
-    await waitFor(() => expect(executed).toEqual(["f.setSASMode[Prograde]"]));
-    expect(commandHandler).not.toHaveBeenCalled();
-
-    unmount();
-    buffered.disconnect();
-    clearRegistry();
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSasMode", {
+        mode: 1,
+      }),
+    );
   });
 
   it("throttle ZERO button dispatches vessel.control.setThrottle when promoted (bridge 3: positional -> named, no-invert)", async () => {

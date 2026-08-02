@@ -1,12 +1,13 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { parseRotors, RotorTachometerComponent } from "./index";
 
@@ -14,11 +15,10 @@ import { parseRotors, RotorTachometerComponent } from "./index";
  * RotorTachometer runs genuinely off the real `TelemetryProvider`/
  * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
  * `parts.robotics` is its whole identity list (filtered to `type === "rotor"`)
- * and `robotics.available` its DLC-presence flag, both canonical stream reads
- * (`useTelemetry`, no legacy fallback). Command dispatch (`robotics.rotor.*`)
- * still routes through the legacy `DataSource`'s `execute()`, no mod command
- * handler exists for it yet, so a plain `setupMockDataSource` registered
- * under `"data"` captures those calls; it carries no keys of its own.
+ * and `robotics.available` its DLC-presence flag (canonical stream reads,
+ * `useTelemetry`), and `robotics.rotor.*` command dispatch (delayed-command-
+ * ux robotics migration) rides the same stream via `useCommand`, asserted
+ * against `fixture.transport.sentCommands`.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -126,16 +126,9 @@ describe("RotorTachometerComponent", () => {
 
   it("renders live RPM and fires setRpmLimit when raising the cap", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     renderRotor(fixture);
@@ -149,25 +142,20 @@ describe("RotorTachometerComponent", () => {
     expect(await screen.findByText("120")).toBeInTheDocument(); // gauge value label
 
     await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
-    expect(onExecute).toHaveBeenCalledWith(
-      "robotics.rotor.setRpmLimit[101,210]",
-    );
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.rotor.setRpmLimit",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "101", value: 210 });
+    });
   });
 
   it("toggles the motor with the inverse of current state", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     renderRotor(fixture);
@@ -177,25 +165,20 @@ describe("RotorTachometerComponent", () => {
     });
 
     await user.click(await screen.findByRole("button", { name: /Motor on/i }));
-    expect(onExecute).toHaveBeenCalledWith(
-      "robotics.rotor.setMotor[101,false]",
-    );
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.rotor.setMotor",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "101", enabled: false });
+    });
   });
 
   it("selects a rotor from the list and targets it", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
-      connectSource: true,
     });
 
     renderRotor(fixture);
@@ -209,11 +192,13 @@ describe("RotorTachometerComponent", () => {
 
     await user.click(await screen.findByRole("button", { name: /Rotor B/i }));
     await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
-    expect(onExecute).toHaveBeenCalledWith(
-      "robotics.rotor.setRpmLimit[202,60]",
-    );
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.rotor.setRpmLimit",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "202", value: 60 });
+    });
   });
 });
 

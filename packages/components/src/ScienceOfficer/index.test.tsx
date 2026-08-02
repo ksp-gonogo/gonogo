@@ -1,12 +1,7 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   parseInstruments,
@@ -20,24 +15,13 @@ import {
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
 
-// Instrument deploy/transmit still dispatch through the legacy `execute()`
-// (map-command.ts), so a `setupMockDataSource` AUX registered under `"data"`
-// captures the command calls; it carries no read keys of its own.
-let legacyAux: MockDataSourceFixture | undefined;
-
+// Instrument deploy/transmit (delayed-command-ux migration) dispatch via
+// useCommand against the real stream, asserted through
+// `fixture.transport.sentCommands` below, no legacy DataSource needed.
 function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["science.instruments", "science.experiments"],
     pinnedUt: 10,
-  });
-}
-
-async function captureCommands(onExecute: (action: string) => void) {
-  legacyAux = await setupMockDataSource({
-    id: "data",
-    keys: [],
-    onExecute,
-    connectSource: true,
   });
 }
 
@@ -55,10 +39,6 @@ function renderOfficer(fixture: ReturnType<typeof newFixture>) {
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  if (legacyAux) {
-    teardownMockDataSource(legacyAux);
-    legacyAux = undefined;
-  }
   clearActionHandlers();
 });
 
@@ -157,10 +137,8 @@ describe("ScienceOfficerComponent", () => {
     );
   });
 
-  it("fires sci.deploy when Deploy is clicked on an undeployed instrument", async () => {
+  it("fires science.experiment.deploy when Deploy is clicked on an undeployed instrument", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await captureCommands(onExecute);
     const fixture = newFixture();
 
     renderOfficer(fixture);
@@ -179,13 +157,17 @@ describe("ScienceOfficerComponent", () => {
     });
 
     await user.click(await screen.findByText("Deploy"));
-    expect(onExecute).toHaveBeenCalledWith("sci.deploy[42]");
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "science.experiment.deploy",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "42" });
+    });
   });
 
   it("requires arm-then-confirm before transmitting an instrument's data", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await captureCommands(onExecute);
     const fixture = newFixture();
 
     renderOfficer(fixture);
@@ -204,10 +186,20 @@ describe("ScienceOfficerComponent", () => {
     });
 
     await user.click(await screen.findByText("Transmit"));
-    expect(onExecute).not.toHaveBeenCalled();
+    expect(
+      fixture.transport.sentCommands.find(
+        (c) => c.command === "science.experiment.transmit",
+      ),
+    ).toBeUndefined();
 
     await user.click(screen.getByText(/Confirm transmit/i));
-    expect(onExecute).toHaveBeenCalledWith("sci.transmit[99]");
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "science.experiment.transmit",
+      );
+      expect(sent).toBeDefined();
+      expect(sent?.args).toEqual({ partId: "99" });
+    });
   });
 
   it("hides controls for an inoperable instrument", async () => {
