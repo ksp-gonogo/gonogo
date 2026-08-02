@@ -19,6 +19,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   CurrencyUnit,
+  formatQuantity,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
@@ -841,10 +842,13 @@ function formatMissionTime(s: number | null): string {
   return `T+${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 }
 
+// Through the shared `length` ladder rather than a local km ceiling: this is
+// the in-flight altitude readout, and a Mun transfer sits at ~12 Mm, which the
+// hand-rolled version rendered as "12000.0 km".
 function formatAltitude(m: number | null): string {
   if (m === null || !Number.isFinite(m)) return NULL_DISPLAY;
-  if (Math.abs(m) >= 1000) return `${(m / 1000).toFixed(1)} km`;
-  return `${m.toFixed(0)} m`;
+  const { value, symbol } = formatQuantity(m, "m");
+  return `${value} ${symbol}`;
 }
 
 function ArmedButton({

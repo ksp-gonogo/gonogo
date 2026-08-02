@@ -12,7 +12,12 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { BellIcon, GhostButton, Panel } from "@ksp-gonogo/ui-kit";
+import {
+  BellIcon,
+  formatQuantity,
+  GhostButton,
+  Panel,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
@@ -912,9 +917,15 @@ function AltitudeProgress({
   );
 }
 
+// The shared `length` ladder, so a high-orbit contract target does not render
+// as five digits of km. Decimals stay tied to the magnitude the way the
+// hand-rolled version had them: this label sits inline in a contract row and
+// its width matters more than its last digit.
 function formatAltitudeShort(m: number): string {
-  if (m < 1000) return `${Math.round(m)}m`;
-  return `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`;
+  const { value, symbol } = formatQuantity(m, "m", {
+    decimals: Math.abs(m) < 10_000 ? 1 : 0,
+  });
+  return `${value}${symbol}`;
 }
 
 const AltitudeBarRow = styled.span`

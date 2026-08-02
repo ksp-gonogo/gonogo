@@ -57,7 +57,8 @@ describe("MapView: stream render golden (delay=0)", () => {
     // altSea lands off the derived vessel.state channel (measured basis),
     // waiting on the mapped altitude readout proves the stream leg rendered.
     await waitFor(() => {
-      if (!container.textContent?.includes("0.1 km")) {
+      // 80 m at the pad: see the note in stream.test.tsx on the rung.
+      if (!container.textContent?.includes("80.0 m")) {
         throw new Error("stream leg has not rendered altitude yet");
       }
     });

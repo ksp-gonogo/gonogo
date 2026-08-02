@@ -6,6 +6,7 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  formatDistance,
   getAugmentsForSlot,
   getBody,
   getImagingWindow,
@@ -1170,7 +1171,7 @@ function MapViewComponent({
           {altSea !== undefined && rows >= 5 && (
             <CompactRow>
               <CompactLabel>Alt</CompactLabel>
-              <CompactValue>{`${(altSea / 1000).toFixed(1)} km`}</CompactValue>
+              <CompactValue>{formatDistance(altSea)}</CompactValue>
             </CompactRow>
           )}
         </CompactReadout>

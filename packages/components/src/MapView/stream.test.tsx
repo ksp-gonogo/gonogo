@@ -90,7 +90,10 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
     await waitFor(() => {
       expect(container.textContent).toContain("-0.10°");
       expect(container.textContent).toContain("-74.56°");
-      expect(container.textContent).toContain("0.1 km");
+      // The launchpad sits at 80 m. The inline formatter this replaced
+      // divided by 1000 unconditionally, with no metre rung, so it rendered
+      // that as "0.1 km"; the shared ladder picks the rung.
+      expect(container.textContent).toContain("80.0 m");
     });
 
     // v.body stays gapped/undefined (no legacy source here), the mapped
