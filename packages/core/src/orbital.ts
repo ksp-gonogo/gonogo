@@ -9,7 +9,11 @@
  * Telemachus output). Radians are only used internally.
  */
 
-import { formatQuantity, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import {
+  formatDuration as formatKspDuration,
+  formatQuantity,
+  NULL_DISPLAY,
+} from "@ksp-gonogo/ui-kit";
 import type { BodyDefinition } from "./bodies";
 import { degToRad } from "./utils/math";
 
@@ -194,18 +198,22 @@ export function latLonToMap(
 // ---------------------------------------------------------------------------
 
 /**
- * Format a duration in seconds to a compact string ("2h 14m 08s").
- * Returns NULL_DISPLAY for non-finite or negative values.
+ * Format a duration in seconds to a compact string (`2h 14m`, `4d 4h`).
+ * Returns NULL_DISPLAY for a negative value; ui-kit's formatter has no such
+ * rule, and the widgets reading this one show elapsed-or-remaining figures
+ * where a negative is a not-yet-populated feed rather than a real reading.
+ *
+ * Re-exported rather than reimplemented. There used to be a second
+ * implementation here that rendered a three-tier zero-padded clock, and the
+ * two differed only above one hour: it kept seconds (`2h 14m 08s`) and, more
+ * to the point, **had no day tier**, so a three-day orbital period rendered as
+ * `72h 0m 00s`. Nothing reads seconds two hours out from a burn, and every
+ * consumer here (time to apoapsis, orbital period, burn countdowns) benefits
+ * from the day tier, so the divergence was a defect rather than a preference.
  */
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return NULL_DISPLAY;
-  const s = Math.floor(seconds);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (h > 0) return `${h}h ${m}m ${String(sec).padStart(2, "0")}s`;
-  if (m > 0) return `${m}m ${String(sec).padStart(2, "0")}s`;
-  return `${sec}s`;
+  return formatKspDuration(seconds);
 }
 
 /**

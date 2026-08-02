@@ -157,15 +157,25 @@ describe("formatDuration", () => {
   });
 
   it("formats minutes and seconds", () => {
-    expect(formatDuration(125)).toBe("2m 05s");
+    expect(formatDuration(125)).toBe("2m 5s");
   });
 
-  it("formats hours, minutes, and seconds", () => {
-    expect(formatDuration(3 * 3600 + 14 * 60 + 8)).toBe("3h 14m 08s");
+  it("shows two tiers, not three, above an hour", () => {
+    // The implementation this delegates to now used to render
+    // "3h 14m 08s". Nothing reads seconds three hours out from a burn, and
+    // dropping the third tier is what buys the day tier below.
+    expect(formatDuration(3 * 3600 + 14 * 60 + 8)).toBe("3h 14m");
   });
 
-  it("pads single-digit seconds", () => {
-    expect(formatDuration(61)).toBe("1m 01s");
+  it("climbs to days, which the old three-tier clock never did", () => {
+    // This is the reason for the change: a three-day orbital period used to
+    // render as "72h 0m 00s", because the clock topped out at hours.
+    expect(formatDuration(3 * 86_400)).toBe("12d");
+    expect(formatDuration(28 * 3600)).toBe("4d 4h");
+  });
+
+  it("does not zero-pad the minor tier", () => {
+    expect(formatDuration(61)).toBe("1m 1s");
   });
 
   it("returns the null placeholder for negative values", () => {
