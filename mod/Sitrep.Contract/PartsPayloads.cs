@@ -225,11 +225,20 @@ public class ServoEntry
     public bool? CounterClockwise { get; set; }
 
     /// <summary>
-    /// Rotor torque ceiling in kN (rotor entries only, <c>null</c> for
+    /// Rotor torque ceiling in kN·m (rotor entries only, <c>null</c> for
     /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c>: the
     /// scale <c>ServoMotorLimit</c> (a percentage) is a fraction of.
+    ///
+    /// <para>The unit is INFERRED rather than read off a label:
+    /// <c>maxTorque</c> is a bare <c>[KSPField]</c> with no <c>guiUnits</c>.
+    /// It flows through <c>totalTorque</c> into <c>SetJointDrive</c>, which
+    /// assigns it to <c>maximumForce</c> on an angular drive, and
+    /// <c>maximumForce</c> on an ANGULAR drive is a moment. The same product
+    /// does reach the editor as <c>motorOutputInformation</c>, so it is not
+    /// an invisible value, but its displayed unit string is a localization
+    /// token that is not resolvable outside a full KSP install.</para>
     /// </summary>
-    [SitrepUnit(Units.Kilonewtons)]
+    [SitrepUnit(Units.KilonewtonMetres)]
     public double? MaxTorque { get; set; }
 }
 

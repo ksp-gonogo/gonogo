@@ -95,7 +95,16 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# The syncthing mirror is the normal local path. A cloud session has no
+# syncthing, but the CI image carries the same Managed directory, so fall back
+# to it rather than reporting "no KSP assemblies" and skipping a decompile that
+# was actually possible. KSP_MANAGED_DIR overrides both.
 DLL="$ROOT/local_docs/syncthing/kspdata/KSP_Data/Managed/Assembly-CSharp.dll"
+if [ -n "${KSP_MANAGED_DIR:-}" ] && [ -f "$KSP_MANAGED_DIR/Assembly-CSharp.dll" ]; then
+  DLL="$KSP_MANAGED_DIR/Assembly-CSharp.dll"
+elif [ ! -f "$DLL" ] && [ -f "/workspace/ksp-managed/KSP_Data/Managed/Assembly-CSharp.dll" ]; then
+  DLL="/workspace/ksp-managed/KSP_Data/Managed/Assembly-CSharp.dll"
+fi
 ILSPYCMD="$HOME/.dotnet/tools/ilspycmd"
 DECOMPILE_TIMEOUT_S=60
 BUILD_TIMEOUT_S=300

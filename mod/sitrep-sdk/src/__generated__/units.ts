@@ -26,6 +26,7 @@ export type KnownSitrepUnit =
   | "h"
   | "id"
   | "kN"
+  | "kN·m"
   | "kPa"
   | "kW"
   | "kg/m³"
@@ -824,7 +825,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     currentAngle: "°",
     currentExtension: "m",
     currentRPM: "rpm",
-    maxTorque: "kN",
+    maxTorque: "kN·m",
     motorState: "text",
     normalizedOutput: "ratio",
     partId: "id",
@@ -1337,7 +1338,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     currentAngle: "°",
     currentExtension: "m",
     currentRPM: "rpm",
-    maxTorque: "kN",
+    maxTorque: "kN·m",
     motorState: "text",
     normalizedOutput: "ratio",
     partId: "id",

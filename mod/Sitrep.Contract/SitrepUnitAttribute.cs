@@ -102,6 +102,21 @@ namespace Sitrep.Contract
         /// <summary>Kilonewtons, KSP's own thrust unit (<c>DeltaVStageInfo.thrustVac</c>).</summary>
         public const string Kilonewtons = "kN";
 
+        /// <summary>
+        /// Kilonewton-metres, a TORQUE. Distinct from
+        /// <see cref="Kilonewtons"/> and the distinction is load-bearing: a
+        /// force and a moment are different dimensions, and a formatter that
+        /// climbs the force ladder for a torque will happily print "1.2 MN"
+        /// for a rotor.
+        ///
+        /// <para>Exists for <c>ServoEntry.MaxTorque</c>, which was annotated
+        /// kN on the strength of its own doc comment saying so. A decompile of
+        /// <c>ModuleRoboticServoRotor</c> shows the value feeds a Unity
+        /// angular drive's <c>maximumForce</c>, which on an angular drive is a
+        /// moment, so the comment was wrong and the annotation followed it.</para>
+        /// </summary>
+        public const string KilonewtonMetres = "kN·m";
+
         // --- Pressure ---
         public const string Kilopascals = "kPa";
 

@@ -142,7 +142,7 @@ describe("RoboticsConsoleComponent", () => {
     teardownMockDataSource(legacyAux);
   });
 
-  it("uses % units for pistons", async () => {
+  it("labels a piston in metres, not percent", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -154,14 +154,23 @@ describe("RoboticsConsoleComponent", () => {
         servo({
           partId: "12",
           type: "piston",
-          currentExtension: 40,
-          targetExtension: 60,
+          currentExtension: 0.4,
+          targetExtension: 0.6,
         }),
       ]);
     });
     expect(await screen.findByText(/MOVING/i)).toBeInTheDocument();
-    // Stepper value shows the piston target with a % unit.
-    expect(screen.getByText("60%")).toBeInTheDocument();
+    // This test used to assert "60%", which pinned a real bug: the contract
+    // declares CurrentExtension/TargetExtension in METRES, and a decompile of
+    // ModuleRoboticServoPiston confirms the value is a Vector3.Dot along the
+    // servo axis. The old fixture numbers (40 and 60) were percentages, so the
+    // test agreed with the widget and both were wrong together.
+    // The number and its unit are separate text nodes in one element, so match
+    // on the combined textContent and take the innermost hit.
+    const withUnit = screen
+      .getAllByText((_content, el) => el?.textContent === "0.60m")
+      .at(-1);
+    expect(withUnit).toBeDefined();
   });
 
   it("ignores rotor entries in the same parts.robotics array", async () => {
@@ -234,14 +243,17 @@ describe("RoboticsConsoleComponent", () => {
           partId: "22",
           partName: "Piston B",
           type: "piston",
-          targetExtension: 60,
+          targetExtension: 0.6,
         }),
       ]);
     });
 
     await user.click(await screen.findByRole("button", { name: /Piston B/i }));
     await user.click(screen.getByRole("button", { name: /Increase target/i }));
-    expect(onExecute).toHaveBeenCalledWith("robotics.servo.setTarget[22,65]");
+    // Metre scale, and a metre-scale step. This asserted 65 from a target of
+    // 60, which is a piston 60 METRES long being nudged 5 metres: the percent
+    // reading the widget's label used to imply.
+    expect(onExecute).toHaveBeenCalledWith("robotics.servo.setTarget[22,0.65]");
 
     teardownMockDataSource(legacyAux);
   });

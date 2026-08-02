@@ -31,6 +31,7 @@ export type KnownQuantityKind =
   | "acceleration"
   | "mass"
   | "force"
+  | "torque"
   | "pressure"
   | "temperature"
   | "time"
@@ -243,6 +244,7 @@ const DECIMALS: Record<string, number> = {
   acceleration: 2,
   mass: 2,
   force: 1,
+  torque: 1,
   pressure: 2,
   temperature: 0,
   time: 0,
@@ -314,6 +316,7 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   t: "mass",
   N: "force",
   kN: "force",
+  kN·m: "torque",
   Pa: "pressure",
   kPa: "pressure",
   K: "temperature",

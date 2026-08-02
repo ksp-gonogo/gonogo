@@ -29,8 +29,43 @@ import styled from "styled-components";
 
 type RoboticsConsoleConfig = Record<string, never>;
 
-const TARGET_STEP = 5;
-const AT_TARGET_EPSILON = 0.5;
+/**
+ * Target nudge per button press, PER TYPE, for the same reason the tolerance
+ * below is per type: 5 is five degrees on a hinge and five METRES on a piston,
+ * which is further than most pistons travel in total. 5cm gives a piston a
+ * comparable number of presses across its range.
+ */
+const TARGET_STEP: Record<ServoType, number> = {
+  hinge: 5,
+  piston: 0.05,
+};
+
+/**
+ * Position formatting, per type. A hinge reads in whole degrees; a piston
+ * reads in metres and needs decimals, because Math.round on a 0.6m extension
+ * prints "1m" and on a 0.4m one prints "0m".
+ */
+const formatPos = (type: ServoType, v: number): string =>
+  type === "piston" ? v.toFixed(2) : String(Math.round(v));
+
+/**
+ * At-target tolerance, PER SERVO TYPE, because the two types are measured in
+ * different units and one shared number cannot be right for both.
+ *
+ * A hinge is in degrees, where half a degree is a sensible dead band. A piston
+ * is in METRES, and the shared 0.5 that used to cover both meant a piston
+ * sitting half a metre from its target reported "AT TARGET". That was invisible
+ * while the widget mislabelled extension as a percentage, since 0.5% is a fine
+ * tolerance; correcting the unit is what exposed it.
+ *
+ * 1cm for the piston is a judgement call rather than a measured figure: KSP's
+ * piston traverse velocities run 0.05 to 5 m/s, so a centimetre is roughly a
+ * fifth of a second of travel at the slowest setting.
+ */
+const AT_TARGET_EPSILON: Record<ServoType, number> = {
+  hinge: 0.5,
+  piston: 0.01,
+};
 
 export type ServoType = "hinge" | "piston";
 
@@ -50,7 +85,12 @@ function num(v: unknown, fallback = 0): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
 
-const unitFor = (type: ServoType) => (type === "piston" ? "%" : "°");
+// A piston's extension is a LENGTH, not a percentage. The contract declares
+// ServoEntry.CurrentExtension/TargetExtension as metres, and a decompile of
+// ModuleRoboticServoPiston confirms it: the value is a Vector3.Dot of two
+// world positions along the servo's main axis. This label said "%" and was
+// wrong on screen at every piston readout in the widget.
+const unitFor = (type: ServoType) => (type === "piston" ? "m" : "°");
 
 /**
  * Parses the `parts.robotics` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
@@ -62,7 +102,8 @@ const unitFor = (type: ServoType) => (type === "piston" ? "%" : "°");
  * dropped: they can't be selected or targeted safely. A hinge's position
  * comes off `currentAngle`/`targetAngle`; a piston's off `currentExtension`/
  * `targetExtension`. `atTarget` is derived (no such field on the wire):
- * current and target within half a unit of each other.
+ * current and target within the type's tolerance, which differs because the two
+ * types are measured in different units. See AT_TARGET_EPSILON.
  */
 export function parseServos(raw: unknown): ServoInfo[] {
   if (!Array.isArray(raw)) return [];
@@ -83,7 +124,7 @@ export function parseServos(raw: unknown): ServoInfo[] {
       type,
       current,
       target,
-      atTarget: Math.abs(current - target) < AT_TARGET_EPSILON,
+      atTarget: Math.abs(current - target) < AT_TARGET_EPSILON[type],
       motorEngaged: e.servoMotorIsEngaged === true,
       locked: e.servoIsLocked === true,
       torqueLimit: num(e.servoMotorLimit),
@@ -133,8 +174,10 @@ function RoboticsConsoleComponent({
   const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
 
-  const setTarget = (id: string, value: number) =>
-    void execute(`robotics.servo.setTarget[${id},${Math.round(value)}]`);
+  // The dispatched value is type-formatted too: sending Math.round of a
+  // metre extension would command the piston to a whole metre.
+  const setTarget = (id: string, type: ServoType, value: number) =>
+    void execute(`robotics.servo.setTarget[${id},${formatPos(type, value)}]`);
   const setMotor = (id: string, engaged: boolean) =>
     void execute(`robotics.servo.setMotor[${id},${engaged}]`);
   const setLock = (id: string, locked: boolean) =>
@@ -144,15 +187,15 @@ function RoboticsConsoleComponent({
     targetUp: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected) return undefined;
-      const next = selected.target + TARGET_STEP;
-      setTarget(selected.partId, next);
+      const next = selected.target + TARGET_STEP[selected.type];
+      setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
     targetDown: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected) return undefined;
-      const next = selected.target - TARGET_STEP;
-      setTarget(selected.partId, next);
+      const next = selected.target - TARGET_STEP[selected.type];
+      setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
     toggleMotor: (p) => {
@@ -200,12 +243,12 @@ function RoboticsConsoleComponent({
       <Body>
         <Cluster justify="start" align="baseline" wrap>
           <Current>
-            {Math.round(selected.current)}
+            {formatPos(selected.type, selected.current)}
             <Unit>{unit}</Unit>
           </Current>
           <Arrow aria-hidden="true">→</Arrow>
           <Target>
-            {Math.round(selected.target)}
+            {formatPos(selected.type, selected.target)}
             <Unit>{unit}</Unit>
           </Target>
           {showToggles && (
@@ -223,20 +266,28 @@ function RoboticsConsoleComponent({
                 type="button"
                 aria-label="Decrease target"
                 onClick={() =>
-                  setTarget(selected.partId, selected.target - TARGET_STEP)
+                  setTarget(
+                    selected.partId,
+                    selected.type,
+                    selected.target - TARGET_STEP[selected.type],
+                  )
                 }
               >
                 −
               </StepBtn>
               <StepValue>
-                {Math.round(selected.target)}
+                {formatPos(selected.type, selected.target)}
                 {unit}
               </StepValue>
               <StepBtn
                 type="button"
                 aria-label="Increase target"
                 onClick={() =>
-                  setTarget(selected.partId, selected.target + TARGET_STEP)
+                  setTarget(
+                    selected.partId,
+                    selected.type,
+                    selected.target + TARGET_STEP[selected.type],
+                  )
                 }
               >
                 +
@@ -280,8 +331,8 @@ function RoboticsConsoleComponent({
               >
                 <ServoName>{s.name}</ServoName>
                 <ServoMeta>
-                  {s.type} · {Math.round(s.current)}
-                  {unitFor(s.type)}/{Math.round(s.target)}
+                  {s.type} · {formatPos(s.type, s.current)}
+                  {unitFor(s.type)}/{formatPos(s.type, s.target)}
                   {unitFor(s.type)}
                   {s.locked ? " · locked" : s.atTarget ? " · ✓" : ""}
                 </ServoMeta>

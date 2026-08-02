@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "servos",
-    "notes": "Hinge moving, piston at target. A rotor entry rides the same parts.robotics array to prove RoboticsConsole ignores it (Rotor Tachometer's domain)."
+    "notes": "Hinge moving, piston at target. A rotor entry rides the same parts.robotics array to prove RoboticsConsole ignores it (Rotor Tachometer's domain). The piston extension values are ILLUSTRATIVE metre-scale numbers, not recorded from KSP: they were 80 apiece, which encoded the same percent misconception the widget label did. Breaking Ground is not installed in CI, so no recorded robotics values exist anywhere in this repo. Do not cite these as measured."
   },
   "robotics.available": true,
   "parts.robotics": [
@@ -24,8 +24,8 @@
       "servoIsMotorized": true,
       "servoMotorIsEngaged": true,
       "servoMotorLimit": 70,
-      "currentExtension": 80,
-      "targetExtension": 80
+      "currentExtension": 0.85,
+      "targetExtension": 0.85
     },
     {
       "partName": "EM-32S Standard Rotor",
@@ -64,8 +64,8 @@
             "servoIsMotorized": true,
             "servoMotorIsEngaged": true,
             "servoMotorLimit": 70,
-            "currentExtension": 80,
-            "targetExtension": 80
+            "currentExtension": 0.85,
+            "targetExtension": 0.85
           },
           {
             "partName": "EM-32S Standard Rotor",
