@@ -6,7 +6,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, Panel, Section } from "@ksp-gonogo/ui-kit";
+import { Badge, formatCountdown, Panel, Section } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 // Side-effect import: registers the built-in `life-support.sections`
 // augment filler (the Greenhouse section) and the SlotRegistry declaration
@@ -155,15 +155,10 @@ function timeToEmptySec(c: Consumable): number | null {
   return c.amount / -c.rate;
 }
 
+/** "steady" while a consumable is flat or refilling; otherwise a countdown. */
 function formatTimeToEmpty(sec: number | null): string {
   if (sec == null || !Number.isFinite(sec)) return "steady";
-  const s = Math.max(0, sec);
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  return formatCountdown(sec);
 }
 
 /** Compact amount formatter: whole numbers drop decimals, small values keep 2. */

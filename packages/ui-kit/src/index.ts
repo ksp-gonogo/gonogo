@@ -166,6 +166,7 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
+export { KSP_DAY_SECONDS, KSP_YEAR_DAYS, KSP_YEAR_SECONDS } from "./kspTime";
 export {
   ModalChromeContext,
   type ModalChromeValue,

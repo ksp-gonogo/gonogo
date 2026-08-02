@@ -1,9 +1,8 @@
-/** KSP-time unit sizes, in seconds. A KSP day is 6h; a KSP year is 426 days. */
-
+import { KSP_DAY_SECONDS, KSP_YEAR_SECONDS } from "./kspTime";
 import { NULL_DISPLAY } from "./NullValue";
 
-const DAY = 21_600;
-const YEAR = 426 * DAY;
+const DAY = KSP_DAY_SECONDS;
+const YEAR = KSP_YEAR_SECONDS;
 
 /**
  * Formats a KSP universal time (UT, seconds) as a compact Kerbin calendar

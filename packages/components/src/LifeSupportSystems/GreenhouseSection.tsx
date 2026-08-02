@@ -1,6 +1,6 @@
 import { registerAugment } from "@ksp-gonogo/core";
 import { Badge, type BadgeTone } from "@ksp-gonogo/ui";
-import { Section } from "@ksp-gonogo/ui-kit";
+import { KSP_DAY_SECONDS, Section } from "@ksp-gonogo/ui-kit";
 // biome-ignore lint/style/noRestrictedImports: this augment renders inside LifeSupportSystems' own Panel, which is itself still styled-components throughout (not yet migrated to ui-kit), matching the host's existing pattern rather than mixing two styling systems in one widget.
 import styled from "styled-components";
 
@@ -70,10 +70,12 @@ function fmtWm2(n: number): string {
 }
 
 /** Converts the per-second production rate to a per-day figure, more
- *  legible than a tiny per-second fraction for a continuous crop process. */
+ *  legible than a tiny per-second fraction for a continuous crop process.
+ *  The day is Kerbin's 6h one, so this agrees with the time-to-empty
+ *  countdown in the same widget. */
 function fmtRatePerDay(perSec: number): string {
   if (perSec <= 0) return "0/day";
-  const perDay = perSec * 86400;
+  const perDay = perSec * KSP_DAY_SECONDS;
   return `${perDay >= 10 ? perDay.toFixed(0) : perDay.toFixed(2)}/day`;
 }
 

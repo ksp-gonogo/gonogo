@@ -11,6 +11,7 @@ import {
   BigReadout,
   Cluster,
   EmptyState,
+  formatCountdown,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -132,16 +133,6 @@ function useLifeSupportTimeToEmptySec(): number | null {
   return ttes.length ? Math.min(...ttes) : null;
 }
 
-function formatDuration(sec: number): string {
-  const s = Math.max(0, sec);
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
-
 /** Tone for a 0..1-toward-fatal accumulator: calm low, alarming high. */
 function fatalTone(value: number): MeterTone {
   if (value >= 0.8) return "nogo";
@@ -253,7 +244,7 @@ function SurvivalMeters({
   );
   if (stage1Sec !== null && stage1Sec > 60) {
     clock = {
-      label: `~${formatDuration(stage1Sec)} to LS depletion`,
+      label: `~${formatCountdown(stage1Sec)} to LS depletion`,
       tone: "warn",
     };
   } else if (stage1Sec !== null) {

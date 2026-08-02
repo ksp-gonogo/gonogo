@@ -15,6 +15,8 @@ import {
   Button,
   FieldLabel,
   FieldRow,
+  KSP_DAY_SECONDS,
+  KSP_YEAR_DAYS,
   NULL_DISPLAY,
   Panel,
   Select,
@@ -91,13 +93,17 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 const fmtSpeed = (ms: number): string =>
   ms >= 1000 ? `${(ms / 1000).toFixed(1)} km/s` : `${Math.round(ms)} m/s`;
 
-const fmtDays = (sec: number): string => `${Math.round(sec / 86400)} d`;
+// Days and years here are Kerbin's (6h, 426d), not Earth's: a transfer to
+// Duna is quoted in the same calendar the game's own map view and the
+// dashboard's mission clock use.
+const fmtDays = (sec: number): string =>
+  `${Math.round(sec / KSP_DAY_SECONDS)} d`;
 
 const fmtCountdown = (sec: number): string => {
-  const d = sec / 86400;
+  const d = sec / KSP_DAY_SECONDS;
   if (d < 1) return "now";
   if (d < 1000) return `in ${Math.round(d)} d`;
-  return `in ${(d / 365).toFixed(1)} y`;
+  return `in ${(d / KSP_YEAR_DAYS).toFixed(1)} y`;
 };
 
 function TransferWindowComponent({
@@ -487,7 +493,7 @@ function Porkchop({
   const capped = scaleMax < max;
   const cellW = PLOT_W / cols;
   const cellH = PLOT_H / rows;
-  const days = (sec: number) => Math.round(sec / 86400);
+  const days = (sec: number) => Math.round(sec / KSP_DAY_SECONDS);
   const dayOffset = (ut: number) => days(ut - nowUt);
   const kms = (ms: number) => (ms / 1000).toFixed(1);
 
