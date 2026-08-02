@@ -26,7 +26,7 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
       pinnedUt: 10,
     });
 
-    render(
+    const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "therm-stream" }}>
           <ThermalStatusComponent id="therm-stream" w={8} h={7} />
@@ -59,9 +59,11 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("14.4°C")).toBeTruthy());
-    // formatTemp drops to zero decimals once |value| >= 1000.
-    expect(screen.getByText("/ 2000°C max")).toBeTruthy();
+    // A temperature is a <Quantity>, so the number and symbol are separate
+    // elements; getByText sees only an element's direct text nodes.
+    await waitFor(() => expect(container.textContent).toContain("14.4°C"));
+    // Zero decimals once |value| >= 1000, which the widget still chooses.
+    expect(container.textContent).toContain("2000°C");
     expect(screen.getByText("OX-STAT Photovoltaic Panels")).toBeTruthy();
     // No engine data was emitted this tick, the engine row still shows its
     // "no data" placeholder rather than a fabricated value.

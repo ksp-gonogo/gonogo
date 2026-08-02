@@ -7,9 +7,9 @@ import {
 } from "@ksp-gonogo/core";
 import {
   EmptyState,
-  formatQuantity,
   NULL_DISPLAY,
   Panel,
+  Quantity,
   type ReadoutTone,
   ScrollArea,
   Section,
@@ -108,24 +108,25 @@ const BAND_RANK: Record<Band, number> = {
 // reads). The conversion is a presentation choice made here, via the shared
 // unit layer, rather than something the wire pre-applies: see the note on
 // `Units.Kelvin` in the contract.
-function formatTemp(kelvin: number | undefined): string {
+function Temp({ kelvin }: { kelvin: number | undefined }) {
   if (kelvin === undefined || !Number.isFinite(kelvin)) return NULL_DISPLAY;
-  const { value, symbol } = formatQuantity(kelvin, "K", {
-    as: "°C",
-    // Drop to whole degrees once the number is wide, so the readout's width
-    // stays stable as a part heats through the thousands.
-    decimals: Math.abs(kelvin - 273.15) >= 1000 ? 0 : 1,
-  });
-  return `${value}${symbol}`;
+  return (
+    <Quantity
+      value={kelvin}
+      unit="K"
+      as="°C"
+      // Drop to whole degrees once the number is wide, so the readout's width
+      // stays stable as a part heats through the thousands.
+      decimals={Math.abs(kelvin - 273.15) >= 1000 ? 0 : 1}
+    />
+  );
 }
 
 // Heat-shield flux arrives in kW and climbs to MW at reentry peak. Both rungs
-// live in the shared `energyRate` ladder now, so this is only the null guard
-// and the spacing the readout wants.
-function formatKw(kw: number | undefined): string {
+// live in the shared `energyRate` ladder.
+function Flux({ kw }: { kw: number | undefined }) {
   if (kw === undefined || !Number.isFinite(kw)) return NULL_DISPLAY;
-  const { value, symbol } = formatQuantity(kw, "kW");
-  return `${value} ${symbol}`;
+  return <Quantity value={kw} unit="kW" />;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -265,9 +266,9 @@ function ThermalStatusComponent({
                       />
                     </TempMeter>
                     <TempReadout>
-                      <TempValue>{formatTemp(hottestTempK)}</TempValue>
+                      <TempValue>{<Temp kelvin={hottestTempK} />}</TempValue>
                       {hottestMaxK !== undefined && (
-                        <MaxTag>/ {formatTemp(hottestMaxK)} max</MaxTag>
+                        <MaxTag>/ {<Temp kelvin={hottestMaxK} />} max</MaxTag>
                       )}
                     </TempReadout>
                   </RowBody>
@@ -292,9 +293,9 @@ function ThermalStatusComponent({
                       />
                     </TempMeter>
                     <TempReadout>
-                      <TempValue>{formatTemp(engineTempK)}</TempValue>
+                      <TempValue>{<Temp kelvin={engineTempK} />}</TempValue>
                       {engineMaxK !== undefined && (
-                        <MaxTag>/ {formatTemp(engineMaxK)} max</MaxTag>
+                        <MaxTag>/ {<Temp kelvin={engineMaxK} />} max</MaxTag>
                       )}
                     </TempReadout>
                   </RowBody>
@@ -306,8 +307,8 @@ function ThermalStatusComponent({
                   <RowLabel>Heat shield</RowLabel>
                   <RowBody>
                     <TempReadout>
-                      <TempValue>{formatTemp(shieldTempK)}</TempValue>
-                      <MaxTag>· flux {formatKw(shieldFluxKw)}</MaxTag>
+                      <TempValue>{<Temp kelvin={shieldTempK} />}</TempValue>
+                      <MaxTag>· flux {<Flux kw={shieldFluxKw} />}</MaxTag>
                     </TempReadout>
                   </RowBody>
                 </ReadoutGroup>

@@ -66,14 +66,22 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     expect(screen.getByText("Heat Shield (2.5m)")).toBeInTheDocument();
     // "warm" appears twice: the compact pill and the hottest-part row's tag.
     expect(screen.getAllByText("warm").length).toBe(2);
+    // Asserted on the container rather than with getByText: a temperature is
+    // a <Quantity> now, so the number and its symbol are separate elements and
+    // getByText, which concatenates only an element's DIRECT text nodes, sees
+    // one or the other but never the pair.
     // skinMaxTemp (2400 K) -> 2127°C.
-    expect(screen.getByText("/ 2127°C max")).toBeInTheDocument();
-    expect(screen.getByText("1280°C")).toBeInTheDocument();
+    expect(container.textContent).toContain("2127°C");
+    expect(container.textContent).toContain("1280°C");
     // One decimal, not two: the shared `energyRate` ladder sets precision
     // per kind rather than per rung, matching every other ladder. The rung
     // itself is what matters here, and it is still MW.
-    expect(screen.getByText("· flux 3.3 MW")).toBeInTheDocument();
-    expect(screen.getByText("76.9°C")).toBeInTheDocument();
+    expect(container.textContent).toContain("3.3MW");
+    expect(container.textContent).toContain("76.9°C");
+    // The unit is announced as a word, not as letters, which is what routing
+    // through the unit layer bought.
+    expect(container.textContent).toContain("degrees celsius");
+    expect(container.textContent).toContain("megawatts");
     // Cool engine, no alert banner.
     expect(screen.queryByRole("alert")).toBeNull();
   });

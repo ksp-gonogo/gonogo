@@ -211,6 +211,7 @@ export {
   usePanelStreamStatus,
 } from "./Panel";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
+export { Quantity, type QuantityProps } from "./Quantity";
 export {
   BigReadout,
   Readout,
@@ -269,6 +270,7 @@ export {
   type Rung,
   registerUnit,
   STANDARD_GRAVITY,
+  speakQuantity,
   type UnitDefinition,
   wordForSymbol,
 } from "./units";

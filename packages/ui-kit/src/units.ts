@@ -476,6 +476,30 @@ export function wordForSymbol(symbol: string): string | undefined {
 }
 
 /**
+ * A quantity as a screen reader should hear it: the value followed by the
+ * unit's WORD rather than its symbol.
+ *
+ * For the handful of places that genuinely need a string rather than a node,
+ * which in practice means `aria-label` and `title`. Those are exactly the
+ * places a symbol is worst: an `aria-label` built by interpolating a formatted
+ * string announces "two fifty point zero kay em", and this is what makes it
+ * "250.0 kilometres" instead.
+ *
+ * Anywhere the result is rendered, use `<Quantity>`, which keeps the symbol
+ * visible and the word spoken. Falls back to the symbol for a unit with no
+ * word, which is the same rule `Unit` follows.
+ */
+export function speakQuantity(
+  value: number | null | undefined,
+  unit: string | undefined,
+  opts: FormatQuantityOptions = {},
+): string {
+  const { value: text, symbol } = formatQuantity(value, unit, opts);
+  if (symbol === "") return text;
+  return `${text} ${wordForSymbol(symbol) ?? symbol}`;
+}
+
+/**
  * The symbol shown beside a value: the kind's display override if it has one,
  * otherwise the token itself.
  */
