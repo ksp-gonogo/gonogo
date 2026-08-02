@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
+import { EmptyState } from "./EmptyState";
 
 /**
  * The generalized combobox/listbox primitive extracted from `DataKeyPicker`.
@@ -135,7 +136,7 @@ export function ComboboxListbox<T extends ComboboxOption>({
   return (
     <Dropdown role="listbox" id={id} aria-label={ariaLabel}>
       {flatOptions.length === 0 ? (
-        <EmptyState>{emptyLabel}</EmptyState>
+        <EmptyState layout="fill">{emptyLabel}</EmptyState>
       ) : (
         groups.map(([group, items]) => (
           <DropdownGroup key={group}>
@@ -218,11 +219,4 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   &:hover {
     background: var(--color-border-subtle);
   }
-`;
-
-const EmptyState = styled.div`
-  padding: var(--space-12, 12px) var(--space-8, 8px);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-faint);
-  text-align: center;
 `;

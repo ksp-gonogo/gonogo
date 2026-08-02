@@ -35,7 +35,16 @@ const REPO = join(HERE, "..", "..", "..");
 
 const UI_KIT = join(REPO, "packages/ui-kit/src");
 
-/** Where widgets live. ui-kit itself is excluded: it declares these names. */
+/**
+ * Where widgets live. ui-kit itself is excluded here because it legitimately
+ * declares every one of these names once, at its own canonical file (that
+ * declaration is not a shadow). ui-kit IS still scanned, separately, below:
+ * `Combobox.tsx` once had a private `const EmptyState = styled.div` that
+ * shadowed the public `EmptyState.tsx` export, and this list alone couldn't
+ * see it. A within-ui-kit shadow gets the same regex pass, minus the file(s)
+ * that are the name's legitimate owner (its `export function/const/class`
+ * site, or an `export { Name } from "./Name"` barrel line).
+ */
 const SCANNED = [
   "packages/components/src",
   "packages/app/src",
@@ -75,14 +84,31 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
-function kitExports(): Set<string> {
-  const names = new Set<string>();
+/**
+ * Every ui-kit public export name, mapped to the file(s) where it is
+ * legitimately declared or re-exported (an `export function/const/class
+ * Name` site, or a barrel's `export { Name } from "./Name"` line). The
+ * within-ui-kit shadow scan uses the file set to tell "this IS the public
+ * `EmptyState`" apart from "this is a second, different declaration that
+ * happens to share the name" without flagging the former.
+ */
+function kitExportOwners(): Map<string, Set<string>> {
+  const owners = new Map<string, Set<string>>();
+  const own = (name: string, file: string) => {
+    let files = owners.get(name);
+    if (!files) {
+      files = new Set();
+      owners.set(name, files);
+    }
+    files.add(file);
+  };
   for (const file of sourceFiles(UI_KIT)) {
     const text = readFileSync(file, "utf8");
+    const rel = relative(REPO, file);
     for (const [, name] of text.matchAll(
       /^export\s+(?:const|function|class)\s+([A-Z][A-Za-z0-9_]*)/gm,
     )) {
-      names.add(name);
+      own(name, rel);
     }
     for (const m of text.matchAll(/^export\s*\{([^}]*)\}/gm)) {
       for (const part of m[1].split(",")) {
@@ -91,11 +117,11 @@ function kitExports(): Set<string> {
           .split(" as ")
           .pop()
           ?.trim();
-        if (name && /^[A-Z]/.test(name)) names.add(name);
+        if (name && /^[A-Z]/.test(name)) own(name, rel);
       }
     }
   }
-  return names;
+  return owners;
 }
 
 /**
@@ -156,7 +182,8 @@ const BASELINE = new Set<string>([]);
 
 /** Every shadowing declaration on disk right now, baseline or not. */
 function currentShadows(): Set<string> {
-  const kit = kitExports();
+  const owners = kitExportOwners();
+  const kit = new Set(owners.keys());
   const found = new Set<string>();
 
   for (const root of SCANNED) {
@@ -170,6 +197,23 @@ function currentShadows(): Set<string> {
           if (!kit.has(name)) continue;
           found.add(`${name}@${relative(REPO, file)}`);
         }
+      }
+    }
+  }
+
+  // The within-ui-kit pass: a local declaration inside ui-kit that shares a
+  // name with a DIFFERENT public export than the one it is. Skip the file(s)
+  // that legitimately own the name (its own declaration site, or a barrel
+  // re-export) so the public component never flags itself.
+  for (const file of sourceFiles(UI_KIT)) {
+    const text = readFileSync(file, "utf8");
+    const rel = relative(REPO, file);
+    for (const re of [LOCAL_STYLED_RE, LOCAL_COMPONENT_RE]) {
+      re.lastIndex = 0;
+      for (const [, name] of text.matchAll(re)) {
+        if (!kit.has(name)) continue;
+        if (owners.get(name)?.has(rel)) continue;
+        found.add(`${name}@${rel}`);
       }
     }
   }
