@@ -9,9 +9,9 @@
  *     client-side by comparing the previous vs current value and stamp the event
  *     with the current view UT (`detect*` functions).
  *
- * Source-agnostic: a staging event is the same MissionEvent whether the stage
- * was fired manually, by kOS, or by the app, we only observe the resulting
- * telemetry edge, never how it was triggered.
+ * Source-agnostic: a staging event is the same MissionEvent however the stage
+ * was triggered (manual, an autopilot, or an app command); we only observe the
+ * resulting telemetry edge, never how it was triggered.
  *
  * ⚠️ Tier-B edge detection is a v1 pragmatic substitute for a discrete mod-side
  * `*.event` topic (a Tier-C carry-gap). It can MISS an edge that happened
