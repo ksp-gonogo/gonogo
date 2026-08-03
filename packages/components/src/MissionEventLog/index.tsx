@@ -1,16 +1,24 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import { EmptyState, formatDuration, Panel, Stack } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import {
+  Badge,
+  type BadgeTone,
+  EmptyState,
+  formatDuration,
+  Inline,
+  Panel,
+  Stack,
+  Truncate,
+} from "@ksp-gonogo/ui-kit";
 import type { MissionEvent, MissionEventKind } from "./events";
 import { useMissionEvents } from "./useMissionEvents";
 
 type MissionEventLogConfig = Record<string, never>;
 
-/** A short tone token per kind, so the log reads at a glance. */
-const KIND_TONE: Record<MissionEventKind, "go" | "warn" | "nogo" | "info"> = {
+/** Badge tone per kind, so each row reads at a glance (maps onto ui-kit tones). */
+const KIND_TONE: Record<MissionEventKind, BadgeTone> = {
   launch: "go",
-  "flight-ended": "info",
+  "flight-ended": "neutral",
   "vessel-changed": "info",
   crash: "nogo",
   recovery: "go",
@@ -18,10 +26,27 @@ const KIND_TONE: Record<MissionEventKind, "go" | "warn" | "nogo" | "info"> = {
   staging: "info",
   "soi-change": "info",
   docking: "go",
-  undocking: "info",
+  undocking: "neutral",
   eva: "info",
   "contract-completed": "go",
   "science-collected": "go",
+};
+
+/** Compact badge label per kind (the full sentence lives in `event.label`). */
+const KIND_LABEL: Record<MissionEventKind, string> = {
+  launch: "LAUNCH",
+  "flight-ended": "END",
+  "vessel-changed": "SWITCH",
+  crash: "CRASH",
+  recovery: "RECOVER",
+  alarm: "ALARM",
+  staging: "STAGE",
+  "soi-change": "SOI",
+  docking: "DOCK",
+  undocking: "UNDOCK",
+  eva: "EVA",
+  "contract-completed": "CONTRACT",
+  "science-collected": "SCIENCE",
 };
 
 /**
@@ -35,25 +60,6 @@ function stamp(ut: number, launchUt: number | undefined): string {
     return `T${met >= 0 ? "+" : "-"}${formatDuration(Math.abs(met))}`;
   }
   return `UT ${formatDuration(ut)}`;
-}
-
-function EventRow({
-  event,
-  launchUt,
-}: {
-  event: MissionEvent;
-  launchUt: number | undefined;
-}) {
-  return (
-    <Row aria-label={`${event.label} at ${stamp(event.ut, launchUt)}`}>
-      <Dot $tone={KIND_TONE[event.kind]} aria-hidden="true" />
-      <Time>{stamp(event.ut, launchUt)}</Time>
-      <Label>
-        {event.label}
-        {event.detail && <Detail> · {event.detail}</Detail>}
-      </Label>
-    </Row>
-  );
 }
 
 function MissionEventLogComponent(
@@ -77,66 +83,35 @@ function MissionEventLogComponent(
 
   return (
     <Panel panelTitle="MISSION LOG" panelSubtitle={`${events.length} events`}>
-      <Scroll>
-        <Stack gap="xs">
-          {ordered.map((e) => (
-            <EventRow key={e.id} event={e} launchUt={launchUt} />
-          ))}
-        </Stack>
-      </Scroll>
+      <Stack gap="xs">
+        {ordered.map((e) => (
+          <EventRow key={e.id} event={e} launchUt={launchUt} />
+        ))}
+      </Stack>
     </Panel>
   );
 }
 
-// ── Styles ──────────────────────────────────────────────────────────────────
-
-const Scroll = styled.div`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  margin-top: 6px;
-`;
-
-const Row = styled.div`
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: var(--font-size-sm);
-`;
-
-const Dot = styled.span<{ $tone: "go" | "warn" | "nogo" | "info" }>`
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  align-self: center;
-  background: ${({ $tone }) =>
-    $tone === "go"
-      ? "var(--color-status-go-fg)"
-      : $tone === "warn"
-        ? "var(--color-status-warning-fg)"
-        : $tone === "nogo"
-          ? "var(--color-status-nogo-fg)"
-          : "var(--color-text-muted)"};
-`;
-
-const Time = styled.span`
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
-  letter-spacing: 0.02em;
-  flex: 0 0 auto;
-`;
-
-const Label = styled.span`
-  color: var(--color-text-primary);
-  min-width: 0;
-`;
-
-const Detail = styled.span`
-  color: var(--color-text-muted);
-`;
-
-// ── Registration ──────────────────────────────────────────────────────────────
+function EventRow({
+  event,
+  launchUt,
+}: {
+  event: MissionEvent;
+  launchUt: number | undefined;
+}) {
+  const when = stamp(event.ut, launchUt);
+  return (
+    <Inline gap="sm" aria-label={`${event.label} at ${when}`}>
+      <Badge tone={KIND_TONE[event.kind]} size="sm">
+        {KIND_LABEL[event.kind]}
+      </Badge>
+      <Truncate>
+        {when} · {event.label}
+        {event.detail ? ` · ${event.detail}` : ""}
+      </Truncate>
+    </Inline>
+  );
+}
 
 registerComponent<MissionEventLogConfig>({
   id: "mission-event-log",
