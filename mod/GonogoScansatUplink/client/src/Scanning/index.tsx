@@ -109,13 +109,33 @@ const DISPLAY_SCAN_TYPES: SCANType[] = [
   SCAN_TYPE.ResourceHiRes,
 ];
 
+/**
+ * Resolve the active vessel's current body NAME. `vessel.identity` only
+ * carries the stable `system.bodies` INDEX (`parentBodyIndex`), the same
+ * index/name split `AnomalyOverlay/index.tsx`'s `useBodyIndexByName` and
+ * `packages/components/src/MapView/vanillaPoiProvider.ts`'s
+ * `useBodyNameByIndex` resolve elsewhere; this is the single-body variant of
+ * that lookup (the widget only ever needs the active vessel's own body, not
+ * a full index->name table).
+ */
+function useActiveVesselBodyName(): string | undefined {
+  const identity = useTelemetry("vessel.identity");
+  const systemBodies = useTelemetry("system.bodies");
+  return useMemo(() => {
+    const index = identity?.parentBodyIndex;
+    if (index == null) return undefined;
+    return systemBodies?.bodies.find((b) => b.index === index)?.name;
+  }, [identity, systemBodies]);
+}
+
 function ScanningComponent({
   config,
 }: Readonly<ComponentProps<ScanningConfig>>) {
-  const activeBody = useTelemetry<string>("data", "v.body");
+  const activeBody = useActiveVesselBodyName();
   const bodyName = config?.bodyName ?? activeBody;
-  const biome = useTelemetry<string>("data", "v.biome");
-  const scanAvailable = useTelemetry<boolean>("data", "scansat.available");
+  const surface = useTelemetry("vessel.surface");
+  const biome = surface?.biome;
+  const scanAvailable = useTelemetry("scansat.available");
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
 
@@ -325,8 +345,9 @@ registerComponent<ScanningConfig>({
   dataRequirements: [
     "scansat.available",
     "scansat.scanningVessels",
-    "v.body",
-    "v.biome",
+    "vessel.identity",
+    "system.bodies",
+    "vessel.surface",
   ],
   defaultConfig: {},
   actions: [],
