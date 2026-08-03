@@ -1,3 +1,10 @@
+export {
+  type AutoCommandOptions,
+  type AutoCommandStatus,
+  type AutoDispatchDecision,
+  decideAutoDispatch,
+  useAutoCommand,
+} from "./auto-command";
 export { isTopicCarried } from "./carried-channels";
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
