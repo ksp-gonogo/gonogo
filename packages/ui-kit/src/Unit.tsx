@@ -1,12 +1,39 @@
+import type { UnitSystem } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
-import { displaySymbol, kindOfUnit, wordForSymbol } from "./units";
+import {
+  displaySymbol,
+  type FormatQuantityOptions,
+  formatQuantity,
+  kindOfUnit,
+  wordForSymbol,
+} from "./units";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * A unit, rendered from the unit MODEL rather than from a literal at the call
- * site.
+ * A quantity, rendered whole.
+ *
+ * ```tsx
+ * <Unit value={altitude} />
+ * ```
+ *
+ * That is the entire public surface for showing a quantity. The VALUE carries
+ * its own unit, so the call site names neither the unit nor the format, and
+ * every decision about how it looks and how it is spoken lives here.
+ *
+ * The previous shape was Quantity, taking value and unit as two props, which
+ * made the call site restate what the model already knows: every wire field
+ * carries a declared unit, and that declaration is now the field's TYPE. It
+ * was also opt-in, which is the inconsistency this exists to end.
+ *
+ * ## The legacy symbol form
+ *
+ * Passing a token as CHILDREN still renders a bare symbol, and is
+ * TRANSITIONAL. It is what every call site used before values carried their
+ * units, and it goes when the last of them is converted. Do not reach for it
+ * in new code: a unit with no number beside it is the shape that let a readout
+ * show a value with no unit at all.
  *
  * Hand it the token the contract declares (`m`, `kW`, `funds`) and it resolves
  * the rest: `units.ts` says what to display, whether that display is an icon,
@@ -110,10 +137,11 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
      from the value it belongs to. Icons are exempt for the same reason a thin
      stroke needed the size bump: dimming a 1.8-unit stroke erases it. */
   opacity: ${({ $attached, $icon }) => ($attached || $icon ? "1" : "0.72")};
-  /* Scales with the text, so the gap does not look tight in a big readout and
-     loose in a small one. Margin rather than a space character so the symbol
-     cannot be split from its number by a line break. */
-  margin-inline-start: ${({ $attached }) => ($attached ? "0" : "0.25em")};
+  /* No margin here on purpose. The gap between a number and its unit is a real
+     THIN SPACE character in the markup instead, because a margin is invisible
+     to the clipboard and copying a readout yielded "12.4km". The character
+     copies as the space a reader expects, and the line-break protection the
+     margin was standing in for comes from nowrap on the wrapper. */
   /* "m/s" and "kg/m³" must never wrap mid-symbol. */
   white-space: nowrap;
   /* A unit is not a word: it must survive a parent that uppercases its text,
@@ -123,28 +151,55 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
   ${({ $icon }) => ($icon ? "display: inline-flex; align-items: center;" : "")}
 `;
 
-export interface UnitProps {
+/* Wraps a number and its unit so neither the thin space between them nor a
+   compound symbol can be split across a line. */
+const Unit__Quantity = styled.span`
+  white-space: nowrap;
+`;
+
+/* The spoken word, for the accessibility tree only. Excluded from selection so
+   copying "12.4 km" does not also yield "kilometres": the word is a reading of
+   the symbol beside it, not extra content. */
+const Unit__Word = styled(VisuallyHidden)`
+  user-select: none;
+`;
+
+/** U+2009 THIN SPACE. SI puts a space between a number and its unit. */
+const THIN_SPACE = "\u2009";
+
+export interface UnitProps extends FormatQuantityOptions {
   /**
-   * The unit token the contract declares, or a rung symbol. Resolved through
-   * the unit model for its display form, its icon and its spoken word.
+   * The quantity to show. It carries its own unit, so nothing else needs to be
+   * passed and nothing else can disagree with it.
+   */
+  value?: UnitSystem.Value | null;
+  /**
+   * TRANSITIONAL: a bare unit token, rendered as a symbol with no number.
+   *
+   * Every call site used this before values carried their units. It goes when
+   * the last one is converted; new code passes a value.
    */
   children?: ReactNode;
   className?: string;
 }
 
-export function Unit({ children, className }: UnitProps) {
-  // A non-string child cannot be looked up, so it renders as given. Kept so
-  // the component still composes with an interpolated node rather than
-  // throwing at a call site that has a good reason.
-  if (typeof children !== "string") {
-    return (
-      <Unit__Span $attached={false} $icon={false} className={className}>
-        {children}
-      </Unit__Span>
-    );
-  }
-
-  const symbol = displaySymbol(children, kindOfUnit(children));
+/**
+ * The symbol half: the glyph or icon, plus the word that replaces it in the
+ * accessibility tree.
+ *
+ * Split out because both forms below share it, and rendered with a leading
+ * thin space only when there is a number in front of it to be spaced from.
+ */
+function UnitSymbol({
+  token,
+  className,
+  spaced,
+}: {
+  token: string;
+  className?: string;
+  spaced: boolean;
+}) {
+  const symbol = displaySymbol(token, kindOfUnit(token));
 
   // The category kinds (count, id, text, flag, enum, n/a) display as an empty
   // string on purpose: they name what a field IS rather than what it is
@@ -154,6 +209,7 @@ export function Unit({ children, className }: UnitProps) {
 
   const word = wordForSymbol(symbol);
   const Glyph = ICON_BY_SYMBOL[symbol as keyof typeof ICON_BY_SYMBOL];
+  const attached = ATTACHED.has(symbol);
 
   // The word REPLACES the symbol in the accessibility tree rather than joining
   // it. A symbol left announceable next to its own word reads as "kay em
@@ -168,20 +224,61 @@ export function Unit({ children, className }: UnitProps) {
   const spoken = word !== undefined;
 
   return (
-    <Unit__Span
-      $attached={ATTACHED.has(symbol)}
-      $icon={Glyph !== undefined}
-      className={className}
-      data-unit={children}
-    >
-      {Glyph ? (
-        <Glyph size="1em" />
-      ) : spoken ? (
-        <span aria-hidden="true">{symbol}</span>
-      ) : (
-        symbol
-      )}
-      {spoken && <VisuallyHidden> {word}</VisuallyHidden>}
-    </Unit__Span>
+    <>
+      {spaced && !attached ? THIN_SPACE : null}
+      <Unit__Span
+        $attached={attached}
+        $icon={Glyph !== undefined}
+        className={className}
+        data-unit={token}
+        // Disambiguates two units that share a glyph, for a reader who cannot
+        // hear the accessible name. A mod may mean grams by "g" where the
+        // first-party catalog means g-force; both render "g" and the tooltip
+        // says which. Colour was considered and rejected: WCAG 1.4.1 forbids
+        // it as the sole carrier of meaning, and a hashed kind-colour is
+        // unlearnable anyway.
+        title={word}
+      >
+        {Glyph ? (
+          <Glyph size="1em" />
+        ) : spoken ? (
+          <span aria-hidden="true">{symbol}</span>
+        ) : (
+          symbol
+        )}
+        {spoken && <Unit__Word data-unit-word=""> {word}</Unit__Word>}
+      </Unit__Span>
+    </>
   );
+}
+
+export function Unit({ value, children, className, ...opts }: UnitProps) {
+  if (value !== undefined) {
+    // formatted.symbol, NOT formatted.rung. They agree on a laddered value and
+    // differ exactly where it matters: a duration comes back with its parts
+    // interleaved into the value ("2h 14m") and an EMPTY symbol, while its
+    // rung is still "s", so rendering the rung would print a stray "s" beside
+    // a formatted duration. An absent value is the same shape, and renders no
+    // unit rather than a unit beside the null token.
+    const formatted = formatQuantity(value?.magnitude, value?.unit, opts);
+    return (
+      <Unit__Quantity className={className}>
+        {formatted.value}
+        <UnitSymbol token={formatted.symbol} spaced />
+      </Unit__Quantity>
+    );
+  }
+
+  // A non-string child cannot be looked up, so it renders as given. Kept so
+  // the component still composes with an interpolated node rather than
+  // throwing at a call site that has a good reason.
+  if (typeof children !== "string") {
+    return (
+      <Unit__Span $attached={false} $icon={false} className={className}>
+        {children}
+      </Unit__Span>
+    );
+  }
+
+  return <UnitSymbol token={children} className={className} spaced={false} />;
 }

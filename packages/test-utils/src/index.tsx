@@ -68,3 +68,24 @@ export function renderHook<Result, Props>(
 // and `renderHook` resolve to the themed versions while the rest of RTL's
 // surface passes straight through.
 export * from "@testing-library/react";
+
+/**
+ * The text a SIGHTED reader sees, with screen-reader-only content removed.
+ *
+ * `textContent` includes the visually-hidden word `Unit` puts in the
+ * accessibility tree, so a readout showing "12.4 km" reads back as
+ * "12.4 km kilometres" and every assertion on rendered text has to know that.
+ * That is a detail of how units are announced, not of what a widget renders,
+ * and it should not be restated in a hundred widget tests.
+ *
+ * Assert on this for what is on screen. Assert on `textContent` directly when
+ * the ANNOUNCEMENT is the thing under test, or better, use
+ * `screen.getByText("kilometres")`, which says so.
+ */
+export function visibleText(container: HTMLElement): string {
+  const clone = container.cloneNode(true) as HTMLElement;
+  for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
+    hidden.remove();
+  }
+  return clone.textContent ?? "";
+}

@@ -1,6 +1,10 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { UnitSystem } from "@ksp-gonogo/sitrep-sdk";
+import { render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { NULL_DISPLAY } from "./NullValue";
 import { Unit } from "./Unit";
+
+const { value } = UnitSystem;
 
 /**
  * Two things are being tested here. The component adapts to its surroundings
@@ -64,10 +68,36 @@ describe("Unit: presentation", () => {
   it("keeps the symbol whole and attached to its number", () => {
     const { container } = render(<Unit>kg/m³</Unit>);
     const style = getComputedStyle(unitEl(container));
+    // "kg/m³" must never wrap mid-symbol.
     expect(style.whiteSpace).toBe("nowrap");
-    // A margin rather than a space character, so a line break cannot separate
-    // the symbol from the value it belongs to.
-    expect(style.marginInlineStart).toBe("0.25em");
+    // No margin. The gap is a real character now: see the copy-paste tests.
+    expect(style.marginInlineStart).toBe("0");
+  });
+
+  it("separates a number from its unit with a real character", () => {
+    // A margin is invisible to the clipboard, so copying a readout yielded
+    // "12.4km". The thin space copies as the space a reader expects, and SI
+    // asks for one anyway.
+    const { container } = render(<Unit value={value("m", 12_400)} />);
+    expect(container.textContent).toContain("\u2009");
+  });
+
+  it("does not leak the spoken word into a copied readout", () => {
+    // The word lives in the accessibility tree so a screen reader says
+    // "kilometres" rather than "kay em". It must not also land in the
+    // clipboard, or copying gives "12.4 km kilometres".
+    const { container } = render(<Unit value={value("m", 12_400)} />);
+    const hidden = container.querySelector("[data-unit] span + span");
+    expect(getComputedStyle(hidden as Element).userSelect).toBe("none");
+  });
+
+  it("keeps the number and its unit on one line", () => {
+    // What the margin was standing in for. The thin space is breakable, so
+    // the protection has to come from the wrapper instead.
+    const { container } = render(<Unit value={value("m", 12_400)} />);
+    expect(
+      getComputedStyle(container.firstElementChild as Element).whiteSpace,
+    ).toBe("nowrap");
   });
 
   it("writes a plane angle hard against its number, at full size", () => {
@@ -75,9 +105,10 @@ describe("Unit: presentation", () => {
     // the plane-angle symbols. "22°", never "22 °". And a degree sign sits at
     // cap height, so shrinking it drops it toward the middle of the number
     // beside it, which is what a blanket shrink looked like.
-    const { container } = render(<Unit>{"°"}</Unit>);
+    const { container } = render(<Unit value={value("°", 22)} />);
     const style = getComputedStyle(unitEl(container));
-    expect(style.marginInlineStart).toBe("0px");
+    // No thin space before it, unlike every other unit.
+    expect(container.textContent).not.toContain("\u2009");
     expect(style.fontSize).toBe("1em");
     // Nor dimmed. A plane angle is part of the number's own typography, not a
     // unit token beside it, so dimming detaches it from the value it belongs to.
@@ -87,10 +118,8 @@ describe("Unit: presentation", () => {
   it("does NOT attach degrees Celsius, which takes the normal space", () => {
     // The exception is plane angle only. Celsius is a temperature and spaces
     // like any other unit, which is the distinction most implementations miss.
-    const { container } = render(<Unit>°C</Unit>);
-    expect(getComputedStyle(unitEl(container)).marginInlineStart).toBe(
-      "0.25em",
-    );
+    const { container } = render(<Unit value={value("K", 300)} as="°C" />);
+    expect(container.textContent).toContain("\u2009");
   });
 });
 
@@ -143,5 +172,90 @@ describe("Unit: what it resolves from the model", () => {
     // is no symbol to show and nothing to announce.
     const { container } = render(<Unit>count</Unit>);
     expect(container.querySelector("[data-unit]")).toBeNull();
+  });
+});
+
+/**
+ * The headline form. A value carries its own unit, so the call site names
+ * neither the unit nor the format:
+ *
+ *     <Unit value={altitude} />
+ *
+ * Everything below is a property of THAT, rather than of a symbol handed in by
+ * hand. The point of the redesign is that a widget cannot get any of it wrong,
+ * because a widget no longer participates.
+ */
+describe("Unit: a value renders whole", () => {
+  it("climbs the ladder without being asked", () => {
+    // 12,400 m is 12.4 km. The widget passes metres and never mentions
+    // kilometres; the rung is the model's decision.
+    const { container } = render(<Unit value={value("m", 12_400)} />);
+    expect(visibleText(container)).toBe("12.4 km");
+  });
+
+  it("announces the word rather than the letters", () => {
+    // A screen reader says "kay em" for km, and nothing at all for a degree
+    // sign. The word replaces the symbol in the accessibility tree so a
+    // readout that SHOWS a unit ANNOUNCES one.
+    render(<Unit value={value("m", 12_400)} />);
+    expect(screen.getByText("kilometres")).toBeInTheDocument();
+  });
+
+  it("carries the spoken word as a tooltip too", () => {
+    // For a sighted reader, who cannot hear the accessible name. This is the
+    // disambiguation for two units that share a glyph; colour was rejected
+    // under WCAG 1.4.1.
+    const { container } = render(<Unit value={value("m", 12_400)} />);
+    expect(container.querySelector("[data-unit]")).toHaveAttribute(
+      "title",
+      "kilometres",
+    );
+  });
+
+  it("takes precision as a prop rather than letting a widget round first", () => {
+    // The widget that wants one decimal asks for one. It does not format the
+    // number itself and hand over a string, which is what the old shape
+    // invited and what put eleven bespoke ladders in the codebase.
+    const { container } = render(
+      <Unit value={value("m", 12_400)} decimals={1} />,
+    );
+    expect(visibleText(container)).toBe("12.4 km");
+  });
+
+  it("shows a duration as a duration, with no stray unit beside it", () => {
+    // Time is a ladder that climbs by 60 and 6 rather than by 1000, and it
+    // shows two tiers at once because that is how a countdown reads. Its parts
+    // are interleaved into the number, so there is no symbol to put after it:
+    // rendering the RUNG here would print a stray "s" beside "2h 14m".
+    const { container } = render(<Unit value={value("s", 8_040)} />);
+    expect(visibleText(container)).toBe("2h 14m");
+  });
+
+  it("renders a currency as its glyph, and still says the word", () => {
+    const { container } = render(<Unit value={value("science", 12.5)} />);
+    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByText("science")).toBeInTheDocument();
+  });
+
+  it("shows a null value as the null token, with no unit beside it", () => {
+    // A unit next to the null token reads as a measurement that happens to be
+    // missing. It is not: there is nothing there.
+    const { container } = render(<Unit value={null} />);
+    expect(visibleText(container)).toBe(NULL_DISPLAY);
+  });
+
+  it("converts to a presentation unit on request", () => {
+    // The wire carries kelvin and never Celsius, deliberately: a contract with
+    // both tokens is how a channel came to send °C under a K label. Celsius is
+    // asked for by name at the point of display.
+    const { container } = render(<Unit value={value("K", 300)} as="°C" />);
+    expect(visibleText(container)).toBe("27 °C");
+  });
+
+  it("shows a count as a bare integer", () => {
+    // "3 count" is not a readout. The token names a category, so it renders
+    // with no symbol and the caller supplies its own label.
+    const { container } = render(<Unit value={value("count", 3)} />);
+    expect(visibleText(container)).toBe("3");
   });
 });
