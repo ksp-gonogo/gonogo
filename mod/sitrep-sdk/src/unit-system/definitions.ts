@@ -138,33 +138,26 @@ export const UNIT_DEFINITIONS = {
   "1": { dim: {}, ratio: 1, kind: "dimensionless" },
   ratio: { dim: {}, ratio: 1, kind: "ratio" },
   "%": { dim: {}, ratio: 0.01, kind: "percent" },
+
+  // ── Real time, a DIFFERENT dimension from game time ──────────────────────
+  // A second is a second, but the calendars diverge above an hour: a KSP day
+  // is 6h and a real one is 24h. Kind cannot hold that distinction, because
+  // kind does not gate arithmetic, so game seconds and real seconds would add.
+  // Its own base symbol is what makes that an error.
+  //
+  // The `irl:` prefix is an internal key, never a rendered glyph: an IRL
+  // duration displays as "s" / "min" / "h" / "d" like any other, and what
+  // differs is what it will combine with. "In one hour IRL, how much game time
+  // passes?" is realDuration.times(warpRate), not an addition, and forbidding
+  // the addition is what stops an answer that is only right at 1x warp.
+  "irl:s": { dim: { irlS: 1 }, ratio: 1, kind: "irlTime" },
+  "irl:min": { dim: { irlS: 1 }, ratio: 60, kind: "irlTime" },
+  "irl:h": { dim: { irlS: 1 }, ratio: 60 * 60, kind: "irlTime" },
+  // Written as hours rather than as a literal because the literal is the one
+  // this codebase gets wrong: a KSP day is 21,600s and `styleguide-earth-day`
+  // exists to catch the 86,400 that a hand reaches for. THIS is the one place
+  // the 24-hour day is the right answer, and spelling it out says why.
+  "irl:d": { dim: { irlS: 1 }, ratio: 24 * 60 * 60, kind: "irlTime" },
 } as const satisfies Record<string, UnitDefinition>;
 
 export type KnownUnit = keyof typeof UNIT_DEFINITIONS;
-
-/** Every declared unit sharing a dimension, base-first. */
-const BY_DIMENSION = new Map<string, KnownUnit[]>();
-for (const [symbol, def] of Object.entries(UNIT_DEFINITIONS)) {
-  const dimensionKey = Object.keys(def.dim)
-    .sort()
-    .map((base) => `${base}^${(def.dim as Record<string, number>)[base]}`)
-    .join(" ");
-  const existing = BY_DIMENSION.get(dimensionKey) ?? [];
-  existing.push(symbol as KnownUnit);
-  BY_DIMENSION.set(dimensionKey, existing);
-}
-
-/**
- * The declared unit a computed dimension should render as, or `undefined` when
- * nothing has been declared for it.
- *
- * A DECLARED name beats a natural composition: `force.times(distance).per(time)`
- * lands on `{kg:1, m:2, s:-3}` and renders `W`, not `kg·m²/s³`. Only ratio-1
- * units are eligible, because a computed value is in base units by
- * construction and rendering it as `kW` would be off by a thousand.
- */
-export function declaredUnitFor(dimensionKey: string): KnownUnit | undefined {
-  return BY_DIMENSION.get(dimensionKey)?.find(
-    (symbol) => UNIT_DEFINITIONS[symbol].ratio === 1,
-  );
-}

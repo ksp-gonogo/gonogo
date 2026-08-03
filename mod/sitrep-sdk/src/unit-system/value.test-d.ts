@@ -69,3 +69,22 @@ export const _hoursAsSeconds = hours.in("s");
 
 // @ts-expect-error: cannot re-express a duration as a length
 export const _hoursAsMetres = hours.in("m");
+
+// ── Real time is a different DIMENSION, not a different kind ────────────────
+// Kind does not gate arithmetic, so a kind-level split would have let these
+// add: both would be {s: 1}. Its own base symbol is what makes it an error.
+const gameSeconds = value("s", 60);
+const irlSeconds = value("irl:s", 60);
+const kspDay = value("d", 1);
+const irlDay = value("irl:d", 1);
+
+// @ts-expect-error: a real second and a game second are not the same dimension
+export const _gameSecondsPlusIrlSeconds = gameSeconds.plus(irlSeconds);
+
+// @ts-expect-error: and neither are the days, which is where they visibly differ
+export const _kspDayPlusIrlDay = kspDay.plus(irlDay);
+
+// Within one calendar, they combine as any other duration does.
+export const _irlHoursPlusIrlMinutes = value("irl:h", 1).plus(
+  value("irl:min", 30),
+);

@@ -1,9 +1,6 @@
-import {
-  declaredUnitFor,
-  type KnownUnit,
-  UNIT_DEFINITIONS,
-} from "./definitions";
+import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
+import { declaredUnitFor, lookupUnit } from "./registry";
 
 /**
  * Two units are interchangeable for `plus` when their dimensions match.
@@ -106,8 +103,11 @@ export interface Value<U extends string = string> {
   compare(other: Value<Addend<U>>): number;
 }
 
+// Through the REGISTRY, not the static table: a unit an Uplink registered has
+// to take part in arithmetic exactly as a first-party one does, or the
+// extension point is decorative.
 function definitionOf(unit: string) {
-  return UNIT_DEFINITIONS[unit as KnownUnit];
+  return lookupUnit(unit);
 }
 
 /**
