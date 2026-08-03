@@ -221,3 +221,57 @@ describe("ordering", () => {
     expect(() => value("m", 5).lessThan(value("s", 5) as never)).toThrow();
   });
 });
+
+describe("sign", () => {
+  it("needs no operand, because zero needs no unit", () => {
+    // Every unit of a dimension is a pure multiple of its base, so zero is
+    // zero in all of them. This is the most common comparison in the codebase:
+    // a resource rate being negative is what makes it a drain.
+    expect(value("units/s", -0.32).isNegative()).toBe(true);
+    expect(value("units/s", -0.32).isPositive()).toBe(false);
+    expect(value("m/s", 12).isPositive()).toBe(true);
+    expect(value("m", 0).isZero()).toBe(true);
+  });
+
+  it("agrees with itself whatever unit the zero is written in", () => {
+    expect(value("h", 0).isZero()).toBe(true);
+    expect(value("s", 0).isZero()).toBe(true);
+    expect(value("km", 0).isZero()).toBe(true);
+  });
+});
+
+describe("abs", () => {
+  it("drops the sign and keeps the unit", () => {
+    const drift = value("m", -14.2).abs();
+    expect(drift.magnitude).toBe(14.2);
+    expect(drift.unit).toBe("m");
+  });
+
+  it("returns the same value when there is nothing to do", () => {
+    // No allocation for the common case.
+    const positive = value("m", 14.2);
+    expect(positive.abs()).toBe(positive);
+  });
+});
+
+describe("min and max", () => {
+  it("converts first, which is the whole point", () => {
+    // Math.max(1h, 90min) via valueOf compares 1 against 90 and returns the 90
+    // MINUTES, which is the shorter duration. This is the same hazard as
+    // comparing .magnitude, and the reason these exist at all.
+    const naive = Math.max(value("h", 1).valueOf(), value("min", 90).valueOf());
+    expect(naive).toBe(90); // the wrong one, in the wrong unit
+
+    expect(value("h", 1).max(value("min", 90)).unit).toBe("min");
+    expect(value("h", 2).max(value("min", 90)).unit).toBe("h");
+  });
+
+  it("returns the operand, so the unit it was expressed in survives", () => {
+    const anHour = value("h", 1);
+    expect(anHour.min(value("min", 90))).toBe(anHour);
+  });
+
+  it("refuses across dimensions", () => {
+    expect(() => value("m", 5).max(value("s", 5) as never)).toThrow();
+  });
+});

@@ -124,6 +124,35 @@ export interface Value<U extends string = string> {
    * shape; for a yes-or-no question use the predicates above.
    */
   compare(other: Value<Addend<U>>): number;
+
+  /**
+   * Sign, which needs no operand.
+   *
+   * Zero is the one quantity that needs no unit: every unit of a dimension is
+   * a pure multiple of its base, so zero is zero in all of them. That is why
+   * these take nothing, and it matters because comparing against zero is by
+   * some distance the most common comparison in this codebase: a resource rate
+   * being negative is what makes it a drain, a vertical speed being positive is
+   * what makes it a descent. `greaterThan(value("m/s", 0))` would be noise on
+   * every one of them.
+   */
+  isZero(): boolean;
+  isPositive(): boolean;
+  isNegative(): boolean;
+
+  /** Magnitude without its sign, unit unchanged. */
+  abs(): Value<U>;
+
+  /**
+   * The smaller or larger of the two, keeping ITS unit.
+   *
+   * Not ergonomics: `Math.max(a.valueOf(), b.valueOf())` is wrong across units
+   * in exactly the way comparing `.magnitude` is. `Math.max` of 1 h and 90 min
+   * compares 1 against 90 and returns the 90 minutes, which is the shorter
+   * duration. These convert first.
+   */
+  min(other: Value<Addend<U>>): Value<U> | Value<Addend<U>>;
+  max(other: Value<Addend<U>>): Value<U> | Value<Addend<U>>;
 }
 
 // Through the REGISTRY, not the static table: a unit an Uplink registered has
@@ -264,6 +293,26 @@ const prototype = {
   },
   greaterThanOrEqual(this: Value, other: Value): boolean {
     return this.compare(other) >= 0;
+  },
+  isZero(this: Value): boolean {
+    return this.magnitude === 0;
+  },
+  isPositive(this: Value): boolean {
+    return this.magnitude > 0;
+  },
+  isNegative(this: Value): boolean {
+    return this.magnitude < 0;
+  },
+  abs(this: Value): Value {
+    return this.magnitude < 0 ? value(this.unit, -this.magnitude) : this;
+  },
+  min(this: Value, other: Value): Value {
+    // Returns the OPERAND, not a new value, so the unit each was expressed in
+    // survives: min(1 h, 90 min) is the hour, still in hours.
+    return this.compare(other) <= 0 ? this : other;
+  },
+  max(this: Value, other: Value): Value {
+    return this.compare(other) >= 0 ? this : other;
   },
 };
 

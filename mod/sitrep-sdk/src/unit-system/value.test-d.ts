@@ -108,3 +108,11 @@ export const _sortable: number = hours.compare(seconds);
 
 // @ts-expect-error: ordering across dimensions is as wrong as adding across them
 export const _orderedAcross = metres.lessThan(seconds);
+
+// ── Sign, magnitude and selection ───────────────────────────────────────────
+export const _draining: boolean = value("units/s", -0.3).isNegative();
+export const _drift = metres.abs();
+export const _ceiling = metres.max(value("km", 1));
+
+// @ts-expect-error: selecting between different dimensions has no answer
+export const _acrossDimensions = metres.max(seconds);

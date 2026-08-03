@@ -62,6 +62,15 @@ export const _fuelFlow = dryMass.per(burnTime); // kg/s
 export const _isLong = burnTime.greaterThan(value("min", 1));
 export const _sorted = [burnTime, value("min", 2)].sort((a, b) => a.compare(b));
 
+// Sign needs no operand: zero is zero in every unit of a dimension, and
+// "is this rate a drain" is the most common comparison in the codebase.
+export const _draining = value("units/s", -0.32).isNegative();
+export const _drift = value("m", -14.2).abs();
+
+// min/max convert first. Math.max via valueOf would compare 1 against 90 and
+// return the 90 MINUTES, which is the shorter duration.
+export const _longer = value("h", 1).max(value("min", 90));
+
 // ── 4. What the migration will actually hit ─────────────────────────────────
 // These are the compile errors that ARE the work list. Each one is a site
 // where a number was being treated as a bare number and the unit was being
