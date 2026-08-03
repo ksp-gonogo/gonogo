@@ -14,7 +14,7 @@ import { FleetReliabilityUpdates } from "./index";
  * Composition proof: the reliability augment, bound into the REAL FleetRoster
  * via the fleet-roster.updates slot, surfaces a failing part on the ACTIVE
  * vessel's row ONLY (matching vessel.identity.vesselId) and nothing on the
- * other rows — the active-vessel scope holding in situ, not just in isolation.
+ * other rows: the active-vessel scope holding in situ, not just in isolation.
  */
 const BODIES = { bodies: [{ index: 0, name: "Kerbin" }] };
 
@@ -101,7 +101,7 @@ describe("reliability augment composed into FleetRoster", () => {
       ]);
     });
 
-    // The failing part + marker appear exactly once — on the active row only.
+    // The failing part + marker appear exactly once, on the active row only.
     expect(await screen.findByText("Reaction Wheel")).toBeInTheDocument();
     expect(screen.getAllByText("Reaction Wheel")).toHaveLength(1);
     expect(screen.getAllByText("1 at risk")).toHaveLength(1);

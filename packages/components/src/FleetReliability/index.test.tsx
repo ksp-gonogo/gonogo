@@ -7,8 +7,8 @@ import { FleetReliabilityUpdates } from "./index";
 /**
  * The reliability augment consumes the ONE elected reliability.* topic pair
  * (source-agnostic: TestFlight or Kerbalism or a vanilla None fallback feed
- * the same shape) and is ACTIVE-VESSEL scoped — reliability.* carries no
- * vesselId today, so it renders only on the row whose vesselId matches
+ * the same shape) and is ACTIVE-VESSEL scoped (reliability.* carries no
+ * vesselId today), so it renders only on the row whose vesselId matches
  * vessel.identity.vesselId, and nothing on every other row.
  */
 const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
@@ -119,7 +119,7 @@ describe("FleetReliabilityUpdates augment", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("is source-agnostic — surfaces a Kerbalism needsRepair part", async () => {
+  it("is source-agnostic, surfaces a Kerbalism needsRepair part", async () => {
     const { fixture } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
