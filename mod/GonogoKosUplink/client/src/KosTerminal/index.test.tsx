@@ -612,6 +612,66 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
   });
 
+  it("labels an untagged CPU by its part name, not a bare CPU <id>", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() =>
+      fixture.emit("kos.processors", [
+        { coreId: 3, hasBooted: true, processorMode: "READY" },
+        { coreId: 12, tag: "lander", hasBooted: true, processorMode: "READY" },
+        {
+          coreId: 4,
+          partName: "Probe Core",
+          hasBooted: true,
+          processorMode: "READY",
+        },
+      ] satisfies KosProcessorInfo[]),
+    );
+
+    // tag wins when present; part name when there's no tag; bare id as last resort.
+    await screen.findByRole("button", { name: "lander" });
+    expect(
+      screen.getByRole("button", { name: "Probe Core" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CPU 3" })).toBeInTheDocument();
+  });
+
+  it("disambiguates identical untagged parts as 'Probe Core (1)/(2)'", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() =>
+      fixture.emit("kos.processors", [
+        {
+          coreId: 8,
+          partName: "Probe Core",
+          hasBooted: true,
+          processorMode: "READY",
+        },
+        {
+          coreId: 9,
+          partName: "Probe Core",
+          hasBooted: true,
+          processorMode: "READY",
+        },
+      ] satisfies KosProcessorInfo[]),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Probe Core (1)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Probe Core (2)" }),
+    ).toBeInTheDocument();
+  });
+
   it("the picker has no visible heading, is a labelled group, and each CPU button carries an icon", async () => {
     const fixture = terminalFixture();
     render(
