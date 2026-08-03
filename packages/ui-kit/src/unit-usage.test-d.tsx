@@ -44,7 +44,7 @@ export const _wrongKind = <Unit value={surfaceSpeed} format="s" />;
 // @ts-expect-error: not a unit of any kind
 export const _notAUnit = <Unit value={altitude} format="furlongs" />;
 
-// ── 3. Arithmetic carries the unit through ──────────────────────────────────
+// ── 3. Arithmetic and ordering carry the unit through ───────────────────────
 // Same dimension adds, converting as it goes: 42s + 2min is one duration.
 export const _totalBurn = burnTime.plus(value("min", 2));
 
@@ -55,6 +55,12 @@ export const _nonsense = dryMass.plus(burnTime);
 // Division derives the unit rather than being told it.
 export const _acceleration = surfaceSpeed.per(burnTime); // m/s²
 export const _fuelFlow = dryMass.per(burnTime); // kg/s
+
+// Ordering converts first, so the unit a value happens to be in does not
+// decide the answer. Comparing `.magnitude` directly would: 2 h has a smaller
+// magnitude than 120 s and is thirty times the duration.
+export const _isLong = burnTime.greaterThan(value("min", 1));
+export const _sorted = [burnTime, value("min", 2)].sort((a, b) => a.compare(b));
 
 // ── 4. What the migration will actually hit ─────────────────────────────────
 // These are the compile errors that ARE the work list. Each one is a site
@@ -80,7 +86,7 @@ export const _fixedJsx = (
   </span>
 );
 export const _fixedMaths = altitude.plus(value("m", 1));
-export const _fixedCompare = altitude.compare(value("m", 1_000)) > 0;
+export const _fixedCompare = altitude.greaterThan(value("m", 1_000));
 export const _fixedFormat = <Unit value={altitude} decimals={2} />;
 
 // valueOf is still there for the places a number is genuinely wanted: a chart

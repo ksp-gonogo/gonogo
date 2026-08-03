@@ -101,3 +101,10 @@ export const _gramsPlusGrams = grams.plus(value("snacks:g", 250));
 
 // @ts-expect-error: a namespaced gram is not the first-party g-force
 export const _gramsPlusGees = grams.plus(gees);
+
+// ── Ordering is a method, because the operator cannot be ────────────────────
+export const _ordered: boolean = hours.greaterThan(seconds);
+export const _sortable: number = hours.compare(seconds);
+
+// @ts-expect-error: ordering across dimensions is as wrong as adding across them
+export const _orderedAcross = metres.lessThan(seconds);

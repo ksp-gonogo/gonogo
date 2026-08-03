@@ -187,3 +187,37 @@ describe("units outside the catalog", () => {
     expect(value("widgets", 6).dividedBy(value("s", 2)).unit).toBe("widgets/s");
   });
 });
+
+describe("ordering", () => {
+  const anHour = value("h", 1);
+  const ninetyMinutes = value("min", 90);
+
+  it("converts before comparing, so the bigger unit does not win by default", () => {
+    // 1 h has a magnitude of 1 and 90 min has a magnitude of 90. Comparing the
+    // magnitudes says the hour is smaller; comparing the QUANTITIES says it is
+    // shorter, which happens to agree here and would not for 2 h against 120 s.
+    expect(anHour.lessThan(ninetyMinutes)).toBe(true);
+    expect(anHour.greaterThan(ninetyMinutes)).toBe(false);
+    expect(value("h", 2).greaterThan(value("s", 120))).toBe(true);
+  });
+
+  it("has the inclusive forms agree with themselves", () => {
+    const same = value("min", 60);
+    expect(anHour.lessThanOrEqual(same)).toBe(true);
+    expect(anHour.greaterThanOrEqual(same)).toBe(true);
+    expect(anHour.lessThan(same)).toBe(false);
+    expect(anHour.greaterThan(same)).toBe(false);
+  });
+
+  it("still exposes compare, for a sort comparator", () => {
+    // The one place the -1/0/1 shape is the right answer.
+    const sorted = [value("h", 2), value("min", 30), value("s", 45)].sort(
+      (a, b) => a.compare(b),
+    );
+    expect(sorted.map((v) => v.unit)).toEqual(["s", "min", "h"]);
+  });
+
+  it("refuses to order across dimensions", () => {
+    expect(() => value("m", 5).lessThan(value("s", 5) as never)).toThrow();
+  });
+});

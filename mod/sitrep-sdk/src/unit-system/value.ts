@@ -99,7 +99,30 @@ export interface Value<U extends string = string> {
   in<T extends Addend<U>>(unit: T): Value<T>;
 
   equals(other: Value | number): boolean;
-  /** Negative, zero or positive, like a comparator. Same dimension only. */
+
+  /**
+   * Ordering. Same dimension only, and converted before comparing, so 1 h is
+   * correctly greater than 90 min.
+   *
+   * These exist because `a > b` cannot: TypeScript rejects relational
+   * operators on object types, which is the same property that makes the
+   * migration findable. Named the long way, matching `dividedBy` rather than
+   * `div`, and matching what UnitMath and decimal.js settled on.
+   *
+   * Reach for these rather than comparing `.magnitude` directly. That
+   * compiles, and it is wrong across units: 2 h has a smaller magnitude than
+   * 120 s and is thirty times the duration. It is the one hole the object type
+   * does not close on its own.
+   */
+  lessThan(other: Value<Addend<U>>): boolean;
+  lessThanOrEqual(other: Value<Addend<U>>): boolean;
+  greaterThan(other: Value<Addend<U>>): boolean;
+  greaterThanOrEqual(other: Value<Addend<U>>): boolean;
+
+  /**
+   * Negative, zero or positive. For `Array.prototype.sort`, which wants that
+   * shape; for a yes-or-no question use the predicates above.
+   */
   compare(other: Value<Addend<U>>): number;
 }
 
@@ -230,6 +253,18 @@ const prototype = {
     const right = baseMagnitude(other);
     return left < right ? -1 : left > right ? 1 : 0;
   },
+  lessThan(this: Value, other: Value): boolean {
+    return this.compare(other) < 0;
+  },
+  lessThanOrEqual(this: Value, other: Value): boolean {
+    return this.compare(other) <= 0;
+  },
+  greaterThan(this: Value, other: Value): boolean {
+    return this.compare(other) > 0;
+  },
+  greaterThanOrEqual(this: Value, other: Value): boolean {
+    return this.compare(other) >= 0;
+  },
 };
 
 /**
@@ -238,6 +273,14 @@ const prototype = {
  * `Object.create` rather than a class so the result is a plain data object with
  * a shared prototype: two own properties per value, and `JSON.stringify` yields
  * exactly `{magnitude, unit}`.
+ *
+ * The unit parameter is `KnownUnit | (string & {})`, the same open union the
+ * generated `SitrepUnit` uses: every declared symbol autocompletes, and an
+ * arbitrary string is still legal because an Uplink's unit has to be. So a
+ * typo is not REJECTED, and cannot be without shutting third parties out. What
+ * happens instead is that the typo becomes its own base dimension and refuses
+ * to combine with anything: `value("Klevin", 300).plus(value("K", 1))` throws
+ * "Cannot add Klevin and K". Wrong, but loudly, rather than quietly wrong.
  */
 export function value<U extends string>(unit: U, magnitude: number): Value<U> {
   const instance = Object.create(prototype) as {
