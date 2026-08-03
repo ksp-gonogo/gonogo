@@ -6,7 +6,9 @@ export {
 export * as Dimension from "./dimension";
 export {
   declaredUnitFor,
+  displaySymbol,
   lookupUnit,
+  namespaceOf,
   registerUnit,
   resetUnitRegistry,
   type UnitRegistration,

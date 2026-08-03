@@ -88,3 +88,16 @@ export const _kspDayPlusIrlDay = kspDay.plus(irlDay);
 export const _irlHoursPlusIrlMinutes = value("irl:h", 1).plus(
   value("irl:min", 30),
 );
+
+// ── A namespaced token is a different unit, at compile time too ─────────────
+// An Uplink's `snacks:g` is outside the catalog, so `SameDimensionAs` collapses
+// to `never` and `plus` accepts only an exact match. That is the safe reading
+// when we know nothing about a third party's symbol, and here it happens to be
+// exactly right: grams are not gees.
+const grams = value("snacks:g", 500);
+const gees = value("g", 2);
+
+export const _gramsPlusGrams = grams.plus(value("snacks:g", 250));
+
+// @ts-expect-error: a namespaced gram is not the first-party g-force
+export const _gramsPlusGees = grams.plus(gees);

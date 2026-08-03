@@ -47,6 +47,26 @@ const RESERVED: ReadonlyArray<{
   },
 ];
 
+/**
+ * Splits `snacks:g` into its namespace and the glyph an operator reads.
+ *
+ * A unit TOKEN may be namespaced; the SYMBOL it displays as never is. This is
+ * how two mods can both call something `g` without either having to give the
+ * name up, and it is not a new idea here: `irl:s` is the first-party instance
+ * of the same problem, where real seconds and game seconds share a glyph and
+ * must not share a dimension.
+ */
+export function displaySymbol(token: string): string {
+  const colon = token.indexOf(":");
+  return colon === -1 ? token : token.slice(colon + 1);
+}
+
+/** The declaring namespace, or `undefined` for a first-party token. */
+export function namespaceOf(token: string): string | undefined {
+  const colon = token.indexOf(":");
+  return colon === -1 ? undefined : token.slice(0, colon);
+}
+
 const registry = new Map<string, UnitDefinition>();
 /** Every declared unit sharing a dimension, in registration order. */
 const byDimension = new Map<string, string[]>();
@@ -182,6 +202,8 @@ export function registerUnit(registration: UnitRegistration): void {
 
   const dim = dimensionFor(registration);
 
+  // Reserved symbols guard the UNNAMESPACED name only. `snacks:m` hijacks
+  // nothing, so an Uplink is free to mean whatever it likes by it.
   const reserved = RESERVED.find((entry) => entry.symbol === symbol);
   if (reserved && !Dim.equal(reserved.dimension, dim)) {
     throw new Error(`Cannot register "${symbol}": ${reserved.why}`);
@@ -203,12 +225,18 @@ export function registerUnit(registration: UnitRegistration): void {
     // display-only, so nothing downstream has to choose.
     return;
   }
+  const conflictingDimension = !Dim.equal(existing.dim, definition.dim);
   console.warn(
     `Unit "${symbol}" is already registered as ` +
       `${Dim.formatDimension(existing.dim) || "dimensionless"} ` +
       `(${existing.kind}); keeping that and ignoring the new ` +
-      `${Dim.formatDimension(dim) || "dimensionless"} (${kind}) declaration. ` +
-      "A value carries only its symbol, so one symbol cannot have two " +
-      "dimensions and still answer whether two values can be added.",
+      `${Dim.formatDimension(dim) || "dimensionless"} (${kind}) declaration.` +
+      (conflictingDimension
+        ? ` NAMESPACE IT: declare "<yourmod>:${symbol}" instead. Until you do,` +
+          ` any value carrying the bare "${symbol}" is read as` +
+          ` ${existing.kind}, so two of them will ADD when they should not.` +
+          " A value carries only its token, so one token cannot have two" +
+          " dimensions and still answer whether two values can be combined."
+        : ""),
   );
 }

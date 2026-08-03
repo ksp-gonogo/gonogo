@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupUnit, registerUnit, resetUnitRegistry } from "./registry";
+import {
+  displaySymbol,
+  lookupUnit,
+  namespaceOf,
+  registerUnit,
+  resetUnitRegistry,
+} from "./registry";
 import { value } from "./value";
 
 afterEach(() => {
@@ -160,5 +166,85 @@ describe("real time is a different dimension from game time", () => {
       1.5,
       10,
     );
+  });
+});
+
+describe("namespaced symbols", () => {
+  it("lets two mods keep the same glyph and different dimensions", () => {
+    // The collision the overlap policy could only half-answer. `g` is
+    // acceleration first-party; a snacks mod wanting grams namespaces its
+    // token, and the two are then simply different units.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    registerUnit({
+      symbol: "snacks:g",
+      kind: "mass",
+      dimension: { kg: 1 },
+      ratio: 0.001,
+    });
+    expect(warn).not.toHaveBeenCalled();
+
+    // Grams add to grams, and refuse to add to gees. Under the bare-symbol
+    // policy these would have summed to a meaningless number.
+    expect(value("snacks:g", 500).plus(value("snacks:g", 250)).magnitude).toBe(
+      750,
+    );
+    expect(() => value("snacks:g", 500).plus(value("g", 2))).toThrow();
+  });
+
+  it("converts a namespaced unit against the first-party base", () => {
+    registerUnit({
+      symbol: "snacks:g",
+      kind: "mass",
+      dimension: { kg: 1 },
+      ratio: 0.001,
+    });
+    expect(value("snacks:g", 1_500).in("kg").magnitude).toBeCloseTo(1.5, 10);
+  });
+
+  it("displays the glyph, not the token", () => {
+    // A token may be namespaced; the symbol an operator reads never is.
+    expect(displaySymbol("snacks:g")).toBe("g");
+    expect(displaySymbol("g")).toBe("g");
+    expect(namespaceOf("snacks:g")).toBe("snacks");
+    expect(namespaceOf("g")).toBeUndefined();
+  });
+
+  it("is the same mechanism irl: already uses", () => {
+    // Real seconds and game seconds are the first-party instance of exactly
+    // this problem: one glyph, two dimensions, and they must not add.
+    expect(displaySymbol("irl:s")).toBe("s");
+    expect(displaySymbol("irl:d")).toBe("d");
+    expect(() => value("irl:s", 1).plus(value("s", 1))).toThrow();
+  });
+
+  it("does not let a namespace hijack a reserved symbol", () => {
+    // `m` is metres and cannot be redefined. `snacks:m` hijacks nothing, so an
+    // Uplink is free to mean whatever it likes by it.
+    expect(() =>
+      registerUnit({ symbol: "m", kind: "time", dimension: { s: 1 } }),
+    ).toThrow();
+    expect(() =>
+      registerUnit({
+        symbol: "snacks:m",
+        kind: "munchies",
+        dimension: { mn: 1 },
+      }),
+    ).not.toThrow();
+  });
+
+  it("tells a colliding registration exactly what to do instead", () => {
+    // The residual risk is real and cannot be designed away: a value carries
+    // only its token, so if a mod insists on the bare glyph there is no way to
+    // tell its values apart from the first mod's. The warning says so.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    registerUnit({
+      symbol: "g",
+      kind: "mass",
+      dimension: { kg: 1 },
+      ratio: 0.001,
+    });
+    const message = String(warn.mock.calls[0][0]);
+    expect(message).toMatch(/NAMESPACE IT: declare "<yourmod>:g"/);
+    expect(message).toMatch(/will ADD when they should not/);
   });
 });
