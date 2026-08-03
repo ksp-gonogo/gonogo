@@ -66,7 +66,11 @@ export const UNIT_DEFINITIONS = {
   // ── Angle ────────────────────────────────────────────────────────────────
   rad: { dim: { rad: 1 }, ratio: 1, kind: "planeAngle" },
   "°": { dim: { rad: 1 }, ratio: Math.PI / 180, kind: "planeAngle" },
-  rpm: { dim: { rad: 1, s: -1 }, ratio: (2 * Math.PI) / 60, kind: "rotation" },
+  rpm: {
+    dim: { rad: 1, s: -1 },
+    ratio: (2 * Math.PI) / 60,
+    kind: "angularSpeed",
+  },
 
   // ── Mass, force, energy, power, pressure ─────────────────────────────────
   kg: { dim: { kg: 1 }, ratio: 1, kind: "mass" },

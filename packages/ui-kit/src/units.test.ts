@@ -84,8 +84,8 @@ describe("formatQuantity", () => {
 
   it("keeps degrees and radians apart", () => {
     // KSP mixes them, which is why the contract declares which one it sends.
-    expect(kindOfUnit("°")).toBe("angle");
-    expect(kindOfUnit("rad")).toBe("angle");
+    expect(kindOfUnit("°")).toBe("planeAngle");
+    expect(kindOfUnit("rad")).toBe("planeAngle");
     expect(formatQuantity(0.5, "rad").symbol).toBe("rad");
     expect(formatQuantity(28.5, "°").symbol).toBe("°");
   });
@@ -271,6 +271,56 @@ describe("catalog coverage", () => {
 
     expect(tokens.length).toBeGreaterThan(0);
     expect(tokens.filter((t) => kindOfUnit(t) === undefined)).toEqual([]);
+  });
+
+  it("agrees with the SDK on what each unit's kind is CALLED", () => {
+    // The drift the coverage check above could not see. It only asked whether
+    // a token had SOME kind, so the two tables were free to disagree on the
+    // name, and seven of them did: kW was `energyRate` here and `power` there,
+    // ° was `angle` against `planeAngle`, ratio was `fraction`.
+    //
+    // That matters because kind is the key the conditional-props system uses.
+    // `format="date"` is offerable on a time and a type error on a length
+    // because both sides agree on the string "time". Two spellings of one kind
+    // means an Uplink's `declare module` augmentation silently targets nothing.
+    //
+    // Read out of the SDK source rather than restated here, for the same
+    // reason as the coverage check: a hand-copied expectation passes by being
+    // updated in lockstep with the thing it is checking.
+    const src = readFileSync(
+      join(
+        process.cwd(),
+        "../../mod/sitrep-sdk/src/unit-system/definitions.ts",
+      ),
+      "utf8",
+    );
+    const table = src.slice(
+      src.indexOf("export const UNIT_DEFINITIONS = {"),
+      src.indexOf("} as const satisfies"),
+    );
+
+    const mismatches: string[] = [];
+    // The `dim: { ... }` sub-object has to be consumed explicitly. An earlier
+    // version used `\{[^}]*kind:` and matched NOTHING, because the negated
+    // class stops at dim's own closing brace: it passed with a divergence
+    // deliberately reintroduced, which is why the count is asserted below.
+    const entries = [
+      ...table.matchAll(
+        /^\s*"?([^":\s]+)"?:\s*\{\s*dim:\s*\{[^}]*\}[^}]*kind:\s*"(\w+)"/gm,
+      ),
+    ];
+    expect(entries.length).toBeGreaterThan(30);
+
+    for (const entry of entries) {
+      const [, symbol, sdkKind] = entry;
+      const uiKind = kindOfUnit(symbol);
+      // A unit the SDK declares and ui-kit has no opinion on is fine: the SDK
+      // carries base units (W, J, N·m, km, min) that never reach a readout.
+      if (uiKind !== undefined && uiKind !== sdkKind) {
+        mismatches.push(`${symbol}: ui-kit=${uiKind} sdk=${sdkKind}`);
+      }
+    }
+    expect(mismatches).toEqual([]);
   });
 });
 

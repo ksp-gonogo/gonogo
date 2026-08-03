@@ -34,19 +34,19 @@ export type KnownQuantityKind =
   | "pressure"
   | "temperature"
   | "time"
-  | "angle"
-  | "energyRate"
+  | "planeAngle"
+  | "power"
   | "dataRate"
   | "doseRate"
   | "irradiance"
   | "level"
   | "density"
-  | "gravitationalParameter"
+  | "gravParameter"
   | "dimensionless"
-  | "percentage"
+  | "percent"
   | "scienceData"
   | "scienceRate"
-  | "fraction"
+  | "ratio"
   // Non-dimensional kinds. These say "this has no physical dimension", which
   // is a different claim from `dimensionless` ("a real measurement that
   // happens to have no unit", Mach and TWR) and a very different one from an
@@ -101,9 +101,9 @@ export interface Rung {
  *    cannot express. It is a presentation unit instead: see `as`.
  *  - `time`, which does not climb by thousands. It has its own composite
  *    formatter, wired in below.
- *  - `gravitationalParameter`, whose values are ~1e12 and have no named
+ *  - `gravParameter`, whose values are ~1e12 and have no named
  *    prefixes anyone uses. Scientific notation instead: see `SCIENTIFIC`.
- *  - `angle`, `fraction`, `dimensionless`, which have no magnitudes to climb.
+ *  - `planeAngle`, `ratio`, `dimensionless`, which have no magnitudes to climb.
  */
 const LADDERS: Record<string, readonly Rung[]> = {
   length: [
@@ -166,7 +166,7 @@ const LADDERS: Record<string, readonly Rung[]> = {
   // several thousand kW, and ThermalStatus's hand-rolled formatter carried an
   // MW rung for exactly that; without one here, migrating it would render peak
   // reentry flux as a four-digit kW number.
-  energyRate: [
+  power: [
     { from: 0, symbol: "W", per: 1 },
     { from: 1e3, symbol: "kW", per: 1e3 },
     { from: 1e6, symbol: "MW", per: 1e6 },
@@ -183,7 +183,7 @@ const LADDERS: Record<string, readonly Rung[]> = {
  * is a unit nobody writes. Scientific notation is what the astrodynamics
  * literature actually uses, so it is what a reader recognises.
  */
-const SCIENTIFIC = new Set<string>(["gravitationalParameter"]);
+const SCIENTIFIC = new Set<string>(["gravParameter"]);
 
 /** Significant figures in a scientific mantissa, unless the caller overrides. */
 const SCIENTIFIC_SIGNIFICANT = 4;
@@ -268,20 +268,20 @@ const DECIMALS: Record<string, number> = {
   pressure: 2,
   temperature: 0,
   time: 0,
-  angle: 2,
+  planeAngle: 2,
   density: 4,
   dataRate: 1,
   // One decimal reads right at the kW rung a flux readout mostly sits at
   // (`842.3 kW`), and stays legible at MW (`2.4 MW`).
-  energyRate: 1,
+  power: 1,
   doseRate: 4,
   irradiance: 1,
   level: 1,
   dimensionless: 2,
-  percentage: 1,
+  percent: 1,
   scienceData: 1,
   scienceRate: 1,
-  fraction: 0,
+  ratio: 0,
   // A count is integral: "3.00 crew" is wrong in a way "3.00 Mach" is not,
   // which is the whole reason `count` is a separate kind from `dimensionless`.
   count: 0,
@@ -345,9 +345,9 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   K: "temperature",
   "°C": "temperature",
   s: "time",
-  "°": "angle",
-  rad: "angle",
-  kW: "energyRate",
+  "°": "planeAngle",
+  rad: "planeAngle",
+  kW: "power",
   "bit/s": "dataRate",
   "kbit/s": "dataRate",
   "Mbit/s": "dataRate",
@@ -356,10 +356,10 @@ const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
   "rad/s": "doseRate",
   "W/m²": "irradiance",
   "kg/m³": "density",
-  "m³/s²": "gravitationalParameter",
+  "m³/s²": "gravParameter",
   "1": "dimensionless",
-  ratio: "fraction",
-  "%": "percentage",
+  ratio: "ratio",
+  "%": "percent",
   Mit: "scienceData",
   "science/day": "scienceRate",
   "m²": "area",
@@ -537,7 +537,7 @@ export interface UnitDefinition {
    * kilograms, and mixing the two is what made a real prefix bug possible.
    */
   ladder?: readonly Rung[];
-  /** Render in scientific notation by default, as `gravitationalParameter` does. */
+  /** Render in scientific notation by default, as `gravParameter` does. */
   scientific?: boolean;
   /**
    * What to show beside the number, when it is not the symbol itself. Set it
@@ -652,11 +652,11 @@ export function formatQuantity(
 
   const kind = kindOfUnit(unit);
 
-  // A fraction is 0..1 and shown as a percentage; a percentage that is already
+  // A ratio is 0..1 and shown as a percentage; a percent token that is already
   // 0..100 is a different unit and must not be multiplied again. Keeping them
   // distinct is the single most common unit bug in a dashboard.
-  if (kind === "fraction") {
-    const decimals = opts.decimals ?? DECIMALS.fraction ?? 0;
+  if (kind === "ratio") {
+    const decimals = opts.decimals ?? DECIMALS.ratio ?? 0;
     return { value: (value * 100).toFixed(decimals), symbol: "%", rung: "%" };
   }
 
