@@ -1328,6 +1328,7 @@ export interface VesselLanding
 	projectedTouchdownSpeed?: Value<"m/s">;
 	atmosphericTimeToImpact?: Value<"s">;
 	descentRegime?: string;
+	dragToWeightRatio?: Value<"1">;
 	parachuteState?: string;
 	meta: PayloadMeta;
 }

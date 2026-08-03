@@ -1055,6 +1055,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "VesselLanding": {
     atmosphericTimeToImpact: "s",
     descentRegime: "text",
+    dragToWeightRatio: "1",
     outcome: "text",
     parachuteState: "text",
     predictedBiome: "text",
@@ -1621,6 +1622,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.landing": {
     atmosphericTimeToImpact: "s",
     descentRegime: "text",
+    dragToWeightRatio: "1",
     outcome: "text",
     parachuteState: "text",
     predictedBiome: "text",

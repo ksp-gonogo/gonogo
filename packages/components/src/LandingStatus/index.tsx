@@ -543,6 +543,8 @@ function LandingStatusComponent({
         terminalVelocity={landing?.terminalVelocity ?? null}
         projectedTouchdownSpeed={landing?.projectedTouchdownSpeed ?? null}
         atmosphereColor={body?.atmosphereColor ?? null}
+        dragToWeight={landing?.dragToWeightRatio ?? null}
+        dragDisplay="arrow"
       />
     ) : null;
 

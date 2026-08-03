@@ -144,6 +144,10 @@ public class VesselLanding
     [SitrepUnit(Units.Text)]
     public string? DescentRegime { get; set; }
 
+    /// <summary>The aggregate aerodynamic drag force divided by the vessel's weight (local gravity): the numeric form of <see cref="DescentRegime"/>. &gt;1 decelerating (drag beats gravity), 1 at terminal, &lt;1 still accelerating. A dimensionless 0..N ratio like TWR, not a 0..1 fraction. Null outside an atmosphere.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? DragToWeightRatio { get; set; }
+
     /// <summary>Parachute state affecting the estimate: <c>"none"</c> / <c>"armed"</c> (a future step change the instant model cannot see, flag the estimate) / <c>"deployed"</c> (drag already in the measurement, self-corrected). Null outside an atmosphere.</summary>
     [SitrepUnit(Units.Text)]
     public string? ParachuteState { get; set; }

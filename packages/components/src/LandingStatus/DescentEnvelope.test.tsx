@@ -451,6 +451,187 @@ describe("DescentEnvelope", () => {
     expect(stopColors.every((c) => c === kerbinBlue)).toBe(true);
   });
 
+  // ── Drag-to-weight arrowhead ──────────────────────────────────────────────
+  // A faint, solo OPEN chevron (no shaft, no fill) sat just above the vessel
+  // dot, centred on its x, apex pointing up/away, its SIZE (not length)
+  // scaled to the drag-to-weight ratio (drag force ÷ weight). The open
+  // bottom of the "^" leaves a small triangular gap above the dot. Opt-in
+  // via `dragDisplay`; omitted / "none" renders nothing so every existing
+  // caller is unaffected.
+
+  const dragBase = {
+    currentSpeed: 100,
+    currentAltitude: 3000,
+    terminalVelocity: 120,
+    projectedTouchdownSpeed: 8,
+  } as const;
+
+  function arrowShaft(container: HTMLElement): SVGLineElement | null {
+    return container.querySelector("svg line");
+  }
+  // The drag chevron is a `<polyline>`, same element type as the reference
+  // curve, so it's picked out by its own faint stroke colour (the curve
+  // always wears `--color-text-muted`).
+  function arrowHead(container: HTMLElement): SVGPolylineElement | null {
+    return container.querySelector(
+      'svg polyline[stroke="var(--color-text-faint)"]',
+    );
+  }
+  function arrowWidth(polyline: SVGPolylineElement): number {
+    const xs = (polyline.getAttribute("points") ?? "")
+      .trim()
+      .split(/\s+/)
+      .map((p) => Number(p.split(",")[0]));
+    return Math.max(...xs) - Math.min(...xs);
+  }
+
+  it("renders no drag arrowhead when dragDisplay is omitted (existing callers unaffected)", () => {
+    const { container } = render(<DescentEnvelope {...dragBase} />);
+    expect(arrowHead(container)).toBeNull();
+  });
+
+  it('renders no drag arrowhead when dragDisplay is "none", even with a ratio present', () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="none" dragToWeight={1.4} />,
+    );
+    expect(arrowHead(container)).toBeNull();
+  });
+
+  it("renders no drag arrowhead without a positive, finite ratio", () => {
+    for (const bad of [null, 0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const { container } = render(
+        <DescentEnvelope
+          {...dragBase}
+          dragDisplay="arrow"
+          dragToWeight={bad}
+        />,
+      );
+      expect(arrowHead(container)).toBeNull();
+    }
+  });
+
+  it('draws a solo open chevron, no shaft, when dragDisplay="arrow" with a ratio', () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={1.2} />,
+    );
+    expect(arrowHead(container)).not.toBeNull();
+    expect(arrowShaft(container)).toBeNull();
+  });
+
+  it("is stroke-only, never a filled shape", () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={1.2} />,
+    );
+    // No filled polygon anywhere in the SVG (the old filled-triangle mark
+    // is gone), and the chevron itself is explicitly unfilled.
+    expect(container.querySelectorAll("svg polygon")).toHaveLength(0);
+    const head = arrowHead(container) as SVGPolylineElement;
+    expect(head.getAttribute("fill")).toBe("none");
+  });
+
+  it("scales the arrowhead WIDTH with the drag-to-weight ratio", () => {
+    const { container: small } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={0.5} />,
+    );
+    const { container: large } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={1.5} />,
+    );
+    const smallHead = arrowHead(small);
+    const largeHead = arrowHead(large);
+    expect(smallHead).not.toBeNull();
+    expect(largeHead).not.toBeNull();
+    expect(arrowWidth(largeHead as SVGPolylineElement)).toBeGreaterThan(
+      arrowWidth(smallHead as SVGPolylineElement),
+    );
+  });
+
+  it("is a faint sliver (~1.5px across) at a near-zero drag-to-weight ratio", () => {
+    const { container } = render(
+      <DescentEnvelope
+        {...dragBase}
+        dragDisplay="arrow"
+        dragToWeight={0.001}
+      />,
+    );
+    const head = arrowHead(container) as SVGPolylineElement;
+    expect(arrowWidth(head)).toBeCloseTo(1.5, 1);
+  });
+
+  it("is slightly wider than the vessel dot (~14px) at the ratio clamp", () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={3} />,
+    );
+    const head = arrowHead(container) as SVGPolylineElement;
+    // DOT_RADIUS is 6, diameter 12; the clamp width should read a touch past it.
+    expect(arrowWidth(head)).toBeGreaterThan(12);
+    expect(arrowWidth(head)).toBeCloseTo(14, 0);
+  });
+
+  it("clamps the arrowhead size at ratio 3 (widths at ratio 3 and 50 are equal)", () => {
+    const { container: atCap } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={3} />,
+    );
+    const { container: overCap } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={50} />,
+    );
+    const capped = arrowWidth(arrowHead(atCap) as SVGPolylineElement);
+    const over = arrowWidth(arrowHead(overCap) as SVGPolylineElement);
+    expect(over).toBeCloseTo(capped, 3);
+  });
+
+  it("is flatter (wide, shallow) than tall: height is well under the width", () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={3} />,
+    );
+    const head = arrowHead(container) as SVGPolylineElement;
+    const points = (head.getAttribute("points") ?? "")
+      .trim()
+      .split(/\s+/)
+      .map((p) => p.split(",").map(Number) as [number, number]);
+    const ys = points.map(([, y]) => y);
+    const width = arrowWidth(head);
+    const height = Math.max(...ys) - Math.min(...ys);
+    // Aspect (height / width) is well under 1, a shallow chevron, not a spike.
+    expect(height / width).toBeLessThan(0.75);
+  });
+
+  it("sits ABOVE the dot, centred on its x, apex up, arms' base touching the dot", () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={1.5} />,
+    );
+    const head = arrowHead(container) as SVGPolylineElement;
+    const dot = container.querySelector("svg circle") as SVGCircleElement;
+    const dotCx = Number(dot.getAttribute("cx"));
+    const dotCy = Number(dot.getAttribute("cy"));
+    const dotR = Number(dot.getAttribute("r"));
+
+    const points = (head.getAttribute("points") ?? "")
+      .trim()
+      .split(/\s+/)
+      .map((p) => p.split(",").map(Number) as [number, number]);
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    const apexY = Math.min(...ys);
+    const armsY = Math.max(...ys);
+
+    // Centred on the dot's x.
+    expect((Math.min(...xs) + Math.max(...xs)) / 2).toBeCloseTo(dotCx, 3);
+    // Tip points up, above the open base formed by the two arms.
+    expect(apexY).toBeLessThan(armsY);
+    // The arms' open base (their ends) sits ON the dot's top edge, no added
+    // offset gap; the only gap that reads is the open V shape itself.
+    expect(armsY).toBeCloseTo(dotCy - dotR, 3);
+  });
+
+  it("draws the drag arrowhead in the faint label token, never a raw hex colour", () => {
+    const { container } = render(
+      <DescentEnvelope {...dragBase} dragDisplay="arrow" dragToWeight={1.5} />,
+    );
+    const head = arrowHead(container) as SVGPolylineElement;
+    expect(head.getAttribute("stroke")).toBe("var(--color-text-faint)");
+    expect(head.getAttribute("fill")).toBe("none");
+  });
+
   it("falls back to the neutral blue-slate default for an unknown/airless body", () => {
     const { container: withNull } = render(
       <DescentEnvelope

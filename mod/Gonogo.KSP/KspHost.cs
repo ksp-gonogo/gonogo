@@ -1886,6 +1886,9 @@ namespace Gonogo.KSP
                 result["atmosphericTimeToImpact"] =
                     LandingModel.AtmosphericTimeToImpact(dragForce, weight, vNow, rhoNow, alts, rhos);
                 result["descentRegime"] = LandingModel.ClassifyRegime(dragForce, weight);
+                // The numeric drag/weight balance behind descentRegime: the same
+                // dragForce and weight (both kN) the terminal-velocity model uses.
+                result["dragToWeightRatio"] = weight > 0 ? dragForce / weight : (double?)null;
                 result["parachuteState"] = BuildParachuteState(vessel);
             }
 

@@ -159,6 +159,41 @@ const LABEL_SHADOW_COLOR = "var(--color-surface-raised)";
 const LABEL_SHADOW_BLUR = 1;
 const LABEL_SHADOW_OPACITY = 0.7;
 
+// --- Vessel dot + drag-to-weight arrow ---------------------------------------
+// Dot radius, pulled out so the drag arrow can anchor flush to its edge.
+const DOT_RADIUS = 6;
+
+// A faint, solo OPEN chevron (no shaft/trailing line, no fill) sat just
+// above the vessel dot, centred on the dot's x and pointing UP, away from
+// the dot. It's a stroked "^", two arms angling down-and-outward from an
+// apex, not a filled triangle, so the open bottom of the V itself reads as
+// a small triangular gap even though the arms' ends touch the dot's top
+// edge (no added offset). Drag is "pulling the vessel back", the opposite
+// intuition from a shaft that grows out of the dot, so the mark sits on the
+// OPPOSITE side of the dot from the old design and carries no direction of
+// travel, only a size. Its SIZE (not length) scales with the drag-to-weight
+// ratio (aggregate drag force ÷ vessel weight; >1 decelerating, 1 at
+// terminal, <1 accelerating): a near-invisible point at a low ratio, growing
+// toward a chevron a little wider than the dot itself at
+// `DRAG_ARROW_MAX_RATIO`, clamped so a huge reading never runs away. Height
+// scales with width (not independently), kept deliberately SHALLOW
+// (`DRAG_ARROW_ASPECT` well under 1) so it reads as a wide, flat arrowhead
+// rather than a tall spike. Deliberately monochrome/faint (the same muted
+// label token as the HUD text) so it never competes with the dot's action
+// colour or the atmosphere haze. Opt-in only, so every existing
+// caller/render/test is unaffected.
+const DRAG_ARROW_MAX_RATIO = 3; // clamp: beyond this the size stops growing
+const DRAG_ARROW_MIN_WIDTH = 1.5; // px width at a near-zero ratio, a faint sliver
+const DRAG_ARROW_MAX_WIDTH = 14; // px width at the clamp, a touch past the dot's 12px diameter
+const DRAG_ARROW_ASPECT = 0.5; // height ÷ width, wide and shallow, not a tall spike
+const DRAG_ARROW_STROKE_WIDTH = 1.25; // thin so the open shape reads cleanly at small sizes
+const DRAG_ARROW_COLOR = "var(--color-text-faint)";
+const DRAG_ARROW_OPACITY = 0.55;
+
+/** Which drag-to-weight treatment to render, if any. `'none'` is the default so
+ * every existing caller renders exactly as before. */
+export type DragDisplay = "arrow" | "none";
+
 export interface DescentEnvelopeProps {
   /** Current surface speed, m/s. */
   currentSpeed: number | null;
@@ -175,6 +210,16 @@ export interface DescentEnvelopeProps {
    * when the body is unknown, unset, or airless.
    */
   atmosphereColor?: string | null;
+  /**
+   * Drag-to-weight ratio (aggregate drag force ÷ vessel weight) from
+   * `vessel.landing.dragToWeightRatio`: >1 decelerating, 1 at terminal, <1
+   * accelerating. Drives the length of the drag arrow. Ignored unless
+   * `dragDisplay` opts into the arrow treatment.
+   */
+  dragToWeight?: number | null;
+  /** Which drag treatment to render, if any. Defaults to `'none'` so every
+   * existing caller/render/test is unaffected. */
+  dragDisplay?: DragDisplay;
 }
 
 function fmtSpeed(v: number): string {
@@ -211,6 +256,8 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
     terminalVelocity,
     projectedTouchdownSpeed,
     atmosphereColor,
+    dragToWeight,
+    dragDisplay = "none",
   } = props;
   const hazeColor =
     atmosphereColor != null && atmosphereColor.length > 0
@@ -297,6 +344,28 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
   const urgency = classifyUrgency(vtGround, alt0);
   const dotColor = URGENCY_COLOR[urgency];
 
+  // Drag-to-weight arrowhead geometry. Sits just above the dot's TOP edge,
+  // centred on the dot's x, apex pointing up/away. SIZE (not length) scales
+  // with the ratio, clamped at `DRAG_ARROW_MAX_RATIO` so a big reading never
+  // runs away. Only when the caller opts in with a positive ratio.
+  const showDragArrow =
+    dragDisplay === "arrow" &&
+    vesselX != null &&
+    dragToWeight != null &&
+    Number.isFinite(dragToWeight) &&
+    dragToWeight > 0;
+  const dragArrowWidth = showDragArrow
+    ? DRAG_ARROW_MIN_WIDTH +
+      (DRAG_ARROW_MAX_WIDTH - DRAG_ARROW_MIN_WIDTH) *
+        (Math.min(dragToWeight as number, DRAG_ARROW_MAX_RATIO) /
+          DRAG_ARROW_MAX_RATIO)
+    : 0;
+  const dragArrowHeight = dragArrowWidth * DRAG_ARROW_ASPECT;
+  // The arms' ends (the base of the open V) sit flush on the dot's top
+  // edge, no offset gap; the apex is `dragArrowHeight` further up.
+  const dragArrowBaseY = vesselY - DOT_RADIUS;
+  const dragArrowTipY = dragArrowBaseY - dragArrowHeight;
+
   const label =
     (speedNow != null
       ? `Descent envelope: ${fmtSpeed(speedNow)} at ${fmtAlt(alt0)}, ${
@@ -305,7 +374,12 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
       : `Descent envelope: terminal ${fmtSpeed(vtNow)} at ${fmtAlt(
           alt0,
         )}; projected touchdown ${fmtSpeed(vtGround)}`) +
-    `; ${URGENCY_COPY[urgency]}`;
+    `; ${URGENCY_COPY[urgency]}` +
+    // Drag never carried by the arrow alone (WCAG 1.4.1 use-of-color): the
+    // ratio also reads in the accessible label whenever the arrow is shown.
+    (showDragArrow
+      ? `; drag ${(dragToWeight as number).toFixed(1)}× weight`
+      : "");
 
   return (
     <svg
@@ -403,10 +477,31 @@ export function DescentEnvelope(props: Readonly<DescentEnvelopeProps>) {
           <circle
             cx={vesselX}
             cy={vesselY}
-            r={6}
+            r={DOT_RADIUS}
             fill={dotColor}
             stroke="var(--color-surface-raised)"
             strokeWidth={1.5}
+          />
+        )}
+
+        {/* Drag-to-weight arrowhead: a solo OPEN chevron just above the dot,
+            centred on its x, apex pointing up/away (drag "pulling the vessel
+            back"). No shaft, no fill, its SIZE alone carries the ratio; the
+            open bottom of the "^" leaves a small triangular gap above the
+            dot rather than sitting flush on it. Deliberately faint/
+            monochrome so it reads as a subtle overlay, never competing with
+            the dot's action colour. */}
+        {showDragArrow && vesselX != null && (
+          <polyline
+            opacity={DRAG_ARROW_OPACITY}
+            stroke={DRAG_ARROW_COLOR}
+            fill="none"
+            strokeWidth={DRAG_ARROW_STROKE_WIDTH}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={`${vesselX - dragArrowWidth / 2},${dragArrowBaseY} ${vesselX},${dragArrowTipY} ${
+              vesselX + dragArrowWidth / 2
+            },${dragArrowBaseY}`}
           />
         )}
       </g>

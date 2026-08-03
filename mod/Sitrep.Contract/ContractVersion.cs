@@ -328,6 +328,15 @@ namespace Sitrep.Contract
         /// Minor. The write command and read field stay two separate wire keys;
         /// only the SDK unifies them. See
         /// <c>local_docs/design/plans/2026-08-02-bidirectional-control-channels-plan.md</c>.</para>
+        ///
+        /// <para>Same Minor-1 batch (Major 6 parked, additive changes accumulate):
+        /// added the new nullable <see cref="VesselLanding.DragToWeightRatio"/>
+        /// (aggregate drag force ÷ vessel weight; the numeric form of
+        /// <c>DescentRegime</c>), surfacing the drag/weight balance the landing
+        /// model already computes so the DescentEnvelope widget can draw a drag
+        /// arrow. A NEW nullable field on an existing wire type (never
+        /// removes/renames/retypes a member), so it cannot break an Uplink built
+        /// against an older Minor.</para>
         /// </summary>
         public const int Minor = 1;
     }
