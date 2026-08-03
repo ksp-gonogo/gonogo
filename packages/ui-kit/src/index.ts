@@ -174,6 +174,7 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
+export { JogWheel, type JogWheelProps } from "./JogWheel";
 export {
   KSP_DAY_SECONDS,
   KSP_YEAR_DAYS,
