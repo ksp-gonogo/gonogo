@@ -1,4 +1,52 @@
 import { GENERATED_UNIT_KINDS } from "./__generated__/unit-kinds";
+
+/** Every symbol the model declares. */
+type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
+
+/**
+ * Every unit that measures the same thing as `U`, which is exactly the set a
+ * value in `U` may be re-expressed in.
+ *
+ * This is what makes `format="km/h"` check on a speed and fail on a length. It
+ * is a mapped type over the generated table, so a new unit in the model widens
+ * the accepted set with nothing to keep in sync, and it is why that table is
+ * emitted `as const`.
+ *
+ * A symbol outside the model (an Uplink's, a ladder-only rung) yields `never`
+ * for its own kind, so the prop falls back to accepting any string rather than
+ * refusing everything. Being unable to type-check a third party's unit is not
+ * a reason to stop them asking for one.
+ */
+export type FormatsFor<U extends string> = [
+  U extends GeneratedUnit ? (typeof GENERATED_UNIT_KINDS)[U]["kind"] : never,
+] extends [infer K]
+  ? [K] extends [never]
+    ? string
+    : {
+        [S in GeneratedUnit]: (typeof GENERATED_UNIT_KINDS)[S]["kind"] extends K
+          ? S
+          : never;
+      }[GeneratedUnit]
+  : never;
+
+/**
+ * How many of the kind's BASE unit one of `symbol` is worth.
+ *
+ * Two sources, and neither is written by hand here: the model's declared
+ * ratio, or the rung's own divisor for a rung the model has no unit for. The
+ * multiplicative conversions this package used to hard-code (g to m/s², rad to
+ * degrees) are just ratios and now come from the model like everything else.
+ */
+function ratioOf(symbol: string): number | undefined {
+  const declared = GENERATED_UNIT_KINDS[symbol as GeneratedUnit];
+  if (declared) return declared.ratio;
+  for (const rungs of Object.values(LADDERS)) {
+    const rung = rungs.find((r) => r.symbol === symbol);
+    if (rung) return rung.per;
+  }
+  return undefined;
+}
+
 import { formatDuration } from "./formatDuration";
 import { NULL_DISPLAY } from "./NullValue";
 
@@ -377,7 +425,9 @@ function kindOfConversion(symbol: string): QuantityKind | undefined {
     const [from, to] = pair.split("\u2192");
     if (to === symbol) {
       return (
-        GENERATED_UNIT_KINDS[from] ?? REGISTERED_KINDS[from] ?? kindOfRung(from)
+        GENERATED_UNIT_KINDS[from as GeneratedUnit]?.kind ??
+        REGISTERED_KINDS[from] ??
+        kindOfRung(from)
       );
     }
   }
@@ -528,7 +578,7 @@ export function kindOfUnit(
   if (symbol === undefined) return undefined;
   return (
     REGISTERED_KINDS[symbol] ??
-    GENERATED_UNIT_KINDS[symbol] ??
+    GENERATED_UNIT_KINDS[symbol as GeneratedUnit]?.kind ??
     kindOfRung(symbol) ??
     kindOfConversion(symbol)
   );
@@ -598,6 +648,21 @@ export function registerUnit(def: UnitDefinition): void {
 }
 
 export interface FormatQuantityOptions {
+  /**
+   * Pin the unit rather than letting the ladder choose.
+   *
+   * The ladder is right by default: a distance climbs to km when it earns it,
+   * and a readout that jumps between rungs is doing what an operator expects.
+   * `format` is for the cases where convention beats magnitude. Orbital
+   * velocity is read in km/s in technical contexts and m/s everywhere else,
+   * and a launch broadcast quotes km/h for a lay audience: none of that
+   * follows from how big the number is.
+   *
+   * Typed by KIND, so `format="km/h"` checks on a speed and is an error on a
+   * length. Any unit of the same kind is accepted, including ones the ladder
+   * would never pick on its own, which is the point.
+   */
+  format?: string;
   /**
    * `"auto"` climbs the kind's ladder (or uses the kind's default presentation,
    * such as scientific notation or a composite duration), `"never"` holds the
@@ -673,6 +738,32 @@ export function formatQuantity(
   }
 
   const kind = kindOfUnit(unit);
+
+  // A pinned unit is applied before anything downstream reasons about scaling,
+  // so the ladder, the precision and the symbol all describe the unit actually
+  // being shown. Refused when the kinds differ or either ratio is unknown: a
+  // wrong number under a right-looking label is the failure this module exists
+  // to prevent, and silently ignoring the request is better than inventing a
+  // conversion factor.
+  // Not gated on the format DIFFERING from the unit. Pinning the unit a value
+  // already carries still has to defeat the ladder, or `format="m"` on a
+  // 12,400 m value would climb to km and the prop would be a suggestion.
+  if (opts.format !== undefined && unit !== undefined) {
+    const from = ratioOf(unit);
+    const to = ratioOf(opts.format);
+    if (
+      from !== undefined &&
+      to !== undefined &&
+      kindOfUnit(opts.format) === kind
+    ) {
+      const { format: _format, ...rest } = opts;
+      return formatQuantity((value * from) / to, opts.format, {
+        ...rest,
+        // The pinned unit IS the answer, so nothing may climb away from it.
+        scale: "never",
+      });
+    }
+  }
 
   // A ratio is 0..1 and shown as a percentage; a percent token that is already
   // 0..100 is a different unit and must not be multiplied again. Keeping them

@@ -75,8 +75,20 @@ export const UNIT_DEFINITIONS = {
   // ── Mass, force, energy, power, pressure ─────────────────────────────────
   kg: { dim: { kg: 1 }, ratio: 1, kind: "mass" },
   t: { dim: { kg: 1 }, ratio: 1_000, kind: "mass" },
+  // The astronomical rungs are GRAM-based symbols on a KILOGRAM base: 1 Yg is
+  // 1e24 g, which is 1e21 kg. Stating the ratio in kg is not a convenience, it
+  // makes a real bug unrepresentable, and it is the bug SystemView shipped:
+  // gram thresholds applied to a kilogram value labelled Kerbin one whole
+  // prefix tier too small.
+  kt: { dim: { kg: 1 }, ratio: 1e6, kind: "mass" },
+  Tg: { dim: { kg: 1 }, ratio: 1e9, kind: "mass" },
+  Pg: { dim: { kg: 1 }, ratio: 1e12, kind: "mass" },
+  Eg: { dim: { kg: 1 }, ratio: 1e15, kind: "mass" },
+  Zg: { dim: { kg: 1 }, ratio: 1e18, kind: "mass" },
+  Yg: { dim: { kg: 1 }, ratio: 1e21, kind: "mass" },
   N: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1, kind: "force" },
   kN: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1_000, kind: "force" },
+  MN: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1e6, kind: "force" },
   J: { dim: { kg: 1, m: 2, s: -2 }, ratio: 1, kind: "energy" },
   // Same dimension as J, different meaning. Adding a torque to an energy is
   // meaningless but harmless, and it is ALLOWED: gating on kind cannot name the
@@ -88,6 +100,9 @@ export const UNIT_DEFINITIONS = {
   // the ratio-1 entry registered first (W) is what a computed power shows as.
   "J/s": { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power" },
   kW: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1_000, kind: "power" },
+  // Descends below the base unit, which nothing else here needs to: the
+  // upper atmosphere runs to fractions of a pascal.
+  mPa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1e-3, kind: "pressure" },
   Pa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1, kind: "pressure" },
   kPa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1_000, kind: "pressure" },
   "kg/m³": { dim: { kg: 1, m: -3 }, ratio: 1, kind: "density" },
@@ -105,6 +120,9 @@ export const UNIT_DEFINITIONS = {
   // ── Data, level, radiation ───────────────────────────────────────────────
   bit: { dim: { bit: 1 }, ratio: 1, kind: "data" },
   "bit/s": { dim: { bit: 1, s: -1 }, ratio: 1, kind: "dataRate" },
+  "kbit/s": { dim: { bit: 1, s: -1 }, ratio: 1_000, kind: "dataRate" },
+  "Mbit/s": { dim: { bit: 1, s: -1 }, ratio: 1e6, kind: "dataRate" },
+  "Gbit/s": { dim: { bit: 1, s: -1 }, ratio: 1e9, kind: "dataRate" },
   Mit: { dim: { Mit: 1 }, ratio: 1, kind: "scienceData" },
   dB: { dim: { dB: 1 }, ratio: 1, kind: "level", log: true },
   // Absorbed dose. Its base is `radDose`, NOT the `rad` of plane angle: they

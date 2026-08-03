@@ -81,11 +81,17 @@ export * from "@testing-library/react";
  * Assert on this for what is on screen. Assert on `textContent` directly when
  * the ANNOUNCEMENT is the thing under test, or better, use
  * `screen.getByText("kilometres")`, which says so.
+ *
+ * The thin space between a number and its unit is normalised to an ordinary
+ * one. A reader sees a space; which space it is is a typographic detail, and
+ * one that produces assertion failures reading `expected "12.4 km" to be
+ * "12.4 km"`. The character itself is pinned by its own test in `Unit`, where
+ * it means something.
  */
 export function visibleText(container: HTMLElement): string {
   const clone = container.cloneNode(true) as HTMLElement;
   for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
     hidden.remove();
   }
-  return clone.textContent ?? "";
+  return (clone.textContent ?? "").replace(/\u2009/g, " ");
 }

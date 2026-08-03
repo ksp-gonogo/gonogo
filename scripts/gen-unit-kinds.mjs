@@ -30,10 +30,10 @@ const { KNOWN_SITREP_UNITS } = await import(
   join(root, "scripts/known-sitrep-units.mjs")
 );
 
-/** symbol -> kind, from the model. */
+/** symbol -> { kind, ratio }, from the model. */
 const kinds = {};
 for (const [symbol, def] of Object.entries(UNIT_DEFINITIONS)) {
-  kinds[symbol] = def.kind;
+  kinds[symbol] = { kind: def.kind, ratio: def.ratio };
 }
 
 // A token the CONTRACT declares but the model has no unit for is a
@@ -42,7 +42,7 @@ for (const [symbol, def] of Object.entries(UNIT_DEFINITIONS)) {
 // kind is the token itself, which is one fewer invented name to keep in sync.
 const nonQuantity = KNOWN_SITREP_UNITS.filter((token) => !(token in kinds));
 for (const token of nonQuantity) {
-  kinds[token] = token;
+  kinds[token] = { kind: token, ratio: 1 };
 }
 
 const lines = [
@@ -57,15 +57,23 @@ const lines = [
   "// Generated rather than imported so that packages/ui-kit keeps its zero",
   "// runtime dependencies. A token the contract declares but the model has no",
   "// unit for is a non-quantity, and its kind is the token itself.",
+  "//",
+  "// The ratio converts to the kind's BASE unit, which is what lets the format",
+  "// prop re-express a value in any unit of the same kind without ui-kit",
+  "// keeping conversion factors of its own.",
   "",
-  "export const GENERATED_UNIT_KINDS: Readonly<Record<string, string>> = {",
+  "// `as const` is load-bearing. The format prop's accepted values are a mapped",
+  "// type over this object, so widening it to Record<string, ...> would silently",
+  "// turn that validation off while leaving the runtime behaviour in place. This",
+  "// is the third table in this system to need saying so.",
+  "export const GENERATED_UNIT_KINDS = {",
   ...Object.keys(kinds)
     .sort()
     .map(
       (symbol) =>
-        `  ${JSON.stringify(symbol)}: ${JSON.stringify(kinds[symbol])},`,
+        `  ${JSON.stringify(symbol)}: { kind: ${JSON.stringify(kinds[symbol].kind)}, ratio: ${kinds[symbol].ratio} },`,
     ),
-  "};",
+  "} as const;",
   "",
 ];
 

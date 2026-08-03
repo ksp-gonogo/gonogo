@@ -190,7 +190,7 @@ describe("Unit: a value renders whole", () => {
     // 12,400 m is 12.4 km. The widget passes metres and never mentions
     // kilometres; the rung is the model's decision.
     const { container } = render(<Unit value={value("m", 12_400)} />);
-    expect(visibleText(container)).toBe("12.4 km");
+    expect(visibleText(container)).toBe("12.4 km");
   });
 
   it("announces the word rather than the letters", () => {
@@ -219,7 +219,7 @@ describe("Unit: a value renders whole", () => {
     const { container } = render(
       <Unit value={value("m", 12_400)} decimals={1} />,
     );
-    expect(visibleText(container)).toBe("12.4 km");
+    expect(visibleText(container)).toBe("12.4 km");
   });
 
   it("shows a duration as a duration, with no stray unit beside it", () => {
@@ -249,7 +249,7 @@ describe("Unit: a value renders whole", () => {
     // both tokens is how a channel came to send °C under a K label. Celsius is
     // asked for by name at the point of display.
     const { container } = render(<Unit value={value("K", 300)} as="°C" />);
-    expect(visibleText(container)).toBe("27 °C");
+    expect(visibleText(container)).toBe("27 °C");
   });
 
   it("shows a count as a bare integer", () => {
@@ -257,5 +257,59 @@ describe("Unit: a value renders whole", () => {
     // with no symbol and the caller supplies its own label.
     const { container } = render(<Unit value={value("count", 3)} />);
     expect(visibleText(container)).toBe("3");
+  });
+});
+
+describe("Unit: format pins the unit", () => {
+  it("re-expresses a value in another unit of the same kind", () => {
+    // Orbital velocity is read in km/s in technical contexts and m/s
+    // everywhere else. Neither follows from how big the number is, which is
+    // exactly why the ladder cannot decide it.
+    const { container } = render(
+      <Unit value={value("m/s", 2_300)} format="km/s" />,
+    );
+    expect(visibleText(container)).toBe("2.3 km/s");
+  });
+
+  it("reaches a unit the ladder would never pick on its own", () => {
+    // A launch broadcast quotes km/h for a lay audience. Speed has no ladder
+    // at all, so this is only reachable by asking.
+    const { container } = render(
+      <Unit value={value("m/s", 100)} format="km/h" />,
+    );
+    expect(visibleText(container)).toBe("360.0 km/h");
+  });
+
+  it("holds the pinned unit instead of climbing away from it", () => {
+    // 12,400 m would auto-scale to km. Pinning metres has to defeat that, or
+    // the prop would be a suggestion.
+    const { container } = render(
+      <Unit value={value("m", 12_400)} format="m" />,
+    );
+    expect(visibleText(container)).toBe("12400.0 m");
+  });
+
+  it("converts a rung whose symbol is gram-based on a kilogram value", () => {
+    // Kerbin is 5.2915e22 kg. SystemView's hand-rolled version rendered that
+    // as "52.91 Zg" by applying GRAM thresholds to a KILOGRAM value: the
+    // digits were right and the prefix was a whole tier out, which is why it
+    // went unnoticed. The correct answer has the same digits and the right
+    // prefix, and the ratio comes off the model in kilograms so there is no
+    // second base unit for the mistake to live in.
+    const { container } = render(
+      <Unit value={value("kg", 5.2915e22)} format="Yg" />,
+    );
+    expect(visibleText(container)).toBe("52.91 Yg");
+  });
+
+  it("ignores a format of a different kind rather than lying", () => {
+    // Refused rather than applied: a wrong number under a right-looking label
+    // is the failure this whole module exists to prevent. The type system
+    // rejects this too; the runtime check is for a unit only known at runtime.
+    const { container } = render(
+      // @ts-expect-error: seconds are not a length
+      <Unit value={value("m", 12_400)} format="s" />,
+    );
+    expect(visibleText(container)).toBe("12.4 km");
   });
 });

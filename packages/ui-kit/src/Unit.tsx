@@ -5,6 +5,7 @@ import { MicroscopeIcon, StarIcon } from "./Icons";
 import {
   displaySymbol,
   type FormatQuantityOptions,
+  type FormatsFor,
   formatQuantity,
   kindOfUnit,
   wordForSymbol,
@@ -167,12 +168,23 @@ const Unit__Word = styled(VisuallyHidden)`
 /** U+2009 THIN SPACE. SI puts a space between a number and its unit. */
 const THIN_SPACE = "\u2009";
 
-export interface UnitProps extends FormatQuantityOptions {
+export interface UnitProps<U extends string = string>
+  extends Omit<FormatQuantityOptions, "format"> {
   /**
    * The quantity to show. It carries its own unit, so nothing else needs to be
    * passed and nothing else can disagree with it.
    */
-  value?: UnitSystem.Value | null;
+  value?: UnitSystem.Value<U> | null;
+  /**
+   * Pin the unit rather than letting the ladder choose, for the cases where
+   * convention beats magnitude: km/h on a launch broadcast, km/s in a
+   * technical readout.
+   *
+   * Validated against the value's KIND, so this checks on a speed and is a
+   * type error on a length. That check is why the value's unit reaches the
+   * type system at all.
+   */
+  format?: FormatsFor<U>;
   /**
    * TRANSITIONAL: a bare unit token, rendered as a symbol with no number.
    *
@@ -252,7 +264,12 @@ function UnitSymbol({
   );
 }
 
-export function Unit({ value, children, className, ...opts }: UnitProps) {
+export function Unit<U extends string = string>({
+  value,
+  children,
+  className,
+  ...opts
+}: UnitProps<U>) {
   if (value !== undefined) {
     // formatted.symbol, NOT formatted.rung. They agree on a laddered value and
     // differ exactly where it matters: a duration comes back with its parts
