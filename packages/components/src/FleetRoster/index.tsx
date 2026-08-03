@@ -492,6 +492,12 @@ const UpdatesBlock = styled.div`
      hangs under the vessel name rather than under its status dot. It stays
      literal; the other three sides are ordinary rhythm and do tokenise. */
   padding: 0 var(--space-6) var(--space-6) 21px;
+  /* Collapse when the slot's augments all render nothing for this row (e.g.
+     a per-vessel augment that only draws on the active vessel): no empty
+     padded gap under rows the augment has nothing to say about. */
+  &:empty {
+    display: none;
+  }
 `;
 
 const FooterRow = styled.div`
