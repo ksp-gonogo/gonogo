@@ -20,6 +20,13 @@ export {
   type TopicPayload,
   type TopicPayloadMap,
 } from "./topics";
+// The unit model: Value, dimensions, arithmetic, the unit table.
+//
+// Namespaced only because `./value` still exports a `Value` TYPE aliased to
+// `number` for the generated contract, and two `Value`s cannot sit in one
+// barrel. When that alias is replaced by the real object, this collapses to a
+// flat re-export and the namespace goes.
+export * as UnitSystem from "./unit-system";
 export {
   type KnownSitrepUnit,
   type SitrepUnit,
@@ -29,5 +36,5 @@ export {
   unitsForTopic,
   unitsForType,
 } from "./units";
-export type { Value } from "./value";
+export type { Value, Vec3Of } from "./value";
 export { SDK_VERSION } from "./version.generated";
