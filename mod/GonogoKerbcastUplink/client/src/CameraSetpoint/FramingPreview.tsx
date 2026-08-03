@@ -5,13 +5,17 @@
  * amber quad with a centroid dot. On `committing`, ONE simultaneous unwind
  * morph runs (pan to centre + zoom to full frame via an affine transform, and
  * amber to white), with the feed frame fading out: the preview "resolves" into
- * the new live view. The morph is guarded by
- * `@media (prefers-reduced-motion: no-preference)`, so reduced-motion users
- * get the end state instantly.
+ * the new live view.
+ *
+ * Zero bespoke CSS: styled entirely via inline SVG attributes / `style` with
+ * CSS-var tokens (the design-system rule keeps styled-components inside
+ * `@ksp-gonogo/ui-kit`). The reduced-motion guard is a JS `matchMedia` check
+ * rather than an `@media` block, so a reduced-motion user gets the end state
+ * with no transition.
  */
 
 import type { CameraSetpoint, CameraSetpointBounds } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import type { CSSProperties } from "react";
 import { computeTargetFraming, type FrameCorners } from "./framingGeometry";
 
 export interface FramingPreviewProps {
@@ -23,8 +27,19 @@ export interface FramingPreviewProps {
   committing?: boolean;
 }
 
+const AMBER = "var(--color-status-warning-bg)";
+const WHITE = "var(--color-text-primary)";
+const MORPH = "var(--duration-slow, 400ms)";
+
 const pointsOf = (c: FrameCorners): string =>
   `${c.tl[0]},${c.tl[1]} ${c.tr[0]},${c.tr[1]} ${c.br[0]},${c.br[1]} ${c.bl[0]},${c.bl[1]}`;
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false)
+  );
+}
 
 export function FramingPreview({
   setpoint,
@@ -49,86 +64,66 @@ export function FramingPreview({
   const ty = height / 2 - centroid[1] * sy;
   const unwind = `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`;
 
+  // JS reduced-motion guard: no transition strings when the user opts out, so
+  // the committed end state applies instantly.
+  const animate = !prefersReducedMotion();
+  const withTransition = (prop: string): string | undefined =>
+    animate ? `${prop} ${MORPH} ease` : undefined;
+
+  const feedFrameStyle: CSSProperties = {
+    fill: "none",
+    stroke: WHITE,
+    strokeWidth: 1,
+    opacity: committing ? 0 : 0.7,
+    transition: withTransition("opacity"),
+  };
+  const groupStyle: CSSProperties = {
+    transformOrigin: "0 0",
+    transform: committing ? unwind : "none",
+    transition: withTransition("transform"),
+  };
+  const quadStyle: CSSProperties = {
+    fill: "none",
+    stroke: committing ? WHITE : AMBER,
+    strokeWidth: 1.5,
+    transition: withTransition("stroke"),
+  };
+  const centroidStyle: CSSProperties = {
+    fill: committing ? WHITE : AMBER,
+    transition: withTransition("fill"),
+  };
+
   return (
-    <FramingPreview__Svg
+    <svg
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label="Camera framing preview"
+      style={{ display: "block", overflow: "visible" }}
     >
-      <FramingPreview__FeedFrame
+      <rect
         data-role="feed-frame"
         x={0.5}
         y={0.5}
         width={width - 1}
         height={height - 1}
-        $committing={committing}
+        style={feedFrameStyle}
       />
-      <FramingPreview__Target
-        $committing={committing}
-        style={{ transform: committing ? unwind : "none" }}
-      >
-        <FramingPreview__Quad
+      <g style={groupStyle}>
+        <polygon
           data-role="target-quad"
           points={pointsOf(corners)}
-          $committing={committing}
+          style={quadStyle}
         />
-        <FramingPreview__Centroid
+        <circle
           data-role="target-centroid"
           cx={centroid[0]}
           cy={centroid[1]}
           r={3}
-          $committing={committing}
+          style={centroidStyle}
         />
-      </FramingPreview__Target>
-    </FramingPreview__Svg>
+      </g>
+    </svg>
   );
 }
-
-const MORPH_MS = "var(--duration-slow, 400ms)";
-
-const FramingPreview__Svg = styled.svg`
-  display: block;
-  overflow: visible;
-`;
-
-const FramingPreview__FeedFrame = styled.rect<{ $committing: boolean }>`
-  fill: none;
-  stroke: var(--color-text-primary);
-  stroke-width: 1;
-  opacity: ${(p) => (p.$committing ? 0 : 0.7)};
-  @media (prefers-reduced-motion: no-preference) {
-    transition: opacity ${MORPH_MS} ease;
-  }
-`;
-
-const FramingPreview__Target = styled.g<{ $committing: boolean }>`
-  transform-origin: 0 0;
-  @media (prefers-reduced-motion: no-preference) {
-    transition: transform ${MORPH_MS} ease;
-  }
-`;
-
-// Amber at rest, morphing to white as the group unwinds to the live frame.
-const FramingPreview__Quad = styled.polygon<{ $committing: boolean }>`
-  fill: none;
-  stroke: ${(p) =>
-    p.$committing
-      ? "var(--color-text-primary)"
-      : "var(--color-status-warning-bg)"};
-  stroke-width: 1.5;
-  @media (prefers-reduced-motion: no-preference) {
-    transition: stroke ${MORPH_MS} ease;
-  }
-`;
-
-const FramingPreview__Centroid = styled.circle<{ $committing: boolean }>`
-  fill: ${(p) =>
-    p.$committing
-      ? "var(--color-text-primary)"
-      : "var(--color-status-warning-bg)"};
-  @media (prefers-reduced-motion: no-preference) {
-    transition: fill ${MORPH_MS} ease;
-  }
-`;
