@@ -147,6 +147,7 @@ export {
   ChevronRightIcon,
   ChevronUpIcon,
   CloseIcon,
+  ComputerIcon,
   DatabaseIcon,
   DiagnosticsIcon,
   FullHeightIcon,

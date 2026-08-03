@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronUp,
   Columns2,
+  Computer,
   Database,
   FileText,
   Heart,
@@ -66,6 +67,7 @@ export const SatelliteIcon = makeIcon(Satellite);
 export const FullscreenEnterIcon = makeIcon(Maximize);
 export const FullscreenExitIcon = makeIcon(Minimize);
 export const DatabaseIcon = makeIcon(Database);
+export const ComputerIcon = makeIcon(Computer);
 export const DiagnosticsIcon = makeIcon(FileText);
 export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 
