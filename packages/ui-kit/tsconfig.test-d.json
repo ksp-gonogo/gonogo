@@ -3,6 +3,10 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src/**/*.test-d.ts", "src/styledComponentsTheme.ts"],
+  "include": [
+    "src/**/*.test-d.ts",
+    "src/**/*.test-d.tsx",
+    "src/styledComponentsTheme.ts"
+  ],
   "exclude": []
 }
