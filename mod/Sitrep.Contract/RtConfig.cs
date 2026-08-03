@@ -408,23 +408,28 @@ public static class RtConfig
     /// <c>&lt;T&gt;()</c>, <c>Type</c>), none of which accept an
     /// <c>RtTypeName</c>.)</para>
     ///
-    /// <para>Two properties are skipped on purpose. A NON-NUMERIC property is
-    /// skipped because a magnitude it does not have cannot be wrapped; a
-    /// quantity token on one of those is a contract defect and throws rather
-    /// than emitting something that would not compile. A <see cref="Vec3"/>-typed
-    /// property is skipped because a vector of three same-unit components is a
-    /// shape this design has not yet named. <see cref="EmitUnitMap"/> already
-    /// propagates its unit onto the x/y/z leaves, so nothing regresses, but the
-    /// leaves stay bare numbers until that shape exists.</para>
+    /// <para>Three shapes, one rule. A scalar becomes <c>Value&lt;U&gt;</c>. A
+    /// SEQUENCE of same-unit readings takes the unit inside the array, since a
+    /// terrain profile is a list of distances rather than one distance. A
+    /// <see cref="Vec3"/> becomes <c>Vec3Of&lt;U&gt;</c>, carrying the unit down
+    /// to its x/y/z leaves: the unit is declared per USE SITE because one
+    /// canonical Vec3 shape is reused at sites carrying three different units,
+    /// which is the same reason <see cref="EmitUnitMap"/> propagates onto dotted
+    /// leaf keys.</para>
+    ///
+    /// <para>A NON-NUMERIC property is the one thing that cannot be handled: a
+    /// magnitude it does not have cannot be wrapped, so a quantity token on one
+    /// is a contract defect and throws rather than emitting something that would
+    /// not compile.</para>
     /// </summary>
     private static void ApplyUnitValueTypes(ConfigurationBuilder builder, IEnumerable<Type> exportedTypes)
     {
         // contract.ts is one file, so the import has to be declared once
         // globally rather than per-type.
-        builder.AddImport("{ Value }", "../value");
+        builder.AddImport("{ Value, Vec3Of }", "../value");
 
         var retyped = 0;
-        var skippedVec3 = 0;
+        var vectors = 0;
         foreach (var type in exportedTypes)
         {
             var targets = new List<KeyValuePair<PropertyInfo, string>>();
@@ -436,17 +441,22 @@ public static class RtConfig
                     continue;
                 }
 
+                var value = "Value<\"" + unit.Unit + "\">";
+                string tsType;
                 // Vec3 is a class, so `Vec3?` is the same runtime type; one
                 // comparison covers the required and the optional field alike.
                 if (prop.PropertyType == typeof(Vec3))
                 {
-                    skippedVec3++;
-                    continue;
+                    // The unit sits on the WHOLE vector, because one canonical
+                    // Vec3 shape is reused at sites carrying three different
+                    // units (its own X/Y/Z are annotated NotApplicable for
+                    // exactly that reason). Vec3Of<U> carries the per-use-site
+                    // unit down to the leaves, which is the same propagation
+                    // EmitUnitMap does below, expressed as a type.
+                    vectors++;
+                    tsType = "Vec3Of<\"" + unit.Unit + "\">";
                 }
-
-                var value = "Value<\"" + unit.Unit + "\">";
-                string tsType;
-                if (IsNumeric(prop.PropertyType))
+                else if (IsNumeric(prop.PropertyType))
                 {
                     tsType = value;
                 }
@@ -490,8 +500,8 @@ public static class RtConfig
         }
 
         Console.WriteLine(
-            "codegen (unit types) -> " + retyped + " properties typed as Value<...>, " +
-            skippedVec3 + " Vec3 properties left bare");
+            "codegen (unit types) -> " + retyped + " properties carry their unit (" +
+            vectors + " as Vec3Of<...>)");
     }
 
     /// <summary>

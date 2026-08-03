@@ -73,10 +73,10 @@ describe("generated contract.ts", () => {
 // every annotation, so the assertion covers all of them rather than a handful
 // someone remembered to write down.
 //
-// Three deliberate exemptions, each pinned separately below: the non-quantity
-// tokens (a vessel name has no magnitude), Vec3-typed properties (a vector of
-// three same-unit components is a shape this design has not named yet), and
-// enum-typed properties.
+// Three shapes carry a unit: a scalar becomes `Value<U>`, a sequence of
+// same-unit readings takes it inside the array, and a Vec3 becomes `Vec3Of<U>`
+// with the unit on its x/y/z leaves. The one exemption is the non-quantity
+// tokens, pinned separately below: a vessel name has no magnitude to carry.
 
 /** Tokens that declare a property is not a scalable quantity. */
 const NON_QUANTITY = new Set(["text", "flag", "enum", "id", "n/a"]);
@@ -105,11 +105,11 @@ function parseInterfaces(
 describe("generated contract.ts unit types", () => {
   const interfaces = parseInterfaces(src);
 
-  it("imports Value once, at the top", () => {
+  it("imports the value types once, at the top", () => {
     // rtcli emits single-quoted module specifiers; match either so a formatter
     // pass over the generated file would not break this.
     expect(
-      src.match(/^import \{ Value \} from ['"][^'"]*value['"];?$/gm),
+      src.match(/^import \{ Value, Vec3Of \} from ['"][^'"]*value['"];?$/gm),
     ).toHaveLength(1);
   });
 
@@ -124,19 +124,26 @@ describe("generated contract.ts unit types", () => {
         continue;
       }
       for (const [field, token] of Object.entries(fields)) {
-        // A Vec3 field's unit propagates onto dotted leaf keys (position.x).
-        // The parent stays a bare Vec3, so the leaves are not fields of their
-        // own and there is nothing to assert against.
+        // A Vec3 field's unit propagates onto dotted leaf keys (position.x) in
+        // the map. In the TYPE it rides on the parent as Vec3Of<U>, so assert
+        // against that and skip the leaves.
         if (field.includes(".")) {
+          const parent = field.slice(0, field.indexOf("."));
+          const parentType = emitted[parent];
+          if (parentType !== undefined && parentType !== `Vec3Of<"${token}">`) {
+            wrong.push(`${typeName}.${parent}: ${token} -> ${parentType}`);
+          }
           continue;
         }
         const tsType = emitted[field];
-        if (tsType === undefined || tsType === "Vec3") {
+        if (tsType === undefined) {
           continue;
         }
         const wrapped =
-          tsType === `Value<"${token}">` || tsType === `Value<"${token}">[]`;
-        const bare = !tsType.includes("Value<");
+          tsType === `Value<"${token}">` ||
+          tsType === `Value<"${token}">[]` ||
+          tsType === `Vec3Of<"${token}">`;
+        const bare = !tsType.includes("Value<") && !tsType.includes("Vec3Of<");
         const ok = NON_QUANTITY.has(token) ? bare : wrapped;
         if (!ok) {
           wrong.push(`${typeName}.${field}: ${token} -> ${tsType}`);
@@ -164,14 +171,22 @@ describe("generated contract.ts unit types", () => {
     });
   });
 
-  it("leaves Vec3-typed properties bare, pending a vector shape", () => {
-    // Their unit is still declared and still reaches a consumer through the
-    // field->unit map's propagated x/y/z leaves. What does not exist yet is a
-    // TS shape for "three components sharing one unit".
+  it("carries a Vec3's per-use-site unit down to its leaves", () => {
+    // One canonical Vec3 shape is reused at sites carrying three different
+    // units, so the unit cannot sit on the type: it is declared on the FIELD,
+    // and Vec3Of is what gets it to x/y/z. A position and a velocity are not
+    // interchangeable once Value has teeth.
     expect(interfaces.DockAlignment).toMatchObject({
-      relativePosition: "Vec3",
-      relativeVelocity: "Vec3",
+      relativePosition: 'Vec3Of<"m">',
+      relativeVelocity: 'Vec3Of<"m/s">',
       distance: 'Value<"m">',
+    });
+    // Vec3 itself stays unitless. Its own x/y/z are annotated n/a precisely
+    // because no single unit is true at every use site.
+    expect(interfaces.Vec3).toMatchObject({
+      x: "number",
+      y: "number",
+      z: "number",
     });
   });
 
@@ -185,7 +200,15 @@ describe("generated contract.ts unit types", () => {
     for (const [typeName, fields] of Object.entries(interfaces)) {
       const declared = GENERATED_TYPE_UNITS[typeName] ?? {};
       for (const [field, tsType] of Object.entries(fields)) {
-        if (!(field in declared) && tsType.includes("Value<")) {
+        // A Vec3 field is declared under its dotted leaves rather than under
+        // its own name, so it counts as declared when any leaf names it.
+        const isDeclared =
+          field in declared ||
+          Object.keys(declared).some((key) => key.startsWith(`${field}.`));
+        if (
+          !isDeclared &&
+          (tsType.includes("Value<") || tsType.includes("Vec3Of<"))
+        ) {
           bare.push(`${typeName}.${field}: ${tsType}`);
         }
       }

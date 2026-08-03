@@ -2,7 +2,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
-import { Value } from '../value';
+import { Value, Vec3Of } from '../value';
 
 export interface AvionicsStatus
 {
@@ -1236,8 +1236,8 @@ export interface VesselCrew
 }
 export interface DockAlignment
 {
-	relativePosition: Vec3;
-	relativeVelocity: Vec3;
+	relativePosition: Vec3Of<"m">;
+	relativeVelocity: Vec3Of<"m/s">;
 	distance: Value<"m">;
 	forwardDot?: Value<"1">;
 	meta: PayloadMeta;
@@ -1370,8 +1370,8 @@ export interface OrbitEncounter
 }
 export interface VesselOrbitTruth
 {
-	position: Vec3;
-	velocity: Vec3;
+	position: Vec3Of<"m">;
+	velocity: Vec3Of<"m/s">;
 	frameRotating: boolean;
 	meta: PayloadMeta;
 }
@@ -1386,8 +1386,8 @@ export interface VesselPart
 	parentId?: string;
 	name: string;
 	title: string;
-	position: Vec3;
-	up?: Vec3;
+	position: Vec3Of<"m">;
+	up?: Vec3Of<"1">;
 	bounds: PartBounds;
 	dryMass: Value<"t">;
 	inverseStage: number;
@@ -1425,8 +1425,8 @@ export interface PartModuleState
 }
 export interface PartBounds
 {
-	size: Vec3;
-	center?: Vec3;
+	size: Vec3Of<"m">;
+	center?: Vec3Of<"m">;
 }
 export enum PhysicsMode {
 	OnRails = 0,
@@ -1491,8 +1491,8 @@ export interface VesselTarget
 	vesselId?: string;
 	bodyIndex?: number;
 	partId?: number;
-	relativePosition?: Vec3;
-	relativeVelocity?: Vec3;
+	relativePosition?: Vec3Of<"m">;
+	relativeVelocity?: Vec3Of<"m/s">;
 	orbit?: VesselOrbit;
 	closestApproach?: ClosestApproach;
 	meta: PayloadMeta;
