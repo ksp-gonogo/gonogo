@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
-import { hydrate, isValue, value } from "./value";
+import { hydrate, isValue, value, vectorMagnitude } from "./value";
 
 describe("dimension arithmetic", () => {
   it("subtracts exponents, so repeated division recurses", () => {
@@ -273,5 +273,40 @@ describe("min and max", () => {
 
   it("refuses across dimensions", () => {
     expect(() => value("m", 5).max(value("s", 5) as never)).toThrow();
+  });
+});
+
+describe("vectorMagnitude", () => {
+  it("returns a value in the unit the components share", () => {
+    const relativePosition = {
+      x: value("m", 3),
+      y: value("m", 4),
+      z: value("m", 0),
+    };
+    const distance = vectorMagnitude(relativePosition);
+    expect(distance.magnitude).toBe(5);
+    expect(distance.unit).toBe("m");
+  });
+
+  it("carries a velocity's unit, not a length's", () => {
+    // The point of returning a Value rather than a number: a closing rate is
+    // a speed, and the next thing that touches it should know.
+    const relativeVelocity = {
+      x: value("m/s", 0),
+      y: value("m/s", 0),
+      z: value("m/s", -2.4),
+    };
+    expect(vectorMagnitude(relativeVelocity).unit).toBe("m/s");
+    expect(vectorMagnitude(relativeVelocity).magnitude).toBeCloseTo(2.4, 10);
+  });
+
+  it("is a free function because a vector has no prototype", () => {
+    // wrapTopicPayload replaces the leaves and leaves the parent a plain
+    // object, so a decoded vector cannot carry a method. Constructing one by
+    // hand from decoded parts has to work identically.
+    const decoded = JSON.parse(
+      JSON.stringify({ x: value("m", 6), y: value("m", 8), z: value("m", 0) }),
+    );
+    expect(vectorMagnitude(decoded).magnitude).toBe(10);
   });
 });

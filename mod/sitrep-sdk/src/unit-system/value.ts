@@ -373,3 +373,39 @@ export function hydrate<T>(candidate: T): T {
   }
   return value(candidate.unit, candidate.magnitude) as T;
 }
+
+/**
+ * A three-component vector whose components all share one unit.
+ *
+ * Structural, and deliberately so: this is the shape that comes off the wire.
+ * `wrapTopicPayload` replaces the x/y/z leaves with `Value`s and leaves the
+ * parent a plain object, so a vector has no prototype and cannot carry
+ * methods. That is why {@link vectorMagnitude} is a free function rather than
+ * `v.magnitude()`, and it is the honest shape rather than a limitation: the
+ * alternative is hydrating every vector on every sample to attach one method.
+ */
+export interface Vector3<U extends string = string> {
+  readonly x: Value<U>;
+  readonly y: Value<U>;
+  readonly z: Value<U>;
+}
+
+/**
+ * The length of a vector, in the unit its components share.
+ *
+ * Named for the vector rather than as `magnitude`, because `Value.magnitude`
+ * is a different thing one letter away: a scalar's bare number. This returns a
+ * `Value`, so `vectorMagnitude(relativePosition)` is a distance in metres and
+ * renders like any other.
+ *
+ * Reading the components' `.magnitude` here is safe in a way it is not in
+ * general: a `Vector3<U>` has all three leaves in the same unit BY TYPE, so
+ * there is nothing to mix. That is the whole reason this can be one line
+ * rather than two conversions.
+ */
+export function vectorMagnitude<U extends string>(v: Vector3<U>): Value<U> {
+  return value(
+    v.x.unit,
+    Math.hypot(v.x.magnitude, v.y.magnitude, v.z.magnitude),
+  );
+}

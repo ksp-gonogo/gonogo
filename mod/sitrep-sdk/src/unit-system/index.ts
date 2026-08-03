@@ -18,5 +18,7 @@ export {
   isValue,
   type SameDimensionAs,
   type Value,
+  type Vector3,
   value,
+  vectorMagnitude,
 } from "./value";
