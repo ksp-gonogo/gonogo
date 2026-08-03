@@ -68,14 +68,19 @@ interface DiscretePayload {
   [k: string]: unknown;
 }
 
+/** Narrow a raw stream payload (typed as its topic shape, or undefined) to a
+ *  loose bag we parse defensively; returns undefined for anything non-object. */
+function asObj(raw: unknown): DiscretePayload | undefined {
+  return raw && typeof raw === "object" ? (raw as DiscretePayload) : undefined;
+}
+
 const nameOf = (p: DiscretePayload): string =>
   typeof p.vesselName === "string" && p.vesselName.trim().length > 0
     ? p.vesselName
     : "vessel";
 
-export function fromFlightStarted(
-  p: DiscretePayload | undefined,
-): MissionEvent | null {
+export function fromFlightStarted(raw: unknown): MissionEvent | null {
+  const p = asObj(raw);
   if (!p || !isNum(p.ut)) return null;
   return {
     ut: p.ut,
@@ -85,9 +90,8 @@ export function fromFlightStarted(
   };
 }
 
-export function fromFlightEnded(
-  p: DiscretePayload | undefined,
-): MissionEvent | null {
+export function fromFlightEnded(raw: unknown): MissionEvent | null {
+  const p = asObj(raw);
   if (!p || !isNum(p.ut)) return null;
   const reason = typeof p.reason === "string" ? p.reason : undefined;
   return {
@@ -99,9 +103,8 @@ export function fromFlightEnded(
   };
 }
 
-export function fromVesselChanged(
-  p: DiscretePayload | undefined,
-): MissionEvent | null {
+export function fromVesselChanged(raw: unknown): MissionEvent | null {
+  const p = asObj(raw);
   if (!p || !isNum(p.ut)) return null;
   return {
     ut: p.ut,
@@ -111,7 +114,8 @@ export function fromVesselChanged(
   };
 }
 
-export function fromCrash(p: DiscretePayload | undefined): MissionEvent | null {
+export function fromCrash(raw: unknown): MissionEvent | null {
+  const p = asObj(raw);
   if (!p || !isNum(p.ut)) return null;
   const cause = typeof p.cause === "string" ? p.cause : undefined;
   return {
@@ -123,9 +127,8 @@ export function fromCrash(p: DiscretePayload | undefined): MissionEvent | null {
   };
 }
 
-export function fromRecovery(
-  p: DiscretePayload | undefined,
-): MissionEvent | null {
+export function fromRecovery(raw: unknown): MissionEvent | null {
+  const p = asObj(raw);
   if (!p || !isNum(p.ut)) return null;
   const funds = isNum(p.fundsRecovered)
     ? `+${Math.round(p.fundsRecovered).toLocaleString()}f`
