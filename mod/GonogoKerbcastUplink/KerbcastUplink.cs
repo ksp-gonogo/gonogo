@@ -61,6 +61,16 @@ namespace Gonogo.KerbcastUplink
         // main thread (a Unity null-check off-thread is not safe).
         private volatile string? _unavailableReason;
         private volatile bool _coreActive;
+        // Raw per-tick SidecarAlive() reading, published alongside _coreActive.
+        // Health() itself does NOT read this directly: it reads the DEBOUNCED
+        // _sidecarConfirmedDead below, kerbcast's own auto-restart (up to 5
+        // attempts, ~5s apart) makes a single false tick a transient, not a
+        // fault. _sidecarDebouncer (main-thread-only, never touched off it) is
+        // the state machine; _sidecarConfirmedDead is its published, volatile
+        // Courier-thread-readable output. See SidecarDeathDebouncer's own doc.
+        private volatile bool _sidecarAlive;
+        private volatile bool _sidecarConfirmedDead;
+        private readonly SidecarDeathDebouncer _sidecarDebouncer = new SidecarDeathDebouncer();
         private volatile bool _sampledOnce;
         private int _cameraCount = -1;
 
@@ -176,6 +186,17 @@ namespace Gonogo.KerbcastUplink
             _coreActive = coreActive;
             _sampledOnce = true;
 
+            // Sampled every tick regardless of scene, same as _coreActive
+            // above: the debounce streak needs an unbroken tick sequence to
+            // count "consecutive" correctly. It is Health()'s branch ORDER
+            // (the !coreActive check runs before the sidecar check) that
+            // keeps a dead-sidecar-out-of-flight reading benign, not gating
+            // the capture here.
+            var sidecarAliveNow = kerbcast.SidecarAlive();
+            _sidecarAlive = sidecarAliveNow;
+            _sidecarDebouncer.Observe(sidecarAliveNow);
+            _sidecarConfirmedDead = _sidecarDebouncer.ConfirmedDead;
+
             var vessel = FlightGlobals.ActiveVessel;
             if (!coreActive || vessel == null)
             {
@@ -222,12 +243,14 @@ namespace Gonogo.KerbcastUplink
         ///
         /// <para>The states are meaningfully different, which is the point:
         /// "not installed" is an install problem, "core not running" is a
-        /// scene problem (you're in the VAB), and "no cameras" is a craft
+        /// scene problem (you're in the VAB), "sidecar not alive" is a
+        /// process problem (the video sidecar died: see
+        /// <see cref="SidecarDeathDebouncer"/>), and "no cameras" is a craft
         /// problem (you didn't put a camera on it). An operator staring at a
-        /// black feed can tell those three apart at a glance.</para>
+        /// black feed can tell those four apart at a glance.</para>
         /// </summary>
         public UplinkHealth Health() => KerbcastHealth.Evaluate(
-            _unavailableReason, _sampledOnce, _coreActive, Volatile.Read(ref _cameraCount));
+            _unavailableReason, _sampledOnce, _coreActive, !_sidecarConfirmedDead, Volatile.Read(ref _cameraCount));
 
         /// <summary>
         /// MAIN-THREAD command: zoom a camera. Runs on the actuator thread the

@@ -21,10 +21,14 @@ namespace Gonogo.KerbcastUplink
     /// a public STATIC facade the mod already maintains as its in-process
     /// integration seam (it is what kerbcast's own scripting add-on calls, so it is
     /// an intentional public API, not an internal we're prying open). It
-    /// exposes <c>IsActive</c>, <c>CamerasFor(Vessel)</c>, <c>ViewOf(uint)</c>,
+    /// exposes <c>IsActive</c>, <c>SidecarAlive</c> (the video sidecar
+    /// process's liveness; distinct from <c>IsActive</c>, which is the
+    /// in-process capture core), <c>CamerasFor(Vessel)</c>, <c>ViewOf(uint)</c>,
     /// <c>SetFov(uint,float)</c> and <c>SetPan(uint,float,float)</c>, returning
     /// plain-data <c>KerbcastCameraView</c> objects that carry the owning stock
-    /// KSP <c>Part</c>.</para>
+    /// KSP <c>Part</c>. Deliberately stays off kerbcast's internal
+    /// <c>KerbcastSidecarHost</c>: only the public <c>KerbcastControl</c>
+    /// facade is an intentional integration surface.</para>
     ///
     /// <para><c>KerbcastCameraView</c> exposes public FIELDS (not properties),
     /// hence <c>GetField</c> throughout: a detail worth stating because the
@@ -43,6 +47,7 @@ namespace Gonogo.KerbcastUplink
         private const string ControlTypeName = "Kerbcast.KerbcastControl";
 
         private readonly PropertyInfo? _isActive;
+        private readonly PropertyInfo? _sidecarAlive;
         private readonly MethodInfo? _camerasFor;
         private readonly MethodInfo? _setFov;
         private readonly MethodInfo? _setPan;
@@ -93,6 +98,12 @@ namespace Gonogo.KerbcastUplink
             }
 
             _isActive = control.GetProperty("IsActive", BindingFlags.Public | BindingFlags.Static);
+            // Optional: added later than IsActive/CamerasFor, so an older
+            // kerbcast build simply won't have it. Never gates IsAvailable
+            // (unlike IsActive/CamerasFor/FlightId below): SidecarAlive()
+            // fails soft to false rather than making the whole uplink
+            // unavailable over a missing diagnostic property.
+            _sidecarAlive = control.GetProperty("SidecarAlive", BindingFlags.Public | BindingFlags.Static);
             _camerasFor = FindMethod(control, "CamerasFor", 1);
             _setFov = FindMethod(control, "SetFov", 2);
             _setPan = FindMethod(control, "SetPan", 3);
@@ -166,6 +177,28 @@ namespace Gonogo.KerbcastUplink
             try
             {
                 return _isActive.GetValue(null) is true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Whether kerbcast's video sidecar process is alive. Fail-soft to
+        /// false when the property is unreadable (an older kerbcast build
+        /// that predates this surface, or the probe never resolved it) or
+        /// the read itself throws: same pattern as <see cref="IsActive"/>.
+        /// </summary>
+        public bool SidecarAlive()
+        {
+            if (_sidecarAlive == null)
+            {
+                return false;
+            }
+            try
+            {
+                return _sidecarAlive.GetValue(null) is true;
             }
             catch (Exception)
             {
