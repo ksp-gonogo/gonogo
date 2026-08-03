@@ -612,6 +612,78 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
   });
 
+  it("the picker has no visible heading, is a labelled group, and each CPU button carries an icon", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", TWO_CPUS));
+
+    // The drab "Pick a CPU:" heading is gone; the group is still named for a11y.
+    await screen.findByRole("group", { name: "Pick a kOS CPU" });
+    expect(screen.queryByText("Pick a CPU:")).toBeNull();
+
+    // Each CPU button pairs its label with a (decorative) computer icon.
+    const lander = screen.getByRole("button", { name: "lander" });
+    expect(lander.querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "probe" })).toBeInTheDocument();
+  });
+
+  it("offers a 'Change CPU' control after attaching that returns to the picker", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", TWO_CPUS));
+
+    const pick = await screen.findByRole("button", { name: "probe" });
+    act(() => pick.click());
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.9")).toBe(true),
+    );
+
+    const change = await screen.findByRole("button", { name: /change cpu/i });
+    act(() => change.click());
+
+    // Back to the picker: both CPUs are offered again.
+    expect(
+      await screen.findByRole("button", { name: "lander" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "probe" })).toBeInTheDocument();
+  });
+
+  it("does NOT offer 'Change CPU' when the sole CPU was auto-attached", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{}} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+    expect(screen.queryByRole("button", { name: /change cpu/i })).toBeNull();
+  });
+
+  it("does NOT offer 'Change CPU' when a cpuName pins the choice", async () => {
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent config={{ cpuName: "probe" }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", TWO_CPUS));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.9")).toBe(true),
+    );
+    expect(screen.queryByRole("button", { name: /change cpu/i })).toBeNull();
+  });
+
   it("releases the lease (kos.terminal.close) on unmount", async () => {
     const fixture = terminalFixture();
     const { unmount } = render(

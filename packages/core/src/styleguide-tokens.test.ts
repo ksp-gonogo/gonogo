@@ -238,7 +238,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * it.
    */
   zIndex: {
-    "mod/": 5,
+    // 6th: a mod terminal widget's "change CPU" overlay button, local sibling
+    // ordering inside its own frame's stacking context (same as that frame's
+    // other badge overlays), commented at the call site. Not app-global chrome,
+    // so no named z rung.
+    "mod/": 6,
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/AtmosphereProfile/index.tsx": 1,
     "packages/components/src/MapView/MapPoiLayer.tsx": 1,

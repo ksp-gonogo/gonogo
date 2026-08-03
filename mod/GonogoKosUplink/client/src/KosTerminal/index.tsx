@@ -22,6 +22,7 @@ import {
 import {
   ComboboxListbox,
   type ComboboxOption,
+  ComputerIcon,
   ConfigForm,
   EmptyState,
   Field,
@@ -572,22 +573,29 @@ function KosTerminalLive({
               : "No kOS CPUs detected. Boot a kOS processor in-flight."}
           </EmptyState>
         ) : (
-          <CpuPicker aria-label="Pick a kOS CPU">
-            <CpuPicker__Label>Pick a CPU:</CpuPicker__Label>
+          <CpuPicker role="group" aria-label="Pick a kOS CPU">
             {processors.map((p) => (
-              <GhostButton
+              <CpuPicker__Button
                 key={p.coreId}
                 type="button"
                 onClick={() => setPickedCoreId(p.coreId)}
               >
+                <ComputerIcon />
                 {p.tag ?? `CPU ${p.coreId}`}
-              </GhostButton>
+              </CpuPicker__Button>
             ))}
           </CpuPicker>
         )}
       </Panel>
     );
   }
+
+  // A "Change CPU" affordance only makes sense when clearing the pick would
+  // actually return to the picker: no `cpuName` pins the choice, and there is
+  // more than one CPU to choose between. A single auto-attached CPU or a
+  // config-pinned tagname would just re-resolve to the same core, so the
+  // control would be a dead no-op there.
+  const canChangeCpu = !cpuName && processors.length > 1;
 
   return (
     <KosTerminalScreen
@@ -597,6 +605,7 @@ function KosTerminalLive({
       readOnly={readOnly}
       lineMode={lineMode}
       scriptPaths={scriptPaths}
+      onChangeCpu={canChangeCpu ? () => setPickedCoreId(null) : undefined}
     />
   );
 }
@@ -608,6 +617,12 @@ interface KosTerminalScreenProps {
   readOnly: boolean;
   lineMode: boolean;
   scriptPaths: string[];
+  /**
+   * When provided, render a "Change CPU" control that invokes this to return
+   * to the picker. Omitted (undefined) when there is no real choice to return
+   * to (single/auto CPU, or a `cpuName`-pinned one); see `canChangeCpu`.
+   */
+  onChangeCpu?: () => void;
 }
 
 function KosTerminalScreen({
@@ -616,6 +631,7 @@ function KosTerminalScreen({
   readOnly,
   lineMode,
   scriptPaths,
+  onChangeCpu,
 }: Readonly<KosTerminalScreenProps>) {
   // One opaque write-lease token per attach: the mod uses it to arbitrate the
   // single-owner shared screen. Keyed by coreId (via the parent), so a CPU
@@ -1142,6 +1158,12 @@ function KosTerminalScreen({
             No path: commands are not being sent
           </NoPathBadge>
         )}
+        {onChangeCpu && (
+          <ChangeCpuButton type="button" onClick={onChangeCpu}>
+            <ComputerIcon />
+            Change CPU
+          </ChangeCpuButton>
+        )}
       </TerminalFrame>
       {showStrip && (
         <InFlightList items={stripItems} ariaLabel="Uplink queue" />
@@ -1553,7 +1575,31 @@ const CpuPicker = styled.div`
   padding: var(--space-12);
 `;
 
-const CpuPicker__Label = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+// Larger, icon-leading CPU buttons (2026-07-15 feedback: the bare picker read
+// as "drab"). Composes the ui-kit GhostButton, enlarging its hit area and
+// pairing the label with a decorative computer icon.
+const CpuPicker__Button = styled(GhostButton)`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--font-size-lg);
+`;
+
+// "Change CPU": pinned as an absolutely-positioned corner overlay INSIDE
+// `TerminalFrame` (same pattern + reasoning as `DelayBadge`/`NoPathBadge`), in
+// the bottom-right corner the badges leave free, so it never adds a flex row
+// that could push the composition bar past the widget's visible bounds.
+const ChangeCpuButton = styled(GhostButton)`
+  position: absolute;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  /* Local ordering inside TerminalFrame only, same as DelayBadge/NoPathBadge:
+     lift this overlay above xterm's own layers in the Container beneath it.
+     Not app-global chrome, so a named z rung would be wrong here. */
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--font-size-xs);
 `;
