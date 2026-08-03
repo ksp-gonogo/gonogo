@@ -59,6 +59,35 @@ public class KerbcastReflectionTests
     }
 
     [Fact]
+    public void ReadsSidecarAliveOffTheStaticProperty()
+    {
+        var kerbcast = Bind();
+        Assert.True(kerbcast.SidecarAlive());
+
+        global::Kerbcast.KerbcastControl.SidecarAliveResult = false;
+        Assert.False(kerbcast.SidecarAlive());
+    }
+
+    [Fact]
+    public void SidecarAliveFailsSoft_WhenTheAssemblyPredatesTheProperty()
+    {
+        // A pre-SidecarAlive kerbcast build: KerbcastControl exists (built
+        // via Reflection.Emit so its shape is INDEPENDENTLY constructed, not
+        // a second same-named type in this assembly, which C# forbids) with
+        // IsActive/CamerasFor/SetFov/SetPan but no SidecarAlive property.
+        // Must NOT make the whole reflection surface unavailable: only
+        // SidecarAlive() itself fails soft to false; IsActive/CamerasFor
+        // keep working exactly as they do today.
+        var assembly = LegacyKerbcastAssemblyBuilder.BuildWithoutSidecarAlive();
+        var probe = KerbcastReflection.ForAssembly(assembly);
+
+        Assert.True(probe.IsAvailable);
+        Assert.Null(probe.Reason);
+        Assert.False(probe.SidecarAlive());
+        Assert.True(probe.IsActive());
+    }
+
+    [Fact]
     public void ReadsEveryCameraViewField()
     {
         var kerbcast = Bind();
@@ -148,6 +177,7 @@ public class KerbcastReflectionTests
         Assert.False(kerbcast.SetFov(1u, 50f));
         Assert.False(kerbcast.SetPan(1u, 0f, 0f));
         Assert.False(kerbcast.IsActive());
+        Assert.False(kerbcast.SidecarAlive());
         Assert.Empty(kerbcast.CamerasFor(new object()));
     }
 }

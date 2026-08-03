@@ -24,17 +24,20 @@
        KerbcastCameraEntryBuilder is the clean-name wire mapping;
        KerbcastReflection is the arm's-length kerbcast surface (System.Reflection
        only: it names no KSP or kerbcast type at compile time, which is exactly
-       the licence boundary that makes it testable here at all).
+       the licence boundary that makes it testable here at all);
+       SidecarDeathDebouncer is the sidecar-liveness debounce state machine
+       Health() reads through KerbcastUplink.
 
        DockingCameraDetector and KerbcastUplink are deliberately ABSENT: both
        touch live stock-KSP types (Part/ModuleDockingNode/FlightGlobals) and so
-       cannot compile headless. Their pure logic was extracted into the three
-       files above precisely so it could be tested. -->
+       cannot compile headless. Their pure logic was extracted into the files
+       above precisely so it could be tested. -->
   <ItemGroup>
     <Compile Include="..\GonogoKerbcastUplink\KerbcastHealth.cs" />
     <Compile Include="..\GonogoKerbcastUplink\KerbcastCameraEntryBuilder.cs" />
     <Compile Include="..\GonogoKerbcastUplink\KerbcastReflection.cs" />
     <Compile Include="..\GonogoKerbcastUplink\DockingCameraFacts.cs" />
+    <Compile Include="..\GonogoKerbcastUplink\SidecarDeathDebouncer.cs" />
   </ItemGroup>
 
   <!-- KerbcastHealth builds Sitrep.Contract's UplinkHealth (KSP-free). -->

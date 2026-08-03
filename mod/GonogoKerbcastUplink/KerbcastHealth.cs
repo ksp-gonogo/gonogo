@@ -15,7 +15,7 @@ namespace Gonogo.KerbcastUplink
     /// This is that healthcheck.</para>
     ///
     /// <para>Extracted from <see cref="KerbcastUplink"/> as a pure function over
-    /// four inputs so it can be exercised headless: the live uplink only ever
+    /// five inputs so it can be exercised headless: the live uplink only ever
     /// touches KSP, and a state machine that decides what an operator is told
     /// when their camera feed is black deserves tests, not a live-only code
     /// path.</para>
@@ -25,12 +25,13 @@ namespace Gonogo.KerbcastUplink
         /// <summary>
         /// Decides the health state.
         ///
-        /// <para>The three degraded cases are deliberately distinct, because
-        /// they send the operator to three different places: an INSTALL problem
+        /// <para>The four degraded cases are deliberately distinct, because
+        /// they send the operator to four different places: an INSTALL problem
         /// (kerbcast isn't there), a SCENE problem (you're in the VAB, kerbcast's
-        /// capture core only runs in flight), or a CRAFT problem (you flew
-        /// something with no camera on it). "Black feed" alone can't tell those
-        /// apart; this can.</para>
+        /// capture core only runs in flight), a SIDECAR problem (kerbcast's
+        /// video process died and the feed will be black regardless of what's
+        /// on the craft), or a CRAFT problem (you flew something with no camera
+        /// on it). "Black feed" alone can't tell those apart; this can.</para>
         /// </summary>
         /// <param name="unavailableReason">
         /// Non-null when the uplink went inert at registration (kerbcast absent,
@@ -38,9 +39,17 @@ namespace Gonogo.KerbcastUplink
         /// </param>
         /// <param name="sampledOnce">Whether the main-thread capture has run at least once.</param>
         /// <param name="coreActive">Whether kerbcast's capture core reported itself live at the last sample.</param>
+        /// <param name="sidecarAlive">
+        /// The DEBOUNCED video-sidecar liveness (see <see cref="SidecarDeathDebouncer"/>):
+        /// true unless two consecutive capture ticks have confirmed the sidecar
+        /// process dead. Checked after <paramref name="coreActive"/> and before
+        /// <paramref name="cameraCount"/>, so a dead sidecar outside a flight
+        /// scene stays masked by the scene-problem branch above it, sidecar
+        /// absence there is expected, not a fault.
+        /// </param>
         /// <param name="cameraCount">Cameras seen on the active vessel at the last sample.</param>
         public static UplinkHealth Evaluate(
-            string? unavailableReason, bool sampledOnce, bool coreActive, int cameraCount)
+            string? unavailableReason, bool sampledOnce, bool coreActive, bool sidecarAlive, int cameraCount)
         {
             if (unavailableReason != null)
             {
@@ -58,6 +67,11 @@ namespace Gonogo.KerbcastUplink
             {
                 return new UplinkHealth(UplinkHealthState.Degraded,
                     "kerbcast installed, but its capture core is not running (no flight scene)");
+            }
+            if (!sidecarAlive)
+            {
+                return new UplinkHealth(UplinkHealthState.Degraded,
+                    "video sidecar not alive; feeds will be black");
             }
             if (cameraCount <= 0)
             {

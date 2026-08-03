@@ -211,9 +211,14 @@ export function Minimap({
 export function MinimapForActiveVessel({
   body,
 }: Readonly<{ body: BodyDefinition }>) {
-  const lat = useTelemetry<number>("data", "v.lat");
-  const lon = useTelemetry<number>("data", "v.long");
-  return <Minimap body={body} vesselLat={lat} vesselLon={lon} />;
+  const flight = useTelemetry("vessel.flight");
+  return (
+    <Minimap
+      body={body}
+      vesselLat={flight?.latitude}
+      vesselLon={flight?.longitude}
+    />
+  );
 }
 
 function drawWindowed(

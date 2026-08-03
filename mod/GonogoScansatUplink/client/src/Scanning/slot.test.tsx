@@ -7,6 +7,11 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import {
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-client";
 import { type DataKey, registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,11 +25,12 @@ import { ScanningComponent, type ScanningSlotContext } from "./index";
  * appear, receiving the widget's body focus as typed slot props.
  */
 
+// `scansat.available`, `vessel.identity`, and `system.bodies` ride the
+// native TelemetryClient stream (see Scanning/index.test.tsx's header note);
+// only `scansat.scanningVessels`/`scansat.coverage.*`/`scansat.anomalies.*`
+// still ride the legacy "data" DataSource.
 const KEYS: DataKey[] = [
-  { key: "scansat.available" },
   { key: "scansat.scanningVessels" },
-  { key: "v.body" },
-  { key: "v.biome" },
   { key: "scansat.coverage.Kerbin.2" },
   { key: "scansat.coverage.Kerbin.1" },
   { key: "scansat.coverage.Kerbin.8" },
@@ -33,9 +39,14 @@ const KEYS: DataKey[] = [
   { key: "scansat.anomalies.Kerbin" },
 ];
 
+const SYSTEM_BODIES = { bodies: [{ index: 1, name: "Kerbin" }] };
+const VESSEL_IDENTITY_AT_KERBIN = { parentBodyIndex: 1 };
+
 describe("Scanning: augment slots (spec §4)", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
+  let transport: StubTransport;
+  let client: TelemetryClient;
 
   // Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting
   // the buffered source. RTL auto-cleanup runs after this file's afterEach, so
@@ -51,6 +62,8 @@ describe("Scanning: augment slots (spec §4)", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
+    transport = new StubTransport();
+    client = new TelemetryClient(transport);
   });
 
   afterEach(() => {
@@ -62,15 +75,24 @@ describe("Scanning: augment slots (spec §4)", () => {
   });
 
   // Drive the widget to the present-SCANsat layout, where both the `badges`
-  // header slot and the `sections` coverage slot render.
-  function renderPresent() {
-    const result = render(<ScanningComponent config={{}} id="scanning" />);
+  // header slot and the `sections` coverage slot render. Resolves once the
+  // body name has landed: the TelemetryProvider commits transport frames on
+  // a rAF, so `vessel.identity`/`system.bodies` resolve a tick after the
+  // synchronous act() below, not within it.
+  async function renderPresent() {
+    const result = render(
+      <TelemetryProvider client={client}>
+        <ScanningComponent config={{}} id="scanning" />
+      </TelemetryProvider>,
+    );
     renderedTrees.push(result.unmount);
     act(() => {
-      source.emit("scansat.available", true);
-      source.emit("v.body", "Kerbin");
+      transport.emit("scansat.available", true);
+      transport.emit("system.bodies", SYSTEM_BODIES);
+      transport.emit("vessel.identity", VESSEL_IDENTITY_AT_KERBIN);
       source.emit("scansat.scanningVessels", []);
     });
+    await screen.findByText(/Coverage: Kerbin/);
   }
 
   it("exposes both slots with no augments bound by default", () => {
@@ -78,8 +100,8 @@ describe("Scanning: augment slots (spec §4)", () => {
     expect(getAugmentsForSlot("scanning.badges")).toEqual([]);
   });
 
-  it("renders the layout with empty slots inert (stock readout unchanged)", () => {
-    renderPresent();
+  it("renders the layout with empty slots inert (stock readout unchanged)", async () => {
+    await renderPresent();
     expect(screen.getByText(/Coverage: Kerbin/)).toBeInTheDocument();
     expect(screen.queryByTestId("scan-section-augment")).toBeNull();
     expect(screen.queryByTestId("scan-badge-augment")).toBeNull();
@@ -91,7 +113,7 @@ describe("Scanning: augment slots (spec §4)", () => {
         <div data-testid="scan-section-augment">RESOURCE-SCAN: {bodyName}</div>
       );
     }
-    renderPresent();
+    await renderPresent();
 
     act(() => {
       registerAugment({
@@ -109,7 +131,7 @@ describe("Scanning: augment slots (spec §4)", () => {
     function BadgeAugment({ bodyName }: ScanningSlotContext) {
       return <span data-testid="scan-badge-augment">{bodyName}!</span>;
     }
-    renderPresent();
+    await renderPresent();
 
     act(() => {
       registerAugment({

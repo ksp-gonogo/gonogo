@@ -15,7 +15,10 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
-import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
+import {
+  useLatestValue,
+  useViewClockOptional,
+} from "@ksp-gonogo/sitrep-client";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installDomStubs();
@@ -51,6 +54,7 @@ installTestHost({
   >[0]["registerUplinkHandle"],
   subscribeSetting,
   useActionInput,
+  useLatestValue,
   useSetting,
   useTelemetry,
   useViewClockOptional,

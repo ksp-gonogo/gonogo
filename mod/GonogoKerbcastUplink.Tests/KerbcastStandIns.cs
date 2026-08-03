@@ -36,6 +36,7 @@ namespace Kerbcast
     public static class KerbcastControl
     {
         public static bool ActiveResult = true;
+        public static bool SidecarAliveResult = true;
         public static List<KerbcastCameraView> Cameras = new();
         public static bool SetFovResult = true;
         public static bool SetPanResult = true;
@@ -43,6 +44,11 @@ namespace Kerbcast
         public static (uint FlightId, float Yaw, float Pitch)? LastSetPan;
 
         public static bool IsActive => ActiveResult;
+
+        // The video sidecar process's liveness: distinct from IsActive (the
+        // in-process capture core). Public static, mirroring IsActive, so
+        // KerbcastReflection reflects it the same way.
+        public static bool SidecarAlive => SidecarAliveResult;
 
         public static IReadOnlyList<KerbcastCameraView> CamerasFor(object vessel) => Cameras;
 
@@ -63,6 +69,7 @@ namespace Kerbcast
         public static void Reset()
         {
             ActiveResult = true;
+            SidecarAliveResult = true;
             Cameras = new List<KerbcastCameraView>();
             SetFovResult = true;
             SetPanResult = true;
