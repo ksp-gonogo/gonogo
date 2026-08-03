@@ -76,6 +76,12 @@ export {
   moveComboboxActiveIndex,
 } from "./Combobox";
 export {
+  type CameraSetpoint,
+  type CameraSetpointBounds,
+  CameraSetpointInput,
+  type CameraSetpointInputProps,
+} from "./CommandDelay/CameraSetpointInput";
+export {
   CommandGroup,
   type CommandGroupProps,
 } from "./CommandDelay/CommandGroup";
