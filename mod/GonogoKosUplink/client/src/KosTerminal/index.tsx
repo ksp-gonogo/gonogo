@@ -1594,6 +1594,9 @@ const ChangeCpuButton = styled(GhostButton)`
   position: absolute;
   bottom: var(--space-8);
   right: var(--space-8);
+  /* Local ordering inside TerminalFrame only, same as DelayBadge/NoPathBadge:
+     lift this overlay above xterm's own layers in the Container beneath it.
+     Not app-global chrome, so a named z rung would be wrong here. */
   z-index: 1;
   display: inline-flex;
   align-items: center;
