@@ -541,6 +541,7 @@ export interface KosProcessorInfo
 	hasBooted: boolean;
 	bootFilePath?: string;
 	processorMode: string;
+	partName?: string;
 }
 export interface KosComputeStatus
 {

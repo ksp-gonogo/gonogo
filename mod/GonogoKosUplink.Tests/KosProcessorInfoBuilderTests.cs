@@ -19,31 +19,35 @@ namespace GonogoKosUplink.Tests
         {
             var entry = KosProcessorInfoBuilder.Build(
                 coreId: 7, tag: "mainframe", hasBooted: true,
-                bootFilePath: "0:/boot/startup.ks", processorMode: "READY");
+                bootFilePath: "0:/boot/startup.ks", processorMode: "READY",
+                partName: "Probe Core");
 
             Assert.Equal(7, entry["coreId"]);
             Assert.Equal("mainframe", entry["tag"]);
             Assert.Equal(true, entry["hasBooted"]);
             Assert.Equal("0:/boot/startup.ks", entry["bootFilePath"]);
             Assert.Equal("READY", entry["processorMode"]);
+            Assert.Equal("Probe Core", entry["partName"]);
         }
 
         [Fact]
-        public void NullTagAndBootFilePath_TravelAsJsonNull_NotEmptyString()
+        public void NullTagBootFilePathAndPartName_TravelAsJsonNull_NotEmptyString()
         {
             var entry = KosProcessorInfoBuilder.Build(
-                coreId: 1, tag: null, hasBooted: false, bootFilePath: null, processorMode: "OFF");
+                coreId: 1, tag: null, hasBooted: false, bootFilePath: null,
+                processorMode: "OFF", partName: null);
 
             Assert.Null(entry["tag"]);
             Assert.Null(entry["bootFilePath"]);
+            Assert.Null(entry["partName"]);
         }
 
         [Fact]
         public void EmitsExactlyTheContractsFieldSet()
         {
-            var entry = KosProcessorInfoBuilder.Build(1, "a", true, null, "READY");
+            var entry = KosProcessorInfoBuilder.Build(1, "a", true, null, "READY", "Probe Core");
 
-            var expected = new[] { "coreId", "tag", "hasBooted", "bootFilePath", "processorMode" };
+            var expected = new[] { "coreId", "tag", "hasBooted", "bootFilePath", "processorMode", "partName" };
             Assert.Equal(expected.Length, entry.Count);
             foreach (var key in expected)
             {

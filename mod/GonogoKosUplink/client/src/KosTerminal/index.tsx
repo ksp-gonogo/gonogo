@@ -126,6 +126,28 @@ function resolveCoreId(
   return null;
 }
 
+/**
+ * The picker label for each processor, in list order. A CPU shows its name-tag
+ * if it has one, else its part name (e.g. "Probe Core"), else a bare
+ * "CPU <coreId>". When two CPUs would otherwise read identically (typically
+ * untagged copies of the same part), each gets a " (n)" suffix so they stay
+ * tellable apart, per the operator's "Probe Core (2)".
+ */
+export function cpuPickerLabels(
+  processors: readonly KosProcessorInfo[],
+): string[] {
+  const base = processors.map((p) => p.tag ?? p.partName ?? `CPU ${p.coreId}`);
+  const totals = new Map<string, number>();
+  for (const label of base) totals.set(label, (totals.get(label) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return base.map((label) => {
+    if ((totals.get(label) ?? 0) <= 1) return label;
+    const n = (seen.get(label) ?? 0) + 1;
+    seen.set(label, n);
+    return `${label} (${n})`;
+  });
+}
+
 // ── Line-mode composition ────────────────────────────────────────────────────
 
 /**
@@ -574,16 +596,19 @@ function KosTerminalLive({
           </EmptyState>
         ) : (
           <CpuPicker role="group" aria-label="Pick a kOS CPU">
-            {processors.map((p) => (
-              <CpuPicker__Button
-                key={p.coreId}
-                type="button"
-                onClick={() => setPickedCoreId(p.coreId)}
-              >
-                <ComputerIcon />
-                {p.tag ?? `CPU ${p.coreId}`}
-              </CpuPicker__Button>
-            ))}
+            {(() => {
+              const labels = cpuPickerLabels(processors);
+              return processors.map((p, i) => (
+                <CpuPicker__Button
+                  key={p.coreId}
+                  type="button"
+                  onClick={() => setPickedCoreId(p.coreId)}
+                >
+                  <ComputerIcon />
+                  {labels[i]}
+                </CpuPicker__Button>
+              ));
+            })()}
           </CpuPicker>
         )}
       </Panel>
