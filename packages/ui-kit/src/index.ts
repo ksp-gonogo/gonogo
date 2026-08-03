@@ -80,6 +80,12 @@ export {
   type CommandGroupProps,
 } from "./CommandDelay/CommandGroup";
 export {
+  ControlDelayStream,
+  type ControlDelayStreamProps,
+  type ControlStreamDatum,
+  type ControlStreamSample,
+} from "./CommandDelay/ControlDelayStream";
+export {
   InFlightList,
   type InFlightListDensity,
   type InFlightListItem,

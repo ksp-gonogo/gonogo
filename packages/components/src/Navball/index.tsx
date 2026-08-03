@@ -5,14 +5,16 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  PerfBudget,
   registerComponent,
   useActionInput,
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import type { ControlStream, InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import {
   useCommand,
+  useControlStream,
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -20,6 +22,7 @@ import {
   Badge,
   Button,
   ConfigForm,
+  ControlDelayStream,
   Field,
   FieldHint,
   FieldLabel,
@@ -49,6 +52,25 @@ import { AttitudeIndicator } from "./AttitudeIndicator";
  * session says otherwise.
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
+
+/**
+ * Dispatch-rate budget for the throttle axis's delayed control-stream
+ * (`useControlStream`'s coalesced write half, `COALESCE_MS` in
+ * `use-control-stream.tsx`, currently 10 Hz). `@ksp-gonogo/sitrep-client`
+ * deliberately does not depend on `@ksp-gonogo/core` (core already depends
+ * on sitrep-client, so the reverse would cycle), so the budget lives here
+ * in the consuming widget and is wired in via the hook's `onDispatch` seam,
+ * the same pattern `SitrepTelemetryProvider` uses for its own stream budget.
+ * Threshold is ~5x the realistic steady-state ceiling (one axis, one widget
+ * instance, 10 Hz) so a genuine runaway (e.g. a deadband regression that
+ * dispatches every tick from multiple mounted instances) still trips it.
+ */
+const CONTROL_STREAM_BUDGET = new PerfBudget({
+  name: "Navball control-stream dispatch/sec",
+  threshold: 60,
+  windowMs: 1000,
+  unit: "dispatches",
+});
 
 const SAS_MODES = [
   "StabilityAssist",
@@ -194,12 +216,75 @@ function NavballComponent({
   // vessel.attitude topic): so it stays a stable status source across
   // config changes rather than switching with `useCoM`.
 
-  // Continuous/analog controls (throttle, pitch/yaw/roll axes, RCS
-  // translation, trim) stay on the legacy string-action path: K5 in the
-  // command-surface delay audit, a control-theory problem (closing a loop
-  // with 2x one-way delay of dead time), not a UI-wiring one. Fixing it
-  // needs a select-then-commit `CommandGroup` design, out of scope here.
+  // Continuous/analog controls: pitch/yaw/roll axes, RCS translation, and
+  // trim stay on the legacy string-action path (K5 in the command-surface
+  // delay audit). FOLLOW-ON, not fabricated here: `VesselControl` (mod/
+  // Sitrep.Contract) has no pitch/yaw/roll READ fields and no
+  // `[SitrepControlChannel]` declarations for those axes yet, so
+  // `getControlChannel("vessel.control.pitch"/".yaw"/".roll")` would resolve
+  // `undefined` today. Wiring them needs the read fields + channel
+  // attributes added to the contract first, then the same
+  // `useControlStream` treatment throttle gets below. Closing a full
+  // attitude-control loop across signal delay is also a control-theory
+  // problem needing a select-then-commit `CommandGroup` design, out of
+  // scope here regardless.
   const execute = useExecuteAction("data");
+
+  // Throttle is the one continuous axis with a real bidirectional channel
+  // today (`vessel.control.throttle`), so it rides the delayed
+  // control-stream spine instead of the legacy path: local state holds the
+  // operator's commanded intent, `useControlStream` coalesces + dispatches
+  // it on the channel's write half and rolls the in-transit +
+  // confirmed-readback buffer `<ControlDelayStream>` draws. The state
+  // tracks the live readback until the operator first touches a throttle
+  // control (`throttleTouchedRef`), so simply opening the control surface
+  // never silently commands the engine back to a stale default (the write
+  // half dispatches unconditionally on its first tick, same as the SAS/RCS
+  // bridges above). Conscious, benign consequence: on open, before the
+  // operator has touched anything, that first tick re-commands the
+  // just-seeded value straight back at the engine, i.e. the live readback
+  // it was already at, never a stale 0 or default; a no-op in effect.
+  //
+  // Reset `throttleTouchedRef` on a vessel switch so a freshly-switched
+  // craft re-seeds from ITS live throttle instead of carrying over the
+  // previous vessel's commanded value: see the `vesselId`-keyed effect
+  // below.
+  const [throttleCmd, setThrottleCmdState] = useState(throttle);
+  const throttleTouchedRef = useRef(false);
+  useEffect(() => {
+    if (!throttleTouchedRef.current) setThrottleCmdState(throttle);
+  }, [throttle]);
+  const setThrottleCmd = (next: number | ((v: number) => number)) => {
+    throttleTouchedRef.current = true;
+    setThrottleCmdState(next);
+  };
+  // Vessel switch: re-arm the seed latch so the newly-active vessel's live
+  // throttle wins over the previous vessel's stale commanded value. Keyed
+  // off `vessel.identity.vesselId`, the same stable per-vessel id
+  // `TargetPicker`/`LaunchDirector` dispatch against.
+  const activeVesselId = useTelemetry("vessel.identity")?.vesselId;
+  const prevVesselIdRef = useRef(activeVesselId);
+  useEffect(() => {
+    if (activeVesselId !== prevVesselIdRef.current) {
+      prevVesselIdRef.current = activeVesselId;
+      throttleTouchedRef.current = false;
+      // Re-seed immediately rather than waiting on the `throttle` effect's
+      // own dependency to fire: the new vessel's live value may already be
+      // sitting in `throttle` this render (the two topics often update in
+      // the same telemetry frame), and this latch reset must not depend on
+      // that coincidence.
+      setThrottleCmdState(throttle);
+    }
+  }, [activeVesselId, throttle]);
+  const throttleStream: ControlStream = useControlStream(
+    "vessel.control.throttle",
+    throttleCmd,
+    {
+      label: "Throttle",
+      range: "unit",
+      onDispatch: () => CONTROL_STREAM_BUDGET.record(),
+    },
+  );
 
   // Delayed vessel commands (command-surface-delay-audit #9,#11): SAS/RCS
   // toggle, SAS mode, and FBW arm/disarm are all discrete, absolute-set
@@ -325,13 +410,14 @@ function NavballComponent({
     "sas-maneuver": (p) => isButtonPress(p) && setSasMode("Maneuver"),
     "set-throttle": (p) => {
       if (p.kind !== "analog") return;
-      const v = clamp(p.value as number, 0, 1);
-      void execute(`f.setThrottle[${v.toFixed(3)}]`);
+      setThrottleCmd(clamp(p.value as number, 0, 1));
     },
-    "throttle-up": (p) => isButtonPress(p) && void execute("f.throttleUp"),
-    "throttle-down": (p) => isButtonPress(p) && void execute("f.throttleDown"),
-    "throttle-zero": (p) => isButtonPress(p) && void execute("f.throttleZero"),
-    "throttle-full": (p) => isButtonPress(p) && void execute("f.throttleFull"),
+    "throttle-up": (p) =>
+      isButtonPress(p) && setThrottleCmd((v) => clamp(v + 0.1, 0, 1)),
+    "throttle-down": (p) =>
+      isButtonPress(p) && setThrottleCmd((v) => clamp(v - 0.1, 0, 1)),
+    "throttle-zero": (p) => isButtonPress(p) && setThrottleCmd(0),
+    "throttle-full": (p) => isButtonPress(p) && setThrottleCmd(1),
     "set-pitch": (p) => {
       if (p.kind !== "analog") return;
       void execute(`v.setPitch[${clamp(p.value as number, -1, 1).toFixed(3)}]`);
@@ -526,14 +612,15 @@ function NavballComponent({
             sasOn={sasOn}
             rcsOn={rcsOn}
             precisionOn={precisionOn}
-            throttle={throttle}
+            throttleCmd={throttleStream.current}
+            onSetThrottleCmd={setThrottleCmd}
+            throttleStream={throttleStream}
             fbwArmed={fbwArmed}
             onArmFbw={armFbw}
             onDisarmFbw={disarmFbw}
             onToggleSas={toggleSas}
             onToggleRcs={toggleRcs}
             onSetSasMode={setSasMode}
-            execute={execute}
             showFbwDelayWarning={showFbwDelayWarning}
             delaySeconds={
               typeof delaySeconds === "number" ? delaySeconds : null
@@ -557,15 +644,17 @@ interface ControlSurfaceProps {
   sasOn: boolean;
   rcsOn: boolean;
   precisionOn: boolean;
-  throttle: number;
+  /** Commanded throttle value (0..1): local operator intent, tracks the live readback until touched. Same value as `throttleStream.current`. */
+  throttleCmd: number;
+  onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
+  /** The delayed control-stream buffer for the throttle axis; feeds `<ControlDelayStream>`. Pitch/yaw/roll aren't included: see the follow-on note in the parent component body. */
+  throttleStream: ControlStream;
   fbwArmed: boolean;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
   onToggleSas: () => void;
   onToggleRcs: () => void;
   onSetSasMode: (mode: SasMode) => void;
-  /** Continuous/analog controls only (throttle): see K5 note above. */
-  execute: (action: string) => Promise<void>;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
   /** In-flight SAS/RCS/SAS-mode/FBW commands, folded in from `useCommand`. */
@@ -578,14 +667,15 @@ function ControlSurface({
   sasOn,
   rcsOn,
   precisionOn,
-  throttle,
+  throttleCmd,
+  onSetThrottleCmd,
+  throttleStream,
   fbwArmed,
   onArmFbw,
   onDisarmFbw,
   onToggleSas,
   onToggleRcs,
   onSetSasMode,
-  execute,
   showFbwDelayWarning,
   delaySeconds,
   inFlight,
@@ -648,47 +738,55 @@ function ControlSurface({
             min={0}
             max={1}
             step={0.01}
-            value={throttle}
-            onChange={(e) =>
-              void execute(
-                `f.setThrottle[${Number(e.target.value).toFixed(3)}]`,
-              )
-            }
+            value={throttleCmd}
+            onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
             disabled={disabled}
             aria-label="Throttle"
           />
-          <SliderVal>{Math.round(throttle * 100)}%</SliderVal>
+          <SliderVal>{Math.round(throttleCmd * 100)}%</SliderVal>
         </SliderRow>
         <ButtonGrid>
           <Button
             type="button"
-            onClick={() => void execute("f.throttleZero")}
+            onClick={() => onSetThrottleCmd(0)}
             disabled={disabled}
           >
             ZERO
           </Button>
           <Button
             type="button"
-            onClick={() => void execute("f.throttleDown")}
+            onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
             disabled={disabled}
           >
             −10%
           </Button>
           <Button
             type="button"
-            onClick={() => void execute("f.throttleUp")}
+            onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
             disabled={disabled}
           >
             +10%
           </Button>
           <Button
             type="button"
-            onClick={() => void execute("f.throttleFull")}
+            onClick={() => onSetThrottleCmd(1)}
             disabled={disabled}
           >
             FULL
           </Button>
         </ButtonGrid>
+        {/*
+          Continuous control-delay viz for the throttle axis, the reference
+          surface for this design: pitch/yaw/roll aren't included, see the
+          follow-on note above `throttleStream`'s declaration (no read
+          fields / [SitrepControlChannel] declarations for those axes yet).
+          Renders `null` when the one-way delay is near zero, so a direct
+          link pays nothing; safe to always mount.
+        */}
+        <ControlDelayStream
+          streams={[throttleStream]}
+          ariaLabel="Navball: controls in flight"
+        />
       </Group>
 
       <Group>

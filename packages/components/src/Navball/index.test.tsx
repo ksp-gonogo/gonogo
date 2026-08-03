@@ -41,6 +41,7 @@ const READ_CHANNELS = [
   "vessel.flight",
   "vessel.comms",
   "comms.delay",
+  "vessel.identity",
 ];
 
 // Size large enough to meet the control-surface threshold (rows≥18,
@@ -53,6 +54,8 @@ interface EmitState {
   control?: Record<string, unknown>;
   comms?: Record<string, unknown>;
   delaySeconds?: number;
+  /** `vessel.identity.vesselId`: the active-vessel switch signal the throttle seed latch resets on. */
+  vesselId?: string;
 }
 
 /** Emit the read topics. Always seeds the vessel.state record (orbit Loaded +
@@ -72,6 +75,9 @@ function emitReads(fixture: StreamFixture, state: EmitState): void {
     if (state.comms) fixture.emit("vessel.comms", state.comms);
     if (state.delaySeconds !== undefined) {
       fixture.emit("comms.delay", { oneWaySeconds: state.delaySeconds });
+    }
+    if (state.vesselId !== undefined) {
+      fixture.emit("vessel.identity", { vesselId: state.vesselId });
     }
   });
 }
@@ -217,7 +223,11 @@ describe("NavballComponent", () => {
     });
   });
 
-  it("formats throttle slider input as f.setThrottle[...]", async () => {
+  it("drives vessel.control.setThrottle via the delayed control-stream when the throttle slider moves", async () => {
+    // Throttle migrated off the legacy execute() path onto useControlStream
+    // (same "no carried-channels gate" shape the FBW arm/disarm test above
+    // proves for vessel.control.setFlyByWire): the slider sets local
+    // commanded state, the hook's coalesced write half dispatches it.
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     emitReads(fixture, {
       comms: { controlState: 4 },
@@ -228,8 +238,44 @@ describe("NavballComponent", () => {
     // fireEvent.change is the RTL-recommended way to set a slider value.
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => {
-      expect(onExecute).toHaveBeenCalledWith("f.setThrottle[0.750]");
+      const sent = fixture.transport.sentCommands.find(
+        (c) =>
+          c.command === "vessel.control.setThrottle" &&
+          (c.args as { value: number }).value === 0.75,
+      );
+      expect(sent).toBeDefined();
     });
+  });
+
+  it("re-seeds the commanded throttle from the new vessel's readback on a vessel switch, even after the old vessel's throttle was touched", async () => {
+    // Regression: `throttleTouchedRef` permanently latches once the operator
+    // touches the slider, so the seed-from-readback effect stays disabled
+    // for the rest of the widget's life. Without a reset keyed on the active
+    // vessel, switching to a freshly-controlled craft would keep showing
+    // (and re-commanding) the PREVIOUS vessel's stale throttle value.
+    const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    emitReads(fixture, {
+      comms: { controlState: 4 },
+      control: { throttle: 0.25 },
+      vesselId: "vessel-a",
+    });
+    const slider = await screen.findByRole("slider", { name: "Throttle" });
+    await waitFor(() => expect(slider).toHaveValue("0.25"));
+
+    // Operator touches the throttle: latches `throttleTouchedRef`, so the
+    // seed-from-readback effect would otherwise never fire again.
+    fireEvent.change(slider, { target: { value: "0.75" } });
+    await waitFor(() => expect(slider).toHaveValue("0.75"));
+
+    // Switch to a different vessel with its own live throttle. A stale
+    // latch would leave the slider stuck at 0.75 (vessel-a's touched
+    // value) instead of picking up vessel-b's actual live throttle.
+    emitReads(fixture, {
+      comms: { controlState: 4 },
+      control: { throttle: 0.6 },
+      vesselId: "vessel-b",
+    });
+    await waitFor(() => expect(slider).toHaveValue("0.6"));
   });
 
   describe("FBW-under-delay warning", () => {

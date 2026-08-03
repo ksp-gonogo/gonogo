@@ -36,22 +36,29 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  *    button dispatches `vessel.control.setSasMode` directly via
  *    `useCommand`, the mode name resolved to its ordinal off `SAS_MODES`'
  *    own array position (see `setSasMode` in index.tsx). Also unconditional.
- * 3. **positional -> named, no invert (UNMIGRATED, K5, out of scope)**: the
- *    throttle ZERO button. Continuous/analog controls (throttle, pitch/yaw/
- *    roll axes, RCS translation, trim) stay on the legacy `useExecuteAction`
- *    string path + the carried-gated `map-command.ts` shim: closing a
- *    control loop across signal delay is a control-theory problem needing a
- *    select-then-commit `CommandGroup` design, not a hook swap. Proven here
- *    still falling back to the legacy `DataSource` when its command topic
- *    isn't carried, exactly as before.
+ * 3. **continuous, delayed control-stream (control-delay-stream-viz Task 4)**:
+ *    the throttle ZERO button. Throttle is now the one continuous axis with
+ *    a real bidirectional channel (`vessel.control.throttle`), so it rides
+ *    `useControlStream` instead of `useExecuteAction`: the button sets local
+ *    commanded state, the hook's coalesced write half dispatches
+ *    `vessel.control.setThrottle` on its own 10 Hz tick. Unconditional too,
+ *    same as bridges 1/2: no carried-channels gate, no legacy `DataSource`
+ *    fallback (the pre-migration version of this file proved the opposite:
+ *    a carried-gated shim promotion with a legacy fallback; that shape is
+ *    gone for throttle specifically).
  *
- * `f.throttleUp`/`f.throttleDown`/`set-pitch`/`set-yaw`/`set-roll`/
- * `translate-*`/`set-*-trim` are the same unmigrated continuous-control
- * shape as throttle ZERO, not separately exercised here. `arm-fbw`/
- * `disarm-fbw` (`vessel.control.setFlyByWire`) DID migrate alongside SAS/
- * SAS-mode (same discrete-command shape) but aren't separately proven in
- * this file; `Twr` (the other Navball/Twr command-validation candidate)
- * declares `actions: []`: no command surface at all to validate.
+ * `set-pitch`/`set-yaw`/`set-roll`/`translate-*`/`set-*-trim` stay on the
+ * legacy `useExecuteAction` string path + the carried-gated `map-command.ts`
+ * shim (K5 in the command-surface delay audit, unmigrated): `VesselControl`
+ * has no pitch/yaw/roll READ fields or `[SitrepControlChannel]`
+ * declarations yet, so there's no channel for those axes to ride, and
+ * closing a full attitude-control loop across signal delay is a
+ * control-theory problem needing a select-then-commit `CommandGroup` design
+ * regardless. Not separately exercised here. `arm-fbw`/`disarm-fbw`
+ * (`vessel.control.setFlyByWire`) DID migrate alongside SAS/SAS-mode (same
+ * discrete-command shape) but aren't separately proven in this file; `Twr`
+ * (the other Navball/Twr command-validation candidate) declares
+ * `actions: []`: no command surface at all to validate.
  *
  * Every test renders Navball in `controlMode: true` at a size that clears
  * `showControlSurface`'s gate (rows>=18, cols>=7) so the real DOM buttons
@@ -216,9 +223,11 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     );
   });
 
-  it("throttle ZERO button dispatches vessel.control.setThrottle when promoted (bridge 3: positional -> named, no-invert)", async () => {
+  it("throttle ZERO button drives vessel.control.setThrottle to 0 via the delayed control-stream (bridge 3: continuous, unconditional)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control", "vessel.control.setThrottle"],
+      // Deliberately NOT carrying vessel.control.setThrottle: proves the
+      // control-stream's write half is unconditional, same as bridges 1/2.
+      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
     });
     const commandHandler = vi.fn(() => ({ ok: true }));
@@ -226,20 +235,33 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
     renderControlNavball("nav-cmd-thr", fixture.Provider);
 
-    const button = await screen.findByRole("button", { name: "ZERO" });
+    // FULL first so ZERO's dispatch is unambiguously caused by the click,
+    // not just the coalesced write half's unconditional first-tick echo of
+    // the already-0 default commanded state.
+    const fullButton = await screen.findByRole("button", { name: "FULL" });
     act(() => {
-      button.click();
+      fullButton.click();
     });
-
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith(
+        "vessel.control.setThrottle",
+        { value: 1 },
+      ),
+    );
+
+    const zeroButton = screen.getByRole("button", { name: "ZERO" });
+    act(() => {
+      zeroButton.click();
+    });
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenLastCalledWith(
         "vessel.control.setThrottle",
         { value: 0 },
       ),
     );
   });
 
-  it("throttle ZERO button falls back to legacy execute() when the command topic isn't carried", async () => {
+  it("throttle ZERO button never falls back to legacy execute(): the axis has no legacy path left", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
@@ -262,7 +284,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     await buffered.connect();
 
     const { unmount } = renderControlNavball(
-      "nav-cmd-thr-legacy",
+      "nav-cmd-thr-no-legacy",
       fixture.Provider,
     );
 
@@ -271,8 +293,13 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       button.click();
     });
 
-    await waitFor(() => expect(executed).toEqual(["f.throttleZero"]));
-    expect(commandHandler).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith(
+        "vessel.control.setThrottle",
+        { value: 0 },
+      ),
+    );
+    expect(executed).toEqual([]);
 
     unmount();
     buffered.disconnect();

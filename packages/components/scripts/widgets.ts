@@ -110,6 +110,16 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "full-7x20", w: 7, h: 20, config: { controlMode: true } },
       // Generous control-mode size that lets every group breathe.
       { name: "xl-9x24", w: 9, h: 24, config: { controlMode: true } },
+      // Control-delay stream: control mode + a fixture carrying a non-zero
+      // comms.delay so ControlDelayStream renders (it self-hides at ~0 delay).
+      // Anchors the sparkline's chrome (dividers, ramp, fills) in the visual gate.
+      {
+        name: "control-delay-7x20",
+        w: 7,
+        h: 20,
+        config: { controlMode: true },
+        forFixtures: ["control-delay"],
+      },
     ],
   },
   {

@@ -54,6 +54,21 @@ export {
   useViewUt,
   type ViewClockView,
 } from "./context";
+export type {
+  ControlRange,
+  ControlSample,
+  DerivedStrip,
+  DeriveStripArgs,
+  LoggedSample,
+} from "./control-stream-model";
+export {
+  commandedAt,
+  DEVIATION_EPSILON,
+  deriveStrip,
+  hasDeviation,
+  MIN_DELAY_SECONDS,
+  normalize01,
+} from "./control-stream-model";
 export {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
@@ -189,6 +204,11 @@ export {
 } from "./uplink-health";
 export { useCertainty } from "./use-certainty";
 export { type UseCommandResult, useCommand } from "./use-command";
+export {
+  type ControlStream,
+  type ControlStreamOptions,
+  useControlStream,
+} from "./use-control-stream";
 export {
   type LateTelemetrySubscribe,
   type Unsubscribe,
