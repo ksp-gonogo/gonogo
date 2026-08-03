@@ -33,3 +33,7 @@ echo "codegen -> $OUT"
 echo "codegen -> $TOPIC_MAP_OUT"
 echo "codegen -> $UNIT_MAP_OUT"
 echo "codegen -> $CHANNEL_MAP_OUT"
+# ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
+# than hand-maintained beside it. It is a separate step because its input is
+# TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run
+# through `pnpm codegen`, which chains the two.

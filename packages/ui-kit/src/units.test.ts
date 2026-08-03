@@ -273,6 +273,47 @@ describe("catalog coverage", () => {
     expect(tokens.filter((t) => kindOfUnit(t) === undefined)).toEqual([]);
   });
 
+  it("names a kind for every LADDER RUNG, not just every unit", () => {
+    // A rung is not a unit. `Mbit/s` and `kt` never appear in the contract and
+    // have no entry in the model, but formatQuantity hands one back and the
+    // caller then asks what it measures. That answer is derived from the
+    // ladder rather than stored, so this checks the derivation covers every
+    // rung rather than checking a table someone remembered to extend.
+    const rungs = [
+      "km",
+      "Mm",
+      "Gm",
+      "Tm",
+      "t",
+      "kt",
+      "Tg",
+      "Yg",
+      "MN",
+      "mPa",
+      "kbit/s",
+      "Mbit/s",
+      "Gbit/s",
+    ];
+    expect(rungs.filter((r) => kindOfUnit(r) === undefined)).toEqual([]);
+    expect(kindOfUnit("Mbit/s")).toBe("dataRate");
+    expect(kindOfUnit("Yg")).toBe("mass");
+  });
+
+  it("names a kind for a presentation-only unit reached by conversion", () => {
+    // The contract deliberately has no Celsius token, so `°C` is named in
+    // exactly one place: the conversion table. That is enough to say it is a
+    // temperature, and it means no table has to repeat it.
+    expect(kindOfUnit("°C")).toBe("temperature");
+  });
+
+  it("stores no first-party kind of its own", () => {
+    // The point of the generated table. Every kind ui-kit can answer comes
+    // from the model, a ladder, or a conversion; a hand-written first-party
+    // map is what drifted last time and there is no longer one to drift.
+    const src = readFileSync(join(process.cwd(), "src/units.ts"), "utf8");
+    expect(src).not.toMatch(/const KIND_BY_SYMBOL/);
+  });
+
   it("agrees with the SDK on what each unit's kind is CALLED", () => {
     // The drift the coverage check above could not see. It only asked whether
     // a token had SOME kind, so the two tables were free to disagree on the

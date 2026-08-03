@@ -1,3 +1,4 @@
+import { GENERATED_UNIT_KINDS } from "./__generated__/unit-kinds";
 import { formatDuration } from "./formatDuration";
 import { NULL_DISPLAY } from "./NullValue";
 
@@ -60,13 +61,13 @@ export type KnownQuantityKind =
   | "science"
   | "reputation"
   | "count"
-  | "identifier"
+  | "id"
   | "resourceUnits"
   | "resourceFlow"
   | "text"
   | "flag"
-  | "enumeration"
-  | "none";
+  | "enum"
+  | "n/a";
 
 /**
  * A quantity kind, OPEN to kinds this package has never heard of.
@@ -285,7 +286,7 @@ const DECIMALS: Record<string, number> = {
   // A count is integral: "3.00 crew" is wrong in a way "3.00 Mach" is not,
   // which is the whole reason `count` is a separate kind from `dimensionless`.
   count: 0,
-  identifier: 0,
+  id: 0,
   resourceUnits: 1,
   resourceFlow: 2,
   area: 1,
@@ -323,61 +324,65 @@ const DISPLAY_BY_KIND: Record<string, string> = {
   science: "sci",
   reputation: "rep",
   count: "",
-  identifier: "",
+  id: "",
   text: "",
   flag: "",
-  enumeration: "",
-  none: "",
+  enum: "",
+  "n/a": "",
 };
 
-/** The contract's unit symbols, mapped to what they measure. */
-const KIND_BY_SYMBOL: Record<string, QuantityKind> = {
-  m: "length",
-  "m/s": "speed",
-  "m/s²": "acceleration",
-  g: "acceleration",
-  kg: "mass",
-  t: "mass",
-  N: "force",
-  kN: "force",
-  Pa: "pressure",
-  kPa: "pressure",
-  K: "temperature",
-  "°C": "temperature",
-  s: "time",
-  "°": "planeAngle",
-  rad: "planeAngle",
-  kW: "power",
-  "bit/s": "dataRate",
-  "kbit/s": "dataRate",
-  "Mbit/s": "dataRate",
-  "Gbit/s": "dataRate",
-  dB: "level",
-  "rad/s": "doseRate",
-  "W/m²": "irradiance",
-  "kg/m³": "density",
-  "m³/s²": "gravParameter",
-  "1": "dimensionless",
-  ratio: "ratio",
-  "%": "percent",
-  Mit: "scienceData",
-  "science/day": "scienceRate",
-  "m²": "area",
-  "m³": "volume",
-  h: "time",
-  rpm: "angularSpeed",
-  funds: "funds",
-  science: "science",
-  rep: "reputation",
-  count: "count",
-  id: "identifier",
-  units: "resourceUnits",
-  "units/s": "resourceFlow",
-  text: "text",
-  flag: "flag",
-  enum: "enumeration",
-  "n/a": "none",
-};
+/**
+ * Kinds taught at runtime by {@link registerUnit}, layered over the generated
+ * table. Empty until an Uplink registers something.
+ *
+ * There is deliberately no hand-written first-party table any more. ui-kit kept
+ * one beside the SDK's for as long as both existed, and they drifted: seven
+ * units disagreed on what their kind was CALLED, which matters because kind is
+ * the key an Uplink's `declare module` augmentation targets.
+ */
+const REGISTERED_KINDS: Record<string, QuantityKind> = {};
+
+/**
+ * A rung is not a unit. `Mbit/s` and `kt` never appear in the contract and have
+ * no entry in the model, but a formatter handed one back still has to know what
+ * it measures. The ladder it belongs to already says, so the answer is derived
+ * rather than stored: another table would be another thing to drift.
+ *
+ * Built lazily and rebuilt whenever a registration replaces a ladder.
+ */
+let rungKinds: Record<string, QuantityKind> | undefined;
+
+function kindOfRung(symbol: string): QuantityKind | undefined {
+  if (rungKinds === undefined) {
+    rungKinds = {};
+    for (const [kind, rungs] of Object.entries(LADDERS)) {
+      for (const rung of rungs) {
+        // First ladder wins, so a base symbol shared with the model keeps the
+        // model's answer rather than a ladder's.
+        rungKinds[rung.symbol] ??= kind;
+      }
+    }
+  }
+  return rungKinds[symbol];
+}
+
+/**
+ * A presentation-only unit reached by conversion rather than by the wire.
+ * `°C` is the whole of it: the contract deliberately has no Celsius token, so
+ * the only place `°C` is named is the conversion table, and that is enough to
+ * say it is a temperature.
+ */
+function kindOfConversion(symbol: string): QuantityKind | undefined {
+  for (const pair of Object.keys(CONVERSIONS)) {
+    const [from, to] = pair.split("\u2192");
+    if (to === symbol) {
+      return (
+        GENERATED_UNIT_KINDS[from] ?? REGISTERED_KINDS[from] ?? kindOfRung(from)
+      );
+    }
+  }
+  return undefined;
+}
 
 /**
  * What each displayed symbol is CALLED, for the accessibility tree.
@@ -510,11 +515,23 @@ export function displaySymbol(
   return kind === undefined ? unit : (DISPLAY_BY_KIND[kind] ?? unit);
 }
 
-/** What a unit symbol measures, or undefined for one we do not know. */
+/**
+ * What a unit symbol measures, or undefined for one we do not know.
+ *
+ * Four sources, in order, and NONE of them is a hand-written table in this
+ * package: a runtime registration wins, then the generated model table, then
+ * the ladder a rung belongs to, then the conversion that names it.
+ */
 export function kindOfUnit(
   symbol: string | undefined,
 ): QuantityKind | undefined {
-  return symbol === undefined ? undefined : KIND_BY_SYMBOL[symbol];
+  if (symbol === undefined) return undefined;
+  return (
+    REGISTERED_KINDS[symbol] ??
+    GENERATED_UNIT_KINDS[symbol] ??
+    kindOfRung(symbol) ??
+    kindOfConversion(symbol)
+  );
 }
 
 export interface UnitDefinition {
@@ -568,9 +585,14 @@ export interface UnitDefinition {
  * the same lifecycle every other registry here has.
  */
 export function registerUnit(def: UnitDefinition): void {
-  KIND_BY_SYMBOL[def.symbol] = def.kind;
+  REGISTERED_KINDS[def.symbol] = def.kind;
   if (def.decimals !== undefined) DECIMALS[def.kind] = def.decimals;
-  if (def.ladder) LADDERS[def.kind] = def.ladder;
+  if (def.ladder) {
+    LADDERS[def.kind] = def.ladder;
+    // The derived rung index is now stale: a replaced ladder brings its own
+    // symbols and drops the ones it replaced.
+    rungKinds = undefined;
+  }
   if (def.scientific) SCIENTIFIC.add(def.kind);
   if (def.display !== undefined) DISPLAY_BY_KIND[def.kind] = def.display;
 }
