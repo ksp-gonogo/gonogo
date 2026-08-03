@@ -2,17 +2,19 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 
+import { Value } from '../value';
+
 export interface AvionicsStatus
 {
 	avionicsActive?: boolean;
-	controllableMassTons?: number;
-	vesselMassTons?: number;
+	controllableMassTons?: Value<"t">;
+	vesselMassTons?: Value<"t">;
 	controllable?: boolean;
 }
 export interface ActivateStrategyArgs
 {
 	strategyId: string;
-	factor: number;
+	factor: Value<"ratio">;
 }
 export interface DeactivateStrategyArgs
 {
@@ -50,15 +52,15 @@ export interface CareerStatus
 }
 export interface CareerEconomy
 {
-	funds?: number;
-	reputation?: number;
-	science?: number;
+	funds?: Value<"funds">;
+	reputation?: Value<"rep">;
+	science?: Value<"science">;
 }
 export interface CareerFacility
 {
-	currentTier?: number;
-	maxTier?: number;
-	upgradeCost?: number;
+	currentTier?: Value<"count">;
+	maxTier?: Value<"count">;
+	upgradeCost?: Value<"funds">;
 }
 export interface CareerContracts
 {
@@ -72,15 +74,15 @@ export interface CareerContract
 	title?: string;
 	agent?: string;
 	state?: string;
-	fundsAdvance?: number;
-	fundsCompletion?: number;
-	fundsFailure?: number;
-	scienceCompletion?: number;
-	reputationCompletion?: number;
-	reputationFailure?: number;
-	dateAccepted?: number;
-	dateDeadline?: number;
-	dateExpire?: number;
+	fundsAdvance?: Value<"funds">;
+	fundsCompletion?: Value<"funds">;
+	fundsFailure?: Value<"funds">;
+	scienceCompletion?: Value<"science">;
+	reputationCompletion?: Value<"rep">;
+	reputationFailure?: Value<"rep">;
+	dateAccepted?: Value<"s">;
+	dateDeadline?: Value<"s">;
+	dateExpire?: Value<"s">;
 	parameters: CareerContractParameter[];
 }
 export interface CareerContractParameter
@@ -92,7 +94,7 @@ export interface CareerStrategies
 {
 	active: CareerStrategy[];
 	all: CareerStrategy[];
-	activeCount: number;
+	activeCount: Value<"count">;
 }
 export interface CareerStrategy
 {
@@ -101,15 +103,15 @@ export interface CareerStrategy
 	description?: string;
 	department?: string;
 	isActive?: boolean;
-	factor?: number;
-	dateActivated?: number;
-	requiredReputation?: number;
-	initialCostFunds?: number;
-	initialCostScience?: number;
-	initialCostReputation?: number;
+	factor?: Value<"ratio">;
+	dateActivated?: Value<"s">;
+	requiredReputation?: Value<"rep">;
+	initialCostFunds?: Value<"funds">;
+	initialCostScience?: Value<"science">;
+	initialCostReputation?: Value<"rep">;
 	hasFactorSlider?: boolean;
-	factorSliderDefault?: number;
-	factorSliderSteps?: number;
+	factorSliderDefault?: Value<"ratio">;
+	factorSliderSteps?: Value<"count">;
 	canActivate?: boolean;
 	activateBlockedReason?: string;
 	canDeactivate?: boolean;
@@ -118,7 +120,7 @@ export interface CareerStrategy
 }
 export interface CareerTech
 {
-	unlockedCount: number;
+	unlockedCount: Value<"count">;
 	unlockedIds: string[];
 	nodes: CareerTechNode[];
 }
@@ -126,7 +128,7 @@ export interface CareerTechNode
 {
 	id?: string;
 	title?: string;
-	scienceCost?: number;
+	scienceCost?: Value<"science">;
 	unlocked?: boolean;
 	parents: string[];
 }
@@ -162,7 +164,7 @@ export interface CommsConnectivity
 }
 export interface CommsSignalStrength
 {
-	value: number;
+	value: Value<"ratio">;
 	meta: PayloadMeta;
 }
 export enum CommsControlStateKind {
@@ -186,8 +188,8 @@ export interface CommsHop
 	from: string;
 	to: string;
 	kind: CommsHopKind;
-	distanceMeters?: number;
-	bandRateBitsPerSec?: number;
+	distanceMeters?: Value<"m">;
+	bandRateBitsPerSec?: Value<"bit/s">;
 }
 export interface CommsPath
 {
@@ -217,7 +219,7 @@ export enum CommsDelaySource {
 }
 export interface CommsDelay
 {
-	oneWaySeconds?: number;
+	oneWaySeconds?: Value<"s">;
 	source: CommsDelaySource;
 	meta: PayloadMeta;
 }
@@ -228,18 +230,18 @@ export interface CommsLink
 }
 export interface CommsLinkQuality
 {
-	value: number;
+	value: Value<"ratio">;
 	meta: PayloadMeta;
 }
 export interface CommsDataRate
 {
-	upBitsPerSec: number;
-	downBitsPerSec: number;
+	upBitsPerSec: Value<"bit/s">;
+	downBitsPerSec: Value<"bit/s">;
 	meta: PayloadMeta;
 }
 export interface CommsLinkMargin
 {
-	decibelMargin: number;
+	decibelMargin: Value<"dB">;
 	closesLink: boolean;
 	meta: PayloadMeta;
 }
@@ -250,8 +252,8 @@ export interface CrashReport
 	what: string;
 	vesselType: string;
 	msg: string;
-	latitude: number;
-	longitude: number;
+	latitude: Value<"°">;
+	longitude: Value<"°">;
 	partsLost: CrashPartLost[];
 	body: string;
 	flightStats: CrashFlightStats;
@@ -260,8 +262,8 @@ export interface CrashReport
 	kerbalsKilled: string[];
 	situation: string;
 	crewAboard: string[];
-	altitude: number;
-	ut: number;
+	altitude: Value<"m">;
+	ut: Value<"s">;
 }
 export interface CrashPartLost
 {
@@ -272,17 +274,17 @@ export interface CrashPartLost
 }
 export interface CrashFlightStats
 {
-	kerbalsKilled: number;
-	partsLost: number;
+	kerbalsKilled: Value<"count">;
+	partsLost: Value<"count">;
 	flightEndMode: string;
-	highestSpeedOverLand: number;
+	highestSpeedOverLand: Value<"m/s">;
 	missionEnd: boolean;
-	highestGee: number;
-	highestAltitude: number;
-	totalDistance: number;
-	missionTime: number;
-	highestSpeed: number;
-	groundDistance: number;
+	highestGee: Value<"g">;
+	highestAltitude: Value<"m">;
+	totalDistance: Value<"m">;
+	missionTime: Value<"s">;
+	highestSpeed: Value<"m/s">;
+	groundDistance: Value<"m">;
 	liftOff: boolean;
 }
 export interface StreamData<T>
@@ -352,7 +354,7 @@ export interface FlightStarted
 	flightId: string;
 	vesselId: string;
 	vesselName: string;
-	ut: number;
+	ut: Value<"s">;
 }
 export interface FlightEnded
 {
@@ -360,7 +362,7 @@ export interface FlightEnded
 	vesselId: string;
 	vesselName: string;
 	reason: FlightEndReason;
-	ut: number;
+	ut: Value<"s">;
 }
 export interface FlightVesselChanged
 {
@@ -368,7 +370,7 @@ export interface FlightVesselChanged
 	vesselId: string;
 	vesselName: string;
 	previousVesselId?: string;
-	ut: number;
+	ut: Value<"s">;
 }
 export interface RevertToEditorArgs
 {
@@ -391,15 +393,15 @@ export interface SetFlyByWireArgs
 }
 export interface SetControlAxesArgs
 {
-	pitch?: number;
-	yaw?: number;
-	roll?: number;
-	x?: number;
-	y?: number;
-	z?: number;
-	pitchTrim?: number;
-	yawTrim?: number;
-	rollTrim?: number;
+	pitch?: Value<"1">;
+	yaw?: Value<"1">;
+	roll?: Value<"1">;
+	x?: Value<"1">;
+	y?: Value<"1">;
+	z?: Value<"1">;
+	pitchTrim?: Value<"1">;
+	yawTrim?: Value<"1">;
+	rollTrim?: Value<"1">;
 }
 export interface GameDlc
 {
@@ -408,8 +410,8 @@ export interface GameDlc
 }
 export interface KerbalismSpaceWeather
 {
-	radiationRadPerSecond?: number;
-	habitatRadiationRadPerSecond?: number;
+	radiationRadPerSecond?: Value<"rad/s">;
+	habitatRadiationRadPerSecond?: Value<"rad/s">;
 	magnetosphere?: boolean;
 	innerBelt?: boolean;
 	outerBelt?: boolean;
@@ -417,46 +419,46 @@ export interface KerbalismSpaceWeather
 	stormInProgress?: boolean;
 	blackout?: boolean;
 	inSunlight?: boolean;
-	shieldingAmount?: number;
-	shieldingCapacity?: number;
+	shieldingAmount?: Value<"units">;
+	shieldingCapacity?: Value<"units">;
 }
 export interface KerbalismResource
 {
-	amount?: number;
-	capacity?: number;
-	rate?: number;
+	amount?: Value<"units">;
+	capacity?: Value<"units">;
+	rate?: Value<"units/s">;
 }
 export interface KerbalismHabitat
 {
-	pressure?: number;
-	poisoning?: number;
-	shielding?: number;
-	livingSpace?: number;
-	comfort?: number;
-	volume?: number;
-	surface?: number;
+	pressure?: Value<"ratio">;
+	poisoning?: Value<"ratio">;
+	shielding?: Value<"ratio">;
+	livingSpace?: Value<"ratio">;
+	comfort?: Value<"ratio">;
+	volume?: Value<"m³">;
+	surface?: Value<"m²">;
 }
 export interface KerbalismProcessEntry
 {
 	resource?: string;
 	title?: string;
-	capacity?: number;
+	capacity?: Value<"units">;
 	running?: boolean;
 	broken?: boolean;
 }
 export interface KerbalismGreenhouseEntry
 {
 	cropResource?: string;
-	foodRatePerSec?: number;
-	natural?: number;
-	artificial?: number;
+	foodRatePerSec?: Value<"units/s">;
+	natural?: Value<"W/m²">;
+	artificial?: Value<"W/m²">;
 	active?: boolean;
 	issue?: string;
-	ecRateMaxPerSec?: number;
-	lampEcDrawPerSec?: number;
-	lightToleranceWm2?: number;
-	pressureTolerance?: number;
-	radiationToleranceRadPerSec?: number;
+	ecRateMaxPerSec?: Value<"units/s">;
+	lampEcDrawPerSec?: Value<"units/s">;
+	lightToleranceWm2?: Value<"W/m²">;
+	pressureTolerance?: Value<"ratio">;
+	radiationToleranceRadPerSec?: Value<"rad/s">;
 }
 export interface KerbalismLifeSupport
 {
@@ -471,16 +473,16 @@ export interface KerbalismLifeSupport
 export interface KerbalismCrewRule
 {
 	name?: string;
-	value?: number;
-	degenPerSec?: number;
-	fatalThreshold?: number;
+	value?: Value<"units">;
+	degenPerSec?: Value<"units/s">;
+	fatalThreshold?: Value<"units">;
 }
 export interface KerbalismCrewEntry
 {
 	name?: string;
 	trait?: string;
 	rules?: KerbalismCrewRule[];
-	deathClockSec?: number;
+	deathClockSec?: Value<"s">;
 }
 export interface KerbalismFeatures
 {
@@ -508,15 +510,15 @@ export interface KerbcastCameraEntry
 	vesselId?: string;
 	supportsZoom?: boolean;
 	supportsPan?: boolean;
-	fieldOfView?: number;
-	fieldOfViewMinimum?: number;
-	fieldOfViewMaximum?: number;
-	panYaw?: number;
-	panPitch?: number;
-	panYawMinimum?: number;
-	panYawMaximum?: number;
-	panPitchMinimum?: number;
-	panPitchMaximum?: number;
+	fieldOfView?: Value<"°">;
+	fieldOfViewMinimum?: Value<"°">;
+	fieldOfViewMaximum?: Value<"°">;
+	panYaw?: Value<"°">;
+	panPitch?: Value<"°">;
+	panYawMinimum?: Value<"°">;
+	panYawMaximum?: Value<"°">;
+	panPitchMinimum?: Value<"°">;
+	panPitchMaximum?: Value<"°">;
 	isDockingCamera?: boolean;
 	dockingPortNodeType?: string;
 	dockingPortState?: string;
@@ -524,13 +526,13 @@ export interface KerbcastCameraEntry
 export interface KerbcastSetFieldOfViewArgs
 {
 	cameraId: number;
-	fieldOfView: number;
+	fieldOfView: Value<"°">;
 }
 export interface KerbcastSetPanArgs
 {
 	cameraId: number;
-	yaw: number;
-	pitch: number;
+	yaw: Value<"°">;
+	pitch: Value<"°">;
 }
 export interface KosProcessorInfo
 {
@@ -543,7 +545,7 @@ export interface KosProcessorInfo
 export interface KosComputeStatus
 {
 	running: boolean;
-	lastGoodAt?: number;
+	lastGoodAt?: Value<"s">;
 	scriptError?: string;
 	parseError?: string;
 	paused: boolean;
@@ -591,8 +593,8 @@ export interface KosTerminalResizeArgs
 {
 	coreId: number;
 	leaseToken: string;
-	cols: number;
-	rows: number;
+	cols: Value<"count">;
+	rows: Value<"count">;
 }
 export interface KosTerminalCloseArgs
 {
@@ -611,9 +613,9 @@ export enum Staleness {
 export interface Meta
 {
 	source: string;
-	validAt: number;
+	validAt: Value<"s">;
 	seq: number;
-	deliveredAt: number;
+	deliveredAt: Value<"s">;
 	vantage: string;
 	quality: Quality;
 	active: boolean;
@@ -627,22 +629,22 @@ export interface PayloadMeta
 }
 export interface OrbitPatch
 {
-	sma: number;
-	ecc: number;
-	inc: number;
-	lan: number;
-	argPe: number;
-	meanAnomalyAtEpoch: number;
-	epoch: number;
-	period: number;
-	startUt: number;
-	endUt: number;
+	sma: Value<"m">;
+	ecc: Value<"1">;
+	inc: Value<"°">;
+	lan: Value<"°">;
+	argPe: Value<"°">;
+	meanAnomalyAtEpoch: Value<"rad">;
+	epoch: Value<"s">;
+	period: Value<"s">;
+	startUt: Value<"s">;
+	endUt: Value<"s">;
 	patchStartTransition: TransitionType;
 	patchEndTransition: TransitionType;
-	peA: number;
-	apA: number;
-	semiLatusRectum: number;
-	semiMinorAxis: number;
+	peA: Value<"m">;
+	apA: Value<"m">;
+	semiLatusRectum: Value<"m">;
+	semiMinorAxis: Value<"m">;
 	referenceBody: string;
 	closestEncounterBody?: string;
 }
@@ -651,16 +653,16 @@ export interface SolarPanelEntry
 	partName?: string;
 	partId?: string;
 	deployState?: string;
-	flowRate?: number;
-	chargeRate?: number;
-	sunAOA?: number;
+	flowRate?: Value<"units/s">;
+	chargeRate?: Value<"units/s">;
+	sunAOA?: Value<"°">;
 }
 export interface BatteryEntry
 {
 	partName?: string;
 	partId?: string;
-	current?: number;
-	max?: number;
+	current?: Value<"units">;
+	max?: Value<"units">;
 }
 export interface FuelCellEntry
 {
@@ -673,7 +675,7 @@ export interface AlternatorEntry
 {
 	partName?: string;
 	partId?: string;
-	outputRate?: number;
+	outputRate?: Value<"units/s">;
 }
 export interface PartsPower
 {
@@ -681,7 +683,7 @@ export interface PartsPower
 	batteries?: BatteryEntry[];
 	fuelCells?: FuelCellEntry[];
 	alternators?: AlternatorEntry[];
-	totalProductionEc?: number;
+	totalProductionEc?: Value<"units/s">;
 }
 export interface ServoEntry
 {
@@ -691,19 +693,19 @@ export interface ServoEntry
 	servoIsLocked?: boolean;
 	servoIsMotorized?: boolean;
 	servoMotorIsEngaged?: boolean;
-	servoMotorLimit?: number;
+	servoMotorLimit?: Value<"%">;
 	motorState?: string;
-	currentAngle?: number;
-	targetAngle?: number;
+	currentAngle?: Value<"°">;
+	targetAngle?: Value<"°">;
 	traverseVelocity?: number;
-	currentRPM?: number;
-	rpmLimit?: number;
-	normalizedOutput?: number;
-	brakePercentage?: number;
-	currentExtension?: number;
-	targetExtension?: number;
+	currentRPM?: Value<"rpm">;
+	rpmLimit?: Value<"rpm">;
+	normalizedOutput?: Value<"ratio">;
+	brakePercentage?: Value<"%">;
+	currentExtension?: Value<"m">;
+	targetExtension?: Value<"m">;
 	counterClockwise?: boolean;
-	maxTorque?: number;
+	maxTorque?: Value<"kN">;
 }
 export interface RoboticsAvailability
 {
@@ -711,16 +713,16 @@ export interface RoboticsAvailability
 }
 export interface RecoveryReport
 {
-	capturedAtUT: number;
+	capturedAtUT: Value<"s">;
 	vesselName: string;
 	recoveryLocation: string;
 	recoveryFactor: string;
-	scienceEarned: number;
-	totalScience: number;
-	fundsEarned: number;
-	totalFunds: number;
-	reputationEarned: number;
-	totalReputation: number;
+	scienceEarned: Value<"science">;
+	totalScience: Value<"science">;
+	fundsEarned: Value<"funds">;
+	totalFunds: Value<"funds">;
+	reputationEarned: Value<"rep">;
+	totalReputation: Value<"rep">;
 	displayReputation: boolean;
 	scienceBreakdown: RecoveryScienceEntry[];
 	partBreakdown: RecoveryPartEntry[];
@@ -731,33 +733,33 @@ export interface RecoveryScienceEntry
 {
 	subjectId: string;
 	subjectTitle: string;
-	dataGathered: number;
-	scienceAmount: number;
+	dataGathered: Value<"Mit">;
+	scienceAmount: Value<"science">;
 }
 export interface RecoveryPartEntry
 {
 	partName: string;
 	partTitle: string;
-	count: number;
-	partValue: number;
-	resourcesValue: number;
-	totalValue: number;
+	count: Value<"count">;
+	partValue: Value<"funds">;
+	resourcesValue: Value<"funds">;
+	totalValue: Value<"funds">;
 }
 export interface RecoveryResourceEntry
 {
 	resourceName: string;
-	amount: number;
-	unitValue: number;
-	totalValue: number;
+	amount: Value<"units">;
+	unitValue: Value<"funds">;
+	totalValue: Value<"funds">;
 }
 export interface RecoveryCrewEntry
 {
 	name: string;
 	trait: string;
 	isTourist: boolean;
-	xpGained: number;
-	levelsGained: number;
-	newLevel: number;
+	xpGained: Value<"count">;
+	levelsGained: Value<"count">;
+	newLevel: Value<"count">;
 }
 export interface ReliabilitySummary
 {
@@ -765,7 +767,7 @@ export interface ReliabilitySummary
 	malfunction?: boolean;
 	critical?: boolean;
 	source?: string;
-	worstReliabilityFraction?: number;
+	worstReliabilityFraction?: Value<"ratio">;
 }
 export interface ReliabilityPartEntry
 {
@@ -774,11 +776,11 @@ export interface ReliabilityPartEntry
 	group?: string;
 	broken?: boolean;
 	critical?: boolean;
-	mtbfHours?: number;
-	reliabilityFraction?: number;
-	remainingRatedBurn?: number;
-	ignitionsConsumed?: number;
-	durationConsumed?: number;
+	mtbfHours?: Value<"h">;
+	reliabilityFraction?: Value<"ratio">;
+	remainingRatedBurn?: Value<"s">;
+	ignitionsConsumed?: Value<"ratio">;
+	durationConsumed?: Value<"ratio">;
 	needsRepair?: boolean;
 }
 export interface RevertAvailability
@@ -789,7 +791,7 @@ export interface RevertAvailability
 export interface ServoSetTargetArgs
 {
 	partId: string;
-	value: number;
+	value: Value<"ratio">;
 }
 export interface ServoSetEnabledArgs
 {
@@ -799,7 +801,7 @@ export interface ServoSetEnabledArgs
 export interface RotorSetValueArgs
 {
 	partId: string;
-	value: number;
+	value: Value<"ratio">;
 }
 export interface RotorReverseArgs
 {
@@ -808,31 +810,31 @@ export interface RotorReverseArgs
 export interface ScanSensorEntry
 {
 	type?: number;
-	fov?: number;
-	minAlt?: number;
-	maxAlt?: number;
-	bestAlt?: number;
+	fov?: Value<"°">;
+	minAlt?: Value<"m">;
+	maxAlt?: Value<"m">;
+	bestAlt?: Value<"m">;
 	inRange?: boolean;
 	bestRange?: boolean;
 }
 export interface ScanTrackColor
 {
-	r?: number;
-	g?: number;
-	b?: number;
-	a?: number;
+	r?: Value<"count">;
+	g?: Value<"count">;
+	b?: Value<"count">;
+	a?: Value<"count">;
 }
 export interface ScanningVesselEntry
 {
 	vesselId?: string;
 	vesselName?: string;
 	body?: string;
-	subLatitude?: number;
-	subLongitude?: number;
-	altitude?: number;
+	subLatitude?: Value<"°">;
+	subLongitude?: Value<"°">;
+	altitude?: Value<"m">;
 	sensors?: ScanSensorEntry[];
-	groundTrackWidthDeg?: number;
-	groundTrackLonHalfDeg?: number;
+	groundTrackWidthDeg?: Value<"°">;
+	groundTrackLonHalfDeg?: Value<"°">;
 	trackColor?: ScanTrackColor;
 }
 export interface ScanScienceEntry
@@ -849,8 +851,8 @@ export interface ScanScienceEntry
 export interface ScanAnomalyEntry
 {
 	name?: string;
-	latitude?: number;
-	longitude?: number;
+	latitude?: Value<"°">;
+	longitude?: Value<"°">;
 	known?: boolean;
 	detail?: boolean;
 }
@@ -865,11 +867,11 @@ export interface ExperimentEntry
 	experimentId?: string;
 	subjectId?: string;
 	title?: string;
-	dataAmount?: number;
-	scienceValueRatio?: number;
-	baseTransmitValue?: number;
-	transmitBonus?: number;
-	labValue?: number;
+	dataAmount?: Value<"Mit">;
+	scienceValueRatio?: Value<"ratio">;
+	baseTransmitValue?: Value<"science">;
+	transmitBonus?: Value<"ratio">;
+	labValue?: Value<"science">;
 	deployed?: boolean;
 	inoperable?: boolean;
 	situation?: string;
@@ -889,13 +891,13 @@ export interface InstrumentEntry
 export interface LabEntry
 {
 	partName?: string;
-	dataStored?: number;
-	dataStorage?: number;
-	storedScience?: number;
+	dataStored?: Value<"Mit">;
+	dataStorage?: Value<"Mit">;
+	storedScience?: Value<"science">;
 	processingData?: boolean;
 	statusText?: string;
-	scientistCount?: number;
-	scienceRate?: number;
+	scientistCount?: Value<"count">;
+	scienceRate?: Value<"science/day">;
 	isOperational?: boolean;
 }
 export interface DeployedEntry
@@ -906,10 +908,10 @@ export interface DeployedEntry
 	situation?: string;
 	biome?: string;
 	experimentId?: string;
-	scienceCompletedPercentage?: number;
-	scienceTransmittedPercentage?: number;
-	scienceValue?: number;
-	scienceLimit?: number;
+	scienceCompletedPercentage?: Value<"%">;
+	scienceTransmittedPercentage?: Value<"%">;
+	scienceValue?: Value<"science">;
+	scienceLimit?: Value<"science">;
 	powerState?: string;
 	connectionState?: string;
 	deployedOnGround?: boolean;
@@ -928,8 +930,8 @@ export interface ExperimentBreakdownEntry
 	biome?: string;
 	situation?: string;
 	expTitle?: string;
-	dataMits?: number;
-	remainingPotential?: number;
+	dataMits?: Value<"Mit">;
+	remainingPotential?: Value<"science">;
 }
 export interface LaunchSiteEntry
 {
@@ -950,63 +952,63 @@ export interface CrewRosterEntry
 {
 	name?: string;
 	trait?: string;
-	experienceLevel?: number;
+	experienceLevel?: Value<"count">;
 	available?: boolean;
 	unavailableReason?: string;
 }
 export interface SavedShipEntry
 {
 	name?: string;
-	partCount?: number;
-	totalMass?: number;
+	partCount?: Value<"count">;
+	totalMass?: Value<"t">;
 	facility?: string;
-	requiresFunds?: number;
+	requiresFunds?: Value<"funds">;
 	missingParts?: string[];
 }
 export interface SpaceCenterPartsAvailable
 {
-	count?: number;
+	count?: Value<"count">;
 }
 export interface SpaceCenterPoiEntry
 {
 	id?: string;
 	kind?: string;
 	bodyIndex?: number;
-	latitude?: number;
-	longitude?: number;
+	latitude?: Value<"°">;
+	longitude?: Value<"°">;
 	label?: string;
 	status?: string;
 	contractAgent?: string;
-	contractFundsAdvance?: number;
-	contractFundsCompletion?: number;
-	contractDateDeadline?: number;
+	contractFundsAdvance?: Value<"funds">;
+	contractFundsCompletion?: Value<"funds">;
+	contractDateDeadline?: Value<"s">;
 }
 export interface StageDeltaVEntry
 {
 	stage?: number;
-	dvVac?: number;
-	dvAsl?: number;
-	dvActual?: number;
-	burnTime?: number;
-	twrVac?: number;
-	twrAsl?: number;
-	twrActual?: number;
-	thrustVac?: number;
-	thrustAsl?: number;
-	thrustActual?: number;
-	startMass?: number;
-	endMass?: number;
-	dryMass?: number;
-	fuelMass?: number;
+	dvVac?: Value<"m/s">;
+	dvAsl?: Value<"m/s">;
+	dvActual?: Value<"m/s">;
+	burnTime?: Value<"s">;
+	twrVac?: Value<"1">;
+	twrAsl?: Value<"1">;
+	twrActual?: Value<"1">;
+	thrustVac?: Value<"kN">;
+	thrustAsl?: Value<"kN">;
+	thrustActual?: Value<"kN">;
+	startMass?: Value<"t">;
+	endMass?: Value<"t">;
+	dryMass?: Value<"t">;
+	fuelMass?: Value<"t">;
 	resources?: { [key:string]: ResourceAmount };
 }
 export interface StageDeltaVSummary
 {
-	stageCount?: number;
-	totalDvVac?: number;
-	totalDvAsl?: number;
-	totalDvActual?: number;
-	totalBurnTime?: number;
+	stageCount?: Value<"count">;
+	totalDvVac?: Value<"m/s">;
+	totalDvAsl?: Value<"m/s">;
+	totalDvActual?: Value<"m/s">;
+	totalBurnTime?: Value<"s">;
 }
 export interface SystemBodies
 {
@@ -1017,11 +1019,11 @@ export interface BodyEntry
 	name?: string;
 	index: number;
 	parentIndex?: number;
-	radius?: number;
+	radius?: Value<"m">;
 	orbit?: OrbitEntry;
-	gravParameter?: number;
-	sphereOfInfluence?: number;
-	rotationPeriod?: number;
+	gravParameter?: Value<"m³/s²">;
+	sphereOfInfluence?: Value<"m">;
+	rotationPeriod?: Value<"s">;
 	tidallyLocked?: boolean;
 	atmosphere?: AtmosphereEntry;
 	hasOcean?: boolean;
@@ -1029,19 +1031,19 @@ export interface BodyEntry
 }
 export interface AtmosphereEntry
 {
-	depth?: number;
+	depth?: Value<"m">;
 	hasOxygen?: boolean;
-	seaLevelPressure?: number;
+	seaLevelPressure?: Value<"kPa">;
 }
 export interface OrbitEntry
 {
-	sma?: number;
-	ecc?: number;
-	inc?: number;
-	lan?: number;
-	argPe?: number;
-	meanAnomalyAtEpoch?: number;
-	epoch?: number;
+	sma?: Value<"m">;
+	ecc?: Value<"1">;
+	inc?: Value<"°">;
+	lan?: Value<"°">;
+	argPe?: Value<"°">;
+	meanAnomalyAtEpoch?: Value<"rad">;
+	epoch?: Value<"s">;
 }
 export interface SystemVessels
 {
@@ -1059,8 +1061,8 @@ export interface VesselRosterEntry
 	vesselType: VesselType;
 	situation: Situation;
 	bodyIndex?: number;
-	crewCount?: number;
-	crewCapacity?: number;
+	crewCount?: Value<"count">;
+	crewCapacity?: Value<"count">;
 	commsConnected?: boolean;
 	commsControlSource?: RosterCommsControlSource;
 }
@@ -1073,7 +1075,7 @@ export interface TargetListEntry
 	partId?: number;
 	vesselType?: VesselType;
 	situation?: Situation;
-	distance?: number;
+	distance?: Value<"m">;
 	isCurrent: boolean;
 }
 export interface TargetAvailable
@@ -1087,8 +1089,8 @@ export interface PendingUplink
 	label: string;
 	topic: string;
 	vantage: string;
-	dispatchedAt: number;
-	oneWaySeconds: number;
+	dispatchedAt: Value<"s">;
+	oneWaySeconds: Value<"s">;
 }
 export interface PendingUplinkQueue
 {
@@ -1102,12 +1104,12 @@ export interface Vec3
 }
 export interface VesselAttitude
 {
-	pitch: number;
-	heading: number;
-	roll: number;
-	pitchRootFrame: number;
-	headingRootFrame: number;
-	rollRootFrame: number;
+	pitch: Value<"°">;
+	heading: Value<"°">;
+	roll: Value<"°">;
+	pitchRootFrame: Value<"°">;
+	headingRootFrame: Value<"°">;
+	rollRootFrame: Value<"°">;
 	meta: PayloadMeta;
 }
 export interface SetEnabledArgs
@@ -1120,7 +1122,7 @@ export interface SetSasModeArgs
 }
 export interface SetThrottleArgs
 {
-	value: number;
+	value: Value<"ratio">;
 }
 export interface SetActionGroupArgs
 {
@@ -1129,18 +1131,18 @@ export interface SetActionGroupArgs
 }
 export interface AddManeuverNodeArgs
 {
-	ut: number;
-	prograde: number;
-	normal: number;
-	radialOut: number;
+	ut: Value<"s">;
+	prograde: Value<"m/s">;
+	normal: Value<"m/s">;
+	radialOut: Value<"m/s">;
 }
 export interface UpdateManeuverNodeArgs
 {
 	nodeId: string;
-	ut: number;
-	prograde: number;
-	normal: number;
-	radialOut: number;
+	ut: Value<"s">;
+	prograde: Value<"m/s">;
+	normal: Value<"m/s">;
+	radialOut: Value<"m/s">;
 }
 export interface RemoveManeuverNodeArgs
 {
@@ -1152,8 +1154,8 @@ export interface SetTargetArgs
 	vesselId?: string;
 	partId?: number;
 	bodyIndex?: number;
-	latitude?: number;
-	longitude?: number;
+	latitude?: Value<"°">;
+	longitude?: Value<"°">;
 }
 export interface SetWarpIndexArgs
 {
@@ -1180,7 +1182,7 @@ export enum ControlState {
 export interface VesselComms
 {
 	connected: boolean;
-	signalStrength: number;
+	signalStrength: Value<"ratio">;
 	controlState: ControlState;
 	meta: PayloadMeta;
 }
@@ -1213,7 +1215,7 @@ export interface VesselControl
 	lights?: boolean;
 	abort?: boolean;
 	precisionControl?: boolean;
-	throttle?: number;
+	throttle?: Value<"ratio">;
 	actionGroups?: ActionGroupState[];
 	meta: PayloadMeta;
 }
@@ -1221,14 +1223,14 @@ export interface CrewMember
 {
 	name?: string;
 	trait?: string;
-	experienceLevel?: number;
+	experienceLevel?: Value<"count">;
 	type?: string;
 	rosterStatus?: string;
 }
 export interface VesselCrew
 {
-	count: number;
-	capacity: number;
+	count: Value<"count">;
+	capacity: Value<"count">;
 	crew: CrewMember[];
 	meta: PayloadMeta;
 }
@@ -1236,8 +1238,8 @@ export interface DockAlignment
 {
 	relativePosition: Vec3;
 	relativeVelocity: Vec3;
-	distance: number;
-	forwardDot?: number;
+	distance: Value<"m">;
+	forwardDot?: Value<"1">;
 	meta: PayloadMeta;
 }
 export enum Situation {
@@ -1279,19 +1281,19 @@ export enum TransitionType {
 }
 export interface VesselFlight
 {
-	latitude: number;
-	longitude: number;
-	altitudeAsl: number;
-	altitudeTerrain: number;
-	verticalSpeed: number;
-	surfaceSpeed: number;
-	orbitalSpeed: number;
-	gForce: number;
-	dynamicPressureKPa: number;
-	mach: number;
-	atmDensity: number;
-	externalTemperature: number;
-	atmosphericTemperature: number;
+	latitude: Value<"°">;
+	longitude: Value<"°">;
+	altitudeAsl: Value<"m">;
+	altitudeTerrain: Value<"m">;
+	verticalSpeed: Value<"m/s">;
+	surfaceSpeed: Value<"m/s">;
+	orbitalSpeed: Value<"m/s">;
+	gForce: Value<"g">;
+	dynamicPressureKPa: Value<"kPa">;
+	mach: Value<"1">;
+	atmDensity: Value<"kg/m³">;
+	externalTemperature: Value<"K">;
+	atmosphericTemperature: Value<"K">;
 	meta: PayloadMeta;
 }
 export interface VesselIdentity
@@ -1301,30 +1303,30 @@ export interface VesselIdentity
 	vesselType: VesselType;
 	situation: Situation;
 	parentBodyIndex?: number;
-	launchUt?: number;
+	launchUt?: Value<"s">;
 	meta: PayloadMeta;
 }
 export interface VesselLanding
 {
 	outcome?: string;
 	sampleSource?: string;
-	terrainElevationUnderVessel?: number;
-	slopeAngleUnderVessel?: number;
-	predictedLatitude?: number;
-	predictedLongitude?: number;
-	predictedTerrainElevation?: number;
-	predictedSlopeAngle?: number;
-	predictedSlopeHeading?: number;
-	predictedRoughness?: number;
-	roughnessFootprintMeters?: number;
-	slopeSampleRadiusMeters?: number;
+	terrainElevationUnderVessel?: Value<"m">;
+	slopeAngleUnderVessel?: Value<"°">;
+	predictedLatitude?: Value<"°">;
+	predictedLongitude?: Value<"°">;
+	predictedTerrainElevation?: Value<"m">;
+	predictedSlopeAngle?: Value<"°">;
+	predictedSlopeHeading?: Value<"°">;
+	predictedRoughness?: Value<"m">;
+	roughnessFootprintMeters?: Value<"m">;
+	slopeSampleRadiusMeters?: Value<"m">;
 	predictedBiome?: string;
-	terrainPatch?: number[];
-	terrainPatchSize?: number;
-	terrainPatchExtentMeters?: number;
-	terminalVelocity?: number;
-	projectedTouchdownSpeed?: number;
-	atmosphericTimeToImpact?: number;
+	terrainPatch?: Value<"m">[];
+	terrainPatchSize?: Value<"count">;
+	terrainPatchExtentMeters?: Value<"m">;
+	terminalVelocity?: Value<"m/s">;
+	projectedTouchdownSpeed?: Value<"m/s">;
+	atmosphericTimeToImpact?: Value<"s">;
 	descentRegime?: string;
 	parachuteState?: string;
 	meta: PayloadMeta;
@@ -1332,11 +1334,11 @@ export interface VesselLanding
 export interface ManeuverNode
 {
 	id: string;
-	ut: number;
-	dvRadial?: number;
-	dvNormal?: number;
-	dvPrograde?: number;
-	dvTotal?: number;
+	ut: Value<"s">;
+	dvRadial?: Value<"m/s">;
+	dvNormal?: Value<"m/s">;
+	dvPrograde?: Value<"m/s">;
+	dvTotal?: Value<"m/s">;
 	patches: OrbitPatch[];
 }
 export interface VesselManeuver
@@ -1347,14 +1349,14 @@ export interface VesselManeuver
 export interface VesselOrbit
 {
 	referenceBodyIndex: number;
-	sma: number;
-	ecc: number;
-	inc: number;
-	lan?: number;
-	argPe?: number;
-	meanAnomalyAtEpoch: number;
-	epoch: number;
-	mu: number;
+	sma: Value<"m">;
+	ecc: Value<"1">;
+	inc: Value<"°">;
+	lan?: Value<"°">;
+	argPe?: Value<"°">;
+	meanAnomalyAtEpoch: Value<"rad">;
+	epoch: Value<"s">;
+	mu: Value<"m³/s²">;
 	encounter?: OrbitEncounter;
 	patches: OrbitPatch[];
 	meta: PayloadMeta;
@@ -1362,7 +1364,7 @@ export interface VesselOrbit
 export interface OrbitEncounter
 {
 	transitionType: TransitionType;
-	transitionUt: number;
+	transitionUt: Value<"s">;
 	bodyIndex?: number;
 }
 export interface VesselOrbitTruth
@@ -1386,12 +1388,12 @@ export interface VesselPart
 	position: Vec3;
 	up?: Vec3;
 	bounds: PartBounds;
-	dryMass: number;
+	dryMass: Value<"t">;
 	inverseStage: number;
-	maxTemp: number;
-	skinMaxTemp?: number;
-	currentTemp?: number;
-	skinTemp?: number;
+	maxTemp: Value<"K">;
+	skinMaxTemp?: Value<"K">;
+	currentTemp?: Value<"K">;
+	skinTemp?: Value<"K">;
 	category: string;
 	modules: string[];
 	isRobotics: boolean;
@@ -1408,10 +1410,10 @@ export interface ActionBinding
 }
 export interface PartResourceFlow
 {
-	amount: number;
-	maxAmount: number;
-	flow?: number;
-	nominalFlow?: number;
+	amount: Value<"units">;
+	maxAmount: Value<"units">;
+	flow?: Value<"units/s">;
+	nominalFlow?: Value<"units/s">;
 }
 export interface PartModuleState
 {
@@ -1438,16 +1440,16 @@ export interface VesselPhysicsMode
 }
 export interface VesselPropulsion
 {
-	totalMass: number;
-	dryMass: number;
-	currentThrust: number;
-	availableThrust: number;
+	totalMass: Value<"t">;
+	dryMass: Value<"t">;
+	currentThrust: Value<"kN">;
+	availableThrust: Value<"kN">;
 	meta: PayloadMeta;
 }
 export interface ResourceAmount
 {
-	current: number;
-	max: number;
+	current: Value<"units">;
+	max: Value<"units">;
 	active: boolean;
 }
 export interface VesselResources
@@ -1458,15 +1460,15 @@ export interface VesselResources
 export interface VesselStructure
 {
 	currentStage: number;
-	stageCount?: number;
-	partCount?: number;
+	stageCount?: Value<"count">;
+	partCount?: Value<"count">;
 	meta: PayloadMeta;
 }
 export interface VesselSurface
 {
 	biome?: string;
 	landedAt?: string;
-	heightFromTerrain?: number;
+	heightFromTerrain?: Value<"m">;
 	meta: PayloadMeta;
 }
 export enum TargetKind {
@@ -1478,8 +1480,8 @@ export enum TargetKind {
 }
 export interface ClosestApproach
 {
-	time: number;
-	distance: number;
+	time: Value<"s">;
+	distance: Value<"m">;
 }
 export interface VesselTarget
 {
@@ -1496,22 +1498,22 @@ export interface VesselTarget
 }
 export interface ThermalHottestPart
 {
-	internalTemp: number;
-	maxTemp: number;
-	skinTemp: number;
-	skinMaxTemp: number;
+	internalTemp: Value<"K">;
+	maxTemp: Value<"K">;
+	skinTemp: Value<"K">;
+	skinMaxTemp: Value<"K">;
 	name: string;
 }
 export interface VesselThermal
 {
-	maxSkinTempRatio?: number;
-	maxInternalTempRatio?: number;
+	maxSkinTempRatio?: Value<"ratio">;
+	maxInternalTempRatio?: Value<"ratio">;
 	hottestPart?: ThermalHottestPart;
-	heatShieldTemp?: number;
-	heatShieldFlux?: number;
-	hottestEngineTemp?: number;
-	hottestEngineMaxTemp?: number;
-	hottestEngineTempRatio?: number;
+	heatShieldTemp?: Value<"K">;
+	heatShieldFlux?: Value<"kW">;
+	hottestEngineTemp?: Value<"K">;
+	hottestEngineMaxTemp?: Value<"K">;
+	hottestEngineTempRatio?: Value<"ratio">;
 	anyEnginesOverheating?: boolean;
 	meta: PayloadMeta;
 }
@@ -1522,7 +1524,7 @@ export enum WarpMode {
 }
 export interface WarpState
 {
-	warpRate: number;
+	warpRate: Value<"1">;
 	warpRateIndex: number;
 	warpMode: WarpMode;
 	paused: boolean;

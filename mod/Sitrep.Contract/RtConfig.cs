@@ -61,8 +61,10 @@ public static class RtConfig
         // Everything else marked [SitrepContract]/[TsInterface] that crosses the wire:
         // vessel.* channel payloads, comms.* channels, kos.* channels, command args,
         // and the shared value shapes (Vec3, PayloadMeta, CommandResult).
-        builder.ExportAsInterfaces(
-            new[]
+        // Held in a local rather than passed inline because the unit-typing
+        // pass below re-enters this set: only a type registered with rtcli may
+        // have its properties retyped, so the two lists must not drift apart.
+        var wirePayloadTypes = new[]
             {
                 // shared value shapes
                 typeof(Vec3),
@@ -275,8 +277,34 @@ public static class RtConfig
                 typeof(ReliabilityPartEntry),
                 // avionics.status, RP-1 controllable-mass ascent go/no-go
                 typeof(AvionicsStatus),
-            },
-            c => c.AutoI(false).WithPublicProperties());
+            };
+        builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
+
+        // --- Declared units become TYPES, not just a lookup ---
+        // Retypes every quantity-bearing property to Value<"<token>"> so the unit
+        // travels in the type system rather than in a map a caller has to
+        // remember to consult. Runs last: it configures properties on blueprints
+        // the registrations above already created.
+        //
+        // The envelope types are registered one at a time further up (they each
+        // need an OverrideName), so they have to be named again here. Forgetting
+        // one is not silent: `generated.test.ts` walks the WHOLE field->unit map
+        // against the emitted source, so an annotated property that never got
+        // its Value<> fails there. Meta's validAt/deliveredAt is how this list
+        // came to exist.
+        var unitTypedTypes = new List<Type>(wirePayloadTypes)
+        {
+            typeof(Meta),
+            typeof(EventMsg),
+            typeof(ErrorMsg),
+            typeof(Subscribe),
+            typeof(Unsubscribe),
+            typeof(StreamData<>),
+            typeof(CommandRequest<>),
+            typeof(CommandResponse<>),
+            typeof(CommandResult<>),
+        };
+        ApplyUnitValueTypes(builder, unitTypedTypes);
 
         // --- Enums (numeric `export enum`, per the existing Quality/Staleness convention) ---
         builder.ExportAsEnums(
@@ -343,6 +371,193 @@ public static class RtConfig
         if (!string.IsNullOrEmpty(channelMapOut))
         {
             EmitChannelMap(channelMapOut!);
+        }
+    }
+
+    /// <summary>
+    /// Tokens that declare a property has no physical dimension AND is not a
+    /// number you would ever scale, add or compare. They stay bare on the wire
+    /// type: <c>Value</c> carries a magnitude, and a vessel name, a flag or a
+    /// flightID has none. <see cref="Units.Count"/>, <see cref="Units.Ratio"/>,
+    /// <see cref="Units.Percent"/> and <see cref="Units.Dimensionless"/> are
+    /// deliberately NOT here: each is a real number with a real presentation
+    /// rule (integral, x100 with a %, bare to two decimals), and that rule is
+    /// exactly what the unit system exists to hold in one place.
+    /// </summary>
+    private static readonly HashSet<string> NonQuantityUnits = new HashSet<string>(StringComparer.Ordinal)
+    {
+        Units.Text,
+        Units.Flag,
+        Units.Enumeration,
+        Units.Id,
+        Units.NotApplicable,
+    };
+
+    /// <summary>
+    /// Retypes each quantity-bearing property from a bare <c>number</c> to
+    /// <c>Value&lt;"&lt;token&gt;"&gt;</c>, so the declared unit is carried by the
+    /// generated TYPE rather than only by the <see cref="EmitUnitMap"/> lookup.
+    ///
+    /// <para>Reinforced.Typings has no notion of a generic type argument built
+    /// from an attribute value, but <c>PropertyExportBuilder.Type(string)</c>
+    /// takes a raw TS type name, and a raw name is all this needs. That string
+    /// overload is the whole mechanism. (Do not go looking for a structured
+    /// route: <c>RtRaw</c> does not exist in 1.6.7, <c>RtSimpleTypeName</c>'s
+    /// generic-argument parameter is an array rather than <c>params</c>, and
+    /// <c>Type()</c> has exactly three overloads (<c>string</c>,
+    /// <c>&lt;T&gt;()</c>, <c>Type</c>), none of which accept an
+    /// <c>RtTypeName</c>.)</para>
+    ///
+    /// <para>Two properties are skipped on purpose. A NON-NUMERIC property is
+    /// skipped because a magnitude it does not have cannot be wrapped; a
+    /// quantity token on one of those is a contract defect and throws rather
+    /// than emitting something that would not compile. A <see cref="Vec3"/>-typed
+    /// property is skipped because a vector of three same-unit components is a
+    /// shape this design has not yet named. <see cref="EmitUnitMap"/> already
+    /// propagates its unit onto the x/y/z leaves, so nothing regresses, but the
+    /// leaves stay bare numbers until that shape exists.</para>
+    /// </summary>
+    private static void ApplyUnitValueTypes(ConfigurationBuilder builder, IEnumerable<Type> exportedTypes)
+    {
+        // contract.ts is one file, so the import has to be declared once
+        // globally rather than per-type.
+        builder.AddImport("{ Value }", "../value");
+
+        var retyped = 0;
+        var skippedVec3 = 0;
+        foreach (var type in exportedTypes)
+        {
+            var targets = new List<KeyValuePair<PropertyInfo, string>>();
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
+                if (unit == null || NonQuantityUnits.Contains(unit.Unit))
+                {
+                    continue;
+                }
+
+                // Vec3 is a class, so `Vec3?` is the same runtime type; one
+                // comparison covers the required and the optional field alike.
+                if (prop.PropertyType == typeof(Vec3))
+                {
+                    skippedVec3++;
+                    continue;
+                }
+
+                var value = "Value<\"" + unit.Unit + "\">";
+                string tsType;
+                if (IsNumeric(prop.PropertyType))
+                {
+                    tsType = value;
+                }
+                else if (IsNumeric(NumericSequenceElement(prop.PropertyType)))
+                {
+                    // A sequence of same-unit readings (a terrain profile, a
+                    // per-stage delta-v list). The unit belongs to each ELEMENT,
+                    // so it lands inside the array rather than on it.
+                    tsType = value + "[]";
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepUnit(\"" + unit.Unit + "\")] on " + type.Name + "." + prop.Name +
+                        " declares a quantity, but the property is " + prop.PropertyType.Name +
+                        ", which has no magnitude to carry. Use a non-quantity token (text/flag/enum/id/n/a) " +
+                        "or make the property numeric.");
+                }
+
+                targets.Add(new KeyValuePair<PropertyInfo, string>(prop, tsType));
+            }
+
+            if (targets.Count == 0)
+            {
+                continue;
+            }
+
+            retyped += targets.Count;
+            builder.ExportAsInterfaces(
+                new[] { type },
+                c =>
+                {
+                    foreach (var target in targets)
+                    {
+                        // One call per property: WithProperties applies ONE
+                        // configuration to every property it is given, and each
+                        // of these needs its own type argument.
+                        c.WithProperties(new[] { target.Key }, p => p.Type(target.Value));
+                    }
+                });
+        }
+
+        Console.WriteLine(
+            "codegen (unit types) -> " + retyped + " properties typed as Value<...>, " +
+            skippedVec3 + " Vec3 properties left bare");
+    }
+
+    /// <summary>
+    /// The element type of an array or generic collection, or <c>null</c> when
+    /// the type is neither. <c>string</c> is deliberately not treated as a
+    /// sequence despite implementing <c>IEnumerable&lt;char&gt;</c>.
+    /// </summary>
+    private static Type? NumericSequenceElement(Type type)
+    {
+        if (type == typeof(string))
+        {
+            return null;
+        }
+
+        if (type.IsArray)
+        {
+            return type.GetElementType();
+        }
+
+        if (type.IsGenericType)
+        {
+            var args = type.GetGenericArguments();
+            if (args.Length == 1 && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+            {
+                return args[0];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// True for a CLR numeric type, looking through <c>Nullable&lt;T&gt;</c> so
+    /// an optional quantity counts. Null (no sequence element) is false. Enums are excluded despite their numeric
+    /// underlying type: a closed set of named states is not a magnitude, and the
+    /// contract declares those with <see cref="Units.Enumeration"/> anyway.
+    /// </summary>
+    private static bool IsNumeric(Type? type)
+    {
+        if (type == null)
+        {
+            return false;
+        }
+
+        var t = Nullable.GetUnderlyingType(type) ?? type;
+        if (t.IsEnum)
+        {
+            return false;
+        }
+
+        switch (Type.GetTypeCode(t))
+        {
+            case TypeCode.Byte:
+            case TypeCode.SByte:
+            case TypeCode.Int16:
+            case TypeCode.UInt16:
+            case TypeCode.Int32:
+            case TypeCode.UInt32:
+            case TypeCode.Int64:
+            case TypeCode.UInt64:
+            case TypeCode.Single:
+            case TypeCode.Double:
+            case TypeCode.Decimal:
+                return true;
+            default:
+                return false;
         }
     }
 

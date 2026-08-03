@@ -29,4 +29,5 @@ export {
   unitsForTopic,
   unitsForType,
 } from "./units";
+export type { Value } from "./value";
 export { SDK_VERSION } from "./version.generated";
