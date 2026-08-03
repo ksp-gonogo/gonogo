@@ -27,7 +27,6 @@ import {
   DashboardItemContext,
   dispatchAction,
   getAugmentsForSlot,
-  registerDataSource,
 } from "@ksp-gonogo/core";
 import type {
   CameraKind,
@@ -36,11 +35,12 @@ import type {
   Layer,
 } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import type {
-  ComponentProps,
-  DataSource,
-  DataSourceStatus,
-} from "@ksp-gonogo/sitrep-sdk";
+import {
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-client";
+import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
@@ -104,6 +104,57 @@ function renderFeed(
   );
   renderedTrees.push(result.unmount);
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Comms-topic test double for the CommNet-degrade + signal-delay/quality
+// badge tests below: those three reads (signalStrength/connected/
+// signalDelay) were migrated off the legacy two-arg `useTelemetry("data",
+// "comm.*")` shim onto native topics, so they need a mounted
+// `TelemetryProvider`, not the `makeDataSource("data", ...)` fake the rest
+// of this file's `dataRequirements` still use.
+// ---------------------------------------------------------------------------
+
+function renderFeedWithComms(
+  config: Partial<CameraFeedConfig>,
+  client: TelemetryClient,
+): ReturnType<typeof render> {
+  const result = render(
+    <TelemetryProvider client={client}>
+      <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
+        <CameraFeed config={fullConfig(config)} id={TEST_INSTANCE_ID} />
+      </DashboardItemContext.Provider>
+    </TelemetryProvider>,
+  );
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+/**
+ * Fans a partial `{ signalStrength, connected, signalDelay }` fixture out to
+ * the three native topics CameraFeed actually reads: `vessel.comms`
+ * (`.signalStrength`), `comms.link` (`.connected`), `comms.delay`
+ * (`.oneWaySeconds`). Mirrors the old `makeDataSource("data", { "comm.foo":
+ * ... })` fixture shape one field at a time so existing call sites only need
+ * their key names updated.
+ */
+function emitComms(
+  transport: StubTransport,
+  fixture: {
+    signalStrength?: number;
+    connected?: boolean;
+    signalDelay?: number;
+  },
+): void {
+  if (fixture.signalStrength !== undefined) {
+    transport.emit("vessel.comms", { signalStrength: fixture.signalStrength });
+  }
+  if (fixture.connected !== undefined) {
+    transport.emit("comms.link", { connected: fixture.connected });
+  }
+  if (fixture.signalDelay !== undefined) {
+    transport.emit("comms.delay", { oneWaySeconds: fixture.signalDelay });
+  }
 }
 
 // A stateful wrapper that holds `config` in React state and feeds its own
@@ -306,50 +357,6 @@ async function buildConnectedSource(
 
   createdSources.push(ds);
   return { ds, sidecar };
-}
-
-// ---------------------------------------------------------------------------
-// Minimal in-memory DataSource for the "data" (CommNet) source stub
-// ---------------------------------------------------------------------------
-
-function makeDataSource(
-  id: string,
-  initialValues: Record<string, unknown> = {},
-): DataSource & { emit: (key: string, value: unknown) => void } {
-  const dataListeners = new Map<string, Set<(v: unknown) => void>>();
-  const statusListeners = new Set<(s: DataSourceStatus) => void>();
-
-  const source: DataSource & { emit: (key: string, value: unknown) => void } = {
-    id,
-    name: id,
-    status: "connected" as DataSourceStatus,
-    connect: async () => {},
-    disconnect: () => {},
-    schema: () => [],
-    execute: async () => {},
-    configSchema: () => [],
-    configure: () => {},
-    getConfig: () => ({}),
-    subscribe(key, cb) {
-      if (!dataListeners.has(key)) dataListeners.set(key, new Set());
-      dataListeners.get(key)?.add(cb);
-      // Deliver initial value synchronously if available
-      if (key in initialValues) {
-        queueMicrotask(() => cb(initialValues[key]));
-      }
-      return () => dataListeners.get(key)?.delete(cb);
-    },
-    onStatusChange(cb) {
-      statusListeners.add(cb);
-      return () => statusListeners.delete(cb);
-    },
-    emit(key, value) {
-      dataListeners.get(key)?.forEach((cb) => {
-        cb(value);
-      });
-    },
-  };
-  return source;
 }
 
 // ---------------------------------------------------------------------------
@@ -900,7 +907,22 @@ describe("CameraFeed -- serial-action dispatch (zoom/pan)", () => {
 
 describe("CameraFeed: CommNet degrade", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    // `requestAnimationFrame` isn't in vitest's default fake-timer set, but
+    // the migrated `vessel.comms`/`comms.link` reads only become visible
+    // once `TelemetryProvider`'s rAF-scheduled `store.beginFrame()` commit
+    // runs (`@ksp-gonogo/sitrep-client`'s `context.tsx`). Fake it too so
+    // `vi.advanceTimersByTime`'s 500ms debounce-advance also flushes that
+    // commit, instead of leaving it waiting on the real (unmocked) clock.
+    vi.useFakeTimers({
+      toFake: [
+        "setTimeout",
+        "clearTimeout",
+        "setInterval",
+        "clearInterval",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+      ],
+    });
   });
 
   afterEach(() => {
@@ -910,23 +932,28 @@ describe("CameraFeed: CommNet degrade", () => {
   it("CommNet degrade 0 when signal is full strength", async () => {
     const { sidecar } = await buildConnectedSource();
 
-    // Register a fake "data" source with comm values pre-set
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 1.0,
-      "comm.connected": true,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
-    renderFeed({ flightId: 42 });
-
-    // Allow queueMicrotask-delivered initial values to land
+    // Reads are native topics now: emit after mount so the widget's already
+    // subscribed, then let the rAF-scheduled store frame commit land.
     await act(async () => {
-      await Promise.resolve();
+      emitComms(transport, { signalStrength: 1.0, connected: true });
     });
 
-    // Advance past the 500ms debounce
+    // Two SEPARATE advances, not one bulk one: the first flushes the rAF
+    // frame commit that makes the emitted comms data visible (the debounce
+    // effect can only schedule ITS OWN 500ms timer once React has actually
+    // committed that re-render); the second flushes that debounce. A single
+    // `advanceTimersByTime` spanning both doesn't work: it fires every timer
+    // due within its virtual window in one synchronous sweep, but the
+    // debounce timer doesn't exist yet at the moment that sweep computes its
+    // schedule; it's created by the effect commit, which needs the `act()`
+    // boundary. Bundling both into one act() silently drops the second half.
+    await act(async () => {
+      vi.advanceTimersByTime(20);
+    });
     await act(async () => {
       vi.advanceTimersByTime(501);
     });
@@ -941,18 +968,17 @@ describe("CameraFeed: CommNet degrade", () => {
   it("weak signal maps to a proportional degrade level (1 - signalStrength)", async () => {
     const { sidecar } = await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 0.3,
-      "comm.connected": true,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
-
-    renderFeed({ flightId: 42 });
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
     await act(async () => {
-      await Promise.resolve();
+      emitComms(transport, { signalStrength: 0.3, connected: true });
+    });
+    // Two separate advances: see the first test in this describe block for
+    // why the rAF-then-debounce cascade needs its own act() boundary.
+    await act(async () => {
+      vi.advanceTimersByTime(20);
     });
     await act(async () => {
       vi.advanceTimersByTime(501);
@@ -967,18 +993,17 @@ describe("CameraFeed: CommNet degrade", () => {
   it("comm disconnected applies maximum degrade (level 1.0)", async () => {
     const { sidecar } = await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 1.0,
-      "comm.connected": false,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
-
-    renderFeed({ flightId: 42 });
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
     await act(async () => {
-      await Promise.resolve();
+      emitComms(transport, { signalStrength: 1.0, connected: false });
+    });
+    // Two separate advances: see the first test in this describe block for
+    // why the rAF-then-debounce cascade needs its own act() boundary.
+    await act(async () => {
+      vi.advanceTimersByTime(20);
     });
     await act(async () => {
       vi.advanceTimersByTime(501);
@@ -998,19 +1023,18 @@ describe("CameraFeed: CommNet degrade", () => {
       makeCamera({ flightId: 42, cameraName: "Starboard Cam" }),
     ]);
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 0.5,
-      "comm.connected": true,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
-
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
     // Auto mode: no explicit flightId configured.
-    renderFeed({ flightId: null });
+    renderFeedWithComms({ flightId: null }, client);
 
     await act(async () => {
-      await Promise.resolve();
+      emitComms(transport, { signalStrength: 0.5, connected: true });
+    });
+    // Two separate advances: see the first test in this describe block for
+    // why the rAF-then-debounce cascade needs its own act() boundary.
+    await act(async () => {
+      vi.advanceTimersByTime(20);
     });
     await act(async () => {
       vi.advanceTimersByTime(501);
@@ -1034,17 +1058,17 @@ describe("CameraFeed: CommNet degrade", () => {
     // once connected, falling back to 0 with no strength reading.
     const { sidecar } = await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.connected": false,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
-
-    renderFeed({ flightId: 42 });
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
     await act(async () => {
-      await Promise.resolve();
+      emitComms(transport, { connected: false });
+    });
+    // Two separate advances: see the first test in this describe block for
+    // why the rAF-then-debounce cascade needs its own act() boundary.
+    await act(async () => {
+      vi.advanceTimersByTime(20);
     });
     await act(async () => {
       vi.advanceTimersByTime(501);
@@ -1054,7 +1078,12 @@ describe("CameraFeed: CommNet degrade", () => {
 
     // Signal returns; signalStrength is never published for this install.
     await act(async () => {
-      dataSource.emit("comm.connected", true);
+      emitComms(transport, { connected: true });
+    });
+    // Two separate advances: see the first test in this describe block for
+    // why the rAF-then-debounce cascade needs its own act() boundary.
+    await act(async () => {
+      vi.advanceTimersByTime(20);
     });
     await act(async () => {
       vi.advanceTimersByTime(501);
@@ -1079,19 +1108,20 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows the one-way signal delay badge as a one-decimal readout (sub-minute)", async () => {
     await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 1.0,
-      "comm.connected": true,
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
+
+    act(() => {
       // A delay is a readout, not a countdown: sub-minute keeps one decimal
       // (3.8 -> "3.8s"), NOT formatDuration's whole-unit truncation, so the
       // operator sees the real light-time.
-      "comm.signalDelay": 3.8,
+      emitComms(transport, {
+        signalStrength: 1.0,
+        connected: true,
+        signalDelay: 3.8,
+      });
     });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
-
-    renderFeed({ flightId: 42 });
 
     expect(await screen.findByText("3.8s")).toBeTruthy();
     expect(screen.getByLabelText("Signal delay: 3.8s one-way")).toBeTruthy();
@@ -1100,16 +1130,17 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows a multi-unit one-way signal delay (e.g. deep-space distances)", async () => {
     await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 1.0,
-      "comm.connected": true,
-      "comm.signalDelay": 80,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
-    renderFeed({ flightId: 42 });
+    act(() => {
+      emitComms(transport, {
+        signalStrength: 1.0,
+        connected: true,
+        signalDelay: 80,
+      });
+    });
 
     expect(await screen.findByText("1m 20s")).toBeTruthy();
     expect(screen.getByLabelText("Signal delay: 1m 20s one-way")).toBeTruthy();
@@ -1118,16 +1149,17 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("hides the delay badge when the delay is zero (LAN / no delay authority)", async () => {
     await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 1.0,
-      "comm.connected": true,
-      "comm.signalDelay": 0,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
-    renderFeed({ flightId: 42 });
+    act(() => {
+      emitComms(transport, {
+        signalStrength: 1.0,
+        connected: true,
+        signalDelay: 0,
+      });
+    });
 
     await screen.findByRole("button", { name: /starboard cam/i });
     expect(screen.queryByLabelText(/signal delay/i)).toBeNull();
@@ -1136,15 +1168,13 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("hides the delay badge when no delay data has ever arrived", async () => {
     await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 1.0,
-      "comm.connected": true,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
-    renderFeed({ flightId: 42 });
+    act(() => {
+      emitComms(transport, { signalStrength: 1.0, connected: true });
+    });
 
     await screen.findByRole("button", { name: /starboard cam/i });
     expect(screen.queryByLabelText(/signal delay/i)).toBeNull();
@@ -1153,15 +1183,13 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows the signal quality badge as a percentage", async () => {
     await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 0.72,
-      "comm.connected": true,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
-    renderFeed({ flightId: 42 });
+    act(() => {
+      emitComms(transport, { signalStrength: 0.72, connected: true });
+    });
 
     expect(await screen.findByText("72%")).toBeTruthy();
     expect(screen.getByLabelText("Signal quality: 72%")).toBeTruthy();
@@ -1170,15 +1198,13 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows a clear no-signal state when comm.connected is false", async () => {
     await buildConnectedSource();
 
-    const dataSource = makeDataSource("data", {
-      "comm.signalStrength": 0.72,
-      "comm.connected": false,
-    });
-    registerDataSource(
-      dataSource as unknown as Parameters<typeof registerDataSource>[0],
-    );
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    renderFeedWithComms({ flightId: 42 }, client);
 
-    renderFeed({ flightId: 42 });
+    act(() => {
+      emitComms(transport, { signalStrength: 0.72, connected: false });
+    });
 
     expect(await screen.findByText("NO SIGNAL")).toBeTruthy();
     expect(screen.getByLabelText("Signal quality: no signal")).toBeTruthy();

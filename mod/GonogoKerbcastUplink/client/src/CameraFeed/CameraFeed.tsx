@@ -5,12 +5,17 @@ import {
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  TopicPayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   getUplinkHandle,
   logger,
   useActionInput,
+  useLatestValue,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, type BadgeTone, formatDuration } from "@ksp-gonogo/ui-kit";
@@ -270,15 +275,29 @@ export function CameraFeed({
     requested,
   );
 
-  const signalStrength = useTelemetry<number>("data", "comm.signalStrength");
-  const commConnected = useTelemetry<boolean>("data", "comm.connected");
+  // Native topic reads (migrated off the `comm.signalStrength`/
+  // `comm.connected`/`comm.signalDelay` two-arg shim; the field paths below
+  // are exactly what that shim used to map to, per
+  // `@ksp-gonogo/sitrep-client`'s `map-topic.ts`).
+  const vesselComms = useTelemetry("vessel.comms");
+  const signalStrength = vesselComms?.signalStrength;
+  // `comms.link` (NOT `vessel.comms.connected`): a dedicated, freeze-EXEMPT
+  // MetaTopic. `vessel.comms` is a Delayed struct subject to the reveal-gate
+  // freeze, so its own `.connected` field would stick at last-known through
+  // a blackout instead of firing "NO SIGNAL". `comms.link` escapes that
+  // freeze, so it's the edge that actually reflects a live disconnect.
+  const commConnected = useTelemetry("comms.link")?.connected;
   // One-way light-time delay for THIS downlink (the footage left the craft
   // this long ago): NOT round-trip. Round-trip doubling only applies to
   // interactive command/response paths (e.g. the kOS terminal), which this
-  // feed is not. `comm.signalDelay` maps to `comms.delay.oneWaySeconds`
-  // (gonogo's own SignalDelay authority): same clean-name convention as
-  // `comm.signalStrength`/`comm.connected` above.
-  const signalDelay = useTelemetry<number | null>("data", "comm.signalDelay");
+  // feed is not. `comms.delay` is a command-centre "facts about the link"
+  // topic (like `comms.path`), not delayed craft telemetry: `useLatestValue`
+  // (not `useTelemetry`) reads it straight off the `TelemetryClient`,
+  // bypassing the certainty-gated `TimelineStore` frame, so the delay figure
+  // itself doesn't appear a whole one-way-delay late (see that hook's own
+  // doc in `@ksp-gonogo/sitrep-client`'s `use-stream.ts`).
+  const signalDelay =
+    useLatestValue<TopicPayload<"comms.delay">>("comms.delay")?.oneWaySeconds;
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
