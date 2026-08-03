@@ -337,7 +337,13 @@ namespace Sitrep.Contract
         /// arrow. A NEW nullable field on an existing wire type (never
         /// removes/renames/retypes a member), so it cannot break an Uplink built
         /// against an older Minor.</para>
+        ///
+        /// <para>Same Minor batch (Major 6 parked): added the new nullable
+        /// <see cref="KosProcessorInfo.PartName"/> (the CPU part's display title,
+        /// e.g. "Probe Core"), so the kOS terminal's CPU picker can label an
+        /// untagged CPU by its part name instead of a bare "CPU &lt;id&gt;". A
+        /// NEW nullable field on an existing wire type, additive-only.</para>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

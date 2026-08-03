@@ -24,13 +24,15 @@ namespace Gonogo.KosUplink
     public static class KosProcessorInfoBuilder
     {
         /// <summary>
-        /// Nullable <paramref name="tag"/>/<paramref name="bootFilePath"/> are
-        /// written as JSON <c>null</c> when absent (R7 typed-absence; see
+        /// Nullable <paramref name="tag"/>/<paramref name="bootFilePath"/>/
+        /// <paramref name="partName"/> are written as JSON <c>null</c> when
+        /// absent (R7 typed-absence; see
         /// <see cref="Sitrep.Contract.KosProcessorInfo"/>'s own doc comment),
         /// never a sentinel empty string.
         /// </summary>
         public static Dictionary<string, object?> Build(
-            int coreId, string? tag, bool hasBooted, string? bootFilePath, string processorMode) =>
+            int coreId, string? tag, bool hasBooted, string? bootFilePath, string processorMode,
+            string? partName) =>
             new Dictionary<string, object?>
             {
                 ["coreId"] = coreId,
@@ -38,6 +40,7 @@ namespace Gonogo.KosUplink
                 ["hasBooted"] = hasBooted,
                 ["bootFilePath"] = bootFilePath,
                 ["processorMode"] = processorMode ?? "",
+                ["partName"] = partName,
             };
     }
 }

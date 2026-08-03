@@ -46,6 +46,12 @@ public class KosProcessorInfo
     /// <summary><c>kOSProcessor.ProcessorMode</c> as its enum name (<c>READY</c>/<c>OFF</c>/<c>STARVED</c>).</summary>
     [SitrepUnit(Units.Text)]
     public string ProcessorMode { get; set; } = "";
+
+    /// <summary>The CPU part's display title (<c>kOSProcessor.part.partInfo.title</c>,
+    /// e.g. "Probe Core"): null when the part or its info is unavailable. Lets the
+    /// picker label a CPU by what it IS when it carries no name-tag, instead of a
+    /// bare "CPU &lt;id&gt;".</summary>
+    public string? PartName { get; set; }
 }
 
 /// <summary>

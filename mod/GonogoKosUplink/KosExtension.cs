@@ -343,7 +343,7 @@ namespace Gonogo.KosUplink
                 var flattened = new List<Dictionary<string, object?>>(capture.List.Count);
                 foreach (var p in capture.List)
                 {
-                    flattened.Add(KosProcessorInfoBuilder.Build(p.CoreId, p.Tag, p.HasBooted, p.BootFilePath, p.ProcessorMode));
+                    flattened.Add(KosProcessorInfoBuilder.Build(p.CoreId, p.Tag, p.HasBooted, p.BootFilePath, p.ProcessorMode, p.PartName));
                 }
                 _processorsPublisher?.Publish(flattened, capture.Ut);
 

@@ -261,6 +261,7 @@ namespace Gonogo.KosUplink
                     HasBooted = p.HasBooted,
                     BootFilePath = p.BootFilePath?.ToString(),
                     ProcessorMode = p.ProcessorMode.ToString(),
+                    PartName = p.part?.partInfo?.title,
                 });
             }
             // Carry the capture UT alongside the list (mirrors
