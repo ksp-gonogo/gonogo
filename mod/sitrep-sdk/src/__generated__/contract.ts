@@ -347,6 +347,11 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	topic: string;
 }
+export interface SetVantage
+{
+	type: "set-vantage";
+	centreId: string;
+}
 export interface FleetVesselLink
 {
 	oneWaySeconds?: Value<"s">;

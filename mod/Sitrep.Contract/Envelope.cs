@@ -133,3 +133,26 @@ public class Unsubscribe
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 }
+
+/// <summary>
+/// Client-to-server: select the command centre this connection commands from and
+/// observes at (Plan 3 vantage selection). Governs both the downlink cursor read
+/// and the command-dispatch vantage. <c>"ksc"</c> (the default) is always
+/// selectable; any other id must name a currently-active command centre.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class SetVantage
+{
+#if NETSTANDARD2_0
+    [TsProperty(Type = "\"set-vantage\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "set-vantage";
+
+    /// <summary>The command centre Id to adopt as this connection's vantage.</summary>
+    [SitrepUnit(Units.Id)]
+    public string CentreId { get; set; } = "";
+}

@@ -880,6 +880,10 @@
     "SetThrottleArgs": {
       "value": "ratio"
     },
+    "SetVantage": {
+      "centreId": "id",
+      "type": "id"
+    },
     "SetWarpIndexArgs": {
       "index": "id"
     },

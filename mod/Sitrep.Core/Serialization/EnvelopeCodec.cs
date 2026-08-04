@@ -337,6 +337,28 @@ namespace Sitrep.Core.Serialization
             return new Unsubscribe { Type = "unsubscribe", Topic = RequireString(raw, "topic") };
         }
 
+        // ----- SetVantage -----
+
+        public static string WriteSetVantage(SetVantage msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "centreId");
+            JsonWriter.AppendString(sb, msg.CentreId);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        public static SetVantage ParseSetVantage(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "set-vantage");
+            return new SetVantage { Type = "set-vantage", CentreId = RequireString(raw, "centreId") };
+        }
+
         // ----- Discriminated envelope parsing, mirroring sitrep-sdk's envelope.ts/client.ts -----
 
         /// <summary>
@@ -367,6 +389,7 @@ namespace Sitrep.Core.Serialization
             {
                 "subscribe" => ParseSubscribe(json),
                 "unsubscribe" => ParseUnsubscribe(json),
+                "set-vantage" => ParseSetVantage(json),
                 "command-request" => ParseCommandRequest(json),
                 _ => throw new FormatException($"unknown client envelope type: {type}"),
             };

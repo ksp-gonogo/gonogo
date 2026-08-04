@@ -914,6 +914,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SetThrottleArgs": {
     value: "ratio",
   },
+  "SetVantage": {
+    centreId: "id",
+    type: "id",
+  },
   "SetWarpIndexArgs": {
     index: "id",
   },

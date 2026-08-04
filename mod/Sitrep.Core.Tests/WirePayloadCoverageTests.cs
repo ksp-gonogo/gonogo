@@ -153,7 +153,7 @@ namespace Sitrep.Core.Tests
             "RecoveryResourceEntry", "RecoveryCrewEntry",
             // Envelope / meta: serialized field-by-field by EnvelopeCodec itself
             // (WriteStreamData / WriteMeta), never through AppendValue as a POCO.
-            "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe",
+            "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe", "SetVantage",
             // Inbound command-arg types: only ever DESERIALIZED (client → server);
             // never serialized outbound as a raw POCO.
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",

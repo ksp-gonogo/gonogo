@@ -104,6 +104,11 @@ namespace Sitrep.Host
         private readonly FleckTransportListener _listener;
         private readonly Kernel _kernel = new Kernel();
 
+        // Plan 3: the registered command-centre sources; enumerated to validate a
+        // set-vantage request (a centre must be active to be selectable, though
+        // DefaultVantage is always allowed).
+        private readonly CommandCentres.CommandCentreRegistry _commandCentres = new CommandCentres.CommandCentreRegistry();
+
         private readonly ConcurrentQueue<IEngineJob> _jobs = new ConcurrentQueue<IEngineJob>();
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
@@ -1104,6 +1109,40 @@ namespace Sitrep.Host
             // this centre. DelayTo's 3-tier lookup keeps the node-default beneath
             // it for any unselected vantage, so KSC-only behaviour is unchanged.
             _network.SetDelay(centreId, FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
+        public void RegisterCommandCentreSource(CommandCentres.ICommandCentreSource source)
+        {
+            _commandCentres.RegisterSource(source);
+        }
+
+        /// <summary>
+        /// Apply a client set-vantage request (Plan 3): switch the connection's
+        /// SelectedVantage to a command centre. <see cref="DefaultVantage"/> is
+        /// always selectable (it resolves to Plan 2's node-default even before any
+        /// home-node source is live); any other id must name a currently-active
+        /// centre, else the prior vantage is kept and an error is returned.
+        /// </summary>
+        private void HandleSetVantage(ClientSession session, SetVantage sv)
+        {
+            var valid = sv.CentreId == DefaultVantage
+                || _commandCentres.EnumerateActive().Any(c => c.Id == sv.CentreId);
+
+            if (!valid)
+            {
+                var error = new ErrorMsg
+                {
+                    Code = "unknown-vantage",
+                    Message = $"'{sv.CentreId}' is not an active command centre",
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                return;
+            }
+
+            // Reference assignment is atomic; the Courier thread reads the new
+            // vantage on subsequent subscribes/dispatches (an eventually-consistent
+            // switch, matching the client re-subscribing its topics at the new vantage).
+            session.SelectedVantage = sv.CentreId;
         }
 
         public void SetVesselConnectivity(string vesselId, bool connected)
@@ -3611,6 +3650,9 @@ namespace Sitrep.Host
                         break;
                     case Unsubscribe unsub:
                         EnqueueJob(new UnsubscribeJob(session, unsub.Topic));
+                        break;
+                    case SetVantage sv:
+                        HandleSetVantage(session, sv);
                         break;
                     case CommandRequest<object?> req:
                         DispatchCommand(req.Command, req.Args, session.SelectedVantage, result =>

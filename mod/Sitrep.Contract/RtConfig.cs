@@ -29,6 +29,7 @@ public static class RtConfig
         builder.ExportAsInterface<ErrorMsg>().AutoI(false).WithPublicProperties().OverrideName("ErrorMsg");
         builder.ExportAsInterface<Subscribe>().AutoI(false).WithPublicProperties().OverrideName("Subscribe");
         builder.ExportAsInterface<Unsubscribe>().AutoI(false).WithPublicProperties().OverrideName("Unsubscribe");
+        builder.ExportAsInterface<SetVantage>().AutoI(false).WithPublicProperties().OverrideName("SetVantage");
 
         // --- Envelope + command generics (open generic definitions) ---
         // ExportAsInterface<StreamData<object>>() would target the CLOSED
