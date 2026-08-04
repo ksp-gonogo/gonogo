@@ -186,6 +186,11 @@ export {
   KSP_DAY_SECONDS,
   KSP_YEAR_DAYS,
   KSP_YEAR_SECONDS,
+  type KspCalendar,
+  kspCalendar,
+  kspYearDays,
+  STOCK_KERBIN_CALENDAR,
+  setKspCalendar,
 } from "./kspTime";
 export { MissionDate, type MissionDateProps } from "./MissionDate";
 export {

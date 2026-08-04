@@ -1,33 +1,53 @@
-import { KSP_DAY_SECONDS, KSP_YEAR_SECONDS } from "./kspTime";
+import { kspCalendar } from "./kspTime";
 import { NULL_DISPLAY } from "./NullValue";
 
 const SECOND = 1;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
-const DAY = KSP_DAY_SECONDS;
-const YEAR = KSP_YEAR_SECONDS;
 
 interface Tier {
   symbol: string;
   size: number;
 }
 
-const TIERS: readonly Tier[] = [
-  { symbol: "y", size: YEAR },
-  { symbol: "d", size: DAY },
-  { symbol: "h", size: HOUR },
-  { symbol: "m", size: MINUTE },
-  { symbol: "s", size: SECOND },
-];
+/**
+ * The game-time ladder, built PER CALL rather than at module load.
+ *
+ * A day is not a constant: `GameSettings.KERBIN_TIME` is a stock setting and a
+ * planet pack replaces the calendar wholesale, so the mod publishes what the
+ * running game uses and `setKspCalendar` adopts it. A tier table frozen at
+ * import time would hold whatever was true before the stream connected, which
+ * is exactly the bug this replaced.
+ *
+ * The minute and hour come off the calendar too. They have been 60 and 3600 in
+ * every KSP anyone has seen, but the formatter exposes them, and assuming is
+ * the habit this module is unlearning.
+ */
+function tiers(): readonly Tier[] {
+  const calendar = kspCalendar();
+  return [
+    { symbol: "y", size: calendar.year },
+    { symbol: "d", size: calendar.day },
+    { symbol: "h", size: calendar.hour },
+    { symbol: "m", size: calendar.minute },
+    { symbol: "s", size: SECOND },
+  ];
+}
 
 /**
  * The same ladder on a REAL day.
  *
- * A day is 21,600 seconds in this app because a day is 21,600 seconds on
- * Kerbin, and every duration that comes off the wire is game time. Two are
- * not: how long ago a reading was seen, and how long a flight recorder ran.
- * Those measure the operator's afternoon, and putting them through the Kerbin
- * ladder reads "4d" for what happened yesterday.
+ * Every duration that comes off the wire is game time, measured on whatever
+ * calendar the game is running. Two are not: how long ago a reading was seen,
+ * and how long a flight recorder ran. Those are measured by the clock on the
+ * desk, so a real day is always 24 hours for them, whatever Kerbin or a planet
+ * pack is doing.
+ *
+ * Fixed on purpose, where {@link tiers} above is not. An earlier version of
+ * this comment justified the split with "a KSP day is six hours", which got
+ * the DISTINCTION right and the reason wrong: the two are separate because one
+ * is game time and one is not, not because game time happens to be 6h. Game
+ * time is whatever the game says; wall-clock time is 24h regardless.
  *
  * No year rung. The wall-clock durations this app shows are a staleness badge
  * and a recording length; neither is going to run to Christmas, and "428d"
@@ -72,7 +92,7 @@ export function formatDuration(
   seconds: number,
   opts: FormatDurationOptions = {},
 ): string {
-  return format(seconds, TIERS, opts);
+  return format(seconds, tiers(), opts);
 }
 
 /**

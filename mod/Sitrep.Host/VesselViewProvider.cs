@@ -70,6 +70,7 @@ namespace Sitrep.Host
         public const string CrewTopic = "vessel.crew";
         public const string StructureTopic = "vessel.structure";
         public const string WarpTopic = "time.warp";
+        public const string CalendarTopic = "time.calendar";
 
         // ---- M3 R3 capture-adds ----
         public const string DockTopic = "vessel.dock";
@@ -82,7 +83,7 @@ namespace Sitrep.Host
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
             AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, PhysicsModeTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
-            DockTopic, SurfaceTopic, LandingTopic,
+            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic,
         };
 
         // ----------------------------------------------------------------
@@ -1109,6 +1110,59 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// The <c>time.calendar</c> channel: how long a day and a year are in
+        /// the running game.
+        ///
+        /// <para>Global game state, same as <see cref="BuildWarp"/> and for
+        /// the same reason: it has no vessel, and a consumer needs it in every
+        /// scene. It reads from the same <c>time</c> group, so it is present
+        /// exactly when warp is.</para>
+        ///
+        /// <para>A missing or non-positive day or year is treated as no
+        /// payload rather than published: a consumer dividing by a zero
+        /// day-length would render every duration as infinity, which is worse
+        /// than falling back to the stock calendar it already assumes. See
+        /// <see cref="TimeCalendar"/> for why the channel exists at
+        /// all.</para>
+        /// </summary>
+        public static TimeCalendar? BuildCalendar(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null || !TryGetGroup(snapshot.Values, "time", out var time))
+            {
+                return null;
+            }
+
+            var minute = GetDouble(time, "minuteSeconds");
+            var hour = GetDouble(time, "hourSeconds");
+            var day = GetDouble(time, "daySeconds");
+            var year = GetDouble(time, "yearSeconds");
+            var kerbinTime = GetBool(time, "kerbinTime");
+
+            if (!minute.HasValue || !hour.HasValue || !day.HasValue || !year.HasValue)
+            {
+                return null;
+            }
+
+            if (minute.Value <= 0 || hour.Value <= 0 || day.Value <= 0 || year.Value <= 0)
+            {
+                return null;
+            }
+
+            return new TimeCalendar
+            {
+                MinuteSeconds = minute.Value,
+                HourSeconds = hour.Value,
+                DaySeconds = day.Value,
+                YearSeconds = year.Value,
+                KerbinTime = kerbinTime ?? true,
+                Meta = BuildGameMeta(),
+            };
+        }
+
+        public static object? BuildCalendarWire(KspSnapshot? snapshot) =>
+            BuildCalendar(snapshot) is { } calendar ? ToWire(calendar) : null;
+
+        /// <summary>
         /// The active vessel's subject id (KSP's <c>Vessel.id</c> GUID, as a
         /// string) if a vessel + its identity group are both present this
         /// tick -- shared by every <c>Build*</c> guard above AND
@@ -1475,6 +1529,16 @@ namespace Sitrep.Host
             ["warpMode"] = (int)warp.WarpMode,
             ["paused"] = warp.Paused,
             ["meta"] = ToWire(warp.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(TimeCalendar calendar) => new Dictionary<string, object?>
+        {
+            ["minuteSeconds"] = calendar.MinuteSeconds,
+            ["hourSeconds"] = calendar.HourSeconds,
+            ["daySeconds"] = calendar.DaySeconds,
+            ["yearSeconds"] = calendar.YearSeconds,
+            ["kerbinTime"] = calendar.KerbinTime,
+            ["meta"] = ToWire(calendar.Meta),
         };
 
         /// <summary>

@@ -946,6 +946,13 @@
       "skinMaxTemp": "K",
       "skinTemp": "K"
     },
+    "TimeCalendar": {
+      "daySeconds": "s",
+      "hourSeconds": "s",
+      "kerbinTime": "flag",
+      "minuteSeconds": "s",
+      "yearSeconds": "s"
+    },
     "UnlockTechArgs": {
       "techId": "id"
     },
@@ -1515,6 +1522,13 @@
       "launchSite": "text",
       "scene": "text"
     },
+    "time.calendar": {
+      "daySeconds": "s",
+      "hourSeconds": "s",
+      "kerbinTime": "flag",
+      "minuteSeconds": "s",
+      "yearSeconds": "s"
+    },
     "time.warp": {
       "paused": "flag",
       "warpMode": "enum",
@@ -1816,6 +1830,9 @@
     "TargetAvailable": {
       "entries": "TargetListEntry"
     },
+    "TimeCalendar": {
+      "meta": "PayloadMeta"
+    },
     "UplinkManifest": {
       "channels": "ChannelDeclaration",
       "clientSource": "UplinkClientSource",
@@ -1979,6 +1996,9 @@
     },
     "target.available": {
       "entries": "TargetListEntry"
+    },
+    "time.calendar": {
+      "meta": "PayloadMeta"
     },
     "time.warp": {
       "meta": "PayloadMeta"

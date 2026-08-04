@@ -19,10 +19,15 @@ import { formatKspDate } from "./formatKspDate";
  * model) instead of also meaning a notation, and it makes the call site say
  * which of the two it meant.
  *
- * ## The calendar is Kerbin's
+ * ## The calendar is whichever one the game is running
  *
- * A day is six hours and a year is 426 of them, from `kspTime`. See
- * `styleguide-earth-day.test.ts` for what happens when that is forgotten.
+ * Six-hour days and 426-day years on stock Kerbin time, 24 and 365 under a
+ * planet pack or with the stock `KERBIN_TIME` setting off. The mod reports it
+ * on `time.calendar` and `setKspCalendar` adopts it; `kspTime.ts` has the
+ * whole story. This used to say "the calendar is Kerbin's" and compile that
+ * in, which rendered an RSS player's dates on a calendar their game does not
+ * use. See `styleguide-earth-day.test.ts` for the arithmetic form of the same
+ * mistake.
  *
  * A missing or non-finite value renders `NULL_DISPLAY`, same as every other
  * readout: an absent clock shows as absent rather than as the epoch.

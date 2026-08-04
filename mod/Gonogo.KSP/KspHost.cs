@@ -2215,12 +2215,27 @@ namespace Gonogo.KSP
         /// </summary>
         private static Dictionary<string, object?> BuildTime()
         {
+            // The calendar rides in the same group as warp/pause because it is
+            // the same KIND of fact: global game state with no vessel, present
+            // in every scene. `KSPUtil.dateTimeFormatter` is a static the game
+            // maintains for its own clock, so reading it is free and needs no
+            // caching; Kopernicus and RSS replace the whole object, and the
+            // stock implementation already answers for GameSettings.KERBIN_TIME,
+            // so these four numbers are correct under every configuration
+            // without this code knowing which one it is in.
+            var calendar = KSPUtil.dateTimeFormatter;
+
             return new Dictionary<string, object?>
             {
                 ["warpRate"] = (double)TimeWarp.CurrentRate,
                 ["warpRateIndex"] = TimeWarp.CurrentRateIndex,
                 ["warpMode"] = TimeWarp.WarpMode.ToString(),
                 ["paused"] = FlightDriver.Pause,
+                ["minuteSeconds"] = (double)calendar.Minute,
+                ["hourSeconds"] = (double)calendar.Hour,
+                ["daySeconds"] = (double)calendar.Day,
+                ["yearSeconds"] = (double)calendar.Year,
+                ["kerbinTime"] = GameSettings.KERBIN_TIME,
             };
         }
 

@@ -980,6 +980,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     skinMaxTemp: "K",
     skinTemp: "K",
   },
+  "TimeCalendar": {
+    daySeconds: "s",
+    hourSeconds: "s",
+    kerbinTime: "flag",
+    minuteSeconds: "s",
+    yearSeconds: "s",
+  },
   "UnlockTechArgs": {
     techId: "id",
   },
@@ -1554,6 +1561,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     launchSite: "text",
     scene: "text",
   },
+  "time.calendar": {
+    daySeconds: "s",
+    hourSeconds: "s",
+    kerbinTime: "flag",
+    minuteSeconds: "s",
+    yearSeconds: "s",
+  },
   "time.warp": {
     paused: "flag",
     warpMode: "enum",
@@ -1873,6 +1887,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TargetAvailable": {
     entries: "TargetListEntry",
   },
+  "TimeCalendar": {
+    meta: "PayloadMeta",
+  },
   "UplinkManifest": {
     channels: "ChannelDeclaration",
     clientSource: "UplinkClientSource",
@@ -2038,6 +2055,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "target.available": {
     entries: "TargetListEntry",
+  },
+  "time.calendar": {
+    meta: "PayloadMeta",
   },
   "time.warp": {
     meta: "PayloadMeta",

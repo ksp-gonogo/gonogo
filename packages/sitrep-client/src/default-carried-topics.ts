@@ -58,6 +58,12 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // Telemachus equivalent).
   "system.uplinks",
   "time.warp",
+  // time.calendar: how long a day and a year are in the game being watched.
+  // Not telemetry, a DEFINITION, and everything that prints a duration or a
+  // date reads it: a planet pack or the stock KERBIN_TIME setting moves both,
+  // and without this topic the app quietly holds Kerbin's 6-hour day and is
+  // four times wrong about every "3 days to depletion" on screen.
+  "time.calendar",
   // Comms signal-delay channel (CommsCoreUplink, TrueNow): the headline
   // delay readout behind CommSignal's comm.signalDelay.
   "comms.delay",

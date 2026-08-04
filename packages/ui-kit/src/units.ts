@@ -1,4 +1,5 @@
 import { GENERATED_UNIT_KINDS } from "./__generated__/unit-kinds";
+import { type KspCalendar, kspCalendar } from "./kspTime";
 
 /** Every symbol the model declares. */
 type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
@@ -37,7 +38,24 @@ export type FormatsFor<U extends string> = [
  * multiplicative conversions this package used to hard-code (g to m/s², rad to
  * degrees) are just ratios and now come from the model like everything else.
  */
+/**
+ * The game-time symbols whose size the RUNNING GAME decides.
+ *
+ * Codegen bakes a ratio for each of these from the first-party contract, and
+ * for `d` that ratio is one Kerbin rotation. It is a fine default and a wrong
+ * answer under a planet pack or with the stock KERBIN_TIME setting off, so the
+ * live calendar wins over the generated number for exactly these four. Every
+ * other unit in the table is a physical constant and is left alone.
+ */
+const CALENDAR_RATIO: Record<string, (c: KspCalendar) => number> = {
+  d: (c) => c.day,
+  h: (c) => c.hour,
+  min: (c) => c.minute,
+};
+
 function ratioOf(symbol: string): number | undefined {
+  const fromCalendar = CALENDAR_RATIO[symbol];
+  if (fromCalendar) return fromCalendar(kspCalendar());
   const declared = GENERATED_UNIT_KINDS[symbol as GeneratedUnit];
   if (declared) return declared.ratio;
   for (const rungs of Object.values(LADDERS)) {

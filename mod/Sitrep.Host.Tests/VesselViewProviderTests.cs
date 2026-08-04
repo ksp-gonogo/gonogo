@@ -1913,6 +1913,89 @@ namespace Sitrep.Host.Tests
             Assert.Null(structure.PartCount);
         }
 
+        // ---- time.calendar ----
+
+        /// <summary>
+        /// A day is 21,600 seconds on stock Kerbin time and 86,400 under a
+        /// planet pack or with GameSettings.KERBIN_TIME turned off, and the
+        /// difference is a factor of four in every duration a consumer prints.
+        /// These pin that the channel carries whatever the game said rather
+        /// than anything this code believes about Kerbin.
+        /// </summary>
+        [Fact]
+        public void BuildCalendarCarriesStockKerbinTime()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: CalendarGroup(21_600.0, 426 * 21_600.0, kerbinTime: true));
+
+            var calendar = VesselViewProvider.BuildCalendar(snapshot);
+
+            Assert.NotNull(calendar);
+            Assert.Equal(21_600.0, calendar!.DaySeconds);
+            Assert.Equal(426.0, calendar.YearSeconds / calendar.DaySeconds);
+            Assert.True(calendar.KerbinTime);
+            // GLOBAL, same as time.warp: the calendar has no vessel.
+            Assert.Equal("game", calendar.Meta.Source);
+        }
+
+        [Fact]
+        public void BuildCalendarCarriesAnEarthDayWithoutKnowingWhoChangedIt()
+        {
+            // RSS, or simply the stock setting turned off. Nothing in the
+            // producer detects which; it reads the formatter and reports.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: CalendarGroup(86_400.0, 365 * 86_400.0, kerbinTime: false));
+
+            var calendar = VesselViewProvider.BuildCalendar(snapshot);
+
+            Assert.NotNull(calendar);
+            Assert.Equal(86_400.0, calendar!.DaySeconds);
+            Assert.Equal(365.0, calendar.YearSeconds / calendar.DaySeconds);
+            Assert.False(calendar.KerbinTime);
+        }
+
+        [Fact]
+        public void BuildCalendarWithoutTheGroupIsNoPayload()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
+
+            Assert.Null(VesselViewProvider.BuildCalendar(snapshot));
+        }
+
+        [Theory]
+        [InlineData(0.0, 9_201_600.0)]
+        [InlineData(21_600.0, 0.0)]
+        [InlineData(-1.0, 9_201_600.0)]
+        public void BuildCalendarRefusesADayOrYearNobodyCanDivideBy(double day, double year)
+        {
+            // A consumer dividing by zero renders every duration as infinity,
+            // which is worse than falling back to the stock calendar it
+            // already assumed. No payload is the honest answer.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: CalendarGroup(day, year, kerbinTime: true));
+
+            Assert.Null(VesselViewProvider.BuildCalendar(snapshot));
+        }
+
+        private static Dictionary<string, object?> CalendarGroup(
+            double day, double year, bool kerbinTime) =>
+            new Dictionary<string, object?>
+            {
+                ["warpRate"] = 1.0,
+                ["warpRateIndex"] = 0,
+                ["warpMode"] = "HIGH",
+                ["paused"] = false,
+                ["minuteSeconds"] = 60.0,
+                ["hourSeconds"] = 3600.0,
+                ["daySeconds"] = day,
+                ["yearSeconds"] = year,
+                ["kerbinTime"] = kerbinTime,
+            };
+
         // ---- time.warp ----
 
         [Fact]

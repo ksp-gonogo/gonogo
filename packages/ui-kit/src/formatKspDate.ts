@@ -1,8 +1,5 @@
-import { KSP_DAY_SECONDS, KSP_YEAR_SECONDS } from "./kspTime";
+import { kspCalendar } from "./kspTime";
 import { NULL_DISPLAY } from "./NullValue";
-
-const DAY = KSP_DAY_SECONDS;
-const YEAR = KSP_YEAR_SECONDS;
 
 /**
  * Formats a KSP universal time (UT, seconds) as a compact Kerbin calendar
@@ -11,6 +8,11 @@ const YEAR = KSP_YEAR_SECONDS;
  * 1`), matching `formatDuration`'s KSP-time unit sizes (day = 6h =
  * 21,600s; year = 426d = 9,201,600s). H/M/S are zero-padded to two
  * digits; year and day are not padded.
+ *
+ * The day and year lengths come from the calendar the GAME reported, not from
+ * a constant: a planet pack or the stock KERBIN_TIME setting changes both, and
+ * a date rendered on the wrong calendar is wrong in a way that still looks
+ * like a date. See `kspTime.ts`.
  *
  * `ut` is expected to be non-negative, KSP UT never goes negative during
  * normal play: but a stray negative value (e.g. a not-yet-initialized
@@ -21,6 +23,11 @@ const YEAR = KSP_YEAR_SECONDS;
 export function formatKspDate(ut: number): string {
   if (!Number.isFinite(ut)) return NULL_DISPLAY;
 
+  // Read per call, not at module load: the calendar arrives from the game
+  // after this module is imported, and a date frozen on the stock fallback is
+  // the bug this replaced. See `kspTime.ts`.
+  const { day: DAY, year: YEAR, hour: HOUR, minute: MINUTE } = kspCalendar();
+
   const clamped = Math.max(0, ut);
 
   const year = Math.floor(clamped / YEAR) + 1;
@@ -29,9 +36,9 @@ export function formatKspDate(ut: number): string {
   const day = Math.floor(yearRemainder / DAY) + 1;
   const dayRemainder = yearRemainder % DAY;
 
-  const hours = Math.floor(dayRemainder / 3600);
-  const minutes = Math.floor((dayRemainder % 3600) / 60);
-  const seconds = Math.floor(dayRemainder % 60);
+  const hours = Math.floor(dayRemainder / HOUR);
+  const minutes = Math.floor((dayRemainder % HOUR) / MINUTE);
+  const seconds = Math.floor(dayRemainder % MINUTE);
 
   const pad = (n: number) => String(n).padStart(2, "0");
 

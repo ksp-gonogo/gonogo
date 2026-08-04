@@ -263,6 +263,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
             host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);
+            host.AddChannelSource(VesselViewProvider.CalendarTopic, VesselViewProvider.BuildCalendarWire);
             host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
             host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
             host.AddChannelSource(VesselViewProvider.LandingTopic, VesselViewProvider.BuildLandingWire);

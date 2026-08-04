@@ -27,7 +27,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { kspCalendar, NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import {
@@ -844,9 +844,11 @@ function MapViewComponent({
     );
     if (!firstForBody) return [];
     // 1.5 × period shows the whole closed orbit plus a bit so the loop is
-    // obvious. Capped at 1 Kerbin day (21600s) for absurdly long interplanetary
-    // patches; MAX_TRACK_SAMPLES further bounds sample count.
-    const horizon = Math.min(1.5 * firstForBody.period, 21_600);
+    // obvious. Capped at ONE DAY for absurdly long interplanetary patches;
+    // MAX_TRACK_SAMPLES further bounds sample count. Read from the calendar
+    // rather than hardcoded: the cap means "about one rotation", and under a
+    // planet pack a rotation is not 21,600s.
+    const horizon = Math.min(1.5 * firstForBody.period, kspCalendar().day);
     const samples = predictGroundTrack(
       orbitPatches,
       targetBodyId,
@@ -892,7 +894,7 @@ function MapViewComponent({
       // first post-burn period: enough to see the new orbit close up.
       const horizon = Math.min(
         node.UT - universalTime + 1.5 * firstPatch.period,
-        21_600,
+        kspCalendar().day,
       );
       if (horizon <= 0) return [];
       const samples = predictGroundTrack(

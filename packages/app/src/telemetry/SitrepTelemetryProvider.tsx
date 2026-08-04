@@ -13,6 +13,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { KspCalendarObserver } from "./KspCalendarObserver";
 import {
   getSitrepHostConfig,
   getSitrepReconnectNonce,
@@ -184,6 +185,10 @@ export function SitrepTelemetryProvider({
 
   return (
     <TelemetryProvider client={client} carriedChannels={carriedChannels}>
+      {/* Inside the provider, so it can read the stream; before the children,
+          so the calendar is adopted before anything formats a duration with
+          it. Renders nothing. */}
+      <KspCalendarObserver />
       {children}
     </TelemetryProvider>
   );
