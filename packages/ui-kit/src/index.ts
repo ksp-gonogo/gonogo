@@ -283,6 +283,9 @@ export {
   type Rung,
   registerUnit,
   STANDARD_GRAVITY,
+  // The locale every quantity is written in. One call at app boot changes
+  // every readout at once, which is what having one formatter buys.
+  setQuantityLocale,
   // The only string formatters this package exports, for the places a node
   // cannot go: `speakQuantity` for an accessible name, `writeQuantity` for
   // visible text that is measured (an SVG label, a canvas). See their doc

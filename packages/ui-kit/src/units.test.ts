@@ -8,6 +8,7 @@ import {
   formatQuantity,
   kindOfUnit,
   registerUnit,
+  setQuantityLocale,
   writeQuantity,
 } from "./units";
 
@@ -169,8 +170,13 @@ describe("formatQuantity", () => {
     // the label was wrong, which is exactly why it survived being read. The
     // symbols here are gram-based but every threshold is in kg, so the
     // mistake has nowhere to live.
+    // "52.92", not "52.91": the number is exactly half way and `toFixed`, which
+    // this used before `Intl`, rounds the BINARY value. 52.915 is stored a
+    // hair under 52.915, so it went down. `Intl` rounds the decimal, which is
+    // the answer a reader gets doing it by hand. (`(1.005).toFixed(2)` is
+    // "1.00" for the same reason.)
     expect(formatQuantity(5.2915e22, "kg")).toMatchObject({
-      value: "52.91",
+      value: "52.92",
       symbol: "Yg",
     });
   });
@@ -535,6 +541,13 @@ describe("the attach rule is one rule", () => {
     expect(writeQuantity(value("°C", 20), { decimals: 0 })).toBe("20 °C");
     expect(writeQuantity(value("m/s", 5), { decimals: 0 })).toBe("5 m/s");
   });
+
+  it("attaches a currency mark, which SI does not govern", () => {
+    // `42,500 f` would be a visible change to every funds readout in the app,
+    // justified by a rule about SI units that a currency mark is not.
+    expect(writeQuantity(value("funds", 42_500))).toBe("42,500f");
+    expect(writeQuantity(value("science", 12.5))).toBe("12.5sci");
+  });
 });
 
 describe("the two time kinds", () => {
@@ -556,6 +569,14 @@ describe("the two time kinds", () => {
 });
 
 describe("thousands", () => {
+  it("groups money from a thousand, where a measurement waits for five digits", () => {
+    // SI's four-digit exemption is about technical readings. Money is written
+    // with a comma from a thousand everywhere, and the first cut of this got
+    // it wrong: a 2,340f balance came out as "2340f".
+    expect(formatQuantity(2340, "funds").value).toBe("2,340");
+    expect(formatQuantity(2340, "K").value).toBe("2340");
+  });
+
   it("separates more than four digits and leaves four alone", () => {
     // SI's rule, and the reason a technical readout keeps its instrument look:
     // a four-digit temperature is a number you read off a gauge, a six-digit
@@ -586,5 +607,30 @@ describe("thousands", () => {
     // either one is noise rather than a separator.
     expect(formatQuantity(86_400, "s").value).toBe("4d");
     expect(formatQuantity(12_400, "irl:s").value).toBe("3h 26m");
+  });
+});
+
+describe("the locale is named, not ambient", () => {
+  it("groups by locale rather than by a hand-rolled comma", () => {
+    setQuantityLocale("de-DE");
+    try {
+      // German swaps both separators. The point is not that anybody runs the
+      // app this way, it is that grouping is `Intl`'s job now and the door is
+      // open, where a hand-rolled comma had bolted it shut.
+      expect(formatQuantity(1_234_567.5, "funds", { decimals: 1 }).value).toBe(
+        "1.234.567,5",
+      );
+    } finally {
+      setQuantityLocale("en-GB");
+    }
+    expect(formatQuantity(1_234_567.5, "funds", { decimals: 1 }).value).toBe(
+      "1,234,567.5",
+    );
+  });
+
+  it("defaults to a locale rather than reading the runtime's", () => {
+    // So a snapshot rendered on one machine matches one rendered on another,
+    // and the visual baselines with them.
+    expect(formatQuantity(78_401, "funds").value).toBe("78,401");
   });
 });

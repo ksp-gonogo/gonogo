@@ -20,6 +20,7 @@ import {
   useViewClockOptional,
 } from "@ksp-gonogo/sitrep-client";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 
 installDomStubs();
 PerfBudget.installTestGate();
@@ -59,3 +60,8 @@ installTestHost({
   useTelemetry,
   useViewClockOptional,
 });
+
+// Pin the locale every quantity is written in. It defaults to the READER's
+// locale, which is right for an operator and wrong for a snapshot: a render on
+// a French machine has to match one on an American CI runner.
+setQuantityLocale("en-GB");

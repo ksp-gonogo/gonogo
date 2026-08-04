@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
@@ -94,12 +95,10 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
       ]);
     });
 
-    // `getByText` concatenates only direct text nodes, so it finds the
-    // number without `CurrencyUnit`'s nested glyph + visually-hidden word;
-    // `textContent` is what the readout announces.
-    await waitFor(() =>
-      expect(screen.getByText("· 42,500").textContent).toBe("· 42,500f funds"),
-    );
+    // The whole readout is <Unit> now: number, glyph and spoken word are
+    // three elements, so no single node holds "· 42,500". The grouping is
+    // the formatter's, where this widget used to call `toLocaleString`.
+    await waitFor(() => expect(visibleText()).toContain("· 42,500f"));
     expect(screen.getByText("Kerbal X")).toBeTruthy();
 
     // The crew picker only renders once a ship is selected.

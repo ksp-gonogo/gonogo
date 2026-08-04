@@ -1,3 +1,5 @@
+import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+
 // jsdom omits ResizeObserver, which the ScrollArea/Tabs primitives from
 // @ksp-gonogo/ui construct at mount to track overflow. A no-op stub keeps any
 // component that renders them (e.g. SerialDevicesMenu) mountable in tests;
@@ -9,3 +11,8 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect() {}
   };
 }
+
+// Pin the locale every quantity is written in. It defaults to the READER's
+// locale, which is right for an operator and wrong for a snapshot: a render on
+// a French machine has to match one on an American CI runner.
+setQuantityLocale("en-GB");

@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import midCareer from "./__fixtures__/mid-career-mixed-no-tier-text.json";
@@ -93,15 +94,12 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
       });
     });
 
-    // The funds marker is a nested element (`CurrencyUnit`), and `getByText`
-    // concatenates only direct text nodes, so match the number and assert the
-    // announced text on the element it lands on.
-    await waitFor(() =>
-      expect(
-        screen.getByText(`· ${midCareer["career.funds"].toLocaleString()}`)
-          .textContent,
-      ).toBe(`· ${midCareer["career.funds"].toLocaleString()}f funds`),
-    );
+    // The readout is <Unit>, so number, glyph and spoken word are three
+    // elements and no single node holds the whole thing. The expected string
+    // is written out rather than run through `toLocaleString`: the formatter
+    // groups without a locale on purpose, so a test that asks the runner's
+    // locale for the answer would agree with a bug that did the same.
+    await waitFor(() => expect(visibleText()).toContain("· 78,400f"));
     expect(screen.getByLabelText(/VAB tier \d of \d/)).toBeTruthy();
     expect(
       screen.getByText(String(midCareer["kc.partsAvailable"])),

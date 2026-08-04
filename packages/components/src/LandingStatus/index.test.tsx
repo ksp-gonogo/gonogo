@@ -236,9 +236,15 @@ describe("LandingStatusComponent", () => {
     // The number and its unit are separate elements now (a <Quantity>), so
     // getByText, which concatenates only DIRECT text nodes, never sees the
     // pair. The container does.
-    await screen.findByText("2.75");
-    expect(visibleText(container)).toContain("2.75 km");
-    expect(container.textContent).not.toContain("2.80 km");
+    //
+    // "2.76", not "2.75": 2755 m is 2.755 km, exactly half way, and the kit
+    // rounds the decimal through `Intl` where it used to round the binary
+    // value through `toFixed`. The stored double for 2.755 sits a hair under,
+    // so the old answer went down.
+    await screen.findByText("2.76");
+    expect(visibleText(container)).toContain("2.76 km");
+    // 2800 m is the CoM altitude this test exists to prove is NOT used.
+    expect(visibleText(container)).not.toContain("2.80 km");
   });
 
   it("falls back to the CoM altitude when vessel.surface is absent", async () => {

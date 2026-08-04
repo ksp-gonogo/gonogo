@@ -570,16 +570,33 @@ export function speakQuantity(
 }
 
 /**
- * The symbols SI writes hard against the number. Plane angle only: degree,
- * arcminute, arcsecond. Deliberately NOT the degree-Celsius pair, which takes
- * the normal space.
+ * The symbols written hard against the number, for two unrelated reasons.
+ *
+ * **Plane angle**, because SI says so: `22°`, not `22 °`. Degree, arcminute,
+ * arcsecond, and deliberately NOT the degree-Celsius pair, which takes the
+ * normal space.
+ *
+ * **Currency and its neighbours**, because SI does not govern them. A
+ * currency mark is typography rather than a unit symbol, and every convention
+ * writes it tight: `£5`, `5p`, and KSP's own `√42,500`. This app has shown
+ * `42,500f` since it had a funds readout, CLAUDE.md's spend-the-balance rule
+ * spells it that way, and the science and reputation marks sit beside it in
+ * the same rows. A space here would be a visible change with nothing behind
+ * it but a rule that does not apply.
  *
  * Lives here rather than in `Unit` because BOTH ways of showing a quantity
  * have to agree on it. They did not: the component attached the degree sign
  * and `writeQuantity` always inserted a space, so the same angle read `8.0°`
  * in a readout and `8.0 °` in the SVG label beside it.
  */
-export const ATTACHED_SYMBOLS: ReadonlySet<string> = new Set(["°", "′", "″"]);
+export const ATTACHED_SYMBOLS: ReadonlySet<string> = new Set([
+  "°",
+  "′",
+  "″",
+  "f",
+  "sci",
+  "rep",
+]);
 
 /**
  * A quantity as it is WRITTEN: the value and the unit's symbol, `250.0 km`.
@@ -763,14 +780,91 @@ export interface FormattedQuantity {
 const HYSTERESIS = 0.05;
 
 /**
- * Format a value for display, given the unit the contract declared for it.
- *
- * Returns the parts separately rather than a joined string, because callers
- * need them apart: a readout renders the number large and the symbol small, and
- * an axis wants the number alone with the symbol in the axis label.
+ * The kinds counted like money rather than measured like a quantity. They
+ * group from a thousand, and their symbols attach: see ATTACHED_SYMBOLS for
+ * the other half of the same exception.
  */
+const COUNTED_LIKE_MONEY: ReadonlySet<string> = new Set([
+  "funds",
+  "science",
+  "reputation",
+]);
+
 /**
- * A fixed-precision number with its thousands separated.
+ * `useGrouping`'s string form is ES2023 and this workspace targets ES2022, so
+ * the bundled lib still types it as a boolean. Every runtime the package ships
+ * to has taken the strings for years; only the type is behind.
+ *
+ * Declared here and cast once at the constructor, rather than raising the
+ * package's `lib`: this is the published package an Uplink imports, and
+ * widening its language assumptions to buy one option's type would be a much
+ * larger promise than the one being made.
+ */
+interface GroupingOptions
+  extends Omit<Intl.NumberFormatOptions, "useGrouping"> {
+  useGrouping?: "always" | "auto" | "min2" | boolean;
+}
+
+/**
+ * The locale every quantity in the app is written in.
+ *
+ * `undefined` means the reader's own, which is the right answer for everyone
+ * except a test. A locale changes how a number is WRITTEN and never what it
+ * is: `1,234,567.5` here, `1 234 567,5` in France, `12,34,567.5` in India,
+ * Arabic-Indic digits in Egypt. Somebody who reads numbers one way should see
+ * them that way, and this layer exists precisely so that is one decision.
+ *
+ * A TEST is the exception, and the only one. A snapshot rendered on a machine
+ * with a French locale has to match one rendered on an American runner, so
+ * every package's test setup pins this to `en-GB`, and
+ * `styleguide-pinned-locale.test.ts` fails the build if a new one forgets.
+ */
+let locale: string | undefined;
+
+/**
+ * Pin the locale every quantity is written in, or pass `undefined` to go back
+ * to the reader's own.
+ *
+ * One call changes every readout in the app at once, which is what having one
+ * formatter buys. Test setups use it to make a render reproducible; an app
+ * would use it to honour a preference.
+ */
+export function setQuantityLocale(next: string | undefined): void {
+  locale = next;
+  formatters.clear();
+}
+
+/**
+ * Building an `Intl.NumberFormat` is the expensive half of `Intl`, and this
+ * runs once per readout per frame on a dashboard with dozens of them. Calling
+ * `format` on a built one is cheap, so they are kept.
+ */
+const formatters = new Map<string, Intl.NumberFormat>();
+
+function numberFormat(decimals: number, money: boolean): Intl.NumberFormat {
+  const key = `${locale ?? ""}|${decimals}|${money}`;
+  let existing = formatters.get(key);
+  if (existing === undefined) {
+    const options: GroupingOptions = {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+      // `min2` IS SI's rule, spelled as a standard option: separate numbers of
+      // more than four digits, leave four-digit ones alone, so `3200 K` reads
+      // as it does on an instrument. `always` is how money is written, and
+      // money is not an SI quantity: `2,340f`, not `2340f`.
+      useGrouping: money ? "always" : "min2",
+    };
+    existing = new Intl.NumberFormat(
+      locale,
+      options as Intl.NumberFormatOptions,
+    );
+    formatters.set(key, existing);
+  }
+  return existing;
+}
+
+/**
+ * A fixed-precision number, grouped.
  *
  * Grouping was missing here for as long as this module has existed, and it did
  * not show because the LADDERED kinds climb a rung before they get long: a
@@ -780,32 +874,25 @@ const HYSTERESIS = 0.05;
  * at the call site. Five of them had. That is the same duplication this module
  * exists to remove, one formatting decision at a time.
  *
- * **Five digits, not four.** SI separates numbers of more than four digits and
- * leaves four-digit numbers alone, so `3200 K` stays as it reads on an
- * instrument and `78,401f` gets the comma it needs. The alternative, grouping
- * from a thousand, would have put a comma into most of the technical readouts
- * in the app for no gain.
- *
- * **A comma, not a locale.** `toLocaleString` would make every snapshot in the
- * repo depend on the runner's locale, and would render the same reading two
- * ways for two operators looking at the same mission. The app's own text is
- * English throughout; the separator matches it. SI would prefer a thin space,
- * which is unavailable here for a specific reason: `<Unit>` already puts a
- * thin space between the number and its symbol, and a second one inside the
- * number reads as a second quantity.
+ * SI would prefer a thin space to a comma, which is unavailable here for a
+ * specific reason: `<Unit>` already puts a thin space between the number and
+ * its symbol, and a second one inside the number reads as a second quantity.
+ * That is a matter for the locale to settle rather than for this function.
  */
-function fixed(value: number, decimals: number): string {
-  const text = value.toFixed(decimals);
-  const [whole, fraction] = text.split(".");
-  const sign = whole.startsWith("-") ? "-" : "";
-  const digits = sign === "" ? whole : whole.slice(1);
-  if (digits.length <= 4) return text;
-  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return fraction === undefined
-    ? `${sign}${grouped}`
-    : `${sign}${grouped}.${fraction}`;
+function fixed(value: number, decimals: number, kind?: string): string {
+  return numberFormat(
+    decimals,
+    kind !== undefined && COUNTED_LIKE_MONEY.has(kind),
+  ).format(value);
 }
 
+/**
+ * Format a value for display, given the unit the contract declared for it.
+ *
+ * Returns the parts separately rather than a joined string, because callers
+ * need them apart: a readout renders the number large and the symbol small, and
+ * an axis wants the number alone with the symbol in the axis label.
+ */
 export function formatQuantity(
   value: number | null | undefined,
   unit: string | undefined,
@@ -926,7 +1013,7 @@ export function formatQuantity(
   // is what keeps "12 count" off the screen.
   if (!ladder) {
     return {
-      value: fixed(value, decimals),
+      value: fixed(value, decimals, kind),
       symbol: displaySymbol(unit, kind),
       rung: unit,
     };

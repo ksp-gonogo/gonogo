@@ -85,11 +85,9 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       });
     });
 
-    // See LaunchDirector's stream test: the funds marker is a nested
-    // element, so match the number and assert the announced text.
-    await waitFor(() =>
-      expect(screen.getByText("· 78,401").textContent).toBe("· 78,401f funds"),
-    );
+    // The whole readout is now <Unit>, so the number, its glyph and the
+    // spoken word are three elements and no single node holds "· 78,401f".
+    await waitFor(() => expect(visibleText()).toContain("· 78,401f"));
     expect(visibleText()).toContain("214");
 
     teardownMockDataSource(legacyAux);
@@ -130,13 +128,11 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       });
     });
 
-    // The title is now `speakQuantity`: an accessible name spells the unit
-    // out as a word rather than as the symbol a sighted reader sees. It is
-    // also ungrouped, where the hand-rolled title it replaced ran the number
-    // through `toLocaleString`. That is the formatter's behaviour and not a
-    // slip here: grouping is a decision about VISIBLE text, and a screen
-    // reader announces 78401 and 78,401 identically.
-    await waitFor(() => expect(screen.getByTitle("78401 funds")).toBeTruthy());
+    // The title is `speakQuantity`: an accessible name spells the unit out as
+    // a word rather than as the symbol a sighted reader sees. It carries the
+    // separator too, because grouping lives in `formatQuantity` and all three
+    // ways of showing a quantity read from it.
+    await waitFor(() => expect(screen.getByTitle("78,401 funds")).toBeTruthy());
 
     teardownMockDataSource(legacyAux);
   });

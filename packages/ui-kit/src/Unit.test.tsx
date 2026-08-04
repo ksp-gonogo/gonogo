@@ -298,7 +298,7 @@ describe("Unit: format pins the unit", () => {
     const { container } = render(
       <Unit value={value("kg", 5.2915e22)} format="Yg" />,
     );
-    expect(visibleText(container)).toBe("52.91 Yg");
+    expect(visibleText(container)).toBe("52.92 Yg");
   });
 
   it("ignores a format of a different kind rather than lying", () => {
