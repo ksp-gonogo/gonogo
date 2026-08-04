@@ -2632,6 +2632,37 @@ namespace Sitrep.Host
             !_subjectConnected.TryGetValue(node, out var c) || c;
 
         /// <summary>
+        /// Remove a FLEET subject's per-node freeze-map entries once its last
+        /// topic is unsubscribed / its session disconnects (Plan 2b required
+        /// addition 2): otherwise the maps accumulate one stale entry per vessel
+        /// guid ever seen. The "system" subject is PERMANENT (never cleaned).
+        /// Called AFTER the topic is removed from the subscribed-topics mirror,
+        /// so <see cref="IsAnyTopicSubscribed"/> reflects the removal.
+        /// </summary>
+        private void CleanUpSubjectIfGone(string topic)
+        {
+            var node = NodeForTopic(topic);
+            if (node == NodeId)
+            {
+                return; // "system" is permanent.
+            }
+            // Keep the subject while ANY of its topics (node + ".*") is still subscribed.
+            if (IsAnyTopicSubscribed(node + "."))
+            {
+                return;
+            }
+            _subjectConnected.Remove(node);
+            _subjectConnectivityHistory.Remove(node);
+            _subjectLastConnectedDelay.Remove(node);
+        }
+
+        /// <summary>Test hook (Plan 2b): whether any per-node freeze map still holds this subject.</summary>
+        internal bool HasFreezeStateForSubject(string node) =>
+            _subjectConnected.ContainsKey(node)
+            || _subjectConnectivityHistory.ContainsKey(node)
+            || _subjectLastConnectedDelay.ContainsKey(node);
+
+        /// <summary>
         /// Apply a CONNECTED/DISCONNECTED transition for ONE subject to the
         /// reveal gate (Plan 2b). On a DISCONNECTED→CONNECTED edge (reconnect)
         /// only THAT subject's withheld backlog is DROPPED rather than replayed:
@@ -3509,6 +3540,7 @@ namespace Sitrep.Host
                 {
                     _subscribedTopics.TryRemove(topic, out _);
                 }
+                CleanUpSubjectIfGone(topic); // Plan 2b addition 2: drop a gone fleet subject's freeze maps.
             }
         }
 
@@ -3520,6 +3552,12 @@ namespace Sitrep.Host
                 {
                     _subscribedTopics.TryRemove(topic, out _);
                 }
+            }
+            // After all this session's topics leave the subscribed mirror, drop
+            // any fleet subject whose last topic just went away (Plan 2b addition 2).
+            foreach (var topic in session.Unsubscribers.Keys)
+            {
+                CleanUpSubjectIfGone(topic);
             }
             foreach (var unsubscribe in session.Unsubscribers.Values)
             {

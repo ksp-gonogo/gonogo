@@ -145,6 +145,45 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task FleetSubjectFreezeMapsAreCleanedWhenAVesselGoesAway()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                var clientA = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(clientA, "fleet.a.orbit", Timeout);
+                await SubscribeAsync(clientB, "fleet.b.orbit", Timeout);
+
+                // Ticks populate the per-subject freeze maps for both vessels.
+                engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
+                engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
+                await DrainAllStreamDataAsync(clientB, Quiet);
+                Assert.True(engine.HasFreezeStateForSubject("fleet.a"));
+                Assert.True(engine.HasFreezeStateForSubject("fleet.b"));
+
+                // The only fleet.a subscriber disconnects. We do NOT tick during the
+                // wait, so the gated capture cannot re-add fleet.a (in production a
+                // torn-down vessel is likewise gone from the capture). Its freeze
+                // maps are cleaned; fleet.b (still subscribed) is retained.
+                await clientA.DisposeAsync();
+                var deadline = DateTime.UtcNow + Timeout;
+                while (engine.HasFreezeStateForSubject("fleet.a") && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(20);
+                }
+                Assert.False(engine.HasFreezeStateForSubject("fleet.a")); // cleaned on disconnect
+                Assert.True(engine.HasFreezeStateForSubject("fleet.b"));  // retained
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         // NOTE (Plan 2b): the Plan-2 `FleetFreezesTogetherOnGlobalDisconnectAndResumes`
         // test was REMOVED (its premise -- all fleet topics freeze together on the
         // global link -- is the one intended behaviour change). The pre-outage-tail-
