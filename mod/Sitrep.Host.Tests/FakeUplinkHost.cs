@@ -72,6 +72,10 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
+        {
+        }
+
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
         }

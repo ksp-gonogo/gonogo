@@ -4,6 +4,7 @@ import type {
   CommandResponse,
   ErrorMsg,
   EventMsg,
+  SetVantage,
   StreamData,
   Subscribe,
   Unsubscribe,
@@ -15,4 +16,8 @@ export type ServerMessage =
   | CommandResponse<unknown>
   | ErrorMsg;
 
-export type ClientMessage = Subscribe | Unsubscribe | CommandRequest<unknown>;
+export type ClientMessage =
+  | Subscribe
+  | Unsubscribe
+  | SetVantage
+  | CommandRequest<unknown>;

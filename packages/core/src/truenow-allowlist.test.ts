@@ -77,6 +77,23 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // state. 6 explicit declarations.
   "mod/Gonogo.KSP/SpaceCenterUplink.cs": 6,
 
+  // commandCentre.roster: the LIST of command centres a dashboard can select as
+  // its vantage. Correct as TrueNow for the KSC-only present: KSC + stock Extra
+  // Ground Stations + Kerbal Konstructs sites are FIXED ground-registry facts
+  // (their existence and position are known a priori, independent of any vessel's
+  // comms link), the same class as SpaceCenterUplink's launchSites/pois above.
+  //
+  // DELAY-HONESTY NOTE (Phase-2 requirement, flagged, not yet triggered): a
+  // CREWED forward command centre becoming commandable is an EVENT at a distant
+  // vessel. Publishing the roster TrueNow would leak "a distant crewed station is
+  // now a command centre" INSTANTLY, before that vessel's own (delayed) telemetry
+  // arrives, a genuine delay-honesty violation. So when crewed centres are
+  // enumerated (Phase 2), the roster's crewed entries MUST be delay-gated: move
+  // the roster to Delayed, or split crewed entries onto a Delayed channel. Today
+  // only StockHomeNodeSource (ground-registry) is honest as TrueNow; the crewed
+  // source's delay-gating is the Phase-2 follow-up. 1 explicit declaration.
+  "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 1,
+
   // Active-strategies roster, funds/science/rep totals, contract board:
   // career/admin bookkeeping the centre always knows, independent of any
   // vessel's comms link. 2 explicit declarations.

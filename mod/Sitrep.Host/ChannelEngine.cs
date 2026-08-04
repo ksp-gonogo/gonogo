@@ -50,6 +50,15 @@ namespace Sitrep.Host
         public const string MetaVantage = "meta";
 
         /// <summary>
+        /// The default command centre a connection commands from and observes at
+        /// until it selects another (Plan 3). "ksc" is the stock home-node centre;
+        /// with only KSC enumerated and no explicit (vantage, node) authority rows
+        /// set, <c>DelayTo("ksc", node)</c> falls through to Plan 2's node-default,
+        /// so KSC-only behaviour is identical to Plan 2.
+        /// </summary>
+        public const string DefaultVantage = "ksc";
+
+        /// <summary>
         /// Per-vessel node namespace (Plan 2): a topic "fleet.&lt;guid&gt;.&lt;field&gt;"
         /// records under the per-vessel Courier node "fleet.&lt;guid&gt;", so
         /// <c>DelayTo(vantage, node)</c> can give each vessel its own light-time.
@@ -94,6 +103,11 @@ namespace Sitrep.Host
         private readonly Courier _courier;
         private readonly FleckTransportListener _listener;
         private readonly Kernel _kernel = new Kernel();
+
+        // Plan 3: the registered command-centre sources; enumerated to validate a
+        // set-vantage request (a centre must be active to be selectable, though
+        // DefaultVantage is always allowed).
+        private readonly CommandCentres.CommandCentreRegistry _commandCentres = new CommandCentres.CommandCentreRegistry();
 
         private readonly ConcurrentQueue<IEngineJob> _jobs = new ConcurrentQueue<IEngineJob>();
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
@@ -1085,6 +1099,50 @@ namespace Sitrep.Host
             // NodeForTopic maps fleet.<id>.* topics to this node, so its
             // telemetry is delayed by DelayTo(vantage, fleet.<id>).
             _network.SetNodeDelay(FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
+        public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
+        {
+            // Per-(authority, subject) command delay (Plan 3): the explicit
+            // (vantage = centreId, node = fleet.<vesselId>) pair overrides the
+            // SetVesselDelay node-default for an operator whose SelectedVantage is
+            // this centre. DelayTo's 3-tier lookup keeps the node-default beneath
+            // it for any unselected vantage, so KSC-only behaviour is unchanged.
+            _network.SetDelay(centreId, FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
+        public void RegisterCommandCentreSource(CommandCentres.ICommandCentreSource source)
+        {
+            _commandCentres.RegisterSource(source);
+        }
+
+        /// <summary>
+        /// Apply a client set-vantage request (Plan 3): switch the connection's
+        /// SelectedVantage to a command centre. <see cref="DefaultVantage"/> is
+        /// always selectable (it resolves to Plan 2's node-default even before any
+        /// home-node source is live); any other id must name a currently-active
+        /// centre, else the prior vantage is kept and an error is returned.
+        /// </summary>
+        private void HandleSetVantage(ClientSession session, SetVantage sv)
+        {
+            var valid = sv.CentreId == DefaultVantage
+                || _commandCentres.EnumerateActive().Any(c => c.Id == sv.CentreId);
+
+            if (!valid)
+            {
+                var error = new ErrorMsg
+                {
+                    Code = "unknown-vantage",
+                    Message = $"'{sv.CentreId}' is not an active command centre",
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                return;
+            }
+
+            // Reference assignment is atomic; the Courier thread reads the new
+            // vantage on subsequent subscribes/dispatches (an eventually-consistent
+            // switch, matching the client re-subscribing its topics at the new vantage).
+            session.SelectedVantage = sv.CentreId;
         }
 
         public void SetVesselConnectivity(string vesselId, bool connected)
@@ -3373,7 +3431,7 @@ namespace Sitrep.Host
             var isInstantClass = topic == CommsDelayTopic
                 || topic == ConnectivityMetaTopic
                 || _channelDeclarations[topic].Delay == DelayRole.TrueNow;
-            var vantage = isInstantClass ? MetaVantage : session.Connection.Id;
+            var vantage = isInstantClass ? MetaVantage : session.SelectedVantage;
             var delivery = _channelDeclarations[topic].Delivery;
 
             Action unsubscribe;
@@ -3510,7 +3568,7 @@ namespace Sitrep.Host
                         Meta = new Meta
                         {
                             Source = NodeId,
-                            Vantage = session.Connection.Id,
+                            Vantage = session.SelectedVantage,
                             ValidAt = _clock.Now(),
                             DeliveredAt = _clock.Now(),
                             Seq = ++_ackSeq,
@@ -3593,8 +3651,11 @@ namespace Sitrep.Host
                     case Unsubscribe unsub:
                         EnqueueJob(new UnsubscribeJob(session, unsub.Topic));
                         break;
+                    case SetVantage sv:
+                        HandleSetVantage(session, sv);
+                        break;
                     case CommandRequest<object?> req:
-                        DispatchCommand(req.Command, req.Args, session.Connection.Id, result =>
+                        DispatchCommand(req.Command, req.Args, session.SelectedVantage, result =>
                         {
                             // C2-4: `result` is whatever the uplink's
                             // command handler returned -- uplink-owned,
@@ -3618,7 +3679,7 @@ namespace Sitrep.Host
                                     Meta = new Meta
                                     {
                                         Source = NodeId,
-                                        Vantage = session.Connection.Id,
+                                        Vantage = session.SelectedVantage,
                                         ValidAt = req.SentAt,
                                         DeliveredAt = _clock.Now(),
                                         Seq = Interlocked.Increment(ref _ackSeq),
@@ -3968,6 +4029,15 @@ namespace Sitrep.Host
             public readonly ITransportConnection Connection;
             public readonly ChannelOutbox Outbox;
             public readonly Dictionary<string, Action> Unsubscribers = new Dictionary<string, Action>();
+
+            /// <summary>
+            /// The command centre this connection commands from and observes at
+            /// (Plan 3 vantage selection). Governs BOTH the downlink cursor read
+            /// (<c>ReadAtVantage(topic, SelectedVantage, ...)</c>) and the command
+            /// dispatch vantage (<c>DelayTo(SelectedVantage, node)</c>). Defaults to
+            /// <see cref="DefaultVantage"/> (KSC); set by the set-vantage message.
+            /// </summary>
+            public string SelectedVantage = DefaultVantage;
 
             public ClientSession(ITransportConnection connection)
             {

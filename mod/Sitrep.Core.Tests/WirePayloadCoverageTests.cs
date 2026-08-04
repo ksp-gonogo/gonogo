@@ -111,6 +111,9 @@ namespace Sitrep.Core.Tests
             "LaunchSiteEntry", "SpaceCenterScene",
             "CrewRosterEntry", "SavedShipEntry", "SpaceCenterPartsAvailable",
             "SpaceCenterPoiEntry",
+            // commandCentre.roster: the command-centre enumeration pass
+            // hand-flattens each centre to a Dictionary; this POCO is TS-shape-only.
+            "CommandCentreEntry",
             // parts.power / parts.robotics / robotics.available:
             // PartsViewProvider.BuildPower/BuildRobotics/BuildRoboticsAvailable
             // hand-build Dictionary<string, object?> trees; these POCOs are
@@ -150,7 +153,7 @@ namespace Sitrep.Core.Tests
             "RecoveryResourceEntry", "RecoveryCrewEntry",
             // Envelope / meta: serialized field-by-field by EnvelopeCodec itself
             // (WriteStreamData / WriteMeta), never through AppendValue as a POCO.
-            "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe",
+            "Meta", "PayloadMeta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe", "SetVantage",
             // Inbound command-arg types: only ever DESERIALIZED (client → server);
             // never serialized outbound as a raw POCO.
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",

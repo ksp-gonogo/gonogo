@@ -132,6 +132,17 @@ export interface CareerTechNode
 	unlocked?: boolean;
 	parents: string[];
 }
+export interface CommandCentreEntry
+{
+	id?: string;
+	displayName?: string;
+	kind?: string;
+	bodyIndex?: number;
+	latitude?: Value<"°">;
+	longitude?: Value<"°">;
+	active: boolean;
+	delayQuality?: string;
+}
 export enum CommandErrorCode {
 	None = 0,
 	Unknown = 1,
@@ -335,6 +346,11 @@ export interface Unsubscribe
 {
 	type: "unsubscribe";
 	topic: string;
+}
+export interface SetVantage
+{
+	type: "set-vantage";
+	centreId: string;
 }
 export interface FleetVesselLink
 {

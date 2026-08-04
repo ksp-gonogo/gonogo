@@ -29,6 +29,7 @@ public static class RtConfig
         builder.ExportAsInterface<ErrorMsg>().AutoI(false).WithPublicProperties().OverrideName("ErrorMsg");
         builder.ExportAsInterface<Subscribe>().AutoI(false).WithPublicProperties().OverrideName("Subscribe");
         builder.ExportAsInterface<Unsubscribe>().AutoI(false).WithPublicProperties().OverrideName("Unsubscribe");
+        builder.ExportAsInterface<SetVantage>().AutoI(false).WithPublicProperties().OverrideName("SetVantage");
 
         // --- Envelope + command generics (open generic definitions) ---
         // ExportAsInterface<StreamData<object>>() would target the CLOSED
@@ -244,6 +245,8 @@ public static class RtConfig
                 typeof(SpaceCenterPartsAvailable),
                 // spaceCenter.pois: the map points-of-interest union (T-POI-3)
                 typeof(SpaceCenterPoiEntry),
+                // commandCentre.roster: the vantage/authority union (Plan 3)
+                typeof(CommandCentreEntry),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

@@ -132,6 +132,26 @@ namespace Gonogo.KSP
                 CommsCoreUplink.ConfigureSignalDelay(ReadSignalDelayConfig());
                 _recordingEnabled = ReadRecordingEnabled();
                 _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
+
+                // Plan 3 command centres (agent-6): the stock home-node + crewed-
+                // vessel sources feed BOTH set-vantage validation (the engine's own
+                // registry) AND the per-(authority, subject) delay pass + roster
+                // (the uplink's registry). The sources are stateless enumerators, so
+                // both registries enumerate identically. Registered after discovery,
+                // before ResolveCapabilities: the delay uplink declares one channel
+                // (commandCentre.roster) and no capability provider. VERIFY at fold.
+                var ccSources = new Sitrep.Host.CommandCentres.ICommandCentreSource[]
+                {
+                    new CommandCentres.StockHomeNodeSource(),
+                    new CommandCentres.CrewedVesselSource(),
+                };
+                var ccRegistry = new Sitrep.Host.CommandCentres.CommandCentreRegistry();
+                foreach (var src in ccSources)
+                {
+                    _engine.RegisterCommandCentreSource(src);
+                    ccRegistry.RegisterSource(src);
+                }
+                _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry));
                 // Drive the capability Kernel once every uplink has registered
                 // its providers (the comms backend election, CommNet vanilla vs
                 // RealAntennas when present, see Sitrep.Host.Comms.CommsElection)

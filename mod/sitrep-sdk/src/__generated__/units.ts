@@ -198,6 +198,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     distance: "m",
     time: "s",
   },
+  "CommandCentreEntry": {
+    active: "flag",
+    bodyIndex: "id",
+    delayQuality: "text",
+    displayName: "text",
+    id: "id",
+    kind: "text",
+    latitude: "°",
+    longitude: "°",
+  },
   "CommandResult": {
     errorCode: "enum",
     success: "flag",
@@ -904,6 +914,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SetThrottleArgs": {
     value: "ratio",
   },
+  "SetVantage": {
+    centreId: "id",
+    type: "id",
+  },
   "SetWarpIndexArgs": {
     index: "id",
   },
@@ -1198,6 +1212,16 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "career.mode": {
     mode: "enum",
+  },
+  "commandCentre.roster": {
+    active: "flag",
+    bodyIndex: "id",
+    delayQuality: "text",
+    displayName: "text",
+    id: "id",
+    kind: "text",
+    latitude: "°",
+    longitude: "°",
   },
   "comms.connectivity": {
     connected: "flag",

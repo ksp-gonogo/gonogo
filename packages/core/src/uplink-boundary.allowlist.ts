@@ -401,6 +401,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
+      // -- new test (Plan 3): a kOS-terminal-SHAPED keyframe diff-stream fixture
+      // (the shared-vantage multi-client catch-up test). A text-only mention of
+      // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
+      "mod/Sitrep.Host.IntegrationTests/SharedVantageCatchUpTests.cs",
       // -- contract/SDK layer (real kOS POCOs, not just topic strings) --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/KosCommands.cs",

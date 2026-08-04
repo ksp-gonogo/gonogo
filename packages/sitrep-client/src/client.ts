@@ -71,6 +71,7 @@ export class TelemetryClient {
   private readonly unsubscribeFromTransport: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
+  private selectedVantageId = "ksc";
   /** Raw-frame tap listeners: see `onRawMessage`. */
   private readonly rawMessageListeners = new Set<
     (message: ServerMessage) => void
@@ -133,6 +134,32 @@ export class TelemetryClient {
    * returning. Returns an unsubscribe function; when the last subscriber for
    * the topic unsubscribes, sends `unsubscribe` and clears local state.
    */
+  /**
+   * The command centre this connection commands from and observes at (Plan 3).
+   * Defaults to `"ksc"` until {@link setVantage} selects another.
+   */
+  get selectedVantage(): string {
+    return this.selectedVantageId;
+  }
+
+  /**
+   * Select the command centre (vantage) to command from and observe at. Sends a
+   * `set-vantage` message and re-subscribes every active topic so its downlink
+   * cursor re-points to the new vantage's offset. The server validates the id
+   * (the default `"ksc"` is always accepted) and errors on an inactive centre;
+   * this optimistically tracks the request.
+   */
+  setVantage(centreId: string): void {
+    this.selectedVantageId = centreId;
+    this.transport.send({ type: "set-vantage", centreId });
+    // Re-point existing subscriptions at the new vantage: the server reads the
+    // selected vantage at subscribe time, so an active topic must re-subscribe.
+    for (const topic of this.subscribers.keys()) {
+      this.transport.send({ type: "unsubscribe", topic });
+      this.transport.send({ type: "subscribe", topic });
+    }
+  }
+
   subscribe(topic: string, cb: Callback): () => void {
     let subs = this.subscribers.get(topic);
     if (!subs) {
