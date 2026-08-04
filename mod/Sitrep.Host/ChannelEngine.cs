@@ -1061,6 +1061,15 @@ namespace Sitrep.Host
             _signalDelaySourceDisabled = false;
         }
 
+        public void SetVesselDelay(string vesselId, double oneWaySeconds)
+        {
+            // Per-vessel downlink delay (Plan 2): the vessel's fleet.<id> node
+            // carries its own routed light-time for the single KSC observer.
+            // NodeForTopic maps fleet.<id>.* topics to this node, so its
+            // telemetry is delayed by DelayTo(vantage, fleet.<id>).
+            _network.SetNodeDelay(FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
         // and lifecycle discipline as SetSignalDelaySource above: the
         // subscription-independent CONNECTED/DISCONNECTED authority the reveal

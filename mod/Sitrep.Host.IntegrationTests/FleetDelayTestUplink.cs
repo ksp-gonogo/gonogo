@@ -18,6 +18,7 @@ namespace Sitrep.Host.IntegrationTests
         public const string Prefix = ChannelEngine.FleetNodePrefix;
 
         private IDynamicChannelSource? _orbitSource;
+        private IUplinkHost? _host;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -28,6 +29,7 @@ namespace Sitrep.Host.IntegrationTests
 
         public void Register(IUplinkHost host)
         {
+            _host = host;
             _orbitSource = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
             {
                 Delivery = Delivery.LossyLatest,
@@ -45,14 +47,15 @@ namespace Sitrep.Host.IntegrationTests
             {
                 return null;
             }
-            var captures = new List<(string Id, object? Orbit)>();
+            var captures = new List<(string Id, object? Orbit, double? Delay)>();
             foreach (var entryObj in roster)
             {
                 if (entryObj is not IDictionary<string, object?> entry) { continue; }
                 if (entry.TryGetValue("id", out var idObj) && idObj is string id
                     && entry.TryGetValue("orbit", out var orbit) && orbit != null)
                 {
-                    captures.Add((id, orbit));
+                    double? delay = entry.TryGetValue("delay", out var d) && d is double dd ? dd : (double?)null;
+                    captures.Add((id, orbit, delay));
                 }
             }
             return new Captured { Ut = snapshot.Ut, Vessels = captures };
@@ -61,8 +64,12 @@ namespace Sitrep.Host.IntegrationTests
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not Captured cap || _orbitSource == null) { return; }
-            foreach (var (id, orbit) in cap.Vessels)
+            foreach (var (id, orbit, delay) in cap.Vessels)
             {
+                if (delay.HasValue)
+                {
+                    _host?.SetVesselDelay(id, delay.Value);
+                }
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
             }
         }
@@ -72,7 +79,8 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class Captured
         {
             public double Ut { get; set; }
-            public List<(string Id, object? Orbit)> Vessels { get; set; } = new List<(string, object?)>();
+            public List<(string Id, object? Orbit, double? Delay)> Vessels { get; set; }
+                = new List<(string, object?, double?)>();
         }
     }
 }
