@@ -17,6 +17,13 @@ namespace Sitrep.Core
 
         /// <summary>Whether <paramref name="node"/> is currently reachable from <paramref name="vantage"/>.</summary>
         bool Reachable(string vantage, string node);
+
+        /// <summary>
+        /// Sets the fallback one-way delay for any (vantage, node) pair without
+        /// an explicit override. The host drives the whole-network signal delay
+        /// through this (Plan 1 ledger migration).
+        /// </summary>
+        void SetDefaultDelay(double seconds);
     }
 
     /// <summary>

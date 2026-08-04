@@ -426,7 +426,11 @@ namespace Sitrep.Host
             _executeCommandsOnMainThread = executeCommandsOnMainThread;
             _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
             _clock = new ManualClock();
-            _network = new StubNetwork(delay: networkDelaySeconds, reachable: true);
+            var stubNetwork = new StubNetwork(delay: networkDelaySeconds, reachable: true);
+            // Pin the meta-vantage to 0 so instant/exempt topics stay instant
+            // once the whole-network default carries the signal delay (Plan 1).
+            stubNetwork.SetDelay(MetaVantage, NodeId, 0.0);
+            _network = stubNetwork;
             _courier = new Courier(_clock, _network);
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,
@@ -2299,12 +2303,12 @@ namespace Sitrep.Host
                 return double.PositiveInfinity;
             }
 
-            var delay = _signalDelaySeconds;
-            if (double.IsNaN(delay) || double.IsInfinity(delay) || delay <= 0.0)
-            {
-                return 0.0;
-            }
-            return delay;
+            // Delay migrated to the ledger (Plan 1): a connected ordinary
+            // Delayed topic records straight through the gate; the Courier/
+            // Archive apply the light-time via DelayTo. The gate now only
+            // FREEZES (the !_commsConnected branch above returns +Inf); it no
+            // longer carries the delay magnitude for ordinary topics.
+            return 0.0;
         }
 
         /// <summary>
@@ -2337,6 +2341,15 @@ namespace Sitrep.Host
                     _lastConnectedDelaySeconds = _signalDelaySeconds;
                 }
                 _signalDelaySeconds = commsDelay.OneWaySeconds ?? 0.0;
+
+                // Ledger migration (Plan 1): drive the whole-network default
+                // delay from the freshly-captured scalar so the Courier/Archive
+                // apply the light-time for ordinary topics. The meta-vantage is
+                // pinned to 0 (ctor), so instant/exempt topics stay instant.
+                // Placed here (the single _signalDelaySeconds mutation point)
+                // rather than at the refresh method's end so it can't be skipped
+                // by the pull-channel fail-soft early-return.
+                _network.SetDefaultDelay(_signalDelaySeconds);
             }
         }
 

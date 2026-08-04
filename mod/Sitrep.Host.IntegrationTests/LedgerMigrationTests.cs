@@ -48,5 +48,38 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        [Fact]
+        public async Task OrdinaryDelayedTopicIsRevealedByTheLedgerAtExactlyTheSignalDelay()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.DelayedTopic, Timeout);
+
+                // Connected, delay 4. Emit the delayed value at UT 0.
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 4.0, delayed: 100.0), Timeout);
+
+                // Before the horizon: withheld.
+                engine.TickAndWait(3.0, FreezeGateTestUplink.Snapshot(3.0, connected: true, delay: 4.0), Timeout);
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+
+                // At the horizon (UT 4 = validAt 0 + delay 4, NOT 8): revealed once, ValidAt 0.
+                engine.TickAndWait(4.0, FreezeGateTestUplink.Snapshot(4.0, connected: true, delay: 4.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var delayed = atHorizon.Where(f => f.Topic == FreezeGateTestUplink.DelayedTopic).ToList();
+                Assert.Single(delayed);
+                Assert.Equal(0.0, delayed[0].Meta.ValidAt);
+                Assert.Equal(100.0, Convert.ToDouble(delayed[0].Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }
