@@ -433,11 +433,32 @@ public static class RtConfig
     /// is a contract defect and throws rather than emitting something that would
     /// not compile.</para>
     /// </summary>
-    private static void ApplyUnitValueTypes(ConfigurationBuilder builder, IEnumerable<Type> exportedTypes)
+    /// <param name="valueImportFrom">
+    /// Where the emitted file should import <c>Value</c>/<c>Vec3Of</c> from.
+    /// Defaults to the first party's own layout. An UPLINK passes the path
+    /// that reaches the SDK from ITS generated file, which is the only thing
+    /// about this pass that was ever first-party-specific.
+    /// </param>
+    /// <remarks>
+    /// <para><b>Public, and reusable against any assembly's types.</b>
+    /// Declaring a unit was always symmetric (<see cref="SitrepUnitAttribute"/>
+    /// takes an arbitrary string), but GENERATING from the declaration was
+    /// not, so an Uplink author hand-wrote the <c>Value&lt;&gt;</c> types the
+    /// first party generates. That is the drift generation exists to prevent.
+    /// This pass never cared which assembly the types came from, it takes them
+    /// as an argument; it was simply private. An Uplink's own
+    /// <c>Configure</c> calls this with its own exported types and gets the
+    /// same retyping, and <see cref="UnitDescriptor.ToJson(Assembly)"/> gives
+    /// it the matching descriptor.</para>
+    /// </remarks>
+    public static void ApplyUnitValueTypes(
+        ConfigurationBuilder builder,
+        IEnumerable<Type> exportedTypes,
+        string valueImportFrom = "../value")
     {
-        // contract.ts is one file, so the import has to be declared once
-        // globally rather than per-type.
-        builder.AddImport("{ Value, Vec3Of }", "../value");
+        // One emitted file, so the import is declared once globally rather
+        // than per-type.
+        builder.AddImport("{ Value, Vec3Of }", valueImportFrom);
 
         var retyped = 0;
         var vectors = 0;

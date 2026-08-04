@@ -131,9 +131,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched
-  // and when: ground-side bookkeeping, not vessel telemetry). 2 explicit
+  // and when: ground-side bookkeeping, not vessel telemetry) + system.units
+  // (the contract's own unit descriptor, reflected off assembly metadata: it
+  // describes the WIRE FORMAT rather than anything happening in space, so
+  // there is no light-time for it to travel and delaying it would leave a
+  // consumer unable to read the very frames the delay applies to). 3 explicit
   // declarations.
-  "mod/Sitrep.Host/ChannelEngine.cs": 2,
+  "mod/Sitrep.Host/ChannelEngine.cs": 3,
 };
 
 function findRepoRoot(start: string): string {
