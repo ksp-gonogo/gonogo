@@ -107,6 +107,10 @@ export { EventTimeline } from "./event-timeline";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
 export {
+  type FleetVesselLink,
+  useFleetVesselLink,
+} from "./fleet-link";
+export {
   propagateVesselOrbit,
   useFleetVesselPosition,
 } from "./fleet-position";
