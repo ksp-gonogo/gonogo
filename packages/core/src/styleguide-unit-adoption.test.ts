@@ -1,89 +1,43 @@
 import { execFileSync } from "node:child_process";
-import { dirname } from "node:path";
+import { readdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { expectNoHandTypedUnits } from "@ksp-gonogo/ui-kit/guards";
 import { describe, expect, it } from "vitest";
 
 /**
  * Declining ratchet: a unit symbol must reach a reader through `<Unit>`, not
  * by being typed next to a number.
  *
- * This guard used to count one narrow shape, `` `${value} ${symbol}` ``, the
- * exact way eleven call sites had been rejoining `formatQuantity`'s two parts
- * into a string. That shape is gone, and so is `formatQuantity` from the
- * package's public surface: a widget cannot import a formatter from `ui-kit`
- * any more, because the only two it exports are `speakQuantity` (an
- * accessible name) and `writeQuantity` (visible text that is MEASURED, an SVG
- * label or a canvas, where a node cannot go).
- *
- * Counting formatter imports would therefore read zero and prove nothing.
- * The failure mode that outlived the API change is simpler and older: a
- * widget writes the symbol itself.
- *
- *     `${closingMagnitude.toFixed(1)} m/s`
+ * ```
+ * `${closingMagnitude.toFixed(1)} m/s`
+ * ```
  *
  * Nothing in the type system objects. It renders correctly. And it is the
- * whole problem the unit layer exists to solve, one site at a time: the
- * symbol cannot be dimmed, cannot be kept off a line break, is announced to a
- * screen reader as the letters "m", "slash", "s", and does not follow when a
- * value's ladder rung changes. Eleven widgets each grew their own ladder that
- * way once already.
+ * whole problem the unit layer exists to solve, one site at a time: the symbol
+ * cannot be dimmed, cannot be kept off a line break, is announced to a screen
+ * reader as the letters "m", "slash", "s", and does not follow when a value's
+ * ladder rung changes. Eleven widgets each grew their own ladder that way
+ * once, and three Uplinks did it again afterwards.
  *
- * So this counts the symbol being typed, not the formatter being imported.
+ * ## The scan lives in the KIT, not here
  *
- * **What counts as an offender**: a template interpolation immediately
- * followed by a unit symbol. **What does not**: `speakQuantity` and
- * `writeQuantity`, whose whole purpose is to produce that string in the two
- * places a node cannot go, and CSS lengths (`width: ${pct}%`), which are not
- * a reader-facing quantity at all.
+ * This file used to carry its own regex, its own CSS-length filter and its own
+ * baseline bookkeeping. It now calls `@ksp-gonogo/ui-kit/guards`, and the
+ * reason is the reason for every other consolidation in this layer: a rule
+ * kept in two places is a rule that gets enforced two ways.
+ *
+ * That is not hypothetical here. `ATTACHED_SYMBOLS` was duplicated between
+ * `<Unit>` and `writeQuantity` and they disagreed, so the same angle read
+ * `8.0°` in a readout and `8.0 °` in the SVG label beside it. A second copy of
+ * THIS rule would drift the same way, and worse: an Uplink author outside this
+ * repo cannot run a private test, so they would be held to whatever their own
+ * copy happened to say.
+ *
+ * So the kit publishes the check, this file points it at the workspace, and an
+ * Uplink points it at its own `src`. One implementation, one message, one set
+ * of exemptions. See `docs/creating-an-uplink.md`.
  */
-
-// A `${…}` interpolation, then optionally one space, then a unit symbol that
-// ends at a non-word boundary. Every offender takes this shape.
-const SYMBOL =
-  "m/s²|m/s|km/h|km|Mm|Gm|mm|cm|kPa|MPa|kN|MN|kW|MW|GW|kg|°C|°|%|m|s|t|N|W|f|sci|rep|Mit|deg|rad";
-const TYPED_SYMBOL = String.raw`\}\s?(${SYMBOL})([^A-Za-z0-9_/]|\x60|$)`;
-
-// A CSS length is not a readout. `width: ${pct}%` and its friends are the
-// dominant false positive and would otherwise drown the real ones.
-// `[:(={]` covers all three spellings a length appears in: a CSS declaration
-// (`width: …`), a call (`translate(…)`), and an SVG/JSX ATTRIBUTE
-// (`offset={…}`), which is how a gradient stop's position is written and
-// which the first two forms missed.
-const CSS_PROPERTY =
-  /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset)\s*[:(={]/i;
-
-/**
- * Per-file counts of the symbols still typed by hand.
- *
- * These fall into three groups, and all three are real work rather than noise:
- *
- * - **SVG and canvas labels** (`ManeuverPreview`, `SystemDiagram`,
- *   `DescentEnvelope`, `Navball`, `AttitudeIndicator`): an SVG `<text>`
- *   cannot contain a `<span>`, so these want `writeQuantity`, which is a
- *   mechanical change once each one's ladder is checked.
- * - **Ordinary readouts** (`DistanceToTarget`, `PowerSystems`,
- *   `TransferWindow`, the app's alarm and outcome banners): these want
- *   `<Unit>`, and each is a small edit plus whatever assertions name the
- *   old string.
- * - **`title` attributes** (`SpaceCenterStatus`'s tiny funds row): an
- *   attribute cannot hold a node either, and these want `speakQuantity`,
- *   which spells the unit out as a word. Strategies' own tiny row was one
- *   of these and has already moved.
- *
- * To lower an entry: convert the site, update its callers and assertions,
- * and drop the count. Never raise one.
- */
-/**
- * Empty, and it stays empty.
- *
- * Every readout in the workspace renders through `<Unit>`, or through
- * `writeQuantity` where the text lands somewhere a node cannot go (an SVG
- * `<text>`, a `title`, a template literal), or through `speakQuantity` where
- * it is an accessible name. Eleven private ladders went with them.
- *
- * A new entry here is a regression, not a backlog item. Convert the site.
- */
-const BASELINE: Record<string, number> = {};
 
 function repoRoot(startDir: string): string {
   return execFileSync("git", ["rev-parse", "--show-toplevel"], {
@@ -92,87 +46,60 @@ function repoRoot(startDir: string): string {
   }).trim();
 }
 
-function countsByFile(root: string): Record<string, number> {
-  let out: string;
-  try {
-    out = execFileSync(
-      "git",
-      [
-        "grep",
-        "-n",
-        "-E",
-        TYPED_SYMBOL,
-        "--",
-        "packages/*/src/**/*.ts",
-        "packages/*/src/**/*.tsx",
-        // The Uplinks too. They were outside this scan for as long as it
-        // existed, which is how three of them kept writing their own symbols
-        // while every widget in `packages` stopped: a percentage badge, a
-        // coverage readout, two latitudes and a hand-rolled metres-to-km
-        // divide. An Uplink imports the same `<Unit>` from the same published
-        // package, so there was never a reason for it to be held to a lower
-        // standard, only an oversight in what this globbed.
-        "mod/*/client/src/**/*.ts",
-        "mod/*/client/src/**/*.tsx",
-      ],
-      { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
-    );
-  } catch (err) {
-    // git grep exits 1 when nothing matches anywhere, which is the goal state.
-    if ((err as { status?: number }).status === 1) return {};
-    throw err;
+const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
+
+/**
+ * Every source root the guard should walk, found rather than listed.
+ *
+ * `packages/<name>/src` plus `mod/<name>/client/src`. The Uplinks were outside
+ * this scan for as long as it existed, which is exactly how three of them kept
+ * typing their own symbols while every widget in `packages` stopped.
+ */
+function sourceRoots(): string[] {
+  const found: string[] = [];
+  for (const workspace of ["packages", "mod"]) {
+    const base = join(root, workspace);
+    for (const entry of readdirSync(base)) {
+      for (const candidate of [
+        join(base, entry, "src"),
+        join(base, entry, "client", "src"),
+      ]) {
+        try {
+          if (statSync(candidate).isDirectory()) found.push(candidate);
+        } catch {
+          // Not every workspace member has one; that is not an error.
+        }
+      }
+    }
   }
-  const counts: Record<string, number> = {};
-  for (const line of out.split("\n").filter(Boolean)) {
-    const [file, , ...rest] = line.split(":");
-    if (file.includes(".test.") || file.includes("/dist/")) continue;
-    if (CSS_PROPERTY.test(rest.join(":"))) continue;
-    counts[file] = (counts[file] ?? 0) + 1;
-  }
-  return counts;
+  return found;
 }
 
-const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
-const counts = countsByFile(root);
+/**
+ * Empty, and it stays empty.
+ *
+ * Every readout in the workspace renders through `<Unit>`, or through
+ * `writeQuantity` where the text lands somewhere a node cannot go (an SVG
+ * `<text>`, a canvas), or through `speakQuantity` where it is an accessible
+ * name. Eleven private ladders went with them, and then eight more sites
+ * across three Uplinks.
+ *
+ * Keyed on the path RELATIVE to its source root, which is what the guard
+ * reports, so an entry reads `Foo/index.tsx` rather than the whole path.
+ *
+ * A new entry here is a regression, not a backlog item. Convert the site.
+ */
+const BASELINE: Record<string, number> = {};
 
 describe("design-system: units reach a reader through <Unit>", () => {
   it("adds no new place that types a unit symbol next to a number", () => {
-    const added: string[] = [];
-    for (const [file, count] of Object.entries(counts)) {
-      const allowed = BASELINE[file] ?? 0;
-      if (count > allowed) {
-        added.push(`  ${file}: ${count} (baseline ${allowed})`);
-      }
-    }
-    if (added.length > 0) {
-      throw new Error(
-        "A unit symbol was typed next to a number. Render " +
-          "<Unit value={x} /> instead, so the symbol keeps its styling, " +
-          "follows the value's ladder, and is announced as a word rather " +
-          "than as letters. Where a string is genuinely required: " +
-          "speakQuantity for an accessible name, writeQuantity for visible " +
-          `text that is measured (an SVG label, a canvas).\n${added.join("\n")}`,
-      );
-    }
-    expect(added).toEqual([]);
-  });
+    const roots = sourceRoots();
+    // A guard with nothing to scan is broken, not passing. This workspace has
+    // already had one scan quietly cover less than it claimed to.
+    expect(roots.length).toBeGreaterThan(10);
 
-  it("has no stale baseline entry", () => {
-    // A file that got converted must leave the list, or the ratchet stops
-    // ratcheting: it would silently allow a hand-typed symbol to come back.
-    const stale = Object.keys(BASELINE).filter(
-      (file) => (counts[file] ?? 0) < BASELINE[file],
-    );
-    if (stale.length > 0) {
-      throw new Error(
-        "These are below their baseline, which is good. Lower or remove the " +
-          `entry in BASELINE so the gain is locked in:\n${stale
-            .map(
-              (f) => `  ${f}: now ${counts[f] ?? 0}, baseline ${BASELINE[f]}`,
-            )
-            .join("\n")}`,
-      );
+    for (const dir of roots) {
+      expectNoHandTypedUnits({ dir, baseline: BASELINE });
     }
-    expect(stale).toEqual([]);
   });
 });

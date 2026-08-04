@@ -1,3 +1,5 @@
+import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export interface SourceOfflineEntry {
@@ -39,10 +41,12 @@ export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {
   );
 }
 
+// The kit's wall-clock ladder, not a fifth copy of the same s/m/h staircase.
+// `irl:s` rather than `s`: this is how long a source has been offline, timed
+// by the clock on the desk, and the game-time ladder would call four real
+// hours a Kerbin day.
 function formatElapsed(ms: number): string {
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${Math.round(ms / 3_600_000)}h`;
+  return writeQuantity(quantity("irl:s", ms / 1000));
 }
 
 const Wrap = styled.div`

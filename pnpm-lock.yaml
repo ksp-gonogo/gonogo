@@ -912,6 +912,9 @@ importers:
       '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../sitrep-client
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit

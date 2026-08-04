@@ -380,6 +380,58 @@ it formats through the same ladder the component renders with, so a later
 change to where metres hand off to kilometres does not break your test. Use the
 literal string when the exact spelling is the thing you mean to pin.
 
+**Pin the locale in your test setup.** `<Unit>` writes a number in the
+reader's own locale, which is right for an operator and wrong for a snapshot:
+the same reading is `1,234,567.5` here, `1 234 567,5` in France and
+`12,34,567.5` in India. Add this to whatever your test runner loads first:
+
+```ts
+import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+
+setQuantityLocale("en-GB");
+```
+
+### Guarding it
+
+The rule above is easy to agree with and easy to forget, so do not rely on
+remembering it. One test file holds you to it:
+
+```ts
+import { expectNoHandTypedUnits } from "@ksp-gonogo/ui-kit/guards";
+import { it } from "vitest";
+
+it("types no unit symbol next to a number", () => {
+  expectNoHandTypedUnits({ dir: "src" });
+});
+```
+
+It walks your source for a `${...}` interpolation followed by a unit symbol,
+skips tests, build output and CSS lengths (`width: ${pct}%` is not a readout),
+skips comments so a file explaining the rule is not its own first offender, and
+throws naming the file, the line and the fix.
+
+**This is not a hypothetical tidiness rule.** The first-party app grew eleven
+private unit ladders before anyone noticed, and unpicking them took days. Its
+own guard then globbed `packages/` and stopped, so three of the bundled Uplinks
+did the same thing again: a signal badge doing its own `* 100` on a value that
+already carried `ratio`, a coverage readout, two latitudes, and a
+metres-to-kilometres divide written out three times. Nothing was wrong with the
+authors. Nothing was watching.
+
+Two options worth knowing:
+
+- **`symbols`** extends what it looks for. If you `registerUnit({ symbol: "Sv" })`,
+  pass `symbols: [...HAND_TYPED_SYMBOLS, "Sv"]` so the guard notices when
+  somebody writes yours by hand instead.
+- **`baseline`** is a per-file allowance, for adopting this on a codebase that
+  already has offenders: `baseline: { "Reactor/index.tsx": 3 }`, lowered as you
+  convert. Never raise one. Going BELOW an entry throws too, so a stale
+  allowance cannot quietly leave the door open behind a conversion.
+
+Skip the guard only if your Uplink renders nothing at all. The bundled
+Kerbalism Uplink is topic declarations with no widgets and no `ui-kit`
+dependency, so it carries no guard; the moment it grows a readout it gets one.
+
 ---
 
 ## Checklist
@@ -394,5 +446,7 @@ literal string when the exact spelling is the thing you mean to pin.
 - [ ] `gonogo-uplink.json` is build-generated, never hand-written
 - [ ] the mod is on CKAN and the client bundle is hosted with its URL + integrity hash
 - [ ] every quantity renders through `<Unit>`; no hand-formatted unit symbols
+- [ ] `expectNoHandTypedUnits({ dir: "src" })` runs as a test (skip only if the Uplink renders nothing)
+- [ ] the test setup calls `setQuantityLocale("en-GB")`, so a render is reproducible
 - [ ] widget tests read readouts with `visibleText` / `toShowQuantity`, not `getByText`
 - [ ] the main screen is served over https or localhost so integrity verification works

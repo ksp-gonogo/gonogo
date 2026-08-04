@@ -117,7 +117,7 @@ describe("wrapTopicPayload", () => {
       heatShieldTemp: 1_200,
     } as never);
     const twice = wrapTopicPayload("vessel.thermal", once);
-    expect(typeof asValue((twice as never)["heatShieldTemp"]).magnitude).toBe(
+    expect(typeof asValue((twice as never).heatShieldTemp).magnitude).toBe(
       "number",
     );
   });

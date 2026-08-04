@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -68,7 +68,7 @@ describe("AvionicsGoNoGoComponent", () => {
 
   it("shows NO AVIONICS when no avionics unit is active", async () => {
     const fixture = newFixture();
-    const { container } = renderWidget(fixture);
+    renderWidget(fixture);
     act(() => {
       fixture.emit("avionics.status", {
         avionicsActive: false,

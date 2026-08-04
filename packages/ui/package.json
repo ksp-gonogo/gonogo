@@ -16,6 +16,7 @@
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
     "lucide-react": "^1.14.0"
   },

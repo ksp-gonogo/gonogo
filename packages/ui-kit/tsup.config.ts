@@ -23,10 +23,12 @@ import { defineConfig } from "tsup";
  * components that silently don't share a ThemeProvider with the host app's.
  */
 export default defineConfig({
-  // `./testing` is a SEPARATE entry, not part of the root barrel: a runtime
-  // bundle must never pull testing code in, and an Uplink author needs the
-  // readout helpers without them.
-  entry: ["src/index.ts", "src/testing.ts"],
+  // `./testing` and `./guards` are SEPARATE entries, not part of the root
+  // barrel: a runtime bundle must never pull testing code in, and an Uplink
+  // author needs the readout helpers without them. `./guards` is split from
+  // `./testing` in turn because it reads the filesystem, which would break a
+  // browser-based test runner that only wanted the DOM helpers.
+  entry: ["src/index.ts", "src/testing.ts", "src/guards.ts"],
   format: ["esm"],
   outDir: "dist",
   target: "es2022",

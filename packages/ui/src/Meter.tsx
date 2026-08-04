@@ -1,3 +1,5 @@
+import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
+import { speakQuantity, Unit } from "@ksp-gonogo/ui-kit";
 import type { HTMLAttributes } from "react";
 import styled, { css } from "styled-components";
 
@@ -36,7 +38,18 @@ export function Meter({
 }: MeterProps) {
   const clamped = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
   const pct = Math.round(clamped * 100);
-  const display = valueLabel ?? `${pct}%`;
+  // `value` is a 0..1 ratio, which is a unit the kit knows, so <Unit> does the
+  // *100 and writes the symbol. `valueLabel` still wins when a caller has a
+  // better sentence than a bare percentage.
+  //
+  // Two forms, because they go to two places. The visible one is a NODE, so
+  // the symbol keeps its own styling; `aria-valuetext` is an attribute and can
+  // only hold a string, which is what `speakQuantity` is for. Writing one
+  // string for both is what the unit layer exists to stop: it would announce
+  // "72 percent-sign".
+  const reading = quantity("ratio", clamped);
+  const display = valueLabel ?? <Unit value={reading} />;
+  const spoken = valueLabel ?? speakQuantity(reading);
   return (
     <Meter__Root $size={size} {...rest}>
       <Meter__Head>
@@ -50,7 +63,7 @@ export function Meter({
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuetext={display}
+        aria-valuetext={spoken}
       >
         <Meter__Fill $tone={tone} style={{ width: `${pct}%` }} />
       </Meter__Track>
