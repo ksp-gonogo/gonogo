@@ -63,4 +63,8 @@ export {
 } from "./units";
 export type { Vec3Of } from "./value";
 export { SDK_VERSION } from "./version.generated";
-export { wrapTopicPayload, wrapTypePayload } from "./wrap-units";
+export {
+  hydratePayload,
+  wrapTopicPayload,
+  wrapTypePayload,
+} from "./wrap-units";

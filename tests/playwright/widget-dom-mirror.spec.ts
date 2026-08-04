@@ -131,7 +131,16 @@ async function readOrbitAp(page: Page): Promise<string> {
         // range.
         let cursor: Element | null = apLabel.nextElementSibling;
         while (cursor) {
-          const txt = cursor.textContent?.trim() ?? "";
+          // What a SIGHTED reader sees. `<Unit>` renders the symbol beside a
+          // hidden word for screen readers, so raw textContent is
+          // "247.9 km kilometres" and the anchored pattern below never
+          // matched. Same normalisation as `visibleText` in test-utils,
+          // including the thin space between number and symbol.
+          const clone = cursor.cloneNode(true) as HTMLElement;
+          for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
+            hidden.remove();
+          }
+          const txt = (clone.textContent ?? "").replace(/\u2009/g, " ").trim();
           if (/^[-\d]+(\.\d+)?\s*(km|Mm|Gm|Tm|m)$/.test(txt)) return txt;
           cursor = cursor.nextElementSibling;
         }

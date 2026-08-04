@@ -1,5 +1,6 @@
 import type { Transport, TransportStatus } from "@ksp-gonogo/sitrep-client";
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { hydratePayload } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
 
 /**
@@ -83,7 +84,19 @@ export class PeerTransport implements Transport {
   constructor(private readonly client: PeerClientService) {
     this._status = toTransportStatus(client.getConnStatus());
     this.unsubs = [
-      client.onSitrepFrame((message) => this.deliver(message)),
+      client.onSitrepFrame((message) => {
+        // PeerJS serialises, and a `Value`'s methods live on its prototype so
+        // that a quantity costs two fields on the wire. Only those two fields
+        // survive the hop, so without this a station's readouts render fine
+        // and every method call on one throws inside a component body, taking
+        // the dashboard down through the error boundary. Hydrating here makes
+        // a station's values indistinguishable from a host's, which is the
+        // whole promise of the station being the same app.
+        if (message.type === "stream-data") {
+          hydratePayload(message.payload);
+        }
+        this.deliver(message);
+      }),
       client.onSitrepCommandResponse((requestId, result, meta) => {
         this.pendingCommandIds.delete(requestId);
         this.deliver({ type: "command-response", requestId, result, meta });

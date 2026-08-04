@@ -33,7 +33,12 @@
  */
 import { test } from "@playwright/test";
 import { PORTS } from "../../../playwright.config";
-import { bootstrapPair, expect, teardownPair } from "../helpers";
+import {
+  bootstrapPair,
+  expect,
+  expectVisibleText,
+  teardownPair,
+} from "../helpers";
 
 test.describe("widget DOM mirror: FuelStatus", () => {
   test("real ΔV/resource data renders on host; panel chrome mirrors on station", async ({
@@ -71,7 +76,12 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     await expect(
       pair.main.getByText("Total burn", { exact: true }),
     ).toBeVisible();
-    await expect(pair.main.getByText("3m 30s", { exact: true })).toBeVisible();
+    // "3m 30s" is now its OWN text node in two places (the total and the
+    // active stage's row), because <Countdown> splits it out of the longer
+    // string the stage row used to be. An exact-text match resolves to both
+    // and trips strict mode; what this line is for is that the total reads
+    // 3m 30s, and the stage row has its own assertion below.
+    await expectVisibleText(pair.main, "3m 30s");
 
     // Resource list: the stage-scoped LiquidFuel/Oxidizer rows now
     // resolve (previously always 0/0 with dv.stages absent), plus the
@@ -94,8 +104,8 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     await expect(pair.main.getByText(/Stages · ΔV \(ACT\)/)).toBeVisible();
     await expect(pair.main.getByText(/S1/)).toBeVisible();
     await expect(pair.main.getByText(/S0/)).toBeVisible();
-    await expect(pair.main.getByText(/3m 30s · TWR 1\.43/)).toBeVisible();
-    await expect(pair.main.getByText(/0s · TWR 0\.00/)).toBeVisible();
+    await expectVisibleText(pair.main, "3m 30s · TWR 1.43");
+    await expectVisibleText(pair.main, "0s · TWR 0.00");
 
     // Station: chrome only (known station-telemetry gap, see module doc).
     for (const page of [pair.main, pair.station]) {

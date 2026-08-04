@@ -1,5 +1,5 @@
 import type { TopicId } from "./topics";
-import { lookupUnit, value } from "./unit-system";
+import { hydrate, isValue, lookupUnit, value } from "./unit-system";
 import {
   type ShapesByField,
   shapesForTopic,
@@ -147,4 +147,50 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
   // Absent, null, or already wrapped. Leaving it alone keeps this idempotent,
   // which matters because a payload can be re-decoded on reconnect.
   return current;
+}
+
+/**
+ * Gives every quantity in a payload its prototype back after a structured
+ * clone.
+ *
+ * The mirror of {@link wrapTopicPayload}, for the hop the wrap cannot cover.
+ * A `Value` is two fields plus a prototype, and only the two fields survive
+ * PeerJS's serialisation, so a station screen receives `{magnitude, unit}`
+ * objects that render perfectly and throw the moment anything calls a method
+ * on one. `signalStrength.lessThanOrEqual is not a function`, inside a
+ * component body, taking the whole dashboard down through the error boundary
+ * on the screen that has no other way to see the mission.
+ *
+ * `hydrate` has always existed for this and its own doc names the PeerJS hop
+ * by name. It was never called, which is the same failure as the wrap itself
+ * being dead: a mechanism that is documented, exported, and not wired to
+ * anything.
+ *
+ * Walks the payload rather than taking a field list, because there is no unit
+ * map to consult here: the values arrive already SHAPED, and the only
+ * question is whether each one has its prototype. `hydrate` is a pass-through
+ * for anything that is not a value and for anything already hydrated, so the
+ * walk is idempotent and safe on a payload of any shape.
+ *
+ * Mutates in place, same as the wrap and for the same reason: the object came
+ * off the transport and nobody else holds it.
+ */
+export function hydratePayload<T>(payload: T): T {
+  if (payload === null || typeof payload !== "object") {
+    return payload;
+  }
+  if (isValue(payload)) {
+    return hydrate(payload);
+  }
+  if (Array.isArray(payload)) {
+    for (let i = 0; i < payload.length; i++) {
+      payload[i] = hydratePayload(payload[i]);
+    }
+    return payload;
+  }
+  const target = payload as Record<string, unknown>;
+  for (const key of Object.keys(target)) {
+    target[key] = hydratePayload(target[key]);
+  }
+  return payload;
 }

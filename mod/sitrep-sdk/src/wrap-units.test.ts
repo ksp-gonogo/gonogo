@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { isValue, type Value, value } from "./unit-system";
-import { wrapTopicPayload, wrapTypePayload } from "./wrap-units";
+import {
+  hydratePayload,
+  wrapTopicPayload,
+  wrapTypePayload,
+} from "./wrap-units";
 
 const asValue = (v: unknown) => v as Value;
 
@@ -179,5 +183,37 @@ describe("a hand-declared Topic whose payload is a reflected contract type", () 
     expect(payload.pending[0].oneWaySeconds).toEqual(value("s", 4));
     // Not a quantity, and not touched.
     expect(payload.pending[0].command).toBe("vessel.control.setThrottle");
+  });
+});
+
+describe("hydratePayload: the structured-clone hop", () => {
+  it("gives a cloned quantity its methods back", () => {
+    // What PeerJS delivers to a station: the two fields, no prototype.
+    const cloned = structuredClone({
+      signalStrength: value("ratio", 0.25),
+      vesselName: "Jeb's Ride",
+      nested: { altitude: value("m", 1200) },
+      list: [value("m/s", 5)],
+    });
+    expect(isValue(cloned.signalStrength)).toBe(true);
+    expect(typeof (cloned.signalStrength as Value).lessThanOrEqual).not.toBe(
+      "function",
+    );
+
+    hydratePayload(cloned);
+
+    expect(cloned.signalStrength.lessThanOrEqual(value("ratio", 1))).toBe(true);
+    expect(cloned.nested.altitude.magnitude).toBe(1200);
+    expect(typeof cloned.nested.altitude.plus).toBe("function");
+    expect(typeof cloned.list[0].plus).toBe("function");
+    // Not a quantity, and not touched.
+    expect(cloned.vesselName).toBe("Jeb's Ride");
+  });
+
+  it("is idempotent and leaves a live value alone", () => {
+    const live = { altitude: value("m", 10) };
+    const before = live.altitude;
+    hydratePayload(live);
+    expect(live.altitude).toBe(before);
   });
 });

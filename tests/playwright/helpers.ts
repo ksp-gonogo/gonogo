@@ -368,3 +368,34 @@ export async function readPanelLabelValue(
 }
 
 export { expect };
+
+/**
+ * Waits until what a SIGHTED READER sees on the page contains `text`.
+ *
+ * A readout is no longer one text node: `<Unit>` renders the number, the
+ * symbol, and a hidden word for screen readers as separate elements. So
+ * `getByText("773.9 km", { exact: true })` finds nothing, and a raw
+ * `textContent` check finds "773.9 km kilometres".
+ *
+ * This is the browser-side twin of `visibleText` in `@ksp-gonogo/test-utils`,
+ * and it does the same two things: drop `[data-unit-word]`, and normalise the
+ * thin space between a number and its symbol to an ordinary one. Which space
+ * it is is a typographic detail; that it is a space is what the reader sees.
+ */
+export async function expectVisibleText(
+  page: Page,
+  text: string,
+  timeout = 15_000,
+): Promise<void> {
+  await page.waitForFunction(
+    (needle: string) => {
+      const clone = document.body.cloneNode(true) as HTMLElement;
+      for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
+        hidden.remove();
+      }
+      return (clone.textContent ?? "").replace(/ /g, " ").includes(needle);
+    },
+    text,
+    { timeout, polling: 250 },
+  );
+}

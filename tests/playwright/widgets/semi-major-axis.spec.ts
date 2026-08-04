@@ -14,7 +14,12 @@
  * would fail for that reason, not a widget or harness bug.
  */
 import { test } from "@playwright/test";
-import { bootstrapPair, expect, teardownPair } from "../helpers";
+import {
+  bootstrapPair,
+  expect,
+  expectVisibleText,
+  teardownPair,
+} from "../helpers";
 
 test.describe("widget DOM mirror: SemiMajorAxis", () => {
   test("panel renders on host and station; SMA readout on host", async ({
@@ -34,9 +39,9 @@ test.describe("widget DOM mirror: SemiMajorAxis", () => {
       });
     }
 
-    await expect(pair.main.getByText("773.9 km", { exact: true })).toBeVisible({
-      timeout: 15_000,
-    });
+    // A readout is no longer one text node: the number, the symbol and the
+    // hidden screen-reader word are separate elements.
+    await expectVisibleText(pair.main, "773.9 km");
 
     await teardownPair(pair);
   });
