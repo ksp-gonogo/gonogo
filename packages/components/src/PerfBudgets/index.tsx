@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { PerfBudget, registerComponent } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   Card,
@@ -7,6 +8,7 @@ import {
   Panel,
   ReadoutCaption,
   type ReadoutTone,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -117,7 +119,7 @@ function PerfBudgetsComponent({
                 <Name>{s.name}</Name>
                 <Rate $tone={t}>
                   {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
-                  {(s.windowMs / 1000).toFixed(0)}s
+                  <Unit value={value("s", s.windowMs / 1000)} decimals={0} />
                 </Rate>
               </RowHeader>
               <Bar>

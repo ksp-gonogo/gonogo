@@ -20,7 +20,8 @@
  * come off `vessel.landing`.
  */
 
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useId } from "react";
 import { greatCircle } from "./geo";
 import { SiteMarker } from "./SiteMarker";
@@ -253,9 +254,13 @@ export function TouchdownReticle({
         : NULL_DISPLAY;
 
   const slopeText =
-    slopeDeg == null ? NULL_DISPLAY : `${slopeDeg.toFixed(1)}° slope`;
+    slopeDeg == null
+      ? NULL_DISPLAY
+      : `${writeQuantity(value("°", slopeDeg), { decimals: 1 })} slope`;
   const driftText =
-    drift == null ? "" : `, ${Math.round(drift.distanceMeters)} m downrange`;
+    drift == null
+      ? ""
+      : `, ${writeQuantity(value("m", drift.distanceMeters), { decimals: 0 })} downrange`;
   const reticleLabel = `Touchdown site: ${slopeText}${driftText}${
     biome ? `, ${biome}` : ""
   } (${sourceLabel})`;

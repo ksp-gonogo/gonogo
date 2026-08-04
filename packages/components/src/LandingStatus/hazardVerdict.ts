@@ -14,6 +14,8 @@
  * had data yet (unknown, not SAFE).
  */
 
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   type RoughnessBadge,
   rateTerrainRoughness,
@@ -96,7 +98,7 @@ export function deriveHazardVerdict(
     axes.push({
       axis: "slope",
       band: bandOf(inputs.slopeDeg, thresholds.slope),
-      detail: `slope ${Math.round(inputs.slopeDeg)}°`,
+      detail: `slope ${writeQuantity(value("°", inputs.slopeDeg), { decimals: 0 })}`,
     });
   }
   if (inputs.roughnessSigma != null && Number.isFinite(inputs.roughnessSigma)) {
@@ -111,14 +113,14 @@ export function deriveHazardVerdict(
     axes.push({
       axis: "vertical",
       band: bandOf(Math.abs(inputs.verticalSpeed), thresholds.vertical),
-      detail: `descent ${Math.abs(inputs.verticalSpeed).toFixed(1)} m/s`,
+      detail: `descent ${writeQuantity(value("m/s", Math.abs(inputs.verticalSpeed)), { decimals: 1 })}`,
     });
   }
   if (inputs.lateralSpeed != null && Number.isFinite(inputs.lateralSpeed)) {
     axes.push({
       axis: "lateral",
       band: bandOf(Math.abs(inputs.lateralSpeed), thresholds.lateral),
-      detail: `lateral ${Math.abs(inputs.lateralSpeed).toFixed(1)} m/s`,
+      detail: `lateral ${writeQuantity(value("m/s", Math.abs(inputs.lateralSpeed)), { decimals: 1 })}`,
     });
   }
   // Hard override: a liquid surface is DIVERT regardless of the numbers.

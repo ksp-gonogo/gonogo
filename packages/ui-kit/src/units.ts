@@ -47,7 +47,7 @@ function ratioOf(symbol: string): number | undefined {
   return undefined;
 }
 
-import { formatDuration } from "./formatDuration";
+import { formatDuration, formatIrlDuration } from "./formatDuration";
 import { NULL_DISPLAY } from "./NullValue";
 
 /**
@@ -83,6 +83,10 @@ export type KnownQuantityKind =
   | "pressure"
   | "temperature"
   | "time"
+  // Time measured by a clock on the desk rather than by the game: how long
+  // ago a reading arrived, how long a recorder ran. A day is 24 hours here
+  // and 6 hours in `time`, which is why they are two kinds and not one.
+  | "irlTime"
   | "planeAngle"
   | "power"
   | "dataRate"
@@ -317,6 +321,7 @@ const DECIMALS: Record<string, number> = {
   pressure: 2,
   temperature: 0,
   time: 0,
+  irlTime: 0,
   planeAngle: 2,
   density: 4,
   dataRate: 1,
@@ -565,6 +570,18 @@ export function speakQuantity(
 }
 
 /**
+ * The symbols SI writes hard against the number. Plane angle only: degree,
+ * arcminute, arcsecond. Deliberately NOT the degree-Celsius pair, which takes
+ * the normal space.
+ *
+ * Lives here rather than in `Unit` because BOTH ways of showing a quantity
+ * have to agree on it. They did not: the component attached the degree sign
+ * and `writeQuantity` always inserted a space, so the same angle read `8.0°`
+ * in a readout and `8.0 °` in the SVG label beside it.
+ */
+export const ATTACHED_SYMBOLS: ReadonlySet<string> = new Set(["°", "′", "″"]);
+
+/**
  * A quantity as it is WRITTEN: the value and the unit's symbol, `250.0 km`.
  *
  * The other half of the pair above, for the places that cannot take a node
@@ -588,7 +605,10 @@ export function writeQuantity(
     quantity?.unit,
     opts,
   );
-  return symbol === "" ? text : `${text} ${symbol}`;
+  if (symbol === "") return text;
+  return ATTACHED_SYMBOLS.has(symbol)
+    ? `${text}${symbol}`
+    : `${text} ${symbol}`;
 }
 
 /**
@@ -846,6 +866,15 @@ export function formatQuantity(
     // number and cannot be split off the way "12.4" and "km" can.
     if (kind === "time") {
       return { value: formatDuration(value), symbol: "", rung: "s" };
+    }
+
+    // `irlTime` is the same ladder on a real day, and it is a SEPARATE kind
+    // rather than an option on this one so the two cannot be handed to each
+    // other by accident. A staleness badge and a mission clock sit side by
+    // side in this UI, and the difference between them is a factor of four
+    // that renders as a plausible number.
+    if (kind === "irlTime") {
+      return { value: formatIrlDuration(value), symbol: "", rung: "irl:s" };
     }
   }
 

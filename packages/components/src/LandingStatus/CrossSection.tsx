@@ -13,7 +13,8 @@
  * carrier (and matches the reticle's descent/ground-speed wording).
  */
 
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import { SiteMarker } from "./SiteMarker";
 
@@ -40,9 +41,11 @@ export interface CrossSectionProps {
   spanMeters?: number | null;
 }
 
+// `writeQuantity`: this lands in an SVG `<text>`, which cannot contain a
+// `<span>`, so `<Unit>` will not go in one.
 function fmtSpeed(v: number | null): string {
   if (v == null || !Number.isFinite(v)) return NULL_DISPLAY;
-  return `${Math.round(v)} m/s`;
+  return writeQuantity(value("m/s", v), { decimals: 0 });
 }
 
 /** Bilinear sample of a normalised grid at continuous (col,row). */

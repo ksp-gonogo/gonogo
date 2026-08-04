@@ -10,6 +10,7 @@ import {
   useScreen,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Field,
   FieldLabel,
@@ -17,7 +18,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Grid, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -245,7 +246,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
       <ButtonLabel>{vote === "go" ? "GO" : "NO-GO"}</ButtonLabel>
       {secondsLeft !== null && (
         <CountdownOverlay role="timer" aria-label="Countdown">
-          T − {secondsLeft.toFixed(1)} s
+          T − <Unit value={value("s", secondsLeft)} decimals={1} />
         </CountdownOverlay>
       )}
       {secondsLeft !== null && <CountdownAnnouncer secondsLeft={secondsLeft} />}
@@ -383,7 +384,7 @@ function MainView({
       {countdown && (
         <>
           <CountdownBanner role="timer" aria-label="Countdown">
-            T − {secondsLeft?.toFixed(1)} s
+            T − <Unit value={value("s", secondsLeft ?? 0)} decimals={1} />
           </CountdownBanner>
           {secondsLeft !== null && (
             <CountdownAnnouncer secondsLeft={secondsLeft} />

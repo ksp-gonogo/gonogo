@@ -139,7 +139,9 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText(/Plant flag/)).toBeInTheDocument();
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
     expect(screen.getByText(/optional/i)).toBeInTheDocument();
-    expect(visibleText()).toMatch(/5d 0h left/i);
+    // The kit's ladder drops a zero smaller unit, so this reads "5d left"
+    // rather than "5d 0h left".
+    expect(visibleText()).toMatch(/5d left/i);
   });
 
   it("renders the per-contract badges slot with no bound augment (empty is fine)", async () => {

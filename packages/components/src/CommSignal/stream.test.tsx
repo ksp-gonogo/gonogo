@@ -73,7 +73,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     });
 
     // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
-    await waitFor(() => expect(visibleText()).toContain("87%"));
+    await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     // Control state (derived, needs the full vessel.state input set) and delay
     // (comms.delay) aren't carried in THIS fixture, and there's no legacy
@@ -105,7 +105,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
       });
-      await waitFor(() => expect(visibleText()).toContain("87%"));
+      await waitFor(() => expect(visibleText()).toContain("87 %"));
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
 
       // Signal lost: the wire actively reports connected:false on comms.link
@@ -120,7 +120,12 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         }
         expect(screen.getByText("LOS")).toBeTruthy();
       });
-      expect(screen.queryByText("87%")).toBeNull();
+      // `visibleText`, not `queryByText`. <Unit> puts a THIN SPACE between the
+      // number and its symbol and splits them across elements, so a
+      // `queryByText("87 %")` is null whether or not 87% is on screen: it
+      // would pass here for the wrong reason and keep passing if the widget
+      // held the stale value.
+      expect(visibleText(container)).not.toContain("87 %");
       expect(screen.getByLabelText("Signal 0 of 4")).toBeTruthy();
       expect(screen.getByText("No signal")).toBeTruthy();
       // The polite live region announces the loss (not a live-regioned
@@ -132,7 +137,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       });
-      await waitFor(() => expect(visibleText()).toContain("60%"));
+      await waitFor(() => expect(visibleText()).toContain("60 %"));
       expect(screen.queryByText("LOS")).toBeNull();
       expect(screen.getByText("Signal connected")).toBeTruthy();
     },
@@ -163,10 +168,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         signalStrength: 0.9,
       });
     });
-    await waitFor(() => expect(visibleText()).toContain("90%"));
+    await waitFor(() => expect(visibleText()).toContain("90 %"));
     // No new wire samples, no status event at all, nothing further happens
     // by design. The value must still be showing.
-    expect(visibleText()).toContain("90%");
+    expect(visibleText()).toContain("90 %");
     expect(screen.queryByText("No signal data")).toBeNull();
   });
 
@@ -210,7 +215,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
-      await waitFor(() => expect(visibleText()).toContain("50%"));
+      await waitFor(() => expect(visibleText()).toContain("50 %"));
 
       // Sample B: a MUCH more current reading arrives (validAt/deliveredAt =
       // 20), but the delay window means it isn't confirmed yet.
@@ -223,16 +228,16 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.store.beginFrame();
       });
       // The OLDER confirmed value (50%) must still be what's rendered.
-      expect(visibleText()).toContain("50%");
-      expect(screen.queryByText("90%")).toBeNull();
+      expect(visibleText()).toContain("50 %");
+      expect(visibleText()).not.toContain("90 %");
 
       // Advance past the delay window relative to sample B's timing too.
       act(() => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
-      await waitFor(() => expect(visibleText()).toContain("90%"));
-      expect(screen.queryByText("50%")).toBeNull();
+      await waitFor(() => expect(visibleText()).toContain("90 %"));
+      expect(visibleText()).not.toContain("50 %");
     },
   );
 

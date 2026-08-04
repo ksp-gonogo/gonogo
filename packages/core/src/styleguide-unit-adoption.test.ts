@@ -45,8 +45,12 @@ const TYPED_SYMBOL = String.raw`\}\s?(${SYMBOL})([^A-Za-z0-9_/]|\x60|$)`;
 
 // A CSS length is not a readout. `width: ${pct}%` and its friends are the
 // dominant false positive and would otherwise drown the real ones.
+// `[:(={]` covers all three spellings a length appears in: a CSS declaration
+// (`width: …`), a call (`translate(…)`), and an SVG/JSX ATTRIBUTE
+// (`offset={…}`), which is how a gradient stop's position is written and
+// which the first two forms missed.
 const CSS_PROPERTY =
-  /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset)\s*[:(]/i;
+  /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset)\s*[:(={]/i;
 
 /**
  * Per-file counts of the symbols still typed by hand.
@@ -69,41 +73,17 @@ const CSS_PROPERTY =
  * To lower an entry: convert the site, update its callers and assertions,
  * and drop the count. Never raise one.
  */
-const BASELINE: Record<string, number> = {
-  "packages/app/src/alarms/AlarmBanner.tsx": 3,
-  "packages/app/src/alarms/AlarmsModal.tsx": 8,
-  "packages/app/src/missionProfiles/MissionProfilesModal.tsx": 2,
-  "packages/components/src/CommSignal/index.tsx": 1,
-  "packages/components/src/ContractManager/index.tsx": 1,
-  "packages/components/src/CrewManifest/index.tsx": 1,
-  "packages/components/src/DeployedScience/index.tsx": 1,
-  "packages/components/src/DistanceToTarget/index.tsx": 3,
-  "packages/components/src/GroundSurvey/index.tsx": 1,
-  "packages/components/src/LandingStatus/AltitudeRail.tsx": 1,
-  "packages/components/src/LandingStatus/DescentEnvelope.tsx": 1,
-  "packages/components/src/LandingStatus/TouchdownReticle.tsx": 1,
-  "packages/components/src/LandingStatus/hazardVerdict.ts": 1,
-  "packages/components/src/LaunchDirector/index.tsx": 1,
-  "packages/components/src/ManeuverPlanner/ManeuverPreview.tsx": 1,
-  "packages/components/src/ManeuverPlanner/PresetInput.tsx": 4,
-  "packages/components/src/MapView/MapPoiLayer.tsx": 1,
-  "packages/components/src/Navball/AttitudeIndicator.tsx": 3,
-  "packages/components/src/Navball/index.tsx": 5,
-  "packages/components/src/PerfBudgets/index.tsx": 1,
-  "packages/components/src/PowerSystems/index.tsx": 4,
-  "packages/components/src/RotorTachometer/index.tsx": 3,
-  "packages/components/src/SpaceCenterStatus/index.tsx": 1,
-  "packages/components/src/Strategies/index.tsx": 1,
-  "packages/components/src/SystemView/AlmanacPanel.tsx": 2,
-  "packages/components/src/SystemView/SystemDiagram.tsx": 2,
-  "packages/components/src/TransferWindow/index.tsx": 3,
-  "packages/components/src/Twr/index.tsx": 1,
-  "packages/core/src/utils/format.ts": 3,
-  "packages/data/src/FlightsManager/index.tsx": 4,
-  "packages/serial/src/VirtualDevice/AnalogPad.tsx": 1,
-  "packages/ui-kit/src/CommandDelay/CameraSetpointInput.tsx": 1,
-  "packages/ui-kit/src/CommandDelay/ControlDelayStream.tsx": 2,
-};
+/**
+ * Empty, and it stays empty.
+ *
+ * Every readout in the workspace renders through `<Unit>`, or through
+ * `writeQuantity` where the text lands somewhere a node cannot go (an SVG
+ * `<text>`, a `title`, a template literal), or through `speakQuantity` where
+ * it is an accessible name. Eleven private ladders went with them.
+ *
+ * A new entry here is a regression, not a backlog item. Convert the site.
+ */
+const BASELINE: Record<string, number> = {};
 
 function repoRoot(startDir: string): string {
   return execFileSync("git", ["rev-parse", "--show-toplevel"], {

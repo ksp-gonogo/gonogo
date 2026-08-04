@@ -1,9 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
-import { formatQuantity, kindOfUnit, registerUnit } from "./units";
+import {
+  formatQuantity,
+  kindOfUnit,
+  registerUnit,
+  writeQuantity,
+} from "./units";
 
 /**
  * These pin the rules that a naive implementation gets wrong. Each one exists
@@ -515,5 +521,36 @@ describe("formatQuantity, null handling", () => {
     expect(formatQuantity(undefined, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(Number.NaN, "m").value).toBe(NULL_DISPLAY);
     expect(formatQuantity(null, "m").value).toBe(NULL_DISPLAY);
+  });
+});
+
+describe("the attach rule is one rule", () => {
+  it("writeQuantity attaches exactly what <Unit> attaches", () => {
+    // These two disagreed: the component wrote `8.0°` and this wrote `8.0 °`,
+    // so the same angle read differently in a readout and in the SVG label
+    // beside it. Anything in ATTACHED_SYMBOLS goes hard against the number.
+    expect(writeQuantity(value("°", 8), { decimals: 1 })).toBe("8.0°");
+    // And everything else keeps SI's space, including the degree-Celsius pair
+    // that looks like it should attach and does not.
+    expect(writeQuantity(value("°C", 20), { decimals: 0 })).toBe("20 °C");
+    expect(writeQuantity(value("m/s", 5), { decimals: 0 })).toBe("5 m/s");
+  });
+});
+
+describe("the two time kinds", () => {
+  it("ladders irl:s on a real day and s on Kerbin's", () => {
+    // One day of wall clock. The game-time kind reads it as four Kerbin days,
+    // which is correct for a mission clock and nonsense for a staleness badge,
+    // and the only thing keeping them apart is the unit on the value.
+    const oneRealDay = 24 * 60 * 60;
+    expect(formatQuantity(oneRealDay, "irl:s").value).toBe("1d");
+    expect(formatQuantity(oneRealDay, "s").value).toBe("4d");
+  });
+
+  it("carries no symbol, because the parts are inside the number", () => {
+    // Same reason `s` comes back bare: "2h 15m" cannot be split into a value
+    // and a symbol the way "12.4" and "km" can.
+    expect(formatQuantity(90, "irl:s").symbol).toBe("");
+    expect(writeQuantity(value("irl:s", 90))).toBe("1m 30s");
   });
 });

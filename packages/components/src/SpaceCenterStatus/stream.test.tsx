@@ -130,7 +130,13 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByTitle("78,401f")).toBeTruthy());
+    // The title is now `speakQuantity`: an accessible name spells the unit
+    // out as a word rather than as the symbol a sighted reader sees. It is
+    // also ungrouped, where the hand-rolled title it replaced ran the number
+    // through `toLocaleString`. That is the formatter's behaviour and not a
+    // slip here: grouping is a decision about VISIBLE text, and a screen
+    // reader announces 78401 and 78,401 identically.
+    await waitFor(() => expect(screen.getByTitle("78401 funds")).toBeTruthy());
 
     teardownMockDataSource(legacyAux);
   });

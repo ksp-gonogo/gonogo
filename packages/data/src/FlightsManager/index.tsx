@@ -1,6 +1,7 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { HeartIcon } from "@ksp-gonogo/ui";
-import { EmptyState, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { EmptyState, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
   useCallback,
@@ -29,15 +30,16 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleString();
 }
 
-function formatDuration(launchedAt: number, lastSampleAt: number): string {
-  const s = Math.floor((lastSampleAt - launchedAt) / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  if (m < 60) return `${m}m ${sec}s`;
-  const h = Math.floor(m / 60);
-  const min = m % 60;
-  return `${h}h ${min}m`;
+// The kit's ladder, not a fourth copy of it. The WALL-CLOCK one: both
+// timestamps come from `Date.now()` (`formatDate` above reads them straight
+// into a `Date`), so this is how long the recorder ran on the desk, not how
+// long the flight lasted on Kerbin. `irl:s` carries that distinction as the
+// value's own dimension.
+function formatFlightDuration(
+  launchedAt: number,
+  lastSampleAt: number,
+): string {
+  return writeQuantity(value("irl:s", (lastSampleAt - launchedAt) / 1000));
 }
 
 function getSource(): MissionHistorySource | undefined {
@@ -384,7 +386,7 @@ export function FlightsManager({
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
-                            title={`Recovered ${f.outcome.recoveryLocation} · ${f.outcome.recoveryFactor} · +${Math.round(f.outcome.fundsEarned).toLocaleString()}f · +${f.outcome.scienceEarned.toFixed(1)} sci`}
+                            title={`Recovered ${f.outcome.recoveryLocation} · ${f.outcome.recoveryFactor} · +${writeQuantity(value("funds", f.outcome.fundsEarned), { decimals: 0 })} · +${writeQuantity(value("science", f.outcome.scienceEarned), { decimals: 1 })}`}
                           >
                             recovered
                           </OutcomeBadge>
@@ -399,7 +401,9 @@ export function FlightsManager({
                         )}
                       </Td>
                       <Td>{formatDate(f.launchedAt)}</Td>
-                      <Td>{formatDuration(f.launchedAt, f.lastSampleAt)}</Td>
+                      <Td>
+                        {formatFlightDuration(f.launchedAt, f.lastSampleAt)}
+                      </Td>
                       <Td>{f.sampleCount.toLocaleString()}</Td>
                       <Td>
                         <RowActions>

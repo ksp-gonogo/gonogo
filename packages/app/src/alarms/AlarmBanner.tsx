@@ -1,5 +1,5 @@
 import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
-import { Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Cluster, formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
@@ -411,14 +411,10 @@ function formatTMinus(utTarget: number, utNow: number | null): string {
   return `T−${formatSeconds(delta)}`;
 }
 
-function formatSeconds(s: number): string {
-  if (s < 60) return `${s.toFixed(0)}s`;
-  const m = Math.floor(s / 60);
-  const sec = Math.round(s - m * 60);
-  if (m < 60) return `${m}m ${sec.toString().padStart(2, "0")}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${(m - h * 60).toString().padStart(2, "0")}m`;
-}
+// The kit's ladder, not a fourth copy of it. `formatDuration` is the
+// sanctioned string form of `<Countdown>`, for the template literals below
+// where a node cannot go.
+const formatSeconds = (s: number): string => formatDuration(s);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 

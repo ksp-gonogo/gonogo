@@ -11,6 +11,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline, VisuallyHidden } from "@ksp-gonogo/ui";
 import {
   ConfigForm,
@@ -24,6 +25,8 @@ import {
   Section,
   SectionTitle,
   Select,
+  speakQuantity,
+  Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
@@ -461,11 +464,15 @@ function PowerSystemsComponent({
       {storage.maxAmount > 0 && sparkValues.length >= 2 && (
         <SparklineRow
           role="img"
-          aria-label={`${splitCamel(resource)} level over the last ${SPARKLINE_WINDOW_SEC}s`}
+          aria-label={`${splitCamel(resource)} level over the last ${speakQuantity(
+            value("s", SPARKLINE_WINDOW_SEC),
+          )}`}
         >
           <SparklineLabel>
             Trend
-            <SparklineSub>· {SPARKLINE_WINDOW_SEC}s</SparklineSub>
+            <SparklineSub>
+              · <Unit value={value("s", SPARKLINE_WINDOW_SEC)} />
+            </SparklineSub>
           </SparklineLabel>
           <SparklineSlot>
             <Sparkline
@@ -558,8 +565,10 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
     <PowerRow>
       <RowName>{partTitle}</RowName>
       {eff !== null && (
-        <RowEff title={`${(eff * 100).toFixed(0)}% of nominal`}>
-          {(eff * 100).toFixed(0)}%
+        <RowEff
+          title={`${speakQuantity(value("%", eff * 100), { decimals: 0 })} of nominal`}
+        >
+          <Unit value={value("%", eff * 100)} decimals={0} />
         </RowEff>
       )}
       <RowValue $sign={sign}>

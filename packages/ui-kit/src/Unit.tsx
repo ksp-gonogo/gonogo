@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import {
+  ATTACHED_SYMBOLS,
   displaySymbol,
   type FormatQuantityOptions,
   type FormatsFor,
@@ -103,12 +104,9 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * call site has to remember.
  */
 
-/**
- * The symbols SI writes hard against the number. Plane angle only: degree,
- * arcminute, arcsecond. Deliberately NOT the degree-Celsius pair, which takes
- * the normal space.
- */
-const ATTACHED = new Set(["°", "′", "″"]);
+// The attach rule lives in `./units` so this component and `writeQuantity`
+// cannot disagree about it. See ATTACHED_SYMBOLS for why.
+const ATTACHED = ATTACHED_SYMBOLS;
 
 /**
  * Kinds shown as a glyph rather than as text, chosen from a rendered trial:

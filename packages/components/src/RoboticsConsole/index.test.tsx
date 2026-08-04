@@ -152,7 +152,7 @@ describe("RoboticsConsoleComponent", () => {
       ]);
     });
     expect(await screen.findByText(/MOVING/i)).toBeInTheDocument();
-    // This test used to assert "60%", which pinned a real bug: the contract
+    // This test used to assert "60 %", which pinned a real bug: the contract
     // declares CurrentExtension/TargetExtension in METRES, and a decompile of
     // ModuleRoboticServoPiston confirms the value is a Vector3.Dot along the
     // servo axis. The old fixture numbers (40 and 60) were percentages, so the

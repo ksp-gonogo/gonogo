@@ -7,7 +7,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -20,6 +20,7 @@ import {
   NULL_DISPLAY,
   Panel,
   Select,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -89,9 +90,6 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   soon: "warn",
   off: "neutral",
 };
-
-const fmtSpeed = (ms: number): string =>
-  ms >= 1000 ? `${(ms / 1000).toFixed(1)} km/s` : `${Math.round(ms)} m/s`;
 
 // Days and years here are Kerbin's (6h, 426d), not Earth's: a transfer to
 // Duna is quoted in the same calendar the game's own map view and the
@@ -278,10 +276,16 @@ function TransferWindowComponent({
                 <NowFacts role="status" aria-live="polite">
                   <NowLabel>Current phase</NowLabel>
                   <NowValue>
-                    {solution.currentPhaseDeg.toFixed(1)}°
+                    <Unit
+                      value={value("°", solution.currentPhaseDeg)}
+                      decimals={1}
+                    />
                     <Muted>
                       {" / ideal "}
-                      {solution.idealPhaseDeg.toFixed(1)}°
+                      <Unit
+                        value={value("°", solution.idealPhaseDeg)}
+                        decimals={1}
+                      />
                     </Muted>
                   </NowValue>
                   <Badge tone={STATUS_TONE[solution.status]}>
@@ -352,7 +356,9 @@ function WindowsList({
                 onClick={() => onSelect(w.index)}
               >
                 <ColWait>{fmtCountdown(w.waitSeconds)}</ColWait>
-                <ColDv>{fmtSpeed(w.deltaV)}</ColDv>
+                <ColDv>
+                  <Unit value={value("m/s", w.deltaV)} />
+                </ColDv>
                 <ColTof>{fmtDays(w.transferTimeSec)}</ColTof>
               </WindowRow>
               {isSel && (
@@ -373,12 +379,21 @@ function WindowsList({
                   </ExpRow>
                   <ExpRow>
                     <ExpLabel>Ejection Δv</ExpLabel>
-                    <ExpValue>{Math.round(w.ejectionDeltaV)} m/s</ExpValue>
+                    <ExpValue>
+                      <Unit
+                        value={value("m/s", w.ejectionDeltaV)}
+                        decimals={0}
+                      />
+                    </ExpValue>
                   </ExpRow>
                   <ExpRow>
                     <ExpLabel>Ejection angle</ExpLabel>
                     <ExpValue>
-                      {w.ejectionAngleDeg.toFixed(0)}° to prograde
+                      <Unit
+                        value={value("°", w.ejectionAngleDeg)}
+                        decimals={0}
+                      />{" "}
+                      to prograde
                     </ExpValue>
                   </ExpRow>
                   {createAlarm && (

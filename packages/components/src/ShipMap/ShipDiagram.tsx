@@ -1,3 +1,5 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import { useState } from "react";
 import styled from "styled-components";
@@ -79,7 +81,9 @@ export function ShipDiagram({
           </div>
           <div className="row">
             <span>mass</span>
-            <span>{hovered.dryMass.toFixed(3)} t</span>
+            <span>
+              <Unit value={value("t", hovered.dryMass)} decimals={3} />
+            </span>
           </div>
           {hovered.temperatureK !== undefined &&
           (hovered.maxTemperatureK ?? hovered.maxTemp) > 0 ? (

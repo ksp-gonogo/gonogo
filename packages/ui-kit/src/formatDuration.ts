@@ -7,13 +7,38 @@ const HOUR = 60 * MINUTE;
 const DAY = KSP_DAY_SECONDS;
 const YEAR = KSP_YEAR_SECONDS;
 
-const TIERS = [
+interface Tier {
+  symbol: string;
+  size: number;
+}
+
+const TIERS: readonly Tier[] = [
   { symbol: "y", size: YEAR },
   { symbol: "d", size: DAY },
   { symbol: "h", size: HOUR },
   { symbol: "m", size: MINUTE },
   { symbol: "s", size: SECOND },
-] as const;
+];
+
+/**
+ * The same ladder on a REAL day.
+ *
+ * A day is 21,600 seconds in this app because a day is 21,600 seconds on
+ * Kerbin, and every duration that comes off the wire is game time. Two are
+ * not: how long ago a reading was seen, and how long a flight recorder ran.
+ * Those measure the operator's afternoon, and putting them through the Kerbin
+ * ladder reads "4d" for what happened yesterday.
+ *
+ * No year rung. The wall-clock durations this app shows are a staleness badge
+ * and a recording length; neither is going to run to Christmas, and "428d"
+ * says more than "1y 63d" about a record that old.
+ */
+const IRL_TIERS: readonly Tier[] = [
+  { symbol: "d", size: 24 * HOUR },
+  { symbol: "h", size: HOUR },
+  { symbol: "m", size: MINUTE },
+  { symbol: "s", size: SECOND },
+];
 
 export interface FormatDurationOptions {
   /** Below 1s, render milliseconds (`820 ms`, `0 ms`) instead of `0s`. Default false. */
@@ -47,6 +72,34 @@ export function formatDuration(
   seconds: number,
   opts: FormatDurationOptions = {},
 ): string {
+  return format(seconds, TIERS, opts);
+}
+
+/**
+ * The wall-clock twin of {@link formatDuration}: same shape, real days.
+ *
+ * Reach for this when the seconds being formatted were measured by a clock on
+ * the desk rather than by the game: how long ago a reading arrived, how long a
+ * recorder ran. Everything else is game time and belongs in `formatDuration`.
+ *
+ * The distinction is a real one in the unit system (`irl:s` carries the
+ * `irlTime` kind, separate from `time`), and it exists because collapsing the
+ * two is a silent factor-of-four error that renders as a plausible number.
+ * `styleguide-earth-day.test.ts` is the guard for the arithmetic form of the
+ * same mistake.
+ */
+export function formatIrlDuration(
+  seconds: number,
+  opts: FormatDurationOptions = {},
+): string {
+  return format(seconds, IRL_TIERS, opts);
+}
+
+function format(
+  seconds: number,
+  tiers: readonly Tier[],
+  opts: FormatDurationOptions,
+): string {
   if (!Number.isFinite(seconds)) return NULL_DISPLAY;
 
   const { ms = false, sign = false } = opts;
@@ -64,16 +117,19 @@ export function formatDuration(
   // truncate away any fractional second up front.
   const totalSeconds = Math.floor(abs);
 
-  const majorIndex = TIERS.findIndex((tier) => totalSeconds >= tier.size);
-  const major = TIERS[majorIndex];
+  // Below the finest tier this ladder has, the smallest rung is still the
+  // right answer: `findIndex` returning -1 would index off the end.
+  const found = tiers.findIndex((tier) => totalSeconds >= tier.size);
+  const majorIndex = found === -1 ? tiers.length - 1 : found;
+  const major = tiers[majorIndex];
   const majorValue = Math.floor(totalSeconds / major.size);
 
-  if (majorIndex === TIERS.length - 1) {
+  if (majorIndex === tiers.length - 1) {
     // Already at the finest tier (seconds): nothing smaller to pair with.
     return `${signPrefix}${majorValue}${major.symbol}`;
   }
 
-  const minor = TIERS[majorIndex + 1];
+  const minor = tiers[majorIndex + 1];
   const remainder = totalSeconds - majorValue * major.size;
   const minorValue = Math.floor(remainder / minor.size);
 

@@ -18,6 +18,7 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
@@ -35,6 +36,7 @@ import {
   StatusIndicator,
   Switch,
   ToggleButton,
+  Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -577,7 +579,9 @@ function NavballComponent({
                 <ThrottleBar>
                   <ThrottleFill style={{ height: `${throttle * 100}%` }} />
                 </ThrottleBar>
-                <ThrottleVal>{Math.round(throttle * 100)}%</ThrottleVal>
+                <ThrottleVal>
+                  <Unit value={value("%", throttle * 100)} decimals={0} />
+                </ThrottleVal>
               </ThrottleColumn>
             )}
           </DialWrap>
@@ -586,23 +590,37 @@ function NavballComponent({
             <ReadoutRow>
               <ReadoutLabel>HDG</ReadoutLabel>
               <ReadoutValue>
-                {heading === null ? NULL_DISPLAY : `${heading.toFixed(0)}°`}
+                {heading === null ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("°", heading)} decimals={0} />
+                )}
               </ReadoutValue>
             </ReadoutRow>
             <ReadoutRow>
               <ReadoutLabel>PCH</ReadoutLabel>
               <ReadoutValue>
-                {pitch === null
-                  ? NULL_DISPLAY
-                  : `${pitch >= 0 ? "+" : ""}${pitch.toFixed(0)}°`}
+                {pitch === null ? (
+                  NULL_DISPLAY
+                ) : (
+                  <>
+                    {pitch >= 0 ? "+" : ""}
+                    <Unit value={value("°", pitch)} decimals={0} />
+                  </>
+                )}
               </ReadoutValue>
             </ReadoutRow>
             <ReadoutRow>
               <ReadoutLabel>RLL</ReadoutLabel>
               <ReadoutValue>
-                {roll === null
-                  ? NULL_DISPLAY
-                  : `${roll >= 0 ? "+" : ""}${roll.toFixed(0)}°`}
+                {roll === null ? (
+                  NULL_DISPLAY
+                ) : (
+                  <>
+                    {roll >= 0 ? "+" : ""}
+                    <Unit value={value("°", roll)} decimals={0} />
+                  </>
+                )}
               </ReadoutValue>
             </ReadoutRow>
           </NumericReadout>
@@ -744,7 +762,9 @@ function ControlSurface({
             disabled={disabled}
             aria-label="Throttle"
           />
-          <SliderVal>{Math.round(throttleCmd * 100)}%</SliderVal>
+          <SliderVal>
+            <Unit value={value("%", throttleCmd * 100)} decimals={0} />
+          </SliderVal>
         </SliderRow>
         <ButtonGrid>
           <Button

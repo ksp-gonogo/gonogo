@@ -124,7 +124,9 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     );
     // atan2(2, 40) * 180/π ≈ 2.9°; atan2(-1.5, 40) * 180/π ≈ -2.1°; no az
     // stream field exists at all -> stays the null-display placeholder.
-    expect(screen.getByText(`2.9° · -2.1° · ${NULL_DISPLAY}`)).toBeTruthy();
+    // Three separate readouts now: each angle renders through `<Unit>`, so
+    // the row is no longer one text node.
+    expect(visibleText()).toContain(`2.9° · -2.1° · ${NULL_DISPLAY}`);
     // vessel.dock.distance (62) headlines the HUD in preference to the
     // general tar.distance figure.
     // One decimal: distances go through the shared `length` ladder now,

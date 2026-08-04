@@ -17,6 +17,7 @@ import {
   ReadoutCaption,
   speakQuantity,
   Unit,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
@@ -146,7 +147,9 @@ function fatalTone(value: number): MeterTone {
   if (value >= 0.5) return "warn";
   return "go";
 }
-const pct = (v: number): string => `${Math.round(v * 100)}%`;
+// A string because it feeds `valueLabel`/`label` props, not JSX children.
+const pct = (v: number): string =>
+  writeQuantity(value("%", v * 100), { decimals: 0 });
 
 // -----------------------------------------------------------------------
 // EVA suit resources (additive; only meaningful while the active vessel IS

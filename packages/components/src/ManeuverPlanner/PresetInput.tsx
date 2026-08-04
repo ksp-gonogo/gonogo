@@ -1,4 +1,5 @@
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { LabeledInput } from "./LabeledInput";
 import { PresetPicker } from "./PresetPicker";
@@ -166,7 +167,7 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
     return (
       <PresetDesc>
         {targetName
-          ? `Target: ${targetName} (${(targetInclinationLive ?? 0).toFixed(1)}°)`
+          ? `Target: ${targetName} (${writeQuantity(value("°", targetInclinationLive ?? 0), { decimals: 1 })})`
           : "No target selected in-game."}
       </PresetDesc>
     );
@@ -175,7 +176,7 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
     return (
       <PresetDesc>
         {targetName && targetLanLive !== undefined
-          ? `Target: ${targetName}, i=${(targetInclinationLive ?? 0).toFixed(1)}° Ω=${targetLanLive.toFixed(1)}°`
+          ? `Target: ${targetName}, i=${writeQuantity(value("°", targetInclinationLive ?? 0), { decimals: 1 })} Ω=${writeQuantity(value("°", targetLanLive), { decimals: 1 })}`
           : "No target selected in-game (or target LAN unavailable)."}
       </PresetDesc>
     );
@@ -195,9 +196,15 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
         Target: {targetName}, PeA{" "}
         {targetPeA === undefined
           ? NULL_DISPLAY
-          : `${(targetPeA / 1000).toFixed(1)} km`}
-        , i={(targetInclinationLive ?? 0).toFixed(1)}°, Δplane=
-        {planeMismatch === null ? NULL_DISPLAY : `${planeMismatch.toFixed(1)}°`}
+          : writeQuantity(value("m", targetPeA), { decimals: 1 })}
+        , i=
+        <Unit value={value("°", targetInclinationLive ?? 0)} decimals={1} />,
+        Δplane=
+        {planeMismatch === null ? (
+          NULL_DISPLAY
+        ) : (
+          <Unit value={value("°", planeMismatch)} decimals={1} />
+        )}
         {planeMismatch !== null && planeMismatch > 0.5
           ? " (plane match prepended)"
           : ""}

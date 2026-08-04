@@ -347,7 +347,9 @@ function DistanceToTargetComponent({
           </Distance>
         )}
         {showSubReadout && (
-          <SubReadout>Δv {(relVel as number).toFixed(2)} m/s</SubReadout>
+          <SubReadout>
+            Δv <Unit value={value("m/s", relVel as number)} decimals={2} />
+          </SubReadout>
         )}
       </TrackingBody>
     </Panel>
@@ -426,7 +428,7 @@ function ApproachHud({
           {closingMagnitude !== null && (
             <SubReadout>
               {closing ? "−" : "+"}
-              {closingMagnitude.toFixed(1)} m/s
+              <Unit value={value("m/s", closingMagnitude)} decimals={1} />
             </SubReadout>
           )}
         </TrackingBody>
@@ -449,9 +451,14 @@ function ApproachHud({
 
         <ApproachLabel>Closing rate</ApproachLabel>
         <ApproachValue $tone={closing ? "ok" : "warn"}>
-          {closingMagnitude === null
-            ? NULL_DISPLAY
-            : `${closing ? "−" : "+"}${closingMagnitude.toFixed(1)} m/s`}
+          {closingMagnitude === null ? (
+            NULL_DISPLAY
+          ) : (
+            <>
+              {closing ? "−" : "+"}
+              <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+            </>
+          )}
         </ApproachValue>
 
         <ApproachLabel>TCA</ApproachLabel>
@@ -631,24 +638,49 @@ function DockingHud(props: DockingHudProps) {
         <HudGrid $stack={stackReadouts}>
           <HudLabel>Δv</HudLabel>
           <HudValue $tone={closing ? "ok" : "warn"}>
-            {relVel === undefined || !Number.isFinite(relVel)
-              ? NULL_DISPLAY
-              : `${relVel.toFixed(2)} m/s`}
+            {relVel === undefined || !Number.isFinite(relVel) ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m/s", relVel)} decimals={2} />
+            )}
           </HudValue>
 
           {showAlignmentDetail && (
             <>
               <HudLabel>X/Y</HudLabel>
               <HudValue>
-                {x === undefined ? NULL_DISPLAY : `${x.toFixed(2)} m`} /{" "}
-                {y === undefined ? NULL_DISPLAY : `${y.toFixed(2)} m`}
+                {x === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("m", x)} decimals={2} />
+                )}{" "}
+                /{" "}
+                {y === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("m", y)} decimals={2} />
+                )}
               </HudValue>
 
               <HudLabel>α/β/γ</HudLabel>
               <HudValue>
-                {ax === undefined ? NULL_DISPLAY : `${ax.toFixed(1)}°`} ·{" "}
-                {ay === undefined ? NULL_DISPLAY : `${ay.toFixed(1)}°`} ·{" "}
-                {az === undefined ? NULL_DISPLAY : `${az.toFixed(1)}°`}
+                {ax === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("°", ax)} decimals={1} />
+                )}{" "}
+                ·{" "}
+                {ay === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("°", ay)} decimals={1} />
+                )}{" "}
+                ·{" "}
+                {az === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("°", az)} decimals={1} />
+                )}
               </HudValue>
             </>
           )}

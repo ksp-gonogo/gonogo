@@ -2,12 +2,14 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
   NULL_DISPLAY,
   Panel,
   useElementSize,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -144,7 +146,9 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     <Panel
       panelTitle="TWR"
       panelSubtitle={
-        showSubtitle ? `Current stage · last ${SPARK_WINDOW_SEC}s` : undefined
+        showSubtitle
+          ? `Current stage · last ${writeQuantity(value("s", SPARK_WINDOW_SEC))}`
+          : undefined
       }
     >
       <Body>

@@ -4,9 +4,9 @@ import {
   onMapPoiProvidersChange,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { isValue, type TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { isValue, type TopicId, value } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactElement } from "react";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
@@ -365,7 +365,7 @@ function PoiHoverCardView({
     >
       <PoiHoverLabel>{poi.label}</PoiHoverLabel>
       {poi.detail && <PoiHoverDetail>{poi.detail}</PoiHoverDetail>}
-      <PoiHoverCoords>{`${poi.lat.toFixed(2)}°, ${poi.lon.toFixed(2)}°`}</PoiHoverCoords>
+      <PoiHoverCoords>{`${writeQuantity(value("°", poi.lat), { decimals: 2 })}, ${writeQuantity(value("°", poi.lon), { decimals: 2 })}`}</PoiHoverCoords>
       {metaEntries.map(([key, value]) => (
         <PoiHoverMetaRow key={key}>
           <span>{key}</span>

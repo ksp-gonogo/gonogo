@@ -62,6 +62,6 @@ describe("DeployedScience: genuinely runs off the stream (M3 science-domain fina
     await waitFor(() => expect(screen.getByText("Minmus")).toBeTruthy());
     expect(screen.getByText("Barometer")).toBeTruthy();
     expect(screen.getByText(/Unpowered/i)).toBeTruthy();
-    expect(visibleText()).toContain("15%");
+    expect(visibleText()).toContain("15 %");
   });
 });

@@ -6,6 +6,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   GhostButton,
@@ -345,7 +346,10 @@ function StrategiesComponent({
                   ))}
                 </EffectList>
                 <CardFooter>
-                  <FactorTag>factor {formatPct(s.factor)}</FactorTag>
+                  <FactorTag>
+                    factor{" "}
+                    <Unit value={value("%", s.factor * 100)} decimals={0} />
+                  </FactorTag>
                   {armedDeactivateId === s.id ? (
                     <ConfirmRow>
                       <PrimaryButton
@@ -567,7 +571,9 @@ function AvailableRow({
             onChange={(e) => onFactorChange(Number.parseFloat(e.target.value))}
             aria-label={`Commitment factor for ${s.title}`}
           />
-          <FactorValue>{formatPct(factor)}</FactorValue>
+          <FactorValue>
+            <Unit value={value("%", factor * 100)} decimals={0} />
+          </FactorValue>
         </FactorRow>
       )}
       <CardFooter>
@@ -610,10 +616,6 @@ function formatNumber(v: number | null | undefined): string {
   if (Math.abs(v) >= 1000)
     return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function formatPct(v: number): string {
-  return `${(v * 100).toFixed(0)}%`;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

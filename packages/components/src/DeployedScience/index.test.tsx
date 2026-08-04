@@ -108,7 +108,7 @@ describe("DeployedScienceComponent", () => {
     // No EC numbers on the new wire, powerAvailable/powerRequired degrade to 0/0.
     expect(visibleText()).toMatch(/EC 0\/0/);
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
-    expect(visibleText()).toContain("50%");
+    expect(visibleText()).toContain("50 %");
   });
 
   it("labels an unpowered base and a brownout base distinctly", async () => {

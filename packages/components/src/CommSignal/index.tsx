@@ -6,6 +6,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   Countdown,
@@ -13,6 +14,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
@@ -159,11 +161,13 @@ function CommSignalComponent({
   // split, an occluded vessel and a connection-lost probe looked
   // identical in the min-3x3 mode.
   const headline =
-    connected === false
-      ? "LOS"
-      : pct !== null
-        ? `${(pct * 100).toFixed(0)}%`
-        : control.label;
+    connected === false ? (
+      "LOS"
+    ) : pct !== null ? (
+      <Unit value={value("%", pct * 100)} decimals={0} />
+    ) : (
+      control.label
+    );
 
   // A11y: the visible readout updates on every telemetry tick (percentage,
   // bar count), so it must NOT be a live region, that would flood the screen

@@ -106,7 +106,7 @@ describe("CommSignal: augment slots (Uplink spec §4)", () => {
     renderWithSignal();
 
     // The stock readout is untouched by the (empty) slots.
-    await waitFor(() => expect(visibleText()).toContain("87%"));
+    await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     expect(screen.getByText("Full")).toBeTruthy();
   });

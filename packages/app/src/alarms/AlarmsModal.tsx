@@ -2,6 +2,7 @@ import type { ActionGroup } from "@ksp-gonogo/core";
 import { useActionGroups, useTelemetry } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   DataKeyPicker,
@@ -14,10 +15,13 @@ import {
 } from "@ksp-gonogo/ui";
 import {
   Card,
+  formatDuration,
   NULL_DISPLAY,
   type ReadoutTone,
   SectionTitle,
   Stack,
+  Unit,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -680,7 +684,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
           </>
         )}
         {" · lead "}
-        {a.trigger.leadSeconds}s
+        <Unit value={value("s", a.trigger.leadSeconds)} />
       </>
     );
   }
@@ -688,9 +692,9 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
     const t = a.trigger;
     const matchInfo =
       a.matchSinceUT != null && utNow != null
-        ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${t.sustainSeconds}s)`
+        ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${writeQuantity(value("s", t.sustainSeconds))})`
         : t.sustainSeconds > 0
-          ? ` · sustain ${t.sustainSeconds}s`
+          ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
           : "";
     return (
       <code>
@@ -712,9 +716,9 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
   const t = a.trigger;
   const matchInfo =
     a.matchSinceUT != null && utNow != null
-      ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${t.sustainSeconds}s)`
+      ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${writeQuantity(value("s", t.sustainSeconds))})`
       : t.sustainSeconds > 0
-        ? ` · sustain ${t.sustainSeconds}s`
+        ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
         : "";
   return (
     <code>
@@ -736,14 +740,10 @@ function formatUt(s: number): string {
     .padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 }
 
-function formatSeconds(s: number): string {
-  if (s < 60) return `${s.toFixed(0)}s`;
-  const m = Math.floor(s / 60);
-  const sec = Math.round(s - m * 60);
-  if (m < 60) return `${m}m ${sec.toString().padStart(2, "0")}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${(m - h * 60).toString().padStart(2, "0")}m`;
-}
+// The kit's ladder, not a fourth copy of it. `formatDuration` is the
+// sanctioned string form of `<Countdown>`, for the template literals below
+// where a node cannot go.
+const formatSeconds = (s: number): string => formatDuration(s);
 
 interface OnFireEditorProps {
   value: AlarmFireAction[];

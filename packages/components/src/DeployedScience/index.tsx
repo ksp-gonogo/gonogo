@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import { EmptyState, Panel } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { EmptyState, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 
@@ -337,7 +338,10 @@ function DeployedScienceComponent(
                   <ExpRow>
                     <ExpName>{exp.name}</ExpName>
                     <ExpPct>
-                      {Math.round(exp.progress * 100)}%
+                      <Unit
+                        value={value("%", exp.progress * 100)}
+                        decimals={0}
+                      />
                       {exp.collecting && (
                         <Collecting aria-hidden="true"> ●</Collecting>
                       )}
