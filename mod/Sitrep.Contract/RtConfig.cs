@@ -116,6 +116,10 @@ public static class RtConfig
                 typeof(CommsLinkQuality),
                 typeof(CommsDataRate),
                 typeof(CommsLinkMargin),
+                // fleet.<guid>.* per-vessel dynamic channels (Plan 2c): the
+                // display-only delay/connectivity carried on fleet.<guid>.delay
+                // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
+                typeof(FleetVesselLink),
                 // kos.* channels
                 typeof(KosProcessorInfo),
                 typeof(KosComputeStatus),

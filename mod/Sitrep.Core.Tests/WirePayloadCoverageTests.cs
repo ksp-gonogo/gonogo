@@ -74,6 +74,11 @@ namespace Sitrep.Core.Tests
             // the Courier, so JsonWriter only ever sees the flattened
             // dictionary; the POCOs exist for the generated TS shape only.
             "KosProcessorInfo", "KosTerminalFrame", "KosRunResult",
+            // fleet.<guid>.delay: FleetVesselLinkBuilder.Build returns a
+            // Dictionary<string, object?> and FleetDelayUplink.HandleOnCourier
+            // publishes that, so JsonWriter only ever sees the flattened
+            // dictionary; the POCO exists for the generated TS shape only.
+            "FleetVesselLink",
             // kerbcast.cameras: KerbcastCameraEntryBuilder.Build returns a
             // Dictionary<string, object?> and KerbcastUplink publishes that list
             // directly, so JsonWriter only ever sees the flattened dictionary;

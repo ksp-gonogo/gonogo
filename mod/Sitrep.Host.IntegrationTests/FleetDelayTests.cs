@@ -59,6 +59,45 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task FleetVesselDelayTopicEmitsAndSerializesEndToEnd()
+        {
+            // Plan 2c: fleet.<id>.delay carries FleetVesselLink (oneWaySeconds +
+            // connected), emitted as a self-flattened dict. This proves it
+            // serializes through the JsonWriter/WS boundary and arrives with its
+            // values intact -- the coverage the .orbit-only tests missed, which
+            // let a missing JsonWriter case (fixed by allowlisting the flattened
+            // producer) reach the fold gate.
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.probe.delay", Timeout);
+
+                // Every tick carries the same one-way delay (4.5), so whichever
+                // sample LossyLatest delivers past the horizon carries it.
+                for (var ut = 0.0; ut <= 5.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FleetFixture(ut, ("probe", 4.5)), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var delayFrame = frames.FirstOrDefault(f => f.Topic == "fleet.probe.delay");
+                // Arriving at all proves FleetVesselLink serialized end-to-end
+                // (no NotSupportedException at the JsonWriter boundary).
+                Assert.NotNull(delayFrame);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delayFrame!.Payload);
+                Assert.Equal(4.5, payload["oneWaySeconds"]);
+                Assert.Equal(true, payload["connected"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task EachFleetVesselIsDelayedByItsOwnLightTime()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

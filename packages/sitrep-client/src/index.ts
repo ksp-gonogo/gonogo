@@ -106,6 +106,14 @@ export type {
 export { EventTimeline } from "./event-timeline";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
+export {
+  type FleetVesselLink,
+  useFleetVesselLink,
+} from "./fleet-link";
+export {
+  propagateVesselOrbit,
+  useFleetVesselPosition,
+} from "./fleet-position";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {

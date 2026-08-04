@@ -403,4 +403,81 @@ describe("FleetRosterComponent", () => {
     });
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  const ONE_PROBE = {
+    vessels: [
+      {
+        vesselId: "v-probe",
+        name: "Explorer",
+        vesselType: 1,
+        situation: 3,
+        bodyIndex: 0,
+        crewCount: 0,
+        crewCapacity: 0,
+        commsConnected: true,
+        commsControlSource: RosterCommsControlSource.Full,
+      },
+    ],
+  };
+
+  it("shows a per-vessel signal disclosure with the round-trip delay", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+    });
+    renderRoster(fixture);
+    // The row (and its fleet.<guid>.delay subscription) only mounts once
+    // system.vessels arrives; emit that first and wait for the row, THEN emit
+    // the delay, so the subscription-gated transport actually delivers it.
+    act(() => {
+      fixture.emit("system.vessels", ONE_PROBE);
+    });
+    const trigger = await screen.findByRole("button", {
+      name: /Explorer signal/i,
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    act(() => {
+      fixture.emit("fleet.v-probe.delay", {
+        oneWaySeconds: 4.5,
+        connected: true,
+      });
+    });
+    act(() => {
+      trigger.click();
+    });
+    // round-trip = 2 x one-way = 9.0 s
+    await waitFor(() =>
+      expect(visibleText(screen.getByRole("group"))).toMatch(
+        /round-trip[\s~]*9\s*s/i,
+      ),
+    );
+  });
+
+  it("has no accessible violations with a delay disclosure open", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+    });
+    const container = renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.vessels", ONE_PROBE);
+    });
+    const trigger = await screen.findByRole("button", {
+      name: /Explorer signal/i,
+    });
+    act(() => {
+      fixture.emit("fleet.v-probe.delay", {
+        oneWaySeconds: 4.5,
+        connected: true,
+      });
+    });
+    act(() => {
+      trigger.click();
+    });
+    await waitFor(() =>
+      expect(visibleText(screen.getByRole("group"))).toMatch(
+        /round-trip[\s~]*9\s*s/i,
+      ),
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });

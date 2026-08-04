@@ -334,6 +334,10 @@
       "title": "text",
       "transmitBonus": "ratio"
     },
+    "FleetVesselLink": {
+      "connected": "flag",
+      "oneWaySeconds": "s"
+    },
     "FlightCurrent": {
       "flightId": "id",
       "phase": "enum",

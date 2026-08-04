@@ -96,6 +96,11 @@ namespace Gonogo.KSP
                 {
                     _orbitSource.Publisher(v.Id + ".orbit").Publish(v.Orbit, cap.Ut);
                 }
+                // Plan 2c: surface the per-vessel delay + connectivity the capture
+                // already holds as a display-only fleet.<guid>.delay field (same
+                // Delayed namespace as .orbit, so it too arrives light-time-late).
+                _orbitSource.Publisher(v.Id + ".delay")
+                    .Publish(FleetVesselLinkBuilder.Build(v.OneWaySeconds, v.Connected), cap.Ut);
             }
         }
 
