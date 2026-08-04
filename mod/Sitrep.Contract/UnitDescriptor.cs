@@ -113,7 +113,7 @@ namespace Sitrep.Contract
             var shapesByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
 
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
-            var assemblyTypes = target.GetTypes();
+            var assemblyTypes = LoadableTypes(target);
             // The catalog belongs to THIS assembly, so it can only judge this
             // assembly's tokens. A third party cannot add to `Units` (a
             // const-string class compiled in here), which is exactly why the
@@ -313,6 +313,51 @@ namespace Sitrep.Contract
                 }
             }
             return sb.Append('"').ToString();
+        }
+
+        /// <summary>
+        /// Every type in <paramref name="assembly"/> that can actually be
+        /// loaded.
+        /// </summary>
+        /// <remarks>
+        /// <para><c>GetTypes()</c> resolves EVERY type in the assembly and
+        /// throws the whole call away if one of them references something
+        /// absent. The netstandard2.0 build of this assembly contains
+        /// <c>RtConfig</c>, which references Reinforced.Typings, so a
+        /// consumer of THAT build needs the codegen DLL resolvable or this
+        /// throws.</para>
+        ///
+        /// <para>The deployed mod is not affected: KSP loads the net472
+        /// build, where every RT usage is compiled out by
+        /// <c>#if NETSTANDARD2_0</c> for exactly this class of reason (see
+        /// Sitrep.Contract.csproj, where Kopernicus reflecting over a
+        /// dangling RT reference is the precedent). It is the netstandard2.0
+        /// build, which the test suite loads, that carries the type.</para>
+        ///
+        /// <para>Keeping the tolerant path anyway: a contract assembly may
+        /// always hold a type whose dependencies are not deployed, and a
+        /// descriptor that omits an unloadable type is better than one that
+        /// refuses to exist.</para>
+        /// </remarks>
+        internal static Type[] LoadableTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                var loaded = new List<Type>();
+                foreach (var t in ex.Types)
+                {
+                    if (t != null)
+                    {
+                        loaded.Add(t);
+                    }
+                }
+
+                return loaded.ToArray();
+            }
         }
 
         /// <summary>
