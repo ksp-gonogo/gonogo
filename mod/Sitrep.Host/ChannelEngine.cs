@@ -40,6 +40,15 @@ namespace Sitrep.Host
     {
         public const string NodeId = "system";
 
+        /// <summary>
+        /// The everywhere-at-once observer vantage: <c>DelayTo(MetaVantage, *)</c>
+        /// is pinned to 0 so instant/exempt topics (comms.delay, comms.link,
+        /// TrueNow) are never delayed by the ledger even after the whole-network
+        /// default carries the signal delay (Plan 1). Keeps "instant" a vantage,
+        /// not a separate code path.
+        /// </summary>
+        public const string MetaVantage = "meta";
+
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 
         /// <summary>
@@ -3125,7 +3134,15 @@ namespace Sitrep.Host
                 _emitter.NotifySubscribed(topic);
             }
 
-            var vantage = session.Connection.Id;
+            // Instant/exempt topics ride the meta-vantage (DelayTo -> 0) so the
+            // ledger never applies the whole-network signal delay to them; the
+            // gate keeps their own delay semantics (comms.delay 0, comms.link
+            // last-connected-delay, TrueNow 0). Ordinary Delayed topics keep the
+            // real per-connection vantage, which the ledger delays (Plan 1).
+            var isInstantClass = topic == CommsDelayTopic
+                || topic == ConnectivityMetaTopic
+                || _channelDeclarations[topic].Delay == DelayRole.TrueNow;
+            var vantage = isInstantClass ? MetaVantage : session.Connection.Id;
             var delivery = _channelDeclarations[topic].Delivery;
 
             Action unsubscribe;
