@@ -86,12 +86,12 @@ namespace Sitrep.Host.IntegrationTests
                 // vessel is delayed by its OWN light-time, not a shared one.
                 Assert.NotEmpty(near);
                 Assert.NotEmpty(far);
-                var firstNearValidAt = near.Min(f => f.Meta.ValidAt);
-                var firstFarValidAt = far.Min(f => f.Meta.ValidAt);
-                // The UT-0 sample is what arrives first for each (validAt 0).
-                Assert.Equal(0.0, firstNearValidAt);
-                Assert.Equal(0.0, firstFarValidAt);
-                // near delivered strictly earlier than far (its horizon is nearer).
+                // near (delay 2) delivers its FIRST sample strictly earlier than
+                // far (delay 6) -- the robust per-vessel-delay proof. (The exact
+                // validAt of the first delivered sample is not asserted: under
+                // LossyLatest a UT-0 sample can be coalesced past by the time its
+                // scheduled delivery reads the archive, which is correct, not a
+                // delay error.)
                 var nearArrival = near.Min(f => f.Meta.DeliveredAt);
                 var farArrival = far.Min(f => f.Meta.DeliveredAt);
                 Assert.True(nearArrival < farArrival,
@@ -103,12 +103,52 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task FleetVesselsFreezeIndependentlyOnTheirOwnLink()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.a.orbit", Timeout);
+                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+
+                // Both connected: both stream.
+                engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
+                engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
+                var warm = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(warm, f => f.Topic == "fleet.a.orbit");
+                Assert.Contains(warm, f => f.Topic == "fleet.b.orbit");
+
+                // Disconnect ONLY a. b stays connected. Per-subject freeze: a's
+                // in-blackout samples (validAt >= 2) are withheld; b keeps streaming.
+                engine.TickAndWait(2.0, ConnFixture(2.0, ("a", false), ("b", true)), Timeout);
+                engine.TickAndWait(3.0, ConnFixture(3.0, ("a", false), ("b", true)), Timeout);
+                engine.TickAndWait(4.0, ConnFixture(4.0, ("a", false), ("b", true)), Timeout);
+                var outage = await DrainAllStreamDataAsync(client, Quiet);
+                // a: no sample captured during its blackout reaches the client.
+                Assert.DoesNotContain(outage, f => f.Topic == "fleet.a.orbit" && f.Meta.ValidAt >= 2.0);
+                // b: keeps streaming its own fresh samples (validAt >= 2 delivered).
+                Assert.Contains(outage, f => f.Topic == "fleet.b.orbit" && f.Meta.ValidAt >= 2.0);
+
+                // a reconnects: it resumes; b was never interrupted.
+                engine.TickAndWait(5.0, ConnFixture(5.0, ("a", true), ("b", true)), Timeout);
+                engine.TickAndWait(6.0, ConnFixture(6.0, ("a", true), ("b", true)), Timeout);
+                var resumed = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(resumed, f => f.Topic == "fleet.a.orbit" && f.Meta.ValidAt >= 5.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         // NOTE (Plan 2b): the Plan-2 `FleetFreezesTogetherOnGlobalDisconnectAndResumes`
-        // test was REMOVED here -- its premise (all fleet topics freeze together on
-        // the global link) is the one intended behaviour change of the per-subject
-        // freeze rewrite. Its per-subject replacements (independent-freeze +
-        // pre-outage-tail-drains) land in a later task, once the per-vessel
-        // connectivity source exists.
+        // test was REMOVED (its premise -- all fleet topics freeze together on the
+        // global link -- is the one intended behaviour change). The pre-outage-tail-
+        // drains case + active-vessel parity land in a later task.
 
         /// <summary>
         /// A KspSnapshot at <paramref name="ut"/> whose <c>vessels</c> roster
@@ -125,6 +165,39 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     ["id"] = id,
                     ["delay"] = delay,
+                    ["orbit"] = new Dictionary<string, object?>
+                    {
+                        ["sma"] = 700000.0,
+                        ["ecc"] = 0.0,
+                        ["inc"] = 0.0,
+                        ["meanAnomalyAtEpoch"] = 0.0,
+                        ["epoch"] = 0.0,
+                        ["mu"] = 3.5316000e12,
+                        ["referenceBody"] = "Kerbin",
+                    },
+                });
+            }
+            return new KspSnapshot
+            {
+                Ut = ut,
+                Values = new Dictionary<string, object?> { ["vessels"] = roster },
+            };
+        }
+
+        /// <summary>
+        /// A KspSnapshot at <paramref name="ut"/> whose vessels carry a per-vessel
+        /// <c>connected</c> flag (delay 0), for per-subject freeze tests.
+        /// </summary>
+        internal static KspSnapshot ConnFixture(double ut, params (string id, bool connected)[] vessels)
+        {
+            var roster = new List<object?>();
+            foreach (var (id, connected) in vessels)
+            {
+                roster.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = id,
+                    ["delay"] = 0.0,
+                    ["connected"] = connected,
                     ["orbit"] = new Dictionary<string, object?>
                     {
                         ["sma"] = 700000.0,

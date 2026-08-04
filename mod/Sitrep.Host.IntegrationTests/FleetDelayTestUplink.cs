@@ -36,12 +36,10 @@ namespace Sitrep.Host.IntegrationTests
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             });
-            // Global connectivity from the snapshot's "connected" flag (default
-            // true): drives the reveal gate's freeze, which stays GLOBAL in Plan 2
-            // -- all fleet topics freeze together on a link drop, exactly as the
-            // system.vessels roster does today.
-            host.SetConnectivitySource(s =>
-                s != null && s.Values.TryGetValue("connected", out var c) && c is bool b ? b : (bool?)null);
+            // Per-subject freeze (Plan 2b): each roster entry carries its own
+            // "connected" flag (default true), set via SetVesselConnectivity in
+            // the gated capture -- so each fleet vessel freezes on ITS OWN link.
+            // The active vessel ("system") is not driven here (stays connected).
             // Subscription-gated: skip the whole fleet capture when no fleet.* topic is subscribed.
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix);
         }
@@ -53,7 +51,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 return null;
             }
-            var captures = new List<(string Id, object? Orbit, double? Delay)>();
+            var captures = new List<(string Id, object? Orbit, double? Delay, bool Connected)>();
             foreach (var entryObj in roster)
             {
                 if (entryObj is not IDictionary<string, object?> entry) { continue; }
@@ -61,7 +59,8 @@ namespace Sitrep.Host.IntegrationTests
                     && entry.TryGetValue("orbit", out var orbit) && orbit != null)
                 {
                     double? delay = entry.TryGetValue("delay", out var d) && d is double dd ? dd : (double?)null;
-                    captures.Add((id, orbit, delay));
+                    var connected = !(entry.TryGetValue("connected", out var cObj) && cObj is bool cb) || cb;
+                    captures.Add((id, orbit, delay, connected));
                 }
             }
             return new Captured { Ut = snapshot.Ut, Vessels = captures };
@@ -70,12 +69,13 @@ namespace Sitrep.Host.IntegrationTests
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not Captured cap || _orbitSource == null) { return; }
-            foreach (var (id, orbit, delay) in cap.Vessels)
+            foreach (var (id, orbit, delay, connected) in cap.Vessels)
             {
                 if (delay.HasValue)
                 {
                     _host?.SetVesselDelay(id, delay.Value);
                 }
+                _host?.SetVesselConnectivity(id, connected);
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
             }
         }
@@ -85,8 +85,8 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class Captured
         {
             public double Ut { get; set; }
-            public List<(string Id, object? Orbit, double? Delay)> Vessels { get; set; }
-                = new List<(string, object?, double?)>();
+            public List<(string Id, object? Orbit, double? Delay, bool Connected)> Vessels { get; set; }
+                = new List<(string, object?, double?, bool)>();
         }
     }
 }

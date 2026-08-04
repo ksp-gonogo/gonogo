@@ -72,6 +72,10 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void SetVesselConnectivity(string vesselId, bool connected)
+        {
+        }
+
         public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread)
         {
         }

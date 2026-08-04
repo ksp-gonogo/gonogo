@@ -1087,6 +1087,16 @@ namespace Sitrep.Host
             _network.SetNodeDelay(FleetNodePrefix + vesselId, oneWaySeconds);
         }
 
+        public void SetVesselConnectivity(string vesselId, bool connected)
+        {
+            // Per-vessel freeze (Plan 2b): the vessel's fleet.<id> subject
+            // freezes on ITS OWN link. Rides the gated fleet capture (only
+            // subscribed fleet vessels need freeze tracking); the active vessel
+            // stays on the ungated SetConnectivitySource. Courier-thread-only,
+            // like SetSubjectConnected's other caller.
+            SetSubjectConnected(FleetNodePrefix + vesselId, connected, _clock.Now());
+        }
+
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
         // and lifecycle discipline as SetSignalDelaySource above: the
         // subscription-independent CONNECTED/DISCONNECTED authority the reveal

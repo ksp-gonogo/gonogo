@@ -469,6 +469,17 @@ namespace Sitrep.Contract
         void SetVesselDelay(string vesselId, double oneWaySeconds);
 
         /// <summary>
+        /// Set a FLEET vessel's connectivity (Plan 2b): its
+        /// <c>fleet.&lt;vesselId&gt;.*</c> topics freeze on ITS OWN link
+        /// independently of the active vessel. Call it per vessel each
+        /// fleet-capture tick (from the gated capture's handle-on-Courier).
+        /// The active vessel's connectivity stays on the ungated
+        /// <see cref="SetConnectivitySource"/>; this is the per-subject freeze
+        /// lever for background fleet vessels.
+        /// </summary>
+        void SetVesselConnectivity(string vesselId, bool connected);
+
+        /// <summary>
         /// Advertise the AUTHORITATIVE CONNECTED/DISCONNECTED control-link state
         /// to the engine's server-side reveal gate: the freeze-on-disconnect
         /// half of the enforcement <see cref="SetSignalDelaySource"/> started
