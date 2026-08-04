@@ -1,12 +1,6 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import {
-  act,
-  render,
-  screen,
-  visibleText,
-  waitFor,
-  within,
-} from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

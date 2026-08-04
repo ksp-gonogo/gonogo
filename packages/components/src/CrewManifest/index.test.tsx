@@ -4,10 +4,10 @@ import {
   fireEvent,
   render,
   screen,
-  visibleText,
   waitFor,
   within,
 } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {

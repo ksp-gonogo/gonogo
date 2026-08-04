@@ -284,6 +284,53 @@ the loader at your local build directly.
 
 ---
 
+## Showing a quantity, and testing that you did
+
+Every number your Topic declares a unit for arrives as a `Value`: an object
+carrying the magnitude AND the unit, not a bare number. Render it with `<Unit>`
+and name neither:
+
+```tsx
+import { Unit } from "@ksp-gonogo/ui-kit";
+
+<Unit value={reading.altitude} />;   // 12.4 km
+```
+
+That is the whole surface. The kit picks the ladder rung, the symbol, and how
+the value is announced to a screen reader, so a change to any of those reaches
+your widget without you editing it. **Do not format a quantity yourself.** A
+hand-written `` `${x.magnitude / 1000} km` `` pins the rung, loses the styling,
+and is read aloud as the letters "k", "m".
+
+Two escapes exist for the places a React node cannot go, both from
+`@ksp-gonogo/ui-kit`: `speakQuantity` for an accessible name or a `title`, and
+`writeQuantity` for visible text that is MEASURED, such as an SVG `<text>` or a
+canvas label.
+
+### Testing it
+
+`<Unit>` renders the number, the symbol, and a visually hidden word as separate
+elements, so a readout is **not one text node** and `getByText("12.4 km")` finds
+nothing. `@ksp-gonogo/ui-kit/testing` is how you read it back:
+
+```ts
+import { visibleText, unitMatchers } from "@ksp-gonogo/ui-kit/testing";
+
+// What a sighted reader sees, screen-reader words stripped.
+expect(visibleText()).toContain("12.4 km");
+
+// Or assert the QUANTITY without pinning how it is spelled. Register once in
+// a setup file: expect.extend(unitMatchers)
+expect(container).toShowQuantity(value("m", 12400));
+```
+
+Prefer the matcher when you mean "the widget shows the altitude it was given":
+it formats through the same ladder the component renders with, so a later
+change to where metres hand off to kilometres does not break your test. Use the
+literal string when the exact spelling is the thing you mean to pin.
+
+---
+
 ## Checklist
 
 - [ ] mod class carries `[SitrepUplink("<id>")]`, implements `ISitrepUplink`, and declares its Topics
@@ -295,4 +342,6 @@ the loader at your local build directly.
 - [ ] the bundle is built external-expecting (react, core, ui-kit, sdk, styled-components NOT inlined)
 - [ ] `gonogo-uplink.json` is build-generated, never hand-written
 - [ ] the mod is on CKAN and the client bundle is hosted with its URL + integrity hash
+- [ ] every quantity renders through `<Unit>`; no hand-formatted unit symbols
+- [ ] widget tests read readouts with `visibleText` / `toShowQuantity`, not `getByText`
 - [ ] the main screen is served over https or localhost so integrity verification works

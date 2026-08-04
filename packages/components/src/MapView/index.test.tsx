@@ -15,15 +15,9 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import {
-  act,
-  render,
-  screen,
-  visibleText,
-  waitFor,
-  within,
-} from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalChromeContext, type ModalChromeValue } from "@ksp-gonogo/ui-kit";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";

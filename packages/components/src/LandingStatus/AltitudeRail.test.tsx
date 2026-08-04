@@ -1,4 +1,5 @@
-import { render, screen, visibleText } from "@ksp-gonogo/test-utils";
+import { render, screen } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { AltitudeRail } from "./AltitudeRail";

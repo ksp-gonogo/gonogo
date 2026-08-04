@@ -1,4 +1,5 @@
-import { visibleText, waitFor } from "@ksp-gonogo/test-utils";
+import { waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 

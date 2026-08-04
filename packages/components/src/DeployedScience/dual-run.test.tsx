@@ -1,11 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import {
-  act,
-  render,
-  visibleText,
-  waitFor,
-  within,
-} from "@ksp-gonogo/test-utils";
+import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";

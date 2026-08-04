@@ -1,12 +1,7 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import {
-  act,
-  render,
-  screen,
-  visibleText,
-  waitFor,
-} from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";

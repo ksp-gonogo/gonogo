@@ -4,14 +4,9 @@ import {
   registerAugment,
 } from "@ksp-gonogo/core";
 import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
-import {
-  act,
-  render,
-  screen,
-  visibleText,
-  waitFor,
-} from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";

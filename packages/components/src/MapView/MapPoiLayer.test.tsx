@@ -3,7 +3,8 @@ import {
   type MapPoi,
   registerMapPoiProvider,
 } from "@ksp-gonogo/core";
-import { fireEvent, render, screen, visibleText } from "@ksp-gonogo/test-utils";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import { MapPoiLayer } from "./MapPoiLayer";

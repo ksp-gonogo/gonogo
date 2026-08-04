@@ -1,10 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import {
-  act,
-  render as rtlRender,
-  screen,
-  visibleText,
-} from "@ksp-gonogo/test-utils";
+import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";

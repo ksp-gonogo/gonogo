@@ -23,7 +23,10 @@ import { defineConfig } from "tsup";
  * components that silently don't share a ThemeProvider with the host app's.
  */
 export default defineConfig({
-  entry: ["src/index.ts"],
+  // `./testing` is a SEPARATE entry, not part of the root barrel: a runtime
+  // bundle must never pull testing code in, and an Uplink author needs the
+  // readout helpers without them.
+  entry: ["src/index.ts", "src/testing.ts"],
   format: ["esm"],
   outDir: "dist",
   target: "es2022",

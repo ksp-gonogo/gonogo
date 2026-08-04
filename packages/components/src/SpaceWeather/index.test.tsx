@@ -1,11 +1,6 @@
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import {
-  act,
-  render,
-  screen,
-  visibleText,
-  waitFor,
-} from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
