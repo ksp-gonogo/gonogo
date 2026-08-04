@@ -73,6 +73,9 @@ namespace Gonogo.KSP
         public static void ConfigureSignalDelay(SignalDelayConfig config) =>
             _signalDelayConfig = config ?? SignalDelayConfig.Off();
 
+        /// <summary>The active SignalDelay config, so the fleet delay capture uses the SAME light-speed scale as the active-vessel authority (Plan 2).</summary>
+        internal static SignalDelayConfig SignalDelayConfig => _signalDelayConfig;
+
         private IChannelPublisher? _connectivity;
         private IChannelPublisher? _signalStrength;
         private IChannelPublisher? _controlState;

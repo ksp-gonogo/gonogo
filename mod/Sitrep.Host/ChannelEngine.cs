@@ -49,6 +49,33 @@ namespace Sitrep.Host
         /// </summary>
         public const string MetaVantage = "meta";
 
+        /// <summary>
+        /// Per-vessel node namespace (Plan 2): a topic "fleet.&lt;guid&gt;.&lt;field&gt;"
+        /// records under the per-vessel Courier node "fleet.&lt;guid&gt;", so
+        /// <c>DelayTo(vantage, node)</c> can give each vessel its own light-time.
+        /// Every other topic uses the single <see cref="NodeId"/>. The delay per
+        /// vessel node is populated by the fleet capture; freeze stays global in
+        /// Plan 2 (the reveal gate is unchanged).
+        /// </summary>
+        public const string FleetNodePrefix = "fleet.";
+
+        /// <summary>
+        /// Resolves the Courier node a topic records/subscribes under. A
+        /// per-vessel "fleet.&lt;guid&gt;.&lt;field&gt;" topic maps to its own node
+        /// "fleet.&lt;guid&gt;"; everything else stays on the single
+        /// <see cref="NodeId"/>. This is the ONLY seam that makes the node axis
+        /// per-vessel (Plan 2) -- the Courier/Archive already key by opaque node.
+        /// </summary>
+        internal static string NodeForTopic(string topic)
+        {
+            if (!topic.StartsWith(FleetNodePrefix, StringComparison.Ordinal))
+            {
+                return NodeId;
+            }
+            var dot = topic.IndexOf('.', FleetNodePrefix.Length);
+            return dot < 0 ? NodeId : topic.Substring(0, dot);
+        }
+
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 
         /// <summary>
@@ -1034,6 +1061,15 @@ namespace Sitrep.Host
             _signalDelaySourceDisabled = false;
         }
 
+        public void SetVesselDelay(string vesselId, double oneWaySeconds)
+        {
+            // Per-vessel downlink delay (Plan 2): the vessel's fleet.<id> node
+            // carries its own routed light-time for the single KSC observer.
+            // NodeForTopic maps fleet.<id>.* topics to this node, so its
+            // telemetry is delayed by DelayTo(vantage, fleet.<id>).
+            _network.SetNodeDelay(FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
         // Recorded against the CURRENTLY-registering uplink id, same mechanism
         // and lifecycle discipline as SetSignalDelaySource above: the
         // subscription-independent CONNECTED/DISCONNECTED authority the reveal
@@ -1503,7 +1539,7 @@ namespace Sitrep.Host
             _born.Clear();
             foreach (var topic in _channelDeclarations.Keys)
             {
-                if (_courier.HasAnyArchiveTail(NodeId, topic))
+                if (_courier.HasAnyArchiveTail(NodeForTopic(topic), topic))
                 {
                     _born.Add(topic);
                 }
@@ -2252,7 +2288,7 @@ namespace Sitrep.Host
             var delay = RevealDelayFor(topic);
             if (delay <= 0.0)
             {
-                _courier.Record(NodeId, topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value));
+                _courier.Record(NodeForTopic(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value));
                 return;
             }
 
@@ -2741,7 +2777,7 @@ namespace Sitrep.Host
                     // through (whose blackout samples carry connected:false).
                     if (horizonReached && (isMetaTopic || ConnectivityAt(entry.Ut)))
                     {
-                        _courier.Record(NodeId, topic, entry.Value, entry.Ut, DeliveryFor(topic), IsKeyframeFor(topic, entry.Value));
+                        _courier.Record(NodeForTopic(topic), topic, entry.Value, entry.Ut, DeliveryFor(topic), IsKeyframeFor(topic, entry.Value));
                     }
                     else
                     {
@@ -3237,7 +3273,7 @@ namespace Sitrep.Host
             Action unsubscribe;
             try
             {
-                unsubscribe = _courier.SubscribeStream(NodeId, topic, vantage, streamData =>
+                unsubscribe = _courier.SubscribeStream(NodeForTopic(topic), topic, vantage, streamData =>
                 {
                     // C2-2(b): streamData.Payload is uplink-authored --
                     // some CLR shapes JsonWriter can never serialize (an

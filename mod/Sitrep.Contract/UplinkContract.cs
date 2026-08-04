@@ -458,6 +458,17 @@ namespace Sitrep.Contract
         void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread);
 
         /// <summary>
+        /// Set the one-way routed light-time for a FLEET vessel's telemetry
+        /// (Plan 2): the vessel's <c>fleet.&lt;vesselId&gt;.*</c> topics are
+        /// delayed by this from the single KSC observer. Call it per vessel each
+        /// fleet-capture tick (from the handle-on-Courier half of a gated
+        /// <see cref="AddSampledSource"/>). Unlike <see cref="SetSignalDelaySource"/>
+        /// (the active vessel's global authority), this is a per-subject node
+        /// delay: freeze stays global in Plan 2 (the reveal gate is unchanged).
+        /// </summary>
+        void SetVesselDelay(string vesselId, double oneWaySeconds);
+
+        /// <summary>
         /// Advertise the AUTHORITATIVE CONNECTED/DISCONNECTED control-link state
         /// to the engine's server-side reveal gate: the freeze-on-disconnect
         /// half of the enforcement <see cref="SetSignalDelaySource"/> started
