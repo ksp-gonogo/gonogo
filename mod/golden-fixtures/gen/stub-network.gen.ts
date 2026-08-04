@@ -54,6 +54,12 @@ interface SetDefaultDelayOp {
   seconds: number;
 }
 
+interface SetNodeDelayOp {
+  op: "setNodeDelay";
+  node: string;
+  seconds: number;
+}
+
 interface QueryDelayOp {
   op: "queryDelay";
   vantage: string;
@@ -75,6 +81,7 @@ type Op =
   | SetReachableOp
   | SetScaleOp
   | SetDefaultDelayOp
+  | SetNodeDelayOp
   | QueryDelayOp
   | QueryReachableOp;
 
@@ -108,6 +115,9 @@ function runScenario(scenario: Scenario): Scenario {
         return op;
       case "setDefaultDelay":
         network.setDefaultDelay(op.seconds);
+        return op;
+      case "setNodeDelay":
+        network.setNodeDelay(op.node, op.seconds);
         return op;
       case "queryDelay":
         return { ...op, expected: network.delayTo(op.vantage, op.node) };
@@ -310,6 +320,35 @@ const scenarios: Scenario[] = [
       { op: "queryDelay", vantage: "KSC", node: "v1" },
       { op: "setDefaultDelay", seconds: 60 },
       { op: "queryDelay", vantage: "KSC", node: "v1" },
+    ],
+  },
+  {
+    name: "set-node-delay-is-per-node-across-vantages-under-the-default",
+    description:
+      "setNodeDelay applies a node's own delay for every vantage without an explicit (vantage, node) override; the global default still applies to other nodes, and an explicit setDelay pair overrides the node-default. Resolution order: pair > node-default > global-default.",
+    ops: [
+      { op: "setDefaultDelay", seconds: 10 },
+      { op: "setNodeDelay", node: "fleet.near", seconds: 2 },
+      { op: "setNodeDelay", node: "fleet.far", seconds: 6 },
+      // The node-default holds for ANY vantage.
+      { op: "queryDelay", vantage: "KSC", node: "fleet.near" },
+      { op: "queryDelay", vantage: "other-connection", node: "fleet.near" },
+      { op: "queryDelay", vantage: "KSC", node: "fleet.far" },
+      // A node with no node-default falls to the global default.
+      { op: "queryDelay", vantage: "KSC", node: "system" },
+      // An explicit pair overrides the node-default.
+      { op: "setDelay", vantage: "KSC", node: "fleet.near", seconds: 99 },
+      { op: "queryDelay", vantage: "KSC", node: "fleet.near" },
+      { op: "queryDelay", vantage: "other-connection", node: "fleet.near" },
+    ],
+  },
+  {
+    name: "set-node-delay-clamps-negative-to-zero",
+    description:
+      "A negative setNodeDelay clamps to 0, matching setDefaultDelay.",
+    ops: [
+      { op: "setNodeDelay", node: "fleet.x", seconds: -3 },
+      { op: "queryDelay", vantage: "KSC", node: "fleet.x" },
     ],
   },
 ];

@@ -573,7 +573,7 @@ namespace Gonogo.KSP
         /// so even a payload recorded before this fix existed maps to a null
         /// encounter on replay.</para>
         /// </summary>
-        private static Dictionary<string, object?>? BuildOrbit(Orbit? orbit)
+        internal static Dictionary<string, object?>? BuildOrbit(Orbit? orbit)
         {
             if (orbit == null)
             {

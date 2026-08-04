@@ -68,6 +68,10 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        public void SetVesselDelay(string vesselId, double oneWaySeconds)
+        {
+        }
+
         public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread)
         {
         }
