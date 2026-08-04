@@ -82,7 +82,16 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     warpRate: () => 1,
     delaySeconds: () => opts.delaySeconds ?? 0,
   });
-  const store = new TimelineStore(clock);
+  // A carried channel written as a `.`-terminated prefix sentinel (e.g.
+  // "fleet." or any per-subject dynamic namespace) is a DYNAMIC whole-topic
+  // namespace: tell the
+  // store so a 3+-segment dynamic topic (fleet.<guid>.delay) is subscribed/
+  // sampled whole, not mis-split into a `<parent>.<field>` the wire never
+  // publishes. Exact (non-`.`-terminated) carried topics are unaffected.
+  const carriedList = Array.from(opts.carriedChannels);
+  const store = new TimelineStore(clock, {
+    dynamicWholeTopicPrefixes: carriedList.filter((t) => t.endsWith(".")),
+  });
   store.registerDerivedChannel(vesselStateChannel);
   store.registerDerivedChannel(spaceCenterStateChannel);
   // FuelStatus's stage-scoped resource bars (`dv.currentStageResource(Max)`,
@@ -95,7 +104,7 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
-  const carriedChannels = opts.carriedChannels;
+  const carriedChannels = carriedList;
 
   function Provider({ children }: { children: ReactNode }) {
     return (

@@ -5,14 +5,21 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { RosterCommsControlSource, VesselType } from "@ksp-gonogo/sitrep-sdk";
+import { useFleetVesselLink } from "@ksp-gonogo/sitrep-client";
+import {
+  RosterCommsControlSource,
+  VesselType,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
 import {
   Badge,
+  Disclosure,
   EmptyState,
   Grid,
   NULL_DISPLAY,
   Panel,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment, useMemo } from "react";
 import styled from "styled-components";
@@ -314,12 +321,12 @@ function FleetRosterComponent({
                   )}
                   <CrewCell>{crewLabel(v)}</CrewCell>
                   <LinkCell>
-                    <CommsTag
-                      $tone={COMMS_TONE[v.comms]}
-                      aria-label={comms.aria}
-                    >
-                      {comms.label}
-                    </CommsTag>
+                    <FleetSignalCell
+                      guid={v.id}
+                      vesselName={v.name}
+                      tone={COMMS_TONE[v.comms]}
+                      label={comms.label}
+                    />
                   </LinkCell>
                 </VesselRow>
                 {showUpdates && (
@@ -482,6 +489,76 @@ const CommsTag = styled.span<{ $tone: Tone }>`
   border: 1px solid ${({ $tone }) => TONE_HEX[$tone]};
   color: ${({ $tone }) => TONE_HEX[$tone]};
   white-space: nowrap;
+`;
+
+/**
+ * The per-row Link cell: the connectivity glyph is the trigger of an accessible
+ * Disclosure whose panel shows this vessel's own signal delay + reachability,
+ * read from `fleet.<guid>.delay` (Plan 2 / 2c). Focus/tap reachable, NOT
+ * hover-only. Each row subscribing to its own `fleet.<guid>.delay` IS the
+ * dynamic-subscription reconcile: rows mount/unmount as `system.vessels` changes
+ * and each `useFleetVesselLink` ref-counts its own topic.
+ */
+function FleetSignalCell({
+  guid,
+  vesselName,
+  tone,
+  label,
+}: {
+  guid: string;
+  vesselName: string;
+  tone: Tone;
+  label: string;
+}) {
+  const link = useFleetVesselLink(guid);
+  const oneWay = link?.oneWaySeconds ?? null;
+  const linkState =
+    link == null ? "unknown" : link.connected ? "connected" : "no path";
+  return (
+    <Disclosure
+      ariaLabel={`${vesselName} signal`}
+      label={
+        <CommsTag $tone={tone} aria-hidden="true">
+          {label}
+        </CommsTag>
+      }
+    >
+      <SignalDetail>
+        <div>
+          <SignalDetail__Term>Link</SignalDetail__Term>
+          <dd>{linkState}</dd>
+        </div>
+        {oneWay != null && (
+          <div>
+            <SignalDetail__Term>Delay</SignalDetail__Term>
+            <dd>
+              one-way ~<Unit value={value("s", oneWay)} decimals={1} /> ·
+              round-trip ~
+              <Unit value={value("s", 2 * oneWay)} decimals={1} />
+            </dd>
+          </div>
+        )}
+      </SignalDetail>
+    </Disclosure>
+  );
+}
+
+const SignalDetail = styled.dl`
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  & dd {
+    margin: 0;
+    color: var(--color-text-primary);
+  }
+`;
+
+const SignalDetail__Term = styled.dt`
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.05em;
 `;
 
 const UpdatesBlock = styled.div`
