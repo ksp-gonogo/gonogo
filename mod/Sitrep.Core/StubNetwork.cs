@@ -24,6 +24,14 @@ namespace Sitrep.Core
         /// through this (Plan 1 ledger migration).
         /// </summary>
         void SetDefaultDelay(double seconds);
+
+        /// <summary>
+        /// Sets the one-way delay for a NODE, applied for that node from any
+        /// vantage without a per-(vantage, node) override. The per-vessel
+        /// downlink primitive (Plan 2): each vessel node carries its own routed
+        /// light-time for the single KSC observer.
+        /// </summary>
+        void SetNodeDelay(string node, double seconds);
     }
 
     /// <summary>
@@ -59,6 +67,8 @@ namespace Sitrep.Core
         private readonly bool _defaultReachable;
         private readonly Dictionary<string, Dictionary<string, double>> _delays =
             new Dictionary<string, Dictionary<string, double>>();
+        private readonly Dictionary<string, double> _nodeDelays =
+            new Dictionary<string, double>();
         private readonly Dictionary<string, Dictionary<string, bool>> _reachability =
             new Dictionary<string, Dictionary<string, bool>>();
         private double _scale;
@@ -72,9 +82,26 @@ namespace Sitrep.Core
 
         public double DelayTo(string vantage, string node)
         {
-            var baseDelay = _delays.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var value)
-                ? value
-                : _defaultDelay;
+            // Resolution order: an explicit (vantage, node) pair overrides a
+            // node-level default (SetNodeDelay), which overrides the global
+            // default (SetDefaultDelay). Plan 2 uses the node-default for
+            // per-vessel downlink delay -- one KSC observer, so the delay
+            // depends on the subject node, not the observer vantage. Plan 3
+            // layers per-(vantage, node) overrides on top for multiple command
+            // authorities: both paths are kept intact.
+            double baseDelay;
+            if (_delays.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var pair))
+            {
+                baseDelay = pair;
+            }
+            else if (_nodeDelays.TryGetValue(node, out var nodeDefault))
+            {
+                baseDelay = nodeDefault;
+            }
+            else
+            {
+                baseDelay = _defaultDelay;
+            }
             return baseDelay * _scale;
         }
 
@@ -101,6 +128,24 @@ namespace Sitrep.Core
         public void SetDefaultDelay(double seconds)
         {
             _defaultDelay = double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0
+                ? 0
+                : seconds;
+        }
+
+        /// <summary>
+        /// Set the one-way delay for a NODE, applied to <see cref="DelayTo"/> for
+        /// that node from ANY vantage that has no explicit per-(vantage, node)
+        /// <see cref="SetDelay"/> override. This is the per-vessel downlink
+        /// primitive (Plan 2): the fleet capture sets each vessel node's own
+        /// routed light-time, and every KSC-observer connection reads it. NaN /
+        /// infinite / negative values clamp to 0 (matching
+        /// <see cref="SetDefaultDelay"/>). Plan 3 layers per-(vantage, node)
+        /// <see cref="SetDelay"/> overrides ON TOP of this node-default for
+        /// multiple command authorities -- keep both.
+        /// </summary>
+        public void SetNodeDelay(string node, double seconds)
+        {
+            _nodeDelays[node] = double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0
                 ? 0
                 : seconds;
         }

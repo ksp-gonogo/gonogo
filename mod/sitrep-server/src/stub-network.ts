@@ -34,6 +34,7 @@ export class StubNetwork implements Network {
   private defaultDelay: number;
   private readonly defaultReachable: boolean;
   private readonly delays = new Map<string, Map<string, number>>();
+  private readonly nodeDelays = new Map<string, number>();
   private readonly reachability = new Map<string, Map<string, boolean>>();
   private scale: number;
 
@@ -44,7 +45,14 @@ export class StubNetwork implements Network {
   }
 
   delayTo(vantage: string, node: string): number {
-    const baseDelay = this.delays.get(vantage)?.get(node) ?? this.defaultDelay;
+    // Resolution order: explicit (vantage, node) pair -> node-level default
+    // (setNodeDelay) -> global default (setDefaultDelay). Plan 2 uses the
+    // node-default for per-vessel downlink delay (one KSC observer). Plan 3
+    // layers per-(vantage, node) overrides on top for multiple authorities.
+    const baseDelay =
+      this.delays.get(vantage)?.get(node) ??
+      this.nodeDelays.get(node) ??
+      this.defaultDelay;
     return baseDelay * this.scale;
   }
 
@@ -59,6 +67,16 @@ export class StubNetwork implements Network {
       Number.isNaN(seconds) || !Number.isFinite(seconds) || seconds < 0
         ? 0
         : seconds;
+  }
+
+  /** Set the one-way delay for a NODE, applied for that node from any vantage without a per-(vantage, node) `setDelay` override. The per-vessel downlink primitive (Plan 2): each vessel node carries its own routed light-time for the single KSC observer. NaN / infinite / negative clamp to 0 (matching `setDefaultDelay`). Plan 3 layers per-(vantage, node) overrides on top. */
+  setNodeDelay(node: string, seconds: number): void {
+    this.nodeDelays.set(
+      node,
+      Number.isNaN(seconds) || !Number.isFinite(seconds) || seconds < 0
+        ? 0
+        : seconds,
+    );
   }
 
   reachable(vantage: string, node: string): boolean {

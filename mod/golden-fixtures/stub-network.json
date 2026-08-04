@@ -494,5 +494,84 @@
         "expected": 60
       }
     ]
+  },
+  {
+    "name": "set-node-delay-is-per-node-across-vantages-under-the-default",
+    "description": "setNodeDelay applies a node's own delay for every vantage without an explicit (vantage, node) override; the global default still applies to other nodes, and an explicit setDelay pair overrides the node-default. Resolution order: pair > node-default > global-default.",
+    "ops": [
+      {
+        "op": "setDefaultDelay",
+        "seconds": 10
+      },
+      {
+        "op": "setNodeDelay",
+        "node": "fleet.near",
+        "seconds": 2
+      },
+      {
+        "op": "setNodeDelay",
+        "node": "fleet.far",
+        "seconds": 6
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "fleet.near",
+        "expected": 2
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "other-connection",
+        "node": "fleet.near",
+        "expected": 2
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "fleet.far",
+        "expected": 6
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "system",
+        "expected": 10
+      },
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "fleet.near",
+        "seconds": 99
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "fleet.near",
+        "expected": 99
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "other-connection",
+        "node": "fleet.near",
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "name": "set-node-delay-clamps-negative-to-zero",
+    "description": "A negative setNodeDelay clamps to 0, matching setDefaultDelay.",
+    "ops": [
+      {
+        "op": "setNodeDelay",
+        "node": "fleet.x",
+        "seconds": -3
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "fleet.x",
+        "expected": 0
+      }
+    ]
   }
 ]

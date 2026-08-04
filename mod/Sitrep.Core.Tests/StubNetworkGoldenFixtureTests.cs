@@ -92,6 +92,11 @@ namespace Sitrep.Core.Tests
                     case "setDefaultDelay":
                         network.SetDefaultDelay(op.GetProperty("seconds").GetDouble());
                         break;
+                    case "setNodeDelay":
+                        network.SetNodeDelay(
+                            op.GetProperty("node").GetString()!,
+                            op.GetProperty("seconds").GetDouble());
+                        break;
                     case "queryDelay":
                     {
                         var vantage = op.GetProperty("vantage").GetString()!;
