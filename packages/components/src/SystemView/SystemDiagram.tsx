@@ -1,5 +1,6 @@
 import { getBody, type OrbitPatch } from "@ksp-gonogo/core";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -490,7 +491,13 @@ export function SystemDiagram({
                   }
                   pointerEvents="none"
                 >
-                  {`${normalizePhaseAngle(phaseAngles.get(c.index) as number).toFixed(0)}°`}
+                  {writeQuantity(
+                    value(
+                      "°",
+                      normalizePhaseAngle(phaseAngles.get(c.index) as number),
+                    ),
+                    { decimals: 0 },
+                  )}
                 </text>
               )}
             </g>
@@ -788,28 +795,25 @@ function tooltipRows(
 ): Array<{ label: string; value: string }> {
   const rows: Array<{ label: string; value: string }> = [];
   if (c.radius)
-    rows.push({ label: "Radius", value: `${formatKm(c.radius)} km` });
+    rows.push({ label: "Radius", value: writeQuantity(value("m", c.radius)) });
   if (c.semiMajorAxis)
-    rows.push({ label: "SMA", value: `${formatGm(c.semiMajorAxis)} Gm` });
+    rows.push({
+      label: "SMA",
+      value: writeQuantity(value("m", c.semiMajorAxis)),
+    });
   if (c.eccentricity !== null && c.eccentricity !== undefined)
     rows.push({ label: "Ecc", value: c.eccentricity.toFixed(3) });
   if (c.inclination !== null && c.inclination !== undefined)
-    rows.push({ label: "Inc", value: `${c.inclination.toFixed(1)}°` });
+    rows.push({
+      label: "Inc",
+      value: writeQuantity(value("°", c.inclination), { decimals: 1 }),
+    });
   if (c.period)
-    rows.push({ label: "Period", value: `${formatHours(c.period)} h` });
-  if (c.soi) rows.push({ label: "SoI", value: `${formatKm(c.soi)} km` });
+    rows.push({ label: "Period", value: writeQuantity(value("s", c.period)) });
+  if (c.soi)
+    rows.push({ label: "SoI", value: writeQuantity(value("m", c.soi)) });
   if (c.hasAtmosphere) rows.push({ label: "Atmos", value: "yes" });
   return rows;
-}
-
-function formatKm(m: number): string {
-  return (m / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
-function formatGm(m: number): string {
-  return (m / 1e9).toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-function formatHours(s: number): string {
-  return (s / 3600).toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
 /**

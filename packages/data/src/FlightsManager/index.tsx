@@ -1,6 +1,6 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
 import { HeartIcon } from "@ksp-gonogo/ui";
-import { EmptyState, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { EmptyState, formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
   useCallback,
@@ -29,15 +29,12 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleString();
 }
 
-function formatDuration(launchedAt: number, lastSampleAt: number): string {
-  const s = Math.floor((lastSampleAt - launchedAt) / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  if (m < 60) return `${m}m ${sec}s`;
-  const h = Math.floor(m / 60);
-  const min = m % 60;
-  return `${h}h ${min}m`;
+// The kit's ladder, not a fourth copy of it.
+function formatFlightDuration(
+  launchedAt: number,
+  lastSampleAt: number,
+): string {
+  return formatDuration((lastSampleAt - launchedAt) / 1000);
 }
 
 function getSource(): MissionHistorySource | undefined {
@@ -399,7 +396,9 @@ export function FlightsManager({
                         )}
                       </Td>
                       <Td>{formatDate(f.launchedAt)}</Td>
-                      <Td>{formatDuration(f.launchedAt, f.lastSampleAt)}</Td>
+                      <Td>
+                        {formatFlightDuration(f.launchedAt, f.lastSampleAt)}
+                      </Td>
                       <Td>{f.sampleCount.toLocaleString()}</Td>
                       <Td>
                         <RowActions>

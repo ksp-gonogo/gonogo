@@ -133,6 +133,13 @@ export {
   FramedDisplay,
   type FramedDisplayProps,
 } from "./FramedDisplay";
+// The third, and the last: a CLOCK as a string. `<Countdown>` is the node
+// form and is what a call site should reach for; this exists because four
+// separate files had each hand-rolled the same s/m/h ladder to build a
+// string for a `title`, an `aria-label`, or a template literal, and four
+// copies of a ladder is precisely what this package exists to prevent. It is
+// NOT a general escape from `<Countdown>`: if a node fits, use one.
+export { type FormatDurationOptions, formatDuration } from "./formatDuration";
 // ── Formatters ───────────────────────────────────────────────────────────────
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
@@ -276,9 +283,9 @@ export {
   type Rung,
   registerUnit,
   STANDARD_GRAVITY,
-  // The only two string formatters this package exports, for the places a
-  // node cannot go: `speakQuantity` for an accessible name, `writeQuantity`
-  // for visible text that is measured (an SVG label, a canvas). See their doc
+  // The only string formatters this package exports, for the places a node
+  // cannot go: `speakQuantity` for an accessible name, `writeQuantity` for
+  // visible text that is measured (an SVG label, a canvas). See their doc
   // comments; everywhere else renders `<Unit>`.
   speakQuantity,
   type UnitDefinition,

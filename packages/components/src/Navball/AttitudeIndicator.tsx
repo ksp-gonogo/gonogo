@@ -1,4 +1,5 @@
-import { Cluster, Grid, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Cluster, Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export interface AttitudeIndicatorProps {
@@ -193,15 +194,33 @@ export function AttitudeIndicator({
       <Grid cols="repeat(3, 1fr)" gap="md">
         <Cell>
           <Lab>HDG</Lab>
-          <Val>{ready ? `${safeHeading.toFixed(0)}°` : NULL_DISPLAY}</Val>
+          <Val>
+            {ready ? (
+              <Unit value={value("°", safeHeading)} decimals={0} />
+            ) : (
+              NULL_DISPLAY
+            )}
+          </Val>
         </Cell>
         <Cell>
           <Lab>PIT</Lab>
-          <Val>{ready ? `${safePitch.toFixed(0)}°` : NULL_DISPLAY}</Val>
+          <Val>
+            {ready ? (
+              <Unit value={value("°", safePitch)} decimals={0} />
+            ) : (
+              NULL_DISPLAY
+            )}
+          </Val>
         </Cell>
         <Cell>
           <Lab>ROL</Lab>
-          <Val>{ready ? `${safeRoll.toFixed(0)}°` : NULL_DISPLAY}</Val>
+          <Val>
+            {ready ? (
+              <Unit value={value("°", safeRoll)} decimals={0} />
+            ) : (
+              NULL_DISPLAY
+            )}
+          </Val>
         </Cell>
       </Grid>
     </Wrap>

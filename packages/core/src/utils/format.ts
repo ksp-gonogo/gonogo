@@ -1,17 +1,18 @@
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+// The kit's ladder rather than two more copies of it. `formatDuration` is
+// the sanctioned string form of `<Countdown>`, which is what these callers
+// need: they build a `title` or a label, where a node cannot go.
+//
+// "<1s" stays, because it says something the ladder does not: not "zero
+// seconds old" but "too recent to have a useful age".
 export function formatAge(ms: number): string {
   if (ms < 1000) return "<1s";
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
-  return `${Math.round(ms / 3_600_000)}h`;
+  return formatDuration(ms / 1000);
 }
 
 export function formatAgeLong(ms: number): string {
   if (ms < 1000) return "<1s";
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `${Math.round(ms / 60_000)} min`;
-  if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)} h`;
-  return `${Math.round(ms / 86_400_000)} d`;
+  return formatDuration(ms / 1000);
 }
 
 export function formatCompactNumber(

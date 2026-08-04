@@ -135,7 +135,9 @@ function PreviewBody({
   return (
     <PreviewGrid>
       <Label>ΔV</Label>
-      <PreviewValue>{plan.requiredDeltaV.toFixed(1)} m/s</PreviewValue>
+      <PreviewValue>
+        <Unit value={value("m/s", plan.requiredDeltaV)} decimals={1} />
+      </PreviewValue>
 
       <Label>Burn in</Label>
       <PreviewValue>
@@ -145,9 +147,11 @@ function PreviewBody({
       <Label>Available</Label>
       <PreviewValue>
         <ValueNum>
-          {vesselDeltaV.totalVac === 0
-            ? NULL_DISPLAY
-            : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+          {vesselDeltaV.totalVac === 0 ? (
+            NULL_DISPLAY
+          ) : (
+            <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} />
+          )}
         </ValueNum>
         {feasible !== null && (
           <FeasibilityChip $ok={feasible}>
@@ -182,14 +186,18 @@ function SequencePreview({
     <>
       <PreviewGrid>
         <Label>Total ΔV</Label>
-        <PreviewValue>{seq.totalDeltaV.toFixed(1)} m/s</PreviewValue>
+        <PreviewValue>
+          <Unit value={value("m/s", seq.totalDeltaV)} decimals={1} />
+        </PreviewValue>
 
         <Label>Available</Label>
         <PreviewValue>
           <ValueNum>
-            {vesselDeltaV.totalVac === 0
-              ? NULL_DISPLAY
-              : `${vesselDeltaV.totalVac.toFixed(0)} m/s`}
+            {vesselDeltaV.totalVac === 0 ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} />
+            )}
           </ValueNum>
           {feasible !== null && (
             <FeasibilityChip $ok={feasible}>
@@ -202,7 +210,9 @@ function SequencePreview({
       <SectionTitle as="h4">Burn 1</SectionTitle>
       <PreviewGrid>
         <Label>ΔV</Label>
-        <PreviewValue>{burn1.prograde.toFixed(1)} m/s prograde</PreviewValue>
+        <PreviewValue>
+          <Unit value={value("m/s", burn1.prograde)} decimals={1} /> prograde
+        </PreviewValue>
         <Label>Burn in</Label>
         <PreviewValue>
           <Countdown value={burn1.ut - (currentUT ?? 0)} />
@@ -220,7 +230,8 @@ function SequencePreview({
           <PreviewGrid>
             <Label>ΔV</Label>
             <PreviewValue>
-              {burn2.prograde.toFixed(1)} m/s prograde
+              <Unit value={value("m/s", burn2.prograde)} decimals={1} />{" "}
+              prograde
             </PreviewValue>
             <Label>Burn in</Label>
             <PreviewValue>
@@ -276,7 +287,9 @@ function ProjectedRows({
       {projected.inclination !== undefined && (
         <>
           <Label>{prefix} Inc</Label>
-          <PreviewValue>{projected.inclination.toFixed(2)}°</PreviewValue>
+          <PreviewValue>
+            <Unit value={value("°", projected.inclination)} decimals={2} />
+          </PreviewValue>
         </>
       )}
     </>
@@ -373,9 +386,14 @@ function ShortfallBanner({
         ΔV shortfall: can't add node
       </FeasibilityBannerTitle>
       <FeasibilityBannerBody>
-        Required {requiredDeltaV.toFixed(0)} m/s · available{" "}
-        {vesselDeltaV.totalVac.toFixed(0)} m/s ·{" "}
-        {(requiredDeltaV - vesselDeltaV.totalVac).toFixed(0)} m/s short.
+        Required <Unit value={value("m/s", requiredDeltaV)} decimals={0} /> ·
+        available{" "}
+        <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} /> ·{" "}
+        <Unit
+          value={value("m/s", requiredDeltaV - vesselDeltaV.totalVac)}
+          decimals={0}
+        />{" "}
+        short.
       </FeasibilityBannerBody>
     </FeasibilityBanner>
   );

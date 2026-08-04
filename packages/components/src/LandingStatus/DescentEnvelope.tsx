@@ -1,3 +1,5 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 
 /**
@@ -222,12 +224,15 @@ export interface DescentEnvelopeProps {
   dragDisplay?: DragDisplay;
 }
 
+// `writeQuantity`, not a hand-written suffix: these land in SVG `<text>`,
+// which cannot contain a `<span>`, so `<Unit>` will not go in one. The symbol
+// and the ladder still come from the unit registry.
 function fmtSpeed(v: number): string {
-  return `${Math.round(v)} m/s`;
+  return writeQuantity(value("m/s", v), { decimals: 0 });
 }
 
 function fmtAlt(m: number): string {
-  return m >= 1000 ? `${(m / 1000).toFixed(0)} km` : `${Math.round(m)} m`;
+  return writeQuantity(value("m", m), { decimals: 0 });
 }
 
 /**
