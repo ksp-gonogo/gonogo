@@ -1,12 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  formatDistance,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -84,7 +81,7 @@ function SemiMajorAxisComponent({
     roRef.current = ro;
   }, []);
 
-  if (sma === undefined || !Number.isFinite(sma)) {
+  if (sma === undefined || !Number.isFinite(sma.magnitude)) {
     return (
       <Panel panelTitle="SMA">
         <EmptyState>No orbit data</EmptyState>
@@ -107,7 +104,7 @@ function SemiMajorAxisComponent({
           aria-live="polite"
           style={{ fontSize: `${readoutFontPx}px` }}
         >
-          {formatDistance(sma)}
+          <Unit value={sma} />
         </SmaDisplay>
         {showSparkline && (
           <SparkSlot ref={sparkRef}>

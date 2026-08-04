@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
@@ -75,7 +81,7 @@ describe("SemiMajorAxisComponent", () => {
         ],
       });
     });
-    expect(await screen.findByText("675.0 km")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("675.0 km"));
     expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
   });
 });

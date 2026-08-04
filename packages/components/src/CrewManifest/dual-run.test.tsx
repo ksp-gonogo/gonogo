@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import valentinaSoloOrbit from "./__fixtures__/valentina-solo-orbit.json";
@@ -47,9 +53,7 @@ describe("CrewManifest, real recorded-fixture render off the stream (delay=0)", 
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByText("1 / 1 aboard")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toContain("1 / 1 aboard"));
     expect(screen.getByText("Valentina Kerman")).toBeInTheDocument();
   });
 });

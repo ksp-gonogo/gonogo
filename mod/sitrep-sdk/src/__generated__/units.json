@@ -1,0 +1,2052 @@
+{
+  "version": 1,
+  "vocabulary": [
+    "%",
+    "1",
+    "K",
+    "Mit",
+    "W/m²",
+    "bit/s",
+    "count",
+    "dB",
+    "enum",
+    "flag",
+    "funds",
+    "g",
+    "h",
+    "id",
+    "kN",
+    "kPa",
+    "kW",
+    "kg/m³",
+    "m",
+    "m/s",
+    "m²",
+    "m³",
+    "m³/s²",
+    "n/a",
+    "rad",
+    "rad/s",
+    "ratio",
+    "rep",
+    "rpm",
+    "s",
+    "science",
+    "science/day",
+    "t",
+    "text",
+    "units",
+    "units/s",
+    "°"
+  ],
+  "types": {
+    "ActionBinding": {
+      "action": "text",
+      "groups": "text"
+    },
+    "ActionGroupState": {
+      "index": "id",
+      "name": "text",
+      "state": "flag"
+    },
+    "ActivateStrategyArgs": {
+      "factor": "ratio",
+      "strategyId": "id"
+    },
+    "AddManeuverNodeArgs": {
+      "normal": "m/s",
+      "prograde": "m/s",
+      "radialOut": "m/s",
+      "ut": "s"
+    },
+    "AlternatorEntry": {
+      "outputRate": "units/s",
+      "partId": "id",
+      "partName": "text"
+    },
+    "AtmosphereEntry": {
+      "depth": "m",
+      "hasOxygen": "flag",
+      "seaLevelPressure": "kPa"
+    },
+    "AvionicsStatus": {
+      "avionicsActive": "flag",
+      "controllable": "flag",
+      "controllableMassTons": "t",
+      "vesselMassTons": "t"
+    },
+    "BatteryEntry": {
+      "current": "units",
+      "max": "units",
+      "partId": "id",
+      "partName": "text"
+    },
+    "BodyEntry": {
+      "description": "text",
+      "gravParameter": "m³/s²",
+      "hasOcean": "flag",
+      "index": "id",
+      "name": "text",
+      "parentIndex": "id",
+      "radius": "m",
+      "rotationPeriod": "s",
+      "sphereOfInfluence": "m",
+      "tidallyLocked": "flag"
+    },
+    "CareerContract": {
+      "agent": "text",
+      "dateAccepted": "s",
+      "dateDeadline": "s",
+      "dateExpire": "s",
+      "fundsAdvance": "funds",
+      "fundsCompletion": "funds",
+      "fundsFailure": "funds",
+      "id": "id",
+      "reputationCompletion": "rep",
+      "reputationFailure": "rep",
+      "scienceCompletion": "science",
+      "state": "text",
+      "title": "text"
+    },
+    "CareerContractParameter": {
+      "state": "text",
+      "title": "text"
+    },
+    "CareerEconomy": {
+      "funds": "funds",
+      "reputation": "rep",
+      "science": "science"
+    },
+    "CareerFacility": {
+      "currentTier": "count",
+      "maxTier": "count",
+      "upgradeCost": "funds"
+    },
+    "CareerMode": {
+      "mode": "enum"
+    },
+    "CareerStrategies": {
+      "activeCount": "count"
+    },
+    "CareerStrategy": {
+      "activateBlockedReason": "text",
+      "canActivate": "flag",
+      "canDeactivate": "flag",
+      "dateActivated": "s",
+      "deactivateBlockedReason": "text",
+      "department": "text",
+      "description": "text",
+      "effect": "text",
+      "factor": "ratio",
+      "factorSliderDefault": "ratio",
+      "factorSliderSteps": "count",
+      "hasFactorSlider": "flag",
+      "id": "id",
+      "initialCostFunds": "funds",
+      "initialCostReputation": "rep",
+      "initialCostScience": "science",
+      "isActive": "flag",
+      "requiredReputation": "rep",
+      "title": "text"
+    },
+    "CareerTech": {
+      "unlockedCount": "count",
+      "unlockedIds": "id"
+    },
+    "CareerTechNode": {
+      "id": "id",
+      "parents": "id",
+      "scienceCost": "science",
+      "title": "text",
+      "unlocked": "flag"
+    },
+    "ClosestApproach": {
+      "distance": "m",
+      "time": "s"
+    },
+    "CommandResult": {
+      "errorCode": "enum",
+      "success": "flag"
+    },
+    "CommsConnectivity": {
+      "connected": "flag",
+      "controlSource": "enum",
+      "hasLocalControl": "flag"
+    },
+    "CommsControlState": {
+      "reason": "text",
+      "state": "enum"
+    },
+    "CommsDataRate": {
+      "downBitsPerSec": "bit/s",
+      "upBitsPerSec": "bit/s"
+    },
+    "CommsDelay": {
+      "oneWaySeconds": "s",
+      "source": "enum"
+    },
+    "CommsHop": {
+      "bandRateBitsPerSec": "bit/s",
+      "distanceMeters": "m",
+      "from": "id",
+      "kind": "enum",
+      "to": "id"
+    },
+    "CommsLink": {
+      "connected": "flag"
+    },
+    "CommsLinkMargin": {
+      "closesLink": "flag",
+      "decibelMargin": "dB"
+    },
+    "CommsLinkQuality": {
+      "value": "ratio"
+    },
+    "CommsNetworkEdge": {
+      "a": "id",
+      "active": "flag",
+      "b": "id"
+    },
+    "CommsNetworkNode": {
+      "id": "id",
+      "kind": "enum"
+    },
+    "CommsSignalStrength": {
+      "value": "ratio"
+    },
+    "ContractActionArgs": {
+      "contractId": "id"
+    },
+    "CrashFlightStats": {
+      "flightEndMode": "text",
+      "groundDistance": "m",
+      "highestAltitude": "m",
+      "highestGee": "g",
+      "highestSpeed": "m/s",
+      "highestSpeedOverLand": "m/s",
+      "kerbalsKilled": "count",
+      "liftOff": "flag",
+      "missionEnd": "flag",
+      "missionTime": "s",
+      "partsLost": "count",
+      "totalDistance": "m"
+    },
+    "CrashPartLost": {
+      "msg": "text",
+      "partId": "id",
+      "partName": "text",
+      "partTitle": "text"
+    },
+    "CrashReport": {
+      "altitude": "m",
+      "body": "text",
+      "crewAboard": "text",
+      "eventKind": "id",
+      "events": "text",
+      "kerbalsKilled": "text",
+      "latitude": "°",
+      "longitude": "°",
+      "msg": "text",
+      "situation": "text",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text",
+      "vesselType": "id",
+      "what": "text"
+    },
+    "CrewMember": {
+      "experienceLevel": "count",
+      "name": "text",
+      "rosterStatus": "text",
+      "trait": "text",
+      "type": "id"
+    },
+    "CrewRosterEntry": {
+      "available": "flag",
+      "experienceLevel": "count",
+      "name": "text",
+      "trait": "text",
+      "unavailableReason": "text"
+    },
+    "DeactivateStrategyArgs": {
+      "strategyId": "id"
+    },
+    "DeployedEntry": {
+      "biome": "text",
+      "body": "text",
+      "connectionState": "text",
+      "deployedOnGround": "flag",
+      "experimentId": "id",
+      "partName": "text",
+      "powerState": "text",
+      "scienceCompletedPercentage": "%",
+      "scienceLimit": "science",
+      "scienceTransmittedPercentage": "%",
+      "scienceValue": "science",
+      "situation": "text",
+      "vesselName": "text"
+    },
+    "DockAlignment": {
+      "distance": "m",
+      "forwardDot": "1",
+      "relativePosition.x": "m",
+      "relativePosition.y": "m",
+      "relativePosition.z": "m",
+      "relativeVelocity.x": "m/s",
+      "relativeVelocity.y": "m/s",
+      "relativeVelocity.z": "m/s"
+    },
+    "ErrorMsg": {
+      "code": "id",
+      "message": "text",
+      "requestId": "id",
+      "topic": "id",
+      "type": "id"
+    },
+    "EventMsg": {
+      "name": "text",
+      "topic": "id",
+      "type": "id"
+    },
+    "ExperimentActionArgs": {
+      "partId": "id"
+    },
+    "ExperimentBreakdownEntry": {
+      "biome": "text",
+      "dataMits": "Mit",
+      "expTitle": "text",
+      "remainingPotential": "science",
+      "situation": "text",
+      "subjectId": "id"
+    },
+    "ExperimentEntry": {
+      "baseTransmitValue": "science",
+      "dataAmount": "Mit",
+      "deployed": "flag",
+      "experimentId": "id",
+      "inoperable": "flag",
+      "labValue": "science",
+      "location": "text",
+      "partName": "text",
+      "scienceValueRatio": "ratio",
+      "situation": "text",
+      "subjectId": "id",
+      "title": "text",
+      "transmitBonus": "ratio"
+    },
+    "FlightCurrent": {
+      "flightId": "id",
+      "phase": "enum",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "FlightEnded": {
+      "flightId": "id",
+      "reason": "enum",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "FlightStarted": {
+      "flightId": "id",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "FlightVesselChanged": {
+      "flightId": "id",
+      "previousVesselId": "id",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "FuelCellEntry": {
+      "active": "flag",
+      "partId": "id",
+      "partName": "text",
+      "status": "text"
+    },
+    "GameDlc": {
+      "breakingGround": "flag",
+      "makingHistory": "flag"
+    },
+    "InstrumentEntry": {
+      "dataIsCollectable": "flag",
+      "deployed": "flag",
+      "experimentId": "id",
+      "inoperable": "flag",
+      "partId": "id",
+      "partName": "text",
+      "rerunnable": "flag",
+      "resettable": "flag",
+      "title": "text"
+    },
+    "KerbalismCrewEntry": {
+      "deathClockSec": "s",
+      "name": "text",
+      "trait": "text"
+    },
+    "KerbalismCrewRule": {
+      "degenPerSec": "units/s",
+      "fatalThreshold": "units",
+      "name": "text",
+      "value": "units"
+    },
+    "KerbalismFeatures": {
+      "automation": "flag",
+      "comfort": "flag",
+      "deploy": "flag",
+      "habitat": "flag",
+      "livingSpace": "flag",
+      "poisoning": "flag",
+      "pressure": "flag",
+      "radiation": "flag",
+      "reliability": "flag",
+      "science": "flag",
+      "shielding": "flag",
+      "spaceWeather": "flag",
+      "supplies": "flag"
+    },
+    "KerbalismGreenhouseEntry": {
+      "active": "flag",
+      "artificial": "W/m²",
+      "cropResource": "text",
+      "ecRateMaxPerSec": "units/s",
+      "foodRatePerSec": "units/s",
+      "issue": "text",
+      "lampEcDrawPerSec": "units/s",
+      "lightToleranceWm2": "W/m²",
+      "natural": "W/m²",
+      "pressureTolerance": "ratio",
+      "radiationToleranceRadPerSec": "rad/s"
+    },
+    "KerbalismHabitat": {
+      "comfort": "ratio",
+      "livingSpace": "ratio",
+      "poisoning": "ratio",
+      "pressure": "ratio",
+      "shielding": "ratio",
+      "surface": "m²",
+      "volume": "m³"
+    },
+    "KerbalismProcessEntry": {
+      "broken": "flag",
+      "capacity": "units",
+      "resource": "text",
+      "running": "flag",
+      "title": "text"
+    },
+    "KerbalismResource": {
+      "amount": "units",
+      "capacity": "units",
+      "rate": "units/s"
+    },
+    "KerbalismSpaceWeather": {
+      "blackout": "flag",
+      "habitatRadiationRadPerSecond": "rad/s",
+      "inSunlight": "flag",
+      "innerBelt": "flag",
+      "magnetosphere": "flag",
+      "outerBelt": "flag",
+      "radiationRadPerSecond": "rad/s",
+      "shieldingAmount": "units",
+      "shieldingCapacity": "units",
+      "stormInProgress": "flag",
+      "stormIncoming": "flag"
+    },
+    "KerbcastCameraEntry": {
+      "cameraId": "id",
+      "cameraName": "text",
+      "dockingPortNodeType": "text",
+      "dockingPortState": "text",
+      "fieldOfView": "°",
+      "fieldOfViewMaximum": "°",
+      "fieldOfViewMinimum": "°",
+      "isDockingCamera": "flag",
+      "panPitch": "°",
+      "panPitchMaximum": "°",
+      "panPitchMinimum": "°",
+      "panYaw": "°",
+      "panYawMaximum": "°",
+      "panYawMinimum": "°",
+      "partId": "id",
+      "partName": "text",
+      "partTitle": "text",
+      "supportsPan": "flag",
+      "supportsZoom": "flag",
+      "vesselId": "id"
+    },
+    "KerbcastSetFieldOfViewArgs": {
+      "cameraId": "id",
+      "fieldOfView": "°"
+    },
+    "KerbcastSetPanArgs": {
+      "cameraId": "id",
+      "pitch": "°",
+      "yaw": "°"
+    },
+    "KosComputeStatus": {
+      "lastGoodAt": "s",
+      "parseError": "text",
+      "paused": "flag",
+      "running": "flag",
+      "scriptError": "text"
+    },
+    "KosExecArgs": {
+      "coreId": "id",
+      "scriptId": "id"
+    },
+    "KosKeystrokeArgs": {
+      "chars": "text",
+      "coreId": "id",
+      "leaseToken": "id"
+    },
+    "KosProcessorInfo": {
+      "bootFilePath": "text",
+      "coreId": "id",
+      "hasBooted": "flag",
+      "processorMode": "text",
+      "tag": "text"
+    },
+    "KosReEnableArgs": {
+      "scriptId": "id"
+    },
+    "KosRunArgs": {
+      "command": "text",
+      "coreId": "id",
+      "requestId": "id"
+    },
+    "KosRunResult": {
+      "coreId": "id",
+      "error": "text",
+      "requestId": "id"
+    },
+    "KosTerminalCloseArgs": {
+      "coreId": "id",
+      "leaseToken": "id"
+    },
+    "KosTerminalFrame": {
+      "chunk": "text",
+      "coreId": "id",
+      "fullRepaint": "flag"
+    },
+    "KosTerminalOpenArgs": {
+      "coreId": "id",
+      "leaseToken": "id"
+    },
+    "KosTerminalResizeArgs": {
+      "cols": "count",
+      "coreId": "id",
+      "leaseToken": "id",
+      "rows": "count"
+    },
+    "LabEntry": {
+      "dataStorage": "Mit",
+      "dataStored": "Mit",
+      "isOperational": "flag",
+      "partName": "text",
+      "processingData": "flag",
+      "scienceRate": "science/day",
+      "scientistCount": "count",
+      "statusText": "text",
+      "storedScience": "science"
+    },
+    "LaunchArgs": {
+      "crew": "text",
+      "facility": "text",
+      "shipName": "text",
+      "site": "text"
+    },
+    "LaunchSiteEntry": {
+      "bodyIndex": "id",
+      "displayName": "text",
+      "editorFacility": "text",
+      "isStock": "flag",
+      "name": "text",
+      "padOccupied": "flag",
+      "padVesselTitle": "text"
+    },
+    "ManeuverNode": {
+      "dvNormal": "m/s",
+      "dvPrograde": "m/s",
+      "dvRadial": "m/s",
+      "dvTotal": "m/s",
+      "id": "id",
+      "ut": "s"
+    },
+    "Meta": {
+      "active": "flag",
+      "deliveredAt": "s",
+      "quality": "enum",
+      "seq": "id",
+      "source": "id",
+      "staleness": "enum",
+      "timelineEpoch": "id",
+      "validAt": "s",
+      "vantage": "id"
+    },
+    "OrbitEncounter": {
+      "bodyIndex": "id",
+      "transitionType": "enum",
+      "transitionUt": "s"
+    },
+    "OrbitEntry": {
+      "argPe": "°",
+      "ecc": "1",
+      "epoch": "s",
+      "inc": "°",
+      "lan": "°",
+      "meanAnomalyAtEpoch": "rad",
+      "sma": "m"
+    },
+    "OrbitPatch": {
+      "apA": "m",
+      "argPe": "°",
+      "closestEncounterBody": "text",
+      "ecc": "1",
+      "endUt": "s",
+      "epoch": "s",
+      "inc": "°",
+      "lan": "°",
+      "meanAnomalyAtEpoch": "rad",
+      "patchEndTransition": "enum",
+      "patchStartTransition": "enum",
+      "peA": "m",
+      "period": "s",
+      "referenceBody": "text",
+      "semiLatusRectum": "m",
+      "semiMinorAxis": "m",
+      "sma": "m",
+      "startUt": "s"
+    },
+    "PartBounds": {
+      "center.x": "m",
+      "center.y": "m",
+      "center.z": "m",
+      "size.x": "m",
+      "size.y": "m",
+      "size.z": "m"
+    },
+    "PartModuleState": {
+      "flameout": "flag",
+      "state": "text",
+      "tracking": "flag",
+      "type": "id"
+    },
+    "PartResourceFlow": {
+      "amount": "units",
+      "flow": "units/s",
+      "maxAmount": "units",
+      "nominalFlow": "units/s"
+    },
+    "PartsPower": {
+      "totalProductionEc": "units/s"
+    },
+    "PayloadMeta": {
+      "quality": "enum",
+      "source": "id"
+    },
+    "PendingUplink": {
+      "command": "id",
+      "dispatchedAt": "s",
+      "id": "id",
+      "label": "text",
+      "oneWaySeconds": "s",
+      "topic": "id",
+      "vantage": "id"
+    },
+    "RecoveryCrewEntry": {
+      "isTourist": "flag",
+      "levelsGained": "count",
+      "name": "text",
+      "newLevel": "count",
+      "trait": "text",
+      "xpGained": "count"
+    },
+    "RecoveryPartEntry": {
+      "count": "count",
+      "partName": "text",
+      "partTitle": "text",
+      "partValue": "funds",
+      "resourcesValue": "funds",
+      "totalValue": "funds"
+    },
+    "RecoveryReport": {
+      "capturedAtUT": "s",
+      "displayReputation": "flag",
+      "fundsEarned": "funds",
+      "recoveryFactor": "text",
+      "recoveryLocation": "text",
+      "reputationEarned": "rep",
+      "scienceEarned": "science",
+      "totalFunds": "funds",
+      "totalReputation": "rep",
+      "totalScience": "science",
+      "vesselName": "text"
+    },
+    "RecoveryResourceEntry": {
+      "amount": "units",
+      "resourceName": "text",
+      "totalValue": "funds",
+      "unitValue": "funds"
+    },
+    "RecoveryScienceEntry": {
+      "dataGathered": "Mit",
+      "scienceAmount": "science",
+      "subjectId": "id",
+      "subjectTitle": "text"
+    },
+    "ReliabilityPartEntry": {
+      "broken": "flag",
+      "critical": "flag",
+      "durationConsumed": "ratio",
+      "group": "text",
+      "ignitionsConsumed": "ratio",
+      "mtbfHours": "h",
+      "needsRepair": "flag",
+      "partId": "id",
+      "reliabilityFraction": "ratio",
+      "remainingRatedBurn": "s",
+      "title": "text"
+    },
+    "ReliabilitySummary": {
+      "critical": "flag",
+      "malfunction": "flag",
+      "source": "id",
+      "unmodeled": "flag",
+      "worstReliabilityFraction": "ratio"
+    },
+    "RemoveManeuverNodeArgs": {
+      "nodeId": "id"
+    },
+    "ResourceAmount": {
+      "active": "flag",
+      "current": "units",
+      "max": "units"
+    },
+    "RevertAvailability": {
+      "canRevertToEditor": "flag",
+      "canRevertToLaunch": "flag"
+    },
+    "RevertToEditorArgs": {
+      "editor": "text"
+    },
+    "RoboticsAvailability": {
+      "available": "flag"
+    },
+    "RotorReverseArgs": {
+      "partId": "id"
+    },
+    "RotorSetValueArgs": {
+      "partId": "id",
+      "value": "ratio"
+    },
+    "SavedShipEntry": {
+      "facility": "text",
+      "missingParts": "text",
+      "name": "text",
+      "partCount": "count",
+      "requiresFunds": "funds",
+      "totalMass": "t"
+    },
+    "ScanAnomalyEntry": {
+      "detail": "flag",
+      "known": "flag",
+      "latitude": "°",
+      "longitude": "°",
+      "name": "text"
+    },
+    "ScanScienceEntry": {
+      "deployed": "flag",
+      "expId": "id",
+      "hasData": "flag",
+      "inoperable": "flag",
+      "partId": "id",
+      "partTitle": "text",
+      "rerunnable": "flag",
+      "title": "text"
+    },
+    "ScanSensorEntry": {
+      "bestAlt": "m",
+      "bestRange": "flag",
+      "fov": "°",
+      "inRange": "flag",
+      "maxAlt": "m",
+      "minAlt": "m",
+      "type": "id"
+    },
+    "ScanTrackColor": {
+      "a": "count",
+      "b": "count",
+      "g": "count",
+      "r": "count"
+    },
+    "ScanningVesselEntry": {
+      "altitude": "m",
+      "body": "text",
+      "groundTrackLonHalfDeg": "°",
+      "groundTrackWidthDeg": "°",
+      "subLatitude": "°",
+      "subLongitude": "°",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "SensorEntry": {
+      "active": "flag",
+      "partId": "id",
+      "partName": "text",
+      "readout": "text",
+      "type": "id"
+    },
+    "ServoEntry": {
+      "brakePercentage": "%",
+      "counterClockwise": "flag",
+      "currentAngle": "°",
+      "currentExtension": "m",
+      "currentRPM": "rpm",
+      "maxTorque": "kN",
+      "motorState": "text",
+      "normalizedOutput": "ratio",
+      "partId": "id",
+      "partName": "text",
+      "rpmLimit": "rpm",
+      "servoIsLocked": "flag",
+      "servoIsMotorized": "flag",
+      "servoMotorIsEngaged": "flag",
+      "servoMotorLimit": "%",
+      "targetAngle": "°",
+      "targetExtension": "m",
+      "traverseVelocity": "n/a",
+      "type": "id"
+    },
+    "ServoSetEnabledArgs": {
+      "enabled": "flag",
+      "partId": "id"
+    },
+    "ServoSetTargetArgs": {
+      "partId": "id",
+      "value": "ratio"
+    },
+    "SetActionGroupArgs": {
+      "group": "id",
+      "state": "flag"
+    },
+    "SetControlAxesArgs": {
+      "pitch": "1",
+      "pitchTrim": "1",
+      "roll": "1",
+      "rollTrim": "1",
+      "x": "1",
+      "y": "1",
+      "yaw": "1",
+      "yawTrim": "1",
+      "z": "1"
+    },
+    "SetEnabledArgs": {
+      "enabled": "flag"
+    },
+    "SetFlyByWireArgs": {
+      "enabled": "flag"
+    },
+    "SetPausedArgs": {
+      "paused": "flag"
+    },
+    "SetSasModeArgs": {
+      "mode": "enum"
+    },
+    "SetTargetArgs": {
+      "bodyIndex": "id",
+      "kind": "enum",
+      "latitude": "°",
+      "longitude": "°",
+      "partId": "id",
+      "vesselId": "id"
+    },
+    "SetThrottleArgs": {
+      "value": "ratio"
+    },
+    "SetWarpIndexArgs": {
+      "index": "id"
+    },
+    "SolarPanelEntry": {
+      "chargeRate": "units/s",
+      "deployState": "text",
+      "flowRate": "units/s",
+      "partId": "id",
+      "partName": "text",
+      "sunAOA": "°"
+    },
+    "SpaceCenterPartsAvailable": {
+      "count": "count"
+    },
+    "SpaceCenterPoiEntry": {
+      "bodyIndex": "id",
+      "contractAgent": "text",
+      "contractDateDeadline": "s",
+      "contractFundsAdvance": "funds",
+      "contractFundsCompletion": "funds",
+      "id": "id",
+      "kind": "id",
+      "label": "text",
+      "latitude": "°",
+      "longitude": "°",
+      "status": "text"
+    },
+    "SpaceCenterScene": {
+      "launchSite": "text",
+      "scene": "text"
+    },
+    "StageDeltaVEntry": {
+      "burnTime": "s",
+      "dryMass": "t",
+      "dvActual": "m/s",
+      "dvAsl": "m/s",
+      "dvVac": "m/s",
+      "endMass": "t",
+      "fuelMass": "t",
+      "stage": "id",
+      "startMass": "t",
+      "thrustActual": "kN",
+      "thrustAsl": "kN",
+      "thrustVac": "kN",
+      "twrActual": "1",
+      "twrAsl": "1",
+      "twrVac": "1"
+    },
+    "StageDeltaVSummary": {
+      "stageCount": "count",
+      "totalBurnTime": "s",
+      "totalDvActual": "m/s",
+      "totalDvAsl": "m/s",
+      "totalDvVac": "m/s"
+    },
+    "Subscribe": {
+      "topic": "id",
+      "type": "id"
+    },
+    "SwitchVesselArgs": {
+      "vesselId": "id"
+    },
+    "TargetListEntry": {
+      "bodyIndex": "id",
+      "distance": "m",
+      "isCurrent": "flag",
+      "kind": "enum",
+      "name": "text",
+      "partId": "id",
+      "situation": "enum",
+      "vesselId": "id",
+      "vesselType": "enum"
+    },
+    "ThermalHottestPart": {
+      "internalTemp": "K",
+      "maxTemp": "K",
+      "name": "text",
+      "skinMaxTemp": "K",
+      "skinTemp": "K"
+    },
+    "UnlockTechArgs": {
+      "techId": "id"
+    },
+    "Unsubscribe": {
+      "topic": "id",
+      "type": "id"
+    },
+    "UpdateManeuverNodeArgs": {
+      "nodeId": "id",
+      "normal": "m/s",
+      "prograde": "m/s",
+      "radialOut": "m/s",
+      "ut": "s"
+    },
+    "UpgradeFacilityArgs": {
+      "facilityId": "id"
+    },
+    "Vec3": {
+      "x": "n/a",
+      "y": "n/a",
+      "z": "n/a"
+    },
+    "VesselAttitude": {
+      "heading": "°",
+      "headingRootFrame": "°",
+      "pitch": "°",
+      "pitchRootFrame": "°",
+      "roll": "°",
+      "rollRootFrame": "°"
+    },
+    "VesselComms": {
+      "connected": "flag",
+      "controlState": "enum",
+      "signalStrength": "ratio"
+    },
+    "VesselControl": {
+      "abort": "flag",
+      "brakes": "flag",
+      "gear": "flag",
+      "lights": "flag",
+      "precisionControl": "flag",
+      "rcs": "flag",
+      "sas": "flag",
+      "sasMode": "enum",
+      "throttle": "ratio"
+    },
+    "VesselCrew": {
+      "capacity": "count",
+      "count": "count"
+    },
+    "VesselFlight": {
+      "altitudeAsl": "m",
+      "altitudeTerrain": "m",
+      "atmDensity": "kg/m³",
+      "atmosphericTemperature": "K",
+      "dynamicPressureKPa": "kPa",
+      "externalTemperature": "K",
+      "gForce": "g",
+      "latitude": "°",
+      "longitude": "°",
+      "mach": "1",
+      "orbitalSpeed": "m/s",
+      "surfaceSpeed": "m/s",
+      "verticalSpeed": "m/s"
+    },
+    "VesselIdentity": {
+      "launchUt": "s",
+      "name": "text",
+      "parentBodyIndex": "id",
+      "situation": "enum",
+      "vesselId": "id",
+      "vesselType": "enum"
+    },
+    "VesselLanding": {
+      "atmosphericTimeToImpact": "s",
+      "descentRegime": "text",
+      "dragToWeightRatio": "1",
+      "outcome": "text",
+      "parachuteState": "text",
+      "predictedBiome": "text",
+      "predictedLatitude": "°",
+      "predictedLongitude": "°",
+      "predictedRoughness": "m",
+      "predictedSlopeAngle": "°",
+      "predictedSlopeHeading": "°",
+      "predictedTerrainElevation": "m",
+      "projectedTouchdownSpeed": "m/s",
+      "roughnessFootprintMeters": "m",
+      "sampleSource": "text",
+      "slopeAngleUnderVessel": "°",
+      "slopeSampleRadiusMeters": "m",
+      "terminalVelocity": "m/s",
+      "terrainElevationUnderVessel": "m",
+      "terrainPatch": "m",
+      "terrainPatchExtentMeters": "m",
+      "terrainPatchSize": "count"
+    },
+    "VesselOrbit": {
+      "argPe": "°",
+      "ecc": "1",
+      "epoch": "s",
+      "inc": "°",
+      "lan": "°",
+      "meanAnomalyAtEpoch": "rad",
+      "mu": "m³/s²",
+      "referenceBodyIndex": "id",
+      "sma": "m"
+    },
+    "VesselOrbitTruth": {
+      "frameRotating": "flag",
+      "position.x": "m",
+      "position.y": "m",
+      "position.z": "m",
+      "velocity.x": "m/s",
+      "velocity.y": "m/s",
+      "velocity.z": "m/s"
+    },
+    "VesselPart": {
+      "category": "text",
+      "currentTemp": "K",
+      "dryMass": "t",
+      "fuelLineTargetId": "id",
+      "id": "id",
+      "inverseStage": "id",
+      "isPowerRelated": "flag",
+      "isRobotics": "flag",
+      "maxTemp": "K",
+      "modules": "text",
+      "name": "text",
+      "parentId": "id",
+      "position.x": "m",
+      "position.y": "m",
+      "position.z": "m",
+      "skinMaxTemp": "K",
+      "skinTemp": "K",
+      "title": "text",
+      "up.x": "1",
+      "up.y": "1",
+      "up.z": "1"
+    },
+    "VesselPhysicsMode": {
+      "mode": "enum"
+    },
+    "VesselPropulsion": {
+      "availableThrust": "kN",
+      "currentThrust": "kN",
+      "dryMass": "t",
+      "totalMass": "t"
+    },
+    "VesselRosterEntry": {
+      "bodyIndex": "id",
+      "commsConnected": "flag",
+      "commsControlSource": "enum",
+      "crewCapacity": "count",
+      "crewCount": "count",
+      "name": "text",
+      "situation": "enum",
+      "vesselId": "id",
+      "vesselType": "enum"
+    },
+    "VesselStructure": {
+      "currentStage": "id",
+      "partCount": "count",
+      "stageCount": "count"
+    },
+    "VesselSurface": {
+      "biome": "text",
+      "heightFromTerrain": "m",
+      "landedAt": "text"
+    },
+    "VesselTarget": {
+      "bodyIndex": "id",
+      "kind": "enum",
+      "name": "text",
+      "partId": "id",
+      "relativePosition.x": "m",
+      "relativePosition.y": "m",
+      "relativePosition.z": "m",
+      "relativeVelocity.x": "m/s",
+      "relativeVelocity.y": "m/s",
+      "relativeVelocity.z": "m/s",
+      "vesselId": "id"
+    },
+    "VesselThermal": {
+      "anyEnginesOverheating": "flag",
+      "heatShieldFlux": "kW",
+      "heatShieldTemp": "K",
+      "hottestEngineMaxTemp": "K",
+      "hottestEngineTemp": "K",
+      "hottestEngineTempRatio": "ratio",
+      "maxInternalTempRatio": "ratio",
+      "maxSkinTempRatio": "ratio"
+    },
+    "WarpState": {
+      "paused": "flag",
+      "warpMode": "enum",
+      "warpRate": "1",
+      "warpRateIndex": "id"
+    }
+  },
+  "topics": {
+    "avionics.status": {
+      "avionicsActive": "flag",
+      "controllable": "flag",
+      "controllableMassTons": "t",
+      "vesselMassTons": "t"
+    },
+    "career.mode": {
+      "mode": "enum"
+    },
+    "comms.connectivity": {
+      "connected": "flag",
+      "controlSource": "enum",
+      "hasLocalControl": "flag"
+    },
+    "comms.controlState": {
+      "reason": "text",
+      "state": "enum"
+    },
+    "comms.dataRate": {
+      "downBitsPerSec": "bit/s",
+      "upBitsPerSec": "bit/s"
+    },
+    "comms.delay": {
+      "oneWaySeconds": "s",
+      "source": "enum"
+    },
+    "comms.link": {
+      "connected": "flag"
+    },
+    "comms.linkMargin": {
+      "closesLink": "flag",
+      "decibelMargin": "dB"
+    },
+    "comms.linkQuality": {
+      "value": "ratio"
+    },
+    "comms.signalStrength": {
+      "value": "ratio"
+    },
+    "crash.lastCrash": {
+      "altitude": "m",
+      "body": "text",
+      "crewAboard": "text",
+      "eventKind": "id",
+      "events": "text",
+      "kerbalsKilled": "text",
+      "latitude": "°",
+      "longitude": "°",
+      "msg": "text",
+      "situation": "text",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text",
+      "vesselType": "id",
+      "what": "text"
+    },
+    "dv.stages": {
+      "burnTime": "s",
+      "dryMass": "t",
+      "dvActual": "m/s",
+      "dvAsl": "m/s",
+      "dvVac": "m/s",
+      "endMass": "t",
+      "fuelMass": "t",
+      "stage": "id",
+      "startMass": "t",
+      "thrustActual": "kN",
+      "thrustAsl": "kN",
+      "thrustVac": "kN",
+      "twrActual": "1",
+      "twrAsl": "1",
+      "twrVac": "1"
+    },
+    "dv.summary": {
+      "stageCount": "count",
+      "totalBurnTime": "s",
+      "totalDvActual": "m/s",
+      "totalDvAsl": "m/s",
+      "totalDvVac": "m/s"
+    },
+    "flight.current": {
+      "flightId": "id",
+      "phase": "enum",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "flight.ended": {
+      "flightId": "id",
+      "reason": "enum",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "flight.started": {
+      "flightId": "id",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "flight.vesselChanged": {
+      "flightId": "id",
+      "previousVesselId": "id",
+      "ut": "s",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "game.dlc": {
+      "breakingGround": "flag",
+      "makingHistory": "flag"
+    },
+    "kerbalism.crew": {
+      "deathClockSec": "s",
+      "name": "text",
+      "trait": "text"
+    },
+    "kerbalism.features": {
+      "automation": "flag",
+      "comfort": "flag",
+      "deploy": "flag",
+      "habitat": "flag",
+      "livingSpace": "flag",
+      "poisoning": "flag",
+      "pressure": "flag",
+      "radiation": "flag",
+      "reliability": "flag",
+      "science": "flag",
+      "shielding": "flag",
+      "spaceWeather": "flag",
+      "supplies": "flag"
+    },
+    "kerbalism.spaceweather": {
+      "blackout": "flag",
+      "habitatRadiationRadPerSecond": "rad/s",
+      "inSunlight": "flag",
+      "innerBelt": "flag",
+      "magnetosphere": "flag",
+      "outerBelt": "flag",
+      "radiationRadPerSecond": "rad/s",
+      "shieldingAmount": "units",
+      "shieldingCapacity": "units",
+      "stormInProgress": "flag",
+      "stormIncoming": "flag"
+    },
+    "kerbcast.cameras": {
+      "cameraId": "id",
+      "cameraName": "text",
+      "dockingPortNodeType": "text",
+      "dockingPortState": "text",
+      "fieldOfView": "°",
+      "fieldOfViewMaximum": "°",
+      "fieldOfViewMinimum": "°",
+      "isDockingCamera": "flag",
+      "panPitch": "°",
+      "panPitchMaximum": "°",
+      "panPitchMinimum": "°",
+      "panYaw": "°",
+      "panYawMaximum": "°",
+      "panYawMinimum": "°",
+      "partId": "id",
+      "partName": "text",
+      "partTitle": "text",
+      "supportsPan": "flag",
+      "supportsZoom": "flag",
+      "vesselId": "id"
+    },
+    "kos.processors": {
+      "bootFilePath": "text",
+      "coreId": "id",
+      "hasBooted": "flag",
+      "processorMode": "text",
+      "tag": "text"
+    },
+    "ksp.revertAvailability": {
+      "canRevertToEditor": "flag",
+      "canRevertToLaunch": "flag"
+    },
+    "parts.power": {
+      "totalProductionEc": "units/s"
+    },
+    "parts.robotics": {
+      "brakePercentage": "%",
+      "counterClockwise": "flag",
+      "currentAngle": "°",
+      "currentExtension": "m",
+      "currentRPM": "rpm",
+      "maxTorque": "kN",
+      "motorState": "text",
+      "normalizedOutput": "ratio",
+      "partId": "id",
+      "partName": "text",
+      "rpmLimit": "rpm",
+      "servoIsLocked": "flag",
+      "servoIsMotorized": "flag",
+      "servoMotorIsEngaged": "flag",
+      "servoMotorLimit": "%",
+      "targetAngle": "°",
+      "targetExtension": "m",
+      "traverseVelocity": "n/a",
+      "type": "id"
+    },
+    "recovery.lastSummary": {
+      "capturedAtUT": "s",
+      "displayReputation": "flag",
+      "fundsEarned": "funds",
+      "recoveryFactor": "text",
+      "recoveryLocation": "text",
+      "reputationEarned": "rep",
+      "scienceEarned": "science",
+      "totalFunds": "funds",
+      "totalReputation": "rep",
+      "totalScience": "science",
+      "vesselName": "text"
+    },
+    "reliability.parts": {
+      "broken": "flag",
+      "critical": "flag",
+      "durationConsumed": "ratio",
+      "group": "text",
+      "ignitionsConsumed": "ratio",
+      "mtbfHours": "h",
+      "needsRepair": "flag",
+      "partId": "id",
+      "reliabilityFraction": "ratio",
+      "remainingRatedBurn": "s",
+      "title": "text"
+    },
+    "reliability.summary": {
+      "critical": "flag",
+      "malfunction": "flag",
+      "source": "id",
+      "unmodeled": "flag",
+      "worstReliabilityFraction": "ratio"
+    },
+    "robotics.available": {
+      "available": "flag"
+    },
+    "scansat.scanningVessels": {
+      "altitude": "m",
+      "body": "text",
+      "groundTrackLonHalfDeg": "°",
+      "groundTrackWidthDeg": "°",
+      "subLatitude": "°",
+      "subLongitude": "°",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "scansat.science": {
+      "deployed": "flag",
+      "expId": "id",
+      "hasData": "flag",
+      "inoperable": "flag",
+      "partId": "id",
+      "partTitle": "text",
+      "rerunnable": "flag",
+      "title": "text"
+    },
+    "science.deployed": {
+      "biome": "text",
+      "body": "text",
+      "connectionState": "text",
+      "deployedOnGround": "flag",
+      "experimentId": "id",
+      "partName": "text",
+      "powerState": "text",
+      "scienceCompletedPercentage": "%",
+      "scienceLimit": "science",
+      "scienceTransmittedPercentage": "%",
+      "scienceValue": "science",
+      "situation": "text",
+      "vesselName": "text"
+    },
+    "science.experimentBreakdown": {
+      "biome": "text",
+      "dataMits": "Mit",
+      "expTitle": "text",
+      "remainingPotential": "science",
+      "situation": "text",
+      "subjectId": "id"
+    },
+    "science.experiments": {
+      "baseTransmitValue": "science",
+      "dataAmount": "Mit",
+      "deployed": "flag",
+      "experimentId": "id",
+      "inoperable": "flag",
+      "labValue": "science",
+      "location": "text",
+      "partName": "text",
+      "scienceValueRatio": "ratio",
+      "situation": "text",
+      "subjectId": "id",
+      "title": "text",
+      "transmitBonus": "ratio"
+    },
+    "science.instruments": {
+      "dataIsCollectable": "flag",
+      "deployed": "flag",
+      "experimentId": "id",
+      "inoperable": "flag",
+      "partId": "id",
+      "partName": "text",
+      "rerunnable": "flag",
+      "resettable": "flag",
+      "title": "text"
+    },
+    "science.lab": {
+      "dataStorage": "Mit",
+      "dataStored": "Mit",
+      "isOperational": "flag",
+      "partName": "text",
+      "processingData": "flag",
+      "scienceRate": "science/day",
+      "scientistCount": "count",
+      "statusText": "text",
+      "storedScience": "science"
+    },
+    "science.sensors": {
+      "active": "flag",
+      "partId": "id",
+      "partName": "text",
+      "readout": "text",
+      "type": "id"
+    },
+    "spaceCenter.crewRoster": {
+      "available": "flag",
+      "experienceLevel": "count",
+      "name": "text",
+      "trait": "text",
+      "unavailableReason": "text"
+    },
+    "spaceCenter.launchSites": {
+      "bodyIndex": "id",
+      "displayName": "text",
+      "editorFacility": "text",
+      "isStock": "flag",
+      "name": "text",
+      "padOccupied": "flag",
+      "padVesselTitle": "text"
+    },
+    "spaceCenter.partsAvailable": {
+      "count": "count"
+    },
+    "spaceCenter.pois": {
+      "bodyIndex": "id",
+      "contractAgent": "text",
+      "contractDateDeadline": "s",
+      "contractFundsAdvance": "funds",
+      "contractFundsCompletion": "funds",
+      "id": "id",
+      "kind": "id",
+      "label": "text",
+      "latitude": "°",
+      "longitude": "°",
+      "status": "text"
+    },
+    "spaceCenter.savedShips": {
+      "facility": "text",
+      "missingParts": "text",
+      "name": "text",
+      "partCount": "count",
+      "requiresFunds": "funds",
+      "totalMass": "t"
+    },
+    "spaceCenter.scene": {
+      "launchSite": "text",
+      "scene": "text"
+    },
+    "time.warp": {
+      "paused": "flag",
+      "warpMode": "enum",
+      "warpRate": "1",
+      "warpRateIndex": "id"
+    },
+    "vessel.attitude": {
+      "heading": "°",
+      "headingRootFrame": "°",
+      "pitch": "°",
+      "pitchRootFrame": "°",
+      "roll": "°",
+      "rollRootFrame": "°"
+    },
+    "vessel.comms": {
+      "connected": "flag",
+      "controlState": "enum",
+      "signalStrength": "ratio"
+    },
+    "vessel.control": {
+      "abort": "flag",
+      "brakes": "flag",
+      "gear": "flag",
+      "lights": "flag",
+      "precisionControl": "flag",
+      "rcs": "flag",
+      "sas": "flag",
+      "sasMode": "enum",
+      "throttle": "ratio"
+    },
+    "vessel.crew": {
+      "capacity": "count",
+      "count": "count"
+    },
+    "vessel.dock": {
+      "distance": "m",
+      "forwardDot": "1",
+      "relativePosition.x": "m",
+      "relativePosition.y": "m",
+      "relativePosition.z": "m",
+      "relativeVelocity.x": "m/s",
+      "relativeVelocity.y": "m/s",
+      "relativeVelocity.z": "m/s"
+    },
+    "vessel.flight": {
+      "altitudeAsl": "m",
+      "altitudeTerrain": "m",
+      "atmDensity": "kg/m³",
+      "atmosphericTemperature": "K",
+      "dynamicPressureKPa": "kPa",
+      "externalTemperature": "K",
+      "gForce": "g",
+      "latitude": "°",
+      "longitude": "°",
+      "mach": "1",
+      "orbitalSpeed": "m/s",
+      "surfaceSpeed": "m/s",
+      "verticalSpeed": "m/s"
+    },
+    "vessel.identity": {
+      "launchUt": "s",
+      "name": "text",
+      "parentBodyIndex": "id",
+      "situation": "enum",
+      "vesselId": "id",
+      "vesselType": "enum"
+    },
+    "vessel.landing": {
+      "atmosphericTimeToImpact": "s",
+      "descentRegime": "text",
+      "dragToWeightRatio": "1",
+      "outcome": "text",
+      "parachuteState": "text",
+      "predictedBiome": "text",
+      "predictedLatitude": "°",
+      "predictedLongitude": "°",
+      "predictedRoughness": "m",
+      "predictedSlopeAngle": "°",
+      "predictedSlopeHeading": "°",
+      "predictedTerrainElevation": "m",
+      "projectedTouchdownSpeed": "m/s",
+      "roughnessFootprintMeters": "m",
+      "sampleSource": "text",
+      "slopeAngleUnderVessel": "°",
+      "slopeSampleRadiusMeters": "m",
+      "terminalVelocity": "m/s",
+      "terrainElevationUnderVessel": "m",
+      "terrainPatch": "m",
+      "terrainPatchExtentMeters": "m",
+      "terrainPatchSize": "count"
+    },
+    "vessel.orbit": {
+      "argPe": "°",
+      "ecc": "1",
+      "epoch": "s",
+      "inc": "°",
+      "lan": "°",
+      "meanAnomalyAtEpoch": "rad",
+      "mu": "m³/s²",
+      "referenceBodyIndex": "id",
+      "sma": "m"
+    },
+    "vessel.orbit.truth": {
+      "frameRotating": "flag",
+      "position.x": "m",
+      "position.y": "m",
+      "position.z": "m",
+      "velocity.x": "m/s",
+      "velocity.y": "m/s",
+      "velocity.z": "m/s"
+    },
+    "vessel.physics.mode": {
+      "mode": "enum"
+    },
+    "vessel.propulsion": {
+      "availableThrust": "kN",
+      "currentThrust": "kN",
+      "dryMass": "t",
+      "totalMass": "t"
+    },
+    "vessel.structure": {
+      "currentStage": "id",
+      "partCount": "count",
+      "stageCount": "count"
+    },
+    "vessel.surface": {
+      "biome": "text",
+      "heightFromTerrain": "m",
+      "landedAt": "text"
+    },
+    "vessel.target": {
+      "bodyIndex": "id",
+      "kind": "enum",
+      "name": "text",
+      "partId": "id",
+      "relativePosition.x": "m",
+      "relativePosition.y": "m",
+      "relativePosition.z": "m",
+      "relativeVelocity.x": "m/s",
+      "relativeVelocity.y": "m/s",
+      "relativeVelocity.z": "m/s",
+      "vesselId": "id"
+    },
+    "vessel.thermal": {
+      "anyEnginesOverheating": "flag",
+      "heatShieldFlux": "kW",
+      "heatShieldTemp": "K",
+      "hottestEngineMaxTemp": "K",
+      "hottestEngineTemp": "K",
+      "hottestEngineTempRatio": "ratio",
+      "maxInternalTempRatio": "ratio",
+      "maxSkinTempRatio": "ratio"
+    }
+  },
+  "typeShapes": {
+    "BodyEntry": {
+      "atmosphere": "AtmosphereEntry",
+      "orbit": "OrbitEntry"
+    },
+    "CapabilitySelection": {
+      "descriptor": "CapabilityDescriptor",
+      "providers": "ProviderRegistration"
+    },
+    "CareerContract": {
+      "parameters": "CareerContractParameter"
+    },
+    "CareerContracts": {
+      "active": "CareerContract",
+      "completedRecent": "CareerContract",
+      "offered": "CareerContract"
+    },
+    "CareerStatus": {
+      "contracts": "CareerContracts",
+      "economy": "CareerEconomy",
+      "facilities": "*CareerFacility",
+      "strategies": "CareerStrategies",
+      "tech": "CareerTech"
+    },
+    "CareerStrategies": {
+      "active": "CareerStrategy",
+      "all": "CareerStrategy"
+    },
+    "CareerTech": {
+      "nodes": "CareerTechNode"
+    },
+    "ChannelDeclaration": {
+      "emission": "EmissionPolicy"
+    },
+    "CommandResponse`1": {
+      "meta": "Meta"
+    },
+    "CommsConnectivity": {
+      "meta": "PayloadMeta"
+    },
+    "CommsControlState": {
+      "meta": "PayloadMeta"
+    },
+    "CommsDataRate": {
+      "meta": "PayloadMeta"
+    },
+    "CommsDelay": {
+      "meta": "PayloadMeta"
+    },
+    "CommsLink": {
+      "meta": "PayloadMeta"
+    },
+    "CommsLinkMargin": {
+      "meta": "PayloadMeta"
+    },
+    "CommsLinkQuality": {
+      "meta": "PayloadMeta"
+    },
+    "CommsNetwork": {
+      "edges": "CommsNetworkEdge",
+      "meta": "PayloadMeta",
+      "nodes": "CommsNetworkNode"
+    },
+    "CommsPath": {
+      "hops": "CommsHop",
+      "meta": "PayloadMeta"
+    },
+    "CommsSignalStrength": {
+      "meta": "PayloadMeta"
+    },
+    "CrashReport": {
+      "flightStats": "CrashFlightStats",
+      "partsLost": "CrashPartLost"
+    },
+    "DockAlignment": {
+      "meta": "PayloadMeta"
+    },
+    "EmissionPolicy": {
+      "quantum": "EmissionQuantum"
+    },
+    "EventMsg": {
+      "meta": "Meta"
+    },
+    "ISitrepUplink": {
+      "manifest": "UplinkManifest"
+    },
+    "IUplinkHost": {
+      "kernel": "Kernel"
+    },
+    "KerbalismCrewEntry": {
+      "rules": "KerbalismCrewRule"
+    },
+    "KerbalismLifeSupport": {
+      "electricCharge": "KerbalismResource",
+      "food": "KerbalismResource",
+      "greenhouses": "KerbalismGreenhouseEntry",
+      "habitat": "KerbalismHabitat",
+      "oxygen": "KerbalismResource",
+      "processes": "KerbalismProcessEntry",
+      "water": "KerbalismResource"
+    },
+    "ManeuverNode": {
+      "patches": "OrbitPatch"
+    },
+    "PartsPower": {
+      "alternators": "AlternatorEntry",
+      "batteries": "BatteryEntry",
+      "fuelCells": "FuelCellEntry",
+      "solarPanels": "SolarPanelEntry"
+    },
+    "PendingUplinkQueue": {
+      "pending": "PendingUplink"
+    },
+    "ProviderRegistration": {
+      "versions": "ProviderVersions"
+    },
+    "ProviderVersions": {
+      "targetModVersionRange": "VersionRange"
+    },
+    "RecoveryReport": {
+      "crewBreakdown": "RecoveryCrewEntry",
+      "partBreakdown": "RecoveryPartEntry",
+      "resourceBreakdown": "RecoveryResourceEntry",
+      "scienceBreakdown": "RecoveryScienceEntry"
+    },
+    "ResolveResult": {
+      "notices": "ResolutionNotice"
+    },
+    "ScanningVesselEntry": {
+      "sensors": "ScanSensorEntry",
+      "trackColor": "ScanTrackColor"
+    },
+    "StageDeltaVEntry": {
+      "resources": "*ResourceAmount"
+    },
+    "StreamData`1": {
+      "meta": "Meta"
+    },
+    "SystemBodies": {
+      "bodies": "BodyEntry"
+    },
+    "SystemVessels": {
+      "vessels": "VesselRosterEntry"
+    },
+    "TargetAvailable": {
+      "entries": "TargetListEntry"
+    },
+    "UplinkManifest": {
+      "channels": "ChannelDeclaration",
+      "clientSource": "UplinkClientSource",
+      "commands": "CommandDeclaration"
+    },
+    "VesselAttitude": {
+      "meta": "PayloadMeta"
+    },
+    "VesselComms": {
+      "meta": "PayloadMeta"
+    },
+    "VesselControl": {
+      "actionGroups": "ActionGroupState",
+      "meta": "PayloadMeta"
+    },
+    "VesselCrew": {
+      "crew": "CrewMember",
+      "meta": "PayloadMeta"
+    },
+    "VesselFlight": {
+      "meta": "PayloadMeta"
+    },
+    "VesselIdentity": {
+      "meta": "PayloadMeta"
+    },
+    "VesselLanding": {
+      "meta": "PayloadMeta"
+    },
+    "VesselManeuver": {
+      "meta": "PayloadMeta",
+      "nodes": "ManeuverNode"
+    },
+    "VesselOrbit": {
+      "encounter": "OrbitEncounter",
+      "meta": "PayloadMeta",
+      "patches": "OrbitPatch"
+    },
+    "VesselOrbitTruth": {
+      "meta": "PayloadMeta"
+    },
+    "VesselPart": {
+      "actionBindings": "ActionBinding",
+      "bounds": "PartBounds",
+      "moduleStates": "PartModuleState",
+      "resources": "*PartResourceFlow"
+    },
+    "VesselParts": {
+      "meta": "PayloadMeta",
+      "parts": "VesselPart"
+    },
+    "VesselPhysicsMode": {
+      "meta": "PayloadMeta"
+    },
+    "VesselPropulsion": {
+      "meta": "PayloadMeta"
+    },
+    "VesselResources": {
+      "meta": "PayloadMeta",
+      "resources": "*ResourceAmount"
+    },
+    "VesselStructure": {
+      "meta": "PayloadMeta"
+    },
+    "VesselSurface": {
+      "meta": "PayloadMeta"
+    },
+    "VesselTarget": {
+      "closestApproach": "ClosestApproach",
+      "meta": "PayloadMeta",
+      "orbit": "VesselOrbit"
+    },
+    "VesselThermal": {
+      "hottestPart": "ThermalHottestPart",
+      "meta": "PayloadMeta"
+    },
+    "WarpState": {
+      "meta": "PayloadMeta"
+    }
+  },
+  "topicShapes": {
+    "career.status": {
+      "contracts": "CareerContracts",
+      "economy": "CareerEconomy",
+      "facilities": "*CareerFacility",
+      "strategies": "CareerStrategies",
+      "tech": "CareerTech"
+    },
+    "comms.connectivity": {
+      "meta": "PayloadMeta"
+    },
+    "comms.controlState": {
+      "meta": "PayloadMeta"
+    },
+    "comms.dataRate": {
+      "meta": "PayloadMeta"
+    },
+    "comms.delay": {
+      "meta": "PayloadMeta"
+    },
+    "comms.link": {
+      "meta": "PayloadMeta"
+    },
+    "comms.linkMargin": {
+      "meta": "PayloadMeta"
+    },
+    "comms.linkQuality": {
+      "meta": "PayloadMeta"
+    },
+    "comms.network": {
+      "edges": "CommsNetworkEdge",
+      "meta": "PayloadMeta",
+      "nodes": "CommsNetworkNode"
+    },
+    "comms.path": {
+      "hops": "CommsHop",
+      "meta": "PayloadMeta"
+    },
+    "comms.signalStrength": {
+      "meta": "PayloadMeta"
+    },
+    "crash.lastCrash": {
+      "flightStats": "CrashFlightStats",
+      "partsLost": "CrashPartLost"
+    },
+    "dv.stages": {
+      "resources": "*ResourceAmount"
+    },
+    "kerbalism.crew": {
+      "rules": "KerbalismCrewRule"
+    },
+    "kerbalism.lifesupport": {
+      "electricCharge": "KerbalismResource",
+      "food": "KerbalismResource",
+      "greenhouses": "KerbalismGreenhouseEntry",
+      "habitat": "KerbalismHabitat",
+      "oxygen": "KerbalismResource",
+      "processes": "KerbalismProcessEntry",
+      "water": "KerbalismResource"
+    },
+    "parts.power": {
+      "alternators": "AlternatorEntry",
+      "batteries": "BatteryEntry",
+      "fuelCells": "FuelCellEntry",
+      "solarPanels": "SolarPanelEntry"
+    },
+    "recovery.lastSummary": {
+      "crewBreakdown": "RecoveryCrewEntry",
+      "partBreakdown": "RecoveryPartEntry",
+      "resourceBreakdown": "RecoveryResourceEntry",
+      "scienceBreakdown": "RecoveryScienceEntry"
+    },
+    "scansat.scanningVessels": {
+      "sensors": "ScanSensorEntry",
+      "trackColor": "ScanTrackColor"
+    },
+    "system.bodies": {
+      "bodies": "BodyEntry"
+    },
+    "system.vessels": {
+      "vessels": "VesselRosterEntry"
+    },
+    "target.available": {
+      "entries": "TargetListEntry"
+    },
+    "time.warp": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.attitude": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.comms": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.control": {
+      "actionGroups": "ActionGroupState",
+      "meta": "PayloadMeta"
+    },
+    "vessel.crew": {
+      "crew": "CrewMember",
+      "meta": "PayloadMeta"
+    },
+    "vessel.dock": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.flight": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.identity": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.landing": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.maneuver": {
+      "meta": "PayloadMeta",
+      "nodes": "ManeuverNode"
+    },
+    "vessel.orbit": {
+      "encounter": "OrbitEncounter",
+      "meta": "PayloadMeta",
+      "patches": "OrbitPatch"
+    },
+    "vessel.orbit.truth": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.parts": {
+      "meta": "PayloadMeta",
+      "parts": "VesselPart"
+    },
+    "vessel.physics.mode": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.propulsion": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.resources": {
+      "meta": "PayloadMeta",
+      "resources": "*ResourceAmount"
+    },
+    "vessel.structure": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.surface": {
+      "meta": "PayloadMeta"
+    },
+    "vessel.target": {
+      "closestApproach": "ClosestApproach",
+      "meta": "PayloadMeta",
+      "orbit": "VesselOrbit"
+    },
+    "vessel.thermal": {
+      "hottestPart": "ThermalHottestPart",
+      "meta": "PayloadMeta"
+    }
+  }
+}

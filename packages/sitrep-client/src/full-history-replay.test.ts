@@ -1,4 +1,5 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { buildFullHistoryStore, InstantClock } from "./full-history-replay";
 import type { ReplayFixture } from "./replay-transport";
@@ -51,10 +52,10 @@ describe("buildFullHistoryStore", () => {
       900,
     );
     expect(orbitPoints?.map((p) => p.payload)).toEqual([
-      { sma: 680_000 },
-      { sma: 681_000 },
-      { sma: 682_000 },
-      { sma: 683_000 },
+      { sma: value("m", 680_000) },
+      { sma: value("m", 681_000) },
+      { sma: value("m", 682_000) },
+      { sma: value("m", 683_000) },
     ]);
     expect(orbitPoints?.map((p) => p.validAt)).toEqual([0, 200, 500, 900]);
 
@@ -64,8 +65,8 @@ describe("buildFullHistoryStore", () => {
       900,
     );
     expect(flightPoints?.map((p) => p.payload)).toEqual([
-      { altitudeAsl: 100 },
-      { altitudeAsl: 5000 },
+      { altitudeAsl: value("m", 100) },
+      { altitudeAsl: value("m", 5000) },
     ]);
   });
 
@@ -78,7 +79,7 @@ describe("buildFullHistoryStore", () => {
     // timers + vi.runAllTimers(); it deliberately doesn't.
     const store = buildFullHistoryStore(fixture);
     expect(store.sampleRange("vessel.orbit", 0, 10)).toEqual([
-      expect.objectContaining({ payload: { sma: 1 } }),
+      expect.objectContaining({ payload: { sma: value("m", 1) } }),
     ]);
   });
 
@@ -94,9 +95,9 @@ describe("buildFullHistoryStore", () => {
     const store = buildFullHistoryStore(fixture);
     const points = store.sampleRange<{ sma: number }>("vessel.orbit", 0, 500);
     expect(points?.map((p) => p.payload)).toEqual([
-      { sma: 1 },
-      { sma: 2 },
-      { sma: 3 },
+      { sma: value("m", 1) },
+      { sma: value("m", 2) },
+      { sma: value("m", 3) },
     ]);
   });
 
@@ -133,10 +134,10 @@ describe("buildFullHistoryStore", () => {
       300,
     );
     expect(orbitPoints?.map((p) => p.payload)).toEqual([
-      { sma: 680_000 },
-      { sma: 681_000 },
-      { sma: 100_000 },
-      { sma: 101_000 },
+      { sma: value("m", 680_000) },
+      { sma: value("m", 681_000) },
+      { sma: value("m", 100_000) },
+      { sma: value("m", 101_000) },
     ]);
 
     const flightPoints = store.sampleRange<{ altitudeAsl: number }>(
@@ -145,8 +146,8 @@ describe("buildFullHistoryStore", () => {
       100,
     );
     expect(flightPoints?.map((p) => p.payload)).toEqual([
-      { altitudeAsl: 100 },
-      { altitudeAsl: 5000 },
+      { altitudeAsl: value("m", 100) },
+      { altitudeAsl: value("m", 5000) },
     ]);
   });
 });

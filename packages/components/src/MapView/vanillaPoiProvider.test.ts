@@ -4,6 +4,7 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -138,11 +139,14 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
       kind: "contractTarget",
       label: "Recover the flag",
       status: "active",
+      // The provider carries the declared quantities through rather than
+      // stripping them: `meta` is rendered by MapPoiLayer, which gives a
+      // `Value` the same readout every other quantity gets.
       meta: {
         agent: "Kerbin Space Agency",
-        fundsAdvance: 1000,
-        fundsCompletion: 5000,
-        deadline: 12345,
+        fundsAdvance: value("funds", 1000),
+        fundsCompletion: value("funds", 5000),
+        deadline: value("s", 12345),
       },
     });
   });

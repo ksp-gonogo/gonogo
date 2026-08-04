@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -90,7 +96,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
         paused: false,
       });
     });
-    await waitFor(() => expect(screen.getByText("1×")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("1×"));
 
     const button = screen.getByRole("button", { name: "10×" });
     act(() => {
@@ -133,7 +139,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
         paused: false,
       });
     });
-    await waitFor(() => expect(screen.getByText("1×")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("1×"));
 
     // The pause toggle button only renders in the "Flight" scene
     // (`useGameContext`'s `kc.scene`, unmapped/legacy-only): no legacy

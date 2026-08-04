@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GroundSurveyComponent } from "./index";
@@ -77,6 +77,6 @@ describe("GroundSurvey: genuinely runs off the stream (vessel.flight + vessel.st
 
     expect(screen.getByText(/Kerbin/)).toBeTruthy();
     expect(screen.getByText(/surveying/i)).toBeTruthy();
-    expect(screen.getByText(/2\.50 km AGL/)).toBeTruthy();
+    expect(visibleText()).toMatch(/2\.50 km AGL/);
   });
 });

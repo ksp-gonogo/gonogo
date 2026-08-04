@@ -16,6 +16,11 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 type ScienceBenchConfig = Record<string, never>;
 
@@ -140,14 +145,13 @@ export function parseSensorReadings(raw: unknown): SensorParseResult {
 function readingFromObject(entry: unknown): SensorReading | null {
   if (!entry || typeof entry !== "object") return null;
   const e = entry as Record<string, unknown>;
+  // `magnitudeOf` on each: this reads a sensor entry from several possible
+  // wire shapes, and the first-party one declares its unit, so the value
+  // arrives wrapped while the legacy shapes stay bare.
   let value =
-    typeof e.value === "number"
-      ? e.value
-      : typeof e.reading === "number"
-        ? e.reading
-        : typeof e.v === "number"
-          ? e.v
-          : null;
+    magnitudeOf(e.value as Quantityish) ??
+    magnitudeOf(e.reading as Quantityish) ??
+    magnitudeOf(e.v as Quantityish);
   if (value === null && typeof e.readout === "string") {
     // science.sensors' `readout` is KSP's own human-readable
     // sensor string (`ModuleEnviroSensor.readoutInfo`, e.g. "293.1K",
@@ -215,7 +219,7 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
       part,
-      dataAmount: typeof e.dataAmount === "number" ? e.dataAmount : null,
+      dataAmount: magnitudeOf(e.dataAmount as Quantityish),
       subjectId,
     });
   }
@@ -260,9 +264,11 @@ export function parseExperimentBreakdown(
       biome: typeof e.biome === "string" ? e.biome : "",
       situation: typeof e.situation === "string" ? e.situation : "",
       expTitle: typeof e.expTitle === "string" ? e.expTitle : "(unnamed)",
-      dataMits: typeof e.dataMits === "number" ? e.dataMits : 0,
-      remainingPotential:
-        typeof e.remainingPotential === "number" ? e.remainingPotential : 0,
+      dataMits: magnitudeOr(e.dataMits as Quantityish, 0),
+      // The sort below reads this. Left as a `Value`, every entry scored 0
+      // and the list held its wire order instead of ranking by what is
+      // actually worth recovering.
+      remainingPotential: magnitudeOr(e.remainingPotential as Quantityish, 0),
     });
   }
   // Sort by remaining potential desc: subjects with the most science left

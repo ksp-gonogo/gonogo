@@ -51,6 +51,8 @@ const FLIGHT: VesselFlightPayload = {
 };
 
 function Altitude() {
+  // A derived `vessel.state.*` field, so it arrives as a plain number: the
+  // client computes it rather than reading it off the wire.
   const alt = useStream<number | null>("vessel.state.altitudeAsl");
   return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
 }

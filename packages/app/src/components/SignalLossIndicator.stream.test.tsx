@@ -45,7 +45,7 @@ function CommsProbe() {
   return (
     <div data-testid="probe">
       <span data-testid="probe-strength">
-        {comms?.signalStrength ?? "none"}
+        {comms?.signalStrength?.magnitude ?? "none"}
       </span>
       <span data-testid="probe-comms-connected">
         {String(comms?.connected)}

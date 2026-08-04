@@ -99,6 +99,7 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
+export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 export {
   DataKeyPicker,
@@ -133,14 +134,6 @@ export {
   type FramedDisplayProps,
 } from "./FramedDisplay";
 // ── Formatters ───────────────────────────────────────────────────────────────
-export { type FormatNumberOptions, formatNumber } from "./format";
-export { formatAge, formatAgeLong } from "./formatAge";
-export {
-  type FormatDurationOptions,
-  formatCountdown,
-  formatDuration,
-} from "./formatDuration";
-export { formatKspDate } from "./formatKspDate";
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
   ArrowLeftIcon,
@@ -187,6 +180,7 @@ export {
   KSP_YEAR_DAYS,
   KSP_YEAR_SECONDS,
 } from "./kspTime";
+export { MissionDate, type MissionDateProps } from "./MissionDate";
 export {
   ModalChromeContext,
   type ModalChromeValue,
@@ -225,7 +219,6 @@ export {
   usePanelStreamStatus,
 } from "./Panel";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
-export { Quantity, type QuantityProps } from "./Quantity";
 export {
   BigReadout,
   Readout,
@@ -273,20 +266,23 @@ export { Unit } from "./Unit";
 // ── Units ───────────────────────────────────────────────────────────────────
 // The contract declares what a field IS; these decide how to SHOW it. The wire
 // is canonical SI and never pre-scaled, so every ladder lives here.
+// Only the extension point and the shapes it needs. Every formatter that used
+// to live here is gone: `<Unit value={…} />` is the one way to show a
+// quantity, and a second way is how eleven widgets each grew their own ladder.
 export {
-  displaySymbol,
-  type FormatQuantityOptions,
-  type FormattedQuantity,
-  formatQuantity,
+  type FormatsFor,
   type KnownQuantityKind,
-  kindOfUnit,
   type QuantityKind,
   type Rung,
   registerUnit,
   STANDARD_GRAVITY,
+  // The only two string formatters this package exports, for the places a
+  // node cannot go: `speakQuantity` for an accessible name, `writeQuantity`
+  // for visible text that is measured (an SVG label, a canvas). See their doc
+  // comments; everywhere else renders `<Unit>`.
   speakQuantity,
   type UnitDefinition,
-  wordForSymbol,
+  writeQuantity,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {

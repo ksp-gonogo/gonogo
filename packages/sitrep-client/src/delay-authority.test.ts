@@ -1,4 +1,9 @@
-import { CommsDelaySource, Quality } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommsDelaySource,
+  Quality,
+  value,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
@@ -24,13 +29,13 @@ describe("DelayAuthority", () => {
     expect(authority.delaySeconds()).toBe(0); // before any observation
 
     authority.observe({
-      oneWaySeconds: 4.2,
+      oneWaySeconds: value("s", 4.2),
       source: CommsDelaySource.SignalDelay,
     });
     expect(authority.delaySeconds()).toBe(4.2);
 
     authority.observe({
-      oneWaySeconds: 9,
+      oneWaySeconds: value("s", 9),
       source: CommsDelaySource.SignalDelay,
     });
     expect(authority.delaySeconds()).toBe(9);
@@ -39,14 +44,17 @@ describe("DelayAuthority", () => {
   it("reads CommsDelaySource.None as 0 (typed absence, never a measured zero)", () => {
     const authority = new DelayAuthority();
     authority.observe({
-      oneWaySeconds: 7,
+      oneWaySeconds: value("s", 7),
       source: CommsDelaySource.SignalDelay,
     });
     expect(authority.delaySeconds()).toBe(7);
 
     // Source flips to None (delay authority dropped), must collapse to 0
     // even if a stale oneWaySeconds tags along.
-    authority.observe({ oneWaySeconds: 7, source: CommsDelaySource.None });
+    authority.observe({
+      oneWaySeconds: value("s", 7),
+      source: CommsDelaySource.None,
+    });
     expect(authority.delaySeconds()).toBe(0);
   });
 
@@ -58,12 +66,15 @@ describe("DelayAuthority", () => {
       42,
       "5",
       {},
-      { oneWaySeconds: Number.NaN, source: CommsDelaySource.SignalDelay },
       {
-        oneWaySeconds: Number.POSITIVE_INFINITY,
+        oneWaySeconds: value("s", Number.NaN),
         source: CommsDelaySource.SignalDelay,
       },
-      { oneWaySeconds: -3, source: CommsDelaySource.SignalDelay },
+      {
+        oneWaySeconds: value("s", Number.POSITIVE_INFINITY),
+        source: CommsDelaySource.SignalDelay,
+      },
+      { oneWaySeconds: value("s", -3), source: CommsDelaySource.SignalDelay },
     ]) {
       authority.observe(bad);
       expect(authority.delaySeconds()).toBe(0);
@@ -106,7 +117,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
     const wall = createFakeWallClock(0);
     const authority = new DelayAuthority();
     authority.observe({
-      oneWaySeconds: 6,
+      oneWaySeconds: value("s", 6),
       source: CommsDelaySource.SignalDelay,
     });
 
@@ -144,7 +155,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
     const wall = createFakeWallClock(0);
     const authority = new DelayAuthority();
     authority.observe({
-      oneWaySeconds: 5,
+      oneWaySeconds: value("s", 5),
       source: CommsDelaySource.SignalDelay,
     });
     const clock = new ViewClock({
@@ -175,21 +186,22 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
     clock.observeSample(10_000, 100);
 
     authority.observe({
-      oneWaySeconds: 2,
+      oneWaySeconds: value("s", 2),
       source: CommsDelaySource.SignalDelay,
     });
     expect(clock.confirmedEdgeUt()).toBe(98);
 
     // Vessel moves farther out → light-time grows → horizon falls back.
     authority.observe({
-      oneWaySeconds: 12,
+      oneWaySeconds: value("s", 12),
       source: CommsDelaySource.SignalDelay,
     });
     expect(clock.confirmedEdgeUt()).toBe(88);
   });
 });
 
-const CIRCULAR_ORBIT: VesselOrbitPayload = {
+/** Wire-shaped, wrapped by `orbitPoint` below: see `vessel-state.test.ts`. */
+const CIRCULAR_ORBIT: Record<string, unknown> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -202,23 +214,25 @@ const CIRCULAR_ORBIT: VesselOrbitPayload = {
 };
 
 const CIRCULAR_ELEMENTS: OrbitElements = {
-  sma: CIRCULAR_ORBIT.sma,
-  ecc: CIRCULAR_ORBIT.ecc,
+  sma: CIRCULAR_ORBIT.sma as number,
+  ecc: CIRCULAR_ORBIT.ecc as number,
   inc: 0,
   lan: 0,
   argPe: 0,
-  meanAnomalyAtEpoch: CIRCULAR_ORBIT.meanAnomalyAtEpoch,
-  epoch: CIRCULAR_ORBIT.epoch,
-  mu: CIRCULAR_ORBIT.mu,
+  meanAnomalyAtEpoch: CIRCULAR_ORBIT.meanAnomalyAtEpoch as number,
+  epoch: CIRCULAR_ORBIT.epoch as number,
+  mu: CIRCULAR_ORBIT.mu as number,
 };
 
 function orbitPoint(
-  payload: VesselOrbitPayload,
+  payload: Record<string, unknown>,
   validAt: number,
 ): TimelinePoint<VesselOrbitPayload> {
   return {
     validAt,
-    payload,
+    payload: wrapTypePayload("VesselOrbit", {
+      ...payload,
+    }) as VesselOrbitPayload,
     meta: makeMeta({
       validAt,
       deliveredAt: validAt,
@@ -242,7 +256,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     const wall = createFakeWallClock(0);
     const authority = new DelayAuthority();
     authority.observe({
-      oneWaySeconds: 8,
+      oneWaySeconds: value("s", 8),
       source: CommsDelaySource.SignalDelay,
     });
 

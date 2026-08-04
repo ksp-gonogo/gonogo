@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { EmptyState, Panel } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 
 /**
  * Deployed Base Monitor (Breaking Ground). Lists every deployed surface
@@ -55,8 +56,15 @@ export interface DeployedBase {
   experiments: DeployedExperiment[];
 }
 
+/**
+ * A wire field as a number.
+ *
+ * Takes a `Value` as well as a bare number: a declared quantity arrives
+ * wrapped from the decode, and a `typeof === "number"` test answers "no
+ * reading" for every one of them, which is silent and total.
+ */
 function num(v: unknown, fallback = 0): number {
-  return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  return magnitudeOr(v as Quantityish, fallback);
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));

@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -69,8 +75,8 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
       });
     });
 
-    await waitFor(() => expect(screen.getByText("10.0 km")).toBeTruthy());
-    expect(screen.getByText("Δv 50.00 m/s")).toBeTruthy();
+    await waitFor(() => expect(visibleText()).toContain("10.0 km"));
+    expect(visibleText()).toContain("Δv 50.00 m/s");
 
     teardownMockDataSource(legacyAux);
   });
@@ -129,7 +135,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     // One decimal: distances go through the shared `length` ladder now,
     // which is what lets a final-approach gap read "0.4 m" instead of
     // rounding to "0 m".
-    expect(screen.getByText("62.0 m")).toBeTruthy();
+    expect(visibleText()).toContain("62.0 m");
 
     teardownMockDataSource(legacyAux);
   });
@@ -172,7 +178,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
       });
     });
 
-    await waitFor(() => expect(screen.getByText("10.0 km")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("10.0 km"));
     expect(screen.getByText("Rendezvous Target")).toBeTruthy();
 
     // Target cleared in KSP: the mod publishes a tombstone (payload: null)
@@ -182,7 +188,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     });
 
     await waitFor(() => {
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
       expect(screen.getByText("No target set in KSP")).toBeTruthy();
@@ -239,7 +245,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    expect(screen.getByText(/T−2m 5s/)).toBeTruthy();
+    expect(visibleText()).toMatch(/T−2m 5s/);
 
     teardownMockDataSource(legacyAux);
   });

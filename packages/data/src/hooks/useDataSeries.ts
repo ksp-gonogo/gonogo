@@ -12,6 +12,15 @@ import type { SeriesRange } from "../types";
 
 const EMPTY: SeriesRange = { t: [], v: [] };
 
+/** A sample as a plottable value: a quantity's magnitude, anything else as-is. */
+function plotValue(payload: unknown): unknown {
+  return payload !== null &&
+    typeof payload === "object" &&
+    "magnitude" in payload
+    ? (payload as { magnitude: unknown }).magnitude
+    : payload;
+}
+
 /**
  * Windowed time-series of a single key from the buffered data layer.
  *
@@ -220,7 +229,10 @@ export function useDataSeries(
     if (!points || points.length === 0) return EMPTY;
 
     const nextT = points.map((p) => p.validAt);
-    const nextV = points.map((p) => p.payload);
+    // Magnitudes: a series feeds a sparkline and a graph axis, which plot
+    // numbers. A declared quantity arrives wrapped from the decode, so
+    // without this every stream-backed chart drew nothing.
+    const nextV = points.map((p) => plotValue(p.payload));
 
     // `sampleRange` builds a fresh filtered array (and, for a raw
     // field-subtopic, fresh wrapper `TimelinePoint`s: see its own doc

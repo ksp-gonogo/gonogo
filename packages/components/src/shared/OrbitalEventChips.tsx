@@ -1,6 +1,5 @@
-import { formatDuration } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { Cluster } from "@ksp-gonogo/ui-kit";
+import { Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /**
@@ -51,7 +50,7 @@ export function OrbitalEventChips() {
         <Chip $variant={encounterKind === "escape" ? "warn" : "go"}>
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>
           <ChipValue>
-            {encBody as string} · {formatDuration(encTime as number)}
+            {encBody as string} · <Countdown value={encTime as number} />
           </ChipValue>
         </Chip>
       )}
@@ -60,7 +59,7 @@ export function OrbitalEventChips() {
           <ChipLabel>NEXT</ChipLabel>
           <ChipValue>
             {apsisType === -1 ? "Pe" : "Ap"} ·{" "}
-            {formatDuration(timeToApsis as number)}
+            <Countdown value={timeToApsis as number} />
           </ChipValue>
         </Chip>
       )}

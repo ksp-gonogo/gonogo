@@ -3,7 +3,14 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -189,8 +196,8 @@ describe("LaunchDirectorComponent", () => {
         },
       ]);
     });
-    expect(await screen.findByText(/1\/3 ready/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 locked/i)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toMatch(/1\/3 ready/i));
+    expect(visibleText()).toMatch(/1 locked/i);
   });
 
   it("requires arm-then-confirm before firing ksp.launch", async () => {
@@ -271,7 +278,7 @@ describe("LaunchDirectorComponent", () => {
     // missionTime (`vessel.state.met`) is null in the Loaded/measured basis
     // (see this file's doc comment): the panel shows its NULL_DISPLAY placeholder.
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
-    expect(container.textContent).toContain("72.4km");
+    expect(visibleText(container)).toContain("72.4 km");
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
     expect(screen.getByText("Revert to VAB")).toBeInTheDocument();
 
@@ -436,7 +443,7 @@ describe("LaunchDirectorComponent", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText(/In flight: LFV-1 Lander/i)).toBeInTheDocument(),
+      expect(visibleText()).toMatch(/In flight: LFV-1 Lander/i),
     );
     expect(
       screen.queryByText(/Crash in progress: return to Space Center/i),

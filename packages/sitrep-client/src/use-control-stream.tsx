@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { getControlChannel } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef } from "react";
 import { useUtNow } from "./context";
@@ -13,6 +14,19 @@ import {
 } from "./control-stream-model";
 import { useCommand } from "./use-command";
 import { useLatestValue } from "./use-stream";
+
+/**
+ * The magnitude of a readback field, whether or not it carries a unit.
+ *
+ * A control channel's read field is whatever the channel names, so it can be
+ * a declared quantity (`vessel.control.throttle`, a ratio) or a bare number.
+ */
+function magnitudeOfMaybe(v: unknown): unknown {
+  if (v !== null && typeof v === "object" && "magnitude" in v) {
+    return (v as { magnitude: unknown }).magnitude;
+  }
+  return v;
+}
 
 /** Coalescing cadence: record one command + readback sample and (past the deadband) dispatch, at 10 Hz. */
 const COALESCE_MS = 100;
@@ -57,7 +71,7 @@ export interface ControlStream {
 }
 
 interface CommsDelayLike {
-  oneWaySeconds: number | null;
+  oneWaySeconds: Value<"s"> | null;
 }
 
 /**
@@ -104,7 +118,11 @@ export function useControlStream(
   // same reason.
   const nowUt = useUtNow() ?? 0;
 
-  const oneWaySeconds = commsDelay?.oneWaySeconds ?? null;
+  // `.magnitude`: the delay arrives wrapped from the decode, and every use
+  // below is arithmetic on a span of seconds. Reading the object itself left
+  // `oneWaySeconds` a `Value`, which compares as NaN against MIN_DELAY_SECONDS
+  // and silently reported every channel as direct/no-delay.
+  const oneWaySeconds = commsDelay?.oneWaySeconds?.magnitude ?? null;
 
   const commandRing = useRef<LoggedSample[]>([]);
   const readbackRing = useRef<LoggedSample[]>([]);
@@ -121,7 +139,14 @@ export function useControlStream(
   // Latest readback value, mirrored into a ref every render (same pattern as
   // `valueRef`/`nowUtRef`) so the coalescing interval below can read it
   // without becoming an effect dependency of its own.
-  const echoRaw = channel ? readback?.[channel.readField] : undefined;
+  // The readback field arrives wrapped when the contract declares a unit for
+  // it (a throttle is a ratio), so the magnitude comes off here: the ring
+  // below stores plain normalised numbers and the strip does arithmetic on
+  // them. Left as-is, the `typeof echo === "number"` guard in the interval
+  // rejected every sample and the echo track was permanently empty.
+  const echoRaw = magnitudeOfMaybe(
+    channel ? readback?.[channel.readField] : undefined,
+  );
   const echoRawRef = useRef(echoRaw);
   echoRawRef.current = echoRaw;
 

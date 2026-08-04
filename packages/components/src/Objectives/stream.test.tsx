@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ObjectivesComponent } from "./index";
@@ -65,8 +71,8 @@ describe("Objectives: genuinely runs off the stream (M3b career-detail batch)", 
     });
 
     await waitFor(() =>
-      expect(screen.getByText("Test LV-909: Flying over Kerbin")).toBeTruthy(),
+      expect(visibleText()).toContain("Test LV-909: Flying over Kerbin"),
     );
-    expect(screen.getByText("Test the LV-909 in flight")).toBeTruthy();
+    expect(visibleText()).toContain("Test the LV-909 in flight");
   });
 });

@@ -1,5 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { collapseControlStateLevel } from "@ksp-gonogo/sitrep-client";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { SignalLossBanner, type SignalState } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -35,7 +36,7 @@ import { useEffect, useRef, useState } from "react";
  * float-noise guard), not a "weak link" threshold: a genuinely weak-but-present
  * link (e.g. 1%) must NOT flash the banner, only an effectively-zero reading.
  */
-const NO_SIGNAL_STRENGTH_EPSILON = 1e-6;
+const NO_SIGNAL_STRENGTH_EPSILON = value("ratio", 1e-6);
 
 export function SignalLossIndicator() {
   const link = useTelemetry("comms.link");
@@ -107,7 +108,7 @@ export function SignalLossIndicator() {
  */
 export function deriveState(
   connected: boolean | undefined,
-  signalStrength: number | undefined,
+  signalStrength: Value<"ratio"> | undefined,
   controlState: number | undefined,
   hasConfirmedConnection: boolean,
 ): SignalState {
@@ -119,7 +120,7 @@ export function deriveState(
   // (a link that decayed to nothing), so it trips the same "lost" state.
   const zeroSignal =
     signalStrength !== undefined &&
-    signalStrength <= NO_SIGNAL_STRENGTH_EPSILON;
+    signalStrength.lessThanOrEqual(NO_SIGNAL_STRENGTH_EPSILON);
   if ((connected === false || zeroSignal) && hasConfirmedConnection) {
     return "lost";
   }

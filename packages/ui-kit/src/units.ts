@@ -371,6 +371,10 @@ const DISPLAY_BY_KIND: Record<string, string> = {
   funds: "f",
   science: "sci",
   reputation: "rep",
+  // The contract's token is `Mit`; the game, and every science readout on
+  // this dashboard, writes "mits". The token is what the wire says and this
+  // is what an operator reads.
+  scienceData: "mits",
   count: "",
   id: "",
   text: "",
@@ -534,24 +538,57 @@ export function wordForSymbol(symbol: string): string | undefined {
  * A quantity as a screen reader should hear it: the value followed by the
  * unit's WORD rather than its symbol.
  *
- * For the handful of places that genuinely need a string rather than a node,
- * which in practice means `aria-label` and `title`. Those are exactly the
- * places a symbol is worst: an `aria-label` built by interpolating a formatted
- * string announces "two fifty point zero kay em", and this is what makes it
- * "250.0 kilometres" instead.
+ * **The one sanctioned way to get a quantity as a string**, and it is narrow on
+ * purpose. `<Unit>` is how a quantity is SHOWN; this is for the places that
+ * cannot take a node at all, which in practice means `aria-label`, `title`, and
+ * an SVG `aria-valuetext`. Those are also exactly the places a symbol is worst:
+ * an accessible name built by interpolating a formatted string announces "two
+ * fifty point zero kay em", and this is what makes it "250.0 kilometres".
  *
- * Anywhere the result is rendered, use `<Quantity>`, which keeps the symbol
- * visible and the word spoken. Falls back to the symbol for a unit with no
- * word, which is the same rule `Unit` follows.
+ * If the result is going to be rendered, this is the wrong function. The
+ * guard in `styleguide-unit-adoption.test.ts` is what keeps that honest.
+ *
+ * Falls back to the symbol for a unit with no word, the same rule `Unit`
+ * follows.
  */
 export function speakQuantity(
-  value: number | null | undefined,
-  unit: string | undefined,
+  quantity: { magnitude: number; unit: string } | null | undefined,
   opts: FormatQuantityOptions = {},
 ): string {
-  const { value: text, symbol } = formatQuantity(value, unit, opts);
+  const { value: text, symbol } = formatQuantity(
+    quantity?.magnitude,
+    quantity?.unit,
+    opts,
+  );
   if (symbol === "") return text;
   return `${text} ${wordForSymbol(symbol) ?? symbol}`;
+}
+
+/**
+ * A quantity as it is WRITTEN: the value and the unit's symbol, `250.0 km`.
+ *
+ * The other half of the pair above, for the places that cannot take a node
+ * AND are read with the eyes rather than heard: an SVG `<text>` (which cannot
+ * contain a `<span>`, so `<Unit>` will not go in one), a canvas label, a chart
+ * annotation whose width is measured before it is drawn.
+ *
+ * Use `speakQuantity` for an accessible name and this for visible text; both
+ * are narrow escapes from `<Unit>`, and anywhere a node fits, neither applies.
+ *
+ * An ordinary space, not the thin space `<Unit>` sets: this string ends up in
+ * an SVG `<text>`, a canvas, or an attribute, where a U+2009 is at the mercy
+ * of the renderer and is a trap in a test expectation besides.
+ */
+export function writeQuantity(
+  quantity: { magnitude: number; unit: string } | null | undefined,
+  opts: FormatQuantityOptions = {},
+): string {
+  const { value: text, symbol } = formatQuantity(
+    quantity?.magnitude,
+    quantity?.unit,
+    opts,
+  );
+  return symbol === "" ? text : `${text} ${symbol}`;
 }
 
 /**

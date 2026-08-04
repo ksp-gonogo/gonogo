@@ -1,7 +1,5 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
 import {
-  formatDistance,
-  formatDuration,
   getBody,
   registerComponent,
   useActionInput,
@@ -9,7 +7,8 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Countdown, NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
@@ -149,11 +148,13 @@ function CurrentOrbitComponent({
                 emits its sentinel (999999999 m) which would read as a real
                 "1000.00 Mm". Render an em-dash so the operator doesn't
                 mistake an escape trajectory for a vast bound orbit. */}
-            {apoapsisA === undefined
-              ? NULL_DISPLAY
-              : hyperbolic
-                ? NULL_DISPLAY
-                : formatDistance(apoapsisA)}
+            {apoapsisA === undefined ? (
+              NULL_DISPLAY
+            ) : hyperbolic ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m", apoapsisA)} />
+            )}
           </OrbitValue>
 
           <Label>Pe</Label>
@@ -166,18 +167,22 @@ function CurrentOrbitComponent({
               periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"
             }
           >
-            {periapsisA === undefined
-              ? NULL_DISPLAY
-              : formatDistance(periapsisA)}
+            {periapsisA === undefined ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m", periapsisA)} />
+            )}
           </OrbitValue>
 
           {showInclinationRow && (
             <>
               <Label>Inc</Label>
               <OrbitValue>
-                {inclination === undefined
-                  ? NULL_DISPLAY
-                  : `${inclination.toFixed(1)}°`}
+                {inclination === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={inclination} decimals={1} />
+                )}
               </OrbitValue>
             </>
           )}
@@ -190,11 +195,11 @@ function CurrentOrbitComponent({
                     Telemachus emits 0 which reads as "arriving now" on a
                     countdown. Render an em-dash so the operator doesn't
                     mistake a hyperbolic flyby for an imminent event. */}
-                {timeToAp === undefined
-                  ? NULL_DISPLAY
-                  : hyperbolic
-                    ? NULL_DISPLAY
-                    : formatDuration(timeToAp)}
+                {timeToAp === undefined || hyperbolic ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Countdown value={timeToAp} />
+                )}
               </OrbitValue>
 
               <Label>t-Pe</Label>
@@ -204,11 +209,11 @@ function CurrentOrbitComponent({
                     0-sentinel source would read as "arriving now"), render an
                     em-dash rather than a countdown. `=== undefined` alone
                     misses `null` (`null === undefined` is false). */}
-                {timeToPe === undefined || timeToPe === null
-                  ? NULL_DISPLAY
-                  : hyperbolic
-                    ? NULL_DISPLAY
-                    : formatDuration(timeToPe)}
+                {timeToPe === undefined || timeToPe === null || hyperbolic ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Countdown value={timeToPe} />
+                )}
               </OrbitValue>
             </>
           )}
@@ -217,9 +222,11 @@ function CurrentOrbitComponent({
             <>
               <Label>Ecc</Label>
               <OrbitValue>
-                {eccentricity === undefined
-                  ? NULL_DISPLAY
-                  : eccentricity.toFixed(4)}
+                {eccentricity === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={eccentricity} decimals={4} />
+                )}
               </OrbitValue>
 
               <Label>T</Label>
@@ -227,11 +234,11 @@ function CurrentOrbitComponent({
                 {/* Period is undefined on a hyperbolic orbit (the
                     trajectory never closes); Telemachus emits 0 which
                     is again indistinguishable from "now". */}
-                {period === undefined
-                  ? NULL_DISPLAY
-                  : hyperbolic
-                    ? NULL_DISPLAY
-                    : formatDuration(period)}
+                {period === undefined || hyperbolic ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("s", period)} />
+                )}
               </OrbitValue>
             </>
           )}
@@ -241,8 +248,8 @@ function CurrentOrbitComponent({
           <MiniDiagramWrap $landscape={isLandscape}>
             <OrbitDiagram
               variant="mini"
-              sma={sma}
-              ecc={eccentricity}
+              sma={sma.magnitude}
+              ecc={eccentricity.magnitude}
               // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
               // already detects that itself (`ecc >= 1 || sma <= 0`) and
               // ignores this value in that branch, so the fallback below is
@@ -250,7 +257,7 @@ function CurrentOrbitComponent({
               apoapsis={apoapsisR ?? 0}
               periapsis={periapsisR}
               trueAnomaly={trueAnomaly ?? 0}
-              argPe={argPe ?? 0}
+              argPe={argPe?.magnitude ?? 0}
               bodyColor={body?.color}
               bodyRadius={body?.radius}
               isOrbiting={isOrbiting}

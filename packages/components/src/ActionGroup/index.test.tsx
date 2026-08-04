@@ -9,6 +9,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
@@ -176,7 +177,7 @@ describe("ActionGroupComponent", () => {
     emitControl({ actionGroups: [{ index: 1, name: "AG1", state: false }] });
     // OfficialName = "AG1", custom label = "Chutes"; at cols=6 both visible
     expect(await screen.findByText("Chutes")).toBeInTheDocument();
-    expect(await screen.findByText("AG1")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("AG1"));
   });
 
   it("reads the correct value key for non-SAS groups (Gear)", async () => {

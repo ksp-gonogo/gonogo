@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
@@ -71,7 +77,7 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
       });
     });
 
-    await waitFor(() => expect(screen.getByText("Stage 2")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("Stage 2"));
     // MonoPropellant (RCS) and ElectricCharge (Power) both stream a
     // positive max and render; XenonGas's max === 0 so it's filtered out,
     // exercising the widget's own "resources absent from the vessel are
@@ -79,8 +85,8 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
     expect(screen.getByText("RCS")).toBeTruthy();
     expect(screen.getByText("Power")).toBeTruthy();
     // formatAmount: <100 -> 2 decimals, >=100 -> 1 decimal.
-    expect(screen.getByText("30.00 / 30.00")).toBeTruthy();
-    expect(screen.getByText("150.0 / 200.0")).toBeTruthy();
+    expect(visibleText()).toContain("30.00 / 30.00");
+    expect(visibleText()).toContain("150.0 / 200.0");
     // LiquidFuel/Oxidizer read the GAPPED stage-scoped keys, with no
     // legacy source in this file they never arrive, so max stays 0 and
     // they're filtered out of the resource list exactly like XenonGas.
@@ -156,12 +162,14 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
       ]);
     });
 
-    await waitFor(() => expect(screen.getByText(/^Stage 1/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(/^Stage 1/)).toBeInTheDocument(),
+    );
     // Totals row: default mode is "actual".
-    expect(screen.getByText("3900 m/s")).toBeTruthy();
-    expect(screen.getByText("2m 5s")).toBeTruthy();
+    expect(visibleText()).toContain("3900 m/s");
+    expect(visibleText()).toContain("2m 5s");
     // Per-stage ΔV (actual column) for both rows.
-    expect(screen.getByText("2300 m/s")).toBeTruthy();
-    expect(screen.getByText("1600 m/s")).toBeTruthy();
+    expect(visibleText()).toContain("2300 m/s");
+    expect(visibleText()).toContain("1600 m/s");
   });
 });

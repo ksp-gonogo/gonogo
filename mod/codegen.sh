@@ -5,6 +5,9 @@ PROJ="$ROOT/mod/Sitrep.Contract"
 OUT="$ROOT/mod/sitrep-sdk/src/__generated__/contract.ts"
 TOPIC_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/topic-map.ts"
 UNIT_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/units.ts"
+# The same map as data. Read by anything that is not TypeScript, and served
+# by the mod beside the telemetry socket so the stream describes its own units.
+UNIT_JSON_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/units.json"
 CHANNEL_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/control-channels.ts"
 RT_VER="1.6.7"
 RT_PKG="$HOME/.nuget/packages/reinforced.typings/$RT_VER"
@@ -24,6 +27,7 @@ mkdir -p "$(dirname "$OUT")"
 DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_TOPICMAP_OUT="$TOPIC_MAP_OUT" \
   SITREP_UNITMAP_OUT="$UNIT_MAP_OUT" \
+  SITREP_UNITJSON_OUT="$UNIT_JSON_OUT" \
   SITREP_CHANNELMAP_OUT="$CHANNEL_MAP_OUT" \
   dotnet "$RTCLI" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \
@@ -32,6 +36,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
 echo "codegen -> $OUT"
 echo "codegen -> $TOPIC_MAP_OUT"
 echo "codegen -> $UNIT_MAP_OUT"
+echo "codegen -> $UNIT_JSON_OUT"
 echo "codegen -> $CHANNEL_MAP_OUT"
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is

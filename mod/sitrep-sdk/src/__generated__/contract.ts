@@ -14,7 +14,7 @@ export interface AvionicsStatus
 export interface ActivateStrategyArgs
 {
 	strategyId: string;
-	factor: Value<"ratio">;
+	factor: number;
 }
 export interface DeactivateStrategyArgs
 {
@@ -393,15 +393,15 @@ export interface SetFlyByWireArgs
 }
 export interface SetControlAxesArgs
 {
-	pitch?: Value<"1">;
-	yaw?: Value<"1">;
-	roll?: Value<"1">;
-	x?: Value<"1">;
-	y?: Value<"1">;
-	z?: Value<"1">;
-	pitchTrim?: Value<"1">;
-	yawTrim?: Value<"1">;
-	rollTrim?: Value<"1">;
+	pitch?: number;
+	yaw?: number;
+	roll?: number;
+	x?: number;
+	y?: number;
+	z?: number;
+	pitchTrim?: number;
+	yawTrim?: number;
+	rollTrim?: number;
 }
 export interface GameDlc
 {
@@ -526,13 +526,13 @@ export interface KerbcastCameraEntry
 export interface KerbcastSetFieldOfViewArgs
 {
 	cameraId: number;
-	fieldOfView: Value<"°">;
+	fieldOfView: number;
 }
 export interface KerbcastSetPanArgs
 {
 	cameraId: number;
-	yaw: Value<"°">;
-	pitch: Value<"°">;
+	yaw: number;
+	pitch: number;
 }
 export interface KosProcessorInfo
 {
@@ -594,8 +594,8 @@ export interface KosTerminalResizeArgs
 {
 	coreId: number;
 	leaseToken: string;
-	cols: Value<"count">;
-	rows: Value<"count">;
+	cols: number;
+	rows: number;
 }
 export interface KosTerminalCloseArgs
 {
@@ -614,9 +614,9 @@ export enum Staleness {
 export interface Meta
 {
 	source: string;
-	validAt: Value<"s">;
+	validAt: number;
 	seq: number;
-	deliveredAt: Value<"s">;
+	deliveredAt: number;
 	vantage: string;
 	quality: Quality;
 	active: boolean;
@@ -792,7 +792,7 @@ export interface RevertAvailability
 export interface ServoSetTargetArgs
 {
 	partId: string;
-	value: Value<"ratio">;
+	value: number;
 }
 export interface ServoSetEnabledArgs
 {
@@ -802,7 +802,7 @@ export interface ServoSetEnabledArgs
 export interface RotorSetValueArgs
 {
 	partId: string;
-	value: Value<"ratio">;
+	value: number;
 }
 export interface RotorReverseArgs
 {
@@ -1123,7 +1123,7 @@ export interface SetSasModeArgs
 }
 export interface SetThrottleArgs
 {
-	value: Value<"ratio">;
+	value: number;
 }
 export interface SetActionGroupArgs
 {
@@ -1132,18 +1132,18 @@ export interface SetActionGroupArgs
 }
 export interface AddManeuverNodeArgs
 {
-	ut: Value<"s">;
-	prograde: Value<"m/s">;
-	normal: Value<"m/s">;
-	radialOut: Value<"m/s">;
+	ut: number;
+	prograde: number;
+	normal: number;
+	radialOut: number;
 }
 export interface UpdateManeuverNodeArgs
 {
 	nodeId: string;
-	ut: Value<"s">;
-	prograde: Value<"m/s">;
-	normal: Value<"m/s">;
-	radialOut: Value<"m/s">;
+	ut: number;
+	prograde: number;
+	normal: number;
+	radialOut: number;
 }
 export interface RemoveManeuverNodeArgs
 {
@@ -1155,8 +1155,8 @@ export interface SetTargetArgs
 	vesselId?: string;
 	partId?: number;
 	bodyIndex?: number;
-	latitude?: Value<"°">;
-	longitude?: Value<"°">;
+	latitude?: number;
+	longitude?: number;
 }
 export interface SetWarpIndexArgs
 {

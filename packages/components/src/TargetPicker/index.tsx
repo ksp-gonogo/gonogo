@@ -5,7 +5,6 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
-  formatDistance,
   registerComponent,
   resolveTargetName,
   useActionInput,
@@ -22,6 +21,7 @@ import {
   TargetKind,
   type TargetListEntry,
   VesselType,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
@@ -37,6 +37,7 @@ import {
   ScrollArea,
   Section,
   Spinner,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import {
@@ -48,11 +49,12 @@ import {
 } from "react";
 import styled from "styled-components";
 import {
+  bare,
   radialSpeed,
   targetKindLabel,
-  type Vec3,
   vecMagnitude,
 } from "../shared/dockAngles";
+import { magnitudeOf } from "../shared/magnitude";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 
 // Config is empty, bodies/vessels/parts all come off the one
@@ -180,8 +182,8 @@ function entrySubtitle(entry: TargetListEntry): string | null {
  * every category and the Suggested selection built from them. */
 function sortByDistance(list: readonly TargetListEntry[]): TargetListEntry[] {
   return [...list].sort((a, b) => {
-    const da = a.distance ?? Number.POSITIVE_INFINITY;
-    const db = b.distance ?? Number.POSITIVE_INFINITY;
+    const da = magnitudeOf(a.distance) ?? Number.POSITIVE_INFINITY;
+    const db = magnitudeOf(b.distance) ?? Number.POSITIVE_INFINITY;
     return da - db;
   });
 }
@@ -246,8 +248,9 @@ function TargetPickerComponent({
   const target = useTelemetry("vessel.target");
   const tarName = resolveTargetName(target?.name);
   const tarType = targetKindLabel(target?.kind);
-  const tarRelPos = target?.relativePosition as Vec3 | undefined;
-  const tarRelVelVec = target?.relativeVelocity as Vec3 | undefined;
+  const tarRelPos = target?.relativePosition && bare(target.relativePosition);
+  const tarRelVelVec =
+    target?.relativeVelocity && bare(target.relativeVelocity);
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
   const tarRelVel =
     tarRelPos && tarRelVelVec
@@ -436,7 +439,7 @@ function TargetPickerComponent({
               {typeof tarDistance === "number" &&
                 Number.isFinite(tarDistance) && (
                   <CompactDistance>
-                    {formatDistance(tarDistance)}
+                    <Unit value={value("m", tarDistance)} />
                   </CompactDistance>
                 )}
             </>
@@ -465,9 +468,11 @@ function TargetPickerComponent({
           {subtitle && <RowSubtitle>{subtitle}</RowSubtitle>}
         </RowMain>
         <RowDistance>
-          {entry.distance === undefined
-            ? NULL_DISPLAY
-            : formatDistance(entry.distance)}
+          {entry.distance === undefined ? (
+            NULL_DISPLAY
+          ) : (
+            <Unit value={entry.distance} />
+          )}
         </RowDistance>
         {isPending && <Spinner ariaLabel="Setting target" />}
         {!isPending && entry.isCurrent && <RowTag>TARGET</RowTag>}
@@ -493,7 +498,7 @@ function TargetPickerComponent({
               {typeof tarDistance === "number" &&
                 Number.isFinite(tarDistance) && (
                   <CurrentSummaryDistance>
-                    {formatDistance(tarDistance)}
+                    <Unit value={value("m", tarDistance)} />
                   </CurrentSummaryDistance>
                 )}
             </CurrentSummaryTop>

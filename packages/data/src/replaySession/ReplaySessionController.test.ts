@@ -1,5 +1,5 @@
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
-import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type { Meta, ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MissionMeta } from "../storage/MissionStore";
@@ -79,13 +79,15 @@ describe("ReplaySessionController", () => {
     vi.advanceTimersByTime(0);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: number }>("vessel.orbit")?.payload.sma,
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+        .magnitude,
     ).toBe(700_000);
 
     vi.advanceTimersByTime(5000);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: number }>("vessel.orbit")?.payload.sma,
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+        .magnitude,
     ).toBe(710_000);
   });
 
@@ -103,8 +105,10 @@ describe("ReplaySessionController", () => {
     controller.getSnapshot().store?.beginFrame();
     // Still at the pre-pause value: nothing past the pause point arrived.
     expect(
-      controller.getSnapshot().store?.sample<{ sma: number }>("vessel.orbit")
-        ?.payload.sma,
+      controller
+        .getSnapshot()
+        .store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+        .magnitude,
     ).toBe(700_000);
   });
 
@@ -118,14 +122,16 @@ describe("ReplaySessionController", () => {
     vi.advanceTimersByTime(0);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: number }>("vessel.orbit")?.payload.sma,
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+        .magnitude,
     ).toBe(710_000);
 
     // Playback continues past the seek point.
     vi.advanceTimersByTime(5000);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: number }>("vessel.orbit")?.payload.sma,
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+        .magnitude,
     ).toBe(720_000);
   });
 

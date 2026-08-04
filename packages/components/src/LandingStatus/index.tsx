@@ -6,27 +6,31 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommsDelaySource,
+  type Value as Quantity,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
   Cluster,
+  Countdown,
   EmptyState,
   FramedDisplay,
-  formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
-  Quantity,
   ReadoutCaption,
   type ReadoutTone,
   Section,
   SectionTitle,
   Stack,
   StatusPill,
+  Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
@@ -59,46 +63,73 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// ── Formatting ───────────────────────────────────────────────────────────────
+// ── Readouts ─────────────────────────────────────────────────────────────────
+//
+// Three of them, and each is `Unit` with this widget's precision on it. They
+// used to be string formatters, which is what the unit system exists to stop:
+// a widget that writes its own "m/s" is one rename away from disagreeing with
+// every other readout on the dashboard about what a speed looks like.
+//
+// What is genuinely local is the PRECISION, and it is local for a reason a
+// generic ladder cannot know: on a descent, ten metres of altitude is the
+// difference between a landing and a crater, so the last kilometre is read to
+// the metre while a hundred kilometres is read to a tenth of a kilometre.
 
-function formatMps(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
-  if (Math.abs(v) < 10) return `${v.toFixed(2)} m/s`;
-  if (Math.abs(v) < 100) return `${v.toFixed(1)} m/s`;
-  return `${v.toFixed(0)} m/s`;
+/** Accepts either shape while the migration is mid-flight. */
+type Quantityish<U extends string> = Quantity<U> | number | null | undefined;
+
+function magnitudeOf(v: Quantityish<string>): number | null {
+  const n = typeof v === "object" && v !== null ? v.magnitude : v;
+  return n === null || n === undefined || !Number.isFinite(n) ? null : n;
 }
 
-// The shared `length` ladder with this widget's own precision. A descent
-// readout wants two decimals between 1 and 10 km (10 m of altitude, which is
-// the difference between a landing and a crater) and whole metres in the last
-// kilometre. The rungs are shared; only the precision is local.
-// The shared `length` ladder with this widget's own precision. A descent
-// readout wants two decimals between 1 and 10 km (10 m of altitude, which is
-// the difference between a landing and a crater) and whole metres in the last
-// kilometre. The rungs are shared; only the precision is local.
-function Metres({ m }: { m: number | null | undefined }) {
-  if (m === null || m === undefined || !Number.isFinite(m)) return NULL_DISPLAY;
-  const abs = Math.abs(m);
+/** A speed, read finer the slower it is: a touchdown is decided in cm/s. */
+function Mps({ v }: { v: Quantityish<"m/s"> }) {
+  const n = magnitudeOf(v);
+  if (n === null) return NULL_DISPLAY;
+  const abs = Math.abs(n);
   return (
-    <Quantity
-      value={m}
-      unit="m"
+    <Unit
+      value={value("m/s", n)}
+      format="m/s"
+      decimals={abs < 10 ? 2 : abs < 100 ? 1 : 0}
+    />
+  );
+}
+
+/** An altitude or a distance, on the shared length ladder. */
+function Metres({ m }: { m: Quantityish<"m"> }) {
+  const n = magnitudeOf(m);
+  if (n === null) return NULL_DISPLAY;
+  const abs = Math.abs(n);
+  return (
+    <Unit
+      value={value("m", n)}
       decimals={abs >= 10_000 ? 1 : abs >= 1000 ? 2 : 0}
     />
   );
 }
 
-function formatDv(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
-  return `${v.toFixed(0)} m/s`;
+/** A delta-v budget. Always whole m/s: nobody plans a burn to the centimetre. */
+function Dv({ v }: { v: Quantityish<"m/s"> }) {
+  const n = magnitudeOf(v);
+  if (n === null) return NULL_DISPLAY;
+  return <Unit value={value("m/s", n)} format="m/s" decimals={0} />;
 }
 
+/**
+ * The five fields of a `dv.stages` entry the rocket-equation solve needs.
+ *
+ * Structural rather than the contract type, and it takes either shape, so the
+ * tests below can hand it plain numbers: the solve is arithmetic on a mass
+ * ratio, and what it wants is magnitudes.
+ */
 interface StageLike {
   stage?: number;
-  dvActual?: number;
-  dvVac?: number;
-  startMass?: number;
-  endMass?: number;
+  dvActual?: Quantityish<"m/s">;
+  dvVac?: Quantityish<"m/s">;
+  startMass?: Quantityish<"t">;
+  endMass?: Quantityish<"t">;
 }
 
 /**
@@ -120,13 +151,18 @@ interface StageLike {
 export function deriveActiveBurnParams(
   stages: readonly StageLike[] | undefined,
   currentStage: number | undefined,
-  propulsion: { totalMass?: number; dryMass?: number } | undefined,
-  summary: { totalDvActual?: number; totalDvVac?: number } | undefined,
+  propulsion:
+    | { totalMass?: Quantityish<"t">; dryMass?: Quantityish<"t"> }
+    | undefined,
+  summary:
+    | { totalDvActual?: Quantityish<"m/s">; totalDvVac?: Quantityish<"m/s"> }
+    | undefined,
 ): { exhaustVelocity?: number; burnoutMass?: number } {
   const active = stages?.find((s) => s.stage === currentStage);
   if (active) {
-    const dv = active.dvActual ?? active.dvVac;
-    const { startMass, endMass } = active;
+    const dv = magnitudeOf(active.dvActual) ?? magnitudeOf(active.dvVac);
+    const startMass = magnitudeOf(active.startMass);
+    const endMass = magnitudeOf(active.endMass);
     if (
       dv != null &&
       dv > 0 &&
@@ -141,9 +177,10 @@ export function deriveActiveBurnParams(
       };
     }
   }
-  const dv = summary?.totalDvActual ?? summary?.totalDvVac;
-  const totalMass = propulsion?.totalMass;
-  const dryMass = propulsion?.dryMass;
+  const dv =
+    magnitudeOf(summary?.totalDvActual) ?? magnitudeOf(summary?.totalDvVac);
+  const totalMass = magnitudeOf(propulsion?.totalMass);
+  const dryMass = magnitudeOf(propulsion?.dryMass);
   if (
     dv != null &&
     dv > 0 &&
@@ -167,12 +204,12 @@ export function deriveActiveBurnParams(
  * link state is unknown rather than fabricating a live (zero-delay) reading.
  */
 function readOneWaySeconds(
-  delay: { source?: number; oneWaySeconds?: number } | undefined,
+  delay: { source?: number; oneWaySeconds?: Quantityish<"s"> } | undefined,
 ): number | null {
   if (!delay) return null;
   if (delay.source === CommsDelaySource.None) return 0;
-  const s = delay.oneWaySeconds;
-  return typeof s === "number" && Number.isFinite(s) && s >= 0 ? s : 0;
+  const s = magnitudeOf(delay.oneWaySeconds);
+  return s !== null && s >= 0 ? s : 0;
 }
 
 /** A labelled value row inside a two-column readout grid. */
@@ -274,6 +311,12 @@ const ATMO_PLOTS_ALT_GATE = 10_000; // …or below this AGL, show them regardles
 // at the terrain-sample footprint so it never reads tighter than we actually know.
 const LANDING_ZONE_DISPERSION = 0.12;
 const LANDING_ZONE_FLOOR_M = 30;
+/**
+ * Air thin enough that the descent is effectively a vacuum one: below this,
+ * drag does nothing a lander can plan around and the readout says so rather
+ * than quoting four zeroes.
+ */
+const NEGLIGIBLE_DENSITY = 0.001; // kg/m³
 // The reticle / cross-section SLIDING scale: the spatial full-scale zooms to
 // contain the drift + the zone (so a close approach fills the plot instead of
 // sitting as a dot at a fixed 3 km scale), clamped to a sane window.
@@ -316,14 +359,14 @@ function LandingStatusComponent({
   const usingComDatum = surfaceHeight == null && heightFromTerrain != null;
 
   const solution = solveSuicideBurn({
-    heightFromTerrain,
-    altitudeAsl: flight?.altitudeAsl,
-    verticalSpeed: flight?.verticalSpeed,
-    surfaceSpeed: flight?.surfaceSpeed,
-    mu: orbit?.mu,
+    heightFromTerrain: heightFromTerrain?.magnitude,
+    altitudeAsl: flight?.altitudeAsl.magnitude,
+    verticalSpeed: flight?.verticalSpeed.magnitude,
+    surfaceSpeed: flight?.surfaceSpeed.magnitude,
+    mu: orbit?.mu.magnitude,
     bodyRadius: body?.radius,
-    availableThrust: propulsion?.availableThrust,
-    totalMass: propulsion?.totalMass,
+    availableThrust: propulsion?.availableThrust.magnitude,
+    totalMass: propulsion?.totalMass.magnitude,
     exhaustVelocity,
     burnoutMass,
   });
@@ -361,7 +404,7 @@ function LandingStatusComponent({
   const requiredDv = solution.burnDeltaV;
   const affordable =
     requiredDv != null && availableDv != null
-      ? requiredDv <= availableDv
+      ? requiredDv <= availableDv.magnitude
       : null;
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
@@ -377,7 +420,7 @@ function LandingStatusComponent({
   // Descent-rate trend: a bounded history of vertical speed, so a developing
   // over-speed reads as a trend not a single tick. Appended after render.
   const [descentHistory, setDescentHistory] = useState<number[]>([]);
-  const currentVs = flight?.verticalSpeed;
+  const currentVs = flight?.verticalSpeed.magnitude;
   useEffect(() => {
     if (currentVs == null || !Number.isFinite(currentVs)) return;
     setDescentHistory((h) => {
@@ -395,8 +438,11 @@ function LandingStatusComponent({
   const [predictionMovement, setPredictionMovement] = useState<number | null>(
     null,
   );
-  const predLat = landing?.predictedLatitude;
-  const predLon = landing?.predictedLongitude;
+  // Magnitudes, because these are effect dependencies as well as geometry
+  // inputs: a `Value` is a fresh object every frame, so depending on one
+  // re-runs the effect on every tick even when the prediction has not moved.
+  const predLat = landing?.predictedLatitude?.magnitude;
+  const predLon = landing?.predictedLongitude?.magnitude;
   const bodyRadius = body?.radius;
   useEffect(() => {
     if (predLat == null || predLon == null || bodyRadius == null) {
@@ -436,7 +482,8 @@ function LandingStatusComponent({
   const predictionStable =
     predictionMovement != null && predictionMovement < PREDICTION_STABLE_M;
   const lowApproach =
-    heightFromTerrain != null && heightFromTerrain < ATMO_PLOTS_ALT_GATE;
+    heightFromTerrain != null &&
+    heightFromTerrain.magnitude < ATMO_PLOTS_ALT_GATE;
   const atmosphericPlotsShown =
     atmospheric &&
     landing?.sampleSource != null &&
@@ -446,8 +493,8 @@ function LandingStatusComponent({
     landing?.sampleSource != null &&
     (!atmospheric || atmosphericPlotsShown);
   const hazardVerdict = deriveHazardVerdict({
-    slopeDeg: landing?.predictedSlopeAngle,
-    roughnessSigma: landing?.predictedRoughness,
+    slopeDeg: landing?.predictedSlopeAngle?.magnitude,
+    roughnessSigma: landing?.predictedRoughness?.magnitude,
     verticalSpeed: solution.verticalSpeed,
     lateralSpeed: solution.horizontalSpeed,
     biome: landing?.predictedBiome,
@@ -471,10 +518,10 @@ function LandingStatusComponent({
     landing?.predictedLongitude != null &&
     body?.radius != null
       ? greatCircle(
-          flight.latitude,
-          flight.longitude,
-          landing.predictedLatitude,
-          landing.predictedLongitude,
+          flight.latitude.magnitude,
+          flight.longitude.magnitude,
+          landing.predictedLatitude.magnitude,
+          landing.predictedLongitude.magnitude,
           body.radius,
         )
       : null;
@@ -486,12 +533,12 @@ function LandingStatusComponent({
   // it never reads tighter than the terrain we actually sampled. Only when a
   // site was sampled at all.
   const timeToImpactForZone = atmospheric
-    ? (landing?.atmosphericTimeToImpact ?? null)
+    ? (landing?.atmosphericTimeToImpact?.magnitude ?? null)
     : solution.timeToImpact;
   const landingZoneRadiusM =
     landing?.sampleSource != null
       ? Math.max(
-          landing?.roughnessFootprintMeters ?? 0,
+          landing?.roughnessFootprintMeters?.magnitude ?? 0,
           LANDING_ZONE_FLOOR_M,
           solution.horizontalSpeed != null && timeToImpactForZone != null
             ? LANDING_ZONE_DISPERSION *
@@ -512,16 +559,24 @@ function LandingStatusComponent({
     ),
   );
 
+  // The terrain profile as bare metres. Both plots sample it into a polyline,
+  // so the unit comes off once here rather than per point per frame: the patch
+  // runs to a few hundred readings and both plots redraw on every tick.
+  const terrainPatchMeters = useMemo(
+    () => landing?.terrainPatch?.map((h) => h.magnitude) ?? null,
+    [landing?.terrainPatch],
+  );
+
   // The side-on cross-section plot (terrain profile along the ground track +
   // the velocity vector in the vertical plane), paired with the top-down reticle.
   const crossSectionEl = scopeShown ? (
     <CrossSection
-      patch={landing?.terrainPatch ?? null}
-      patchSize={landing?.terrainPatchSize ?? null}
+      patch={terrainPatchMeters}
+      patchSize={landing?.terrainPatchSize?.magnitude ?? null}
       bearingDeg={driftBearingDeg}
       verticalSpeed={solution.verticalSpeed}
       horizontalSpeed={solution.horizontalSpeed}
-      aglMeters={heightFromTerrain ?? null}
+      aglMeters={heightFromTerrain?.magnitude ?? null}
       driftMeters={siteDrift?.distanceMeters ?? null}
       spanMeters={reticleSpanMeters}
     />
@@ -538,12 +593,14 @@ function LandingStatusComponent({
   const envelopeEl =
     board === "atmospheric-aware" ? (
       <DescentEnvelope
-        currentSpeed={flight?.surfaceSpeed ?? null}
-        currentAltitude={heightFromTerrain ?? null}
-        terminalVelocity={landing?.terminalVelocity ?? null}
-        projectedTouchdownSpeed={landing?.projectedTouchdownSpeed ?? null}
+        currentSpeed={flight?.surfaceSpeed.magnitude ?? null}
+        currentAltitude={heightFromTerrain?.magnitude ?? null}
+        terminalVelocity={landing?.terminalVelocity?.magnitude ?? null}
+        projectedTouchdownSpeed={
+          landing?.projectedTouchdownSpeed?.magnitude ?? null
+        }
         atmosphereColor={body?.atmosphereColor ?? null}
-        dragToWeight={landing?.dragToWeightRatio ?? null}
+        dragToWeight={landing?.dragToWeightRatio?.magnitude ?? null}
         dragDisplay="arrow"
       />
     ) : null;
@@ -563,10 +620,10 @@ function LandingStatusComponent({
     // verdict + biome/slope ride the banner + terrain readout above.
     <Grid minColWidth="130px" gap="sm">
       <StackedField label="Touchdown speed">
-        {formatMps(flight?.surfaceSpeed ?? solution.horizontalSpeed)}
+        {<Mps v={flight?.surfaceSpeed ?? solution.horizontalSpeed} />}
       </StackedField>
       <StackedField label="Fuel remaining">
-        {formatDv(availableDv)}
+        {<Dv v={availableDv} />}
       </StackedField>
     </Grid>
   ) : board === "vacuum-solved" ? (
@@ -575,14 +632,16 @@ function LandingStatusComponent({
     // grid so it can't read as reassurance against the ABORT hero above.
     <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
       <Grid minColWidth="130px" gap="sm">
-        <StackedField label="Burn dV">{formatDv(requiredDv)}</StackedField>
+        <StackedField label="Burn dV">{<Dv v={requiredDv} />}</StackedField>
         <StackedField label="Burn duration">
-          {solution.burnDuration == null
-            ? NULL_DISPLAY
-            : formatDuration(solution.burnDuration, { ms: true })}
+          {solution.burnDuration == null ? (
+            NULL_DISPLAY
+          ) : (
+            <Countdown value={solution.burnDuration} precise />
+          )}
         </StackedField>
         <StackedField label="Available dV">
-          {formatDv(availableDv)}
+          {<Dv v={availableDv} />}
         </StackedField>
         <div
           style={{
@@ -605,17 +664,21 @@ function LandingStatusComponent({
           )}
         </div>
         <StackedField label="Touchdown (coast)">
-          {formatMps(solution.speedAtImpact)}
+          {<Mps v={solution.speedAtImpact} />}
         </StackedField>
         <StackedField label="Touchdown (burn now)">
-          {solution.bestSpeedAtImpact == null
-            ? NULL_DISPLAY
-            : formatMps(solution.bestSpeedAtImpact)}
+          {solution.bestSpeedAtImpact == null ? (
+            NULL_DISPLAY
+          ) : (
+            <Mps v={solution.bestSpeedAtImpact} />
+          )}
         </StackedField>
         <StackedField label="Impact in">
-          {landed || solution.timeToImpact == null
-            ? NULL_DISPLAY
-            : formatDuration(solution.timeToImpact, { ms: true })}
+          {landed || solution.timeToImpact == null ? (
+            NULL_DISPLAY
+          ) : (
+            <Countdown value={solution.timeToImpact} precise />
+          )}
         </StackedField>
         {vs?.targetDistance != null && (
           <StackedField label="Target range">
@@ -640,15 +703,17 @@ function LandingStatusComponent({
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
           <GridCellPair label="Terminal">
-            {formatMps(landing?.terminalVelocity)}
+            {<Mps v={landing?.terminalVelocity} />}
           </GridCellPair>
           <GridCellPair label="Touchdown">
-            {formatMps(landing?.projectedTouchdownSpeed)}
+            {<Mps v={landing?.projectedTouchdownSpeed} />}
           </GridCellPair>
           <GridCellPair label="Impact in">
-            {landing?.atmosphericTimeToImpact == null
-              ? NULL_DISPLAY
-              : formatDuration(landing.atmosphericTimeToImpact, { ms: true })}
+            {landing?.atmosphericTimeToImpact == null ? (
+              NULL_DISPLAY
+            ) : (
+              <Countdown value={landing.atmosphericTimeToImpact} precise />
+            )}
           </GridCellPair>
           {landing?.descentRegime && (
             <GridCellPair label="Regime">{landing.descentRegime}</GridCellPair>
@@ -668,21 +733,25 @@ function LandingStatusComponent({
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
           <GridCellPair label="Vertical">
-            {formatMps(solution.verticalSpeed)}
+            {<Mps v={solution.verticalSpeed} />}
           </GridCellPair>
           <GridCellPair label="Horizontal">
-            {formatMps(solution.horizontalSpeed)}
+            {<Mps v={solution.horizontalSpeed} />}
           </GridCellPair>
           <GridCellPair label="Air density">
-            {flight?.atmDensity == null || !Number.isFinite(flight.atmDensity)
-              ? NULL_DISPLAY
-              : flight.atmDensity < 0.001
-                ? "negligible"
-                : `${flight.atmDensity.toFixed(3)} kg/m³`}
+            {flight?.atmDensity == null ||
+            !Number.isFinite(flight.atmDensity.magnitude) ? (
+              NULL_DISPLAY
+            ) : flight.atmDensity.magnitude < NEGLIGIBLE_DENSITY ? (
+              "negligible"
+            ) : (
+              <Unit value={flight.atmDensity} decimals={3} />
+            )}
           </GridCellPair>
         </Grid>
         <Value tone="muted" size="xs">
-          {flight?.atmDensity != null && flight.atmDensity < 0.001
+          {flight?.atmDensity != null &&
+          flight.atmDensity.magnitude < NEGLIGIBLE_DENSITY
             ? "negligible drag · near free-fall, terminal velocity resolves as air thickens"
             : "above terminal · drag building, terminal velocity resolves as descent continues"}
         </Value>
@@ -709,10 +778,10 @@ function LandingStatusComponent({
         <SectionTitle>Velocity</SectionTitle>
         <Grid cols="auto 1fr" gap="xs">
           <GridCellPair label="Vertical">
-            {formatMps(solution.verticalSpeed)}
+            {<Mps v={solution.verticalSpeed} />}
           </GridCellPair>
           <GridCellPair label="Horizontal">
-            {formatMps(solution.horizontalSpeed)}
+            {<Mps v={solution.horizontalSpeed} />}
           </GridCellPair>
         </Grid>
       </Section>
@@ -786,16 +855,16 @@ function LandingStatusComponent({
   // verdict banner + biome/terrain readout are composed here, below the plots.
   const reticleSquare = showReticle ? (
     <TouchdownReticle
-      siteLat={landing?.predictedLatitude ?? null}
-      siteLon={landing?.predictedLongitude ?? null}
-      vesselLat={flight?.latitude ?? null}
-      vesselLon={flight?.longitude ?? null}
+      siteLat={landing?.predictedLatitude?.magnitude ?? null}
+      siteLon={landing?.predictedLongitude?.magnitude ?? null}
+      vesselLat={flight?.latitude.magnitude ?? null}
+      vesselLon={flight?.longitude.magnitude ?? null}
       bodyRadius={body?.radius ?? null}
-      slopeDeg={landing?.predictedSlopeAngle ?? null}
+      slopeDeg={landing?.predictedSlopeAngle?.magnitude ?? null}
       biome={landing?.predictedBiome ?? null}
       sampleSource={landing?.sampleSource ?? null}
-      terrainPatch={landing?.terrainPatch ?? null}
-      terrainPatchSize={landing?.terrainPatchSize ?? null}
+      terrainPatch={terrainPatchMeters}
+      terrainPatchSize={landing?.terrainPatchSize?.magnitude ?? null}
       spanMeters={reticleSpanMeters}
       zoneRadiusMeters={landingZoneRadiusM}
     />
@@ -827,7 +896,7 @@ function LandingStatusComponent({
       ? (() => {
           let lo = Number.POSITIVE_INFINITY;
           let hi = Number.NEGATIVE_INFINITY;
-          for (const hgt of landing.terrainPatch) {
+          for (const { magnitude: hgt } of landing.terrainPatch) {
             if (!Number.isFinite(hgt)) continue;
             if (hgt < lo) lo = hgt;
             if (hgt > hi) hi = hgt;
@@ -844,9 +913,13 @@ function LandingStatusComponent({
   const terrainReadoutEl = showReticle ? (
     <Value tone="muted" size="xs">
       {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
-      {landing?.predictedSlopeAngle != null
-        ? `${landing.predictedSlopeAngle.toFixed(1)}° slope`
-        : NULL_DISPLAY}
+      {landing?.predictedSlopeAngle != null ? (
+        <>
+          <Unit value={landing.predictedSlopeAngle} decimals={1} /> slope
+        </>
+      ) : (
+        NULL_DISPLAY
+      )}
       {reliefRange != null && reliefRange >= 1
         ? ` · Δ ${Math.round(reliefRange)} m relief`
         : ""}
@@ -889,7 +962,7 @@ function LandingStatusComponent({
           {commitLayerEl}
           {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
             <Value tone="muted">
-              RT {formatDuration(clocks.roundTripSeconds, { ms: true })}
+              RT <Countdown value={clocks.roundTripSeconds} precise />
             </Value>
           )}
           <span
@@ -952,7 +1025,7 @@ function LandingStatusComponent({
               }}
             >
               <AltitudeRail
-                aglMeters={heightFromTerrain ?? null}
+                aglMeters={heightFromTerrain?.magnitude ?? null}
                 ignitionAltitude={landed ? null : solution.ignitionAltitude}
                 suicideBurnCountdown={
                   landed ? null : solution.suicideBurnCountdown

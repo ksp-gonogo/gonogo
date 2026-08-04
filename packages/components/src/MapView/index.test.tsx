@@ -15,7 +15,14 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { ModalChromeContext, type ModalChromeValue } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -312,7 +319,7 @@ describe("MapViewComponent", () => {
       expect(container.querySelectorAll("canvas").length).toBeGreaterThan(0);
       // The overlay received a real pixel width and a working `project`
       // (numeric screen coordinates) as slot props.
-      expect(probe.textContent).toMatch(/w=\d+ px=-?\d+ py=-?\d+/);
+      expect(visibleText(probe)).toMatch(/w=\d+ px=-?\d+ py=-?\d+/);
     });
 
     it("passes the raw vessel position to the overlay slot", async () => {
@@ -333,12 +340,12 @@ describe("MapViewComponent", () => {
         const el = container.querySelector(
           '[data-testid="overlay-vessel-pos-probe"]',
         );
-        if (el === null || !el.textContent?.includes("vesselLat=12.5"))
+        if (el === null || !visibleText(el).includes("vesselLat=12.5"))
           throw new Error("overlay augment has not rendered vessel pos yet");
         return el;
       });
-      expect(probe.textContent).toContain("vesselLat=12.5");
-      expect(probe.textContent).toContain("vesselLon=-70");
+      expect(visibleText(probe)).toContain("vesselLat=12.5");
+      expect(visibleText(probe)).toContain("vesselLon=-70");
     });
 
     it("clears vesselLat/vesselLon on the overlay slot when a bodyOverride diverges from the vessel's body", async () => {
@@ -363,8 +370,8 @@ describe("MapViewComponent", () => {
           throw new Error("overlay augment has not rendered yet");
         return el;
       });
-      expect(probe.textContent).toContain("vesselLat=undefined");
-      expect(probe.textContent).toContain("vesselLon=undefined");
+      expect(visibleText(probe)).toContain("vesselLat=undefined");
+      expect(visibleText(probe)).toContain("vesselLon=undefined");
     });
 
     it("renders a badges augment in the header, passed the body name", async () => {
@@ -380,11 +387,11 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { body: "Kerbin" });
 
       await waitFor(() => {
-        if (!container.textContent?.includes("badge:Kerbin")) {
+        if (!visibleText(container).includes("badge:Kerbin")) {
           throw new Error("badge augment has not rendered with the body name");
         }
       });
-      expect(container.textContent).toContain("badge:Kerbin");
+      expect(visibleText(container)).toContain("badge:Kerbin");
     });
 
     it("renders the map with both slots empty when no augment is registered", async () => {
@@ -416,7 +423,7 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { body: "Kerbin" });
 
       await waitFor(() => {
-        if (!container.textContent?.includes("Sections for Kerbin")) {
+        if (!visibleText(container).includes("Sections for Kerbin")) {
           throw new Error("sections augment has not rendered yet");
         }
       });
@@ -556,7 +563,7 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { body: "Kerbin" });
 
       await waitFor(() => {
-        if (!container.textContent?.includes("show=false")) {
+        if (!visibleText(container).includes("show=false")) {
           throw new Error("actions augment has not read back the setting yet");
         }
       });
@@ -711,7 +718,7 @@ describe("MapViewComponent", () => {
       await emitVessel(fixture, { body: "Kerbin" });
 
       await waitFor(() => {
-        if (!container.textContent?.includes("show=false")) {
+        if (!visibleText(container).includes("show=false")) {
           throw new Error(
             "sections augment has not read back the saved setting yet",
           );

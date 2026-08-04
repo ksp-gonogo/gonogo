@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import circularLko from "./__fixtures__/circular-lko.json";
@@ -104,12 +104,12 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
     // Inclination is raw off vessel.orbit; period is derived off vessel.state,
     // waiting on both proves the whole mixed raw+derived surface has landed.
     await waitFor(() => {
-      if (!container.textContent?.includes("0.3°")) {
+      if (!visibleText(container).includes("0.3°")) {
         throw new Error("stream leg has not rendered inclination yet");
       }
     });
     await waitFor(() => {
-      if (!container.textContent?.includes("31m 25s")) {
+      if (!visibleText(container).includes("31m 25s")) {
         throw new Error("stream leg has not rendered period yet");
       }
     });
@@ -117,9 +117,9 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
     // Apsis altitudes (derived sma·(1±ecc) − bodyRadius) and the reference-body
     // subtitle all resolve off the stream.
     expect(SMA * (1 + ECC) - BODY_RADIUS).toBeCloseTo(85004.8, 0);
-    expect(container.textContent).toMatch(/85\.\d+\s*km/);
-    expect(container.textContent).toMatch(/80\.\d+\s*km/);
-    expect(container.textContent).toContain("Kerbin");
+    expect(visibleText(container)).toMatch(/85\.\d+\s*km/);
+    expect(visibleText(container)).toMatch(/80\.\d+\s*km/);
+    expect(visibleText(container)).toContain("Kerbin");
     // Default mini orbit diagram renders (hasOrbit satisfied off derived ApR/PeR).
     expect(container.querySelector("svg")).not.toBeNull();
     // Period sanity: matches the vessel-state derivation used above.

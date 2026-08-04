@@ -9,6 +9,11 @@ import {
 import { Panel, ScrollArea, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 type TechTreeConfig = Record<string, never>;
 
@@ -100,7 +105,8 @@ export function parseTechNodes(raw: unknown): TechNode[] | null {
       id,
       title: typeof e.title === "string" ? e.title : id,
       description: typeof e.description === "string" ? e.description : "",
-      scienceCost: typeof e.scienceCost === "number" ? e.scienceCost : 0,
+      // Compared against the available science to gate the Unlock button.
+      scienceCost: magnitudeOr(e.scienceCost as Quantityish, 0),
       state,
       parents: Array.isArray(e.parents)
         ? e.parents.filter((p): p is string => typeof p === "string")
@@ -358,7 +364,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const bucket = getSizeBucket(w, h);
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
-  const sciAvailable = typeof careerScience === "number" ? careerScience : null;
+  // The Unlock button compares this against a node's cost, so it needs the
+  // number: left wrapped, every node read as unaffordable.
+  const sciAvailable = magnitudeOf(careerScience);
 
   const researchable = useMemo(
     () => computeResearchable(allNodes ?? [], sciAvailable),

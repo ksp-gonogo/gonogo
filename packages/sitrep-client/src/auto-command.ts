@@ -81,7 +81,12 @@ export function useAutoCommand({
   // eventually want THAT vessel's delay. Active-vessel delay is correct for v1
   // (do not parameterise for per-vessel yet). null/absent/invalid → 0 (LAN /
   // no-path: dispatch at the event itself, no lead needed).
-  const raw = commsDelay?.oneWaySeconds;
+  // `.magnitude`, not a `typeof === "number"` guard: the wire declares this
+  // field in seconds, so it arrives as a `Value<"s">` and the guard would be
+  // false for every real frame, leaving the lead at 0 and dispatching an
+  // auto-command with no compensation at all. That is the whole point of the
+  // hook, and it would have failed silently on a live vessel.
+  const raw = commsDelay?.oneWaySeconds?.magnitude;
   const delaySeconds =
     typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : 0;
 

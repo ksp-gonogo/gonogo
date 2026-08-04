@@ -3,6 +3,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
@@ -81,7 +82,7 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
 
     // The hinge's angle renders; the rotor entry is ignored (RoboticsConsole
     // is hinges/pistons-only, rotors are Rotor Tachometer's domain).
-    await waitFor(() => expect(container.textContent).toContain("22°"));
+    await waitFor(() => expect(visibleText(container)).toContain("22°"));
     expect(screen.queryByText(/EM-32S Standard Rotor/)).not.toBeInTheDocument();
 
     await act(async () => {
@@ -130,18 +131,18 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
     });
 
     // Default selection is the first entry (partId "1", 10deg).
-    await waitFor(() => expect(container.textContent).toContain("10°"));
+    await waitFor(() => expect(visibleText(container)).toContain("10°"));
 
     const rows = screen.getAllByRole("button", {
       name: new RegExp(hingeName),
     });
-    const targetRow = rows.find((r) => r.textContent?.includes("30°/30°"));
+    const targetRow = rows.find((r) => visibleText(r).includes("30°/30°"));
     if (!targetRow) {
       throw new Error("could not find the partId 3 (30deg) hinge row");
     }
     await act(async () => {
       targetRow.click();
     });
-    await waitFor(() => expect(container.textContent).toContain("30°"));
+    await waitFor(() => expect(visibleText(container)).toContain("30°"));
   });
 });

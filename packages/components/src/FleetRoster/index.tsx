@@ -16,6 +16,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { Fragment, useMemo } from "react";
 import styled from "styled-components";
+import { magnitudeOf } from "../shared/magnitude";
 
 type FleetRosterConfig = Record<string, never>;
 
@@ -151,8 +152,8 @@ function useFleet(): { known: boolean; vessels: FleetVessel[] } {
           name: v.name,
           body:
             v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null,
-          crewCount: v.crewCount ?? null,
-          crewCapacity: v.crewCapacity ?? null,
+          crewCount: magnitudeOf(v.crewCount),
+          crewCapacity: magnitudeOf(v.crewCapacity),
           comms: rosterCommsLink(v.commsControlSource),
         })),
     [system, nameByIndex],

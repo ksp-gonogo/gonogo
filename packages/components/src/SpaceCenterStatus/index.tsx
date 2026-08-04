@@ -11,6 +11,11 @@ import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
 import { NULL_DISPLAY, Panel, ScrollArea, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 type SpaceCenterStatusConfig = Record<string, never>;
 
@@ -123,12 +128,13 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
       : ENUM_FACILITY_TO_KEY[rawKey];
     if (key === undefined) continue;
 
-    if (typeof entry.level === "number" && typeof entry.max === "number") {
+    const level = magnitudeOf(entry.level as Quantityish);
+    const max = magnitudeOf(entry.max as Quantityish);
+    if (level !== null && max !== null) {
       out[key] = {
-        level: entry.level,
-        max: entry.max,
-        upgradeFunds:
-          typeof entry.upgradeFunds === "number" ? entry.upgradeFunds : 0,
+        level,
+        max,
+        upgradeFunds: magnitudeOr(entry.upgradeFunds as Quantityish, 0),
         currentLevelText:
           typeof entry.currentLevelText === "string"
             ? entry.currentLevelText
@@ -139,15 +145,13 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
       continue;
     }
 
-    if (
-      typeof entry.currentTier === "number" &&
-      typeof entry.maxTier === "number"
-    ) {
+    const currentTier = magnitudeOf(entry.currentTier as Quantityish);
+    const maxTier = magnitudeOf(entry.maxTier as Quantityish);
+    if (currentTier !== null && maxTier !== null) {
       out[key] = {
-        level: entry.currentTier,
-        max: entry.maxTier,
-        upgradeFunds:
-          typeof entry.upgradeCost === "number" ? entry.upgradeCost : 0,
+        level: currentTier,
+        max: maxTier,
+        upgradeFunds: magnitudeOr(entry.upgradeCost as Quantityish, 0),
         currentLevelText: "",
         nextLevelText: "",
       };
@@ -180,8 +184,12 @@ function SpaceCenterStatusComponent({
   // reads migrate first, commands come later.
   const careerStatus = useTelemetry("career.status");
   const facilitiesRaw = careerStatus?.facilities;
-  const careerFunds = careerStatus?.economy?.funds;
-  const partsAvailable = useTelemetry("spaceCenter.partsAvailable")?.count;
+  // Magnitude: compared against an upgrade cost and rendered through this
+  // widget's own compact funds formatting, both of which want a number.
+  const careerFunds = magnitudeOf(careerStatus?.economy?.funds);
+  const partsAvailable = magnitudeOf(
+    useTelemetry("spaceCenter.partsAvailable")?.count,
+  );
   const sceneTopic = useTelemetry("spaceCenter.scene");
   const launchSite = sceneTopic?.launchSite;
   const scene = sceneTopic?.scene;
@@ -224,7 +232,7 @@ function SpaceCenterStatusComponent({
     return (
       <Panel panelTitle="KSC">
         <TinyBody>
-          {typeof careerFunds === "number" ? (
+          {careerFunds !== null ? (
             <TinyFunds title={`${Math.round(careerFunds).toLocaleString()}f`}>
               {formatTinyFunds(Math.round(careerFunds))}
               <TinyFundsUnit>f</TinyFundsUnit>
@@ -256,7 +264,7 @@ function SpaceCenterStatusComponent({
         showSubtitle ? (
           <span role="status" aria-live="polite">
             {padLine}
-            {typeof careerFunds === "number" && (
+            {careerFunds !== null && (
               <FundsReadout title="Available funds">
                 · {Math.round(careerFunds).toLocaleString()}
                 <Unit>funds</Unit>
@@ -283,8 +291,7 @@ function SpaceCenterStatusComponent({
             const canAfford =
               !!f &&
               f.upgradeFunds > 0 &&
-              (typeof careerFunds !== "number" ||
-                careerFunds >= f.upgradeFunds);
+              (careerFunds === null || careerFunds >= f.upgradeFunds);
             const canUpgrade =
               upgradesEnabled &&
               !!f &&
@@ -374,11 +381,7 @@ function SpaceCenterStatusComponent({
         <Footer>
           <FooterCell title="Parts unlocked by current R&D tier">
             <FooterLabel>Parts unlocked</FooterLabel>
-            <FooterValue>
-              {typeof partsAvailable === "number"
-                ? partsAvailable
-                : NULL_DISPLAY}
-            </FooterValue>
+            <FooterValue>{partsAvailable ?? NULL_DISPLAY}</FooterValue>
           </FooterCell>
         </Footer>
       </Body>

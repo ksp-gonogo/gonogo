@@ -14,6 +14,7 @@ import {
   solveAnomalies,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -147,27 +148,42 @@ function finiteOrNull(x: number): number | null {
   return Number.isFinite(x) ? x : null;
 }
 
+/**
+ * The subset of `vessel.orbit` the solver needs, as it arrives on the wire.
+ *
+ * Structural rather than the contract type so the shape stays visible at a
+ * glance: this is the six elements plus mu, and nothing else on `VesselOrbit`
+ * has any business reaching `solveAnomalies`.
+ */
 interface WireOrbit {
-  sma: number;
-  ecc: number;
-  inc: number;
-  lan?: number;
-  argPe?: number;
-  meanAnomalyAtEpoch: number;
-  epoch: number;
-  mu: number;
+  sma: Value<"m">;
+  ecc: Value<"1">;
+  inc: Value<"°">;
+  lan?: Value<"°">;
+  argPe?: Value<"°">;
+  meanAnomalyAtEpoch: Value<"rad">;
+  epoch: Value<"s">;
+  mu: Value<"m³/s²">;
 }
 
+/**
+ * Where the elements stop being quantities and start being solver inputs.
+ *
+ * `OrbitElements` is radians throughout, which is the conversion this function
+ * has always existed to do. The magnitudes come off in the same step, so the
+ * solver keeps its one plain-number contract and the degrees-to-radians turn
+ * still happens in exactly one place.
+ */
 function buildElements(o: WireOrbit): OrbitElements {
   return {
-    sma: o.sma,
-    ecc: o.ecc,
-    inc: degToRad(o.inc),
-    lan: o.lan == null ? 0 : degToRad(o.lan),
-    argPe: o.argPe == null ? 0 : degToRad(o.argPe),
-    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch,
-    epoch: o.epoch,
-    mu: o.mu,
+    sma: o.sma.magnitude,
+    ecc: o.ecc.magnitude,
+    inc: degToRad(o.inc.magnitude),
+    lan: o.lan == null ? 0 : degToRad(o.lan.magnitude),
+    argPe: o.argPe == null ? 0 : degToRad(o.argPe.magnitude),
+    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch.magnitude,
+    epoch: o.epoch.magnitude,
+    mu: o.mu.magnitude,
   };
 }
 
@@ -259,7 +275,7 @@ function SystemViewComponent({
     // trueAnomaly/period/apsis as plain wire scalars that never threw). Guard
     // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
     // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
-    if (!(orbit.ecc >= 0 && orbit.ecc < 1)) {
+    if (!(orbit.ecc.magnitude >= 0 && orbit.ecc.magnitude < 1)) {
       return null;
     }
     const elements = buildElements(orbit);
@@ -295,22 +311,22 @@ function SystemViewComponent({
       ? (nameByIndex.get(encounter.bodyIndex) ?? null)
       : null;
   const encounterTimeUt =
-    encounter && Number.isFinite(encounter.transitionUt)
-      ? encounter.transitionUt
+    encounter && Number.isFinite(encounter.transitionUt.magnitude)
+      ? encounter.transitionUt.magnitude
       : null;
 
   // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame
   // matches its parent body.
-  const vSma = orbit?.sma;
+  const vSma = orbit?.sma.magnitude;
   const vesselOrbit =
-    vesselBody != null && orbit && typeof orbit.sma === "number"
+    vesselBody != null && orbit && Number.isFinite(orbit.sma.magnitude)
       ? {
           parentName: vesselBody,
-          sma: orbit.sma,
-          ecc: orbit.ecc,
-          lan: orbit.lan ?? 0,
-          argPe: orbit.argPe ?? 0,
-          inclination: orbit.inc,
+          sma: orbit.sma.magnitude,
+          ecc: orbit.ecc.magnitude,
+          lan: orbit.lan?.magnitude ?? 0,
+          argPe: orbit.argPe?.magnitude ?? 0,
+          inclination: orbit.inc.magnitude,
           trueAnomaly: derived?.trueAnomaly ?? 0,
         }
       : null;
@@ -337,14 +353,12 @@ function SystemViewComponent({
     if (!orbit || vesselBody == null || utBucket == null) return [];
     const period = derived?.period;
     if (period == null || period <= 0) return [];
-    if (!(orbit.ecc < 1)) return []; // hyperbolic, elliptical solver only
+    if (!(orbit.ecc.magnitude < 1)) return []; // hyperbolic, elliptical only
     const hasEncounter =
       encounterExists !== 0 &&
       encounterTimeUt != null &&
       encounterTimeUt > utBucket;
-    const endUT = hasEncounter
-      ? (encounterTimeUt as number)
-      : utBucket + period;
+    const endUT = hasEncounter ? encounterTimeUt : utBucket + period;
     return [
       {
         startUT: utBucket,
@@ -357,14 +371,16 @@ function SystemViewComponent({
           : "FINAL",
         PeA: 0,
         ApA: 0,
-        inclination: orbit.inc,
-        eccentricity: orbit.ecc,
-        epoch: orbit.epoch,
+        // `OrbitPatch` is the diagram's projection input: every element is
+        // sampled into plot coordinates, so it stays plain numbers.
+        inclination: orbit.inc.magnitude,
+        eccentricity: orbit.ecc.magnitude,
+        epoch: orbit.epoch.magnitude,
         period,
-        argumentOfPeriapsis: orbit.argPe ?? 0,
-        sma: orbit.sma,
-        lan: orbit.lan ?? 0,
-        maae: orbit.meanAnomalyAtEpoch,
+        argumentOfPeriapsis: orbit.argPe?.magnitude ?? 0,
+        sma: orbit.sma.magnitude,
+        lan: orbit.lan?.magnitude ?? 0,
+        maae: orbit.meanAnomalyAtEpoch.magnitude,
         referenceBody: vesselBody,
         semiLatusRectum: 0,
         semiMinorAxis: 0,

@@ -1,7 +1,24 @@
-import { formatDuration, Grid, Quantity } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Grid, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
+
+/**
+ * Every readout below builds its own `Value` rather than being handed one,
+ * and that is the one place in this widget where a unit is named twice.
+ *
+ * `CelestialBody` is the SYSTEM DIAGRAM's model: its numbers exist to be
+ * scaled into plot coordinates, so `useCelestialBodies` takes the magnitudes
+ * off at the wire boundary and the diagram never sees a `Value`. This panel is
+ * the other consumer of that same model, and it wants the units back.
+ *
+ * The fix is for `CelestialBody` to carry `Value` and for the diagram to
+ * unwrap where it does its arithmetic, which is a change to a file with no
+ * type errors in it and so is not this commit's. Until then the units are
+ * restated here, next to the readout that shows them, where a wrong one is at
+ * least visible.
+ */
 
 export interface AlmanacPanelProps {
   /** Body to describe. When null, the panel renders an idle hint. */
@@ -49,32 +66,35 @@ function buildRows(
   if (body.radius !== null) {
     rows.push({
       label: "Radius",
-      value: <Quantity value={body.radius} unit="m" />,
+      value: <Unit value={value("m", body.radius)} />,
     });
   }
   if (body.mass !== null) {
     rows.push({
       label: "Mass",
-      value: <Quantity value={body.mass} unit="kg" />,
+      value: <Unit value={value("kg", body.mass)} />,
     });
   }
   if (body.geeASL !== null) {
     rows.push({
       label: "Surface gravity",
-      value: `${body.geeASL.toFixed(2)} g`,
+      value: <Unit value={value("g", body.geeASL)} />,
     });
   }
   if (body.rotationPeriod !== null) {
     rows.push({
       label: "Day length",
-      value: formatDuration(Math.abs(body.rotationPeriod)),
+      value: <Unit value={value("s", Math.abs(body.rotationPeriod))} />,
     });
   }
   if (body.tidallyLocked === true) {
     rows.push({ label: "", value: "Tidally locked" });
   }
   if (body.soi !== null) {
-    rows.push({ label: "SOI", value: <Quantity value={body.soi} unit="m" /> });
+    rows.push({
+      label: "SOI",
+      value: <Unit value={value("m", body.soi)} />,
+    });
   }
   if (body.hasAtmosphere === true) {
     rows.push({
@@ -82,7 +102,7 @@ function buildRows(
       value:
         body.maxAtmosphere !== null ? (
           <>
-            <Quantity value={body.maxAtmosphere} unit="m" />{" "}
+            <Unit value={value("m", body.maxAtmosphere)} />{" "}
             {body.hasOxygen === true ? "(O₂)" : "(no O₂)"}
           </>
         ) : body.hasOxygen === true ? (
@@ -98,22 +118,30 @@ function buildRows(
   if (body.hillSphere !== null) {
     rows.push({
       label: "Hill sphere",
-      value: <Quantity value={body.hillSphere} unit="m" />,
+      value: <Unit value={value("m", body.hillSphere)} />,
     });
   }
   if (body.rotates === false) {
     rows.push({ label: "", value: "Does not rotate" });
   }
   if (body.period !== null) {
-    rows.push({ label: "Orbital period", value: formatDuration(body.period) });
+    rows.push({
+      label: "Orbital period",
+      value: <Unit value={value("s", body.period)} />,
+    });
   }
   if (body.eccentricity !== null) {
-    rows.push({ label: "Eccentricity", value: body.eccentricity.toFixed(3) });
+    rows.push({
+      label: "Eccentricity",
+      // Dimensionless, so it renders bare; the decimals are the widget's
+      // choice because nothing about "1" implies a precision.
+      value: <Unit value={value("1", body.eccentricity)} decimals={3} />,
+    });
   }
   if (body.inclination !== null) {
     rows.push({
       label: "Inclination",
-      value: `${body.inclination.toFixed(2)}°`,
+      value: <Unit value={value("°", body.inclination)} />,
     });
   }
   if (
@@ -123,7 +151,7 @@ function buildRows(
   ) {
     rows.push({
       label: "Phase angle",
-      value: `${normalizeAngle(phaseAngleDeg).toFixed(1)}°`,
+      value: <Unit value={value("°", normalizeAngle(phaseAngleDeg))} />,
     });
   }
   if (
@@ -153,7 +181,7 @@ function buildRows(
   ) {
     rows.push({
       label: encounterDirection === "escape" ? "Escape in" : "Encounter in",
-      value: formatDuration(encounterTimeSec),
+      value: <Unit value={value("s", encounterTimeSec)} />,
     });
   }
   if (
@@ -165,7 +193,7 @@ function buildRows(
   ) {
     rows.push({
       label: nextApsisType === -1 ? "Next Pe" : "Next Ap",
-      value: formatDuration(nextApsisTimeSec),
+      value: <Unit value={value("s", nextApsisTimeSec)} />,
     });
   }
   return rows;

@@ -65,15 +65,13 @@ const EARTH_DAY_GREP = "\\b86_?400(_?000)?\\b";
  */
 const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
   {
-    file: "packages/ui-kit/src/formatAge.ts",
+    file: "packages/core/src/utils/format.ts",
     why:
       "formatAgeLong renders how long ago something was SEEN, in real elapsed " +
       "milliseconds. A 'last updated 3 d ago' badge is measuring the operator's " +
-      "afternoon, not Kerbin's rotation, so 86_400_000 is right here.",
-  },
-  {
-    file: "packages/core/src/utils/format.ts",
-    why: "The app-side twin of the same formatAgeLong, same reasoning.",
+      "afternoon, not Kerbin's rotation, so 86_400_000 is right here. ui-kit " +
+      "carried a duplicate of this file and it went with the formatters; this " +
+      "is the one that is left.",
   },
 ];
 

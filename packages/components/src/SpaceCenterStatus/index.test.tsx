@@ -3,7 +3,13 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -125,7 +131,7 @@ describe("SpaceCenterStatusComponent", () => {
     act(() => {
       stream.emit("spaceCenter.partsAvailable", { count: 47 });
     });
-    expect(await screen.findByText("47")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("47"));
   });
 
   it("fires kc.upgradeFacility on arm-then-confirm in the SC scene", async () => {
@@ -236,8 +242,8 @@ describe("SpaceCenterStatusComponent", () => {
 
     const { container } = renderWidget();
 
-    expect(container.textContent).toContain("EXPANSION READY");
-    expect(container.textContent).toContain("LS DEPOT tier 1 of 3");
+    expect(visibleText(container)).toContain("EXPANSION READY");
+    expect(visibleText(container)).toContain("LS DEPOT tier 1 of 3");
   });
 });
 

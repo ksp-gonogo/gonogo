@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -89,7 +95,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     await waitFor(() =>
       expect(screen.getByText("· 78,401").textContent).toBe("· 78,401f funds"),
     );
-    expect(screen.getByText("214")).toBeTruthy();
+    expect(visibleText()).toContain("214");
 
     teardownMockDataSource(legacyAux);
   });
@@ -181,7 +187,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
     );
-    expect(screen.getByText("150.0k")).toBeTruthy();
+    expect(visibleText()).toContain("150.0k");
     expect(screen.getByLabelText("VAB tier 3 of 3")).toBeTruthy();
     expect(screen.getByText("MAX")).toBeTruthy();
 

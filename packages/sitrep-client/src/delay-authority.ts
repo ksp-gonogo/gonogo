@@ -27,7 +27,11 @@ function readOneWaySeconds(payload: unknown): number {
   if (!payload || typeof payload !== "object") return 0;
   const delay = payload as Partial<CommsDelay>;
   if (delay.source === CommsDelaySource.None) return 0;
-  const seconds = delay.oneWaySeconds;
+  // `.magnitude`: the field arrives wrapped from the decode. Reading the
+  // object itself as a number silently fails the finiteness check below and
+  // pins the whole clock to a zero delay, which is the one failure this
+  // function's fail-safe was never meant to cover.
+  const seconds = delay.oneWaySeconds?.magnitude;
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
     return 0;
   }

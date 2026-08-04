@@ -1,4 +1,4 @@
-import type { UnitSystem } from "@ksp-gonogo/sitrep-sdk";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
@@ -174,7 +174,7 @@ export interface UnitProps<U extends string = string>
    * The quantity to show. It carries its own unit, so nothing else needs to be
    * passed and nothing else can disagree with it.
    */
-  value?: UnitSystem.Value<U> | null;
+  value?: Value<U> | null;
   /**
    * Pin the unit rather than letting the ladder choose, for the cases where
    * convention beats magnitude: km/h on a launch broadcast, km/s in a

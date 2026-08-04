@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -104,7 +104,7 @@ describe("ManeuverPlanner: behavior-preservation golden dual-run (delay=0)", () 
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Planned nodes")) {
+      if (!visibleText(container).includes("Planned nodes")) {
         throw new Error("stream leg has not rendered yet");
       }
     });
@@ -117,7 +117,7 @@ describe("ManeuverPlanner: behavior-preservation golden dual-run (delay=0)", () 
     // before snapshotting, else we'd race a still-SYNCING stream leg against
     // the badge-less legacy leg.
     await waitFor(() => {
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status badge has not cleared to live yet");
       }
     });

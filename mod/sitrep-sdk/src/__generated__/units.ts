@@ -1706,3 +1706,405 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxSkinTempRatio: "ratio",
   },
 };
+
+/** The nested payload shape each complex field holds, by its interface name. */
+export type ShapesByField = Readonly<Record<string, string>>;
+
+/**
+ * Which fields hold ANOTHER payload shape, and which one.
+ *
+ * The unit maps above are flat: they describe one shape's own fields and
+ * stop there. That was enough while a unit was only ever looked up, and
+ * wrong once the runtime started WRAPPING decoded payloads, because a
+ * nested shape's declared units were unreachable from the parent's entry.
+ * `vessel.target.orbit.sma` is the plain case: the contract types it as
+ * Value<"m">, and without this it arrived as a bare number.
+ *
+ * A field holding a LIST of a shape is recorded the same way; the element
+ * is what a consumer indexes into, which is the same convention the topic
+ * unit map already follows for an array Topic.
+ */
+export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "BodyEntry": {
+    atmosphere: "AtmosphereEntry",
+    orbit: "OrbitEntry",
+  },
+  "CapabilitySelection": {
+    descriptor: "CapabilityDescriptor",
+    providers: "ProviderRegistration",
+  },
+  "CareerContract": {
+    parameters: "CareerContractParameter",
+  },
+  "CareerContracts": {
+    active: "CareerContract",
+    completedRecent: "CareerContract",
+    offered: "CareerContract",
+  },
+  "CareerStatus": {
+    contracts: "CareerContracts",
+    economy: "CareerEconomy",
+    facilities: "*CareerFacility",
+    strategies: "CareerStrategies",
+    tech: "CareerTech",
+  },
+  "CareerStrategies": {
+    active: "CareerStrategy",
+    all: "CareerStrategy",
+  },
+  "CareerTech": {
+    nodes: "CareerTechNode",
+  },
+  "ChannelDeclaration": {
+    emission: "EmissionPolicy",
+  },
+  "CommandResponse`1": {
+    meta: "Meta",
+  },
+  "CommsConnectivity": {
+    meta: "PayloadMeta",
+  },
+  "CommsControlState": {
+    meta: "PayloadMeta",
+  },
+  "CommsDataRate": {
+    meta: "PayloadMeta",
+  },
+  "CommsDelay": {
+    meta: "PayloadMeta",
+  },
+  "CommsLink": {
+    meta: "PayloadMeta",
+  },
+  "CommsLinkMargin": {
+    meta: "PayloadMeta",
+  },
+  "CommsLinkQuality": {
+    meta: "PayloadMeta",
+  },
+  "CommsNetwork": {
+    edges: "CommsNetworkEdge",
+    meta: "PayloadMeta",
+    nodes: "CommsNetworkNode",
+  },
+  "CommsPath": {
+    hops: "CommsHop",
+    meta: "PayloadMeta",
+  },
+  "CommsSignalStrength": {
+    meta: "PayloadMeta",
+  },
+  "CrashReport": {
+    flightStats: "CrashFlightStats",
+    partsLost: "CrashPartLost",
+  },
+  "DockAlignment": {
+    meta: "PayloadMeta",
+  },
+  "EmissionPolicy": {
+    quantum: "EmissionQuantum",
+  },
+  "EventMsg": {
+    meta: "Meta",
+  },
+  "ISitrepUplink": {
+    manifest: "UplinkManifest",
+  },
+  "IUplinkHost": {
+    kernel: "Kernel",
+  },
+  "KerbalismCrewEntry": {
+    rules: "KerbalismCrewRule",
+  },
+  "KerbalismLifeSupport": {
+    electricCharge: "KerbalismResource",
+    food: "KerbalismResource",
+    greenhouses: "KerbalismGreenhouseEntry",
+    habitat: "KerbalismHabitat",
+    oxygen: "KerbalismResource",
+    processes: "KerbalismProcessEntry",
+    water: "KerbalismResource",
+  },
+  "ManeuverNode": {
+    patches: "OrbitPatch",
+  },
+  "PartsPower": {
+    alternators: "AlternatorEntry",
+    batteries: "BatteryEntry",
+    fuelCells: "FuelCellEntry",
+    solarPanels: "SolarPanelEntry",
+  },
+  "PendingUplinkQueue": {
+    pending: "PendingUplink",
+  },
+  "ProviderRegistration": {
+    versions: "ProviderVersions",
+  },
+  "ProviderVersions": {
+    targetModVersionRange: "VersionRange",
+  },
+  "RecoveryReport": {
+    crewBreakdown: "RecoveryCrewEntry",
+    partBreakdown: "RecoveryPartEntry",
+    resourceBreakdown: "RecoveryResourceEntry",
+    scienceBreakdown: "RecoveryScienceEntry",
+  },
+  "ResolveResult": {
+    notices: "ResolutionNotice",
+  },
+  "ScanningVesselEntry": {
+    sensors: "ScanSensorEntry",
+    trackColor: "ScanTrackColor",
+  },
+  "StageDeltaVEntry": {
+    resources: "*ResourceAmount",
+  },
+  "StreamData`1": {
+    meta: "Meta",
+  },
+  "SystemBodies": {
+    bodies: "BodyEntry",
+  },
+  "SystemVessels": {
+    vessels: "VesselRosterEntry",
+  },
+  "TargetAvailable": {
+    entries: "TargetListEntry",
+  },
+  "UplinkManifest": {
+    channels: "ChannelDeclaration",
+    clientSource: "UplinkClientSource",
+    commands: "CommandDeclaration",
+  },
+  "VesselAttitude": {
+    meta: "PayloadMeta",
+  },
+  "VesselComms": {
+    meta: "PayloadMeta",
+  },
+  "VesselControl": {
+    actionGroups: "ActionGroupState",
+    meta: "PayloadMeta",
+  },
+  "VesselCrew": {
+    crew: "CrewMember",
+    meta: "PayloadMeta",
+  },
+  "VesselFlight": {
+    meta: "PayloadMeta",
+  },
+  "VesselIdentity": {
+    meta: "PayloadMeta",
+  },
+  "VesselLanding": {
+    meta: "PayloadMeta",
+  },
+  "VesselManeuver": {
+    meta: "PayloadMeta",
+    nodes: "ManeuverNode",
+  },
+  "VesselOrbit": {
+    encounter: "OrbitEncounter",
+    meta: "PayloadMeta",
+    patches: "OrbitPatch",
+  },
+  "VesselOrbitTruth": {
+    meta: "PayloadMeta",
+  },
+  "VesselPart": {
+    actionBindings: "ActionBinding",
+    bounds: "PartBounds",
+    moduleStates: "PartModuleState",
+    resources: "*PartResourceFlow",
+  },
+  "VesselParts": {
+    meta: "PayloadMeta",
+    parts: "VesselPart",
+  },
+  "VesselPhysicsMode": {
+    meta: "PayloadMeta",
+  },
+  "VesselPropulsion": {
+    meta: "PayloadMeta",
+  },
+  "VesselResources": {
+    meta: "PayloadMeta",
+    resources: "*ResourceAmount",
+  },
+  "VesselStructure": {
+    meta: "PayloadMeta",
+  },
+  "VesselSurface": {
+    meta: "PayloadMeta",
+  },
+  "VesselTarget": {
+    closestApproach: "ClosestApproach",
+    meta: "PayloadMeta",
+    orbit: "VesselOrbit",
+  },
+  "VesselThermal": {
+    hottestPart: "ThermalHottestPart",
+    meta: "PayloadMeta",
+  },
+  "WarpState": {
+    meta: "PayloadMeta",
+  },
+};
+
+/** The same, keyed by Topic id. */
+export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "career.status": {
+    contracts: "CareerContracts",
+    economy: "CareerEconomy",
+    facilities: "*CareerFacility",
+    strategies: "CareerStrategies",
+    tech: "CareerTech",
+  },
+  "comms.connectivity": {
+    meta: "PayloadMeta",
+  },
+  "comms.controlState": {
+    meta: "PayloadMeta",
+  },
+  "comms.dataRate": {
+    meta: "PayloadMeta",
+  },
+  "comms.delay": {
+    meta: "PayloadMeta",
+  },
+  "comms.link": {
+    meta: "PayloadMeta",
+  },
+  "comms.linkMargin": {
+    meta: "PayloadMeta",
+  },
+  "comms.linkQuality": {
+    meta: "PayloadMeta",
+  },
+  "comms.network": {
+    edges: "CommsNetworkEdge",
+    meta: "PayloadMeta",
+    nodes: "CommsNetworkNode",
+  },
+  "comms.path": {
+    hops: "CommsHop",
+    meta: "PayloadMeta",
+  },
+  "comms.signalStrength": {
+    meta: "PayloadMeta",
+  },
+  "crash.lastCrash": {
+    flightStats: "CrashFlightStats",
+    partsLost: "CrashPartLost",
+  },
+  "dv.stages": {
+    resources: "*ResourceAmount",
+  },
+  "kerbalism.crew": {
+    rules: "KerbalismCrewRule",
+  },
+  "kerbalism.lifesupport": {
+    electricCharge: "KerbalismResource",
+    food: "KerbalismResource",
+    greenhouses: "KerbalismGreenhouseEntry",
+    habitat: "KerbalismHabitat",
+    oxygen: "KerbalismResource",
+    processes: "KerbalismProcessEntry",
+    water: "KerbalismResource",
+  },
+  "parts.power": {
+    alternators: "AlternatorEntry",
+    batteries: "BatteryEntry",
+    fuelCells: "FuelCellEntry",
+    solarPanels: "SolarPanelEntry",
+  },
+  "recovery.lastSummary": {
+    crewBreakdown: "RecoveryCrewEntry",
+    partBreakdown: "RecoveryPartEntry",
+    resourceBreakdown: "RecoveryResourceEntry",
+    scienceBreakdown: "RecoveryScienceEntry",
+  },
+  "scansat.scanningVessels": {
+    sensors: "ScanSensorEntry",
+    trackColor: "ScanTrackColor",
+  },
+  "system.bodies": {
+    bodies: "BodyEntry",
+  },
+  "system.vessels": {
+    vessels: "VesselRosterEntry",
+  },
+  "target.available": {
+    entries: "TargetListEntry",
+  },
+  "time.warp": {
+    meta: "PayloadMeta",
+  },
+  "vessel.attitude": {
+    meta: "PayloadMeta",
+  },
+  "vessel.comms": {
+    meta: "PayloadMeta",
+  },
+  "vessel.control": {
+    actionGroups: "ActionGroupState",
+    meta: "PayloadMeta",
+  },
+  "vessel.crew": {
+    crew: "CrewMember",
+    meta: "PayloadMeta",
+  },
+  "vessel.dock": {
+    meta: "PayloadMeta",
+  },
+  "vessel.flight": {
+    meta: "PayloadMeta",
+  },
+  "vessel.identity": {
+    meta: "PayloadMeta",
+  },
+  "vessel.landing": {
+    meta: "PayloadMeta",
+  },
+  "vessel.maneuver": {
+    meta: "PayloadMeta",
+    nodes: "ManeuverNode",
+  },
+  "vessel.orbit": {
+    encounter: "OrbitEncounter",
+    meta: "PayloadMeta",
+    patches: "OrbitPatch",
+  },
+  "vessel.orbit.truth": {
+    meta: "PayloadMeta",
+  },
+  "vessel.parts": {
+    meta: "PayloadMeta",
+    parts: "VesselPart",
+  },
+  "vessel.physics.mode": {
+    meta: "PayloadMeta",
+  },
+  "vessel.propulsion": {
+    meta: "PayloadMeta",
+  },
+  "vessel.resources": {
+    meta: "PayloadMeta",
+    resources: "*ResourceAmount",
+  },
+  "vessel.structure": {
+    meta: "PayloadMeta",
+  },
+  "vessel.surface": {
+    meta: "PayloadMeta",
+  },
+  "vessel.target": {
+    closestApproach: "ClosestApproach",
+    meta: "PayloadMeta",
+    orbit: "VesselOrbit",
+  },
+  "vessel.thermal": {
+    hottestPart: "ThermalHottestPart",
+    meta: "PayloadMeta",
+  },
+};

@@ -17,6 +17,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
+import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 
 /**
  * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
@@ -49,8 +50,15 @@ export interface RotorInfo {
   output: number;
 }
 
+/**
+ * A wire field as a number.
+ *
+ * Takes a `Value` as well as a bare number: a declared quantity arrives
+ * wrapped from the decode, and a `typeof === "number"` test answers "no
+ * reading" for every one of them, which is silent and total.
+ */
 function num(v: unknown, fallback = 0): number {
-  return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  return magnitudeOr(v as Quantityish, fallback);
 }
 
 /**

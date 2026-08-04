@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
@@ -37,7 +38,7 @@ export interface Vec3 {
  */
 export interface OrbitEncounterPayload {
   transitionType: number;
-  transitionUt: number;
+  transitionUt: Value<"s">;
   bodyIndex: number | null;
 }
 
@@ -57,14 +58,14 @@ export interface OrbitEncounterPayload {
  */
 export interface VesselOrbitPayload {
   referenceBodyIndex: number;
-  sma: number;
-  ecc: number;
-  inc: number;
-  lan: number | null;
-  argPe: number | null;
-  meanAnomalyAtEpoch: number;
-  epoch: number;
-  mu: number;
+  sma: Value<"m">;
+  ecc: Value<"1">;
+  inc: Value<"°">;
+  lan: Value<"°"> | null;
+  argPe: Value<"°"> | null;
+  meanAnomalyAtEpoch: Value<"rad">;
+  epoch: Value<"s">;
+  mu: Value<"m³/s²">;
   /**
    * The next upcoming SOI transition, or `null` when there is none (the
    * common case): the source of `vessel.state.encounterExists`/
@@ -91,17 +92,17 @@ export interface VesselOrbitPayload {
  * as `VesselOrbitPayload` above.
  */
 export interface VesselFlightPayload {
-  latitude: number;
-  longitude: number;
-  altitudeAsl: number;
-  altitudeTerrain: number;
-  verticalSpeed: number;
-  surfaceSpeed: number;
-  orbitalSpeed: number;
-  gForce: number;
-  dynamicPressureKPa: number;
-  mach: number;
-  atmDensity: number;
+  latitude: Value<"°">;
+  longitude: Value<"°">;
+  altitudeAsl: Value<"m">;
+  altitudeTerrain: Value<"m">;
+  verticalSpeed: Value<"m/s">;
+  surfaceSpeed: Value<"m/s">;
+  orbitalSpeed: Value<"m/s">;
+  gForce: Value<"g">;
+  dynamicPressureKPa: Value<"kPa">;
+  mach: Value<"1">;
+  atmDensity: Value<"kg/m³">;
 }
 
 /**
@@ -746,6 +747,20 @@ function wrapDegrees360(deg: number): number {
 }
 
 /** `x` if finite, else `null`: the discipline every new derived scalar field in this file follows (never a NaN/Infinity escapes onto `VesselState`). */
+/**
+ * A wire quantity's magnitude, or `NaN` when the field is absent.
+ *
+ * A Topic sends a subset of its fields routinely, and the wrap deliberately
+ * leaves an absent field absent. Before the flip that meant the arithmetic
+ * below saw `undefined` and produced `NaN`, which every guard here already
+ * accounts for (`finiteOrNull`, `!(h > 0)`, `Number.isFinite`). `NaN` keeps
+ * exactly that behaviour; `v.magnitude` on a missing field would throw
+ * instead, turning a partial frame into a crashed derivation.
+ */
+function mag(v: { magnitude: number } | null | undefined): number {
+  return v == null ? Number.NaN : v.magnitude;
+}
+
 function finiteOrNull(x: number): number | null {
   return Number.isFinite(x) ? x : null;
 }
@@ -820,10 +835,10 @@ function deriveApsides(
     // `finiteOrNull` can't catch, so this is an explicit check, not a
     // by-product of the finite guard. Periapsis stays valid: sma < 0,
     // ecc > 1 makes `sma·(1-ecc)` a positive radius, same formula either way.
-    apoapsisAlt: isHyperbolic(orbit.ecc)
+    apoapsisAlt: isHyperbolic(mag(orbit.ecc))
       ? null
-      : finiteOrNull(orbit.sma * (1 + orbit.ecc) - radius),
-    periapsisAlt: finiteOrNull(orbit.sma * (1 - orbit.ecc) - radius),
+      : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc)) - radius),
+    periapsisAlt: finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc)) - radius),
   };
 }
 
@@ -894,8 +909,8 @@ function deriveEncounter(
   return {
     encounterExists,
     encounterBody: resolveBodyName(get, encounter.bodyIndex),
-    encounterTime: Number.isFinite(encounter.transitionUt)
-      ? encounter.transitionUt
+    encounterTime: Number.isFinite(mag(encounter.transitionUt))
+      ? mag(encounter.transitionUt)
       : undefined,
   };
 }
@@ -935,14 +950,14 @@ function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
  */
 function buildElements(o: VesselOrbitPayload): OrbitElements {
   return {
-    sma: o.sma,
-    ecc: o.ecc,
-    inc: degToRad(o.inc),
-    lan: o.lan == null ? 0 : degToRad(o.lan),
-    argPe: o.argPe == null ? 0 : degToRad(o.argPe),
-    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch,
-    epoch: o.epoch,
-    mu: o.mu,
+    sma: mag(o.sma),
+    ecc: mag(o.ecc),
+    inc: degToRad(mag(o.inc)),
+    lan: o.lan == null ? 0 : degToRad(mag(o.lan)),
+    argPe: o.argPe == null ? 0 : degToRad(mag(o.argPe)),
+    meanAnomalyAtEpoch: mag(o.meanAnomalyAtEpoch),
+    epoch: mag(o.epoch),
+    mu: mag(o.mu),
   };
 }
 
@@ -1049,7 +1064,7 @@ function deriveTargetOrbit(
   const targetPeriapsisAlt =
     radius == null
       ? radius
-      : finiteOrNull(orbit.sma * (1 - orbit.ecc) - radius);
+      : finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc)) - radius);
 
   return { targetPeriapsisAlt, targetPeriod, targetTrueAnomaly };
 }
@@ -1519,15 +1534,17 @@ function deriveLanding(
   orbitPatches: LegacyOrbitPatch[],
   viewUt: number,
 ): LandingDerivations {
-  const h = flight.altitudeTerrain;
-  const vDown = -flight.verticalSpeed;
+  // Magnitudes: everything from here is the ballistic-fall solve, which is
+  // arithmetic in canonical SI.
+  const h = mag(flight.altitudeTerrain);
+  const vDown = -mag(flight.verticalSpeed);
   // Only meaningful while descending toward terrain still below the vessel.
   if (!(h > 0) || !(vDown > 0)) return LANDING_NONE;
 
   const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
   if (radius == null) return LANDING_NONE;
-  const g =
-    orbit.mu / ((radius + flight.altitudeAsl) * (radius + flight.altitudeAsl));
+  const alt = mag(flight.altitudeAsl);
+  const g = mag(orbit.mu) / ((radius + alt) * (radius + alt));
   if (!(g > 0) || !Number.isFinite(g)) return LANDING_NONE;
 
   // Ballistic no-burn fall to terrain: positive root of ½g·t² + vDown·t − h = 0.
@@ -1536,7 +1553,7 @@ function deriveLanding(
   );
   // Impact speed with no burn: full surface speed plus the drop's added energy.
   const speedAtImpact = finiteOrNull(
-    Math.sqrt(flight.surfaceSpeed * flight.surfaceSpeed + 2 * g * h),
+    Math.sqrt(mag(flight.surfaceSpeed) * mag(flight.surfaceSpeed) + 2 * g * h),
   );
 
   const { landingPredictedLat, landingPredictedLon } = derivePredictedImpact(
@@ -1630,7 +1647,7 @@ function derivePredictedImpact(
     bodyName,
     bodyRadius,
     rotationPeriod,
-    { ut: viewUt, lat: flight.latitude, lon: flight.longitude },
+    { ut: viewUt, lat: mag(flight.latitude), lon: mag(flight.longitude) },
     horizonSec,
     stepSec,
   );
@@ -1750,10 +1767,10 @@ export function deriveVesselState(
       // doc): explicit check, not a by-product of finiteOrNull, since
       // sma·(1+ecc) is still a finite (just meaningless) number there.
       // Periapsis stays valid: sma·(1-ecc) is a positive radius either way.
-      apoapsisRadius: isHyperbolic(orbit.ecc)
+      apoapsisRadius: isHyperbolic(mag(orbit.ecc))
         ? null
-        : finiteOrNull(orbit.sma * (1 + orbit.ecc)),
-      periapsisRadius: finiteOrNull(orbit.sma * (1 - orbit.ecc)),
+        : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc))),
+      periapsisRadius: finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc))),
       orbitalRadius:
         position == null ? null : finiteOrNull(magnitude(position)),
       ...deriveNextApsis(timeToAp, timeToPe),
@@ -1797,10 +1814,10 @@ export function deriveVesselState(
   return {
     position: null,
     velocity: null,
-    altitudeAsl: flight.altitudeAsl,
-    verticalSpeed: flight.verticalSpeed,
-    surfaceSpeed: flight.surfaceSpeed,
-    orbitalSpeed: flight.orbitalSpeed,
+    altitudeAsl: mag(flight.altitudeAsl),
+    verticalSpeed: mag(flight.verticalSpeed),
+    surfaceSpeed: mag(flight.surfaceSpeed),
+    orbitalSpeed: mag(flight.orbitalSpeed),
     met: null,
     period: null,
     trueAnomaly: null,
@@ -1826,8 +1843,8 @@ export function deriveVesselState(
       Math.sqrt(
         Math.max(
           0,
-          flight.surfaceSpeed * flight.surfaceSpeed -
-            flight.verticalSpeed * flight.verticalSpeed,
+          mag(flight.surfaceSpeed) * mag(flight.surfaceSpeed) -
+            mag(flight.verticalSpeed) * mag(flight.verticalSpeed),
         ),
       ),
     ),

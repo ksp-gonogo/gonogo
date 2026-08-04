@@ -42,18 +42,22 @@ export function usePhaseAngles(
     if (!orbit) return EMPTY;
     // Vessel true anomaly at the view-UT via the shared solver (null for a
     // parabolic/hyperbolic orbit or a missing element: no phase reference).
+    // Magnitudes: `deriveTrueAnomalyDeg` is the shared Kepler solver and works
+    // in canonical SI throughout, which is what the wire already carries.
     const nu = deriveTrueAnomalyDeg({
-      semiMajorAxis: orbit.sma,
-      eccentricity: orbit.ecc,
-      meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
-      epoch: orbit.epoch,
-      parentGravParameter: orbit.mu,
+      semiMajorAxis: orbit.sma.magnitude,
+      eccentricity: orbit.ecc.magnitude,
+      meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch.magnitude,
+      epoch: orbit.epoch.magnitude,
+      parentGravParameter: orbit.mu.magnitude,
       ut,
     });
     if (nu === null) return EMPTY;
     // LAN/argPe default to 0 (equatorial / circular), the same coalescing the
     // widget uses when it draws the vessel's own orbit.
-    const vesselLon = wrap360((orbit.lan ?? 0) + (orbit.argPe ?? 0) + nu);
+    const vesselLon = wrap360(
+      (orbit.lan?.magnitude ?? 0) + (orbit.argPe?.magnitude ?? 0) + nu,
+    );
 
     const out = new Map<number, number>();
     for (const b of bodies) {

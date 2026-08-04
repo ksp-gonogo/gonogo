@@ -7,10 +7,10 @@ import {
 } from "@ksp-gonogo/core";
 import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
-  formatNumber,
   InFlightList,
   type InFlightListItem,
   Panel,
@@ -18,10 +18,12 @@ import {
   ScrollArea,
   Section,
   SectionTitle,
+  Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import styled from "styled-components";
+import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 type ScienceOfficerConfig = Record<string, never>;
 
@@ -155,8 +157,10 @@ export function sumExperimentDataAmount(raw: unknown): number {
   let total = 0;
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    const dataAmount = (entry as Record<string, unknown>).dataAmount;
-    if (typeof dataAmount === "number" && Number.isFinite(dataAmount)) {
+    const dataAmount = magnitudeOf(
+      (entry as Record<string, unknown>).dataAmount as Quantityish,
+    );
+    if (dataAmount !== null) {
       total += dataAmount;
     }
   }
@@ -195,15 +199,13 @@ export function parseLab(raw: unknown): LabStatus[] | null {
     const e = entry as Record<string, unknown>;
     out.push({
       partName: typeof e.partName === "string" ? e.partName : "Lab",
-      dataStored: typeof e.dataStored === "number" ? e.dataStored : null,
-      dataStorage: typeof e.dataStorage === "number" ? e.dataStorage : null,
-      storedScience:
-        typeof e.storedScience === "number" ? e.storedScience : null,
+      dataStored: magnitudeOf(e.dataStored as Quantityish),
+      dataStorage: magnitudeOf(e.dataStorage as Quantityish),
+      storedScience: magnitudeOf(e.storedScience as Quantityish),
       processingData: e.processingData === true,
       statusText: typeof e.statusText === "string" ? e.statusText : null,
-      scientistCount:
-        typeof e.scientistCount === "number" ? e.scientistCount : null,
-      scienceRate: typeof e.scienceRate === "number" ? e.scienceRate : null,
+      scientistCount: magnitudeOf(e.scientistCount as Quantityish),
+      scienceRate: magnitudeOf(e.scienceRate as Quantityish),
       isOperational: e.isOperational === true,
     });
   }
@@ -318,7 +320,7 @@ function ScienceOfficerComponent({
             {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
             {totalDataMits > 0 && (
               <Value spaced title="Total stored science data (mits)">
-                · {formatNumber(totalDataMits, { decimals: 1 })} mits
+                · <Unit value={value("Mit", totalDataMits)} decimals={1} />
               </Value>
             )}
           </span>

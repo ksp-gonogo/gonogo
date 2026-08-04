@@ -11,6 +11,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
@@ -256,7 +257,7 @@ describe("FuelStatusComponent", () => {
         screen.queryAllByText(`${NULL_DISPLAY} m/s`).length,
       ).toBeGreaterThan(0),
     );
-    expect(container.textContent).toContain("FUEL · ΔV");
+    expect(visibleText(container)).toContain("FUEL · ΔV");
     expect(
       screen.queryAllByText(new RegExp(`TWR\\s+${NULL_DISPLAY}`)).length,
     ).toBeGreaterThan(0);
@@ -300,9 +301,7 @@ describe("FuelStatusComponent", () => {
     });
 
     // Totals row reports vacuum ΔV (mode="vac") and total burn duration.
-    await waitFor(() =>
-      expect(screen.getByText("4200 m/s")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toContain("4200 m/s"));
     expect(screen.queryByText("VAC")).not.toBeNull();
     expect(screen.queryByText("2m 5s")).not.toBeNull();
 
@@ -321,7 +320,7 @@ describe("FuelStatusComponent", () => {
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
-    await waitFor(() => expect(container.textContent).toContain("FUEL · ΔV"));
+    await waitFor(() => expect(visibleText(container)).toContain("FUEL · ΔV"));
     expect(container.textContent).not.toContain("BOIL-OFF");
     expect(container.textContent).not.toContain("RELIABILITY OK");
   });
@@ -342,8 +341,8 @@ describe("FuelStatusComponent", () => {
     const { container } = renderFuel(fixture);
 
     await waitFor(() =>
-      expect(container.textContent).toContain("RELIABILITY OK"),
+      expect(visibleText(container)).toContain("RELIABILITY OK"),
     );
-    expect(container.textContent).toContain("BOIL-OFF 0.02/s");
+    expect(visibleText(container)).toContain("BOIL-OFF 0.02/s");
   });
 });

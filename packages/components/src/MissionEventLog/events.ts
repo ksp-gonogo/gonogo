@@ -1,3 +1,6 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 /**
  * Mission-event model + pure derivation logic for the Mission Event Log widget.
  *
@@ -53,8 +56,22 @@ export interface MissionEvent {
   id: string;
 }
 
-const isNum = (v: unknown): v is number =>
-  typeof v === "number" && Number.isFinite(v);
+/**
+ * A finite number from a wire field, whether it arrives bare or as a quantity.
+ *
+ * Every `ut` on these payloads is declared in seconds, so it reaches a
+ * consumer as a `Value<"s">`. A plain `typeof v === "number"` guard is false
+ * for all of them, and since each detector returns `null` on a failed guard,
+ * that guard silently emptied the whole log: no launch, no crash, no
+ * recovery, on a live vessel, with the widget showing its "no events yet"
+ * placeholder as if nothing had happened.
+ */
+const num = (v: unknown): number | null => {
+  const n = magnitudeOf(v as Quantityish);
+  return n !== null && Number.isFinite(n) ? n : null;
+};
+
+const isNum = (v: unknown): v is number => num(v) !== null;
 
 function makeId(kind: MissionEventKind, ut: number, disc?: string): string {
   return disc ? `${kind}:${ut}:${disc}` : `${kind}:${ut}`;
@@ -81,64 +98,74 @@ const nameOf = (p: DiscretePayload): string =>
 
 export function fromFlightStarted(raw: unknown): MissionEvent | null {
   const p = asObj(raw);
-  if (!p || !isNum(p.ut)) return null;
+  const ut = num(p?.ut);
+  if (!p || ut === null) return null;
   return {
-    ut: p.ut,
+    ut,
     kind: "launch",
     label: `Launched ${nameOf(p)}`,
-    id: makeId("launch", p.ut),
+    id: makeId("launch", ut),
   };
 }
 
 export function fromFlightEnded(raw: unknown): MissionEvent | null {
   const p = asObj(raw);
-  if (!p || !isNum(p.ut)) return null;
+  const ut = num(p?.ut);
+  if (!p || ut === null) return null;
   const reason = typeof p.reason === "string" ? p.reason : undefined;
   return {
-    ut: p.ut,
+    ut,
     kind: "flight-ended",
     label: "Flight ended",
     detail: reason,
-    id: makeId("flight-ended", p.ut),
+    id: makeId("flight-ended", ut),
   };
 }
 
 export function fromVesselChanged(raw: unknown): MissionEvent | null {
   const p = asObj(raw);
-  if (!p || !isNum(p.ut)) return null;
+  const ut = num(p?.ut);
+  if (!p || ut === null) return null;
   return {
-    ut: p.ut,
+    ut,
     kind: "vessel-changed",
     label: `Switched to ${nameOf(p)}`,
-    id: makeId("vessel-changed", p.ut),
+    id: makeId("vessel-changed", ut),
   };
 }
 
 export function fromCrash(raw: unknown): MissionEvent | null {
   const p = asObj(raw);
-  if (!p || !isNum(p.ut)) return null;
+  const ut = num(p?.ut);
+  if (!p || ut === null) return null;
   const cause = typeof p.cause === "string" ? p.cause : undefined;
   return {
-    ut: p.ut,
+    ut,
     kind: "crash",
     label: `${nameOf(p)} crashed`,
     detail: cause,
-    id: makeId("crash", p.ut),
+    id: makeId("crash", ut),
   };
 }
 
 export function fromRecovery(raw: unknown): MissionEvent | null {
   const p = asObj(raw);
-  if (!p || !isNum(p.ut)) return null;
-  const funds = isNum(p.fundsRecovered)
-    ? `+${Math.round(p.fundsRecovered).toLocaleString()}f`
-    : undefined;
+  const ut = num(p?.ut);
+  if (!p || ut === null) return null;
+  // `writeQuantity`, not a typed "f": `detail` is a string on the event model
+  // and a string cannot hold `<Unit>`, but the symbol can still come from the
+  // unit registry rather than from the keyboard.
+  const recovered = num(p.fundsRecovered);
+  const funds =
+    recovered === null
+      ? undefined
+      : `+${writeQuantity(value("funds", Math.round(recovered)))}`;
   return {
-    ut: p.ut,
+    ut,
     kind: "recovery",
     label: `Recovered ${nameOf(p)}`,
     detail: funds,
-    id: makeId("recovery", p.ut),
+    id: makeId("recovery", ut),
   };
 }
 

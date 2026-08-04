@@ -1,4 +1,5 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -183,7 +184,9 @@ describe("WebSocketTransport", () => {
     expect(frame).toMatchObject({
       type: "stream-data",
       topic: "vessel.orbit",
-      payload: { sma: 700000 },
+      // Wrapped: the wire carries a bare number and `parseServerMessage` gives
+      // it its declared unit back, which is what a consumer receives.
+      payload: { sma: value("m", 700000) },
     });
     // carriedChannels + perf-budget seam are both driven off arriving frames.
     expect(transport.carriedChannels).toContain("vessel.orbit");
@@ -226,7 +229,7 @@ describe("WebSocketTransport", () => {
     expect(frames[0]).toMatchObject({
       type: "stream-data",
       topic: "vessel.flight",
-      payload: { altitudeAsl: 249999 },
+      payload: { altitudeAsl: value("m", 249999) },
     });
     expect(transport.carriedChannels).toContain("vessel.flight");
     expect(streamFrames).toEqual(["vessel.flight"]);

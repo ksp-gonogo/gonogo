@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -168,9 +174,9 @@ describe("SystemViewComponent", () => {
     // SI ladders were never covered at all: they could have printed anything.
     // That is how the mass ladder shipped applying GRAM thresholds to a
     // KILOGRAM value, labelling Kerbin one whole prefix tier low.
-    await waitFor(() => expect(container.textContent).toContain("600.0km"));
+    await waitFor(() => expect(visibleText(container)).toContain("600.0 km"));
     // Kerbin's mass, derived from mu. 5.29e22 kg is 5.29e25 g, so Yg, not Zg.
-    expect(container.textContent).toMatch(/52\.\d+Yg/);
+    expect(visibleText(container)).toMatch(/52\.\d+ Yg/);
   });
 
   it("renders the child bodies of the frame in the diagram", async () => {

@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";
@@ -71,10 +77,10 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Seismic Accelerometer")) {
+      if (!visibleText(container).includes("Seismic Accelerometer")) {
         throw new Error("stream leg has not rendered the deployed list yet");
       }
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
     });

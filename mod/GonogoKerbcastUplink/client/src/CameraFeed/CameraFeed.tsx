@@ -9,6 +9,7 @@ import type {
   ActionDefinition,
   ComponentProps,
   TopicPayload,
+  Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
@@ -18,7 +19,7 @@ import {
   useLatestValue,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Badge, type BadgeTone, formatDuration } from "@ksp-gonogo/ui-kit";
+import { Badge, type BadgeTone, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
   useCallback,
@@ -315,11 +316,15 @@ export function CameraFeed({
     // resolve to a level (0 with no strength reading, the derived value
     // otherwise), so setDegrade is always called with something that undoes
     // the blackout.
+    // `.magnitude`: strength is a declared ratio and arrives wrapped, so the
+    // old `typeof === "number"` test failed for every reading and every weak
+    // link resolved to a level of 0, i.e. no degrade at all.
+    const strength = signalStrength?.magnitude;
     const level =
       commConnected === false
         ? 1.0 // blackout
-        : typeof signalStrength === "number"
-          ? Math.max(0, Math.min(1, 1 - signalStrength))
+        : typeof strength === "number"
+          ? Math.max(0, Math.min(1, 1 - strength))
           : 0; // connected, no strength reading -- always resets
 
     if (degradeTimerRef.current !== null) clearTimeout(degradeTimerRef.current);
@@ -441,23 +446,21 @@ interface QualityBadgeInfo extends StatusBadgeInfo {
 // path, or no delay authority mounted: comms-delay-nullable-when-no-path
 // fix), matching the "unobtrusive" brief: nothing to show, show nothing.
 function describeSignalDelay(
-  signalDelay: number | null | undefined,
+  signalDelay: Value<"s"> | null | undefined,
 ): StatusBadgeInfo | null {
-  if (
-    typeof signalDelay !== "number" ||
-    !Number.isFinite(signalDelay) ||
-    signalDelay <= 0
-  ) {
+  const seconds = signalDelay?.magnitude;
+  if (seconds === undefined || !Number.isFinite(seconds) || seconds <= 0) {
     return null;
   }
-  // A delay is a READOUT, not a countdown, so keep one decimal where it
-  // matters (sub-minute, the common case) instead of formatDuration's
-  // whole-unit truncation (3.8s must not read as "3s"). Above a minute the
-  // decimal is noise, so hand off to the shared scaled formatter.
-  const label =
-    signalDelay < 60
-      ? `${signalDelay.toFixed(1)}s`
-      : formatDuration(signalDelay);
+  // A string because it is a `Badge` label and an `aria-label`, and both are
+  // attributes. A delay is a READOUT, not a countdown, so keep one decimal
+  // where it matters (sub-minute, the common case) rather than letting the
+  // time ladder truncate to whole units: 3.8s must not read as "3s". Above a
+  // minute the decimal is noise, so the ladder takes over.
+  const label = writeQuantity(
+    signalDelay,
+    seconds < 60 ? { scale: "never", decimals: 1 } : {},
+  );
   return { label, ariaLabel: `Signal delay: ${label} one-way` };
 }
 
@@ -469,7 +472,7 @@ function describeSignalDelay(
 // anything to say.
 function describeSignalQuality(
   connected: boolean | undefined,
-  signalStrength: number | undefined,
+  signalStrength: Value<"ratio"> | undefined,
 ): QualityBadgeInfo | null {
   if (connected === undefined && signalStrength === undefined) return null;
   // NO SIGNAL when the link is down OR the strength has decayed to
@@ -477,10 +480,9 @@ function describeSignalQuality(
   // signal rather than a "0%" quality badge (comms-delay-model-consistency
   // spec, Phase 3). The tiny epsilon is a float-noise guard, not a "weak
   // link" threshold: a real 1% link still shows its percentage.
+  const strength = signalStrength?.magnitude;
   const zeroSignal =
-    typeof signalStrength === "number" &&
-    Number.isFinite(signalStrength) &&
-    signalStrength <= 1e-6;
+    strength !== undefined && Number.isFinite(strength) && strength <= 1e-6;
   if (connected === false || zeroSignal) {
     return {
       label: "NO SIGNAL",
@@ -488,10 +490,10 @@ function describeSignalQuality(
       ariaLabel: "Signal quality: no signal",
     };
   }
-  if (typeof signalStrength !== "number" || !Number.isFinite(signalStrength)) {
+  if (strength === undefined || !Number.isFinite(strength)) {
     return null;
   }
-  const pct = Math.round(Math.max(0, Math.min(1, signalStrength)) * 100);
+  const pct = Math.round(Math.max(0, Math.min(1, strength)) * 100);
   const tone: BadgeTone = pct >= 66 ? "go" : pct >= 33 ? "warn" : "nogo";
   return { label: `${pct}%`, tone, ariaLabel: `Signal quality: ${pct}%` };
 }

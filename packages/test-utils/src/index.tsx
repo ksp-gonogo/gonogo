@@ -82,16 +82,41 @@ export * from "@testing-library/react";
  * the ANNOUNCEMENT is the thing under test, or better, use
  * `screen.getByText("kilometres")`, which says so.
  *
+ * Defaults to `document.body`, so an assertion about what is on screen needs
+ * no container plumbed to it: `expect(visibleText()).toContain("12.4 km")` is
+ * the whole of it. Pass a container when a test renders more than one thing
+ * and needs to say which.
+ *
  * The thin space between a number and its unit is normalised to an ordinary
  * one. A reader sees a space; which space it is is a typographic detail, and
  * one that produces assertion failures reading `expected "12.4 km" to be
  * "12.4 km"`. The character itself is pinned by its own test in `Unit`, where
  * it means something.
  */
-export function visibleText(container: HTMLElement): string {
+export function visibleText(container: HTMLElement = document.body): string {
   const clone = container.cloneNode(true) as HTMLElement;
   for (const hidden of clone.querySelectorAll("[data-unit-word]")) {
     hidden.remove();
   }
   return (clone.textContent ?? "").replace(/\u2009/g, " ");
+}
+
+/**
+ * What a test PROBE should print for a value that may or may not carry a unit.
+ *
+ * A probe exists to prove a read path works: that a frame reached a widget,
+ * that a subscription fired, that a shim routed to the stream. It is not the
+ * thing under test how the value renders, and a `Value`'s own `toString` is
+ * "0.75 ratio", which turns every such assertion into a question about the
+ * unit system instead of about the wiring.
+ *
+ * So: the magnitude for a quantity, the value itself for anything else. Use
+ * `visibleText` when what a reader SEES is the point.
+ */
+export function probeText(v: unknown): string {
+  return String(
+    v !== null && typeof v === "object" && "magnitude" in v
+      ? (v as { magnitude: unknown }).magnitude
+      : v,
+  );
 }

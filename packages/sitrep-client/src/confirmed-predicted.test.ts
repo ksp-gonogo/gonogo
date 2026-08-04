@@ -1,4 +1,4 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { OrbitElements } from "./kepler";
 import { solve } from "./kepler";
@@ -42,7 +42,15 @@ function numberPoint(
   };
 }
 
-const CIRCULAR_ORBIT: VesselOrbitPayload = {
+/**
+ * Wire-shaped fixtures, wrapped in the two point-builders below: the same
+ * arrangement `vessel-state.test.ts` uses, and for the same reason. A test
+ * states what the mod sends; `wrapTypePayload` is what the decode does to it.
+ */
+type WireOrbit = Record<string, unknown>;
+type WireFlight = Record<string, unknown>;
+
+const CIRCULAR_ORBIT: WireOrbit = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -55,7 +63,7 @@ const CIRCULAR_ORBIT: VesselOrbitPayload = {
 };
 
 function orbitPoint(
-  payload: VesselOrbitPayload | null,
+  payload: WireOrbit | null,
   overrides: {
     validAt?: number;
     quality?: Quality;
@@ -66,7 +74,12 @@ function orbitPoint(
   const validAt = overrides.validAt ?? 0;
   return {
     validAt,
-    payload,
+    payload:
+      payload === null
+        ? null
+        : (wrapTypePayload("VesselOrbit", {
+            ...payload,
+          }) as VesselOrbitPayload),
     meta: makeMeta({
       validAt,
       deliveredAt: overrides.deliveredAt ?? validAt,
@@ -78,13 +91,18 @@ function orbitPoint(
 }
 
 function flightPoint(
-  payload: VesselFlightPayload | null,
+  payload: WireFlight | null,
   overrides: { validAt?: number; deliveredAt?: number } = {},
 ): TimelinePoint<VesselFlightPayload> {
   const validAt = overrides.validAt ?? 0;
   return {
     validAt,
-    payload,
+    payload:
+      payload === null
+        ? null
+        : (wrapTypePayload("VesselFlight", {
+            ...payload,
+          }) as VesselFlightPayload),
     meta: makeMeta({
       validAt,
       deliveredAt: overrides.deliveredAt ?? validAt,
@@ -225,15 +243,16 @@ describe("predicted-range reads (M2 design §3.3)", () => {
       basis: string;
     }>("vessel.state");
 
+    // Off the WIRE fixture, which is bare numbers: the solver's own contract.
     const elements: OrbitElements = {
-      sma: CIRCULAR_ORBIT.sma,
-      ecc: CIRCULAR_ORBIT.ecc,
+      sma: CIRCULAR_ORBIT.sma as number,
+      ecc: CIRCULAR_ORBIT.ecc as number,
       inc: 0,
       lan: 0,
       argPe: 0,
-      meanAnomalyAtEpoch: CIRCULAR_ORBIT.meanAnomalyAtEpoch,
-      epoch: CIRCULAR_ORBIT.epoch,
-      mu: CIRCULAR_ORBIT.mu,
+      meanAnomalyAtEpoch: CIRCULAR_ORBIT.meanAnomalyAtEpoch as number,
+      epoch: CIRCULAR_ORBIT.epoch as number,
+      mu: CIRCULAR_ORBIT.mu as number,
     };
     const expected = solve(elements, 150);
 
@@ -336,7 +355,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
     const token = store.currentFrame();
 
     const first = store.sample<VesselOrbitPayload>("vessel.orbit", token);
-    expect(first?.payload?.sma).toBe(CIRCULAR_ORBIT.sma);
+    expect(first?.payload?.sma.magnitude).toBe(CIRCULAR_ORBIT.sma);
 
     // Mid-token quickload: an UNRELATED topic's ingest bumps the shared
     // epoch. vessel.orbit itself hasn't re-sampled, so its ClientTimeline is

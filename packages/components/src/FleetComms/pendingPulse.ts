@@ -1,3 +1,5 @@
+import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+
 /**
  * The minimal, dispatch-time-only shape `computeUplinkPulse` reads off a
  * `system.uplink.pending` entry (`Sitrep.Contract.PendingUplink`): never
@@ -10,8 +12,8 @@
  * and clear, a whole one-way-delay late).
  */
 export interface PendingPulseEntry {
-  dispatchedAt: number;
-  oneWaySeconds: number;
+  dispatchedAt: Quantityish;
+  oneWaySeconds: Quantityish;
 }
 
 export type UplinkPulseLeg = "outbound" | "return";
@@ -58,9 +60,12 @@ export function computeUplinkPulse(
   entry: PendingPulseEntry,
   utNow: number,
 ): UplinkPulse | null {
-  const { dispatchedAt, oneWaySeconds } = entry;
-  if (!Number.isFinite(oneWaySeconds) || oneWaySeconds <= 0) return null;
-  if (!Number.isFinite(dispatchedAt) || !Number.isFinite(utNow)) return null;
+  // The pulse is an ANIMATION: it interpolates a fraction of a round trip
+  // into a position along a drawn line, so it works in raw seconds.
+  const dispatchedAt = magnitudeOf(entry.dispatchedAt);
+  const oneWaySeconds = magnitudeOf(entry.oneWaySeconds);
+  if (oneWaySeconds === null || oneWaySeconds <= 0) return null;
+  if (dispatchedAt === null || !Number.isFinite(utNow)) return null;
 
   const elapsed = utNow - dispatchedAt;
   if (elapsed < 0) return null;

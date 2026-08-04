@@ -1,15 +1,19 @@
-import {
-  type BodyDefinition,
-  type CurrentOrbit,
-  type DataKey,
-  formatDistance,
-  formatDuration,
-  type ManeuverPlan,
-  type ManeuverSequence,
+import type {
+  BodyDefinition,
+  CurrentOrbit,
+  DataKey,
+  ManeuverPlan,
+  ManeuverSequence,
 } from "@ksp-gonogo/core";
 import type { VesselDeltaV } from "@ksp-gonogo/data";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, SectionTitle } from "@ksp-gonogo/ui-kit";
+import {
+  Countdown,
+  NULL_DISPLAY,
+  SectionTitle,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { isSequence, type PlanResult } from "./planning";
@@ -134,7 +138,9 @@ function PreviewBody({
       <PreviewValue>{plan.requiredDeltaV.toFixed(1)} m/s</PreviewValue>
 
       <Label>Burn in</Label>
-      <PreviewValue>{formatDuration(plan.ut - (currentUT ?? 0))}</PreviewValue>
+      <PreviewValue>
+        <Countdown value={plan.ut - (currentUT ?? 0)} />
+      </PreviewValue>
 
       <Label>Available</Label>
       <PreviewValue>
@@ -199,7 +205,7 @@ function SequencePreview({
         <PreviewValue>{burn1.prograde.toFixed(1)} m/s prograde</PreviewValue>
         <Label>Burn in</Label>
         <PreviewValue>
-          {formatDuration(burn1.ut - (currentUT ?? 0))}
+          <Countdown value={burn1.ut - (currentUT ?? 0)} />
         </PreviewValue>
         <ProjectedRows
           projected={seq.transferEllipse}
@@ -218,7 +224,7 @@ function SequencePreview({
             </PreviewValue>
             <Label>Burn in</Label>
             <PreviewValue>
-              {formatDuration(burn2.ut - (currentUT ?? 0))}
+              <Countdown value={burn2.ut - (currentUT ?? 0)} />
             </PreviewValue>
             <ProjectedRows
               projected={seq.finalProjected}
@@ -255,16 +261,18 @@ function ProjectedRows({
     <>
       <Label>{prefix} Ap</Label>
       <PreviewValue $accent="ap">
-        {formatDistance(projected.ApR - (body?.radius ?? 0))}
+        <Unit value={value("m", projected.ApR - (body?.radius ?? 0))} />
       </PreviewValue>
       <Label>{prefix} Pe</Label>
       <PreviewValue $accent="pe">
-        {formatDistance(projected.PeR - (body?.radius ?? 0))}
+        <Unit value={value("m", projected.PeR - (body?.radius ?? 0))} />
       </PreviewValue>
       <Label>{prefix} Ecc</Label>
       <PreviewValue>{projected.eccentricity.toFixed(4)}</PreviewValue>
       <Label>{prefix} T</Label>
-      <PreviewValue>{formatDuration(projected.period)}</PreviewValue>
+      <PreviewValue>
+        <Unit value={value("s", projected.period)} />
+      </PreviewValue>
       {projected.inclination !== undefined && (
         <>
           <Label>{prefix} Inc</Label>

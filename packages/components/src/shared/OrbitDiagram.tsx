@@ -1,9 +1,10 @@
 import {
   clamp,
-  formatDistance,
   orbitalToCartesian,
   trueAnomalyToRadius,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -585,12 +586,15 @@ export function OrbitDiagram({
   );
 }
 
+/**
+ * A string rather than a node: this feeds an SVG `<text>` label and an
+ * `aria-label`, and neither can hold a `<span>`.
+ */
 function formatAltitude(
   radius: number,
   bodyRadius: number | undefined,
 ): string {
-  if (bodyRadius === undefined) return formatDistance(radius);
-  return formatDistance(radius - bodyRadius);
+  return writeQuantity(value("m", radius - (bodyRadius ?? 0)));
 }
 
 const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({

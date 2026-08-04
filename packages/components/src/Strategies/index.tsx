@@ -14,10 +14,16 @@ import {
   PrimaryButton,
   ScrollArea,
   Stack,
+  speakQuantity,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 type StrategiesConfig = Record<string, never>;
 
@@ -77,29 +83,21 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
             ? e.department
             : "",
       isActive: e.isActive === true,
-      factor: typeof e.factor === "number" ? e.factor : 0,
-      dateActivated: typeof e.dateActivated === "number" ? e.dateActivated : 0,
-      requiredReputation:
-        typeof e.requiredReputation === "number" ? e.requiredReputation : 0,
-      initialCostFunds:
-        typeof e.initialCostFunds === "number" ? e.initialCostFunds : 0,
-      initialCostScience:
-        typeof e.initialCostScience === "number" ? e.initialCostScience : 0,
-      initialCostReputation:
-        typeof e.initialCostReputation === "number"
-          ? e.initialCostReputation
-          : 0,
+      factor: magnitudeOr(e.factor as Quantityish, 0),
+      dateActivated: magnitudeOr(e.dateActivated as Quantityish, 0),
+      requiredReputation: magnitudeOr(e.requiredReputation as Quantityish, 0),
+      initialCostFunds: magnitudeOr(e.initialCostFunds as Quantityish, 0),
+      initialCostScience: magnitudeOr(e.initialCostScience as Quantityish, 0),
+      initialCostReputation: magnitudeOr(
+        e.initialCostReputation as Quantityish,
+        0,
+      ),
       effectiveCostReputation:
-        typeof e.effectiveCostReputation === "number"
-          ? e.effectiveCostReputation
-          : typeof e.initialCostReputation === "number"
-            ? e.initialCostReputation
-            : 0,
+        magnitudeOf(e.effectiveCostReputation as Quantityish) ??
+        magnitudeOr(e.initialCostReputation as Quantityish, 0),
       hasFactorSlider: e.hasFactorSlider === true,
-      factorSliderDefault:
-        typeof e.factorSliderDefault === "number" ? e.factorSliderDefault : 0,
-      factorSliderSteps:
-        typeof e.factorSliderSteps === "number" ? e.factorSliderSteps : 1,
+      factorSliderDefault: magnitudeOr(e.factorSliderDefault as Quantityish, 0),
+      factorSliderSteps: magnitudeOr(e.factorSliderSteps as Quantityish, 1),
       canActivate: e.canActivate === true,
       activateBlockedReason:
         typeof e.activateBlockedReason === "string"
@@ -278,9 +276,10 @@ function StrategiesComponent({
             fix: the balance wrapped clean off the bottom of a 3x3 box).
             Compact k/M formatting plus nowrap+ellipsis keeps this to one
             line that always fits. */}
-        {typeof funds === "number" && (
-          <TinyFundsRow title={`${Math.round(funds).toLocaleString()}f`}>
-            {formatCompactNumber(funds, 0)} f
+        {funds != null && (
+          <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
+            {formatCompactNumber(funds.magnitude, 0)}
+            <Unit>funds</Unit>
           </TinyFundsRow>
         )}
       </Panel>
@@ -304,19 +303,19 @@ function StrategiesComponent({
           </Tally>
           <Sep>·</Sep>
           <Tally>
-            {formatNumber(funds)}
+            {formatNumber(funds?.magnitude)}
             <Unit>funds</Unit>
           </Tally>
           {(w ?? 9) >= 6 && (
             <>
               <Sep>·</Sep>
               <Tally>
-                {formatNumber(reputation)}
+                {formatNumber(reputation?.magnitude)}
                 <Unit>rep</Unit>
               </Tally>
               <Sep>·</Sep>
               <Tally>
-                {formatNumber(science)}
+                {formatNumber(science?.magnitude)}
                 <Unit>science</Unit>
               </Tally>
             </>
@@ -397,9 +396,9 @@ function StrategiesComponent({
                 <AvailableRow
                   key={s.id}
                   strategy={s}
-                  funds={funds ?? null}
-                  reputation={reputation ?? null}
-                  science={science ?? null}
+                  funds={magnitudeOf(funds)}
+                  reputation={magnitudeOf(reputation)}
+                  science={magnitudeOf(science)}
                   factor={factorById[s.id] ?? s.factorSliderDefault}
                   onFactorChange={(v) =>
                     setFactorById((prev) => ({ ...prev, [s.id]: v }))

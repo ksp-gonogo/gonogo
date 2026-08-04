@@ -1,4 +1,4 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { type OrbitElements, solve, solveAnomalies } from "./kepler";
 import type { OrbitPatchWirePayload } from "./orbit-patches";
@@ -22,7 +22,7 @@ import {
 /** Kerbin's mean radius, metres, a realistic reference body for the apsides tests. */
 const KERBIN_RADIUS = 600_000;
 
-const CIRCULAR_ORBIT: VesselOrbitPayload = {
+const CIRCULAR_ORBIT: WireOrbit = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -34,7 +34,7 @@ const CIRCULAR_ORBIT: VesselOrbitPayload = {
   mu: 3.5316e12, // Kerbin's GM
 };
 
-const MEASURED_FLIGHT: VesselFlightPayload = {
+const MEASURED_FLIGHT: WireFlight = {
   latitude: -0.05,
   longitude: 42.3,
   altitudeAsl: 71_234,
@@ -48,8 +48,17 @@ const MEASURED_FLIGHT: VesselFlightPayload = {
   atmDensity: 0.01,
 };
 
+/**
+ * Every fixture below is written the way the MOD sends it: bare numbers, no
+ * units. `wrapTypePayload` is what `parseServerMessage` does to a live frame,
+ * so putting it in the two point-builders means a test states the wire and
+ * `deriveVesselState` sees exactly what production hands it.
+ */
+type WireOrbit = Record<string, unknown>;
+type WireFlight = Record<string, unknown>;
+
 function orbitPoint(
-  payload: VesselOrbitPayload | null,
+  payload: WireOrbit | null,
   overrides: {
     validAt?: number;
     quality?: Quality;
@@ -58,7 +67,12 @@ function orbitPoint(
 ): TimelinePoint<VesselOrbitPayload> {
   return {
     validAt: overrides.validAt ?? 0,
-    payload,
+    payload:
+      payload === null
+        ? null
+        : (wrapTypePayload("VesselOrbit", {
+            ...payload,
+          }) as VesselOrbitPayload),
     meta: makeMeta({
       validAt: overrides.validAt ?? 0,
       quality: overrides.quality ?? Quality.OnRails,
@@ -69,12 +83,17 @@ function orbitPoint(
 }
 
 function flightPoint(
-  payload: VesselFlightPayload | null,
+  payload: WireFlight | null,
   overrides: { validAt?: number; source?: string } = {},
 ): TimelinePoint<VesselFlightPayload> {
   return {
     validAt: overrides.validAt ?? 0,
-    payload,
+    payload:
+      payload === null
+        ? null
+        : (wrapTypePayload("VesselFlight", {
+            ...payload,
+          }) as VesselFlightPayload),
     meta: makeMeta({
       validAt: overrides.validAt ?? 0,
       quality: Quality.Loaded,
@@ -177,11 +196,18 @@ function controlPoint(
 }
 
 function targetPoint(
-  payload: VesselTargetPayload | null,
+  payload: Record<string, unknown> | null,
 ): TimelinePoint<VesselTargetPayload> {
   return {
     validAt: 0,
-    payload,
+    // Wraps the nested `orbit` too: `vessel.target` holds a whole VesselOrbit
+    // and the wrap follows it, same as the decode does.
+    payload:
+      payload === null
+        ? null
+        : (wrapTypePayload("VesselTarget", {
+            ...payload,
+          }) as VesselTargetPayload),
     meta: makeMeta({
       validAt: 0,
       quality: Quality.OnRails,
@@ -500,7 +526,7 @@ describe("targetRelativeSpeed: signed range-rate (batch-2: tar.o.relativeVelocit
 });
 
 describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/o.PeR/o.radius/o.nextApsisType/o.timeToNextApsis/v.horizontalVelocity)", () => {
-  const ECCENTRIC: VesselOrbitPayload = {
+  const ECCENTRIC: WireOrbit = {
     ...CIRCULAR_ORBIT,
     sma: 700_000,
     ecc: 0.1,
@@ -608,7 +634,7 @@ describe("apsis/orbital radii + next-apsis + horizontal speed (A-tranche: o.ApR/
 });
 
 describe("target scalar distance + target orbit elements (A-tranche: tar.distance / tar.o.PeA / tar.o.period / tar.o.trueAnomaly)", () => {
-  const TARGET_ORBIT: VesselOrbitPayload = {
+  const TARGET_ORBIT: WireOrbit = {
     referenceBodyIndex: 1, // Kerbin
     sma: 800_000,
     ecc: 0.2,
@@ -1668,7 +1694,7 @@ describe("hyperbolic orbits: OnRails vessel/target on an escape trajectory never
   // sma < 0. `kepler.solveAnomalies`/`solve` throw a RangeError for this,
   // elliptical-only, matching the C# side: so `deriveVesselState` must guard
   // around them rather than let the throw escape derived-channel resolution.
-  const HYPERBOLIC_ORBIT: VesselOrbitPayload = {
+  const HYPERBOLIC_ORBIT: WireOrbit = {
     referenceBodyIndex: 1,
     sma: -1_000_000,
     ecc: 1.2,
@@ -1779,7 +1805,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
       },
     ],
   };
-  const LANDING_ORBIT: VesselOrbitPayload = {
+  const LANDING_ORBIT: WireOrbit = {
     referenceBodyIndex: 3,
     sma: 250_000,
     ecc: 0,
@@ -1798,7 +1824,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
     availableThrust: 6,
   };
   // Descending at 10 m/s (vDown = 10), 20 m/s surface speed, 100 m above terrain.
-  const DESCENT_FLIGHT: VesselFlightPayload = {
+  const DESCENT_FLIGHT: WireFlight = {
     latitude: 0,
     longitude: 0,
     altitudeAsl: 0,
@@ -1813,10 +1839,10 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
   };
 
   function landingGet(
-    flightOver: Partial<VesselFlightPayload> = {},
+    flightOver: WireFlight = {},
     opts: {
       quality?: Quality;
-      orbit?: VesselOrbitPayload;
+      orbit?: WireOrbit;
       noBodies?: boolean;
       noProp?: boolean;
       prop?: VesselPropulsionPayload;
@@ -1931,9 +1957,9 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
   // derived from sma/mu, so it's fine that it's physically inconsistent with
   // `LANDING_ORBIT`'s own mu: this block only exercises the patch-walk math.
   function syntheticPatch(
-    overrides: Partial<OrbitPatchWirePayload> = {},
+    overrides: Record<string, unknown> = {},
   ): OrbitPatchWirePayload {
-    return {
+    return wrapTypePayload("OrbitPatch", {
       sma: 250_000,
       ecc: 0.6,
       inc: 0,
@@ -1957,7 +1983,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
       referenceBody: "Kerbin",
       closestEncounterBody: null,
       ...overrides,
-    };
+    }) as OrbitPatchWirePayload;
   }
 
   it("derives a predicted impact point when the patch chain actually crosses the surface", () => {
@@ -2011,10 +2037,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
 });
 
 describe("vessel.state.orbitPatches: legacy-shaped patch chain (o.orbitPatches)", () => {
-  function patchTestGet(
-    quality: Quality,
-    orbit: VesselOrbitPayload,
-  ): DerivedGet {
+  function patchTestGet(quality: Quality, orbit: WireOrbit): DerivedGet {
     return getFrom({
       "vessel.orbit": orbitPoint(orbit, { quality }),
       "vessel.flight": flightPoint(MEASURED_FLIGHT),
@@ -2033,12 +2056,12 @@ describe("vessel.state.orbitPatches: legacy-shaped patch chain (o.orbitPatches)"
       );
       expect(s?.orbitPatches).toHaveLength(1);
       const patch = s?.orbitPatches[0];
-      expect(patch?.startUT).toBe(wire.startUt);
-      expect(patch?.endUT).toBe(wire.endUt);
-      expect(patch?.PeA).toBe(wire.peA);
-      expect(patch?.ApA).toBe(wire.apA);
-      expect(patch?.maae).toBe(wire.meanAnomalyAtEpoch);
-      expect(patch?.argumentOfPeriapsis).toBe(wire.argPe);
+      expect(patch?.startUT).toBe(wire.startUt.magnitude);
+      expect(patch?.endUT).toBe(wire.endUt.magnitude);
+      expect(patch?.PeA).toBe(wire.peA.magnitude);
+      expect(patch?.ApA).toBe(wire.apA.magnitude);
+      expect(patch?.maae).toBe(wire.meanAnomalyAtEpoch.magnitude);
+      expect(patch?.argumentOfPeriapsis).toBe(wire.argPe.magnitude);
       expect(patch?.referenceBody).toBe(wire.referenceBody);
       expect(patch?.patchStartTransition).toBe("INITIAL");
       expect(patch?.patchEndTransition).toBe("FINAL");
@@ -2077,7 +2100,7 @@ function syntheticPatchFixture(): OrbitPatchWirePayload {
   };
 }
 
-const LANDING_ORBIT_FOR_PATCH_TEST: VesselOrbitPayload = {
+const LANDING_ORBIT_FOR_PATCH_TEST: WireOrbit = {
   referenceBodyIndex: 3,
   sma: 250_000,
   ecc: 0,

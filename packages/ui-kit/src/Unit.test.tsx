@@ -1,10 +1,8 @@
-import { UnitSystem } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import { Unit } from "./Unit";
-
-const { value } = UnitSystem;
 
 /**
  * Two things are being tested here. The component adapts to its surroundings

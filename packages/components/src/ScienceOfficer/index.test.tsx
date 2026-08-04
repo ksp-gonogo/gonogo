@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -132,9 +138,7 @@ describe("ScienceOfficerComponent", () => {
         { subjectId: "b", dataAmount: 7.5 },
       ]);
     });
-    await waitFor(() =>
-      expect(screen.getByText(/12\.5 mits/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toMatch(/12\.5 mits/i));
   });
 
   it("fires science.experiment.deploy when Deploy is clicked on an undeployed instrument", async () => {

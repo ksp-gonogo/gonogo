@@ -14,6 +14,7 @@ import {
   fireEvent,
   render,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
@@ -139,9 +140,9 @@ describe("NavballComponent", () => {
         heading: 999,
       },
     });
-    expect(await screen.findByText("87°")).toBeInTheDocument();
-    expect(screen.getByText("12°")).toBeInTheDocument();
-    expect(screen.getByText("-5°")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("87°"));
+    expect(visibleText()).toContain("12°");
+    expect(visibleText()).toContain("-5°");
     expect(screen.queryByText("999°")).not.toBeInTheDocument();
   });
 
@@ -156,7 +157,7 @@ describe("NavballComponent", () => {
         headingRootFrame: 999,
       },
     });
-    expect(await screen.findByText("45°")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("45°"));
     expect(screen.queryByText("999°")).not.toBeInTheDocument();
   });
 

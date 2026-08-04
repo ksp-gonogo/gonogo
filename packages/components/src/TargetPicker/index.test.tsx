@@ -5,7 +5,14 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -186,7 +193,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     expect(screen.getByText("Flag Marker")).toBeInTheDocument();
     // Distance is populated + shown for the Other bucket, same as every other
     // category.
-    expect(screen.getByText(/340\.0\s*m/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/340\.0\s*m/);
   });
 
   it("builds Suggested from the 2 closest bodies + 2 closest vessels + all parts, hidden SpaceObject excluded", async () => {
@@ -425,8 +432,8 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
       expect(screen.getByText("Vessel")).toBeInTheDocument();
-      expect(screen.getByText("1.5 km")).toBeInTheDocument();
-      expect(screen.getByText("Δv -2.50 m/s")).toBeInTheDocument();
+      expect(visibleText()).toContain("1.5 km");
+      expect(visibleText()).toContain("Δv -2.50 m/s");
     });
 
     await user.click(screen.getByRole("button", { name: "Clear target" }));
@@ -457,7 +464,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     await waitFor(() => {
       expect(screen.getByText("Docking Port")).toBeInTheDocument();
       // |relativePosition| = hypot(30,40,0) = 50 m.
-      expect(screen.getByText("50.0 m")).toBeInTheDocument();
+      expect(visibleText()).toContain("50.0 m");
     });
   });
 

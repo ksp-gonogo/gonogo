@@ -112,7 +112,7 @@ export function AlarmBanner() {
             {(() => {
               const next = formatNextLine(nextAlarm, snap.ut);
               return next === null ? null : (
-                <Countdown $tone={tone}>{next}</Countdown>
+                <CountdownText $tone={tone}>{next}</CountdownText>
               );
             })()}
             {(nextAlarm.state === "fired" || nextAlarm.state === "firing") && (
@@ -510,7 +510,11 @@ const AlarmName = styled.span`
   white-space: nowrap;
 `;
 
-const Countdown = styled.span<{ $tone: Tone }>`
+// `CountdownText`, not `Countdown`: ui-kit publishes a `Countdown` that
+// renders a duration, and this is the tabular-numerals SPAN it would sit in.
+// Two different things under one name at the call site is the whole reason
+// `styleguide-shadowed-primitives` exists.
+const CountdownText = styled.span<{ $tone: Tone }>`
   font-weight: 700;
   color: ${({ $tone }) => TONE_COUNT[$tone]};
   font-variant-numeric: tabular-nums;

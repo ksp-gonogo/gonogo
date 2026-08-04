@@ -4,7 +4,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
@@ -127,7 +127,7 @@ describe("AtmosphereProfileComponent", () => {
     });
 
     await waitFor(() => {
-      expect(container.textContent).toMatch(/no atmosphere/i);
+      expect(visibleText(container)).toMatch(/no atmosphere/i);
     });
   });
 });

@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import kerbinDescent from "./__fixtures__/kerbin-descent-low-pass.json";
@@ -64,6 +64,6 @@ describe("GroundSurvey: real-capture kerbin-descent-low-pass scenario (via the s
     // 2011.386 m AGL: above the 1 km freeze threshold, below the 10 km
     // ceiling: actively surveying.
     expect(screen.getByText(/surveying/i)).toBeTruthy();
-    expect(screen.getByText(/2\.01 km AGL/)).toBeTruthy();
+    expect(visibleText()).toMatch(/2\.01 km AGL/);
   });
 });

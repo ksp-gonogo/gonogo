@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import lkoKerbin from "./__fixtures__/lko-kerbin.json";
@@ -62,7 +68,7 @@ describe("SemiMajorAxis: renders off the stream alone (R6 Wave 1)", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("680.0 km")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("680.0 km"));
     await waitFor(() =>
       expect(screen.getByText("Semi-major axis · Kerbin")).toBeTruthy(),
     );

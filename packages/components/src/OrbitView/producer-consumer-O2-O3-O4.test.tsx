@@ -1,5 +1,5 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { emitScenario, renderOrbitViewStream } from "./streamHarness";
 
@@ -104,11 +104,11 @@ describe("OrbitView: O4: 'measured' basis suppresses the diagram with a distinct
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("packed")) {
+      if (!visibleText(container).includes("packed")) {
         throw new Error("packed empty state has not resolved yet");
       }
     });
-    expect(container.textContent).toContain("No osculating orbit (packed)");
+    expect(visibleText(container)).toContain("No osculating orbit (packed)");
     expect(container.textContent).not.toContain("No orbital data");
     expect(container.querySelector("svg")).toBeNull();
   });

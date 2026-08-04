@@ -66,7 +66,12 @@ export class WarpObserver {
           : "UNKNOWN";
     this.observedWarp = {
       index: warp?.warpRateIndex ?? this.observedWarp.index,
-      rate: warp?.warpRate ?? this.observedWarp.rate,
+      // Unwrapped here rather than carried: `AlarmWarpState` is part of the
+      // snapshot the host broadcasts to stations over PeerJS, and a `Value`
+      // crossing that channel arrives as a bare object with no prototype and
+      // so no methods on it. The rate is a dimensionless multiplier read as
+      // "10x", which is a number the whole way down.
+      rate: warp?.warpRate?.magnitude ?? this.observedWarp.rate,
       mode,
     };
   }

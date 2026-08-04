@@ -54,7 +54,10 @@ describe("defineTopicManifest", () => {
 
     function Orbit() {
       const orbit = useTelemetry("vessel.orbit");
-      const sma: number | undefined = orbit?.sma;
+      // `.magnitude`: `sma` is a declared length, so the decode hands the
+      // widget a `Value`. The probe prints the number to keep the assertion
+      // about the read path rather than about rendering.
+      const sma: number | undefined = orbit?.sma.magnitude;
       return <div>sma:{sma === undefined ? NULL_DISPLAY : String(sma)}</div>;
     }
 

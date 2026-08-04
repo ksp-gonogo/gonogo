@@ -1,9 +1,15 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { isValue } from "@ksp-gonogo/sitrep-sdk";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 
-/** One resource's current/max amounts on the `dv.stages` wire array (mirrors `Sitrep.Contract.ResourceAmount`'s shape). */
+/**
+ * One resource's current/max amounts on the `dv.stages` wire array (mirrors
+ * `Sitrep.Contract.ResourceAmount`'s shape). Both amounts are `Value<"units">`
+ * on the wire: KSP's resource unit, not kilograms.
+ */
 interface StageResourceWireEntry {
-  current?: number | null;
-  max?: number | null;
+  current?: Value<"units"> | null;
+  max?: Value<"units"> | null;
 }
 
 /** The subset of a `dv.stages` wire entry (`Sitrep.Contract.StageDeltaVEntry`) this derivation reads. */
@@ -17,8 +23,8 @@ interface VesselStructureWirePayload {
   currentStage?: number | null;
 }
 
-/** A resource-name-keyed map of a single scalar (current OR max amount). */
-export type ResourceAmountMap = Record<string, number>;
+/** A resource-name-keyed map of a single amount (current OR max). */
+export type ResourceAmountMap = Record<string, Value<"units">>;
 
 /**
  * Shared lookup behind both `dv.currentStageResource`/`dv.currentStageResourceMax`:
@@ -79,7 +85,7 @@ export function deriveCurrentStageResourceCurrent(
 
   const out: ResourceAmountMap = {};
   for (const [name, amount] of Object.entries(resources)) {
-    if (amount && typeof amount.current === "number") {
+    if (amount && isValue(amount.current)) {
       out[name] = amount.current;
     }
   }
@@ -99,7 +105,7 @@ export function deriveCurrentStageResourceMax(
 
   const out: ResourceAmountMap = {};
   for (const [name, amount] of Object.entries(resources)) {
-    if (amount && typeof amount.max === "number") {
+    if (amount && isValue(amount.max)) {
       out[name] = amount.max;
     }
   }

@@ -21,7 +21,7 @@
  * `pnpm --filter @ksp-gonogo/components exec vitest run src/SemiMajorAxis/snapshots -u`.
  */
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -106,7 +106,7 @@ describe("SemiMajorAxis DOM snapshots", () => {
         const container = renderSmaSnapshot(scenario, mode);
         if (scenario) {
           await waitFor(() => {
-            if (container.textContent?.includes("No orbit data")) {
+            if (visibleText(container).includes("No orbit data")) {
               throw new Error("sma has not settled off the stream yet");
             }
           });

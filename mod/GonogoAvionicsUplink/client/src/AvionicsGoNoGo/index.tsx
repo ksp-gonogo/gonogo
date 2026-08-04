@@ -1,4 +1,8 @@
-import type { AvionicsStatus, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  AvionicsStatus,
+  ComponentProps,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
@@ -10,12 +14,17 @@ import {
   type ReadoutTone,
   Stack,
   StatusPill,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 
 type AvionicsConfig = Record<string, never>;
 
-function fmtTons(t?: number): string {
-  return t == null ? NULL_DISPLAY : `${t.toFixed(2)} t`;
+/**
+ * A mass readout, the way an Uplink is meant to write one: the value carries
+ * its own unit off the Topic, so this names neither the unit nor the format.
+ */
+function Tons({ t }: { t?: Value<"t"> }) {
+  return t == null ? NULL_DISPLAY : <Unit value={t} decimals={2} />;
 }
 
 /**
@@ -45,12 +54,14 @@ export function AvionicsGoNoGoComponent(
         <StatusPill $tone={tone}>{label}</StatusPill>
         <Cluster>
           <div>
-            <BigReadout>{fmtTons(s?.vesselMassTons)}</BigReadout>
+            <BigReadout>
+              <Tons t={s?.vesselMassTons} />
+            </BigReadout>
             <ReadoutCaption>Vessel mass</ReadoutCaption>
           </div>
           <div>
             <BigReadout $tone={tone}>
-              {fmtTons(s?.controllableMassTons)}
+              <Tons t={s?.controllableMassTons} />
             </BigReadout>
             <ReadoutCaption>Controllable</ReadoutCaption>
           </div>

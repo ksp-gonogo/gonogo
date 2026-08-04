@@ -35,18 +35,42 @@
 
 import type {
   KnownSitrepUnit,
+  ShapesByField,
   SitrepUnit,
   UnitsByField,
 } from "./__generated__/units";
 import {
+  GENERATED_TOPIC_SHAPES,
   GENERATED_TOPIC_UNITS,
+  GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
 import type { TopicId } from "./topics";
 
-export type { KnownSitrepUnit, SitrepUnit, UnitsByField };
+export type { KnownSitrepUnit, ShapesByField, SitrepUnit, UnitsByField };
 
 const EMPTY: UnitsByField = Object.freeze({});
+const NO_SHAPES: ShapesByField = Object.freeze({});
+
+/**
+ * Hand-declared Topics whose payload IS a reflected contract type.
+ *
+ * The generated maps are keyed by `[SitrepTopic]`, so an ENGINE-declared
+ * channel gets no entry even when its payload is a real contract shape:
+ * `ChannelEngine` declares `system.uplink.pending`, not any one Uplink's
+ * contract, so nothing in the codegen knows the Topic id. Before this, the
+ * type said `Value<"s">` and the runtime handed a bare number, which put the
+ * in-transit uplink strip's reach and reply times back to raw seconds and
+ * flipped its arrow the wrong way.
+ *
+ * `topics.ts` is where the hand declaration already lives; this is the same
+ * declaration's runtime half. A Topic that gains a `[SitrepTopic]` payload
+ * type later stops needing an entry, and the generated map wins either way.
+ */
+const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
+  Object.freeze({
+    "system.uplink.pending": "PendingUplinkQueue",
+  });
 
 /**
  * Every field on `topic` that has a declared unit. Fields with no annotation are
@@ -57,7 +81,10 @@ const EMPTY: UnitsByField = Object.freeze({});
  * indexes into.
  */
 export function unitsForTopic(topic: TopicId): UnitsByField {
-  return GENERATED_TOPIC_UNITS[topic] ?? EMPTY;
+  const generated = GENERATED_TOPIC_UNITS[topic];
+  if (generated !== undefined) return generated;
+  const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
+  return handDeclared === undefined ? EMPTY : unitsForType(handDeclared);
 }
 
 /**
@@ -76,6 +103,25 @@ export function unitOf(topic: TopicId, field: string): SitrepUnit | undefined {
  */
 export function unitsForType(typeName: string): UnitsByField {
   return GENERATED_TYPE_UNITS[typeName] ?? EMPTY;
+}
+
+/**
+ * Which of `topic`'s fields hold ANOTHER payload shape, and which one.
+ *
+ * The unit maps are flat, so a nested shape's declared units are unreachable
+ * from the parent's entry; this is what lets the runtime wrap follow the field
+ * down. See `GENERATED_TOPIC_SHAPES`' own doc for the case that forced it.
+ */
+export function shapesForTopic(topic: TopicId): ShapesByField {
+  const generated = GENERATED_TOPIC_SHAPES[topic];
+  if (generated !== undefined) return generated;
+  const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
+  return handDeclared === undefined ? NO_SHAPES : shapesForType(handDeclared);
+}
+
+/** The same, keyed by generated interface name instead of Topic id. */
+export function shapesForType(typeName: string): ShapesByField {
+  return GENERATED_TYPE_SHAPES[typeName] ?? NO_SHAPES;
 }
 
 /** As {@link unitOf}, but keyed by generated interface name instead of Topic id. */

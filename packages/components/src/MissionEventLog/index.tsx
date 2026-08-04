@@ -3,13 +3,15 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
   Badge,
   type BadgeTone,
+  Countdown,
   EmptyState,
-  formatDuration,
   Inline,
+  MissionDate,
   Panel,
   Stack,
   Truncate,
 } from "@ksp-gonogo/ui-kit";
+import { magnitudeOf } from "../shared/magnitude";
 import type { MissionEvent, MissionEventKind } from "./events";
 import { useMissionEvents } from "./useMissionEvents";
 
@@ -50,25 +52,49 @@ const KIND_LABEL: Record<MissionEventKind, string> = {
 };
 
 /**
- * Game-time stamp for an event: Mission Elapsed Time from `launchUt` when known
- * ("T+00:12:34"), else the raw UT. The event already rode the delayed stream, so
- * this happened-at time is delay-honest by construction (no as-observed needed).
+ * Game-time stamp for an event: Mission Elapsed Time from `launchUt` when
+ * known, else the raw UT. The event already rode the delayed stream, so this
+ * happened-at time is delay-honest by construction (no as-observed needed).
+ *
+ * The two are different quantities and take different components. An MET is a
+ * CLOCK, which is what `<Countdown clock>` renders, sign and all. A bare UT is
+ * an INSTANT, which is `<MissionDate>`: it is an offset from the game's epoch
+ * rather than a length of time, and reading it as a duration would produce a
+ * true statement about the wrong quantity.
  */
-function stamp(ut: number, launchUt: number | undefined): string {
+function Stamp({ ut, launchUt }: { ut: number; launchUt: number | undefined }) {
   if (typeof launchUt === "number" && Number.isFinite(launchUt)) {
+    // The sign is decided HERE rather than by `clock`, because a log's zero
+    // is on the other side of the boundary from a countdown's. `<Countdown
+    // clock>` reads zero as `T−`, which is right when zero means "the event
+    // is now, still ahead of you". Every row in a log has already happened,
+    // and the instant of launch is `T+0s`: liftoff, not one second to go.
     const met = ut - launchUt;
-    return `T${met >= 0 ? "+" : "-"}${formatDuration(Math.abs(met))}`;
+    return (
+      <>
+        {met >= 0 ? "T+" : "T−"}
+        <Countdown value={Math.abs(met)} />
+      </>
+    );
   }
-  return `UT ${formatDuration(ut)}`;
+  return (
+    <>
+      UT <MissionDate value={ut} />
+    </>
+  );
 }
 
 function MissionEventLogComponent(
   _props: Readonly<ComponentProps<MissionEventLogConfig>>,
 ) {
   const events = useMissionEvents();
-  const launchUt = useTelemetry("vessel.identity")?.launchUt as
-    | number
-    | undefined;
+  // The magnitude, not the cast that was here: `launchUt` is declared in
+  // seconds and arrives as a `Value<"s">`, so casting it to `number` was an
+  // assertion the compiler could not check and the `typeof` guard below
+  // rejected every real frame, stamping each row with a raw UT where the MET
+  // belonged.
+  const launchUt =
+    magnitudeOf(useTelemetry("vessel.identity")?.launchUt) ?? undefined;
 
   if (events.length === 0) {
     return (
@@ -99,14 +125,19 @@ function EventRow({
   event: MissionEvent;
   launchUt: number | undefined;
 }) {
-  const when = stamp(event.ut, launchUt);
+  // No `aria-label` on the row. It used to carry a hand-built
+  // "<label> at <time>" string, which OVERRIDES the row's own text for a
+  // screen reader: the visible stamp and badge went unread and the label
+  // spoke instead. The stamp now renders through the time components, which
+  // already emit the spoken form beside the symbol, so the row's own text is
+  // both the better reading and the one that cannot drift from what is shown.
   return (
-    <Inline gap="sm" aria-label={`${event.label} at ${when}`}>
+    <Inline gap="sm">
       <Badge tone={KIND_TONE[event.kind]} size="sm">
         {KIND_LABEL[event.kind]}
       </Badge>
       <Truncate>
-        {when} · {event.label}
+        <Stamp ut={event.ut} launchUt={launchUt} /> · {event.label}
         {event.detail ? ` · ${event.detail}` : ""}
       </Truncate>
     </Inline>

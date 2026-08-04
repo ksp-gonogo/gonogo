@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type { ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   registerBarePrimitiveTopic,
@@ -175,14 +175,14 @@ describe("StreamRecorder", () => {
 
     clock.advanceTo(0);
     store.beginFrame();
-    expect(store.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(
-      700_000,
-    );
+    expect(
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(700_000);
 
     clock.advanceTo(5);
     store.beginFrame();
-    expect(store.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(
-      750_000,
-    );
+    expect(
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(750_000);
   });
 });

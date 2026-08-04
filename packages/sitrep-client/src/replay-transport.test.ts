@@ -1,4 +1,5 @@
-import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type { ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -106,16 +107,20 @@ describe("ReplayTransport", () => {
     expect(delivered).toEqual([]);
 
     clock.advanceTo(100); // offset 0 -> sma:1
-    expect(delivered).toEqual([{ sma: 1 }]);
+    expect(delivered).toEqual([{ sma: value("m", 1) }]);
 
     clock.advanceTo(109); // still before offset 10
-    expect(delivered).toEqual([{ sma: 1 }]);
+    expect(delivered).toEqual([{ sma: value("m", 1) }]);
 
     clock.advanceTo(110); // offset 10 -> sma:2
-    expect(delivered).toEqual([{ sma: 1 }, { sma: 2 }]);
+    expect(delivered).toEqual([{ sma: value("m", 1) }, { sma: value("m", 2) }]);
 
     clock.advanceTo(120); // offset 20 -> sma:3
-    expect(delivered).toEqual([{ sma: 1 }, { sma: 2 }, { sma: 3 }]);
+    expect(delivered).toEqual([
+      { sma: value("m", 1) },
+      { sma: value("m", 2) },
+      { sma: value("m", 3) },
+    ]);
   });
 
   it("stop() cancels every pending delivery", () => {
@@ -156,14 +161,14 @@ describe("ReplayTransport", () => {
 
     clock.advanceTo(0);
     store.beginFrame();
-    expect(store.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(
-      700_000,
-    );
+    expect(
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(700_000);
 
     clock.advanceTo(5);
     store.beginFrame();
-    expect(store.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(
-      750_000,
-    );
+    expect(
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(750_000);
   });
 });

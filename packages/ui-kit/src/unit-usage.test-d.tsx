@@ -12,10 +12,8 @@
  * that starts.
  */
 
-import { UnitSystem } from "@ksp-gonogo/sitrep-sdk";
+import { registerUnit, type Vec3Of, value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "./Unit";
-
-const { value } = UnitSystem;
 
 // Stand-ins for what `useTelemetry` hands a widget once the wrap is wired.
 // Post-flip these are the real field types, not constructions.
@@ -118,16 +116,12 @@ export const _funds = <Unit value={funds} />;
 // ── 7. A Vec3 leaf is a value ───────────────────────────────────────────────
 // The unit is declared on the whole vector and reaches x/y/z, so a component
 // of a relative velocity renders like any other quantity.
-// NOT `Vec3Of<"m/s">`, and that is a finding rather than a shortcut. `Vec3Of`
-// is declared beside the transitional `Value = number` alias and so is built
-// from it, which means a Vec3 leaf is a bare number today and does not fit
-// `Unit`. Both have to be re-pointed at the model together at the flip, and
-// this is what a widget gets once they are.
-declare const relativeVelocity: {
-  x: UnitSystem.Value<"m/s">;
-  y: UnitSystem.Value<"m/s">;
-  z: UnitSystem.Value<"m/s">;
-};
+//
+// This block used to spell the shape out by hand, because `Vec3Of` was built
+// on the transitional `Value = number` alias and its leaves were bare numbers
+// that `Unit` would not take. Both were re-pointed at the model together, so
+// the real contract type is what is exercised here now.
+declare const relativeVelocity: Vec3Of<"m/s">;
 export const _vectorLeaf = <Unit value={relativeVelocity.x} />;
 
 // @ts-expect-error: a whole vector is not a scalar quantity
@@ -136,12 +130,12 @@ export const _wholeVector = <Unit value={relativeVelocity} />;
 // ── 8. An Uplink's own unit ─────────────────────────────────────────────────
 // Namespaced, so it cannot collide with a first-party glyph. It is a full
 // participant: it adds, divides and renders.
-UnitSystem.registerUnit({
+registerUnit({
   symbol: "snacks:snack",
   kind: "snacks",
   dimension: { snack: 1 },
 });
-UnitSystem.registerUnit({
+registerUnit({
   symbol: "snacks:snack/s",
   kind: "snackFlow",
   of: "snacks:snack",

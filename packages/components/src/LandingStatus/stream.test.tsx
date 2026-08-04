@@ -5,7 +5,13 @@ import {
   useWidgetStreamStatus,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { PanelStatusProvider } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -148,7 +154,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     const { container } = renderWidget();
 
     // Nothing arrived yet: the empty state shows.
-    expect(container.textContent).toContain("No landing in progress");
+    expect(visibleText(container)).toContain("No landing in progress");
     // A real subscription must have happened for StubTransport (which is
     // subscription-gated) to deliver at all.
     expect(stream.transport.isSubscribed("vessel.flight")).toBe(true);
@@ -217,7 +223,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });
-    await waitFor(() => expect(container.textContent).toContain("4.80km"));
+    await waitFor(() => expect(visibleText(container)).toContain("4.80 km"));
   });
 
   it("surfaces the round trip in the header, which is what replaced the warnings", async () => {

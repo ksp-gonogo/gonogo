@@ -1,5 +1,10 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  visibleText,
+} from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -135,7 +140,7 @@ describe("GroundSurveyComponent", () => {
     emitFlight(50_000, 5_000);
     expect(screen.getByText(/Mun/)).toBeInTheDocument();
     expect(screen.getByText(/surveying/)).toBeInTheDocument();
-    expect(screen.getByText(/5\.00 km AGL/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/5\.00 km AGL/);
   });
 
   it("freezes once heightFromTerrain drops below the threshold", () => {

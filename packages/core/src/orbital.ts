@@ -9,11 +9,6 @@
  * Telemachus output). Radians are only used internally.
  */
 
-import {
-  formatDuration as formatKspDuration,
-  formatQuantity,
-  NULL_DISPLAY,
-} from "@ksp-gonogo/ui-kit";
 import type { BodyDefinition } from "./bodies";
 import { degToRad } from "./utils/math";
 
@@ -197,43 +192,15 @@ export function latLonToMap(
 // Display formatting
 // ---------------------------------------------------------------------------
 
-/**
- * Format a duration in seconds to a compact string (`2h 14m`, `4d 4h`).
- * Returns NULL_DISPLAY for a negative value; ui-kit's formatter has no such
- * rule, and the widgets reading this one show elapsed-or-remaining figures
- * where a negative is a not-yet-populated feed rather than a real reading.
- *
- * Re-exported rather than reimplemented. There used to be a second
- * implementation here that rendered a three-tier zero-padded clock, and the
- * two differed only above one hour: it kept seconds (`2h 14m 08s`) and, more
- * to the point, **had no day tier**, so a three-day orbital period rendered as
- * `72h 0m 00s`. Nothing reads seconds two hours out from a burn, and every
- * consumer here (time to apoapsis, orbital period, burn countdowns) benefits
- * from the day tier, so the divergence was a defect rather than a preference.
- */
-export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return NULL_DISPLAY;
-  return formatKspDuration(seconds);
-}
-
-/**
- * Format a distance in metres to a compact human-readable string.
- * Examples: `42350.0 km`, `1.2 Gm`, `320.0 m`.
- * Returns NULL_DISPLAY for non-finite values.
- *
- * This was a fourth hand-rolled SI ladder and is now a thin wrapper over the
- * shared `length` one, kept only so its eight consumers keep a single-argument
- * call. Two things changed with the delegation, both deliberate: the shared
- * ladder carries one decimal at every rung rather than two above Mm and zero
- * at m, and its rungs are the ones the contract's declared units resolve
- * against, so a length that arrives already in km ladders correctly instead of
- * being read as metres.
- */
-export function formatDistance(metres: number): string {
-  if (!Number.isFinite(metres)) return NULL_DISPLAY;
-  const { value, symbol } = formatQuantity(metres, "m");
-  return `${value} ${symbol}`;
-}
+// `formatDuration` and `formatDistance` used to live here, wrapping ui-kit's
+// ladder so their callers kept a single-argument call. Both are gone: a
+// quantity is shown with `<Unit value={…} />`, and a wrapper whose only job is
+// to turn a Value back into a string is the shape that let eleven widgets each
+// grow their own ladder.
+//
+// A duration computed here (an orbital period, a time to apoapsis) is wrapped
+// with `value("s", …)` at the point it is derived, and travels as a quantity
+// from there.
 
 /**
  * Absolute zero expressed in degrees Celsius: the Kelvin→Celsius offset.

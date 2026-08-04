@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -62,8 +62,8 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
     );
 
     // Nothing arrived yet: the compact readout shows the em-dash placeholder.
-    expect(container.textContent).toContain("Lat");
-    expect(container.textContent).toContain(NULL_DISPLAY);
+    expect(visibleText(container)).toContain("Lat");
+    expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(container.textContent).not.toContain("°");
 
     // A real subscription must have happened for this to deliver at all,
@@ -88,12 +88,12 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
     });
 
     await waitFor(() => {
-      expect(container.textContent).toContain("-0.10°");
-      expect(container.textContent).toContain("-74.56°");
+      expect(visibleText(container)).toContain("-0.10°");
+      expect(visibleText(container)).toContain("-74.56°");
       // The launchpad sits at 80 m. The inline formatter this replaced
       // divided by 1000 unconditionally, with no metre rung, so it rendered
       // that as "0.1 km"; the shared ladder picks the rung.
-      expect(container.textContent).toContain("80.0 m");
+      expect(visibleText(container)).toContain("80.0 m");
     });
 
     // v.body stays gapped/undefined (no legacy source here), the mapped

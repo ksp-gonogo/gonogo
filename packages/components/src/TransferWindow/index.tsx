@@ -166,7 +166,7 @@ function TransferWindowComponent({
 
   const parkingRadius =
     orbit?.sma != null && orbit?.ecc != null
-      ? orbit.sma * (1 - orbit.ecc)
+      ? orbit.sma.magnitude * (1 - orbit.ecc.magnitude)
       : null;
 
   const solution: TransferSolution | null = useMemo(

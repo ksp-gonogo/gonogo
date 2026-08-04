@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -88,21 +94,21 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
     });
 
     // Inclination renders off the mapped stream value.
-    await waitFor(() => expect(screen.getByText("0.3°")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("0.3°"));
     // Eccentricity (toFixed(4)) also renders off the mapped stream value.
-    expect(screen.getByText("0.0037")).toBeTruthy();
+    expect(visibleText()).toContain("0.0037");
     // Period (T row, formatDuration) renders off the newly-mapped
     // vessel.state.period: 2π·sqrt(sma³/mu), floored to whole seconds.
     // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31m 25s";
     // the formula itself has its own dedicated unit coverage in
     // vessel-state.test.ts.)
-    await waitFor(() => expect(screen.getByText("31m 25s")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("31m 25s"));
     // timeToAp/timeToPe (t-Ap/t-Pe rows) also render off the newly-mapped
     // vessel.state.timeToAp/timeToPe: meanAnomalyAtEpoch: 0, epoch: 10 ==
     // pinnedUt means meanAnomaly is exactly 0 (periapsis) at this frame, so
     // timeToPe is 0 and timeToAp is exactly half the period.
-    expect(screen.getByText("0s")).toBeTruthy();
-    expect(screen.getByText("15m 42s")).toBeTruthy();
+    expect(visibleText()).toContain("0s");
+    expect(visibleText()).toContain("15m 42s");
     // Only Ap/Pe stay NULL_DISPLAY: their apsis-ALTITUDE derivation needs
     // system.bodies (unemitted here). ApR/PeR resolved (sma·(1±ecc)), so the
     // diagram renders; referenceBody/v.body render nothing (no subtitle)

@@ -28,6 +28,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { magnitudeOf } from "../shared/magnitude";
 
 /**
  * Sparkline window in seconds. Two minutes is enough to see a real
@@ -277,9 +278,8 @@ function PowerSystemsComponent({
   // agreement (the common/healthy case) shows nothing extra, keeping the
   // Totals row exactly as it always has been.
   const measuredTotalProduced =
-    resource === "ElectricCharge" &&
-    typeof streamPower?.totalProductionEc === "number"
-      ? streamPower.totalProductionEc
+    resource === "ElectricCharge"
+      ? (magnitudeOf(streamPower?.totalProductionEc) ?? undefined)
       : undefined;
   const measuredDisagrees =
     measuredTotalProduced !== undefined &&

@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
@@ -80,7 +86,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("680.0 km")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("680.0 km"));
     // Both reads are clean homes now: the subtitle body suffix streams off the
     // derived `vessel.state.referenceBodyName`, with NO legacy source present.
     await waitFor(() =>
@@ -121,7 +127,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
       fixture.emit("vessel.orbit", { sma: 680_000 }, { validAt: 10 });
     });
 
-    await waitFor(() => expect(screen.getByText("680.0 km")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("680.0 km"));
     await waitFor(() => {
       // Sparkline renders TWO <path>s (a gradient-filled area, then the
       // stroked trend line itself, `fill="none"`: @ksp-gonogo/ui's

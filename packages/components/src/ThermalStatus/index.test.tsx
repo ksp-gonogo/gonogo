@@ -3,7 +3,13 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -70,9 +76,7 @@ describe("ThermalStatusComponent", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByText("LV-T30 'Reliant'")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toContain("LV-T30 'Reliant'"));
     expect(screen.getByText("Hottest part")).toBeInTheDocument();
     expect(screen.getByText("Hottest engine")).toBeInTheDocument();
     // Nominal bands at 33% / 40%: no role=alert banner.
@@ -95,7 +99,7 @@ describe("ThermalStatusComponent", () => {
     });
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toMatch(/engine overheating/i);
+    expect(visibleText(alert)).toMatch(/engine overheating/i);
   });
 
   it("raises a role=alert banner when the hottest part ratio is critical", async () => {
@@ -119,7 +123,7 @@ describe("ThermalStatusComponent", () => {
     const alert = await screen.findByRole("alert");
     // Critical band (>= 97% ratio) reads "Part at max temperature";
     // hot band (90-97%) reads "Part approaching max temperature".
-    expect(alert.textContent).toMatch(/at max temperature/i);
+    expect(visibleText(alert)).toMatch(/at max temperature/i);
   });
 
   it("treats absolute-zero readings as missing data (no thermometer fitted)", async () => {

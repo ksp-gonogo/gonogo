@@ -5,17 +5,19 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
   NULL_DISPLAY,
   Panel,
-  Quantity,
   type ReadoutTone,
   ScrollArea,
   Section,
   StatusPill,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { magnitudeOr } from "../shared/magnitude";
 
 // Empty config: room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
@@ -111,9 +113,8 @@ const BAND_RANK: Record<Band, number> = {
 function Temp({ kelvin }: { kelvin: number | undefined }) {
   if (kelvin === undefined || !Number.isFinite(kelvin)) return NULL_DISPLAY;
   return (
-    <Quantity
-      value={kelvin}
-      unit="K"
+    <Unit
+      value={value("K", kelvin)}
       as="°C"
       // Drop to whole degrees once the number is wide, so the readout's width
       // stays stable as a part heats through the thousands.
@@ -126,7 +127,7 @@ function Temp({ kelvin }: { kelvin: number | undefined }) {
 // live in the shared `energyRate` ladder.
 function Flux({ kw }: { kw: number | undefined }) {
   if (kw === undefined || !Number.isFinite(kw)) return NULL_DISPLAY;
-  return <Quantity value={kw} unit="kW" />;
+  return <Unit value={value("kW", kw)} />;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -163,10 +164,12 @@ function ThermalStatusComponent({
   // absolute-zero floor. The ratio is meaningless in that case and rendering
   // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
   const hottestSentinel =
-    isSentinelK(rawHottestMaxK) || isSentinelK(rawHottestTempK);
+    isSentinelK(rawHottestMaxK?.magnitude) ||
+    isSentinelK(rawHottestTempK?.magnitude);
   const engineSentinel =
-    isSentinelK(rawEngineMaxK) || isSentinelK(rawEngineTempK);
-  const shieldSentinel = isSentinelK(rawShieldTempK);
+    isSentinelK(rawEngineMaxK?.magnitude) ||
+    isSentinelK(rawEngineTempK?.magnitude);
+  const shieldSentinel = isSentinelK(rawShieldTempK?.magnitude);
 
   const hottestName = hottestSentinel ? undefined : rawHottestName;
   const hottestTempK = hottestSentinel ? undefined : rawHottestTempK;
@@ -183,8 +186,10 @@ function ThermalStatusComponent({
   const shieldTempK = shieldSentinel ? undefined : rawShieldTempK;
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
 
-  const hottestBand = bandFromRatio(hottestRatio);
-  const engineBand = engineOverheat ? "critical" : bandFromRatio(engineRatio);
+  const hottestBand = bandFromRatio(hottestRatio?.magnitude);
+  const engineBand = engineOverheat
+    ? "critical"
+    : bandFromRatio(engineRatio?.magnitude);
 
   // The pill summarises the worst observed band, it's the at-a-glance
   // affordance the tiny mode lives by.
@@ -260,15 +265,19 @@ function ThermalStatusComponent({
                     <TempMeter>
                       <TempBar
                         style={{
-                          width: `${clampPct((hottestRatio ?? 0) * 100)}%`,
+                          width: `${clampPct(magnitudeOr(hottestRatio, 0) * 100)}%`,
                           background: BAND_COLOR[hottestBand],
                         }}
                       />
                     </TempMeter>
                     <TempReadout>
-                      <TempValue>{<Temp kelvin={hottestTempK} />}</TempValue>
+                      <TempValue>
+                        {<Temp kelvin={hottestTempK?.magnitude} />}
+                      </TempValue>
                       {hottestMaxK !== undefined && (
-                        <MaxTag>/ {<Temp kelvin={hottestMaxK} />} max</MaxTag>
+                        <MaxTag>
+                          / {<Temp kelvin={hottestMaxK.magnitude} />} max
+                        </MaxTag>
                       )}
                     </TempReadout>
                   </RowBody>
@@ -287,15 +296,19 @@ function ThermalStatusComponent({
                     <TempMeter>
                       <TempBar
                         style={{
-                          width: `${clampPct((engineRatio ?? 0) * 100)}%`,
+                          width: `${clampPct(magnitudeOr(engineRatio, 0) * 100)}%`,
                           background: BAND_COLOR[engineBand],
                         }}
                       />
                     </TempMeter>
                     <TempReadout>
-                      <TempValue>{<Temp kelvin={engineTempK} />}</TempValue>
+                      <TempValue>
+                        {<Temp kelvin={engineTempK?.magnitude} />}
+                      </TempValue>
                       {engineMaxK !== undefined && (
-                        <MaxTag>/ {<Temp kelvin={engineMaxK} />} max</MaxTag>
+                        <MaxTag>
+                          / {<Temp kelvin={engineMaxK.magnitude} />} max
+                        </MaxTag>
                       )}
                     </TempReadout>
                   </RowBody>
@@ -307,8 +320,12 @@ function ThermalStatusComponent({
                   <RowLabel>Heat shield</RowLabel>
                   <RowBody>
                     <TempReadout>
-                      <TempValue>{<Temp kelvin={shieldTempK} />}</TempValue>
-                      <MaxTag>· flux {<Flux kw={shieldFluxKw} />}</MaxTag>
+                      <TempValue>
+                        {<Temp kelvin={shieldTempK?.magnitude} />}
+                      </TempValue>
+                      <MaxTag>
+                        · flux {<Flux kw={shieldFluxKw?.magnitude} />}
+                      </MaxTag>
                     </TempReadout>
                   </RowBody>
                 </ReadoutGroup>

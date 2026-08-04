@@ -1,4 +1,5 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   deriveCurrentStageResourceCurrent,
@@ -9,9 +10,12 @@ import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
 
 interface StageResourceWireEntry {
-  current?: number | null;
-  max?: number | null;
+  current?: Value<"units"> | null;
+  max?: Value<"units"> | null;
 }
+
+/** KSP resource units, the unit the wire declares on both amounts. */
+const units = (n: number) => value("units", n);
 
 interface StageDeltaVWireEntry {
   stage?: number | null;
@@ -47,15 +51,15 @@ const STAGES: StageDeltaVWireEntry[] = [
   {
     stage: 2,
     resources: {
-      LiquidFuel: { current: 400, max: 400 },
-      Oxidizer: { current: 480, max: 480 },
+      LiquidFuel: { current: units(400), max: units(400) },
+      Oxidizer: { current: units(480), max: units(480) },
     },
   },
   {
     stage: 1,
     resources: {
-      LiquidFuel: { current: 800, max: 1000 },
-      Oxidizer: { current: 980, max: 1220 },
+      LiquidFuel: { current: units(800), max: units(1000) },
+      Oxidizer: { current: units(980), max: units(1220) },
     },
   },
   {
@@ -98,13 +102,13 @@ describe("deriveCurrentStageResourceCurrent/Max: the r.resourceCurrent(Max)[X] p
       deriveCurrentStageResourceCurrent(
         fakeGet(point(STAGES), point({ currentStage: 1 })),
       ),
-    ).toEqual({ LiquidFuel: 800, Oxidizer: 980 });
+    ).toEqual({ LiquidFuel: units(800), Oxidizer: units(980) });
 
     expect(
       deriveCurrentStageResourceMax(
         fakeGet(point(STAGES), point({ currentStage: 1 })),
       ),
-    ).toEqual({ LiquidFuel: 1000, Oxidizer: 1220 });
+    ).toEqual({ LiquidFuel: units(1000), Oxidizer: units(1220) });
   });
 
   it("tracks staging: a different currentStage reads a different stage's resources", () => {
@@ -112,7 +116,7 @@ describe("deriveCurrentStageResourceCurrent/Max: the r.resourceCurrent(Max)[X] p
       deriveCurrentStageResourceCurrent(
         fakeGet(point(STAGES), point({ currentStage: 2 })),
       ),
-    ).toEqual({ LiquidFuel: 400, Oxidizer: 480 });
+    ).toEqual({ LiquidFuel: units(400), Oxidizer: units(480) });
   });
 
   it("empty map when currentStage matches a stage carrying no resources", () => {
@@ -144,8 +148,8 @@ describe("deriveCurrentStageResourceCurrent/Max: the r.resourceCurrent(Max)[X] p
       {
         stage: 1,
         resources: {
-          LiquidFuel: { current: 800, max: 1000 },
-          Weird: { current: null, max: 5 },
+          LiquidFuel: { current: units(800), max: units(1000) },
+          Weird: { current: null, max: units(5) },
         },
       },
     ];
@@ -153,6 +157,6 @@ describe("deriveCurrentStageResourceCurrent/Max: the r.resourceCurrent(Max)[X] p
       deriveCurrentStageResourceCurrent(
         fakeGet(point(stages), point({ currentStage: 1 })),
       ),
-    ).toEqual({ LiquidFuel: 800 });
+    ).toEqual({ LiquidFuel: units(800) });
   });
 });

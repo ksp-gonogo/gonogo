@@ -3,6 +3,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
@@ -102,7 +103,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     // Topology-only total (before the stream carries anything): NET reads
     // "+5.00/s"; PROD and the single per-part contribution row both read
     // the bare "+5.00".
-    expect(screen.getByText("+5.00/s")).toBeTruthy();
+    expect(visibleText()).toContain("+5.00/s");
     expect(screen.getAllByText("+5.00")).toHaveLength(2);
 
     expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
@@ -121,7 +122,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     // check can race the async store update and pass for the wrong reason
     // (checked before the merge would even have applied).
     await waitFor(() => {
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
       expect(screen.getByText("MEASURED")).toBeTruthy();
@@ -132,13 +133,13 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     // below it. "+42.00/s"/"+42.00" (the old, wrong, enshrined behavior)
     // must never appear.
     expect(screen.queryByText("+42.00/s")).toBeNull();
-    expect(screen.getByText("+5.00/s")).toBeTruthy();
+    expect(visibleText()).toContain("+5.00/s");
     expect(screen.getAllByText("+5.00")).toHaveLength(2); // PROD cell + the one row
 
     // The disagreeing measurement must not be silently dropped either,
     // it's surfaced as a clearly separate, explicitly-labeled reading so
     // the operator isn't blind to a real sensor/topology mismatch.
-    expect(screen.getByText("42.00")).toBeTruthy();
+    expect(visibleText()).toContain("42.00");
 
     teardownMockDataSource(legacyAux);
   });
@@ -180,7 +181,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     });
 
     await waitFor(() => {
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
       expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
@@ -252,7 +253,7 @@ describe("PowerSystems: genuinely runs off the stream (M3 science/parts batch)",
     // NET = +5.00 (producer) + -1.80 (consumer) = +3.20/s. "-1.80" appears
     // twice: the CONS totals cell and the Consumers row itself (a single
     // consumer, so they agree).
-    expect(screen.getByText("+3.20/s")).toBeTruthy();
+    expect(visibleText()).toContain("+3.20/s");
     expect(screen.getAllByText("-1.80")).toHaveLength(2);
 
     teardownMockDataSource(legacyAux);

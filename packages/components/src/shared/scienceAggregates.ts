@@ -1,3 +1,5 @@
+import { magnitudeOr, type Quantityish } from "./magnitude";
+
 /**
  * Client-side science aggregation off the `science.experiments` array.
  * The raw per-experiment array is a clean home on the new wire
@@ -36,7 +38,7 @@ function asRecordArray(raw: unknown): Record<string, unknown>[] {
 }
 
 function num(v: unknown): number {
-  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+  return magnitudeOr(v as Quantityish, 0);
 }
 
 function str(v: unknown, fallback = ""): string {

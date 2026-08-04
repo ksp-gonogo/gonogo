@@ -4,7 +4,13 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
@@ -105,8 +111,8 @@ describe("ShipMap: augment slots (spec §4)", () => {
     const overlay = await screen.findByTestId("ship-map-overlay-augment");
     // The slot passed the diagram's base-frame projection down:
     // the fixture's part count, the measured canvas size, a positive scale.
-    expect(overlay.textContent).toContain(`${TOPOLOGY.parts.length}|`);
-    expect(overlay.textContent).toContain("scaled");
+    expect(visibleText(overlay)).toContain(`${TOPOLOGY.parts.length}|`);
+    expect(visibleText(overlay)).toContain("scaled");
   });
 
   it("renders a test augment bound to the badges slot in the header", async () => {

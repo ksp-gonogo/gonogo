@@ -14,6 +14,7 @@
  * `vessel.state.*` test fixture. A dedicated channel scopes that
  * requirement to just this reshape's own consumers.
  */
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type LegacyOrbitPatch,
   mapOrbitPatch,
@@ -28,11 +29,11 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
  */
 export interface ManeuverNodeWirePayload {
   id: string;
-  ut: number;
-  dvRadial?: number | null;
-  dvNormal?: number | null;
-  dvPrograde?: number | null;
-  dvTotal?: number | null;
+  ut: Value<"s">;
+  dvRadial?: Value<"m/s"> | null;
+  dvNormal?: Value<"m/s"> | null;
+  dvPrograde?: Value<"m/s"> | null;
+  dvTotal?: Value<"m/s"> | null;
   patches: OrbitPatchWirePayload[];
 }
 
@@ -84,8 +85,16 @@ export function mapManeuverNode(
   const orbitPatches = wire.patches.map(mapOrbitPatch);
   const first = orbitPatches[0];
   return {
-    UT: wire.ut,
-    deltaV: [wire.dvRadial ?? 0, wire.dvNormal ?? 0, wire.dvPrograde ?? 0],
+    // Plain numbers throughout the LEGACY shape, and `UT` especially: it is
+    // used as a Map key and compared with `===` by the burn tracker and the
+    // node list, and a `Value` is a fresh object every frame, so neither
+    // would ever match again.
+    UT: wire.ut.magnitude,
+    deltaV: [
+      wire.dvRadial?.magnitude ?? 0,
+      wire.dvNormal?.magnitude ?? 0,
+      wire.dvPrograde?.magnitude ?? 0,
+    ],
     PeA: first?.PeA ?? 0,
     ApA: first?.ApA ?? 0,
     inclination: first?.inclination ?? 0,

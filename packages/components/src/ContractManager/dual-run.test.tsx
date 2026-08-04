@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import smallCareerDetail from "./__fixtures__/small-career-detail.json";
@@ -75,7 +81,7 @@ describe("ContractManager: real recorded-fixture render off the stream (delay=0)
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Rescue Kerbal from orbit")) {
+      if (!visibleText(container).includes("Rescue Kerbal from orbit")) {
         throw new Error("stream leg has not rendered contracts yet");
       }
     });

@@ -1,9 +1,12 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { deriveState } from "./SignalLossIndicator";
 
 // deriveState(connected, signalStrength, controlState, hasConfirmedConnection)
 // A healthy strength for the cases not exercising the 0%-signal path.
-const OK = 0.87;
+const OK = value("ratio", 0.87);
+// A dead link. Distinct from `undefined`, which is "no reading yet".
+const ZERO = value("ratio", 0);
 
 describe("SignalLossIndicator: deriveState", () => {
   it("treats absent telemetry as connected (warmup hides the banner)", () => {
@@ -41,26 +44,26 @@ describe("SignalLossIndicator: deriveState", () => {
   it("does NOT report lost on cold-start 0% signal (hasConfirmedConnection = false)", () => {
     // A 0% reading before any confirmed link (no antenna) must stay quiet,
     // same gate as a cold-start false.
-    expect(deriveState(undefined, 0, undefined, false)).toBe("connected");
-    expect(deriveState(true, 0, 2, false)).toBe("connected");
+    expect(deriveState(undefined, ZERO, undefined, false)).toBe("connected");
+    expect(deriveState(true, ZERO, 2, false)).toBe("connected");
   });
 
   it("reports lost when we've seen a confirmed link and it dropped", () => {
     expect(deriveState(false, OK, 2, true)).toBe("lost");
-    expect(deriveState(false, 0, 0, true)).toBe("lost");
+    expect(deriveState(false, ZERO, 0, true)).toBe("lost");
     expect(deriveState(false, undefined, undefined, true)).toBe("lost");
   });
 
   it("reports lost on 0% signal even when connected was never observed false", () => {
     // A link that decayed to nothing (0% strength) reads as SIGNAL LOSS once a
     // link has been confirmed, regardless of the connected flag's last value.
-    expect(deriveState(true, 0, 2, true)).toBe("lost");
-    expect(deriveState(undefined, 0, undefined, true)).toBe("lost");
+    expect(deriveState(true, ZERO, 2, true)).toBe("lost");
+    expect(deriveState(undefined, ZERO, undefined, true)).toBe("lost");
   });
 
   it("does NOT report lost on a weak-but-present link", () => {
     // 1% is weak but present, not SIGNAL LOSS.
-    expect(deriveState(true, 0.01, 2, true)).toBe("connected");
+    expect(deriveState(true, value("ratio", 0.01), 2, true)).toBe("connected");
   });
 
   it("reports partial for reduced-control states while connected is confirmed true", () => {

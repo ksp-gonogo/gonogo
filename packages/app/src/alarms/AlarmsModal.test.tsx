@@ -14,6 +14,7 @@ import {
   vesselManeuverLegacyChannel,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
+import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -245,14 +246,16 @@ describe("AlarmsModal onFire editor", () => {
 // (emitting raw wire nodes), not the MockDataSource. Only `ut` matters to the
 // preset's soonest-future-node pick; the rest satisfy the wire shape.
 function makeWireNode(id: string, ut: number): ManeuverNodeWirePayload {
-  return {
+  // Wire-shaped, then wrapped: `emit` does this to a real frame, and these
+  // nodes are handed to the store directly.
+  return wrapTypePayload("ManeuverNode", {
     id,
     ut,
     dvRadial: 10,
     dvNormal: 0,
     dvPrograde: 0,
     patches: [],
-  };
+  } as Record<string, unknown>) as unknown as ManeuverNodeWirePayload;
 }
 
 // The eight `vesselStateChannel` inputs plus `vessel.maneuver` (the

@@ -8,8 +8,8 @@ import {
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import {
   Cluster,
+  Countdown,
   EmptyState,
-  formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -120,9 +120,14 @@ function CommSignalComponent({
   // order, RemoteTech overrides, vanilla CommNet variants): in that case
   // we derive bars from comm.controlState so the widget still shows
   // something useful: Full → 4, Partial → 2, None → 0.
+  // `.magnitude`: strength is a declared ratio and arrives wrapped. The bar
+  // count and the headline percentage are both arithmetic on it, and the old
+  // `typeof === "number"` test silently answered "no strength reading" for
+  // every live link.
+  const raw = strength?.magnitude;
   const strengthValid =
-    typeof strength === "number" && Number.isFinite(strength) && strength > 0;
-  const pct = strengthValid ? Math.max(0, Math.min(1, strength)) : null;
+    typeof raw === "number" && Number.isFinite(raw) && raw > 0;
+  const pct = strengthValid ? Math.max(0, Math.min(1, raw)) : null;
   let bars: number;
   if (connected === false) {
     bars = 0;
@@ -210,10 +215,12 @@ function CommSignalComponent({
             <GridValue>
               {/* null (no measurable ControlPath) reads the same as
                   undefined (nothing arrived yet): comms-delay-nullable-
-                  when-no-path fix: neither is a number to format. */}
-              {typeof delay === "number"
-                ? formatDuration(delay, { ms: true })
-                : NULL_DISPLAY}
+                  when-no-path fix: neither is a duration to show. */}
+              {delay == null ? (
+                NULL_DISPLAY
+              ) : (
+                <Countdown value={delay} precise />
+              )}
             </GridValue>
           </Grid>
         )}

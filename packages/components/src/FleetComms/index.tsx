@@ -6,7 +6,11 @@ import {
   useUtNow,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { CommsPath, PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  CommsPath,
+  PendingUplinkQueue,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { ToggleButton } from "@ksp-gonogo/ui";
 import { Badge, Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -98,14 +102,14 @@ function frameNameMatches(a: string, b: string): boolean {
 }
 
 interface WireOrbit {
-  sma: number;
-  ecc: number;
-  inc: number;
-  lan?: number;
-  argPe?: number;
-  meanAnomalyAtEpoch: number;
-  epoch: number;
-  mu: number;
+  sma: Value<"m">;
+  ecc: Value<"1">;
+  inc: Value<"°">;
+  lan?: Value<"°">;
+  argPe?: Value<"°">;
+  meanAnomalyAtEpoch: Value<"rad">;
+  epoch: Value<"s">;
+  mu: Value<"m³/s²">;
   referenceBodyIndex?: number;
 }
 
@@ -119,14 +123,14 @@ interface WireOrbit {
  */
 function buildElements(o: WireOrbit): OrbitElements {
   return {
-    sma: o.sma,
-    ecc: o.ecc,
-    inc: degToRad(o.inc),
-    lan: o.lan == null ? 0 : degToRad(o.lan),
-    argPe: o.argPe == null ? 0 : degToRad(o.argPe),
-    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch,
-    epoch: o.epoch,
-    mu: o.mu,
+    sma: o.sma.magnitude,
+    ecc: o.ecc.magnitude,
+    inc: degToRad(o.inc.magnitude),
+    lan: o.lan == null ? 0 : degToRad(o.lan.magnitude),
+    argPe: o.argPe == null ? 0 : degToRad(o.argPe.magnitude),
+    meanAnomalyAtEpoch: o.meanAnomalyAtEpoch.magnitude,
+    epoch: o.epoch.magnitude,
+    mu: o.mu.magnitude,
   };
 }
 
@@ -175,7 +179,7 @@ function FleetCommsOverlay({
     // Hyperbolic/parabolic guard: `solveAnomalies` throws outside `[0, 1)`
     // eccentricity (an escape/flyby trajectory, routine mid-transfer). Mirrors
     // `SystemView/index.tsx`'s identical guard on the same solver.
-    if (!(orbit.ecc >= 0 && orbit.ecc < 1)) return null;
+    if (!(orbit.ecc.magnitude >= 0 && orbit.ecc.magnitude < 1)) return null;
     const anomalies = solveAnomalies(buildElements(orbit), universalTime);
     const deg = wrapDegrees360(radToDeg(anomalies.trueAnomaly));
     return Number.isFinite(deg) ? deg : null;
@@ -195,10 +199,10 @@ function FleetCommsOverlay({
     }
     return projectOrbitPosition(
       {
-        sma: orbit.sma,
-        ecc: orbit.ecc,
-        lan: orbit.lan ?? 0,
-        argPe: orbit.argPe ?? 0,
+        sma: orbit.sma.magnitude,
+        ecc: orbit.ecc.magnitude,
+        lan: orbit.lan?.magnitude ?? 0,
+        argPe: orbit.argPe?.magnitude ?? 0,
         trueAnomalyDeg,
       },
       plotScale,

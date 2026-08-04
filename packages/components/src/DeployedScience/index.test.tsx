@@ -3,7 +3,13 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -105,9 +111,9 @@ describe("DeployedScienceComponent", () => {
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
     // No EC numbers on the new wire, powerAvailable/powerRequired degrade to 0/0.
-    expect(screen.getByText(/EC 0\/0/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/EC 0\/0/);
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
-    expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(visibleText()).toContain("50%");
   });
 
   it("labels an unpowered base and a brownout base distinctly", async () => {

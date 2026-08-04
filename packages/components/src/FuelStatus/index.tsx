@@ -11,21 +11,27 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { type ResourceAmountMap, useStream } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
-  formatDuration,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   Select,
+  Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -119,10 +125,10 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
     "dv.currentStageResourceMax",
   );
 
-  const vessel = vesselResources?.[def.name]?.current ?? 0;
-  const vesselMax = vesselResources?.[def.name]?.max ?? 0;
-  const stage = stageCurrent?.[def.name] ?? 0;
-  const stageMax = stageMaxMap?.[def.name] ?? 0;
+  const vessel = magnitudeOr(vesselResources?.[def.name]?.current, 0);
+  const vesselMax = magnitudeOr(vesselResources?.[def.name]?.max, 0);
+  const stage = magnitudeOr(stageCurrent?.[def.name], 0);
+  const stageMax = magnitudeOr(stageMaxMap?.[def.name], 0);
 
   return def.scope === "vessel"
     ? { value: vessel, max: vesselMax }
@@ -181,10 +187,13 @@ export function parseStages(raw: unknown): StageInfo[] {
   for (const entry of raw) {
     if (!entry || typeof entry !== "object") continue;
     const e = entry as Record<string, unknown>;
+    // Takes a `Value` as well as a bare number: the mod's `dv.stages` rows
+    // declare their units and arrive wrapped, the legacy rows do not, and
+    // this function exists precisely to reconcile the two.
     const num = (...keys: string[]): number => {
       for (const k of keys) {
-        const v = e[k];
-        if (typeof v === "number" && Number.isFinite(v)) return v;
+        const v = magnitudeOf(e[k] as Quantityish);
+        if (v !== null) return v;
       }
       return Number.NaN;
     };
@@ -225,9 +234,10 @@ function FuelStatusComponent({
   // Connectivity indicator, mirroring the WarpControl pilot.
   const summary = useTelemetry("dv.summary");
   const stageCount = summary?.stageCount;
-  const totalDVVac = summary?.totalDvVac;
-  const totalDVASL = summary?.totalDvAsl;
-  const totalDVActual = summary?.totalDvActual;
+  // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
+  const totalDVVac = magnitudeOf(summary?.totalDvVac) ?? undefined;
+  const totalDVASL = magnitudeOf(summary?.totalDvAsl) ?? undefined;
+  const totalDVActual = magnitudeOf(summary?.totalDvActual) ?? undefined;
   const totalBurnTime = summary?.totalBurnTime;
 
   // Hooks unrolled explicitly: Rules of Hooks forbids hook calls inside any
@@ -300,7 +310,8 @@ function FuelStatusComponent({
         showSubtitle && currentStage !== undefined ? (
           <>
             Stage {currentStage}
-            {stageCount !== undefined && ` / ${Math.max(stageCount - 1, 0)}`}
+            {stageCount !== undefined &&
+              ` / ${Math.max(stageCount.magnitude - 1, 0)}`}
           </>
         ) : undefined
       }
@@ -337,9 +348,11 @@ function FuelStatusComponent({
             <TotalsLabel>Total burn</TotalsLabel>
             <TotalsValue>
               <TotalsValueText>
-                {totalBurnTime !== undefined
-                  ? formatDuration(totalBurnTime)
-                  : NULL_DISPLAY}
+                {totalBurnTime !== undefined ? (
+                  <Unit value={totalBurnTime} />
+                ) : (
+                  NULL_DISPLAY
+                )}
               </TotalsValueText>
             </TotalsValue>
           </TotalsBlock>
@@ -387,9 +400,11 @@ function FuelStatusComponent({
               // show "0s" for that (and for a non-positive value) rather than
               // the helper's NULL_DISPLAY, matching the pre-refactor local formatter.
               const burn =
-                Number.isFinite(s.burnTime) && s.burnTime > 0
-                  ? formatDuration(s.burnTime)
-                  : "0s";
+                Number.isFinite(s.burnTime) && s.burnTime > 0 ? (
+                  <Unit value={value("s", s.burnTime)} />
+                ) : (
+                  "0s"
+                );
               return (
                 <StageRow key={s.stage} $active={active}>
                   <StageLabel>

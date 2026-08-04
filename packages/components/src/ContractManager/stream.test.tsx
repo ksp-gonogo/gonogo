@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -117,7 +123,7 @@ describe("ContractManager: genuinely runs off the stream (M3b career-detail batc
     // too (not just active/offered): reflected in the subtitle's recent
     // count, same "count changes" proof `index.test.tsx`'s legacy
     // equivalent test uses.
-    expect(screen.getByText(/1 active · 1 offered · 1 recent/i)).toBeTruthy();
+    expect(visibleText()).toMatch(/1 active · 1 offered · 1 recent/i);
 
     teardownMockDataSource(legacyAux);
   });

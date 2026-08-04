@@ -3,6 +3,7 @@ import type {
   ServerMessage,
   StreamData,
 } from "@ksp-gonogo/sitrep-sdk";
+import { parseServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import type { Clock } from "./clock";
 import type { Transport, TransportStatus } from "./transport";
 
@@ -115,8 +116,11 @@ export class ReplayTransport implements Transport {
     this.clock = options.clock;
     this.loop = options.loop ?? false;
 
+    // `parseServerMessage` rather than a bare `JSON.parse`: a replayed frame
+    // is the same wire text a live socket carries, so it goes through the same
+    // decode and comes out with its quantities wrapped.
     const parsed = fixture.frames
-      .map((raw) => JSON.parse(raw) as ServerMessage)
+      .map((raw) => parseServerMessage(raw))
       .filter(isDataOrEventFrame)
       .sort((a, b) => a.meta.deliveredAt - b.meta.deliveredAt);
 

@@ -1,5 +1,12 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import kerbinFlight from "./__fixtures__/kerbin-flight-two-experiments.json";
@@ -99,13 +106,13 @@ describe("ScienceBench: stream render golden (delay=0)", () => {
 
     await waitFor(() => {
       if (
-        !container.textContent?.includes(
+        !visibleText(container).includes(
           "Temperature Scan from Kerbin's upper atmosphere",
         )
       ) {
         throw new Error("stream leg has not rendered the breakdown yet");
       }
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
     });

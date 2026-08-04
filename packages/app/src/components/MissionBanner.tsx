@@ -1,5 +1,6 @@
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { formatKspDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
+import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import styled from "styled-components";
 
 /**
@@ -36,8 +37,8 @@ export function MissionBanner() {
   // straight into this slot without touching the surrounding markup.
   const commandCentre = "KSC";
 
-  const fields: { label: string; value: string }[] = [
-    { label: "UT", value: formatKspDate(ut ?? Number.NaN) },
+  const fields: { label: string; value: ReactNode }[] = [
+    { label: "UT", value: <MissionDate value={ut} /> },
     { label: "CC", value: commandCentre },
   ];
 

@@ -3,6 +3,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
@@ -85,7 +86,7 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
 
     // The rotor's RPM renders; the hinge entry is ignored (RotorTachometer is
     // rotors-only, hinges/pistons are Robotics Console's domain).
-    await waitFor(() => expect(container.textContent).toContain("240"));
+    await waitFor(() => expect(visibleText(container)).toContain("240"));
     expect(screen.queryByText(/Arm Hinge/)).not.toBeInTheDocument();
 
     await act(async () => {
@@ -137,18 +138,18 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
     });
 
     // Default selection is the first entry (partId "1", 100 RPM).
-    await waitFor(() => expect(container.textContent).toContain("100"));
+    await waitFor(() => expect(visibleText(container)).toContain("100"));
 
     const rows = screen.getAllByRole("button", {
       name: new RegExp(rotorName),
     });
-    const targetRow = rows.find((r) => r.textContent?.includes("200/300 RPM"));
+    const targetRow = rows.find((r) => visibleText(r).includes("200/300 RPM"));
     if (!targetRow) {
       throw new Error("could not find the partId 2 (200 RPM) rotor row");
     }
     await act(async () => {
       targetRow.click();
     });
-    await waitFor(() => expect(container.textContent).toContain("↺ CCW"));
+    await waitFor(() => expect(visibleText(container)).toContain("↺ CCW"));
   });
 });

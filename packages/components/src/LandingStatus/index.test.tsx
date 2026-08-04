@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -164,7 +164,7 @@ describe("LandingStatusComponent", () => {
     // Burn-now touchdown is a large nonzero speed (the fatal-direction fix),
     // and it's LED as the killer fact under the hero (UNAVOIDABLE IMPACT), as
     // well as detailed in the readout grid.
-    expect(screen.getAllByText(/328 m\/s/).length).toBeGreaterThanOrEqual(1);
+    expect(visibleText()).toMatch(/328 m\/s/);
     expect(screen.getByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
     // No viable safe trajectory exists, so the hero reads NO LANDING VECTOR.
     expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe("LandingStatusComponent", () => {
     });
     expect(await screen.findByText("Vertical")).toBeInTheDocument();
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
-    expect(screen.getByText(/538 m\/s/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/538 m\/s/);
   });
 
   it("uses the lowest-point altitude from vessel.surface, not the CoM altitude", async () => {
@@ -236,8 +236,8 @@ describe("LandingStatusComponent", () => {
     // getByText, which concatenates only DIRECT text nodes, never sees the
     // pair. The container does.
     await screen.findByText("2.75");
-    expect(container.textContent).toContain("2.75km");
-    expect(container.textContent).not.toContain("2.80km");
+    expect(visibleText(container)).toContain("2.75 km");
+    expect(container.textContent).not.toContain("2.80 km");
   });
 
   it("falls back to the CoM altitude when vessel.surface is absent", async () => {
@@ -255,7 +255,7 @@ describe("LandingStatusComponent", () => {
       });
     });
     await screen.findByText("2.80");
-    expect(container.textContent).toContain("2.80km");
+    expect(visibleText(container)).toContain("2.80 km");
     expect(screen.getByText(/centre-of-mass/i)).toBeInTheDocument();
   });
 
@@ -311,7 +311,7 @@ describe("LandingStatusComponent", () => {
     expect(
       await screen.findByText("Atmospheric descent (estimate)"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/85.0 m\/s/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/85.0 m\/s/);
     expect(screen.getByText("at-terminal")).toBeInTheDocument();
     // The armed-chute caveat surfaces (terse); the unmodelled badge is gone.
     expect(screen.getByText(/excludes chute/i)).toBeInTheDocument();
@@ -518,7 +518,7 @@ describe("LandingStatusComponent", () => {
       });
     });
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toMatch(/NO LANDING VECTOR/);
+    expect(visibleText(alert)).toMatch(/NO LANDING VECTOR/);
   });
 
   it("has no axe violations", async () => {

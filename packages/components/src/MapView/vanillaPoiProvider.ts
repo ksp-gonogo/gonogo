@@ -67,8 +67,10 @@ function toMapPoi(
   return {
     id: entry.id,
     bodyId,
-    lat: entry.latitude,
-    lon: entry.longitude,
+    // Plain degrees: a POI's position is projected into map pixels, never
+    // read as a quantity.
+    lat: entry.latitude.magnitude,
+    lon: entry.longitude.magnitude,
     kind: entry.kind,
     label: entry.label,
     status,
@@ -87,7 +89,10 @@ function toMapPoi(
         label: "Set as Target",
         run: () =>
           execute(
-            `tar.setTargetPosition[${entry.bodyIndex},${entry.latitude},${entry.longitude}]`,
+            // `.magnitude`: the command is a wire WRITE and takes bare
+            // numbers. Interpolating the quantities themselves put
+            // "-0.1 °" into the argument list.
+            `tar.setTargetPosition[${entry.bodyIndex},${entry.latitude?.magnitude},${entry.longitude?.magnitude}]`,
           ),
       },
     ],

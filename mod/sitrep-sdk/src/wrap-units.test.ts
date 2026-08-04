@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValue, type Value } from "./unit-system";
+import { isValue, type Value, value } from "./unit-system";
 import { wrapTopicPayload, wrapTypePayload } from "./wrap-units";
 
 const asValue = (v: unknown) => v as Value;
@@ -23,6 +23,54 @@ describe("wrapTopicPayload", () => {
       name: "Kerbal X",
     } as never) as { name: unknown };
     expect(payload.name).toBe("Kerbal X");
+  });
+
+  it("does not mint a key for a field the frame omitted", () => {
+    // A Topic sends a subset of its fields routinely, and the wrap runs over
+    // the DECLARATION rather than over what arrived. Assigning unconditionally
+    // gave every absent field an own property holding `undefined`: enough to
+    // change `Object.keys`, make `"sma" in payload` true for something that
+    // never came, and write nulls into a re-serialised frame. Two replay tests
+    // caught it; this is the one that names it.
+    const payload = wrapTopicPayload("vessel.orbit", {
+      sma: 680_000,
+    } as never) as Record<string, unknown>;
+    expect(Object.keys(payload)).toEqual(["sma"]);
+    expect("ecc" in payload).toBe(false);
+  });
+
+  it("follows a field that holds another payload shape", () => {
+    // `vessel.target.orbit` is a whole VesselOrbit. The unit maps are flat per
+    // shape, so its declared units were unreachable from the vessel.target
+    // entry and `sma` arrived bare while the contract typed it Value<"m">.
+    const payload = wrapTopicPayload("vessel.target", {
+      orbit: { sma: 700_000, ecc: 0.01 },
+    } as never) as { orbit: { sma: Value; ecc: Value } };
+    expect(payload.orbit.sma.unit).toBe("m");
+    expect(payload.orbit.sma.magnitude).toBe(700_000);
+    expect(payload.orbit.ecc.unit).toBe("1");
+  });
+
+  it("follows a LIST of nested shapes, element by element", () => {
+    const payload = wrapTopicPayload("system.bodies", {
+      bodies: [{ radius: 600_000 }, { radius: 200_000 }],
+    } as never) as { bodies: Array<{ radius: Value }> };
+    expect(payload.bodies.map((b) => b.radius.unit)).toEqual(["m", "m"]);
+    expect(payload.bodies[1].radius.magnitude).toBe(200_000);
+  });
+
+  it("follows a MAP of nested shapes, value by value", () => {
+    // `VesselPart.resources` is keyed by resource name. Treating the map
+    // itself as one payload looked for `amount` on the map, found nothing,
+    // and left every per-part flow bare.
+    const payload = wrapTopicPayload("vessel.parts", {
+      parts: [{ resources: { ElectricCharge: { amount: 120, flow: -0.5 } } }],
+    } as never) as {
+      parts: Array<{ resources: Record<string, { amount: Value }> }>;
+    };
+    const ec = payload.parts[0].resources.ElectricCharge;
+    expect(ec.amount.unit).toBe("units");
+    expect(ec.amount.magnitude).toBe(120);
   });
 
   it("puts the unit inside a sequence of readings", () => {
@@ -103,5 +151,33 @@ describe("allocation cost", () => {
       if (isValue(wrapped[key])) allocations++;
     }
     expect(allocations).toBe(2);
+  });
+});
+
+describe("a hand-declared Topic whose payload is a reflected contract type", () => {
+  it("wraps system.uplink.pending's entries", () => {
+    // `ChannelEngine` declares this channel, not any one Uplink's contract, so
+    // the generated maps are keyed by a `[SitrepTopic]` that does not exist
+    // for it. The type says `Value<"s">` either way, and before the
+    // hand-declared fallback the runtime handed a bare number: the in-transit
+    // strip read raw seconds and pointed its arrow the wrong way.
+    const payload = {
+      pending: [
+        {
+          id: "r1",
+          command: "vessel.control.setThrottle",
+          label: "throttle up",
+          topic: "vessel.control",
+          vantage: "ksc",
+          dispatchedAt: 100,
+          oneWaySeconds: 4,
+        },
+      ],
+    };
+    wrapTopicPayload("system.uplink.pending", payload);
+    expect(payload.pending[0].dispatchedAt).toEqual(value("s", 100));
+    expect(payload.pending[0].oneWaySeconds).toEqual(value("s", 4));
+    // Not a quantity, and not touched.
+    expect(payload.pending[0].command).toBe("vessel.control.setThrottle");
   });
 });

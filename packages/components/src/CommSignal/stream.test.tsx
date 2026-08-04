@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -72,7 +78,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     });
 
     // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
-    await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("87%"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     // Control state (derived, needs the full vessel.state input set) and delay
     // (comms.delay) aren't carried in THIS fixture, and there's no legacy
@@ -104,7 +110,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
       });
-      await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
+      await waitFor(() => expect(visibleText()).toContain("87%"));
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
 
       // Signal lost: the wire actively reports connected:false on comms.link
@@ -114,7 +120,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.emit("vessel.comms", { connected: false, signalStrength: 0 });
       });
       await waitFor(() => {
-        if (container.textContent?.includes("SYNCING")) {
+        if (visibleText(container).includes("SYNCING")) {
           throw new Error("stream status has not settled to live yet");
         }
         expect(screen.getByText("LOS")).toBeTruthy();
@@ -131,7 +137,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
       });
-      await waitFor(() => expect(screen.getByText("60%")).toBeTruthy());
+      await waitFor(() => expect(visibleText()).toContain("60%"));
       expect(screen.queryByText("LOS")).toBeNull();
       expect(screen.getByText("Signal connected")).toBeTruthy();
     },
@@ -162,10 +168,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         signalStrength: 0.9,
       });
     });
-    await waitFor(() => expect(screen.getByText("90%")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("90%"));
     // No new wire samples, no status event at all, nothing further happens
     // by design. The value must still be showing.
-    expect(screen.getByText("90%")).toBeTruthy();
+    expect(visibleText()).toContain("90%");
     expect(screen.queryByText("No signal data")).toBeNull();
   });
 
@@ -209,7 +215,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
-      await waitFor(() => expect(screen.getByText("50%")).toBeTruthy());
+      await waitFor(() => expect(visibleText()).toContain("50%"));
 
       // Sample B: a MUCH more current reading arrives (validAt/deliveredAt =
       // 20), but the delay window means it isn't confirmed yet.
@@ -222,7 +228,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.store.beginFrame();
       });
       // The OLDER confirmed value (50%) must still be what's rendered.
-      expect(screen.getByText("50%")).toBeTruthy();
+      expect(visibleText()).toContain("50%");
       expect(screen.queryByText("90%")).toBeNull();
 
       // Advance past the delay window relative to sample B's timing too.
@@ -230,7 +236,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
-      await waitFor(() => expect(screen.getByText("90%")).toBeTruthy());
+      await waitFor(() => expect(visibleText()).toContain("90%"));
       expect(screen.queryByText("50%")).toBeNull();
     },
   );
@@ -281,6 +287,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     // ceil(0.4 * 4) = 2 lit bars.
     expect(screen.getByLabelText("Signal 2 of 4")).toBeTruthy();
     // formatDuration(1.2, { ms: true }) -> "1s".
-    expect(screen.getByText("1s")).toBeTruthy();
+    expect(visibleText()).toContain("1s");
   });
 });

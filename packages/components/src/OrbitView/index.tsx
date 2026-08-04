@@ -271,7 +271,7 @@ function OrbitViewComponent({
   let pillLabel = NULL_DISPLAY;
   let pillTone: ReadoutTone = "default";
   if (hasOrbit) {
-    if (eccentricity >= 1) {
+    if (eccentricity.magnitude >= 1) {
       pillLabel = compactPill ? "ESC" : "Escape";
       pillTone = "warning";
     } else if (isOrbiting) {
@@ -286,15 +286,15 @@ function OrbitViewComponent({
   const diagram = hasOrbit ? (
     <OrbitDiagram
       variant="full"
-      sma={sma}
-      ecc={eccentricity}
+      sma={sma.magnitude}
+      ecc={eccentricity.magnitude}
       // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram already
       // detects that itself (`ecc >= 1 || sma <= 0`) and ignores this value
       // in that branch, so the fallback is never actually rendered from.
       apoapsis={apoapsisR ?? 0}
       periapsis={periapsisR}
       trueAnomaly={trueAnomaly ?? 0}
-      argPe={argPe ?? 0}
+      argPe={argPe?.magnitude ?? 0}
       showMarkers={showMarkers}
       bodyColor={body?.color}
       bodyRadius={body?.radius}
@@ -324,16 +324,18 @@ function OrbitViewComponent({
   const overlayContext: OrbitOverlayContext | null =
     sma != null && eccentricity != null && periapsisR != null
       ? {
-          sma,
-          ecc: eccentricity,
+          // The overlay slot is a DRAWING contract: an Uplink gets the same
+          // plot-space numbers the diagram itself works in.
+          sma: sma.magnitude,
+          ecc: eccentricity.magnitude,
           apoapsis: apoapsisR ?? undefined,
           periapsis: periapsisR,
-          argPe: argPe ?? 0,
+          argPe: argPe?.magnitude ?? 0,
           trueAnomaly: trueAnomaly ?? 0,
           bodyRadius: body?.radius,
           center: { x: 0, y: 0 },
           scale:
-            eccentricity >= 1
+            eccentricity.magnitude >= 1
               ? periapsisR * HYPERBOLIC_OVERLAY_SCALE
               : (apoapsisR ?? periapsisR),
         }

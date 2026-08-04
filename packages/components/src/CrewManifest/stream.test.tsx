@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewManifestComponent } from "./index";
@@ -55,7 +61,7 @@ describe("CrewManifest, genuinely runs off the stream (M3 batch 4)", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("3 / 4 aboard")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("3 / 4 aboard"));
     // The roster now renders straight off the stream, no legacy fallback
     // needed for names or capacity.
     expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();

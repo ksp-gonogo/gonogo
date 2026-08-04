@@ -6,7 +6,8 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { Quantity, speakQuantity } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { speakQuantity, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {
@@ -16,6 +17,7 @@ import {
   type ReferenceCurve,
 } from "../Graph";
 import { formatDensity } from "../shared/formatDensity";
+import { magnitudeOf } from "../shared/magnitude";
 
 export interface AtmosphereProfileConfig {
   /** Override the auto-derived altitude ceiling for the curve (metres). */
@@ -68,9 +70,11 @@ function AtmosphereProfileComponent({
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const body = bodyName ? getBody(bodyName) : undefined;
   const altitude = vesselState?.altitudeAsl ?? undefined;
-  const liveDensity = flight?.atmDensity;
-  const liveAirTemp = flight?.atmosphericTemperature;
-  const liveSkinTemp = flight?.externalTemperature;
+  // Magnitudes: all three feed threshold checks and the chart's own
+  // number-taking readouts.
+  const liveDensity = magnitudeOf(flight?.atmDensity);
+  const liveAirTemp = magnitudeOf(flight?.atmosphericTemperature);
+  const liveSkinTemp = magnitudeOf(flight?.externalTemperature);
   // Connectivity indicator (mirrors the pattern used elsewhere in this widget
 
   const cols = w ?? 8;
@@ -158,8 +162,7 @@ function AtmosphereProfileComponent({
   const title = narrow ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
     chipFits &&
-    typeof liveDensity === "number" &&
-    Number.isFinite(liveDensity) &&
+    liveDensity !== null &&
     liveDensity > 1e-9 &&
     body?.hasAtmosphere === true;
 
@@ -197,7 +200,7 @@ function AtmosphereProfileComponent({
             <LiveChipLabel>ρ</LiveChipLabel>
             <LiveChipValue>{formatDensity(liveDensity)}</LiveChipValue>
           </LiveChipRow>
-          {typeof liveAirTemp === "number" && Number.isFinite(liveAirTemp) && (
+          {liveAirTemp !== null && (
             <LiveChipRow>
               <LiveChipLabel>Air</LiveChipLabel>
               <LiveChipValue>
@@ -205,15 +208,14 @@ function AtmosphereProfileComponent({
               </LiveChipValue>
             </LiveChipRow>
           )}
-          {typeof liveSkinTemp === "number" &&
-            Number.isFinite(liveSkinTemp) && (
-              <LiveChipRow>
-                <LiveChipLabel>Skin</LiveChipLabel>
-                <LiveChipValue>
-                  <TempC k={liveSkinTemp} />
-                </LiveChipValue>
-              </LiveChipRow>
-            )}
+          {liveSkinTemp !== null && (
+            <LiveChipRow>
+              <LiveChipLabel>Skin</LiveChipLabel>
+              <LiveChipValue>
+                <TempC k={liveSkinTemp} />
+              </LiveChipValue>
+            </LiveChipRow>
+          )}
         </LiveChip>
       )}
     </Wrap>
@@ -223,14 +225,14 @@ function AtmosphereProfileComponent({
 // Kelvin on the wire, Celsius on screen: the conversion is a presentation
 // choice made through the shared unit layer, not something the wire pre-applies.
 function TempC({ k }: { k: number }) {
-  return <Quantity value={k} unit="K" as="°C" />;
+  return <Unit value={value("K", k)} as="°C" />;
 }
 
 // A string rather than a node: this feeds a chart annotation's `label`, which
 // is measured and positioned as text. `speakQuantity` gives the word instead
 // of the symbol, which is the right trade for a label a reader hears.
 function formatPressure(p: number): string {
-  return speakQuantity(p, "Pa");
+  return speakQuantity(value("Pa", p));
 }
 
 const Wrap = styled.div`

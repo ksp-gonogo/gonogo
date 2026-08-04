@@ -1,5 +1,5 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -112,7 +112,7 @@ describe("EscapeProfile DOM snapshots", () => {
         });
 
         await waitFor(() => {
-          if (!container.textContent?.includes("ESCAPE PROFILE")) {
+          if (!visibleText(container).includes("ESCAPE PROFILE")) {
             throw new Error("widget has not rendered yet");
           }
           // The title renders on first paint, before vessel.state.parentBodyName

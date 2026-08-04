@@ -2,8 +2,9 @@ import type {
   ClientMessage,
   Meta,
   ServerMessage,
+  TopicId,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness, wrapTopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import type { Transport, TransportStatus } from "./transport";
 
 /** Builds a valid, deterministic `Meta` for stubbed/test data. */
@@ -132,6 +133,20 @@ export class StubTransport implements Transport {
    * this method deliberately keeps (the realistic case for proving
    * ref-counted subscribe actually happened).
    */
+  /**
+   * Emit a stream frame, wire-shaped.
+   *
+   * `payload` is written the way the mod sends it: plain numbers, no units.
+   * They are wrapped into `Value`s on the way out, because that is what
+   * `parseServerMessage` does to a real frame, and a fixture that skipped it
+   * would hand widgets a shape production never produces.
+   *
+   * Cloned first. The wrap mutates what it is given, which is right for the
+   * object `JSON.parse` just produced and wrong for a test fixture: a shared
+   * one would be rewritten under the next test, and a frozen one threw. The
+   * clone is what makes `emit` behave like a wire frame from the caller's
+   * side as well as the listener's.
+   */
   emit(
     topic: string,
     payload: unknown,
@@ -141,7 +156,7 @@ export class StubTransport implements Transport {
     this.deliver({
       type: "stream-data",
       topic,
-      payload,
+      payload: wrapTopicPayload(topic as TopicId, structuredClone(payload)),
       meta: makeMeta({ validAt: 0, deliveredAt: 0, ...metaOverrides }),
     });
   }

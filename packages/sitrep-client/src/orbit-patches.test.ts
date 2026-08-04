@@ -1,3 +1,4 @@
+import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   findImpactPoint,
@@ -8,9 +9,11 @@ import {
 } from "./orbit-patches";
 
 function wirePatch(
-  overrides: Partial<OrbitPatchWirePayload> = {},
+  overrides: Record<string, unknown> = {},
 ): OrbitPatchWirePayload {
-  return {
+  // Wire-shaped, then wrapped: `OrbitPatch` is a nested contract shape and
+  // the decode gives its declared quantities their units.
+  return wrapTypePayload("OrbitPatch", {
     sma: 700_000,
     ecc: 0.1,
     inc: 15,
@@ -30,7 +33,7 @@ function wirePatch(
     referenceBody: "Kerbin",
     closestEncounterBody: null,
     ...overrides,
-  };
+  }) as OrbitPatchWirePayload;
 }
 
 describe("mapOrbitPatch", () => {
@@ -38,23 +41,25 @@ describe("mapOrbitPatch", () => {
     const wire = wirePatch();
     const legacy = mapOrbitPatch(wire);
     expect(legacy).toEqual<LegacyOrbitPatch>({
-      startUT: wire.startUt,
-      endUT: wire.endUt,
+      // `.magnitude` throughout: the LEGACY shape is plain numbers, which is
+      // the whole point of the mapping, and the wire side carries units.
+      startUT: wire.startUt.magnitude,
+      endUT: wire.endUt.magnitude,
       patchStartTransition: "INITIAL",
       patchEndTransition: "FINAL",
-      PeA: wire.peA,
-      ApA: wire.apA,
-      inclination: wire.inc,
-      eccentricity: wire.ecc,
-      epoch: wire.epoch,
-      period: wire.period,
-      argumentOfPeriapsis: wire.argPe,
-      sma: wire.sma,
-      lan: wire.lan,
-      maae: wire.meanAnomalyAtEpoch,
+      PeA: wire.peA.magnitude,
+      ApA: wire.apA.magnitude,
+      inclination: wire.inc.magnitude,
+      eccentricity: wire.ecc.magnitude,
+      epoch: wire.epoch.magnitude,
+      period: wire.period.magnitude,
+      argumentOfPeriapsis: wire.argPe.magnitude,
+      sma: wire.sma.magnitude,
+      lan: wire.lan.magnitude,
+      maae: wire.meanAnomalyAtEpoch.magnitude,
       referenceBody: wire.referenceBody,
-      semiLatusRectum: wire.semiLatusRectum,
-      semiMinorAxis: wire.semiMinorAxis,
+      semiLatusRectum: wire.semiLatusRectum.magnitude,
+      semiMinorAxis: wire.semiMinorAxis.magnitude,
       closestEncounterBody: null,
     });
   });

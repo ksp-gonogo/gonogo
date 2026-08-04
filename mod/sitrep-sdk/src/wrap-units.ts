@@ -1,6 +1,12 @@
 import type { TopicId } from "./topics";
 import { lookupUnit, value } from "./unit-system";
-import { unitsForTopic, unitsForType } from "./units";
+import {
+  type ShapesByField,
+  shapesForTopic,
+  shapesForType,
+  unitsForTopic,
+  unitsForType,
+} from "./units";
 
 /**
  * Wraps a decoded payload's declared quantities into `Value`s.
@@ -31,9 +37,18 @@ import { unitsForTopic, unitsForType } from "./units";
  * `id`, `n/a`. That falls out of the registry lookup rather than needing a
  * list, because those tokens have no dimension and so were never units. A
  * vessel name has no magnitude to carry.
+ *
+ * ## It follows nested shapes
+ *
+ * A payload can hold another payload: `vessel.target.orbit` is a whole
+ * `VesselOrbit`, `system.bodies.bodies[].orbit` an `OrbitEntry`. The unit maps
+ * are flat per shape, so those nested units were unreachable from the parent
+ * entry and eighty-five fields' worth of declared quantities arrived bare
+ * while the contract typed them as `Value`. `GENERATED_TOPIC_SHAPES` says
+ * which fields hold which shape, and this walks them.
  */
 export function wrapTopicPayload<T>(topic: TopicId, payload: T): T {
-  return wrap(unitsForTopic(topic), payload);
+  return wrap(unitsForTopic(topic), shapesForTopic(topic), payload);
 }
 
 /**
@@ -42,10 +57,14 @@ export function wrapTopicPayload<T>(topic: TopicId, payload: T): T {
  * Topic names them.
  */
 export function wrapTypePayload<T>(typeName: string, payload: T): T {
-  return wrap(unitsForType(typeName), payload);
+  return wrap(unitsForType(typeName), shapesForType(typeName), payload);
 }
 
-function wrap<T>(units: Readonly<Record<string, string>>, payload: T): T {
+function wrap<T>(
+  units: Readonly<Record<string, string>>,
+  shapes: ShapesByField,
+  payload: T,
+): T {
   if (payload === null || typeof payload !== "object") {
     return payload;
   }
@@ -53,12 +72,35 @@ function wrap<T>(units: Readonly<Record<string, string>>, payload: T): T {
   // consumer indexes into.
   if (Array.isArray(payload)) {
     for (let i = 0; i < payload.length; i++) {
-      payload[i] = wrap(units, payload[i]);
+      payload[i] = wrap(units, shapes, payload[i]);
     }
     return payload;
   }
 
   const target = payload as Record<string, unknown>;
+  // Nested shapes first: a field can be both (a `Vec3` carries a unit AND is
+  // an object), and the leaf propagation below owns that case, so recursing
+  // first keeps the two from fighting over the same key.
+  for (const [field, typeName] of Object.entries(shapes)) {
+    if (!(field in target)) continue;
+    // A leading `*` marks a MAP of the shape rather than one of it: the
+    // values are the payloads, and treating the dictionary itself as one
+    // would look for `amount` on the map and find nothing. `VesselPart
+    // .resources` is keyed by resource name and is the case that forced it.
+    if (typeName.startsWith("*")) {
+      const entries = target[field];
+      if (entries !== null && typeof entries === "object") {
+        for (const key of Object.keys(entries as Record<string, unknown>)) {
+          (entries as Record<string, unknown>)[key] = wrapTypePayload(
+            typeName.slice(1),
+            (entries as Record<string, unknown>)[key],
+          );
+        }
+      }
+      continue;
+    }
+    target[field] = wrapTypePayload(typeName, target[field]);
+  }
   for (const [field, unit] of Object.entries(units)) {
     // A token with no unit in the model is a non-quantity. Nothing to wrap.
     if (lookupUnit(unit) === undefined) {
@@ -66,6 +108,12 @@ function wrap<T>(units: Readonly<Record<string, string>>, payload: T): T {
     }
     const dot = field.indexOf(".");
     if (dot === -1) {
+      // Only fields the payload actually HAS. Assigning unconditionally would
+      // mint an own property holding `undefined` for every declared field the
+      // frame omitted, which changes `Object.keys`, makes `"x" in payload`
+      // true for something that never arrived, and puts nulls into a
+      // re-serialised frame. A Topic sends a subset of its fields routinely.
+      if (!(field in target)) continue;
       target[field] = wrapScalarOrList(target[field], unit);
       continue;
     }
@@ -75,6 +123,7 @@ function wrap<T>(units: Readonly<Record<string, string>>, payload: T): T {
     const parent = target[field.slice(0, dot)];
     if (parent !== null && typeof parent === "object") {
       const leaf = field.slice(dot + 1);
+      if (!(leaf in parent)) continue;
       (parent as Record<string, unknown>)[leaf] = wrapScalarOrList(
         (parent as Record<string, unknown>)[leaf],
         unit,

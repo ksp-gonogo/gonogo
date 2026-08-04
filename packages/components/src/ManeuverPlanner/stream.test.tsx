@@ -1,6 +1,12 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { vesselManeuverLegacyChannel } from "@ksp-gonogo/sitrep-client";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -329,7 +335,7 @@ describe("ManeuverPlanner: dv.stages read rides the stream (P4a shared-map batch
     });
 
     await waitFor(() => {
-      expect(screen.getByText("1800 m/s")).toBeInTheDocument();
+      expect(visibleText()).toContain("1800 m/s");
     });
   });
 });

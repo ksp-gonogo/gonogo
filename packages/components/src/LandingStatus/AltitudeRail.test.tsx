@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { AltitudeRail } from "./AltitudeRail";
@@ -20,7 +20,7 @@ describe("AltitudeRail", () => {
 
   it("shows the ignition cue when a burn is pending", () => {
     render(<AltitudeRail {...descending} />);
-    expect(screen.getByText(/ignite in 8s/i)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/ignite in 8s/i);
   });
 
   it("reads 'past ignition' once the burn window has opened", () => {

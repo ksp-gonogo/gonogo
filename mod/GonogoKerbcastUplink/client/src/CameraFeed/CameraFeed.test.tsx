@@ -1114,8 +1114,9 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
 
     act(() => {
       // A delay is a readout, not a countdown: sub-minute keeps one decimal
-      // (3.8 -> "3.8s"), NOT formatDuration's whole-unit truncation, so the
-      // operator sees the real light-time.
+      // (3.8 -> "3.8 s"), NOT the time ladder's whole-unit truncation, so the
+      // operator sees the real light-time. The space is SI's and comes from
+      // the shared formatter, where the hand-rolled string had none.
       emitComms(transport, {
         signalStrength: 1.0,
         connected: true,
@@ -1123,8 +1124,8 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
       });
     });
 
-    expect(await screen.findByText("3.8s")).toBeTruthy();
-    expect(screen.getByLabelText("Signal delay: 3.8s one-way")).toBeTruthy();
+    expect(await screen.findByText("3.8 s")).toBeTruthy();
+    expect(screen.getByLabelText("Signal delay: 3.8 s one-way")).toBeTruthy();
   });
 
   it("shows a multi-unit one-way signal delay (e.g. deep-space distances)", async () => {

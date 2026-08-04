@@ -92,6 +92,22 @@ const FLIGHT: VesselFlightPayload = {
 
 beforeEach(() => clearRegistry());
 
+/**
+ * The probe's number, whichever side of the shim it came from.
+ *
+ * The legacy data-source path yields a bare number; the STREAM path yields a
+ * declared quantity, because the decode wraps it. That the two disagree is
+ * the shim's nature, not a defect: it exists to make one call site read from
+ * either, and it is being retired.
+ */
+function plain(v: unknown): string {
+  return String(
+    v !== null && typeof v === "object" && "magnitude" in v
+      ? (v as { magnitude: unknown }).magnitude
+      : v,
+  );
+}
+
 describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProvider is mounted", () => {
   it(
     "the M2 bridge's key end-to-end proof: 'v.altitude' (-> vessel.state.altitudeAsl, a DERIVED " +
@@ -257,7 +273,7 @@ describe("useTelemetry shim: raw-field phantom fallback (M3 whole-branch review 
         const throttle = useTelemetry("data", "f.throttle");
         return (
           <div>
-            throttle:{throttle === undefined ? NULL_DISPLAY : String(throttle)}
+            throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
           </div>
         );
       }
@@ -356,7 +372,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       const throttle = useTelemetry("data", "f.throttle");
       return (
         <div>
-          throttle:{throttle === undefined ? NULL_DISPLAY : String(throttle)}
+          throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
         </div>
       );
     }

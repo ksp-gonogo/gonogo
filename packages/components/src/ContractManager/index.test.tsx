@@ -1,5 +1,12 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -133,12 +140,12 @@ describe("ContractManagerComponent", () => {
       expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument(),
     );
     expect(screen.getByText(/Kerbin Space Program/)).toBeInTheDocument();
-    expect(screen.getByText(/25\.0k/)).toBeInTheDocument(); // fundsCompletion
+    expect(visibleText()).toMatch(/25\.0k/); // fundsCompletion
     expect(screen.getByText(/Land on the Mun/)).toBeInTheDocument();
     expect(screen.getByText(/Plant flag/)).toBeInTheDocument();
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
     expect(screen.getByText(/optional/i)).toBeInTheDocument();
-    expect(screen.getByText(/5d 0h left/i)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/5d 0h left/i);
   });
 
   it("renders the per-contract badges slot with no bound augment (empty is fine)", async () => {

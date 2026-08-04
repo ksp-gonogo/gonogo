@@ -1,6 +1,7 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useRef, useState } from "react";
+import { magnitudeOf } from "../shared/magnitude";
 import {
   detectContractsCompleted,
   detectDocking,
@@ -105,8 +106,11 @@ export function useMissionEvents(): MissionEvent[] {
     const docked = dock != null;
     const vType = isEvaType(identity?.vesselType);
     const contracts = career?.contracts?.completedRecent;
-    // `career.status.economy.science` is a branded number (Value<"science">).
-    const science = career?.economy?.science;
+    // The magnitude: this is an edge DETECTOR, comparing one frame's science
+    // against the last and reporting the difference in a label. Science
+    // renders as a glyph rather than a suffix, so there is no symbol to
+    // carry into a string, and the comparison wants a plain number.
+    const science = magnitudeOf(career?.economy?.science) ?? undefined;
 
     let changed = add(
       detectStaging(p.stage, stage, ut),

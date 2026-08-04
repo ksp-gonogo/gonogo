@@ -12,15 +12,16 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  BellIcon,
-  formatQuantity,
-  GhostButton,
-  Panel,
-} from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { BellIcon, GhostButton, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 /**
  * Trigger shape used by the Mission Director's parameter bells. Mirrors
@@ -167,27 +168,21 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
           ? e.agent
           : "";
     const repCompletion =
-      typeof e.repCompletion === "number"
-        ? e.repCompletion
-        : typeof e.reputationCompletion === "number"
-          ? e.reputationCompletion
-          : 0;
+      magnitudeOf(e.repCompletion as Quantityish) ??
+      magnitudeOf(e.reputationCompletion as Quantityish) ??
+      0;
     const deadlineUt =
-      typeof e.deadlineUt === "number"
-        ? e.deadlineUt
-        : typeof e.dateDeadline === "number"
-          ? e.dateDeadline
-          : 0;
+      magnitudeOf(e.deadlineUt as Quantityish) ??
+      magnitudeOf(e.dateDeadline as Quantityish) ??
+      0;
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
       agency,
       state: typeof e.state === "string" ? e.state : "",
-      fundsAdvance: typeof e.fundsAdvance === "number" ? e.fundsAdvance : 0,
-      fundsCompletion:
-        typeof e.fundsCompletion === "number" ? e.fundsCompletion : 0,
-      scienceCompletion:
-        typeof e.scienceCompletion === "number" ? e.scienceCompletion : 0,
+      fundsAdvance: magnitudeOr(e.fundsAdvance as Quantityish, 0),
+      fundsCompletion: magnitudeOr(e.fundsCompletion as Quantityish, 0),
+      scienceCompletion: magnitudeOr(e.scienceCompletion as Quantityish, 0),
       repCompletion,
       deadlineUt,
       parameters: parseParameters(e.parameters),
@@ -209,10 +204,8 @@ function parseParameters(raw: unknown): ContractParameter[] {
       optional: e.optional === true,
       parameterType:
         typeof e.parameterType === "string" ? e.parameterType : undefined,
-      minAltitude:
-        typeof e.minAltitude === "number" ? e.minAltitude : undefined,
-      maxAltitude:
-        typeof e.maxAltitude === "number" ? e.maxAltitude : undefined,
+      minAltitude: magnitudeOf(e.minAltitude as Quantityish) ?? undefined,
+      maxAltitude: magnitudeOf(e.maxAltitude as Quantityish) ?? undefined,
       body: typeof e.body === "string" ? e.body : undefined,
       situation: typeof e.situation === "string" ? e.situation : undefined,
       partName: typeof e.partName === "string" ? e.partName : undefined,
@@ -893,7 +886,7 @@ function AltitudeProgress({
 }) {
   const inBand = current >= min && current <= max;
   let fillFrac: number;
-  let label: string;
+  let label: ReactNode;
   if (inBand) {
     fillFrac = 1;
     label = "in band";
@@ -901,11 +894,19 @@ function AltitudeProgress({
     // Below the band: show progress toward min as fraction.
     fillFrac = Math.max(0, Math.min(1, current / min));
     const delta = min - current;
-    label = `−${formatAltitudeShort(delta)}`;
+    label = (
+      <>
+        −<AltitudeShort m={delta} />
+      </>
+    );
   } else {
     fillFrac = 1;
     const delta = current - max;
-    label = `+${formatAltitudeShort(delta)}`;
+    label = (
+      <>
+        +<AltitudeShort m={delta} />
+      </>
+    );
   }
   return (
     <AltitudeBarRow>
@@ -921,11 +922,8 @@ function AltitudeProgress({
 // as five digits of km. Decimals stay tied to the magnitude the way the
 // hand-rolled version had them: this label sits inline in a contract row and
 // its width matters more than its last digit.
-function formatAltitudeShort(m: number): string {
-  const { value, symbol } = formatQuantity(m, "m", {
-    decimals: Math.abs(m) < 10_000 ? 1 : 0,
-  });
-  return `${value}${symbol}`;
+function AltitudeShort({ m }: { m: number }) {
+  return <Unit value={value("m", m)} decimals={Math.abs(m) < 10_000 ? 1 : 0} />;
 }
 
 const AltitudeBarRow = styled.span`

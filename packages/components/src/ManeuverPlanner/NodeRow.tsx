@@ -1,7 +1,13 @@
-import { formatDuration } from "@ksp-gonogo/core";
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
-import { IconButton, NULL_DISPLAY, PrimaryButton } from "@ksp-gonogo/ui-kit";
+import {
+  Countdown,
+  IconButton,
+  NULL_DISPLAY,
+  PrimaryButton,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { LabeledInput } from "./LabeledInput";
@@ -42,17 +48,27 @@ export function NodeRow({
     <NodeLi $completed={completed} role={completed ? "status" : undefined}>
       <NodeMain>
         <NodePrimary $completed={completed}>
-          {completed
-            ? "Burn complete"
-            : `${node.deltaVMagnitude.toFixed(0)} m/s`}
+          {completed ? (
+            "Burn complete"
+          ) : (
+            <Unit
+              value={value("m/s", node.deltaVMagnitude)}
+              format="m/s"
+              decimals={0}
+            />
+          )}
           {feasible === false && (
             <FeasibilityChip $ok={false}>SHORT</FeasibilityChip>
           )}
         </NodePrimary>
         <NodeMeta>
-          {completed
-            ? "Removing in 10 s"
-            : `burn in ${timeTo === null ? NULL_DISPLAY : formatDuration(timeTo)}`}
+          {completed ? (
+            "Removing in 10 s"
+          ) : (
+            <>
+              burn in <Countdown value={timeTo} />
+            </>
+          )}
         </NodeMeta>
       </NodeMain>
       <RowActions>
@@ -133,7 +149,7 @@ function NodeEditor({
         onChange={setUt}
       />
       <EditHint>
-        burn in {timeTo === null ? NULL_DISPLAY : formatDuration(timeTo)}
+        burn in <Countdown value={timeTo} />
       </EditHint>
       <LabeledInput label="Prograde" value={prograde} onChange={setProgade} />
       <LabeledInput label="Normal" value={normal} onChange={setNormal} />

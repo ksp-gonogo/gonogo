@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Reinforced.Typings.Fluent;
@@ -286,25 +287,27 @@ public static class RtConfig
         // remember to consult. Runs last: it configures properties on blueprints
         // the registrations above already created.
         //
-        // The envelope types are registered one at a time further up (they each
-        // need an OverrideName), so they have to be named again here. Forgetting
-        // one is not silent: `generated.test.ts` walks the WHOLE field->unit map
-        // against the emitted source, so an annotated property that never got
-        // its Value<> fails there. Meta's validAt/deliveredAt is how this list
-        // came to exist.
-        var unitTypedTypes = new List<Type>(wirePayloadTypes)
-        {
-            typeof(Meta),
-            typeof(EventMsg),
-            typeof(ErrorMsg),
-            typeof(Subscribe),
-            typeof(Unsubscribe),
-            typeof(StreamData<>),
-            typeof(CommandRequest<>),
-            typeof(CommandResponse<>),
-            typeof(CommandResult<>),
-        };
-        ApplyUnitValueTypes(builder, unitTypedTypes);
+        // The ENVELOPE is deliberately absent from this list, and it was
+        // deliberately present once.
+        //
+        // `generated.test.ts` walks the whole field->unit map against the
+        // emitted source, so when Meta.validAt/deliveredAt turned up untyped it
+        // looked like a bug and the envelope types were added to close it.
+        // Migrating the readers showed that was backwards. Those timestamps are
+        // never RENDERED: ten transport and timeline files use them for
+        // ordering, staleness and heartbeats, and not one readout shows them.
+        //
+        // So wrapping them buys nothing and costs twice. It puts a Value in the
+        // way of arithmetic in code that is transport rather than telemetry,
+        // and Meta rides on EVERY stream-data message, so it allocates two
+        // objects per message on the hottest path in the app for a quantity
+        // nobody looks at.
+        //
+        // The declaration stays on the C# property, because the field IS in
+        // seconds and the coverage gate is right to want it said. What changes
+        // is that the declaration stops becoming a type. The exhaustive test
+        // carries the matching exemption, with this reasoning.
+        ApplyUnitValueTypes(builder, wirePayloadTypes);
 
         // --- Enums (numeric `export enum`, per the existing Quality/Staleness convention) ---
         builder.ExportAsEnums(
@@ -357,7 +360,15 @@ public static class RtConfig
         var unitMapOut = Environment.GetEnvironmentVariable("SITREP_UNITMAP_OUT");
         if (!string.IsNullOrEmpty(unitMapOut))
         {
-            EmitUnitMap(unitMapOut!);
+            // SITREP_UNITJSON_OUT is the same reflection pass's second output:
+            // the SAME data with no TypeScript around it. Everything the unit
+            // system knows is otherwise a TypeScript artifact, and none of it
+            // survives the wire, so a consumer in any other language receives
+            // {"heatShieldFlux": 3400.0} with no way to learn it is kilowatts.
+            // The JSON is what a generator in another language reads, what a
+            // test can assert the contract against without importing the SDK,
+            // and what the mod serves beside the telemetry socket.
+            EmitUnitMap(unitMapOut!, Environment.GetEnvironmentVariable("SITREP_UNITJSON_OUT"));
         }
 
         // --- Control-channel map (see SitrepControlChannelAttribute) ---
@@ -441,6 +452,21 @@ public static class RtConfig
                     continue;
                 }
 
+                // A COMMAND ARGS type is a wire-WRITE, and the wrap is
+                // inbound only. A widget builds these and they go straight to
+                // JSON.stringify, so a Value would serialise as
+                // {"magnitude":80,"unit":"count"} and the mod's deserialiser
+                // would reject it. There is no unwrap step on the way out, and
+                // adding one would put a conversion between a slider and the
+                // command it fires for no reading anyone takes.
+                //
+                // Same rule as the envelope, from the same direction: the unit
+                // system describes what the client RECEIVES.
+                if (type.Name.EndsWith("Args", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 var value = "Value<\"" + unit.Unit + "\">";
                 string tsType;
                 // Vec3 is a class, so `Vec3?` is the same runtime type; one
@@ -509,6 +535,58 @@ public static class RtConfig
     /// the type is neither. <c>string</c> is deliberately not treated as a
     /// sequence despite implementing <c>IEnumerable&lt;char&gt;</c>.
     /// </summary>
+    /// <summary>
+    /// The contract shape a property holds, looking through a list and through
+    /// <c>Nullable&lt;T&gt;</c>: the element type for a sequence, the type
+    /// itself for a plain reference, and <c>null</c> for anything primitive.
+    ///
+    /// Only used to decide whether a field needs the runtime wrap to RECURSE
+    /// into it; the caller filters to types this assembly actually declares.
+    /// </summary>
+    private static Type? NestedContractType(Type type, out bool isMap)
+    {
+        isMap = false;
+        var dictionaryValue = DictionaryValueType(type);
+        if (dictionaryValue != null)
+        {
+            isMap = true;
+            return dictionaryValue;
+        }
+
+        var element = NumericSequenceElement(type) ?? type;
+        var underlying = Nullable.GetUnderlyingType(element) ?? element;
+        if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string)
+            || underlying == typeof(decimal) || underlying == typeof(DateTime))
+        {
+            return null;
+        }
+
+        return underlying.IsClass || underlying.IsValueType ? underlying : null;
+    }
+
+    /// <summary>
+    /// The VALUE type of a <c>Dictionary&lt;string, T&gt;</c>-shaped property,
+    /// or <c>null</c> for anything else. A contract map is always keyed by
+    /// string on the wire, so the key is never interesting.
+    /// </summary>
+    private static Type? DictionaryValueType(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return null;
+        }
+
+        var args = type.GetGenericArguments();
+        if (args.Length != 2 || args[0] != typeof(string))
+        {
+            return null;
+        }
+
+        return typeof(System.Collections.IEnumerable).IsAssignableFrom(type)
+            ? args[1]
+            : null;
+    }
+
     private static Type? NumericSequenceElement(Type type)
     {
         if (type == typeof(string))
@@ -662,7 +740,7 @@ public static class RtConfig
     /// it is the stable vocabulary a client-side formatter can switch over
     /// exhaustively while annotation coverage is still being filled in.</para>
     /// </summary>
-    private static void EmitUnitMap(string outPath)
+    private static void EmitUnitMap(string outPath, string jsonOutPath = null)
     {
         // The closed vocabulary: every public const string on Units.
         var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
@@ -676,11 +754,41 @@ public static class RtConfig
 
         var byType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
         var byTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        // field -> nested contract type, per payload shape: see the shape-map
+        // block below for what the runtime does with it.
+        var shapesByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        var shapesByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        var contractTypes = new HashSet<string>(
+            typeof(RtConfig).Assembly.GetTypes().Select(t => t.Name),
+            StringComparer.Ordinal);
         foreach (var type in typeof(RtConfig).Assembly.GetTypes())
         {
             var fields = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            var nested = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
+                // A property whose type is ANOTHER contract shape (or a list of
+                // one) is where the unit map used to stop: the map is flat per
+                // type, so `vessel.target.orbit.sma` had a declared unit on
+                // VesselOrbit that nothing could reach from the vessel.target
+                // entry. Recording the nested type name lets the runtime wrap
+                // recurse. Vec3 is excluded: its unit is declared per USE SITE
+                // and already propagates onto dotted leaf keys below.
+                var isMap = false;
+                var nestedType = NestedContractType(prop.PropertyType, out isMap);
+                if (nestedType != null
+                    && nestedType != typeof(Vec3)
+                    && contractTypes.Contains(nestedType.Name))
+                {
+                    // A DICTIONARY of a shape is marked with a leading `*`:
+                    // the runtime has to map over the values rather than treat
+                    // the dictionary itself as one payload. `VesselPart
+                    // .resources` is the case that forced it, and without the
+                    // distinction its per-part flows arrived bare.
+                    nested[CamelCase(prop.Name)] =
+                        (isMap ? "*" : string.Empty) + nestedType.Name;
+                }
+
                 var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
                 if (unit == null)
                 {
@@ -732,6 +840,17 @@ public static class RtConfig
                 }
             }
 
+            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
+
+            if (nested.Count > 0)
+            {
+                shapesByType.Add(type.Name, nested);
+                if (topic != null)
+                {
+                    shapesByTopic.Add(topic.TopicId, nested);
+                }
+            }
+
             if (fields.Count == 0)
             {
                 continue;
@@ -739,7 +858,6 @@ public static class RtConfig
 
             byType.Add(type.Name, fields);
 
-            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
             if (topic != null)
             {
                 byTopic.Add(topic.TopicId, fields);
@@ -799,10 +917,145 @@ public static class RtConfig
         sb.Append(" */\n");
         sb.Append("export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {\n");
         AppendMapBody(sb, byTopic);
+        sb.Append("};\n\n");
+
+        sb.Append("/** The nested payload shape each complex field holds, by its interface name. */\n");
+        sb.Append("export type ShapesByField = Readonly<Record<string, string>>;\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * Which fields hold ANOTHER payload shape, and which one.\n");
+        sb.Append(" *\n");
+        sb.Append(" * The unit maps above are flat: they describe one shape's own fields and\n");
+        sb.Append(" * stop there. That was enough while a unit was only ever looked up, and\n");
+        sb.Append(" * wrong once the runtime started WRAPPING decoded payloads, because a\n");
+        sb.Append(" * nested shape's declared units were unreachable from the parent's entry.\n");
+        sb.Append(" * `vessel.target.orbit.sma` is the plain case: the contract types it as\n");
+        sb.Append(" * Value<\"m\">, and without this it arrived as a bare number.\n");
+        sb.Append(" *\n");
+        sb.Append(" * A field holding a LIST of a shape is recorded the same way; the element\n");
+        sb.Append(" * is what a consumer indexes into, which is the same convention the topic\n");
+        sb.Append(" * unit map already follows for an array Topic.\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {\n");
+        AppendMapBody(sb, shapesByType);
+        sb.Append("};\n\n");
+
+        sb.Append("/** The same, keyed by Topic id. */\n");
+        sb.Append("export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {\n");
+        AppendMapBody(sb, shapesByTopic);
         sb.Append("};\n");
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (unit-map) -> " + outPath);
+
+        if (!string.IsNullOrEmpty(jsonOutPath))
+        {
+            File.WriteAllText(
+                jsonOutPath,
+                BuildUnitDescriptor(vocabulary, byType, byTopic, shapesByType, shapesByTopic));
+            Console.WriteLine("codegen (unit-descriptor) -> " + jsonOutPath);
+        }
+    }
+
+    /// <summary>
+    /// The unit map as DATA: the same five collections the TypeScript above
+    /// carries, with none of the TypeScript.
+    ///
+    /// <para>Written by hand rather than through a serializer because the
+    /// contract assembly targets netstandard2.0 and has no JSON dependency,
+    /// and because the output wants to be stable byte-for-byte: every
+    /// collection here is already sorted, so re-running codegen produces an
+    /// identical file and a diff means the contract actually changed.</para>
+    /// </summary>
+    private static string BuildUnitDescriptor(
+        SortedSet<string> vocabulary,
+        SortedDictionary<string, SortedDictionary<string, string>> byType,
+        SortedDictionary<string, SortedDictionary<string, string>> byTopic,
+        SortedDictionary<string, SortedDictionary<string, string>> shapesByType,
+        SortedDictionary<string, SortedDictionary<string, string>> shapesByTopic)
+    {
+        var sb = new StringBuilder();
+        sb.Append("{\n");
+        // A version rather than a schema: a consumer that reads this over the
+        // wire (the descriptor endpoint) needs to know when the shape changed,
+        // and it is one integer against a document that is otherwise all data.
+        sb.Append("  \"version\": 1,\n");
+        sb.Append("  \"vocabulary\": [\n");
+        var first = true;
+        foreach (var token in vocabulary)
+        {
+            if (!first)
+            {
+                sb.Append(",\n");
+            }
+            first = false;
+            sb.Append("    ").Append(JsonString(token));
+        }
+        sb.Append("\n  ],\n");
+        AppendJsonMap(sb, "types", byType, false);
+        AppendJsonMap(sb, "topics", byTopic, false);
+        AppendJsonMap(sb, "typeShapes", shapesByType, false);
+        AppendJsonMap(sb, "topicShapes", shapesByTopic, true);
+        sb.Append("}\n");
+        return sb.ToString();
+    }
+
+    private static void AppendJsonMap(
+        StringBuilder sb,
+        string name,
+        SortedDictionary<string, SortedDictionary<string, string>> map,
+        bool last)
+    {
+        sb.Append("  ").Append(JsonString(name)).Append(": {\n");
+        var firstOuter = true;
+        foreach (var outer in map)
+        {
+            if (!firstOuter)
+            {
+                sb.Append(",\n");
+            }
+            firstOuter = false;
+            sb.Append("    ").Append(JsonString(outer.Key)).Append(": {\n");
+            var firstInner = true;
+            foreach (var inner in outer.Value)
+            {
+                if (!firstInner)
+                {
+                    sb.Append(",\n");
+                }
+                firstInner = false;
+                sb.Append("      ").Append(JsonString(inner.Key)).Append(": ").Append(JsonString(inner.Value));
+            }
+            sb.Append("\n    }");
+        }
+        sb.Append("\n  }").Append(last ? "\n" : ",\n");
+    }
+
+    /// <summary>
+    /// A JSON string literal. The tokens and field names here are identifiers
+    /// and unit symbols, so the escapes that can actually occur are the quote
+    /// and the backslash; the control-character arm is there so a future token
+    /// cannot silently produce invalid JSON.
+    /// </summary>
+    private static string JsonString(string value)
+    {
+        var sb = new StringBuilder("\"");
+        foreach (var c in value)
+        {
+            if (c == '"' || c == '\\')
+            {
+                sb.Append('\\').Append(c);
+            }
+            else if (c < ' ')
+            {
+                sb.Append("\\u").Append(((int)c).ToString("x4"));
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.Append('"').ToString();
     }
 
     private static void AppendMapBody(

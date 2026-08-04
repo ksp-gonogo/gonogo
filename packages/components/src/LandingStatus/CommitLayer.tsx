@@ -22,14 +22,17 @@
  * Presentational: the clocks are derived upstream by `deriveDelayClocks`.
  */
 
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  formatDuration,
+  Countdown,
   NULL_DISPLAY,
   Readout,
   ReadoutCaption,
   type ReadoutTone,
   Section,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import type { LandingRegime } from "./clocks";
 
 export const REGIME_LABEL: Record<LandingRegime, string> = {
@@ -95,7 +98,7 @@ export function CommitLayer({
     countdown > 0 &&
     roundTripSeconds > countdown;
 
-  let heroValue: string;
+  let heroValue: ReactNode;
   let heroCaption: string;
   let heroTone: ReadoutTone;
   let urgent = false;
@@ -121,7 +124,7 @@ export function CommitLayer({
       heroTone = "alert";
       urgent = true;
     } else {
-      heroValue = `T−${formatDuration(countdown, { ms: true })}`;
+      heroValue = <Countdown value={countdown} clock precise />;
       urgent = countdown <= 5;
       heroTone = urgent ? "alert" : "warning";
     }
@@ -141,7 +144,7 @@ export function CommitLayer({
       heroValue = NULL_DISPLAY;
       heroTone = "default";
     } else {
-      heroValue = `T−${formatDuration(commitInSeconds, { ms: true })}`;
+      heroValue = <Countdown value={commitInSeconds} clock precise />;
       heroTone = "warning";
     }
   }
@@ -168,7 +171,7 @@ export function CommitLayer({
             moot. */}
       {noLandingVector && impactSpeed != null && (
         <Readout $tone="alert">
-          {`${Math.round(impactSpeed)} m/s`}
+          <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
           <ReadoutCaption>UNAVOIDABLE IMPACT</ReadoutCaption>
         </Readout>
       )}

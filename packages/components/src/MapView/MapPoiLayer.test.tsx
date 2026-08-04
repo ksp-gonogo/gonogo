@@ -3,7 +3,7 @@ import {
   type MapPoi,
   registerMapPoiProvider,
 } from "@ksp-gonogo/core";
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { fireEvent, render, screen, visibleText } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
 import { MapPoiLayer } from "./MapPoiLayer";
@@ -83,7 +83,7 @@ describe("MapPoiLayer", () => {
 
     expect(screen.getByText("Runway")).toBeInTheDocument();
     expect(screen.getByText("Launch pad")).toBeInTheDocument();
-    expect(screen.getByText(/-0\.05.*-74\.72/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/-0\.05.*-74\.72/);
 
     fireEvent.mouseLeave(screen.getByRole("button", { name: "Runway" }));
     expect(screen.queryByText("Launch pad")).toBeNull();
@@ -110,7 +110,7 @@ describe("MapPoiLayer", () => {
     );
 
     expect(screen.getByText("Kerbin Space Agency")).toBeInTheDocument();
-    expect(screen.getByText("1000")).toBeInTheDocument();
+    expect(visibleText()).toContain("1000");
   });
 
   it("dispatches a POI's action when its hover-card button is clicked", () => {

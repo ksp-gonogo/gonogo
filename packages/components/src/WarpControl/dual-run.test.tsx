@@ -10,7 +10,13 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import rails from "./__fixtures__/rails-warp-1000x.json";
@@ -72,7 +78,7 @@ describe("WarpControl: stream render golden (delay=0)", () => {
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("1.0k×")) {
+      if (!visibleText(container).includes("1.0k×")) {
         throw new Error("stream leg has not rendered the warp state yet");
       }
     });

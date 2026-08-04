@@ -5,7 +5,13 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { StubTransport } from "@ksp-gonogo/sitrep-client";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  probeText,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
@@ -71,7 +77,7 @@ function Throttle() {
   const throttle = useTelemetry("data", "f.throttle");
   return (
     <div>
-      throttle:{throttle === undefined ? NULL_DISPLAY : String(throttle)}
+      throttle:{throttle === undefined ? NULL_DISPLAY : probeText(throttle)}
     </div>
   );
 }

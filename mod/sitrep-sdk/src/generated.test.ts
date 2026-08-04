@@ -81,6 +81,43 @@ describe("generated contract.ts", () => {
 /** Tokens that declare a property is not a scalable quantity. */
 const NON_QUANTITY = new Set(["text", "flag", "enum", "id", "n/a"]);
 
+/**
+ * Types whose declared quantities stay BARE, because they are transport rather
+ * than telemetry.
+ *
+ * `Meta` rides on every stream-data message and its timestamps are used by ten
+ * transport and timeline files for ordering, staleness and heartbeats. Not one
+ * readout shows them. Wrapping them put a `Value` in the way of arithmetic in
+ * code that is plumbing, and allocated two objects per message on the hottest
+ * path in the app for a quantity nobody looks at.
+ *
+ * This exemption exists because the exhaustive check below is right by default
+ * and was wrong here: it saw `Meta.validAt` untyped, that looked like the bug
+ * it is designed to catch, and closing it was backwards. The DECLARATION stays
+ * on the C# property, because the field really is in seconds; what stops is the
+ * declaration becoming a type.
+ */
+function isWireWrite(typeName: string): boolean {
+  // A command ARGS type is something the client SENDS. The wrap is inbound
+  // only, so a Value here would reach JSON.stringify and serialise as
+  // {"magnitude":80,"unit":"count"}, which the mod's deserialiser rejects.
+  // Same rule as TRANSPORT_ONLY, from the other direction: the unit system
+  // describes what the client RECEIVES.
+  return typeName.endsWith("Args");
+}
+
+const TRANSPORT_ONLY = new Set([
+  "Meta",
+  "EventMsg",
+  "ErrorMsg",
+  "Subscribe",
+  "Unsubscribe",
+  "StreamData",
+  "CommandRequest",
+  "CommandResponse",
+  "CommandResultOf",
+]);
+
 /** `{ InterfaceName: { fieldName: tsType } }`, parsed out of the emitted source. */
 function parseInterfaces(
   source: string,
@@ -116,6 +153,9 @@ describe("generated contract.ts unit types", () => {
   it("types every annotated quantity as Value<token>", () => {
     const wrong: string[] = [];
     for (const [typeName, fields] of Object.entries(GENERATED_TYPE_UNITS)) {
+      if (TRANSPORT_ONLY.has(typeName) || isWireWrite(typeName)) {
+        continue;
+      }
       const emitted = interfaces[typeName];
       if (!emitted) {
         // A [SitrepUnit]-annotated type that is not in the rtcli export list.
@@ -205,6 +245,9 @@ describe("generated contract.ts unit types", () => {
         const isDeclared =
           field in declared ||
           Object.keys(declared).some((key) => key.startsWith(`${field}.`));
+        if (TRANSPORT_ONLY.has(typeName) || isWireWrite(typeName)) {
+          continue;
+        }
         if (
           !isDeclared &&
           (tsType.includes("Value<") || tsType.includes("Vec3Of<"))

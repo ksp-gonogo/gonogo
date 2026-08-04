@@ -1,5 +1,11 @@
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -100,7 +106,7 @@ describe("SpaceWeatherComponent", () => {
   it("shows the habitat dose rate and a Sheltered status when nominal", async () => {
     renderWidget();
     emit(NOMINAL);
-    expect(await screen.findByText("0.014 rad/h")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("0.014 rad/h"));
     expect(screen.getByText("Sheltered")).toBeInTheDocument();
     expect(screen.getByText("No storm activity")).toBeInTheDocument();
   });
@@ -108,7 +114,7 @@ describe("SpaceWeatherComponent", () => {
   it("flags the inner belt with a take-cover status and lit belt tag", async () => {
     renderWidget();
     emit(INNER_BELT);
-    expect(await screen.findByText("10.38 rad/h")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("10.38 rad/h"));
     expect(screen.getByText("Take cover")).toBeInTheDocument();
     // The shielding meter reflects the fraction (1.2 / 3.308 ≈ 36%).
     expect(screen.getByRole("meter", { name: "Shielding" })).toHaveAttribute(
@@ -120,7 +126,7 @@ describe("SpaceWeatherComponent", () => {
   it("surfaces storm-in-progress and comms blackout at storm peak", async () => {
     renderWidget();
     emit(STORM_PEAK);
-    expect(await screen.findByText("5.00 rad/h")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("5.00 rad/h"));
     expect(screen.getByText(/Storm in progress/)).toBeInTheDocument();
     expect(screen.getByText("Comms blackout")).toBeInTheDocument();
   });
@@ -148,7 +154,7 @@ describe("SpaceWeatherComponent", () => {
   it("has no axe violations", async () => {
     const { container } = renderWidget();
     emit(INNER_BELT);
-    expect(await screen.findByText("10.38 rad/h")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("10.38 rad/h"));
     expect(await axe(container)).toHaveNoViolations();
   });
 });

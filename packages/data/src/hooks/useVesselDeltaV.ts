@@ -17,9 +17,21 @@ const EMPTY: VesselDeltaV = {
   stages: [],
 };
 
+/**
+ * The first of `keys` that carries a usable number, or 0.
+ *
+ * Takes a `Value`'s magnitude as well as a bare number, because the two wires
+ * this reconciles disagree about that too: the mod's `dv.stages` declares its
+ * units and arrives wrapped, while the legacy row is plain. Without it every
+ * stage summed to zero and the ΔV readout went blank.
+ */
 function numField(entry: Record<string, unknown>, ...keys: string[]): number {
   for (const k of keys) {
-    const v = entry[k];
+    const raw = entry[k];
+    const v =
+      raw !== null && typeof raw === "object" && "magnitude" in raw
+        ? (raw as { magnitude: unknown }).magnitude
+        : raw;
     if (typeof v === "number" && Number.isFinite(v)) return v;
   }
   return 0;

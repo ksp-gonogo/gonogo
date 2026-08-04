@@ -58,6 +58,24 @@ import type { PeerHostService } from "../peer/PeerHostService";
 
 const STORAGE_KEY = "gonogo.maneuverTriggers.list";
 
+/**
+ * Takes a wire quantity's magnitude, for handing to the orbital solver.
+ *
+ * `computePlan` and everything under it is closed-form Keplerian maths: it
+ * multiplies semi-major axes by gravitational parameters and takes square
+ * roots of the results, and there is no unit token that names what those
+ * intermediates are. So `PlanInputs` is plain numbers, canonical SI, and this
+ * is the one place the units come off.
+ *
+ * That the solver is unit-blind is not a hole the unit system should paper
+ * over: the values going IN are checked, the burn coming OUT is re-declared,
+ * and in between is maths that reasons about dimensions the registry has no
+ * names for.
+ */
+function mag(v: { magnitude: number } | null | undefined): number | undefined {
+  return v?.magnitude;
+}
+
 export interface ManeuverTriggerHostOptions {
   nowMs?: () => number;
   storage?: Storage;
@@ -234,14 +252,14 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
-    const sma = orbit?.sma;
+    const sma = mag(orbit?.sma);
     const orbitalSpeed = state?.orbitalSpeed ?? undefined;
     const radius = state?.orbitalRadius ?? undefined;
     const period = state?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
         sma,
-        ecc: orbit?.ecc,
+        ecc: mag(orbit?.ecc),
         ApR: state?.apoapsisRadius ?? undefined,
         PeR: state?.periapsisRadius ?? undefined,
         timeToAp: state?.timeToAp ?? undefined,
@@ -253,14 +271,14 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       currentUT: getViewUt(),
       mu: computeMu(orbitalSpeed, radius, sma, period),
       trueAnomaly: state?.trueAnomaly ?? undefined,
-      argPe: orbit?.argPe,
-      inclination: orbit?.inc,
-      lan: orbit?.lan,
-      targetInclinationLive: targetOrbit?.inc,
-      targetLanLive: targetOrbit?.lan,
-      targetSma: targetOrbit?.sma,
+      argPe: mag(orbit?.argPe),
+      inclination: mag(orbit?.inc),
+      lan: mag(orbit?.lan),
+      targetInclinationLive: mag(targetOrbit?.inc),
+      targetLanLive: mag(targetOrbit?.lan),
+      targetSma: mag(targetOrbit?.sma),
       targetPeA: state?.targetPeriapsisAlt ?? undefined,
-      targetArgPe: targetOrbit?.argPe,
+      targetArgPe: mag(targetOrbit?.argPe),
       targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
       targetPeriod: state?.targetPeriod ?? undefined,
       bodyRadius: getBody(

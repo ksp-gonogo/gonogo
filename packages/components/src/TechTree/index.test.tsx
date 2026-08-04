@@ -4,7 +4,14 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -187,7 +194,7 @@ describe("TechTreeComponent", () => {
       screen.getByText("How hard can Rocket Science be anyway?"),
     ).toBeInTheDocument();
     expect(screen.getByText("start")).toBeInTheDocument(); // parent chip
-    expect(screen.getByText("LV-T45 Liquid Fuel Engine")).toBeInTheDocument();
+    expect(visibleText()).toContain("LV-T45 Liquid Fuel Engine");
   });
 
   it("arms and confirms tech.unlock with the node id", async () => {

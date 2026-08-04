@@ -1,34 +1,35 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
-  formatDistance,
   registerComponent,
   resolveTargetName,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
+  Countdown,
   Field,
   FieldHint,
   FieldLabel,
-  formatDuration,
   NULL_DISPLAY,
   Panel,
   Select,
   Switch,
+  Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
+  bare,
   deriveDockAngles,
   radialSpeed,
   targetKindLabel,
-  type Vec3,
   vecMagnitude,
 } from "../shared/dockAngles";
+import { magnitudeOf } from "../shared/magnitude";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
@@ -175,17 +176,21 @@ function DistanceToTargetComponent({
   // two-body solve (o.closestTgtApprUT / vessel.state.closestApproachUt).
   // `t.universalTime` stays dropped: the "current time" IS the SDK view-UT the
   // propagation is evaluated at, read directly via `useViewUt`.
-  const closestApproachUT = target?.closestApproach?.time;
+  // `.magnitude`: a UT the widget subtracts the view-UT from, so it wants a
+  // number. `Number.isFinite` on the wrapper answered "no approach" for every
+  // real one and the TCA readout was a permanent em dash.
+  const closestApproachUT = magnitudeOf(target?.closestApproach?.time);
   const universalTime = useViewUt();
 
-  const tarRelPos = target?.relativePosition as Vec3 | undefined;
-  const tarRelVelVec = target?.relativeVelocity as Vec3 | undefined;
+  const tarRelPos = target?.relativePosition && bare(target.relativePosition);
+  const tarRelVelVec =
+    target?.relativeVelocity && bare(target.relativeVelocity);
   // vessel.dock is null unless the target is a docking port with a free
   // port on the active vessel: undefined here legitimately means "not a
   // docking scenario right now", not "still loading".
-  const dockRelPos = dock?.relativePosition as Vec3 | undefined;
-  const dockRelVelVec = dock?.relativeVelocity as Vec3 | undefined;
-  const dockDistanceStream = dock?.distance;
+  const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
+  const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
+  const dockDistanceStream = dock?.distance.magnitude;
   const dockForwardDot = dock?.forwardDot;
 
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
@@ -295,7 +300,7 @@ function DistanceToTargetComponent({
         az={dockAz}
         x={dockX}
         y={dockY}
-        forwardDot={dockForwardDot}
+        forwardDot={dockForwardDot?.magnitude}
         showCamera={hudMode === "hud-with-camera"}
         cameraFlightId={config?.cameraFlightId}
         cols={cols}
@@ -337,7 +342,9 @@ function DistanceToTargetComponent({
         {tarDistance === undefined ? (
           <Dash>{NULL_DISPLAY}</Dash>
         ) : (
-          <Distance>{formatDistance(tarDistance)}</Distance>
+          <Distance>
+            <Unit value={value("m", tarDistance)} />
+          </Distance>
         )}
         {showSubReadout && (
           <SubReadout>Δv {(relVel as number).toFixed(2)} m/s</SubReadout>
@@ -393,8 +400,7 @@ function ApproachHud({
   // o.closestTgtApprUT can come back as NaN when no encounter is predicted.
   const tcaSeconds =
     closestApproachUT !== null &&
-    universalTime !== null &&
-    Number.isFinite(closestApproachUT) &&
+    universalTime != null &&
     Number.isFinite(universalTime)
       ? closestApproachUT - universalTime
       : null;
@@ -413,7 +419,9 @@ function ApproachHud({
           {distance === undefined ? (
             <Dash>{NULL_DISPLAY}</Dash>
           ) : (
-            <Distance>{formatDistance(distance)}</Distance>
+            <Distance>
+              <Unit value={value("m", distance)} />
+            </Distance>
           )}
           {closingMagnitude !== null && (
             <SubReadout>
@@ -432,7 +440,11 @@ function ApproachHud({
       <ApproachGrid $stack={stack}>
         <ApproachLabel>Distance</ApproachLabel>
         <ApproachValue>
-          {distance === undefined ? NULL_DISPLAY : formatDistance(distance)}
+          {distance === undefined ? (
+            NULL_DISPLAY
+          ) : (
+            <Unit value={value("m", distance)} />
+          )}
         </ApproachValue>
 
         <ApproachLabel>Closing rate</ApproachLabel>
@@ -444,9 +456,11 @@ function ApproachHud({
 
         <ApproachLabel>TCA</ApproachLabel>
         <ApproachValue>
-          {tcaSeconds === null
-            ? NULL_DISPLAY
-            : formatDuration(tcaSeconds, { sign: true })}
+          {tcaSeconds === null ? (
+            NULL_DISPLAY
+          ) : (
+            <Countdown value={tcaSeconds} clock precise />
+          )}
         </ApproachValue>
       </ApproachGrid>
     </Panel>
@@ -607,7 +621,11 @@ function DockingHud(props: DockingHudProps) {
         <HudHeader>
           <HudName>{name}</HudName>
           <HudRange>
-            {distance === undefined ? NULL_DISPLAY : formatDistance(distance)}
+            {distance === undefined ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m", distance)} />
+            )}
           </HudRange>
         </HudHeader>
         <HudGrid $stack={stackReadouts}>

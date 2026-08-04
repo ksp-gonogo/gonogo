@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   classifyRetained,
@@ -12,8 +13,8 @@ const entry = (over: Partial<import("./command-delay").PendingEntry> = {}) => ({
   label: "boot",
   topic: "kos/7",
   vantage: "ksc",
-  dispatchedAt: 100,
-  oneWaySeconds: 4,
+  dispatchedAt: value("s", 100),
+  oneWaySeconds: value("s", 4),
   ...over,
 });
 
@@ -22,8 +23,8 @@ describe("currentMode", () => {
     expect(currentMode({ oneWaySeconds: null })).toBe("no-path");
   });
   it("<=1s is live, >1s is staged", () => {
-    expect(currentMode({ oneWaySeconds: 0.5 })).toBe("live");
-    expect(currentMode({ oneWaySeconds: 4 })).toBe("staged");
+    expect(currentMode({ oneWaySeconds: value("s", 0.5) })).toBe("live");
+    expect(currentMode({ oneWaySeconds: value("s", 4) })).toBe("staged");
   });
   it("undefined commsDelay is no-path", () => {
     expect(currentMode(undefined)).toBe("no-path");

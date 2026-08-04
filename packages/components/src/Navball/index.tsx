@@ -23,10 +23,10 @@ import {
   Button,
   ConfigForm,
   ControlDelayStream,
+  Countdown,
   Field,
   FieldHint,
   FieldLabel,
-  formatDuration,
   InFlightList,
   type InFlightListItem,
   NULL_DISPLAY,
@@ -39,6 +39,11 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 import { AttitudeIndicator } from "./AttitudeIndicator";
 
 /**
@@ -202,11 +207,11 @@ function NavballComponent({
   const sasOn = control?.sas === true;
   const rcsOn = control?.rcs === true;
   const precisionOn = control?.precisionControl === true;
-  const throttleRaw = control?.throttle;
-  const throttle =
-    typeof throttleRaw === "number" && Number.isFinite(throttleRaw)
-      ? throttleRaw
-      : 0;
+  // Magnitudes at the read: throttle drives a slider position and the delay
+  // drives a threshold comparison, both of which are arithmetic. Left wrapped,
+  // the `typeof === "number"` guards below answer "no reading" for every live
+  // value, silently and completely.
+  const throttle = magnitudeOr(control?.throttle, 0);
   const isControllable = vesselState?.isControllable !== false;
 
   // Connectivity indicator (mirroring the WarpControl pilot):
@@ -355,11 +360,9 @@ function NavballComponent({
   // number of one-way light-time seconds, 0 when the delay feature is
   // disabled, so the warning naturally stays hidden with no extra "is it
   // enabled" check.
-  const delaySeconds = useTelemetry("comms.delay")?.oneWaySeconds;
+  const delaySeconds = magnitudeOf(useTelemetry("comms.delay")?.oneWaySeconds);
   const delayHigh =
-    typeof delaySeconds === "number" &&
-    Number.isFinite(delaySeconds) &&
-    delaySeconds > FBW_DELAY_WARN_SECONDS;
+    delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
   const showFbwDelayWarning = fbwArmed && delayHigh;
 
   // Action wiring: every action surface has a mapping into a Telemachus
@@ -546,9 +549,9 @@ function NavballComponent({
             </ModeBadge>
             <ModeBadge $on={rcsOn}>RCS</ModeBadge>
             {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
-            {showFbwDelayWarning && typeof delaySeconds === "number" && (
+            {showFbwDelayWarning && delaySeconds !== null && (
               <Badge tone="warn" size="sm">
-                FBW · {formatDuration(delaySeconds, { ms: true })} DELAY
+                FBW · <Countdown value={delaySeconds} precise /> DELAY
               </Badge>
             )}
             {/* Header badge slot (augment-slot-map.md): an autopilot Uplink can
@@ -622,9 +625,7 @@ function NavballComponent({
             onToggleRcs={toggleRcs}
             onSetSasMode={setSasMode}
             showFbwDelayWarning={showFbwDelayWarning}
-            delaySeconds={
-              typeof delaySeconds === "number" ? delaySeconds : null
-            }
+            delaySeconds={delaySeconds}
             inFlight={toInFlightListItems([
               ...sasCmd.inFlight,
               ...rcsCmd.inFlight,
@@ -808,8 +809,8 @@ function ControlSurface({
         </FbwRow>
         {showFbwDelayWarning && delaySeconds !== null && (
           <StatusIndicator tone="warn" live>
-            High signal delay ({formatDuration(delaySeconds, { ms: true })}),
-            fly-by-wire stick input lags round-trip; expect to overcorrect.
+            High signal delay (<Countdown value={delaySeconds} precise />
+            ), fly-by-wire stick input lags round-trip; expect to overcorrect.
           </StatusIndicator>
         )}
       </Group>
@@ -853,8 +854,15 @@ function clamp(v: number, lo: number, hi: number): number {
   return v;
 }
 
+/**
+ * An attitude angle as a number, wrapped or not.
+ *
+ * The readouts show degrees and the indicator rotates by them, so what this
+ * wants is the magnitude. A `typeof === "number"` test answered "no reading"
+ * for every one, which rendered three em dashes over a flying vessel.
+ */
 function numericOrNull(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
+  return magnitudeOf(v as Quantityish);
 }
 
 // ── Config component ──────────────────────────────────────────────────────────

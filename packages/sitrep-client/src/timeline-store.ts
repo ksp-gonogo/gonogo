@@ -1,5 +1,5 @@
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { isValue, Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
@@ -234,6 +234,17 @@ function lerpFieldValue(
   after: unknown,
   t: number,
 ): { value: unknown } | undefined {
+  // A declared quantity arrives WRAPPED, so the numeric branch below would
+  // never fire for it and every measured field would hold-last instead of
+  // interpolating. Lerp the magnitudes and re-declare the unit: both samples
+  // are the same field on the same topic, so their units agree by
+  // construction.
+  if (isValue(before) && isValue(after)) {
+    const lerped = lerpFieldValue(key, before.magnitude, after.magnitude, t);
+    return lerped === undefined
+      ? undefined
+      : { value: value(before.unit, lerped.value as number) };
+  }
   if (typeof before === "number" && typeof after === "number") {
     if (DISCRETE_NUMERIC_FIELD_NAMES.has(key)) {
       return { value: before }; // hold-last; never fractionalize an index/ordinal

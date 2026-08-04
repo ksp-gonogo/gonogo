@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  visibleText,
   waitFor,
   within,
 } from "@ksp-gonogo/test-utils";
@@ -95,9 +96,7 @@ describe("CrewManifestComponent", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByText("3 / 4 aboard")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toContain("3 / 4 aboard"));
     expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     expect(screen.getByText("Bob Kerman")).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
@@ -63,7 +63,7 @@ describe("OrbitView DOM snapshots", () => {
           // state) before capturing, so the snapshot is the real diagram/pill
           // render rather than the pre-settle frame.
           await waitFor(() => {
-            if (container.textContent?.includes("No orbital data")) {
+            if (visibleText(container).includes("No orbital data")) {
               throw new Error("orbit has not settled yet");
             }
           });

@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
@@ -39,13 +40,15 @@ describe("useStreamEvent", () => {
     // The ReliableOrdered lane delivers every crash: both fire, in order, and
     // the second is not coalesced away by the store's per-frame batching.
     expect(onCrash).toHaveBeenCalledTimes(2);
+    // `ut` arrives wrapped: `crash.lastCrash` declares it in seconds and the
+    // transport wraps on the way out, same as the wire decode.
     expect(onCrash).toHaveBeenNthCalledWith(1, {
       vesselName: "Kerbal X",
-      ut: 100,
+      ut: value("s", 100),
     });
     expect(onCrash).toHaveBeenNthCalledWith(2, {
       vesselName: "Kerbal Y",
-      ut: 200,
+      ut: value("s", 200),
     });
   });
 
@@ -80,7 +83,10 @@ describe("useStreamEvent", () => {
       transport.emit("crash.lastCrash", { vesselName: "Kerbal B", ut: 2 });
     });
     expect(second).toHaveBeenCalledTimes(1);
-    expect(second).toHaveBeenCalledWith({ vesselName: "Kerbal B", ut: 2 });
+    expect(second).toHaveBeenCalledWith({
+      vesselName: "Kerbal B",
+      ut: value("s", 2),
+    });
     expect(first).toHaveBeenCalledTimes(2);
   });
 

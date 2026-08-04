@@ -1,6 +1,6 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -97,10 +97,10 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("+49.55")) {
+      if (!visibleText(container).includes("+49.55")) {
         throw new Error("stream leg has not rendered the merged total yet");
       }
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
     });

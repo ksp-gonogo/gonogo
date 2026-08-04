@@ -13,24 +13,26 @@
  * OrbitPatch.cs`). Hand-mirrored, same convention as `VesselOrbitPayload`
  * in `vessel-state.ts`: not (yet) generated into this package.
  */
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+
 export interface OrbitPatchWirePayload {
-  sma: number;
-  ecc: number;
-  inc: number;
-  lan: number;
-  argPe: number;
-  meanAnomalyAtEpoch: number;
-  epoch: number;
-  period: number;
-  startUt: number;
-  endUt: number;
+  sma: Value<"m">;
+  ecc: Value<"1">;
+  inc: Value<"°">;
+  lan: Value<"°">;
+  argPe: Value<"°">;
+  meanAnomalyAtEpoch: Value<"rad">;
+  epoch: Value<"s">;
+  period: Value<"s">;
+  startUt: Value<"s">;
+  endUt: Value<"s">;
   /** Raw `Sitrep.Contract.TransitionType` ordinal: see `transitionName`. */
   patchStartTransition: number;
   patchEndTransition: number;
-  peA: number;
-  apA: number;
-  semiLatusRectum: number;
-  semiMinorAxis: number;
+  peA: Value<"m">;
+  apA: Value<"m">;
+  semiLatusRectum: Value<"m">;
+  semiMinorAxis: Value<"m">;
   referenceBody: string;
   closestEncounterBody?: string | null;
 }
@@ -101,23 +103,23 @@ function transitionName(ordinal: number): string {
  */
 export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
   return {
-    startUT: wire.startUt,
-    endUT: wire.endUt,
+    startUT: wire.startUt.magnitude,
+    endUT: wire.endUt.magnitude,
     patchStartTransition: transitionName(wire.patchStartTransition),
     patchEndTransition: transitionName(wire.patchEndTransition),
-    PeA: wire.peA,
-    ApA: wire.apA,
-    inclination: wire.inc,
-    eccentricity: wire.ecc,
-    epoch: wire.epoch,
-    period: wire.period,
-    argumentOfPeriapsis: wire.argPe,
-    sma: wire.sma,
-    lan: wire.lan,
-    maae: wire.meanAnomalyAtEpoch,
+    PeA: wire.peA.magnitude,
+    ApA: wire.apA.magnitude,
+    inclination: wire.inc.magnitude,
+    eccentricity: wire.ecc.magnitude,
+    epoch: wire.epoch.magnitude,
+    period: wire.period.magnitude,
+    argumentOfPeriapsis: wire.argPe.magnitude,
+    sma: wire.sma.magnitude,
+    lan: wire.lan.magnitude,
+    maae: wire.meanAnomalyAtEpoch.magnitude,
     referenceBody: wire.referenceBody,
-    semiLatusRectum: wire.semiLatusRectum,
-    semiMinorAxis: wire.semiMinorAxis,
+    semiLatusRectum: wire.semiLatusRectum.magnitude,
+    semiMinorAxis: wire.semiMinorAxis.magnitude,
     closestEncounterBody: wire.closestEncounterBody ?? null,
   };
 }

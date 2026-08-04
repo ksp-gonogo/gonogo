@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -179,9 +185,9 @@ describe("ScienceBenchComponent", () => {
       const boosterRows = screen.getAllByText("solidBooster.sm.v2");
       expect(boosterRows).toHaveLength(1);
     });
-    expect(screen.getByText(/313\.43 K/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/313\.43 K/);
     expect(screen.getByText("noseConeBasic")).toBeInTheDocument();
-    expect(screen.getByText(/290\.00 K/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/290\.00 K/);
   });
 
   it("renders per-type sensors filtered out of the whole science.sensors list, dropping disabled readouts", async () => {
@@ -212,12 +218,10 @@ describe("ScienceBenchComponent", () => {
         },
       ]);
     });
-    await waitFor(() =>
-      expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/293\.10 K/)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("2HOT Thermometer"));
+    expect(visibleText()).toMatch(/293\.10 K/);
     expect(screen.getByText("PresMat Barometer")).toBeInTheDocument();
-    expect(screen.getByText(/101\.30 kPa/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/101\.30 kPa/);
     expect(screen.queryByText("Disabled Thermometer")).not.toBeInTheDocument();
   });
 
@@ -240,7 +244,7 @@ describe("ScienceBenchComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/Mystery Goo Observation/i)).toBeInTheDocument(),
     );
-    expect(screen.getByText("5.5 mits")).toBeInTheDocument();
+    expect(visibleText()).toContain("5.5 mits");
   });
 
   it("derives the Aboard record count/total mits from science.experiments (D3, P4a)", async () => {
@@ -252,10 +256,8 @@ describe("ScienceBenchComponent", () => {
         { title: "Temperature Scan", dataAmount: 8, subjectId: "b" },
       ]);
     });
-    await waitFor(() =>
-      expect(screen.getByText(/2 records/i)).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/13\.0 mits/i)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toMatch(/2 records/i));
+    expect(visibleText()).toMatch(/13\.0 mits/i);
   });
 
   it("renders the breakdown view when science.experimentBreakdown is present", async () => {
@@ -291,7 +293,7 @@ describe("ScienceBenchComponent", () => {
     });
     expect(subjects[0].textContent).toMatch(/Mystery Goo/);
     expect(subjects[1].textContent).toMatch(/Crew Report/);
-    expect(screen.getByText(/7\.5 left/i)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/7\.5 left/i);
   });
 });
 

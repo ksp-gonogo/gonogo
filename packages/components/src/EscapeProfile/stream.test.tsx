@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
@@ -84,12 +84,12 @@ describe("EscapeProfile: reads v.body off the stream (R6)", () => {
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Unknown body")) {
+      if (!visibleText(container).includes("Unknown body")) {
         throw new Error("streamed body name has not reached the widget yet");
       }
     });
 
-    expect(container.textContent).toContain("ESCAPE PROFILE");
-    expect(container.textContent).toContain("Unknown body “Proxima”");
+    expect(visibleText(container)).toContain("ESCAPE PROFILE");
+    expect(visibleText(container)).toContain("Unknown body “Proxima”");
   });
 });

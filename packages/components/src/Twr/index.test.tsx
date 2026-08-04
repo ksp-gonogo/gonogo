@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
@@ -98,7 +104,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     act(() => {
       emitTwr(fixture, 1.832);
     });
-    expect(await screen.findByText("1.83")).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toContain("1.83"));
   });
 
   it("renders the TWR value as the gauge's aria-label so screen readers can read it", async () => {

@@ -12,7 +12,12 @@ import {
   TelemetryProvider,
   vesselManeuverLegacyChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  visibleText,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -432,8 +437,8 @@ describe("ManeuverPlannerComponent", () => {
       .getByText(/shortfall/i)
       .closest('[role="status"]') as HTMLElement;
     expect(banner).not.toBeNull();
-    expect(banner.textContent).toMatch(/shortfall/i);
-    expect(banner.textContent).toMatch(/short\.?$/i);
+    expect(visibleText(banner)).toMatch(/shortfall/i);
+    expect(visibleText(banner)).toMatch(/short\.?$/i);
 
     const addBtn = screen.getByRole("button", { name: /^add node$/i });
     expect(addBtn).toBeDisabled();
@@ -490,7 +495,7 @@ describe("ManeuverPlannerComponent", () => {
     await user.click(screen.getByRole("button", { name: /^arm$/i }));
 
     // Armed row visible, no burn dispatched yet.
-    expect(screen.getByText(/o\.ApA >= 200000/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/o\.ApA >= 200000/);
     expect(calls).toHaveLength(0);
 
     // Apoapsis climbs past the threshold: trigger fires and the burn is
@@ -602,7 +607,7 @@ describe("ManeuverPlannerComponent", () => {
       });
 
       // Initial render: live row shows "30 m/s", not the completion banner.
-      expect(screen.getByText(/30 m\/s/)).toBeInTheDocument();
+      expect(visibleText()).toMatch(/30 m\/s/);
       expect(screen.queryByText(/Burn complete/i)).toBeNull();
 
       // Burn completes: remaining ΔV drops below threshold.

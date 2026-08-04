@@ -1,5 +1,11 @@
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -159,7 +165,7 @@ describe("LifeSupportSystemsComponent", () => {
   it("shows the consumable ledger and a Nominal status when nominal", async () => {
     renderWidget();
     emit(NOMINAL);
-    expect(await screen.findByText(/1\.35 \/ 1\.35/)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toMatch(/1\.35 \/ 1\.35/));
     expect(screen.getByText("Nominal")).toBeInTheDocument();
     expect(screen.getByText("Unpressurized")).toBeInTheDocument();
     // Food fraction is 100% -> go tone.
@@ -172,16 +178,16 @@ describe("LifeSupportSystemsComponent", () => {
   it("flags a broken process and a Degraded status when depleting", async () => {
     renderWidget();
     emit(DEPLETING);
-    expect(await screen.findByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toMatch(/0\.35 \/ 1\.35/));
     expect(screen.getByText("Degraded")).toBeInTheDocument();
     expect(screen.getByText("broken")).toBeInTheDocument();
-    expect(screen.getByText(/1 broken/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/1 broken/);
   });
 
   it("surfaces a Critical status when oxygen and power are low", async () => {
     renderWidget();
     emit(CRITICAL);
-    expect(await screen.findByText(/9\.35 \/ 187/)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toMatch(/9\.35 \/ 187/));
     expect(screen.getByText("Critical")).toBeInTheDocument();
     // Power fraction 54/450 = 12% -> nogo.
     expect(screen.getByRole("meter", { name: "Power" })).toHaveAttribute(
@@ -193,7 +199,7 @@ describe("LifeSupportSystemsComponent", () => {
   it("has no axe violations", async () => {
     const { container } = renderWidget();
     emit(DEPLETING);
-    expect(await screen.findByText(/0\.35 \/ 1\.35/)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText()).toMatch(/0\.35 \/ 1\.35/));
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -272,7 +278,7 @@ describe("LifeSupportSystemsComponent", () => {
       expect(screen.getByText(title)).toBeInTheDocument();
     }
     // 5 running, 0 broken.
-    expect(screen.getByText(/5 \/ 5 running/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/5 \/ 5 running/);
   });
 
   // The `life-support.sections` augment slot's built-in Greenhouse filler

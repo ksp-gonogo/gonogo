@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import smallCareerDetail from "./__fixtures__/small-career-detail.json";
@@ -73,10 +79,14 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("4854 sci")) {
+      // Science reads as a microscope glyph rather than a "sci" suffix, so
+      // the number is the whole of what a sighted reader sees and the word
+      // rides the hidden label beside it.
+      if (!visibleText(container).includes("4854")) {
         throw new Error("stream leg has not rendered science yet");
       }
     });
+    expect(container.textContent).toContain("4854 science");
 
     // 3 unlocked (basicRocketry/engineering101/survivability), 2
     // researchable-now (advRocketry/stability, both parent-unlocked and

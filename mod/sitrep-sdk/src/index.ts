@@ -22,11 +22,36 @@ export {
 } from "./topics";
 // The unit model: Value, dimensions, arithmetic, the unit table.
 //
-// Namespaced only because `./value` still exports a `Value` TYPE aliased to
-// `number` for the generated contract, and two `Value`s cannot sit in one
-// barrel. When that alias is replaced by the real object, this collapses to a
-// flat re-export and the namespace goes.
-export * as UnitSystem from "./unit-system";
+// This was namespaced as `UnitSystem` while `./value` still aliased `Value` to
+// `number` for the generated contract, because two `Value`s could not sit in
+// one barrel. The alias now points at the model, so the namespace has served
+// its purpose and the members sit flat: a call site writes
+// `import { value } from "@ksp-gonogo/sitrep-sdk"` like it does for everything
+// else the SDK offers.
+//
+// `Vec3Of` is the exception and still comes from `./value` below: it is the
+// name the generated contract puts on a unit-carrying vector, and there is no
+// second spelling of it worth exporting.
+export {
+  Dimension,
+  declaredUnitFor,
+  displaySymbol,
+  hydrate,
+  isValue,
+  type KnownUnit,
+  lookupUnit,
+  namespaceOf,
+  registerUnit,
+  resetUnitRegistry,
+  type SameDimensionAs,
+  UNIT_DEFINITIONS,
+  type UnitDefinition,
+  type UnitRegistration,
+  type Value,
+  type Vector3,
+  value,
+  vectorMagnitude,
+} from "./unit-system";
 export {
   type KnownSitrepUnit,
   type SitrepUnit,
@@ -36,6 +61,6 @@ export {
   unitsForTopic,
   unitsForType,
 } from "./units";
-export type { Value, Vec3Of } from "./value";
+export type { Vec3Of } from "./value";
 export { SDK_VERSION } from "./version.generated";
 export { wrapTopicPayload, wrapTypePayload } from "./wrap-units";

@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import reentryWarning from "./__fixtures__/reentry-warning.json";
@@ -58,12 +64,12 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     await waitFor(() => {
       // 1670.9 K is 1398 °C. This asserted "1671°C" while skinTemp was being
       // read as Celsius.
-      if (!container.textContent?.includes("1398°C")) {
+      if (!visibleText().includes("1398 °C")) {
         throw new Error("stream leg has not rendered the thermal state yet");
       }
     });
 
-    expect(screen.getByText("Heat Shield (2.5m)")).toBeInTheDocument();
+    expect(visibleText()).toContain("Heat Shield (2.5m)");
     // "warm" appears twice: the compact pill and the hottest-part row's tag.
     expect(screen.getAllByText("warm").length).toBe(2);
     // Asserted on the container rather than with getByText: a temperature is
@@ -71,15 +77,18 @@ describe("ThermalStatus: real reentry-warning fixture render off the stream (del
     // getByText, which concatenates only an element's DIRECT text nodes, sees
     // one or the other but never the pair.
     // skinMaxTemp (2400 K) -> 2127°C.
-    expect(container.textContent).toContain("2127°C");
-    expect(container.textContent).toContain("1280°C");
+    expect(visibleText()).toContain("2127 °C");
+    expect(visibleText()).toContain("1280 °C");
     // One decimal, not two: the shared `energyRate` ladder sets precision
     // per kind rather than per rung, matching every other ladder. The rung
     // itself is what matters here, and it is still MW.
-    expect(container.textContent).toContain("3.3MW");
-    expect(container.textContent).toContain("76.9°C");
+    expect(visibleText()).toContain("3.3 MW");
+    expect(visibleText()).toContain("76.9 °C");
     // The unit is announced as a word, not as letters, which is what routing
     // through the unit layer bought.
+    // `textContent`, not `visibleText`: this is the one assertion here about
+    // what a screen reader HEARS, and `visibleText` exists to strip exactly
+    // that.
     expect(container.textContent).toContain("degrees celsius");
     expect(container.textContent).toContain("megawatts");
     // Cool engine, no alert banner.

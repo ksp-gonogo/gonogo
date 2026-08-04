@@ -1,5 +1,5 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
@@ -23,7 +23,7 @@ const LKO: OrbitScenario = {
 describe("OrbitViewComponent", () => {
   it("shows the 'No orbital data' fallback before telemetry arrives", () => {
     const { container } = renderOrbitViewStream({ w: 9, h: 18 });
-    expect(container.textContent).toContain("No orbital data");
+    expect(visibleText(container)).toContain("No orbital data");
     expect(container.querySelector("svg")).toBeNull();
   });
 
@@ -37,7 +37,7 @@ describe("OrbitViewComponent", () => {
     });
     expect(container.textContent).not.toContain("No orbital data");
     // Subtitle shows the body name resolved off vessel.state.parentBodyName.
-    expect(container.textContent).toContain("Kerbin");
+    expect(visibleText(container)).toContain("Kerbin");
   });
 
   it("collapses to a status pill in tiny cells (3×3)", async () => {
@@ -137,13 +137,13 @@ describe("OrbitView augment slots", () => {
     trees.push(unmount);
 
     await waitFor(() => {
-      if (!container.textContent?.includes("badge:Kerbin")) {
+      if (!visibleText(container).includes("badge:Kerbin")) {
         throw new Error(
           "badge augment has not rendered with the body name yet",
         );
       }
     });
-    expect(container.textContent).toContain("badge:Kerbin");
+    expect(visibleText(container)).toContain("badge:Kerbin");
   });
 
   it("renders the diagram with both slots empty when no augment is registered", async () => {

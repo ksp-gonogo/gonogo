@@ -27,6 +27,14 @@ import type {
  * diagram code reads them (confirmed by grep across `ShipMap`/
  * `PowerSystems`), so they're defaulted rather than plumbed through a new
  * mod field nobody would consume.
+ *
+ * **This is where the unit system stops.** `VesselTopology` is the input to
+ * SVG geometry: `orgPos`/`bounds` are fed to transform maths, projected, and
+ * written into `viewBox` and `d` attributes, none of which can take anything
+ * but a raw number. Carrying `Value` past this boundary would only mean
+ * unwrapping it a few frames deeper instead, once per part per render, for no
+ * reader that benefits. So every magnitude is taken here, at one boundary,
+ * and the diagram keeps the plain-number shape it was written against.
  */
 export function deriveTopologyFromVesselParts(
   wire: VesselParts,
@@ -60,24 +68,45 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
     category: p.category,
     inverseStage: p.inverseStage,
     crewCapacity: 0,
-    maxTemp: p.maxTemp,
+    maxTemp: p.maxTemp.magnitude,
     crashTolerance: 0,
-    dryMass: p.dryMass,
-    orgPos: [p.position.x, p.position.y, p.position.z],
-    up: p.up ? [p.up.x, p.up.y, p.up.z] : undefined,
+    dryMass: p.dryMass.magnitude,
+    orgPos: [
+      p.position.x.magnitude,
+      p.position.y.magnitude,
+      p.position.z.magnitude,
+    ],
+    up: p.up
+      ? [p.up.x.magnitude, p.up.y.magnitude, p.up.z.magnitude]
+      : undefined,
     bounds: {
-      size: { x: p.bounds.size.x, y: p.bounds.size.y, z: p.bounds.size.z },
+      size: {
+        x: p.bounds.size.x.magnitude,
+        y: p.bounds.size.y.magnitude,
+        z: p.bounds.size.z.magnitude,
+      },
       center: p.bounds.center
         ? {
-            x: p.bounds.center.x,
-            y: p.bounds.center.y,
-            z: p.bounds.center.z,
+            x: p.bounds.center.x.magnitude,
+            y: p.bounds.center.y.magnitude,
+            z: p.bounds.center.z.magnitude,
           }
         : undefined,
     },
     modules: p.modules,
   };
 }
+
+/**
+ * Kelvin's zero in Celsius.
+ *
+ * Written out rather than converted through the unit system because Celsius
+ * is an OFFSET unit and the registry only knows ratios: `value("K", 300)` in
+ * "degC" would be a scaling, and there is no scale factor that turns 300 K
+ * into 26.85 C. The offset lives here, at the one place that needs it, and
+ * `temperatureK` beside it stays the number every reader actually uses.
+ */
+const ABSOLUTE_ZERO_C = 273.15;
 
 /**
  * Per-part internal temperature off the SAME `vessel.parts` payload
@@ -91,10 +120,10 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
 export function derivePartThermal(p: VesselPart): PartThermal | null {
   if (p.currentTemp == null) return null;
   return {
-    temperature: p.currentTemp - 273.15,
-    maxTemperature: p.maxTemp - 273.15,
-    temperatureK: p.currentTemp,
-    maxTemperatureK: p.maxTemp,
+    temperature: p.currentTemp.magnitude - ABSOLUTE_ZERO_C,
+    maxTemperature: p.maxTemp.magnitude - ABSOLUTE_ZERO_C,
+    temperatureK: p.currentTemp.magnitude,
+    maxTemperatureK: p.maxTemp.magnitude,
   };
 }
 
@@ -124,10 +153,12 @@ export function derivePartResources(p: VesselPart): PartResources {
   const out: PartResources = {};
   for (const [name, row] of Object.entries(p.resources)) {
     out[name] = {
-      amount: row.amount,
-      maxAmount: row.maxAmount,
-      ...(row.flow != null ? { flow: row.flow } : {}),
-      ...(row.nominalFlow != null ? { nominalFlow: row.nominalFlow } : {}),
+      amount: row.amount.magnitude,
+      maxAmount: row.maxAmount.magnitude,
+      ...(row.flow != null ? { flow: row.flow.magnitude } : {}),
+      ...(row.nominalFlow != null
+        ? { nominalFlow: row.nominalFlow.magnitude }
+        : {}),
     };
   }
   return out;

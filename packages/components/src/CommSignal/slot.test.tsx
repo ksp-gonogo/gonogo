@@ -8,6 +8,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
@@ -105,7 +106,7 @@ describe("CommSignal: augment slots (Uplink spec §4)", () => {
     renderWithSignal();
 
     // The stock readout is untouched by the (empty) slots.
-    await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("87%"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     expect(screen.getByText("Full")).toBeTruthy();
   });

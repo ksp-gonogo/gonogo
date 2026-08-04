@@ -4,8 +4,9 @@ import {
   onMapPoiProvidersChange,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { isValue, type TopicId } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactElement } from "react";
 import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
@@ -368,7 +369,10 @@ function PoiHoverCardView({
       {metaEntries.map(([key, value]) => (
         <PoiHoverMetaRow key={key}>
           <span>{key}</span>
-          <span>{String(value)}</span>
+          {/* `meta` is an open bag, so a provider can put anything in it.
+              A quantity gets the readout every other quantity gets; a
+              string or a flag is still whatever the provider wrote. */}
+          <span>{isValue(value) ? <Unit value={value} /> : String(value)}</span>
         </PoiHoverMetaRow>
       ))}
       {poi.actions && poi.actions.length > 0 && (

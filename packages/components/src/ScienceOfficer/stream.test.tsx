@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ScienceOfficerComponent } from "./index";
@@ -86,11 +92,11 @@ describe("ScienceOfficer: genuinely runs off the stream (M3 science.lab + P4a sc
     expect(fixture.transport.isSubscribed("science.instruments")).toBe(true);
 
     await waitFor(() =>
-      expect(screen.getByText("Mobile Processing Lab MPL-LG-2")).toBeTruthy(),
+      expect(visibleText()).toContain("Mobile Processing Lab MPL-LG-2"),
     );
     expect(screen.getByText("OPERATIONAL")).toBeTruthy();
-    expect(screen.getByText("2 scientists")).toBeTruthy();
-    expect(screen.getByText("0/750 data")).toBeTruthy();
+    expect(visibleText()).toContain("2 scientists");
+    expect(visibleText()).toContain("0/750 data");
     // Idle, not processing: no PROCESSING badge for a lab with nothing loaded.
     expect(screen.queryByText("PROCESSING")).not.toBeInTheDocument();
 

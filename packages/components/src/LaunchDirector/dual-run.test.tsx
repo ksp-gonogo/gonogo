@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import preLaunch from "./__fixtures__/pre-launch-mixed.json";
@@ -67,7 +73,7 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("42,500f")) {
+      if (!visibleText(container).includes("42,500f")) {
         throw new Error("stream leg has not rendered funds yet");
       }
     });

@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StaffRosterComponent } from "./index";
@@ -68,6 +74,6 @@ describe("StaffRoster: genuinely runs off the stream", () => {
       expect(screen.getByText("Jebediah Kerman")).toBeTruthy(),
     );
     expect(screen.getByText("Bill Kerman")).toBeTruthy();
-    expect(screen.getByText("1/2 available")).toBeTruthy();
+    expect(visibleText()).toContain("1/2 available");
   });
 });

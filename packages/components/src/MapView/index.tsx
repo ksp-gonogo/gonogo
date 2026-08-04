@@ -6,7 +6,6 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
-  formatDistance,
   getAugmentsForSlot,
   getBody,
   getImagingWindow,
@@ -26,8 +25,9 @@ import {
   type VesselManeuverLegacyState,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import {
@@ -408,7 +408,7 @@ function MapViewComponent({
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
-  const speed = flight?.surfaceSpeed;
+  const speed = flight?.surfaceSpeed.magnitude;
   const vSpeed = flight?.verticalSpeed;
   const orbitPatches = vesselState?.orbitPatches;
   const maneuverNodes = useStream<VesselManeuverLegacyState>(
@@ -499,13 +499,13 @@ function MapViewComponent({
   });
 
   const { trajectoryRef, trajectoryCount } = useTrajectoryBuffer({
-    lat,
-    lon,
+    lat: lat?.magnitude,
+    lon: lon?.magnitude,
     altSea,
-    q,
-    mach,
+    q: q?.magnitude,
+    mach: mach?.magnitude,
     speed,
-    vSpeed,
+    vSpeed: vSpeed?.magnitude,
     trajectoryLength,
   });
 
@@ -636,7 +636,12 @@ function MapViewComponent({
   // ── Follow mode: drive camera from vessel position + speed ────────────────
   useEffect(() => {
     if (viewMode !== "follow" || lat === undefined || lon === undefined) return;
-    const { x: wx, y: wy } = adjustedMap(WORLD_W, WORLD_H, lat, lon);
+    const { x: wx, y: wy } = adjustedMap(
+      WORLD_W,
+      WORLD_H,
+      lat.magnitude,
+      lon.magnitude,
+    );
     setCamera({
       zoom: followZoom(speed ?? 0, baseZoom),
       panX: wx,
@@ -847,7 +852,7 @@ function MapViewComponent({
       targetBodyId,
       body.radius,
       body.rotationPeriod,
-      { ut: universalTime, lat, lon },
+      { ut: universalTime, lat: lat.magnitude, lon: lon.magnitude },
       horizon,
       10,
     );
@@ -895,7 +900,7 @@ function MapViewComponent({
         targetBodyId,
         bodyRadius,
         rotPeriod,
-        { ut: universalTime, lat, lon },
+        { ut: universalTime, lat: lat.magnitude, lon: lon.magnitude },
         horizon,
         10,
         orbitPatches,
@@ -1049,7 +1054,12 @@ function MapViewComponent({
       Number.isFinite(lat) &&
       Number.isFinite(lon)
     ) {
-      const { x: wx, y: wy } = adjustedMap(WORLD_W, WORLD_H, lat, lon);
+      const { x: wx, y: wy } = adjustedMap(
+        WORLD_W,
+        WORLD_H,
+        lat.magnitude,
+        lon.magnitude,
+      );
       const { x, y } = worldToScreen(wx, wy, camera, w, h);
 
       ctx.beginPath();
@@ -1127,8 +1137,8 @@ function MapViewComponent({
         worldH: WORLD_H,
         bodyName: targetBodyId,
         bodyRadius: body?.radius,
-        vesselLat: vesselOnThisBody ? lat : undefined,
-        vesselLon: vesselOnThisBody ? lon : undefined,
+        vesselLat: vesselOnThisBody ? lat?.magnitude : undefined,
+        vesselLon: vesselOnThisBody ? lon?.magnitude : undefined,
         project: (projLat, projLon) => {
           const { x: wx, y: wy } = adjustedMap(
             WORLD_W,
@@ -1159,19 +1169,29 @@ function MapViewComponent({
           <CompactRow>
             <CompactLabel>Lat</CompactLabel>
             <CompactValue>
-              {lat === undefined ? NULL_DISPLAY : `${lat.toFixed(2)}°`}
+              {lat === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={lat} decimals={2} />
+              )}
             </CompactValue>
           </CompactRow>
           <CompactRow>
             <CompactLabel>Lon</CompactLabel>
             <CompactValue>
-              {lon === undefined ? NULL_DISPLAY : `${lon.toFixed(2)}°`}
+              {lon === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={lon} decimals={2} />
+              )}
             </CompactValue>
           </CompactRow>
           {altSea !== undefined && rows >= 5 && (
             <CompactRow>
               <CompactLabel>Alt</CompactLabel>
-              <CompactValue>{formatDistance(altSea)}</CompactValue>
+              <CompactValue>
+                <Unit value={value("m", altSea)} />
+              </CompactValue>
             </CompactRow>
           )}
         </CompactReadout>

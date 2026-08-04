@@ -32,6 +32,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
@@ -130,15 +131,17 @@ function ManeuverPlannerComponent({
   const [error, setError] = useState<string | null>(null);
 
   // Live orbit state: everything we need for the preset math + preview.
-  const sma = useTelemetry("vessel.orbit")?.sma;
-  const ecc = useTelemetry("vessel.orbit")?.ecc;
+  // Magnitudes, because all of it feeds the solver and the finite-number
+  // readiness checks below, both of which take plain numbers.
+  const sma = magnitudeOf(useTelemetry("vessel.orbit")?.sma) ?? undefined;
+  const ecc = magnitudeOf(useTelemetry("vessel.orbit")?.ecc) ?? undefined;
   const {
     apoapsisRadius: ApR,
     periapsisRadius: PeR,
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
-  const argPe = useTelemetry("vessel.orbit")?.argPe;
+  const argPe = magnitudeOf(useTelemetry("vessel.orbit")?.argPe) ?? undefined;
   const trueAnomaly =
     useStream<VesselState>("vessel.state")?.trueAnomaly ?? undefined;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
@@ -150,10 +153,13 @@ function ManeuverPlannerComponent({
     useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
   const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
-  const inclination = useTelemetry("vessel.orbit")?.inc;
+  const inclination =
+    magnitudeOf(useTelemetry("vessel.orbit")?.inc) ?? undefined;
   const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
-  const targetInclinationLive = useTelemetry("vessel.target")?.orbit?.inc;
-  const targetLanLive = useTelemetry("vessel.target")?.orbit?.lan;
+  const targetInclinationLive =
+    magnitudeOf(useTelemetry("vessel.target")?.orbit?.inc) ?? undefined;
+  const targetLanLive =
+    magnitudeOf(useTelemetry("vessel.target")?.orbit?.lan) ?? undefined;
   const targetSma = useTelemetry("vessel.target")?.orbit?.sma;
   const targetPeA =
     useStream<VesselState>("vessel.state")?.targetPeriapsisAlt ?? undefined;
@@ -295,12 +301,12 @@ function ManeuverPlannerComponent({
         targetInclination,
         targetInclinationLive,
         targetLanLive,
-        lan,
+        lan: lan?.magnitude,
         bodyRadius: body?.radius,
         targetAltitudeKm,
-        targetSma,
+        targetSma: targetSma?.magnitude,
         targetPeA,
-        targetArgPe,
+        targetArgPe: targetArgPe?.magnitude,
         targetTrueAnomaly,
         targetPeriod,
         standoffMeters,
@@ -538,7 +544,7 @@ function ManeuverPlannerComponent({
           telemetry={{
             currentUT,
             inclination,
-            lan,
+            lan: lan?.magnitude,
             targetName,
             targetInclinationLive,
             targetLanLive,

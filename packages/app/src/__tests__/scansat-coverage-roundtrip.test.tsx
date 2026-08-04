@@ -1,5 +1,5 @@
 import { clearRegistry, useTelemetry } from "@ksp-gonogo/core";
-import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { probeText, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -80,7 +80,7 @@ function ControlProbe() {
   const throttle = useTelemetry("data", "f.throttle");
   return (
     <div>
-      throttle:{throttle === undefined ? NULL_DISPLAY : String(throttle)}
+      throttle:{throttle === undefined ? NULL_DISPLAY : probeText(throttle)}
     </div>
   );
 }

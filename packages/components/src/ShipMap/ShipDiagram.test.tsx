@@ -1,4 +1,4 @@
-import { render } from "@ksp-gonogo/test-utils";
+import { render, visibleText } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
@@ -123,7 +123,7 @@ describe("ShipDiagram", () => {
     const { container } = render(
       <ShipDiagram parts={[]} width={200} height={200} />,
     );
-    expect(container.textContent).toMatch(/no vessel topology/i);
+    expect(visibleText(container)).toMatch(/no vessel topology/i);
   });
 
   it("emits no heat tint when temperatures are below 50% of max", () => {

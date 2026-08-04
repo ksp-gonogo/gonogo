@@ -4,7 +4,13 @@ import {
   registerAugment,
 } from "@ksp-gonogo/core";
 import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -275,10 +281,10 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("Eve")).toBeInTheDocument();
     // Crew: the probe's real, honest 0/0; the rest are distinct crewed
     // counts. Only the fully-unresolved contact renders an em-dash for crew.
-    expect(screen.getByText("0/0")).toBeInTheDocument();
-    expect(screen.getByText("6/6")).toBeInTheDocument();
-    expect(screen.getByText("2/3")).toBeInTheDocument();
-    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(visibleText()).toContain("0/0");
+    expect(visibleText()).toContain("6/6");
+    expect(visibleText()).toContain("2/3");
+    expect(visibleText()).toContain("1/1");
     // Em-dashes: the unresolved contact's Body cell, Crew cell, and the Link
     // column's "unknown" tag - three in total.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(3);
@@ -324,13 +330,13 @@ describe("FleetRosterComponent", () => {
     });
     // Two vessels are not linked (1 none + 1 unknown: the orbiter and the
     // unresolved contact) out of five.
-    expect(screen.getByText("2 Not Linked")).toBeInTheDocument();
+    expect(visibleText()).toContain("2 Not Linked");
     expect(
       screen.getByRole("meter", { name: "Comms coverage" }),
     ).toHaveAttribute("aria-valuenow", "60");
-    expect(screen.getByText(/3 linked/)).toBeInTheDocument();
-    expect(screen.getByText(/1 no link/)).toBeInTheDocument();
-    expect(screen.getByText(/1 unknown/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/3 linked/);
+    expect(visibleText()).toMatch(/1 no link/);
+    expect(visibleText()).toMatch(/1 unknown/);
   });
 
   it("shows an All Linked badge and a full meter when every vessel has a link", async () => {

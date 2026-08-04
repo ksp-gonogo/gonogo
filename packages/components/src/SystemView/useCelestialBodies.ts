@@ -86,8 +86,23 @@ export interface CelestialBody {
   hasOxygen: boolean | null;
 }
 
-function numOrNull(x: number | null | undefined): number | null {
-  return typeof x === "number" && Number.isFinite(x) ? x : null;
+/**
+ * The one place a body's wire quantities lose their units.
+ *
+ * `CelestialBody` is the system diagram's model, and the diagram is
+ * arithmetic: semi-major axes get scaled to plot coordinates, radii to pixel
+ * radii, and the results go into SVG attributes. It is also where a body's
+ * numbers are validated, since a body that has not fully resynced yet arrives
+ * with holes in it, and `null` is what the readouts below already understand.
+ *
+ * Taking the magnitude and the finiteness check together, in one funnel, is
+ * why re-pointing this file at the unit system was a two-line change.
+ */
+function numOrNull(
+  x: number | { magnitude: number } | null | undefined,
+): number | null {
+  const n = typeof x === "object" && x !== null ? x.magnitude : x;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 
 function boolOrNull(x: boolean | null | undefined): boolean | null {

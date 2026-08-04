@@ -1,5 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -9,8 +10,8 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { formatQuantity, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ProfileStrip } from "./ProfileStrip";
 import {
@@ -141,25 +142,49 @@ function GroundSurveyComponent({
   );
 }
 
+/**
+ * Nodes rather than a string, because two of these parts are altitudes and a
+ * quantity is rendered by `<Unit>`. `panelSubtitle` takes a `ReactNode`, so
+ * the only thing that changes is the join.
+ */
 function subtitleFor(
   survey: ReturnType<typeof useGroundSurveySamples>,
   freezeBelowM: number,
   surveyCeilingM: number,
-): string {
+): ReactNode {
   if (survey.body === null) return "Awaiting telemetry...";
-  const parts: string[] = [];
-  parts.push(`${survey.body}`);
+  const parts: ReactNode[] = [survey.body];
   const hft = survey.heightFromTerrain;
   if (hft !== null) {
-    parts.push(`${formatMetres(hft)} AGL`);
+    parts.push(
+      <>
+        <Metres m={hft} /> AGL
+      </>,
+    );
   }
   if (survey.surveyState === "active") parts.push("surveying");
   else if (survey.surveyState === "frozen") {
-    parts.push(`frozen (< ${formatMetres(freezeBelowM)} AGL)`);
+    parts.push(
+      <>
+        frozen (&lt; <Metres m={freezeBelowM} /> AGL)
+      </>,
+    );
   } else if (survey.surveyState === "above-ceiling") {
-    parts.push(`above ceiling (> ${formatMetres(surveyCeilingM)} AGL)`);
+    parts.push(
+      <>
+        above ceiling (&gt; <Metres m={surveyCeilingM} /> AGL)
+      </>,
+    );
   } else parts.push("idle");
-  return parts.join(" · ");
+  return parts.map((part, i) => (
+    // Positional key: the parts are built in a fixed order above and never
+    // reordered, so the index IS their identity.
+    // biome-ignore lint/suspicious/noArrayIndexKey: see above
+    <Fragment key={i}>
+      {i > 0 && " · "}
+      {part}
+    </Fragment>
+  ));
 }
 
 function SmoothnessBadge({ verdict }: { verdict: SmoothnessVerdict | null }) {
@@ -168,7 +193,9 @@ function SmoothnessBadge({ verdict }: { verdict: SmoothnessVerdict | null }) {
     <BadgeWrap $tone={verdict.badge}>
       <BadgeGrade>{verdict.badge}</BadgeGrade>
       <BadgeLabel>{verdict.label}</BadgeLabel>
-      <BadgeDelta>Δ {formatMetres(verdict.peakToTrough)}</BadgeDelta>
+      <BadgeDelta>
+        Δ <Metres m={verdict.peakToTrough} />
+      </BadgeDelta>
     </BadgeWrap>
   );
 }
@@ -198,11 +225,8 @@ function formatCoord(value: number, axis: "lat" | "lon"): string {
 // one-decimal default in one direction and coarser in the other. The rungs
 // are shared; only the precision is local, and it is a prop rather than a
 // reimplementation.
-function formatMetres(m: number): string {
-  const { value, symbol } = formatQuantity(m, "m", {
-    decimals: Math.abs(m) >= 1000 ? 2 : 0,
-  });
-  return `${value} ${symbol}`;
+function Metres({ m }: { m: number }) {
+  return <Unit value={value("m", m)} decimals={Math.abs(m) >= 1000 ? 2 : 0} />;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────

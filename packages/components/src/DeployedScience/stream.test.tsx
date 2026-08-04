@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";
@@ -61,6 +67,6 @@ describe("DeployedScience: genuinely runs off the stream (M3 science-domain fina
     await waitFor(() => expect(screen.getByText("Minmus")).toBeTruthy());
     expect(screen.getByText("Barometer")).toBeTruthy();
     expect(screen.getByText(/Unpowered/i)).toBeTruthy();
-    expect(screen.getByText("15%")).toBeTruthy();
+    expect(visibleText()).toContain("15%");
   });
 });

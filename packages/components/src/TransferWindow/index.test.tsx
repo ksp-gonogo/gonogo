@@ -1,5 +1,11 @@
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import { fireEvent, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  fireEvent,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -126,7 +132,7 @@ describe("TransferWindow widget", () => {
       expect(screen.getByText("Current phase")).toBeInTheDocument(),
     );
     expect(screen.getByText("IDEAL")).toBeInTheDocument(); // status badge
-    expect(screen.getByText(/ideal 44\.3°/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/ideal 44\.3°/);
   });
 
   it("lists several upcoming windows to the target", async () => {

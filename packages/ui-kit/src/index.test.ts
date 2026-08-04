@@ -12,8 +12,6 @@ import {
   Field,
   FieldHint,
   FieldLabel,
-  formatAge,
-  formatAgeLong,
   GhostButton,
   Input,
   PrimaryButton,
@@ -72,9 +70,5 @@ describe("ui-kit foundation", () => {
 
     // Layout hook
     expect(typeof useElementSize).toBe("function");
-
-    // Time formatters
-    expect(typeof formatAge).toBe("function");
-    expect(typeof formatAgeLong).toBe("function");
   });
 });

@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import mobileLabIdle from "./__fixtures__/mobile-lab-idle-one-instrument.json";
@@ -62,10 +68,10 @@ describe("ScienceOfficer: stream render golden (delay=0)", () => {
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Mobile Processing Lab MPL-LG-2")) {
+      if (!visibleText(container).includes("Mobile Processing Lab MPL-LG-2")) {
         throw new Error("stream leg has not rendered the lab status yet");
       }
-      if (container.textContent?.includes("SYNCING")) {
+      if (visibleText(container).includes("SYNCING")) {
         throw new Error("stream status has not settled to live yet");
       }
     });

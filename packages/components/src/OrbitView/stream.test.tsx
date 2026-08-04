@@ -1,4 +1,4 @@
-import { waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
@@ -34,7 +34,7 @@ describe("OrbitView: genuinely runs off the stream (R6 de-Telemachus)", () => {
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     await waitFor(() => {
-      if (container.textContent?.includes("No orbital data")) {
+      if (visibleText(container).includes("No orbital data")) {
         throw new Error("orbit has not resolved off the stream yet");
       }
     });
@@ -42,7 +42,7 @@ describe("OrbitView: genuinely runs off the stream (R6 de-Telemachus)", () => {
     // The diagram is up, the widget left its empty state purely from
     // stream-derived data.
     expect(container.querySelector("svg")).not.toBeNull();
-    expect(container.textContent).toContain("Kerbin");
+    expect(visibleText(container)).toContain("Kerbin");
 
     // White-box: the parentBodyName the widget reads is genuinely derived off
     // the real TimelineStore (mirroring the store.sample the widget's own read

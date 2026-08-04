@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
@@ -88,7 +94,7 @@ describe("CommSignalComponent", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeInTheDocument(),
     );
-    expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(visibleText()).toContain("82%");
     expect(screen.getByText("Full")).toBeInTheDocument();
   });
 
@@ -123,6 +129,6 @@ describe("CommSignalComponent", () => {
       });
       fixture.emit("comms.delay", { oneWaySeconds: 135 }); // 2m 15s
     });
-    await waitFor(() => expect(screen.getByText("2m 15s")).toBeInTheDocument());
+    await waitFor(() => expect(visibleText()).toContain("2m 15s"));
   });
 });

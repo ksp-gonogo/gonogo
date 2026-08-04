@@ -8,6 +8,11 @@ import {
 } from "@ksp-gonogo/core";
 import { Badge, Card, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 type StaffRosterConfig = Record<string, never>;
 
@@ -76,16 +81,15 @@ export function parseStaff(raw: unknown): StaffMember[] | null {
     out.push({
       name,
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel:
-        typeof e.experienceLevel === "number" ? e.experienceLevel : 0,
+      experienceLevel: magnitudeOr(e.experienceLevel as Quantityish, 0),
       available: e.available === true,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
       veteran: e.veteran === true,
       isBadass: e.isBadass === true,
-      careerFlights: typeof e.careerFlights === "number" ? e.careerFlights : 0,
-      courage: typeof e.courage === "number" ? e.courage : 0,
-      stupidity: typeof e.stupidity === "number" ? e.stupidity : 0,
+      careerFlights: magnitudeOr(e.careerFlights as Quantityish, 0),
+      courage: magnitudeOr(e.courage as Quantityish, 0),
+      stupidity: magnitudeOr(e.stupidity as Quantityish, 0),
       currentVesselName:
         typeof e.currentVesselName === "string" ? e.currentVesselName : "",
     });

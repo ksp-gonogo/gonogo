@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -185,7 +185,7 @@ async function snapshotLaunchDirectorFixture(
   await waitFor(() => {
     if (
       fixture["kc.savedShips"] !== undefined &&
-      container.textContent?.includes("Awaiting launch-pad telemetry")
+      visibleText(container).includes("Awaiting launch-pad telemetry")
     ) {
       throw new Error("saved ships have not rendered yet");
     }

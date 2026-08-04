@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import kerbinLaunchpad from "./__fixtures__/kerbin-launchpad.json";
@@ -58,11 +58,11 @@ describe("MapView: stream render golden (delay=0)", () => {
     // waiting on the mapped altitude readout proves the stream leg rendered.
     await waitFor(() => {
       // 80 m at the pad: see the note in stream.test.tsx on the rung.
-      if (!container.textContent?.includes("80.0 m")) {
+      if (!visibleText(container).includes("80.0 m")) {
         throw new Error("stream leg has not rendered altitude yet");
       }
     });
-    expect(container.textContent).toContain("-0.10°");
-    expect(container.textContent).toContain("-74.56°");
+    expect(visibleText(container)).toContain("-0.10°");
+    expect(visibleText(container)).toContain("-74.56°");
   });
 });

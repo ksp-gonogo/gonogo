@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MissionEventLogComponent } from "./index";
@@ -62,13 +68,13 @@ describe("MissionEventLogComponent", () => {
       });
       fixture.emit("flight.started", { ut: 900, vesselName: "Mun Tester" });
     });
+    // A row is no longer one text node: the stamp renders through
+    // <Countdown>, which splits the number from its symbol. The MET stamp is
+    // relative to launchUt (T+…), a delay-honest happened-at time, and it is
+    // the row's OWN text rather than an aria-label that would override it.
     await waitFor(() =>
-      expect(screen.getByText(/Launched Mun Tester/)).toBeInTheDocument(),
+      expect(visibleText()).toMatch(/T\+.* · Launched Mun Tester/),
     );
-    // MET stamp is relative to launchUt (T+…), delay-honest happened-at time.
-    expect(
-      screen.getByLabelText(/Launched Mun Tester at T/),
-    ).toBeInTheDocument();
   });
 
   it("logs a crash event from crash.lastCrash", async () => {
@@ -81,9 +87,7 @@ describe("MissionEventLogComponent", () => {
         cause: "impact",
       });
     });
-    await waitFor(() =>
-      expect(screen.getByText(/Booster crashed/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toMatch(/Booster crashed/));
   });
 
   it("logs a staging event from a vessel.structure stage-count edge", async () => {

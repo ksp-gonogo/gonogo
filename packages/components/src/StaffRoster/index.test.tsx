@@ -1,5 +1,12 @@
 import { registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -80,9 +87,7 @@ describe("StaffRosterComponent", () => {
     });
 
     // Subtitle: 2/3 available
-    await waitFor(() =>
-      expect(screen.getByText(/2\/3 available/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toMatch(/2\/3 available/i));
 
     // Render order: Jeb (Pilot, available) → Bob (Scientist, available) → Bill (Engineer, unavail)
     const names = screen.getAllByText(/Kerman/i).map((n) => n.textContent);

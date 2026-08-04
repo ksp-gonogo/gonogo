@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
@@ -54,7 +54,7 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
     );
 
     // Nothing arrived yet: the widget shows its "waiting for body" empty state.
-    expect(container.textContent).toContain("Waiting for body telemetry...");
+    expect(visibleText(container)).toContain("Waiting for body telemetry...");
 
     // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).
@@ -92,7 +92,7 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
     // render for real, proving every one of the five migrated reads
     // genuinely flows through the real TimelineStore.
     await waitFor(() => {
-      expect(container.textContent).toContain("1.217 kg/m³");
+      expect(visibleText(container)).toContain("1.217 kg/m³");
     });
     expect(container.textContent).not.toContain(
       "Waiting for body telemetry...",

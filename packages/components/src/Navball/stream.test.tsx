@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -95,9 +101,9 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("87°")).toBeTruthy());
-    expect(screen.getByText("+12°")).toBeTruthy();
-    expect(screen.getByText("-5°")).toBeTruthy();
+    await waitFor(() => expect(visibleText()).toContain("87°"));
+    expect(visibleText()).toContain("+12°");
+    expect(visibleText()).toContain("-5°");
     // f.sasEnabled -> vessel.control.sas: SAS badge lights up. f.sasMode is
     // gapped (no legacy source in this stream-only file), so the mode
     // caption stays absent: "SAS" alone, not "SAS: Prograde".

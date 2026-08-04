@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type { ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -168,9 +168,11 @@ describe("TelemetryClient.attachStore: feeds the wire into a TimelineStore (M2 b
     t.emit("vessel.orbit", { sma: 700_000 });
     store.beginFrame();
 
-    expect(store.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(
-      700_000,
-    );
+    // `.magnitude`: the transport wraps on the way out, same as the wire
+    // decode does, so a store holds quantities rather than bare numbers.
+    expect(
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(700_000);
   });
 
   it("feeds every attached store, not just the first", () => {
@@ -186,8 +188,12 @@ describe("TelemetryClient.attachStore: feeds the wire into a TimelineStore (M2 b
     storeA.beginFrame();
     storeB.beginFrame();
 
-    expect(storeA.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(1);
-    expect(storeB.sample<{ sma: number }>("vessel.orbit")?.payload.sma).toBe(1);
+    expect(
+      storeA.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(1);
+    expect(
+      storeB.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+    ).toBe(1);
   });
 
   it("detaching stops feeding that store, without affecting other subscribers", () => {

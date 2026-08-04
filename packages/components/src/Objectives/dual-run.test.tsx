@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import contractsOnly from "./__fixtures__/contracts-only.json";
@@ -54,10 +54,10 @@ describe("Objectives: stream render golden (delay=0)", () => {
     });
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Test LV-909: Flying over Kerbin")) {
+      if (!visibleText(container).includes("Test LV-909: Flying over Kerbin")) {
         throw new Error("stream leg has not rendered objectives yet");
       }
     });
-    expect(container.textContent).toContain("Test the LV-909 in flight");
+    expect(visibleText(container)).toContain("Test the LV-909 in flight");
   });
 });

@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -32,7 +38,7 @@ afterEach(() => {
 describe("AvionicsGoNoGoComponent", () => {
   it("shows NO-GO when the vessel is over the controllable mass", async () => {
     const fixture = newFixture();
-    renderWidget(fixture);
+    const { container } = renderWidget(fixture);
     act(() => {
       fixture.emit("avionics.status", {
         avionicsActive: true,
@@ -42,8 +48,12 @@ describe("AvionicsGoNoGoComponent", () => {
       });
     });
     expect(await screen.findByText("NO-GO")).toBeInTheDocument();
-    expect(screen.getByText("5.20 t")).toBeInTheDocument();
-    expect(screen.getByText("4.00 t")).toBeInTheDocument();
+    // `visibleText` rather than `getByText`: a `<Unit>` renders the number and
+    // the symbol as separate elements with the unit's spoken WORD alongside,
+    // so the readout is no longer one text node. The helper strips the word
+    // and normalises the thin space, leaving what an operator sees.
+    expect(visibleText(container)).toContain("5.20 t");
+    expect(visibleText(container)).toContain("4.00 t");
   });
 
   it("shows GO when within the limit + has no axe violations", async () => {
@@ -63,7 +73,7 @@ describe("AvionicsGoNoGoComponent", () => {
 
   it("shows NO AVIONICS when no avionics unit is active", async () => {
     const fixture = newFixture();
-    renderWidget(fixture);
+    const { container } = renderWidget(fixture);
     act(() => {
       fixture.emit("avionics.status", {
         avionicsActive: false,

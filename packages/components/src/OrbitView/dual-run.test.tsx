@@ -1,4 +1,4 @@
-import { waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
@@ -24,7 +24,7 @@ describe("OrbitView: stream render (LKO, delay=0)", () => {
     );
 
     await waitFor(() => {
-      if (!container.textContent?.includes("Stable orbit")) {
+      if (!visibleText(container).includes("Stable orbit")) {
         throw new Error("stream leg has not rendered the orbit pill yet");
       }
     });
@@ -32,6 +32,6 @@ describe("OrbitView: stream render (LKO, delay=0)", () => {
     // Pill mode (no SVG at 4 cols) and the body-name subtitle both resolve
     // purely off the stream.
     expect(container.querySelector("svg")).toBeNull();
-    expect(container.textContent).toContain("Kerbin");
+    expect(visibleText(container)).toContain("Kerbin");
   });
 });

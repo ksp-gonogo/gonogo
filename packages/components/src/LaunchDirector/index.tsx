@@ -1,7 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
-  formatDistance,
   registerComponent,
   useExecuteAction,
   useTelemetry,
@@ -16,17 +15,22 @@ import {
   TargetKind,
   type TargetListEntry,
   VesselType,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
   Panel,
-  Quantity,
   ScrollArea,
   Spinner,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 type LaunchDirectorConfig = Record<string, never>;
 
@@ -178,13 +182,13 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
     if (!name) continue;
     out.push({
       name,
-      partCount: typeof e.partCount === "number" ? e.partCount : 0,
-      totalMass: typeof e.totalMass === "number" ? e.totalMass : 0,
+      partCount: magnitudeOr(e.partCount as Quantityish, 0),
+      totalMass: magnitudeOr(e.totalMass as Quantityish, 0),
       facility:
         typeof e.facility === "string" && KNOWN_FACILITIES.has(e.facility)
           ? e.facility
           : "VAB",
-      requiresFunds: typeof e.requiresFunds === "number" ? e.requiresFunds : 0,
+      requiresFunds: magnitudeOr(e.requiresFunds as Quantityish, 0),
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
         : [],
@@ -205,8 +209,7 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
     out.push({
       name,
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel:
-        typeof e.experienceLevel === "number" ? e.experienceLevel : 0,
+      experienceLevel: magnitudeOr(e.experienceLevel as Quantityish, 0),
       available: e.available === true,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
@@ -231,9 +234,11 @@ function LaunchDirectorComponent({
     | string
     | undefined;
   const launchSitesRaw = useTelemetry("spaceCenter.launchSites");
-  const careerFunds = useTelemetry("career.status")?.economy?.funds as
-    | number
-    | undefined;
+  // Magnitude: compared against each craft's cost to decide what is
+  // launchable, and shown as this widget's balance readout.
+  const careerFunds = magnitudeOf(
+    useTelemetry("career.status")?.economy?.funds,
+  );
   // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
   // the balance" rule). kc.savedShips/kc.crewRoster resolve to their own
@@ -326,8 +331,7 @@ function LaunchDirectorComponent({
     [ships, selectedShip],
   );
 
-  const fundsAvailable =
-    typeof careerFunds === "number" ? careerFunds : Infinity;
+  const fundsAvailable = careerFunds ?? Number.POSITIVE_INFINITY;
   const launchableShips =
     ships?.filter(
       (s) => s.missingParts.length === 0 && s.requiresFunds <= fundsAvailable,
@@ -346,7 +350,7 @@ function LaunchDirectorComponent({
     selectedShip,
     selectedSite,
     selectedCrew: Array.from(selectedCrew),
-    funds: careerFunds,
+    funds: careerFunds ?? undefined,
   };
 
   if (ships === null) {
@@ -376,9 +380,9 @@ function LaunchDirectorComponent({
   // because the reverted vessel shares the crashed vessel's name.
   const crashStale =
     lastCrash != null &&
-    typeof lastCrash.ut === "number" &&
+    magnitudeOf(lastCrash.ut) !== null &&
     typeof universalTime === "number" &&
-    lastCrash.ut > universalTime;
+    magnitudeOr(lastCrash.ut, 0) > universalTime;
   const crashBlocked =
     !crashStale &&
     crashHasRecent === true &&
@@ -691,8 +695,8 @@ function InFlightPanel({
       ? entries
       : entries.filter((e) => e.vesselType !== VesselType.SpaceObject);
     return [...list].sort((a, b) => {
-      const da = a.distance ?? Number.POSITIVE_INFINITY;
-      const db = b.distance ?? Number.POSITIVE_INFINITY;
+      const da = magnitudeOf(a.distance) ?? Number.POSITIVE_INFINITY;
+      const db = magnitudeOf(b.distance) ?? Number.POSITIVE_INFINITY;
       return da - db;
     });
   }, [availableVessels, showSpaceObjects]);
@@ -816,10 +820,7 @@ function InFlightPanel({
                   </VesselSwitchMeta>
                 </VesselSwitchName>
                 <VesselSwitchDistance>
-                  {typeof entry.distance === "number" &&
-                  Number.isFinite(entry.distance)
-                    ? formatDistance(entry.distance)
-                    : NULL_DISPLAY}
+                  <Altitude m={magnitudeOf(entry.distance)} />
                 </VesselSwitchDistance>
               </VesselSwitchRow>
             ))
@@ -846,8 +847,8 @@ function formatMissionTime(s: number | null): string {
 // the in-flight altitude readout, and a Mun transfer sits at ~12 Mm, which the
 // hand-rolled version rendered as "12000.0 km".
 function Altitude({ m }: { m: number | null }) {
-  if (m === null || !Number.isFinite(m)) return NULL_DISPLAY;
-  return <Quantity value={m} unit="m" />;
+  if (m === null) return NULL_DISPLAY;
+  return <Unit value={value("m", m)} />;
 }
 
 function ArmedButton({

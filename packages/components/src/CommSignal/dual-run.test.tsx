@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -80,11 +86,11 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
 
     // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
-    await waitFor(() => expect(screen.getByText("87%")).toBeTruthy());
+    await waitFor(() => expect(visibleText()).toContain("87%"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     // Control label + formatted delay both come off the stream now.
     expect(screen.getByText("Full")).toBeTruthy();
-    expect(screen.getByText("0 ms")).toBeTruthy();
+    expect(visibleText()).toContain("0 ms");
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
     // No stray NULL_DISPLAY placeholder: every field resolved.
     expect(container.textContent).not.toContain(NULL_DISPLAY);

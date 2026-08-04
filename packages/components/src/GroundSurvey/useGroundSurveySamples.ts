@@ -159,11 +159,15 @@ export function useGroundSurveySamples(
   useEffect(() => {
     if (!flight) return;
     const s = stateRef.current;
-    const altitude = flight.altitudeAsl;
+    // Magnitudes at the read: everything below is a rolling window of raw
+    // metres feeding a median filter and a terrain plot, and this hook runs on
+    // every stream frame.
+    const altitude = flight.altitudeAsl.magnitude;
     // Lowest-point height from `vessel.surface`, falling back to the CoM
     // radar altitude when the surface channel is absent this tick.
-    const hft = surface?.heightFromTerrain ?? flight.altitudeTerrain;
-    const surfaceSpeed = flight.surfaceSpeed;
+    const hft = (surface?.heightFromTerrain ?? flight.altitudeTerrain)
+      .magnitude;
+    const surfaceSpeed = flight.surfaceSpeed.magnitude;
     if (!Number.isFinite(altitude) || !Number.isFinite(hft)) return;
 
     s.altitude = altitude;

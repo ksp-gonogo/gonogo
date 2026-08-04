@@ -6,18 +6,25 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
   Cluster,
   EmptyState,
-  formatCountdown,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  speakQuantity,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
+import {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "../shared/magnitude";
 
 /**
  * Tiny-mode hero readout. `BigReadout`'s 38px max coexists fine with its
@@ -65,9 +72,9 @@ interface KerbalRules {
 interface KerbalismRuleWire {
   name?: string;
   /** Current accumulator ("problem") value from `KerbalData.rules`. */
-  value?: number;
+  value?: Quantityish;
   /** Fatal accumulator threshold from `Profile.rules[].fatal_threshold`. */
-  fatalThreshold?: number;
+  fatalThreshold?: Quantityish;
 }
 
 /** Every rule name the wire is known to send, mapped onto its `KerbalRules` field. */
@@ -90,10 +97,10 @@ const RULE_FIELD: Record<string, keyof KerbalRules> = {
  * local_docs/design/plans/2026-07-13-kerbalism-values-catalog.md).
  */
 function ruleFraction(rule: KerbalismRuleWire): number {
-  const value = rule.value ?? 0;
-  const threshold = rule.fatalThreshold;
-  if (!threshold || threshold <= 0) return 0;
-  return Math.min(1, Math.max(0, value / threshold));
+  const accumulated = magnitudeOr(rule.value, 0);
+  const threshold = magnitudeOf(rule.fatalThreshold);
+  if (threshold === null || threshold <= 0) return 0;
+  return Math.min(1, Math.max(0, accumulated / threshold));
 }
 
 /** Reshape one kerbal's wire `rules` array into the named `KerbalRules` the meters read. */
@@ -124,9 +131,9 @@ function useLifeSupportTimeToEmptySec(): number | null {
 
   const ttes: number[] = [];
   for (const c of [ls?.food, ls?.water, ls?.oxygen]) {
-    const amount = c?.amount;
-    const rate = c?.rate;
-    if (amount !== undefined && rate !== undefined && rate < 0) {
+    const amount = magnitudeOf(c?.amount);
+    const rate = magnitudeOf(c?.rate);
+    if (amount !== null && rate !== null && rate < 0) {
       ttes.push(amount / -rate);
     }
   }
@@ -161,11 +168,12 @@ interface SuitResourceReadout {
 /** Extracts a `{current, max}` pair off a `vessel.resources` entry, or
  *  `undefined` when the resource is absent or has no usable capacity. */
 function toSuitResourceReadout(
-  entry: { current?: number; max?: number } | undefined,
+  entry: { current?: Quantityish; max?: Quantityish } | undefined,
 ): SuitResourceReadout | undefined {
   if (!entry) return undefined;
-  const { current, max } = entry;
-  if (current === undefined || max === undefined || max <= 0) return undefined;
+  const current = magnitudeOf(entry.current);
+  const max = magnitudeOf(entry.max);
+  if (current === null || max === null || max <= 0) return undefined;
   return { current, max };
 }
 
@@ -244,7 +252,7 @@ function SurvivalMeters({
   );
   if (stage1Sec !== null && stage1Sec > 60) {
     clock = {
-      label: `~${formatCountdown(stage1Sec)} to LS depletion`,
+      label: `~${speakQuantity(value("s", Math.max(0, stage1Sec)))} to LS depletion`,
       tone: "warn",
     };
   } else if (stage1Sec !== null) {
@@ -432,9 +440,15 @@ function CrewManifestComponent({
       <Panel panelTitle="CREW">
         {known ? (
           <TinyReadout $tone="go">
-            {crewCount !== undefined ? `${crewCount}` : NULL_DISPLAY}
+            {crewCount !== undefined ? (
+              <Unit value={crewCount} />
+            ) : (
+              NULL_DISPLAY
+            )}
             {crewCapacity !== undefined && (
-              <ReadoutCaption>of {crewCapacity} aboard</ReadoutCaption>
+              <ReadoutCaption>
+                of <Unit value={crewCapacity} /> aboard
+              </ReadoutCaption>
             )}
           </TinyReadout>
         ) : (
@@ -459,13 +473,15 @@ function CrewManifestComponent({
         ) : undefined
       }
       panelSubtitle={
-        known ? formatSubtitle(isEVA, crewCount, crewCapacity) : "No crew data"
+        known
+          ? formatSubtitle(isEVA, crewCount?.magnitude, crewCapacity?.magnitude)
+          : "No crew data"
       }
     >
       <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
       {renderBody({
         known,
-        crewCount,
+        crewCount: crewCount?.magnitude,
         names,
         showMeters,
         rulesByName,

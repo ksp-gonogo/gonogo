@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitalAscentComponent } from "./index";
@@ -63,7 +63,7 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
     );
 
     // Chrome renders immediately; nothing has streamed yet so no body notice.
-    expect(container.textContent).toContain("ORBITAL ASCENT");
+    expect(visibleText(container)).toContain("ORBITAL ASCENT");
     expect(container.textContent).not.toContain("Unknown body");
 
     // A real subscription must have happened for StubTransport (which is
@@ -98,10 +98,10 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
     // The derived vessel.state.parentBodyName streams through as "Gargantua",
     // which getBody() doesn't recognise -> the "Unknown body" notice appears.
     await waitFor(() => {
-      if (!container.textContent?.includes("Unknown body")) {
+      if (!visibleText(container).includes("Unknown body")) {
         throw new Error("streamed body name has not resolved yet");
       }
     });
-    expect(container.textContent).toContain("Gargantua");
+    expect(visibleText(container)).toContain("Gargantua");
   });
 });

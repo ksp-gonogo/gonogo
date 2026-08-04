@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -109,7 +109,7 @@ describe("AtmosphereProfile DOM snapshots", () => {
         });
 
         await waitFor(() => {
-          if (container.textContent?.includes("SYNCING")) {
+          if (visibleText(container).includes("SYNCING")) {
             throw new Error("stream status has not settled to live yet");
           }
         });

@@ -163,8 +163,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     const period = state?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
-        sma,
-        ecc: orbit?.ecc,
+        sma: sma?.magnitude,
+        ecc: orbit?.ecc?.magnitude,
         ApR: state?.apoapsisRadius ?? undefined,
         PeR: state?.periapsisRadius ?? undefined,
         timeToAp: state?.timeToAp ?? undefined,
@@ -174,16 +174,16 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       // SDK's own view time (`getViewUt`, the non-hook `useViewUt`
       // equivalent plain classes need), never a legacy `"data"` read.
       currentUT: getViewUt(),
-      mu: computeMu(orbitalSpeed, radius, sma, period),
+      mu: computeMu(orbitalSpeed, radius, sma?.magnitude, period),
       trueAnomaly: state?.trueAnomaly ?? undefined,
-      argPe: orbit?.argPe,
-      inclination: orbit?.inc,
-      lan: orbit?.lan,
-      targetInclinationLive: targetOrbit?.inc,
-      targetLanLive: targetOrbit?.lan,
-      targetSma: targetOrbit?.sma,
+      argPe: orbit?.argPe?.magnitude,
+      inclination: orbit?.inc?.magnitude,
+      lan: orbit?.lan?.magnitude,
+      targetInclinationLive: targetOrbit?.inc?.magnitude,
+      targetLanLive: targetOrbit?.lan?.magnitude,
+      targetSma: targetOrbit?.sma?.magnitude,
       targetPeA: state?.targetPeriapsisAlt ?? undefined,
-      targetArgPe: targetOrbit?.argPe,
+      targetArgPe: targetOrbit?.argPe?.magnitude,
       targetTrueAnomaly: state?.targetTrueAnomaly ?? undefined,
       targetPeriod: state?.targetPeriod ?? undefined,
       bodyRadius: this.readBodyRadius(state),

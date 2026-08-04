@@ -1,4 +1,4 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   deriveVesselManeuverLegacy,
@@ -12,9 +12,11 @@ import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 
 function wirePatch(
-  overrides: Partial<OrbitPatchWirePayload> = {},
+  overrides: Record<string, unknown> = {},
 ): OrbitPatchWirePayload {
-  return {
+  // Wire-shaped, then wrapped: `OrbitPatch` is a nested contract shape and
+  // the decode gives its declared quantities their units.
+  return wrapTypePayload("OrbitPatch", {
     sma: 300_000,
     ecc: 0.2,
     inc: 5,
@@ -34,13 +36,15 @@ function wirePatch(
     referenceBody: "Kerbin",
     closestEncounterBody: null,
     ...overrides,
-  };
+  }) as OrbitPatchWirePayload;
 }
 
 function wireNode(
-  overrides: Partial<ManeuverNodeWirePayload> = {},
+  overrides: Record<string, unknown> = {},
 ): ManeuverNodeWirePayload {
-  return {
+  // The patches are wrapped already (`wirePatch`), so this wraps only the
+  // node's own fields, which is what the nested walk does to a real frame.
+  return wrapTypePayload("ManeuverNode", {
     id: "node-1",
     ut: 500,
     dvRadial: 1,
@@ -49,7 +53,7 @@ function wireNode(
     dvTotal: 300.01,
     patches: [wirePatch()],
     ...overrides,
-  };
+  }) as ManeuverNodeWirePayload;
 }
 
 describe("mapManeuverNode", () => {
@@ -69,10 +73,10 @@ describe("mapManeuverNode", () => {
   it("flattens orbitPatches[0]'s fields onto the node's own headline numbers", () => {
     const patch = wirePatch();
     const legacy = mapManeuverNode(wireNode({ patches: [patch] }));
-    expect(legacy.PeA).toBe(patch.peA);
-    expect(legacy.ApA).toBe(patch.apA);
-    expect(legacy.inclination).toBe(patch.inc);
-    expect(legacy.sma).toBe(patch.sma);
+    expect(legacy.PeA).toBe(patch.peA.magnitude);
+    expect(legacy.ApA).toBe(patch.apA.magnitude);
+    expect(legacy.inclination).toBe(patch.inc.magnitude);
+    expect(legacy.sma).toBe(patch.sma.magnitude);
     expect(legacy.referenceBody).toBe(patch.referenceBody);
     expect(legacy.orbitPatches).toHaveLength(1);
   });

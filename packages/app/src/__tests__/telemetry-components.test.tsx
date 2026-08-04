@@ -28,7 +28,13 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -232,7 +238,7 @@ describe("DistanceToTargetComponent", () => {
     // same carried record, so it rides the stream too, no legacy "data"
     // WS emission needed for this case.
     const stream = setupTelemetryStream(["vessel.target"]);
-    render(
+    const { container } = render(
       <stream.Provider>
         <DistanceToTargetComponent config={{}} id="tar" />
       </stream.Provider>,
@@ -249,10 +255,10 @@ describe("DistanceToTargetComponent", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
-    // formatDistance(12_000_000) = '12.0 Mm'
-    await waitFor(() =>
-      expect(screen.getByText("12.0 Mm")).toBeInTheDocument(),
-    );
+    // `visibleText`, not `getByText`: `<Unit>` renders the number and the
+    // symbol as separate elements with the spoken word alongside, so the
+    // readout is no longer one text node.
+    await waitFor(() => expect(visibleText(container)).toContain("12.0 Mm"));
   });
 
   it("shows target name with dash when distance is unavailable", async () => {
@@ -261,7 +267,7 @@ describe("DistanceToTargetComponent", () => {
     // with no `relativePosition`, so `tarDistance` stays undefined and the
     // distance readout falls back to the dash.
     const stream = setupTelemetryStream(["vessel.target"]);
-    render(
+    const { container } = render(
       <stream.Provider>
         <DistanceToTargetComponent config={{}} id="tar" />
       </stream.Provider>,

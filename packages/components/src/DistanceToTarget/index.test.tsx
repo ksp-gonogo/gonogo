@@ -3,7 +3,13 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -77,7 +83,7 @@ describe("DistanceToTargetComponent", () => {
   it("shows a 'no target set' hint until vessel.target is reported", () => {
     fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
     const { container } = renderWidget(fixture);
-    expect(container.textContent).toContain("No target set in KSP");
+    expect(visibleText(container)).toContain("No target set in KSP");
   });
 
   it("renders compact-mode distance once target name + distance arrive", async () => {
@@ -91,8 +97,8 @@ describe("DistanceToTargetComponent", () => {
         relativeVelocity: null,
       });
     });
-    await waitFor(() => expect(container.textContent).toContain("Minmus"));
-    expect(container.textContent).toMatch(/\d[\d.]*\s*(k?m|Mm)/);
+    await waitFor(() => expect(visibleText(container)).toContain("Minmus"));
+    expect(visibleText(container)).toMatch(/\d[\d.]*\s*(k?m|Mm)/);
   });
 
   it("auto-switches to the docking HUD when a docking-port target with dock data drops under 100 m", async () => {
@@ -175,7 +181,7 @@ describe("DistanceToTargetComponent", () => {
       });
     });
     await waitFor(() =>
-      expect(container.textContent).toContain("Test Station"),
+      expect(visibleText(container)).toContain("Test Station"),
     );
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
@@ -254,7 +260,7 @@ describe("DistanceToTargetComponent", () => {
     expect(screen.getByText("Test Station")).toBeInTheDocument();
     expect(screen.getByText("Closing rate")).toBeInTheDocument();
     // Closing → negative radial rate → minus-sign + magnitude
-    expect(screen.getByText(/−3\.4 m\/s/)).toBeInTheDocument();
+    expect(visibleText()).toMatch(/−3\.4 m\/s/);
   });
 
   it("never enters approach mode for CelestialBody targets even at close range", async () => {

@@ -5,9 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, formatCountdown, Panel, Section } from "@ksp-gonogo/ui-kit";
+import { Badge, Panel, Section, speakQuantity } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 // Side-effect import: registers the built-in `life-support.sections`
 // augment filler (the Greenhouse section) and the SlotRegistry declaration
 // merge, see that file's own doc comment. Registering it here (rather than
@@ -62,23 +64,23 @@ interface LifeSupportData {
 }
 
 interface WireResource {
-  amount?: number;
-  capacity?: number;
-  rate?: number;
+  amount?: Quantityish;
+  capacity?: Quantityish;
+  rate?: Quantityish;
 }
 
 function consumable(r: WireResource | undefined): Consumable {
   return {
-    amount: r?.amount ?? 0,
-    capacity: r?.capacity ?? 0,
-    rate: r?.rate ?? 0,
+    amount: magnitudeOr(r?.amount, 0),
+    capacity: magnitudeOr(r?.capacity, 0),
+    rate: magnitudeOr(r?.rate, 0),
   };
 }
 
 interface WireProcess {
   resource?: string;
   title?: string;
-  capacity?: number;
+  capacity?: Quantityish;
   running?: boolean;
   broken?: boolean;
 }
@@ -95,15 +97,15 @@ function toProcessRow(p: WireProcess, index: number): ProcessRow {
     id: p.resource || p.title || `process-${index}`,
     name: p.title || p.resource || "Process",
     state: p.broken ? "broken" : p.running ? "running" : "idle",
-    capacity: p.capacity ?? 0,
+    capacity: magnitudeOr(p.capacity, 0),
   };
 }
 
 interface WireGreenhouse {
   cropResource?: string;
-  foodRatePerSec?: number;
-  natural?: number;
-  artificial?: number;
+  foodRatePerSec?: Quantityish;
+  natural?: Quantityish;
+  artificial?: Quantityish;
   active?: boolean;
   issue?: string;
 }
@@ -116,11 +118,11 @@ interface WireGreenhouse {
 function toGreenhouseRow(g: WireGreenhouse): GreenhouseRow {
   return {
     cropResource: g.cropResource || "Food",
-    natural: g.natural ?? 0,
-    artificial: g.artificial ?? 0,
+    natural: magnitudeOr(g.natural, 0),
+    artificial: magnitudeOr(g.artificial, 0),
     active: g.active ?? false,
     issue: g.issue ?? "",
-    foodRatePerSec: g.foodRatePerSec ?? 0,
+    foodRatePerSec: magnitudeOr(g.foodRatePerSec, 0),
   };
 }
 
@@ -131,10 +133,10 @@ function useLifeSupport(): LifeSupportData {
     water: consumable(t?.water),
     oxygen: consumable(t?.oxygen),
     ec: consumable(t?.electricCharge),
-    pressurized: (t?.habitat?.pressure ?? 0) > 0.5,
-    co2Poisoning: t?.habitat?.poisoning ?? 0,
-    comfort: t?.habitat?.comfort ?? 0,
-    livingSpace: t?.habitat?.livingSpace ?? 0,
+    pressurized: magnitudeOr(t?.habitat?.pressure, 0) > 0.5,
+    co2Poisoning: magnitudeOr(t?.habitat?.poisoning, 0),
+    comfort: magnitudeOr(t?.habitat?.comfort, 0),
+    livingSpace: magnitudeOr(t?.habitat?.livingSpace, 0),
     // Climatization is deliberately NOT here: it's a per-kerbal survival rule
     // (rides kerbalism.crew → CrewManifest death-clock meters), not a
     // vessel-level habitat value, so this vessel widget doesn't surface it.
@@ -155,10 +157,16 @@ function timeToEmptySec(c: Consumable): number | null {
   return c.amount / -c.rate;
 }
 
-/** "steady" while a consumable is flat or refilling; otherwise a countdown. */
+/**
+ * "steady" while a consumable is flat or refilling; otherwise a countdown.
+ *
+ * A string rather than a `<Unit>` because it is built into a meter's
+ * `aria-valuetext`, which is an attribute and takes no node. `speakQuantity`
+ * is the sanctioned route for that; the readout beside it renders normally.
+ */
 function formatTimeToEmpty(sec: number | null): string {
   if (sec == null || !Number.isFinite(sec)) return "steady";
-  return formatCountdown(sec);
+  return speakQuantity(value("s", Math.max(0, sec)));
 }
 
 /** Compact amount formatter: whole numbers drop decimals, small values keep 2. */

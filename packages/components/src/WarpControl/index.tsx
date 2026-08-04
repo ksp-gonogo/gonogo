@@ -17,6 +17,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { magnitudeOf } from "../shared/magnitude";
 
 /**
  * Time-warp control widget. Reads the current warp index/rate from
@@ -144,8 +145,7 @@ function WarpControlComponent({
     typeof indexRaw === "number" && Number.isFinite(indexRaw)
       ? Math.round(indexRaw)
       : null;
-  const currentRate =
-    typeof rate === "number" && Number.isFinite(rate) ? rate : null;
+  const currentRate = magnitudeOf(rate);
 
   const setWarp = (idx: number) => {
     void execute(`t.timeWarp[${idx}]`);

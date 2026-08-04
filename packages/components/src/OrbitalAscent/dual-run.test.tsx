@@ -1,5 +1,5 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
@@ -100,12 +100,12 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
     // The "Unknown body" notice is produced ONLY by the streamed v.body (the
     // AUX source never feeds it), so this can't false-green on an empty stream.
     await waitFor(() => {
-      if (!container.textContent?.includes("Unknown body")) {
+      if (!visibleText(container).includes("Unknown body")) {
         throw new Error("stream leg has not resolved v.body yet");
       }
     });
-    expect(container.textContent).toContain("ORBITAL ASCENT");
-    expect(container.textContent).toContain(UNKNOWN_BODY);
+    expect(visibleText(container)).toContain("ORBITAL ASCENT");
+    expect(visibleText(container)).toContain(UNKNOWN_BODY);
 
     teardownMockDataSource(legacyAux);
   });

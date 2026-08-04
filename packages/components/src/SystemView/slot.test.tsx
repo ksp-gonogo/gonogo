@@ -4,7 +4,13 @@ import {
   getAugmentsForSlot,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -211,8 +217,8 @@ describe("SystemView: augment slots (spec §4)", () => {
     // The overlay slot passed the parent-centric projection down (§4.4): the frame
     // name, the measured diagram px size, a positive metres→px scale, and the
     // origin-centred body position.
-    expect(overlay.textContent).toContain("Kerbin:");
-    expect(overlay.textContent).toContain(":scaled:");
-    expect(overlay.textContent).toContain(":0,0");
+    expect(visibleText(overlay)).toContain("Kerbin:");
+    expect(visibleText(overlay)).toContain(":scaled:");
+    expect(visibleText(overlay)).toContain(":0,0");
   });
 });

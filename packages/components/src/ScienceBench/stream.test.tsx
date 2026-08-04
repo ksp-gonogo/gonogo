@@ -1,5 +1,10 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { render as rtlRender, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  render as rtlRender,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -64,6 +69,6 @@ describe("ScienceBench: genuinely runs off the stream (M3 science/parts batch)",
     await waitFor(() =>
       expect(screen.getByText("Seismic Scan from LaunchPad")).toBeTruthy(),
     );
-    expect(screen.getByText("50.0 mits")).toBeTruthy();
+    expect(visibleText()).toContain("50.0 mits");
   });
 });

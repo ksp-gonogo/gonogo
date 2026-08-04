@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 /**
  * Pure delayed-command derivations. Delay is ambient and universal, every
  * command the mod accepts is already gated by the reveal/uplink machinery,
@@ -28,13 +29,13 @@ export interface PendingEntry {
   label: string;
   topic: string;
   vantage: string;
-  dispatchedAt: number;
-  oneWaySeconds: number;
+  dispatchedAt: Value<"s">;
+  oneWaySeconds: Value<"s">;
 }
 
 /** Structural subset of the `CommsDelay` wire payload's field this module reads. */
 export interface CommsDelayLike {
-  oneWaySeconds: number | null;
+  oneWaySeconds: Value<"s"> | null;
 }
 
 export interface InFlightCommand {
@@ -60,7 +61,7 @@ const STAGED_THRESHOLD_SECONDS = 1;
 export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
   const d = commsDelay?.oneWaySeconds;
   if (d == null) return "no-path";
-  return d <= STAGED_THRESHOLD_SECONDS ? "live" : "staged";
+  return d.magnitude <= STAGED_THRESHOLD_SECONDS ? "live" : "staged";
 }
 
 /**
@@ -73,8 +74,12 @@ export function deriveInFlight(
   nowUt: number,
 ): InFlightCommand[] {
   return entries.map((e) => {
-    const reachUt = e.dispatchedAt + e.oneWaySeconds;
-    const replyUt = e.dispatchedAt + 2 * e.oneWaySeconds;
+    // `.magnitude`: these are UT arithmetic, and a UT is a plain number the
+    // registry has no name for (see the unwrap boundaries in the design).
+    const dispatchedAt = e.dispatchedAt.magnitude;
+    const oneWay = e.oneWaySeconds.magnitude;
+    const reachUt = dispatchedAt + oneWay;
+    const replyUt = dispatchedAt + 2 * oneWay;
     const predictedPhase: PredictedPhase =
       nowUt < reachUt
         ? "in-transit"
@@ -86,7 +91,7 @@ export function deriveInFlight(
       label: e.label,
       command: e.command,
       topic: e.topic,
-      dispatchedAt: e.dispatchedAt,
+      dispatchedAt,
       reachEtaSeconds: reachUt - nowUt,
       replyEtaSeconds: replyUt - nowUt,
       predictedPhase,
@@ -119,9 +124,10 @@ export function classifyRetained(args: {
     pathConnectedDuring = () => true,
   } = args;
   const base = deriveInFlight([entry], nowUt)[0];
-  const replyUt = entry.dispatchedAt + 2 * entry.oneWaySeconds;
+  const replyUt =
+    entry.dispatchedAt.magnitude + 2 * entry.oneWaySeconds.magnitude;
   // 'lost': path was not continuously up across the in-flight window.
-  if (!pathConnectedDuring(entry.dispatchedAt, replyUt)) {
+  if (!pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt)) {
     return { ...base, predictedPhase: "lost" };
   }
   // 'overdue': past reply + margin and still tracked with no resolution.

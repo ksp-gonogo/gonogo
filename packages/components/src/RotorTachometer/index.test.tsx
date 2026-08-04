@@ -3,6 +3,7 @@ import {
   act,
   render as rtlRender,
   screen,
+  visibleText,
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
@@ -139,7 +140,7 @@ describe("RotorTachometerComponent", () => {
       ]);
     });
 
-    expect(await screen.findByText("120")).toBeInTheDocument(); // gauge value label
+    await waitFor(() => expect(visibleText()).toContain("120")); // gauge value label
 
     await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
     await waitFor(() => {

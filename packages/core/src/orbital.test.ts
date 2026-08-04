@@ -1,11 +1,8 @@
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import type { BodyDefinition } from "./bodies";
 import {
   circularOrbitVelocity,
   escapeVelocity,
-  formatDistance,
-  formatDuration,
   generateOrbitPoints,
   latLonToMap,
   orbitalPeriod,
@@ -149,76 +146,11 @@ describe("latLonToMap", () => {
   });
 });
 
-// ── formatDuration ─────────────────────────────────────────────────────────
-
-describe("formatDuration", () => {
-  it("formats seconds only", () => {
-    expect(formatDuration(45)).toBe("45s");
-  });
-
-  it("formats minutes and seconds", () => {
-    expect(formatDuration(125)).toBe("2m 5s");
-  });
-
-  it("shows two tiers, not three, above an hour", () => {
-    // The implementation this delegates to now used to render
-    // "3h 14m 08s". Nothing reads seconds three hours out from a burn, and
-    // dropping the third tier is what buys the day tier below.
-    expect(formatDuration(3 * 3600 + 14 * 60 + 8)).toBe("3h 14m");
-  });
-
-  it("climbs to days, which the old three-tier clock never did", () => {
-    // This is the reason for the change: a three-day orbital period used to
-    // render as "72h 0m 00s", because the clock topped out at hours.
-    expect(formatDuration(3 * 86_400)).toBe("12d");
-    expect(formatDuration(28 * 3600)).toBe("4d 4h");
-  });
-
-  it("does not zero-pad the minor tier", () => {
-    expect(formatDuration(61)).toBe("1m 1s");
-  });
-
-  it("returns the null placeholder for negative values", () => {
-    expect(formatDuration(-1)).toBe(NULL_DISPLAY);
-  });
-
-  it("returns the null placeholder for Infinity", () => {
-    expect(formatDuration(Infinity)).toBe(NULL_DISPLAY);
-  });
-});
-
-// ── formatDistance ─────────────────────────────────────────────────────────
-
-describe("formatDistance", () => {
-  it("formats metres", () => {
-    // One decimal at every rung, including this one, since the shared `length`
-    // ladder sets precision per kind. The hand-rolled version this delegates
-    // to rounded metres to whole numbers and used two decimals above Mm.
-    expect(formatDistance(320)).toBe("320.0 m");
-  });
-
-  it("formats kilometres", () => {
-    expect(formatDistance(42_350)).toBe("42.4 km");
-  });
-
-  it("formats Megametres", () => {
-    expect(formatDistance(3_400_000)).toBe("3.4 Mm");
-  });
-
-  it("formats Gigametres", () => {
-    expect(formatDistance(1_500_000_000)).toBe("1.5 Gm");
-  });
-
-  it("formats Terametres", () => {
-    // Out of reach in the stock system, but the rung is carried so an
-    // outer-planets install does not hit a ceiling of "1500.0 Gm".
-    expect(formatDistance(1.5e12)).toBe("1.5 Tm");
-  });
-
-  it("returns the null placeholder for Infinity", () => {
-    expect(formatDistance(Infinity)).toBe(NULL_DISPLAY);
-  });
-});
+// `formatDuration` and `formatDistance` used to live here and their tests
+// with them. Both are gone: a quantity is rendered by `<Unit>` now, and a
+// formatter in a package every widget imports is exactly how a dashboard
+// ends up with several spellings of the same unit. The geometry below is
+// what this module is actually for.
 
 // ── circularOrbitVelocity ──────────────────────────────────────────────────
 

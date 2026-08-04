@@ -3,6 +3,7 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { Meter } from "@ksp-gonogo/ui";
 import { Badge, Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { magnitudeOr } from "../shared/magnitude";
 
 type SpaceWeatherConfig = Record<string, never>;
 
@@ -47,7 +48,7 @@ function useSpaceWeather(): SpaceWeatherData {
   // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
   // timing internally / reflectable) surfaced on the Topic; the UI was designed
   // for it, the data isn't wired. Tracked in local_docs/feature_log/.
-  const radiationRadPerHour = (t?.radiationRadPerSecond ?? 0) * 3600; // API is rad/s
+  const radiationRadPerHour = magnitudeOr(t?.radiationRadPerSecond, 0) * 3600; // API is rad/s
   const innerBelt = t?.innerBelt ?? false;
   const outerBelt = t?.outerBelt ?? false;
   const magnetosphere = t?.magnetosphere ?? false;
@@ -59,10 +60,10 @@ function useSpaceWeather(): SpaceWeatherData {
     outerBelt,
     magnetosphere,
     blackout: t?.blackout ?? false,
-    shieldingValue: t?.shieldingAmount ?? 0,
+    shieldingValue: magnitudeOr(t?.shieldingAmount, 0),
     // (stormTimeSec removed: see the FUTURE note above.)
-    shieldingCapacity: t?.shieldingCapacity ?? 1,
-    altitudeKm: (flight?.altitudeAsl ?? 0) / 1000,
+    shieldingCapacity: magnitudeOr(t?.shieldingCapacity, 1),
+    altitudeKm: magnitudeOr(flight?.altitudeAsl, 0) / 1000,
     // Deterministic noise seed derived from the weather state itself (stable
     // across renders for snapshots; no Math.random, no clock/provider needed).
     seed:

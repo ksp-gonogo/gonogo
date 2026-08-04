@@ -16,16 +16,34 @@
  * widgets render), and both DistanceToTarget and TargetPicker need the
  * identical mapping so a current-target's kind reads the same everywhere.
  */
+import type { Vec3Of } from "@ksp-gonogo/sitrep-sdk";
 import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * `{x,y,z}`: the wire shape of every `vessel.target`/`vessel.dock` Vec3
- * field (`mod/Sitrep.Contract/Vec3.cs`).
+ * field (`mod/Sitrep.Contract/Vec3.cs`), as PLAIN numbers.
+ *
+ * The vector maths in this module is a dot product, a hypotenuse and an
+ * arctangent, none of which the unit system has anything to say about: the
+ * design's one Value-aware vector operation is `vectorMagnitude`, and
+ * everything else takes components. `bare` below is the one door in.
  */
 export interface Vec3 {
   x: number;
   y: number;
   z: number;
+}
+
+/**
+ * A unit-carrying vector's components, for the maths below.
+ *
+ * The wire's `relativePosition` is a `Vec3Of<"m">` and its leaves are
+ * quantities. Widgets used to reach them through an `as Vec3` cast, which
+ * asserted they were numbers and, once they stopped being, put a `Value` into
+ * `toFixed`. This says the same thing honestly and in one place.
+ */
+export function bare<U extends string>(v: Vec3Of<U>): Vec3 {
+  return { x: v.x.magnitude, y: v.y.magnitude, z: v.z.magnitude };
 }
 
 export function vecMagnitude(v: Vec3): number {

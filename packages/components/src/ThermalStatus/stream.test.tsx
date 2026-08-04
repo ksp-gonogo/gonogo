@@ -1,5 +1,11 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  screen,
+  visibleText,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -61,9 +67,9 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
 
     // A temperature is a <Quantity>, so the number and symbol are separate
     // elements; getByText sees only an element's direct text nodes.
-    await waitFor(() => expect(container.textContent).toContain("14.4°C"));
+    await waitFor(() => expect(visibleText(container)).toContain("14.4 °C"));
     // Zero decimals once |value| >= 1000, which the widget still chooses.
-    expect(container.textContent).toContain("2000°C");
+    expect(visibleText(container)).toContain("2000 °C");
     expect(screen.getByText("OX-STAT Photovoltaic Panels")).toBeTruthy();
     // No engine data was emitted this tick, the engine row still shows its
     // "no data" placeholder rather than a fabricated value.

@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, visibleText, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -110,14 +110,14 @@ describe("CurrentOrbitComponent", () => {
 
     // Apoapsis/periapsis shown as distance (derived off the orbit elements).
     // Stream values land on the store's next frame, so await the settle.
-    await waitFor(() => expect(container.textContent).toMatch(/85\.\d+\s*km/));
-    expect(container.textContent).toMatch(/78\.\d+\s*km/);
+    await waitFor(() => expect(visibleText(container)).toMatch(/85\.\d+\s*km/));
+    expect(visibleText(container)).toMatch(/78\.\d+\s*km/);
     // Eccentricity displayed with 4 decimals
-    expect(container.textContent).toContain("0.0051");
+    expect(visibleText(container)).toContain("0.0051");
     // Inclination rounded to 1 decimal with degree suffix
-    expect(container.textContent).toContain("0.0°");
+    expect(visibleText(container)).toContain("0.0°");
     // Reference body shown as subtitle
-    expect(container.textContent).toContain("Kerbin");
+    expect(visibleText(container)).toContain("Kerbin");
     // Mini diagram renders by default (showDiagram true)
     expect(container.querySelector("svg")).not.toBeNull();
   });
@@ -126,7 +126,7 @@ describe("CurrentOrbitComponent", () => {
     const { container } = renderOrbit({ showDiagram: false });
 
     emitLko();
-    await waitFor(() => expect(container.textContent).toMatch(/km/));
+    await waitFor(() => expect(visibleText(container)).toMatch(/km/));
 
     expect(container.querySelector("svg")).toBeNull();
   });
