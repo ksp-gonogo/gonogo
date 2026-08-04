@@ -32,6 +32,16 @@ namespace Sitrep.Core
         /// light-time for the single KSC observer.
         /// </summary>
         void SetNodeDelay(string node, double seconds);
+
+        /// <summary>
+        /// Sets the one-way delay for an EXPLICIT (vantage, node) pair, the
+        /// highest-precedence tier of <see cref="DelayTo"/>. Overrides the
+        /// <see cref="SetNodeDelay"/> node-default for that specific observer.
+        /// The per-(authority, subject) command primitive (Plan 3): a command
+        /// centre's routed light-time to a fleet subject, applied only when an
+        /// operator selects that centre as its vantage.
+        /// </summary>
+        void SetDelay(string vantage, string node, double seconds);
     }
 
     /// <summary>

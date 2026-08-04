@@ -469,6 +469,17 @@ namespace Sitrep.Contract
         void SetVesselDelay(string vesselId, double oneWaySeconds);
 
         /// <summary>
+        /// Set the per-(authority, subject) command delay (Plan 3): the one-way
+        /// light-time from a command centre (<paramref name="centreId"/>, an
+        /// authority/vantage) to a fleet subject. Writes the EXPLICIT (vantage,
+        /// node) pair tier, which overrides the <see cref="SetVesselDelay"/>
+        /// node-default for that observer; the node-default stays underneath for
+        /// any unselected vantage. Populated per capture pass, one row per active
+        /// centre x subject (minus the crewed-centre self-exclusion).
+        /// </summary>
+        void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds);
+
+        /// <summary>
         /// Set a FLEET vessel's connectivity (Plan 2b): its
         /// <c>fleet.&lt;vesselId&gt;.*</c> topics freeze on ITS OWN link
         /// independently of the active vessel. Call it per vessel each

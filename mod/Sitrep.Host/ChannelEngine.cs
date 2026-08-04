@@ -1096,6 +1096,16 @@ namespace Sitrep.Host
             _network.SetNodeDelay(FleetNodePrefix + vesselId, oneWaySeconds);
         }
 
+        public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
+        {
+            // Per-(authority, subject) command delay (Plan 3): the explicit
+            // (vantage = centreId, node = fleet.<vesselId>) pair overrides the
+            // SetVesselDelay node-default for an operator whose SelectedVantage is
+            // this centre. DelayTo's 3-tier lookup keeps the node-default beneath
+            // it for any unselected vantage, so KSC-only behaviour is unchanged.
+            _network.SetDelay(centreId, FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
             // Per-vessel freeze (Plan 2b): the vessel's fleet.<id> subject
