@@ -64,12 +64,13 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                var (oneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
+                var (oneWay, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 captures.Add(new FleetVesselCapture
                 {
                     Id = vessel.id.ToString(),
                     OneWaySeconds = oneWay,
+                    Connected = connected,
                     Orbit = orbit,
                 });
             }
@@ -89,10 +90,17 @@ namespace Gonogo.KSP
                 {
                     _host?.SetVesselDelay(v.Id, v.OneWaySeconds.Value);
                 }
+                // Per-subject freeze (Plan 2b): this vessel freezes on its own link.
+                _host?.SetVesselConnectivity(v.Id, v.Connected);
                 if (v.Orbit != null)
                 {
                     _orbitSource.Publisher(v.Id + ".orbit").Publish(v.Orbit, cap.Ut);
                 }
+                // Plan 2c: surface the per-vessel delay + connectivity the capture
+                // already holds as a display-only fleet.<guid>.delay field (same
+                // Delayed namespace as .orbit, so it too arrives light-time-late).
+                _orbitSource.Publisher(v.Id + ".delay")
+                    .Publish(FleetVesselLinkBuilder.Build(v.OneWaySeconds, v.Connected), cap.Ut);
             }
         }
 
@@ -108,6 +116,7 @@ namespace Gonogo.KSP
         {
             public string Id { get; set; } = string.Empty;
             public double? OneWaySeconds { get; set; }
+            public bool Connected { get; set; }
             public object? Orbit { get; set; }
         }
     }

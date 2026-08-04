@@ -724,6 +724,20 @@ function trySolve(elements: OrbitElements, ut: number): StateVector | null {
   return isHyperbolic(elements.ecc) ? null : solve(elements, ut);
 }
 
+/**
+ * Dead-reckon a vessel's parent-relative position/velocity from its wire orbit
+ * elements at `ut`, via the SAME `buildElements` normalization + `trySolve`
+ * (kepler.solve) path the active vessel uses. Returns null for a hyperbolic /
+ * unsolvable orbit rather than throwing. This is what the fleet dead-reckons per
+ * vessel (see `useFleetVesselPosition`); no new math, just the shared propagator.
+ */
+export function propagateVesselOrbit(
+  orbit: VesselOrbitPayload,
+  ut: number,
+): StateVector | null {
+  return trySolve(buildElements(orbit), ut);
+}
+
 /** Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of a RangeError. See `isHyperbolic`. */
 function trySolveAnomalies(
   elements: OrbitElements,
@@ -948,7 +962,7 @@ function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
  * OnRails branch and the target-orbit derivation (`tar.o.*`), so both
  * propagate through the identical conversion.
  */
-function buildElements(o: VesselOrbitPayload): OrbitElements {
+export function buildElements(o: VesselOrbitPayload): OrbitElements {
   return {
     sma: mag(o.sma),
     ecc: mag(o.ecc),

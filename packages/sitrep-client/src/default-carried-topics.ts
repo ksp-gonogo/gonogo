@@ -232,4 +232,9 @@ export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
   "scansat.height.",
   "scansat.biome.",
   "scansat.anomalies.",
+  // fleet.<guid>.orbit + fleet.<guid>.delay (Plan 2 per-vessel dynamic namespace,
+  // Plan 2c consumer): one prefix carries the whole per-vessel fleet namespace so
+  // the store timelines each vessel's delayed elements/link facts and useStream
+  // samples them (a dead-reckoned fleet position + FleetRoster per-row delay).
+  "fleet.",
 ];

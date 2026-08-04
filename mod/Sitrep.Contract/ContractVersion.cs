@@ -343,7 +343,14 @@ namespace Sitrep.Contract
         /// e.g. "Probe Core"), so the kOS terminal's CPU picker can label an
         /// untagged CPU by its part name instead of a bare "CPU &lt;id&gt;". A
         /// NEW nullable field on an existing wire type, additive-only.</para>
+        ///
+        /// <para>Same Minor batch (Major 6 parked): added the new
+        /// <see cref="FleetVesselLink"/> payload (display-only per-vessel
+        /// <c>OneWaySeconds</c> + <c>Connected</c>) carried on
+        /// <c>fleet.&lt;guid&gt;.delay</c>, so FleetRoster can show each vessel's
+        /// signal delay + connectivity. A NEW wire type, additive-only, never
+        /// touches an existing member.</para>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

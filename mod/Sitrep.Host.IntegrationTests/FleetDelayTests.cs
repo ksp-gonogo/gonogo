@@ -59,6 +59,45 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task FleetVesselDelayTopicEmitsAndSerializesEndToEnd()
+        {
+            // Plan 2c: fleet.<id>.delay carries FleetVesselLink (oneWaySeconds +
+            // connected), emitted as a self-flattened dict. This proves it
+            // serializes through the JsonWriter/WS boundary and arrives with its
+            // values intact -- the coverage the .orbit-only tests missed, which
+            // let a missing JsonWriter case (fixed by allowlisting the flattened
+            // producer) reach the fold gate.
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.probe.delay", Timeout);
+
+                // Every tick carries the same one-way delay (4.5), so whichever
+                // sample LossyLatest delivers past the horizon carries it.
+                for (var ut = 0.0; ut <= 5.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FleetFixture(ut, ("probe", 4.5)), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var delayFrame = frames.FirstOrDefault(f => f.Topic == "fleet.probe.delay");
+                // Arriving at all proves FleetVesselLink serialized end-to-end
+                // (no NotSupportedException at the JsonWriter boundary).
+                Assert.NotNull(delayFrame);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delayFrame!.Payload);
+                Assert.Equal(4.5, payload["oneWaySeconds"]);
+                Assert.Equal(true, payload["connected"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task EachFleetVesselIsDelayedByItsOwnLightTime()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -86,12 +125,12 @@ namespace Sitrep.Host.IntegrationTests
                 // vessel is delayed by its OWN light-time, not a shared one.
                 Assert.NotEmpty(near);
                 Assert.NotEmpty(far);
-                var firstNearValidAt = near.Min(f => f.Meta.ValidAt);
-                var firstFarValidAt = far.Min(f => f.Meta.ValidAt);
-                // The UT-0 sample is what arrives first for each (validAt 0).
-                Assert.Equal(0.0, firstNearValidAt);
-                Assert.Equal(0.0, firstFarValidAt);
-                // near delivered strictly earlier than far (its horizon is nearer).
+                // near (delay 2) delivers its FIRST sample strictly earlier than
+                // far (delay 6) -- the robust per-vessel-delay proof. (The exact
+                // validAt of the first delivered sample is not asserted: under
+                // LossyLatest a UT-0 sample can be coalesced past by the time its
+                // scheduled delivery reads the archive, which is correct, not a
+                // delay error.)
                 var nearArrival = near.Min(f => f.Meta.DeliveredAt);
                 var farArrival = far.Min(f => f.Meta.DeliveredAt);
                 Assert.True(nearArrival < farArrival,
@@ -104,7 +143,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task FleetFreezesTogetherOnGlobalDisconnectAndResumes()
+        public async Task FleetVesselsFreezeIndependentlyOnTheirOwnLink()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new FleetDelayTestUplink());
@@ -115,31 +154,29 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, "fleet.a.orbit", Timeout);
                 await SubscribeAsync(client, "fleet.b.orbit", Timeout);
 
-                // Connected: both fleet vessels stream (delay 0, immediate).
-                Tick(engine, 0.0, connected: true);
-                Tick(engine, 1.0, connected: true);
-                var connectedFrames = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(connectedFrames, f => f.Topic == "fleet.a.orbit");
-                Assert.Contains(connectedFrames, f => f.Topic == "fleet.b.orbit");
+                // Both connected: both stream.
+                engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
+                engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
+                var warm = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(warm, f => f.Topic == "fleet.a.orbit");
+                Assert.Contains(warm, f => f.Topic == "fleet.b.orbit");
 
-                // GLOBAL disconnect: freeze is global in Plan 2, so BOTH fleet
-                // topics freeze together (no new frames), like system.vessels today.
-                Tick(engine, 2.0, connected: false);
-                Tick(engine, 3.0, connected: false);
-                var outageFrames = await DrainAllStreamDataAsync(client, Quiet);
-                // No sample captured DURING the blackout (validAt >= 2) reaches the
-                // client for either vessel: both are frozen. (A connected sample
-                // still in flight from before the outage may still land -- that is
-                // the pre-outage tail, not a leak; it carries validAt < 2.)
-                Assert.DoesNotContain(outageFrames,
-                    f => (f.Topic == "fleet.a.orbit" || f.Topic == "fleet.b.orbit") && f.Meta.ValidAt >= 2.0);
+                // Disconnect ONLY a. b stays connected. Per-subject freeze: a's
+                // in-blackout samples (validAt >= 2) are withheld; b keeps streaming.
+                engine.TickAndWait(2.0, ConnFixture(2.0, ("a", false), ("b", true)), Timeout);
+                engine.TickAndWait(3.0, ConnFixture(3.0, ("a", false), ("b", true)), Timeout);
+                engine.TickAndWait(4.0, ConnFixture(4.0, ("a", false), ("b", true)), Timeout);
+                var outage = await DrainAllStreamDataAsync(client, Quiet);
+                // a: no sample captured during its blackout reaches the client.
+                Assert.DoesNotContain(outage, f => f.Topic == "fleet.a.orbit" && f.Meta.ValidAt >= 2.0);
+                // b: keeps streaming its own fresh samples (validAt >= 2 delivered).
+                Assert.Contains(outage, f => f.Topic == "fleet.b.orbit" && f.Meta.ValidAt >= 2.0);
 
-                // Reconnect: both resume.
-                Tick(engine, 4.0, connected: true);
-                Tick(engine, 5.0, connected: true);
-                var resumedFrames = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(resumedFrames, f => f.Topic == "fleet.a.orbit");
-                Assert.Contains(resumedFrames, f => f.Topic == "fleet.b.orbit");
+                // a reconnects: it resumes; b was never interrupted.
+                engine.TickAndWait(5.0, ConnFixture(5.0, ("a", true), ("b", true)), Timeout);
+                engine.TickAndWait(6.0, ConnFixture(6.0, ("a", true), ("b", true)), Timeout);
+                var resumed = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(resumed, f => f.Topic == "fleet.a.orbit" && f.Meta.ValidAt >= 5.0);
             }
             finally
             {
@@ -147,12 +184,94 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private static void Tick(ChannelEngine engine, double ut, bool connected)
+        [Fact]
+        public async Task FleetVesselPreOutageTailDrainsThenFreezes()
         {
-            var snap = FleetFixture(ut, ("a", 0.0), ("b", 0.0));
-            snap.Values["connected"] = connected;
-            engine.TickAndWait(ut, snap, TimeSpan.FromSeconds(10));
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.v.orbit", Timeout);
+
+                // v has light-time 3. Emit while CONNECTED at UT 0 and 1 (these are
+                // in flight, scheduled to reveal at UT 3 and 4).
+                engine.TickAndWait(0.0, TailFixture(0.0, connected: true), Timeout);
+                engine.TickAndWait(1.0, TailFixture(1.0, connected: true), Timeout);
+                // v DISCONNECTS at UT 2. Samples emitted during its blackout (validAt
+                // >= 2) get +Inf and are withheld; the pre-outage tail (validAt 0, 1)
+                // still reveals as the clock overtakes their horizon (UT 3, 4).
+                for (var ut = 2.0; ut <= 6.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, TailFixture(ut, connected: false), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var v = frames.Where(f => f.Topic == "fleet.v.orbit").ToList();
+                // The pre-outage tail drained (a connected sample, validAt < 2, revealed).
+                Assert.Contains(v, f => f.Meta.ValidAt < 2.0);
+                // No in-blackout sample (validAt >= 2) ever reached the client: frozen.
+                Assert.DoesNotContain(v, f => f.Meta.ValidAt >= 2.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
         }
+
+        private static KspSnapshot TailFixture(double ut, bool connected)
+        {
+            var snap = ConnFixture(ut, ("v", connected));
+            // Give v a non-zero light-time so its pre-outage samples are genuinely
+            // in flight (horizon ahead of the disconnect), not delivered instantly.
+            ((Dictionary<string, object?>)((List<object?>)snap.Values["vessels"]!)[0]!)["delay"] = 3.0;
+            return snap;
+        }
+
+        [Fact]
+        public async Task FleetSubjectFreezeMapsAreCleanedWhenAVesselGoesAway()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                var clientA = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(clientA, "fleet.a.orbit", Timeout);
+                await SubscribeAsync(clientB, "fleet.b.orbit", Timeout);
+
+                // Ticks populate the per-subject freeze maps for both vessels.
+                engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
+                engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
+                await DrainAllStreamDataAsync(clientB, Quiet);
+                Assert.True(engine.HasFreezeStateForSubject("fleet.a"));
+                Assert.True(engine.HasFreezeStateForSubject("fleet.b"));
+
+                // The only fleet.a subscriber disconnects. We do NOT tick during the
+                // wait, so the gated capture cannot re-add fleet.a (in production a
+                // torn-down vessel is likewise gone from the capture). Its freeze
+                // maps are cleaned; fleet.b (still subscribed) is retained.
+                await clientA.DisposeAsync();
+                var deadline = DateTime.UtcNow + Timeout;
+                while (engine.HasFreezeStateForSubject("fleet.a") && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(20);
+                }
+                Assert.False(engine.HasFreezeStateForSubject("fleet.a")); // cleaned on disconnect
+                Assert.True(engine.HasFreezeStateForSubject("fleet.b"));  // retained
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        // NOTE (Plan 2b): the Plan-2 `FleetFreezesTogetherOnGlobalDisconnectAndResumes`
+        // test was REMOVED (its premise -- all fleet topics freeze together on the
+        // global link -- is the one intended behaviour change). The pre-outage-tail-
+        // drains case + active-vessel parity land in a later task.
 
         /// <summary>
         /// A KspSnapshot at <paramref name="ut"/> whose <c>vessels</c> roster
@@ -169,6 +288,39 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     ["id"] = id,
                     ["delay"] = delay,
+                    ["orbit"] = new Dictionary<string, object?>
+                    {
+                        ["sma"] = 700000.0,
+                        ["ecc"] = 0.0,
+                        ["inc"] = 0.0,
+                        ["meanAnomalyAtEpoch"] = 0.0,
+                        ["epoch"] = 0.0,
+                        ["mu"] = 3.5316000e12,
+                        ["referenceBody"] = "Kerbin",
+                    },
+                });
+            }
+            return new KspSnapshot
+            {
+                Ut = ut,
+                Values = new Dictionary<string, object?> { ["vessels"] = roster },
+            };
+        }
+
+        /// <summary>
+        /// A KspSnapshot at <paramref name="ut"/> whose vessels carry a per-vessel
+        /// <c>connected</c> flag (delay 0), for per-subject freeze tests.
+        /// </summary>
+        internal static KspSnapshot ConnFixture(double ut, params (string id, bool connected)[] vessels)
+        {
+            var roster = new List<object?>();
+            foreach (var (id, connected) in vessels)
+            {
+                roster.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = id,
+                    ["delay"] = 0.0,
+                    ["connected"] = connected,
                     ["orbit"] = new Dictionary<string, object?>
                     {
                         ["sma"] = 700000.0,

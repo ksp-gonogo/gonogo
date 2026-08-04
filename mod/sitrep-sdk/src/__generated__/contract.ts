@@ -336,6 +336,11 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	topic: string;
 }
+export interface FleetVesselLink
+{
+	oneWaySeconds?: Value<"s">;
+	connected: boolean;
+}
 export enum FlightEndReason {
 	Recovered = 0,
 	Crashed = 1,

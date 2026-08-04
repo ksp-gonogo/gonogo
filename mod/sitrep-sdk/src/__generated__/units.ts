@@ -368,6 +368,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
     transmitBonus: "ratio",
   },
+  "FleetVesselLink": {
+    connected: "flag",
+    oneWaySeconds: "s",
+  },
   "FlightCurrent": {
     flightId: "id",
     phase: "enum",

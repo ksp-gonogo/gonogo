@@ -250,6 +250,10 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/ShipMap/ShipDiagram.tsx": 2,
     "packages/components/src/SystemView/SystemDiagram.tsx": 1,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 1,
+    // The disclosure panel overlay, local sibling ordering inside the
+    // component's own stacking context (lifts the popped panel above following
+    // content). Not app-global chrome, so no named z rung.
+    "packages/ui-kit/src/Disclosure.tsx": 1,
     // Two, both local sibling ordering inside the panel's own stacking
     // context: the scroll glow over the scrolling body, and the overlay
     // header over the content that runs beneath it. Neither is app-global
