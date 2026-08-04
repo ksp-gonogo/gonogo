@@ -63,6 +63,14 @@ public class LaunchSiteEntry
     /// <summary>Name of the vessel occupying this pad, when derivable (depends on <see cref="PadOccupied"/>); null until per-site occupancy exists beyond the stock-pad PRELAUNCH derivation.</summary>
     [SitrepUnit(Units.Text)]
     public string? PadVesselTitle { get; set; }
+
+    /// <summary>Surface latitude of the launch site on its <see cref="BodyIndex"/> body (Plan 3): a launch is a delayed command to the site's location, so the site self-enumerates with a position, delay = <c>DelayTo(vantage, siteLocation)</c>. Null until the enumerator populates it.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? Latitude { get; set; }
+
+    /// <summary>Surface longitude of the launch site on its <see cref="BodyIndex"/> body (Plan 3). Null until the enumerator populates it.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? Longitude { get; set; }
 }
 
 /// <summary>

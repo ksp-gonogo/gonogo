@@ -351,10 +351,12 @@ namespace Sitrep.Contract
         /// signal delay + connectivity. A NEW wire type, additive-only, never
         /// touches an existing member.</para>
         ///
-        /// <para><b>Bumped 3 -&gt; 4:</b> the <c>commandCentre.roster</c> channel
-        /// and its <see cref="CommandCentreEntry"/> type (Plan 3): the roster of
-        /// command centres (vantages/authorities) a dashboard can select. A NEW
-        /// wire type, additive-only, never touches an existing member.</para>
+        /// <para><b>Bumped 3 -&gt; 4 (Plan 3, additive):</b> the
+        /// <c>commandCentre.roster</c> channel + <see cref="CommandCentreEntry"/>
+        /// (the roster of command centres a dashboard can select as its vantage),
+        /// the <c>SetVantage</c> client message, and <c>Latitude</c>/<c>Longitude</c>
+        /// on <see cref="LaunchSiteEntry"/> (a launch is a delayed command to the
+        /// site's location). All additive, never touching an existing member.</para>
         /// </summary>
         public const int Minor = 4;
     }

@@ -964,6 +964,8 @@ export interface LaunchSiteEntry
 	isStock?: boolean;
 	padOccupied?: boolean;
 	padVesselTitle?: string;
+	latitude?: Value<"°">;
+	longitude?: Value<"°">;
 }
 export interface SpaceCenterScene
 {
