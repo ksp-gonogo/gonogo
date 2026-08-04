@@ -20,6 +20,18 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
 
+        [Theory]
+        [InlineData("fleet.abc-123.orbit", "fleet.abc-123")] // per-vessel topic -> its own node
+        [InlineData("fleet.abc-123.comms", "fleet.abc-123")] // any field under a vessel shares the node
+        [InlineData("vessel.orbit", "system")]               // active-vessel topics stay on the single node
+        [InlineData("system.vessels", "system")]             // system topics unchanged
+        [InlineData("comms.delay", "system")]
+        [InlineData("fleet.abc-123", "system")]              // no field segment -> not a per-vessel topic
+        public void NodeForTopicRoutesFleetTopicsToPerVesselNodes(string topic, string expectedNode)
+        {
+            Assert.Equal(expectedNode, ChannelEngine.NodeForTopic(topic));
+        }
+
         [Fact]
         public async Task FleetVesselsEmitPerVesselOrbitTopics()
         {

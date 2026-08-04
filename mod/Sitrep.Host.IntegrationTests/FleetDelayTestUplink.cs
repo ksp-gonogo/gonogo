@@ -15,7 +15,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public sealed class FleetDelayTestUplink : ISitrepUplink
     {
-        public const string Prefix = "fleet.";
+        public const string Prefix = ChannelEngine.FleetNodePrefix;
 
         private IDynamicChannelSource? _orbitSource;
 
