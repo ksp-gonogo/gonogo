@@ -307,6 +307,57 @@ Two escapes exist for the places a React node cannot go, both from
 `writeQuantity` for visible text that is MEASURED, such as an SVG `<text>` or a
 canvas label.
 
+### Declaring your own units
+
+Your mod half annotates its contract exactly the way the first party does:
+
+```csharp
+[SitrepTopic("example.reactor")]
+public sealed class ReactorStatus
+{
+    [SitrepUnit("kW")]
+    public double OutputPower { get; set; }
+
+    // A token the first-party catalog has never heard of is FINE. You cannot
+    // add to Sitrep.Contract.Units (a const-string class in an assembly you
+    // do not own), which is exactly why the generated SitrepUnit union is
+    // open. Teach the client what it means with registerUnit.
+    [SitrepUnit("thermalUnits")]
+    public double Throughput { get; set; }
+}
+```
+
+And your codegen generates from them, against YOUR assembly:
+
+```csharp
+public static class ReactorRtConfig
+{
+    public static void Configure(ConfigurationBuilder builder)
+    {
+        var mine = new[] { typeof(ReactorStatus) };
+        // …your ExportAsInterfaces call…
+
+        // The same pass the first party runs: retypes each annotated property
+        // from a bare number to Value<"kW">. `valueImportFrom` is the path
+        // that reaches the SDK from YOUR generated file.
+        RtConfig.ApplyUnitValueTypes(builder, mine, valueImportFrom: "@ksp-gonogo/sitrep-sdk");
+    }
+}
+```
+
+`UnitDescriptor.ToJson(typeof(ReactorStatus).Assembly)` gives you the matching
+descriptor, the same document the mod serves on `system.units`.
+
+Register any unit the first party does not know, once, at client module load:
+
+```ts
+import { registerUnit } from "@ksp-gonogo/ui-kit";
+
+registerUnit({ symbol: "thermalUnits", kind: "count" });
+```
+
+Until you do, the value still renders, bare and unscaled.
+
 ### Testing it
 
 `<Unit>` renders the number, the symbol, and a visually hidden word as separate
