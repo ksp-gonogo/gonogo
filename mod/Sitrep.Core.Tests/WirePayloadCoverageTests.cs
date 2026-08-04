@@ -111,6 +111,9 @@ namespace Sitrep.Core.Tests
             "LaunchSiteEntry", "SpaceCenterScene",
             "CrewRosterEntry", "SavedShipEntry", "SpaceCenterPartsAvailable",
             "SpaceCenterPoiEntry",
+            // commandCentre.roster: the command-centre enumeration pass
+            // hand-flattens each centre to a Dictionary; this POCO is TS-shape-only.
+            "CommandCentreEntry",
             // parts.power / parts.robotics / robotics.available:
             // PartsViewProvider.BuildPower/BuildRobotics/BuildRoboticsAvailable
             // hand-build Dictionary<string, object?> trees; these POCOs are

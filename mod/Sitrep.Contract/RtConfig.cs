@@ -244,6 +244,8 @@ public static class RtConfig
                 typeof(SpaceCenterPartsAvailable),
                 // spaceCenter.pois: the map points-of-interest union (T-POI-3)
                 typeof(SpaceCenterPoiEntry),
+                // commandCentre.roster: the vantage/authority union (Plan 3)
+                typeof(CommandCentreEntry),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

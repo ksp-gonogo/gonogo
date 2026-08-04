@@ -350,7 +350,12 @@ namespace Sitrep.Contract
         /// <c>fleet.&lt;guid&gt;.delay</c>, so FleetRoster can show each vessel's
         /// signal delay + connectivity. A NEW wire type, additive-only, never
         /// touches an existing member.</para>
+        ///
+        /// <para><b>Bumped 3 -&gt; 4:</b> the <c>commandCentre.roster</c> channel
+        /// and its <see cref="CommandCentreEntry"/> type (Plan 3): the roster of
+        /// command centres (vantages/authorities) a dashboard can select. A NEW
+        /// wire type, additive-only, never touches an existing member.</para>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }

@@ -164,6 +164,16 @@
       "distance": "m",
       "time": "s"
     },
+    "CommandCentreEntry": {
+      "active": "flag",
+      "bodyIndex": "id",
+      "delayQuality": "text",
+      "displayName": "text",
+      "id": "id",
+      "kind": "text",
+      "latitude": "°",
+      "longitude": "°"
+    },
     "CommandResult": {
       "errorCode": "enum",
       "success": "flag"
@@ -1159,6 +1169,16 @@
     },
     "career.mode": {
       "mode": "enum"
+    },
+    "commandCentre.roster": {
+      "active": "flag",
+      "bodyIndex": "id",
+      "delayQuality": "text",
+      "displayName": "text",
+      "id": "id",
+      "kind": "text",
+      "latitude": "°",
+      "longitude": "°"
     },
     "comms.connectivity": {
       "connected": "flag",
