@@ -360,13 +360,13 @@ function LandingStatusComponent({
 
   const solution = solveSuicideBurn({
     heightFromTerrain: heightFromTerrain?.magnitude,
-    altitudeAsl: flight?.altitudeAsl.magnitude,
-    verticalSpeed: flight?.verticalSpeed.magnitude,
-    surfaceSpeed: flight?.surfaceSpeed.magnitude,
-    mu: orbit?.mu.magnitude,
+    altitudeAsl: flight?.altitudeAsl?.magnitude,
+    verticalSpeed: flight?.verticalSpeed?.magnitude,
+    surfaceSpeed: flight?.surfaceSpeed?.magnitude,
+    mu: orbit?.mu?.magnitude,
     bodyRadius: body?.radius,
-    availableThrust: propulsion?.availableThrust.magnitude,
-    totalMass: propulsion?.totalMass.magnitude,
+    availableThrust: propulsion?.availableThrust?.magnitude,
+    totalMass: propulsion?.totalMass?.magnitude,
     exhaustVelocity,
     burnoutMass,
   });
@@ -420,7 +420,7 @@ function LandingStatusComponent({
   // Descent-rate trend: a bounded history of vertical speed, so a developing
   // over-speed reads as a trend not a single tick. Appended after render.
   const [descentHistory, setDescentHistory] = useState<number[]>([]);
-  const currentVs = flight?.verticalSpeed.magnitude;
+  const currentVs = flight?.verticalSpeed?.magnitude;
   useEffect(() => {
     if (currentVs == null || !Number.isFinite(currentVs)) return;
     setDescentHistory((h) => {
@@ -593,7 +593,7 @@ function LandingStatusComponent({
   const envelopeEl =
     board === "atmospheric-aware" ? (
       <DescentEnvelope
-        currentSpeed={flight?.surfaceSpeed.magnitude ?? null}
+        currentSpeed={flight?.surfaceSpeed?.magnitude ?? null}
         currentAltitude={heightFromTerrain?.magnitude ?? null}
         terminalVelocity={landing?.terminalVelocity?.magnitude ?? null}
         projectedTouchdownSpeed={
@@ -857,8 +857,8 @@ function LandingStatusComponent({
     <TouchdownReticle
       siteLat={landing?.predictedLatitude?.magnitude ?? null}
       siteLon={landing?.predictedLongitude?.magnitude ?? null}
-      vesselLat={flight?.latitude.magnitude ?? null}
-      vesselLon={flight?.longitude.magnitude ?? null}
+      vesselLat={flight?.latitude?.magnitude ?? null}
+      vesselLon={flight?.longitude?.magnitude ?? null}
       bodyRadius={body?.radius ?? null}
       slopeDeg={landing?.predictedSlopeAngle?.magnitude ?? null}
       biome={landing?.predictedBiome ?? null}

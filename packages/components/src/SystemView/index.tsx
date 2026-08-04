@@ -317,7 +317,7 @@ function SystemViewComponent({
 
   // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame
   // matches its parent body.
-  const vSma = orbit?.sma.magnitude;
+  const vSma = orbit?.sma?.magnitude;
   const vesselOrbit =
     vesselBody != null && orbit && Number.isFinite(orbit.sma.magnitude)
       ? {

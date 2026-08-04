@@ -408,7 +408,7 @@ function MapViewComponent({
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
-  const speed = flight?.surfaceSpeed.magnitude;
+  const speed = flight?.surfaceSpeed?.magnitude;
   const vSpeed = flight?.verticalSpeed;
   const orbitPatches = vesselState?.orbitPatches;
   const maneuverNodes = useStream<VesselManeuverLegacyState>(

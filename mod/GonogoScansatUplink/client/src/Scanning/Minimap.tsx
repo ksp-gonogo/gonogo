@@ -215,8 +215,8 @@ export function MinimapForActiveVessel({
   return (
     <Minimap
       body={body}
-      vesselLat={flight?.latitude.magnitude}
-      vesselLon={flight?.longitude.magnitude}
+      vesselLat={flight?.latitude?.magnitude}
+      vesselLon={flight?.longitude?.magnitude}
     />
   );
 }

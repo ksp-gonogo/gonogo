@@ -190,7 +190,7 @@ function DistanceToTargetComponent({
   // docking scenario right now", not "still loading".
   const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
-  const dockDistanceStream = dock?.distance.magnitude;
+  const dockDistanceStream = dock?.distance?.magnitude;
   const dockForwardDot = dock?.forwardDot;
 
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
