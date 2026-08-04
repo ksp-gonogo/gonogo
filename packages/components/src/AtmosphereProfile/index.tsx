@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { speakQuantity, Unit } from "@ksp-gonogo/ui-kit";
+import { speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import styled from "styled-components";
 import {
@@ -122,7 +122,7 @@ function AtmosphereProfileComponent({
     // stays short and its left edge can't run into the legend / Y-ticks.
     const label = narrow
       ? formatPressure(currentPressure)
-      : `${formatPressure(currentPressure)} @ ${(altitude / 1000).toFixed(0)} km`;
+      : `${formatPressure(currentPressure)} @ ${writeQuantity(value("m", altitude), { decimals: 0 })}`;
     return [
       {
         id: "current-pressure",

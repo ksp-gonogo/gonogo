@@ -1,5 +1,7 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import styled from "styled-components";
+import { Unit } from "../Unit";
 
 /**
  * Vanilla-safe display shapes, a deliberate LOCAL redeclaration (not an import
@@ -256,10 +258,10 @@ export function ControlDelayStream({
             the accessibility tree and these labels are never announced separately. */}
         <g data-role="hover-labels">
           <text x={divX1} y={PAD_T - 0.4} textAnchor="middle" fontSize="2">
-            {oneWay.toFixed(1)}s
+            <Unit value={value("s", oneWay)} decimals={1} />
           </text>
           <text x={divX2} y={PAD_T - 0.4} textAnchor="middle" fontSize="2">
-            {(2 * oneWay).toFixed(1)}s
+            <Unit value={value("s", 2 * oneWay)} decimals={1} />
           </text>
           <text
             x={xAt(oneWay / 2, span)}

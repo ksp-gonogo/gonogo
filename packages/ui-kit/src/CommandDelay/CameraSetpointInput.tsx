@@ -9,7 +9,9 @@
  * `no-path`, so this component does not re-implement it.
  */
 
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { JogWheel } from "../JogWheel";
+import { writeQuantity } from "../units";
 import { CommandGroup } from "./CommandGroup";
 
 export type CameraSetpoint = { yaw: number; pitch: number; fov: number };
@@ -36,7 +38,8 @@ export interface CameraSetpointInputProps {
   commitLabel?: string;
 }
 
-const formatDegrees = (v: number): string => `${Math.round(v)}°`;
+const formatDegrees = (v: number): string =>
+  writeQuantity(value("°", v), { decimals: 0 });
 
 export function CameraSetpointInput({
   value,

@@ -81,7 +81,7 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
 
     // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
-    await waitFor(() => expect(visibleText()).toContain("87%"));
+    await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     // Control label + formatted delay both come off the stream now.
     expect(screen.getByText("Full")).toBeTruthy();

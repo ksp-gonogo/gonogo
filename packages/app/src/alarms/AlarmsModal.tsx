@@ -2,6 +2,7 @@ import type { ActionGroup } from "@ksp-gonogo/core";
 import { useActionGroups, useTelemetry } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   DataKeyPicker,
@@ -19,6 +20,8 @@ import {
   type ReadoutTone,
   SectionTitle,
   Stack,
+  Unit,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -681,7 +684,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
           </>
         )}
         {" · lead "}
-        {a.trigger.leadSeconds}s
+        <Unit value={value("s", a.trigger.leadSeconds)} />
       </>
     );
   }
@@ -689,9 +692,9 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
     const t = a.trigger;
     const matchInfo =
       a.matchSinceUT != null && utNow != null
-        ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${t.sustainSeconds}s)`
+        ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${writeQuantity(value("s", t.sustainSeconds))})`
         : t.sustainSeconds > 0
-          ? ` · sustain ${t.sustainSeconds}s`
+          ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
           : "";
     return (
       <code>
@@ -713,9 +716,9 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
   const t = a.trigger;
   const matchInfo =
     a.matchSinceUT != null && utNow != null
-      ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${t.sustainSeconds}s)`
+      ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${writeQuantity(value("s", t.sustainSeconds))})`
       : t.sustainSeconds > 0
-        ? ` · sustain ${t.sustainSeconds}s`
+        ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
         : "";
   return (
     <code>

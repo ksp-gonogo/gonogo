@@ -10,7 +10,8 @@
  * rail renders a safe empty scale before data arrives.
  */
 
-import { Tape, Value } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Tape, Value, writeQuantity } from "@ksp-gonogo/ui-kit";
 
 export interface AltitudeRailProps {
   /** Height of the vessel's lowest point above terrain, metres. */
@@ -94,7 +95,7 @@ export function AltitudeRail({
             ? "no burn"
             : suicideBurnCountdown <= 0
               ? "past ignition"
-              : `ignite in ${Math.ceil(suicideBurnCountdown)}s`}
+              : `ignite in ${writeQuantity(value("s", Math.ceil(suicideBurnCountdown)))}`}
         </Value>
       </div>
     </div>

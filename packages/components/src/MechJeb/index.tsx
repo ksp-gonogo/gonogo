@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   type BadgeTone,
@@ -15,6 +16,7 @@ import {
   Panel,
   Section,
   SectionTitle,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
 
@@ -156,7 +158,7 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   const fireEngage = () =>
     void engage.send(
       { targetAltitudeKm: altitudeKm },
-      { label: `Engage ascent to ${altitudeKm} km` },
+      { label: `Engage ascent to ${writeQuantity(value("km", altitudeKm))}` },
     );
   const fireExecuteNode = () =>
     void executeNode.send({}, { label: "Execute next node" });
@@ -185,7 +187,7 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
       panelTitle="MechJeb"
       panelSubtitle={
         oneWay != null
-          ? `Remote autopilot (${oneWay.toFixed(1)} s one-way delay)`
+          ? `Remote autopilot (${writeQuantity(value("s", oneWay), { decimals: 1 })} one-way delay)`
           : "Remote autopilot"
       }
     >

@@ -10,7 +10,7 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { ProfileStrip } from "./ProfileStrip";
@@ -202,7 +202,11 @@ function SmoothnessBadge({ verdict }: { verdict: SmoothnessVerdict | null }) {
 
 function SpeedReadout({ speed }: { speed: number | null }) {
   if (speed === null) return null;
-  return <Speed>{speed.toFixed(0)} m/s surf.</Speed>;
+  return (
+    <Speed>
+      <Unit value={value("m/s", speed)} decimals={0} /> surf.
+    </Speed>
+  );
 }
 
 function PredictionReadout({ lat, lon }: { lat: number; lon: number }) {
@@ -213,10 +217,11 @@ function PredictionReadout({ lat, lon }: { lat: number; lon: number }) {
   );
 }
 
-function formatCoord(value: number, axis: "lat" | "lon"): string {
-  const hemi =
-    axis === "lat" ? (value >= 0 ? "N" : "S") : value >= 0 ? "E" : "W";
-  return `${Math.abs(value).toFixed(2)}°${hemi}`;
+// `deg`, not `value`: the parameter used to shadow the `value` helper this
+// now calls.
+function formatCoord(deg: number, axis: "lat" | "lon"): string {
+  const hemi = axis === "lat" ? (deg >= 0 ? "N" : "S") : deg >= 0 ? "E" : "W";
+  return `${writeQuantity(value("°", Math.abs(deg)), { decimals: 2 })}${hemi}`;
 }
 
 // The shared `length` ladder with this widget's own precision. A survey

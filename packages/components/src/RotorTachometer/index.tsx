@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge } from "@ksp-gonogo/ui";
 import {
   EmptyState,
@@ -13,7 +14,9 @@ import {
   type InFlightListItem,
   Panel,
   ToggleButton,
+  Unit,
   useElementSize,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
@@ -183,11 +186,17 @@ function RotorTachometerComponent({
   };
   const setTorqueLimit = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 100));
-    void torqueCmd.send({ partId: id, value }, { label: `Torque ${value}%` });
+    void torqueCmd.send(
+      { partId: id, value },
+      { label: `Torque ${writeQuantity(quantity("%", value))}` },
+    );
   };
   const setBrake = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 200));
-    void brakeCmd.send({ partId: id, value }, { label: `Brake ${value}%` });
+    void brakeCmd.send(
+      { partId: id, value },
+      { label: `Brake ${writeQuantity(quantity("%", value))}` },
+    );
   };
   const setMotor = (id: string, engaged: boolean) =>
     void motorCmd.send(
@@ -341,7 +350,12 @@ function RotorTachometerComponent({
               >
                 −
               </StepBtn>
-              <StepValue>{Math.round(selected.torqueLimit)}%</StepValue>
+              <StepValue>
+                <Unit
+                  value={quantity("%", selected.torqueLimit)}
+                  decimals={0}
+                />
+              </StepValue>
               <StepBtn
                 type="button"
                 aria-label="Raise torque limit"

@@ -86,8 +86,10 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
     expect(scope.getByText(/Powered/i)).toBeInTheDocument();
     // Both experiments render with their derived progress.
     expect(scope.getByText("Seismic Accelerometer")).toBeInTheDocument();
-    expect(scope.getByText("75%")).toBeInTheDocument();
+    // The progress readout renders through `<Unit>`, so it is a number and a
+    // symbol rather than one text node.
+    expect(visibleText(container)).toContain("75 %");
     expect(scope.getByText("Mystery Goo Experiment")).toBeInTheDocument();
-    expect(scope.getByText("100%")).toBeInTheDocument();
+    expect(visibleText(container)).toContain("100 %");
   });
 });

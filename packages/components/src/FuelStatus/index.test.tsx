@@ -254,13 +254,16 @@ describe("FuelStatusComponent", () => {
     // alone renders before any data).
     await waitFor(() =>
       expect(
-        screen.queryAllByText(`${NULL_DISPLAY} m/s`).length,
+        screen.queryAllByText(new RegExp(`TWR\\s+${NULL_DISPLAY}`)).length,
       ).toBeGreaterThan(0),
     );
     expect(visibleText(container)).toContain("FUEL · ΔV");
-    expect(
-      screen.queryAllByText(new RegExp(`TWR\\s+${NULL_DISPLAY}`)).length,
-    ).toBeGreaterThan(0);
+    // The stage's ΔV is a BARE placeholder, where this used to look for the
+    // placeholder followed by "m/s". `<Unit>` renders no symbol beside an
+    // absent value on purpose: a null with a unit after it claims a reading
+    // in metres per second that was never taken. The column header still
+    // says what the column is.
+    expect(screen.queryAllByText(NULL_DISPLAY).length).toBeGreaterThan(0);
   });
 
   it("displays totals and per-stage ΔV for the selected reference mode", async () => {
@@ -306,8 +309,10 @@ describe("FuelStatusComponent", () => {
     expect(screen.queryByText("2m 5s")).not.toBeNull();
 
     // Per-stage ΔV picks the vacuum column.
+    // `visibleText`, not `.textContent`: a readout carries a hidden word for
+    // screen readers, so the raw text reads "2500 m/s metres per second".
     const stageValueTexts = Array.from(container.querySelectorAll("span")).map(
-      (el) => el.textContent ?? "",
+      (el) => visibleText(el),
     );
     expect(stageValueTexts).toContain("2500 m/s");
     expect(stageValueTexts).toContain("1700 m/s");

@@ -22,7 +22,20 @@ describe("formatAge", () => {
   it("formats hours for large values", () => {
     expect(formatAge(3_600_000)).toBe("1h");
     expect(formatAge(7_200_000)).toBe("2h");
-    expect(formatAge(48 * 3_600_000)).toBe("48h");
+  });
+
+  it("climbs to REAL days, not Kerbin ones", () => {
+    // The whole reason this goes through `irl:s` rather than the game-time
+    // ladder beside it. A KSP day is 6 hours, so `formatDuration` reads two
+    // real days as "8d"; this is a staleness badge, and the operator means
+    // the calendar on the wall.
+    expect(formatAge(24 * 3_600_000)).toBe("1d");
+    expect(formatAge(48 * 3_600_000)).toBe("2d");
+  });
+
+  it("shows the second tier when it is non-zero", () => {
+    expect(formatAge(90_000)).toBe("1m 30s");
+    expect(formatAge(5_400_000)).toBe("1h 30m");
   });
 });
 
@@ -37,19 +50,14 @@ describe("formatAgeLong", () => {
     expect(formatAgeLong(45_000)).toBe("45s");
   });
 
-  it("formats minutes with ' min' suffix", () => {
-    expect(formatAgeLong(60_000)).toBe("1 min");
-    expect(formatAgeLong(120_000)).toBe("2 min");
-  });
-
-  it("formats hours with ' h' suffix", () => {
-    expect(formatAgeLong(3_600_000)).toBe("1 h");
-    expect(formatAgeLong(7_200_000)).toBe("2 h");
-  });
-
-  it("formats days with ' d' suffix", () => {
-    expect(formatAgeLong(86_400_000)).toBe("1 d");
-    expect(formatAgeLong(2 * 86_400_000)).toBe("2 d");
+  // The "long" form used to spell its suffixes out ("2 min", "1 d") and stop
+  // at hours. It is the same ladder as `formatAge` now, so what is worth
+  // asserting is that the two agree rather than that one of them still has a
+  // second spelling.
+  it("is the same reading as formatAge", () => {
+    for (const ms of [1000, 90_000, 3_600_000, 24 * 3_600_000]) {
+      expect(formatAgeLong(ms)).toBe(formatAge(ms));
+    }
   });
 });
 

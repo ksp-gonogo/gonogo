@@ -89,7 +89,7 @@ describe("CommSignalComponent", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeInTheDocument(),
     );
-    expect(visibleText()).toContain("82%");
+    expect(visibleText()).toContain("82 %");
     expect(screen.getByText("Full")).toBeInTheDocument();
   });
 

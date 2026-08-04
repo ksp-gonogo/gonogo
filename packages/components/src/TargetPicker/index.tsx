@@ -505,7 +505,9 @@ function TargetPickerComponent({
             <CurrentSummaryMeta>
               {tarType && <span>{tarType}</span>}
               {typeof tarRelVel === "number" && Number.isFinite(tarRelVel) && (
-                <span>Δv {tarRelVel.toFixed(2)} m/s</span>
+                <span>
+                  Δv <Unit value={value("m/s", tarRelVel)} decimals={2} />
+                </span>
               )}
               <Button onClick={clearTarget} type="button">
                 Clear target

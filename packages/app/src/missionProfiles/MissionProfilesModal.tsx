@@ -6,7 +6,7 @@ import {
   PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
-import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { formatDuration, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";
@@ -326,13 +326,7 @@ export function MissionProfilesModal({
 function formatRelative(ts: number): string {
   const diffMs = Date.now() - ts;
   const sec = Math.max(0, Math.round(diffMs / 1000));
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 48) return `${hr}h ago`;
-  const d = Math.round(hr / 24);
-  return `${d}d ago`;
+  return `${formatDuration(sec)} ago`;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

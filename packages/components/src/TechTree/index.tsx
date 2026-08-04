@@ -6,7 +6,8 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { Panel, ScrollArea, Unit } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { Panel, ScrollArea, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
@@ -428,7 +429,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       canUnlock,
       isPending: pendingUnlock === n.id,
       affordTooltip: !canAfford
-        ? `Need ${n.scienceCost} sci (have ${sciAvailable})`
+        ? `Need ${writeQuantity(value("science", n.scienceCost))} (have ${sciAvailable})`
         : !upgradesEnabled
           ? "Unlock from the Space Center scene"
           : undefined,

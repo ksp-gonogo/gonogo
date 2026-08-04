@@ -58,22 +58,19 @@ const EARTH_DAY_GREP = "\\b86_?400(_?000)?\\b";
  * Files whose 24-hour day is CORRECT because the thing being measured is real
  * time, not game time.
  *
- * Kept deliberately short, and each entry names why. The proper fix is for the
- * value itself to carry `irlTime` as its dimension, at which point the
- * distinction stops being a matter of which file the arithmetic sits in and
- * this list can go.
+ * **Empty, and the fix this list was waiting for is the reason.** It held one
+ * entry, `core`'s `formatAge`, which measures how long ago a reading was seen
+ * and is therefore counting the operator's afternoon rather than Kerbin's
+ * rotation. The note on it said the proper fix was for the value to carry
+ * `irlTime` as its dimension, at which point the distinction would stop being
+ * a matter of which file the arithmetic sits in. That is what happened: `irl:s`
+ * is a unit like any other, `formatQuantity` ladders it on a real day, and the
+ * two wall-clock readouts in the app hand it a value instead of dividing.
+ *
+ * So a new entry here should be rare, and the question to ask before adding
+ * one is whether the value could carry `irl:s` instead.
  */
-const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
-  {
-    file: "packages/core/src/utils/format.ts",
-    why:
-      "formatAgeLong renders how long ago something was SEEN, in real elapsed " +
-      "milliseconds. A 'last updated 3 d ago' badge is measuring the operator's " +
-      "afternoon, not Kerbin's rotation, so 86_400_000 is right here. ui-kit " +
-      "carried a duplicate of this file and it went with the formatters; this " +
-      "is the one that is left.",
-  },
-];
+const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [];
 
 function repoRoot(startDir: string): string {
   return execFileSync("git", ["rev-parse", "--show-toplevel"], {

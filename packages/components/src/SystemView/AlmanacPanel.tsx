@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Grid, Unit } from "@ksp-gonogo/ui-kit";
+import { Grid, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -162,14 +162,14 @@ function buildRows(
   ) {
     rows.push({
       label: "Hohmann ideal",
-      value: `${hohmannIdealDeg >= 0 ? "+" : ""}${hohmannIdealDeg.toFixed(1)}°`,
+      value: `${hohmannIdealDeg >= 0 ? "+" : ""}${writeQuantity(value("°", hohmannIdealDeg), { decimals: 1 })}`,
     });
     if (hohmannDeltaDeg !== null && hohmannDeltaDeg !== undefined) {
       const a = Math.abs(hohmannDeltaDeg);
       const tier = a < 2 ? "GO" : a < 10 ? "SOON" : "OFF";
       rows.push({
         label: "Δ from ideal",
-        value: `${hohmannDeltaDeg >= 0 ? "+" : ""}${hohmannDeltaDeg.toFixed(1)}° · ${tier}`,
+        value: `${hohmannDeltaDeg >= 0 ? "+" : ""}${writeQuantity(value("°", hohmannDeltaDeg), { decimals: 1 })} · ${tier}`,
       });
     }
   }

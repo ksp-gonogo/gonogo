@@ -511,7 +511,7 @@ function LaunchDirectorComponent({
                       <ShipName>{s.name}</ShipName>
                       <ShipDetails>
                         {s.facility} · {s.partCount} parts ·{" "}
-                        {s.totalMass.toFixed(1)}t
+                        <Unit value={value("t", s.totalMass)} decimals={1} />
                       </ShipDetails>
                     </ShipMeta>
                     <ShipCost>

@@ -1,6 +1,7 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { HeartIcon } from "@ksp-gonogo/ui";
-import { EmptyState, formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { EmptyState, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
   useCallback,
@@ -29,12 +30,16 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleString();
 }
 
-// The kit's ladder, not a fourth copy of it.
+// The kit's ladder, not a fourth copy of it. The WALL-CLOCK one: both
+// timestamps come from `Date.now()` (`formatDate` above reads them straight
+// into a `Date`), so this is how long the recorder ran on the desk, not how
+// long the flight lasted on Kerbin. `irl:s` carries that distinction as the
+// value's own dimension.
 function formatFlightDuration(
   launchedAt: number,
   lastSampleAt: number,
 ): string {
-  return formatDuration((lastSampleAt - launchedAt) / 1000);
+  return writeQuantity(value("irl:s", (lastSampleAt - launchedAt) / 1000));
 }
 
 function getSource(): MissionHistorySource | undefined {
@@ -381,7 +386,7 @@ export function FlightsManager({
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
-                            title={`Recovered ${f.outcome.recoveryLocation} · ${f.outcome.recoveryFactor} · +${Math.round(f.outcome.fundsEarned).toLocaleString()}f · +${f.outcome.scienceEarned.toFixed(1)} sci`}
+                            title={`Recovered ${f.outcome.recoveryLocation} · ${f.outcome.recoveryFactor} · +${writeQuantity(value("funds", f.outcome.fundsEarned), { decimals: 0 })} · +${writeQuantity(value("science", f.outcome.scienceEarned), { decimals: 1 })}`}
                           >
                             recovered
                           </OutcomeBadge>

@@ -179,7 +179,7 @@ describe("FlightOutcomeBanner", () => {
         capturedAtUT: 2000,
         vesselName: "Untitled",
         recoveryLocation: "LaunchPad",
-        recoveryFactor: "100%",
+        recoveryFactor: "100 %",
         scienceEarned: 0,
         totalScience: 5011,
         fundsEarned: 1035,

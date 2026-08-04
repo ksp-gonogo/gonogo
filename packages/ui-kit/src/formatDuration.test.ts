@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { formatCountdown, formatDuration } from "./formatDuration";
+import {
+  formatCountdown,
+  formatDuration,
+  formatIrlDuration,
+} from "./formatDuration";
 import { NULL_DISPLAY } from "./NullValue";
 
 describe("formatDuration", () => {
@@ -107,5 +111,33 @@ describe("formatCountdown", () => {
   it("returns an em dash for non-finite input", () => {
     expect(formatCountdown(Number.NaN)).toBe(NULL_DISPLAY);
     expect(formatCountdown(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
+  });
+});
+
+describe("formatIrlDuration", () => {
+  it("uses a 24-hour day where formatDuration uses Kerbin's six", () => {
+    // The reason the two exist separately. A reading taken yesterday is one
+    // day old on the wall calendar and four days old on Kerbin, and the second
+    // answer is nonsense in a staleness badge.
+    const oneRealDay = 24 * 60 * 60;
+    expect(formatIrlDuration(oneRealDay)).toBe("1d");
+    expect(formatDuration(oneRealDay)).toBe("4d");
+  });
+
+  it("agrees with formatDuration below a day, where the ladders are shared", () => {
+    for (const seconds of [0.4, 1, 45, 90, 3600, 5400]) {
+      expect(formatIrlDuration(seconds)).toBe(formatDuration(seconds));
+    }
+  });
+
+  it("has no year rung: a stale record reads in days", () => {
+    // 428 real days. `formatDuration` would say "1y 63d" off Kerbin's
+    // 426-day year, which says nothing useful about a recording on a disk.
+    expect(formatIrlDuration(428 * 24 * 60 * 60)).toBe("428d");
+  });
+
+  it("returns an em dash for non-finite input", () => {
+    expect(formatIrlDuration(Number.NaN)).toBe(NULL_DISPLAY);
+    expect(formatIrlDuration(Number.POSITIVE_INFINITY)).toBe(NULL_DISPLAY);
   });
 });

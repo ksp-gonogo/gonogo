@@ -13,7 +13,13 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { BellIcon, GhostButton, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  BellIcon,
+  formatDuration,
+  GhostButton,
+  Panel,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
@@ -242,12 +248,7 @@ export function formatDeadline(
   if (remaining <= 0) return "expired";
   // Stock KSP uses 6h days, 426d years. Round to whole days/hours for
   // legibility; sub-hour resolution adds noise the operator doesn't need.
-  const days = Math.floor(remaining / (6 * 3600));
-  const hours = Math.floor((remaining % (6 * 3600)) / 3600);
-  if (days >= 1) return `${days}d ${hours}h left`;
-  if (hours >= 1) return `${hours}h left`;
-  const mins = Math.max(1, Math.floor(remaining / 60));
-  return `${mins}m left`;
+  return `${formatDuration(Math.max(60, remaining))} left`;
 }
 
 function ContractManagerComponent({

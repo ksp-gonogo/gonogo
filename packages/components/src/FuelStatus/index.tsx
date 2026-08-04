@@ -24,6 +24,7 @@ import {
   Select,
   Unit,
   useModalSaveBar,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
@@ -318,7 +319,9 @@ function FuelStatusComponent({
     >
       {showHeroDv && (
         <HeroReadout $tone="alert">
-          <HeroValue>{`${fmtFixed(totalDv, 0)} m/s`}</HeroValue>
+          <HeroValue>
+            <Unit value={value("m/s", totalDv)} decimals={0} />
+          </HeroValue>
           <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
         </HeroReadout>
       )}
@@ -338,7 +341,7 @@ function FuelStatusComponent({
             <TotalsValue>
               <TotalsValueText>
                 {totalDv !== undefined
-                  ? `${fmtFixed(totalDv, 0)} m/s`
+                  ? writeQuantity(value("m/s", totalDv), { decimals: 0 })
                   : NULL_DISPLAY}
               </TotalsValueText>
               <TotalsModeTag>{DELTA_V_MODE_SHORT[mode]}</TotalsModeTag>
@@ -421,7 +424,9 @@ function FuelStatusComponent({
                     />
                   </Bar>
                   <StageReadout>
-                    <StageDv>{fmtFixed(dv, 0)} m/s</StageDv>
+                    <StageDv>
+                      <Unit value={value("m/s", dv)} decimals={0} />
+                    </StageDv>
                     {compactStageMeta ? (
                       <>
                         <StageMeta>{burn}</StageMeta>

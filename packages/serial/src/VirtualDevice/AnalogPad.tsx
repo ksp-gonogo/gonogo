@@ -58,8 +58,6 @@ export function AnalogPad({ label, onChange, onRelease }: Readonly<Props>) {
     };
   }, [dragging, updateFromPointer, onRelease]);
 
-  const thumbLeft = `${((pos + 1) / 2) * 100}%`;
-
   return (
     <Wrap>
       <Label>{label}</Label>
@@ -71,7 +69,10 @@ export function AnalogPad({ label, onChange, onRelease }: Readonly<Props>) {
         }}
       >
         <Centre />
-        <Thumb style={{ left: thumbLeft }} $active={dragging} />
+        <Thumb
+          style={{ left: `${((pos + 1) / 2) * 100}%` }}
+          $active={dragging}
+        />
       </Track>
       <PadValue>{pos.toFixed(2)}</PadValue>
     </Wrap>

@@ -1,6 +1,7 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useModal } from "@ksp-gonogo/ui";
 import { SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -486,13 +487,13 @@ function CrashDetail({ summary }: { summary: CrashSummary }) {
         <TotalRow>
           <TotalLabel>Highest altitude</TotalLabel>
           <TotalValue>
-            {Math.round(summary.highestAltitude).toLocaleString()} m
+            <Unit value={value("m", summary.highestAltitude)} />
           </TotalValue>
         </TotalRow>
         <TotalRow>
           <TotalLabel>Highest speed</TotalLabel>
           <TotalValue>
-            {Math.round(summary.highestSpeed).toLocaleString()} m/s
+            <Unit value={value("m/s", summary.highestSpeed)} />
           </TotalValue>
         </TotalRow>
         <TotalRow>
@@ -503,7 +504,7 @@ function CrashDetail({ summary }: { summary: CrashSummary }) {
           <TotalRow>
             <TotalLabel>Ground distance</TotalLabel>
             <TotalValue>
-              {Math.round(summary.groundDistance).toLocaleString()} m
+              <Unit value={value("m", summary.groundDistance)} />
             </TotalValue>
           </TotalRow>
         )}

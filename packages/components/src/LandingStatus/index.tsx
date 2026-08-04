@@ -29,6 +29,7 @@ import {
   StatusPill,
   Unit,
   Value,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AltitudeRail } from "./AltitudeRail";
@@ -921,10 +922,10 @@ function LandingStatusComponent({
         NULL_DISPLAY
       )}
       {reliefRange != null && reliefRange >= 1
-        ? ` · Δ ${Math.round(reliefRange)} m relief`
+        ? ` · Δ ${writeQuantity(value("m", reliefRange), { decimals: 0 })} relief`
         : ""}
       {siteDrift != null
-        ? ` · ${Math.round(siteDrift.distanceMeters)} m downrange`
+        ? ` · ${writeQuantity(value("m", siteDrift.distanceMeters), { decimals: 0 })} downrange`
         : ""}
       {sourceLabel ? ` · ${sourceLabel}` : ""}
     </Value>
