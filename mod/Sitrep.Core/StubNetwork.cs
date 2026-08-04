@@ -48,7 +48,7 @@ namespace Sitrep.Core
     /// </summary>
     public sealed class StubNetwork : INetwork
     {
-        private readonly double _defaultDelay;
+        private double _defaultDelay;
         private readonly bool _defaultReachable;
         private readonly Dictionary<string, Dictionary<string, double>> _delays =
             new Dictionary<string, Dictionary<string, double>>();
@@ -80,6 +80,22 @@ namespace Sitrep.Core
         public void SetScale(double scale)
         {
             _scale = Math.Max(0, scale);
+        }
+
+        /// <summary>
+        /// Set the fallback one-way delay returned by <see cref="DelayTo"/> for
+        /// any (vantage, node) pair that has no explicit <see cref="SetDelay"/>
+        /// override. The host drives the whole-network signal delay from a
+        /// single scalar through this while keeping per-pair overrides (e.g. the
+        /// 0-delay meta-vantage). NaN / infinite / negative values clamp to 0
+        /// (a negative delay would schedule deliveries in the past, matching
+        /// <see cref="SetScale"/>'s clamp intent).
+        /// </summary>
+        public void SetDefaultDelay(double seconds)
+        {
+            _defaultDelay = double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0
+                ? 0
+                : seconds;
         }
 
         public bool Reachable(string vantage, string node)

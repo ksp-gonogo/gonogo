@@ -421,5 +421,78 @@
         "expected": 0
       }
     ]
+  },
+  {
+    "name": "set-default-delay-changes-unset-pairs-not-overrides",
+    "description": "setDefaultDelay drives the fallback delay for every pair without an explicit setDelay override; an explicit override (e.g. the 0-delay meta-vantage) is unaffected, and scale still composes.",
+    "ops": [
+      {
+        "op": "setDelay",
+        "vantage": "meta",
+        "node": "system",
+        "seconds": 0
+      },
+      {
+        "op": "setDefaultDelay",
+        "seconds": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "system",
+        "expected": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "any-connection-id",
+        "node": "system",
+        "expected": 240
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "meta",
+        "node": "system",
+        "expected": 0
+      },
+      {
+        "op": "setScale",
+        "scale": 0.5
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "system",
+        "expected": 120
+      }
+    ]
+  },
+  {
+    "name": "set-default-delay-clamps-negative-to-zero",
+    "description": "A negative setDefaultDelay clamps to 0 (same intent as setScale), and re-setting to a positive value takes effect.",
+    "defaults": {
+      "delay": 100
+    },
+    "ops": [
+      {
+        "op": "setDefaultDelay",
+        "seconds": -5
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      },
+      {
+        "op": "setDefaultDelay",
+        "seconds": 60
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 60
+      }
+    ]
   }
 ]

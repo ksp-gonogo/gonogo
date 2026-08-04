@@ -49,6 +49,11 @@ interface SetScaleOp {
   scale: number;
 }
 
+interface SetDefaultDelayOp {
+  op: "setDefaultDelay";
+  seconds: number;
+}
+
 interface QueryDelayOp {
   op: "queryDelay";
   vantage: string;
@@ -69,6 +74,7 @@ type Op =
   | SetDelayOp
   | SetReachableOp
   | SetScaleOp
+  | SetDefaultDelayOp
   | QueryDelayOp
   | QueryReachableOp;
 
@@ -99,6 +105,9 @@ function runScenario(scenario: Scenario): Scenario {
         return op;
       case "setScale":
         network.setScale(op.scale);
+        return op;
+      case "setDefaultDelay":
+        network.setDefaultDelay(op.seconds);
         return op;
       case "queryDelay":
         return { ...op, expected: network.delayTo(op.vantage, op.node) };
@@ -276,6 +285,32 @@ const scenarios: Scenario[] = [
     defaults: { delay: 100 },
     scale: -5,
     ops: [{ op: "queryDelay", vantage: "KSC", node: "v1" }],
+  },
+  {
+    name: "set-default-delay-changes-unset-pairs-not-overrides",
+    description:
+      "setDefaultDelay drives the fallback delay for every pair without an explicit setDelay override; an explicit override (e.g. the 0-delay meta-vantage) is unaffected, and scale still composes.",
+    ops: [
+      { op: "setDelay", vantage: "meta", node: "system", seconds: 0 },
+      { op: "setDefaultDelay", seconds: 240 },
+      { op: "queryDelay", vantage: "KSC", node: "system" },
+      { op: "queryDelay", vantage: "any-connection-id", node: "system" },
+      { op: "queryDelay", vantage: "meta", node: "system" },
+      { op: "setScale", scale: 0.5 },
+      { op: "queryDelay", vantage: "KSC", node: "system" },
+    ],
+  },
+  {
+    name: "set-default-delay-clamps-negative-to-zero",
+    description:
+      "A negative setDefaultDelay clamps to 0 (same intent as setScale), and re-setting to a positive value takes effect.",
+    defaults: { delay: 100 },
+    ops: [
+      { op: "setDefaultDelay", seconds: -5 },
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+      { op: "setDefaultDelay", seconds: 60 },
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+    ],
   },
 ];
 
