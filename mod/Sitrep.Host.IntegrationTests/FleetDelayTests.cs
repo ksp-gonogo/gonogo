@@ -146,6 +146,51 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task FleetVesselPreOutageTailDrainsThenFreezes()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.v.orbit", Timeout);
+
+                // v has light-time 3. Emit while CONNECTED at UT 0 and 1 (these are
+                // in flight, scheduled to reveal at UT 3 and 4).
+                engine.TickAndWait(0.0, TailFixture(0.0, connected: true), Timeout);
+                engine.TickAndWait(1.0, TailFixture(1.0, connected: true), Timeout);
+                // v DISCONNECTS at UT 2. Samples emitted during its blackout (validAt
+                // >= 2) get +Inf and are withheld; the pre-outage tail (validAt 0, 1)
+                // still reveals as the clock overtakes their horizon (UT 3, 4).
+                for (var ut = 2.0; ut <= 6.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, TailFixture(ut, connected: false), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var v = frames.Where(f => f.Topic == "fleet.v.orbit").ToList();
+                // The pre-outage tail drained (a connected sample, validAt < 2, revealed).
+                Assert.Contains(v, f => f.Meta.ValidAt < 2.0);
+                // No in-blackout sample (validAt >= 2) ever reached the client: frozen.
+                Assert.DoesNotContain(v, f => f.Meta.ValidAt >= 2.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static KspSnapshot TailFixture(double ut, bool connected)
+        {
+            var snap = ConnFixture(ut, ("v", connected));
+            // Give v a non-zero light-time so its pre-outage samples are genuinely
+            // in flight (horizon ahead of the disconnect), not delivered instantly.
+            ((Dictionary<string, object?>)((List<object?>)snap.Values["vessels"]!)[0]!)["delay"] = 3.0;
+            return snap;
+        }
+
+        [Fact]
         public async Task FleetSubjectFreezeMapsAreCleanedWhenAVesselGoesAway()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
