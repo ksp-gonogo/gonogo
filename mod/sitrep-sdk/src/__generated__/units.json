@@ -505,6 +505,7 @@
       "bootFilePath": "text",
       "coreId": "id",
       "hasBooted": "flag",
+      "partName": "text",
       "processorMode": "text",
       "tag": "text"
     },
@@ -1315,6 +1316,7 @@
       "bootFilePath": "text",
       "coreId": "id",
       "hasBooted": "flag",
+      "partName": "text",
       "processorMode": "text",
       "tag": "text"
     },
