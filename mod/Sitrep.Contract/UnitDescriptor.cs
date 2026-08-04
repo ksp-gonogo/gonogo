@@ -62,10 +62,20 @@ namespace Sitrep.Contract
             public SortedDictionary<string, SortedDictionary<string, string>> ShapesByTopic { get; set; }
         }
 
-        /// <summary>The descriptor as a JSON document. Sorted throughout, so re-running produces identical bytes.</summary>
-        public static string ToJson()
+        /// <summary>
+        /// The descriptor as a JSON document. Sorted throughout, so re-running
+        /// produces identical bytes.
+        /// </summary>
+        /// <param name="assembly">
+        /// Which assembly to describe. Defaults to this one, the first-party
+        /// contract. An Uplink passes its OWN contract assembly and gets its
+        /// own descriptor with no edit to first-party code: declaring a unit
+        /// was always symmetric (<see cref="SitrepUnitAttribute"/> takes an
+        /// arbitrary string), and this is the codegen half of that symmetry.
+        /// </param>
+        public static string ToJson(Assembly assembly = null)
         {
-            return ToJson(Collect());
+            return ToJson(Collect(assembly: assembly));
         }
 
         /// <summary>
@@ -81,7 +91,12 @@ namespace Sitrep.Contract
         /// carried as-is and a consumer sees an unknown token, which the
         /// open `SitrepUnit` union already allows for.
         /// </param>
-        public static Maps Collect(bool validateVocabulary = false)
+        /// <param name="assembly">
+        /// Which assembly to reflect over. Defaults to this one. An Uplink's
+        /// own contract assembly works exactly as well: nothing here is
+        /// specific to the first-party contract except the default.
+        /// </param>
+        public static Maps Collect(bool validateVocabulary = false, Assembly assembly = null)
         {
             var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
             foreach (var field in typeof(Units).GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -97,7 +112,15 @@ namespace Sitrep.Contract
             var shapesByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
             var shapesByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
 
-            var assemblyTypes = typeof(UnitDescriptor).Assembly.GetTypes();
+            var target = assembly ?? typeof(UnitDescriptor).Assembly;
+            var assemblyTypes = target.GetTypes();
+            // The catalog belongs to THIS assembly, so it can only judge this
+            // assembly's tokens. A third party cannot add to `Units` (a
+            // const-string class compiled in here), which is exactly why the
+            // generated `SitrepUnit` union is open; validating their tokens
+            // against our catalog would mean an Uplink could never declare a
+            // unit at all.
+            var validate = validateVocabulary && target == typeof(UnitDescriptor).Assembly;
             var contractTypes = new HashSet<string>(StringComparer.Ordinal);
             foreach (var t in assemblyTypes)
             {
@@ -135,7 +158,14 @@ namespace Sitrep.Contract
                         continue;
                     }
 
-                    if (validateVocabulary && !vocabulary.Contains(unit.Unit))
+                    // An Uplink's token is NOT checked against this catalog
+                    // even when validating: it cannot add to `Units`, which is
+                    // a const-string class in this assembly, so a closed check
+                    // would mean an Uplink could never declare a unit at all.
+                    // Its tokens ride the open arm of the generated
+                    // `SitrepUnit` union and are registered client-side
+                    // through `registerUnit`.
+                    if (validate && !vocabulary.Contains(unit.Unit))
                     {
                         throw new InvalidOperationException(
                             "[SitrepUnit] on " + type.Name + "." + prop.Name + " carries \"" + unit.Unit +

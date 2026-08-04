@@ -72,6 +72,68 @@ namespace Sitrep.Core.Tests
             Assert.All(used, token => Assert.Contains(token, maps.Vocabulary));
         }
 
+        /// <summary>
+        /// A THIRD-PARTY contract shape, living in this test assembly rather
+        /// than in Sitrep.Contract. Nothing about it is registered with the
+        /// first party: it exists only to be reflected over.
+        /// </summary>
+        [SitrepTopic("example.reactor")]
+        public sealed class ExampleUplinkPayload
+        {
+            [SitrepUnit("kW")]
+            public double OutputPower { get; set; }
+
+            // A unit the first-party catalog has never heard of. An Uplink
+            // cannot add to `Units` (a const-string class in the contract
+            // assembly), which is exactly why the generated `SitrepUnit` union
+            // is open and why an Uplink token must survive even the
+            // validating pass.
+            [SitrepUnit("banana")]
+            public double Silliness { get; set; }
+
+            [SitrepUnit(Units.Text)]
+            public string Label { get; set; }
+        }
+
+        [Fact]
+        public void DescribesAnUplinksOwnAssemblyWithNoFirstPartyEdit()
+        {
+            // The codegen half of a symmetry that already existed on the
+            // declaring side: SitrepUnitAttribute always took an arbitrary
+            // string, so an Uplink could annotate its own fields; what it
+            // could not do was GENERATE from them, which meant hand-writing
+            // what the first party generates, which is the drift generation
+            // exists to prevent.
+            var maps = UnitDescriptor.Collect(assembly: typeof(ExampleUplinkPayload).Assembly);
+
+            var fields = maps.ByType[nameof(ExampleUplinkPayload)];
+            Assert.Equal("kW", fields["outputPower"]);
+            Assert.Equal("banana", fields["silliness"]);
+            Assert.Equal(Units.Text, fields["label"]);
+
+            // Reachable by its Topic too, the same as any first-party payload.
+            Assert.Equal(fields, maps.ByTopic["example.reactor"]);
+
+            // And it does NOT pick up the first-party contract's types: the
+            // assembly argument really is the scope.
+            Assert.DoesNotContain("VesselFlight", maps.ByType.Keys);
+        }
+
+        [Fact]
+        public void AnUplinkTokenOutsideTheCatalogIsCarried()
+        {
+            // `validateVocabulary` is for the FIRST PARTY, where everything
+            // reflected is compiled into the contract assembly and a stray
+            // token is a typo. A third party's token is not a typo, it is the
+            // open arm of the union working as designed.
+            var maps = UnitDescriptor.Collect(
+                validateVocabulary: true,
+                assembly: typeof(ExampleUplinkPayload).Assembly);
+
+            Assert.Equal("banana", maps.ByType[nameof(ExampleUplinkPayload)]["silliness"]);
+            Assert.DoesNotContain("banana", maps.Vocabulary);
+        }
+
         [Fact]
         public void IsStableAcrossCalls()
         {
