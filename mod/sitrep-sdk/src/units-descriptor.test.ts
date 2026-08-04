@@ -6,6 +6,7 @@ import {
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
 import descriptor from "./__generated__/units.json" with { type: "json" };
+import { getAllKnownTopicIds, isTopicId, type TopicPayloadMap } from "./topics";
 
 /**
  * `units.json` and `units.ts` come out of ONE reflection pass, and this is
@@ -56,5 +57,26 @@ describe("the unit descriptor matches the generated TypeScript", () => {
     }
     const vocabulary = new Set(descriptor.vocabulary);
     expect([...used].filter((u) => !vocabulary.has(u))).toEqual([]);
+  });
+});
+
+describe("system.units: the stream describing its own units", () => {
+  it("is a Topic a consumer can subscribe to", () => {
+    // The mod reflects the descriptor off Sitrep.Contract at startup and
+    // serves it here. A TypeScript consumer does not need it (the generated
+    // maps and the decode-time wrap already give it `Value`s); it exists so
+    // that anyone else who can reach the stream can reach its units.
+    expect(isTopicId("system.units")).toBe(true);
+    expect(getAllKnownTopicIds()).toContain("system.units");
+  });
+
+  it("carries the document this package ships, as JSON text", () => {
+    // The payload is a STRING, not a structured shape: the document describes
+    // this contract's own types, so a contract type for it would sit inside
+    // the thing it describes. Round-tripping the committed file through
+    // JSON.parse is what a non-TypeScript consumer does with the wire value.
+    const overWire: TopicPayloadMap["system.units"] =
+      JSON.stringify(descriptor);
+    expect(JSON.parse(overWire)).toEqual(descriptor);
   });
 });

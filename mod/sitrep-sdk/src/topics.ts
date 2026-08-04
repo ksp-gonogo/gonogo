@@ -103,6 +103,28 @@ export interface SystemUplinkPendingTopicPayloadMap {
 }
 
 /**
+ * `system.units`: the contract's own unit knowledge, so the stream describes
+ * itself.
+ *
+ * Everything else the unit system knows is a TypeScript artifact and none of
+ * it survives the wire: a consumer that is not TypeScript receives
+ * `{"heatShieldFlux": 3400.0}` and has no way to learn it is kilowatts. The
+ * mod reflects this off `Sitrep.Contract` at startup and serves it here, so
+ * anyone who can reach the stream can reach its units.
+ *
+ * A STRING carrying JSON, not a structured payload: the document describes
+ * this contract's own types, so giving it a contract type would put it inside
+ * the thing it describes. Its schema is its own `version` field.
+ *
+ * A TypeScript consumer does not need this: the generated maps and the
+ * decode-time wrap already give it `Value`s. It is for everyone else, and for
+ * a generator in another language.
+ */
+export interface SystemUnitsTopicPayloadMap {
+  "system.units": string;
+}
+
+/**
  * The SDK's OWN Topic map: the generated entries plus the engine-owned tail
  * (`system.uplinks`, `system.uplink.pending`). DELIBERATELY distinct from the public,
  * augmentable `TopicPayloadMap` below: bare-primitive Uplink Topics augment
@@ -115,7 +137,8 @@ export interface SystemUplinkPendingTopicPayloadMap {
 interface SdkOwnedTopicPayloadMap
   extends GeneratedTopicPayloadMap,
     SystemUplinksTopicPayloadMap,
-    SystemUplinkPendingTopicPayloadMap {}
+    SystemUplinkPendingTopicPayloadMap,
+    SystemUnitsTopicPayloadMap {}
 
 /**
  * The Topic → payload-type map. Keys are the wire Topic strings; values are the payload
@@ -152,6 +175,7 @@ export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
   "system.uplinks",
   "system.uplink.pending",
+  "system.units",
 ] as const satisfies readonly TopicId[];
 
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);

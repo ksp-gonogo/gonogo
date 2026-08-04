@@ -486,7 +486,7 @@ public static class RtConfig
                 {
                     tsType = value;
                 }
-                else if (IsNumeric(NumericSequenceElement(prop.PropertyType)))
+                else if (IsNumeric(UnitDescriptor.NumericSequenceElement(prop.PropertyType)))
                 {
                     // A sequence of same-unit readings (a terrain profile, a
                     // per-stage delta-v list). The unit belongs to each ELEMENT,
@@ -528,87 +528,6 @@ public static class RtConfig
         Console.WriteLine(
             "codegen (unit types) -> " + retyped + " properties carry their unit (" +
             vectors + " as Vec3Of<...>)");
-    }
-
-    /// <summary>
-    /// The element type of an array or generic collection, or <c>null</c> when
-    /// the type is neither. <c>string</c> is deliberately not treated as a
-    /// sequence despite implementing <c>IEnumerable&lt;char&gt;</c>.
-    /// </summary>
-    /// <summary>
-    /// The contract shape a property holds, looking through a list and through
-    /// <c>Nullable&lt;T&gt;</c>: the element type for a sequence, the type
-    /// itself for a plain reference, and <c>null</c> for anything primitive.
-    ///
-    /// Only used to decide whether a field needs the runtime wrap to RECURSE
-    /// into it; the caller filters to types this assembly actually declares.
-    /// </summary>
-    private static Type? NestedContractType(Type type, out bool isMap)
-    {
-        isMap = false;
-        var dictionaryValue = DictionaryValueType(type);
-        if (dictionaryValue != null)
-        {
-            isMap = true;
-            return dictionaryValue;
-        }
-
-        var element = NumericSequenceElement(type) ?? type;
-        var underlying = Nullable.GetUnderlyingType(element) ?? element;
-        if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string)
-            || underlying == typeof(decimal) || underlying == typeof(DateTime))
-        {
-            return null;
-        }
-
-        return underlying.IsClass || underlying.IsValueType ? underlying : null;
-    }
-
-    /// <summary>
-    /// The VALUE type of a <c>Dictionary&lt;string, T&gt;</c>-shaped property,
-    /// or <c>null</c> for anything else. A contract map is always keyed by
-    /// string on the wire, so the key is never interesting.
-    /// </summary>
-    private static Type? DictionaryValueType(Type type)
-    {
-        if (!type.IsGenericType)
-        {
-            return null;
-        }
-
-        var args = type.GetGenericArguments();
-        if (args.Length != 2 || args[0] != typeof(string))
-        {
-            return null;
-        }
-
-        return typeof(System.Collections.IEnumerable).IsAssignableFrom(type)
-            ? args[1]
-            : null;
-    }
-
-    private static Type? NumericSequenceElement(Type type)
-    {
-        if (type == typeof(string))
-        {
-            return null;
-        }
-
-        if (type.IsArray)
-        {
-            return type.GetElementType();
-        }
-
-        if (type.IsGenericType)
-        {
-            var args = type.GetGenericArguments();
-            if (args.Length == 1 && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
-            {
-                return args[0];
-            }
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -742,127 +661,18 @@ public static class RtConfig
     /// </summary>
     private static void EmitUnitMap(string outPath, string jsonOutPath = null)
     {
-        // The closed vocabulary: every public const string on Units.
-        var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var field in typeof(Units).GetFields(BindingFlags.Public | BindingFlags.Static))
-        {
-            if (field.IsLiteral && field.FieldType == typeof(string))
-            {
-                vocabulary.Add((string)field.GetRawConstantValue());
-            }
-        }
-
-        var byType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
-        var byTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
-        // field -> nested contract type, per payload shape: see the shape-map
-        // block below for what the runtime does with it.
-        var shapesByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
-        var shapesByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
-        var contractTypes = new HashSet<string>(
-            typeof(RtConfig).Assembly.GetTypes().Select(t => t.Name),
-            StringComparer.Ordinal);
-        foreach (var type in typeof(RtConfig).Assembly.GetTypes())
-        {
-            var fields = new SortedDictionary<string, string>(StringComparer.Ordinal);
-            var nested = new SortedDictionary<string, string>(StringComparer.Ordinal);
-            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            {
-                // A property whose type is ANOTHER contract shape (or a list of
-                // one) is where the unit map used to stop: the map is flat per
-                // type, so `vessel.target.orbit.sma` had a declared unit on
-                // VesselOrbit that nothing could reach from the vessel.target
-                // entry. Recording the nested type name lets the runtime wrap
-                // recurse. Vec3 is excluded: its unit is declared per USE SITE
-                // and already propagates onto dotted leaf keys below.
-                var isMap = false;
-                var nestedType = NestedContractType(prop.PropertyType, out isMap);
-                if (nestedType != null
-                    && nestedType != typeof(Vec3)
-                    && contractTypes.Contains(nestedType.Name))
-                {
-                    // A DICTIONARY of a shape is marked with a leading `*`:
-                    // the runtime has to map over the values rather than treat
-                    // the dictionary itself as one payload. `VesselPart
-                    // .resources` is the case that forced it, and without the
-                    // distinction its per-part flows arrived bare.
-                    nested[CamelCase(prop.Name)] =
-                        (isMap ? "*" : string.Empty) + nestedType.Name;
-                }
-
-                var unit = prop.GetCustomAttribute<SitrepUnitAttribute>();
-                if (unit == null)
-                {
-                    continue;
-                }
-
-                if (!vocabulary.Contains(unit.Unit))
-                {
-                    // A token outside the catalog is drift for anything compiled
-                    // INTO this assembly, and everything reflected here is, so
-                    // this stays a hard failure. First-party payloads keep their
-                    // typo-safety.
-                    //
-                    // It is deliberately NOT the rule for a third-party Uplink.
-                    // An Uplink cannot add to Units (it is a const-string class
-                    // in this assembly), so a closed union would mean an Uplink
-                    // could never declare a unit at all. The generated
-                    // SitrepUnit type is open for exactly that reason: known
-                    // tokens still autocomplete and a mod's own symbol is still
-                    // assignable. See the union emitted below.
-                    throw new InvalidOperationException(
-                        "[SitrepUnit] on " + type.Name + "." + prop.Name + " carries \"" + unit.Unit +
-                        "\", which is not a Sitrep.Contract.Units constant. Add it to the Units catalog. " +
-                        "(A third-party Uplink does not go through this check: it declares its unit as a " +
-                        "plain string and registers the kind client-side via registerUnit.)");
-                }
-
-                var field = CamelCase(prop.Name);
-                if (prop.PropertyType == typeof(Vec3))
-                {
-                    // A [SitrepUnit] on a Vec3-TYPED field states the unit of
-                    // the WHOLE vector. There is ONE canonical Vec3 shape used
-                    // at sites carrying three different units, so no unit can
-                    // sit on the Vec3 type itself (its own X/Y/Z carry the
-                    // NotApplicable placeholder). The wire carries three scalar
-                    // leaves (field.x / field.y / field.z), so the composite
-                    // field's unit propagates to each leaf: a consumer
-                    // formatting a component then reads the same unit it would
-                    // for a plain scalar. Leaf names come off the Vec3 shape
-                    // itself, so they track a rename of X/Y/Z.
-                    foreach (var leaf in Vec3LeafNames())
-                    {
-                        fields.Add(field + "." + leaf, unit.Unit);
-                    }
-                }
-                else
-                {
-                    fields.Add(field, unit.Unit);
-                }
-            }
-
-            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
-
-            if (nested.Count > 0)
-            {
-                shapesByType.Add(type.Name, nested);
-                if (topic != null)
-                {
-                    shapesByTopic.Add(topic.TopicId, nested);
-                }
-            }
-
-            if (fields.Count == 0)
-            {
-                continue;
-            }
-
-            byType.Add(type.Name, fields);
-
-            if (topic != null)
-            {
-                byTopic.Add(topic.TopicId, fields);
-            }
-        }
+        // Collected by UnitDescriptor, not here: the mod serves this same
+        // document at runtime and two reflection passes over one assembly is
+        // two things to keep in step. `validateVocabulary: true` because
+        // everything reflected at CODEGEN time is compiled into this
+        // assembly, so a token outside the catalog is drift and should stop
+        // the build. The runtime pass deliberately does not throw.
+        var maps = UnitDescriptor.Collect(validateVocabulary: true);
+        var vocabulary = maps.Vocabulary;
+        var byType = maps.ByType;
+        var byTopic = maps.ByTopic;
+        var shapesByType = maps.ShapesByType;
+        var shapesByTopic = maps.ShapesByTopic;
 
         var sb = new StringBuilder();
         sb.Append("//     This code was generated by the Sitrep contract unit-map codegen\n");
@@ -950,112 +760,9 @@ public static class RtConfig
 
         if (!string.IsNullOrEmpty(jsonOutPath))
         {
-            File.WriteAllText(
-                jsonOutPath,
-                BuildUnitDescriptor(vocabulary, byType, byTopic, shapesByType, shapesByTopic));
+            File.WriteAllText(jsonOutPath, UnitDescriptor.ToJson(maps));
             Console.WriteLine("codegen (unit-descriptor) -> " + jsonOutPath);
         }
-    }
-
-    /// <summary>
-    /// The unit map as DATA: the same five collections the TypeScript above
-    /// carries, with none of the TypeScript.
-    ///
-    /// <para>Written by hand rather than through a serializer because the
-    /// contract assembly targets netstandard2.0 and has no JSON dependency,
-    /// and because the output wants to be stable byte-for-byte: every
-    /// collection here is already sorted, so re-running codegen produces an
-    /// identical file and a diff means the contract actually changed.</para>
-    /// </summary>
-    private static string BuildUnitDescriptor(
-        SortedSet<string> vocabulary,
-        SortedDictionary<string, SortedDictionary<string, string>> byType,
-        SortedDictionary<string, SortedDictionary<string, string>> byTopic,
-        SortedDictionary<string, SortedDictionary<string, string>> shapesByType,
-        SortedDictionary<string, SortedDictionary<string, string>> shapesByTopic)
-    {
-        var sb = new StringBuilder();
-        sb.Append("{\n");
-        // A version rather than a schema: a consumer that reads this over the
-        // wire (the descriptor endpoint) needs to know when the shape changed,
-        // and it is one integer against a document that is otherwise all data.
-        sb.Append("  \"version\": 1,\n");
-        sb.Append("  \"vocabulary\": [\n");
-        var first = true;
-        foreach (var token in vocabulary)
-        {
-            if (!first)
-            {
-                sb.Append(",\n");
-            }
-            first = false;
-            sb.Append("    ").Append(JsonString(token));
-        }
-        sb.Append("\n  ],\n");
-        AppendJsonMap(sb, "types", byType, false);
-        AppendJsonMap(sb, "topics", byTopic, false);
-        AppendJsonMap(sb, "typeShapes", shapesByType, false);
-        AppendJsonMap(sb, "topicShapes", shapesByTopic, true);
-        sb.Append("}\n");
-        return sb.ToString();
-    }
-
-    private static void AppendJsonMap(
-        StringBuilder sb,
-        string name,
-        SortedDictionary<string, SortedDictionary<string, string>> map,
-        bool last)
-    {
-        sb.Append("  ").Append(JsonString(name)).Append(": {\n");
-        var firstOuter = true;
-        foreach (var outer in map)
-        {
-            if (!firstOuter)
-            {
-                sb.Append(",\n");
-            }
-            firstOuter = false;
-            sb.Append("    ").Append(JsonString(outer.Key)).Append(": {\n");
-            var firstInner = true;
-            foreach (var inner in outer.Value)
-            {
-                if (!firstInner)
-                {
-                    sb.Append(",\n");
-                }
-                firstInner = false;
-                sb.Append("      ").Append(JsonString(inner.Key)).Append(": ").Append(JsonString(inner.Value));
-            }
-            sb.Append("\n    }");
-        }
-        sb.Append("\n  }").Append(last ? "\n" : ",\n");
-    }
-
-    /// <summary>
-    /// A JSON string literal. The tokens and field names here are identifiers
-    /// and unit symbols, so the escapes that can actually occur are the quote
-    /// and the backslash; the control-character arm is there so a future token
-    /// cannot silently produce invalid JSON.
-    /// </summary>
-    private static string JsonString(string value)
-    {
-        var sb = new StringBuilder("\"");
-        foreach (var c in value)
-        {
-            if (c == '"' || c == '\\')
-            {
-                sb.Append('\\').Append(c);
-            }
-            else if (c < ' ')
-            {
-                sb.Append("\\u").Append(((int)c).ToString("x4"));
-            }
-            else
-            {
-                sb.Append(c);
-            }
-        }
-        return sb.Append('"').ToString();
     }
 
     private static void AppendMapBody(
@@ -1145,10 +852,10 @@ public static class RtConfig
                 rows.Add((
                     attr.ChannelId,
                     topic.TopicId,
-                    CamelCase(prop.Name),
+                    UnitDescriptor.CamelCase(prop.Name),
                     attr.WriteCommand,
                     attr.Args.Name,
-                    CamelCase(attr.ValueField)));
+                    UnitDescriptor.CamelCase(attr.ValueField)));
             }
         }
 
@@ -1196,38 +903,5 @@ public static class RtConfig
         Console.WriteLine("codegen (control-channel-map) -> " + outPath);
     }
 
-    /// <summary>
-    /// The camelCased wire-leaf names of the canonical <see cref="Vec3"/> shape
-    /// (<c>x</c>, <c>y</c>, <c>z</c>), read off the type itself rather than
-    /// hard-coded so a rename of Vec3's components moves the propagated leaf
-    /// keys with it. Order is irrelevant: <see cref="EmitUnitMap"/> writes into
-    /// a sorted map.
-    /// </summary>
-    private static List<string> Vec3LeafNames()
-    {
-        var names = new List<string>();
-        foreach (var prop in typeof(Vec3).GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            names.Add(CamelCase(prop.Name));
-        }
-
-        return names;
-    }
-
-    /// <summary>
-    /// Mirrors <c>CamelCaseForProperties</c>: lowercase the leading character,
-    /// leave the rest alone (so <c>DynamicPressureKPa</c> stays
-    /// <c>dynamicPressureKPa</c> and <c>GForce</c> becomes <c>gForce</c>, both
-    /// exactly as they appear in the emitted contract.ts).
-    /// </summary>
-    private static string CamelCase(string name)
-    {
-        if (string.IsNullOrEmpty(name) || !char.IsUpper(name[0]))
-        {
-            return name;
-        }
-
-        return char.ToLowerInvariant(name[0]) + name.Substring(1);
-    }
 }
 #endif

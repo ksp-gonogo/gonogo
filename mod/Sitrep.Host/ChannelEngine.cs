@@ -148,6 +148,15 @@ namespace Sitrep.Host
         // task once dispatch bookkeeping exists to populate it.
         internal const string UplinkPendingTopic = "system.uplink.pending";
 
+        // The contract's unit knowledge, served so the stream describes
+        // itself. Everything else the unit system knows is a TypeScript
+        // artifact and none of it survives the wire: a consumer that is not
+        // TypeScript receives {"heatShieldFlux": 3400.0} and has no way to
+        // learn it is kilowatts. Same "engine declares and sources it
+        // directly" treatment as the two topics above, for the same reason:
+        // it describes the CONTRACT rather than anything an uplink owns.
+        internal const string UnitsTopic = "system.units";
+
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
         // (CommsDelaySource.None / signal-delay-disabled / pre-first-emit),
@@ -481,6 +490,29 @@ namespace Sitrep.Host
             // ProcessDispatchCommand appends on, so no synchronization is
             // needed here either.
             _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.ToList() };
+
+            // Built-in system.units declaration + source: see UnitsTopic's
+            // doc comment. The payload is a STRING holding the descriptor
+            // JSON rather than a structured shape, deliberately: the document
+            // describes the contract's own types, so giving it a contract
+            // type would put it inside the thing it describes, and its schema
+            // is the descriptor's `version` field rather than this assembly's.
+            _channelDeclarations[UnitsTopic] = new ChannelDeclaration
+            {
+                Topic = UnitsTopic,
+                Delivery = Delivery.LossyLatest,
+                // It cannot change while the mod is loaded: it is reflected
+                // off assembly metadata. A long keyframe floor is purely so a
+                // late subscriber gets it without waiting for a restart.
+                Emission = new EmissionPolicy(keyframeIntervalUt: 60, quantum: EmissionQuantum.Absolute(0)),
+                // A fact about the CONTRACT, not about a vessel, so it does
+                // not ride the reveal clock. Same class as UplinksTopic.
+                Delay = DelayRole.TrueNow,
+            };
+            // Built once: the reflection is not free and the answer is
+            // immutable for the lifetime of the process.
+            var unitsDescriptor = UnitDescriptor.ToJson();
+            _channelSources[UnitsTopic] = _ => unitsDescriptor;
         }
 
         // NOTE: every RegisterUplink call MUST happen before Start().

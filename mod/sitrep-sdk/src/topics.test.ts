@@ -20,7 +20,15 @@ import {
  * (each registers its id at load via `registerBarePrimitiveTopic`), so they are not part of
  * the SDK's own `TOPIC_IDS`.
  */
-const HAND_DECLARED_TOPICS = ["system.uplinks", "system.uplink.pending"];
+const HAND_DECLARED_TOPICS = [
+  "system.uplinks",
+  "system.uplink.pending",
+  // The contract's own unit descriptor, so the stream describes itself. Same
+  // engine-declared treatment as the two above: ChannelEngine sources it
+  // directly because it describes the CONTRACT rather than anything an
+  // uplink owns, so it carries no [SitrepTopic] to reflect.
+  "system.units",
+];
 
 // mod/sitrep-sdk/src -> mod
 const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
