@@ -112,6 +112,7 @@ export {
   type DialTick,
   type DialZone,
 } from "./Dial";
+export { Disclosure, type DisclosureProps } from "./Disclosure";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {
   EmptyState,
