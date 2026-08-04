@@ -3040,12 +3040,13 @@ namespace Sitrep.Host
             // (source absent, or magnitude NaN/Inf/≤0: same cases RevealDelayFor
             // collapses to "reveal live"), pass null so the Courier keeps its
             // historical network-hop delay.
-            double? uplinkDelay = null;
-            var signalDelay = _signalDelaySeconds;
-            if (!double.IsNaN(signalDelay) && !double.IsInfinity(signalDelay) && signalDelay > 0.0)
-            {
-                uplinkDelay = signalDelay;
-            }
+            // Command delay now rides the same per-(vantage, node) ledger as
+            // telemetry (Plan 1): DelayTo(vantage, node) == the whole-network
+            // default == the live signal delay (driven by SetDefaultDelay in
+            // CaptureSignalDelay). Used for the pending-uplink prediction here
+            // and, via the Courier's own DelayTo fallback below, for the actual
+            // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
+            var uplinkDelay = _network.DelayTo(job.Vantage, NodeId);
 
             var requestId = NextRequestId();
 
@@ -3059,7 +3060,7 @@ namespace Sitrep.Host
             // enqueued). Reuses the SAME requestId passed to
             // _courier.DispatchCommand below so PendingUplink.Id correlates
             // with the underlying dispatch.
-            if (uplinkDelay is > 0)
+            if (uplinkDelay > 0)
             {
                 _pending.Add(new PendingUplink
                 {
@@ -3074,15 +3075,18 @@ namespace Sitrep.Host
                     // _courier.DispatchCommand below (CS8604).
                     Vantage = job.Vantage,
                     DispatchedAt = _clock.Now(),
-                    OneWaySeconds = uplinkDelay.Value,
+                    OneWaySeconds = uplinkDelay,
                 });
             }
 
+            // No explicit uplinkDelaySeconds: the Courier falls back to
+            // DelayTo(vantage, node) -- the same ledger delay used above -- so
+            // telemetry and command delay share one per-(vantage, node) model.
             _courier.DispatchCommand(NodeId, requestId, job.Command, job.Args, job.Vantage, response =>
             {
                 job.OnResult(response.Result);
                 job.Done?.Set();
-            }, uplinkDelaySeconds: uplinkDelay);
+            });
         }
 
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);

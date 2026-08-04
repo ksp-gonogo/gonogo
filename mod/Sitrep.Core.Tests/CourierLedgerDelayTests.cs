@@ -36,5 +36,26 @@ namespace Sitrep.Core.Tests
             // Delivered once, at validAt + 4 (not 8 = gate+ledger double-delay).
             Assert.Equal(new List<object?> { 100.0 }, delivered);
         }
+
+        [Fact]
+        public void CommandRoundTripUsesTheLedgerDelayToWhenNoExplicitOverride()
+        {
+            var clock = new ManualClock();
+            var network = new StubNetwork(delay: 0);
+            network.SetDefaultDelay(3.0); // signal delay 3 -> round-trip 6
+            var courier = new Courier(clock, network);
+            courier.SetCommandHandler((command, args, node) => "ok");
+
+            var results = new List<object?>();
+            // No explicit uplinkDelaySeconds: the Courier falls back to
+            // DelayTo(vantage, node), the Task-4 command-delay shape.
+            courier.DispatchCommand(Node, "r1", "deploy", null, Vantage, r => results.Add(r.Result));
+
+            clock.AdvanceTo(5.0);
+            Assert.Empty(results); // confirm arrives at t0 + up + down = 6
+            clock.AdvanceTo(6.0);
+            Assert.Equal(new List<object?> { "ok" }, results);
+            Assert.Equal(6.0, courier.RoundTripEta(Node, Vantage));
+        }
     }
 }
