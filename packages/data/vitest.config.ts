@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    pool: "threads",
     name: "data",
     environment: "jsdom",
     globals: true,

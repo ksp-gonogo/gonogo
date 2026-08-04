@@ -40,6 +40,15 @@ namespace Sitrep.Host
     {
         public const string NodeId = "system";
 
+        /// <summary>
+        /// The everywhere-at-once observer vantage: <c>DelayTo(MetaVantage, *)</c>
+        /// is pinned to 0 so instant/exempt topics (comms.delay, comms.link,
+        /// TrueNow) are never delayed by the ledger even after the whole-network
+        /// default carries the signal delay (Plan 1). Keeps "instant" a vantage,
+        /// not a separate code path.
+        /// </summary>
+        public const string MetaVantage = "meta";
+
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
 
         /// <summary>
@@ -460,7 +469,11 @@ namespace Sitrep.Host
             _executeCommandsOnMainThread = executeCommandsOnMainThread;
             _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
             _clock = new ManualClock();
-            _network = new StubNetwork(delay: networkDelaySeconds, reachable: true);
+            var stubNetwork = new StubNetwork(delay: networkDelaySeconds, reachable: true);
+            // Pin the meta-vantage to 0 so instant/exempt topics stay instant
+            // once the whole-network default carries the signal delay (Plan 1).
+            stubNetwork.SetDelay(MetaVantage, NodeId, 0.0);
+            _network = stubNetwork;
             _courier = new Courier(_clock, _network);
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,
@@ -2362,12 +2375,12 @@ namespace Sitrep.Host
                 return double.PositiveInfinity;
             }
 
-            var delay = _signalDelaySeconds;
-            if (double.IsNaN(delay) || double.IsInfinity(delay) || delay <= 0.0)
-            {
-                return 0.0;
-            }
-            return delay;
+            // Delay migrated to the ledger (Plan 1): a connected ordinary
+            // Delayed topic records straight through the gate; the Courier/
+            // Archive apply the light-time via DelayTo. The gate now only
+            // FREEZES (the !_commsConnected branch above returns +Inf); it no
+            // longer carries the delay magnitude for ordinary topics.
+            return 0.0;
         }
 
         /// <summary>
@@ -2400,6 +2413,15 @@ namespace Sitrep.Host
                     _lastConnectedDelaySeconds = _signalDelaySeconds;
                 }
                 _signalDelaySeconds = commsDelay.OneWaySeconds ?? 0.0;
+
+                // Ledger migration (Plan 1): drive the whole-network default
+                // delay from the freshly-captured scalar so the Courier/Archive
+                // apply the light-time for ordinary topics. The meta-vantage is
+                // pinned to 0 (ctor), so instant/exempt topics stay instant.
+                // Placed here (the single _signalDelaySeconds mutation point)
+                // rather than at the refresh method's end so it can't be skipped
+                // by the pull-channel fail-soft early-return.
+                _network.SetDefaultDelay(_signalDelaySeconds);
             }
         }
 
@@ -3090,12 +3112,13 @@ namespace Sitrep.Host
             // (source absent, or magnitude NaN/Inf/≤0: same cases RevealDelayFor
             // collapses to "reveal live"), pass null so the Courier keeps its
             // historical network-hop delay.
-            double? uplinkDelay = null;
-            var signalDelay = _signalDelaySeconds;
-            if (!double.IsNaN(signalDelay) && !double.IsInfinity(signalDelay) && signalDelay > 0.0)
-            {
-                uplinkDelay = signalDelay;
-            }
+            // Command delay now rides the same per-(vantage, node) ledger as
+            // telemetry (Plan 1): DelayTo(vantage, node) == the whole-network
+            // default == the live signal delay (driven by SetDefaultDelay in
+            // CaptureSignalDelay). Used for the pending-uplink prediction here
+            // and, via the Courier's own DelayTo fallback below, for the actual
+            // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
+            var uplinkDelay = _network.DelayTo(job.Vantage, NodeId);
 
             var requestId = NextRequestId();
 
@@ -3109,7 +3132,7 @@ namespace Sitrep.Host
             // enqueued). Reuses the SAME requestId passed to
             // _courier.DispatchCommand below so PendingUplink.Id correlates
             // with the underlying dispatch.
-            if (uplinkDelay is > 0)
+            if (uplinkDelay > 0)
             {
                 _pending.Add(new PendingUplink
                 {
@@ -3124,15 +3147,18 @@ namespace Sitrep.Host
                     // _courier.DispatchCommand below (CS8604).
                     Vantage = job.Vantage,
                     DispatchedAt = _clock.Now(),
-                    OneWaySeconds = uplinkDelay.Value,
+                    OneWaySeconds = uplinkDelay,
                 });
             }
 
+            // No explicit uplinkDelaySeconds: the Courier falls back to
+            // DelayTo(vantage, node) -- the same ledger delay used above -- so
+            // telemetry and command delay share one per-(vantage, node) model.
             _courier.DispatchCommand(NodeId, requestId, job.Command, job.Args, job.Vantage, response =>
             {
                 job.OnResult(response.Result);
                 job.Done?.Set();
-            }, uplinkDelaySeconds: uplinkDelay);
+            });
         }
 
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
@@ -3197,7 +3223,15 @@ namespace Sitrep.Host
                 _emitter.NotifySubscribed(topic);
             }
 
-            var vantage = session.Connection.Id;
+            // Instant/exempt topics ride the meta-vantage (DelayTo -> 0) so the
+            // ledger never applies the whole-network signal delay to them; the
+            // gate keeps their own delay semantics (comms.delay 0, comms.link
+            // last-connected-delay, TrueNow 0). Ordinary Delayed topics keep the
+            // real per-connection vantage, which the ledger delays (Plan 1).
+            var isInstantClass = topic == CommsDelayTopic
+                || topic == ConnectivityMetaTopic
+                || _channelDeclarations[topic].Delay == DelayRole.TrueNow;
+            var vantage = isInstantClass ? MetaVantage : session.Connection.Id;
             var delivery = _channelDeclarations[topic].Delivery;
 
             Action unsubscribe;

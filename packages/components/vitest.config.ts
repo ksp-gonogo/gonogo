@@ -24,6 +24,7 @@ export default defineConfig({
     },
   },
   test: {
+    pool: "threads",
     name: "components",
     environment: "jsdom",
     globals: true,

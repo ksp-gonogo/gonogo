@@ -31,7 +31,7 @@ export interface Network {
  * it's a separate, binary axis.
  */
 export class StubNetwork implements Network {
-  private readonly defaultDelay: number;
+  private defaultDelay: number;
   private readonly defaultReachable: boolean;
   private readonly delays = new Map<string, Map<string, number>>();
   private readonly reachability = new Map<string, Map<string, boolean>>();
@@ -51,6 +51,14 @@ export class StubNetwork implements Network {
   /** Set the global delay-scale multiplier applied to every `delayTo` pair (0 = instant, 1 = unscaled, N = N times base delay). Negative values clamp to 0, a negative scale would schedule deliveries in the past. */
   setScale(scale: number): void {
     this.scale = Math.max(0, scale);
+  }
+
+  /** Set the fallback one-way delay returned by `delayTo` for any (vantage, node) pair without an explicit `setDelay` override. The host drives the whole-network signal delay from a single scalar through this while keeping per-pair overrides (e.g. the 0-delay meta-vantage). NaN / infinite / negative values clamp to 0 (a negative delay would schedule deliveries in the past, matching `setScale`'s clamp intent). */
+  setDefaultDelay(seconds: number): void {
+    this.defaultDelay =
+      Number.isNaN(seconds) || !Number.isFinite(seconds) || seconds < 0
+        ? 0
+        : seconds;
   }
 
   reachable(vantage: string, node: string): boolean {

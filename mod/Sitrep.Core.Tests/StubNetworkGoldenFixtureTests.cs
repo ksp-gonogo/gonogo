@@ -89,6 +89,9 @@ namespace Sitrep.Core.Tests
                     case "setScale":
                         network.SetScale(op.GetProperty("scale").GetDouble());
                         break;
+                    case "setDefaultDelay":
+                        network.SetDefaultDelay(op.GetProperty("seconds").GetDouble());
+                        break;
                     case "queryDelay":
                     {
                         var vantage = op.GetProperty("vantage").GetString()!;

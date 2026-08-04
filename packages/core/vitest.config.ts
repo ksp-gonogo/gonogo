@@ -5,6 +5,12 @@ export default defineConfig({
     name: "core",
     environment: "jsdom",
     globals: true,
+    // Threads (worker_threads) rather than the default forks pool: on macOS 26 +
+    // Node 24, forked worker PROCESSES intermittently fail to bootstrap with
+    // EPERM while loading jsdom/undici deps ("Failed to start forks worker").
+    // Threads share one process and load deps once, so there is no per-worker
+    // process spawn to fail.
+    pool: "threads",
     setupFiles: ["./src/test/setup.ts"],
     exclude: ["dist/**", "node_modules/**"],
     // The styleguide.*.test.ts guards each walk the whole source tree
