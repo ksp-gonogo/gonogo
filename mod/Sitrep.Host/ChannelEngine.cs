@@ -162,6 +162,9 @@ namespace Sitrep.Host
         // (CommsDelaySource.None / signal-delay-disabled / pre-first-emit),
         // which reveals everything live, byte-identical to the pre-gate LAN
         // behaviour. Fail-soft: a non-finite/negative value is treated as 0.
+        // Cached descriptor for UnitsTopic; see its source registration.
+        private string _unitsDescriptorJson;
+
         private double _signalDelaySeconds;
 
         // The last _signalDelaySeconds observed while CONNECTED (see
@@ -175,6 +178,37 @@ namespace Sitrep.Host
         // channel being Delayed rather than TrueNow. Frozen for the outage's
         // duration (stops updating the instant _commsConnected goes false),
         // resumes tracking live once reconnected.
+        /// <summary>
+        /// The unit descriptor, built once and never allowed to fail loudly.
+        /// </summary>
+        /// <remarks>
+        /// Reflection over a contract assembly can fail when one of its types
+        /// references something that is not deployed. That is a reason to
+        /// serve no descriptor; it is not a reason to break the telemetry
+        /// engine, which is what an exception escaping a channel source would
+        /// do. An empty string is a consumer seeing "this stream does not
+        /// describe itself", which is exactly the state every consumer was in
+        /// before this channel existed.
+        /// </remarks>
+        private string UnitsDescriptorJson()
+        {
+            if (_unitsDescriptorJson != null)
+            {
+                return _unitsDescriptorJson;
+            }
+
+            try
+            {
+                _unitsDescriptorJson = UnitDescriptor.ToJson();
+            }
+            catch (Exception)
+            {
+                _unitsDescriptorJson = string.Empty;
+            }
+
+            return _unitsDescriptorJson;
+        }
+
         private double _lastConnectedDelaySeconds;
 
         // AUTHORITATIVE, subscription-independent server-side delay source (see
@@ -509,10 +543,16 @@ namespace Sitrep.Host
                 // not ride the reveal clock. Same class as UplinksTopic.
                 Delay = DelayRole.TrueNow,
             };
-            // Built once: the reflection is not free and the answer is
-            // immutable for the lifetime of the process.
-            var unitsDescriptor = UnitDescriptor.ToJson();
-            _channelSources[UnitsTopic] = _ => unitsDescriptor;
+            // LAZY, and fail-soft. Built on first sample rather than here,
+            // and never allowed to throw: this channel is the engine
+            // describing itself, which is a convenience for consumers that
+            // are not TypeScript. Computing it in the constructor put a
+            // reflection pass in the way of the engine EXISTING, so an
+            // assembly whose types cannot all be resolved stopped telemetry
+            // rather than stopping the descriptor. Cached after the first
+            // build: the reflection is not free and the answer is immutable
+            // for the lifetime of the process.
+            _channelSources[UnitsTopic] = _ => UnitsDescriptorJson();
         }
 
         // NOTE: every RegisterUplink call MUST happen before Start().

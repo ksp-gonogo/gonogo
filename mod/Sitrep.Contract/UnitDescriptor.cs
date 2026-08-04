@@ -347,6 +347,8 @@ namespace Sitrep.Contract
             }
             catch (ReflectionTypeLoadException ex)
             {
+                // Partial load: the resolvable types come back on the
+                // exception, which is the case worth salvaging.
                 var loaded = new List<Type>();
                 foreach (var t in ex.Types)
                 {
@@ -357,6 +359,15 @@ namespace Sitrep.Contract
                 }
 
                 return loaded.ToArray();
+            }
+            catch (System.IO.FileNotFoundException)
+            {
+                // Hard load failure: a dependency of some type in the
+                // assembly is not deployed at all, and nothing comes back.
+                // Empty rather than throwing, so a caller gets "no
+                // descriptor" instead of an exception it has no way to act
+                // on.
+                return new Type[0];
             }
         }
 
