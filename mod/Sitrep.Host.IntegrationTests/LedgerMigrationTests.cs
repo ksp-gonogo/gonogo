@@ -81,5 +81,69 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        [Fact]
+        public async Task FreezeHoldsLastKnownAndDropsBacklogThroughTheLedger()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FreezeGateTestUplink.DelayedTopic, Timeout);
+
+                // Outage UT 0..3: delayed values emitted while down are frozen (never delivered).
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: false, delay: 0.0), Timeout);
+                foreach (var ut in new[] { 1.0, 2.0, 3.0 })
+                {
+                    engine.TickAndWait(ut, FreezeGateTestUplink.Snapshot(ut, connected: false, delay: 0.0, delayed: 10.0), Timeout);
+                }
+                var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(duringOutage, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
+
+                // Reconnect at UT 4: backlog dropped, resume from the reconnect moment.
+                engine.TickAndWait(4.0, FreezeGateTestUplink.Snapshot(4.0, connected: true, delay: 0.0, delayed: 99.0), Timeout);
+                var afterReconnect = await DrainAllStreamDataAsync(client, Quiet);
+                var delivered = afterReconnect.Where(f => f.Topic == FreezeGateTestUplink.DelayedTopic).ToList();
+                Assert.DoesNotContain(delivered, f => Convert.ToDouble(f.Payload) == 10.0); // backlog dropped
+                Assert.Contains(delivered, f => Convert.ToDouble(f.Payload) == 99.0);       // resumed
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task CommsDelayAndCommsLinkExemptionsSurviveTheMigration()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.CommsDelayTopic, Timeout);
+                await SubscribeAsync(client, ChannelEngine.ConnectivityMetaTopic, Timeout);
+
+                // Connected with a real delay, then a disconnect. comms.delay stays live
+                // (instant, meta-vantage); comms.link reveals the disconnect edge through
+                // the freeze (exempt) at its last-connected horizon.
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 5.0), Timeout);
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: false, delay: 0.0), Timeout);
+                engine.TickAndWait(10.0, FreezeGateTestUplink.Snapshot(10.0, connected: false, delay: 0.0), Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                // comms.delay delivered (never frozen, never ledger-delayed).
+                Assert.Contains(frames, f => f.Topic == ChannelEngine.CommsDelayTopic);
+                // comms.link's disconnect edge reached the client despite the blackout.
+                Assert.Contains(frames, f => f.Topic == ChannelEngine.ConnectivityMetaTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }
