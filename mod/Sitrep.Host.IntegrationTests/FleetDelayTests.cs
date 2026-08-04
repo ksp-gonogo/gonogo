@@ -103,6 +103,57 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task FleetFreezesTogetherOnGlobalDisconnectAndResumes()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.a.orbit", Timeout);
+                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+
+                // Connected: both fleet vessels stream (delay 0, immediate).
+                Tick(engine, 0.0, connected: true);
+                Tick(engine, 1.0, connected: true);
+                var connectedFrames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(connectedFrames, f => f.Topic == "fleet.a.orbit");
+                Assert.Contains(connectedFrames, f => f.Topic == "fleet.b.orbit");
+
+                // GLOBAL disconnect: freeze is global in Plan 2, so BOTH fleet
+                // topics freeze together (no new frames), like system.vessels today.
+                Tick(engine, 2.0, connected: false);
+                Tick(engine, 3.0, connected: false);
+                var outageFrames = await DrainAllStreamDataAsync(client, Quiet);
+                // No sample captured DURING the blackout (validAt >= 2) reaches the
+                // client for either vessel: both are frozen. (A connected sample
+                // still in flight from before the outage may still land -- that is
+                // the pre-outage tail, not a leak; it carries validAt < 2.)
+                Assert.DoesNotContain(outageFrames,
+                    f => (f.Topic == "fleet.a.orbit" || f.Topic == "fleet.b.orbit") && f.Meta.ValidAt >= 2.0);
+
+                // Reconnect: both resume.
+                Tick(engine, 4.0, connected: true);
+                Tick(engine, 5.0, connected: true);
+                var resumedFrames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(resumedFrames, f => f.Topic == "fleet.a.orbit");
+                Assert.Contains(resumedFrames, f => f.Topic == "fleet.b.orbit");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static void Tick(ChannelEngine engine, double ut, bool connected)
+        {
+            var snap = FleetFixture(ut, ("a", 0.0), ("b", 0.0));
+            snap.Values["connected"] = connected;
+            engine.TickAndWait(ut, snap, TimeSpan.FromSeconds(10));
+        }
+
         /// <summary>
         /// A KspSnapshot at <paramref name="ut"/> whose <c>vessels</c> roster
         /// carries each vessel's id, a per-vessel <c>delay</c> (one-way seconds,

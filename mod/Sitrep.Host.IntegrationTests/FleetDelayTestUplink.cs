@@ -36,6 +36,12 @@ namespace Sitrep.Host.IntegrationTests
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             });
+            // Global connectivity from the snapshot's "connected" flag (default
+            // true): drives the reveal gate's freeze, which stays GLOBAL in Plan 2
+            // -- all fleet topics freeze together on a link drop, exactly as the
+            // system.vessels roster does today.
+            host.SetConnectivitySource(s =>
+                s != null && s.Values.TryGetValue("connected", out var c) && c is bool b ? b : (bool?)null);
             // Subscription-gated: skip the whole fleet capture when no fleet.* topic is subscribed.
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix);
         }
