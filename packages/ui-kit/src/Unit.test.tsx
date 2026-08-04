@@ -285,7 +285,7 @@ describe("Unit: format pins the unit", () => {
     const { container } = render(
       <Unit value={value("m", 12_400)} format="m" />,
     );
-    expect(visibleText(container)).toBe("12400.0 m");
+    expect(visibleText(container)).toBe("12,400.0 m");
   });
 
   it("converts a rung whose symbol is gram-based on a kilogram value", () => {

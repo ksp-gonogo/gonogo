@@ -16,6 +16,7 @@ import {
   type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -175,11 +176,12 @@ describe("CoveragePanel: map-view.sections slot", () => {
       transport.emit("scansat.coverage.Kerbin.128", 0, meta);
     });
 
-    await waitFor(() =>
-      expect(within(panel).getByText("46%")).toBeInTheDocument(),
-    ); // AltHiRes
-    expect(within(panel).getByText("68%")).toBeInTheDocument(); // AltLoRes
-    expect(within(panel).getByText("30%")).toBeInTheDocument(); // Biome
+    // `visibleText`, not `getByText`: the coverage figure renders through
+    // <Unit> now, which puts the number and its symbol in separate elements
+    // with a thin space between, so no single node holds "46 %".
+    await waitFor(() => expect(visibleText(panel)).toContain("46 %")); // AltHiRes
+    expect(visibleText(panel)).toContain("68 %"); // AltLoRes
+    expect(visibleText(panel)).toContain("30 %"); // Biome
     // AltHiRes sensor is bestRange → "best"; Biome sensor inRange → "scan".
     expect(within(panel).getByText("best")).toBeInTheDocument();
     expect(within(panel).getAllByText("scan").length).toBeGreaterThan(0);
@@ -209,9 +211,7 @@ describe("CoveragePanel: map-view.sections slot", () => {
     act(() => {
       transport.emit("scansat.coverage.Kerbin.2", 12, meta);
     });
-    await waitFor(() => {
-      expect(within(panel).getByText("12%")).toBeInTheDocument();
-    });
+    await waitFor(() => expect(visibleText(panel)).toContain("12 %"));
     expect(within(panel).queryByText("best")).toBeNull();
   });
 

@@ -105,6 +105,15 @@ function countsByFile(root: string): Record<string, number> {
         "--",
         "packages/*/src/**/*.ts",
         "packages/*/src/**/*.tsx",
+        // The Uplinks too. They were outside this scan for as long as it
+        // existed, which is how three of them kept writing their own symbols
+        // while every widget in `packages` stopped: a percentage badge, a
+        // coverage readout, two latitudes and a hand-rolled metres-to-km
+        // divide. An Uplink imports the same `<Unit>` from the same published
+        // package, so there was never a reason for it to be held to a lower
+        // standard, only an oversight in what this globbed.
+        "mod/*/client/src/**/*.ts",
+        "mod/*/client/src/**/*.tsx",
       ],
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
     );

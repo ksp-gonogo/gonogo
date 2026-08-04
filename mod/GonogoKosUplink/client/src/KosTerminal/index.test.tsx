@@ -10,6 +10,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { kosSource } from "../dataSource/kos";
@@ -320,8 +321,14 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
       }),
     );
 
+    // `visibleText`, not `toHaveTextContent`: the badge renders through <Unit>
+    // now, whose raw textContent carries the unit's spoken word for a screen
+    // reader ("7.6 s seconds") alongside a thin space. `visibleText` is what a
+    // sighted reader sees.
     await waitFor(() =>
-      expect(screen.getByLabelText("Signal delay")).toHaveTextContent("~7.6s"),
+      expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
+        "~7.6 s",
+      ),
     );
   });
 

@@ -940,8 +940,7 @@ function NodeRow({
                       {p.category && <PartCategory>{p.category}</PartCategory>}
                       {p.entryCost > 0 && !p.purchased && (
                         <PartCost>
-                          {p.entryCost.toLocaleString()}
-                          <Unit>funds</Unit>
+                          <Unit value={value("funds", p.entryCost)} />
                         </PartCost>
                       )}
                       {p.purchased && <PartPurchased>✓</PartPurchased>}

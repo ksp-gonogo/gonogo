@@ -18,10 +18,18 @@ import {
   useActionInput,
   useLatestValue,
   useTelemetry,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Badge, type BadgeTone, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  type BadgeTone,
+  speakQuantity,
+  Unit,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -431,7 +439,7 @@ export function CameraFeed({
 }
 
 interface StatusBadgeInfo {
-  label: string;
+  label: ReactNode;
   ariaLabel: string;
 }
 
@@ -493,9 +501,20 @@ function describeSignalQuality(
   if (strength === undefined || !Number.isFinite(strength)) {
     return null;
   }
-  const pct = Math.round(Math.max(0, Math.min(1, strength)) * 100);
+  // The value already carries `ratio` as its unit, so <Unit> does the *100 and
+  // writes the symbol. This used to do both by hand, which is how the badge
+  // ended up as the one readout in the app writing "72%" where every other
+  // percentage writes "72 %".
+  const clamped = value("ratio", Math.max(0, Math.min(1, strength)));
+  const pct = Math.round(clamped.magnitude * 100);
   const tone: BadgeTone = pct >= 66 ? "go" : pct >= 33 ? "warn" : "nogo";
-  return { label: `${pct}%`, tone, ariaLabel: `Signal quality: ${pct}%` };
+  return {
+    label: <Unit value={clamped} />,
+    tone,
+    // An attribute cannot hold a node, so the spoken form is the escape:
+    // "72 percent" rather than the "72 %" a sighted reader sees.
+    ariaLabel: `Signal quality: ${speakQuantity(clamped)}`,
+  };
 }
 
 // Positioned wrapper that lets the augment slots layer over the SDK feed. The

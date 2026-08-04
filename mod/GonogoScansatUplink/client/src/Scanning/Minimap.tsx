@@ -1,5 +1,9 @@
-import { type BodyDefinition, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { NullValue, useElementSize } from "@ksp-gonogo/ui-kit";
+import {
+  type BodyDefinition,
+  useTelemetry,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
+import { NullValue, Unit, useElementSize } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useScanCoverageGate } from "../FogReveal/useScanCoverageGate";
@@ -192,7 +196,8 @@ export function Minimap({
         <strong>{body.name}</strong>
         {vesselLat !== undefined && vesselLon !== undefined ? (
           <span>
-            {vesselLat.toFixed(2)}°, {vesselLon.toFixed(2)}°
+            <Unit value={value("°", vesselLat)} />,{" "}
+            <Unit value={value("°", vesselLon)} />
           </span>
         ) : (
           <NullValue />

@@ -4,6 +4,7 @@ import {
   getBody,
   registerComponent,
   useTelemetry,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -19,6 +20,7 @@ import {
   Section,
   SectionTitle,
   Stack,
+  Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -221,7 +223,16 @@ function ScanningComponent({
                       <Value size="xs" tone="muted">
                         sub-point {v.subLatitude.toFixed(2)},{" "}
                         {v.subLongitude.toFixed(2)} · alt{" "}
-                        {Math.round(v.altitude / 1000).toLocaleString()} km
+                        {/* Pinned to km rather than left to the ladder: this
+                            widget has three altitude readouts and a range
+                            below whose two ends share one symbol, and a rung
+                            that moves under any of them reads as a different
+                            measurement. */}
+                        <Unit
+                          value={value("m", v.altitude)}
+                          format="km"
+                          decimals={0}
+                        />
                       </Value>
                       <Stack gap="xs">
                         {v.sensors.length === 0 ? (
@@ -238,9 +249,20 @@ function ScanningComponent({
                                 {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
                               </Value>
                               <Value size="xs" tone="muted">
-                                FoV {s.fov.toFixed(1)}° · alt{" "}
-                                {Math.round(s.minAlt / 1000)}–
-                                {Math.round(s.maxAlt / 1000)} km
+                                FoV{" "}
+                                <Unit value={value("°", s.fov)} decimals={1} />{" "}
+                                · alt{" "}
+                                <Unit
+                                  value={value("m", s.minAlt)}
+                                  format="km"
+                                  decimals={0}
+                                />
+                                –
+                                <Unit
+                                  value={value("m", s.maxAlt)}
+                                  format="km"
+                                  decimals={0}
+                                />
                               </Value>
                               <Badge
                                 size="sm"
@@ -310,18 +332,18 @@ function CoverageRow({
     "data",
     `scansat.coverage.${bodyName}.${scanType}`,
   );
-  const value = typeof pct === "number" ? pct : 0;
+  const coverage = typeof pct === "number" ? pct : 0;
   return (
     <Grid cols="120px 1fr 60px" gap="md">
       <Value size="xs" tone="default">
         {SCAN_TYPE_LABELS[scanType]}
       </Value>
       <ProgressBar
-        value={value}
+        value={coverage}
         ariaLabel={`${SCAN_TYPE_LABELS[scanType]} coverage: ${bodyName}`}
       />
       <Value size="xs" tone="muted">
-        {value.toFixed(1)}%
+        <Unit value={value("%", coverage)} decimals={1} />
       </Value>
     </Grid>
   );

@@ -769,6 +769,43 @@ const HYSTERESIS = 0.05;
  * need them apart: a readout renders the number large and the symbol small, and
  * an axis wants the number alone with the symbol in the axis label.
  */
+/**
+ * A fixed-precision number with its thousands separated.
+ *
+ * Grouping was missing here for as long as this module has existed, and it did
+ * not show because the LADDERED kinds climb a rung before they get long: a
+ * length reaching five digits becomes `12.4 km`. The kinds that stay long are
+ * the ones with no ladder to climb, which is currencies, science and
+ * reputation, and every readout showing those had reached for `toLocaleString`
+ * at the call site. Five of them had. That is the same duplication this module
+ * exists to remove, one formatting decision at a time.
+ *
+ * **Five digits, not four.** SI separates numbers of more than four digits and
+ * leaves four-digit numbers alone, so `3200 K` stays as it reads on an
+ * instrument and `78,401f` gets the comma it needs. The alternative, grouping
+ * from a thousand, would have put a comma into most of the technical readouts
+ * in the app for no gain.
+ *
+ * **A comma, not a locale.** `toLocaleString` would make every snapshot in the
+ * repo depend on the runner's locale, and would render the same reading two
+ * ways for two operators looking at the same mission. The app's own text is
+ * English throughout; the separator matches it. SI would prefer a thin space,
+ * which is unavailable here for a specific reason: `<Unit>` already puts a
+ * thin space between the number and its symbol, and a second one inside the
+ * number reads as a second quantity.
+ */
+function fixed(value: number, decimals: number): string {
+  const text = value.toFixed(decimals);
+  const [whole, fraction] = text.split(".");
+  const sign = whole.startsWith("-") ? "-" : "";
+  const digits = sign === "" ? whole : whole.slice(1);
+  if (digits.length <= 4) return text;
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return fraction === undefined
+    ? `${sign}${grouped}`
+    : `${sign}${grouped}.${fraction}`;
+}
+
 export function formatQuantity(
   value: number | null | undefined,
   unit: string | undefined,
@@ -827,7 +864,7 @@ export function formatQuantity(
   // distinct is the single most common unit bug in a dashboard.
   if (kind === "ratio") {
     const decimals = opts.decimals ?? DECIMALS.ratio ?? 0;
-    return { value: (value * 100).toFixed(decimals), symbol: "%", rung: "%" };
+    return { value: fixed(value * 100, decimals), symbol: "%", rung: "%" };
   }
 
   // An undeclared unit renders bare rather than guessed at. "1" is explicitly
@@ -835,15 +872,18 @@ export function formatQuantity(
   if (unit === undefined || unit === "1" || kind === undefined) {
     const decimals = opts.decimals ?? (kind ? DECIMALS[kind] : undefined);
     return {
-      value: decimals === undefined ? String(value) : value.toFixed(decimals),
+      value: decimals === undefined ? String(value) : fixed(value, decimals),
       symbol: unit === undefined || unit === "1" ? "" : unit,
       rung: unit ?? "",
     };
   }
 
   // `"never"` means "give me the plain base-unit number", so it opts out of the
-  // composite and scientific presentations as well as the ladder. A caller that
-  // wants to do its own arithmetic on the string needs that escape hatch.
+  // composite and scientific presentations as well as the ladder. It is for a
+  // caller that wants the reading in the unit the contract declared rather than
+  // in whichever one the ladder picked. NOT for a caller that means to parse
+  // the result back into a number: the string is grouped, so read `magnitude`
+  // off the value instead.
   if (opts.scale !== "never") {
     if (opts.scale === "scientific" || SCIENTIFIC.has(kind)) {
       return {
@@ -886,7 +926,7 @@ export function formatQuantity(
   // is what keeps "12 count" off the screen.
   if (!ladder) {
     return {
-      value: value.toFixed(decimals),
+      value: fixed(value, decimals),
       symbol: displaySymbol(unit, kind),
       rung: unit,
     };
@@ -922,7 +962,7 @@ export function formatQuantity(
   }
 
   return {
-    value: (base / chosen.per).toFixed(decimals),
+    value: fixed(base / chosen.per, decimals),
     symbol: chosen.symbol,
     rung: chosen.symbol,
   };

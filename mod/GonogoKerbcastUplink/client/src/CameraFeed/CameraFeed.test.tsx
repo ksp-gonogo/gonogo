@@ -49,6 +49,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
@@ -1192,8 +1193,13 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
       emitComms(transport, { signalStrength: 0.72, connected: true });
     });
 
-    expect(await screen.findByText("72%")).toBeTruthy();
-    expect(screen.getByLabelText("Signal quality: 72%")).toBeTruthy();
+    // `visibleText`, not `findByText`: <Unit> puts the number and its symbol in
+    // separate elements with a thin space between, so no single node holds the
+    // whole reading. The accessible name is the SPOKEN form, which is the
+    // point of routing it through speakQuantity: a screen reader announcing
+    // "72 percent" beats one announcing "72 percent-sign".
+    await waitFor(() => expect(visibleText()).toContain("72 %"));
+    expect(screen.getByLabelText("Signal quality: 72 percent")).toBeTruthy();
   });
 
   it("shows a clear no-signal state when comm.connected is false", async () => {
@@ -1210,7 +1216,7 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
     expect(await screen.findByText("NO SIGNAL")).toBeTruthy();
     expect(screen.getByLabelText("Signal quality: no signal")).toBeTruthy();
     // The stale strength percentage is not shown alongside a lost link.
-    expect(screen.queryByText("72%")).toBeNull();
+    expect(visibleText()).not.toContain("72 %");
   });
 });
 

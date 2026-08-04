@@ -107,7 +107,7 @@ describe("formatQuantity", () => {
 
   it("honours scale: never", () => {
     expect(formatQuantity(12_400, "m", { scale: "never" })).toMatchObject({
-      value: "12400.0",
+      value: "12,400.0",
       symbol: "m",
     });
   });
@@ -552,5 +552,39 @@ describe("the two time kinds", () => {
     // and a symbol the way "12.4" and "km" can.
     expect(formatQuantity(90, "irl:s").symbol).toBe("");
     expect(writeQuantity(value("irl:s", 90))).toBe("1m 30s");
+  });
+});
+
+describe("thousands", () => {
+  it("separates more than four digits and leaves four alone", () => {
+    // SI's rule, and the reason a technical readout keeps its instrument look:
+    // a four-digit temperature is a number you read off a gauge, a six-digit
+    // funds balance is a number you count.
+    expect(formatQuantity(3200, "K").value).toBe("3200");
+    expect(formatQuantity(78_401, "funds").value).toBe("78,401");
+    expect(formatQuantity(1_234_567, "funds").value).toBe("1,234,567");
+  });
+
+  it("keeps the decimals outside the grouping, and the sign outside both", () => {
+    expect(formatQuantity(-78_401.25, "funds", { decimals: 2 }).value).toBe(
+      "-78,401.25",
+    );
+  });
+
+  it("groups after the ladder has chosen a rung, not before", () => {
+    // The ladder is why this almost never fires on a physical quantity: a
+    // length long enough to need a comma climbs to a bigger unit first. It
+    // only shows on a value the top rung cannot shrink.
+    expect(formatQuantity(12_400, "m").value).toBe("12.4");
+    expect(formatQuantity(12_400, "m", { scale: "never" }).value).toBe(
+      "12,400.0",
+    );
+  });
+
+  it("leaves a duration and a scientific reading alone", () => {
+    // Both interleave their own notation into the number, and a comma inside
+    // either one is noise rather than a separator.
+    expect(formatQuantity(86_400, "s").value).toBe("4d");
+    expect(formatQuantity(12_400, "irl:s").value).toBe("3h 26m");
   });
 });

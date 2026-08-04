@@ -18,6 +18,7 @@ import {
   useRouteCommands,
   useStream,
   useStreamEvent,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   ComboboxListbox,
@@ -39,6 +40,7 @@ import {
   Panel,
   PanelTitle,
   Switch,
+  Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { Terminal } from "@xterm/xterm";
@@ -1162,13 +1164,25 @@ function KosTerminalScreen({
   const scriptActiveIndex =
     scriptComposer?.phase === "picking" ? scriptComposer.activeIndex : -1;
 
+  const roundTrip = value("s", 2 * (badgeDelay?.oneWaySeconds ?? 0));
+
   return (
     <TerminalShell>
       <TerminalFrame>
         <Container ref={containerRef} $readOnly={readOnly} />
         {badgeDelay && (
           <DelayBadge role="status" aria-label="Signal delay">
-            round-trip ~{(2 * (badgeDelay.oneWaySeconds ?? 0)).toFixed(1)}s
+            round-trip ~
+            {/* `scale: "never"` and a decimal, because a delay is a READOUT
+                rather than a countdown: the time ladder truncates to whole
+                units, so 7.6s would read as "7s". Above a minute the decimal
+                is noise and the ladder takes over. */}
+            <Unit
+              value={roundTrip}
+              {...(roundTrip.magnitude < 60
+                ? { scale: "never" as const, decimals: 1 }
+                : {})}
+            />
           </DelayBadge>
         )}
         {/* Pinned inside `TerminalFrame`'s own bordered box, same as

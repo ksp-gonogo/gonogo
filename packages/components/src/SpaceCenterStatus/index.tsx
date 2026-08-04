@@ -277,8 +277,7 @@ function SpaceCenterStatusComponent({
             {padLine}
             {careerFunds !== null && (
               <FundsReadout title="Available funds">
-                · {Math.round(careerFunds).toLocaleString()}
-                <Unit>funds</Unit>
+                · <Unit value={value("funds", careerFunds)} />
               </FundsReadout>
             )}
           </span>

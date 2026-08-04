@@ -12,6 +12,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -126,11 +127,14 @@ describe("ScanningComponent", () => {
       transport.emit("scansat.coverage.Kerbin.16", 78.9); // Anomaly
       transport.emit("scansat.coverage.Kerbin.256", 91.0); // ResourceHiRes
     });
-    await screen.findByText("12.3%");
-    expect(screen.getByText("34.5%")).toBeInTheDocument();
-    expect(screen.getByText("56.7%")).toBeInTheDocument();
-    expect(screen.getByText("78.9%")).toBeInTheDocument();
-    expect(screen.getByText("91.0%")).toBeInTheDocument();
+    // `visibleText`, not `findByText`: these render through <Unit>, which puts
+    // the number and its symbol in separate elements with a thin space
+    // between, so no single node holds "12.3 %".
+    await waitFor(() => expect(visibleText()).toContain("12.3 %"));
+    expect(visibleText()).toContain("34.5 %");
+    expect(visibleText()).toContain("56.7 %");
+    expect(visibleText()).toContain("78.9 %");
+    expect(visibleText()).toContain("91.0 %");
   });
 
   it("renders anomaly names according to discovery state", async () => {

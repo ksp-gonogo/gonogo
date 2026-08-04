@@ -21,8 +21,8 @@
 // it: zero impact on MapView for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { registerAugment, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import styled from "styled-components";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
@@ -99,12 +99,16 @@ function CoverageRow({
     "data",
     `scansat.coverage.${bodyName}.${scanType}`,
   );
-  const value = typeof pct === "number" ? pct : 0;
+  const coverage = typeof pct === "number" ? pct : 0;
   return (
     <CoverageGrid>
       <Label>{label}</Label>
-      <Track $pct={value} />
-      <CoverageValue>{value.toFixed(0)}%</CoverageValue>
+      <Track $pct={coverage} />
+      <CoverageValue>
+        {/* The wire carries 0..100, so the unit is `%` and not `ratio`:
+            handing a percent to the ratio kind would multiply it again. */}
+        <Unit value={value("%", coverage)} decimals={0} />
+      </CoverageValue>
       {range?.bestRange ? (
         <Chip $variant="best">best</Chip>
       ) : range?.inRange ? (

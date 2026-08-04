@@ -294,8 +294,7 @@ export function FlightOutcomeBanner() {
         <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
         <BannerStats>
           <Stat>
-            +{Math.round(outcome.fundsEarned).toLocaleString()}
-            <Unit>funds</Unit>
+            +<Unit value={value("funds", outcome.fundsEarned)} />
           </Stat>
           <Stat>
             +{outcome.scienceEarned.toFixed(1)}
@@ -363,10 +362,10 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
           <TotalsRow>
             <TotalLabel>Funds</TotalLabel>
             <TotalGained>
-              +{Math.round(summary.fundsEarned).toLocaleString()}
+              +<Unit value={value("funds", summary.fundsEarned)} />
             </TotalGained>
             <TotalAbsolute>
-              {Math.round(summary.totalFunds).toLocaleString()}
+              <Unit value={value("funds", summary.totalFunds)} />
             </TotalAbsolute>
           </TotalsRow>
           <TotalsRow>
@@ -435,8 +434,7 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
                 {p.count > 1 && ` ×${p.count}`}
               </DetailRowTitle>
               <DetailRowValue>
-                {Math.round(p.totalValue).toLocaleString()}
-                <Unit>funds</Unit>
+                <Unit value={value("funds", p.totalValue)} />
               </DetailRowValue>
             </DetailRow>
           ))}
@@ -454,8 +452,7 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
                 {r.resourceName} · {r.amount.toFixed(1)}u
               </DetailRowTitle>
               <DetailRowValue>
-                {Math.round(r.totalValue).toLocaleString()}
-                <Unit>funds</Unit>
+                <Unit value={value("funds", r.totalValue)} />
               </DetailRowValue>
             </DetailRow>
           ))}

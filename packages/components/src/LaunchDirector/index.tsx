@@ -411,8 +411,7 @@ function LaunchDirectorComponent({
                 : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
-                · {Math.round(careerFunds).toLocaleString()}
-                <Unit>funds</Unit>
+                · <Unit value={value("funds", careerFunds)} />
               </FundsReadout>
             )}
           </span>
