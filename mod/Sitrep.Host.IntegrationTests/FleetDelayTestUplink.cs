@@ -77,6 +77,16 @@ namespace Sitrep.Host.IntegrationTests
                 }
                 _host?.SetVesselConnectivity(id, connected);
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
+                // Plan 2c: mirror the production FleetVesselLinkBuilder.Build dict
+                // (this test project can't reference Gonogo.KSP), so the
+                // fleet.<id>.delay serialize path is exercised end-to-end.
+                _orbitSource.Publisher(id + ".delay").Publish(
+                    new Dictionary<string, object?>
+                    {
+                        ["oneWaySeconds"] = delay,
+                        ["connected"] = connected,
+                    },
+                    cap.Ut);
             }
         }
 
