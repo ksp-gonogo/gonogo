@@ -94,6 +94,29 @@ describe("TelemetryClient subscriptions", () => {
     expect(b).toEqual([10]);
     off();
   });
+
+  it("setVantage sends set-vantage, tracks selectedVantage, and re-subscribes active topics", () => {
+    const t = new StubTransport();
+    const sendSpy = vi.spyOn(t, "send");
+    const client = new TelemetryClient(t);
+    expect(client.selectedVantage).toBe("ksc");
+
+    client.subscribe("v.alt", () => {});
+    sendSpy.mockClear();
+
+    client.setVantage("ground:gs1");
+    expect(client.selectedVantage).toBe("ground:gs1");
+    expect(sendSpy).toHaveBeenCalledWith({
+      type: "set-vantage",
+      centreId: "ground:gs1",
+    });
+    // The active topic re-subscribes so its cursor re-points to the new vantage.
+    expect(sendSpy).toHaveBeenCalledWith({
+      type: "unsubscribe",
+      topic: "v.alt",
+    });
+    expect(sendSpy).toHaveBeenCalledWith({ type: "subscribe", topic: "v.alt" });
+  });
   it("sends unsubscribe only when the last subscriber leaves (ref-counted)", () => {
     const t = new StubTransport();
     const sendSpy = vi.spyOn(t, "send");
