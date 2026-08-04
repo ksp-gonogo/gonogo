@@ -15,6 +15,7 @@ export default defineConfig({
     },
   },
   test: {
+    pool: "threads",
     name: "serial",
     environment: "jsdom",
     globals: true,
