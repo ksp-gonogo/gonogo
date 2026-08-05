@@ -11,7 +11,13 @@ import {
   Panel,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, CSSProperties, ReactNode } from "react";
+// Sections/EmptyFallbackWrap below keep styled-components for a load-bearing
+// `:not(:empty) + sibling { display:none }` rule: an `:empty` pseudo-class +
+// adjacent-sibling combinator inline style can't express, and the widget's
+// augment-model design depends on the frame staying agnostic of which sources
+// rendered content (a JS ref/MutationObserver replacement would couple them).
+// biome-ignore lint/style/noRestrictedImports: :empty frame-fallback rule, no inline equivalent (see above)
 import styled from "styled-components";
 import {
   type ContractEntry,
@@ -161,25 +167,31 @@ export function contractObjectives(
 function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
   if (items.length === 0) return null;
   return (
-    <List aria-label="Objectives">
+    <ul aria-label="Objectives" style={LIST}>
       {items.map((o) => (
-        <Item key={o.id} $state={o.state}>
-          <Glyph $state={o.state} aria-hidden="true">
+        <li
+          key={o.id}
+          style={{ ...ITEM, opacity: o.state === "pending" ? 0.6 : 1 }}
+        >
+          <span
+            style={{ ...GLYPH, color: STATE_COLOR[o.state] }}
+            aria-hidden="true"
+          >
             {STATE_GLYPH[o.state]}
-          </Glyph>
-          <Text>
-            <Title>
+          </span>
+          <div style={TEXT}>
+            <span style={TITLE}>
               {o.title}
-              {o.optional && <Optional> (optional)</Optional>}
-            </Title>
-            <Sourced>{o.source}</Sourced>
-            {o.description && <Desc>{o.description}</Desc>}
-          </Text>
+              {o.optional && <span style={OPTIONAL}> (optional)</span>}
+            </span>
+            <span style={SOURCED}>{o.source}</span>
+            {o.description && <span style={DESC}>{o.description}</span>}
+          </div>
           <VisuallyHidden>{o.state}</VisuallyHidden>
           {renderAlarm?.(o)}
-        </Item>
+        </li>
       ))}
-    </List>
+    </ul>
   );
 }
 
@@ -220,9 +232,14 @@ function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
       }) ?? null;
     const isSet = existingId !== null;
     return (
-      <AlarmBell
+      <button
         type="button"
-        $set={isSet}
+        style={{
+          ...ALARM_BELL,
+          color: isSet
+            ? "var(--color-status-go-fg)"
+            : "var(--color-text-muted)",
+        }}
         aria-pressed={isSet}
         title={
           isSet
@@ -252,7 +269,7 @@ function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
         }}
       >
         <BellIcon size={12} />
-      </AlarmBell>
+      </button>
     );
   };
 
@@ -273,16 +290,19 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
           (the `Sections` wrapper renders empty). CSS `:empty` keeps the frame
           agnostic of which sources exist; see the sibling rule on `Sections`. */}
       <EmptyFallbackWrap>
-        <EmptyFallback role="status">No active objectives</EmptyFallback>
+        <EmptyState role="status">No active objectives</EmptyState>
       </EmptyFallbackWrap>
     </Panel>
   );
 }
 
-const EmptyFallback = styled(EmptyState)``;
+// ── The `:empty` frame-fallback machinery (justified styled-components) ──────
+// These two stay styled: the rule below is an `:empty` pseudo-class + adjacent-
+// sibling combinator inline style can't express, and it's load-bearing (keeps
+// the frame agnostic of which augments rendered). See the import's biome-ignore.
 
-// Structural only: the sibling selector below needs an element to target so
-// the fallback hides once any source has rendered content. It used to carry
+// Structural only: the sibling selector needs an element to target so the
+// fallback hides once any source has rendered content. It used to carry
 // horizontal padding too, because EmptyState's inline layout had none, but
 // EmptyState now pads itself and doubling up would inset this further than
 // every other widget's empty state.
@@ -304,14 +324,9 @@ const Sections = styled.div`
   }
 `;
 
-const List = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
+// ── Structural inline styles (everything that isn't the :empty machinery) ────
+// Per-state colour is applied inline at the call site from STATE_COLOR
+// (a misc-cluster widget: colours preserved, no Value-tone remap).
 
 const STATE_COLOR: Record<ObjectiveState, string> = {
   pending: "var(--color-text-muted)",
@@ -320,57 +335,61 @@ const STATE_COLOR: Record<ObjectiveState, string> = {
   failed: "var(--color-status-nogo-fg)",
 };
 
-const Item = styled.li<{ $state: ObjectiveState }>`
-  display: flex;
-  gap: var(--space-6);
-  align-items: baseline;
-  opacity: ${(p) => (p.$state === "pending" ? 0.6 : 1)};
-`;
+const LIST: CSSProperties = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+};
 
-const Glyph = styled.span<{ $state: ObjectiveState }>`
-  font-size: var(--font-size-xs);
-  color: ${(p) => STATE_COLOR[p.$state]};
-`;
+// Per-state `opacity` is applied inline at the call site.
+const ITEM: CSSProperties = {
+  display: "flex",
+  gap: "var(--space-6)",
+  alignItems: "baseline",
+};
 
-const Text = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-hair);
-  min-width: 0;
-  flex: 1 1 auto;
-`;
+// Per-state `color` is applied inline at the call site.
+const GLYPH: CSSProperties = { fontSize: "var(--font-size-xs)" };
 
-const AlarmBell = styled.button<{ $set: boolean }>`
-  flex: 0 0 auto;
-  align-self: flex-start;
-  display: inline-flex;
-  padding: var(--space-2);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: ${(p) =>
-    p.$set ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
-`;
+const TEXT: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-hair)",
+  minWidth: 0,
+  flex: "1 1 auto",
+};
 
-const Title = styled.span`
-  font-size: var(--font-size-xs);
-`;
+// `$set` colour is applied inline at the call site.
+const ALARM_BELL: CSSProperties = {
+  flex: "0 0 auto",
+  alignSelf: "flex-start",
+  display: "inline-flex",
+  padding: "var(--space-2)",
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+};
 
-const Optional = styled.span`
-  color: var(--color-text-muted);
-  font-style: italic;
-`;
+const TITLE: CSSProperties = { fontSize: "var(--font-size-xs)" };
 
-const Sourced = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.03em;
-`;
+const OPTIONAL: CSSProperties = {
+  color: "var(--color-text-muted)",
+  fontStyle: "italic",
+};
 
-const Desc = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-muted);
-`;
+const SOURCED: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.03em",
+};
+
+const DESC: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  color: "var(--color-text-muted)",
+};
 
 registerComponent<ObjectivesConfig>({
   id: "objectives",
