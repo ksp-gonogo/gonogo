@@ -319,6 +319,7 @@ export interface CommandRequest<TArgs>
 	command: string;
 	label: string;
 	topic: string;
+	vantage?: string;
 	args: TArgs;
 	sentAt: number;
 }

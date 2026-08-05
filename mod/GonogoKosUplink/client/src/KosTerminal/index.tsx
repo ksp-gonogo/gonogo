@@ -797,10 +797,28 @@ function KosTerminalScreen({
   // destructured so effects can depend on it without the surrounding
   // per-render `{send,status}` object re-triggering them. The imperative xterm
   // handlers call the latest sender via refs.
-  const { send: sendKeystroke } = useCommand("kos.keystroke");
-  const { send: sendOpen } = useCommand("kos.terminal.open");
-  const { send: sendClose } = useCommand("kos.terminal.close");
-  const { send: sendResize } = useCommand("kos.terminal.resize");
+  const keystrokeCmd = useCommand("kos.keystroke");
+  const openCmd = useCommand("kos.terminal.open");
+  const closeCmd = useCommand("kos.terminal.close");
+  const resizeCmd = useCommand("kos.terminal.resize");
+  const { send: sendKeystroke } = keystrokeCmd;
+  const { send: sendOpen } = openCmd;
+  const { send: sendClose } = closeCmd;
+  const { send: sendResize } = resizeCmd;
+
+  // The kOS terminal IS its own signal-delay UX: the xterm echoes each
+  // keystroke only after the full round trip, so the delay shows as the
+  // terminal's own latency (the terminal-fidelity model), NOT a per-keystroke
+  // `<CommandDelay>` in-flight list, which would fight that surface. So this
+  // component self-consumes its four terminal-control commands' must-consume
+  // tokens, the same truthful self-consume `useControlStream` does for the
+  // continuous stream it renders itself. Dev only; `_output` is absent in prod.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    for (const cmd of [keystrokeCmd, openCmd, closeCmd, resizeCmd]) {
+      if (cmd._output) cmd._output.consumed = true;
+    }
+  });
 
   // `label` is only ever non-empty for a line-mode Enter (the composed line
   // IS the label, see `reduceLineModeInput`'s callsite below); char-mode

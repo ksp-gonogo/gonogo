@@ -14,7 +14,6 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -30,11 +29,7 @@ import {
   ToggleButton,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import {
-  InFlightList,
-  type InFlightListItem,
-  NULL_DISPLAY,
-} from "@ksp-gonogo/ui-kit";
+import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -212,24 +207,6 @@ export function buildToggleArgs(
     return { group: group.index, state: nextState };
   }
   return { enabled: nextState };
-}
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same shape as RoboticsConsole/RotorTachometer's own mapping: a
- * toggle's visible effect is it reaching the craft, so this counts down to
- * the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -514,12 +491,13 @@ function ActionGroupView({
           {unavailableReason}
         </UnavailableNotice>
       )}
-      {getSizeBucket(w, h) !== "tiny" && (
-        <InFlightList
-          items={toInFlightListItems(toggleCmd.inFlight)}
-          ariaLabel={`${currentLabel}: in flight`}
-        />
-      )}
+      {/* Rendered unconditionally (not size-gated): the must-consume invariant
+          requires a mounted <CommandDelay> wherever the command can dispatch,
+          and it draws nothing anyway until there is real delay to show. */}
+      <CommandDelay
+        handle={toggleCmd}
+        ariaLabel={`${currentLabel}: in flight`}
+      />
       {/* Richer whole-widget status block: the section-level counterpart to the
           inline badges. An Uplink describing what this group toggles
           (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}

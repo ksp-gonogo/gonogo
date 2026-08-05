@@ -64,6 +64,19 @@ public class CommandRequest<TArgs>
     /// <c>system.uplink.pending</c>. Never inspected/parsed by the engine.
     /// </summary>
     public string Topic { get; set; } = "";
+
+    /// <summary>
+    /// Per-call vantage override (Plan 3 / delay-UX): the command centre this
+    /// specific command dispatches from, governing its delay via
+    /// <c>DelayTo(vantage, node)</c>. Empty ⇒ the server uses the connection's
+    /// session <c>SelectedVantage</c> (the default). A program-meta command
+    /// (tech/strategy/contract) sends <c>"meta"</c> so it stays instant
+    /// (<c>DelayTo("meta", *) = 0</c>) regardless of which centre the operator
+    /// has selected. Nullable/optional: a pre-Vantage client omits it (codegen
+    /// emits vantage?: string), and the server treats null/empty as the session vantage.
+    /// </summary>
+    public string? Vantage { get; set; }
+
     public TArgs Args { get; set; } = default!;
     public double SentAt { get; set; }
 }

@@ -355,7 +355,13 @@ namespace Sitrep.Contract
         /// and its <see cref="CommandCentreEntry"/> type (Plan 3): the roster of
         /// command centres (vantages/authorities) a dashboard can select. A NEW
         /// wire type, additive-only, never touches an existing member.</para>
+        ///
+        /// <para><b>Bumped 4 -&gt; 5 (delay-UX, additive):</b> an optional
+        /// <c>Vantage</c> on <c>CommandRequest</c>, a per-call vantage override so
+        /// a program-meta command can pin <c>"meta"</c> (instant) regardless of the
+        /// connection's selected centre. Optional/backward-compatible: absent means
+        /// the server uses the session vantage as before. Never touches an existing member.</para>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

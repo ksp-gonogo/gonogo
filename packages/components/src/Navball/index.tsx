@@ -11,7 +11,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { ControlStream, InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import type { ControlStream } from "@ksp-gonogo/sitrep-client";
 import {
   useCommand,
   useControlStream,
@@ -22,14 +22,14 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
+  CommandDelay,
+  type CommandDelayHandle,
   ConfigForm,
   ControlDelayStream,
   Countdown,
   Field,
   FieldHint,
   FieldLabel,
-  InFlightList,
-  type InFlightListItem,
   NULL_DISPLAY,
   Panel,
   Select,
@@ -92,24 +92,6 @@ const SAS_MODES = [
   "Maneuver",
 ] as const;
 type SasMode = (typeof SAS_MODES)[number];
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same mapping as ActionGroup/RoboticsConsole's own: a discrete
- * SAS/RCS/FBW command's visible effect is it reaching the craft, so this
- * counts down to the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
-}
 
 interface NavballConfig {
   /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2); see the component body's ternary comment for which raw key backs which frame. */
@@ -644,12 +626,7 @@ function NavballComponent({
             onSetSasMode={setSasMode}
             showFbwDelayWarning={showFbwDelayWarning}
             delaySeconds={delaySeconds}
-            inFlight={toInFlightListItems([
-              ...sasCmd.inFlight,
-              ...rcsCmd.inFlight,
-              ...sasModeCmd.inFlight,
-              ...fbwCmd.inFlight,
-            ])}
+            commandHandles={[sasCmd, rcsCmd, sasModeCmd, fbwCmd]}
           />
         )}
       </Body>
@@ -676,8 +653,9 @@ interface ControlSurfaceProps {
   onSetSasMode: (mode: SasMode) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
-  /** In-flight SAS/RCS/SAS-mode/FBW commands, folded in from `useCommand`. */
-  inFlight: InFlightListItem[];
+  /** The SAS/RCS/SAS-mode/FBW command handles, rendered as one merged
+   * `<CommandDelay>` in-flight list. */
+  commandHandles: CommandDelayHandle[];
 }
 
 function ControlSurface({
@@ -697,7 +675,7 @@ function ControlSurface({
   onSetSasMode,
   showFbwDelayWarning,
   delaySeconds,
-  inFlight,
+  commandHandles,
 }: ControlSurfaceProps) {
   return (
     <ControlWrap>
@@ -706,7 +684,10 @@ function ControlSurface({
           Vessel not controllable: buttons disabled.
         </Banner>
       )}
-      <InFlightList items={inFlight} ariaLabel="Navball commands: in flight" />
+      <CommandDelay
+        handles={commandHandles}
+        ariaLabel="Navball commands: in flight"
+      />
       <Group>
         <GroupLabel>SAS</GroupLabel>
         <ButtonGrid>

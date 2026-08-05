@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
+  type CommsDelayLike,
   classifyRetained,
   type InFlightCommand,
   type PathConnectedDuring,
@@ -20,7 +21,27 @@ import {
   useTelemetryStoreOptional,
 } from "./context";
 import type { CommandStatus } from "./lifecycle";
+import { commandDelayed, commandShape } from "./map-command";
 import { useLatestValue } from "./use-stream";
+
+/**
+ * The program-meta vantage: a command sent from `"meta"` is instant
+ * (`DelayTo("meta", *) = 0` server-side, `ChannelEngine.MetaVantage`). Program
+ * acts with no physical vantage (tech unlock, strategy, contract accept) pass
+ * this so they stay instant regardless of the operator's selected command
+ * centre. Kept in sync with the C# `MetaVantage` constant.
+ */
+export const META_VANTAGE = "meta";
+
+/**
+ * The dev-only must-consume token this hook hands out on every dispatch handle.
+ * `<CommandDelay handle={cmd}>` flips `consumed` on mount; `send()`'s
+ * post-dispatch assertion throws if it is still false. Absent in production, so
+ * neither the token nor the assertion is a prod cost.
+ */
+export interface CommandOutputToken {
+  consumed: boolean;
+}
 
 /** Shared constant so `getSnapshot` returns a referentially stable value when
  * no command has been dispatched yet, a fresh object literal here would
@@ -76,6 +97,24 @@ export interface UseCommandResult {
    * silently after `NEVER_TRACKED_GRACE_SECONDS` instead of leaking forever.
    */
   inFlight: InFlightCommand[];
+  /**
+   * Which delay display this command uses (`commandShape(command)`): a discrete
+   * `InFlightList` of one-shot dispatches, or the continuous `ControlDelayStream`
+   * for a persistent per-frame axis. Handed straight to `<CommandDelay>`.
+   */
+  shape: "discrete" | "stream";
+  /**
+   * The command's effective one-way delay under its vantage: `0` for a
+   * never-delayed sim-meta command (`time.*`), `0` at the meta-vantage, and the
+   * live `comms.delay` one-way otherwise. `<CommandDelay>` renders nothing at 0.
+   */
+  effectiveDelaySeconds: number;
+  /**
+   * Dev-only must-consume token (absent in production). Set the moment a
+   * `<CommandDelay handle={cmd}>` mounts; `send()` throws if it is dispatched
+   * without one, so a delayed command can never ship without its delay UX.
+   */
+  _output?: CommandOutputToken;
 }
 
 type TrackedResolution =
@@ -140,7 +179,19 @@ function resolveTracked(
  * request re-renders the caller. `inFlight` is a SEPARATE accumulating set
  * (not just the latest `requestId`): see `UseCommandResult.inFlight`'s doc.
  */
-export function useCommand(command: string): UseCommandResult {
+export function useCommand(
+  command: string,
+  options?: {
+    /**
+     * Per-call vantage override (delay-UX): the command centre this command
+     * dispatches from. Omit to use the connection's session vantage (the
+     * default); pass `"meta"` for a program-meta command (tech/strategy/contract)
+     * so it stays instant regardless of the selected centre.
+     */
+    vantage?: string;
+  },
+): UseCommandResult {
+  const vantage = options?.vantage;
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected):
   // status stays IDLE and `send` is a no-op, you can't dispatch a command
   // with no link, and the hook must not throw just because the dashboard
@@ -172,6 +223,18 @@ export function useCommand(command: string): UseCommandResult {
 
   const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
+  const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
+
+  // The delay display + effective delay this command hands to `<CommandDelay>`.
+  // `shape` is a pure function of the command id. `effectiveDelaySeconds` is 0
+  // for a never-delayed sim-meta command (`time.*`) and for a meta-vantage
+  // dispatch (both are instant server-side), else the live one-way delay. A
+  // `null` one-way (no path) is treated as 0 here: there is no positive delay
+  // to visualise, `<CommandDelay>` draws nothing.
+  const shape = commandShape(command);
+  const liveOneWaySeconds = commsDelay?.oneWaySeconds?.magnitude ?? 0;
+  const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
+  const effectiveDelaySeconds = isInstant ? 0 : Math.max(0, liveOneWaySeconds);
   // A synchronous, NON-subscribing read of the same undelayed clock
   // `useUtNow` tracks (`ViewClock.utNowEstimate()`): deliberately NOT
   // `useUtNow()` itself, which subscribes to a real-wall-clock ~16ms tick
@@ -202,6 +265,35 @@ export function useCommand(command: string): UseCommandResult {
   // task), so it can't close over the freshly-computed render-scope value.
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
+
+  // --- must-consume token (dev only, Task 4 of the delay-UX plan) ---
+  // A stable token handed out on the return value; `<CommandDelay handle={cmd}>`
+  // flips `consumed` on mount. `send` bumps `dispatchTick` on its FIRST dispatch
+  // to schedule the check below; once the check passes it latches
+  // `verifiedRef` so a hot dispatch loop (e.g. `useControlStream`'s 10 Hz axis
+  // send) doesn't re-render every frame just to re-assert an invariant already
+  // proven. Nothing here exists in production.
+  const outputRef = useRef<CommandOutputToken | undefined>(undefined);
+  if (process.env.NODE_ENV !== "production" && !outputRef.current) {
+    outputRef.current = { consumed: false };
+  }
+  const consumeVerifiedRef = useRef(false);
+  const [dispatchTick, setDispatchTick] = useState(0);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    if (dispatchTick === 0 || consumeVerifiedRef.current) return;
+    if (outputRef.current && !outputRef.current.consumed) {
+      throw new Error(
+        `useCommand(${JSON.stringify(command)}).send() dispatched a command, ` +
+          "but no <CommandDelay handle={cmd}> (or handles={[…]}) is mounted to " +
+          "render its signal-delay UX. Render <CommandDelay handle={cmd} /> " +
+          "next to the control (it draws nothing when there is no delay). " +
+          "There is no opt-out: this keeps every delayed command's delay visible.",
+      );
+    }
+    consumeVerifiedRef.current = true;
+  }, [dispatchTick, command]);
 
   let inFlight = NO_IN_FLIGHT;
   if (dispatchedIds.length > 0) {
@@ -264,14 +356,30 @@ export function useCommand(command: string): UseCommandResult {
         args,
         opts?.label,
         opts?.topic,
+        vantage,
       );
       setRequestId(newRequestId);
       firstSeenAtRef.current.set(newRequestId, nowUtRef.current);
       setDispatchedIds((prev) => [...prev, newRequestId]);
+      // Schedule the dev-only must-consume check on the first dispatch that
+      // hasn't yet been verified (see the effect above). A no-op in production.
+      if (
+        process.env.NODE_ENV !== "production" &&
+        !consumeVerifiedRef.current
+      ) {
+        setDispatchTick((tick) => tick + 1);
+      }
       return result;
     },
-    [client, command],
+    [client, command, vantage],
   );
 
-  return { send, status, inFlight };
+  return {
+    send,
+    status,
+    inFlight,
+    shape,
+    effectiveDelaySeconds,
+    _output: outputRef.current,
+  };
 }

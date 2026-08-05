@@ -82,6 +82,12 @@ export {
   type CameraSetpointInputProps,
 } from "./CommandDelay/CameraSetpointInput";
 export {
+  CommandDelay,
+  type CommandDelayHandle,
+  type CommandDelayProps,
+  type CommandOutputToken,
+} from "./CommandDelay/CommandDelay";
+export {
   CommandGroup,
   type CommandGroupProps,
 } from "./CommandDelay/CommandGroup";
@@ -99,6 +105,10 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
+export {
+  type InFlightCommandLike,
+  toInFlightListItems,
+} from "./CommandDelay/toInFlightListItems";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 export {

@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { CommandDelay } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -18,7 +19,7 @@ import { useCommand } from "./use-command";
 import { ViewClock } from "./view-clock";
 
 function Deploy() {
-  const { send, status } = useCommand("deploy");
+  const cmd = useCommand("deploy");
   return (
     <div>
       <button
@@ -28,15 +29,18 @@ function Deploy() {
           // dispatch call sites; `status` is what the test observes, not
           // the promise, but it still must be caught to avoid an unhandled
           // rejection when a command loses/errors.
-          send(9).catch(() => {});
+          cmd.send(9).catch(() => {});
         }}
       >
         go
       </button>
-      <span>phase:{status.phase}</span>
+      <span>phase:{cmd.status.phase}</span>
       <span>
-        eta:{status.phase === "in-flight" ? status.etaConfirm : "none"}
+        eta:{cmd.status.phase === "in-flight" ? cmd.status.etaConfirm : "none"}
       </span>
+      {/* Satisfies the must-consume invariant: every dispatch handle needs a
+          mounted <CommandDelay>. Draws nothing here (no delay). */}
+      <CommandDelay handle={cmd} />
     </div>
   );
 }
@@ -186,19 +190,20 @@ function setupFixture() {
 }
 
 function DeployWithInFlight() {
-  const { send, inFlight } = useCommand("deploy");
+  const cmd = useCommand("deploy");
   return (
     <div>
-      <button type="button" onClick={() => void send(1).catch(() => {})}>
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go1
       </button>
-      <button type="button" onClick={() => void send(2).catch(() => {})}>
+      <button type="button" onClick={() => void cmd.send(2).catch(() => {})}>
         go2
       </button>
-      <span>count:{inFlight.length}</span>
+      <span>count:{cmd.inFlight.length}</span>
       <span>
-        phases:{inFlight.map((item) => item.predictedPhase).join(",")}
+        phases:{cmd.inFlight.map((item) => item.predictedPhase).join(",")}
       </span>
+      <CommandDelay handle={cmd} />
     </div>
   );
 }
@@ -366,5 +371,52 @@ describe("useCommand inFlight", () => {
       );
     });
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});
+
+// ── must-consume invariant (dev): a dispatch needs a mounted <CommandDelay> ──
+
+describe("useCommand must-consume invariant (dev)", () => {
+  function makeClient() {
+    const transport = new StubTransport();
+    transport.setCommandHandler((c, a) => ({ c, a }));
+    return new TelemetryClient(transport);
+  }
+
+  function Unlock({ withDelay }: { withDelay: boolean }) {
+    const cmd = useCommand("career.tech.unlock");
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => void cmd.send({ id: "n" }).catch(() => {})}
+        >
+          unlock
+        </button>
+        {withDelay ? <CommandDelay handle={cmd} /> : null}
+      </div>
+    );
+  }
+
+  it("throws in dev when a command is dispatched without a <CommandDelay>", () => {
+    render(
+      <TelemetryProvider client={makeClient()}>
+        <Unlock withDelay={false} />
+      </TelemetryProvider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).toThrow(/CommandDelay/);
+  });
+
+  it("does not throw when <CommandDelay handle={cmd}> is mounted", () => {
+    render(
+      <TelemetryProvider client={makeClient()}>
+        <Unlock withDelay={true} />
+      </TelemetryProvider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).not.toThrow();
   });
 });

@@ -4,13 +4,11 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   Cluster,
+  CommandDelay,
   EmptyState,
-  InFlightList,
-  type InFlightListItem,
   Panel,
   ToggleButton,
   Unit,
@@ -173,26 +171,6 @@ const roboticsActions = [
 
 export type RoboticsConsoleActions = typeof roboticsActions;
 
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe): a discrete servo command has no "reply" leg worth showing
- * separately from "reach", so this counts down to the reach ETA throughout
- * (unlike MechJeb's autopilot commands, a servo actuation's visible effect
- * IS it reaching the craft, there's no separate confirmation payload the
- * operator is waiting on beyond that).
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
-}
-
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
@@ -231,12 +209,6 @@ function RoboticsConsoleComponent({
       { partId: id, enabled: locked },
       { label: locked ? "Lock" : "Unlock" },
     );
-
-  const inFlight = toInFlightListItems([
-    ...targetCmd.inFlight,
-    ...motorCmd.inFlight,
-    ...lockCmd.inFlight,
-  ]);
 
   useActionInput<RoboticsConsoleActions>({
     targetUp: (p) => {
@@ -313,8 +285,8 @@ function RoboticsConsoleComponent({
           )}
         </Cluster>
 
-        <InFlightList
-          items={inFlight}
+        <CommandDelay
+          handles={[targetCmd, motorCmd, lockCmd]}
           ariaLabel="Robotics commands: in flight"
         />
 

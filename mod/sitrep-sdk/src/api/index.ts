@@ -64,6 +64,7 @@ export type {
   BodyDefinition,
   BodyMask,
   ClientPrefSetting,
+  CommandOutputToken,
   CommandStatus,
   ComponentBehavior,
   ComponentDefinition,

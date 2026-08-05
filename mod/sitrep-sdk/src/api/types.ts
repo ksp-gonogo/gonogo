@@ -609,6 +609,16 @@ export interface InFlightCommand {
   predictedPhase: PredictedPhase;
 }
 
+/**
+ * Mirrors `packages/ui-kit/src/CommandDelay`'s `CommandOutputToken`, the
+ * dev-only must-consume token `useCommand` hands out: `<CommandDelay>` flips
+ * `consumed` on mount so a delayed command can't be dispatched without its
+ * delay UX. Absent in production. Same leaf constraint as every other type.
+ */
+export interface CommandOutputToken {
+  consumed: boolean;
+}
+
 export interface UseCommandResult {
   send: (
     args?: unknown,
@@ -616,6 +626,12 @@ export interface UseCommandResult {
   ) => Promise<unknown>;
   status: CommandStatus;
   inFlight: InFlightCommand[];
+  /** Delay display this command uses; hand straight to `<CommandDelay>`. */
+  shape: "discrete" | "stream";
+  /** Effective one-way delay under this command's vantage (0 = instant). */
+  effectiveDelaySeconds: number;
+  /** Dev-only must-consume token (absent in production). See `CommandOutputToken`. */
+  _output?: CommandOutputToken;
 }
 
 /**

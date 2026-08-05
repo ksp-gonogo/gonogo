@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
@@ -21,14 +21,15 @@ import { useStream } from "./use-stream";
  */
 function MissionPanel() {
   const altitude = useStream<number>("v.alt");
-  const { send, status } = useCommand("stage");
+  const cmd = useCommand("stage");
   return (
     <div>
       <span>altitude:{altitude ?? NULL_DISPLAY}</span>
-      <button type="button" onClick={() => send()}>
+      <button type="button" onClick={() => cmd.send()}>
         stage
       </button>
-      <span>phase:{status.phase}</span>
+      <span>phase:{cmd.status.phase}</span>
+      <CommandDelay handle={cmd} />
     </div>
   );
 }

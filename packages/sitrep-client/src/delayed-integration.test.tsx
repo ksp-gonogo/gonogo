@@ -11,7 +11,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 // This is the end-to-end proof: the SAME hooks/client/provider
 // from `integration.test.tsx`, now wired to the REAL delay-modelling
@@ -35,7 +35,7 @@ import { useStream } from "./use-stream";
  */
 function MissionPanel() {
   const altitude = useStream<number>("alt");
-  const { send, status } = useCommand("deploy");
+  const cmd = useCommand("deploy");
   return (
     <div>
       <span>altitude:{altitude ?? NULL_DISPLAY}</span>
@@ -46,15 +46,16 @@ function MissionPanel() {
           // is what these tests observe, but the promise still must be
           // caught so a lost/failed command never surfaces as an unhandled
           // rejection.
-          send().catch(() => {});
+          cmd.send().catch(() => {});
         }}
       >
         deploy
       </button>
-      <span>phase:{status.phase}</span>
+      <span>phase:{cmd.status.phase}</span>
       <span>
-        eta:{status.phase === "in-flight" ? status.etaConfirm : "none"}
+        eta:{cmd.status.phase === "in-flight" ? cmd.status.etaConfirm : "none"}
       </span>
+      <CommandDelay handle={cmd} />
     </div>
   );
 }
