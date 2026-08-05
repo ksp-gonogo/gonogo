@@ -234,6 +234,7 @@ export type {
   UseRouteCommandsResult,
 } from "./use-route-commands";
 export { useRouteCommands } from "./use-route-commands";
+export { useSelectedVantage } from "./use-selected-vantage";
 export { useLatestValue, useStream } from "./use-stream";
 export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";
