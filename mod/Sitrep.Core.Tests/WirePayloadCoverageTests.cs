@@ -114,6 +114,10 @@ namespace Sitrep.Core.Tests
             // commandCentre.roster: the command-centre enumeration pass
             // hand-flattens each centre to a Dictionary; this POCO is TS-shape-only.
             "CommandCentreEntry",
+            // time.calendar: VesselViewProvider.ToWire(TimeCalendar) returns a
+            // Dictionary<string, object?> and publishes that, so JsonWriter only
+            // ever sees the flattened dictionary; the POCO is TS-shape-only.
+            "TimeCalendar",
             // parts.power / parts.robotics / robotics.available:
             // PartsViewProvider.BuildPower/BuildRobotics/BuildRoboticsAvailable
             // hand-build Dictionary<string, object?> trees; these POCOs are
