@@ -242,7 +242,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // ordering inside its own frame's stacking context (same as that frame's
     // other badge overlays), commented at the call site. Not app-global chrome,
     // so no named z rung.
-    "mod/": 6,
+    "mod/": 7,
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/AtmosphereProfile/index.tsx": 1,
     "packages/components/src/MapView/MapPoiLayer.tsx": 1,

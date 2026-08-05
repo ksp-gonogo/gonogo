@@ -15,7 +15,7 @@ const bounds = {
 // End-to-end through the real hook + client + stub wire: the delay gate decides
 // whether the surface shows at all, and a dial-then-commit fires the two
 // absolute delayed commands with the dialled values. Only the wire is a stub.
-describe("delayed camera control — end to end", () => {
+describe("delayed camera control, end to end", () => {
   it("live: surface hidden, nothing dispatched", () => {
     const { transport } = renderWithCommandClient(
       <CameraSetpointSurface
