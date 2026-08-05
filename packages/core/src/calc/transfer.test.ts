@@ -7,6 +7,7 @@ import {
   keplerTransferSolver,
   nextTransferWindowWait,
   synodicPeriod,
+  transferSeverity,
   transferStatus,
 } from "./transfer";
 
@@ -149,5 +150,17 @@ describe("keplerTransferSolver.solve (composite)", () => {
   it("carries the ejection figures", () => {
     expect(sol.ejectionDeltaV).toBeCloseTo(3613, -2);
     expect(sol.vInf).toBeCloseTo(2945, -2);
+  });
+});
+
+describe("transferSeverity (spec mapping table, Scale B)", () => {
+  it("go -> nominal", () => {
+    expect(transferSeverity("go")).toBe("nominal");
+  });
+  it("soon -> caution", () => {
+    expect(transferSeverity("soon")).toBe("caution");
+  });
+  it("off -> critical", () => {
+    expect(transferSeverity("off")).toBe("critical");
   });
 });

@@ -18,6 +18,8 @@
  * elements: it is a separate, richer computation than this coplanar model.
  */
 
+import type { Severity } from "@ksp-gonogo/ui-kit";
+
 // ---------------------------------------------------------------------------
 // Phase-angle core (moved here from packages/components SystemView so both the
 // SystemView diagram and the Transfer Window widget share ONE implementation;
@@ -65,6 +67,28 @@ export function transferStatus(deltaDeg: number): TransferStatus {
   if (a < 2) return "go";
   if (a < 10) return "soon";
   return "off";
+}
+
+/**
+ * Fold `TransferStatus` onto the canonical `Severity` scale so SystemView and
+ * the Transfer Window widget can contribute their window state to a panel
+ * summary and read the same colours as every other status surface. Per the spec
+ * mapping table (Scale B): `go` is nominal, the approaching `soon` window is a
+ * caution, and an `off` window is critical.
+ *
+ * `Severity` lives in `@ksp-gonogo/ui-kit` (which core already depends on),
+ * because a shared severity type in core would be a circular import for the
+ * Badge/Panel that consume it.
+ */
+export function transferSeverity(status: TransferStatus): Severity {
+  switch (status) {
+    case "go":
+      return "nominal";
+    case "soon":
+      return "caution";
+    case "off":
+      return "critical";
+  }
 }
 
 // ---------------------------------------------------------------------------
