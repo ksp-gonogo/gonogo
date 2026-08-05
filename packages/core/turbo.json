@@ -12,8 +12,15 @@
       // core#test's cache on the workspace src trees makes a normal cached
       // `turbo run test` re-run it on any src change, so --force is gone.
       // Broad glob (not the exact SCAN_ROOTS list) so a newly added
-      // package/scan-root can't silently drop out of the key.
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/*/src/**"]
+      // package/scan-root can't silently drop out of the key. The mod/ uplink
+      // client + sdk src trees are keyed too: they were missed originally, so
+      // an em-dash / raw z-index in mod/*/client/src replayed a stale core#test
+      // pass until an unrelated packages/*/src change happened to bust the key.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/*/src/**",
+        "$TURBO_ROOT$/mod/**/src/**"
+      ]
     }
   }
 }
