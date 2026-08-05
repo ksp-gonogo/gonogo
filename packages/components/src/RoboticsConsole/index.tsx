@@ -6,15 +6,22 @@ import {
 } from "@ksp-gonogo/core";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
+  ActionButton,
+  Badge,
   Cluster,
   CommandDelay,
   EmptyState,
+  Inline,
   Panel,
+  ReadoutCaption,
+  ScrollArea,
+  SelectableRow,
+  Stack,
   ToggleButton,
   Unit,
+  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import styled from "styled-components";
 import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 
 /**
@@ -267,243 +274,119 @@ function RoboticsConsoleComponent({
 
   return (
     <Panel panelTitle="ROBOTICS">
-      <Body>
-        <Cluster justify="start" align="baseline" wrap>
-          <Current>
-            {formatPos(selected.type, selected.current)}
-            <Unit>{unit}</Unit>
-          </Current>
-          <Arrow aria-hidden="true">→</Arrow>
-          <Target>
-            {formatPos(selected.type, selected.target)}
-            <Unit>{unit}</Unit>
-          </Target>
-          {showToggles && (
-            <StatePill $atTarget={selected.atTarget} role="status">
-              {selected.atTarget ? "AT TARGET" : "MOVING"}
-            </StatePill>
+      <ScrollArea>
+        <Stack gap="md">
+          <Cluster justify="start" align="baseline" wrap>
+            <Value size="lg" weight="semibold">
+              {formatPos(selected.type, selected.current)}
+              <Unit>{unit}</Unit>
+            </Value>
+            <Value tone="muted" aria-hidden="true">
+              →
+            </Value>
+            <Value tone="muted" size="lg">
+              {formatPos(selected.type, selected.target)}
+              <Unit>{unit}</Unit>
+            </Value>
+            {showToggles && (
+              <Badge tone={selected.atTarget ? "go" : "neutral"} role="status">
+                {selected.atTarget ? "AT TARGET" : "MOVING"}
+              </Badge>
+            )}
+          </Cluster>
+
+          <CommandDelay
+            handles={[targetCmd, motorCmd, lockCmd]}
+            ariaLabel="Robotics commands: in flight"
+          />
+
+          <Stack gap="sm">
+            <Cluster justify="between" gap="md" wrap>
+              <ReadoutCaption>Target</ReadoutCaption>
+              <Inline gap="sm">
+                <ActionButton
+                  tone="ghost"
+                  type="button"
+                  aria-label="Decrease target"
+                  onClick={() =>
+                    setTarget(
+                      selected.partId,
+                      selected.type,
+                      selected.target - TARGET_STEP[selected.type],
+                    )
+                  }
+                >
+                  −
+                </ActionButton>
+                <Value size="sm" tone="default">
+                  {formatPos(selected.type, selected.target)}
+                  {unit}
+                </Value>
+                <ActionButton
+                  tone="ghost"
+                  type="button"
+                  aria-label="Increase target"
+                  onClick={() =>
+                    setTarget(
+                      selected.partId,
+                      selected.type,
+                      selected.target + TARGET_STEP[selected.type],
+                    )
+                  }
+                >
+                  +
+                </ActionButton>
+              </Inline>
+            </Cluster>
+
+            {showToggles && (
+              <Cluster justify="start" gap="sm" wrap>
+                <ToggleButton
+                  size="sm"
+                  active={selected.motorEngaged}
+                  tone="go"
+                  onClick={() =>
+                    setMotor(selected.partId, !selected.motorEngaged)
+                  }
+                >
+                  Motor {selected.motorEngaged ? "on" : "off"}
+                </ToggleButton>
+                <ToggleButton
+                  size="sm"
+                  active={selected.locked}
+                  tone="warn"
+                  onClick={() => setLock(selected.partId, !selected.locked)}
+                >
+                  {selected.locked ? "Locked" : "Unlocked"}
+                </ToggleButton>
+              </Cluster>
+            )}
+          </Stack>
+
+          {showServoList && (
+            <Stack gap="sm" aria-label="Robotic joints">
+              {servos.map((s) => (
+                <SelectableRow
+                  key={s.partId}
+                  selected={s.partId === selected.partId}
+                  onClick={() => setSelectedId(s.partId)}
+                >
+                  <span>{s.name}</span>
+                  <span>
+                    {s.type} · {formatPos(s.type, s.current)}
+                    {unitFor(s.type)}/{formatPos(s.type, s.target)}
+                    {unitFor(s.type)}
+                    {s.locked ? " · locked" : s.atTarget ? " · ✓" : ""}
+                  </span>
+                </SelectableRow>
+              ))}
+            </Stack>
           )}
-        </Cluster>
-
-        <CommandDelay
-          handles={[targetCmd, motorCmd, lockCmd]}
-          ariaLabel="Robotics commands: in flight"
-        />
-
-        <Controls>
-          <ControlRow>
-            <ControlLabel>Target</ControlLabel>
-            <Stepper>
-              <StepBtn
-                type="button"
-                aria-label="Decrease target"
-                onClick={() =>
-                  setTarget(
-                    selected.partId,
-                    selected.type,
-                    selected.target - TARGET_STEP[selected.type],
-                  )
-                }
-              >
-                −
-              </StepBtn>
-              <StepValue>
-                {formatPos(selected.type, selected.target)}
-                {unit}
-              </StepValue>
-              <StepBtn
-                type="button"
-                aria-label="Increase target"
-                onClick={() =>
-                  setTarget(
-                    selected.partId,
-                    selected.type,
-                    selected.target + TARGET_STEP[selected.type],
-                  )
-                }
-              >
-                +
-              </StepBtn>
-            </Stepper>
-          </ControlRow>
-
-          {showToggles && (
-            <ToggleRow>
-              <ToggleButton
-                size="sm"
-                active={selected.motorEngaged}
-                tone="go"
-                onClick={() =>
-                  setMotor(selected.partId, !selected.motorEngaged)
-                }
-              >
-                Motor {selected.motorEngaged ? "on" : "off"}
-              </ToggleButton>
-              <ToggleButton
-                size="sm"
-                active={selected.locked}
-                tone="warn"
-                onClick={() => setLock(selected.partId, !selected.locked)}
-              >
-                {selected.locked ? "Locked" : "Unlocked"}
-              </ToggleButton>
-            </ToggleRow>
-          )}
-        </Controls>
-
-        {showServoList && (
-          <ServoList aria-label="Robotic joints">
-            {servos.map((s) => (
-              <ServoRow
-                key={s.partId}
-                type="button"
-                $selected={s.partId === selected.partId}
-                aria-pressed={s.partId === selected.partId}
-                onClick={() => setSelectedId(s.partId)}
-              >
-                <ServoName>{s.name}</ServoName>
-                <ServoMeta>
-                  {s.type} · {formatPos(s.type, s.current)}
-                  {unitFor(s.type)}/{formatPos(s.type, s.target)}
-                  {unitFor(s.type)}
-                  {s.locked ? " · locked" : s.atTarget ? " · ✓" : ""}
-                </ServoMeta>
-              </ServoRow>
-            ))}
-          </ServoList>
-        )}
-      </Body>
+        </Stack>
+      </ScrollArea>
     </Panel>
   );
 }
-
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-8) var(--space-8);
-  overflow: auto;
-`;
-
-const Current = styled.span`
-  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
-     is a display-tier readout. */
-  font-size: 22px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-`;
-
-const Arrow = styled.span`
-  color: var(--color-text-muted);
-`;
-
-const Target = styled.span`
-  font-size: var(--font-size-lg);
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;
-
-const StatePill = styled.span<{ $atTarget: boolean }>`
-  margin-left: auto;
-  align-self: center;
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-xs);
-  background: ${(p) =>
-    p.$atTarget ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
-  color: ${(p) =>
-    p.$atTarget ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
-`;
-
-const Controls = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-`;
-
-const ControlRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4) var(--space-8);
-  flex-wrap: wrap;
-`;
-
-const ControlLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-`;
-
-const Stepper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-`;
-
-const StepBtn = styled.button`
-  min-width: 26px;
-  padding: var(--space-2) var(--space-6);
-  background: var(--color-surface-panel);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-flush);
-`;
-
-const StepValue = styled.span`
-  min-width: 52px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-size: var(--font-size-sm);
-`;
-
-const ToggleRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-`;
-
-const ServoList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
-
-const ServoRow = styled.button<{ $selected: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-hair);
-  padding: var(--space-4) var(--space-8);
-  background: ${(p) =>
-    p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
-  color: ${(p) =>
-    p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
-  border: 1px solid
-    ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-`;
-
-const ServoName = styled.span`
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-`;
-
-const ServoMeta = styled.span`
-  font-size: var(--font-size-2xs);
-  opacity: 0.7;
-  letter-spacing: 0.03em;
-  font-variant-numeric: tabular-nums;
-`;
 
 registerComponent<RoboticsConsoleConfig>({
   id: "robotics-console",
