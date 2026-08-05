@@ -97,7 +97,7 @@ export function AlarmBanner() {
             <WarpToTarget>{formatRate(warpToTargetRate)}</WarpToTarget>
           </>
         )}
-        <Divider />
+        <VerticalRule />
         {nextAlarm ? (
           <>
             <Label>{headlineLabel(nextAlarm.state)}</Label>
@@ -487,7 +487,7 @@ const BannerValue = styled.span`
   color: var(--color-text-primary);
 `;
 
-const Divider = styled.span`
+const VerticalRule = styled.span`
   /* A hairline RULE, not --space-hair. 1px does three different jobs in this
      file (this rule, the 1px borders below, and the focus-ring offset); only
      the margin under it is spacing. */
