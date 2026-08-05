@@ -20,9 +20,10 @@ import {
   Badge,
   ScienceExperimentRow,
   type ScienceInstrument,
+  TextButton,
 } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useId, useState } from "react";
-import styled from "styled-components";
 import { SCANSAT } from "../uplink";
 
 /**
@@ -87,83 +88,88 @@ function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
   if (experiments === null || experiments.length === 0) return null;
 
   return (
-    <Wrap>
-      <DisclosureButton
+    <div style={WRAP}>
+      {/* TextButton is the interactive shell purely for its `:focus-visible`
+          ring (a pseudo inline `style` can't express, and identical to the
+          ring the styled DisclosureButton carried). The Badge is the visible
+          content; inline overrides strip TextButton's link chrome so only the
+          Badge shows. */}
+      <TextButton
         type="button"
         aria-expanded={expanded}
         aria-controls={panelId}
         aria-label={`SCANsat science instruments (${experiments.length})`}
         onClick={() => setExpanded((v) => !v)}
+        style={DISCLOSURE_BUTTON}
       >
         <Badge tone="info">SCANSAT {experiments.length}</Badge>
-      </DisclosureButton>
+      </TextButton>
       {expanded && (
-        <Dropdown id={panelId} role="region" aria-label="SCANsat science">
-          <RowList>
+        // `<section>` for its implicit role="region" (a plain
+        // `<div role="region">` trips biome's useSemanticElements).
+        <section id={panelId} aria-label="SCANsat science" style={DROPDOWN}>
+          <ul style={ROW_LIST}>
             {experiments.map((inst) => (
               <ScienceExperimentRow key={inst.partId} instrument={inst} />
             ))}
-          </RowList>
-        </Dropdown>
+          </ul>
+        </section>
       )}
-    </Wrap>
+    </div>
   );
 }
 
-const Wrap = styled.div`
-  position: relative;
-`;
+// ── Styles ──────────────────────────────────────────────────────────────
+// Structural inline styles (CSS-var tokens): a one-off header dropdown, no
+// reusable ui-kit primitive fits, so the layout stays local rather than
+// carrying styled-components into a consumer widget. The one interactive
+// concern that inline can't express (the `:focus-visible` ring) is handled by
+// wrapping in ui-kit `TextButton` above.
 
-const DisclosureButton = styled.button`
-  display: inline-flex;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
+const WRAP: CSSProperties = { position: "relative" };
 
-  /* Focus-ring geometry, deliberately off the spacing ladder: this is a WCAG
-     indicator, not rhythm. */
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
+// `display: inline-flex; padding: 0`: strip TextButton's inline-link chrome so
+// only the Badge shows. `borderRadius` follows the focus ring around the Badge.
+const DISCLOSURE_BUTTON: CSSProperties = {
+  display: "inline-flex",
+  padding: 0,
+  borderRadius: "var(--radius-sm)",
+};
 
-const Dropdown = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  /* Literal, and NOT --z-dropdown. This menu renders inside ScienceOfficer's
-     ui-kit Panel, which is overflow: hidden, so it is clipped at the panel
-     edge before any z-index is consulted; and that panel sits in a
-     .react-grid-item, which react-grid-layout gives a transform (its
-     useCSSTransforms default), making it a stacking context nothing inside
-     can escape. So the 20 orders nothing but its own siblings, of which
-     there are none, and promoting it would record a stacking fix that has
-     not happened. The real fix is to portal the dropdown out of the panel. */
-  z-index: 20;
-  margin-top: var(--space-4);
-  min-width: 220px;
-  max-width: 320px;
-  padding: var(--space-8);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-`;
+const DROPDOWN: CSSProperties = {
+  position: "absolute",
+  top: "100%",
+  right: 0,
+  // Literal, and NOT --z-dropdown. This menu renders inside ScienceOfficer's
+  // ui-kit Panel, which is overflow: hidden, so it is clipped at the panel
+  // edge before any z-index is consulted; and that panel sits in a
+  // .react-grid-item, which react-grid-layout gives a transform (its
+  // useCSSTransforms default), making it a stacking context nothing inside
+  // can escape. So the 20 orders nothing but its own siblings, of which there
+  // are none, and promoting it would record a stacking fix that has not
+  // happened. The real fix is to portal the dropdown out of the panel.
+  zIndex: 20,
+  marginTop: "var(--space-4)",
+  minWidth: "220px",
+  maxWidth: "320px",
+  padding: "var(--space-8)",
+  background: "var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
+  borderRadius: "var(--radius-md)",
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.35)",
+};
 
 // `ScienceExperimentRow` renders a `<li>` (ui-kit's `Row` default); needs a
 // real `<ul>` ancestor for a11y, same as ScienceOfficer's own
 // `InstrumentList`.
-const RowList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
+const ROW_LIST: CSSProperties = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+};
 
 registerAugment({
   id: "scansat-science",

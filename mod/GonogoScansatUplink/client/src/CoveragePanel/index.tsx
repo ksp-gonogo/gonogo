@@ -23,8 +23,8 @@
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useMemo } from "react";
-import styled from "styled-components";
 import { useScanningVessels } from "../FogReveal/useScanLayers";
 import type { SCANType } from "../schema";
 import { SCAN_TYPE } from "../schema";
@@ -70,7 +70,13 @@ function CoveragePanel(ctx: SlotProps<"map-view.sections">) {
   if (!bodyName) return null;
 
   return (
-    <CoverageColumn role="region" aria-label={`Scan coverage for ${bodyName}`}>
+    // `<section>` for its implicit role="region" (a plain `<div role="region">`
+    // trips biome's useSemanticElements; the styled.div this replaced hid the
+    // intrinsic element from that rule).
+    <section
+      aria-label={`Scan coverage for ${bodyName}`}
+      style={COVERAGE_COLUMN}
+    >
       {COVERAGE_TYPES.map(({ type, label }) => (
         <CoverageRow
           key={type}
@@ -80,7 +86,7 @@ function CoveragePanel(ctx: SlotProps<"map-view.sections">) {
           range={rangeByType.get(type)}
         />
       ))}
-    </CoverageColumn>
+    </section>
   );
 }
 
@@ -100,102 +106,113 @@ function CoverageRow({
     `scansat.coverage.${bodyName}.${scanType}`,
   );
   const coverage = typeof pct === "number" ? pct : 0;
+  const filled = Math.max(0, Math.min(100, coverage));
   return (
-    <CoverageGrid>
-      <Label>{label}</Label>
-      <Track $pct={coverage} />
-      <CoverageValue>
+    <div style={COVERAGE_GRID}>
+      <span style={LABEL}>{label}</span>
+      {/* Track: a stadium rail with a filled sub-bar. The fill was a
+          `::after` pseudo in styled-components; as an inline style it becomes
+          a real child element instead (inline `style` can't express a
+          pseudo). */}
+      <div style={TRACK}>
+        <div style={{ ...TRACK_FILL, width: `${filled}%` }} />
+      </div>
+      <span style={COVERAGE_VALUE}>
         {/* The wire carries 0..100, so the unit is `%` and not `ratio`:
             handing a percent to the ratio kind would multiply it again. */}
         <Unit value={value("%", coverage)} decimals={0} />
-      </CoverageValue>
+      </span>
       {range?.bestRange ? (
-        <Chip $variant="best">best</Chip>
+        <span style={{ ...CHIP, color: "var(--color-status-go-fg)" }}>
+          best
+        </span>
       ) : range?.inRange ? (
-        <Chip $variant="in">scan</Chip>
+        <span style={{ ...CHIP, color: "var(--color-status-info-fg)" }}>
+          scan
+        </span>
       ) : (
-        <Chip $variant="idle">{NULL_DISPLAY}</Chip>
+        <span style={{ ...CHIP, color: "var(--color-text-faint)" }}>
+          {NULL_DISPLAY}
+        </span>
       )}
-    </CoverageGrid>
+    </div>
   );
 }
 
-const CoverageColumn = styled.div`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  /* This 3px and CoverageGrid's 6px below are one decision, not two: the vertical row
-     gap is deliberately half the horizontal cell gap. Both stay literal
-     because the 3 -> 2 snap alone would turn that 2:1 into 3:1. */
-  gap: 3px;
-  padding-top: var(--space-6);
-  margin-top: var(--space-6);
-  border-top: 1px solid var(--color-surface-raised);
-`;
+// ── Styles ──────────────────────────────────────────────────────────────
+// Structural inline styles (CSS-var tokens): this is a bespoke coverage grid,
+// no reusable ui-kit primitive fits, so the layout stays local rather than
+// carrying styled-components into a consumer widget.
 
-const CoverageGrid = styled.div`
-  display: grid;
-  grid-template-columns: 48px 1fr 40px auto;
-  align-items: center;
-  /* Half of this is CoverageColumn's row gap above; see the note there. */
-  gap: 6px;
-`;
+const COVERAGE_COLUMN: CSSProperties = {
+  flexShrink: 0,
+  display: "flex",
+  flexDirection: "column",
+  // This 3px and CoverageGrid's 6px below are one decision, not two: the
+  // vertical row gap is deliberately half the horizontal cell gap. Both stay
+  // literal because the 3 -> 2 snap alone would turn that 2:1 into 3:1.
+  gap: "3px",
+  paddingTop: "var(--space-6)",
+  marginTop: "var(--space-6)",
+  borderTop: "1px solid var(--color-surface-raised)",
+};
 
-const Label = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  color: var(--color-text-faint);
-  min-width: 28px;
-  text-transform: uppercase;
-`;
+const COVERAGE_GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "48px 1fr 40px auto",
+  alignItems: "center",
+  // Half of this is COVERAGE_COLUMN's row gap above; see the note there.
+  gap: "6px",
+};
 
-const Track = styled.div<{ $pct: number }>`
-  height: 5px;
-  /* A stadium: 3px already exceeds half this 5px track, so --radius-pill is
-     the shape it means and it keeps tracking the height. --radius-sm would
-     render the same today and stop tracking it. */
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
-  overflow: hidden;
-  position: relative;
+const LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  color: "var(--color-text-faint)",
+  minWidth: "28px",
+  textTransform: "uppercase",
+};
 
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: ${({ $pct }) => `${Math.max(0, Math.min(100, $pct))}%`};
-    background: var(--color-accent-fg);
-  }
-`;
+// A stadium: 3px already exceeds half this 5px track, so --radius-pill is the
+// shape it means and it keeps tracking the height. --radius-sm would render
+// the same today and stop tracking it.
+const TRACK: CSSProperties = {
+  height: "5px",
+  borderRadius: "var(--radius-pill)",
+  background: "var(--color-surface-raised)",
+  overflow: "hidden",
+  position: "relative",
+};
 
-const CoverageValue = styled.span`
-  /* Literal: this sits in a fixed 40px grid column and must never truncate
-     (see below). --font-size-base is 15px under @media (pointer: coarse),
-     i.e. on the tier-1 Steam Deck, which is the wrong direction for a
-     nowrap readout in a fixed track. */
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  /* Numeric readout: never truncate digits. Shrink to fit the row instead
-     of overflowing the panel edge at the 3-col minimum size. */
-  min-width: 0;
-  white-space: nowrap;
-`;
+const TRACK_FILL: CSSProperties = {
+  position: "absolute",
+  inset: "0 auto 0 0",
+  background: "var(--color-accent-fg)",
+};
 
-const Chip = styled.span<{ $variant: "best" | "in" | "idle" }>`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-align: right;
-  min-width: 4ch;
-  color: ${({ $variant }) =>
-    $variant === "best"
-      ? "var(--color-status-go-fg)"
-      : $variant === "in"
-        ? "var(--color-status-info-fg)"
-        : "var(--color-text-faint)"};
-`;
+const COVERAGE_VALUE: CSSProperties = {
+  // Literal: this sits in a fixed 40px grid column and must never truncate
+  // (see below). --font-size-base is 15px under @media (pointer: coarse),
+  // i.e. on the tier-1 Steam Deck, which is the wrong direction for a nowrap
+  // readout in a fixed track.
+  fontSize: "14px",
+  fontWeight: 700,
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+  // Numeric readout: never truncate digits. Shrink to fit the row instead of
+  // overflowing the panel edge at the 3-col minimum size.
+  minWidth: 0,
+  whiteSpace: "nowrap",
+};
+
+// Per-variant colour is applied inline at the call site (best/in/idle).
+const CHIP: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  textAlign: "right",
+  minWidth: "4ch",
+};
 
 registerAugment({
   id: "scansat-coverage-panel",
