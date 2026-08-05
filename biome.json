@@ -13,6 +13,7 @@
       "!**/dist",
       "!.claude",
       "!**/__generated__",
+      "!**/tsup.config.bundled_*.mjs",
       "!docs/homepage"
     ]
   },

@@ -9,6 +9,10 @@ dist/
 # build output, not source. Left untracked it made a dev who built before
 # committing trip the pre-commit biome check on the bundled JS.
 packages/app/public/uplinks/
+
+# tsup bundles tsup.config.ts to a transient .mjs during ui-kit (and other)
+# builds; untracked it trips the same pre-commit biome check. Not source.
+**/tsup.config.bundled_*.mjs
 coverage/
 .DS_Store
 memory/
