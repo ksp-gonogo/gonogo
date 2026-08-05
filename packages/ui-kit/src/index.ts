@@ -281,6 +281,14 @@ export {
   type ScienceExperimentRowProps,
   type ScienceInstrument,
 } from "./science/ScienceExperimentRow";
+export {
+  createPanelStatusStore,
+  type PanelStatusStore,
+  PanelStatusStoreProvider,
+  type StatusContribution,
+  type StatusSummary,
+  usePanelStatusStore,
+} from "./status/PanelStatusStore";
 // ── Status system (canonical severity vocabulary + panel status store) ────────
 export {
   type Severity,
@@ -292,6 +300,8 @@ export {
   severityRank,
   worstSeverity,
 } from "./status/severity";
+export { useStatusContribution } from "./status/useStatusContribution";
+export { useStatusSummary } from "./status/useStatusSummary";
 export {
   Tape,
   type TapeMarker,
