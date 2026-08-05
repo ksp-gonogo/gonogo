@@ -7,8 +7,14 @@ import {
 } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, Panel, Section, speakQuantity } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import {
+  Badge,
+  Panel,
+  Section,
+  speakQuantity,
+  Value,
+} from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 // Side-effect import: registers the built-in `life-support.sections`
 // augment filler (the Greenhouse section) and the SlotRegistry declaration
@@ -181,14 +187,12 @@ function consumableFraction(c: Consumable): number {
   return c.capacity > 0 ? Math.min(1, c.amount / c.capacity) : 0;
 }
 
+// `Tone` maps 1:1 onto ui-kit `Value`'s tone vocabulary; the toned Section
+// readouts render through `<Value tone={...}>`, so this widget no longer keeps
+// its own colour map (the old local TONE_HEX used -bg tokens for text; Value's
+// tones use the correct -fg tokens). The `Meter`/`Badge` tone props take the
+// same names directly.
 type Tone = "go" | "info" | "warn" | "nogo";
-
-const TONE_HEX: Record<Tone, string> = {
-  go: "var(--color-status-go-bg)",
-  info: "var(--color-status-info-bg)",
-  warn: "var(--color-status-warning-bg)",
-  nogo: "var(--color-status-nogo-bg)",
-};
 
 /** Higher fraction is better (consumable level, comfort). */
 function levelTone(frac: number): Tone {
@@ -312,16 +316,16 @@ function LifeSupportSystemsComponent({
           full natural height: at worst Body's own least-critical trailing
           content (e.g. the last few px of a habitat/process row) is what
           gives, never the life-critical Power reading. */}
-      <Body>
-        <StatSection>
-          <SectionHead>
-            <SectionLabel>Consumables</SectionLabel>
-            <SectionValue $tone="info">
+      <div style={BODY}>
+        <Section style={STAT_SECTION}>
+          <div style={SECTION_HEAD}>
+            <span style={SECTION_LABEL}>Consumables</span>
+            <Value tone="info" size="xs" style={SECTION_VALUE}>
               Shortest ETA {shortestEta(d)}
-            </SectionValue>
-          </SectionHead>
+            </Value>
+          </div>
           {landscapeFlow ? (
-            <MeterRow>
+            <div style={METER_ROW}>
               <Meter
                 label="Food"
                 value={consumableFraction(d.food)}
@@ -350,9 +354,9 @@ function LifeSupportSystemsComponent({
                 valueLabel={meterLabel(d.ec)}
                 size="sm"
               />
-            </MeterRow>
+            </div>
           ) : (
-            <MeterStackTight>
+            <div style={METER_STACK_TIGHT}>
               <Meter
                 label="Food"
                 value={consumableFraction(d.food)}
@@ -374,20 +378,24 @@ function LifeSupportSystemsComponent({
                 valueLabel={meterLabel(d.oxygen)}
                 size={compact ? "sm" : "md"}
               />
-            </MeterStackTight>
+            </div>
           )}
-        </StatSection>
+        </Section>
 
         {!ultraCompact && (
-          <StatSection>
-            <SectionHead>
-              <SectionLabel>Habitat</SectionLabel>
-              <SectionValue $tone={d.pressurized ? "go" : "warn"}>
+          <Section style={STAT_SECTION}>
+            <div style={SECTION_HEAD}>
+              <span style={SECTION_LABEL}>Habitat</span>
+              <Value
+                tone={d.pressurized ? "go" : "warn"}
+                size="xs"
+                style={SECTION_VALUE}
+              >
                 {d.pressurized ? "Pressurized" : "Unpressurized"}
-              </SectionValue>
-            </SectionHead>
+              </Value>
+            </div>
             {!compact && (
-              <HabitatGrid>
+              <div style={HABITAT_GRID}>
                 <Meter
                   label="Comfort"
                   value={d.comfort}
@@ -406,30 +414,34 @@ function LifeSupportSystemsComponent({
                   tone={riskTone(d.co2Poisoning)}
                   size="sm"
                 />
-              </HabitatGrid>
+              </div>
             )}
-          </StatSection>
+          </Section>
         )}
 
         {!compact && (
-          <StatSection>
-            <SectionHead>
-              <SectionLabel>Processes</SectionLabel>
-              <SectionValue $tone={brokenCount > 0 ? "nogo" : "go"}>
+          <Section style={STAT_SECTION}>
+            <div style={SECTION_HEAD}>
+              <span style={SECTION_LABEL}>Processes</span>
+              <Value
+                tone={brokenCount > 0 ? "nogo" : "go"}
+                size="xs"
+                style={SECTION_VALUE}
+              >
                 {processSummary}
-              </SectionValue>
-            </SectionHead>
-            <ProcessGrid>
+              </Value>
+            </div>
+            <div style={PROCESS_GRID}>
               {d.processes.map((p) => (
-                <ProcessRowEl key={p.id}>
-                  <ProcessName>{p.name}</ProcessName>
+                <div key={p.id} style={PROCESS_ROW}>
+                  <span style={PROCESS_NAME}>{p.name}</span>
                   <Badge tone={processTone(p.state)} size="sm">
                     {p.state}
                   </Badge>
-                </ProcessRowEl>
+                </div>
               ))}
-            </ProcessGrid>
-          </StatSection>
+            </div>
+          </Section>
         )}
 
         {/* Augment sections, e.g. the built-in Greenhouse readout, compose
@@ -442,12 +454,12 @@ function LifeSupportSystemsComponent({
             props={{ greenhouses: d.greenhouses }}
           />
         )}
-      </Body>
+      </div>
 
       {/* Landscape folds Power into the Consumables row above instead of a
           separate footer, see landscapeFlow's doc comment. */}
       {!landscapeFlow && (
-        <FooterRow>
+        <div style={FOOTER_ROW}>
           <Meter
             label="Power"
             value={consumableFraction(d.ec)}
@@ -455,7 +467,7 @@ function LifeSupportSystemsComponent({
             valueLabel={meterLabel(d.ec)}
             size={compact ? "sm" : "md"}
           />
-        </FooterRow>
+        </div>
       )}
     </Panel>
   );
@@ -465,110 +477,114 @@ function LifeSupportSystemsComponent({
 // Styles
 // ---------------------------------------------------------------------------
 
-// Fills the remaining Panel height and lets ITS OWN bottom edge clip first
-// (see the render-site comment on <Body>), so FooterRow's Power meter never
+// Structural inline styles (CSS-var tokens): a bespoke consumables/habitat/
+// process board, no reusable ui-kit primitive fits the layout, so it stays
+// local. The kit pieces it reuses (Section, Value, Meter, Badge) take only this
+// widget's spacing inline; the toned Section readouts render through `Value`.
+
+// Fills the remaining Panel height and lets ITS OWN bottom edge clip first (see
+// the render-site comment on the Body div), so FooterRow's Power meter never
 // has to compete with the rest of the widget for the last few px of a short
 // box.
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-`;
+const BODY: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+  minHeight: 0,
+  overflow: "hidden",
+};
 
-// gap:2px IS the kit's Section. Only the spacing above it and the
-// no-shrink (it sits in a scrolling column) are local.
-const StatSection = styled(Section)`
-  margin-top: var(--space-8);
-  flex-shrink: 0;
-`;
+// gap:2px IS the kit's Section. Only the spacing above it and the no-shrink (it
+// sits in a scrolling column) are local.
+const STAT_SECTION: CSSProperties = {
+  marginTop: "var(--space-8)",
+  flexShrink: 0,
+};
 
-const SectionHead = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-8);
-`;
+const SECTION_HEAD: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "baseline",
+  gap: "var(--space-8)",
+};
 
-const SectionLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
+const SECTION_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+};
 
-const SectionValue = styled.span<{ $tone: Tone }>`
-  font-size: var(--font-size-xs);
-  color: ${({ $tone }) => TONE_HEX[$tone]};
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
+// Extra layout for the toned Section readout: `Value` supplies tone (-fg),
+// tabular-nums and size=xs; the right-align + truncation are this widget's.
+const SECTION_VALUE: CSSProperties = {
+  textAlign: "right",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
 
-// "Tight" is historical: the gap was 5px and snapped up to the --space-6
-// rung, which is also MeterRow's row gap below, so the name no longer
-// asserts a difference from it. There is no non-tight MeterStack to
-// contrast with, and d60b924e already had the body absorb the shortfall.
-const MeterStackTight = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  margin-top: var(--space-2);
-`;
+// "Tight" is historical: the gap was 5px and snapped up to the --space-6 rung,
+// which is also MeterRow's row gap below, so the name no longer asserts a
+// difference from it. There is no non-tight MeterStack to contrast with, and
+// d60b924e already had the body absorb the shortfall.
+const METER_STACK_TIGHT: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-6)",
+  marginTop: "var(--space-2)",
+};
 
-// Landscape's side-by-side reflow for Food/Water/Oxygen/Power: always
-// exactly 4 equal tracks (rather than an auto-fit count that could shrink
-// each track down toward its minmax floor and squeeze the label into an
-// ellipsis) so each meter gets a full quarter of the available width, the
-// width landscape has to spare in the first place.
-const MeterRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-6) var(--space-16);
-  margin-top: var(--space-2);
-`;
+// Landscape's side-by-side reflow for Food/Water/Oxygen/Power: always exactly 4
+// equal tracks (rather than an auto-fit count that could shrink each track down
+// toward its minmax floor and squeeze the label into an ellipsis) so each meter
+// gets a full quarter of the available width, the width landscape has to spare
+// in the first place.
+const METER_ROW: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "var(--space-6) var(--space-16)",
+  marginTop: "var(--space-2)",
+};
 
-const HabitatGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-6) var(--space-12);
-  margin-top: var(--space-2);
-`;
+const HABITAT_GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "var(--space-6) var(--space-12)",
+  marginTop: "var(--space-2)",
+};
 
-const ProcessGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-  margin-top: var(--space-2);
-`;
+const PROCESS_GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "var(--space-4)",
+  marginTop: "var(--space-2)",
+};
 
-const ProcessRowEl = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-6);
-  min-width: 0;
-`;
+const PROCESS_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "var(--space-6)",
+  minWidth: 0,
+};
 
-const ProcessName = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
+const PROCESS_NAME: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-primary)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
 
-const FooterRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  margin-top: auto;
-  padding-top: var(--space-6);
-  flex-shrink: 0;
-`;
+const FOOTER_ROW: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-6)",
+  marginTop: "auto",
+  paddingTop: "var(--space-6)",
+  flexShrink: 0,
+};
 
 registerComponent<LifeSupportConfig>({
   id: "life-support",
