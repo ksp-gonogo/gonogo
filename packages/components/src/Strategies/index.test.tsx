@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -158,16 +158,9 @@ describe("StrategiesComponent", () => {
   // falls back to for the still-gapped activate/deactivate commands.
   let cmdFixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
-  let actions: string[];
 
   beforeEach(async () => {
-    actions = [];
-    cmdFixture = await setupMockDataSource({
-      keys: [],
-      onExecute: (a) => {
-        actions.push(a);
-      },
-    });
+    cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
@@ -214,9 +207,15 @@ describe("StrategiesComponent", () => {
     await user.click(
       screen.getByRole("button", { name: /Confirm deactivate/i }),
     );
-    expect(
-      actions.some((a) => a === "strategies.deactivate[AgressiveNegotiations]"),
-    ).toBe(true);
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "career.strategy.deactivate",
+      );
+      expect(sent).toMatchObject({
+        args: { strategyId: "AgressiveNegotiations" },
+        vantage: "meta",
+      });
+    });
   });
 
   it("groups soft-blocked strategies under Available with a hint", async () => {
@@ -269,10 +268,15 @@ describe("StrategiesComponent", () => {
     await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
 
     // Factor defaults to factorSliderDefault (0.05) for this fixture.
-    expect(
-      actions.some((a) =>
-        a.startsWith("strategies.activate[FundraisingCampaignCfg,0.05"),
-      ),
-    ).toBe(true);
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "career.strategy.activate",
+      );
+      expect(sent?.command).toBe("career.strategy.activate");
+      expect(sent?.vantage).toBe("meta");
+      const args = sent?.args as { strategyId: string; factor: number };
+      expect(args.strategyId).toBe("FundraisingCampaignCfg");
+      expect(args.factor).toBeCloseTo(0.05, 2);
+    });
   });
 });

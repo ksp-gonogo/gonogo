@@ -218,7 +218,12 @@ export {
   systemUplinkHealthChannel,
 } from "./uplink-health";
 export { useCertainty } from "./use-certainty";
-export { type UseCommandResult, useCommand } from "./use-command";
+export {
+  type CommandOutputToken,
+  META_VANTAGE,
+  type UseCommandResult,
+  useCommand,
+} from "./use-command";
 export {
   type ControlStream,
   type ControlStreamOptions,

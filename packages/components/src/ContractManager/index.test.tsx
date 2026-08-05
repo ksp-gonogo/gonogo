@@ -2,12 +2,7 @@ import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   type ContractBadgeContext,
@@ -19,10 +14,9 @@ import {
 /**
  * ContractManager runs off the stream: active/offered/completedRecent all ride
  * the `career.status` Topic's `contracts` sub-tree (canonical `useTelemetry`),
- * and the view UT comes from `useViewUt()` (pinned by the fixture). No legacy
- * `MockDataSource` feeds the reads. The accept/cancel/decline commands still
- * dispatch through the legacy `execute()` path (map-command.ts), so a
- * `setupMockDataSource` AUX registered under `"data"` captures those calls.
+ * and the view UT comes from `useViewUt()` (pinned by the fixture). The
+ * accept/cancel/decline commands dispatch through `useCommand` at the
+ * meta-vantage; the stream fixture's `transport.sentCommands` captures them.
  */
 
 interface Contract {
@@ -32,21 +26,11 @@ interface Contract {
 }
 
 const renderedTrees: Array<() => void> = [];
-let legacyAux: MockDataSourceFixture | undefined;
 
 function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["career.status", "vessel.state"],
     pinnedUt: 0,
-  });
-}
-
-async function captureCommands(onExecute: (action: string) => void) {
-  legacyAux = await setupMockDataSource({
-    id: "data",
-    keys: [],
-    onExecute,
-    connectSource: true,
   });
 }
 
@@ -73,10 +57,6 @@ function emitContracts(
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  if (legacyAux) {
-    teardownMockDataSource(legacyAux);
-    legacyAux = undefined;
-  }
   // The augment registry is intentionally not cleared by the data-source
   // teardown; reset it so a test-bound augment can't leak into later tests.
   clearAugments();
@@ -213,10 +193,8 @@ describe("ContractManagerComponent", () => {
     ).toHaveAttribute("data-contract-id", "42");
   });
 
-  it("fires contracts.accept when the Accept button on an offered contract is clicked", async () => {
+  it("dispatches career.contract.accept at the meta-vantage when Accept is clicked", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await captureCommands(onExecute);
     const fixture = newFixture();
 
     renderContract(fixture);
@@ -230,13 +208,19 @@ describe("ContractManagerComponent", () => {
     });
 
     await user.click(await screen.findByText("Accept"));
-    expect(onExecute).toHaveBeenCalledWith("contracts.accept[7]");
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "career.contract.accept",
+      );
+      expect(sent).toMatchObject({
+        args: { contractId: "7" },
+        vantage: "meta",
+      });
+    });
   });
 
   it("requires arm-then-confirm before cancelling an active contract", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await captureCommands(onExecute);
     const fixture = newFixture();
 
     renderContract(fixture);
@@ -247,16 +231,26 @@ describe("ContractManagerComponent", () => {
     });
 
     await user.click(await screen.findByText("Cancel"));
-    expect(onExecute).not.toHaveBeenCalled();
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "career.contract.cancel",
+      ),
+    ).toHaveLength(0);
 
     await user.click(screen.getByText(/Forfeit contract/i));
-    expect(onExecute).toHaveBeenCalledWith("contracts.cancel[11]");
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "career.contract.cancel",
+      );
+      expect(sent).toMatchObject({
+        args: { contractId: "11" },
+        vantage: "meta",
+      });
+    });
   });
 
   it("requires arm-then-confirm before declining an offered contract", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
-    await captureCommands(onExecute);
     const fixture = newFixture();
 
     renderContract(fixture);
@@ -269,11 +263,23 @@ describe("ContractManagerComponent", () => {
 
     // First click arms: should not fire yet.
     await user.click(await screen.findByText("Decline"));
-    expect(onExecute).not.toHaveBeenCalled();
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "career.contract.decline",
+      ),
+    ).toHaveLength(0);
 
     // Confirm fires the decline.
     await user.click(screen.getByText(/Confirm decline/i));
-    expect(onExecute).toHaveBeenCalledWith("contracts.decline[9]");
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "career.contract.decline",
+      );
+      expect(sent).toMatchObject({
+        args: { contractId: "9" },
+        vantage: "meta",
+      });
+    });
   });
 
   it("counts active / offered / recent in the subtitle", async () => {

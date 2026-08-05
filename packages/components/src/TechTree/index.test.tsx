@@ -7,7 +7,7 @@ import {
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -193,15 +193,9 @@ describe("TechTreeComponent", () => {
 
   it("arms and confirms tech.unlock with the node id", async () => {
     const user = userEvent.setup();
-    const onExecute = vi.fn();
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      onExecute,
     });
 
     renderTree(fixture);
@@ -215,9 +209,15 @@ describe("TechTreeComponent", () => {
     await user.click(screen.getByText("Basic Rocketry"));
     await user.click(screen.getByRole("button", { name: "Unlock" }));
     await user.click(screen.getByRole("button", { name: /Confirm unlock/i }));
-    expect(onExecute).toHaveBeenCalledWith("tech.unlock[basicRocketry]");
-
-    teardownMockDataSource(legacyAux);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "career.tech.unlock",
+      );
+      expect(sent).toMatchObject({
+        args: { techId: "basicRocketry" },
+        vantage: "meta",
+      });
+    });
   });
 
   it("renders the tiered graph at wide sizes and opens a detail dialog on click", async () => {

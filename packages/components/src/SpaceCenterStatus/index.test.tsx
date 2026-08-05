@@ -155,10 +155,22 @@ describe("SpaceCenterStatusComponent", () => {
     expect(upgradeButtons.length).toBeGreaterThan(0);
 
     await user.click(upgradeButtons[0]);
-    expect(onExecute).not.toHaveBeenCalled();
+    expect(
+      stream.transport.sentCommands.filter(
+        (c) => c.command === "career.facility.upgrade",
+      ),
+    ).toHaveLength(0);
 
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(onExecute).toHaveBeenCalledWith("kc.upgradeFacility[vab]");
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "career.facility.upgrade",
+      );
+      expect(sent).toMatchObject({
+        args: { facilityId: "VehicleAssemblyBuilding" },
+        vantage: "meta",
+      });
+    });
   });
 
   it("disables upgrade button outside the SC scene", async () => {

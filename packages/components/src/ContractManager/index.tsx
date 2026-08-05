@@ -4,10 +4,11 @@ import {
   formatCompactCurrency,
   getWidgetShape,
   registerComponent,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  META_VANTAGE,
+  useCommand,
   useStream,
   useViewUt,
   type VesselState,
@@ -15,6 +16,7 @@ import {
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
+  CommandDelay,
   formatDuration,
   GhostButton,
   Panel,
@@ -268,7 +270,19 @@ function ContractManagerComponent({
   // propagated basis): collapse to `undefined` for the numeric comparisons.
   const vAltitude =
     useStream<VesselState>("vessel.state")?.altitudeAsl ?? undefined;
-  const execute = useExecuteAction("data");
+  // Career actions dispatch at the meta-vantage: accepting/declining/cancelling
+  // a contract is a program-desk action with no vessel signal delay, so it
+  // stays instant regardless of the selected command centre. The handles are
+  // consumed by the <CommandDelay> below (which draws nothing at meta-vantage).
+  const acceptCmd = useCommand("career.contract.accept", {
+    vantage: META_VANTAGE,
+  });
+  const declineCmd = useCommand("career.contract.decline", {
+    vantage: META_VANTAGE,
+  });
+  const cancelCmd = useCommand("career.contract.cancel", {
+    vantage: META_VANTAGE,
+  });
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 
@@ -312,6 +326,10 @@ function ContractManagerComponent({
         ) : undefined
       }
     >
+      <CommandDelay
+        handles={[acceptCmd, declineCmd, cancelCmd]}
+        ariaLabel="Contract commands: in flight"
+      />
       {activeCount === 0 && offeredCount === 0 && (
         <Empty>No active contracts. Pick one up in Mission Control.</Empty>
       )}
@@ -467,7 +485,9 @@ function ContractManagerComponent({
               </Parameters>
             )}
             <ActiveActions>
-              <CancelButton contractId={c.id} execute={execute} />
+              <CancelButton
+                onConfirm={() => void cancelCmd.send({ contractId: c.id })}
+              />
             </ActiveActions>
           </ContractCard>
         ))}
@@ -521,12 +541,14 @@ function ContractManagerComponent({
               <AcceptButton
                 type="button"
                 onClick={() => {
-                  void execute(`contracts.accept[${c.id}]`);
+                  void acceptCmd.send({ contractId: c.id });
                 }}
               >
                 Accept
               </AcceptButton>
-              <DeclineButton contractId={c.id} execute={execute} />
+              <DeclineButton
+                onConfirm={() => void declineCmd.send({ contractId: c.id })}
+              />
             </OfferedActions>
           </ContractCard>
         ))}
@@ -537,13 +559,7 @@ function ContractManagerComponent({
 
 const ARM_TIMEOUT_MS = 4000;
 
-function DeclineButton({
-  contractId,
-  execute,
-}: {
-  contractId: string;
-  execute: (action: string) => Promise<void>;
-}) {
+function DeclineButton({ onConfirm }: { onConfirm: () => void }) {
   const [armed, setArmed] = useState(false);
 
   // Auto-disarm so a forgotten armed-decline doesn't sit waiting for a
@@ -566,7 +582,7 @@ function DeclineButton({
       type="button"
       onClick={() => {
         setArmed(false);
-        void execute(`contracts.decline[${contractId}]`);
+        onConfirm();
       }}
     >
       Confirm decline
@@ -574,13 +590,7 @@ function DeclineButton({
   );
 }
 
-function CancelButton({
-  contractId,
-  execute,
-}: {
-  contractId: string;
-  execute: (action: string) => Promise<void>;
-}) {
+function CancelButton({ onConfirm }: { onConfirm: () => void }) {
   const [armed, setArmed] = useState(false);
 
   // Cancel forfeits any work in progress on the contract, same arm-then-
@@ -609,7 +619,7 @@ function CancelButton({
       type="button"
       onClick={() => {
         setArmed(false);
-        void execute(`contracts.cancel[${contractId}]`);
+        onConfirm();
       }}
     >
       Forfeit contract

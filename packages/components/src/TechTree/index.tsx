@@ -3,11 +3,17 @@ import {
   AugmentSlot,
   getSizeBucket,
   registerComponent,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, ScrollArea, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  CommandDelay,
+  Panel,
+  ScrollArea,
+  Unit,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
@@ -328,7 +334,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
   const careerScience = useTelemetry("career.status")?.economy?.science;
-  const execute = useExecuteAction("data");
+  // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
+  // so it dispatches at the meta-vantage (instant). The handle is consumed by
+  // the <CommandDelay> in the panel below (draws nothing at meta-vantage).
+  const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
 
   const allNodes = parseTechNodes(nodesRaw);
 
@@ -437,7 +446,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       onConfirm: () => {
         setArmed(null);
         setPendingUnlock(n.id);
-        void execute(`tech.unlock[${n.id}]`);
+        void unlockCmd.send({ techId: n.id });
       },
     };
   };
@@ -467,6 +476,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
     return (
       <Panel panelTitle="TECH TREE" panelSubtitle={subtitle}>
+        <CommandDelay handle={unlockCmd} ariaLabel="Tech unlock: in flight" />
         <GraphToolbar>
           <Legend aria-hidden="true">
             <LegendItem>
@@ -532,6 +542,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
   return (
     <Panel panelTitle="TECH TREE" panelSubtitle={subtitle}>
+      <CommandDelay handle={unlockCmd} ariaLabel="Tech unlock: in flight" />
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">
           <FilterBtn

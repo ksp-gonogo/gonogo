@@ -6,7 +6,9 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  META_VANTAGE,
   type SpaceCenterState,
+  useCommand,
   useStream,
   useViewUt,
   type VesselState,
@@ -18,6 +20,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CommandDelay,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
@@ -281,7 +284,23 @@ function LaunchDirectorComponent({
   const availableVessels = targetAvailable?.entries?.filter(
     (e) => e.kind === TargetKind.Vessel,
   );
+  // LAUNCH itself (a delayed command to the pad) still rides `execute` below;
+  // the non-launch scene ops (recover / revert / to-tracking-station / switch
+  // vessel) are KSC-desk actions with no vessel signal delay, so they dispatch
+  // at the meta-vantage (instant). Their handles are consumed by the
+  // <CommandDelay> in the panel below.
   const execute = useExecuteAction("data");
+  const recoverCmd = useCommand("ksp.recover", { vantage: META_VANTAGE });
+  const revertLaunchCmd = useCommand("ksp.revertToLaunch", {
+    vantage: META_VANTAGE,
+  });
+  const revertEditorCmd = useCommand("ksp.revertToEditor", {
+    vantage: META_VANTAGE,
+  });
+  const toTrackingCmd = useCommand("ksp.toTrackingStation", {
+    vantage: META_VANTAGE,
+  });
+  const switchCmd = useCommand("ksp.switchVessel", { vantage: META_VANTAGE });
 
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
@@ -418,6 +437,16 @@ function LaunchDirectorComponent({
         ) : undefined
       }
     >
+      <CommandDelay
+        handles={[
+          recoverCmd,
+          revertLaunchCmd,
+          revertEditorCmd,
+          toTrackingCmd,
+          switchCmd,
+        ]}
+        ariaLabel="Launch-ops commands: in flight"
+      />
       <Body>
         {inFlight ? (
           <InFlightPanel
@@ -431,23 +460,23 @@ function LaunchDirectorComponent({
             availableVessels={availableVessels}
             onRecover={() => {
               setArmed(null);
-              void execute("ksp.recover");
+              void recoverCmd.send();
             }}
             onRevertToLaunch={() => {
               setArmed(null);
-              void execute("ksp.revertToLaunch");
+              void revertLaunchCmd.send();
             }}
             onRevertToVAB={() => {
               setArmed(null);
-              void execute("ksp.revertToEditor[vab]");
+              void revertEditorCmd.send({ editor: "vab" });
             }}
             onToTrackingStation={() => {
               setArmed(null);
-              void execute("ksp.toTrackingStation");
+              void toTrackingCmd.send();
             }}
             onSwitchVessel={(vesselId) => {
               setArmed(null);
-              void execute(`tar.switchVessel[${vesselId}]`);
+              void switchCmd.send({ vesselId });
             }}
           />
         ) : padOccupied ? (
@@ -458,7 +487,7 @@ function LaunchDirectorComponent({
               onArm={() => setArmed("recover")}
               onConfirm={() => {
                 setArmed(null);
-                void execute("ksp.recover");
+                void recoverCmd.send();
               }}
               label="Recover"
               confirmLabel="Confirm recover"
@@ -473,7 +502,7 @@ function LaunchDirectorComponent({
                 // command accepts vab|sph but the widget doesn't know which
                 // editor the original craft came from from flight state
                 // alone. Prefer the explicit choice when we have it.
-                void execute("ksp.revertToEditor[vab]");
+                void revertEditorCmd.send({ editor: "vab" });
               }}
               label="Revert to VAB"
               confirmLabel="Confirm revert"

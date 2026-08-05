@@ -3,12 +3,13 @@ import {
   AugmentSlot,
   registerComponent,
   useActionInput,
-  useExecuteAction,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
 import {
+  CommandDelay,
   NULL_DISPLAY,
   Panel,
   PauseIcon,
@@ -114,7 +115,12 @@ function WarpControlComponent({
   const indexRaw = warp?.warpRateIndex;
   const mode = normalizeWarpMode(warp?.warpMode);
   const isPaused = warp?.paused;
-  const execute = useExecuteAction("data");
+  // Time-warp + pause are sim-meta controls (they act on the simulation, not a
+  // vessel), so they dispatch at the meta-vantage and are never signal-delayed
+  // (`commandDelayed` is false for `time.*`); the <CommandDelay> below draws
+  // nothing but still consumes the handles per the must-consume invariant.
+  const warpCmd = useCommand("time.setWarpIndex", { vantage: META_VANTAGE });
+  const pauseCmd = useCommand("time.setPaused", { vantage: META_VANTAGE });
 
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
@@ -148,7 +154,7 @@ function WarpControlComponent({
   const currentRate = magnitudeOf(rate);
 
   const setWarp = (idx: number) => {
-    void execute(`t.timeWarp[${idx}]`);
+    void warpCmd.send({ index: idx });
   };
   // The fork ships separate `t.pause` / `t.unpause` action keys, there's
   // no toggle. Fire the inverse of the operator's last intent (or the
@@ -157,7 +163,7 @@ function WarpControlComponent({
   const togglePause = () => {
     const next = !effectivePaused;
     setPauseIntent(next);
-    void execute(next ? "t.pause" : "t.unpause");
+    void pauseCmd.send({ paused: next });
   };
 
   useActionInput<WarpControlActions>({
@@ -215,6 +221,10 @@ function WarpControlComponent({
          (renders nothing) until an augment binds `warp-control.badges`. */
       panelAside={<AugmentSlot name="warp-control.badges" props={{}} />}
     >
+      <CommandDelay
+        handles={[warpCmd, pauseCmd]}
+        ariaLabel="Time controls: in flight"
+      />
       <DimmedOverlay
         show={dimBody}
         message="No active save"

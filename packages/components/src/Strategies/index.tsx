@@ -3,12 +3,13 @@ import {
   formatCompactNumber,
   getSizeBucket,
   registerComponent,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
+  CommandDelay,
   GhostButton,
   NULL_DISPLAY,
   Panel,
@@ -161,7 +162,15 @@ function StrategiesComponent({
   const funds = career?.economy?.funds;
   const reputation = career?.economy?.reputation;
   const science = career?.economy?.science;
-  const execute = useExecuteAction("data");
+  // Activating/deactivating a strategy is an Administration-building action
+  // with no vessel signal delay, so it dispatches at the meta-vantage
+  // (instant). The handles are consumed by the <CommandDelay> in the panel.
+  const activateCmd = useCommand("career.strategy.activate", {
+    vantage: META_VANTAGE,
+  });
+  const deactivateCmd = useCommand("career.strategy.deactivate", {
+    vantage: META_VANTAGE,
+  });
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
 
@@ -324,6 +333,10 @@ function StrategiesComponent({
         </HeaderMeta>
       }
     >
+      <CommandDelay
+        handles={[activateCmd, deactivateCmd]}
+        ariaLabel="Strategy commands: in flight"
+      />
       <ScrollArea>
         <DividedSection aria-label="Active">
           <SectionLabel>Active</SectionLabel>
@@ -357,7 +370,7 @@ function StrategiesComponent({
                         onClick={() => {
                           setArmedDeactivateId(null);
                           setPendingId(s.id);
-                          void execute(`strategies.deactivate[${s.id}]`);
+                          void deactivateCmd.send({ strategyId: s.id });
                         }}
                         disabled={pendingId === s.id}
                       >
@@ -413,7 +426,7 @@ function StrategiesComponent({
                   onConfirm={(factor) => {
                     setArmedActivateId(null);
                     setPendingId(s.id);
-                    void execute(`strategies.activate[${s.id},${factor}]`);
+                    void activateCmd.send({ strategyId: s.id, factor });
                   }}
                   pending={pendingId === s.id}
                   expanded={expandedId === s.id}

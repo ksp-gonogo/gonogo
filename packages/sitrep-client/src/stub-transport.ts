@@ -32,6 +32,8 @@ export interface SentCommand {
   args: unknown;
   label: string;
   topic: string;
+  /** Per-call vantage override, `""` when the dispatch omitted it. */
+  vantage: string;
 }
 
 /**
@@ -81,6 +83,7 @@ export class StubTransport implements Transport {
           args: message.args,
           label: message.label,
           topic: message.topic,
+          vantage: message.vantage ?? "",
         });
         // Answer on a later microtask, not inline within this `send()` call.
         // Even at zero simulated latency, a command response must not

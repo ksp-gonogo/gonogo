@@ -4,12 +4,17 @@ import {
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
+import {
+  META_VANTAGE,
+  type SpaceCenterState,
+  useCommand,
+  useStream,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CommandDelay,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
@@ -81,6 +86,18 @@ const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
   ResearchAndDevelopment: "rd",
   AstronautComplex: "astronaut",
 };
+
+/**
+ * Reverse of {@link ENUM_FACILITY_TO_KEY}: this widget's short `FacilityKey`
+ * back to the full `SpaceCenterFacility` enum name the `career.facility.upgrade`
+ * command's `facilityId` takes (the mod re-resolves the enum server-side).
+ */
+const KEY_TO_ENUM_FACILITY = Object.fromEntries(
+  Object.entries(ENUM_FACILITY_TO_KEY).map(([enumName, key]) => [
+    key,
+    enumName,
+  ]),
+) as Readonly<Record<FacilityKey, string>>;
 
 interface FacilityLevel {
   level: number;
@@ -203,7 +220,12 @@ function SpaceCenterStatusComponent({
   const spaceCenterState = useStream<SpaceCenterState>("spaceCenter.state");
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
-  const execute = useExecuteAction("data");
+  // Facility upgrades are a KSC ground action with no vessel signal delay, so
+  // they dispatch at the meta-vantage (instant). The handle is consumed by the
+  // <CommandDelay> in the panel below.
+  const upgradeCmd = useCommand("career.facility.upgrade", {
+    vantage: META_VANTAGE,
+  });
 
   const facilities = parseFacilityLevels(facilitiesRaw);
 
@@ -284,6 +306,10 @@ function SpaceCenterStatusComponent({
         ) : undefined
       }
     >
+      <CommandDelay
+        handle={upgradeCmd}
+        ariaLabel="Facility upgrade: in flight"
+      />
       <Body>
         <FacilityGrid $compact={compactGrid}>
           {FACILITIES.map(({ key, label }) => {
@@ -349,9 +375,12 @@ function SpaceCenterStatusComponent({
                       {formatCompactCurrency(f.upgradeFunds)}
                     </UpgradeCost>
                     <UpgradeButton
-                      facilityKey={key}
                       enabled={canUpgrade}
-                      execute={execute}
+                      onConfirm={() =>
+                        void upgradeCmd.send({
+                          facilityId: KEY_TO_ENUM_FACILITY[key],
+                        })
+                      }
                       titleOverride={
                         f.nextLevelText
                           ? `Upgrade to tier ${displayLevel + 1}:\n${f.nextLevelText}`
@@ -400,14 +429,12 @@ function SpaceCenterStatusComponent({
 }
 
 function UpgradeButton({
-  facilityKey,
   enabled,
-  execute,
+  onConfirm,
   titleOverride,
 }: {
-  facilityKey: FacilityKey;
   enabled: boolean;
-  execute: (action: string) => Promise<void>;
+  onConfirm: () => void;
   titleOverride?: string;
 }) {
   const [armed, setArmed] = useState(false);
@@ -441,7 +468,7 @@ function UpgradeButton({
       type="button"
       onClick={() => {
         setArmed(false);
-        void execute(`kc.upgradeFacility[${facilityKey}]`);
+        onConfirm();
       }}
       title={titleOverride}
     >

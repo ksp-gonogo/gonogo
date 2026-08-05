@@ -249,7 +249,12 @@ describe("LaunchDirectorComponent", () => {
 
     await user.click(screen.getByText("Recover"));
     await user.click(screen.getByText(/Confirm recover/i));
-    expect(onExecute).toHaveBeenCalledWith("ksp.recover");
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "ksp.recover",
+      );
+      expect(sent).toMatchObject({ vantage: "meta" });
+    });
   });
 
   it("shows the in-flight panel with altitude + revert affordances when scene is Flight", async () => {
@@ -278,7 +283,12 @@ describe("LaunchDirectorComponent", () => {
 
     await user.click(screen.getByText("Revert to launch"));
     await user.click(screen.getByText(/Confirm revert to launch/i));
-    expect(onExecute).toHaveBeenCalledWith("ksp.revertToLaunch");
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "ksp.revertToLaunch",
+      );
+      expect(sent).toMatchObject({ vantage: "meta" });
+    });
   });
 
   it("requires arm-then-confirm for Revert to VAB (flight-ending)", async () => {
@@ -297,10 +307,19 @@ describe("LaunchDirectorComponent", () => {
 
     // First click arms: must NOT fire the flight-ending revert yet.
     await user.click(await screen.findByText("Revert to VAB"));
-    expect(onExecute).not.toHaveBeenCalledWith("ksp.revertToEditor[vab]");
+    expect(
+      stream.transport.sentCommands.filter(
+        (c) => c.command === "ksp.revertToEditor",
+      ),
+    ).toHaveLength(0);
 
     await user.click(screen.getByText(/Confirm revert to VAB/i));
-    expect(onExecute).toHaveBeenCalledWith("ksp.revertToEditor[vab]");
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "ksp.revertToEditor",
+      );
+      expect(sent).toMatchObject({ args: { editor: "vab" }, vantage: "meta" });
+    });
   });
 
   it("surfaces a crash chip and disables recover when the active vessel itself crashed", async () => {
@@ -345,11 +364,20 @@ describe("LaunchDirectorComponent", () => {
 
     // First click arms the confirm: no execute fired yet.
     await user.click(await screen.findByText("Tracking Station"));
-    expect(onExecute).not.toHaveBeenCalledWith("ksp.toTrackingStation");
+    expect(
+      stream.transport.sentCommands.filter(
+        (c) => c.command === "ksp.toTrackingStation",
+      ),
+    ).toHaveLength(0);
     // Confirm step is visible.
     const confirm = screen.getByText(/Confirm: flight may revert/i);
     await user.click(confirm);
-    expect(onExecute).toHaveBeenCalledWith("ksp.toTrackingStation");
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "ksp.toTrackingStation",
+      );
+      expect(sent).toMatchObject({ vantage: "meta" });
+    });
   });
 
   // The vessel switcher drives off `target.available`: the producer already
@@ -414,7 +442,15 @@ describe("LaunchDirectorComponent", () => {
     expect(screen.getByText("Relay Sat A")).toBeInTheDocument();
 
     await user.click(screen.getByText("Relay Sat A"));
-    expect(onExecute).toHaveBeenCalledWith("tar.switchVessel[vessel-guid-aaa]");
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "ksp.switchVessel",
+      );
+      expect(sent).toMatchObject({
+        args: { vesselId: "vessel-guid-aaa" },
+        vantage: "meta",
+      });
+    });
   });
 
   // Regression from 2026-05-17 (21:15, 23:12 BST): debris from a previous
