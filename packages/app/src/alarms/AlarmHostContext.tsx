@@ -34,3 +34,22 @@ export function useAlarmSnapshot(): AlarmSnapshot {
   useEffect(() => svc.subscribe(setSnap), [svc]);
   return snap;
 }
+
+/**
+ * Like `useAlarmSnapshot`, but returns `null` instead of throwing when there is
+ * no `AlarmHostProvider` in the tree. The status bridge lives inside every grid
+ * item, including screens and tests that never mount an alarm host, so it must
+ * degrade to "no alarms" rather than crash.
+ */
+export function useAlarmSnapshotOptional(): AlarmSnapshot | null {
+  const svc = useContext(AlarmHostContext);
+  const [snap, setSnap] = useState<AlarmSnapshot | null>(() =>
+    svc ? svc.snapshot() : null,
+  );
+  useEffect(() => {
+    if (!svc) return;
+    setSnap(svc.snapshot());
+    return svc.subscribe(setSnap);
+  }, [svc]);
+  return svc ? snap : null;
+}

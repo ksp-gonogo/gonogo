@@ -9,9 +9,16 @@ export {
   AlarmHostProvider,
   useAlarmHost,
   useAlarmSnapshot,
+  useAlarmSnapshotOptional,
 } from "./AlarmHostContext";
 export type { AlarmHostOptions } from "./AlarmHostService";
 export { AlarmHostService, createAlarmHost } from "./AlarmHostService";
+export {
+  AlarmStatusBridge,
+  alarmMatchesWidget,
+  alarmSubjectKey,
+  severityFromAlarmState,
+} from "./AlarmStatusBridge";
 export { AlarmsFab } from "./AlarmsFab";
 export { AlarmsLauncherBridge } from "./AlarmsLauncherBridge";
 export type { AlarmDraftPrefill } from "./AlarmsModal";

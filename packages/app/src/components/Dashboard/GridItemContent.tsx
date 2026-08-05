@@ -13,6 +13,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
 import styled from "styled-components";
+import { AlarmStatusBridge } from "../../alarms/AlarmStatusBridge";
 import type { DashboardItem } from "./index";
 import {
   ComponentWrapper,
@@ -85,6 +86,10 @@ export const GridItemContent = memo(function GridItemContent({
     // stream health now reaches the header through the store like every other
     // contribution rather than as the panel's single host-provided status.
     <PanelStatusStoreProvider>
+      {/* Folds active alarms attributed to this widget's subject into the same
+          store, so a firing alarm lights the widget's summary with its own name.
+          Renders nothing; no-op where no alarm host is mounted. */}
+      <AlarmStatusBridge dataRequirements={def.dataRequirements} />
       <CellHeader className="drag-handle" title="Drag to reposition">
         {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
         <ActionButtons className="widget-action-buttons">
