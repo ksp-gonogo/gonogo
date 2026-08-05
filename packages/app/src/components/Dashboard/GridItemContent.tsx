@@ -7,7 +7,10 @@ import {
   useWidgetStreamStatus,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
-import { PanelStatusProvider } from "@ksp-gonogo/ui-kit";
+import {
+  PanelStatusProvider,
+  PanelStatusStoreProvider,
+} from "@ksp-gonogo/ui-kit";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";
@@ -74,7 +77,14 @@ export const GridItemContent = memo(function GridItemContent({
   const hasActions = Boolean(def.actions?.length);
 
   return (
-    <>
+    // One PanelStatusStore per grid item, wrapping BOTH the drag-bar chrome and
+    // the widget body so each subscribes to the same off-tree store: the widget's
+    // Panel folds stream staleness and any report badge in, the alarm bridge
+    // folds active alarms in, and the drag-bar ghost dot (title redesign) reads
+    // the same summary. This provider replaces the old bespoke aside-injection:
+    // stream health now reaches the header through the store like every other
+    // contribution rather than as the panel's single host-provided status.
+    <PanelStatusStoreProvider>
       <CellHeader className="drag-handle" title="Drag to reposition">
         {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
         <ActionButtons className="widget-action-buttons">
@@ -114,7 +124,7 @@ export const GridItemContent = memo(function GridItemContent({
           </WidgetStreamStatus>
         </DashboardItemContext.Provider>
       </ComponentWrapper>
-    </>
+    </PanelStatusStoreProvider>
   );
 });
 
