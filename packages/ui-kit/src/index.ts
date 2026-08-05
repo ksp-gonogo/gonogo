@@ -257,6 +257,10 @@ export {
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
 export { Section, type SectionProps, SectionTitle } from "./Section";
+export {
+  SelectableRow,
+  type SelectableRowProps,
+} from "./SelectableRow";
 export { Spinner, type SpinnerProps } from "./Spinner";
 // ── Layout primitives ────────────────────────────────────────────────────────
 export { type SpaceToken, Stack, type StackProps } from "./Stack";
@@ -322,6 +326,7 @@ export {
   type ValueProps,
   type ValueSize,
   type ValueTone,
+  type ValueWeight,
 } from "./Value";
 export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";

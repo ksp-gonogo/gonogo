@@ -7,8 +7,17 @@ import styled, { css } from "styled-components";
  * analog stick. Added because `VirtualDevice/AnalogPad` was keeping its own
  * `Value` for this one colour.
  */
-export type ValueTone = "accent" | "default" | "muted" | "faint";
+export type ValueTone =
+  | "accent"
+  | "default"
+  | "muted"
+  | "faint"
+  | "go"
+  | "warn"
+  | "nogo"
+  | "info";
 export type ValueSize = "xs" | "sm" | "base" | "lg";
+export type ValueWeight = "regular" | "semibold";
 
 export interface ValueProps extends HTMLAttributes<HTMLSpanElement> {
   /** Foreground colour. Defaults to `accent`. */
@@ -22,6 +31,11 @@ export interface ValueProps extends HTMLAttributes<HTMLSpanElement> {
    * vessel meta) that need to stay off the 14px body-text size.
    */
   size?: ValueSize;
+  /**
+   * Font weight. Omit to inherit the ambient weight; set `semibold` to
+   * emphasise a key figure. Extracted from ScienceBench's chip/career values.
+   */
+  weight?: ValueWeight;
   children?: ReactNode;
 }
 
@@ -37,6 +51,27 @@ const TONE_STYLES = {
   `,
   faint: css`
     color: var(--color-text-faint);
+  `,
+  go: css`
+    color: var(--color-status-go-fg);
+  `,
+  warn: css`
+    color: var(--color-status-warning-fg);
+  `,
+  nogo: css`
+    color: var(--color-status-nogo-fg);
+  `,
+  info: css`
+    color: var(--color-status-info-fg);
+  `,
+} as const;
+
+const WEIGHT_STYLES = {
+  regular: css`
+    font-weight: 400;
+  `,
+  semibold: css`
+    font-weight: 600;
   `,
 } as const;
 
@@ -64,11 +99,18 @@ export function Value({
   tone = "accent",
   spaced = false,
   size,
+  weight,
   children,
   ...rest
 }: ValueProps) {
   return (
-    <Value__Root $tone={tone} $spaced={spaced} $size={size} {...rest}>
+    <Value__Root
+      $tone={tone}
+      $spaced={spaced}
+      $size={size}
+      $weight={weight}
+      {...rest}
+    >
       {children}
     </Value__Root>
   );
@@ -78,9 +120,11 @@ const Value__Root = styled.span<{
   $tone: ValueTone;
   $spaced: boolean;
   $size?: ValueSize;
+  $weight?: ValueWeight;
 }>`
   font-variant-numeric: tabular-nums;
   ${({ $tone }) => TONE_STYLES[$tone]}
   ${({ $size }) => $size && SIZE_STYLES[$size]}
+  ${({ $weight }) => $weight && WEIGHT_STYLES[$weight]}
   ${({ $spaced }) => $spaced && `margin-left: var(--space-2, 2px);`}
 `;
