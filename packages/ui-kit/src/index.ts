@@ -123,6 +123,7 @@ export {
   type DialZone,
 } from "./Dial";
 export { Disclosure, type DisclosureProps } from "./Disclosure";
+export { Divider, type DividerProps } from "./Divider";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {
   EmptyState,
