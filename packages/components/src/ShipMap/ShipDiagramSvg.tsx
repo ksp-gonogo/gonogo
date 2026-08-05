@@ -1,6 +1,14 @@
 import type { PartStateModule } from "@ksp-gonogo/core";
 import type React from "react";
+import type { CSSProperties } from "react";
 import { useMemo } from "react";
+// PartGroup below is a styled.g whose keyboard focus ring
+// (`&:focus-visible .focus-ring`) is an SVG pseudo-class + descendant rule that
+// inline `style` cannot express, and no ui-kit primitive is an SVG <g> focus
+// wrapper. A JS onFocus replacement would fire on mouse click too, losing the
+// `:focus-visible` semantics. Kept styled deliberately; flagged in the
+// styled-components migration report.
+// biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
 import { styled } from "styled-components";
 import type { PartType, ShipMapPart } from "./shipTopology";
 
@@ -145,7 +153,15 @@ export function ShipDiagramSvg({
 
   if (parts.length === 0) {
     return (
-      <svg width={width} height={height} role="img" aria-label="Ship diagram">
+      <svg
+        width={width}
+        height={height}
+        role="img"
+        aria-label="Ship diagram"
+        // The `svg {}` sizing/layer rule that lived on the parent DiagramWrap
+        // (ShipMap/index) belongs on the element it sizes.
+        style={ROOT_SVG_STYLE}
+      >
         <text
           x={width / 2}
           y={height / 2}
@@ -195,6 +211,7 @@ export function ShipDiagramSvg({
       height={height}
       role={interactive ? "graphics-document" : "img"}
       aria-label="Ship diagram"
+      style={ROOT_SVG_STYLE}
     >
       <g transform={transform}>
         <line
@@ -1317,6 +1334,25 @@ function withBody(
   };
 }
 
+// Relocated from ShipMap/index's DiagramWrap `svg {}` descendant rule (not
+// inline-expressible there); it belongs on the element it sizes. `flex: 1` is
+// inert here (the parent Wrapper is position:relative, not flex) but kept for
+// parity with the rule it replaces.
+//
+// Local sibling ordering inside DiagramWrap's stacking context, not app-global
+// chrome: the svg sits above the ambient tint (z 0) and below the overlay layer
+// (z 2). Off the z-index ladder for that reason; hoisted to a named constant
+// per the token-ratchet convention for deliberately-local z-index values.
+const SVG_LAYER_Z = 1;
+const ROOT_SVG_STYLE: CSSProperties = {
+  display: "block",
+  flex: 1,
+  position: "relative",
+  zIndex: SVG_LAYER_Z,
+};
+
+// The one styled block that stays: an SVG <g> keyboard focus ring. See the
+// justified biome-ignore on the styled-components import at the top of the file.
 const PartGroup = styled.g`
   outline: none;
   .focus-ring {

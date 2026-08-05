@@ -1,5 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+// ShipDiagramSvg deliberately keeps one styled block (PartGroup, an SVG <g>
+// keyboard focus ring that inline style cannot express, see its own note); this
+// server-side extraction folds that block's CSS into the standalone SVG string.
+// It stays until PartGroup can.
+// biome-ignore lint/style/noRestrictedImports: collects PartGroup's CSS for standalone SVG export (see above)
 import { ServerStyleSheet } from "styled-components";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type { ShipMapPart } from "./shipTopology";

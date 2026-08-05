@@ -2,8 +2,8 @@ import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { Box } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styled from "styled-components";
 import { ShipDiagram } from "./ShipDiagram";
 import { computeShipLayout, type ShipBounds } from "./ShipDiagramSvg";
 import {
@@ -186,7 +186,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   }, [parts, size]);
 
   return (
-    <MapSurface>
+    <Box surface="app" style={MAP_SURFACE}>
       {renderBody(
         topology,
         parts,
@@ -198,7 +198,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         badgesContext,
         overlayContext,
       )}
-    </MapSurface>
+    </Box>
   );
 }
 
@@ -245,24 +245,30 @@ function renderBody(
 ) {
   if (!topology) {
     return (
-      <Placeholder>
+      <div style={PLACEHOLDER}>
         Waiting for vessel topology from Telemachus. Check the data source
         status if this persists.
-      </Placeholder>
+      </div>
     );
   }
   if (parts.length === 0) {
-    return <Placeholder>Vessel has no parts.</Placeholder>;
+    return <div style={PLACEHOLDER}>Vessel has no parts.</div>;
   }
   return (
     <>
-      <Meta>
+      <div style={META}>
         {parts.length} part{parts.length === 1 ? "" : "s"}
-        <MetaTag>· seq {topology.topologySeq}</MetaTag>
-        {highlight && <MetaTag>· hot: {highlight}</MetaTag>}
+        <span style={META_TAG}>· seq {topology.topologySeq}</span>
+        {highlight && <span style={META_TAG}>· hot: {highlight}</span>}
         <AugmentSlot name="ship-map.badges" props={badgesContext} />
-      </Meta>
-      <DiagramWrap ref={setWrapEl} $tint={ambientTint}>
+      </div>
+      <div ref={setWrapEl} style={DIAGRAM_WRAP}>
+        {/* Ambient external-temperature tint. Was a DiagramWrap `::before`
+            (not inline-expressible); as an inline style it becomes a real
+            child element behind the SVG (z-index 0). */}
+        <div
+          style={{ ...TINT_LAYER, background: ambientTint ?? "transparent" }}
+        />
         <ShipDiagram
           parts={parts}
           highlight={highlight}
@@ -271,104 +277,97 @@ function renderBody(
           throttle={throttle}
         />
         {overlayContext && (
-          <OverlayLayer>
+          <div style={OVERLAY_LAYER}>
             <AugmentSlot name="ship-map.overlay" props={overlayContext} />
-          </OverlayLayer>
+          </div>
         )}
-      </DiagramWrap>
+      </div>
     </>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+// Structural inline styles (CSS-var tokens): a bespoke map column, no reusable
+// ui-kit primitive fits, so the layout stays local. The one kit piece it reuses
+// (Box) takes only this map's column layout inline. The DiagramWrap `::before`
+// tint becomes a real child element (see TINT_LAYER); its `svg {}` descendant
+// (display/position/z-index) moves onto ShipDiagramSvg's root <svg>.
+
 // A full-height app-surface column, not a widget Panel. The surface is the
 // kit's Box; the column and its height are this map's.
-const MapSurface = styled(Box).attrs({ surface: "app" as const })`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  box-sizing: border-box;
-`;
+const MAP_SURFACE: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  boxSizing: "border-box",
+};
 
-const Placeholder = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
-  padding: var(--space-12);
-  text-align: center;
-  code {
-    background: var(--color-surface-raised);
-    padding: var(--space-hair) var(--space-4);
-    border-radius: var(--radius-xs);
-    color: var(--color-status-go-fg);
-  }
-`;
+// The styled version carried a `code {}` rule; no <code> is rendered here, so
+// it is dropped rather than reproduced.
+const PLACEHOLDER: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "var(--color-text-dim)",
+  fontSize: "var(--font-size-xs)",
+  padding: "var(--space-12)",
+  textAlign: "center",
+};
 
-const Meta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-4) var(--space-10);
-  background: var(--color-surface-panel);
-  border-bottom: 1px solid var(--color-surface-raised);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-`;
+const META: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--space-6)",
+  padding: "var(--space-4) var(--space-10)",
+  background: "var(--color-surface-panel)",
+  borderBottom: "1px solid var(--color-surface-raised)",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+};
 
-const MetaTag = styled.span`
-  color: var(--color-text-faint);
-`;
+const META_TAG: CSSProperties = { color: "var(--color-text-faint)" };
 
 // Absolutely-positioned layer over the part diagram for `ship-map.overlay`
 // augments. Off the app z-index ladder despite the name: these three values
-// (2 here, 1 on the svg, 0 on the ::before tint) are local sibling ordering
-// inside DiagramWrap, so only their relative order is load-bearing and
-// --z-overlay would lift a widget-internal layer over the app's own chrome.
-// Sits above the SVG (z-index 1) and the ambient tint (z-index 0),
-// and stays out of the diagram's pointer path so an empty slot is visually and
-// interactively inert: an overlay augment re-enables pointer events on its own
-// elements when it needs them.
-const OverlayLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-`;
+// (2 here, 1 on the svg, 0 on the tint) are local sibling ordering inside
+// DiagramWrap, so only their relative order is load-bearing and --z-overlay
+// would lift a widget-internal layer over the app's own chrome. Sits above the
+// SVG (z-index 1) and the ambient tint (z-index 0), and stays out of the
+// diagram's pointer path so an empty slot is visually and interactively inert:
+// an overlay augment re-enables pointer events on its own elements when it
+// needs them.
+const OVERLAY_LAYER: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 2,
+  pointerEvents: "none",
+};
 
-const DiagramWrap = styled.div<{ $tint: string | null }>`
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  position: relative;
-  background: var(--color-surface-app);
-  svg {
-    display: block;
-    flex: 1;
-    position: relative;
-    z-index: 1;
-  }
-  /* Ambient external-temperature tint: sits behind the SVG so per-part
-     heat tints render unobstructed on top. Transition smooths the band
-     as temperature ramps during a reentry. */
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: ${({ $tint }) => $tint ?? "transparent"};
-    /* Off the motion scale on purpose: a reentry temperature ramp, not a
-       UI transition, and at 400ms ease-out is visibly not ease, so the
-       ease-out -> --ease-standard snap does not reach here either. */
-    transition: background 400ms ease-out;
-    z-index: 0;
-  }
-`;
+const DIAGRAM_WRAP: CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  alignItems: "stretch",
+  justifyContent: "stretch",
+  position: "relative",
+  background: "var(--color-surface-app)",
+};
+
+// Ambient external-temperature tint: sits behind the SVG so per-part heat tints
+// render unobstructed on top. Transition smooths the band as temperature ramps
+// during a reentry. Off the motion scale on purpose: a reentry temperature
+// ramp, not a UI transition (400ms ease-out is visibly not ease, so the
+// ease-out -> --ease-standard snap does not reach here). `background` is applied
+// at the call site from the live tint.
+const TINT_LAYER: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
+  transition: "background 400ms ease-out",
+  zIndex: 0,
+};
 
 // ── Registration ──────────────────────────────────────────────────────────────
 

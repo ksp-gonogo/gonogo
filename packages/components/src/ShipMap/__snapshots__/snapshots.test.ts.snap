@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`Ship Map SVG snapshots > renders an empty parts list as a placeholder 1`] = `
-"<svg width="200" height="200" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="200" height="200" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
@@ -23,7 +23,7 @@ exports[`Ship Map SVG snapshots > renders an empty parts list as a placeholder 1
 `;
 
 exports[`Ship Map SVG snapshots > renders fuelline-tester-poststage2 (minimum-survival craft) 1`] = `
-"<svg width="800" height="800" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="800" height="800" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
@@ -45,7 +45,7 @@ exports[`Ship Map SVG snapshots > renders fuelline-tester-poststage2 (minimum-su
 `;
 
 exports[`Ship Map SVG snapshots > renders fuelline-tester-prelaunch (multi-engine with fuel lines) 1`] = `
-"<svg width="800" height="800" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="800" height="800" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
@@ -67,7 +67,7 @@ exports[`Ship Map SVG snapshots > renders fuelline-tester-prelaunch (multi-engin
 `;
 
 exports[`Ship Map SVG snapshots > renders oxstat-ring (radial OX-STAT panels, axial-major) 1`] = `
-"<svg width="800" height="800" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="800" height="800" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
@@ -89,7 +89,7 @@ exports[`Ship Map SVG snapshots > renders oxstat-ring (radial OX-STAT panels, ax
 `;
 
 exports[`Ship Map SVG snapshots > renders rover-b-alone 1`] = `
-"<svg width="800" height="800" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="800" height="800" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
@@ -111,7 +111,7 @@ exports[`Ship Map SVG snapshots > renders rover-b-alone 1`] = `
 `;
 
 exports[`Ship Map SVG snapshots > renders rover-merged (docked T-shape) 1`] = `
-"<svg width="800" height="800" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="800" height="800" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;
@@ -133,7 +133,7 @@ exports[`Ship Map SVG snapshots > renders rover-merged (docked T-shape) 1`] = `
 `;
 
 exports[`Ship Map SVG snapshots > renders winged-lander (radial winglets + two solar rings) 1`] = `
-"<svg width="800" height="800" role="img" aria-label="Ship diagram" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
+"<svg width="800" height="800" role="img" aria-label="Ship diagram" style="display:block;flex:1;position:relative;z-index:1" xmlns="http://www.w3.org/2000/svg"><style><![CDATA[
 :root {
   --color-text-primary: #ccc;
   --color-text-muted: #888;

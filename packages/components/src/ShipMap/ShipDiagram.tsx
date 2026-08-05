@@ -1,8 +1,8 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { TextButton, Unit } from "@ksp-gonogo/ui-kit";
 import type React from "react";
+import type { CSSProperties } from "react";
 import { useState } from "react";
-import styled from "styled-components";
 import { useZoomPan } from "../shared/useZoomPan";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type { ShipMapPart } from "./shipTopology";
@@ -46,15 +46,32 @@ export function ShipDiagram({
   };
 
   return (
-    <Wrapper
+    // Mouse pan/zoom surface only (drag to pan, wheel to zoom): a progressive
+    // enhancement over the keyboard-accessible content, which is the focusable
+    // SVG parts inside (each a <g> with its own focus ring). No semantic role
+    // fits a bare pan canvas, so the interaction stays on the div. The styled.div
+    // this replaced hid it from this a11y lint.
+    // biome-ignore lint/a11y/noStaticElementInteractions: mouse-only pan/zoom enhancement; keyboard access is via the focusable SVG parts
+    <div
       ref={wrapperRef}
       onMouseMove={onWrapperMouseMove}
       {...pointerHandlers}
-      $panning={panMoved.current}
+      style={{
+        ...WRAPPER,
+        cursor: panMoved.current ? "grabbing" : "grab",
+      }}
     >
-      <ResetButton type="button" onClick={resetView} aria-label="Reset view">
+      {/* TextButton for its :focus-visible ring (identical to the styled
+          ResetButton's); the bordered look is inline. The styled hover also
+          swapped the background, which inline can't express. */}
+      <TextButton
+        type="button"
+        onClick={resetView}
+        aria-label="Reset view"
+        style={RESET_BUTTON}
+      >
         Reset
-      </ResetButton>
+      </TextButton>
       <ShipDiagramSvg
         parts={parts}
         width={width}
@@ -68,111 +85,112 @@ export function ShipDiagram({
       />
 
       {hovered && (
-        <Tooltip
+        <div
           style={{
+            ...TOOLTIP,
             left: Math.min(mouse.x + 12, Math.max(0, width - 180)),
             top: Math.min(mouse.y + 12, Math.max(0, height - 80)),
           }}
         >
-          <div className="title">{hovered.title || hovered.name}</div>
-          <div className="row">
+          <div style={TOOLTIP_TITLE}>{hovered.title || hovered.name}</div>
+          <div style={TOOLTIP_ROW}>
             <span>type</span>
-            <span>{hovered.type}</span>
+            <span style={TOOLTIP_ROW_VALUE}>{hovered.type}</span>
           </div>
-          <div className="row">
+          <div style={TOOLTIP_ROW}>
             <span>mass</span>
-            <span>
+            <span style={TOOLTIP_ROW_VALUE}>
               <Unit value={value("t", hovered.dryMass)} decimals={3} />
             </span>
           </div>
           {hovered.temperatureK !== undefined &&
           (hovered.maxTemperatureK ?? hovered.maxTemp) > 0 ? (
-            <div className="row">
+            <div style={TOOLTIP_ROW}>
               <span>temp</span>
-              <span>
+              <span style={TOOLTIP_ROW_VALUE}>
                 {Math.round(hovered.temperatureK)} /{" "}
                 {Math.round(hovered.maxTemperatureK ?? hovered.maxTemp)} K
               </span>
             </div>
           ) : null}
-          <div className="row">
+          <div style={TOOLTIP_ROW}>
             <span>stage</span>
-            <span>{hovered.stage}</span>
+            <span style={TOOLTIP_ROW_VALUE}>{hovered.stage}</span>
           </div>
           {hovered.resources && hovered.resources.length > 0
             ? hovered.resources.map((r) => (
-                <div className="row" key={r.n}>
+                <div style={TOOLTIP_ROW} key={r.n}>
                   <span>{r.n}</span>
-                  <span>
+                  <span style={TOOLTIP_ROW_VALUE}>
                     {r.a.toFixed(0)} / {r.c.toFixed(0)}
                   </span>
                 </div>
               ))
             : null}
-        </Tooltip>
+        </div>
       )}
-    </Wrapper>
+    </div>
   );
 }
 
-const Wrapper = styled.div<{ $panning: boolean }>`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  user-select: none;
-  cursor: ${(p) => (p.$panning ? "grabbing" : "grab")};
-`;
+// Structural inline styles (CSS-var tokens): a bespoke pan/zoom diagram frame +
+// tooltip, no reusable ui-kit primitive fits, so the layout stays local. The
+// tooltip's `.title` / `.row` / `.row span:last-child` descendant rules lift
+// inline onto each element at the call site.
 
-const ResetButton = styled.button`
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  /* Off the app z-index ladder: local ordering inside Root, paired with the
-     Tooltip's 20 below. Only the relative order matters. */
-  z-index: 10;
-  font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
-  background: var(--color-surface-raised);
-  color: var(--color-status-go-fg);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  &:hover {
-    background: var(--color-border-subtle);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
+// `cursor` (grab/grabbing) is applied at the call site from the pan state.
+const WRAPPER: CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  touchAction: "none",
+  userSelect: "none",
+};
 
-const Tooltip = styled.div`
-  position: absolute;
-  background: var(--color-surface-sunken);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
-  padding: var(--space-6) var(--space-8);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-xs);
-  pointer-events: none;
-  min-width: 140px;
-  /* Off the app z-index ladder: the upper half of the local pair with
-     ResetButton above, both inside Root. */
-  z-index: 20;
-  .title {
-    font-weight: 600;
-    color: var(--color-status-go-fg);
-    margin-bottom: var(--space-4);
-    word-break: break-word;
-  }
-  .row {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-12);
-    color: var(--color-text-muted);
-    span:last-child {
-      color: var(--color-text-primary);
-    }
-  }
-`;
+const RESET_BUTTON: CSSProperties = {
+  position: "absolute",
+  top: "6px",
+  left: "6px",
+  // Off the app z-index ladder: local ordering inside Root, paired with the
+  // Tooltip's 20 below. Only the relative order matters.
+  zIndex: 10,
+  fontSize: "var(--font-size-xs)",
+  padding: "var(--space-2) var(--space-8)",
+  background: "var(--color-surface-raised)",
+  color: "var(--color-status-go-fg)",
+  border: "1px solid var(--color-border-strong)",
+  borderRadius: "var(--radius-xs)",
+  textDecoration: "none",
+};
+
+const TOOLTIP: CSSProperties = {
+  position: "absolute",
+  background: "var(--color-surface-sunken)",
+  color: "var(--color-text-primary)",
+  fontSize: "var(--font-size-xs)",
+  padding: "var(--space-6) var(--space-8)",
+  border: "1px solid var(--color-border-strong)",
+  borderRadius: "var(--radius-xs)",
+  pointerEvents: "none",
+  minWidth: "140px",
+  // Off the app z-index ladder: the upper half of the local pair with
+  // ResetButton above, both inside Root.
+  zIndex: 20,
+};
+
+const TOOLTIP_TITLE: CSSProperties = {
+  fontWeight: 600,
+  color: "var(--color-status-go-fg)",
+  marginBottom: "var(--space-4)",
+  wordBreak: "break-word",
+};
+
+const TOOLTIP_ROW: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "var(--space-12)",
+  color: "var(--color-text-muted)",
+};
+
+// The `.row span:last-child` highlight, applied to each row's value span.
+const TOOLTIP_ROW_VALUE: CSSProperties = { color: "var(--color-text-primary)" };
