@@ -4,15 +4,14 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   Cluster,
   EmptyState,
   InFlightList,
-  type InFlightListItem,
   Panel,
   ToggleButton,
+  toInFlightListItems,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -172,26 +171,6 @@ const roboticsActions = [
 ] as const satisfies readonly ActionDefinition[];
 
 export type RoboticsConsoleActions = typeof roboticsActions;
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe): a discrete servo command has no "reply" leg worth showing
- * separately from "reach", so this counts down to the reach ETA throughout
- * (unlike MechJeb's autopilot commands, a servo actuation's visible effect
- * IS it reaching the craft, there's no separate confirmation payload the
- * operator is waiting on beyond that).
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
-}
 
 function RoboticsConsoleComponent({
   h,

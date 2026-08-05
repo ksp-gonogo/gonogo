@@ -527,10 +527,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // own kOS mention (below) is doc-comment-only, same subject, same
       // category.
       "packages/components/src/ManeuverPlanner/index.test.tsx",
-      // MechJeb/index.tsx's toInFlightListItems doc-comment cites the kOS
-      // terminal's useRouteCommands -> InFlightList wiring as the mapping
-      // precedent it mirrors: doc-mention only, no kOS import or coupling.
-      "packages/components/src/MechJeb/index.tsx",
       // widgets.axe.test.tsx's only kOS mention is a doc-comment pointing
       // implementers at Kos*-specific axe-smoke test files elsewhere, no
       // import, no coupling.

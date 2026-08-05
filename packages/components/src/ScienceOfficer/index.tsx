@@ -5,19 +5,18 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
   InFlightList,
-  type InFlightListItem,
   Panel,
   ScienceExperimentRow,
   ScrollArea,
   Section,
   SectionTitle,
+  toInFlightListItems,
   Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
@@ -210,24 +209,6 @@ export function parseLab(raw: unknown): LabStatus[] | null {
     });
   }
   return out;
-}
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same mapping as ActionGroup/RoboticsConsole/TargetPicker's own: a
- * deploy/transmit's visible effect is it reaching the craft, so this counts
- * down to the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
 }
 
 function ScienceOfficerComponent({

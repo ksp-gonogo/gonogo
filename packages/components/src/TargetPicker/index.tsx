@@ -10,7 +10,6 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import {
   type StreamStatusValue,
   useCommand,
@@ -30,13 +29,13 @@ import {
   FieldHint,
   FieldLabel,
   InFlightList,
-  type InFlightListItem,
   NULL_DISPLAY,
   Panel,
   Row,
   ScrollArea,
   Section,
   Spinner,
+  toInFlightListItems,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -186,24 +185,6 @@ function sortByDistance(list: readonly TargetListEntry[]): TargetListEntry[] {
     const db = magnitudeOf(b.distance) ?? Number.POSITIVE_INFINITY;
     return da - db;
   });
-}
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same mapping as ActionGroup/RoboticsConsole's own: setting a target
- * is a single vessel command whose visible effect is it reaching the craft,
- * so this counts down to the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
 }
 
 /** Native per-topic stream status (copy of DistanceToTarget/OrbitView's

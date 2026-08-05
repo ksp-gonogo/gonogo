@@ -14,7 +14,6 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -32,8 +31,8 @@ import {
 } from "@ksp-gonogo/ui";
 import {
   InFlightList,
-  type InFlightListItem,
   NULL_DISPLAY,
+  toInFlightListItems,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -212,24 +211,6 @@ export function buildToggleArgs(
     return { group: group.index, state: nextState };
   }
   return { enabled: nextState };
-}
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same shape as RoboticsConsole/RotorTachometer's own mapping: a
- * toggle's visible effect is it reaching the craft, so this counts down to
- * the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
 }
 
 // ---------------------------------------------------------------------------

@@ -4,16 +4,15 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge } from "@ksp-gonogo/ui";
 import {
   EmptyState,
   InFlightList,
-  type InFlightListItem,
   Panel,
   ToggleButton,
+  toInFlightListItems,
   Unit,
   useElementSize,
   writeQuantity,
@@ -134,24 +133,6 @@ const rotorActions = [
 ] as const satisfies readonly ActionDefinition[];
 
 export type RotorTachometerActions = typeof rotorActions;
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe): mirrors RoboticsConsole's own mapping. A rotor command's visible
- * effect is it reaching the craft, so this counts down to the reach ETA
- * throughout, same reasoning as that widget's own helper.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
-}
 
 function RotorTachometerComponent({
   h,

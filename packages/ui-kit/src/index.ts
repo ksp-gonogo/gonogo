@@ -99,6 +99,10 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
+export {
+  type InFlightCommandLike,
+  toInFlightListItems,
+} from "./CommandDelay/toInFlightListItems";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 export {

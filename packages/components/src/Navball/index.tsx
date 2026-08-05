@@ -11,7 +11,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { ControlStream, InFlightCommand } from "@ksp-gonogo/sitrep-client";
+import type { ControlStream } from "@ksp-gonogo/sitrep-client";
 import {
   useCommand,
   useControlStream,
@@ -36,6 +36,7 @@ import {
   StatusIndicator,
   Switch,
   ToggleButton,
+  toInFlightListItems,
   Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
@@ -92,24 +93,6 @@ const SAS_MODES = [
   "Maneuver",
 ] as const;
 type SasMode = (typeof SAS_MODES)[number];
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same mapping as ActionGroup/RoboticsConsole's own: a discrete
- * SAS/RCS/FBW command's visible effect is it reaching the craft, so this
- * counts down to the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
-}
 
 interface NavballConfig {
   /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2); see the component body's ternary comment for which raw key backs which frame. */

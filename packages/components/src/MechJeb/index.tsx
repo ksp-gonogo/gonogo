@@ -4,7 +4,6 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -12,10 +11,10 @@ import {
   type BadgeTone,
   Cluster,
   InFlightList,
-  type InFlightListItem,
   Panel,
   Section,
   SectionTitle,
+  toInFlightListItems,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
@@ -84,24 +83,6 @@ function commandChip(
     default:
       return undefined; // idle, no chip
   }
-}
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe): the reach leg counts down to reaching the craft, everything else
- * counts down to the reply: same mapping the kOS terminal's own
- * `useRouteCommands` -> `InFlightList` wiring uses.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
 }
 
 function CommandRow({

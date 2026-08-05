@@ -14,7 +14,6 @@ import {
   useValueKeys,
   useVesselDeltaV,
 } from "@ksp-gonogo/data";
-import type { InFlightCommand } from "@ksp-gonogo/sitrep-client";
 import {
   useCommand,
   useStream,
@@ -24,11 +23,11 @@ import {
 import {
   CheckIcon,
   InFlightList,
-  type InFlightListItem,
   Panel,
   ScrollArea,
   SectionTitle,
   Stack,
+  toInFlightListItems,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -88,24 +87,6 @@ declare module "@ksp-gonogo/core" {
 
 // Stable empty reference so slot re-renders don't churn mounted augments.
 const EMPTY_SLOT_PROPS: Record<string, never> = {};
-
-/**
- * `InFlightCommand` (sitrep-client) -> `InFlightListItem` (ui-kit, vanilla-
- * safe), same mapping as ActionGroup/RoboticsConsole/TargetPicker/
- * ScienceOfficer's own: a maneuver-node add/update/remove's visible effect
- * is it reaching the craft, so this counts down to the reach ETA throughout.
- */
-function toInFlightListItems(items: InFlightCommand[]): InFlightListItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.label || item.command,
-    etaSeconds:
-      item.predictedPhase === "in-transit"
-        ? item.reachEtaSeconds
-        : item.replyEtaSeconds,
-    phase: item.predictedPhase,
-  }));
-}
 
 function ManeuverPlannerComponent({
   config,
