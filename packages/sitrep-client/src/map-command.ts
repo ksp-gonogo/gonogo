@@ -950,3 +950,35 @@ export function hasCommandHome(dataSourceId: string, action: string): boolean {
   const { key } = parseLegacyAction(action);
   return key in TELEMACHUS_COMMAND_HOMES || ACTION_GROUP_KEY_PATTERN.test(key);
 }
+
+/**
+ * Command topics whose delay UX is a PERSISTENT stream indicator (fly-by-wire),
+ * not a one-shot in-flight row. `vessel.control.setAxes` is the mod's
+ * per-frame-re-applied override (pitch/yaw/roll/translation/trim); every Navball
+ * axis/translation action routes to that one topic, so classifying it covers them all.
+ */
+const STREAM_COMMANDS: ReadonlySet<string> = new Set([
+  "vessel.control.setAxes",
+]);
+
+/**
+ * Sim-meta command topics that never ride signal delay (instant, no delay UX):
+ * time warp + pause are simulation controls, not commands that travel to a craft.
+ */
+const NEVER_DELAYED_COMMANDS: ReadonlySet<string> = new Set([
+  "time.setWarpIndex",
+  "time.setPaused",
+]);
+
+/**
+ * How a command's delay UX renders: a discrete in-flight row (the default), or a
+ * persistent stream indicator (fly-by-wire). The unified `<CommandDelay>` reads this.
+ */
+export function commandShape(command: string): "discrete" | "stream" {
+  return STREAM_COMMANDS.has(command) ? "stream" : "discrete";
+}
+
+/** Whether a command rides signal delay at all. Sim-meta controls (`time.*`) do not. */
+export function commandDelayed(command: string): boolean {
+  return !NEVER_DELAYED_COMMANDS.has(command);
+}
