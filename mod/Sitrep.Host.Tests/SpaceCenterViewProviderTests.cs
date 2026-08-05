@@ -47,10 +47,16 @@ namespace Sitrep.Host.Tests
                                 ["displayName"] = "Launch Pad",
                                 ["editorFacility"] = "VAB",
                                 ["body"] = "Kerbin",
+                                ["latitude"] = -0.0972,
+                                ["longitude"] = 285.42,
                                 ["isStock"] = true,
                                 ["padOccupied"] = true,
                                 ["padVesselTitle"] = "Kerbal X",
                             },
+                            // No spawn-point keys: a site whose coordinate is unset
+                            // must carry lat/lon null (never a fabricated 0), and
+                            // must still be LISTED (unlike a POI, which BuildPois
+                            // skips).
                             new Dictionary<string, object?>
                             {
                                 ["name"] = "Runway",
@@ -85,6 +91,8 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Launch Pad", pad["displayName"]);
             Assert.Equal("VAB", pad["editorFacility"]);
             Assert.Equal(1, pad["bodyIndex"]); // "Kerbin" -> index 1
+            Assert.Equal(-0.0972, pad["latitude"]); // spawn-point coordinate copied through
+            Assert.Equal(285.42, pad["longitude"]);
             Assert.Equal(true, pad["isStock"]);
             Assert.Equal(true, pad["padOccupied"]);
             Assert.Equal("Kerbal X", pad["padVesselTitle"]);
@@ -92,6 +100,8 @@ namespace Sitrep.Host.Tests
             var runway = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal("Runway", runway["name"]);
             Assert.Equal("SPH", runway["editorFacility"]);
+            Assert.Null(runway["latitude"]); // no spawn-point keys -> null, but still listed
+            Assert.Null(runway["longitude"]);
             Assert.Equal(true, runway["isStock"]);
             Assert.Null(runway["padOccupied"]); // only the stock pad carries occupancy
             Assert.Null(runway["padVesselTitle"]);

@@ -52,6 +52,14 @@ public class LaunchSiteEntry
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
+    /// <summary>Latitude of the site's spawn point on its body (<c>LaunchSite.SpawnPoint.latlonaltSet</c>); null when the site has no set spawn coordinate (never a fabricated <c>0</c>). Pairs with <see cref="Longitude"/> to give the site a location for the command-delay geometry (a launch is a command to this location).</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? Latitude { get; set; }
+
+    /// <summary>Longitude of the site's spawn point on its body; null when the site has no set spawn coordinate. Pairs with <see cref="Latitude"/>.</summary>
+    [SitrepUnit(Units.Degrees)]
+    public double? Longitude { get; set; }
+
     /// <summary>Whether this is a stock KSP launch site (<c>PSystemSetup.IsStockLaunchSite</c>), false for Making History / Kerbal Konstructs sites.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? IsStock { get; set; }

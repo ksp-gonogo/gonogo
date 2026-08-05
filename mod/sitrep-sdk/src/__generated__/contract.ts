@@ -962,6 +962,8 @@ export interface LaunchSiteEntry
 	displayName?: string;
 	editorFacility?: string;
 	bodyIndex?: number;
+	latitude?: Value<"°">;
+	longitude?: Value<"°">;
 	isStock?: boolean;
 	padOccupied?: boolean;
 	padVesselTitle?: string;

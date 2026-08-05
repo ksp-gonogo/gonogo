@@ -54,6 +54,8 @@ namespace Sitrep.Host.Tests
                                 ["displayName"] = "Launch Pad",
                                 ["editorFacility"] = "VAB",
                                 ["body"] = "Kerbin",
+                                ["latitude"] = -0.0972,
+                                ["longitude"] = 285.42,
                                 ["isStock"] = true,
                                 ["padOccupied"] = true,
                                 ["padVesselTitle"] = "Kerbal X",

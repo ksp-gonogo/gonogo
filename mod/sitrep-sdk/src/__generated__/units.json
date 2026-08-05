@@ -577,6 +577,8 @@
       "displayName": "text",
       "editorFacility": "text",
       "isStock": "flag",
+      "latitude": "°",
+      "longitude": "°",
       "name": "text",
       "padOccupied": "flag",
       "padVesselTitle": "text"
@@ -1518,6 +1520,8 @@
       "displayName": "text",
       "editorFacility": "text",
       "isStock": "flag",
+      "latitude": "°",
+      "longitude": "°",
       "name": "text",
       "padOccupied": "flag",
       "padVesselTitle": "text"

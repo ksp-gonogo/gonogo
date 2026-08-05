@@ -116,6 +116,19 @@ namespace Sitrep.Host
         /// at all (no sample landed / <c>PSystemSetup</c> not ready yet), so a
         /// caller distinguishes "no data yet" from "zero sites."
         /// </summary>
+        /// <summary>
+        /// Reads a launch site's spawn-point <c>(latitude, longitude)</c> from its
+        /// raw snapshot dict, the single home for the raw <c>"latitude"</c>/
+        /// <c>"longitude"</c> key names both launch-site channels consume:
+        /// <see cref="BuildLaunchSites"/> passes the pair through as nullable
+        /// enrichment, <see cref="BuildPois"/> skips a site when either is null.
+        /// Keeping the read in one place stops the two channels drifting on the key
+        /// names or the null-fold (<see cref="SnapshotDict.GetDouble"/> folds
+        /// absent/<c>NaN</c>/<c>Infinity</c> to null, never a <c>0</c> sentinel).
+        /// </summary>
+        private static (double? Latitude, double? Longitude) ReadLaunchSiteSpawn(IDictionary<string, object?> raw)
+            => (SnapshotDict.GetDouble(raw, "latitude"), SnapshotDict.GetDouble(raw, "longitude"));
+
         public static object? BuildLaunchSites(KspSnapshot? snapshot)
         {
             if (snapshot?.Values == null)
@@ -144,12 +157,23 @@ namespace Sitrep.Host
                 var bodyName = SnapshotDict.GetString(raw, "body");
                 int? bodyIndex = bodyName != null ? SharedMappers.ResolveBodyIndex(snapshot, bodyName) : null;
 
+                // The site's spawn-point lat/lon, via the shared reader BuildPois
+                // also uses (one home for the raw "latitude"/"longitude" keys so
+                // the two launch-site channels can't drift). Unlike BuildPois this
+                // NEVER skips a site that lacks a coordinate: a launch site is a
+                // launch site whether or not its spawn point is set, so the pair is
+                // nullable enrichment (never a fabricated 0), matching the bodyIndex
+                // discipline above.
+                var (latitude, longitude) = ReadLaunchSiteSpawn(raw);
+
                 sites.Add(new Dictionary<string, object?>
                 {
                     ["name"] = SnapshotDict.GetString(raw, "name"),
                     ["displayName"] = SnapshotDict.GetString(raw, "displayName"),
                     ["editorFacility"] = SnapshotDict.GetString(raw, "editorFacility"),
                     ["bodyIndex"] = bodyIndex,
+                    ["latitude"] = latitude,
+                    ["longitude"] = longitude,
                     ["isStock"] = SnapshotDict.GetBool(raw, "isStock"),
                     ["padOccupied"] = SnapshotDict.GetBool(raw, "padOccupied"),
                     ["padVesselTitle"] = SnapshotDict.GetString(raw, "padVesselTitle"),
@@ -389,8 +413,7 @@ namespace Sitrep.Host
                         continue;
                     }
 
-                    var latitude = SnapshotDict.GetDouble(raw, "latitude");
-                    var longitude = SnapshotDict.GetDouble(raw, "longitude");
+                    var (latitude, longitude) = ReadLaunchSiteSpawn(raw);
                     if (latitude == null || longitude == null)
                     {
                         continue;
