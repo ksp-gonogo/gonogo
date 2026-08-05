@@ -11,16 +11,20 @@ import {
   Badge,
   Cluster,
   CommandDelay,
+  Divider,
+  Grid,
+  Inline,
   Panel,
+  RowName,
   ScienceExperimentRow,
   ScrollArea,
   Section,
   SectionTitle,
+  Stack,
   Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
-import styled from "styled-components";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 type ScienceOfficerConfig = Record<string, never>;
@@ -281,6 +285,43 @@ function ScienceOfficerComponent({
 
   const totals = summarise(instruments);
 
+  const sectionNodes = grouped.map(({ expId, items }) => (
+    <Section key={expId}>
+      <SectionTitle>{expId || "(unknown)"}</SectionTitle>
+      <Stack gap="xs">
+        {items.map((inst) => (
+          <Fragment key={inst.partId}>
+            <ScienceExperimentRow
+              instrument={inst}
+              onDeploy={(partId) =>
+                void deployCmd.send(
+                  { partId },
+                  { label: `Deploy ${inst.partTitle}` },
+                )
+              }
+              onTransmit={(partId) =>
+                void transmitCmd.send(
+                  { partId },
+                  { label: `Transmit ${inst.partTitle}` },
+                )
+              }
+            />
+            {/* Per-instrument section slot: passes this instrument
+                down so an on-vessel-lab augment can extend the row.
+                Empty until an Uplink registers into it. Kept here in
+                the widget rather than inside the kit row: the slot is
+                a framework concern and the row stays
+                data/framework-free. */}
+            <AugmentSlot
+              name="science-officer.sections"
+              props={{ instrument: inst }}
+            />
+          </Fragment>
+        ))}
+      </Stack>
+    </Section>
+  ));
+
   return (
     <Panel
       panelTitle="SCIENCE LAB"
@@ -312,44 +353,15 @@ function ScienceOfficerComponent({
         handles={[deployCmd, transmitCmd]}
         ariaLabel="Science commands: in flight"
       />
-      <Body $row={isLandscape}>
-        {grouped.map(({ expId, items }) => (
-          <Section key={expId}>
-            <SectionTitle>{expId || "(unknown)"}</SectionTitle>
-            <InstrumentList>
-              {items.map((inst) => (
-                <Fragment key={inst.partId}>
-                  <ScienceExperimentRow
-                    instrument={inst}
-                    onDeploy={(partId) =>
-                      void deployCmd.send(
-                        { partId },
-                        { label: `Deploy ${inst.partTitle}` },
-                      )
-                    }
-                    onTransmit={(partId) =>
-                      void transmitCmd.send(
-                        { partId },
-                        { label: `Transmit ${inst.partTitle}` },
-                      )
-                    }
-                  />
-                  {/* Per-instrument section slot: passes this instrument
-                      down so an on-vessel-lab augment can extend the row.
-                      Empty until an Uplink registers into it. Kept here in
-                      the widget rather than inside the kit row: the slot is
-                      a framework concern and the row stays
-                      data/framework-free. */}
-                  <AugmentSlot
-                    name="science-officer.sections"
-                    props={{ instrument: inst }}
-                  />
-                </Fragment>
-              ))}
-            </InstrumentList>
-          </Section>
-        ))}
-      </Body>
+      <ScrollArea>
+        {isLandscape ? (
+          <Grid minColWidth="200px" gap="md">
+            {sectionNodes}
+          </Grid>
+        ) : (
+          <Stack gap="md">{sectionNodes}</Stack>
+        )}
+      </ScrollArea>
     </Panel>
   );
 }
@@ -363,38 +375,41 @@ function ScienceOfficerComponent({
 function LabSection({ labs }: { labs: LabStatus[] | null }) {
   if (labs === null || labs.length === 0) return null;
   return (
-    <LabList>
-      {labs.map((lab, i) => (
-        // No stable id on a science.lab entry (unlike sci.instruments'
-        // partId): the list is never reordered within a render, so index
-        // just disambiguates two labs that happen to share a partName.
-        // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
-        <LabRow key={`${lab.partName}-${i}`}>
-          <LabHeader>
-            <LabName>{lab.partName}</LabName>
-            <LabBadges>
-              <Badge tone={lab.isOperational ? "go" : "nogo"}>
-                {lab.isOperational ? "OPERATIONAL" : "OFFLINE"}
-              </Badge>
-              {lab.processingData && <Badge tone="neutral">PROCESSING</Badge>}
-            </LabBadges>
-          </LabHeader>
-          <LabMeta>
-            {lab.scientistCount !== null && (
-              <span>
-                {lab.scientistCount} scientist
-                {lab.scientistCount === 1 ? "" : "s"}
-              </span>
-            )}
-            {lab.dataStored !== null && lab.dataStorage !== null && (
-              <span>
-                {lab.dataStored.toFixed(0)}/{lab.dataStorage.toFixed(0)} data
-              </span>
-            )}
-          </LabMeta>
-        </LabRow>
-      ))}
-    </LabList>
+    <>
+      <Stack gap="sm">
+        {labs.map((lab, i) => (
+          // No stable id on a science.lab entry (unlike sci.instruments'
+          // partId): the list is never reordered within a render, so index
+          // just disambiguates two labs that happen to share a partName.
+          // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
+          <Stack gap="xs" key={`${lab.partName}-${i}`}>
+            <Cluster gap="md">
+              <RowName>{lab.partName}</RowName>
+              <Inline gap="sm">
+                <Badge tone={lab.isOperational ? "go" : "nogo"}>
+                  {lab.isOperational ? "OPERATIONAL" : "OFFLINE"}
+                </Badge>
+                {lab.processingData && <Badge tone="neutral">PROCESSING</Badge>}
+              </Inline>
+            </Cluster>
+            <Inline gap="md">
+              {lab.scientistCount !== null && (
+                <Value tone="muted" size="xs">
+                  {lab.scientistCount} scientist
+                  {lab.scientistCount === 1 ? "" : "s"}
+                </Value>
+              )}
+              {lab.dataStored !== null && lab.dataStorage !== null && (
+                <Value tone="muted" size="xs">
+                  {lab.dataStored.toFixed(0)}/{lab.dataStorage.toFixed(0)} data
+                </Value>
+              )}
+            </Inline>
+          </Stack>
+        ))}
+      </Stack>
+      <Divider space="sm" />
+    </>
   );
 }
 
@@ -429,89 +444,6 @@ function summarise(instruments: Instrument[]): {
   }
   return { total: instruments.length, hasData, deployed, inoperable };
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const LabList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-surface-raised);
-`;
-
-const LabRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
-
-const LabHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
-
-const LabName = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-`;
-
-const LabBadges = styled.span`
-  display: inline-flex;
-  gap: var(--space-4);
-  flex-shrink: 0;
-`;
-
-const LabMeta = styled.div`
-  display: flex;
-  gap: var(--space-8);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;
-
-const Body = styled(ScrollArea)<{ $row?: boolean }>`
-  flex: 1;
-  min-height: 0;
-
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-  }
-
-  /* Wide-short: groups flow into width-following columns. */
-  ${(p) =>
-    p.$row &&
-    `[data-scroll-area-inner] {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      align-content: start;
-    }`}
-`;
-
-// `InstrumentList` resets `<ul>` browser chrome (list-style/margin/padding)
-// and stacks the per-instrument rows with the same 2px gap the kit's
-// `Section` uses one level up, the kit has no `<ul>`-reset primitive yet
-// (only the row itself is covered, not the list it sits in), so this stays
-// local rather than risk the visual-gate diff of dropping list semantics
-// altogether.
-const InstrumentList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
