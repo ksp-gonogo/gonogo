@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   test: {
+    pool: "threads", // forks EPERM on macOS+Node24; see scansat config
     name: "kerbalism",
     environment: "node",
     globals: true,

@@ -26,6 +26,10 @@ export default defineConfig({
     name: "scansat",
     environment: "jsdom",
     globals: true,
+    // Threads, not the default forks pool: on macOS + Node 24 the forks pool
+    // intermittently fails worker startup with EPERM reading node_modules
+    // (jsdom/css-tree), a false red. Matches packages/components' vitest config.
+    pool: "threads",
     setupFiles: ["./src/test/setup.ts"],
     exclude: ["dist/**", "node_modules/**"],
   },

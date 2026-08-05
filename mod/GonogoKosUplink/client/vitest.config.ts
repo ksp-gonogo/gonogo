@@ -20,6 +20,7 @@ export default defineConfig({
     },
   },
   test: {
+    pool: "threads", // forks EPERM on macOS+Node24; see scansat config
     name: "kos",
     environment: "jsdom",
     globals: true,
