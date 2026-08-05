@@ -4,6 +4,7 @@
 
 export * from "./ActionGroup";
 export * from "./AtmosphereProfile";
+export * from "./CommandSourcePicker";
 export * from "./CommSignal";
 export * from "./ContractManager";
 export * from "./CrewManifest";

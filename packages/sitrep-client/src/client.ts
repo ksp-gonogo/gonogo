@@ -68,6 +68,8 @@ export class TelemetryClient {
   private readonly subscribers = new Map<string, Set<Subscription>>();
   private readonly lastValues = new Map<string, unknown>();
   private readonly storeListeners = new Set<StoreListener>();
+  /** Reactive-read listeners for the selected vantage: see `onSelectedVantageChange`. */
+  private readonly vantageListeners = new Set<() => void>();
   private readonly unsubscribeFromTransport: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
@@ -143,6 +145,18 @@ export class TelemetryClient {
   }
 
   /**
+   * Subscribe to selected-vantage changes (for a reactive read, e.g.
+   * `useSelectedVantage`). Fires after {@link setVantage} updates the selection.
+   * Returns an unsubscribe.
+   */
+  onSelectedVantageChange(cb: () => void): () => void {
+    this.vantageListeners.add(cb);
+    return () => {
+      this.vantageListeners.delete(cb);
+    };
+  }
+
+  /**
    * Select the command centre (vantage) to command from and observe at. Sends a
    * `set-vantage` message and re-subscribes every active topic so its downlink
    * cursor re-points to the new vantage's offset. The server validates the id
@@ -151,6 +165,7 @@ export class TelemetryClient {
    */
   setVantage(centreId: string): void {
     this.selectedVantageId = centreId;
+    for (const listener of this.vantageListeners) listener();
     this.transport.send({ type: "set-vantage", centreId });
     // Re-point existing subscriptions at the new vantage: the server reads the
     // selected vantage at subscribe time, so an active topic must re-subscribe.

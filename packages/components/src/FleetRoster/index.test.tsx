@@ -480,4 +480,27 @@ describe("FleetRosterComponent", () => {
     );
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("reflects the selected command-source vantage in the header", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [
+        "system.vessels",
+        "system.bodies",
+        "commandCentre.roster",
+      ],
+      pinnedUt: 10,
+    });
+    renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.vessels", ALL_LINKED);
+      fixture.emit("commandCentre.roster", [
+        { id: "ksc", displayName: "KSC", active: true },
+      ]);
+    });
+    // The header names whose light-time the per-vessel delays ride, resolved to
+    // the centre's display name.
+    await waitFor(() =>
+      expect(screen.getByText(/viewing from:\s*KSC/i)).toBeInTheDocument(),
+    );
+  });
 });

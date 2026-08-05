@@ -5,7 +5,10 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useFleetVesselLink } from "@ksp-gonogo/sitrep-client";
+import {
+  useFleetVesselLink,
+  useSelectedVantage,
+} from "@ksp-gonogo/sitrep-client";
 import {
   RosterCommsControlSource,
   VesselType,
@@ -263,6 +266,13 @@ function FleetRosterComponent({
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
   const { known, vessels } = useFleet();
   const rollup = commsRollup(vessels);
+  // Whose light-time the per-vessel delays are computed from: the selected
+  // command centre (Plan 3). Resolved to its display name via the roster,
+  // falling back to the raw id (e.g. the default "ksc" before the roster lands).
+  const vantage = useSelectedVantage();
+  const centres = useTelemetry("commandCentre.roster");
+  const vantageName =
+    centres?.find((c) => c.id === vantage)?.displayName ?? vantage;
   const cols = w ?? 8;
   // Below the width threshold the Body column and the per-vessel update lines
   // are shed, the identity + crew + link (the at-a-glance fleet state) always
@@ -278,6 +288,7 @@ function FleetRosterComponent({
   return (
     <Panel
       panelTitle="Fleet"
+      panelSubtitle={`viewing from: ${vantageName}`}
       panelAside={<Badge tone={rollup.tone}>{rollup.badgeLabel}</Badge>}
     >
       {total === 0 ? (
@@ -596,7 +607,7 @@ registerComponent<FleetRosterConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
-  dataRequirements: ["system.vessels", "system.bodies"],
+  dataRequirements: ["system.vessels", "system.bodies", "commandCentre.roster"],
   defaultConfig: {},
   actions: [],
   requires: ["flight"],
