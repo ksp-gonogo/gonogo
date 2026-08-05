@@ -51,6 +51,20 @@ const CALENDAR_RATIO: Record<string, (c: KspCalendar) => number> = {
   d: (c) => c.day,
   h: (c) => c.hour,
   min: (c) => c.minute,
+  // A rate PER day is the same mistake upside down, and it hides better than
+  // the three above because the day is in the denominator: the generated ratio
+  // is 1/21,600 rather than 21,600, so it does not read as a day at a glance.
+  // `scienceRate` is a real wire quantity (`Value<"science/day">`).
+  //
+  // Defensive today, not a fix for an observable bug: the dimension has no
+  // second rung, so nothing in the display path ever converts to or from this
+  // symbol and the baked ratio never gets read here. It becomes load-bearing
+  // the moment one is added. The version of this that DOES misreport is in the
+  // SDK, whose `Value` arithmetic resolves ratios out of `UNIT_DEFINITIONS`
+  // and so never sees the live calendar at all: `value("s", 86_400).in("d")`
+  // is 4 on an Earth calendar, where it should be 1. Fixing that needs a
+  // calendar-aware ratio in the SDK registry, which this table cannot reach.
+  "science/day": (c) => 1 / c.day,
 };
 
 function ratioOf(symbol: string): number | undefined {
