@@ -374,6 +374,19 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "wide-8x10", w: 8, h: 10 },
       // Tall layout: more contracts visible without scrolling.
       { name: "tall-6x16", w: 6, h: 16 },
+      // Scrolled-ghost coverage: a standard-header widget whose card list
+      // overflows, scrolled to the bottom so the real title is out of view and
+      // the condensing title ghost (Panel Option 5) fades in at the top edge.
+      // The at-rest probe never captures this, so it is the ONLY gate on the
+      // ghost's scrolled-in appearance. Scoped to the multi-contract fixture
+      // that actually overflows a 6×8 tile.
+      {
+        name: "ghost-scrolled-6x8",
+        w: 6,
+        h: 8,
+        scroll: 800,
+        forFixtures: ["multiple-active-contracts"],
+      },
     ],
   },
   {

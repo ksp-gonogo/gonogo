@@ -234,6 +234,7 @@ export {
   PanelBody,
   PanelContainer,
   PanelContextProvider,
+  PanelGhost,
   PanelGlow,
   PanelHeader,
   type PanelProps,
@@ -343,6 +344,7 @@ export {
   writeQuantity,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
+export { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 export {
   Value,
   type ValueProps,

@@ -103,6 +103,53 @@ describe("a11y smoke (jest-axe)", () => {
     expect(results).toHaveNoViolations();
   });
 
+  it("Panel (scrolling header + ghost) has no axe violations", async () => {
+    // The ghost is always in the DOM (opacity gated), so this catches a
+    // duplicate heading or a focusable ghost without needing to scroll.
+    const { container } = render(
+      <Panel panelTitle="Altitude" panelAside={<span>LOW</span>}>
+        <p>content</p>
+      </Panel>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Panel (degraded status, ghost dot present) has no axe violations", async () => {
+    const { container } = render(
+      <Panel.Status status="held-stale">
+        <Panel panelTitle="Fuel">
+          <p>content</p>
+        </Panel>
+      </Panel.Status>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Panel (toolbar, pinned header) has no axe violations", async () => {
+    const { container } = render(
+      <Panel
+        panelTitle="Map"
+        panelToolbar={<button type="button">Layers</button>}
+      >
+        <p>content</p>
+      </Panel>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Panel (floatingHeader) has no axe violations", async () => {
+    const { container } = render(
+      <Panel panelTitle="Orbit" floatingHeader>
+        <p>globe</p>
+      </Panel>,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
   it("Card has no axe violations", async () => {
     const { container } = render(<Card>Kerbin Explorer I</Card>);
     const results = await axe(container);
