@@ -1250,6 +1250,12 @@ export interface VesselControl
 	abort?: boolean;
 	precisionControl?: boolean;
 	throttle?: Value<"ratio">;
+	pitch?: Value<"1">;
+	yaw?: Value<"1">;
+	roll?: Value<"1">;
+	translationX?: Value<"1">;
+	translationY?: Value<"1">;
+	translationZ?: Value<"1">;
 	actionGroups?: ActionGroupState[];
 	meta: PayloadMeta;
 }

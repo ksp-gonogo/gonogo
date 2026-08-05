@@ -20,7 +20,13 @@ export interface GeneratedControlChannel {
 }
 
 export const GENERATED_CONTROL_CHANNELS = [
+  { id: "vessel.control.pitch", readTopic: "vessel.control", readField: "pitch", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "pitch" },
+  { id: "vessel.control.roll", readTopic: "vessel.control", readField: "roll", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "roll" },
   { id: "vessel.control.throttle", readTopic: "vessel.control", readField: "throttle", writeCommand: "vessel.control.setThrottle", argsType: "SetThrottleArgs", valueField: "value" },
+  { id: "vessel.control.translationX", readTopic: "vessel.control", readField: "translationX", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "x" },
+  { id: "vessel.control.translationY", readTopic: "vessel.control", readField: "translationY", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "y" },
+  { id: "vessel.control.translationZ", readTopic: "vessel.control", readField: "translationZ", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "z" },
+  { id: "vessel.control.yaw", readTopic: "vessel.control", readField: "yaw", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "yaw" },
 ] as const satisfies readonly GeneratedControlChannel[];
 
 export type GeneratedControlChannelId =

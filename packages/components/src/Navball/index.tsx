@@ -275,6 +275,66 @@ function NavballComponent({
     },
   );
 
+  // Fly-by-wire attitude + translation axes: continuous per-frame control (KSP
+  // re-zeroes a raw axis every physics frame), so each rides `useControlStream`
+  // exactly as the throttle does, NOT a discrete one-shot `useCommand`. The
+  // stream self-consumes its delay UX via `<ControlDelayStream>` (no
+  // `<CommandDelay>` needed). Axes rest at 0 (neutral) and are commanded from
+  // the analog input handlers below; values are -1..1, so `range: "signed"`.
+  // The confirmed-readback (echo) track is the vessel's applied ctrlState axis
+  // (`vessel.control.{pitch,yaw,roll,translationX/Y/Z}`, published by
+  // KspHost.BuildControl). LIVE-TEST-REQUIRED: confirm the echo populates and
+  // the delayed axis lands through the Courier at the selected vantage.
+  const [pitchCmd, setPitchCmd] = useState(0);
+  const [yawCmd, setYawCmd] = useState(0);
+  const [rollCmd, setRollCmd] = useState(0);
+  const [translateXCmd, setTranslateXCmd] = useState(0);
+  const [translateYCmd, setTranslateYCmd] = useState(0);
+  const [translateZCmd, setTranslateZCmd] = useState(0);
+  const axisStreamOpts = (label: string) => ({
+    label,
+    range: "signed" as const,
+    onDispatch: () => CONTROL_STREAM_BUDGET.record(),
+  });
+  const pitchStream = useControlStream(
+    "vessel.control.pitch",
+    pitchCmd,
+    axisStreamOpts("Pitch"),
+  );
+  const yawStream = useControlStream(
+    "vessel.control.yaw",
+    yawCmd,
+    axisStreamOpts("Yaw"),
+  );
+  const rollStream = useControlStream(
+    "vessel.control.roll",
+    rollCmd,
+    axisStreamOpts("Roll"),
+  );
+  const translateXStream = useControlStream(
+    "vessel.control.translationX",
+    translateXCmd,
+    axisStreamOpts("RCS X"),
+  );
+  const translateYStream = useControlStream(
+    "vessel.control.translationY",
+    translateYCmd,
+    axisStreamOpts("RCS Y"),
+  );
+  const translateZStream = useControlStream(
+    "vessel.control.translationZ",
+    translateZCmd,
+    axisStreamOpts("RCS Z"),
+  );
+  const axisStreams: ControlStream[] = [
+    pitchStream,
+    yawStream,
+    rollStream,
+    translateXStream,
+    translateYStream,
+    translateZStream,
+  ];
+
   // Delayed vessel commands (command-surface-delay-audit #9,#11): SAS/RCS
   // toggle, SAS mode, and FBW arm/disarm are all discrete, absolute-set
   // vessel commands (the same toggle-invert shape ActionGroup migrated),
@@ -405,34 +465,33 @@ function NavballComponent({
       isButtonPress(p) && setThrottleCmd((v) => clamp(v - 0.1, 0, 1)),
     "throttle-zero": (p) => isButtonPress(p) && setThrottleCmd(0),
     "throttle-full": (p) => isButtonPress(p) && setThrottleCmd(1),
+    // Fly-by-wire axes drive their useControlStream state (which coalesces +
+    // dispatches vessel.control.setAxes over the delayed write half), instead
+    // of the legacy execute() one-shot. Each per-axis translate binding sets
+    // its own component; the other axes hold their last-commanded value.
     "set-pitch": (p) => {
       if (p.kind !== "analog") return;
-      void execute(`v.setPitch[${clamp(p.value as number, -1, 1).toFixed(3)}]`);
+      setPitchCmd(clamp(p.value as number, -1, 1));
     },
     "set-yaw": (p) => {
       if (p.kind !== "analog") return;
-      void execute(`v.setYaw[${clamp(p.value as number, -1, 1).toFixed(3)}]`);
+      setYawCmd(clamp(p.value as number, -1, 1));
     },
     "set-roll": (p) => {
       if (p.kind !== "analog") return;
-      void execute(`v.setRoll[${clamp(p.value as number, -1, 1).toFixed(3)}]`);
+      setRollCmd(clamp(p.value as number, -1, 1));
     },
     "translate-x": (p) => {
       if (p.kind !== "analog") return;
-      // Telemachus exposes v.setTranslation[x,y,z] only: synthesize the
-      // missing axes from zero so per-axis bindings can each fire alone.
-      const v = clamp(p.value as number, -1, 1);
-      void execute(`v.setTranslation[${v.toFixed(3)},0,0]`);
+      setTranslateXCmd(clamp(p.value as number, -1, 1));
     },
     "translate-y": (p) => {
       if (p.kind !== "analog") return;
-      const v = clamp(p.value as number, -1, 1);
-      void execute(`v.setTranslation[0,${v.toFixed(3)},0]`);
+      setTranslateYCmd(clamp(p.value as number, -1, 1));
     },
     "translate-z": (p) => {
       if (p.kind !== "analog") return;
-      const v = clamp(p.value as number, -1, 1);
-      void execute(`v.setTranslation[0,0,${v.toFixed(3)}]`);
+      setTranslateZCmd(clamp(p.value as number, -1, 1));
     },
     "set-pitch-trim": (p) => {
       if (p.kind !== "analog") return;
@@ -620,6 +679,7 @@ function NavballComponent({
             throttleCmd={throttleStream.current}
             onSetThrottleCmd={setThrottleCmd}
             throttleStream={throttleStream}
+            axisStreams={axisStreams}
             fbwArmed={fbwArmed}
             onArmFbw={armFbw}
             onDisarmFbw={disarmFbw}
@@ -645,8 +705,12 @@ interface ControlSurfaceProps {
   /** Commanded throttle value (0..1): local operator intent, tracks the live readback until touched. Same value as `throttleStream.current`. */
   throttleCmd: number;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
-  /** The delayed control-stream buffer for the throttle axis; feeds `<ControlDelayStream>`. Pitch/yaw/roll aren't included: see the follow-on note in the parent component body. */
+  /** The delayed control-stream buffer for the throttle axis; feeds `<ControlDelayStream>`. */
   throttleStream: ControlStream;
+  /** The delayed control-stream buffers for the fly-by-wire attitude +
+   * translation axes (pitch/yaw/roll + RCS X/Y/Z); drawn on the same
+   * `<ControlDelayStream>` graph as the throttle. */
+  axisStreams: ControlStream[];
   fbwArmed: boolean;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
@@ -669,6 +733,7 @@ function ControlSurface({
   throttleCmd,
   onSetThrottleCmd,
   throttleStream,
+  axisStreams,
   fbwArmed,
   onArmFbw,
   onDisarmFbw,
@@ -781,15 +846,14 @@ function ControlSurface({
           </Button>
         </div>
         {/*
-          Continuous control-delay viz for the throttle axis, the reference
-          surface for this design: pitch/yaw/roll aren't included, see the
-          follow-on note above `throttleStream`'s declaration (no read
-          fields / [SitrepControlChannel] declarations for those axes yet).
-          Renders `null` when the one-way delay is near zero, so a direct
-          link pays nothing; safe to always mount.
+          Continuous control-delay viz for ALL fly-by-wire axes: throttle plus
+          pitch/yaw/roll + RCS X/Y/Z, each on its own vessel.control.* stream
+          channel (LIVE-TEST-REQUIRED, see the axis-stream note in the parent
+          body). Renders `null` when the one-way delay is near zero, so a
+          direct link pays nothing; safe to always mount.
         */}
         <ControlDelayStream
-          streams={[throttleStream]}
+          streams={[throttleStream, ...axisStreams]}
           ariaLabel="Navball: controls in flight"
         />
       </div>

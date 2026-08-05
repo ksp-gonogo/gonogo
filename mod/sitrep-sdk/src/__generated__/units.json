@@ -1013,11 +1013,17 @@
       "brakes": "flag",
       "gear": "flag",
       "lights": "flag",
+      "pitch": "1",
       "precisionControl": "flag",
       "rcs": "flag",
+      "roll": "1",
       "sas": "flag",
       "sasMode": "enum",
-      "throttle": "ratio"
+      "throttle": "ratio",
+      "translationX": "1",
+      "translationY": "1",
+      "translationZ": "1",
+      "yaw": "1"
     },
     "VesselCrew": {
       "capacity": "count",
@@ -1585,11 +1591,17 @@
       "brakes": "flag",
       "gear": "flag",
       "lights": "flag",
+      "pitch": "1",
       "precisionControl": "flag",
       "rcs": "flag",
+      "roll": "1",
       "sas": "flag",
       "sasMode": "enum",
-      "throttle": "ratio"
+      "throttle": "ratio",
+      "translationX": "1",
+      "translationY": "1",
+      "translationZ": "1",
+      "yaw": "1"
     },
     "vessel.crew": {
       "capacity": "count",
