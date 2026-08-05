@@ -31,7 +31,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef } from "react";
-import styled from "styled-components";
 import { useDelayedKerbcastStream } from "../CameraFeed/useDelayedKerbcastStream";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 import { selectDockingCamera } from "./selectDockingCamera";
@@ -109,7 +108,26 @@ function DockingCameraVideo({ flightId }: { flightId: number }) {
   }, [stream]);
 
   if (!stream) return null;
-  return <HudVideo ref={videoRef} autoPlay muted playsInline />;
+  // Absolutely positioned over the HudPanel (AugmentSlot renders a bare
+  // fragment, so this <video> is a direct HudPanel child, exactly where the
+  // built-in HudCamera's HudVideo sat), under the Viewport's tinted reticle
+  // layer. Structural inline style: no bespoke CSS, so nothing in ui-kit.
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        opacity: 0.55,
+      }}
+    />
+  );
 }
 
 registerAugment({
@@ -121,16 +139,3 @@ registerAugment({
 });
 
 export { selectDockingCamera };
-
-// Matches the `HudVideo` the built-in `HudCamera` rendered, so the backdrop
-// lands identically: absolutely positioned over the HudPanel (AugmentSlot
-// renders a bare fragment, so this <video> is a direct HudPanel child, exactly
-// where the built-in sat), under the Viewport's tinted reticle layer.
-const HudVideo = styled.video`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.55;
-`;
