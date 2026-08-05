@@ -16,6 +16,7 @@ import {
 import {
   Card,
   formatDuration,
+  MissionDate,
   NULL_DISPLAY,
   type ReadoutTone,
   SectionTitle,
@@ -291,9 +292,11 @@ export function AlarmsModal({
               {snapshot.ut !== null && (
                 <FieldHint>
                   UT at trigger:{" "}
-                  {formatUt(
-                    snapshot.ut + Number.parseFloat(offsetSeconds || "0"),
-                  )}
+                  <MissionDate
+                    value={
+                      snapshot.ut + Number.parseFloat(offsetSeconds || "0")
+                    }
+                  />
                 </FieldHint>
               )}
             </Field>
@@ -652,7 +655,7 @@ function RecommendedPresets({
               <PresetButtonLabel>{preset.label}</PresetButtonLabel>
               {utNow !== null && (
                 <PresetButtonHint>
-                  {formatUt(ut)} · T−{formatSeconds(ut - utNow)}
+                  <MissionDate value={ut} /> · T−{formatSeconds(ut - utNow)}
                 </PresetButtonHint>
               )}
             </PresetButton>
@@ -675,7 +678,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
     const delta = utNow !== null ? a.trigger.ut - utNow : null;
     return (
       <>
-        {formatUt(a.trigger.ut)}
+        <MissionDate value={a.trigger.ut} />
         {delta !== null && (
           <>
             {" · "}
@@ -728,17 +731,11 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
   );
 }
 
-function formatUt(s: number): string {
-  if (!Number.isFinite(s)) return NULL_DISPLAY;
-  const d = Math.floor(s / 21600);
-  const rem = s - d * 21600;
-  const h = Math.floor(rem / 3600);
-  const m = Math.floor((rem - h * 3600) / 60);
-  const sec = Math.floor(rem - h * 3600 - m * 60);
-  return `Y1 D${d + 1} ${h.toString().padStart(2, "0")}:${m
-    .toString()
-    .padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
-}
+// `formatUt` is gone: it was a hand-rolled `Y# D# HH:MM:SS` that duplicated
+// <MissionDate>, divided by a hardcoded 21,600 (wrong under a planet pack or
+// with the stock KERBIN_TIME setting off), and printed a literal "Y1" for
+// every date, so a game in its third year still read as year one. All three
+// call sites render it as a node, so the component drops straight in.
 
 // The kit's ladder, not a fourth copy of it. `formatDuration` is the
 // sanctioned string form of `<Countdown>`, for the template literals below

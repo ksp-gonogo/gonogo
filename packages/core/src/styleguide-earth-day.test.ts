@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Design-system guard: **86,400 is not a day here.**
+ * Design-system guard: **a day is not a literal, either flavour.**
  *
  * Stock KSP runs on Kerbin time: a day is 6 hours (21,600s) and a year is 426
  * of those days. Every duration on the wire arrives in SI seconds, so any code
@@ -21,9 +21,27 @@ import { describe, expect, it } from "vitest";
  * twenty-four-hour "per day". A crew readout claiming three days of oxygen when
  * eighteen Kerbin hours remain is the specific failure this prevents.
  *
- * The fix is always the same: import `KSP_DAY_SECONDS` / `KSP_YEAR_DAYS` from
- * `@ksp-gonogo/ui-kit`, or better, hand the seconds to `formatDuration` /
- * `formatCountdown` and do no arithmetic at all.
+ * ## And 21,600 is not one either
+ *
+ * This guard originally caught only `86400`, because it was written to stop
+ * people assuming EARTH. That left the opposite hole wide open: `21_600` is
+ * Kerbin's rotation, and it is just as wrong the moment the game is not on
+ * Kerbin time. Two situations make that ordinary rather than exotic:
+ *
+ * - `GameSettings.KERBIN_TIME` is a STOCK setting. Turn it off and KSP's own
+ *   UI reads in 24-hour days; an app holding 21,600 disagrees with the game
+ *   on the same screen.
+ * - RSS and anything else on Kopernicus replaces `KSPUtil.dateTimeFormatter`
+ *   outright.
+ *
+ * So the mod now publishes what the running game uses on `time.calendar`, and
+ * BOTH literals are offences here. Two were found by widening this: a
+ * ground-track horizon in `MapView` and a hand-rolled `Y# D#` clock in
+ * `AlarmsModal` that also printed a literal "Y1" for every date.
+ *
+ * The fix is always the same: `kspCalendar()` from `@ksp-gonogo/ui-kit`, or
+ * better, hand the seconds to `formatDuration` / `formatCountdown` /
+ * `<MissionDate>` and do no arithmetic at all.
  *
  * ## Two holes this used to have
  *
@@ -50,15 +68,23 @@ import { describe, expect, it } from "vitest";
  * 86400, 86_400, and the millisecond forms of each. Written as one pattern
  * rather than a list so a new spelling has to be deliberate.
  */
-const EARTH_DAY = /\b86_?400(?:_?000)?\b/;
+const EARTH_DAY = /\b(?:86_?400(?:_?000)?|21_?600)\b/;
 /** The `git grep -E` form of the above; POSIX ERE has no non-capturing group. */
-const EARTH_DAY_GREP = "\\b86_?400(_?000)?\\b";
+const EARTH_DAY_GREP = "\\b(86_?400(_?000)?|21_?600)\\b";
 
 /**
  * Files whose 24-hour day is CORRECT because the thing being measured is real
  * time, not game time.
  *
- * **Empty, and the fix this list was waiting for is the reason.** It held one
+ * **Two entries, both DEFINITION SITES rather than assumptions.** It briefly
+ * held none, after `formatAge` moved to `irl:s`. Widening this guard to catch
+ * a hardcoded KERBIN day (see the header) then caught the two places that are
+ * allowed to write a day length down: the calendar fallback itself, and the
+ * declared unit ratio the live calendar overrides. Neither divides by the
+ * number; both are where the number lives.
+ *
+ * The history below is worth keeping, because it is the reason the list
+ * exists at all. It held one
  * entry, `core`'s `formatAge`, which measures how long ago a reading was seen
  * and is therefore counting the operator's afternoon rather than Kerbin's
  * rotation. The note on it said the proper fix was for the value to carry
@@ -70,7 +96,25 @@ const EARTH_DAY_GREP = "\\b86_?400(_?000)?\\b";
  * So a new entry here should be rare, and the question to ask before adding
  * one is whether the value could carry `irl:s` instead.
  */
-const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [];
+const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
+  {
+    file: "packages/ui-kit/src/kspTime.ts",
+    why:
+      "THE definition site. `STOCK_KERBIN_CALENDAR` is where 21,600 and 426 " +
+      "are written down, once, as the FALLBACK every other module reads " +
+      "through `kspCalendar()`. A guard that fails the one file allowed to " +
+      "say the number is a guard with nowhere to put the number.",
+  },
+  {
+    file: "mod/sitrep-sdk/src/unit-system/definitions.ts",
+    why:
+      "The declared unit model: `d` has a ratio, and the stock ratio is one " +
+      "Kerbin rotation. `formatQuantity` overrides it from the live calendar " +
+      "at runtime (see CALENDAR_RATIO in ui-kit's units.ts), so this is the " +
+      "default the override starts from rather than an assumption anyone " +
+      "divides by.",
+  },
+];
 
 function repoRoot(startDir: string): string {
   return execFileSync("git", ["rev-parse", "--show-toplevel"], {
@@ -83,7 +127,17 @@ function isExempt(file: string): boolean {
   return (
     file.includes(".test.") ||
     file.includes(".spec.") ||
+    // C# test projects, which name their files `FooTests.cs` rather than
+    // `foo.test.cs`. A day length in one of those is fixture data: the
+    // calendar tests exist precisely to feed the producer a 21,600 and an
+    // 86,400 and check it carries whichever it was given.
+    file.includes("Tests/") ||
+    file.endsWith("Tests.cs") ||
     file.endsWith(".snap") ||
+    // Recorded fixtures are captures of a real game, not arithmetic. A
+    // Kerbin-synchronous orbit fixture holds 21,600 because that is what the
+    // game said when it was recorded.
+    file.includes("/__fixtures__/") ||
     file.includes("/__generated__/") ||
     file.includes("/dist/") ||
     WALL_CLOCK_EXEMPT.some((entry) => file.endsWith(entry.file))
@@ -218,7 +272,16 @@ describe("design-system: the KSP day", () => {
   it("catches the separator spellings the string match missed", () => {
     // The hole that let `86_400_000` through. Each of these is the same mistake
     // written the way this repo writes large numbers.
-    for (const spelling of ["86400", "86_400", "86400000", "86_400_000"]) {
+    for (const spelling of [
+      "86400",
+      "86_400",
+      "86400000",
+      "86_400_000",
+      // Kerbin's rotation is a hardcoded day too, and was invisible to this
+      // guard for its whole life.
+      "21600",
+      "21_600",
+    ]) {
       expect(EARTH_DAY.test(`const day = ${spelling};`)).toBe(true);
     }
     // Not a substring match: a longer number that merely contains the digits is
@@ -233,12 +296,21 @@ describe("design-system: the KSP day", () => {
       "// A KSP day is 21600s, not 86400.",
       "/* also not 86_400_000 ms */",
       'const message = "not 86400";',
-      "const day = 21_600;",
+      "// and 21_600 in a comment is still prose",
     ].join("\n");
     const stripped = stripCommentsAndStrings(source);
     expect(stripped.split("\n").some((l) => EARTH_DAY.test(l))).toBe(false);
     // Line structure survives, so reported line numbers still point at source.
     expect(stripped.split("\n")).toHaveLength(4);
+  });
+
+  it("still sees a real KERBIN day, which it used to walk straight past", () => {
+    // `const day = 21_600;` sat in the prose fixture above as an ALLOWED
+    // example for this guard's whole life, because it only ever looked for
+    // Earth. It is an offence now: hardcoding Kerbin's rotation is wrong the
+    // moment the game is not on Kerbin time.
+    const stripped = stripCommentsAndStrings("const day = 21_600;");
+    expect(EARTH_DAY.test(stripped)).toBe(true);
   });
 
   it("still sees a real use on the line it is on", () => {

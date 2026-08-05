@@ -1104,6 +1104,15 @@ export interface TargetAvailable
 {
 	entries: TargetListEntry[];
 }
+export interface TimeCalendar
+{
+	minuteSeconds: Value<"s">;
+	hourSeconds: Value<"s">;
+	daySeconds: Value<"s">;
+	yearSeconds: Value<"s">;
+	kerbinTime: boolean;
+	meta: PayloadMeta;
+}
 export interface PendingUplink
 {
 	id: string;

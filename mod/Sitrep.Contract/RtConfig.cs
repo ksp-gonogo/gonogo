@@ -102,6 +102,7 @@ public static class RtConfig
                 typeof(ResourceAmount),
                 typeof(ThermalHottestPart),
                 typeof(WarpState),
+                typeof(TimeCalendar),
                 // comms.* channels
                 typeof(CommsConnectivity),
                 typeof(CommsSignalStrength),

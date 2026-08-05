@@ -63,6 +63,7 @@ import type {
   SystemBodies,
   SystemVessels,
   TargetAvailable,
+  TimeCalendar,
   VesselAttitude,
   VesselComms,
   VesselControl,
@@ -137,6 +138,7 @@ export interface GeneratedTopicPayloadMap {
   "system.bodies": SystemBodies;
   "system.vessels": SystemVessels;
   "target.available": TargetAvailable;
+  "time.calendar": TimeCalendar;
   "time.warp": WarpState;
   "vessel.attitude": VesselAttitude;
   "vessel.comms": VesselComms;
@@ -212,6 +214,7 @@ export const GENERATED_TOPIC_IDS = [
   "system.bodies",
   "system.vessels",
   "target.available",
+  "time.calendar",
   "time.warp",
   "vessel.attitude",
   "vessel.comms",
