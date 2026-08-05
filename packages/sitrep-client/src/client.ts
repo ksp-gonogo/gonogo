@@ -294,6 +294,7 @@ export class TelemetryClient {
     args?: unknown,
     label?: string,
     topic?: string,
+    vantage?: string,
   ): { requestId: string; result: Promise<unknown> } {
     const requestId = `c${this.nextRequestId++}`;
     const predictedEta = this.transport.predictConfirmEta?.();
@@ -323,6 +324,9 @@ export class TelemetryClient {
       command,
       label: label ?? "",
       topic: topic ?? "",
+      // Per-call vantage override (delay-UX): "" ⇒ the server uses the session
+      // vantage; "meta" pins a program-meta command to instant dispatch.
+      vantage: vantage ?? "",
       args,
       sentAt: 0,
     });

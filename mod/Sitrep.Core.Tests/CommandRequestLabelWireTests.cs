@@ -55,6 +55,37 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void VantageSurvivesWriteThenParseRoundTrip()
+        {
+            var original = new CommandRequest<object?>
+            {
+                Type = "command-request",
+                RequestId = "req-1",
+                Command = "career.tech.unlock",
+                Vantage = "meta",
+                Args = null,
+                SentAt = 100,
+            };
+
+            var parsed = EnvelopeCodec.ParseCommandRequest(EnvelopeCodec.WriteCommandRequest(original));
+
+            Assert.Equal("meta", parsed.Vantage);
+        }
+
+        [Fact]
+        public void MissingVantageParsesToEmpty_BackwardCompatibleWithPreVantageClient()
+        {
+            // A pre-Vantage client omits the field; the server then falls back to
+            // the connection's session vantage (the default behaviour).
+            var wire =
+                "{\"type\":\"command-request\",\"requestId\":\"r\",\"command\":\"c\",\"args\":null,\"sentAt\":0}";
+
+            var parsed = EnvelopeCodec.ParseCommandRequest(wire);
+
+            Assert.Equal("", parsed.Vantage);
+        }
+
+        [Fact]
         public void ParseDefaultsLabelToEmptyStringWhenAbsent_BackwardCompatibleWithAPreLabelClient()
         {
             // A pre-Label client's wire message simply won't carry this key --

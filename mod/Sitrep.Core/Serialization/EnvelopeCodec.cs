@@ -184,6 +184,9 @@ namespace Sitrep.Core.Serialization
             AppendField(sb, "topic");
             JsonWriter.AppendString(sb, msg.Topic);
 
+            AppendField(sb, "vantage");
+            JsonWriter.AppendString(sb, msg.Vantage ?? "");
+
             AppendField(sb, "args");
             JsonWriter.AppendValue(sb, msg.Args);
 
@@ -210,6 +213,9 @@ namespace Sitrep.Core.Serialization
                 // defaults to "" (PendingUplink.Topic's own unscoped fallback),
                 // never RequireString'd.
                 Topic = TryGetString(raw, "topic") ?? "",
+                // Optional for backward compatibility with a pre-Vantage client:
+                // "" ⇒ the server falls back to the session's SelectedVantage.
+                Vantage = TryGetString(raw, "vantage") ?? "",
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
             };

@@ -3655,7 +3655,15 @@ namespace Sitrep.Host
                         HandleSetVantage(session, sv);
                         break;
                     case CommandRequest<object?> req:
-                        DispatchCommand(req.Command, req.Args, session.SelectedVantage, result =>
+                        // Per-call vantage override (delay-UX): a command may pin its
+                        // own dispatch vantage (e.g. "meta" for program-meta acts that
+                        // must stay instant regardless of the selected centre); empty
+                        // falls back to the connection's session vantage.
+                        DispatchCommand(
+                            req.Command,
+                            req.Args,
+                            string.IsNullOrEmpty(req.Vantage) ? session.SelectedVantage : req.Vantage,
+                            result =>
                         {
                             // C2-4: `result` is whatever the uplink's
                             // command handler returned -- uplink-owned,

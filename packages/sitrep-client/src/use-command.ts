@@ -140,7 +140,19 @@ function resolveTracked(
  * request re-renders the caller. `inFlight` is a SEPARATE accumulating set
  * (not just the latest `requestId`): see `UseCommandResult.inFlight`'s doc.
  */
-export function useCommand(command: string): UseCommandResult {
+export function useCommand(
+  command: string,
+  options?: {
+    /**
+     * Per-call vantage override (delay-UX): the command centre this command
+     * dispatches from. Omit to use the connection's session vantage (the
+     * default); pass `"meta"` for a program-meta command (tech/strategy/contract)
+     * so it stays instant regardless of the selected centre.
+     */
+    vantage?: string;
+  },
+): UseCommandResult {
+  const vantage = options?.vantage;
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected):
   // status stays IDLE and `send` is a no-op, you can't dispatch a command
   // with no link, and the hook must not throw just because the dashboard
@@ -264,13 +276,14 @@ export function useCommand(command: string): UseCommandResult {
         args,
         opts?.label,
         opts?.topic,
+        vantage,
       );
       setRequestId(newRequestId);
       firstSeenAtRef.current.set(newRequestId, nowUtRef.current);
       setDispatchedIds((prev) => [...prev, newRequestId]);
       return result;
     },
-    [client, command],
+    [client, command, vantage],
   );
 
   return { send, status, inFlight };

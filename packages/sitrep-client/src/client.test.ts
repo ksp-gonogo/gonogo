@@ -274,6 +274,25 @@ describe("TelemetryClient commands", () => {
       result: { ok: "deploy", a: 7 },
     });
   });
+  it("dispatch threads the per-call vantage into the command-request", () => {
+    const t = new StubTransport();
+    const sendSpy = vi.spyOn(t, "send");
+    const client = new TelemetryClient(t);
+    client.dispatch(
+      "career.tech.unlock",
+      { id: "n" },
+      undefined,
+      undefined,
+      "meta",
+    );
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "command-request",
+        command: "career.tech.unlock",
+        vantage: "meta",
+      }),
+    );
+  });
   it("rejects + marks failed when the transport returns an error for the requestId", async () => {
     const t = new StubTransport();
     const client = new TelemetryClient(t);
