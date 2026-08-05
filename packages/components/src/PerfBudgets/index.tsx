@@ -10,8 +10,8 @@ import {
   type ReadoutTone,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
-import styled from "styled-components";
 
 type PerfBudgetsConfig = Record<string, never>;
 
@@ -87,59 +87,66 @@ function PerfBudgetsComponent({
   if (showDots) {
     return (
       <Panel panelTitle="PERF">
-        <DotSummary>
-          <DotHeadline $tone={tone}>
+        <div style={DOT_SUMMARY}>
+          <div style={{ ...DOT_HEADLINE, color: TONE_COLOR[tone] }}>
             {overCount > 0
               ? `${overCount} of ${snapshots.length} OVER`
               : `${snapshots.length} OK`}
-          </DotHeadline>
-          <DotRow>
+          </div>
+          <div style={DOT_ROW}>
             {snapshots.map((s) => {
               const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
               const t: Tone =
                 ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
-              return <Dot key={s.name} title={s.name} $tone={t} />;
+              return (
+                <span
+                  key={s.name}
+                  title={s.name}
+                  style={{ ...DOT, background: TONE_COLOR[t] }}
+                />
+              );
             })}
-          </DotRow>
-        </DotSummary>
+          </div>
+        </div>
       </Panel>
     );
   }
 
   return (
     <Panel panelTitle="PERF BUDGETS">
-      <List>
+      <ul style={LIST}>
         {snapshots.map((s) => {
           const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
           const t: Tone =
             ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
           return (
-            <BudgetCard key={s.name} tone={KIT_TONE[t]}>
-              <RowHeader>
-                <Name>{s.name}</Name>
-                <Rate $tone={t}>
+            <Card as="li" key={s.name} tone={KIT_TONE[t]} style={BUDGET_CARD}>
+              <div style={ROW_HEADER}>
+                <span style={NAME}>{s.name}</span>
+                <span style={{ ...RATE, color: TONE_COLOR[t] }}>
                   {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
                   <Unit value={value("s", s.windowMs / 1000)} decimals={0} />
-                </Rate>
-              </RowHeader>
-              <Bar>
-                <BarFill
-                  $tone={t}
+                </span>
+              </div>
+              <div style={BAR}>
+                <div
                   style={{
+                    ...BAR_FILL,
+                    background: TONE_COLOR[t],
                     width: `${Math.min(100, ratio * 100).toFixed(1)}%`,
                   }}
                 />
-              </Bar>
+              </div>
               {s.exceedanceCount > 0 && (
-                <Footer>
+                <div style={FOOTER}>
                   {s.exceedanceCount} exceedance
                   {s.exceedanceCount === 1 ? "" : "s"} since startup
-                </Footer>
+                </div>
               )}
-            </BudgetCard>
+            </Card>
           );
         })}
-      </List>
+      </ul>
     </Panel>
   );
 }
@@ -179,99 +186,102 @@ const TONE_COLOR: Record<Tone, string> = {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const List = styled.ul`
-  list-style: none;
-  /* No top margin: Panel.Body supplies the inset and the gap between the
-     title and the first row. */
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-`;
+// Structural inline styles (CSS-var tokens): a bespoke budget list + dot
+// summary, no reusable ui-kit primitive fits the layout, so it stays local.
+// The one kit piece it reuses (Card) takes only this widget's column layout
+// inline. Per-tone colour (text + fills) is applied inline at the call site
+// from TONE_COLOR.
 
-// The card and its accent rule are the kit's; only the column this budget
-// lays its header and bar out in is local. TONE_COLOR stays because four other
-// styled parts still read it for text and bar fills, but the ROW's border is
-// the kit's now, driven by the same tone vocabulary every other surface uses.
-const BudgetCard = styled(Card).attrs({ as: "li" as const })`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
+const LIST: CSSProperties = {
+  listStyle: "none",
+  // No top margin: Panel.Body supplies the inset and the gap between the title
+  // and the first row.
+  margin: 0,
+  padding: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-8)",
+};
 
-const RowHeader = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
+// The card and its accent rule are the kit's; only the column this budget lays
+// its header and bar out in is local.
+const BUDGET_CARD: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+};
 
-const Name = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-status-go-fg);
-  word-break: break-word;
-`;
+const ROW_HEADER: CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: "var(--space-8)",
+};
 
-const Rate = styled.span<{ $tone: Tone }>`
-  font-size: var(--font-size-xs);
-  color: ${(p) => TONE_COLOR[p.$tone]};
-  flex-shrink: 0;
-`;
+const NAME: CSSProperties = {
+  fontSize: "var(--font-size-sm)",
+  color: "var(--color-status-go-fg)",
+  wordBreak: "break-word",
+};
 
-const Bar = styled.div`
-  height: 4px;
-  background: var(--color-surface-raised);
-  /* A stadium, not a corner: the old 2px was exactly half the 4px height.
-     --radius-pill clamps to half the shorter side, so it renders the same
-     and keeps tracking the height instead of freezing at 2px. */
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-`;
+// Per-tone `color` is applied inline at the call site.
+const RATE: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  flexShrink: 0,
+};
 
-const BarFill = styled.div<{ $tone: Tone }>`
-  height: 100%;
-  background: ${(p) => TONE_COLOR[p.$tone]};
-  /* Off the motion scale on purpose. 0.5s is 2.5x the top of the UI band
-     the tokens cover, and at that length ease-out and ease are plainly
-     different curves, so the ease-out -> --ease-standard snap does not
-     reach here. This is a determinate rate meter, the same class as
-     ui-kit ProgressBar's fill. */
-  transition: width 0.5s ease-out;
-`;
+const BAR: CSSProperties = {
+  height: "4px",
+  background: "var(--color-surface-raised)",
+  // A stadium, not a corner: the old 2px was exactly half the 4px height.
+  // --radius-pill clamps to half the shorter side, so it renders the same and
+  // keeps tracking the height instead of freezing at 2px.
+  borderRadius: "var(--radius-pill)",
+  overflow: "hidden",
+};
 
-const Footer = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-status-nogo-bg);
-`;
+// Per-tone `background` + `width` are applied inline at the call site. Off the
+// motion scale on purpose: 0.5s is 2.5x the top of the UI band the tokens
+// cover, and at that length ease-out and ease are plainly different curves, so
+// the ease-out -> --ease-standard snap does not reach here. This is a
+// determinate rate meter, the same class as ui-kit ProgressBar's fill.
+const BAR_FILL: CSSProperties = {
+  height: "100%",
+  transition: "width 0.5s ease-out",
+};
 
-const DotSummary = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  justify-content: center;
-`;
+const FOOTER: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-status-nogo-bg)",
+};
 
-const DotHeadline = styled.div<{ $tone: Tone }>`
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: ${(p) => TONE_COLOR[p.$tone]};
-  letter-spacing: 0.04em;
-`;
+const DOT_SUMMARY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-6)",
+  justifyContent: "center",
+};
 
-const DotRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-`;
+// Per-tone `color` is applied inline at the call site.
+const DOT_HEADLINE: CSSProperties = {
+  fontSize: "var(--font-size-sm)",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+};
 
-const Dot = styled.span<{ $tone: Tone }>`
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-circle);
-  background: ${(p) => TONE_COLOR[p.$tone]};
-`;
+const DOT_ROW: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--space-4)",
+};
+
+// Per-tone `background` is applied inline at the call site.
+const DOT: CSSProperties = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "var(--radius-circle)",
+};
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
