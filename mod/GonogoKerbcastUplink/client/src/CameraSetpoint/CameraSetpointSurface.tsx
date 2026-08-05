@@ -11,7 +11,7 @@
  *
  * Bounds + the seed setpoint come in as props (the host `CameraFeed` reads them
  * off the live `CameraState`), so this component stays headless-testable with
- * no kerbcast client. Dispatch is wired in Task 5.
+ * no kerbcast client.
  */
 
 import { useCommand } from "@ksp-gonogo/sitrep-client";
@@ -47,7 +47,7 @@ export interface CameraSetpointSurfaceProps {
 }
 
 export function CameraSetpointSurface({
-  cameraId: _cameraId,
+  cameraId,
   bounds,
   initial,
   mode,
@@ -68,10 +68,13 @@ export function CameraSetpointSurface({
     [],
   );
 
-  // Dispatch is Task 5; for now commit only runs the local confirm morph so the
-  // gate + preview wiring is exercisable. CommandGroup already blocks this while
-  // gated, so no extra guard is needed here.
-  const handleCommit = (_next: CameraSetpoint): void => {
+  // Commit dispatches BOTH absolute delayed commands (one pan vector + one FOV
+  // scalar) through the Sitrep Courier, then runs the local confirm morph.
+  // CommandGroup already blocks the commit while gated (`no-path`), so no extra
+  // guard is needed here. Degrees are plain numbers, absolute (not rates).
+  const handleCommit = (next: CameraSetpoint): void => {
+    setPan.send({ cameraId, yaw: next.yaw, pitch: next.pitch }).catch(() => {});
+    setFov.send({ cameraId, fieldOfView: next.fov }).catch(() => {});
     setCommitting(true);
     if (morphTimerRef.current !== null) clearTimeout(morphTimerRef.current);
     morphTimerRef.current = setTimeout(() => setCommitting(false), MORPH_MS);
