@@ -5,6 +5,7 @@ import {
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
+import { currentMode } from "@ksp-gonogo/sitrep-client";
 import type {
   ActionDefinition,
   ComponentProps,
@@ -23,6 +24,8 @@ import {
 import {
   Badge,
   type BadgeTone,
+  type CameraSetpoint,
+  type CameraSetpointBounds,
   speakQuantity,
   Unit,
   writeQuantity,
@@ -36,6 +39,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { CameraSetpointSurface } from "../CameraSetpoint/CameraSetpointSurface";
+import { useKerbcastCameras } from "../hooks/useKerbcastCameras";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 import {
   useDelayedKerbcastStream,
@@ -360,6 +365,13 @@ export function CameraFeed({
   const unavailableReason =
     playoutStatus.kind === "unavailable" ? playoutStatus.reason : null;
 
+  // ---- Delayed camera control gate (#35) ----
+  // The live snapshot of the camera registry, so the setpoint surface can read
+  // this camera's own pan/zoom envelopes and seed the dialled target from the
+  // current aim rather than hardcoding bounds. Called unconditionally (rules of
+  // hooks) alongside every hook above.
+  const cameras = useKerbcastCameras();
+
   if (!client || !subscriptions) return null;
 
   // Slot props (spec §4.4). Both carry the displayed camera's flightID; the
@@ -377,6 +389,40 @@ export function CameraFeed({
   // whatever a `camera-feed.badges` augment contributes.
   const delayBadge = describeSignalDelay(signalDelay);
   const qualityBadge = describeSignalQuality(commConnected, signalStrength);
+
+  // Delayed camera control (#35): pick live vs. staged vs. no-path off the same
+  // one-way delay the badge reads. `currentMode` maps null → "no-path" (never
+  // coerce to 0), <= 1s → "live", > 1s → "staged". Below threshold the surface
+  // renders nothing and the SDK's own live controls stay in charge; above it the
+  // setpoint surface takes over. Bounds + the seed target come off THIS camera's
+  // live `CameraState` (never hardcoded).
+  const controlMode = currentMode({ oneWaySeconds: signalDelay ?? null });
+  const activeCamera =
+    effectiveFlightId === null
+      ? undefined
+      : cameras.find((c) => c.flightId === effectiveFlightId);
+  const setpointBounds: CameraSetpointBounds | undefined = activeCamera
+    ? {
+        yawMin: activeCamera.panYawMin,
+        yawMax: activeCamera.panYawMax,
+        pitchMin: activeCamera.panPitchMin,
+        pitchMax: activeCamera.panPitchMax,
+        fovMin: activeCamera.fovMin,
+        fovMax: activeCamera.fovMax,
+      }
+    : undefined;
+  const setpointInitial: CameraSetpoint | undefined = activeCamera
+    ? {
+        yaw: activeCamera.panYaw,
+        pitch: activeCamera.panPitch,
+        fov: activeCamera.fov,
+      }
+    : undefined;
+  const showSetpointSurface =
+    controlMode !== "live" &&
+    effectiveFlightId !== null &&
+    setpointBounds !== undefined &&
+    setpointInitial !== undefined;
 
   // Inject gonogo's delayed-playout stream source through the SDK's `useStream`
   // seam (kerbcam §3.4). `useDelayedKerbcastStream` is a stable module-scope
@@ -406,6 +452,14 @@ export function CameraFeed({
           showDebugInfo={showDebugInfo}
           enableFullscreen
           enablePictureInPicture
+          // TODO(main): needs kerbcast 1.9.0 lockfile bump. Once the
+          // @ksp-gonogo/kerbcast-react pin moves from 1.8.1 to 1.9.0, pass
+          // `disableManualControls={controlMode === "staged"}` here so the SDK's
+          // built-in live pan/zoom controls are truly disabled above the delay
+          // threshold (the honest gate the #35 design calls for). The prop does
+          // NOT exist on 1.8.1's CameraFeedProps, so adding it now fails
+          // typecheck; until the bump lands, the CameraSetpointSurface below is
+          // the delayed control path and the SDK's live controls stay reachable.
         />
         {unavailableReason && (
           <div role="status" aria-live="polite" style={FEED_UNAVAILABLE_STYLE}>
@@ -433,6 +487,16 @@ export function CameraFeed({
           )}
           <AugmentSlot name="camera-feed.badges" props={badgesContext} />
         </div>
+        {showSetpointSurface && (
+          <div style={FEED_SETPOINT_STYLE}>
+            <CameraSetpointSurface
+              cameraId={effectiveFlightId as number}
+              bounds={setpointBounds as CameraSetpointBounds}
+              initial={setpointInitial as CameraSetpoint}
+              mode={controlMode}
+            />
+          </div>
+        )}
       </div>
     </KerbcastProvider>
   );
@@ -545,6 +609,22 @@ const FEED_BADGES_STYLE: CSSProperties = {
   display: "flex",
   gap: "var(--space-4)",
   padding: "var(--space-4)",
+  pointerEvents: "none",
+};
+
+// Delayed camera control surface (#35), centre-bottom of the feed. The
+// wrapper is click-through so it never steals the video's own hover controls;
+// the surface re-enables pointer events on itself. Sits at z-index 1 (above the
+// video, below the "delayed feed unavailable" scrim at z-index 2).
+const FEED_SETPOINT_STYLE: CSSProperties = {
+  position: "absolute",
+  bottom: "var(--space-8)",
+  left: "50%",
+  transform: "translateX(-50%)",
+  display: "flex",
+  justifyContent: "center",
+  maxWidth: "100%",
+  zIndex: 1,
   pointerEvents: "none",
 };
 
