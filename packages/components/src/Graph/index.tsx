@@ -25,8 +25,15 @@ import {
   Sparkline,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { FramedDisplay, NULL_DISPLAY, Panel } from "@ksp-gonogo/ui-kit";
 import {
+  FramedDisplay,
+  GhostButton,
+  IconButton,
+  NULL_DISPLAY,
+  Panel,
+} from "@ksp-gonogo/ui-kit";
+import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
@@ -34,7 +41,6 @@ import {
   useRef,
   useState,
 } from "react";
-import styled from "styled-components";
 import { alignXY } from "./align";
 import { GraphSeries } from "./GraphSeries";
 import { paletteColor } from "./palette";
@@ -426,12 +432,12 @@ export function GraphView({
         panelSubtitle={seriesLabel === readoutTitle ? undefined : seriesLabel}
         panelAside={headerActions}
       >
-        <ReadoutBody ref={containerRef}>
+        <div ref={containerRef} style={READOUT_BODY}>
           <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
             {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
             {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
           </BigReadout>
-          <SparkSlot>
+          <div style={SPARK_SLOT}>
             {size && (
               <Sparkline
                 values={sparkValues}
@@ -441,8 +447,8 @@ export function GraphView({
                 ariaLabel={`${seriesLabel} trend`}
               />
             )}
-          </SparkSlot>
-        </ReadoutBody>
+          </div>
+        </div>
         {/* Reuse the standard fetcher so live samples and queryRange backfill
             stay consistent with the chart variant. */}
         <GraphSeries
@@ -466,7 +472,10 @@ export function GraphView({
           title
         ) : units ? (
           <>
-            GRAPH <GraphUnits title={fullTitle}>{units}</GraphUnits>
+            GRAPH{" "}
+            <span title={fullTitle} style={GRAPH_UNITS}>
+              {units}
+            </span>
           </>
         ) : (
           "GRAPH"
@@ -478,8 +487,8 @@ export function GraphView({
           []) attaches once and never has to re-attach when the chart's
           data state flips. The empty-state text overlays when there's no
           data to plot. */}
-      <ChartFrame>
-        <ChartArea ref={containerRef}>
+      <FramedDisplay style={CHART_FRAME}>
+        <div ref={containerRef} style={CHART_AREA}>
           {size && (
             <LineChart
               series={chartSeries}
@@ -495,13 +504,13 @@ export function GraphView({
             />
           )}
           {hasThirdUnit && (
-            <AxisWarning>Add explicit axes to plot 3+ units</AxisWarning>
+            <div style={AXIS_WARNING}>Add explicit axes to plot 3+ units</div>
           )}
           {series.length === 0 && overlaySeries.length === 0 && (
-            <EmptyStateOverlay>{emptyState}</EmptyStateOverlay>
+            <div style={EMPTY_STATE_OVERLAY}>{emptyState}</div>
           )}
-        </ChartArea>
-      </ChartFrame>
+        </div>
+      </FramedDisplay>
       {/* Invisible data-fetcher components, one per series + one for X when non-time */}
       {series.map((cfg) => (
         <GraphSeries
@@ -706,8 +715,8 @@ function GraphConfigComponent({
       <Field>
         <FieldLabel>Series</FieldLabel>
         {seriesList.map((s) => (
-          <SeriesGroup key={s.id}>
-            <SeriesRow>
+          <div key={s.id} style={SERIES_GROUP}>
+            <div style={SERIES_ROW}>
               <DataKeyPicker
                 keys={numericKeys}
                 value={s.key || null}
@@ -742,12 +751,16 @@ function GraphConfigComponent({
                 <option value="primary">Primary (left)</option>
                 <option value="secondary">Secondary (right)</option>
               </Select>
-              <RemoveButton type="button" onClick={() => removeSeries(s.id)}>
+              <IconButton
+                type="button"
+                onClick={() => removeSeries(s.id)}
+                style={REMOVE_BUTTON}
+              >
                 ×
-              </RemoveButton>
-            </SeriesRow>
+              </IconButton>
+            </div>
             {s.type === "band" && (
-              <SeriesRow>
+              <div style={SERIES_ROW}>
                 <DataKeyPicker
                   keys={numericKeys}
                   value={s.keyHigh ?? null}
@@ -755,13 +768,13 @@ function GraphConfigComponent({
                   placeholder="Pick upper bound..."
                   clearable
                 />
-              </SeriesRow>
+              </div>
             )}
-          </SeriesGroup>
+          </div>
         ))}
-        <AddButton type="button" onClick={addSeries}>
+        <GhostButton type="button" onClick={addSeries} style={ADD_BUTTON}>
           + Add series
-        </AddButton>
+        </GhostButton>
       </Field>
       <Field>
         <FieldLabel htmlFor="graph-window">Window (seconds)</FieldLabel>
@@ -776,7 +789,7 @@ function GraphConfigComponent({
       </Field>
       <Field>
         <FieldLabel>Primary Y range (leave blank for auto)</FieldLabel>
-        <DomainRow>
+        <div style={DOMAIN_ROW}>
           <Input
             type="number"
             placeholder="min"
@@ -798,11 +811,11 @@ function GraphConfigComponent({
             <option value="linear">Linear</option>
             <option value="log">Log10</option>
           </Select>
-        </DomainRow>
+        </div>
       </Field>
       <Field>
         <FieldLabel>Secondary Y range (leave blank for auto)</FieldLabel>
-        <DomainRow>
+        <div style={DOMAIN_ROW}>
           <Input
             type="number"
             placeholder="min"
@@ -824,12 +837,12 @@ function GraphConfigComponent({
             <option value="linear">Linear</option>
             <option value="log">Log10</option>
           </Select>
-        </DomainRow>
+        </div>
       </Field>
       <Field>
         <FieldLabel>Threshold lines</FieldLabel>
         {thresholds.map((t) => (
-          <SeriesRow key={t.id}>
+          <div key={t.id} style={SERIES_ROW}>
             <Input
               type="text"
               placeholder="Label"
@@ -857,14 +870,18 @@ function GraphConfigComponent({
               <option value="primary">Primary</option>
               <option value="secondary">Secondary</option>
             </Select>
-            <RemoveButton type="button" onClick={() => removeThreshold(t.id)}>
+            <IconButton
+              type="button"
+              onClick={() => removeThreshold(t.id)}
+              style={REMOVE_BUTTON}
+            >
               ×
-            </RemoveButton>
-          </SeriesRow>
+            </IconButton>
+          </div>
         ))}
-        <AddButton type="button" onClick={addThreshold}>
+        <GhostButton type="button" onClick={addThreshold} style={ADD_BUTTON}>
           + Add threshold
-        </AddButton>
+        </GhostButton>
       </Field>
     </ConfigForm>
   );
@@ -883,110 +900,107 @@ function parseDomain(
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-/* The plot is visual content, so it gets a frame rather than an argument with
-   the body inset. `flush`: LineChart already draws inside its own MARGIN, so
-   the frame's gutter would read as a double border.
+// Structural inline styles (CSS-var tokens): a bespoke plot frame + config
+// form, no reusable ui-kit primitive fits the layout, so it stays local. The
+// two hover-bearing config buttons reuse ui-kit GhostButton / IconButton (the
+// only inline-inexpressible bit is `:hover`); the plot slots that need a ref
+// for the ResizeObserver stay plain divs (ui-kit Fill is not forwardRef).
 
-   A frame rather than `floatingHeader`, even though the chart variant's body
-   holds nothing but the drawing: LineChart stamps its series legend top-left
-   INSIDE the plot, which is exactly where a floating title would land. The
-   readout variant is mixed content anyway (a big number and a sparkline), and
-   one widget wants one kind of header across both its variants. */
-const ChartFrame = styled(FramedDisplay)`
-  flex: 1;
-  min-height: 0;
-`;
+// The plot is visual content, so it gets a frame rather than an argument with
+// the body inset. `flush`: LineChart already draws inside its own MARGIN, so
+// the frame's gutter would read as a double border. A frame rather than
+// `floatingHeader`, even though the chart variant's body holds nothing but the
+// drawing: LineChart stamps its series legend top-left INSIDE the plot, which
+// is exactly where a floating title would land. The readout variant is mixed
+// content anyway (a big number and a sparkline), and one widget wants one kind
+// of header across both its variants.
+const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0 };
 
-const ChartArea = styled.div`
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  min-width: 0;
-`;
+const CHART_AREA: CSSProperties = {
+  flex: 1,
+  position: "relative",
+  minHeight: 0,
+  minWidth: 0,
+};
 
-const ReadoutBody = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  position: relative;
-`;
+const READOUT_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+  position: "relative",
+};
 
-const SparkSlot = styled.div`
-  width: 100%;
-  flex: 0 0 auto;
-`;
+const SPARK_SLOT: CSSProperties = { width: "100%", flex: "0 0 auto" };
 
-const EmptyStateOverlay = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-faint);
-  pointer-events: none;
-`;
+const EMPTY_STATE_OVERLAY: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "var(--font-size-sm)",
+  color: "var(--color-text-faint)",
+  pointerEvents: "none",
+};
 
-const AxisWarning = styled.div`
-  position: absolute;
-  bottom: 4px;
-  right: 8px;
-  font-size: var(--font-size-xs);
-  color: var(--color-status-warning-bg);
-  background: rgba(0, 0, 0, 0.7);
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  pointer-events: none;
-`;
+const AXIS_WARNING: CSSProperties = {
+  position: "absolute",
+  bottom: "4px",
+  right: "8px",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-status-warning-bg)",
+  background: "rgba(0, 0, 0, 0.7)",
+  padding: "var(--space-2) var(--space-6)",
+  borderRadius: "var(--radius-xs)",
+  pointerEvents: "none",
+};
 
-const SeriesRow = styled.div`
-  display: flex;
-  gap: var(--space-6);
-  align-items: center;
-  margin-bottom: var(--space-6);
-`;
+const SERIES_ROW: CSSProperties = {
+  display: "flex",
+  gap: "var(--space-6)",
+  alignItems: "center",
+  marginBottom: "var(--space-6)",
+};
 
-const SeriesGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-`;
+const SERIES_GROUP: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-2)",
+  marginBottom: "var(--space-4)",
+};
 
-const DomainRow = styled.div`
-  display: flex;
-  gap: var(--space-6);
-`;
+const DOMAIN_ROW: CSSProperties = { display: "flex", gap: "var(--space-6)" };
 
-const AddButton = styled.button`
-  background: none;
-  border: 1px dashed var(--color-text-faint);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  padding: var(--space-4) var(--space-8);
-  width: 100%;
-  margin-top: var(--space-4);
-  &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
-`;
+// GhostButton override: a full-width dashed "add" affordance, not uppercase.
+// GhostButton supplies the hover (colour lift) `:hover` inline can't; the rest
+// is inline. The styled hover also shifted the border to --color-text-dim;
+// GhostButton's own hover lifts it to --color-text-faint, a close brighten.
+const ADD_BUTTON: CSSProperties = {
+  width: "100%",
+  borderStyle: "dashed",
+  borderColor: "var(--color-text-faint)",
+  color: "var(--color-text-muted)",
+  fontSize: "var(--font-size-sm)",
+  fontWeight: 400,
+  letterSpacing: "normal",
+  textTransform: "none",
+  padding: "var(--space-4) var(--space-8)",
+  marginTop: "var(--space-4)",
+};
 
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-dim);
-  cursor: pointer;
-  font-size: var(--font-size-lg);
-  line-height: var(--line-height-flush);
-  padding: 0 var(--space-4);
-  flex-shrink: 0;
-  &:hover { color: var(--color-text-primary); }
-`;
+// IconButton override: the "×" remove control. IconButton supplies the hover
+// colour lift; the size/colour are inline.
+const REMOVE_BUTTON: CSSProperties = {
+  color: "var(--color-text-dim)",
+  fontSize: "var(--font-size-lg)",
+  lineHeight: "var(--line-height-flush)",
+  padding: "0 var(--space-4)",
+  flexShrink: 0,
+};
 
-/** Unit symbols are case-sensitive, so they opt out of the header's uppercase. */
-const GraphUnits = styled.span`
-  text-transform: none;
-`;
+// Unit symbols are case-sensitive, so they opt out of the header's uppercase.
+const GRAPH_UNITS: CSSProperties = { textTransform: "none" };
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
