@@ -129,6 +129,7 @@ export {
   type EmptyStateLayout,
   type EmptyStateProps,
 } from "./EmptyState";
+export { Fill, type FillProps } from "./Fill";
 export {
   ConfigForm,
   Field,
@@ -152,6 +153,11 @@ export {
 // NOT a general escape from `<Countdown>`: if a node fits, use one.
 export { type FormatDurationOptions, formatDuration } from "./formatDuration";
 // ── Formatters ───────────────────────────────────────────────────────────────
+export {
+  GraphNotice,
+  type GraphNoticePlacement,
+  type GraphNoticeProps,
+} from "./GraphNotice";
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
   ArrowLeftIcon,
