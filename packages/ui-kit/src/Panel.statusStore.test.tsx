@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
+import { axe } from "./test/axe";
 
 /**
  * The panel header now summarises its OWN worst state out of the per-item
@@ -116,5 +117,22 @@ describe("Panel header summary (store-backed)", () => {
     // no throw and no stale reading.
     rerender(<Harness severity="offline" />);
     expect(screen.getByRole("status")).toHaveTextContent("offline");
+  });
+
+  it("a summarised panel has no axe violations", async () => {
+    const { container } = render(
+      inStore(
+        <Panel panelTitle="DESCENT">
+          <Badge
+            severity="critical"
+            report={{ id: "a", label: "NO BURN VECTOR" }}
+          >
+            !
+          </Badge>
+          body
+        </Panel>,
+      ),
+    );
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
