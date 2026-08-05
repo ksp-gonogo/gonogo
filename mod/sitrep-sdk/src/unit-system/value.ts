@@ -1,3 +1,4 @@
+import { calendarRatio } from "./calendar";
 import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
 import { declaredUnitFor, lookupUnit } from "./registry";
@@ -172,8 +173,21 @@ function dimensionOf(unit: string): Dim.Dimension {
   return definitionOf(unit)?.dim ?? { [unit]: 1 };
 }
 
+/**
+ * How many of the dimension's base unit one of `unit` is worth.
+ *
+ * The live calendar wins over the declared ratio, because `d` is not a
+ * constant: it is 21,600s on stock Kerbin time and 86,400 under a planet pack
+ * or with `KERBIN_TIME` off. Every combination in this module routes through
+ * here via {@link baseMagnitude}, so overriding at this one point is what
+ * makes `plus`, `minus`, `in` and the comparisons agree with the game rather
+ * than with whatever was true at build time.
+ *
+ * Before this, `value("s", 86_400).in("d")` answered 4 on an Earth calendar.
+ * Nothing about that number looks wrong, which is how it survived.
+ */
 function ratioOf(unit: string): number {
-  return definitionOf(unit)?.ratio ?? 1;
+  return calendarRatio(unit) ?? definitionOf(unit)?.ratio ?? 1;
 }
 
 /** In the dimension's base unit. The only form two values are combined in. */

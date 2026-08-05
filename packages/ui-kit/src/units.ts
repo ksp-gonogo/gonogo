@@ -1,5 +1,5 @@
+import { calendarRatio } from "@ksp-gonogo/sitrep-sdk";
 import { GENERATED_UNIT_KINDS } from "./__generated__/unit-kinds";
-import { type KspCalendar, kspCalendar } from "./kspTime";
 
 /** Every symbol the model declares. */
 type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
@@ -39,37 +39,21 @@ export type FormatsFor<U extends string> = [
  * degrees) are just ratios and now come from the model like everything else.
  */
 /**
- * The game-time symbols whose size the RUNNING GAME decides.
+ * How many of the kind's BASE unit one of `symbol` is worth.
  *
- * Codegen bakes a ratio for each of these from the first-party contract, and
- * for `d` that ratio is one Kerbin rotation. It is a fine default and a wrong
- * answer under a planet pack or with the stock KERBIN_TIME setting off, so the
- * live calendar wins over the generated number for exactly these four. Every
- * other unit in the table is a physical constant and is left alone.
+ * Three sources, in order. The LIVE CALENDAR first, because `d`, `h`, `min`
+ * and `science/day` are sized by the running game rather than by physics and
+ * codegen bakes stock Kerbin figures for all four. Then the model's declared
+ * ratio, then the rung's own divisor for a rung the model has no unit for.
+ *
+ * The calendar table lives in the SDK, not here. It used to be duplicated in
+ * this file, which meant the kit's DISPLAY path followed the game while
+ * `Value` arithmetic in the SDK did not, so a formatted duration and a
+ * computed one disagreed. One table, below both consumers, is the fix.
  */
-const CALENDAR_RATIO: Record<string, (c: KspCalendar) => number> = {
-  d: (c) => c.day,
-  h: (c) => c.hour,
-  min: (c) => c.minute,
-  // A rate PER day is the same mistake upside down, and it hides better than
-  // the three above because the day is in the denominator: the generated ratio
-  // is 1/21,600 rather than 21,600, so it does not read as a day at a glance.
-  // `scienceRate` is a real wire quantity (`Value<"science/day">`).
-  //
-  // Defensive today, not a fix for an observable bug: the dimension has no
-  // second rung, so nothing in the display path ever converts to or from this
-  // symbol and the baked ratio never gets read here. It becomes load-bearing
-  // the moment one is added. The version of this that DOES misreport is in the
-  // SDK, whose `Value` arithmetic resolves ratios out of `UNIT_DEFINITIONS`
-  // and so never sees the live calendar at all: `value("s", 86_400).in("d")`
-  // is 4 on an Earth calendar, where it should be 1. Fixing that needs a
-  // calendar-aware ratio in the SDK registry, which this table cannot reach.
-  "science/day": (c) => 1 / c.day,
-};
-
 function ratioOf(symbol: string): number | undefined {
-  const fromCalendar = CALENDAR_RATIO[symbol];
-  if (fromCalendar) return fromCalendar(kspCalendar());
+  const fromCalendar = calendarRatio(symbol);
+  if (fromCalendar !== undefined) return fromCalendar;
   const declared = GENERATED_UNIT_KINDS[symbol as GeneratedUnit];
   if (declared) return declared.ratio;
   for (const rungs of Object.values(LADDERS)) {

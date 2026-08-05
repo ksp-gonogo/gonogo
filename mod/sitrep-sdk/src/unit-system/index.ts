@@ -1,4 +1,13 @@
 export {
+  calendarRatio,
+  isCalendarUnit,
+  type KspCalendar,
+  kspCalendar,
+  kspYearDays,
+  STOCK_KERBIN_CALENDAR,
+  setKspCalendar,
+} from "./calendar";
+export {
   type KnownUnit,
   UNIT_DEFINITIONS,
   type UnitDefinition,

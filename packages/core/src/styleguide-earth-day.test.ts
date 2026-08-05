@@ -98,19 +98,26 @@ const EARTH_DAY_GREP = "\\b(86_?400(_?000)?|21_?600)\\b";
  */
 const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
   {
-    file: "packages/ui-kit/src/kspTime.ts",
+    file: "mod/sitrep-sdk/src/unit-system/calendar.ts",
     why:
       "THE definition site. `STOCK_KERBIN_CALENDAR` is where 21,600 and 426 " +
       "are written down, once, as the FALLBACK every other module reads " +
       "through `kspCalendar()`. A guard that fails the one file allowed to " +
-      "say the number is a guard with nowhere to put the number.",
+      "say the number is a guard with nowhere to put the number.\n" +
+      "It used to be `packages/ui-kit/src/kspTime.ts`, and this guard is how " +
+      "the move was noticed: the kit could only reach its own formatters, so " +
+      "`Value` arithmetic never saw the calendar and `.in('d')` answered 4 " +
+      "for an Earth day. The calendar belongs to the unit model, below both " +
+      "consumers. kspTime.ts is now a re-export and holds no number, which " +
+      "is why it is no longer listed here.",
   },
   {
     file: "mod/sitrep-sdk/src/unit-system/definitions.ts",
     why:
       "The declared unit model: `d` has a ratio, and the stock ratio is one " +
-      "Kerbin rotation. `formatQuantity` overrides it from the live calendar " +
-      "at runtime (see CALENDAR_RATIO in ui-kit's units.ts), so this is the " +
+      "Kerbin rotation. `ratioOf` overrides it from the live calendar at " +
+      "runtime (see CALENDAR_RATIO in the calendar module above, which both " +
+      "`Value` arithmetic and `formatQuantity` now read), so this is the " +
       "default the override starts from rather than an assumption anyone " +
       "divides by.",
   },
