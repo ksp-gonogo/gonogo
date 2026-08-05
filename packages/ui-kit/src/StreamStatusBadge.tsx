@@ -1,5 +1,6 @@
 import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
-import styled from "styled-components";
+import { Badge } from "./Badge";
+import { severityFromStreamStatus } from "./status/severity";
 
 export interface StreamStatusBadgeProps {
   /** Current stream/connectivity status for the widget's representative key. */
@@ -37,33 +38,24 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 }
 
 /**
- * Small connectivity badge for a widget's title row. Renders nothing when
- * `status` is `"live"`, callers don't need to gate on `formatStreamStatus`
- * themselves.
+ * Small connectivity badge for a widget's title row, now a thin adapter over the
+ * canonical `Badge`: it maps a `StreamStatusValue` onto a `Severity` and renders
+ * the pill, preserving the "render nothing when live" rule by returning `null`
+ * at the floor. Announces as a live region, since a stream degrading is exactly
+ * the kind of state change an operator benefits from being told about.
  *
  * Most widgets should not render this by hand at all: `Panel` derives the
  * status from the widget's own registered `dataRequirements` and puts the
- * badge in its header. Reach for this directly only for a status that is not
- * the panel's own (a sub-region reading a different topic).
+ * badge in its header through the status store. Reach for this directly only
+ * for a status that is not the panel's own (a sub-region reading a different
+ * topic).
  */
 export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
   const label = formatStreamStatus(status);
   if (label === null) return null;
   return (
-    <StreamStatusBadge__Root role="status" aria-live="polite">
+    <Badge severity={severityFromStreamStatus(status)} size="sm" live>
       {label}
-    </StreamStatusBadge__Root>
+    </Badge>
   );
 }
-
-const StreamStatusBadge__Root = styled.span`
-  flex: 0 0 auto;
-  font-size: var(--font-size-2xs, 10px);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: var(--space-hair, 1px) var(--space-6, 6px);
-  border-radius: var(--radius-sm, 3px);
-  color: var(--color-status-warning-bg);
-  border: 1px solid var(--color-status-warning-bg);
-  white-space: nowrap;
-`;
