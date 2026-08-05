@@ -28,8 +28,17 @@ import {
   speakQuantity,
   Unit,
   useModalSaveBar,
+  Value,
 } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
+// SectionsScroll + PowerRow below keep styled-components: the first styles
+// ScrollArea's internal `[data-scroll-area-inner]` element (a child component's
+// internals, which inline style can't reach and ScrollArea exposes no prop
+// for), the second is a passive row `:hover` highlight (no ui-kit primitive
+// fits a non-selectable hover row; a JS per-row hover would add state + a
+// re-render per mouse-move to a potentially long list). Both documented.
+// biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector + passive row :hover, no inline/primitive equivalent (see above)
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 
@@ -344,7 +353,7 @@ function PowerSystemsComponent({
   if (!topology) {
     return (
       <Panel panelTitle="POWER SYSTEMS">
-        <Hint>Waiting for vessel topology...</Hint>
+        <div style={HINT}>Waiting for vessel topology...</div>
       </Panel>
     );
   }
@@ -357,10 +366,10 @@ function PowerSystemsComponent({
           showHeader ? "No active flow on any resource" : undefined
         }
       >
-        <Hint>
+        <div style={HINT}>
           Deploy a solar panel, run a generator, or fire an engine to see flow
           contributions here.
-        </Hint>
+        </div>
       </Panel>
     );
   }
@@ -371,13 +380,18 @@ function PowerSystemsComponent({
   if (!showFullList) {
     return (
       <Panel panelTitle="POWER">
-        <CompactBody>
-          <CompactResource>{splitCamel(resource)}</CompactResource>
-          <CompactNet $tone={netTone}>
+        <div style={COMPACT_BODY}>
+          <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
+          <Value
+            tone={
+              netTone === "go" ? "go" : netTone === "warn" ? "warn" : "default"
+            }
+            style={COMPACT_NET}
+          >
             {net >= 0 ? "+" : ""}
             {net.toFixed(2)}/s
-          </CompactNet>
-        </CompactBody>
+          </Value>
+        </div>
       </Panel>
     );
   }
@@ -395,7 +409,8 @@ function PowerSystemsComponent({
       panelAside={
         <>
           <AugmentSlot name="power-systems.badges" props={slotProps} />
-          <ResourceSelect
+          <Select
+            style={RESOURCE_SELECT}
             value={resource}
             onChange={(e) => {
               setResource(e.target.value);
@@ -408,7 +423,7 @@ function PowerSystemsComponent({
                 {name}
               </option>
             ))}
-          </ResourceSelect>
+          </Select>
         </>
       }
     >
@@ -424,57 +439,65 @@ function PowerSystemsComponent({
             : "Power balanced"}
       </VisuallyHidden>
 
-      <Totals>
-        <NetCell $tone={netTone}>
-          <CellLabel $tone={netTone}>NET</CellLabel>
-          <CellValue>
+      <div style={TOTALS}>
+        <div style={{ ...TOTALS_CELL, ...netCellStyle(netTone) }}>
+          <span style={{ ...CELL_LABEL, color: cellLabelColor(netTone) }}>
+            NET
+          </span>
+          <Value size="sm" style={CELL_VALUE}>
             {net >= 0 ? "+" : ""}
             {net.toFixed(2)}/s
-          </CellValue>
-        </NetCell>
-        <TotalsCell>
-          <CellLabel>PROD</CellLabel>
-          <CellValue $sign="pos">
+          </Value>
+        </div>
+        <div style={TOTALS_CELL}>
+          <span style={CELL_LABEL}>PROD</span>
+          <Value tone="go" size="sm" style={CELL_VALUE}>
             {totalProduced > 0 ? "+" : ""}
             {totalProduced.toFixed(2)}
-          </CellValue>
-        </TotalsCell>
+          </Value>
+        </div>
         {measuredDisagrees && (
-          <MeasuredCell
+          <div
+            style={{ ...TOTALS_CELL, ...MEASURED_CELL }}
             title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
           >
-            <CellLabel>MEASURED</CellLabel>
-            <CellValue>{measuredTotalProduced?.toFixed(2)}</CellValue>
-          </MeasuredCell>
+            <span style={CELL_LABEL}>MEASURED</span>
+            <Value size="sm" style={CELL_VALUE}>
+              {measuredTotalProduced?.toFixed(2)}
+            </Value>
+          </div>
         )}
-        <TotalsCell>
-          <CellLabel>CONS</CellLabel>
-          <CellValue $sign="neg">{totalConsumed.toFixed(2)}</CellValue>
-        </TotalsCell>
+        <div style={TOTALS_CELL}>
+          <span style={CELL_LABEL}>CONS</span>
+          <Value tone="warn" size="sm" style={CELL_VALUE}>
+            {totalConsumed.toFixed(2)}
+          </Value>
+        </div>
         {storage.maxAmount > 0 && (
-          <TotalsCell>
-            <CellLabel>STORED</CellLabel>
-            <StoredValue>
+          <div style={TOTALS_CELL}>
+            <span style={CELL_LABEL}>STORED</span>
+            <Value size="sm" style={STORED_VALUE}>
               {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
-            </StoredValue>
-          </TotalsCell>
+            </Value>
+          </div>
         )}
-      </Totals>
+      </div>
 
       {storage.maxAmount > 0 && sparkValues.length >= 2 && (
-        <SparklineRow
+        <div
+          style={SPARKLINE_ROW}
           role="img"
           aria-label={`${splitCamel(resource)} level over the last ${speakQuantity(
             value("s", SPARKLINE_WINDOW_SEC),
           )}`}
         >
-          <SparklineLabel>
+          <span style={SPARKLINE_LABEL}>
             Trend
-            <SparklineSub>
+            <span style={SPARKLINE_SUB}>
               · <Unit value={value("s", SPARKLINE_WINDOW_SEC)} />
-            </SparklineSub>
-          </SparklineLabel>
-          <SparklineSlot>
+            </span>
+          </span>
+          <div style={SPARKLINE_SLOT}>
             <Sparkline
               values={sparkValues}
               width={240}
@@ -489,57 +512,66 @@ function PowerSystemsComponent({
               yDomain={sparkDomain}
               ariaLabel={`${splitCamel(resource)} level trend`}
             />
-          </SparklineSlot>
-        </SparklineRow>
+          </div>
+        </div>
       )}
 
       <SectionsScroll $landscape={isLandscape}>
-        <PanelSection $landscape={isLandscape}>
+        <Section
+          as="section"
+          style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+        >
           <SectionTitle as="h3">
             Producers
             {producers.length > 0 && (
-              <SectionCount>· {producers.length}</SectionCount>
+              <span style={SECTION_COUNT}>· {producers.length}</span>
             )}
           </SectionTitle>
           {producers.length === 0 ? (
-            <SectionEmpty>Nothing producing.</SectionEmpty>
+            <div style={SECTION_EMPTY}>Nothing producing.</div>
           ) : (
-            <ContribList>
+            <div style={CONTRIB_LIST}>
               {producers.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
-            </ContribList>
+            </div>
           )}
-        </PanelSection>
-        <PanelSection $landscape={isLandscape}>
+        </Section>
+        <Section
+          as="section"
+          style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+        >
           <SectionTitle as="h3">
             Consumers
             {consumers.length > 0 && (
-              <SectionCount>· {consumers.length}</SectionCount>
+              <span style={SECTION_COUNT}>· {consumers.length}</span>
             )}
           </SectionTitle>
           {consumers.length === 0 ? (
-            <SectionEmpty>Nothing consuming.</SectionEmpty>
+            <div style={SECTION_EMPTY}>Nothing consuming.</div>
           ) : (
-            <ContribList>
+            <div style={CONTRIB_LIST}>
               {consumers.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
-            </ContribList>
+            </div>
           )}
-        </PanelSection>
+        </Section>
         {idle.length > 0 && (
-          <PanelSection $landscape={isLandscape}>
+          <Section
+            as="section"
+            style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+          >
             <SectionTitle as="h3">
               Idle
-              <SectionCount>· {idle.length}</SectionCount>
+              <span style={SECTION_COUNT}>· {idle.length}</span>
             </SectionTitle>
-            <IdleList>
+            <div style={IDLE_LIST}>
               {idle.map((c) => (
                 <ContributionRow key={c.flightId} contribution={c} />
               ))}
-            </IdleList>
-          </PanelSection>
+            </div>
+          </Section>
         )}
         {/* Augment sections: e.g. a Kerbalism EC-broker breakdown:
             compose here, below the stock producer/consumer/idle readout. Empty
@@ -565,16 +597,17 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
     <PowerRow>
       <RowName>{partTitle}</RowName>
       {eff !== null && (
-        <RowEff
+        <span
+          style={ROW_EFF}
           title={`${speakQuantity(value("%", eff * 100), { decimals: 0 })} of nominal`}
         >
           <Unit value={value("%", eff * 100)} decimals={0} />
-        </RowEff>
+        </span>
       )}
-      <RowValue $sign={sign}>
+      <Value tone={sign === "pos" ? "go" : sign === "neg" ? "warn" : "faint"}>
         {sign === "pos" ? "+" : ""}
         {flow.toFixed(2)}
-      </RowValue>
+      </Value>
     </PowerRow>
   );
 }
@@ -637,138 +670,134 @@ function PowerSystemsConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const ResourceSelect = styled(Select)`
-  max-width: 50%;
-  font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-6);
-`;
+// Structural inline styles (CSS-var tokens): a bespoke totals/sparkline/section
+// board, no reusable ui-kit primitive fits the layout, so it stays local. Toned
+// numeric readouts render through ui-kit `Value` (tone -fg); cell backgrounds/
+// borders stay on -bg tokens (correct). Two styled blocks remain (SectionsScroll,
+// PowerRow), see the import's biome-ignore.
 
-const Totals = styled.div`
-  display: grid;
-  /* 64px lets four cells fit in one row at threshold-6×8 (was wrapping
-     to 2×2 with the inner STORED value breaking inside). The narrower
-     cell pairs with the smaller CellValue font (13px + nowrap) so the
-     "2900 / 4050"-shape value stays on one line. */
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
-  gap: var(--space-6);
-  margin-top: var(--space-8);
-  margin-bottom: var(--space-8);
-`;
+const RESOURCE_SELECT: CSSProperties = {
+  maxWidth: "50%",
+  fontSize: "var(--font-size-xs)",
+  padding: "var(--space-2) var(--space-6)",
+};
 
-const TotalsCell = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
-`;
+const TOTALS: CSSProperties = {
+  display: "grid",
+  // 64px lets four cells fit in one row at threshold-6×8 (was wrapping to 2×2
+  // with the inner STORED value breaking inside). The narrower cell pairs with
+  // the smaller CellValue font (13px + nowrap) so the "2900 / 4050"-shape value
+  // stays on one line.
+  gridTemplateColumns: "repeat(auto-fit, minmax(64px, 1fr))",
+  gap: "var(--space-6)",
+  marginTop: "var(--space-8)",
+  marginBottom: "var(--space-8)",
+};
 
-const NetCell = styled(TotalsCell)<{ $tone: "go" | "warn" | "neutral" }>`
-  background: ${({ $tone }) =>
-    $tone === "go"
+const TOTALS_CELL: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-2)",
+  padding: "var(--space-4) var(--space-6)",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-surface-raised)",
+  borderRadius: "var(--radius-xs)",
+};
+
+// The NET cell's tinted background + border (stays on -bg tokens: a fill, not
+// text). Merged over TOTALS_CELL at the call site.
+function netCellStyle(tone: "go" | "warn" | "neutral"): CSSProperties {
+  const bg =
+    tone === "go"
       ? "var(--color-status-go-bg)"
-      : $tone === "warn"
+      : tone === "warn"
         ? "var(--color-status-warning-bg-muted)"
-        : "var(--color-surface-panel)"};
-  border-color: ${({ $tone }) =>
-    $tone === "go"
+        : "var(--color-surface-panel)";
+  const border =
+    tone === "go"
       ? "var(--color-status-go-bg)"
-      : $tone === "warn"
+      : tone === "warn"
         ? "var(--color-status-warning-bg)"
-        : "var(--color-surface-raised)"};
-`;
+        : "var(--color-surface-raised)";
+  return { background: bg, border: `1px solid ${border}` };
+}
 
-/* A distinctly-bordered cell for the streamed
-   `parts.power.totalProductionEc` reading, shown ONLY when it disagrees
-   with the itemized PROD total: a visible "these two numbers don't match"
-   signal (dashed border, muted warning tint) rather than either silently
-   overriding PROD/NET or silently vanishing. */
-const MeasuredCell = styled(TotalsCell)`
-  border-style: dashed;
-  border-color: var(--color-status-warning-bg);
-`;
+// A distinctly-bordered cell for the streamed `parts.power.totalProductionEc`
+// reading, shown ONLY when it disagrees with the itemized PROD total: a visible
+// "these two numbers don't match" signal (dashed border, muted warning tint)
+// rather than either silently overriding PROD/NET or silently vanishing.
+const MEASURED_CELL: CSSProperties = {
+  border: "1px dashed var(--color-status-warning-bg)",
+};
 
-/* $tone is only passed for the label inside NetCell: --color-text-faint
-   reads fine on the flat panel background every other CellLabel sits on,
-   but against NetCell's tinted go/warn backgrounds it drops to ~1.9:1 /
-   ~3.2:1, below the 4.5:1 AA floor for this size of text. Match NetCell's
-   own tone-appropriate foreground tokens instead. */
-const CellLabel = styled.span<{ $tone?: "go" | "warn" | "neutral" }>`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: ${({ $tone }) =>
-    $tone === "go"
-      ? "var(--color-status-go-fg)"
-      : $tone === "warn"
-        ? "var(--color-status-warning-fg-muted)"
-        : "var(--color-text-faint)"};
-`;
+// The default CELL_LABEL colour is text-faint; inside NetCell the label takes a
+// tone-appropriate foreground instead (via cellLabelColor). --color-text-faint
+// reads fine on the flat panel background every other CellLabel sits on, but
+// against NetCell's tinted go/warn backgrounds it drops below the 4.5:1 AA floor
+// for this size of text, so it matches NetCell's own foreground tokens.
+const CELL_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--color-text-faint)",
+};
 
-const CellValue = styled.span<{ $sign?: "pos" | "neg" }>`
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  color: ${({ $sign }) =>
-    $sign === "pos"
-      ? "var(--color-status-go-fg)"
-      : $sign === "neg"
-        ? "var(--color-status-warning-bg)"
-        : "var(--color-text-primary)"};
-`;
+function cellLabelColor(tone: "go" | "warn" | "neutral"): string {
+  return tone === "go"
+    ? "var(--color-status-go-fg)"
+    : tone === "warn"
+      ? "var(--color-status-warning-fg-muted)"
+      : "var(--color-text-faint)";
+}
 
-/* STORED can carry an "amount / max" pair (e.g. "2900 / 4050"). At the
-   default 8×12 size all four Totals cells pack into one row, leaving each
-   cell too narrow for the nowrap value, it used to overflow the cell and
-   get clipped at the panel's right border. Allow it to wrap within its cell
-   (there is vertical room) so the capacity stays fully legible at every
-   width. The break only ever lands at the " / " separator. */
-const StoredValue = styled(CellValue)`
-  /* Break only at the " / " separator (whitespace), never mid-number. */
-  white-space: normal;
-  line-height: var(--line-height-tight);
-`;
+// `Value` supplies tone (-fg), size and tabular-nums; the weight + nowrap are
+// this widget's. The neg/warn sign now renders on Value's warning-fg (was the
+// -bg token): the intended -fg normalization.
+const CELL_VALUE: CSSProperties = { fontWeight: 700, whiteSpace: "nowrap" };
 
-const SparklineRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  margin-bottom: var(--space-8);
-  padding: var(--space-6) var(--space-8);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
-`;
+// STORED can carry an "amount / max" pair (e.g. "2900 / 4050"). At the default
+// 8×12 size all four Totals cells pack into one row, leaving each cell too
+// narrow for the nowrap value; allow it to wrap within its cell (there is
+// vertical room), the break only ever lands at the " / " separator.
+const STORED_VALUE: CSSProperties = {
+  fontWeight: 700,
+  whiteSpace: "normal",
+  lineHeight: "var(--line-height-tight)",
+};
 
-const SparklineLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-4);
-  flex-shrink: 0;
-`;
+const SPARKLINE_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--space-8)",
+  marginBottom: "var(--space-8)",
+  padding: "var(--space-6) var(--space-8)",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-surface-raised)",
+  borderRadius: "var(--radius-xs)",
+};
 
-const SparklineSub = styled.span`
-  color: var(--color-text-dim);
-`;
+const SPARKLINE_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--color-text-faint)",
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: "var(--space-4)",
+  flexShrink: 0,
+};
 
-const SparklineSlot = styled.div`
-  flex: 1;
-  min-width: 0;
-  /* Sparkline renders a fixed 240×36 SVG. The slot lets it ride at
-     its intrinsic size on the left; the unused space on wider widgets
-     keeps the row from looking truncated without forcing a responsive
-     SVG. The future "click to expand into Graph widget" affordance
-     would naturally live here. */
-  display: flex;
-  align-items: center;
-`;
+const SPARKLINE_SUB: CSSProperties = { color: "var(--color-text-dim)" };
+
+// Sparkline renders a fixed 240×36 SVG. The slot lets it ride at its intrinsic
+// size on the left; the unused space on wider widgets keeps the row from
+// looking truncated without forcing a responsive SVG.
+const SPARKLINE_SLOT: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+};
 
 const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
   flex: 1;
@@ -786,37 +815,33 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
   }
 `;
 
-// The kit's Section is exactly the gap:2px column; $landscape is the only
-// thing it does not cover, and it is genuinely this widget's layout mode.
-const PanelSection = styled(Section).attrs({
-  forwardedAs: "section" as const,
-})<{
-  $landscape?: boolean;
-}>`
-  ${({ $landscape }) =>
-    $landscape ? "flex: 1 1 0; min-width: 0; min-height: 0;" : ""}
-`;
+// The kit's Section is exactly the gap:2px column; $landscape is the only thing
+// it does not cover, and it is genuinely this widget's layout mode. Applied via
+// `<Section as="section" style={landscape ? PANEL_SECTION_LANDSCAPE …}>`.
+const PANEL_SECTION_LANDSCAPE: CSSProperties = {
+  flex: "1 1 0",
+  minWidth: 0,
+  minHeight: 0,
+};
 
-const SectionCount = styled.span`
-  margin-left: var(--space-4);
-  color: var(--color-text-muted);
-`;
+const SECTION_COUNT: CSSProperties = {
+  marginLeft: "var(--space-4)",
+  color: "var(--color-text-muted)",
+};
 
-const SectionEmpty = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  padding: var(--space-2) 0;
-`;
+const SECTION_EMPTY: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+  padding: "var(--space-2) 0",
+};
 
-const ContribList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-hair);
-`;
+const CONTRIB_LIST: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-hair)",
+};
 
-const IdleList = styled(ContribList)`
-  opacity: 0.55;
-`;
+const IDLE_LIST: CSSProperties = { ...CONTRIB_LIST, opacity: 0.55 };
 
 const PowerRow = styled.div`
   display: grid;
@@ -831,75 +856,54 @@ const PowerRow = styled.div`
   }
 `;
 
-const RowEff = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-faint);
-  font-variant-numeric: tabular-nums;
-`;
+// Per-sign colour was styled; the row value now renders through `Value`
+// (tone={go|warn|faint}), so RowValue is gone. RowEff stays a plain caption.
+const ROW_EFF: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  color: "var(--color-text-faint)",
+  fontVariantNumeric: "tabular-nums",
+};
 
-const RowValue = styled.span<{ $sign: "pos" | "neg" | "zero" }>`
-  font-variant-numeric: tabular-nums;
-  color: ${({ $sign }) =>
-    $sign === "pos"
-      ? "var(--color-status-go-fg)"
-      : $sign === "neg"
-        ? "var(--color-status-warning-bg)"
-        : "var(--color-text-faint)"};
-`;
+const HINT: CSSProperties = {
+  marginTop: "var(--space-6)",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+  lineHeight: "var(--line-height-body)",
+};
 
-const Hint = styled.div`
-  margin-top: var(--space-6);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  line-height: var(--line-height-body);
-`;
+const COMPACT_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--space-4)",
+  textAlign: "center",
+};
 
-const CompactBody = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  text-align: center;
-`;
+const COMPACT_RESOURCE: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "var(--color-text-faint)",
+};
 
-const CompactResource = styled.div`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-`;
-
-/* At the tiny (3×3) size the panel's inner width is ~80px, and a value
-   like "+49.50/s" has no natural break point, the browser's shrink-to-fit
-   sizing can't shrink an unbreakable run below its own rendered width, so it
-   overflows the panel and the panel's overflow:hidden clips whatever spills
-   past the edge. Chromium's metrics for this string happened to just fit;
-   Firefox's are a hair wider and lopped off the trailing "s". Dropping the
-   font-size a notch buys headroom for the common case, and max-width +
-   ellipsis is the safety net for genuinely long values (3-digit rates,
-   longer unit strings) so any residual overflow degrades to a visible "..."
-   instead of an abruptly amputated character. This is also why the value
-   stays off the type scale: --font-size-lg is identical on desktop but
-   17px under @media (pointer: coarse), and the Steam Deck is both coarse
-   and the tier-1 target, so the token would put the clipping bug back on
-   the one platform that matters most. */
-const CompactNet = styled.div<{ $tone: "go" | "warn" | "neutral" }>`
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 16px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: ${({ $tone }) =>
-    $tone === "go"
-      ? "var(--color-status-go-fg)"
-      : $tone === "warn"
-        ? "var(--color-status-warning-bg)"
-        : "var(--color-text-primary)"};
-`;
+// Extra layout for the compact NET readout (rendered via `Value` for its tone):
+// at the tiny (3×3) size the panel's inner width is ~80px and a value like
+// "+49.50/s" has no natural break point, so max-width + ellipsis is the safety
+// net against the panel's overflow:hidden clipping. The 16px stays literal (off
+// the type scale on purpose): --font-size-lg is identical on desktop but 17px
+// under @media (pointer: coarse), and the tier-1 Steam Deck is coarse, so the
+// token would reintroduce the clipping bug on the one platform that matters
+// most.
+const COMPACT_NET: CSSProperties = {
+  maxWidth: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontSize: "16px",
+  fontWeight: 700,
+};
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
