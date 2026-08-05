@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
 import type { SpaceToken } from "./Stack";
 
@@ -50,26 +50,32 @@ const ALIGN_ITEMS: Record<ClusterAlign, string> = {
  * truncating child inside actually truncates instead of overflowing the flex
  * item. Verbatim source: ScienceOfficer's `TitleRow` and `LabHeader`.
  */
-export function Cluster({
-  justify = "between",
-  align = "center",
-  gap = "md",
-  wrap = false,
-  children,
-  ...rest
-}: ClusterProps) {
-  return (
-    <Cluster__Root
-      $justify={justify}
-      $align={align}
-      $gap={gap}
-      $wrap={wrap}
-      {...rest}
-    >
-      {children}
-    </Cluster__Root>
-  );
-}
+export const Cluster = forwardRef<HTMLDivElement, ClusterProps>(
+  function Cluster(
+    {
+      justify = "between",
+      align = "center",
+      gap = "md",
+      wrap = false,
+      children,
+      ...rest
+    },
+    ref,
+  ) {
+    return (
+      <Cluster__Root
+        ref={ref}
+        $justify={justify}
+        $align={align}
+        $gap={gap}
+        $wrap={wrap}
+        {...rest}
+      >
+        {children}
+      </Cluster__Root>
+    );
+  },
+);
 
 const Cluster__Root = styled.div<{
   $justify: ClusterJustify;
