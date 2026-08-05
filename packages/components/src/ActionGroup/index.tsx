@@ -29,11 +29,7 @@ import {
   ToggleButton,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import {
-  InFlightList,
-  NULL_DISPLAY,
-  toInFlightListItems,
-} from "@ksp-gonogo/ui-kit";
+import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -495,12 +491,13 @@ function ActionGroupView({
           {unavailableReason}
         </UnavailableNotice>
       )}
-      {getSizeBucket(w, h) !== "tiny" && (
-        <InFlightList
-          items={toInFlightListItems(toggleCmd.inFlight)}
-          ariaLabel={`${currentLabel}: in flight`}
-        />
-      )}
+      {/* Rendered unconditionally (not size-gated): the must-consume invariant
+          requires a mounted <CommandDelay> wherever the command can dispatch,
+          and it draws nothing anyway until there is real delay to show. */}
+      <CommandDelay
+        handle={toggleCmd}
+        ariaLabel={`${currentLabel}: in flight`}
+      />
       {/* Richer whole-widget status block: the section-level counterpart to the
           inline badges. An Uplink describing what this group toggles
           (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}

@@ -22,21 +22,20 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
+  CommandDelay,
+  type CommandDelayHandle,
   ConfigForm,
   ControlDelayStream,
   Countdown,
   Field,
   FieldHint,
   FieldLabel,
-  InFlightList,
-  type InFlightListItem,
   NULL_DISPLAY,
   Panel,
   Select,
   StatusIndicator,
   Switch,
   ToggleButton,
-  toInFlightListItems,
   Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
@@ -627,12 +626,7 @@ function NavballComponent({
             onSetSasMode={setSasMode}
             showFbwDelayWarning={showFbwDelayWarning}
             delaySeconds={delaySeconds}
-            inFlight={toInFlightListItems([
-              ...sasCmd.inFlight,
-              ...rcsCmd.inFlight,
-              ...sasModeCmd.inFlight,
-              ...fbwCmd.inFlight,
-            ])}
+            commandHandles={[sasCmd, rcsCmd, sasModeCmd, fbwCmd]}
           />
         )}
       </Body>
@@ -659,8 +653,9 @@ interface ControlSurfaceProps {
   onSetSasMode: (mode: SasMode) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
-  /** In-flight SAS/RCS/SAS-mode/FBW commands, folded in from `useCommand`. */
-  inFlight: InFlightListItem[];
+  /** The SAS/RCS/SAS-mode/FBW command handles, rendered as one merged
+   * `<CommandDelay>` in-flight list. */
+  commandHandles: CommandDelayHandle[];
 }
 
 function ControlSurface({
@@ -680,7 +675,7 @@ function ControlSurface({
   onSetSasMode,
   showFbwDelayWarning,
   delaySeconds,
-  inFlight,
+  commandHandles,
 }: ControlSurfaceProps) {
   return (
     <ControlWrap>
@@ -689,7 +684,10 @@ function ControlSurface({
           Vessel not controllable: buttons disabled.
         </Banner>
       )}
-      <InFlightList items={inFlight} ariaLabel="Navball commands: in flight" />
+      <CommandDelay
+        handles={commandHandles}
+        ariaLabel="Navball commands: in flight"
+      />
       <Group>
         <GroupLabel>SAS</GroupLabel>
         <ButtonGrid>

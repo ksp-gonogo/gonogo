@@ -70,6 +70,58 @@ describe("CommandDelay", () => {
     ).toBeInTheDocument();
   });
 
+  it("merges the in-flight rows of several discrete handles into one list", () => {
+    const handles: CommandDelayHandle[] = [
+      {
+        inFlight: [{ ...IN_FLIGHT[0], id: "add", label: "Add node" }],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+      },
+      {
+        inFlight: [{ ...IN_FLIGHT[0], id: "remove", label: "Remove node" }],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+      },
+    ];
+    render(<CommandDelay handles={handles} ariaLabel="Nodes in flight" />);
+    const region = screen.getByLabelText(/Nodes in flight/);
+    expect(region).toHaveTextContent("Add node");
+    expect(region).toHaveTextContent("Remove node");
+  });
+
+  it("renders when only one of several handles has a delay", () => {
+    const handles: CommandDelayHandle[] = [
+      { inFlight: [], shape: "discrete", effectiveDelaySeconds: 0 },
+      {
+        inFlight: [IN_FLIGHT[0]],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+      },
+    ];
+    const { container } = render(<CommandDelay handles={handles} />);
+    expect(container).not.toBeEmptyDOMElement();
+  });
+
+  it("marks every handle's must-consume token on mount (dev)", () => {
+    const a: CommandDelayHandle = {
+      inFlight: [],
+      shape: "discrete",
+      effectiveDelaySeconds: 0,
+      _output: { consumed: false },
+    };
+    const b: CommandDelayHandle = {
+      inFlight: [],
+      shape: "stream",
+      effectiveDelaySeconds: 0,
+      streams: [STREAM],
+      _output: { consumed: false },
+    };
+    render(<CommandDelay handles={[a, b]} />);
+    // Marked even though both render nothing (instant): no exemption path.
+    expect(a._output?.consumed).toBe(true);
+    expect(b._output?.consumed).toBe(true);
+  });
+
   it("has no accessibility violations when rendering the discrete list", async () => {
     const handle: CommandDelayHandle = {
       inFlight: IN_FLIGHT,

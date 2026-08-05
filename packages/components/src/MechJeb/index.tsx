@@ -10,11 +10,10 @@ import {
   Badge,
   type BadgeTone,
   Cluster,
-  InFlightList,
+  CommandDelay,
   Panel,
   Section,
   SectionTitle,
-  toInFlightListItems,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
@@ -199,9 +198,9 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
           phase={executeNode.status.phase}
           onFire={fireExecuteNode}
         />
-        <InFlightList
-          items={toInFlightListItems(executeNode.inFlight)}
-          ariaLabel="Execute next node: in flight"
+        <CommandDelay
+          handles={[engage, executeNode, land]}
+          ariaLabel="MechJeb commands: in flight"
         />
         <CommandRow
           label="Land at target"

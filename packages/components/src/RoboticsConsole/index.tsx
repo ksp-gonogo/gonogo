@@ -7,11 +7,10 @@ import {
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   Cluster,
+  CommandDelay,
   EmptyState,
-  InFlightList,
   Panel,
   ToggleButton,
-  toInFlightListItems,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -211,12 +210,6 @@ function RoboticsConsoleComponent({
       { label: locked ? "Lock" : "Unlock" },
     );
 
-  const inFlight = toInFlightListItems([
-    ...targetCmd.inFlight,
-    ...motorCmd.inFlight,
-    ...lockCmd.inFlight,
-  ]);
-
   useActionInput<RoboticsConsoleActions>({
     targetUp: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
@@ -292,8 +285,8 @@ function RoboticsConsoleComponent({
           )}
         </Cluster>
 
-        <InFlightList
-          items={inFlight}
+        <CommandDelay
+          handles={[targetCmd, motorCmd, lockCmd]}
           ariaLabel="Robotics commands: in flight"
         />
 

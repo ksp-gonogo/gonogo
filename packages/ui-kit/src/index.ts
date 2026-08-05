@@ -85,6 +85,7 @@ export {
   CommandDelay,
   type CommandDelayHandle,
   type CommandDelayProps,
+  type CommandOutputToken,
 } from "./CommandDelay/CommandDelay";
 export {
   CommandGroup,

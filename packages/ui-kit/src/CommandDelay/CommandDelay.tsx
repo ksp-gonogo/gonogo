@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   ControlDelayStream,
   type ControlStreamDatum,
@@ -13,13 +14,21 @@ import {
 } from "./toInFlightListItems";
 
 /**
+ * The dev-only must-consume token a command handle carries. `<CommandDelay>`
+ * flips `consumed` on mount; `useCommand`'s `send()` asserts it was flipped,
+ * so a delayed command can never be dispatched without its delay UX rendered.
+ * Stripped in production (the field is absent), so this is never a prod cost.
+ */
+export interface CommandOutputToken {
+  consumed: boolean;
+}
+
+/**
  * The single delay-output handle every command widget hands to
  * `<CommandDelay>`. Declared structurally here (not imported from
  * `@ksp-gonogo/sitrep-client`) so ui-kit stays the vanilla design system with
  * no dependency back on the telemetry spine: `useCommand`'s real return value
- * satisfies this shape at every call site. `_output` (the dev-only
- * must-consume token) is threaded in a later task and intentionally absent
- * here.
+ * satisfies this shape at every call site.
  */
 export interface CommandDelayHandle {
   /**
@@ -45,10 +54,24 @@ export interface CommandDelayHandle {
    * samples `ControlDelayStream` draws). Ignored for a discrete handle.
    */
   streams?: ControlStreamDatum[];
+  /**
+   * The dev-only must-consume token (absent in production). `<CommandDelay>`
+   * marks it consumed on mount so `useCommand`'s dispatch-time assertion
+   * passes. A handle from a non-`useCommand` source simply omits it.
+   */
+  _output?: CommandOutputToken;
 }
 
 export interface CommandDelayProps {
-  handle: CommandDelayHandle;
+  /** A single command handle. Sugar for `handles={[handle]}`. */
+  handle?: CommandDelayHandle;
+  /**
+   * Several command handles rendered as one merged list, for a widget whose
+   * controls fire more than one command (e.g. a maneuver planner's
+   * add/update/remove). Every handle's must-consume token is marked, and their
+   * discrete in-flight rows are concatenated into a single `InFlightList`.
+   */
+  handles?: CommandDelayHandle[];
   /**
    * Accessible label for the rendered region. Left undefined, each branch
    * keeps its own default ("In-flight commands" / "Controls in flight").
@@ -63,31 +86,64 @@ export interface CommandDelayProps {
 
 /**
  * The one delay-output component every delayed command flows through.
- * Shape-dispatches on the handle: nothing at zero effective delay (the
+ * Shape-dispatches on the handle(s): nothing at zero effective delay (the
  * meta-vantage / direct-link instant case), the continuous
- * `ControlDelayStream` for a stream command, or the discrete `InFlightList`
- * otherwise. A command widget renders exactly `<CommandDelay handle={cmd} />`
- * and gets the correct delay UX for free, with no per-widget branching.
+ * `ControlDelayStream` for a single stream command, or the discrete
+ * `InFlightList` (merged across handles) otherwise. A command widget renders
+ * exactly `<CommandDelay handle={cmd} />` (or `handles={[…]}`) and gets the
+ * correct delay UX for free, with no per-widget branching.
+ *
+ * Rendering `<CommandDelay>` is also what SATISFIES the must-consume invariant:
+ * it marks every handle's `_output` token on mount (dev only), which is how
+ * `useCommand`'s `send()` knows the delay UX is present. It marks the token
+ * even when it draws nothing (instant), so there is no exemption path.
  */
 export function CommandDelay({
   handle,
+  handles,
   ariaLabel,
   mode,
   density,
   orientation,
 }: Readonly<CommandDelayProps>) {
-  if (handle.effectiveDelaySeconds <= 0) return null;
-  if (handle.shape === "stream") {
+  const all = handles ?? (handle ? [handle] : []);
+
+  // Mark every handle's must-consume token (dev only). Runs on every commit so
+  // a handle added to the array later is still marked; idempotent. Stripped in
+  // production, where `_output` is absent anyway.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    for (const h of all) {
+      if (h._output) h._output.consumed = true;
+    }
+  });
+
+  // A lone stream handle draws the continuous strip; a stream's own delay is
+  // gated inside ControlDelayStream, but the shared instant short-circuit still
+  // applies here first.
+  if (all.length === 1 && all[0].shape === "stream") {
+    const streamHandle = all[0];
+    if (streamHandle.effectiveDelaySeconds <= 0) return null;
     return (
       <ControlDelayStream
-        streams={handle.streams ?? []}
+        streams={streamHandle.streams ?? []}
         ariaLabel={ariaLabel}
       />
     );
   }
+
+  // Discrete (one or many handles): merge their in-flight rows into a single
+  // list. `InFlightList` self-blanks on an empty set, so an instant command
+  // (meta-vantage / direct link) shows nothing without a separate delay gate:
+  // its `inFlight` is empty because nothing lingers in `system.uplink.pending`.
+  // Deliberately NOT gated on `effectiveDelaySeconds`, that reads the global
+  // `comms.delay` topic which a widget may not carry, and gating on it would
+  // silently hide real in-flight rows; `inFlight` (from the carried
+  // `system.uplink.pending`) is the correct, self-consistent signal.
+  const items = toInFlightListItems(all.flatMap((h) => h.inFlight));
   return (
     <InFlightList
-      items={toInFlightListItems(handle.inFlight)}
+      items={items}
       ariaLabel={ariaLabel}
       mode={mode}
       density={density}

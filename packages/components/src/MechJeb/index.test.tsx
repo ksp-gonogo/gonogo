@@ -169,7 +169,7 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
         await vi.advanceTimersByTimeAsync(20);
       });
 
-      const list = screen.getByLabelText("Execute next node: in flight");
+      const list = screen.getByLabelText("MechJeb commands: in flight");
       expect(list).toHaveTextContent("Execute next node");
       expect(list).toHaveTextContent("4s");
 
@@ -199,7 +199,7 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
       });
 
       expect(
-        screen.queryByLabelText("Execute next node: in flight"),
+        screen.queryByLabelText("MechJeb commands: in flight"),
       ).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();

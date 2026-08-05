@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CommsDelayLike } from "./command-delay";
 import { useUtNow } from "./context";
-import { useCommand } from "./use-command";
+import { type UseCommandResult, useCommand } from "./use-command";
 import { useLatestValue } from "./use-stream";
 
 /** The fire/skip/wait verdict for a lead-compensated dispatch on a given tick. */
@@ -53,6 +53,14 @@ export interface AutoCommandStatus {
   skipped: boolean;
   /** The game-UT this will dispatch at: `targetUt - current one-way delay`. */
   dispatchUt: number;
+  /**
+   * The underlying command handle. The consumer MUST render
+   * `<CommandDelay handle={status.command} />` so the auto-dispatched command's
+   * signal-delay UX is shown, this hook dispatches on a schedule rather than a
+   * click, but the same must-consume invariant applies (it does not render its
+   * own delay UX, so it can't self-consume like `useControlStream`).
+   */
+  command: UseCommandResult;
 }
 
 /**
@@ -74,7 +82,8 @@ export function useAutoCommand({
 }: AutoCommandOptions): AutoCommandStatus {
   const utNow = useUtNow();
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
-  const { send } = useCommand(command);
+  const cmd = useCommand(command);
+  const { send } = cmd;
   // `comms.delay.oneWaySeconds` (the SignalDelay capability, same source
   // `DelayAuthority` reads) is the ACTIVE-VESSEL one-way delay today. Per-vessel
   // delay is being designed; an auto-command for a NON-active vessel will
@@ -122,5 +131,6 @@ export function useAutoCommand({
     fired: phase === "fired",
     skipped: phase === "skipped",
     dispatchUt: targetUt - delaySeconds,
+    command: cmd,
   };
 }

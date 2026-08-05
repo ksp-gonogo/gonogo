@@ -10,13 +10,12 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
-  InFlightList,
+  CommandDelay,
   Panel,
   ScienceExperimentRow,
   ScrollArea,
   Section,
   SectionTitle,
-  toInFlightListItems,
   Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
@@ -309,11 +308,8 @@ function ScienceOfficerComponent({
       }
     >
       {showLab && <LabSection labs={labs} />}
-      <InFlightList
-        items={toInFlightListItems([
-          ...deployCmd.inFlight,
-          ...transmitCmd.inFlight,
-        ])}
+      <CommandDelay
+        handles={[deployCmd, transmitCmd]}
         ariaLabel="Science commands: in flight"
       />
       <Body $row={isLandscape}>

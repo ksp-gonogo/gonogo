@@ -22,12 +22,11 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   CheckIcon,
-  InFlightList,
+  CommandDelay,
   Panel,
   ScrollArea,
   SectionTitle,
   Stack,
-  toInFlightListItems,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -588,12 +587,8 @@ function ManeuverPlannerComponent({
       panelSubtitle={refBody ?? undefined}
     >
       <ScrollBody>
-        <InFlightList
-          items={toInFlightListItems([
-            ...addNodeCmd.inFlight,
-            ...updateNodeCmd.inFlight,
-            ...removeNodeCmd.inFlight,
-          ])}
+        <CommandDelay
+          handles={[addNodeCmd, updateNodeCmd, removeNodeCmd]}
           ariaLabel="Maneuver commands: in flight"
         />
         {renderNodesSection()}

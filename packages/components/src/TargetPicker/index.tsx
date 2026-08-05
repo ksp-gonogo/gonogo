@@ -24,18 +24,17 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
+  CommandDelay,
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
-  InFlightList,
   NULL_DISPLAY,
   Panel,
   Row,
   ScrollArea,
   Section,
   Spinner,
-  toInFlightListItems,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -504,11 +503,8 @@ function TargetPickerComponent({
         onChange={(e) => setFilter(e.target.value)}
         aria-label="Filter targets"
       />
-      <InFlightList
-        items={toInFlightListItems([
-          ...setTargetCmd.inFlight,
-          ...clearTargetCmd.inFlight,
-        ])}
+      <CommandDelay
+        handles={[setTargetCmd, clearTargetCmd]}
         ariaLabel="Target commands: in flight"
       />
       {available === undefined ? (

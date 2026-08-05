@@ -1,4 +1,5 @@
 import { act, render } from "@ksp-gonogo/test-utils";
+import { CommandDelay } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCommand } from "./auto-command";
@@ -64,14 +65,16 @@ function Harness(props: {
   enabled?: boolean;
   onSkip?: () => void;
 }) {
-  useAutoCommand({
+  const status = useAutoCommand({
     command: "stage",
     args: { n: 1 },
     targetUt: props.targetUt,
     enabled: props.enabled,
     onSkip: props.onSkip,
   });
-  return null;
+  // Consume the auto-command's handle: an auto-dispatch is subject to the same
+  // must-consume invariant as a click-driven one.
+  return <CommandDelay handle={status.command} />;
 }
 
 describe("useAutoCommand", () => {

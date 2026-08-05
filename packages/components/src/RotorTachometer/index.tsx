@@ -8,11 +8,10 @@ import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import { Gauge } from "@ksp-gonogo/ui";
 import {
+  CommandDelay,
   EmptyState,
-  InFlightList,
   Panel,
   ToggleButton,
-  toInFlightListItems,
   Unit,
   useElementSize,
   writeQuantity,
@@ -192,15 +191,6 @@ function RotorTachometerComponent({
   const reverse = (id: string) =>
     void reverseCmd.send({ partId: id }, { label: "Reverse" });
 
-  const inFlight = toInFlightListItems([
-    ...rpmCmd.inFlight,
-    ...torqueCmd.inFlight,
-    ...brakeCmd.inFlight,
-    ...motorCmd.inFlight,
-    ...lockCmd.inFlight,
-    ...reverseCmd.inFlight,
-  ]);
-
   useActionInput<RotorTachometerActions>({
     rpmUp: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
@@ -288,7 +278,10 @@ function RotorTachometerComponent({
           </GaugeWrap>
         )}
 
-        <InFlightList items={inFlight} ariaLabel="Rotor commands: in flight" />
+        <CommandDelay
+          handles={[rpmCmd, torqueCmd, brakeCmd, motorCmd, lockCmd, reverseCmd]}
+          ariaLabel="Rotor commands: in flight"
+        />
 
         <Controls>
           <ControlRow>
