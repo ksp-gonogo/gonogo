@@ -281,6 +281,17 @@ export {
   type ScienceExperimentRowProps,
   type ScienceInstrument,
 } from "./science/ScienceExperimentRow";
+// ── Status system (canonical severity vocabulary + panel status store) ────────
+export {
+  type Severity,
+  severityFromBadgeTone,
+  severityFromReadoutTone,
+  severityFromStatusTone,
+  severityFromStreamStatus,
+  severityFromValueTone,
+  severityRank,
+  worstSeverity,
+} from "./status/severity";
 export {
   Tape,
   type TapeMarker,
