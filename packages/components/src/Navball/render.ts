@@ -1,6 +1,5 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ServerStyleSheet } from "styled-components";
 import { AttitudeDialSvg } from "./AttitudeDialSvg";
 
 export interface RenderAttitudeDialOptions {
@@ -19,8 +18,8 @@ export interface RenderAttitudeDialOptions {
  *
  * Output is portable: CSS-variable references are resolved via an embedded
  * `<style>` block carrying the dark-mode palette from
- * `packages/app/src/styles/global.css`. styled-components hashes are
- * stripped so snapshot tests stay stable.
+ * `packages/app/src/styles/global.css`. `AttitudeDialSvg` is plain inline SVG
+ * (no styled-components), so no server-side style extraction is needed.
  */
 export function renderAttitudeDialToSvg(
   opts: RenderAttitudeDialOptions,
@@ -28,34 +27,20 @@ export function renderAttitudeDialToSvg(
   const size = opts.size ?? 320;
   const background = opts.background ?? "#050505";
 
-  const sheet = new ServerStyleSheet();
-  let rendered: string;
-  try {
-    rendered = renderToStaticMarkup(
-      sheet.collectStyles(
-        createElement(AttitudeDialSvg, {
-          heading: opts.heading,
-          pitch: opts.pitch,
-          roll: opts.roll,
-          size,
-          idPrefix: opts.idPrefix,
-        }),
-      ),
-    );
-  } finally {
-    sheet.seal();
-  }
+  const rendered = renderToStaticMarkup(
+    createElement(AttitudeDialSvg, {
+      heading: opts.heading,
+      pitch: opts.pitch,
+      roll: opts.roll,
+      size,
+      idPrefix: opts.idPrefix,
+    }),
+  );
 
-  const stripped = stripNonDeterministicClasses(rendered);
-
-  return stripped.replace(
+  return rendered.replace(
     /^<svg([^>]*)>/,
     `<svg$1 xmlns="http://www.w3.org/2000/svg">${SVG_STYLE_BLOCK}<rect width="${size}" height="${size}" fill="${background}" />`,
   );
-}
-
-function stripNonDeterministicClasses(html: string): string {
-  return html.replace(/\sclass="[^"]*\bsc-[^"]*"/g, "");
 }
 
 /**

@@ -39,8 +39,8 @@ import {
   Unit,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import styled from "styled-components";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -527,12 +527,12 @@ function NavballComponent({
       panelTitle={showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
       panelAside={
         showModeBadges ? (
-          <ModeBadgeRow>
-            <ModeBadge $on={sasOn}>
+          <div style={MODE_BADGE_ROW}>
+            <span style={modeBadgeStyle(sasOn)}>
               SAS{sasMode ? `: ${sasMode}` : ""}
-            </ModeBadge>
-            <ModeBadge $on={rcsOn}>RCS</ModeBadge>
-            {precisionOn && <ModeBadge $on>PRECISION</ModeBadge>}
+            </span>
+            <span style={modeBadgeStyle(rcsOn)}>RCS</span>
+            {precisionOn && <span style={modeBadgeStyle(true)}>PRECISION</span>}
             {showFbwDelayWarning && delaySeconds !== null && (
               <Badge tone="warn" size="sm">
                 FBW · <Countdown value={delaySeconds} precise /> DELAY
@@ -542,13 +542,13 @@ function NavballComponent({
                 surface its active mode here, alongside SAS/RCS. Renders nothing
                 until an augment binds `navball.badges`. */}
             <AugmentSlot name="navball.badges" props={{}} />
-          </ModeBadgeRow>
+          </div>
         ) : undefined
       }
     >
-      <Body>
+      <div style={BODY}>
         {showDial ? (
-          <DialWrap ref={dialRef}>
+          <div ref={dialRef} style={DIAL_WRAP}>
             <AttitudeIndicator
               heading={heading}
               pitch={pitch}
@@ -556,32 +556,34 @@ function NavballComponent({
               size={dialSize}
             />
             {showThrottleColumn && (
-              <ThrottleColumn>
-                <ThrottleLabel>THR</ThrottleLabel>
-                <ThrottleBar>
-                  <ThrottleFill style={{ height: `${throttle * 100}%` }} />
-                </ThrottleBar>
-                <ThrottleVal>
+              <div style={THROTTLE_COLUMN}>
+                <span style={THROTTLE_LABEL}>THR</span>
+                <div style={THROTTLE_BAR}>
+                  <div
+                    style={{ ...THROTTLE_FILL, height: `${throttle * 100}%` }}
+                  />
+                </div>
+                <span style={THROTTLE_VAL}>
                   <Unit value={value("%", throttle * 100)} decimals={0} />
-                </ThrottleVal>
-              </ThrottleColumn>
+                </span>
+              </div>
             )}
-          </DialWrap>
+          </div>
         ) : (
-          <NumericReadout>
-            <ReadoutRow>
-              <ReadoutLabel>HDG</ReadoutLabel>
-              <ReadoutValue>
+          <div style={NUMERIC_READOUT}>
+            <div style={READOUT_ROW}>
+              <span style={READOUT_LABEL}>HDG</span>
+              <span style={READOUT_VALUE}>
                 {heading === null ? (
                   NULL_DISPLAY
                 ) : (
                   <Unit value={value("°", heading)} decimals={0} />
                 )}
-              </ReadoutValue>
-            </ReadoutRow>
-            <ReadoutRow>
-              <ReadoutLabel>PCH</ReadoutLabel>
-              <ReadoutValue>
+              </span>
+            </div>
+            <div style={READOUT_ROW}>
+              <span style={READOUT_LABEL}>PCH</span>
+              <span style={READOUT_VALUE}>
                 {pitch === null ? (
                   NULL_DISPLAY
                 ) : (
@@ -590,11 +592,11 @@ function NavballComponent({
                     <Unit value={value("°", pitch)} decimals={0} />
                   </>
                 )}
-              </ReadoutValue>
-            </ReadoutRow>
-            <ReadoutRow>
-              <ReadoutLabel>RLL</ReadoutLabel>
-              <ReadoutValue>
+              </span>
+            </div>
+            <div style={READOUT_ROW}>
+              <span style={READOUT_LABEL}>RLL</span>
+              <span style={READOUT_VALUE}>
                 {roll === null ? (
                   NULL_DISPLAY
                 ) : (
@@ -603,9 +605,9 @@ function NavballComponent({
                     <Unit value={value("°", roll)} decimals={0} />
                   </>
                 )}
-              </ReadoutValue>
-            </ReadoutRow>
-          </NumericReadout>
+              </span>
+            </div>
+          </div>
         )}
 
         {showControlSurface && (
@@ -629,7 +631,7 @@ function NavballComponent({
             commandHandles={[sasCmd, rcsCmd, sasModeCmd, fbwCmd]}
           />
         )}
-      </Body>
+      </div>
     </Panel>
   );
 }
@@ -678,19 +680,19 @@ function ControlSurface({
   commandHandles,
 }: ControlSurfaceProps) {
   return (
-    <ControlWrap>
+    <div style={CONTROL_WRAP}>
       {disabled && (
-        <Banner role="status" aria-live="polite">
+        <div style={BANNER} role="status" aria-live="polite">
           Vessel not controllable: buttons disabled.
-        </Banner>
+        </div>
       )}
       <CommandDelay
         handles={commandHandles}
         ariaLabel="Navball commands: in flight"
       />
-      <Group>
-        <GroupLabel>SAS</GroupLabel>
-        <ButtonGrid>
+      <div style={GROUP}>
+        <div style={GROUP_LABEL}>SAS</div>
+        <div style={BUTTON_GRID}>
           <ToggleButton
             type="button"
             active={sasOn}
@@ -710,12 +712,12 @@ function ControlSurface({
           <ToggleButton type="button" active={precisionOn} disabled>
             PRECISION
           </ToggleButton>
-        </ButtonGrid>
-      </Group>
+        </div>
+      </div>
 
-      <Group>
-        <GroupLabel>SAS Mode</GroupLabel>
-        <ButtonGrid>
+      <div style={GROUP}>
+        <div style={GROUP_LABEL}>SAS Mode</div>
+        <div style={BUTTON_GRID}>
           {SAS_MODES.map((mode) => (
             <ToggleButton
               key={mode}
@@ -727,13 +729,13 @@ function ControlSurface({
               {modeShort(mode)}
             </ToggleButton>
           ))}
-        </ButtonGrid>
-      </Group>
+        </div>
+      </div>
 
-      <Group>
-        <GroupLabel>Throttle</GroupLabel>
-        <SliderRow>
-          <Slider
+      <div style={GROUP}>
+        <div style={GROUP_LABEL}>Throttle</div>
+        <div style={SLIDER_ROW}>
+          <input
             type="range"
             min={0}
             max={1}
@@ -742,12 +744,13 @@ function ControlSurface({
             onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
             disabled={disabled}
             aria-label="Throttle"
+            style={SLIDER}
           />
-          <SliderVal>
+          <span style={SLIDER_VAL}>
             <Unit value={value("%", throttleCmd * 100)} decimals={0} />
-          </SliderVal>
-        </SliderRow>
-        <ButtonGrid>
+          </span>
+        </div>
+        <div style={BUTTON_GRID}>
           <Button
             type="button"
             onClick={() => onSetThrottleCmd(0)}
@@ -776,7 +779,7 @@ function ControlSurface({
           >
             FULL
           </Button>
-        </ButtonGrid>
+        </div>
         {/*
           Continuous control-delay viz for the throttle axis, the reference
           surface for this design: pitch/yaw/roll aren't included, see the
@@ -789,11 +792,11 @@ function ControlSurface({
           streams={[throttleStream]}
           ariaLabel="Navball: controls in flight"
         />
-      </Group>
+      </div>
 
-      <Group>
-        <GroupLabel>Fly-by-wire</GroupLabel>
-        <FbwRow>
+      <div style={GROUP}>
+        <div style={GROUP_LABEL}>Fly-by-wire</div>
+        <div style={FBW_ROW}>
           <ToggleButton
             type="button"
             active={fbwArmed}
@@ -802,20 +805,20 @@ function ControlSurface({
           >
             {fbwArmed ? "FBW ARMED" : "Arm FBW"}
           </ToggleButton>
-          <FbwHint>
+          <span style={FBW_HINT}>
             {fbwArmed
               ? "Mapped pitch/yaw/roll/translate inputs are live."
               : "Bind axes via the Inputs tab, then arm to take stick control."}
-          </FbwHint>
-        </FbwRow>
+          </span>
+        </div>
         {showFbwDelayWarning && delaySeconds !== null && (
           <StatusIndicator tone="warn" live>
             High signal delay (<Countdown value={delaySeconds} precise />
             ), fly-by-wire stick input lags round-trip; expect to overcorrect.
           </StatusIndicator>
         )}
-      </Group>
-    </ControlWrap>
+      </div>
+    </div>
   );
 }
 
@@ -921,189 +924,195 @@ function NavballConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const ModeBadgeRow = styled.div`
-  display: flex;
-  gap: var(--space-4);
-  /* Wrap badges onto a second line at narrow widths instead of pushing the
-     trailing badge (RCS / PRECISION) past the clipped panel edge. Align right
-     so they stay grouped under the SAS badge. */
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  min-width: 0;
-`;
+// Structural inline styles (CSS-var tokens): a bespoke dial + control surface,
+// no reusable ui-kit primitive fits, so the layout stays local. The off-scale
+// readout font (18px), the off-ladder dial gap (10px, a ResizeObserver-reserve
+// term) and the 80ms throttle chase are deliberately literal (see each note)
+// and were already literal in the styled blocks this replaces.
 
-const ModeBadge = styled.span<{ $on: boolean }>`
-  font-size: var(--font-size-2xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-xs);
-  background: ${(p) =>
-    p.$on ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
-  color: ${(p) =>
-    p.$on ? "var(--color-status-go-fg)" : "var(--color-text-faint)"};
-`;
+// Wrap badges onto a second line at narrow widths instead of pushing the
+// trailing badge (RCS / PRECISION) past the clipped panel edge. Align right so
+// they stay grouped under the SAS badge.
+const MODE_BADGE_ROW: CSSProperties = {
+  display: "flex",
+  gap: "var(--space-4)",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+  minWidth: 0,
+};
 
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  margin-top: var(--space-8);
-  flex: 1;
-  min-height: 0;
-`;
+function modeBadgeStyle(on: boolean): CSSProperties {
+  return {
+    fontSize: "var(--font-size-2xs)",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    padding: "var(--space-hair) var(--space-6)",
+    borderRadius: "var(--radius-xs)",
+    background: on
+      ? "var(--color-status-go-bg)"
+      : "var(--color-surface-raised)",
+    color: on ? "var(--color-status-go-fg)" : "var(--color-text-faint)",
+  };
+}
 
-const DialWrap = styled.div`
-  /* Fill the available column so the ResizeObserver sees real dimensions,
-     without flex:1 the wrap collapses to its content and the dial gets
-     stuck at whatever size it last resolved to. */
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  /* Off the spacing ladder: this 10 is a term in the ResizeObserver's
-     throttleReserve = 42 ("~32 px bar + 10 px gap") in this file. It is
-     computed, not chosen, so it moves only when that constant moves. */
-  gap: 10px;
-  justify-content: center;
-`;
+const BODY: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-8)",
+  marginTop: "var(--space-8)",
+  flex: 1,
+  minHeight: 0,
+};
 
-const NumericReadout = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  flex: 1;
-  justify-content: center;
-`;
+const DIAL_WRAP: CSSProperties = {
+  // Fill the available column so the ResizeObserver sees real dimensions,
+  // without flex:1 the wrap collapses to its content and the dial gets stuck at
+  // whatever size it last resolved to.
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  alignItems: "center",
+  // Off the spacing ladder: this 10 is a term in the ResizeObserver's
+  // throttleReserve = 42 ("~32 px bar + 10 px gap") in this file. It is
+  // computed, not chosen, so it moves only when that constant moves.
+  gap: "10px",
+  justifyContent: "center",
+};
 
-const ReadoutRow = styled.div`
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-8);
-`;
+const NUMERIC_READOUT: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+  flex: 1,
+  justifyContent: "center",
+};
 
-const ReadoutLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  color: var(--color-text-faint);
-  min-width: 28px;
-`;
+const READOUT_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "var(--space-8)",
+};
 
-const ReadoutValue = styled.span`
-  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
-     is a display-tier readout. */
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-`;
+const READOUT_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  color: "var(--color-text-faint)",
+  minWidth: "28px",
+};
 
-const ThrottleColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  min-width: 32px;
-`;
+const READOUT_VALUE: CSSProperties = {
+  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a
+  // display-tier readout.
+  fontSize: "18px",
+  fontWeight: 700,
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+  letterSpacing: "0.04em",
+};
 
-const ThrottleLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  color: var(--color-text-faint);
-`;
+const THROTTLE_COLUMN: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "var(--space-4)",
+  minWidth: "32px",
+};
 
-const ThrottleBar = styled.div`
-  width: 14px;
-  height: 100px;
-  border: 1px solid var(--color-surface-raised);
-  background: var(--color-surface-app);
-  position: relative;
-  overflow: hidden;
-`;
+const THROTTLE_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  color: "var(--color-text-faint)",
+};
 
-const ThrottleFill = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--color-accent-fg);
-  /* Off the motion scale on purpose: an 80ms chase on live throttle, not a
-     UI-motion choice. --duration-instant is the hover rung, and retuning it
-     must not change how the bar tracks telemetry. */
-  transition: height 80ms linear;
-`;
+const THROTTLE_BAR: CSSProperties = {
+  width: "14px",
+  height: "100px",
+  border: "1px solid var(--color-surface-raised)",
+  background: "var(--color-surface-app)",
+  position: "relative",
+  overflow: "hidden",
+};
 
-const ThrottleVal = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-`;
+const THROTTLE_FILL: CSSProperties = {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  background: "var(--color-accent-fg)",
+  // Off the motion scale on purpose: an 80ms chase on live throttle, not a
+  // UI-motion choice. --duration-instant is the hover rung, and retuning it
+  // must not change how the bar tracks telemetry.
+  transition: "height 80ms linear",
+};
 
-const ControlWrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--color-surface-raised);
-`;
+const THROTTLE_VAL: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+};
 
-const Banner = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-status-warning-bg);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-status-warning-bg);
-  border-radius: var(--radius-xs);
-`;
+const CONTROL_WRAP: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-8)",
+  paddingTop: "var(--space-6)",
+  borderTop: "1px solid var(--color-surface-raised)",
+};
 
-const Group = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
+const BANNER: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-status-warning-bg)",
+  padding: "var(--space-4) var(--space-6)",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-status-warning-bg)",
+  borderRadius: "var(--radius-xs)",
+};
 
-const GroupLabel = styled.div`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-`;
+const GROUP: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+};
 
-const ButtonGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
-  gap: var(--space-4);
-`;
+const GROUP_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--color-text-faint)",
+};
 
-const SliderRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-`;
+const BUTTON_GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(48px, 1fr))",
+  gap: "var(--space-4)",
+};
 
-const Slider = styled.input`
-  flex: 1;
-`;
+const SLIDER_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--space-8)",
+};
 
-const SliderVal = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  min-width: 36px;
-  text-align: right;
-`;
+const SLIDER: CSSProperties = { flex: 1 };
 
-const FbwRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-`;
+const SLIDER_VAL: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+  minWidth: "36px",
+  textAlign: "right",
+};
 
-const FbwHint = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-faint);
-`;
+const FBW_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--space-8)",
+};
+
+const FBW_HINT: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  color: "var(--color-text-faint)",
+};
 
 // ── Registration ──────────────────────────────────────────────────────────────
 

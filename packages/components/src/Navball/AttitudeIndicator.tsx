@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Cluster, Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import type { CSSProperties } from "react";
 
 export interface AttitudeIndicatorProps {
   heading: number | null;
@@ -58,7 +58,7 @@ export function AttitudeIndicator({
   const headingTickEvery = 10;
 
   return (
-    <Wrap aria-hidden={!ready}>
+    <div aria-hidden={!ready} style={WRAP}>
       <Cluster justify="center">
         <svg
           width={size}
@@ -166,64 +166,63 @@ export function AttitudeIndicator({
         </svg>
       </Cluster>
 
-      <HeadingStrip>
-        <HeadingTicker
+      <div style={HEADING_STRIP}>
+        <div
           // The ticker shares the strip's width (inset:0), so translateX(50%)
           // shifts the whole tick row right by stripWidth/2, combined with
           // the per-degree shift this puts the current-heading tick directly
           // under the centred pointer instead of at the strip's left edge.
           style={{
+            ...HEADING_TICKER,
             transform: `translateX(calc(50% - ${safeHeading * headingPxPerDeg}px))`,
           }}
         >
           {headingMarkers(headingTickEvery).map((deg) => (
-            <HeadingTick
+            <div
               key={deg}
-              style={{
-                left: `${deg * headingPxPerDeg}px`,
-              }}
+              style={{ ...HEADING_TICK, left: `${deg * headingPxPerDeg}px` }}
             >
-              <HeadingTickMark />
-              {deg % 30 === 0 && <HeadingTickLabel>{deg}</HeadingTickLabel>}
-            </HeadingTick>
+              <div style={HEADING_TICK_MARK} />
+              {deg % 30 === 0 && <div style={HEADING_TICK_LABEL}>{deg}</div>}
+            </div>
           ))}
-        </HeadingTicker>
-        <HeadingPointer />
-      </HeadingStrip>
+        </div>
+        <div style={HEADING_POINTER} />
+      </div>
 
       <Grid cols="repeat(3, 1fr)" gap="md">
-        <Cell>
-          <Lab>HDG</Lab>
-          <Val>
+        <div style={CELL}>
+          <span style={LAB}>HDG</span>
+          <span style={VAL}>
             {ready ? (
               <Unit value={value("°", safeHeading)} decimals={0} />
             ) : (
               NULL_DISPLAY
             )}
-          </Val>
-        </Cell>
-        <Cell>
-          <Lab>PIT</Lab>
-          <Val>
+          </span>
+        </div>
+        <div style={CELL}>
+          <span style={LAB}>PIT</span>
+          <span style={VAL}>
             {ready ? (
               <Unit value={value("°", safePitch)} decimals={0} />
             ) : (
               NULL_DISPLAY
             )}
-          </Val>
-        </Cell>
-        <Cell>
-          <Lab>ROL</Lab>
-          <Val>
+          </span>
+        </div>
+        <div style={CELL}>
+          <span style={LAB}>ROL</span>
+          <span style={VAL}>
             {ready ? (
               <Unit value={value("°", safeRoll)} decimals={0} />
             ) : (
               NULL_DISPLAY
             )}
-          </Val>
-        </Cell>
+          </span>
+        </div>
       </Grid>
-    </Wrap>
+    </div>
   );
 }
 
@@ -243,98 +242,102 @@ function headingMarkers(every: number): number[] {
   return out;
 }
 
-const Wrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-4);
-`;
+// Structural inline styles (CSS-var tokens): a bespoke attitude readout, no
+// reusable ui-kit primitive fits, so the layout stays local. Off-scale font
+// sizes (9/14px) and the 80ms heading chase are deliberately literal (see each
+// note) and were already literal in the styled blocks this replaces.
 
-const HeadingStrip = styled.div`
-  position: relative;
-  height: 22px;
-  border: 1px solid var(--color-surface-raised);
-  background: var(--color-surface-app);
-  overflow: hidden;
-`;
+const WRAP: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "stretch",
+  gap: "var(--space-4)",
+};
 
-const HeadingTicker = styled.div`
-  position: absolute;
-  inset: 0;
-  /* The ticks position absolutely against the parent, so transform on the
-     wrapper just shifts them as a group without affecting the pointer. */
-  /* Off the motion scale on purpose: an 80ms chase on live heading, not a
-     UI-motion choice. --duration-instant is the hover rung, and retuning it
-     must not change how the strip tracks telemetry. */
-  transition: transform 80ms linear;
-`;
+const HEADING_STRIP: CSSProperties = {
+  position: "relative",
+  height: "22px",
+  border: "1px solid var(--color-surface-raised)",
+  background: "var(--color-surface-app)",
+  overflow: "hidden",
+};
 
-const HeadingTick = styled.div`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  /* The tick container shrinks to fit its label, so anchoring with just a
-     left:Xpx style puts the LEFT EDGE at that position and the visible
-     tick + label end up offset by half the container's intrinsic width.
-     translateX(-50%) centres the visible content on the anchor so the
-     current-heading tick lines up under the fixed pointer at strip
-     centre. */
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
+const HEADING_TICKER: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  // The ticks position absolutely against the parent, so transform on the
+  // wrapper just shifts them as a group without affecting the pointer.
+  // Off the motion scale on purpose: an 80ms chase on live heading, not a
+  // UI-motion choice. --duration-instant is the hover rung, and retuning it
+  // must not change how the strip tracks telemetry.
+  transition: "transform 80ms linear",
+};
 
-const HeadingTickMark = styled.div`
-  width: 1px;
-  height: 6px;
-  background: var(--color-text-muted);
-`;
+const HEADING_TICK: CSSProperties = {
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  // The tick container shrinks to fit its label, so anchoring with just a
+  // left:Xpx style puts the LEFT EDGE at that position and the visible tick +
+  // label end up offset by half the container's intrinsic width.
+  // translateX(-50%) centres the visible content on the anchor so the
+  // current-heading tick lines up under the fixed pointer at strip centre.
+  transform: "translateX(-50%)",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+};
 
-const HeadingTickLabel = styled.div`
-  /* Off the type scale: this label sits under a 6px tick mark inside
-     HeadingStrip's fixed 22px, which leaves ~20px after its border.
-     --font-size-2xs is 11px on a coarse pointer and the strip's
-     overflow: hidden clips the label at that size. */
-  font-size: 9px;
-  color: var(--color-text-muted);
-  margin-top: var(--space-hair);
-`;
+const HEADING_TICK_MARK: CSSProperties = {
+  width: "1px",
+  height: "6px",
+  background: "var(--color-text-muted)",
+};
 
-const HeadingPointer = styled.div`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  background: var(--color-accent-fg);
-  pointer-events: none;
-`;
+const HEADING_TICK_LABEL: CSSProperties = {
+  // Off the type scale: this label sits under a 6px tick mark inside
+  // HeadingStrip's fixed 22px, which leaves ~20px after its border.
+  // --font-size-2xs is 11px on a coarse pointer and the strip's
+  // overflow: hidden clips the label at that size.
+  fontSize: "9px",
+  color: "var(--color-text-muted)",
+  marginTop: "var(--space-hair)",
+};
 
-const Cell = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border: 1px solid var(--color-surface-raised);
-  padding: var(--space-2) 0;
-`;
+const HEADING_POINTER: CSSProperties = {
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  left: "50%",
+  width: "1px",
+  background: "var(--color-accent-fg)",
+  pointerEvents: "none",
+};
 
-/* Lab and Val stay off the type scale: their rendered heights are two of the
-   terms in Navball's verticalReserve = 74, the bare JS number its
-   ResizeObserver subtracts before sizing the dial. The tokens grow this
-   column ~2px on desktop and ~4px on a coarse pointer while 74 does not
-   move, which is what pushes the strip and readout past the Panel's bottom
-   edge in the wide-and-short (mobile 9x8) case that reserve exists for. */
-const Lab = styled.span`
-  font-size: 9px;
-  color: var(--color-text-faint);
-  letter-spacing: 0.12em;
-`;
+const CELL: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  border: "1px solid var(--color-surface-raised)",
+  padding: "var(--space-2) 0",
+};
 
-const Val = styled.span`
-  /* Off the type scale with Lab above: same verticalReserve budget. */
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-`;
+// Lab and Val stay off the type scale: their rendered heights are two of the
+// terms in Navball's verticalReserve = 74, the bare JS number its
+// ResizeObserver subtracts before sizing the dial. The tokens grow this column
+// ~2px on desktop and ~4px on a coarse pointer while 74 does not move, which is
+// what pushes the strip and readout past the Panel's bottom edge in the
+// wide-and-short (mobile 9x8) case that reserve exists for.
+const LAB: CSSProperties = {
+  fontSize: "9px",
+  color: "var(--color-text-faint)",
+  letterSpacing: "0.12em",
+};
+
+const VAL: CSSProperties = {
+  // Off the type scale with Lab above: same verticalReserve budget.
+  fontSize: "14px",
+  fontWeight: 600,
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+};
