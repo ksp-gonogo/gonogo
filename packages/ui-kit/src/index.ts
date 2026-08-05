@@ -82,6 +82,11 @@ export {
   type CameraSetpointInputProps,
 } from "./CommandDelay/CameraSetpointInput";
 export {
+  CommandDelay,
+  type CommandDelayHandle,
+  type CommandDelayProps,
+} from "./CommandDelay/CommandDelay";
+export {
   CommandGroup,
   type CommandGroupProps,
 } from "./CommandDelay/CommandGroup";
