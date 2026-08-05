@@ -1,3 +1,4 @@
+import type { Product, Quotient } from "./algebra";
 import { calendarRatio } from "./calendar";
 import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
@@ -88,10 +89,37 @@ export interface Value<U extends string = string> {
   plus(other: Value<Addend<U>>): Value<U>;
   minus(other: Value<Addend<U>>): Value<U>;
 
-  /** Total. Any dimension over any dimension; `rep/f` is coherent. */
+  /**
+   * Total. Any dimension over any dimension; `rep/f` is coherent.
+   *
+   * Three overloads, and the order matters:
+   *
+   * 1. **`number` first.** A `Value` is an object type and is not assignable to
+   *    `number` despite `valueOf`, so it cannot be captured here by mistake.
+   *    This arm alone is an improvement: `value("kW",3).times(2)` used to be
+   *    `Value<string>` and is now `Value<"kW">`.
+   * 2. **The generic arm** does the dimensional algebra, so `m.per(s)` is
+   *    `Value<"m/s">` and `force.times(distance)` is `Value<"J">`.
+   * 3. **The wide arm last, and it is what keeps this non-breaking.** Without
+   *    it a UNION-typed argument (`Value | number`, which is what `per`'s own
+   *    implementation passes) matches no overload at all and fails with
+   *    TS2769. With it, a union resolves here and yields `Value<string>`,
+   *    which is exactly the answer every call site got before.
+   *
+   * A dimension the catalogue cannot name comes back as `Value<string>`. See
+   * `algebra.ts` for why that gap is where it is.
+   */
+  times(other: number): Value<U>;
+  times<W extends string>(other: Value<W>): Value<Product<U, W>>;
   times(other: Value | number): Value;
+
+  dividedBy(other: number): Value<U>;
+  dividedBy<W extends string>(other: Value<W>): Value<Quotient<U, W>>;
   dividedBy(other: Value | number): Value;
+
   /** `dividedBy`, spelled for the reading `distance.per(time)`. */
+  per(other: number): Value<U>;
+  per<W extends string>(other: Value<W>): Value<Quotient<U, W>>;
   per(other: Value | number): Value;
 
   /** Scales the magnitude, leaving the unit alone. */

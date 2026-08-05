@@ -24,6 +24,24 @@ export interface UnitDefinition {
    * and a ladder applied to a log scale is wrong rather than merely ugly.
    */
   readonly log?: true;
+  /**
+   * A second spelling of a dimension somebody else already owns: it parses and
+   * converts, but a COMPUTED value never renders as it.
+   *
+   * Three dimensions in this table have two ratio-1 units each, and something
+   * has to break the tie when `force.times(distance)` asks what to call
+   * `{kg:1,m:2,s:-2}`. At runtime `declaredUnitFor` breaks it by REGISTRATION
+   * ORDER, first wins. The type layer cannot use that rule, because the order
+   * of a union produced by a mapped-type lookup is not specified by
+   * TypeScript. In practice it followed declaration order every time it was
+   * checked, which is exactly the kind of undocumented agreement that holds
+   * until it does not.
+   *
+   * So the tie is written down instead of inferred, and it lives on the DATA
+   * rather than in a type-only list so a runtime test can assert the flag and
+   * `declaredUnitFor` still agree. See `algebra.ts`'s `CanonicalUnit`.
+   */
+  readonly alias?: true;
 }
 
 /**
@@ -94,11 +112,13 @@ export const UNIT_DEFINITIONS = {
   // meaningless but harmless, and it is ALLOWED: gating on kind cannot name the
   // kind of `force.times(distance)`, which is this exact map. `format="N·m"` is
   // how a torque keeps reading as a torque.
-  N·m: { dim: { kg: 1, m: 2, s: -2 }, ratio: 1, kind: "torque" },
+  // `alias` because J was registered first and is what a computed
+  // {kg:1,m:2,s:-2} renders as; see the flag's own doc on UnitDefinition.
+  N·m: { dim: { kg: 1, m: 2, s: -2 }, ratio: 1, kind: "torque", alias: true },
   W: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power" },
   // A declared alias for the same dimension. It parses, and it never renders:
   // the ratio-1 entry registered first (W) is what a computed power shows as.
-  "J/s": { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power" },
+  "J/s": { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power", alias: true },
   kW: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1_000, kind: "power" },
   // Descends below the base unit, which nothing else here needs to: the
   // upper atmosphere runs to fractions of a pascal.
@@ -158,7 +178,8 @@ export const UNIT_DEFINITIONS = {
   // yields either 0.62% or 6250%, both plausible enough on screen to go
   // unnoticed, which is why they are separate.
   "1": { dim: {}, ratio: 1, kind: "dimensionless" },
-  ratio: { dim: {}, ratio: 1, kind: "ratio" },
+  // `alias` because "1" was registered first: `m.per(m)` renders as `1`.
+  ratio: { dim: {}, ratio: 1, kind: "ratio", alias: true },
   "%": { dim: {}, ratio: 0.01, kind: "percent" },
 
   // ── Real time, a DIFFERENT dimension from game time ──────────────────────
