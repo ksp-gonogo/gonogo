@@ -25,8 +25,14 @@ namespace Sitrep.Core.Tests
         /// </summary>
         private static string CommittedDescriptorPath()
         {
+            // Stop at the repo root. `.git` is a DIRECTORY in a normal clone but
+            // a FILE (a `gitdir:` pointer) in a git worktree, so accept either,
+            // else this walks past the root to null when run from a worktree.
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, ".git")))
+            while (
+                dir != null
+                && !Directory.Exists(Path.Combine(dir.FullName, ".git"))
+                && !File.Exists(Path.Combine(dir.FullName, ".git")))
             {
                 dir = dir.Parent;
             }
