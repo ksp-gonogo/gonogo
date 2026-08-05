@@ -22,6 +22,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  severityFromBadgeTone,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment, useMemo } from "react";
@@ -289,7 +290,11 @@ function FleetRosterComponent({
     <Panel
       panelTitle="Fleet"
       panelSubtitle={`viewing from: ${vantageName}`}
-      panelAside={<Badge tone={rollup.tone}>{rollup.badgeLabel}</Badge>}
+      panelAside={
+        <Badge severity={severityFromBadgeTone(rollup.tone)}>
+          {rollup.badgeLabel}
+        </Badge>
+      }
     >
       {total === 0 ? (
         <EmptyState>
