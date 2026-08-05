@@ -12,8 +12,13 @@ import {
   useRef,
   useState,
 } from "react";
-import styled from "styled-components";
-import { StreamStatusBadge } from "./StreamStatusBadge";
+import styled, { css } from "styled-components";
+import { Badge } from "./Badge";
+import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
+import type { StatusSummary } from "./status/PanelStatusStore";
+import { severityFromStreamStatus } from "./status/severity";
+import { useStatusContribution } from "./status/useStatusContribution";
+import { useStatusSummary } from "./status/useStatusSummary";
 import { useElementSize } from "./useElementSize";
 
 interface PanelContextValue {
@@ -930,6 +935,58 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   sidebarSize?: string;
 }
 
+/**
+ * The winning status contribution, rendered as the header aside badge and given
+ * a brief transition cue when its severity changes: the summary pulses once on a
+ * severity change then settles quiet, so an operator's eye is drawn to a panel
+ * that just got worse (or recovered) without a persistent animation nagging.
+ * Reduced-motion guarded. The badge announces (`live`), since a summary change
+ * is exactly the kind of state transition a screen-reader user benefits from.
+ */
+function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
+  // A remount key that ticks on every severity change restarts the one-shot CSS
+  // animation (the same restart trick a keyed list item uses); the previous
+  // severity is held in a ref so a label-only change does not pulse.
+  const prevSeverity = useRef(summary.severity);
+  const [pulseKey, setPulseKey] = useState(0);
+  useEffect(() => {
+    if (prevSeverity.current !== summary.severity) {
+      prevSeverity.current = summary.severity;
+      setPulseKey((k) => k + 1);
+    }
+  }, [summary.severity]);
+  return (
+    <PanelSummaryBadge__Pulse key={pulseKey} $pulse={pulseKey > 0}>
+      <Badge severity={summary.severity} size="sm" live>
+        {summary.label}
+      </Badge>
+    </PanelSummaryBadge__Pulse>
+  );
+}
+
+const PanelSummaryBadge__Pulse = styled.span<{ $pulse: boolean }>`
+  display: inline-flex;
+  ${({ $pulse }) =>
+    $pulse &&
+    css`
+      @media (prefers-reduced-motion: no-preference) {
+        animation: panel-status-pulse var(--duration-slow, 600ms)
+          var(--ease-emphasis, ease-out);
+      }
+    `}
+  @keyframes panel-status-pulse {
+    0% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.14);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+`;
+
 function PanelRoot({
   panelTitle,
   panelSubtitle,
@@ -956,12 +1013,43 @@ function PanelRoot({
     panelAside !== undefined ||
     panelToolbar !== undefined;
 
+  // The panel's header status now comes from the per-item PanelStatusStore, so
+  // stream staleness, active alarms, and any `report` badge merge into one
+  // summary rather than the single host-provided stream value the old aside
+  // splice could show. The host-derived stream status still originates from
+  // `usePanelStreamStatus`; the panel folds it into the store as one ordinary
+  // contribution here, and `panelStatus` overrides or (with "none") suppresses
+  // just that stream contribution.
   const derived = usePanelStreamStatus();
   const status = panelStatus ?? derived;
-  const statusBadge =
-    !hasHeader || status === null || status === "none" ? null : (
-      <StreamStatusBadge status={status} />
-    );
+  // Live/none/absent-of-status contribute nothing (the floor), so a healthy
+  // stream keeps today's "no green pill" rule. A degraded status folds in as
+  // the "stream" contribution; `panelStatus="none"` suppresses it by leaving
+  // this null even when the host derived a stale status.
+  const streamStatus: StreamStatusValue | null =
+    hasHeader && status !== null && status !== "none" && status !== "live"
+      ? status
+      : null;
+  useStatusContribution(
+    streamStatus
+      ? {
+          id: "stream",
+          severity: severityFromStreamStatus(streamStatus),
+          label: formatStreamStatus(streamStatus) ?? "",
+        }
+      : null,
+  );
+  const summary = useStatusSummary();
+
+  // With a store in the tree the header renders the winning contribution; with
+  // none (a standalone panel in the settings modal or the station connect view,
+  // and every unit test that wraps only `Panel.Status`) it falls back to the
+  // legacy stream badge, so that path keeps behaving exactly as before.
+  const statusBadge = !hasHeader ? null : summary !== null ? (
+    <PanelSummaryBadge summary={summary} />
+  ) : streamStatus === null ? null : (
+    <StreamStatusBadge status={streamStatus} />
+  );
   // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
   // and skips the box, where a null child would still render the padded slot.
   const aside =
@@ -1030,4 +1118,7 @@ export const Panel = Object.assign(PanelRoot, {
   Sidebar: PanelSidebar,
   Status: PanelStatusProvider,
   useStreamStatus: usePanelStreamStatus,
+  // The single interface the title-redesign ghost dot consumes. Producing the
+  // summary is this file's concern; painting it (the ghost) is the title spec's.
+  useStatusSummary,
 });
