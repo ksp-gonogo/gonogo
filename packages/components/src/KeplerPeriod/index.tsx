@@ -1,8 +1,8 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import { getBody, orbitalPeriod, registerComponent } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 
 export interface KeplerPeriodConfig {
@@ -112,61 +112,27 @@ function KeplerPeriodComponent({
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   return (
-    <Wrap>
-      <GraphSlot>
+    <Fill>
+      <Fill grow>
         <GraphView
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title="KEPLER PERIOD"
         />
-      </GraphSlot>
+      </Fill>
       {showNoGmNotice && body && (
-        <Notice role="status">
+        <GraphNotice placement="inline">
           No reference data for {body.name}: plotting trace only.
-        </Notice>
+        </GraphNotice>
       )}
       {showNoBodyNotice && (
-        <Notice role="status">
+        <GraphNotice placement="inline">
           Unknown body “{bodyName}”: plotting trace only.
-        </Notice>
+        </GraphNotice>
       )}
-    </Wrap>
+    </Fill>
   );
 }
-
-const GraphSlot = styled.div`
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Wrap = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-`;
-
-/* Notice sits below the chart as a normal flow row rather than an
-   absolute overlay: the absolute version covered the x-axis tick
-   labels at narrow heights. Shrinking the chart by ~24px is a fair
-   trade for keeping the axis legible while the degraded-state message
-   is visible. */
-const Notice = styled.div`
-  flex: 0 0 auto;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  background: rgba(0, 0, 0, 0.7);
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  pointer-events: none;
-  align-self: flex-start;
-  max-width: 100%;
-  margin-top: var(--space-4);
-`;
 
 registerComponent<KeplerPeriodConfig>({
   id: "kepler-period",
