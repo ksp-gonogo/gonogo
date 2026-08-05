@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   test: {
-    pool: "threads", // forks EPERM on macOS+Node24; see scansat config
+    pool: "threads", // forks EPERM on macOS+Node24; matches packages/components config
     name: "kerbcast",
     environment: "jsdom",
     globals: true,
