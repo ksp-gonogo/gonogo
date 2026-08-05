@@ -2,7 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { Meter } from "@ksp-gonogo/ui";
 import { Badge, Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import type { CSSProperties } from "react";
 import { magnitudeOr } from "../shared/magnitude";
 
 type SpaceWeatherConfig = Record<string, never>;
@@ -148,13 +148,13 @@ function StormTimeline({ state }: { state: StormState }) {
         : "No storm activity";
   let acc = 0;
   return (
-    <StatSection>
-      <SectionHead>
-        <SectionLabel>Storm forecast</SectionLabel>
-        <SectionValue $tone={state === "none" ? "go" : "warn"}>
+    <Section style={STAT_SECTION}>
+      <div style={SECTION_HEAD}>
+        <span style={SECTION_LABEL}>Storm forecast</span>
+        <span style={sectionValueStyle(state === "none" ? "go" : "warn")}>
           {headline}
-        </SectionValue>
-      </SectionHead>
+        </span>
+      </div>
       <svg
         viewBox="0 0 100 14"
         preserveAspectRatio="none"
@@ -189,7 +189,7 @@ function StormTimeline({ state }: { state: StormState }) {
         />
         <circle cx={nowPct} cy={1.6} r={1.6} fill="var(--color-text-primary)" />
       </svg>
-    </StatSection>
+    </Section>
   );
 }
 
@@ -239,8 +239,14 @@ function BeltRings({
   return (
     <svg
       viewBox="0 0 100 100"
-      width="100%"
-      height="100%"
+      // Sizing lived in RingsSlot's `& > svg` rule (not expressible inline);
+      // it belongs on the element it sizes, so it moves here.
+      style={{
+        maxHeight: "100%",
+        maxWidth: "100%",
+        width: "auto",
+        height: "100%",
+      }}
       role="img"
       aria-label="Radiation belt position"
     >
@@ -370,38 +376,40 @@ function SpaceWeatherComponent({
     >
       <StormTimeline state={d.stormState} />
 
-      <MidRow $compact={compact}>
-        <RingsSlot>
+      <div style={midRowStyle(compact)}>
+        <div style={RINGS_SLOT}>
           <BeltRings
             inner={d.innerBelt}
             outer={d.outerBelt}
             magnetosphere={d.magnetosphere}
             altitudeKm={d.altitudeKm}
           />
-          {d.blackout && <BlackoutTag>Comms blackout</BlackoutTag>}
-        </RingsSlot>
-        <DoseSlot>
-          <DoseValue $tone={doseTone(d.radiationRadPerHour)} $compact={compact}>
+          {d.blackout && <span style={BLACKOUT_TAG}>Comms blackout</span>}
+        </div>
+        <div style={DOSE_SLOT}>
+          <div style={doseValueStyle(doseTone(d.radiationRadPerHour), compact)}>
             {doseText}
-          </DoseValue>
-          <DoseCaption>habitat dose rate</DoseCaption>
-        </DoseSlot>
-      </MidRow>
+          </div>
+          <div style={DOSE_CAPTION}>habitat dose rate</div>
+        </div>
+      </div>
 
       {!compact && (
-        <FluxSection>
-          <SpacedCaption>Solar-wind flux</SpacedCaption>
-          <ChartSlot>
+        <div style={FLUX_SECTION}>
+          <ReadoutCaption style={SPACED_CAPTION}>
+            Solar-wind flux
+          </ReadoutCaption>
+          <div style={CHART_SLOT}>
             <SolarWindChart
               radiation={d.radiationRadPerHour}
               storm={d.stormState === "inprogress"}
               seed={d.seed}
             />
-          </ChartSlot>
-        </FluxSection>
+          </div>
+        </div>
       )}
 
-      <FooterRow>
+      <div style={FOOTER_ROW}>
         <Meter
           label="Shielding"
           value={shieldFrac}
@@ -410,17 +418,13 @@ function SpaceWeatherComponent({
           size={compact ? "sm" : "md"}
         />
         {!compact && (
-          <EnvRow>
-            <EnvTag $on={d.magnetosphere}>Magnetosphere</EnvTag>
-            <EnvTag $on={d.outerBelt} $tone="warn">
-              Outer belt
-            </EnvTag>
-            <EnvTag $on={d.innerBelt} $tone="nogo">
-              Inner belt
-            </EnvTag>
-          </EnvRow>
+          <div style={ENV_ROW}>
+            <span style={envTagStyle(d.magnetosphere)}>Magnetosphere</span>
+            <span style={envTagStyle(d.outerBelt, "warn")}>Outer belt</span>
+            <span style={envTagStyle(d.innerBelt, "nogo")}>Inner belt</span>
+          </div>
         )}
-      </FooterRow>
+      </div>
     </Panel>
   );
 }
@@ -429,161 +433,171 @@ function SpaceWeatherComponent({
 // Styles
 // ---------------------------------------------------------------------------
 
+// Structural inline styles (CSS-var tokens): a chrome-heavy readout, no
+// reusable ui-kit primitive fits the bespoke belt/dose/flux layout, so it
+// stays local rather than carrying styled-components into the widget. The
+// two ui-kit pieces it does reuse (Section, ReadoutCaption) keep their kit
+// type treatment and take only this widget's spacing inline.
+
 // Same shape as LifeSupportSystems': the kit's Section plus the spacing
 // above it, which is the only part that is this widget's business.
-const StatSection = styled(Section)`
-  margin-top: var(--space-8);
-`;
+const STAT_SECTION: CSSProperties = { marginTop: "var(--space-8)" };
 
-const SectionHead = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-8);
-`;
+const SECTION_HEAD: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "baseline",
+  gap: "var(--space-8)",
+};
 
-const SectionLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
+const SECTION_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+};
 
-const SectionValue = styled.span<{ $tone: Tone }>`
-  font-size: var(--font-size-xs);
-  color: ${({ $tone }) => TONE_HEX[$tone]};
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
+function sectionValueStyle(tone: Tone): CSSProperties {
+  return {
+    fontSize: "var(--font-size-xs)",
+    color: TONE_HEX[tone],
+    fontVariantNumeric: "tabular-nums",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+}
 
-const MidRow = styled.div<{ $compact: boolean }>`
-  flex: 0 0 auto;
-  height: ${({ $compact }) => ($compact ? "68px" : "86px")};
-  display: grid;
-  grid-template-columns: ${({ $compact }) =>
-    $compact ? "minmax(64px, 36%) 1fr" : "minmax(90px, 42%) 1fr"};
-  align-items: stretch;
-  gap: var(--space-12);
-  margin-top: ${({ $compact }) => ($compact ? "var(--space-4)" : "var(--space-10)")};
-  min-height: 0;
-  overflow: hidden;
-`;
+function midRowStyle(compact: boolean): CSSProperties {
+  return {
+    flex: "0 0 auto",
+    height: compact ? "68px" : "86px",
+    display: "grid",
+    gridTemplateColumns: compact
+      ? "minmax(64px, 36%) 1fr"
+      : "minmax(90px, 42%) 1fr",
+    alignItems: "stretch",
+    gap: "var(--space-12)",
+    marginTop: compact ? "var(--space-4)" : "var(--space-10)",
+    minHeight: 0,
+    overflow: "hidden",
+  };
+}
 
-const FluxSection = styled.div`
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-top: var(--space-10);
-  min-height: 0;
-`;
+const FLUX_SECTION: CSSProperties = {
+  flex: "0 0 auto",
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+  marginTop: "var(--space-10)",
+  minHeight: 0,
+};
 
-const RingsSlot = styled.div`
-  position: relative;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+// The `& > svg` sizing that lived here now sits inline on the BeltRings <svg>.
+const RINGS_SLOT: CSSProperties = {
+  position: "relative",
+  height: "100%",
+  minHeight: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+};
 
-  & > svg {
-    max-height: 100%;
-    max-width: 100%;
-    width: auto;
-    height: 100%;
-  }
-`;
+const BLACKOUT_TAG: CSSProperties = {
+  position: "absolute",
+  bottom: "2px",
+  left: "50%",
+  transform: "translateX(-50%)",
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  // Text sitting ON the nogo-bg fill, not beside it: -fg (2.61:1 here) fails
+  // the 4.5:1 AA floor. -on-bg is the token for exactly this case.
+  color: "var(--color-status-nogo-on-bg)",
+  background: "var(--color-status-nogo-bg)",
+  borderRadius: "var(--radius-sm)",
+  padding: "var(--space-hair) var(--space-6)",
+  whiteSpace: "nowrap",
+};
 
-const BlackoutTag = styled.span`
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  /* Text sitting ON the nogo-bg fill, not beside it: -fg (2.61:1 here) fails
-     the 4.5:1 AA floor. -on-bg is the token for exactly this case. */
-  color: var(--color-status-nogo-on-bg);
-  background: var(--color-status-nogo-bg);
-  border-radius: var(--radius-sm);
-  padding: var(--space-hair) var(--space-6);
-  white-space: nowrap;
-`;
+const DOSE_SLOT: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  minWidth: 0,
+  minHeight: 0,
+};
 
-const DoseSlot = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-`;
+// A prop-driven display tier ABOVE the 16px top of the type scale, so no token
+// rung fits; hoisted to named constants per the token-ratchet convention for
+// deliberately off-ladder values (the constant is the documentation). The 1.05
+// line-height is tuned to this size: a body line-height clips descenders on a
+// readout this large.
+const DOSE_FONT_COMPACT = "19px";
+const DOSE_FONT_FULL = "23px";
 
-const DoseValue = styled.div<{ $tone: Tone; $compact: boolean }>`
-  /* Both off their scales, as one pair: 19/23px is a prop-driven display
-     tier above the 16px top of the type scale, and the 1.05 is tuned to it,
-     a body line-height on a readout this size clips descenders. */
-  font-size: ${({ $compact }) => ($compact ? "19px" : "23px")};
-  font-weight: 700;
-  line-height: 1.05;
-  color: ${({ $tone }) => TONE_HEX[$tone]};
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  flex: 0 0 auto;
-`;
+function doseValueStyle(tone: Tone, compact: boolean): CSSProperties {
+  return {
+    fontSize: compact ? DOSE_FONT_COMPACT : DOSE_FONT_FULL,
+    fontWeight: 700,
+    lineHeight: 1.05,
+    color: TONE_HEX[tone],
+    fontVariantNumeric: "tabular-nums",
+    whiteSpace: "nowrap",
+    flex: "0 0 auto",
+  };
+}
 
-const DoseCaption = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
+const DOSE_CAPTION: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+};
 
 // ReadoutCaption, not FieldLabel: these caption read-only values, and the
 // kit's FieldLabel is a <label>, which belongs to a form control. Only the
 // spacing above is this widget's; the type treatment is the kit's.
-const SpacedCaption = styled(ReadoutCaption)`
-  display: block;
-  margin-top: var(--space-8);
-`;
+const SPACED_CAPTION: CSSProperties = {
+  display: "block",
+  marginTop: "var(--space-8)",
+};
 
-const ChartSlot = styled.div`
-  flex: 0 0 auto;
-  height: 44px;
-  width: 100%;
-`;
+const CHART_SLOT: CSSProperties = {
+  flex: "0 0 auto",
+  height: "44px",
+  width: "100%",
+};
 
-const FooterRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  margin-top: auto;
-  padding-top: var(--space-6);
-`;
+const FOOTER_ROW: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-6)",
+  marginTop: "auto",
+  paddingTop: "var(--space-6)",
+};
 
-const EnvRow = styled.div`
-  display: flex;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-`;
+const ENV_ROW: CSSProperties = {
+  display: "flex",
+  gap: "var(--space-6)",
+  flexWrap: "wrap",
+};
 
-const EnvTag = styled.span<{ $on: boolean; $tone?: Tone }>`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-subtle);
-  color: ${({ $on, $tone }) =>
-    $on ? TONE_HEX[$tone ?? "go"] : "var(--color-text-muted)"};
-  border-color: ${({ $on, $tone }) =>
-    $on ? TONE_HEX[$tone ?? "go"] : "var(--color-border-subtle)"};
-  opacity: ${({ $on }) => ($on ? 1 : 0.5)};
-  white-space: nowrap;
-`;
+function envTagStyle(on: boolean, tone?: Tone): CSSProperties {
+  const active = TONE_HEX[tone ?? "go"];
+  return {
+    fontSize: "var(--font-size-2xs)",
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    padding: "var(--space-hair) var(--space-6)",
+    borderRadius: "var(--radius-sm)",
+    border: `1px solid ${on ? active : "var(--color-border-subtle)"}`,
+    color: on ? active : "var(--color-text-muted)",
+    opacity: on ? 1 : 0.5,
+    whiteSpace: "nowrap",
+  };
+}
 
 registerComponent<SpaceWeatherConfig>({
   id: "space-weather",
