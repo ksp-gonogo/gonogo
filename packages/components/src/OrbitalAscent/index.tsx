@@ -5,8 +5,8 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 
 export interface OrbitalAscentConfig {
@@ -101,46 +101,25 @@ function OrbitalAscentComponent({
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   return (
-    <Wrap>
+    <Fill>
       <GraphView
         config={graphConfig}
         referenceCurves={referenceCurve ? [referenceCurve] : undefined}
         title="ORBITAL ASCENT"
       />
       {showNoGmNotice && body && (
-        <Notice role="status">
+        <GraphNotice placement="overlay">
           No reference data for {body.name}: plotting trace only.
-        </Notice>
+        </GraphNotice>
       )}
       {showNoBodyNotice && (
-        <Notice role="status">
+        <GraphNotice placement="overlay">
           Unknown body “{bodyName}”: plotting trace only.
-        </Notice>
+        </GraphNotice>
       )}
-    </Wrap>
+    </Fill>
   );
 }
-
-const Wrap = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-`;
-
-const Notice = styled.div`
-  position: absolute;
-  bottom: 4px;
-  left: 8px;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  background: rgba(0, 0, 0, 0.7);
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  pointer-events: none;
-`;
 
 registerComponent<OrbitalAscentConfig>({
   id: "orbital-ascent",
