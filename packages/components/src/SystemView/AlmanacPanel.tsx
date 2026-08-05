@@ -1,7 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Grid, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
-import styled from "styled-components";
+import type { CSSProperties, ReactNode } from "react";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
@@ -213,10 +212,10 @@ export function AlmanacPanel({
   if (!body) {
     return (
       <Wrap>
-        <Hint>
+        <div style={HINT}>
           Hover or focus a body in the diagram for almanac data, or pick the
           vessel's parent body to see its details.
-        </Hint>
+        </div>
       </Wrap>
     );
   }
@@ -233,11 +232,13 @@ export function AlmanacPanel({
   );
   return (
     <Wrap>
-      <Title>{body.name ?? "(unnamed)"}</Title>
-      {body.referenceBody && <Sub>orbiting {body.referenceBody}</Sub>}
-      <Rows>
+      <div style={TITLE}>{body.name ?? "(unnamed)"}</div>
+      {body.referenceBody && (
+        <div style={SUB}>orbiting {body.referenceBody}</div>
+      )}
+      <div style={ROWS}>
         {rows.length === 0 ? (
-          <Hint>Awaiting body data...</Hint>
+          <div style={HINT}>Awaiting body data...</div>
         ) : (
           rows.map((row) => (
             <Grid
@@ -246,14 +247,14 @@ export function AlmanacPanel({
               align="baseline"
               key={`${row.label}=${row.value}`}
             >
-              <RowLabel>{row.label}</RowLabel>
-              <RowValue>{row.value}</RowValue>
+              <span style={ROW_LABEL}>{row.label}</span>
+              <span style={ROW_VALUE}>{row.value}</span>
             </Grid>
           ))
         )}
-      </Rows>
+      </div>
       {body.description && !/^#autoLOC/i.test(body.description.trim()) && (
-        <Description>{body.description}</Description>
+        <p style={DESCRIPTION}>{body.description}</p>
       )}
     </Wrap>
   );
@@ -271,76 +272,78 @@ function normalizeAngle(deg: number): number {
   return d;
 }
 
-/* No divider rule of its own. It used to carry a border on whichever edge
-   faced the diagram, which meant the panel had to be told where it was docked;
-   the diagram now sits in a FramedDisplay, and that frame's edge does the
-   dividing on every side at once. */
-const WrapOuter = styled.aside`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-8) var(--space-10);
-  min-width: 0;
-  /* min-height:0 is load-bearing: the panel sidebar this sits in is a grid
-     cell, and grid items default to min-height:auto, which would let this box
-     grow past the cell and get hard-clipped by the parent's overflow:hidden
-     instead of letting the sidebar's own scroller engage. */
-  min-height: 0;
-  max-width: 100%;
-  background: var(--color-surface-panel);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-`;
+// Structural inline styles (CSS-var tokens): a bespoke almanac readout, no
+// reusable ui-kit primitive fits the column, so the layout stays local rather
+// than carrying styled-components into the widget.
+
+// No divider rule of its own. It used to carry a border on whichever edge
+// faced the diagram, which meant the panel had to be told where it was docked;
+// the diagram now sits in a FramedDisplay, and that frame's edge does the
+// dividing on every side at once.
+const WRAP: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+  padding: "var(--space-8) var(--space-10)",
+  minWidth: 0,
+  // min-height:0 is load-bearing: the panel sidebar this sits in is a grid
+  // cell, and grid items default to min-height:auto, which would let this box
+  // grow past the cell and get hard-clipped by the parent's overflow:hidden
+  // instead of letting the sidebar's own scroller engage.
+  minHeight: 0,
+  maxWidth: "100%",
+  background: "var(--color-surface-panel)",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+};
 
 function Wrap({ children }: { children: ReactNode }) {
-  /* No ScrollArea of its own. `Panel.Sidebar` supplies one, and a second inside
-     it scrolled nothing: the outer one took the overflow and this one sized to
-     its content, so it was inert chrome plus a duplicate glow. The layout it
-     carried (column + gap) moves onto the box that is left. */
-  return <WrapOuter>{children}</WrapOuter>;
+  // No ScrollArea of its own. `Panel.Sidebar` supplies one, and a second inside
+  // it scrolled nothing: the outer one took the overflow and this one sized to
+  // its content, so it was inert chrome plus a duplicate glow. The layout it
+  // carried (column + gap) moves onto the box that is left.
+  return <aside style={WRAP}>{children}</aside>;
 }
 
-const Title = styled.div`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  letter-spacing: 0.04em;
-`;
+const TITLE: CSSProperties = {
+  fontSize: "var(--font-size-sm)",
+  fontWeight: 600,
+  color: "var(--color-text-primary)",
+  letterSpacing: "0.04em",
+};
 
-const Sub = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.05em;
-`;
+const SUB: CSSProperties = {
+  color: "var(--color-text-faint)",
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.05em",
+};
 
-const Rows = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-hair);
-  margin-top: var(--space-6);
-`;
+const ROWS: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-hair)",
+  marginTop: "var(--space-6)",
+};
 
-const RowLabel = styled.span`
-  color: var(--color-text-faint);
-`;
+const ROW_LABEL: CSSProperties = { color: "var(--color-text-faint)" };
 
-const RowValue = styled.span`
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-`;
+const ROW_VALUE: CSSProperties = {
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+};
 
-const Hint = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-2xs);
-  line-height: var(--line-height-body);
-`;
+const HINT: CSSProperties = {
+  color: "var(--color-text-faint)",
+  fontSize: "var(--font-size-2xs)",
+  lineHeight: "var(--line-height-body)",
+};
 
-/** KSP's per-body flavour text. Long-form copy lives below the stats grid;
- *  the panel scroll handles overflow on shorter widget sizes. */
-const Description = styled.p`
-  margin: var(--space-8) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
-  line-height: var(--line-height-body);
-  white-space: pre-wrap;
-`;
+// KSP's per-body flavour text. Long-form copy lives below the stats grid;
+// the panel scroll handles overflow on shorter widget sizes.
+const DESCRIPTION: CSSProperties = {
+  margin: "var(--space-8) 0 0",
+  color: "var(--color-text-muted)",
+  fontSize: "var(--font-size-2xs)",
+  lineHeight: "var(--line-height-body)",
+  whiteSpace: "pre-wrap",
+};

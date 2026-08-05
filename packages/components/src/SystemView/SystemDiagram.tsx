@@ -1,7 +1,8 @@
 import { getBody, type OrbitPatch } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, TextButton, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
   useCallback,
@@ -11,7 +12,6 @@ import {
   useRef,
   useState,
 } from "react";
-import styled from "styled-components";
 import {
   type PredictedTrajectory,
   type ProjectedPatch,
@@ -196,8 +196,13 @@ export function SystemDiagram({
     },
     [zoom],
   );
+  // `isDragging` drives the grab -> grabbing cursor that was a `:active` rule
+  // on the styled Container (inline `style` can't express `:active`). The drag
+  // already re-renders per pointer-move (setPan), so this adds no real cost.
+  const [isDragging, setIsDragging] = useState(false);
   const onPointerUp = useCallback(() => {
     dragRef.current = null;
+    setIsDragging(false);
   }, []);
 
   useEffect(() => {
@@ -234,6 +239,7 @@ export function SystemDiagram({
         panX: pan.x,
         panY: pan.y,
       };
+      setIsDragging(true);
     },
     [pan],
   );
@@ -258,18 +264,18 @@ export function SystemDiagram({
     ).sort();
     const knownCount = bodies.filter((b) => b.name).length;
     return (
-      <Empty>
+      <div style={EMPTY}>
         <div>
           No bodies orbiting <b>{parentName}</b> yet.
         </div>
-        <Hint>
+        <div style={HINT}>
           Telemetry reports {knownCount} {knownCount === 1 ? "body" : "bodies"}
           {distinctParents.length > 0
             ? `; parents seen: ${distinctParents.join(", ")}`
             : "; no referenceBody values yet"}
           .
-        </Hint>
-      </Empty>
+        </div>
+      </div>
     );
   }
 
@@ -282,11 +288,12 @@ export function SystemDiagram({
   const showVessel = vessel && nameMatches(vessel.parentName, parentName);
 
   return (
-    <Container
+    <div
       ref={containerRef}
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerLeave={() => setHover(null)}
+      style={{ ...CONTAINER, cursor: isDragging ? "grabbing" : "grab" }}
     >
       <svg
         width="100%"
@@ -295,6 +302,9 @@ export function SystemDiagram({
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`System view around ${parentName}`}
+        // `display:block` + `flex:1` were the `svg {}` descendant rules on the
+        // styled Container / DiagramWrap; they belong on the element they size.
+        style={SVG_ROOT}
       >
         <title>
           System view around {parentName} ({children.length} bodies)
@@ -524,8 +534,9 @@ export function SystemDiagram({
       </svg>
 
       {hover && (
-        <Tooltip
+        <div
           style={{
+            ...TOOLTIP,
             // Offset by ~12px so the cursor doesn't sit on top of the
             // tooltip and break hover; flip to the other side if the
             // tooltip would clip the right/bottom edges.
@@ -539,22 +550,30 @@ export function SystemDiagram({
             ),
           }}
         >
-          <TooltipTitle>{hover.body.name ?? "(unnamed)"}</TooltipTitle>
+          <div style={TOOLTIP_TITLE}>{hover.body.name ?? "(unnamed)"}</div>
           {tooltipRows(hover.body).map((row) => (
-            <TooltipRow key={row.label}>
+            <div key={row.label} style={TOOLTIP_ROW}>
               <span>{row.label}</span>
-              <span>{row.value}</span>
-            </TooltipRow>
+              {/* The value span is the styled `span:last-child` (a highlighted
+                  reading); its colour lifts inline. */}
+              <span style={{ color: "var(--color-text-primary)" }}>
+                {row.value}
+              </span>
+            </div>
           ))}
-        </Tooltip>
+        </div>
       )}
 
       {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
-        <ResetButton type="button" onClick={resetView}>
+        // TextButton for its :focus-visible ring (identical to the styled
+        // ResetButton's) plus its hover colour lift; the bordered control look
+        // is inline. The one nuance dropped: the styled hover also strengthened
+        // the border, which no inline style can express.
+        <TextButton type="button" onClick={resetView} style={RESET_BUTTON}>
           Reset view
-        </ResetButton>
+        </TextButton>
       )}
-    </Container>
+    </div>
   );
 }
 
@@ -867,91 +886,81 @@ function organise(
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Container = styled.div`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  user-select: none;
-  cursor: grab;
-  &:active {
-    cursor: grabbing;
-  }
-  svg {
-    display: block;
-  }
-`;
+// Structural inline styles (CSS-var tokens): a bespoke pan/zoom SVG diagram, no
+// reusable ui-kit primitive fits, so the layout stays local. `cursor` is set at
+// the call site (grab/grabbing by drag state); the `svg {}` descendant rules
+// move onto SVG_ROOT.
+const CONTAINER: CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  userSelect: "none",
+};
 
-const Empty = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-6);
-  color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
-  padding: var(--space-16);
-  text-align: center;
-`;
+const SVG_ROOT: CSSProperties = { display: "block", flex: 1 };
 
-const Hint = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  max-width: 320px;
-`;
+const EMPTY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--space-6)",
+  color: "var(--color-text-dim)",
+  fontSize: "var(--font-size-xs)",
+  padding: "var(--space-16)",
+  textAlign: "center",
+};
 
-const Tooltip = styled.div`
-  position: absolute;
-  pointer-events: none;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-6) var(--space-10);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  min-width: 140px;
-  max-width: 240px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  /* Off the app z-index ladder: the only z-index in this file, so its value
-     is meaningless in isolation. Its contract is above-versus-auto against
-     the diagram beneath it, not a place on the app ladder. */
-  z-index: 10;
-`;
+const HINT: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+  maxWidth: "320px",
+};
 
-const TooltipTitle = styled.div`
-  font-weight: 600;
-  margin-bottom: var(--space-4);
-  color: var(--color-status-go-fg);
-`;
+const TOOLTIP: CSSProperties = {
+  position: "absolute",
+  pointerEvents: "none",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+  borderRadius: "var(--radius-sm)",
+  padding: "var(--space-6) var(--space-10)",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-primary)",
+  minWidth: "140px",
+  maxWidth: "240px",
+  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
+  // Off the app z-index ladder: the only z-index in this file, so its value is
+  // meaningless in isolation. Its contract is above-versus-auto against the
+  // diagram beneath it, not a place on the app ladder.
+  zIndex: 10,
+};
 
-const TooltipRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-12);
-  font-family: var(--font-mono, monospace);
-  color: var(--color-text-muted);
-  span:last-child {
-    color: var(--color-text-primary);
-  }
-`;
+const TOOLTIP_TITLE: CSSProperties = {
+  fontWeight: 600,
+  marginBottom: "var(--space-4)",
+  color: "var(--color-status-go-fg)",
+};
 
-const ResetButton = styled.button`
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-4) var(--space-8);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  &:hover {
-    color: var(--color-text-primary);
-    border-color: var(--color-border-strong);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
+// The `span:last-child` highlight moves inline onto the value span at the call
+// site.
+const TOOLTIP_ROW: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "var(--space-12)",
+  fontFamily: "var(--font-mono, monospace)",
+  color: "var(--color-text-muted)",
+};
+
+const RESET_BUTTON: CSSProperties = {
+  position: "absolute",
+  bottom: "8px",
+  right: "8px",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+  borderRadius: "var(--radius-sm)",
+  padding: "var(--space-4) var(--space-8)",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  textDecoration: "none",
+};

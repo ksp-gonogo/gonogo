@@ -26,8 +26,8 @@ import {
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
-import styled from "styled-components";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { SystemDiagram } from "./SystemDiagram";
@@ -601,8 +601,8 @@ function SystemViewComponent({
       panelSidebar={showAlmanac ? almanac : undefined}
     >
       {showDiagram ? (
-        <DiagramFrame>
-          <DiagramWrap ref={wrapRef}>
+        <FramedDisplay style={DIAGRAM_FRAME}>
+          <div ref={wrapRef} style={DIAGRAM_WRAP}>
             {parentName !== null && bodies.length > 0 && (
               <SystemDiagram
                 bodies={bodies}
@@ -623,22 +623,22 @@ function SystemViewComponent({
                 space. The layer is pointer-transparent so an empty slot is
                 visually + interactively inert. */}
             {overlayContext !== null && (
-              <OverlayLayer>
+              <div style={OVERLAY_LAYER}>
                 <AugmentSlot
                   name="system-view.overlay"
                   props={overlayContext}
                 />
-              </OverlayLayer>
+              </div>
             )}
-          </DiagramWrap>
-        </DiagramFrame>
+          </div>
+        </FramedDisplay>
       ) : (
-        <CompactBody>
-          <CompactValue>{parentName ?? NULL_DISPLAY}</CompactValue>
+        <div style={COMPACT_BODY}>
+          <div style={COMPACT_VALUE}>{parentName ?? NULL_DISPLAY}</div>
           {typeof vesselBody === "string" && vesselBody !== parentName && (
-            <CompactSub>vessel · {vesselBody}</CompactSub>
+            <div style={COMPACT_SUB}>vessel · {vesselBody}</div>
           )}
-        </CompactBody>
+        </div>
       )}
     </Panel>
   );
@@ -728,62 +728,61 @@ function SystemViewConfigComponent({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const CompactBody = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-`;
+// Structural inline styles (CSS-var tokens): a bespoke diagram frame + compact
+// fallback, no reusable ui-kit primitive fits, so the layout stays local. The
+// one kit piece it reuses (FramedDisplay) takes only this widget's flex sizing
+// inline.
 
-const CompactValue = styled.div`
-  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
-     is a display-tier readout. */
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: 0.04em;
-`;
+const COMPACT_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--space-4)",
+};
 
-const CompactSub = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.05em;
-`;
+const COMPACT_VALUE: CSSProperties = {
+  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a
+  // display-tier readout.
+  fontSize: "22px",
+  fontWeight: 700,
+  color: "var(--color-text-primary)",
+  letterSpacing: "0.04em",
+};
 
-/* The frame around the diagram. It replaces the widget's old grid border AND
-   the almanac's divider rule: with the visual framed, the frame's own edge is
-   what separates it from the sidebar, whichever edge the sidebar lands on.
-   Flush because SystemDiagram already reserves its own padding inside the
-   viewBox, so an inner gutter here reads as a double border. */
-const DiagramFrame = styled(FramedDisplay)`
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-`;
+const COMPACT_SUB: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.05em",
+};
 
-const DiagramWrap = styled.div`
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  svg {
-    display: block;
-    flex: 1;
-  }
-`;
+// The frame around the diagram. It replaces the widget's old grid border AND
+// the almanac's divider rule: with the visual framed, the frame's own edge is
+// what separates it from the sidebar, whichever edge the sidebar lands on.
+// Flush because SystemDiagram already reserves its own padding inside the
+// viewBox, so an inner gutter here reads as a double border.
+const DIAGRAM_FRAME: CSSProperties = { flex: 1, minWidth: 0, minHeight: 0 };
 
-const OverlayLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  /* Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment
-     re-enables pointer events on its own elements when it needs them. */
-  pointer-events: none;
-`;
+// The `svg { display:block; flex:1 }` descendant rule (not inline-expressible)
+// moves onto SystemDiagram's own root <svg>.
+const DIAGRAM_WRAP: CSSProperties = {
+  position: "relative",
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  display: "flex",
+  alignItems: "stretch",
+  justifyContent: "stretch",
+};
+
+const OVERLAY_LAYER: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  // Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment
+  // re-enables pointer events on its own elements when it needs them.
+  pointerEvents: "none",
+};
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
