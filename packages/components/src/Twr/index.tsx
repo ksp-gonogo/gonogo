@@ -143,15 +143,19 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   }
 
   return (
-    <Panel
-      panelTitle="TWR"
-      panelSubtitle={
-        showSubtitle
-          ? `Current stage · last ${writeQuantity(value("s", SPARK_WINDOW_SEC))}`
-          : undefined
-      }
-    >
+    <Panel panelTitle="TWR">
       <Body>
+        {showSubtitle && (
+          <div
+            style={{
+              fontSize: "var(--font-size-xs)",
+              color: "var(--color-text-muted)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            Current stage · last {writeQuantity(value("s", SPARK_WINDOW_SEC))}
+          </div>
+        )}
         <GaugeSlot ref={gaugeRef}>
           <Gauge
             value={twr}
