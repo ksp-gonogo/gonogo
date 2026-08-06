@@ -214,6 +214,30 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
 `;
 
 /**
+ * Width below which the header row cannot comfortably hold an arbitrary
+ * aside beside the title, so the aside collapses to the panel's own compact
+ * status summary instead of overflowing it. The motivating case:
+ * LandingStatus's commit hero, a fixed-width `Readout` reading
+ * "NO LANDING VECTOR", which is `inline-flex` sized-to-content and does not
+ * wrap, so a narrow tile clips it rather than reflowing it.
+ *
+ * Measures the ROW, not the aside box alone. The row's width is fixed by the
+ * panel's own flex-column stretch (it is a block-level flex item, not sized
+ * to its children), so it never moves when the aside's CONTENT changes;
+ * measuring the aside box instead would create a feedback loop, since
+ * swapping in the small compact badge would itself shrink the box that was
+ * just measured as too narrow, immediately reporting "room again" and
+ * flipping straight back.
+ *
+ * A fixed threshold rather than a live overflow probe (comparing the aside's
+ * `scrollWidth` to its `clientWidth`) for the same reason `PanelSplit` picks
+ * its axis off a measured width against `SIDEBAR_INLINE_SIZE` rather than the
+ * sidebar's own content size: the row's width is genuinely stable to measure,
+ * where the aside's overflow is not, without the swap already having happened.
+ */
+const PANEL_ASIDE_COLLAPSE_WIDTH = 320;
+
+/**
  * Title, optional subtitle, and an optional right-hand aside on one row.
  *
  * The aside is why this exists. Twenty-seven of forty-three widgets had grown
@@ -222,6 +246,12 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
  * for Uplink badges (19), the odd state `Badge` or `Select`. Twenty-seven
  * hand-rolled rows for two recurring things is a missing name, so this is the
  * name.
+ *
+ * Below `PANEL_ASIDE_COLLAPSE_WIDTH` the aside collapses to the panel's own
+ * status summary (see `Panel.useStatusSummary`) instead of the caller's raw
+ * `aside` content. This is generic `PanelHeader` behaviour, not specific to
+ * `Panel`/`PanelRoot`: a hand-composed header gets it too, which is why the
+ * measurement and the summary read both live here rather than in `PanelRoot`.
  */
 export function PanelHeader({
   title,
@@ -244,20 +274,63 @@ export function PanelHeader({
    */
   overlay?: boolean;
 }) {
+  // Seeded AT the threshold, so an unmeasured header (first paint, and jsdom
+  // forever unless a test drives the ResizeObserver) renders today's full
+  // aside unchanged: every existing widget test that never drives a resize
+  // keeps seeing exactly what it asserts today.
+  const { ref: rowRef, size: rowSize } = useElementSize<HTMLDivElement>({
+    w: PANEL_ASIDE_COLLAPSE_WIDTH,
+    h: 0,
+  });
+  // `> 0` guards the same "not really laid out yet" case the ghost's header
+  // height check guards: a genuinely-zero measurement means hidden/unmounted,
+  // not narrow, and must not read as a reason to collapse.
+  const asideCollapsed =
+    rowSize.w > 0 && rowSize.w < PANEL_ASIDE_COLLAPSE_WIDTH;
+  const summary = useStatusSummary();
+
+  // Nothing to collapse when there is no aside at all; the row's width never
+  // enters into it. Below threshold WITH an aside, swap to the compact
+  // summary badge when there is one to show. A collapsed row with no summary
+  // (no status store in the tree, or a healthy panel) renders NOTHING for the
+  // slot: re-showing the raw aside would be exactly the overflow this
+  // measurement exists to avoid, so of the two documented options this is the
+  // one that actually fixes it.
+  const resolvedAside: ReactNode | undefined =
+    aside === undefined ? undefined : !asideCollapsed ? (
+      aside
+    ) : summary !== null ? (
+      <Badge severity={summary.severity} size="sm" live>
+        {summary.label}
+      </Badge>
+    ) : undefined;
+
   return (
     /* `data-panel-header` is a stable targeting hook, the same contract as
        ScrollArea's `data-scroll-area-inner`. The row splits titles and aside
        into two boxes so they can align independently, which means walking up
        from the title with `closest("div")` reaches the titles box and NOT the
        aside beside it. Anything that wants "the whole header" should say so
-       by name rather than by counting ancestors. */
-    <PanelHeader__Row data-panel-header="" $overlay={overlay} {...rest}>
+       by name rather than by counting ancestors.
+
+       `data-panel-aside-collapsed` mirrors the resolved decision (present
+       only while collapsed), the same "expose the internal call" contract
+       `PanelSplit`'s `data-panel-split={axis}` uses. */
+    <PanelHeader__Row
+      ref={rowRef}
+      data-panel-header=""
+      data-panel-aside-collapsed={asideCollapsed ? "" : undefined}
+      $overlay={overlay}
+      {...rest}
+    >
       <PanelHeader__Titles $overlay={overlay}>
         {title !== undefined && <PanelTitle>{title}</PanelTitle>}
         {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}
       </PanelHeader__Titles>
-      {aside !== undefined && (
-        <PanelHeader__Aside $overlay={overlay}>{aside}</PanelHeader__Aside>
+      {resolvedAside !== undefined && (
+        <PanelHeader__Aside $overlay={overlay}>
+          {resolvedAside}
+        </PanelHeader__Aside>
       )}
       {toolbar !== undefined && (
         <PanelToolbar $overlay={overlay}>{toolbar}</PanelToolbar>
