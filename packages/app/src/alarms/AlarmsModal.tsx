@@ -435,12 +435,12 @@ export function AlarmsModal({
                       />
                     ) : (
                       <AlarmListName>
-                        <Badge tone="neutral" size="md">
+                        <Badge size="md">
                           {a.trigger.kind === "time" ? "TIME" : "COND"}
                         </Badge>
                         {a.name}
                         {a.onFire && a.onFire.length > 0 && (
-                          <Badge tone="info" size="sm">
+                          <Badge severity="info" size="sm">
                             {a.onFire.length === 1
                               ? "FIRES 1 ACTION"
                               : `FIRES ${a.onFire.length} ACTIONS`}

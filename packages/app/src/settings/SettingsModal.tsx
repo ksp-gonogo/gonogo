@@ -305,7 +305,7 @@ function UplinkHealthList() {
       {collapsible.length > 0 && (
         <HealthySummaryItem>
           <HealthySummaryRow>
-            <Badge tone="go">
+            <Badge severity="nominal">
               {collapsible.length}/{uplinkHealth.uplinks.length} healthy
             </Badge>
             <GhostButton
