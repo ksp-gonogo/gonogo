@@ -14,20 +14,25 @@ import { type ResourceAmountMap, useStream } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
+  Box,
   ConfigForm,
   Field,
   FieldHint,
   FieldLabel,
+  Grid,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   Select,
+  Stack,
+  Truncate,
   Unit,
   useModalSaveBar,
+  Value,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo, useState } from "react";
-import styled from "styled-components";
+import type { ReactNode } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -223,6 +228,240 @@ export function parseStages(raw: unknown): StageInfo[] {
   return out;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
+
+/** Units of stock KSP resources aren't kg, Telemachus returns the raw unit count. */
+function formatAmount(value: number): string {
+  if (value >= 10_000) return value.toFixed(0);
+  if (value >= 100) return value.toFixed(1);
+  return value.toFixed(2);
+}
+
+/** Thin resource bar: a hand-scaled fill in a fixed track, not `ProgressBar`
+ * (which is a fixed-colour pill) - each row needs its own resource colour and
+ * a square, bordered track. */
+function ResourceBar({ pct, color }: { pct: number; color: string }) {
+  return (
+    <div
+      style={{
+        height: 8,
+        minWidth: 28,
+        background: "var(--color-surface-panel)",
+        border: "1px solid var(--color-border-subtle)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          height: "100%",
+          transition: "width var(--duration-fast) var(--ease-linear)",
+          width: `${pct}%`,
+          background: color,
+        }}
+      />
+    </div>
+  );
+}
+
+/** The resource bar list: LF/Ox/RCS/Xe/Power rows with a non-zero max. */
+function ResourceListSection({
+  readings,
+}: {
+  readings: { def: ResourceDef; value: number; max: number }[];
+}) {
+  return (
+    <Stack gap="sm" style={{ marginTop: "var(--space-6)" }}>
+      {readings
+        .filter(({ max }) => max > 0)
+        .map(({ def, value: amount, max }) => (
+          <Grid
+            key={def.name}
+            cols="minmax(0, 13em) minmax(28px, 1fr) auto"
+            gap="md"
+            align="center"
+            style={{ fontSize: "var(--font-size-xs)" }}
+          >
+            <Truncate
+              style={{
+                color: "var(--color-text-primary)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {def.label}
+              {def.scope === "current" && (
+                <span
+                  style={{
+                    color: "var(--color-text-faint)",
+                    fontSize: "var(--font-size-xs)",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {" "}
+                  · stage
+                </span>
+              )}
+              {def.scope === "vessel" && (
+                <span
+                  style={{
+                    color: "var(--color-text-faint)",
+                    fontSize: "var(--font-size-xs)",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {" "}
+                  · vessel
+                </span>
+              )}
+            </Truncate>
+            <ResourceBar
+              pct={clampPct((amount / max) * 100)}
+              color={def.color}
+            />
+            <span
+              style={{
+                color: "var(--color-text-muted)",
+                fontSize: "var(--font-size-xs)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {formatAmount(amount)} / {formatAmount(max)}
+            </span>
+          </Grid>
+        ))}
+    </Stack>
+  );
+}
+
+/** Per-stage ΔV/burn/TWR stack, current stage highlighted. */
+function StageStackSection({
+  stages,
+  mode,
+  currentStage,
+  maxStageDv,
+  compactStageMeta,
+}: {
+  stages: StageInfo[];
+  mode: DeltaVMode;
+  currentStage: number | undefined;
+  maxStageDv: number;
+  compactStageMeta: boolean;
+}) {
+  return (
+    <Stack
+      gap="xs"
+      style={{
+        marginTop: "var(--space-10)",
+        paddingTop: "var(--space-6)",
+        borderTop: "1px solid var(--color-border-subtle)",
+      }}
+    >
+      <ReadoutCaption
+        style={{
+          color: "var(--color-text-faint)",
+          letterSpacing: "0.1em",
+          marginBottom: "var(--space-4)",
+        }}
+      >
+        Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
+      </ReadoutCaption>
+      {stages.map((s) => {
+        const dv = pickDeltaV(s, mode);
+        const twr = pickTWR(s, mode);
+        const active = s.stage === currentStage;
+        // parseStages yields NaN burnTime for a stage with no burn data;
+        // show "0s" for that (and for a non-positive value) rather than
+        // the helper's NULL_DISPLAY, matching the pre-refactor local formatter.
+        const burn =
+          Number.isFinite(s.burnTime) && s.burnTime > 0 ? (
+            <Unit value={value("s", s.burnTime)} />
+          ) : (
+            "0s"
+          );
+        return (
+          <Grid
+            key={s.stage}
+            cols="3.5em minmax(28px, 1fr) auto"
+            gap="md"
+            align="center"
+            style={{
+              fontSize: "var(--font-size-xs)",
+              color: active
+                ? "var(--color-status-nogo-fg)"
+                : "var(--color-text-muted)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "var(--font-size-xs)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {active ? "▶ " : "  "}S{s.stage}
+            </span>
+            <ResourceBar
+              pct={clampPct(
+                ((Number.isFinite(dv) ? dv : 0) / maxStageDv) * 100,
+              )}
+              color={
+                active
+                  ? "var(--color-status-warning-bg)"
+                  : "var(--color-text-faint)"
+              }
+            />
+            <div
+              style={{
+                fontSize: "var(--font-size-xs)",
+                whiteSpace: "nowrap",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              <span>
+                <Unit value={value("m/s", dv)} decimals={0} />
+              </span>
+              {compactStageMeta ? (
+                <>
+                  <span
+                    style={{
+                      color: "var(--color-text-faint)",
+                      fontSize: "var(--font-size-xs)",
+                    }}
+                  >
+                    {burn}
+                  </span>
+                  <span
+                    style={{
+                      color: "var(--color-text-faint)",
+                      fontSize: "var(--font-size-xs)",
+                    }}
+                  >
+                    TWR {fmtFixed(twr, 2)}
+                  </span>
+                </>
+              ) : (
+                <span
+                  style={{
+                    color: "var(--color-text-faint)",
+                    fontSize: "var(--font-size-xs)",
+                  }}
+                >
+                  {burn} · TWR {fmtFixed(twr, 2)}
+                </span>
+              )}
+            </div>
+          </Grid>
+        );
+      })}
+    </Stack>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function FuelStatusComponent({
@@ -300,6 +539,39 @@ function FuelStatusComponent({
   // to spare here since the stage stack only shows once rows >= 10.
   const compactStageMeta = cols < 7;
 
+  // Named, order-stable keys (not array index): the landscape wrapper below
+  // needs its own key per section and reuses these rather than reaching for
+  // the index the biome noArrayIndexKey rule flags.
+  const sections: { key: string; node: ReactNode }[] = [];
+  if (showResourceList) {
+    sections.push({
+      key: "resources",
+      node: <ResourceListSection readings={readings} />,
+    });
+  }
+  if (showStageStack && stages.length > 0) {
+    sections.push({
+      key: "stages",
+      node: (
+        <StageStackSection
+          stages={stages}
+          mode={mode}
+          currentStage={currentStage}
+          maxStageDv={maxStageDv}
+          compactStageMeta={compactStageMeta}
+        />
+      ),
+    });
+  }
+  // Body slot appended after the per-stage ΔV/TWR stack. An engine-realism
+  // Uplink (ignitions-remaining, propellant boil-off) contributes per-stage
+  // supplemental rows here. Renders nothing until an augment binds
+  // `fuel-status.sections`.
+  sections.push({
+    key: "augment",
+    node: <AugmentSlot name="fuel-status.sections" props={{}} />,
+  });
+
   return (
     // `panelAside` is the header escape-hatch slot (augment-slot-map "Feedback
     // round 1"): any Uplink can drop an inline badge next to the title. Renders
@@ -308,6 +580,8 @@ function FuelStatusComponent({
       panelTitle="FUEL · ΔV"
       panelAside={<AugmentSlot name="fuel-status.badges" props={{}} />}
     >
+      {/* Stage caption relocated out of the panel subtitle into the body
+          (staging change), carried by ui-kit's ReadoutCaption. */}
       {showSubtitle && currentStage !== undefined && (
         <ReadoutCaption>
           Stage {currentStage}
@@ -316,12 +590,15 @@ function FuelStatusComponent({
         </ReadoutCaption>
       )}
       {showHeroDv && (
-        <HeroReadout $tone="alert">
-          <HeroValue>
+        <BigReadout
+          $tone="alert"
+          style={{ fontSize: "clamp(13px, 3.5vw, 17px)" }}
+        >
+          <span style={{ whiteSpace: "nowrap" }}>
             <Unit value={value("m/s", totalDv)} decimals={0} />
-          </HeroValue>
+          </span>
           <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
-        </HeroReadout>
+        </BigReadout>
       )}
 
       {/* No engine data + no totals row to fall back on → render an
@@ -333,121 +610,106 @@ function FuelStatusComponent({
       )}
 
       {showTotals && (totalDv !== undefined || totalBurnTime !== undefined) && (
-        <TotalsRow>
-          <TotalsBlock>
-            <TotalsLabel>Total ΔV</TotalsLabel>
-            <TotalsValue>
-              <TotalsValueText>
+        <Box
+          surface="panel"
+          bordered
+          radius="xs"
+          style={{
+            display: "flex",
+            gap: "var(--space-16)",
+            marginTop: "var(--space-8)",
+            padding: "var(--space-6) var(--space-8)",
+          }}
+        >
+          <Stack gap="xs">
+            <ReadoutCaption
+              style={{
+                color: "var(--color-text-faint)",
+                letterSpacing: "0.1em",
+              }}
+            >
+              Total ΔV
+            </ReadoutCaption>
+            <Value
+              tone="default"
+              size="sm"
+              style={{
+                display: "inline-flex",
+                alignItems: "baseline",
+                gap: "var(--space-6)",
+                flexWrap: "wrap",
+                fontWeight: 700,
+                color: "var(--color-status-nogo-fg)",
+              }}
+            >
+              <span style={{ whiteSpace: "nowrap" }}>
                 {totalDv !== undefined
                   ? writeQuantity(value("m/s", totalDv), { decimals: 0 })
                   : NULL_DISPLAY}
-              </TotalsValueText>
-              <TotalsModeTag>{DELTA_V_MODE_SHORT[mode]}</TotalsModeTag>
-            </TotalsValue>
-          </TotalsBlock>
-          <TotalsBlock>
-            <TotalsLabel>Total burn</TotalsLabel>
-            <TotalsValue>
-              <TotalsValueText>
+              </span>
+              <span
+                style={{
+                  color: "var(--color-text-dim)",
+                  fontSize: "var(--font-size-xs)",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {DELTA_V_MODE_SHORT[mode]}
+              </span>
+            </Value>
+          </Stack>
+          <Stack gap="xs">
+            <ReadoutCaption
+              style={{
+                color: "var(--color-text-faint)",
+                letterSpacing: "0.1em",
+              }}
+            >
+              Total burn
+            </ReadoutCaption>
+            <Value
+              tone="default"
+              size="sm"
+              style={{
+                display: "inline-flex",
+                alignItems: "baseline",
+                gap: "var(--space-6)",
+                flexWrap: "wrap",
+                fontWeight: 700,
+                color: "var(--color-status-nogo-fg)",
+              }}
+            >
+              <span style={{ whiteSpace: "nowrap" }}>
                 {totalBurnTime !== undefined ? (
                   <Unit value={totalBurnTime} />
                 ) : (
                   NULL_DISPLAY
                 )}
-              </TotalsValueText>
-            </TotalsValue>
-          </TotalsBlock>
-        </TotalsRow>
+              </span>
+            </Value>
+          </Stack>
+        </Box>
       )}
 
-      <Sections $row={isLandscape}>
-        {showResourceList && (
-          <ResourceList>
-            {readings
-              .filter(({ max }) => max > 0)
-              .map(({ def, value, max }) => (
-                <ResourceRow key={def.name}>
-                  <ResourceLabel>
-                    {def.label}
-                    {def.scope === "current" && <ScopeHint> · stage</ScopeHint>}
-                    {def.scope === "vessel" && <ScopeHint> · vessel</ScopeHint>}
-                  </ResourceLabel>
-                  <Bar>
-                    <BarFill
-                      style={{
-                        width: `${clampPct((value / max) * 100)}%`,
-                        background: def.color,
-                      }}
-                    />
-                  </Bar>
-                  <ResourceReadout>
-                    {formatAmount(value)} / {formatAmount(max)}
-                  </ResourceReadout>
-                </ResourceRow>
-              ))}
-          </ResourceList>
-        )}
-
-        {showStageStack && stages.length > 0 && (
-          <StageStack>
-            <StageHeader>
-              Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
-            </StageHeader>
-            {stages.map((s) => {
-              const dv = pickDeltaV(s, mode);
-              const twr = pickTWR(s, mode);
-              const active = s.stage === currentStage;
-              // parseStages yields NaN burnTime for a stage with no burn data;
-              // show "0s" for that (and for a non-positive value) rather than
-              // the helper's NULL_DISPLAY, matching the pre-refactor local formatter.
-              const burn =
-                Number.isFinite(s.burnTime) && s.burnTime > 0 ? (
-                  <Unit value={value("s", s.burnTime)} />
-                ) : (
-                  "0s"
-                );
-              return (
-                <StageRow key={s.stage} $active={active}>
-                  <StageLabel>
-                    {active ? "▶ " : "  "}S{s.stage}
-                  </StageLabel>
-                  <Bar>
-                    <BarFill
-                      style={{
-                        width: `${clampPct(((Number.isFinite(dv) ? dv : 0) / maxStageDv) * 100)}%`,
-                        background: active
-                          ? "var(--color-status-warning-bg)"
-                          : "var(--color-text-faint)",
-                      }}
-                    />
-                  </Bar>
-                  <StageReadout>
-                    <StageDv>
-                      <Unit value={value("m/s", dv)} decimals={0} />
-                    </StageDv>
-                    {compactStageMeta ? (
-                      <>
-                        <StageMeta>{burn}</StageMeta>
-                        <StageMeta>TWR {fmtFixed(twr, 2)}</StageMeta>
-                      </>
-                    ) : (
-                      <StageMeta>
-                        {burn} · TWR {fmtFixed(twr, 2)}
-                      </StageMeta>
-                    )}
-                  </StageReadout>
-                </StageRow>
-              );
-            })}
-          </StageStack>
-        )}
-
-        {/* Body slot appended after the per-stage ΔV/TWR stack. An
-            engine-realism Uplink (ignitions-remaining, propellant boil-off)
-            contributes per-stage supplemental rows here. Renders nothing
-            until an augment binds `fuel-status.sections`. */}
-        <AugmentSlot name="fuel-status.sections" props={{}} />
-      </Sections>
+      {isLandscape ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: "var(--space-16)",
+            minHeight: 0,
+            alignItems: "flex-start",
+          }}
+        >
+          {sections.map(({ key, node }) => (
+            <div key={key} style={{ flex: "1 1 0", minWidth: 0 }}>
+              {node}
+            </div>
+          ))}
+        </div>
+      ) : (
+        sections.map(({ key, node }) => <Fragment key={key}>{node}</Fragment>)
+      )}
     </Panel>
   );
 }
@@ -492,218 +754,6 @@ function FuelStatusConfigComponent({
     </ConfigForm>
   );
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
-
-/** Units of stock KSP resources aren't kg, Telemachus returns the raw unit count. */
-function formatAmount(value: number): string {
-  if (value >= 10_000) return value.toFixed(0);
-  if (value >= 100) return value.toFixed(1);
-  return value.toFixed(2);
-}
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-/**
- * `BigReadout`'s font-size clamps up to 38px regardless of the widget's own
- * grid size: it reads from viewport width, not container width, which is
- * fine for a lone short value (see other consumers) but overflows badly for
- * "<n> m/s": at the 3x3 minSize the string wraps at the space and the
- * wrapped "m/s" line gets clipped by `Panel`'s `overflow: hidden`. We can't
- * touch the shared `BigReadout` (same constraint CrewManifest hit), so cap
- * the font lower here, scoped to the hero branch only.
- *
- * Off the type scale on purpose: a fluid fit, not a rung. Its endpoints are
- * terms in the clamp, not independent font-size choices.
- */
-const HeroReadout = styled(BigReadout)`
-  font-size: clamp(13px, 3.5vw, 17px);
-`;
-
-/**
- * Keeps the value and its unit glued to one line, a number must never wrap
- * away from (or get clipped apart from) its unit. Paired with `HeroReadout`'s
- * smaller font so the whole string actually fits at tiny widget sizes
- * instead of merely refusing to wrap while still overflowing.
- */
-const HeroValue = styled.span`
-  white-space: nowrap;
-`;
-
-// Wrapper around the resource list + stage stack. Transparent (`display:
-// contents`) by default so the normal vertical stack is unchanged; at
-// wide-short it becomes a row so the two sit side-by-side, each taking half.
-const Sections = styled.div<{ $row?: boolean }>`
-  display: ${(p) => (p.$row ? "flex" : "contents")};
-  ${(p) =>
-    p.$row &&
-    `flex-direction: row; gap: var(--space-16); min-height: 0; align-items: flex-start;
-     & > * { flex: 1 1 0; min-width: 0; }`}
-`;
-
-const ResourceList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-top: var(--space-6);
-`;
-
-const ResourceRow = styled.div`
-  display: grid;
-  /* Label column: a fixed 13em ideal (fits the longest label,
-     "Liquid Fuel · STAGE") keeps every bar's left edge aligned so the
-     fills can be compared at a glance, while minmax(0, ...) lets the
-     column shrink with an ellipsis when the cell is genuinely narrow.
-     The old 5em cap truncated "Liquid Fuel" → "Liquid ..." even at
-     default/wide sizes. The bar keeps a hard min-width (see Bar) so it
-     never collapses to a sliver when the readout column claims its
-     space at narrow widths. */
-  grid-template-columns: minmax(0, 13em) minmax(28px, 1fr) auto;
-  align-items: center;
-  gap: var(--space-8);
-  font-size: var(--font-size-xs);
-`;
-
-const ResourceLabel = styled.span`
-  color: var(--color-text-primary);
-  letter-spacing: 0.02em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-`;
-
-const ScopeHint = styled.span`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-`;
-
-const ResourceReadout = styled.span`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-`;
-
-const Bar = styled.div`
-  height: 8px;
-  min-width: 28px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  overflow: hidden;
-`;
-
-const BarFill = styled.div`
-  height: 100%;
-  transition: width var(--duration-fast) var(--ease-linear);
-`;
-
-const TotalsRow = styled.div`
-  display: flex;
-  gap: var(--space-16);
-  margin-top: var(--space-8);
-  padding: var(--space-6) var(--space-8);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
-`;
-
-const TotalsBlock = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
-
-const TotalsLabel = styled.span`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-`;
-
-const TotalsValue = styled.span`
-  color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-`;
-
-/**
- * Same "number must never wrap away from its unit" constraint `HeroValue`
- * documents above: at narrow widths (compact-4x4) the "<n> m/s" text used
- * to wrap mid-string, stranding "m/s" on its own line below the mode tag.
- * `TotalsValue` now wraps at the flex level (whole value vs. mode tag) via
- * `flex-wrap: wrap` above instead of splitting this text node internally.
- */
-const TotalsValueText = styled.span`
-  white-space: nowrap;
-`;
-
-const TotalsModeTag = styled.span`
-  color: var(--color-text-dim);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.08em;
-`;
-
-const StageStack = styled.div`
-  margin-top: var(--space-10);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
-
-const StageHeader = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: var(--space-4);
-`;
-
-const StageRow = styled.div<{ $active?: boolean }>`
-  display: grid;
-  /* Bar column needs a real floor (28px, matching Bar's own min-width and
-     ResourceRow's identical column below): not minmax(0, ...). With a 0
-     base, a narrow row (e.g. portrait-5x18) collapses this track to 0 and
-     the Bar div's min-width then overflows the 0-width cell to the right,
-     landing directly under the StageReadout column. StageReadout paints
-     after Bar in DOM order, so the burn-time/TWR text rendered on top of
-     the ΔV bar instead of beside it. */
-  grid-template-columns: 3.5em minmax(28px, 1fr) auto;
-  align-items: center;
-  gap: var(--space-8);
-  font-size: var(--font-size-xs);
-  color: ${({ $active }) => ($active ? "var(--color-status-nogo-fg)" : "var(--color-text-muted)")};
-`;
-
-const StageLabel = styled.span`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.02em;
-`;
-
-const StageReadout = styled.span`
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  line-height: var(--line-height-tight);
-`;
-
-const StageDv = styled.span``;
-
-const StageMeta = styled.span`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-xs);
-`;
 
 // ── Augment slots ─────────────────────────────────────────────────────────────
 
