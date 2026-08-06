@@ -584,9 +584,9 @@ function ManeuverPlannerComponent({
       panelAside={
         <AugmentSlot name="maneuver-planner.badges" props={EMPTY_SLOT_PROPS} />
       }
-      panelSubtitle={refBody ?? undefined}
     >
       <ScrollBody>
+        {refBody !== undefined && <RefBodyCaption>{refBody}</RefBodyCaption>}
         <CommandDelay
           handles={[addNodeCmd, updateNodeCmd, removeNodeCmd]}
           ariaLabel="Maneuver commands: in flight"
@@ -724,6 +724,11 @@ const ScrollBody = styled(ScrollArea)`
     flex-direction: column;
     gap: var(--space-8);
   }
+`;
+
+const RefBodyCaption = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 `;
 
 const WaitingPanel = styled.div`
