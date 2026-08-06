@@ -9,18 +9,23 @@ import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
+  Badge,
   BigReadout,
   Cluster,
   EmptyState,
+  Inline,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Stack,
   speakQuantity,
+  ToggleButton,
+  Truncate,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useState } from "react";
-import styled from "styled-components";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -28,21 +33,28 @@ import {
 } from "../shared/magnitude";
 
 /**
- * Tiny-mode hero readout. `BigReadout`'s 38px max coexists fine with its
- * caption in a roomy panel, but at the widget's 3x3 `minSize` the number +
- * stacked "OF n ABOARD" caption overflows the short panel and the caption
- * gets clipped by `Panel`'s `overflow: hidden`. We can't touch the shared
- * `BigReadout`, so cap the number lower here and let the centred flex box
- * keep both lines inside the box.
+ * Tiny-mode hero readout font size. `BigReadout`'s 38px max coexists fine
+ * with its caption in a roomy panel, but at the widget's 3x3 `minSize` the
+ * number + stacked "OF n ABOARD" caption overflows the short panel and the
+ * caption gets clipped by `Panel`'s `overflow: hidden`. We can't touch the
+ * shared `BigReadout`, so this caps the number lower via an inline style
+ * override and lets the centred flex box keep both lines inside the box.
  *
  * Off the type scale on purpose: this is a fluid, viewport-responsive fit,
  * and its endpoints are not independent font-size choices. The scale stops
  * at --font-size-lg (16px) and a fixed rung here would freeze the fit.
  */
-const TinyReadout = styled(BigReadout)`
-  font-size: clamp(20px, 4vw, 30px);
-  min-height: 0;
-`;
+const TINY_READOUT_STYLE = {
+  fontSize: "clamp(20px, 4vw, 30px)",
+  minHeight: 0,
+} as const;
+
+/**
+ * Leading per-crew avatar cell size: a square that reserves room for an
+ * avatar-face augment. Scales with the widget, clamped 36-56px (mirrors
+ * `TINY_READOUT_STYLE`'s vw-clamp idiom).
+ */
+const AVATAR_CELL_SIZE = "clamp(36px, 8vw, 56px)";
 
 type CrewManifestConfig = Record<string, never>;
 
@@ -204,7 +216,7 @@ function EvaSuitReadout({
 }>) {
   if (!oxygen && !electricCharge) return null;
   return (
-    <SuitStack aria-label="EVA suit resources">
+    <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
       {oxygen && (
         <Meter
           size="sm"
@@ -223,7 +235,7 @@ function EvaSuitReadout({
           valueLabel={`${electricCharge.current.toFixed(0)} / ${electricCharge.max.toFixed(0)}`}
         />
       )}
-    </SuitStack>
+    </Cluster>
   );
 }
 
@@ -266,7 +278,14 @@ function SurvivalMeters({
   }
 
   return (
-    <SurvivalStack aria-label="survival meters">
+    <Stack
+      gap="xs"
+      style={{
+        paddingBottom: "var(--space-4)",
+        paddingLeft: "var(--space-12)",
+      }}
+      aria-label="survival meters"
+    >
       <Meter
         size="sm"
         label="Dose"
@@ -281,8 +300,10 @@ function SurvivalMeters({
         tone={fatalTone(stress)}
         valueLabel={pct(stress)}
       />
-      <DeathClock $tone={clock.tone}>{clock.label}</DeathClock>
-    </SurvivalStack>
+      <Badge tone={clock.tone} size="sm">
+        {clock.label}
+      </Badge>
+    </Stack>
   );
 }
 
@@ -442,7 +463,7 @@ function CrewManifestComponent({
     return (
       <Panel panelTitle="CREW">
         {known ? (
-          <TinyReadout $tone="go">
+          <BigReadout $tone="go" style={TINY_READOUT_STYLE}>
             {crewCount !== undefined ? (
               <Unit value={crewCount} />
             ) : (
@@ -453,7 +474,7 @@ function CrewManifestComponent({
                 of <Unit value={crewCapacity} /> aboard
               </ReadoutCaption>
             )}
-          </TinyReadout>
+          </BigReadout>
         ) : (
           <EmptyState>No crew data</EmptyState>
         )}
@@ -470,16 +491,18 @@ function CrewManifestComponent({
       panelTitle="CREW"
       panelAside={
         hasSurvival ? (
-          <MetersToggle
-            type="button"
-            aria-pressed={showMeters}
+          <ToggleButton
+            size="sm"
+            active={showMeters}
             onClick={() => setMetersOverride(!showMeters)}
           >
             {showMeters ? "Hide meters" : "Show meters"}
-          </MetersToggle>
+          </ToggleButton>
         ) : undefined
       }
     >
+      {/* Crew summary relocated out of the panel subtitle into the body
+          (staging change), carried by ui-kit's ReadoutCaption. */}
       {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
       <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
       {renderBody({
@@ -538,201 +561,131 @@ function renderBody({
     return <EmptyState>Unmanned, no kerbals aboard.</EmptyState>;
   }
 
+  const rosterListStyle = {
+    listStyle: "none",
+    margin: "var(--space-8) 0 0",
+    padding: 0,
+  } as const;
+
   if (names.length === 0) {
     return (
-      <Roster>
+      <Stack as="ul" gap="sm" style={rosterListStyle}>
         <EmptyState>
           {crewCount} aboard, names unavailable. Telemachus may withhold crew
           names when out of CommNet range.
         </EmptyState>
-      </Roster>
+      </Stack>
     );
   }
 
   return (
-    <Roster>
+    <Stack as="ul" gap="sm" style={rosterListStyle}>
       {names.map((name, index) => {
         const rules = showMeters ? rulesByName.get(name) : undefined;
         return (
-          <RosterItem key={name}>
+          <Stack as="li" gap="sm" key={name}>
             <Cluster justify="start">
               {/* Leading per-crew avatar slot: a square cell where an Uplink's
                   avatar augment composes. The fallback bullet is a base
                   layer under the slot, with no augment bound (or the augment
                   yielding nothing: no Uplink, facecams off, kerbal not seated)
                   it shows through, so the roster degrades gracefully. */}
-              <Avatar>
-                <AvatarFallback data-testid="crew-avatar-fallback" aria-hidden>
-                  <Bullet />
-                </AvatarFallback>
-                <AvatarSlot>
-                  <AugmentSlot
-                    name="crew-manifest.avatar"
-                    props={{ crewName: name, crewIndex: index }}
-                  />
-                </AvatarSlot>
-              </Avatar>
-              <Name>{name}</Name>
+              <CrewAvatarCell
+                fallback={
+                  <div
+                    data-testid="crew-avatar-fallback"
+                    aria-hidden
+                    style={AVATAR_LAYER_STYLE}
+                  >
+                    <CrewBullet />
+                  </div>
+                }
+                slot={
+                  <div style={AVATAR_LAYER_STYLE}>
+                    {/* Forces whatever the augment renders (e.g. a face
+                        image) to fill the cell, matching the fallback's
+                        own centred sizing. */}
+                    <div style={{ width: "100%", height: "100%" }}>
+                      <AugmentSlot
+                        name="crew-manifest.avatar"
+                        props={{ crewName: name, crewIndex: index }}
+                      />
+                    </div>
+                  </div>
+                }
+              />
+              <Truncate>{name}</Truncate>
               {/* Per-crew inline badges slot. Renders nothing until an Uplink
                   (e.g. Kerbalism Habitat/Radiation) binds, the props carry
                   this row's kerbal identity so the augment badges the right
                   one. */}
-              <Badges>
+              <Inline gap="xs" style={{ marginLeft: "auto" }}>
                 <AugmentSlot
                   name="crew-manifest.badges"
                   props={{ crewName: name, crewIndex: index }}
                 />
-              </Badges>
+              </Inline>
             </Cluster>
             {rules && <SurvivalMeters rules={rules} stage1Sec={stage1Sec} />}
-          </RosterItem>
+          </Stack>
         );
       })}
-    </Roster>
+    </Stack>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Avatar cell ──────────────────────────────────────────────────────────────
 
-// Trailing cluster in the title row: meters toggle + stream badge.
-// Scene-aware meters toggle, shown only when the KerbalismUplink is feeding
-// per-kerbal survival data.
-const MetersToggle = styled.button`
-  appearance: none;
-  border: 1px solid var(--color-border-subtle);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: var(--space-2) var(--space-8);
-  border-radius: var(--radius-md);
-  cursor: pointer;
+// Both layers absolutely fill the avatar cell and centre their content, so
+// the fallback bullet and a live augment face stack in the same box.
+const AVATAR_LAYER_STYLE = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+} as const;
 
-  &:hover {
-    color: var(--color-text-primary);
-    border-color: var(--color-accent-fg);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-
-  &[aria-pressed="true"] {
-    color: var(--color-accent-fg);
-    border-color: var(--color-accent-fg);
-  }
-`;
-
-const Roster = styled.ul`
-  list-style: none;
-  margin: var(--space-8) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
-
-// One roster entry: the name/badges head line, plus (when survival data is
-// shown) the per-kerbal meters block stacked beneath it.
-const RosterItem = styled.li`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
-
-// Per-kerbal survival meters block, indented under the name line.
-const SurvivalStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: 0 0 var(--space-4) var(--space-12);
-`;
-
-// EVA suit resources block, shown once beneath the subtitle (not per-row -
-// the suit belongs to the single EVA kerbal the whole widget is scoped to).
-// No inset of its own: this sits inside Panel.Body, which supplies the
-// content inset that lines the O2/EC rows up with the title above them.
-const SuitStack = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-12);
-  margin-top: var(--space-6);
-`;
-
-// Derived death-clock readout under the meters. Tone tracks urgency.
-const DeathClock = styled.span<{ $tone: MeterTone }>`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.04em;
-  color: ${({ $tone }) =>
-    $tone === "nogo"
-      ? "var(--color-status-nogo-fg)"
-      : $tone === "warn"
-        ? "var(--color-status-warning-fg-muted)"
-        : "var(--color-text-muted)"};
-`;
-
-// Leading per-crew avatar cell: a square that reserves room for an avatar-face
-// augment. Sized ~40px, scaling with the widget and clamped 36-56px (mirrors
-// TinyReadout's vw-clamp idiom). `position: relative` so the fallback and the
-// augment slot stack in the same box.
-const Avatar = styled.div`
-  position: relative;
-  flex: 0 0 auto;
-  width: clamp(36px, 8vw, 56px);
-  height: clamp(36px, 8vw, 56px);
-`;
+/**
+ * Leading per-crew avatar cell: a square that reserves room for an avatar-face
+ * augment, sized via `AVATAR_CELL_SIZE`. `position: relative` so the fallback
+ * and the augment slot layers stack in the same box.
+ */
+function CrewAvatarCell({
+  fallback,
+  slot,
+}: Readonly<{ fallback: ReactNode; slot: ReactNode }>) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        flex: "0 0 auto",
+        width: AVATAR_CELL_SIZE,
+        height: AVATAR_CELL_SIZE,
+      }}
+    >
+      {fallback}
+      {slot}
+    </div>
+  );
+}
 
 // Base layer: the bullet dot, centred in the avatar cell. Shows whenever the
 // slot yields nothing (no augment / facecams off / kerbal not seated); an
 // augment paints over it. Decorative, the name carries the identity.
-const AvatarFallback = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-// Overlay layer: the augment slot, filling the cell above the fallback. A live
-// face covers the bullet; an empty slot adds nothing and the fallback shows.
-const AvatarSlot = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  & > * {
-    width: 100%;
-    height: 100%;
-  }
-`;
-
-const Bullet = styled.span`
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-circle);
-  background: var(--color-accent-fg);
-  flex: 0 0 auto;
-`;
-
-const Name = styled.span`
-  font-size: var(--font-size-base);
-  color: var(--color-text-primary);
-  letter-spacing: 0.02em;
-`;
-
-// Inline container for the per-crew `crew-manifest.badges` augment slot. Sits
-// after the name, pushed to the row's trailing edge; empty (no augment bound)
-// it collapses and adds nothing to the row.
-const Badges = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin-left: auto;
-`;
+function CrewBullet() {
+  return (
+    <span
+      style={{
+        display: "block",
+        width: "6px",
+        height: "6px",
+        borderRadius: "var(--radius-circle)",
+        background: "var(--color-accent-fg)",
+      }}
+    />
+  );
+}
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
