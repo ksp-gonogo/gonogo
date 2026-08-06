@@ -8,9 +8,16 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Countdown, NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Countdown,
+  Grid,
+  NULL_DISPLAY,
+  Panel,
+  Stack,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 
@@ -137,13 +144,45 @@ function CurrentOrbitComponent({
 
   return (
     <Panel panelTitle="ORBIT">
+      {/* Reference body as an in-body caption (staging relocated it out of
+          the Panel subtitle slot); a plain span carries the muted caption
+          type without styled-components. */}
       {showSubtitle && refBody !== undefined && (
-        <RefBodyCaption>{refBody}</RefBodyCaption>
+        <span
+          style={{
+            fontSize: "var(--font-size-xs)",
+            color: "var(--color-text-muted)",
+            letterSpacing: "0.03em",
+          }}
+        >
+          {refBody}
+        </span>
       )}
-      <Body ref={bodyRef} $landscape={isLandscape}>
-        <OrbitGrid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
-          <Label>Ap</Label>
-          <OrbitValue $accent="ap">
+      {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
+          real measured element: ui-kit's layout primitives don't forward
+          refs, and this is the one node in the widget that genuinely needs
+          imperative DOM access. */}
+      <div
+        ref={bodyRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: isLandscape ? "row" : "column",
+          gap: "var(--space-8)",
+        }}
+      >
+        <Grid
+          cols={tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"}
+          align="baseline"
+          style={{
+            gap: `var(--space-2) ${tight ? "var(--space-6)" : "var(--space-8)"}`,
+            alignContent: "start",
+            ...(isLandscape ? { flex: "0 0 auto" } : {}),
+          }}
+        >
+          <OrbitLabel>Ap</OrbitLabel>
+          <OrbitValue accent="ap" tight={tight} narrow={narrow}>
             {/* Hyperbolic/escape trajectories have no apoapsis, Telemachus
                 emits its sentinel (999999999 m) which would read as a real
                 "1000.00 Mm". Render an em-dash so the operator doesn't
@@ -157,15 +196,15 @@ function CurrentOrbitComponent({
             )}
           </OrbitValue>
 
-          <Label>Pe</Label>
+          <OrbitLabel>Pe</OrbitLabel>
           {/* Sub-surface periapsis (negative altitude) means the vessel
               will impact terrain, promote the readout to the nogo
               alert colour so the operator notices at a glance instead
               of reading "Pe = -5 km" as just another low number. */}
           <OrbitValue
-            $accent={
-              periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"
-            }
+            accent={periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"}
+            tight={tight}
+            narrow={narrow}
           >
             {periapsisA === undefined ? (
               NULL_DISPLAY
@@ -176,8 +215,8 @@ function CurrentOrbitComponent({
 
           {showInclinationRow && (
             <>
-              <Label>Inc</Label>
-              <OrbitValue>
+              <OrbitLabel>Inc</OrbitLabel>
+              <OrbitValue tight={tight} narrow={narrow}>
                 {inclination === undefined ? (
                   NULL_DISPLAY
                 ) : (
@@ -189,8 +228,8 @@ function CurrentOrbitComponent({
 
           {showApProgressRows && (
             <>
-              <Label>t-Ap</Label>
-              <OrbitValue $accent="ap">
+              <OrbitLabel>t-Ap</OrbitLabel>
+              <OrbitValue accent="ap" tight={tight} narrow={narrow}>
                 {/* On hyperbolic orbits there's no apoapsis to reach,
                     Telemachus emits 0 which reads as "arriving now" on a
                     countdown. Render an em-dash so the operator doesn't
@@ -202,8 +241,8 @@ function CurrentOrbitComponent({
                 )}
               </OrbitValue>
 
-              <Label>t-Pe</Label>
-              <OrbitValue $accent="pe">
+              <OrbitLabel>t-Pe</OrbitLabel>
+              <OrbitValue accent="pe" tight={tight} narrow={narrow}>
                 {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
                     elliptical solver degrades timeToPe to null (and a legacy
                     0-sentinel source would read as "arriving now"), render an
@@ -220,8 +259,8 @@ function CurrentOrbitComponent({
 
           {showEccentricityRows && (
             <>
-              <Label>Ecc</Label>
-              <OrbitValue>
+              <OrbitLabel>Ecc</OrbitLabel>
+              <OrbitValue tight={tight} narrow={narrow}>
                 {eccentricity === undefined ? (
                   NULL_DISPLAY
                 ) : (
@@ -229,8 +268,8 @@ function CurrentOrbitComponent({
                 )}
               </OrbitValue>
 
-              <Label>T</Label>
-              <OrbitValue>
+              <OrbitLabel>T</OrbitLabel>
+              <OrbitValue tight={tight} narrow={narrow}>
                 {/* Period is undefined on a hyperbolic orbit (the
                     trajectory never closes); Telemachus emits 0 which
                     is again indistinguishable from "now". */}
@@ -242,10 +281,18 @@ function CurrentOrbitComponent({
               </OrbitValue>
             </>
           )}
-        </OrbitGrid>
+        </Grid>
 
         {showDiagramSlot && (
-          <MiniDiagramWrap $landscape={isLandscape}>
+          <Stack
+            style={{
+              flex: "1 1 0",
+              minHeight: "80px",
+              ...(isLandscape
+                ? { minWidth: 0 }
+                : { marginTop: "var(--space-4)" }),
+            }}
+          >
             <OrbitDiagram
               variant="mini"
               sma={sma.magnitude}
@@ -262,9 +309,9 @@ function CurrentOrbitComponent({
               bodyRadius={body?.radius}
               isOrbiting={isOrbiting}
             />
-          </MiniDiagramWrap>
+          </Stack>
         )}
-      </Body>
+      </div>
     </Panel>
   );
 }
@@ -302,91 +349,73 @@ registerComponent<CurrentOrbitConfig>({
 
 export { CurrentOrbitComponent };
 
-const RefBodyCaption = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.03em;
-`;
+// Plain elements + inline style rather than ui-kit primitives below: the
+// label/value pair carries font sizes and letter-spacings off the standard
+// scale on purpose (see OrbitValue's own comment), and Value's tone
+// vocabulary (accent/default/muted/faint) has no slot for this widget's
+// domain tones (ap/pe/alert), so composing it would either lose the exact
+// colour or force a mismatched tone name onto a value that isn't one of
+// Value's four.
 
-const Body = styled.div<{ $landscape: boolean }>`
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
-  align-items: ${({ $landscape }) => ($landscape ? "stretch" : "initial")};
-  gap: var(--space-8);
-`;
+function OrbitLabel({ children }: { children: ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: "var(--font-size-xs)",
+        color: "var(--color-text-faint)",
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
 
-const OrbitGrid = styled.div<{
-  $landscape: boolean;
-  $tight: boolean;
-  $narrow: boolean;
-}>`
-  display: grid;
-  grid-template-columns: ${({ $tight }) =>
-    $tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"};
-  gap: var(--space-2) ${({ $tight }) => ($tight ? "var(--space-6)" : "var(--space-8)")};
-  align-items: baseline;
-  align-content: start;
-  ${({ $landscape }) => ($landscape ? "flex: 0 0 auto;" : "")}
-  /* Force values onto one line: at tiny widget sizes the formatted
-     distance ("85.0 km") wraps inside the value column. Pair with the
-     narrow-width font tiers below so realistic values still fit the
-     ~80–120 px of content width without clipping past the panel edge. */
-  & > span:nth-child(2n) {
-    white-space: nowrap;
-    min-width: 0;
-    /* Narrow panels (3–4 cols) shrink long values rather than clip them;
-       the tiny tier (small on both axes) goes one step smaller still.
-
-       The narrow tier stays a literal 12px, paired with OrbitValue's literal
-       13px base below: --font-size-sm covers both 13 and 12, so tokenising
-       the pair collapses two tiers into one and makes narrow a no-op on
-       desktop, and a 13px no-op on a coarse pointer, which is exactly the
-       size the comment above says clips at 3-4 cols. Only the tight tier
-       lands on a rung of its own. */
-    ${({ $tight, $narrow }) =>
-      $tight
-        ? "font-size: var(--font-size-2xs);"
-        : $narrow
-          ? "font-size: 12px;"
-          : ""}
-  }
-`;
-
-const Label = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-`;
-
-const accentColor = {
+const ACCENT_COLOR: Record<"ap" | "pe" | "alert", string> = {
   ap: "var(--color-status-warning-bg)",
   pe: "var(--color-tag-blue-fg)",
   alert: "var(--color-status-nogo-bg)",
 };
 
-const OrbitValue = styled.span<{ $accent?: "ap" | "pe" | "alert" }>`
-  /* Off-scale on purpose: this 13px is the top of a three-tier ladder
-     (13 base / 12 narrow / 10 tight) and --font-size-sm is 12px, so
-     tokenising it merges the base into the narrow tier the OrbitGrid override
-     above exists to step down to. The two must stay one rung apart. */
-  font-size: 13px;
-  color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
-  letter-spacing: 0.03em;
-`;
-
-const MiniDiagramWrap = styled.div<{ $landscape: boolean }>`
-  display: flex;
-  flex: 1 1 0;
-  min-height: 80px;
-  ${({ $landscape }) =>
-    $landscape
-      ? `
-    min-width: 0;
-  `
-      : `
-    margin-top: var(--space-4);
-  `}
-`;
+function OrbitValue({
+  accent,
+  tight,
+  narrow,
+  children,
+}: {
+  accent?: "ap" | "pe" | "alert";
+  tight: boolean;
+  narrow: boolean;
+  children: ReactNode;
+}) {
+  // Force values onto one line: at tiny widget sizes the formatted distance
+  // ("85.0 km") wraps inside the value column. Pair with the narrow-width
+  // font tiers below so realistic values still fit the ~80-120px of content
+  // width without clipping past the panel edge.
+  const style: CSSProperties = {
+    // Off-scale on purpose: this 13px is the top of a three-tier ladder
+    // (13 base / 12 narrow / 10 tight) and --font-size-sm is 12px, so
+    // tokenising it merges the base into the narrow tier below. The two
+    // must stay one rung apart.
+    fontSize: "13px",
+    color: accent ? ACCENT_COLOR[accent] : "var(--color-text-primary)",
+    letterSpacing: "0.03em",
+    whiteSpace: "nowrap",
+    minWidth: 0,
+  };
+  // Narrow panels (3-4 cols) shrink long values rather than clip them; the
+  // tiny tier (small on both axes) goes one step smaller still.
+  //
+  // The narrow tier stays a literal 12px, paired with the base 13px above:
+  // --font-size-sm covers both 13 and 12, so tokenising the pair collapses
+  // two tiers into one and makes narrow a no-op on desktop, and a 13px no-op
+  // on a coarse pointer, which is exactly the size the comment above says
+  // clips at 3-4 cols. Only the tight tier lands on a rung of its own.
+  if (tight) {
+    style.fontSize = "var(--font-size-2xs)";
+  } else if (narrow) {
+    style.fontSize = "12px";
+  }
+  return <span style={style}>{children}</span>;
+}
