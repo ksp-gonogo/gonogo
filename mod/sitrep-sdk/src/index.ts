@@ -33,6 +33,7 @@ export {
 // name the generated contract puts on a unit-carrying vector, and there is no
 // second spelling of it worth exporting.
 export {
+  assertGuardsRegistered,
   calendarRatio,
   Dimension,
   declaredUnitFor,
@@ -55,6 +56,7 @@ export {
   type UnitDefinition,
   type UnitRegistration,
   type UnknownUnit,
+  unitGuard,
   type Value,
   type Vector3,
   value,

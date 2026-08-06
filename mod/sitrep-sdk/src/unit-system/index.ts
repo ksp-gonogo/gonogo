@@ -13,6 +13,7 @@ export {
   type UnitDefinition,
 } from "./definitions";
 export * as Dimension from "./dimension";
+export { assertGuardsRegistered, unitGuard } from "./guards";
 export {
   declaredUnitFor,
   displaySymbol,
