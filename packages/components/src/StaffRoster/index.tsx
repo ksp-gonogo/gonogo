@@ -160,21 +160,17 @@ function StaffRosterComponent({
 
   if (staff === null) {
     return (
-      <Panel
-        panelTitle="STAFF ROSTER"
-        panelSubtitle={showSubtitle ? "Awaiting roster telemetry" : undefined}
-      />
+      <Panel panelTitle="STAFF ROSTER">
+        {showSubtitle && <Empty>Awaiting roster telemetry</Empty>}
+      </Panel>
     );
   }
 
   if (staff.length === 0) {
     return (
-      <Panel
-        panelTitle="STAFF ROSTER"
-        panelSubtitle={
-          showSubtitle ? "Roster empty: no kerbals hired." : undefined
-        }
-      />
+      <Panel panelTitle="STAFF ROSTER">
+        {showSubtitle && <Empty>Roster empty: no kerbals hired.</Empty>}
+      </Panel>
     );
   }
 
@@ -216,16 +212,12 @@ function StaffRosterComponent({
   }
 
   return (
-    <Panel
-      panelTitle="STAFF ROSTER"
-      panelSubtitle={
-        showSubtitle ? (
-          <span role="status" aria-live="polite">
-            {available}/{staff.length} available
-          </span>
-        ) : undefined
-      }
-    >
+    <Panel panelTitle="STAFF ROSTER">
+      {showSubtitle && (
+        <Summary role="status" aria-live="polite">
+          {available}/{staff.length} available
+        </Summary>
+      )}
       <List $multiColumn={multiColumn}>
         {sorted.map((kerbal, i) => (
           <CrewCard
@@ -303,6 +295,20 @@ function StaffRosterComponent({
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+
+const Empty = styled.div`
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  padding: var(--space-8) var(--space-4);
+`;
+
+const Summary = styled.div`
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 0 var(--space-4);
+`;
 
 // Single column by default (portrait / square). In landscape we switch to a
 // width-following grid: `auto-fill` + a min row width derives the column count
