@@ -360,12 +360,12 @@ function PowerSystemsComponent({
 
   if (resourcesWithFlow.length === 0) {
     return (
-      <Panel
-        panelTitle="POWER SYSTEMS"
-        panelSubtitle={
-          showHeader ? "No active flow on any resource" : undefined
-        }
-      >
+      <Panel panelTitle="POWER SYSTEMS">
+        {showHeader && (
+          <div style={SECTION_EMPTY} role="status">
+            No active flow on any resource
+          </div>
+        )}
         <div style={HINT}>
           Deploy a solar panel, run a generator, or fire an engine to see flow
           contributions here.
@@ -399,13 +399,6 @@ function PowerSystemsComponent({
   return (
     <Panel
       panelTitle="POWER SYSTEMS"
-      panelSubtitle={
-        contributions.length === 0 ? (
-          <span role="status">
-            No active {splitCamel(resource)} flow right now.
-          </span>
-        ) : undefined
-      }
       panelAside={
         <>
           <AugmentSlot name="power-systems.badges" props={slotProps} />
@@ -438,6 +431,12 @@ function PowerSystemsComponent({
             ? "Power deficit"
             : "Power balanced"}
       </VisuallyHidden>
+
+      {contributions.length === 0 && (
+        <div style={SECTION_EMPTY} role="status">
+          No active {splitCamel(resource)} flow right now.
+        </div>
+      )}
 
       <div style={TOTALS}>
         <div style={{ ...TOTALS_CELL, ...netCellStyle(netTone) }}>
