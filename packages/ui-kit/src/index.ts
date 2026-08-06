@@ -39,6 +39,10 @@ export {
   type NamespacedAugmentSettings,
 } from "./AugmentSettingsPanel";
 export {
+  AutoEmptyState,
+  type AutoEmptyStateProps,
+} from "./AutoEmptyState";
+export {
   Badge,
   type BadgeProps,
   type BadgeSize,
