@@ -187,17 +187,16 @@ function CommSignalComponent({
     <Panel
       panelTitle="COMMNET"
       panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
-      panelSubtitle={
-        showSubtitle
-          ? connected === false
-            ? "No signal"
-            : "Signal to KSC"
-          : undefined
-      }
     >
       <LiveStatus role="status" aria-live="polite">
         {liveAnnouncement}
       </LiveStatus>
+
+      {showSubtitle && (
+        <SignalCaption $lost={connected === false}>
+          {connected === false ? "No signal" : "Signal to KSC"}
+        </SignalCaption>
+      )}
 
       <Body $row={isLandscape}>
         <Cluster justify="start" wrap>
@@ -336,6 +335,15 @@ const GridLabel = styled.span`
 const GridValue = styled.span<{ $tone?: Tone }>`
   font-size: var(--font-size-sm);
   color: ${({ $tone }) => ($tone ? TONE_TEXT_COLOR[$tone] : "var(--color-text-primary)")};
+`;
+
+// Compact link caption below the header (was the panel subtitle): "Signal to
+// KSC" / "No signal", relocated into the body so the title stands alone.
+const SignalCaption = styled.span<{ $lost?: boolean }>`
+  font-size: var(--font-size-xs);
+  color: ${({ $lost }) =>
+    $lost ? "var(--color-status-nogo-fg)" : "var(--color-text-dim)"};
+  letter-spacing: 0.04em;
 `;
 
 // ── Registration ──────────────────────────────────────────────────────────────
