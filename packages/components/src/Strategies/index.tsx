@@ -217,10 +217,9 @@ function StrategiesComponent({
 
   if (strategies === null) {
     return (
-      <Panel
-        panelTitle="Strategies"
-        panelSubtitle={showSubtitle ? "Awaiting career data..." : undefined}
-      />
+      <Panel panelTitle="Strategies">
+        {showSubtitle && <Empty>Awaiting career data...</Empty>}
+      </Panel>
     );
   }
 
