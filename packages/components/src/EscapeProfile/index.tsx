@@ -1,8 +1,9 @@
 import type { BodyDefinition, ComponentProps } from "@ksp-gonogo/core";
 import { escapeVelocity, getBody, registerComponent } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { Box, Stack } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useMemo } from "react";
-import styled from "styled-components";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 
 export interface EscapeProfileConfig {
@@ -108,65 +109,59 @@ function EscapeProfileComponent({
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   return (
-    <Wrap>
-      <GraphSlot>
+    <Stack gap="sm" style={WRAP_STYLE}>
+      {/* GraphView's Panel is height:100%, so without an explicit shrinkable
+          flex slot it doesn't yield room to the Notice sibling below (the two
+          overlap instead of the chart shrinking by the Notice's height).
+          Mirrors KeplerPeriod's / AtmosphereProfile's own GraphSlot wrapper. */}
+      <Stack gap="xs" style={GRAPH_SLOT_STYLE}>
         <GraphView
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title="ESCAPE PROFILE"
         />
-      </GraphSlot>
+      </Stack>
+      {/* Normal-flow row rather than an absolute overlay: the absolute version
+          covered the x-axis tick labels at narrow heights (they physically
+          overlap regardless of the chart's own height, since an
+          absolutely-positioned element never yields flex space to a sibling).
+          Matches KeplerPeriod's and AtmosphereProfile's own Notice, which
+          already made this switch. */}
       {showNoGmNotice && body && (
-        <Notice role="status">
+        <Box role="status" radius="xs" style={NOTICE_STYLE}>
           No reference data for {body.name}: plotting trace only.
-        </Notice>
+        </Box>
       )}
       {showNoBodyNotice && (
-        <Notice role="status">
+        <Box role="status" radius="xs" style={NOTICE_STYLE}>
           Unknown body “{bodyName}”: plotting trace only.
-        </Notice>
+        </Box>
       )}
-    </Wrap>
+    </Stack>
   );
 }
 
-const Wrap = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-`;
+const WRAP_STYLE: CSSProperties = {
+  height: "100%",
+  width: "100%",
+  minHeight: 0,
+};
 
-// GraphView's Panel is height:100%, so without an explicit shrinkable flex
-// slot it doesn't yield room to the Notice sibling below (the two overlap
-// instead of the chart shrinking by the Notice's height). Mirrors
-// KeplerPeriod's / AtmosphereProfile's own GraphSlot wrapper.
-const GraphSlot = styled.div`
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-`;
+const GRAPH_SLOT_STYLE: CSSProperties = {
+  flex: "1 1 auto",
+  minHeight: 0,
+};
 
-// Normal-flow row rather than an absolute overlay: the absolute version
-// covered the x-axis tick labels at narrow heights (they physically overlap
-// regardless of the chart's own height, since an absolutely-positioned
-// element never yields flex space to a sibling). Matches KeplerPeriod's and
-// AtmosphereProfile's own Notice, which already made this switch.
-const Notice = styled.div`
-  flex: 0 0 auto;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  background: rgba(0, 0, 0, 0.7);
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  pointer-events: none;
-  align-self: flex-start;
-  max-width: 100%;
-  margin-top: var(--space-4);
-`;
+const NOTICE_STYLE: CSSProperties = {
+  flex: "0 0 auto",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+  background: "rgba(0, 0, 0, 0.7)",
+  padding: "var(--space-2) var(--space-6)",
+  pointerEvents: "none",
+  alignSelf: "flex-start",
+  maxWidth: "100%",
+};
 
 registerComponent<EscapeProfileConfig>({
   id: "escape-profile",

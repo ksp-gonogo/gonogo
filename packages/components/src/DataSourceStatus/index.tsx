@@ -8,7 +8,10 @@ import {
 } from "@ksp-gonogo/core";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
+  Badge,
+  type BadgeTone,
   BigReadout,
+  Box,
   Cluster,
   ConfigForm,
   FieldLabel,
@@ -21,9 +24,19 @@ import {
   Panel,
   PrimaryButton,
   ReadoutCaption,
+  Stack,
+  StatusIndicator,
+  type StatusTone,
+  Truncate,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
-import styled, { keyframes } from "styled-components";
+
+/** Full-row source-name label: pairs `Truncate`'s flex/ellipsis behaviour
+ *  with the font-size/colour the old bespoke `Name` span carried. */
+const SOURCE_NAME_STYLE = {
+  fontSize: "var(--font-size-sm)",
+  color: "var(--color-text-primary)",
+} as const;
 
 interface RemoteVersionExposing {
   getRemoteVersion?: () => { version: string; buildTime: string } | null;
@@ -124,14 +137,15 @@ function DataSourceStatusComponent({
         {sources.length === 0 ? (
           <Placeholder>No data sources registered</Placeholder>
         ) : (
-          <CompactList>
+          <Stack as="ul" gap="sm" style={LIST_STYLE}>
             {sources.map((s) => (
-              <CompactRow key={s.id}>
-                <Indicator $status={s.status} />
-                <Name>{s.name}</Name>
-              </CompactRow>
+              <li key={s.id}>
+                <StatusIndicator tone={statusTone(s.status)}>
+                  {s.name}
+                </StatusIndicator>
+              </li>
             ))}
-          </CompactList>
+          </Stack>
         )}
       </Panel>
     );
@@ -142,41 +156,47 @@ function DataSourceStatusComponent({
       {sources.length === 0 ? (
         <Placeholder>No data sources registered</Placeholder>
       ) : (
-        <List>
+        <Stack as="ul" gap="md" style={LIST_STYLE}>
           {sources.map((source) => {
             const schema = getDataSource(source.id)?.configSchema() ?? [];
             const isConfiguring = configuringId === source.id;
             return (
-              <Item key={source.id}>
+              <Stack as="li" gap="sm" key={source.id}>
                 <Cluster justify="start">
-                  <Indicator $status={source.status} />
-                  <Name>{source.name}</Name>
+                  <Truncate style={SOURCE_NAME_STYLE}>{source.name}</Truncate>
                   <RemoteVersionPill sourceId={source.id} />
-                  <StatusLabel $status={source.status}>
+                  <StatusIndicator tone={statusTone(source.status)}>
                     {source.status}
-                  </StatusLabel>
+                  </StatusIndicator>
                   {source.status === "disconnected" && (
-                    <RetryButton
+                    <GhostButton
                       onClick={() => {
                         void getDataSource(source.id)?.connect();
                       }}
                       aria-label={`Reconnect ${source.name}`}
+                      style={RETRY_BUTTON_STYLE}
                     >
                       Reconnect
-                    </RetryButton>
+                    </GhostButton>
                   )}
                   {schema.length > 0 && (
-                    <ConfigButton
+                    <IconButton
                       onClick={() =>
                         isConfiguring
                           ? setConfiguringId(null)
                           : openConfig(source.id)
                       }
                       aria-label={`Configure ${source.name}`}
-                      $active={isConfiguring}
+                      style={{
+                        color: isConfiguring
+                          ? "var(--color-text-primary)"
+                          : "var(--color-text-faint)",
+                        fontSize: "var(--font-size-sm)",
+                        padding: "0 var(--space-2)",
+                      }}
                     >
                       <GearIcon size={14} />
-                    </ConfigButton>
+                    </IconButton>
                   )}
                 </Cluster>
                 {source.status === "disconnected" &&
@@ -185,7 +205,14 @@ function DataSourceStatusComponent({
                       source.id,
                     )?.setupInstructions?.();
                     return instructions ? (
-                      <SetupInstructions>{instructions}</SetupInstructions>
+                      <Box
+                        surface="sunken"
+                        bordered
+                        radius="sm"
+                        style={SETUP_INSTRUCTIONS_STYLE}
+                      >
+                        {instructions}
+                      </Box>
                     ) : null;
                   })()}
                 {isConfiguring && (
@@ -224,10 +251,10 @@ function DataSourceStatusComponent({
                     </FormActions>
                   </ConfigForm>
                 )}
-              </Item>
+              </Stack>
             );
           })}
-        </List>
+        </Stack>
       )}
     </Panel>
   );
@@ -240,145 +267,60 @@ function RemoteVersionPill({ sourceId }: { sourceId: string }) {
   if (!remote) return null;
   if (kind === "same" || kind === "patch") {
     return (
-      <VersionTag
-        $kind="same"
+      <Badge
+        tone="neutral"
+        size="sm"
         title={`v${remote.version}${remote.buildTime ? ` (build ${remote.buildTime})` : ""}`}
       >
         v{remote.version}
-      </VersionTag>
+      </Badge>
     );
   }
   return (
-    <VersionTag
-      $kind={kind}
+    <Badge
+      tone={VERSION_BADGE_TONE[kind]}
+      size="sm"
       title={`Local ↔ remote: ${kind} mismatch (remote v${remote.version})`}
     >
       v{remote.version}
-    </VersionTag>
+    </Badge>
   );
 }
 
-// --- Styles ---
+// --- Style helpers ---
 
-const List = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-`;
+// Resets the semantic `<ul>`'s own bullet/margin/padding; `Stack` supplies
+// the flex-column + gap.
+const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
 
-const Item = styled.li`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-`;
-
-const CompactList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
-
-const CompactRow = styled.li`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-4) 0;
-`;
-
-const Name = styled.span`
-  flex: 1;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-`;
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-`;
-
-const statusColor: Record<DataSourceStatus, string> = {
-  connected: "var(--color-accent-fg)",
-  disconnected: "var(--color-text-faint)",
-  reconnecting: "var(--color-status-warning-bg)",
-  error: "var(--color-status-nogo-bg)",
+const STATUS_TONE: Record<DataSourceStatus, StatusTone> = {
+  connected: "go",
+  disconnected: "neutral",
+  reconnecting: "warn",
+  error: "nogo",
 };
 
-const Indicator = styled.span<{ $status: DataSourceStatus }>`
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  flex-shrink: 0;
-  background: ${({ $status }) => statusColor[$status]};
-  /* Indefinite animation, so it needs its own guard: the global damper in
-     global.css only clamps duration under prefers-reduced-motion: reduce,
-     it does not stop a looping pulse. The 1s / 2s period stays literal
-     because it is not a UI-motion choice, it is how the operator reads
-     connection state (reconnecting pulses twice as fast as connected). */
-  @media (prefers-reduced-motion: no-preference) {
-    animation: ${({ $status }) =>
-      $status === "connected" || $status === "reconnecting" ? pulse : "none"}
-      ${({ $status }) => ($status === "reconnecting" ? "1s" : "2s")}
-      var(--ease-emphasis) infinite;
-  }
-`;
+function statusTone(status: DataSourceStatus): StatusTone {
+  return STATUS_TONE[status];
+}
 
-const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
-  font-size: var(--font-size-xs);
-  color: ${({ $status }) => statusColor[$status]};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
+const RETRY_BUTTON_STYLE = {
+  fontSize: "var(--font-size-xs)",
+  letterSpacing: "0.05em",
+  whiteSpace: "nowrap",
+  padding: "var(--space-2) var(--space-6)",
+} as const;
 
-const ConfigButton = styled(IconButton)<{ $active: boolean }>`
-  color: ${({ $active }) => ($active ? "var(--color-text-primary)" : "var(--color-text-faint)")};
-  font-size: var(--font-size-sm);
-  padding: 0 var(--space-2);
-`;
+const SETUP_INSTRUCTIONS_STYLE = {
+  padding: "var(--space-8) var(--space-10)",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+  whiteSpace: "pre-wrap",
+  lineHeight: "var(--line-height-prose)",
+} as const;
 
-const SetupInstructions = styled.pre`
-  margin: 0;
-  padding: var(--space-8) var(--space-10);
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  white-space: pre-wrap;
-  line-height: var(--line-height-prose);
-`;
-
-const RetryButton = styled(GhostButton)`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  padding: var(--space-2) var(--space-6);
-`;
-
-const VERSION_TAG_COLOR: Record<
-  "same" | "minor" | "major" | "unknown",
-  string
-> = {
-  same: "var(--color-text-dim)",
-  minor: "var(--color-status-warning-bg)",
-  major: "var(--color-status-nogo-bg)",
-  unknown: "var(--color-text-muted)",
+const VERSION_BADGE_TONE: Record<"minor" | "major" | "unknown", BadgeTone> = {
+  minor: "warn",
+  major: "nogo",
+  unknown: "neutral",
 };
-
-const VersionTag = styled.span<{
-  $kind: "same" | "minor" | "major" | "unknown";
-}>`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.05em;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-pill);
-  border: 1px solid ${({ $kind }) => VERSION_TAG_COLOR[$kind]};
-  color: ${({ $kind }) => VERSION_TAG_COLOR[$kind]};
-  background: rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-`;

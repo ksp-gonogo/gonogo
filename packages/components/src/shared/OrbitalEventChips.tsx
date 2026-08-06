@@ -1,6 +1,6 @@
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { Cluster, Countdown } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 
 /**
  * Vessel-wide orbital event chips: an SOI encounter / escape and the next
@@ -47,7 +47,7 @@ export function OrbitalEventChips() {
   return (
     <Cluster justify="start" wrap>
       {hasEncounter && (
-        <Chip $variant={encounterKind === "escape" ? "warn" : "go"}>
+        <Chip variant={encounterKind === "escape" ? "warn" : "go"}>
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>
           <ChipValue>
             {encBody as string} · <Countdown value={encTime as number} />
@@ -55,7 +55,7 @@ export function OrbitalEventChips() {
         </Chip>
       )}
       {hasApsis && (
-        <Chip $variant="neutral">
+        <Chip variant="neutral">
           <ChipLabel>NEXT</ChipLabel>
           <ChipValue>
             {apsisType === -1 ? "Pe" : "Ap"} ·{" "}
@@ -67,43 +67,77 @@ export function OrbitalEventChips() {
   );
 }
 
-const Chip = styled.div<{ $variant: "go" | "warn" | "neutral" }>`
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: 2px;
-  border: 1px solid
-    ${({ $variant }) =>
-      $variant === "go"
-        ? "var(--color-status-go-bg)"
-        : $variant === "warn"
-          ? "var(--color-status-warning-bg)"
-          : "var(--color-surface-raised)"};
-  background: ${({ $variant }) =>
-    $variant === "go"
-      ? "var(--color-status-go-bg)"
-      : $variant === "warn"
-        ? "var(--color-status-warning-bg)"
-        : "transparent"};
-  color: ${({ $variant }) =>
-    $variant === "go"
-      ? "var(--color-status-go-fg)"
-      : $variant === "warn"
-        ? "var(--color-status-warning-fg)"
-        : "var(--color-text-primary)"};
-  font-size: 10px;
-  letter-spacing: 0.04em;
-`;
+type ChipVariant = "go" | "warn" | "neutral";
 
-const ChipLabel = styled.span`
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  flex-shrink: 0;
-`;
+const CHIP_TONE: Record<
+  ChipVariant,
+  { border: string; background: string; color: string }
+> = {
+  go: {
+    border: "var(--color-status-go-bg)",
+    background: "var(--color-status-go-bg)",
+    color: "var(--color-status-go-fg)",
+  },
+  warn: {
+    border: "var(--color-status-warning-bg)",
+    background: "var(--color-status-warning-bg)",
+    color: "var(--color-status-warning-fg)",
+  },
+  neutral: {
+    border: "var(--color-surface-raised)",
+    background: "transparent",
+    color: "var(--color-text-primary)",
+  },
+};
 
-const ChipValue = styled.span`
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-`;
+/** A compact bordered pill: label + value, tone-coloured per variant. */
+function Chip({
+  variant,
+  children,
+}: {
+  variant: ChipVariant;
+  children: ReactNode;
+}) {
+  const tone = CHIP_TONE[variant];
+  return (
+    <Box
+      pad={["xs", "md"]}
+      radius="xs"
+      style={{
+        display: "inline-flex",
+        alignItems: "baseline",
+        gap: "var(--space-6)",
+        border: `1px solid ${tone.border}`,
+        background: tone.background,
+        color: tone.color,
+        fontSize: "10px",
+        letterSpacing: "0.04em",
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function ChipLabel({ children }: { children: ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: "9px",
+        fontWeight: 700,
+        letterSpacing: "0.12em",
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function ChipValue({ children }: { children: ReactNode }) {
+  return (
+    <span style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+      {children}
+    </span>
+  );
+}

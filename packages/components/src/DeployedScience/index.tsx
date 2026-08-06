@@ -1,8 +1,19 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { EmptyState, Panel, Unit } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import {
+  Box,
+  Cluster,
+  EmptyState,
+  Panel,
+  ProgressBar,
+  Stack,
+  StatusIndicator,
+  type StatusTone,
+  Truncate,
+  Unit,
+  Value,
+} from "@ksp-gonogo/ui-kit";
 import { magnitudeOr, type Quantityish } from "../shared/magnitude";
 
 /**
@@ -277,6 +288,14 @@ const POWER_LABEL: Record<PowerState, string> = {
   unpowered: "Unpowered",
 };
 
+const POWER_TONE: Record<PowerState, StatusTone> = {
+  powered: "go",
+  partial: "warn",
+  unpowered: "nogo",
+};
+
+const XS2_STYLE = { fontSize: "var(--font-size-2xs)" } as const;
+
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
@@ -313,165 +332,88 @@ function DeployedScienceComponent(
          binds `deployed-science.badges`. */
       panelAside={<AugmentSlot name="deployed-science.badges" props={{}} />}
     >
-      <Body>
+      <Stack
+        gap="md"
+        style={{ padding: "var(--space-4) var(--space-8) var(--space-8)" }}
+      >
         {bases.map((base) => {
           const state = powerState(base);
           return (
-            <BaseCard key={base.id}>
-              <BaseHeader>
-                <BaseBody>{base.body || "Surface base"}</BaseBody>
-                <PowerPill $state={state} role="status">
-                  <Dot $state={state} aria-hidden="true" />
-                  {POWER_LABEL[state]}
-                </PowerPill>
-              </BaseHeader>
-              <PowerLine>
-                EC {Math.round(base.powerAvailable)}/
-                {Math.round(base.powerRequired)}
-                {base.experiments.length > 0 && (
-                  <Muted> · {base.experiments.length} exp</Muted>
-                )}
-              </PowerLine>
+            <Box
+              key={base.id}
+              bordered
+              radius="xs"
+              style={{
+                padding: "var(--space-6) var(--space-8)",
+                borderColor: "var(--color-surface-raised)",
+              }}
+            >
+              <Stack gap="sm">
+                <Cluster style={{ gap: "var(--space-6)" }}>
+                  <Value tone="default" size="sm" style={{ fontWeight: 600 }}>
+                    {base.body || "Surface base"}
+                  </Value>
+                  <StatusIndicator tone={POWER_TONE[state]} live>
+                    {POWER_LABEL[state]}
+                  </StatusIndicator>
+                </Cluster>
+                <Value tone="muted" style={XS2_STYLE}>
+                  EC {Math.round(base.powerAvailable)}/
+                  {Math.round(base.powerRequired)}
+                  {base.experiments.length > 0 && (
+                    <Value tone="faint" style={XS2_STYLE}>
+                      {" "}
+                      · {base.experiments.length} exp
+                    </Value>
+                  )}
+                </Value>
 
-              {base.experiments.map((exp) => (
-                <Experiment key={`${base.id}-${exp.partId}`}>
-                  <ExpRow>
-                    <ExpName>{exp.name}</ExpName>
-                    <ExpPct>
-                      <Unit
-                        value={value("%", exp.progress * 100)}
-                        decimals={0}
-                      />
-                      {exp.collecting && (
-                        <Collecting aria-hidden="true"> ●</Collecting>
-                      )}
-                    </ExpPct>
-                  </ExpRow>
-                  <Bar>
-                    <BarFill style={{ width: `${exp.progress * 100}%` }} />
-                  </Bar>
-                  {/* Per-experiment-card body slot (augment-slot-map:
-                      deployed-science.sections). A Kerbalism Uplink appends a
-                      background-transmission progress bar here; because the
-                      slot renders once PER experiment card, its props carry
-                      THIS card's experiment datum (and its body) so the
-                      augment targets the right experiment. Renders nothing
-                      until an augment binds. */}
-                  <AugmentSlot
-                    name="deployed-science.sections"
-                    props={{ experiment: exp, body: base.body }}
-                  />
-                </Experiment>
-              ))}
-            </BaseCard>
+                {base.experiments.map((exp) => (
+                  <Stack gap="xs" key={`${base.id}-${exp.partId}`}>
+                    <Cluster align="baseline" style={{ gap: "var(--space-6)" }}>
+                      <Truncate style={XS2_STYLE}>{exp.name}</Truncate>
+                      <Value tone="muted" style={XS2_STYLE}>
+                        <Unit
+                          value={value("%", exp.progress * 100)}
+                          decimals={0}
+                        />
+                        {exp.collecting && (
+                          <Value
+                            tone="accent"
+                            style={XS2_STYLE}
+                            aria-hidden="true"
+                          >
+                            {" "}
+                            ●
+                          </Value>
+                        )}
+                      </Value>
+                    </Cluster>
+                    <ProgressBar
+                      value={exp.progress * 100}
+                      ariaLabel={`${exp.name} progress`}
+                    />
+                    {/* Per-experiment-card body slot (augment-slot-map:
+                        deployed-science.sections). A Kerbalism Uplink appends a
+                        background-transmission progress bar here; because the
+                        slot renders once PER experiment card, its props carry
+                        THIS card's experiment datum (and its body) so the
+                        augment targets the right experiment. Renders nothing
+                        until an augment binds. */}
+                    <AugmentSlot
+                      name="deployed-science.sections"
+                      props={{ experiment: exp, body: base.body }}
+                    />
+                  </Stack>
+                ))}
+              </Stack>
+            </Box>
           );
         })}
-      </Body>
+      </Stack>
     </Panel>
   );
 }
-
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-8) var(--space-8);
-  overflow: auto;
-`;
-
-const BaseCard = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6) var(--space-8);
-  border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
-`;
-
-const BaseHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-6);
-`;
-
-const BaseBody = styled.span`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-`;
-
-const PowerPill = styled.span<{ $state: PowerState }>`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-`;
-
-const STATE_COLOR: Record<PowerState, string> = {
-  powered: "var(--color-status-go-fg)",
-  partial: "var(--color-status-warning-fg-muted)",
-  unpowered: "var(--color-status-nogo-fg)",
-};
-
-const Dot = styled.span<{ $state: PowerState }>`
-  width: 7px;
-  height: 7px;
-  border-radius: var(--radius-circle);
-  background: ${(p) => STATE_COLOR[p.$state]};
-`;
-
-const PowerLine = styled.div`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;
-
-const Muted = styled.span`
-  opacity: 0.7;
-`;
-
-const Experiment = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
-
-const ExpRow = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-6);
-`;
-
-const ExpName = styled.span`
-  font-size: var(--font-size-2xs);
-`;
-
-const ExpPct = styled.span`
-  font-size: var(--font-size-2xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
-`;
-
-const Collecting = styled.span`
-  color: var(--color-status-go-fg);
-`;
-
-const Bar = styled.div`
-  height: 4px;
-  /* A stadium, not a corner: the radius is exactly half the track height,
-     so --radius-pill renders identically and keeps tracking the height. */
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
-  overflow: hidden;
-`;
-
-const BarFill = styled.div`
-  height: 100%;
-  background: var(--color-status-go-bg);
-`;
 
 // ── Augment slots ─────────────────────────────────────────────────────────────
 

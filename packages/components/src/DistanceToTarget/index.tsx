@@ -8,20 +8,28 @@ import {
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Box,
+  Cluster,
   ConfigForm,
   Countdown,
+  EmptyState,
   Field,
   FieldHint,
   FieldLabel,
+  Grid,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Select,
+  Stack,
   Switch,
+  Truncate,
   Unit,
   useModalSaveBar,
+  Value,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styled from "styled-components";
 import {
   bare,
   deriveDockAngles,
@@ -278,7 +286,7 @@ function DistanceToTargetComponent({
           <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
         }
       >
-        <NoTarget>No target set in KSP</NoTarget>
+        <EmptyState>No target set in KSP</EmptyState>
       </Panel>
     );
   }
@@ -337,22 +345,62 @@ function DistanceToTargetComponent({
         <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
       }
     >
-      <TrackingBody>
-        {showTargetName && <TargetName>{tarName}</TargetName>}
+      <Stack
+        gap="sm"
+        style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
+      >
+        {showTargetName && (
+          <Value tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+            {tarName}
+          </Value>
+        )}
         {tarDistance === undefined ? (
-          <Dash>{NULL_DISPLAY}</Dash>
+          <DisplayDash />
         ) : (
-          <Distance>
+          <Value tone="accent" style={DISPLAY_VALUE_STYLE}>
             <Unit value={value("m", tarDistance)} />
-          </Distance>
+          </Value>
         )}
         {showSubReadout && (
-          <SubReadout>
+          <Value
+            size="xs"
+            tone="muted"
+            style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
+          >
             Δv <Unit value={value("m/s", relVel as number)} decimals={2} />
-          </SubReadout>
+          </Value>
         )}
-      </TrackingBody>
+      </Stack>
     </Panel>
+  );
+}
+
+/* Display tier. The type scale deliberately stops at --font-size-lg (16px);
+   everything above it in this codebase is a fluid clamp, a JS-computed fit
+   or a size locked to a box width, so a fixed rung would freeze behaviour
+   rather than name it. DisplayDash below must stay equal to this. */
+const DISPLAY_VALUE_STYLE = {
+  fontSize: 22,
+  fontWeight: 600,
+  letterSpacing: "0.02em",
+  lineHeight: "var(--line-height-tight)",
+} as const;
+
+/**
+ * Same display tier as the value it stands in for (see `DISPLAY_VALUE_STYLE`),
+ * shown while a distance hasn't arrived yet.
+ */
+function DisplayDash() {
+  return (
+    <span
+      style={{
+        fontSize: 22,
+        fontWeight: 600,
+        color: "var(--color-border-strong)",
+      }}
+    >
+      {NULL_DISPLAY}
+    </span>
   );
 }
 
@@ -366,6 +414,42 @@ interface ApproachHudProps {
   universalTime: number | null;
   cols: number;
   rows: number;
+}
+
+/** A `label` / `value` pair for the approach + docking-HUD readout grids. */
+function ReadoutRow({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone?: "ok" | "warn";
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <ReadoutCaption
+        style={{
+          alignSelf: "baseline",
+          whiteSpace: "nowrap",
+          letterSpacing: "0.1em",
+        }}
+      >
+        {label}
+      </ReadoutCaption>
+      <Value
+        size="lg"
+        tone={tone === "ok" ? "accent" : "default"}
+        style={{
+          fontWeight: 600,
+          whiteSpace: "nowrap",
+          color: tone === "warn" ? "var(--color-status-warning-bg)" : undefined,
+        }}
+      >
+        {children}
+      </Value>
+    </>
+  );
 }
 
 /**
@@ -416,41 +500,60 @@ function ApproachHud({
   if (rows < 5) {
     return (
       <Panel panelTitle="APPROACH">
-        <TrackingBody>
-          <TargetName>{name}</TargetName>
+        <Stack
+          gap="sm"
+          style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
+        >
+          <Value tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+            {name}
+          </Value>
           {distance === undefined ? (
-            <Dash>{NULL_DISPLAY}</Dash>
+            <DisplayDash />
           ) : (
-            <Distance>
+            <Value tone="accent" style={DISPLAY_VALUE_STYLE}>
               <Unit value={value("m", distance)} />
-            </Distance>
+            </Value>
           )}
           {closingMagnitude !== null && (
-            <SubReadout>
+            <Value
+              size="xs"
+              tone="muted"
+              style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
+            >
               {closing ? "−" : "+"}
               <Unit value={value("m/s", closingMagnitude)} decimals={1} />
-            </SubReadout>
+            </Value>
           )}
-        </TrackingBody>
+        </Stack>
       </Panel>
     );
   }
 
   return (
     <Panel panelTitle="APPROACH">
-      <TargetName>{name}</TargetName>
-      <ApproachGrid $stack={stack}>
-        <ApproachLabel>Distance</ApproachLabel>
-        <ApproachValue>
+      <Value tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+        {name}
+      </Value>
+      <Grid
+        cols={stack ? "1fr" : "auto 1fr"}
+        gap="lg"
+        style={{
+          marginTop: "var(--space-6)",
+          rowGap: stack ? "0" : "var(--space-4)",
+        }}
+      >
+        <ReadoutRow label="Distance">
           {distance === undefined ? (
             NULL_DISPLAY
           ) : (
             <Unit value={value("m", distance)} />
           )}
-        </ApproachValue>
+        </ReadoutRow>
 
-        <ApproachLabel>Closing rate</ApproachLabel>
-        <ApproachValue $tone={closing ? "ok" : "warn"}>
+        <ReadoutRow
+          label="Closing rate"
+          tone={closingMagnitude === null ? undefined : closing ? "ok" : "warn"}
+        >
           {closingMagnitude === null ? (
             NULL_DISPLAY
           ) : (
@@ -459,17 +562,16 @@ function ApproachHud({
               <Unit value={value("m/s", closingMagnitude)} decimals={1} />
             </>
           )}
-        </ApproachValue>
+        </ReadoutRow>
 
-        <ApproachLabel>TCA</ApproachLabel>
-        <ApproachValue>
+        <ReadoutRow label="TCA">
           {tcaSeconds === null ? (
             NULL_DISPLAY
           ) : (
             <Countdown value={tcaSeconds} clock precise />
           )}
-        </ApproachValue>
-      </ApproachGrid>
+        </ReadoutRow>
+      </Grid>
     </Panel>
   );
 }
@@ -496,6 +598,114 @@ interface DockingHudProps {
   cameraFlightId: number | null | undefined;
   cols: number;
   rows: number;
+}
+
+/** Fixed crosshair through the HUD centre: two hairline rules, no pseudo-elements. */
+function Crosshair() {
+  const line = {
+    position: "absolute" as const,
+    background: "rgba(0, 255, 136, 0.75)",
+  };
+  return (
+    <div
+      style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+      aria-hidden="true"
+    >
+      <div
+        style={{
+          ...line,
+          left: 0,
+          right: 0,
+          top: "50%",
+          height: 1,
+          transform: "translateY(-0.5px)",
+        }}
+      />
+      <div
+        style={{
+          ...line,
+          top: 0,
+          bottom: 0,
+          left: "50%",
+          width: 1,
+          transform: "translateX(-0.5px)",
+        }}
+      />
+    </div>
+  );
+}
+
+/** Target reticle drifting in proportion to the docking alignment angles. */
+function Reticle({
+  aligned,
+  left,
+  top,
+}: {
+  aligned: boolean;
+  left: string;
+  top: string;
+}) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        width: 22,
+        height: 22,
+        border: `2px solid ${aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)"}`,
+        borderRadius: "var(--radius-circle)",
+        transform: "translate(-50%, -50%)",
+        // left/top are an 80ms telemetry chase, not a UI transition: the
+        // reticle is following a live target, so the duration stays literal
+        // rather than inheriting a hover rung. Only the border-colour change
+        // is a UI-motion choice.
+        transition:
+          "left 80ms linear, top 80ms linear, border-color var(--duration-base) var(--ease-linear)",
+        // Ring only: centre stays transparent so the crosshair stays visible.
+        boxShadow: `0 0 6px ${aligned ? "rgba(0,255,136,0.6)" : "rgba(255,152,0,0.5)"}`,
+        left,
+        top,
+      }}
+    />
+  );
+}
+
+/* The two tick helpers below are all derived geometry and stay off the
+   scales: the 1px is a hairline rule (a drawn line, not spacing), the 8px
+   is the tick's own length, and each translate is exactly half that length,
+   centring the tick on the crosshair. They must track the tick size, not a
+   spacing rung. */
+function HorizTick({ left }: { left: string }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        background: "rgba(0, 255, 136, 0.35)",
+        pointerEvents: "none",
+        top: "50%",
+        width: 1,
+        height: 8,
+        transform: "translateY(-4px)",
+        left,
+      }}
+    />
+  );
+}
+
+function VertTick({ top }: { top: string }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        background: "rgba(0, 255, 136, 0.35)",
+        pointerEvents: "none",
+        left: "50%",
+        height: 1,
+        width: 8,
+        transform: "translateX(-4px)",
+        top,
+      }}
+    />
+  );
 }
 
 /**
@@ -584,10 +794,19 @@ function DockingHud(props: DockingHudProps) {
   };
 
   return (
-    <HudPanel
+    <Box
+      surface="app"
+      radius="xs"
       role="region"
       aria-label={`Docking HUD for ${name}`}
-      $row={wideShort}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: wideShort ? "row" : "column",
+        overflow: "hidden",
+      }}
     >
       {/* Camera-backdrop slot: an augment draws a video layer behind the
           reticle, in the HUD's space. Gated on `showCamera` (the "HUD only
@@ -598,57 +817,135 @@ function DockingHud(props: DockingHudProps) {
         <AugmentSlot name="distance-to-target.camera" props={hudContext} />
       )}
       {showViewport && (
-        <Viewport>
+        <div
+          style={{
+            position: "relative",
+            flex: 1,
+            minHeight: 0,
+            minWidth: 0,
+            // Subtle green tint over the video to sell the instrument feel.
+            background:
+              "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
+          }}
+        >
           {/* Fixed centre crosshair */}
           <Crosshair />
           {/* Reticle driven by alignment angles */}
           <Reticle
-            $aligned={aligned}
-            style={{
-              left: `${50 + dx * 40}%`,
-              top: `${50 + dy * 40}%`,
-            }}
+            aligned={aligned}
+            left={`${50 + dx * 40}%`}
+            top={`${50 + dy * 40}%`}
           />
           {/* Axis ticks: give the pilot a sense of scale */}
-          <HorizTick style={{ left: "10%" }} />
-          <HorizTick style={{ left: "30%" }} />
-          <HorizTick style={{ left: "70%" }} />
-          <HorizTick style={{ left: "90%" }} />
-          <VertTick style={{ top: "10%" }} />
-          <VertTick style={{ top: "30%" }} />
-          <VertTick style={{ top: "70%" }} />
-          <VertTick style={{ top: "90%" }} />
+          <HorizTick left="10%" />
+          <HorizTick left="30%" />
+          <HorizTick left="70%" />
+          <HorizTick left="90%" />
+          <VertTick top="10%" />
+          <VertTick top="30%" />
+          <VertTick top="70%" />
+          <VertTick top="90%" />
           {/* Alignment-marker overlay slot: composable augments draw
               on top of the reticle in the same coordinate frame via `hudContext`. */}
           <AugmentSlot name="distance-to-target.overlay" props={hudContext} />
-        </Viewport>
+        </div>
       )}
 
-      <HudOverlay $side={wideShort}>
-        <HudHeader>
-          <HudName>{name}</HudName>
-          <HudRange>
+      <div
+        style={{
+          padding: "var(--space-6) var(--space-10) var(--space-8)",
+          background: "rgba(0, 0, 0, 0.55)",
+          // Wide-short row layout docks the overlay to the side: fixed-width
+          // right column with a left divider instead of the full-width bottom
+          // bar. Centre it vertically so it reads as a paired panel.
+          ...(wideShort
+            ? {
+                flex: "0 0 240px",
+                alignSelf: "stretch",
+                display: "flex",
+                flexDirection: "column" as const,
+                justifyContent: "center",
+                borderLeft: "1px solid rgba(0, 255, 136, 0.2)",
+              }
+            : {
+                borderTop: "1px solid rgba(0, 255, 136, 0.2)",
+              }),
+        }}
+      >
+        <Cluster
+          justify="between"
+          align="baseline"
+          style={{ gap: "var(--space-10)" }}
+        >
+          <Truncate
+            style={{
+              fontSize: "var(--font-size-sm)",
+              color: "var(--color-status-go-fg)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {name}
+          </Truncate>
+          <Value
+            size="lg"
+            tone="accent"
+            style={{ fontWeight: 700, whiteSpace: "nowrap" }}
+          >
             {distance === undefined ? (
               NULL_DISPLAY
             ) : (
               <Unit value={value("m", distance)} />
             )}
-          </HudRange>
-        </HudHeader>
-        <HudGrid $stack={stackReadouts}>
-          <HudLabel>Δv</HudLabel>
-          <HudValue $tone={closing ? "ok" : "warn"}>
+          </Value>
+        </Cluster>
+        <Grid
+          cols={stackReadouts ? "1fr" : "auto 1fr"}
+          gap="md"
+          style={{ rowGap: "var(--space-hair)", marginTop: "var(--space-4)" }}
+        >
+          <ReadoutCaption
+            style={{
+              color: "var(--color-status-go-fg)",
+              letterSpacing: "0.12em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Δv
+          </ReadoutCaption>
+          <Value
+            style={{
+              fontSize: 11,
+              whiteSpace: "nowrap",
+              color: closing
+                ? "var(--color-accent-fg)"
+                : "var(--color-status-warning-bg)",
+            }}
+          >
             {relVel === undefined || !Number.isFinite(relVel) ? (
               NULL_DISPLAY
             ) : (
               <Unit value={value("m/s", relVel)} decimals={2} />
             )}
-          </HudValue>
+          </Value>
 
           {showAlignmentDetail && (
             <>
-              <HudLabel>X/Y</HudLabel>
-              <HudValue>
+              <ReadoutCaption
+                style={{
+                  color: "var(--color-status-go-fg)",
+                  letterSpacing: "0.12em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                X/Y
+              </ReadoutCaption>
+              <Value
+                style={{
+                  fontSize: 11,
+                  whiteSpace: "nowrap",
+                  color: "var(--color-status-go-fg)",
+                }}
+              >
                 {x === undefined ? (
                   NULL_DISPLAY
                 ) : (
@@ -660,10 +957,24 @@ function DockingHud(props: DockingHudProps) {
                 ) : (
                   <Unit value={value("m", y)} decimals={2} />
                 )}
-              </HudValue>
+              </Value>
 
-              <HudLabel>α/β/γ</HudLabel>
-              <HudValue>
+              <ReadoutCaption
+                style={{
+                  color: "var(--color-status-go-fg)",
+                  letterSpacing: "0.12em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                α/β/γ
+              </ReadoutCaption>
+              <Value
+                style={{
+                  fontSize: 11,
+                  whiteSpace: "nowrap",
+                  color: "var(--color-status-go-fg)",
+                }}
+              >
                 {ax === undefined ? (
                   NULL_DISPLAY
                 ) : (
@@ -681,12 +992,12 @@ function DockingHud(props: DockingHudProps) {
                 ) : (
                   <Unit value={value("°", az)} decimals={1} />
                 )}
-              </HudValue>
+              </Value>
             </>
           )}
-        </HudGrid>
-      </HudOverlay>
-    </HudPanel>
+        </Grid>
+      </div>
+    </Box>
   );
 }
 
@@ -783,266 +1094,3 @@ registerComponent<DistanceToTargetConfig>({
 });
 
 export { DistanceToTargetComponent };
-
-// ── Styles: compact mode ─────────────────────────────────────────────────────
-
-const TrackingBody = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-4);
-  min-height: 0;
-`;
-
-const TargetName = styled.div`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  letter-spacing: 0.05em;
-`;
-
-/* Display tier. The type scale deliberately stops at --font-size-lg (16px);
-   everything above it in this codebase is a fluid clamp, a JS-computed fit
-   or a size locked to a box width, so a fixed rung would freeze behaviour
-   rather than name it. Dash below must stay equal to this. */
-const Distance = styled.div`
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--color-accent-fg);
-  letter-spacing: 0.02em;
-  line-height: var(--line-height-tight);
-`;
-
-/* Same display tier as Distance above, and this placeholder must render at
-   the same size as the value it stands in for. */
-const Dash = styled.div`
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--color-border-strong);
-`;
-
-const NoTarget = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-`;
-
-const SubReadout = styled.div`
-  margin-top: var(--space-4);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.04em;
-`;
-
-// ── Styles: approach mode ────────────────────────────────────────────────────
-
-const ApproachGrid = styled.div<{ $stack: boolean }>`
-  display: grid;
-  /* Wide widgets get a paired label/value row; narrow widgets stack so
-     the value claims the full inner width, fixes the auto/1fr collapse
-     where "Closing rate" wrapped to two lines and "T−02:05" clipped. */
-  grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
-  column-gap: var(--space-12);
-  row-gap: ${({ $stack }) => ($stack ? "0" : "var(--space-4)")};
-  margin-top: var(--space-6);
-`;
-
-const ApproachLabel = styled.span`
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  align-self: baseline;
-  white-space: nowrap;
-`;
-
-const ApproachValue = styled.span<{ $tone?: "ok" | "warn" }>`
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  color: ${({ $tone }) =>
-    $tone === "ok"
-      ? "var(--color-accent-fg)"
-      : $tone === "warn"
-        ? "var(--color-status-warning-bg)"
-        : "var(--color-text-primary)"};
-`;
-
-// ── Styles: HUD mode ─────────────────────────────────────────────────────────
-
-const HudPanel = styled.div<{ $row?: boolean }>`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: ${({ $row }) => ($row ? "row" : "column")};
-  background: var(--color-surface-app);
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-`;
-
-const Viewport = styled.div`
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  /* Subtle green tint over the video to sell the instrument feel. */
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 255, 136, 0.08) 0%,
-    rgba(0, 0, 0, 0.3) 70%
-  );
-`;
-
-const Crosshair = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    background: rgba(0, 255, 136, 0.75);
-  }
-  &::before {
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 1px;
-    transform: translateY(-0.5px);
-  }
-  &::after {
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-    transform: translateX(-0.5px);
-  }
-`;
-
-const Reticle = styled.div<{ $aligned: boolean }>`
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border: 2px solid
-    ${({ $aligned }) => ($aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)")};
-  border-radius: var(--radius-circle);
-  transform: translate(-50%, -50%);
-  /* left/top are an 80ms telemetry chase, not a UI transition: the reticle
-     is following a live target, so the duration stays literal rather than
-     inheriting a hover rung. Only the border-colour change is a UI-motion
-     choice. */
-  transition:
-    left 80ms linear,
-    top 80ms linear,
-    border-color var(--duration-base) var(--ease-linear);
-  /* Ring only: centre stays transparent so the crosshair stays visible. */
-  box-shadow: 0 0 6px
-    ${({ $aligned }) =>
-      $aligned ? "rgba(0,255,136,0.6)" : "rgba(255,152,0,0.5)"};
-`;
-
-/* The two tick rules below are all derived geometry and stay off the
-   scales: the 1px is a hairline rule (a drawn line, not spacing), the 8px
-   is the tick's own length, and each translate is exactly half that length,
-   centring the tick on the crosshair. They must track the tick size, not a
-   spacing rung. */
-const tickBase = `
-  position: absolute;
-  background: rgba(0, 255, 136, 0.35);
-  pointer-events: none;
-`;
-
-const HorizTick = styled.div`
-  ${tickBase}
-  top: 50%;
-  width: 1px;
-  height: 8px;
-  transform: translateY(-4px);
-`;
-
-const VertTick = styled.div`
-  ${tickBase}
-  left: 50%;
-  height: 1px;
-  width: 8px;
-  transform: translateX(-4px);
-`;
-
-const HudOverlay = styled.div<{ $side?: boolean }>`
-  padding: var(--space-6) var(--space-10) var(--space-8);
-  background: rgba(0, 0, 0, 0.55);
-  /* Wide-short row layout docks the overlay to the side: fixed-width
-     right column with a left divider instead of the full-width bottom
-     bar. Centre it vertically so it reads as a paired panel. */
-  ${({ $side }) =>
-    $side
-      ? `
-        flex: 0 0 240px;
-        align-self: stretch;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border-left: 1px solid rgba(0, 255, 136, 0.2);
-      `
-      : `
-        border-top: 1px solid rgba(0, 255, 136, 0.2);
-      `}
-`;
-
-const HudHeader = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-10);
-`;
-
-const HudName = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-status-go-fg);
-  letter-spacing: 0.04em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const HudRange = styled.span`
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-accent-fg);
-  white-space: nowrap;
-`;
-
-const HudGrid = styled.div<{ $stack: boolean }>`
-  display: grid;
-  /* Narrow widgets stack so X/Y and α/β/γ values aren't squeezed into a
-     1fr column that can't hold them on one line. */
-  grid-template-columns: ${({ $stack }) => ($stack ? "1fr" : "auto 1fr")};
-  gap: var(--space-hair) var(--space-8);
-  margin-top: var(--space-4);
-`;
-
-const HudLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-status-go-fg);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  white-space: nowrap;
-`;
-
-const HudValue = styled.span<{ $tone?: "ok" | "warn" }>`
-  /* Off-scale on purpose. --font-size-xs is 11px on a desktop but 12px
-     under @media (pointer: coarse), and this box is already documented as
-     being at its overflow limit: at the 3x4 minSize, "0.12 m / -0.07 m"
-     barely fits ~70px of content with white-space: nowrap. The coarse
-     bump adds roughly 8px to that string and re-opens the overflow the
-     showAlignmentDetail breakpoint was drawn to avoid. */
-  font-size: 11px;
-  white-space: nowrap;
-  color: ${({ $tone }) =>
-    $tone === "warn"
-      ? "var(--color-status-warning-bg)"
-      : $tone === "ok"
-        ? "var(--color-accent-fg)"
-        : "var(--color-status-go-fg)"};
-`;

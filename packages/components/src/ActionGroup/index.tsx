@@ -29,9 +29,18 @@ import {
   ToggleButton,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { CommandDelay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  Cluster,
+  CommandDelay,
+  IconButton,
+  Inline,
+  NULL_DISPLAY,
+  Stack,
+  Truncate,
+  Value,
+} from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
-import styled from "styled-components";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 
 type ActionGroupConfig = {
@@ -394,6 +403,9 @@ function ActionGroupView({
     setEditing(false);
   };
 
+  // Only meaningful while editing (Enter commits, Escape cancels the
+  // input): the trigger itself is a real `<button>` now, so Enter/Space
+  // activation is native and needs no handler of its own.
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") commitEdit();
     if (e.key === "Escape") cancelEdit();
@@ -416,26 +428,10 @@ function ActionGroupView({
         <AugmentSlot name="action-group.badges" props={slotContext} />
       }
     >
-      <Header>
-        <LabelArea
-          role={editing ? undefined : "button"}
-          tabIndex={editing ? undefined : 0}
-          onClick={editing ? undefined : startEditing}
-          onKeyDown={
-            editing
-              ? undefined
-              : (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    startEditing();
-                  }
-                }
-          }
-          aria-label={editing ? undefined : `Rename ${currentLabel}`}
-          title="Click to rename"
-        >
-          {editing ? (
-            <LabelInput
+      <Cluster justify="between" align="start" gap="md" wrap>
+        {editing ? (
+          <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
+            <Input
               ref={inputRef}
               value={draft}
               autoFocus
@@ -444,17 +440,44 @@ function ActionGroupView({
               onKeyDown={handleKeyDown}
               onClick={(e) => e.stopPropagation()}
             />
-          ) : (
-            <GroupLabel>{currentLabel}</GroupLabel>
-          )}
-          {/* Always show official name as secondary, unless it matches the label */}
-          {showOfficialName && config?.label && config.label !== group.name && (
-            <OfficialName>{group.name}</OfficialName>
-          )}
-        </LabelArea>
-        <HeaderRight>
+          </Stack>
+        ) : (
+          // A real `<button>` rather than a `div role="button"`: native
+          // Enter/Space activation and a native focus ring, no bespoke
+          // keydown handler or focus-visible CSS needed.
+          <Stack
+            as="button"
+            gap="xs"
+            onClick={startEditing}
+            aria-label={`Rename ${currentLabel}`}
+            title="Click to rename"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              cursor: "text",
+              textAlign: "left",
+              background: "none",
+              border: "none",
+              padding: 0,
+              font: "inherit",
+            }}
+          >
+            <Truncate style={{ fontWeight: 600, letterSpacing: "0.05em" }}>
+              {currentLabel}
+            </Truncate>
+            {/* Always show official name as secondary, unless it matches the label */}
+            {showOfficialName &&
+              config?.label &&
+              config.label !== group.name && (
+                <Value tone="faint" size="xs">
+                  {group.name}
+                </Value>
+              )}
+          </Stack>
+        )}
+        <Inline gap="sm">
           {showBell && group.toggle && (
-            <AlarmIconButton
+            <IconButton
               type="button"
               aria-label={`Set alarm to fire ${currentLabel}`}
               title={`Set alarm to fire ${currentLabel}`}
@@ -468,7 +491,7 @@ function ActionGroupView({
               }}
             >
               <BellIcon />
-            </AlarmIconButton>
+            </IconButton>
           )}
           <ToggleButton
             active={isOn}
@@ -480,16 +503,18 @@ function ActionGroupView({
           >
             {stateLabel}
           </ToggleButton>
-        </HeaderRight>
-      </Header>
+        </Inline>
+      </Cluster>
       {unavailableReason && getSizeBucket(w, h) !== "tiny" && (
-        <UnavailableNotice
+        <Badge
+          tone="warn"
+          size="sm"
           role="status"
           aria-live="polite"
           title="The action group can't fire right now"
         >
           {unavailableReason}
-        </UnavailableNotice>
+        </Badge>
       )}
       {/* Rendered unconditionally (not size-gated): the must-consume invariant
           requires a mounted <CommandDelay> wherever the command can dispatch,
@@ -588,118 +613,3 @@ registerComponent<ActionGroupConfig>({
 });
 
 export { ActionGroupComponent };
-
-// ---------------------------------------------------------------------------
-// Styles: component
-// ---------------------------------------------------------------------------
-
-const Header = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-8);
-  /* Wraps rather than crushing the label: at a narrow tile the controls drop
-     UNDER the name they act on, which keeps both readable and keeps them
-     associated. */
-  flex-wrap: wrap;
-  /* No padding: Panel.Body supplies the inset now. This used to self-pad
-     because the widget rendered its own header against a padless panel. */
-`;
-
-const LabelArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-  cursor: text;
-
-  &:focus-visible {
-    /* Focus-ring geometry, not surface chrome: this radius shapes the ring
-       drawn by the outline above and tracks that recipe, not the widget's
-       radius scale. Left literal with the outline/offset it belongs to. */
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-    border-radius: 2px;
-  }
-`;
-
-const GroupLabel = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const OfficialName = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  letter-spacing: 0.04em;
-`;
-
-const LabelInput = styled.input`
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-text-faint);
-  border-radius: var(--radius-xs);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  padding: var(--space-hair) var(--space-4);
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-
-  &:focus {
-    border-color: var(--color-accent-fg);
-  }
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  flex-shrink: 0;
-`;
-
-const UnavailableNotice = styled.div`
-  margin-top: var(--space-4);
-  padding: var(--space-2) var(--space-6);
-  background: transparent;
-  /* Token name was "warn", not "warning": the real token is
-     --color-status-warning-*, so this always missed and silently fell back
-     to --color-text-faint, a plain grey that reads as ordinary copy instead
-     of the "can't fire right now" warning it's meant to be. Same
-     saturated-bg-as-text-on-dark-surface treatment GoNoGoComponent's minor
-     badge already uses. */
-  border: 1px solid var(--color-status-warning-bg);
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-status-warning-bg);
-  align-self: flex-start;
-`;
-
-const AlarmIconButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: var(--space-2);
-  color: var(--color-text-faint);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xs);
-
-  &:hover {
-    color: var(--color-accent-fg);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
