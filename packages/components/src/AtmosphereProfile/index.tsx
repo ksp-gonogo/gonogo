@@ -7,9 +7,8 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import styled from "styled-components";
 import {
   type GraphConfig,
   type GraphThresholdConfig,
@@ -167,8 +166,8 @@ function AtmosphereProfileComponent({
     body?.hasAtmosphere === true;
 
   return (
-    <Wrap>
-      <GraphSlot>
+    <Fill>
+      <Fill grow>
         <GraphView
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
@@ -179,7 +178,7 @@ function AtmosphereProfileComponent({
               : "Waiting for body telemetry..."
           }
         />
-      </GraphSlot>
+      </Fill>
       {/* `showAirlessNotice` would duplicate the GraphView empty-state
           ("No atmosphere on Mun.") that already fires when buildPressureCurve
           returns null for an airless body. Suppress the Notice for that
@@ -187,38 +186,40 @@ function AtmosphereProfileComponent({
           they describe a missing-data state where the chart is still
           attempting to render and the operator needs the explanation. */}
       {showNoModelNotice && body && (
-        <Notice role="status">
+        <div role="status" style={NOTICE_STYLE}>
           No atmospheric model registered for {body.name}.
-        </Notice>
+        </div>
       )}
       {showNoBodyNotice && (
-        <Notice role="status">Unknown body “{bodyName}”.</Notice>
+        <div role="status" style={NOTICE_STYLE}>
+          Unknown body “{bodyName}”.
+        </div>
       )}
       {showLiveChip && (
-        <LiveChip role="status" aria-live="polite">
-          <LiveChipRow>
-            <LiveChipLabel>ρ</LiveChipLabel>
-            <LiveChipValue>{formatDensity(liveDensity)}</LiveChipValue>
-          </LiveChipRow>
+        <div role="status" aria-live="polite" style={LIVE_CHIP_STYLE}>
+          <div style={CHIP_ROW_STYLE}>
+            <span style={CHIP_LABEL_STYLE}>ρ</span>
+            <span style={CHIP_VALUE_STYLE}>{formatDensity(liveDensity)}</span>
+          </div>
           {liveAirTemp !== null && (
-            <LiveChipRow>
-              <LiveChipLabel>Air</LiveChipLabel>
-              <LiveChipValue>
+            <div style={CHIP_ROW_STYLE}>
+              <span style={CHIP_LABEL_STYLE}>Air</span>
+              <span style={CHIP_VALUE_STYLE}>
                 <TempC k={liveAirTemp} />
-              </LiveChipValue>
-            </LiveChipRow>
+              </span>
+            </div>
           )}
           {liveSkinTemp !== null && (
-            <LiveChipRow>
-              <LiveChipLabel>Skin</LiveChipLabel>
-              <LiveChipValue>
+            <div style={CHIP_ROW_STYLE}>
+              <span style={CHIP_LABEL_STYLE}>Skin</span>
+              <span style={CHIP_VALUE_STYLE}>
                 <TempC k={liveSkinTemp} />
-              </LiveChipValue>
-            </LiveChipRow>
+              </span>
+            </div>
           )}
-        </LiveChip>
+        </div>
       )}
-    </Wrap>
+    </Fill>
   );
 }
 
@@ -235,92 +236,62 @@ function formatPressure(p: number): string {
   return speakQuantity(value("Pa", p));
 }
 
-const Wrap = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-`;
+/* Notice sits below the chart as a normal flow row rather than an absolute
+   overlay (the absolute version covered the x-axis tick labels at narrow
+   heights). Off-token rgba scrim + clearances stay as inline style: no ui-kit
+   surface primitive expresses a translucent pointer-through notice. */
+const NOTICE_STYLE = {
+  flex: "0 0 auto",
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+  background: "rgba(0, 0, 0, 0.7)",
+  padding: "var(--space-2) var(--space-6)",
+  borderRadius: "var(--radius-xs)",
+  pointerEvents: "none",
+  alignSelf: "flex-start",
+  maxWidth: "100%",
+  marginTop: "var(--space-4)",
+} as const;
 
-/* Notice sits below the chart as a normal flow row rather than an
-   absolute overlay: the absolute version covered the x-axis tick
-   labels at narrow heights. The LiveChip remains a HUD-style overlay
-   (sized down via showLiveChip on small widgets). */
-const Notice = styled.div`
-  flex: 0 0 auto;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-  background: rgba(0, 0, 0, 0.7);
-  padding: var(--space-2) var(--space-6);
-  border-radius: var(--radius-xs);
-  pointer-events: none;
-  align-self: flex-start;
-  max-width: 100%;
-  margin-top: var(--space-4);
-`;
+/* HUD-style overlay chip: absolute-positioned, off-token bottom/right measured
+   clearance over the chart's tick band, local z-index 1. A bespoke positioned
+   overlay has no ui-kit primitive, so it carries inline style (same treatment
+   as DistanceToTarget's docking HUD). */
+const LIVE_CHIP_STYLE = {
+  position: "absolute",
+  bottom: 32,
+  right: 8,
+  zIndex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-hair)",
+  padding: "var(--space-4) var(--space-8)",
+  background: "rgba(0, 0, 0, 0.75)",
+  border: "1px solid var(--color-surface-raised)",
+  borderRadius: "var(--radius-xs)",
+  fontSize: "var(--font-size-xs)",
+  fontVariantNumeric: "tabular-nums",
+  pointerEvents: "none",
+} as const;
 
-const GraphSlot = styled.div`
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-`;
+const CHIP_ROW_STYLE = {
+  display: "grid",
+  gridTemplateColumns: "28px auto",
+  gap: "var(--space-6)",
+  alignItems: "baseline",
+} as const;
 
-const LiveChip = styled.div`
-  position: absolute;
-  /* Bottom-right keeps the chip clear of the threshold label (which
-     renders near the threshold line, usually high up in the chart for
-     high-pressure altitudes) and the chart legend (top-left).
+const CHIP_LABEL_STYLE = {
+  color: "var(--color-text-faint)",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  fontSize: "var(--font-size-2xs)",
+} as const;
 
-     Both values below are off the design-token scales on purpose.
-
-     The bottom offset is measured clearance over the chart's x-axis tick
-     band, not a rhythm step: it is what lifts this chip clear of the tick
-     labels the sibling Notice above was demoted out of the overlay for
-     covering. Snapping it onto --space-24 drops the chip back into them.
-
-     The z-index is local sibling ordering. Wrap is position: relative with
-     no z-index, transform, filter or opacity, so it creates no stacking
-     context and this 1 resolves in the dashboard grid item's context,
-     against the resize handles (5) and the widget control tray (6). Its
-     contract is 1-versus-auto over GraphSlot AND below 5; any app-global
-     --z-* rung lifts a widget-internal HUD chip over the dashboard's own
-     chrome. */
-  bottom: 32px;
-  right: 8px;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-hair);
-  padding: var(--space-4) var(--space-8);
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid var(--color-surface-raised);
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-`;
-
-const LiveChipRow = styled.div`
-  display: grid;
-  grid-template-columns: 28px auto;
-  gap: var(--space-6);
-  align-items: baseline;
-`;
-
-const LiveChipLabel = styled.span`
-  color: var(--color-text-faint);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: var(--font-size-2xs);
-`;
-
-const LiveChipValue = styled.span`
-  color: var(--color-text-primary);
-  font-size: var(--font-size-xs);
-`;
+const CHIP_VALUE_STYLE = {
+  color: "var(--color-text-primary)",
+  fontSize: "var(--font-size-xs)",
+} as const;
 
 registerComponent<AtmosphereProfileConfig>({
   id: "atmosphere-profile",
