@@ -17,8 +17,11 @@ import { useMissionEvents } from "./useMissionEvents";
 
 type MissionEventLogConfig = Record<string, never>;
 
-/** Badge tone per kind, so each row reads at a glance (maps onto ui-kit tones). */
-const KIND_TONE: Record<MissionEventKind, Severity | undefined> = {
+// Badge severity per kind, so each row reads at a glance. `undefined` keeps the
+// two decorative kinds (flight-ended / undocking, formerly `neutral`) as grey
+// no-severity chips: severity has no decorative-grey tier, and Badge renders an
+// undefined severity as that same grey.
+const KIND_SEVERITY: Record<MissionEventKind, Severity | undefined> = {
   launch: "nominal",
   "flight-ended": undefined,
   "vessel-changed": "info",
@@ -141,7 +144,7 @@ function EventRow({
   // both the better reading and the one that cannot drift from what is shown.
   return (
     <Inline gap="sm">
-      <Badge severity={KIND_TONE[event.kind]} size="sm">
+      <Badge severity={KIND_SEVERITY[event.kind]} size="sm">
         {KIND_LABEL[event.kind]}
       </Badge>
       <Truncate>

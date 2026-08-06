@@ -69,16 +69,16 @@ export type MechJebActions = typeof mechjebActions;
 // operator's seat the command is in transit / awaiting reply across the delay.
 function commandChip(
   phase: string,
-): { tone: Severity; text: string } | undefined {
+): { severity: Severity; text: string } | undefined {
   switch (phase) {
     case "in-flight":
-      return { tone: "warning", text: "awaiting reply" };
+      return { severity: "warning", text: "awaiting reply" };
     case "confirmed":
-      return { tone: "nominal", text: "confirmed" };
+      return { severity: "nominal", text: "confirmed" };
     case "failed":
-      return { tone: "critical", text: "rejected" };
+      return { severity: "critical", text: "rejected" };
     case "lost":
-      return { tone: "critical", text: "no reply" };
+      return { severity: "critical", text: "no reply" };
     default:
       return undefined; // idle, no chip
   }
@@ -108,7 +108,7 @@ function CommandRow({
       </button>
       <span role="status" aria-live="polite">
         {chip ? (
-          <Badge severity={chip.tone} size="sm">
+          <Badge severity={chip.severity} size="sm">
             {chip.text}
           </Badge>
         ) : null}

@@ -85,7 +85,9 @@ const STATUS_LABEL: Record<string, string> = {
   off: "FAR",
 };
 
-const STATUS_TONE: Record<string, Severity | undefined> = {
+// off/FAR carries no severity: being far from a window is not an alarm, just
+// "not yet", so it stays a decorative grey chip via an undefined severity.
+const STATUS_SEVERITY: Record<string, Severity | undefined> = {
   go: "nominal",
   soon: "warning",
   off: undefined,
@@ -288,7 +290,7 @@ function TransferWindowComponent({
                       />
                     </Muted>
                   </NowValue>
-                  <Badge severity={STATUS_TONE[solution.status]}>
+                  <Badge severity={STATUS_SEVERITY[solution.status]}>
                     {STATUS_LABEL[solution.status]}
                   </Badge>
                 </NowFacts>

@@ -11,7 +11,7 @@ import {
   Badge,
   Panel,
   Section,
-  type Severity,
+  severityFromBadgeTone,
   speakQuantity,
   Value,
 } from "@ksp-gonogo/ui-kit";
@@ -209,9 +209,9 @@ function riskTone(frac: number): Tone {
   return "go";
 }
 
-function processTone(state: ProcessRunState): Severity {
-  if (state === "broken") return "critical";
-  if (state === "running") return "nominal";
+function processTone(state: ProcessRunState): Tone {
+  if (state === "broken") return "nogo";
+  if (state === "running") return "go";
   return "info";
 }
 
@@ -297,13 +297,7 @@ function LifeSupportSystemsComponent({
         <Badge
           role="status"
           aria-live="polite"
-          severity={
-            status.tone === "go"
-              ? "nominal"
-              : status.tone === "nogo"
-                ? "critical"
-                : "warning"
-          }
+          severity={severityFromBadgeTone(status.tone)}
         >
           {status.label}
         </Badge>
@@ -436,7 +430,10 @@ function LifeSupportSystemsComponent({
               {d.processes.map((p) => (
                 <div key={p.id} style={PROCESS_ROW}>
                   <span style={PROCESS_NAME}>{p.name}</span>
-                  <Badge severity={processTone(p.state)} size="sm">
+                  <Badge
+                    severity={severityFromBadgeTone(processTone(p.state))}
+                    size="sm"
+                  >
                     {p.state}
                   </Badge>
                 </div>
