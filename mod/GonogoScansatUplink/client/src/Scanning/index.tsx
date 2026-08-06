@@ -266,12 +266,12 @@ function ScanningComponent({
                               </Value>
                               <Badge
                                 size="sm"
-                                tone={
+                                severity={
                                   s.bestRange
-                                    ? "go"
+                                    ? "nominal"
                                     : s.inRange
                                       ? "info"
-                                      : "neutral"
+                                      : undefined
                                 }
                               >
                                 {s.bestRange

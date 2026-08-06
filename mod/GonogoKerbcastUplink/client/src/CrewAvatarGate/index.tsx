@@ -151,7 +151,7 @@ function LocationBadge({
 }) {
   return (
     <Badge
-      tone={isEva ? "warn" : "info"}
+      severity={isEva ? "warning" : "info"}
       size={corner === "avatar" ? "sm" : "md"}
       style={
         corner === "avatar" ? AVATAR_BADGE_POSITION : SPOTLIGHT_BADGE_POSITION

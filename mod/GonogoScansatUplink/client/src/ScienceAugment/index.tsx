@@ -102,7 +102,7 @@ function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
         onClick={() => setExpanded((v) => !v)}
         style={DISCLOSURE_BUTTON}
       >
-        <Badge tone="info">SCANSAT {experiments.length}</Badge>
+        <Badge severity="info">SCANSAT {experiments.length}</Badge>
       </TextButton>
       {expanded && (
         // `<section>` for its implicit role="region" (a plain

@@ -23,9 +23,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  type BadgeTone,
   type CameraSetpoint,
   type CameraSetpointBounds,
+  type Severity,
   speakQuantity,
   Unit,
   writeQuantity,
@@ -463,7 +463,7 @@ export function CameraFeed({
         />
         {unavailableReason && (
           <div role="status" aria-live="polite" style={FEED_UNAVAILABLE_STYLE}>
-            <Badge tone="nogo" aria-label="Delayed feed unavailable">
+            <Badge severity="critical" aria-label="Delayed feed unavailable">
               DELAYED FEED UNAVAILABLE
             </Badge>
             <span style={FEED_UNAVAILABLE_REASON_STYLE}>
@@ -476,12 +476,13 @@ export function CameraFeed({
         </div>
         <div style={FEED_BADGES_STYLE}>
           {delayBadge && (
-            <Badge tone="neutral" aria-label={delayBadge.ariaLabel}>
-              {delayBadge.label}
-            </Badge>
+            <Badge aria-label={delayBadge.ariaLabel}>{delayBadge.label}</Badge>
           )}
           {qualityBadge && (
-            <Badge tone={qualityBadge.tone} aria-label={qualityBadge.ariaLabel}>
+            <Badge
+              severity={qualityBadge.tone}
+              aria-label={qualityBadge.ariaLabel}
+            >
               {qualityBadge.label}
             </Badge>
           )}
@@ -508,7 +509,7 @@ interface StatusBadgeInfo {
 }
 
 interface QualityBadgeInfo extends StatusBadgeInfo {
-  tone: BadgeTone;
+  tone: Severity;
 }
 
 // Signal-delay badge: ONE-WAY light-time only. This is a downlink, the
@@ -558,7 +559,7 @@ function describeSignalQuality(
   if (connected === false || zeroSignal) {
     return {
       label: "NO SIGNAL",
-      tone: "nogo",
+      tone: "critical",
       ariaLabel: "Signal quality: no signal",
     };
   }
@@ -571,7 +572,8 @@ function describeSignalQuality(
   // percentage writes "72 %".
   const clamped = value("ratio", Math.max(0, Math.min(1, strength)));
   const pct = Math.round(clamped.magnitude * 100);
-  const tone: BadgeTone = pct >= 66 ? "go" : pct >= 33 ? "warn" : "nogo";
+  const tone: Severity =
+    pct >= 66 ? "nominal" : pct >= 33 ? "warning" : "critical";
   return {
     label: <Unit value={clamped} />,
     tone,
