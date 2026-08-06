@@ -136,10 +136,10 @@ function CurrentOrbitComponent({
   const hyperbolic = typeof eccentricity === "number" && eccentricity >= 1;
 
   return (
-    <Panel
-      panelTitle="ORBIT"
-      panelSubtitle={showSubtitle ? refBody : undefined}
-    >
+    <Panel panelTitle="ORBIT">
+      {showSubtitle && refBody !== undefined && (
+        <RefBodyCaption>{refBody}</RefBodyCaption>
+      )}
       <Body ref={bodyRef} $landscape={isLandscape}>
         <OrbitGrid $landscape={isLandscape} $tight={tight} $narrow={narrow}>
           <Label>Ap</Label>
@@ -301,6 +301,12 @@ registerComponent<CurrentOrbitConfig>({
 });
 
 export { CurrentOrbitComponent };
+
+const RefBodyCaption = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.03em;
+`;
 
 const Body = styled.div<{ $landscape: boolean }>`
   flex: 1;
