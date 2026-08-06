@@ -95,11 +95,10 @@ function GroundSurveyComponent({
     surveyState: survey.surveyState,
   };
 
-  // The impact prediction rides in the subtitle rather than the body: it is
-  // the same kind of thing as the line above it, dim metadata describing the
-  // survey the title names, and it gates on the same height tier
-  // (`rows >= 4`) as the subtitle itself. In the body it would sit inset
-  // above the strip and read as a stray readout that had lost its label.
+  // The impact prediction sits alongside the survey meta line as a compact
+  // caption at the top of the body: it is the same kind of thing as the line
+  // above it, dim metadata describing the survey the title names, and it gates
+  // on the same height tier (`rows >= 4`) as that meta line itself.
   const subtitle =
     showSubtitle || showPrediction ? (
       <>
@@ -116,7 +115,6 @@ function GroundSurveyComponent({
   return (
     <Panel
       panelTitle="GROUND SURVEY"
-      panelSubtitle={subtitle}
       // The aside lays its children out as a wrapping row; this stack wants a
       // column, so it brings its own.
       panelAside={
@@ -127,6 +125,7 @@ function GroundSurveyComponent({
         </BadgeArea>
       }
     >
+      {subtitle && <SurveyMeta>{subtitle}</SurveyMeta>}
       {showStrip && (
         <StripWrap ref={wrapRef}>
           <ProfileStrip
@@ -374,6 +373,12 @@ const Prediction = styled.div`
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
   margin-top: var(--space-2);
+`;
+
+const SurveyMeta = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
 `;
 
 /* Keeps its own border and radius: it is a box that draws itself, not padding
