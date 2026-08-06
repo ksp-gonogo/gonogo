@@ -374,12 +374,21 @@ function LaunchDirectorComponent({
 
   if (ships === null) {
     return (
-      <Panel
-        panelTitle="LAUNCH & RECOVERY"
-        panelSubtitle={
-          showSubtitle ? "Awaiting launch-pad telemetry" : undefined
-        }
-      />
+      <Panel panelTitle="LAUNCH & RECOVERY">
+        <Body>
+          {showSubtitle && (
+            <div
+              role="status"
+              style={{
+                fontSize: "var(--font-size-xs)",
+                color: "var(--color-text-faint)",
+              }}
+            >
+              Awaiting launch-pad telemetry
+            </div>
+          )}
+        </Body>
+      </Panel>
     );
   }
 
@@ -420,22 +429,6 @@ function LaunchDirectorComponent({
       panelAside={
         <AugmentSlot name="launch-director.badges" props={slotContext} />
       }
-      panelSubtitle={
-        showSubtitle ? (
-          <span role="status" aria-live="polite">
-            {inFlight
-              ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
-              : padOccupied
-                ? `On pad: ${activeName}`
-                : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
-            {typeof careerFunds === "number" && (
-              <FundsReadout title="Available funds">
-                · <Unit value={value("funds", careerFunds)} />
-              </FundsReadout>
-            )}
-          </span>
-        ) : undefined
-      }
     >
       <CommandDelay
         handles={[
@@ -448,6 +441,27 @@ function LaunchDirectorComponent({
         ariaLabel="Launch-ops commands: in flight"
       />
       <Body>
+        {showSubtitle && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              fontSize: "var(--font-size-xs)",
+              color: "var(--color-text-faint)",
+            }}
+          >
+            {inFlight
+              ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
+              : padOccupied
+                ? `On pad: ${activeName}`
+                : `${launchableShips.length}/${ships.length} ready · ${selectedSiteLabel}`}
+            {typeof careerFunds === "number" && (
+              <FundsReadout title="Available funds">
+                · <Unit value={value("funds", careerFunds)} />
+              </FundsReadout>
+            )}
+          </div>
+        )}
         {inFlight ? (
           <InFlightPanel
             missionTime={missionTime ?? null}
