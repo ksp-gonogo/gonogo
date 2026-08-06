@@ -1,6 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { type Severity, severityFromBadgeTone } from "./status/severity";
+import { severityDotColor } from "./status/severityDotColor";
 import { useStatusContribution } from "./status/useStatusContribution";
 
 /**
@@ -105,10 +106,20 @@ const DECORATIVE_STYLE = css`
   color: var(--color-text-muted);
 `;
 
+/**
+ * `nominal`/`warning`/`critical` fill from `severityDotColor`: their chip
+ * background and border were already hand-typed to that exact token twice
+ * over (once here, once in the title ghost's dot map), which is precisely the
+ * kind of duplication that drifts unnoticed. `info`/`caution`/`offline` stay
+ * hand-written: their chip background is deliberately a MUTED/bg token so the
+ * pill reads at full size, where `severityDotColor`'s vivid fg/dim token
+ * would be near-invisible as a dot but too strong as a solid chip. See
+ * `severityDotColor`'s own comment for the full reasoning.
+ */
 const SEVERITY_STYLES: Record<Severity, ReturnType<typeof css>> = {
   nominal: css`
-    background: var(--color-status-go-bg);
-    border-color: var(--color-status-go-bg);
+    background: ${severityDotColor("nominal")};
+    border-color: ${severityDotColor("nominal")};
     color: var(--color-status-go-fg);
   `,
   info: css`
@@ -122,13 +133,13 @@ const SEVERITY_STYLES: Record<Severity, ReturnType<typeof css>> = {
     color: var(--color-status-warning-fg-muted);
   `,
   warning: css`
-    background: var(--color-status-warning-bg);
-    border-color: var(--color-status-warning-bg);
+    background: ${severityDotColor("warning")};
+    border-color: ${severityDotColor("warning")};
     color: var(--color-status-warning-fg);
   `,
   critical: css`
-    background: var(--color-status-nogo-bg);
-    border-color: var(--color-status-nogo-bg);
+    background: ${severityDotColor("critical")};
+    border-color: ${severityDotColor("critical")};
     color: var(--color-status-nogo-on-bg);
   `,
   // Data gone: a dim, hollow grey, deliberately quieter than a red critical and

@@ -301,6 +301,7 @@ export {
   severityRank,
   worstSeverity,
 } from "./status/severity";
+export { severityDotColor } from "./status/severityDotColor";
 export { useStatusContribution } from "./status/useStatusContribution";
 export { useStatusSummary } from "./status/useStatusSummary";
 export {

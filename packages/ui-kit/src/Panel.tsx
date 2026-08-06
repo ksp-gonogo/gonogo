@@ -17,6 +17,7 @@ import { Badge } from "./Badge";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import type { StatusSummary } from "./status/PanelStatusStore";
 import { type Severity, severityFromStreamStatus } from "./status/severity";
+import { severityDotColor } from "./status/severityDotColor";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
 import { useElementSize } from "./useElementSize";
@@ -855,21 +856,6 @@ export function PanelGlow({
 // the ghost re-surfaces identity + status at the top edge while scrolled off.
 // ---------------------------------------------------------------------------
 
-/* The dot's single visible fill per canonical `Severity`. `Badge` paints a
-   tri-colour chip (bg + border + text); a dot needs ONE saturated fill, so this
-   maps each severity to the status token that reads as its colour on a panel
-   surface, the muted/fg token where Badge's background would be near-invisible
-   (info, caution). `nominal` never paints (a healthy panel summarises to
-   `null`), mapped for completeness. Kept in step with Badge's SEVERITY_STYLES. */
-const PANEL_SEVERITY_DOT_COLOR: Record<Severity, string> = {
-  nominal: "var(--color-status-go-bg)",
-  info: "var(--color-status-info-fg)",
-  caution: "var(--color-status-warning-fg-muted)",
-  warning: "var(--color-status-warning-bg)",
-  critical: "var(--color-status-nogo-bg)",
-  offline: "var(--color-text-dim)",
-};
-
 // The header wraps to a second row at narrow widths by design, so "scrolled
 // past the header" keys off the MEASURED header height, never a constant. One
 // px of slack so a sub-pixel scrollTop at the exact boundary does not flutter.
@@ -1032,7 +1018,7 @@ export function PanelGhost({ title }: { title?: ReactNode }) {
               data-severity={summary.severity}
               title={summary.label}
               aria-hidden="true"
-              $color={PANEL_SEVERITY_DOT_COLOR[summary.severity]}
+              $color={severityDotColor(summary.severity)}
               $pulse={pulseKey > 0 && !prefersReducedMotion}
             />
           )}
