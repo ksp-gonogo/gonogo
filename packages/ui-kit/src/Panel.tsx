@@ -940,7 +940,7 @@ const PanelGhost__Dot = styled.span<{ $color: string; $pulse: boolean }>`
   flex: 0 0 auto;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: ${({ $color }) => $color};
   ${({ $pulse }) =>
     $pulse

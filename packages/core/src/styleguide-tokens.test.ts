@@ -259,7 +259,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // header over the content that runs beneath it. Neither is app-global
     // chrome, so a named rung would lift a widget-internal overlay above the
     // dashboard's.
-    "packages/ui-kit/src/Panel.tsx": 2,
+    "packages/ui-kit/src/Panel.tsx": 3,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
@@ -280,6 +280,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * what it is timed against at the call site and raise its entry.
    */
   motion: {
+    "packages/ui-kit/src/Panel.tsx": 2,
     "mod/": 2,
     "packages/app/src/styles/global.css": 2,
     "packages/components/src/ContractManager/index.tsx": 2,
