@@ -293,24 +293,22 @@ function SpaceCenterStatusComponent({
          escape-hatch"): any Uplink can drop an inline badge next to the title.
          Renders nothing until an augment binds it. */
       panelAside={<AugmentSlot name="space-center-status.badges" props={{}} />}
-      panelSubtitle={
-        showSubtitle ? (
-          <span role="status" aria-live="polite">
-            {padLine}
-            {careerFunds !== null && (
-              <FundsReadout title="Available funds">
-                · <Unit value={value("funds", careerFunds)} />
-              </FundsReadout>
-            )}
-          </span>
-        ) : undefined
-      }
     >
       <CommandDelay
         handle={upgradeCmd}
         ariaLabel="Facility upgrade: in flight"
       />
       <Body>
+        {showSubtitle && (
+          <PadStatusLine role="status" aria-live="polite">
+            {padLine}
+            {careerFunds !== null && (
+              <FundsReadout title="Available funds">
+                · <Unit value={value("funds", careerFunds)} />
+              </FundsReadout>
+            )}
+          </PadStatusLine>
+        )}
         <FacilityGrid $compact={compactGrid}>
           {FACILITIES.map(({ key, label }) => {
             const f = facilities[key];
@@ -730,6 +728,13 @@ const FooterValue = styled.span`
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+`;
+
+const PadStatusLine = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 `;
 
