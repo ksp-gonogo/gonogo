@@ -427,12 +427,11 @@ export function GraphView({
     // "Altitude / Altitude" was the common case rather than the edge one.
     const readoutTitle = title ?? "GRAPH";
     return (
-      <Panel
-        panelTitle={readoutTitle}
-        panelSubtitle={seriesLabel === readoutTitle ? undefined : seriesLabel}
-        panelAside={headerActions}
-      >
+      <Panel panelTitle={readoutTitle} panelAside={headerActions}>
         <div ref={containerRef} style={READOUT_BODY}>
+          {seriesLabel !== readoutTitle && (
+            <div style={READOUT_LABEL}>{seriesLabel}</div>
+          )}
           <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
             {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
             {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
@@ -929,6 +928,13 @@ const READOUT_BODY: CSSProperties = {
   flexDirection: "column",
   minHeight: 0,
   position: "relative",
+};
+
+const READOUT_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.04em",
+  flex: "0 0 auto",
 };
 
 const SPARK_SLOT: CSSProperties = { width: "100%", flex: "0 0 auto" };
