@@ -163,14 +163,18 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   });
 
   return (
-    <Panel
-      panelTitle="MechJeb"
-      panelSubtitle={
-        oneWay != null
+    <Panel panelTitle="MechJeb">
+      <div
+        style={{
+          fontSize: "var(--font-size-xs)",
+          color: "var(--color-text-faint)",
+          marginBottom: "var(--space-8)",
+        }}
+      >
+        {oneWay != null
           ? `Remote autopilot (${writeQuantity(value("s", oneWay), { decimals: 1 })} one-way delay)`
-          : "Remote autopilot"
-      }
-    >
+          : "Remote autopilot"}
+      </div>
       <Section>
         <SectionTitle>Ascent</SectionTitle>
         <Cluster gap="sm">
