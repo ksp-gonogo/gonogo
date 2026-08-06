@@ -387,18 +387,16 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
     return (
-      <Panel
-        panelTitle="TECH TREE"
-        panelSubtitle={showSubtitle ? "Awaiting tech telemetry" : undefined}
-      />
+      <Panel panelTitle="TECH TREE">
+        <Empty>Awaiting tech telemetry</Empty>
+      </Panel>
     );
   }
   if (allNodes.length === 0) {
     return (
-      <Panel
-        panelTitle="TECH TREE"
-        panelSubtitle={showSubtitle ? "No tech nodes loaded" : undefined}
-      />
+      <Panel panelTitle="TECH TREE">
+        <Empty>No tech nodes loaded</Empty>
+      </Panel>
     );
   }
 
@@ -475,8 +473,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       n.description.toLowerCase().includes(q);
 
     return (
-      <Panel panelTitle="TECH TREE" panelSubtitle={subtitle}>
+      <Panel panelTitle="TECH TREE">
         <CommandDelay handle={unlockCmd} ariaLabel="Tech unlock: in flight" />
+        {subtitle && <TechMeta>{subtitle}</TechMeta>}
         <GraphToolbar>
           <Legend aria-hidden="true">
             <LegendItem>
@@ -541,8 +540,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const sorted = sortNodes(filtered, researchable);
 
   return (
-    <Panel panelTitle="TECH TREE" panelSubtitle={subtitle}>
+    <Panel panelTitle="TECH TREE">
       <CommandDelay handle={unlockCmd} ariaLabel="Tech unlock: in flight" />
+      {subtitle && <TechMeta>{subtitle}</TechMeta>}
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">
           <FilterBtn
@@ -1373,6 +1373,12 @@ const SciReadout = styled.span`
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
   margin-left: var(--space-2);
+`;
+
+const TechMeta = styled.div`
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-6);
 `;
 
 // ── Graph styles ────────────────────────────────────────────────────────────
