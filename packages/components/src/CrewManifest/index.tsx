@@ -461,6 +461,10 @@ function CrewManifestComponent({
     );
   }
 
+  const crewSummary = known
+    ? formatSubtitle(isEVA, crewCount?.magnitude, crewCapacity?.magnitude)
+    : "";
+
   return (
     <Panel
       panelTitle="CREW"
@@ -475,12 +479,8 @@ function CrewManifestComponent({
           </MetersToggle>
         ) : undefined
       }
-      panelSubtitle={
-        known
-          ? formatSubtitle(isEVA, crewCount?.magnitude, crewCapacity?.magnitude)
-          : "No crew data"
-      }
     >
+      {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
       <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
       {renderBody({
         known,
