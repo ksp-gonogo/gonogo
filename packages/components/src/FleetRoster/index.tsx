@@ -17,16 +17,28 @@ import {
 import { Meter } from "@ksp-gonogo/ui";
 import {
   Badge,
+  Cluster,
   Disclosure,
   EmptyState,
   Grid,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
+  ScrollArea,
+  Stack,
   severityFromBadgeTone,
+  Truncate,
   Unit,
+  Value,
 } from "@ksp-gonogo/ui-kit";
-import { Fragment, useMemo } from "react";
-import styled from "styled-components";
+import {
+  Fragment,
+  type ReactNode,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { magnitudeOf } from "../shared/magnitude";
 
 type FleetRosterConfig = Record<string, never>;
@@ -257,255 +269,64 @@ function commsRollup(vessels: FleetVessel[]): {
 }
 
 // ---------------------------------------------------------------------------
-// Widget
+// Row chrome
+//
+// The grid and its centring come from the kit (`Grid`); the fixed row height
+// is the roster's own, because the list virtualises against it. `cols` is
+// passed per instance rather than baked in, since it depends on the compact
+// breakpoint.
 // ---------------------------------------------------------------------------
 
 const ROW_HEIGHT = 25;
-
-function FleetRosterComponent({
-  w,
-}: Readonly<ComponentProps<FleetRosterConfig>>) {
-  const { known, vessels } = useFleet();
-  const rollup = commsRollup(vessels);
-  // Whose light-time the per-vessel delays are computed from: the selected
-  // command centre (Plan 3). Resolved to its display name via the roster,
-  // falling back to the raw id (e.g. the default "ksc" before the roster lands).
-  const vantage = useSelectedVantage();
-  const centres = useTelemetry("commandCentre.roster");
-  const vantageName =
-    centres?.find((c) => c.id === vantage)?.displayName ?? vantage;
-  const cols = w ?? 8;
-  // Below the width threshold the Body column and the per-vessel update lines
-  // are shed, the identity + crew + link (the at-a-glance fleet state) always
-  // stay. Height doesn't gate columns; the list just scrolls.
-  const compact = cols < 6;
-
-  // Non-reactive read, augments register at module load, before first render.
-  const updatesAugmentPresent =
-    getAugmentsForSlot("fleet-roster.updates").length > 0;
-
-  const total = vessels.length;
-
-  return (
-    <Panel
-      panelTitle="Fleet"
-      panelAside={
-        <Badge severity={severityFromBadgeTone(rollup.tone)}>
-          {rollup.badgeLabel}
-        </Badge>
-      }
-    >
-      <VantageCaption>viewing from: {vantageName}</VantageCaption>
-      {total === 0 ? (
-        <EmptyState>
-          {known ? "No vessels tracked." : "Fleet data not available yet."}
-        </EmptyState>
-      ) : (
-        <TableScroll>
-          <ColumnHead $compact={compact}>
-            <ColLabel>Vessel</ColLabel>
-            {!compact && <ColLabel>Body</ColLabel>}
-            <ColLabel $right>Crew</ColLabel>
-            <ColLabel $right>Link</ColLabel>
-          </ColumnHead>
-
-          {vessels.map((v) => {
-            const comms = COMMS[v.comms];
-            // The per-vessel line-updates block is PURELY the
-            // `fleet-roster.updates` augment slot now, the seam for a
-            // future Reliability/TestFlight uplink to compose real
-            // alarm/health one-liners here. It carries no data of its own
-            // (there is no reliability signal behind this widget; see the
-            // module doc comment), so it renders nothing until an uplink
-            // actually registers.
-            const showUpdates = !compact && updatesAugmentPresent;
-            return (
-              <Fragment key={v.id}>
-                <VesselRow cols={compact ? GRID_COMPACT : GRID_FULL}>
-                  <NameCell title={v.name}>
-                    <LinkDot
-                      $tone={COMMS_TONE[v.comms]}
-                      role="img"
-                      aria-label={comms.aria}
-                    />
-                    <Name>{v.name}</Name>
-                  </NameCell>
-                  {!compact && (
-                    <BodyCell title={v.body ?? undefined}>
-                      {v.body ?? NULL_DISPLAY}
-                    </BodyCell>
-                  )}
-                  <CrewCell>{crewLabel(v)}</CrewCell>
-                  <LinkCell>
-                    <FleetSignalCell
-                      guid={v.id}
-                      vesselName={v.name}
-                      tone={COMMS_TONE[v.comms]}
-                      label={comms.label}
-                    />
-                  </LinkCell>
-                </VesselRow>
-                {showUpdates && (
-                  <UpdatesBlock>
-                    <AugmentSlot
-                      name="fleet-roster.updates"
-                      props={{
-                        vesselId: v.id,
-                        vesselName: v.name,
-                        body: v.body ?? "",
-                      }}
-                    />
-                  </UpdatesBlock>
-                )}
-              </Fragment>
-            );
-          })}
-        </TableScroll>
-      )}
-
-      <FooterRow>
-        <Meter
-          label="Comms coverage"
-          value={total > 0 ? rollup.linked / total : 0}
-          tone={rollup.tone}
-          valueLabel={`${rollup.linked} linked · ${rollup.none} no link${
-            rollup.unknown > 0 ? ` · ${rollup.unknown} unknown` : ""
-          }`}
-          size={compact ? "sm" : "md"}
-        />
-      </FooterRow>
-    </Panel>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Styles
-//
-// A CSS-grid "table": the header and every vessel row share one
-// grid-template-columns so the columns line up, with the name column taking
-// the flexible `1fr` (minmax(0,…) so long names ellipsis instead of pushing
-// the fixed columns off-screen).
-// ---------------------------------------------------------------------------
-
-// Name takes the flexible 1fr; Body is content-sized (short body names don't
-// need a fixed slice), Crew/Link are just wide enough for their content, so the
-// vessel name keeps the most room at the tight 8-wide default. Crew is 48px,
-// not 42px: 42px plus ColLabel's 12px of horizontal padding left no room for
-// the "CREW" header itself, so it silently overflowed the track (harmless
-// while ColLabel had no overflow control) until ColLabel picked up
-// overflow:hidden (to stop the flexible Vessel header colliding with it at
-// tiny widths) started ellipsis-ing "CREW" too, even at comfortable sizes.
-// The 48px track is locked to ColLabel's horizontal padding (var(--space-6)
-// per side): retune that rung and this track has to be rechecked, or "CREW"
-// starts ellipsis-ing again.
 const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
 const GRID_COMPACT = "minmax(0, 1fr) 48px 66px";
 
-const TableScroll = styled.div`
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  margin-top: var(--space-6);
-`;
+/** Small colour-coded circular link marker, purely decorative (the row's
+ * `aria-label` on this element carries the meaning). No shared "dot"
+ * primitive fits standalone (StatusIndicator's dot is only reachable
+ * bundled with its own text), so this stays a plain styled span. */
+function LinkDot({ tone, ariaLabel }: { tone: Tone; ariaLabel: string }) {
+  return (
+    <span
+      role="img"
+      aria-label={ariaLabel}
+      style={{
+        flex: "0 0 auto",
+        width: 8,
+        height: 8,
+        borderRadius: "var(--radius-circle)",
+        background: TONE_HEX[tone],
+      }}
+    />
+  );
+}
 
-const ColumnHead = styled.div<{ $compact: boolean }>`
-  display: grid;
-  grid-template-columns: ${({ $compact }) =>
-    $compact ? GRID_COMPACT : GRID_FULL};
-  align-items: center;
-  height: ${ROW_HEIGHT}px;
-  border-bottom: 1px solid var(--color-border-subtle);
-`;
-
-const ColLabel = styled.div<{ $right?: boolean }>`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  padding: 0 var(--space-6);
-  text-align: ${({ $right }) => ($right ? "right" : "left")};
-  white-space: nowrap;
-  /* The Vessel column's grid track is minmax(0, 1fr): at the tiny-4x4
-     minSize it shrinks well below "VESSEL"'s natural width. Body cells
-     (Name/BodyCell) already ellipsis instead of spilling into the next
-     column; the header labels need the same treatment, they were colliding
-     into "CREW" unclipped. */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-`;
-
-// The grid and its centring come from the kit; the fixed row height is the
-// roster's own, because the list virtualises against it. `cols` is passed per
-// instance rather than baked in, since it depends on the compact breakpoint.
-const VesselRow = styled(Grid).attrs({ gap: "sm" as const })`
-  height: ${ROW_HEIGHT}px;
-`;
-
-const NameCell = styled.div`
-  display: flex;
-  align-items: center;
-  /* Off-scale on purpose: this gap is a term in UpdatesBlock's 21px
-     hanging indent below (6px padding-left + 8px LinkDot + 7px gap), not a
-     rhythm step. Rounding it to a rung breaks the alignment it exists to
-     hold. Its 6px partner is the panel's own inset rung and does tokenise,
-     which is why the sum is spelled out here. */
-  gap: 7px;
-  min-width: 0;
-  padding: 0 var(--space-6);
-`;
-
-const LinkDot = styled.span<{ $tone: Tone }>`
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  background: ${({ $tone }) => TONE_HEX[$tone]};
-`;
-
-const Name = styled.span`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const BodyCell = styled.div`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  padding: 0 var(--space-6);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const CrewCell = styled.div`
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  padding: 0 var(--space-6);
-  white-space: nowrap;
-`;
-
-const LinkCell = styled.div`
-  padding: 0 var(--space-6);
-  text-align: right;
-`;
-
-const CommsTag = styled.span<{ $tone: Tone }>`
-  display: inline-block;
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-sm);
-  border: 1px solid ${({ $tone }) => TONE_HEX[$tone]};
-  color: ${({ $tone }) => TONE_HEX[$tone]};
-  white-space: nowrap;
-`;
+/**
+ * Compact outline chip: border AND text both read the tone colour, no
+ * background fill (see the `TONE_HEX` doc comment above for why). This is
+ * deliberately NOT `<Badge>`, which is always a filled pill - a different
+ * look this widget's comms tag was never meant to have.
+ */
+function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: "inline-block",
+        fontSize: "var(--font-size-2xs)",
+        letterSpacing: "0.05em",
+        fontWeight: 600,
+        padding: "var(--space-hair) var(--space-6)",
+        borderRadius: "var(--radius-sm)",
+        border: `1px solid ${TONE_HEX[tone]}`,
+        color: TONE_HEX[tone],
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
 
 /**
  * The per-row Link cell: the connectivity glyph is the trigger of an accessible
@@ -533,81 +354,292 @@ function FleetSignalCell({
   return (
     <Disclosure
       ariaLabel={`${vesselName} signal`}
-      label={
-        <CommsTag $tone={tone} aria-hidden="true">
-          {label}
-        </CommsTag>
-      }
+      label={<CommsTag tone={tone}>{label}</CommsTag>}
     >
-      <SignalDetail>
+      <dl
+        style={{
+          margin: 0,
+          display: "grid",
+          gap: "var(--space-2)",
+          fontSize: "var(--font-size-xs)",
+          whiteSpace: "nowrap",
+        }}
+      >
         <div>
-          <SignalDetail__Term>Link</SignalDetail__Term>
-          <dd>{linkState}</dd>
+          <dt
+            style={{
+              color: "var(--color-text-muted)",
+              fontSize: "var(--font-size-2xs)",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Link
+          </dt>
+          <dd style={{ margin: 0, color: "var(--color-text-primary)" }}>
+            {linkState}
+          </dd>
         </div>
         {oneWay != null && (
           <div>
-            <SignalDetail__Term>Delay</SignalDetail__Term>
-            <dd>
+            <dt
+              style={{
+                color: "var(--color-text-muted)",
+                fontSize: "var(--font-size-2xs)",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Delay
+            </dt>
+            <dd style={{ margin: 0, color: "var(--color-text-primary)" }}>
               one-way ~<Unit value={value("s", oneWay)} decimals={1} /> ·
               round-trip ~
               <Unit value={value("s", 2 * oneWay)} decimals={1} />
             </dd>
           </div>
         )}
-      </SignalDetail>
+      </dl>
     </Disclosure>
   );
 }
 
-const SignalDetail = styled.dl`
-  margin: 0;
-  display: grid;
-  gap: var(--space-2);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-  & dd {
-    margin: 0;
-    color: var(--color-text-primary);
-  }
-`;
+/**
+ * Wraps the per-vessel `fleet-roster.updates` slot. A bound augment may
+ * legitimately render nothing for THIS row (e.g. the reliability augment's
+ * active-vessel-only gate): collapse the block's own padding/gap in that
+ * case, so it doesn't leave an empty gap under every other row. Mirrors the
+ * `&:empty` CSS rule this replaces: `:empty` doesn't survive outside a
+ * stylesheet rule, so the same check runs against the committed DOM here
+ * instead, via a ref + layout effect.
+ */
+function UpdatesRow({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hasContent, setHasContent] = useState(true);
+  useLayoutEffect(() => {
+    setHasContent((ref.current?.childNodes.length ?? 0) > 0);
+  });
+  return (
+    <div
+      ref={ref}
+      style={
+        hasContent
+          ? {
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-2)",
+              // The 21px left inset is computed, not chosen: NameCell's 6px
+              // padding-left + LinkDot's 8px width + NameCell's 7px gap, so
+              // this block hangs under the vessel name rather than under its
+              // status dot. It stays literal; the other three sides are
+              // ordinary rhythm and do tokenise.
+              padding: "0 var(--space-6) var(--space-6) 21px",
+            }
+          : { display: "none" }
+      }
+    >
+      {children}
+    </div>
+  );
+}
 
-const SignalDetail__Term = styled.dt`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.05em;
-`;
+// ---------------------------------------------------------------------------
+// Widget
+// ---------------------------------------------------------------------------
 
-const UpdatesBlock = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  /* The 21px left inset is computed, not chosen: NameCell's 6px
-     padding-left + LinkDot's 8px width + NameCell's 7px gap, so this block
-     hangs under the vessel name rather than under its status dot. It stays
-     literal; the other three sides are ordinary rhythm and do tokenise. */
-  padding: 0 var(--space-6) var(--space-6) 21px;
-  /* Collapse when the slot's augments all render nothing for this row (e.g.
-     a per-vessel augment that only draws on the active vessel): no empty
-     padded gap under rows the augment has nothing to say about. */
-  &:empty {
-    display: none;
-  }
-`;
+function FleetRosterComponent({
+  w,
+}: Readonly<ComponentProps<FleetRosterConfig>>) {
+  const { known, vessels } = useFleet();
+  const rollup = commsRollup(vessels);
+  // Whose light-time the per-vessel delays are computed from: the selected
+  // command centre (Plan 3). Resolved to its display name via the roster,
+  // falling back to the raw id (e.g. the default "ksc" before the roster lands).
+  const vantage = useSelectedVantage();
+  const centres = useTelemetry("commandCentre.roster");
+  const vantageName =
+    centres?.find((c) => c.id === vantage)?.displayName ?? vantage;
+  const cols = w ?? 8;
+  // Below the width threshold the Body column and the per-vessel update lines
+  // are shed, the identity + crew + link (the at-a-glance fleet state) always
+  // stay. Height doesn't gate columns; the list just scrolls.
+  const compact = cols < 6;
+  const gridCols = compact ? GRID_COMPACT : GRID_FULL;
 
-const FooterRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  margin-top: auto;
-  padding-top: var(--space-6);
-  flex-shrink: 0;
-`;
+  // Non-reactive read, augments register at module load, before first render.
+  const updatesAugmentPresent =
+    getAugmentsForSlot("fleet-roster.updates").length > 0;
 
-const VantageCaption = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-6);
-`;
+  const total = vessels.length;
+
+  return (
+    <Panel
+      panelTitle="Fleet"
+      panelAside={
+        <Badge severity={severityFromBadgeTone(rollup.tone)}>
+          {rollup.badgeLabel}
+        </Badge>
+      }
+    >
+      {/* Vantage caption relocated out of the panel subtitle into the body
+          (staging change); severity= on the aside Badge is staging's canonical
+          tone wiring. */}
+      <ReadoutCaption>viewing from: {vantageName}</ReadoutCaption>
+      {total === 0 ? (
+        <EmptyState>
+          {known ? "No vessels tracked." : "Fleet data not available yet."}
+        </EmptyState>
+      ) : (
+        <ScrollArea style={{ marginTop: "var(--space-6)" }}>
+          <Grid
+            cols={gridCols}
+            gap="sm"
+            align="center"
+            style={{
+              height: ROW_HEIGHT,
+              borderBottom: "1px solid var(--color-border-subtle)",
+            }}
+          >
+            <ColLabel>Vessel</ColLabel>
+            {!compact && <ColLabel>Body</ColLabel>}
+            <ColLabel right>Crew</ColLabel>
+            <ColLabel right>Link</ColLabel>
+          </Grid>
+
+          {vessels.map((v) => {
+            const comms = COMMS[v.comms];
+            // The per-vessel line-updates block is PURELY the
+            // `fleet-roster.updates` augment slot now, the seam for a
+            // future Reliability/TestFlight uplink to compose real
+            // alarm/health one-liners here. It carries no data of its own
+            // (there is no reliability signal behind this widget; see the
+            // module doc comment), so it renders nothing until an uplink
+            // actually registers.
+            const showUpdates = !compact && updatesAugmentPresent;
+            return (
+              <Fragment key={v.id}>
+                <Grid cols={gridCols} gap="sm" style={{ height: ROW_HEIGHT }}>
+                  <Cluster
+                    justify="start"
+                    align="center"
+                    title={v.name}
+                    style={{ gap: "7px", padding: "0 var(--space-6)" }}
+                  >
+                    <LinkDot
+                      tone={COMMS_TONE[v.comms]}
+                      ariaLabel={comms.aria}
+                    />
+                    <Truncate
+                      style={{
+                        fontSize: "var(--font-size-sm)",
+                        color: "var(--color-text-primary)",
+                      }}
+                    >
+                      {v.name}
+                    </Truncate>
+                  </Cluster>
+                  {!compact && (
+                    <Truncate
+                      title={v.body ?? undefined}
+                      style={{
+                        fontSize: "var(--font-size-sm)",
+                        color: "var(--color-text-muted)",
+                        padding: "0 var(--space-6)",
+                      }}
+                    >
+                      {v.body ?? NULL_DISPLAY}
+                    </Truncate>
+                  )}
+                  <Value
+                    tone="default"
+                    size="sm"
+                    style={{
+                      textAlign: "right",
+                      padding: "0 var(--space-6)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {crewLabel(v)}
+                  </Value>
+                  <div
+                    style={{ padding: "0 var(--space-6)", textAlign: "right" }}
+                  >
+                    <FleetSignalCell
+                      guid={v.id}
+                      vesselName={v.name}
+                      tone={COMMS_TONE[v.comms]}
+                      label={comms.label}
+                    />
+                  </div>
+                </Grid>
+                {showUpdates && (
+                  <UpdatesRow>
+                    <AugmentSlot
+                      name="fleet-roster.updates"
+                      props={{
+                        vesselId: v.id,
+                        vesselName: v.name,
+                        body: v.body ?? "",
+                      }}
+                    />
+                  </UpdatesRow>
+                )}
+              </Fragment>
+            );
+          })}
+        </ScrollArea>
+      )}
+
+      <Stack
+        gap="sm"
+        style={{
+          gap: "var(--space-6)",
+          marginTop: "auto",
+          paddingTop: "var(--space-6)",
+          flexShrink: 0,
+        }}
+      >
+        <Meter
+          label="Comms coverage"
+          value={total > 0 ? rollup.linked / total : 0}
+          tone={rollup.tone}
+          valueLabel={`${rollup.linked} linked · ${rollup.none} no link${
+            rollup.unknown > 0 ? ` · ${rollup.unknown} unknown` : ""
+          }`}
+          size={compact ? "sm" : "md"}
+        />
+      </Stack>
+    </Panel>
+  );
+}
+
+/**
+ * Column header label. The Vessel column's grid track is minmax(0, 1fr): at
+ * the tiny-4x4 minSize it shrinks well below "VESSEL"'s natural width, so
+ * this truncates like a body cell rather than spilling into "CREW".
+ */
+function ColLabel({
+  right,
+  children,
+}: {
+  right?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Truncate
+      style={{
+        fontSize: "var(--font-size-xs)",
+        color: "var(--color-text-muted)",
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        fontWeight: 600,
+        padding: "0 var(--space-6)",
+        textAlign: right ? "right" : "left",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </Truncate>
+  );
+}
 
 registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
