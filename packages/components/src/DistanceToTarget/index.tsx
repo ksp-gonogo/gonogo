@@ -654,12 +654,11 @@ function Reticle({
         border: `2px solid ${aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)"}`,
         borderRadius: "var(--radius-circle)",
         transform: "translate(-50%, -50%)",
-        // left/top are an 80ms telemetry chase, not a UI transition: the
-        // reticle is following a live target, so the duration stays literal
-        // rather than inheriting a hover rung. Only the border-colour change
-        // is a UI-motion choice.
+        // left/top are an instant telemetry chase (the reticle follows a live
+        // target), so they use --duration-instant/--ease-linear rather than an
+        // eased hover rung. Only the border-colour change is a slower UI cue.
         transition:
-          "left 80ms linear, top 80ms linear, border-color var(--duration-base) var(--ease-linear)",
+          "left var(--duration-instant) var(--ease-linear), top var(--duration-instant) var(--ease-linear), border-color var(--duration-base) var(--ease-linear)",
         // Ring only: centre stays transparent so the crosshair stays visible.
         boxShadow: `0 0 6px ${aligned ? "rgba(0,255,136,0.6)" : "rgba(255,152,0,0.5)"}`,
         left,
