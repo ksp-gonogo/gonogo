@@ -641,6 +641,16 @@ namespace Sitrep.Host
                 PrecisionControl = GetBool(control, "precisionControl"),
                 // V-3: deliberately NOT clamped to [0,1] -- see VesselControl.Throttle's doc comment.
                 Throttle = GetDouble(control, "throttle"),
+                // Commanded fly-by-wire axis echoes (the read-anchors for the
+                // vessel.control.{pitch,yaw,roll,translationX/Y/Z} setAxes stream
+                // channels): KspHost.BuildControl reads FlightCtrlState. -1..1,
+                // null when no ctrlState.
+                Pitch = GetDouble(control, "pitch"),
+                Yaw = GetDouble(control, "yaw"),
+                Roll = GetDouble(control, "roll"),
+                TranslationX = GetDouble(control, "translationX"),
+                TranslationY = GetDouble(control, "translationY"),
+                TranslationZ = GetDouble(control, "translationZ"),
                 ActionGroups = actionGroups,
                 Meta = BuildMeta(vesselId),
             };

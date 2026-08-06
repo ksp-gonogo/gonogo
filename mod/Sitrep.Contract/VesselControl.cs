@@ -138,6 +138,46 @@ public class VesselControl
     [SitrepUnit(Units.Ratio)]
     public double? Throttle { get; set; }
 
+    // Commanded fly-by-wire axis inputs (the ECHO half of the setAxes stream
+    // channels below), each -1..1 mirroring KSP's FlightInputHandler ctrlState.
+    // These exist so each axis has a read-anchor for its
+    // [SitrepControlChannel] and a confirmed-readback track in the client's
+    // ControlDelayStream: the operator sees a delayed axis command ARRIVE
+    // (the echo lags the commanded track by the round trip), exactly as the
+    // throttle channel does. Null when no active flight scene (no ctrlState),
+    // never a sentinel default (R1(a)). Populated by KspHost.BuildControl.
+    // LIVE-TEST-REQUIRED: verify these read the applied axis, not a stale zero.
+
+    /// <summary>Commanded pitch axis input, -1..1 (FlightInputHandler ctrlState.pitch).</summary>
+    [SitrepControlChannel("vessel.control.pitch", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Pitch))]
+    [SitrepUnit(Units.Dimensionless)]
+    public double? Pitch { get; set; }
+
+    /// <summary>Commanded yaw axis input, -1..1 (FlightInputHandler ctrlState.yaw).</summary>
+    [SitrepControlChannel("vessel.control.yaw", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Yaw))]
+    [SitrepUnit(Units.Dimensionless)]
+    public double? Yaw { get; set; }
+
+    /// <summary>Commanded roll axis input, -1..1 (FlightInputHandler ctrlState.roll).</summary>
+    [SitrepControlChannel("vessel.control.roll", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Roll))]
+    [SitrepUnit(Units.Dimensionless)]
+    public double? Roll { get; set; }
+
+    /// <summary>Commanded translation X (RCS right/left) input, -1..1 (ctrlState.X).</summary>
+    [SitrepControlChannel("vessel.control.translationX", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.X))]
+    [SitrepUnit(Units.Dimensionless)]
+    public double? TranslationX { get; set; }
+
+    /// <summary>Commanded translation Y (RCS up/down) input, -1..1 (ctrlState.Y).</summary>
+    [SitrepControlChannel("vessel.control.translationY", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Y))]
+    [SitrepUnit(Units.Dimensionless)]
+    public double? TranslationY { get; set; }
+
+    /// <summary>Commanded translation Z (RCS fwd/back) input, -1..1 (ctrlState.Z).</summary>
+    [SitrepControlChannel("vessel.control.translationZ", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Z))]
+    [SitrepUnit(Units.Dimensionless)]
+    public double? TranslationZ { get; set; }
+
     /// <summary>
     /// Every CUSTOM action group the elected action-groups backend knows,
     /// each NAMED and carrying its own index (see

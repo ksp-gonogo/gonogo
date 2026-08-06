@@ -104,6 +104,15 @@ export interface SizeMode {
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
+   * Scroll the panel's body (`[data-panel-body]`) down by this many px after
+   * mount + settle, before the screenshot. Captures scroll-position-only UI
+   * that the at-rest probe never sees, chiefly the Panel title ghost, which
+   * only fades in once the real scrolling header is out of view. A big value
+   * pins the scroller to the bottom, past any header height. No-op when the
+   * body does not overflow (nothing to scroll), so it is safe on any widget.
+   */
+  scroll?: number;
+  /**
    * Restrict the mode to a subset of fixtures. Useful for click-driven
    * modes that only make sense against specific scenarios (e.g. the
    * arm-recover click only applies to fixtures that actually have a
@@ -523,6 +532,28 @@ async function renderOneWidget(
             }),
         );
         await page.waitForTimeout(150);
+      }
+      // Scroll the body past its header so the title ghost fades in. Applied
+      // after any fullContent grow (where it becomes a no-op, nothing
+      // overflows) and before the shot. Dispatches a scroll event so the
+      // ghost's scroll observer fires, then settles a frame. reducedMotion is
+      // emulated at the context, so the ghost's JS-gated fade collapses to an
+      // instant show and the capture is deterministic.
+      if (mode.scroll !== undefined) {
+        await page.evaluate((top) => {
+          const el = document.querySelector(
+            "[data-panel-body]",
+          ) as HTMLElement | null;
+          if (!el) return;
+          el.scrollTop = top;
+          el.dispatchEvent(new Event("scroll"));
+        }, mode.scroll);
+        await page.evaluate(
+          () =>
+            new Promise<void>((res) => {
+              requestAnimationFrame(() => requestAnimationFrame(() => res()));
+            }),
+        );
       }
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");

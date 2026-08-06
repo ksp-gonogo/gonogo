@@ -8,12 +8,12 @@ import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  type BadgeTone,
   Cluster,
   CommandDelay,
   Panel,
   Section,
   SectionTitle,
+  type Severity,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
@@ -69,16 +69,16 @@ export type MechJebActions = typeof mechjebActions;
 // operator's seat the command is in transit / awaiting reply across the delay.
 function commandChip(
   phase: string,
-): { tone: BadgeTone; text: string } | undefined {
+): { tone: Severity; text: string } | undefined {
   switch (phase) {
     case "in-flight":
-      return { tone: "warn", text: "awaiting reply" };
+      return { tone: "warning", text: "awaiting reply" };
     case "confirmed":
-      return { tone: "go", text: "confirmed" };
+      return { tone: "nominal", text: "confirmed" };
     case "failed":
-      return { tone: "nogo", text: "rejected" };
+      return { tone: "critical", text: "rejected" };
     case "lost":
-      return { tone: "nogo", text: "no reply" };
+      return { tone: "critical", text: "no reply" };
     default:
       return undefined; // idle, no chip
   }
@@ -108,7 +108,7 @@ function CommandRow({
       </button>
       <span role="status" aria-live="polite">
         {chip ? (
-          <Badge tone={chip.tone} size="sm">
+          <Badge severity={chip.tone} size="sm">
             {chip.text}
           </Badge>
         ) : null}

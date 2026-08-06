@@ -11,7 +11,6 @@ import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
-  type BadgeTone,
   Button,
   FieldLabel,
   FieldRow,
@@ -20,6 +19,7 @@ import {
   NULL_DISPLAY,
   Panel,
   Select,
+  type Severity,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useId, useMemo, useState } from "react";
@@ -85,10 +85,10 @@ const STATUS_LABEL: Record<string, string> = {
   off: "FAR",
 };
 
-const STATUS_TONE: Record<string, BadgeTone> = {
-  go: "go",
-  soon: "warn",
-  off: "neutral",
+const STATUS_TONE: Record<string, Severity | undefined> = {
+  go: "nominal",
+  soon: "warning",
+  off: undefined,
 };
 
 // Days and years here are Kerbin's (6h, 426d), not Earth's: a transfer to
@@ -288,7 +288,7 @@ function TransferWindowComponent({
                       />
                     </Muted>
                   </NowValue>
-                  <Badge tone={STATUS_TONE[solution.status]}>
+                  <Badge severity={STATUS_TONE[solution.status]}>
                     {STATUS_LABEL[solution.status]}
                   </Badge>
                 </NowFacts>

@@ -1072,6 +1072,21 @@ namespace Gonogo.KSP
                 // not a per-vessel field. Null when there's no active flight scene.
                 ["precisionControl"] = FlightInputHandler.fetch != null ? (bool?)FlightInputHandler.fetch.precisionMode : null,
                 ["throttle"] = ctrlState != null ? (double?)ctrlState.mainThrottle : null,
+                // Commanded fly-by-wire axis inputs: the ECHO half of the
+                // vessel.control.{pitch,yaw,roll,translationX/Y/Z} setAxes stream
+                // channels (VesselControl.cs). KSP's FlightCtrlState holds the
+                // currently-applied axis values (-1..1); translation is X/Y/Z.
+                // Null when there's no ctrlState (no active flight). This is what
+                // the client's ControlDelayStream draws as the confirmed-readback
+                // track, so a delayed axis command visibly lands after the round
+                // trip. LIVE-TEST-REQUIRED: confirm these reflect the applied
+                // stick, not a stale zero, on a real vessel.
+                ["pitch"] = ctrlState != null ? (double?)ctrlState.pitch : null,
+                ["yaw"] = ctrlState != null ? (double?)ctrlState.yaw : null,
+                ["roll"] = ctrlState != null ? (double?)ctrlState.roll : null,
+                ["translationX"] = ctrlState != null ? (double?)ctrlState.X : null,
+                ["translationY"] = ctrlState != null ? (double?)ctrlState.Y : null,
+                ["translationZ"] = ctrlState != null ? (double?)ctrlState.Z : null,
             };
 
             // The NAMED custom action groups, sourced from the elected backend

@@ -12,14 +12,16 @@ import {
   useRef,
   useState,
 } from "react";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { Badge } from "./Badge";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import type { StatusSummary } from "./status/PanelStatusStore";
-import { severityFromStreamStatus } from "./status/severity";
+import { type Severity, severityFromStreamStatus } from "./status/severity";
+import { severityDotColor } from "./status/severityDotColor";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
 import { useElementSize } from "./useElementSize";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface PanelContextValue {
   scroller: HTMLElement | null;
@@ -212,6 +214,30 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
 `;
 
 /**
+ * Width below which the header row cannot comfortably hold an arbitrary
+ * aside beside the title, so the aside collapses to the panel's own compact
+ * status summary instead of overflowing it. The motivating case:
+ * LandingStatus's commit hero, a fixed-width `Readout` reading
+ * "NO LANDING VECTOR", which is `inline-flex` sized-to-content and does not
+ * wrap, so a narrow tile clips it rather than reflowing it.
+ *
+ * Measures the ROW, not the aside box alone. The row's width is fixed by the
+ * panel's own flex-column stretch (it is a block-level flex item, not sized
+ * to its children), so it never moves when the aside's CONTENT changes;
+ * measuring the aside box instead would create a feedback loop, since
+ * swapping in the small compact badge would itself shrink the box that was
+ * just measured as too narrow, immediately reporting "room again" and
+ * flipping straight back.
+ *
+ * A fixed threshold rather than a live overflow probe (comparing the aside's
+ * `scrollWidth` to its `clientWidth`) for the same reason `PanelSplit` picks
+ * its axis off a measured width against `SIDEBAR_INLINE_SIZE` rather than the
+ * sidebar's own content size: the row's width is genuinely stable to measure,
+ * where the aside's overflow is not, without the swap already having happened.
+ */
+const PANEL_ASIDE_COLLAPSE_WIDTH = 320;
+
+/**
  * Title, optional subtitle, and an optional right-hand aside on one row.
  *
  * The aside is why this exists. Twenty-seven of forty-three widgets had grown
@@ -220,6 +246,12 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
  * for Uplink badges (19), the odd state `Badge` or `Select`. Twenty-seven
  * hand-rolled rows for two recurring things is a missing name, so this is the
  * name.
+ *
+ * Below `PANEL_ASIDE_COLLAPSE_WIDTH` the aside collapses to the panel's own
+ * status summary (see `Panel.useStatusSummary`) instead of the caller's raw
+ * `aside` content. This is generic `PanelHeader` behaviour, not specific to
+ * `Panel`/`PanelRoot`: a hand-composed header gets it too, which is why the
+ * measurement and the summary read both live here rather than in `PanelRoot`.
  */
 export function PanelHeader({
   title,
@@ -242,20 +274,63 @@ export function PanelHeader({
    */
   overlay?: boolean;
 }) {
+  // Seeded AT the threshold, so an unmeasured header (first paint, and jsdom
+  // forever unless a test drives the ResizeObserver) renders today's full
+  // aside unchanged: every existing widget test that never drives a resize
+  // keeps seeing exactly what it asserts today.
+  const { ref: rowRef, size: rowSize } = useElementSize<HTMLDivElement>({
+    w: PANEL_ASIDE_COLLAPSE_WIDTH,
+    h: 0,
+  });
+  // `> 0` guards the same "not really laid out yet" case the ghost's header
+  // height check guards: a genuinely-zero measurement means hidden/unmounted,
+  // not narrow, and must not read as a reason to collapse.
+  const asideCollapsed =
+    rowSize.w > 0 && rowSize.w < PANEL_ASIDE_COLLAPSE_WIDTH;
+  const summary = useStatusSummary();
+
+  // Nothing to collapse when there is no aside at all; the row's width never
+  // enters into it. Below threshold WITH an aside, swap to the compact
+  // summary badge when there is one to show. A collapsed row with no summary
+  // (no status store in the tree, or a healthy panel) renders NOTHING for the
+  // slot: re-showing the raw aside would be exactly the overflow this
+  // measurement exists to avoid, so of the two documented options this is the
+  // one that actually fixes it.
+  const resolvedAside: ReactNode | undefined =
+    aside === undefined ? undefined : !asideCollapsed ? (
+      aside
+    ) : summary !== null ? (
+      <Badge severity={summary.severity} size="sm" live>
+        {summary.label}
+      </Badge>
+    ) : undefined;
+
   return (
     /* `data-panel-header` is a stable targeting hook, the same contract as
        ScrollArea's `data-scroll-area-inner`. The row splits titles and aside
        into two boxes so they can align independently, which means walking up
        from the title with `closest("div")` reaches the titles box and NOT the
        aside beside it. Anything that wants "the whole header" should say so
-       by name rather than by counting ancestors. */
-    <PanelHeader__Row data-panel-header="" $overlay={overlay} {...rest}>
+       by name rather than by counting ancestors.
+
+       `data-panel-aside-collapsed` mirrors the resolved decision (present
+       only while collapsed), the same "expose the internal call" contract
+       `PanelSplit`'s `data-panel-split={axis}` uses. */
+    <PanelHeader__Row
+      ref={rowRef}
+      data-panel-header=""
+      data-panel-aside-collapsed={asideCollapsed ? "" : undefined}
+      $overlay={overlay}
+      {...rest}
+    >
       <PanelHeader__Titles $overlay={overlay}>
         {title !== undefined && <PanelTitle>{title}</PanelTitle>}
         {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}
       </PanelHeader__Titles>
-      {aside !== undefined && (
-        <PanelHeader__Aside $overlay={overlay}>{aside}</PanelHeader__Aside>
+      {resolvedAside !== undefined && (
+        <PanelHeader__Aside $overlay={overlay}>
+          {resolvedAside}
+        </PanelHeader__Aside>
       )}
       {toolbar !== undefined && (
         <PanelToolbar $overlay={overlay}>{toolbar}</PanelToolbar>
@@ -732,6 +807,58 @@ export function PanelSidebar({
   );
 }
 
+/**
+ * Observe the registered scroller and derive a value from it, recomputed on
+ * scroll and on any size or child-list change to the scroller. The single
+ * implementation of "watch the scroller and compute something", shared by the
+ * glow (which wants top/bottom overflow booleans) and the ghost (which wants
+ * "is the header scrolled out of view"), so the two decorators of the same
+ * scroller cannot drift apart. It reuses the exact scroll + ResizeObserver +
+ * MutationObserver pattern the glow already had, and stays drivable in jsdom
+ * by dispatching a `scroll` event, which is why the ghost keys off it rather
+ * than an IntersectionObserver.
+ */
+function useScrollerMetric<T>(
+  el: HTMLElement | null,
+  compute: (el: HTMLElement) => T,
+  isEqual: (a: T, b: T) => boolean,
+  initial: T,
+): T {
+  const [value, setValue] = useState<T>(initial);
+  // Latest closures without re-subscribing: the effect keys off `el` alone, so
+  // a caller passing a fresh `compute`/`isEqual` each render does not tear down
+  // and rebuild the observers every time.
+  const computeRef = useRef(compute);
+  computeRef.current = compute;
+  const equalRef = useRef(isEqual);
+  equalRef.current = isEqual;
+
+  useEffect(() => {
+    if (!el) return;
+    const update = () => {
+      const next = computeRef.current(el);
+      setValue((prev) => (equalRef.current(prev, next) ? prev : next));
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const child of Array.from(el.children)) ro.observe(child);
+    const mo = new MutationObserver(() => {
+      for (const child of Array.from(el.children)) ro.observe(child);
+      update();
+    });
+    mo.observe(el, { childList: true });
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [el]);
+
+  return value;
+}
+
 const PanelGlow__Root = styled.div`
   position: relative;
   display: flex;
@@ -761,7 +888,6 @@ export function PanelGlow({
 }: ComponentPropsWithoutRef<"div">) {
   const ctx = useContext(PanelCtx);
   const el = ctx?.scroller ?? null;
-  const [overflow, setOverflow] = useState({ top: false, bottom: false });
 
   useEffect(() => {
     if (!ctx && process.env.NODE_ENV !== "production") {
@@ -775,31 +901,15 @@ export function PanelGlow({
     }
   }, [ctx]);
 
-  useEffect(() => {
-    if (!el) return;
-    const update = () => {
-      const top = el.scrollTop > 1;
-      const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-      setOverflow((prev) =>
-        prev.top === top && prev.bottom === bottom ? prev : { top, bottom },
-      );
-    };
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    for (const child of Array.from(el.children)) ro.observe(child);
-    const mo = new MutationObserver(() => {
-      for (const child of Array.from(el.children)) ro.observe(child);
-      update();
-    });
-    mo.observe(el, { childList: true });
-    return () => {
-      el.removeEventListener("scroll", update);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, [el]);
+  const overflow = useScrollerMetric(
+    el,
+    (e) => ({
+      top: e.scrollTop > 1,
+      bottom: e.scrollTop + e.clientHeight < e.scrollHeight - 1,
+    }),
+    (a, b) => a.top === b.top && a.bottom === b.bottom,
+    { top: false, bottom: false },
+  );
 
   return (
     <PanelGlow__Root {...rest}>
@@ -807,6 +917,187 @@ export function PanelGlow({
       <ScrollOverflowGlow $position="top" $visible={overflow.top} />
       <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
     </PanelGlow__Root>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The condensing ghost
+//
+// The ghost's dot consumes the status build's canonical `useStatusSummary()`
+// (store-backed `{ severity, label } | null`), the SAME summary the header's
+// `PanelSummaryBadge` renders. The header badge scrolls away with the header;
+// the ghost re-surfaces identity + status at the top edge while scrolled off.
+// ---------------------------------------------------------------------------
+
+// The header wraps to a second row at narrow widths by design, so "scrolled
+// past the header" keys off the MEASURED header height, never a constant. One
+// px of slack so a sub-pixel scrollTop at the exact boundary does not flutter.
+const PANEL_GHOST_EPSILON = 1;
+
+const ghostDotPulse = keyframes`
+  0% { transform: scale(1); }
+  45% { transform: scale(1.9); }
+  100% { transform: scale(1); }
+`;
+
+const PanelGhost__Root = styled.div<{ $visible: boolean; $animated: boolean }>`
+  position: absolute;
+  /* Sit BELOW the delay rail when one is present (the rail publishes its own
+     height); with no rail this resolves to the very top of the panel. Anchoring
+     to the rail keeps the ghost and the v3 rail reading as one stacked system,
+     and honours the rule that the title must not live in the drag-bar strip. */
+  top: var(--panel-rail-height, 0px);
+  left: 0;
+  right: 0;
+  /* Local sibling ordering inside the panel's own stacking context, the same
+     rung the glows and the overlay header use. Off the app-global z ladder. */
+  z-index: 1;
+  /* Never intercepts: the real content scrolls under it. */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8, 8px);
+  /* Mirror the title's horizontal inset so the condensed title sits directly
+     under the real one; a compact vertical rhythm keeps the strip ~20px, not
+     the ~35px band this design removes. */
+  padding: var(--space-6, 6px) var(--space-16, 16px);
+  /* v3 "condensing from the top edge": a panel-coloured wash heaviest at the
+     top that dissolves to nothing before the bottom, so the ghost fades in from
+     the top edge with no hard bottom border, over a soft backdrop blur. */
+  background: linear-gradient(
+    to bottom,
+    var(--color-surface-panel) 45%,
+    transparent
+  );
+  backdrop-filter: blur(3px);
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  /* Entrance ~0.18s in, ~0.22s out, matching the mockup. Gated in JS rather
+     than by a CSS @media block so reduced motion is observable in tests and so
+     the same flag suppresses the dot's one-shot pulse; the harness emulates
+     reduce, so this degrades to a static shown/hidden state under it. */
+  ${({ $animated, $visible }) =>
+    $animated
+      ? `transition: opacity ${$visible ? "0.18s" : "0.22s"} var(--ease-standard, ease);`
+      : "transition: none;"}
+`;
+
+const PanelGhost__Title = styled.span`
+  min-width: 0;
+  /* Match PanelTitle's type so the ghost reads as the same title, condensed. */
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const PanelGhost__Dot = styled.span<{ $color: string; $pulse: boolean }>`
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background: ${({ $color }) => $color};
+  ${({ $pulse }) =>
+    $pulse
+      ? css`
+          animation: ${ghostDotPulse} 0.4s var(--ease-standard, ease);
+        `
+      : ""}
+`;
+
+/**
+ * A condensed, presentation-only duplicate of the title that fades in below the
+ * delay rail ONLY while the real title is scrolled out of view. It fixes plain
+ * scroll-away's flaw (identity and status going invisible mid-scroll) at ~20px
+ * of transient overlay instead of a permanent ~35px band.
+ *
+ * It is `aria-hidden` and role-less: the real `<h3>` inside the scroller stays
+ * the single heading for assistive tech whatever the scroll position, so this
+ * never adds a second heading or a second status announcement. It is queried by
+ * `data-panel-ghost` for the same reason `data-panel-header`/`data-panel-body`
+ * exist, since it carries no role.
+ */
+export function PanelGhost({ title }: { title?: ReactNode }) {
+  const ctx = useContext(PanelCtx);
+  const el = ctx?.scroller ?? null;
+  const prefersReducedMotion = usePrefersReducedMotion();
+  // The store-backed canonical summary from the status build: `{ severity,
+  // label } | null`. Null (empty store, or no store in the tree) renders no dot.
+  const summary = useStatusSummary();
+
+  // "Real title scrolled out of view", computed from the SAME registered
+  // scroller the glow observes. The header is the scroller's first child, so
+  // its measured height IS the threshold; a wrapped aside grows the header and
+  // the ResizeObserver in the shared helper re-derives, keeping the trigger
+  // measured rather than constant.
+  const showGhost = useScrollerMetric(
+    el,
+    (e) => {
+      const header = e.querySelector(
+        "[data-panel-header]",
+      ) as HTMLElement | null;
+      // A zero-height header means the scroller has not laid out yet (and is
+      // the permanent state in jsdom, which lays nothing out). Treat that as
+      // "not scrolled past", so the ghost stays inert until there is a real
+      // header to have scrolled past, rather than showing over an unmeasured
+      // panel.
+      if (!header || header.offsetHeight <= 0) return false;
+      return e.scrollTop >= header.offsetHeight - PANEL_GHOST_EPSILON;
+    },
+    Object.is,
+    false,
+  );
+
+  // Surface a status CHANGE with a brief pulse: a severity transition should
+  // catch the operator's eye even while the title is scrolled off. Keyed so the
+  // animation replays on each change; the initial state does not pulse (only
+  // transitions do), and reduced motion suppresses it entirely.
+  const severity = summary?.severity ?? null;
+  const prevSeverity = useRef<Severity | null>(severity);
+  const [pulseKey, setPulseKey] = useState(0);
+  useEffect(() => {
+    if (severity !== prevSeverity.current) {
+      prevSeverity.current = severity;
+      if (severity !== null) setPulseKey((k) => k + 1);
+    }
+  }, [severity]);
+
+  return (
+    // The root stays mounted whatever the scroll position, so it can observe
+    // the scroller and so `data-panel-ghost` is always targetable. Its CONTENT
+    // renders only while shown: a permanent duplicate of the title text would
+    // be a second match for every `getByText(title)` in a widget's tests (and a
+    // second copy in the a11y-adjacent DOM), so the condensed title and its dot
+    // exist only in the state they are meant for, scrolled past the header.
+    <PanelGhost__Root
+      data-panel-ghost=""
+      aria-hidden="true"
+      $visible={showGhost}
+      $animated={!prefersReducedMotion}
+    >
+      {showGhost && (
+        <>
+          {title !== undefined && (
+            <PanelGhost__Title>{title}</PanelGhost__Title>
+          )}
+          {summary !== null && (
+            <PanelGhost__Dot
+              key={pulseKey}
+              data-panel-ghost-dot=""
+              data-severity={summary.severity}
+              title={summary.label}
+              aria-hidden="true"
+              $color={severityDotColor(summary.severity)}
+              $pulse={pulseKey > 0 && !prefersReducedMotion}
+            />
+          )}
+        </>
+      )}
+    </PanelGhost__Root>
   );
 }
 
@@ -987,6 +1278,16 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: boolean }>`
   }
 `;
 
+/* The standard header, reparented as the FIRST in-flow child of the scroller
+   so title and body scroll as one unit. The negative margins cancel the body's
+   own top/side inset for the header alone, so `PanelTitle`'s own inset governs
+   and the title lands exactly where the pinned band put it (top-left, same
+   inset); only the body content below keeps the body's padding. `PanelHeader`
+   itself is untouched, this is purely how `PanelRoot` assembles it. */
+const PanelScrollingHeader = styled(PanelHeader)`
+  margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
+`;
+
 function PanelRoot({
   panelTitle,
   panelSubtitle,
@@ -1063,42 +1364,72 @@ function PanelRoot({
   if (!hasHeader) {
     return <PanelContainer {...rest}>{children}</PanelContainer>;
   }
+
+  // Whether the header must stay pinned above the scroller.
+  //
+  // A `panelToolbar` widget deliberately pins a control row, and scrolling the
+  // title out from over pinned controls would invert their reading order, so a
+  // toolbar header stays pinned exactly as before. A `floatingHeader` already
+  // floats over a non-scrolling `bleed` body and is its own path. Both keep
+  // today's tree (header a sibling ABOVE the scroller) and get NO scroll-away
+  // ghost. Everything else, the common standard header, moves the header inside
+  // the scroller and gains the condensing ghost.
+  const pinned = floatingHeader || panelToolbar !== undefined;
+
+  const header = pinned ? (
+    <PanelHeader
+      title={panelTitle}
+      subtitle={panelSubtitle}
+      aside={aside}
+      toolbar={panelToolbar}
+      overlay={floatingHeader}
+    />
+  ) : (
+    <PanelScrollingHeader
+      title={panelTitle}
+      subtitle={panelSubtitle}
+      aside={aside}
+    />
+  );
+
   const body = (
     <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
+      {/* Standard header rides INSIDE the scroller as its first child, so title
+          and body scroll as one unit and a short widget reclaims the reserved
+          band. Written first so it stays first in reading and tab order. */}
+      {!pinned && header}
       {children}
     </PanelBody>
   );
+
+  const bodyRegion =
+    panelSidebar === undefined ? (
+      body
+    ) : (
+      // No sidebar means no split either: the body stays a direct child of the
+      // glow, the exact element tree every existing widget already renders. The
+      // header rides the body scroller here exactly as the standard case, so
+      // the sidebar's own ScrollArea is untouched.
+      <PanelSplit side={sidebarSide} size={sidebarSize}>
+        {body}
+        {/* Written after the body on purpose; `sidebarSide` moves it visually
+            and never in the DOM. */}
+        <PanelSidebar>{panelSidebar}</PanelSidebar>
+      </PanelSplit>
+    );
+
   return (
     <PanelContextProvider>
       <PanelContainer {...rest}>
         <PanelGlow>
-          <PanelHeader
-            title={panelTitle}
-            subtitle={panelSubtitle}
-            aside={aside}
-            toolbar={panelToolbar}
-            overlay={floatingHeader}
-          />
-          {/* Header order is deliberate: the header is written first so it
-              stays first in the DOM, and therefore first in reading and tab
-              order, whether it floats or reserves a row. Overlay is a paint
-              change, not a structural one.
-
-              No sidebar means no split either: the body stays a direct child
-              of the glow, the exact element tree every existing widget already
-              renders. Adding an always-present grid wrapper would have been
-              tidier to write and would have re-laid-out forty widgets that
-              never asked for one. */}
-          {panelSidebar === undefined ? (
-            body
-          ) : (
-            <PanelSplit side={sidebarSide} size={sidebarSize}>
-              {body}
-              {/* Written after the body on purpose; `sidebarSide` moves it
-                  visually and never in the DOM. */}
-              <PanelSidebar>{panelSidebar}</PanelSidebar>
-            </PanelSplit>
-          )}
+          {/* Pinned header is a sibling ABOVE the scroller (unchanged tree);
+              overlay is a paint change, not a structural one. */}
+          {pinned && header}
+          {bodyRegion}
+          {/* The condensing ghost re-surfaces identity + status while the real
+              title is scrolled off. Only the standard, non-pinned header gets
+              one; it observes the SAME registered scroller the glow does. */}
+          {!pinned && <PanelGhost title={panelTitle} />}
         </PanelGlow>
       </PanelContainer>
     </PanelContextProvider>
@@ -1114,6 +1445,7 @@ export const Panel = Object.assign(PanelRoot, {
   Subtitle: PanelSubtitle,
   Glow: PanelGlow,
   Body: PanelBody,
+  Ghost: PanelGhost,
   Split: PanelSplit,
   Sidebar: PanelSidebar,
   Status: PanelStatusProvider,

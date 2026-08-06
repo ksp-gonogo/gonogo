@@ -13,8 +13,14 @@ import {
   ScrollArea,
   Section,
   SectionTitle,
+  Value,
 } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
+// Body below keeps styled-components: it styles ScrollArea's internal
+// `[data-scroll-area-inner]` element (a child component's internals, which
+// inline style can't reach and ScrollArea exposes no prop for). Documented.
+// biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector, no inline/primitive equivalent (see above)
 import styled from "styled-components";
 import {
   magnitudeOf,
@@ -395,41 +401,46 @@ function ScienceBenchComponent({
         message="Sensors require flight"
         hint="Career stats below stay current."
       >
-        <SituationLine
+        <PanelSubtitle
+          style={SITUATION_LINE}
           role="status"
           aria-live="polite"
           aria-label="Current situation for science"
         >
-          <SituationText>
+          <span style={SITUATION_TEXT}>
             {body && situation
               ? `${situation}${situationLocale ? `: ${situationLocale}` : ""}`
               : "Awaiting situation telemetry"}
-          </SituationText>
-          {showNew && <NewBadge>NEW</NewBadge>}
-        </SituationLine>
+          </span>
+          {showNew && <span style={NEW_BADGE}>NEW</span>}
+        </PanelSubtitle>
 
         <Body>
           {showSensors && (
-            <TitledGroup>
+            // Always the first child of Body when shown, so it always takes the
+            // former `:first-child` top margin.
+            <Section style={TITLED_GROUP_FIRST}>
               <SectionTitle>Sensors</SectionTitle>
-              <SensorList>
+              <div style={SENSOR_LIST}>
                 {sensors.map(([type, raw]) => (
                   <SensorRow key={type} type={type} raw={raw} />
                 ))}
-              </SensorList>
-            </TitledGroup>
+              </div>
+            </Section>
           )}
 
           {showAboard && (
-            <TitledGroup>
+            // First child only when Sensors is hidden; takes the former
+            // `:first-child` top margin exactly then.
+            <Section style={showSensors ? undefined : TITLED_GROUP_FIRST}>
               <SectionTitle>
                 Aboard
                 {typeof sciCount === "number" && (
-                  <SectionMeta>
+                  <span style={SECTION_META}>
                     · {sciCount} record{sciCount === 1 ? "" : "s"}
                     {typeof sciDataAmount === "number" &&
                       ` · ${sciDataAmount.toFixed(1)} mits`}
-                  </SectionMeta>
+                  </span>
                 )}
               </SectionTitle>
               {breakdown && breakdown.length > 0 ? (
@@ -437,26 +448,32 @@ function ScienceBenchComponent({
               ) : (
                 <ExperimentList experiments={experiments} sciCount={sciCount} />
               )}
-            </TitledGroup>
+            </Section>
           )}
         </Body>
       </DimmedOverlay>
 
       {showCareerStrip && (
-        <CareerStrip>
-          <CareerCell>
-            <CareerLabel>SCI</CareerLabel>
-            <CareerValue>{formatNumber(careerScience)}</CareerValue>
-          </CareerCell>
-          <CareerCell>
-            <CareerLabel>FUNDS</CareerLabel>
-            <CareerValue>{formatNumber(careerFunds)}</CareerValue>
-          </CareerCell>
-          <CareerCell>
-            <CareerLabel>REP</CareerLabel>
-            <CareerValue>{formatNumber(careerRep)}</CareerValue>
-          </CareerCell>
-        </CareerStrip>
+        <div style={CAREER_STRIP}>
+          <div style={CAREER_CELL}>
+            <span style={CAREER_LABEL}>SCI</span>
+            <Value tone="default" weight="semibold" size="sm">
+              {formatNumber(careerScience)}
+            </Value>
+          </div>
+          <div style={CAREER_CELL}>
+            <span style={CAREER_LABEL}>FUNDS</span>
+            <Value tone="default" weight="semibold" size="sm">
+              {formatNumber(careerFunds)}
+            </Value>
+          </div>
+          <div style={CAREER_CELL}>
+            <span style={CAREER_LABEL}>REP</span>
+            <Value tone="default" weight="semibold" size="sm">
+              {formatNumber(careerRep)}
+            </Value>
+          </div>
+        </div>
       )}
     </Panel>
   );
@@ -467,10 +484,10 @@ function ScienceBenchComponent({
 function SensorRow({ type, raw }: { type: SensorType; raw: unknown }) {
   const parsed = parseSensorReadings(raw);
   return (
-    <SensorRowWrap>
-      <SensorLabel>{SENSOR_LABELS[type]}</SensorLabel>
-      <SensorValues>{renderSensorValues(parsed, type)}</SensorValues>
-    </SensorRowWrap>
+    <div style={SENSOR_ROW_WRAP}>
+      <div style={SENSOR_LABEL}>{SENSOR_LABELS[type]}</div>
+      <div style={SENSOR_VALUES}>{renderSensorValues(parsed, type)}</div>
+    </div>
   );
 }
 
@@ -512,16 +529,18 @@ function renderSensorValues(
   parsed: SensorParseResult,
   type: SensorType,
 ): React.ReactNode {
-  if (parsed === null) return <SensorMuted>{NULL_DISPLAY}</SensorMuted>;
-  if (parsed === "no sensors") return <SensorMuted>None installed</SensorMuted>;
-  if (parsed.length === 0) return <SensorMuted>None installed</SensorMuted>;
+  if (parsed === null) return <span style={SENSOR_MUTED}>{NULL_DISPLAY}</span>;
+  if (parsed === "no sensors")
+    return <span style={SENSOR_MUTED}>None installed</span>;
+  if (parsed.length === 0)
+    return <span style={SENSOR_MUTED}>None installed</span>;
   return aggregateByPart(parsed).map((agg) => (
-    <SensorReadingChip key={agg.partName}>
-      <ChipPart>{agg.partName}</ChipPart>
-      <ChipValue>
+    <span key={agg.partName} style={SENSOR_READING_CHIP}>
+      <span style={CHIP_PART}>{agg.partName}</span>
+      <Value tone="default" weight="semibold">
         {agg.value.toFixed(2)} {SENSOR_UNITS[type]}
-      </ChipValue>
-    </SensorReadingChip>
+      </Value>
+    </span>
   ));
 }
 
@@ -531,25 +550,27 @@ function BreakdownList({
   breakdown: ExperimentBreakdownEntry[];
 }) {
   return (
-    <ExperimentListWrap>
+    <ul style={EXPERIMENT_LIST_WRAP}>
       {breakdown.map((b) => (
-        <ExperimentRow key={b.subjectId}>
-          <ExpSubject>
+        <li key={b.subjectId} style={EXPERIMENT_ROW}>
+          <span style={EXP_SUBJECT}>
             {b.expTitle}
-            {b.biome ? <BreakdownContext> · {b.biome}</BreakdownContext> : null}
-          </ExpSubject>
-          <ExpData>
+            {b.biome ? (
+              <span style={BREAKDOWN_CONTEXT}> · {b.biome}</span>
+            ) : null}
+          </span>
+          <Value tone="accent">
             {b.dataMits.toFixed(1)} mits
             {b.remainingPotential > 0 ? (
-              <BreakdownPotential>
+              <span style={BREAKDOWN_POTENTIAL}>
                 {" "}
                 · {b.remainingPotential.toFixed(1)} left
-              </BreakdownPotential>
+              </span>
             ) : null}
-          </ExpData>
-        </ExperimentRow>
+          </Value>
+        </li>
       ))}
-    </ExperimentListWrap>
+    </ul>
   );
 }
 
@@ -561,31 +582,32 @@ function ExperimentList({
   sciCount: unknown;
 }) {
   if (experiments === null && typeof sciCount !== "number") {
-    return <Muted>No science data aboard.</Muted>;
+    return <div style={MUTED}>No science data aboard.</div>;
   }
   if (experiments === null) {
     return (
-      <Muted>
+      <div style={MUTED}>
         {sciCount === 0
           ? "No experiments aboard."
           : `${String(sciCount)} record(s): details unavailable.`}
-      </Muted>
+      </div>
     );
   }
-  if (experiments.length === 0) return <Muted>No experiments aboard.</Muted>;
+  if (experiments.length === 0)
+    return <div style={MUTED}>No experiments aboard.</div>;
   return (
-    <ExperimentListWrap>
+    <ul style={EXPERIMENT_LIST_WRAP}>
       {experiments.map((e) => (
-        <ExperimentRow key={e.subjectId}>
-          <ExpSubject>{e.title}</ExpSubject>
-          <ExpData>
+        <li key={e.subjectId} style={EXPERIMENT_ROW}>
+          <span style={EXP_SUBJECT}>{e.title}</span>
+          <Value tone="accent">
             {e.dataAmount === null
               ? NULL_DISPLAY
               : `${e.dataAmount.toFixed(1)} mits`}
-          </ExpData>
-        </ExperimentRow>
+          </Value>
+        </li>
       ))}
-    </ExperimentListWrap>
+    </ul>
   );
 }
 
@@ -607,34 +629,42 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-/* Subtitle typography, but a body element: the situation line lives inside the
-   DimmedOverlay with the sensors it describes, so it dims with them rather
-   than sitting in the pinned header. It therefore drops the horizontal inset
-   PanelSubtitle carries as a header part, since Panel.Body already pays it. */
-const SituationLine = styled(PanelSubtitle)`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  padding: 0;
-`;
+// Structural inline styles (CSS-var tokens): a bespoke science station board,
+// no reusable ui-kit primitive fits the layout, so it stays local. Toned/
+// weighted numeric readouts render through ui-kit `Value`; the one kit piece it
+// reuses (PanelSubtitle) takes only this widget's flex layout inline. Body keeps
+// styled-components (see the import's biome-ignore).
 
-const SituationText = styled.span`
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
+// Subtitle typography, but a body element: the situation line lives inside the
+// DimmedOverlay with the sensors it describes, so it dims with them rather than
+// sitting in the pinned header. It therefore drops the horizontal inset
+// PanelSubtitle carries as a header part, since Panel.Body already pays it.
+const SITUATION_LINE: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--space-8)",
+  padding: 0,
+};
 
-const NewBadge = styled.span`
-  font-size: var(--font-size-2xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-xs);
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
-`;
+const SITUATION_TEXT: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+// A filled "NEW" badge (go-bg background, go-fg text): stays on -bg tokens
+// (it's a fill), so not a Value.
+const NEW_BADGE: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  fontWeight: 700,
+  letterSpacing: "0.1em",
+  padding: "var(--space-hair) var(--space-6)",
+  borderRadius: "var(--radius-xs)",
+  background: "var(--color-status-go-bg)",
+  color: "var(--color-status-go-fg)",
+};
 
 const Body = styled(ScrollArea)`
   flex: 1;
@@ -647,144 +677,122 @@ const Body = styled(ScrollArea)`
   }
 `;
 
-// The odd one out: it was never a flex column at all, only a first-child
-// spacing shim wrapping a SectionTitle and a list. Function-wise it is a
-// titled group, so it becomes the kit's Section and gains that group's 2px
-// gap, which is the visual delta this conversion accepts.
-const TitledGroup = styled(Section)`
-  &:first-child {
-    margin-top: var(--space-4);
-  }
-`;
+// The former `TitledGroup` was only a `:first-child` top-spacing shim wrapping a
+// SectionTitle + list. It becomes the kit's Section; the first-child margin is
+// applied inline at the call site (Sensors is always first when shown; Aboard
+// takes it only when Sensors is hidden).
+const TITLED_GROUP_FIRST: CSSProperties = { marginTop: "var(--space-4)" };
 
-const SectionMeta = styled.span`
-  color: var(--color-text-faint);
-  margin-left: var(--space-4);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-`;
+const SECTION_META: CSSProperties = {
+  color: "var(--color-text-faint)",
+  marginLeft: "var(--space-4)",
+  fontWeight: 400,
+  letterSpacing: "0.04em",
+};
 
-const SensorList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
+const SENSOR_LIST: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-4)",
+};
 
-const SensorRowWrap = styled.div`
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: var(--space-6);
-  align-items: baseline;
-`;
+const SENSOR_ROW_WRAP: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "90px 1fr",
+  gap: "var(--space-6)",
+  alignItems: "baseline",
+};
 
-const SensorLabel = styled.div`
-  /* Off the type scale: this fills the fixed 90px track of SensorRowWrap's
-     grid above with no overflow or ellipsis to fall back on, and
-     --font-size-xs is 12px on a coarse pointer. */
-  font-size: 11px;
-  color: var(--color-text-muted);
-`;
+const SENSOR_LABEL: CSSProperties = {
+  // Off the type scale: this fills the fixed 90px track of SENSOR_ROW_WRAP's
+  // grid with no overflow or ellipsis to fall back on, and --font-size-xs is
+  // 12px on a coarse pointer.
+  fontSize: "11px",
+  color: "var(--color-text-muted)",
+};
 
-const SensorValues = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-`;
+const SENSOR_VALUES: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--space-4)",
+};
 
-const SensorMuted = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-`;
+const SENSOR_MUTED: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+};
 
-const SensorReadingChip = styled.span`
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-4);
-  padding: var(--space-hair) var(--space-6);
-  background: var(--color-surface-panel);
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-xs);
-`;
+const SENSOR_READING_CHIP: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: "var(--space-4)",
+  padding: "var(--space-hair) var(--space-6)",
+  background: "var(--color-surface-panel)",
+  borderRadius: "var(--radius-xs)",
+  fontSize: "var(--font-size-xs)",
+};
 
-const ChipPart = styled.span`
-  color: var(--color-text-faint);
-`;
+const CHIP_PART: CSSProperties = { color: "var(--color-text-faint)" };
 
-const ChipValue = styled.span`
-  color: var(--color-text-primary);
-  font-weight: 600;
-`;
+const EXPERIMENT_LIST_WRAP: CSSProperties = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--space-2)",
+};
 
-const ExperimentListWrap = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
+const EXPERIMENT_ROW: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "var(--space-8)",
+  fontSize: "var(--font-size-xs)",
+};
 
-const ExperimentRow = styled.li`
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-8);
-  font-size: var(--font-size-xs);
-`;
+const EXP_SUBJECT: CSSProperties = {
+  color: "var(--color-text-primary)",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  flex: 1,
+  minWidth: 0,
+};
 
-const ExpSubject = styled.span`
-  color: var(--color-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-`;
+const BREAKDOWN_CONTEXT: CSSProperties = {
+  color: "var(--color-text-faint)",
+  fontWeight: 400,
+};
 
-const ExpData = styled.span`
-  color: var(--color-accent-fg);
-  font-variant-numeric: tabular-nums;
-`;
+const BREAKDOWN_POTENTIAL: CSSProperties = {
+  color: "var(--color-text-muted)",
+};
 
-const BreakdownContext = styled.span`
-  color: var(--color-text-faint);
-  font-weight: 400;
-`;
+const MUTED: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-faint)",
+};
 
-const BreakdownPotential = styled.span`
-  color: var(--color-text-muted);
-`;
+const CAREER_STRIP: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "var(--space-8)",
+  marginTop: "var(--space-12)",
+  paddingTop: "var(--space-8)",
+  borderTop: "1px solid var(--color-surface-raised)",
+};
 
-const Muted = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-faint);
-`;
+const CAREER_CELL: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+};
 
-const CareerStrip = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-8);
-  margin-top: var(--space-12);
-  padding-top: var(--space-8);
-  border-top: 1px solid var(--color-surface-raised);
-`;
-
-const CareerCell = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const CareerLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  color: var(--color-text-faint);
-`;
-
-const CareerValue = styled.span`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-`;
+const CAREER_LABEL: CSSProperties = {
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.12em",
+  color: "var(--color-text-faint)",
+};
 
 // ── Registration ──────────────────────────────────────────────────────────────
 

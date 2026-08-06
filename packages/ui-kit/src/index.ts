@@ -234,6 +234,7 @@ export {
   PanelBody,
   PanelContainer,
   PanelContextProvider,
+  PanelGhost,
   PanelGlow,
   PanelHeader,
   type PanelProps,
@@ -300,6 +301,7 @@ export {
   severityRank,
   worstSeverity,
 } from "./status/severity";
+export { severityDotColor } from "./status/severityDotColor";
 export { useStatusContribution } from "./status/useStatusContribution";
 export { useStatusSummary } from "./status/useStatusSummary";
 export {
@@ -343,6 +345,7 @@ export {
   writeQuantity,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
+export { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 export {
   Value,
   type ValueProps,

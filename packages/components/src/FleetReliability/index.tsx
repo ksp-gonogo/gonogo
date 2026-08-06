@@ -55,12 +55,12 @@ export function FleetReliabilityUpdates({ vesselId }: UpdatesProps) {
 
   return (
     <Stack gap="xs" role="group" aria-label="Reliability updates">
-      <Badge tone={anyCritical ? "nogo" : "warn"}>
+      <Badge severity={anyCritical ? "critical" : "warning"}>
         {`${failing.length} at risk`}
       </Badge>
       {failing.map((part) => (
         <Inline key={part.partId ?? part.title} gap="sm">
-          <Badge tone={part.critical ? "nogo" : "warn"}>
+          <Badge severity={part.critical ? "critical" : "warning"}>
             {partStateLabel(part)}
           </Badge>
           <span title={part.title ?? undefined}>

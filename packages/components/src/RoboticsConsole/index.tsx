@@ -289,7 +289,10 @@ function RoboticsConsoleComponent({
               <Unit>{unit}</Unit>
             </Value>
             {showToggles && (
-              <Badge tone={selected.atTarget ? "go" : "neutral"} role="status">
+              <Badge
+                severity={selected.atTarget ? "nominal" : undefined}
+                role="status"
+              >
                 {selected.atTarget ? "AT TARGET" : "MOVING"}
               </Badge>
             )}

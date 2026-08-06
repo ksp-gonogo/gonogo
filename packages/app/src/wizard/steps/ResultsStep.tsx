@@ -140,7 +140,7 @@ function RowAffordance({
 }>) {
   switch (entry.state) {
     case "loaded":
-      return <Badge tone="go">Loaded</Badge>;
+      return <Badge severity="nominal">Loaded</Badge>;
     case "load-from-hub":
       return (
         <PrimaryButton
