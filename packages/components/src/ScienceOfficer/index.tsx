@@ -12,6 +12,7 @@ import {
   Cluster,
   CommandDelay,
   Divider,
+  EmptyState,
   Grid,
   Inline,
   Panel,
@@ -257,12 +258,8 @@ function ScienceOfficerComponent({
 
   if (instruments === null) {
     return (
-      <Panel
-        panelTitle="SCIENCE LAB"
-        panelSubtitle={
-          showSubtitle ? "Awaiting instrument telemetry" : undefined
-        }
-      >
+      <Panel panelTitle="SCIENCE LAB">
+        {showSubtitle && <EmptyState>Awaiting instrument telemetry</EmptyState>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
     );
@@ -270,10 +267,8 @@ function ScienceOfficerComponent({
 
   if (instruments.length === 0) {
     return (
-      <Panel
-        panelTitle="SCIENCE LAB"
-        panelSubtitle={showSubtitle ? "No instruments aboard" : undefined}
-      >
+      <Panel panelTitle="SCIENCE LAB">
+        {showSubtitle && <EmptyState>No instruments aboard</EmptyState>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
     );
@@ -333,21 +328,18 @@ function ScienceOfficerComponent({
           props={{ instruments, dataAmount: totalDataMits }}
         />
       }
-      panelSubtitle={
-        showSubtitle ? (
-          <span role="status" aria-live="polite">
-            {totals.hasData}/{totals.total} with data · {totals.deployed}{" "}
-            deployed
-            {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
-            {totalDataMits > 0 && (
-              <Value spaced title="Total stored science data (mits)">
-                · <Unit value={value("Mit", totalDataMits)} decimals={1} />
-              </Value>
-            )}
-          </span>
-        ) : undefined
-      }
     >
+      {showSubtitle && (
+        <Value tone="muted" size="xs" role="status" aria-live="polite">
+          {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
+          {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
+          {totalDataMits > 0 && (
+            <Value spaced title="Total stored science data (mits)">
+              · <Unit value={value("Mit", totalDataMits)} decimals={1} />
+            </Value>
+          )}
+        </Value>
+      )}
       {showLab && <LabSection labs={labs} />}
       <CommandDelay
         handles={[deployCmd, transmitCmd]}
