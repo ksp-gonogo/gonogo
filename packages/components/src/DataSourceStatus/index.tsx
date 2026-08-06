@@ -140,7 +140,10 @@ function DataSourceStatusComponent({
           <Stack as="ul" gap="sm" style={LIST_STYLE}>
             {sources.map((s) => (
               <li key={s.id}>
-                <StatusIndicator tone={statusTone(s.status)}>
+                <StatusIndicator
+                  tone={statusTone(s.status)}
+                  pulse={statusPulse(s.status)}
+                >
                   {s.name}
                 </StatusIndicator>
               </li>
@@ -165,7 +168,10 @@ function DataSourceStatusComponent({
                 <Cluster justify="start">
                   <Truncate style={SOURCE_NAME_STYLE}>{source.name}</Truncate>
                   <RemoteVersionPill sourceId={source.id} />
-                  <StatusIndicator tone={statusTone(source.status)}>
+                  <StatusIndicator
+                    tone={statusTone(source.status)}
+                    pulse={statusPulse(source.status)}
+                  >
                     {source.status}
                   </StatusIndicator>
                   {source.status === "disconnected" && (
@@ -302,6 +308,17 @@ const STATUS_TONE: Record<DataSourceStatus, StatusTone> = {
 
 function statusTone(status: DataSourceStatus): StatusTone {
   return STATUS_TONE[status];
+}
+
+/**
+ * Live connection state pulses the dot (parity with the original): a steady
+ * `connected` link breathes slowly, a `reconnecting` one pulses twice as fast.
+ * Settled states (disconnected / error) hold still.
+ */
+function statusPulse(status: DataSourceStatus): "slow" | "fast" | undefined {
+  if (status === "connected") return "slow";
+  if (status === "reconnecting") return "fast";
+  return undefined;
 }
 
 const RETRY_BUTTON_STYLE = {
