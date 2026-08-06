@@ -12,7 +12,12 @@ import type {
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { ToggleButton } from "@ksp-gonogo/ui";
-import { Badge, Cluster, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  Cluster,
+  NULL_DISPLAY,
+  type Severity,
+} from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { SystemBadgesContext, SystemOverlayContext } from "../SystemView";
 import { describeCommsPath } from "./commsPathSummary";
@@ -349,8 +354,12 @@ function FleetCommsBadge(_props: Readonly<SystemBadgesContext>) {
   // library's own convention: no bespoke CSS where a ui-kit primitive
   // already fits, see local_docs/telemetry-mod/ui-kit-design.md). The label
   // text IS the accessible name; no `aria-label` needed on top of it.
-  const tone: "go" | "nogo" | "neutral" =
-    connected === true ? "go" : connected === false ? "nogo" : "neutral";
+  const severity: Severity | undefined =
+    connected === true
+      ? "nominal"
+      : connected === false
+        ? "critical"
+        : undefined;
   const label =
     connected === true ? "LINK" : connected === false ? "NO LINK" : null;
   // `data-testid`: the label text alone isn't a safe query target for the
@@ -359,7 +368,7 @@ function FleetCommsBadge(_props: Readonly<SystemBadgesContext>) {
   // instead of risking an ambiguous `getByText` match, per the KCD
   // role>label>text>testid fallback order.
   return (
-    <Badge tone={tone} data-testid="fleet-comms-badge">
+    <Badge severity={severity} data-testid="fleet-comms-badge">
       {label ?? NULL_DISPLAY}
     </Badge>
   );

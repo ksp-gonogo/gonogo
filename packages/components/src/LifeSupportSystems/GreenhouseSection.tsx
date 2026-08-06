@@ -1,6 +1,6 @@
 import { registerAugment } from "@ksp-gonogo/core";
-import { Badge, type BadgeTone } from "@ksp-gonogo/ui";
-import { KSP_DAY_SECONDS, Section } from "@ksp-gonogo/ui-kit";
+import { Badge } from "@ksp-gonogo/ui";
+import { KSP_DAY_SECONDS, Section, type Severity } from "@ksp-gonogo/ui-kit";
 // biome-ignore lint/style/noRestrictedImports: this augment renders inside LifeSupportSystems' own Panel, which is itself still styled-components throughout (not yet migrated to ui-kit), matching the host's existing pattern rather than mixing two styling systems in one widget.
 import styled from "styled-components";
 
@@ -79,9 +79,9 @@ function fmtRatePerDay(perSec: number): string {
   return `${perDay >= 10 ? perDay.toFixed(0) : perDay.toFixed(2)}/day`;
 }
 
-function greenhouseTone(g: GreenhouseRow): BadgeTone {
-  if (!g.active) return "neutral";
-  return g.issue.length > 0 ? "warn" : "go";
+function greenhouseTone(g: GreenhouseRow): Severity | undefined {
+  if (!g.active) return undefined;
+  return g.issue.length > 0 ? "warning" : "nominal";
 }
 
 function greenhouseStateLabel(g: GreenhouseRow): string {
@@ -113,7 +113,7 @@ function GreenhouseEntryRow({
         <Badge
           role="status"
           aria-live="polite"
-          tone={greenhouseTone(g)}
+          severity={greenhouseTone(g)}
           size="sm"
         >
           {greenhouseStateLabel(g)}

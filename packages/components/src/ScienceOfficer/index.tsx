@@ -386,10 +386,10 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
             <Cluster gap="md">
               <RowName>{lab.partName}</RowName>
               <Inline gap="sm">
-                <Badge tone={lab.isOperational ? "go" : "nogo"}>
+                <Badge severity={lab.isOperational ? "nominal" : "critical"}>
                   {lab.isOperational ? "OPERATIONAL" : "OFFLINE"}
                 </Badge>
-                {lab.processingData && <Badge tone="neutral">PROCESSING</Badge>}
+                {lab.processingData && <Badge>PROCESSING</Badge>}
               </Inline>
             </Cluster>
             <Inline gap="md">

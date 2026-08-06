@@ -2,12 +2,12 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
   Badge,
-  type BadgeTone,
   Countdown,
   EmptyState,
   Inline,
   MissionDate,
   Panel,
+  type Severity,
   Stack,
   Truncate,
 } from "@ksp-gonogo/ui-kit";
@@ -18,20 +18,20 @@ import { useMissionEvents } from "./useMissionEvents";
 type MissionEventLogConfig = Record<string, never>;
 
 /** Badge tone per kind, so each row reads at a glance (maps onto ui-kit tones). */
-const KIND_TONE: Record<MissionEventKind, BadgeTone> = {
-  launch: "go",
-  "flight-ended": "neutral",
+const KIND_TONE: Record<MissionEventKind, Severity | undefined> = {
+  launch: "nominal",
+  "flight-ended": undefined,
   "vessel-changed": "info",
-  crash: "nogo",
-  recovery: "go",
-  alarm: "warn",
+  crash: "critical",
+  recovery: "nominal",
+  alarm: "warning",
   staging: "info",
   "soi-change": "info",
-  docking: "go",
-  undocking: "neutral",
+  docking: "nominal",
+  undocking: undefined,
   eva: "info",
-  "contract-completed": "go",
-  "science-collected": "go",
+  "contract-completed": "nominal",
+  "science-collected": "nominal",
 };
 
 /** Compact badge label per kind (the full sentence lives in `event.label`). */
@@ -133,7 +133,7 @@ function EventRow({
   // both the better reading and the one that cannot drift from what is shown.
   return (
     <Inline gap="sm">
-      <Badge tone={KIND_TONE[event.kind]} size="sm">
+      <Badge severity={KIND_TONE[event.kind]} size="sm">
         {KIND_LABEL[event.kind]}
       </Badge>
       <Truncate>
