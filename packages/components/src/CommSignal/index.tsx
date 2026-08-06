@@ -14,9 +14,12 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  Stack,
   Unit,
+  Value,
+  VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import type { ReactNode } from "react";
 
 type CommSignalConfig = Record<string, never>;
 
@@ -188,46 +191,69 @@ function CommSignalComponent({
       panelTitle="COMMNET"
       panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
     >
-      <LiveStatus role="status" aria-live="polite">
+      <VisuallyHidden role="status" aria-live="polite">
         {liveAnnouncement}
-      </LiveStatus>
+      </VisuallyHidden>
 
+      {/* Link caption relocated out of the panel subtitle into the body
+          (staging change), carried by a plain span so the title stands alone. */}
       {showSubtitle && (
-        <SignalCaption $lost={connected === false}>
+        <span
+          style={{
+            fontSize: "var(--font-size-xs)",
+            color:
+              connected === false
+                ? "var(--color-status-nogo-fg)"
+                : "var(--color-text-dim)",
+            letterSpacing: "0.04em",
+          }}
+        >
           {connected === false ? "No signal" : "Signal to KSC"}
-        </SignalCaption>
+        </span>
       )}
 
-      <Body $row={isLandscape}>
-        <Cluster justify="start" wrap>
-          <Bars role="img" aria-label={`Signal ${bars} of 4`}>
-            {[1, 2, 3, 4].map((i) => (
-              <Bar key={i} $lit={i <= bars} $tone={control.tone} />
-            ))}
-          </Bars>
-          <StrengthPct $tone={connected === false ? "lost" : undefined}>
-            {headline}
-          </StrengthPct>
-        </Cluster>
+      {/* Landscape (wide-short): bars/headline cluster and detail grid sit
+          side by side, each taking half the row, rather than clustering
+          top-left. Portrait: the same two blocks stack vertically. Neither
+          Cluster nor Stack has an even-split "each child grows" mode, so the
+          two children get that via a direct style override in landscape. */}
+      {isLandscape ? (
+        <Cluster
+          justify="between"
+          align="center"
+          style={{ flex: 1, minHeight: 0, gap: "var(--space-24)" }}
+        >
+          <Cluster justify="start" wrap style={{ flex: "1 1 0", minWidth: 0 }}>
+            <SignalBars bars={bars} tone={control.tone} />
+            <SignalHeadline headline={headline} lost={connected === false} />
+          </Cluster>
 
-        {showDetailGrid && (
-          <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
-            <GridLabel>Control</GridLabel>
-            <GridValue $tone={control.tone}>{control.label}</GridValue>
-            <GridLabel>Delay</GridLabel>
-            <GridValue>
-              {/* null (no measurable ControlPath) reads the same as
-                  undefined (nothing arrived yet): comms-delay-nullable-
-                  when-no-path fix: neither is a duration to show. */}
-              {delay == null ? (
-                NULL_DISPLAY
-              ) : (
-                <Countdown value={delay} precise />
-              )}
-            </GridValue>
-          </Grid>
-        )}
-      </Body>
+          {showDetailGrid && (
+            <Grid
+              cols="auto 1fr"
+              gap="md"
+              rowGap="xs"
+              align="baseline"
+              style={{ flex: "1 1 0", minWidth: 0 }}
+            >
+              <CommSignalDetailRows control={control} delay={delay} />
+            </Grid>
+          )}
+        </Cluster>
+      ) : (
+        <Stack gap="md" style={{ flex: 1, minHeight: 0 }}>
+          <Cluster justify="start" wrap>
+            <SignalBars bars={bars} tone={control.tone} />
+            <SignalHeadline headline={headline} lost={connected === false} />
+          </Cluster>
+
+          {showDetailGrid && (
+            <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
+              <CommSignalDetailRows control={control} delay={delay} />
+            </Grid>
+          )}
+        </Stack>
+      )}
 
       {/* Body sections below the signal-bars readout, a comms Uplink (e.g. a
           RealAntennas per-antenna breakdown) composes here from its own Topics.
@@ -237,7 +263,7 @@ function CommSignalComponent({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Signal-bar chart + detail grid rows ──────────────────────────────────────
 
 type Tone = "ok" | "warn" | "lost";
 // Bright fills for the signal bars (non-text UI, full-brightness chips).
@@ -256,95 +282,111 @@ const TONE_TEXT_COLOR: Record<Tone, string> = {
   lost: "var(--color-status-nogo-fg)",
 };
 
-// Visually hidden, but read by screen readers. Only its text content changes
-// (and only on a connection-state transition), so the polite live region
-// announces LOS / signal-restored without floating streaming telemetry.
-const LiveStatus = styled.span`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-`;
+// Staircase heights (short to tall), sat at the bottom of the bar chart.
+const BAR_HEIGHT_PCT = [30, 50, 75, 100];
 
-const Body = styled.div<{ $row?: boolean }>`
-  flex: 1;
-  display: flex;
-  flex-direction: ${(p) => (p.$row ? "row" : "column")};
-  gap: ${(p) => (p.$row ? "var(--space-24)" : "var(--space-8)")};
-  min-height: 0;
-  align-content: center;
-  /* Wide-short: bars/headline cluster left, detail grid right. */
-  ${(p) =>
-    p.$row &&
-    `align-items: center;
-     & > * { flex: 1 1 0; min-width: 0; }`}
-`;
+/**
+ * The four-bar signal chart. A bespoke little visual (per-bar computed
+ * height/colour, not a chrome shape ui-kit hosts), so it composes plain
+ * elements with inline styles rather than a primitive: no styled-components
+ * import, same pixel values (6px bars, 24px height) the original off-scale
+ * styled.div/span pair used.
+ */
+function SignalBars({ bars, tone }: { bars: number; tone: Tone }) {
+  return (
+    <div
+      role="img"
+      aria-label={`Signal ${bars} of 4`}
+      style={{
+        display: "flex",
+        alignItems: "flex-end",
+        gap: "var(--space-2)",
+        height: 24,
+      }}
+    >
+      {[1, 2, 3, 4].map((i) => {
+        const lit = i <= bars;
+        const color = lit ? TONE_COLOR[tone] : "var(--color-border-subtle)";
+        return (
+          <span
+            key={i}
+            style={{
+              width: 6,
+              background: color,
+              border: `1px solid ${color}`,
+              // Off-scale on purpose: optical corner softening at the pixel
+              // limit on a 6px-wide bar. --radius-xs (2px) rounds this into
+              // a lozenge.
+              borderRadius: 1,
+              height: `${BAR_HEIGHT_PCT[i - 1]}%`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
-const Bars = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  height: 24px;
-`;
+/** The headline value beside the bars: percentage, LOS, or the control label. */
+function SignalHeadline({
+  headline,
+  lost,
+}: {
+  headline: ReactNode;
+  lost: boolean;
+}) {
+  return (
+    <Value
+      tone="default"
+      size="lg"
+      style={{
+        letterSpacing: "0.04em",
+        fontWeight: lost ? 700 : 400,
+        color: lost ? "var(--color-status-nogo-fg)" : undefined,
+      }}
+    >
+      {headline}
+    </Value>
+  );
+}
 
-const Bar = styled.span<{ $lit: boolean; $tone: Tone }>`
-  width: 6px;
-  background: ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
-  border: 1px solid ${({ $lit, $tone }) => ($lit ? TONE_COLOR[$tone] : "var(--color-border-subtle)")};
-  /* Off-scale on purpose: optical corner softening at the pixel limit on a
-     6px-wide bar. The smallest radius rung (--radius-xs, 2px) rounds this
-     into a lozenge. */
-  border-radius: 1px;
-  /* Staircase: short to tall. Sits at the bottom of the flex container. */
-  &:nth-child(1) {
-    height: 30%;
-  }
-  &:nth-child(2) {
-    height: 50%;
-  }
-  &:nth-child(3) {
-    height: 75%;
-  }
-  &:nth-child(4) {
-    height: 100%;
-  }
-`;
-
-const StrengthPct = styled.span<{ $tone?: Tone }>`
-  font-size: var(--font-size-base);
-  color: ${({ $tone }) =>
-    $tone === "lost"
-      ? "var(--color-status-nogo-fg)"
-      : "var(--color-text-primary)"};
-  letter-spacing: 0.04em;
-  font-weight: ${({ $tone }) => ($tone === "lost" ? 700 : 400)};
-`;
-
-const GridLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-dim);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-`;
-
-const GridValue = styled.span<{ $tone?: Tone }>`
-  font-size: var(--font-size-sm);
-  color: ${({ $tone }) => ($tone ? TONE_TEXT_COLOR[$tone] : "var(--color-text-primary)")};
-`;
-
-// Compact link caption below the header (was the panel subtitle): "Signal to
-// KSC" / "No signal", relocated into the body so the title stands alone.
-const SignalCaption = styled.span<{ $lost?: boolean }>`
-  font-size: var(--font-size-xs);
-  color: ${({ $lost }) =>
-    $lost ? "var(--color-status-nogo-fg)" : "var(--color-text-dim)"};
-  letter-spacing: 0.04em;
-`;
+/** Control state / signal delay rows, shared by the landscape and portrait grids. */
+function CommSignalDetailRows({
+  control,
+  delay,
+}: {
+  control: { label: string; tone: Tone };
+  delay: Parameters<typeof Countdown>[0]["value"];
+}) {
+  const labelStyle = {
+    color: "var(--color-text-dim)",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase" as const,
+  };
+  return (
+    <>
+      <Value tone="muted" size="xs" style={labelStyle}>
+        Control
+      </Value>
+      <Value
+        tone="default"
+        size="sm"
+        style={{ color: TONE_TEXT_COLOR[control.tone] }}
+      >
+        {control.label}
+      </Value>
+      <Value tone="muted" size="xs" style={labelStyle}>
+        Delay
+      </Value>
+      <Value tone="default" size="sm">
+        {/* null (no measurable ControlPath) reads the same as undefined
+            (nothing arrived yet): comms-delay-nullable-when-no-path fix:
+            neither is a duration to show. */}
+        {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
+      </Value>
+    </>
+  );
+}
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
