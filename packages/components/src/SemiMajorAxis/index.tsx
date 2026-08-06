@@ -90,15 +90,13 @@ function SemiMajorAxisComponent({
   }
 
   return (
-    <Panel
-      panelTitle="SMA"
-      panelSubtitle={
-        showSubtitle
-          ? `Semi-major axis${referenceBody ? ` · ${referenceBody}` : ""}`
-          : undefined
-      }
-    >
+    <Panel panelTitle="SMA">
       <Body>
+        {showSubtitle && (
+          <SmaCaption>
+            Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
+          </SmaCaption>
+        )}
         <SmaDisplay
           role="status"
           aria-live="polite"
@@ -129,6 +127,13 @@ const Body = styled.div`
   justify-content: center;
   gap: var(--space-6);
   min-height: 0;
+`;
+
+const SmaCaption = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  text-align: center;
 `;
 
 const SmaDisplay = styled.div`
