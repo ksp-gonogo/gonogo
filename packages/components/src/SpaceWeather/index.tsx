@@ -362,12 +362,12 @@ function SpaceWeatherComponent({
         <Badge
           role="status"
           aria-live="polite"
-          tone={
+          severity={
             status.tone === "go"
-              ? "go"
+              ? "nominal"
               : status.tone === "nogo"
-                ? "nogo"
-                : "warn"
+                ? "critical"
+                : "warning"
           }
         >
           {status.label}

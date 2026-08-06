@@ -534,7 +534,7 @@ function NavballComponent({
             <span style={modeBadgeStyle(rcsOn)}>RCS</span>
             {precisionOn && <span style={modeBadgeStyle(true)}>PRECISION</span>}
             {showFbwDelayWarning && delaySeconds !== null && (
-              <Badge tone="warn" size="sm">
+              <Badge severity="warning" size="sm">
                 FBW · <Countdown value={delaySeconds} precise /> DELAY
               </Badge>
             )}

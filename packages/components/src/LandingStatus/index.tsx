@@ -659,7 +659,7 @@ function LandingStatusComponent({
           ) : affordable == null ? (
             <Value tone="muted">{NULL_DISPLAY}</Value>
           ) : (
-            <Badge tone={affordable ? "go" : "nogo"} size="sm">
+            <Badge severity={affordable ? "nominal" : "critical"} size="sm">
               {affordable ? "yes" : "insufficient dV"}
             </Badge>
           )}

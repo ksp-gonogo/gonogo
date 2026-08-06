@@ -246,7 +246,7 @@ function StaffRosterComponent({
               </Level>
               {kerbal.veteran && (
                 <Badge
-                  tone="go"
+                  severity="nominal"
                   size="sm"
                   aria-label="veteran"
                   title="Veteran: has flown a notable mission"
@@ -256,7 +256,7 @@ function StaffRosterComponent({
               )}
               {kerbal.isBadass && (
                 <Badge
-                  tone="warn"
+                  severity="warning"
                   size="sm"
                   aria-label="badass"
                   title="Badass: KSP's brave trait; rarely panics"
@@ -266,7 +266,6 @@ function StaffRosterComponent({
               )}
               {kerbal.careerFlights > 0 && (
                 <Badge
-                  tone="neutral"
                   size="sm"
                   aria-label={`${kerbal.careerFlights} flights`}
                   title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
@@ -276,7 +275,7 @@ function StaffRosterComponent({
               )}
               {!kerbal.available && (
                 <Badge
-                  tone="nogo"
+                  severity="critical"
                   size="sm"
                   title={
                     kerbal.currentVesselName
