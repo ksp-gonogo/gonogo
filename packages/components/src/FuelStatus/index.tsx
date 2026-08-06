@@ -307,16 +307,14 @@ function FuelStatusComponent({
     <Panel
       panelTitle="FUEL · ΔV"
       panelAside={<AugmentSlot name="fuel-status.badges" props={{}} />}
-      panelSubtitle={
-        showSubtitle && currentStage !== undefined ? (
-          <>
-            Stage {currentStage}
-            {stageCount !== undefined &&
-              ` / ${Math.max(stageCount.magnitude - 1, 0)}`}
-          </>
-        ) : undefined
-      }
     >
+      {showSubtitle && currentStage !== undefined && (
+        <ReadoutCaption>
+          Stage {currentStage}
+          {stageCount !== undefined &&
+            ` / ${Math.max(stageCount.magnitude - 1, 0)}`}
+        </ReadoutCaption>
+      )}
       {showHeroDv && (
         <HeroReadout $tone="alert">
           <HeroValue>
