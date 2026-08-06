@@ -934,11 +934,6 @@ function LandingStatusComponent({
   return (
     <Panel
       panelTitle="LANDING"
-      panelSubtitle={
-        bodyName !== undefined
-          ? `${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`
-          : undefined
-      }
       // Host-derived now, so the hand-picked `vessel.surface` badge goes: the
       // panel watches every topic this widget declares instead of the one key
       // that hook chose.
@@ -982,6 +977,11 @@ function LandingStatusComponent({
         </div>
       }
     >
+      {bodyName !== undefined && (
+        <Value tone="muted" size="xs">
+          {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
+        </Value>
+      )}
       {board === "not-descending" && !landed ? (
         <EmptyState>No landing in progress</EmptyState>
       ) : (
