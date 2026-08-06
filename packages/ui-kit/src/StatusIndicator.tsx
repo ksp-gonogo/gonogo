@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 
 export type StatusTone = "neutral" | "info" | "go" | "warn" | "nogo";
 
@@ -15,6 +15,13 @@ export interface StatusIndicatorProps
    * uses.
    */
   live?: boolean;
+  /**
+   * Pulse the dot to signal an active, changing state (e.g. a live/connecting
+   * data source). `"slow"` (2s) reads as steady-live, `"fast"` (1s) as
+   * working/reconnecting. Omit for a static dot. Guarded by
+   * `prefers-reduced-motion` (the dot holds still when the user opts out).
+   */
+  pulse?: "slow" | "fast";
 }
 
 /**
@@ -32,6 +39,7 @@ export function StatusIndicator({
   tone,
   children,
   live = false,
+  pulse,
   ...rest
 }: StatusIndicatorProps) {
   const liveAttrs = live
@@ -39,7 +47,11 @@ export function StatusIndicator({
     : {};
   return (
     <StatusIndicator__Row data-tone={tone} {...liveAttrs} {...rest}>
-      <StatusIndicator__Dot data-tone={tone} aria-hidden="true" />
+      <StatusIndicator__Dot
+        data-tone={tone}
+        $pulse={pulse}
+        aria-hidden="true"
+      />
       <StatusIndicator__Text>{children}</StatusIndicator__Text>
     </StatusIndicator__Row>
   );
@@ -94,13 +106,35 @@ const TONE_DOT = {
   `,
 } as const;
 
-const StatusIndicator__Dot = styled.span<{ "data-tone": StatusTone }>`
+const statusPulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+`;
+
+const StatusIndicator__Dot = styled.span<{
+  "data-tone": StatusTone;
+  $pulse?: "slow" | "fast";
+}>`
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle, 50%);
   flex-shrink: 0;
 
   ${({ "data-tone": tone }) => TONE_DOT[tone]}
+
+  /* Indefinite animation needs its own reduced-motion guard: the global
+     damper only clamps duration, it does not stop a looping pulse. The
+     1s/2s periods are literal because they read as connection state
+     (fast = reconnecting/working, slow = steady-live), not a motion choice. */
+  ${({ $pulse }) =>
+    $pulse
+      ? css`
+          @media (prefers-reduced-motion: no-preference) {
+            animation: ${statusPulse} ${$pulse === "fast" ? "1s" : "2s"}
+              var(--ease-emphasis, ease-in-out) infinite;
+          }
+        `
+      : ""}
 `;
 
 const StatusIndicator__Text = styled.span`

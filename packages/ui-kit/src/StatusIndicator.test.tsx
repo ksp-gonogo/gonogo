@@ -34,4 +34,26 @@ describe("StatusIndicator", () => {
       neutralClass,
     );
   });
+
+  it("pulses the dot when pulse is set, and slow/fast differ", () => {
+    const { container, rerender } = render(
+      <StatusIndicator tone="go">Live</StatusIndicator>,
+    );
+    const dotClass = () =>
+      container.querySelector('span[aria-hidden="true"]')?.className;
+    const staticClass = dotClass();
+    rerender(
+      <StatusIndicator tone="go" pulse="fast">
+        Live
+      </StatusIndicator>,
+    );
+    const fastClass = dotClass();
+    expect(fastClass).not.toBe(staticClass);
+    rerender(
+      <StatusIndicator tone="go" pulse="slow">
+        Live
+      </StatusIndicator>,
+    );
+    expect(dotClass()).not.toBe(fastClass);
+  });
 });
