@@ -573,17 +573,6 @@ function SystemViewComponent({
   return (
     <Panel
       panelTitle="SYSTEM"
-      panelSubtitle={
-        bodies.length === 0
-          ? "Waiting for body data..."
-          : parentName === null
-            ? "Pick a frame in the widget config."
-            : encounterExists !== 0 && encounterBody != null
-              ? `Frame: ${parentName} · next ${
-                  encounterExists === -1 ? "escape" : "encounter"
-                }: ${encounterBody}`
-              : `Frame: ${parentName}`
-      }
       panelAside={
         // Header slots: an inline `.badges` escape-hatch and an `.actions`
         // control row, both beside the panel's own title. Empty until an
@@ -600,6 +589,17 @@ function SystemViewComponent({
       // column on a wide tile, a bottom strip on a tall one).
       panelSidebar={showAlmanac ? almanac : undefined}
     >
+      <div style={FRAME_CAPTION} role="status" aria-live="polite">
+        {bodies.length === 0
+          ? "Waiting for body data..."
+          : parentName === null
+            ? "Pick a frame in the widget config."
+            : encounterExists !== 0 && encounterBody != null
+              ? `Frame: ${parentName} · next ${
+                  encounterExists === -1 ? "escape" : "encounter"
+                }: ${encounterBody}`
+              : `Frame: ${parentName}`}
+      </div>
       {showDiagram ? (
         <FramedDisplay style={DIAGRAM_FRAME}>
           <div ref={wrapRef} style={DIAGRAM_WRAP}>
@@ -732,6 +732,13 @@ function SystemViewConfigComponent({
 // fallback, no reusable ui-kit primitive fits, so the layout stays local. The
 // one kit piece it reuses (FramedDisplay) takes only this widget's flex sizing
 // inline.
+
+const FRAME_CAPTION: CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.05em",
+  flex: "0 0 auto",
+};
 
 const COMPACT_BODY: CSSProperties = {
   flex: 1,
