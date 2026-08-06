@@ -108,8 +108,16 @@ function MissionEventLogComponent(
   const ordered = [...events].reverse();
 
   return (
-    <Panel panelTitle="MISSION LOG" panelSubtitle={`${events.length} events`}>
+    <Panel panelTitle="MISSION LOG">
       <Stack gap="xs">
+        <span
+          style={{
+            fontSize: "var(--font-size-xs)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          {events.length} events
+        </span>
         {ordered.map((e) => (
           <EventRow key={e.id} event={e} launchUt={launchUt} />
         ))}
