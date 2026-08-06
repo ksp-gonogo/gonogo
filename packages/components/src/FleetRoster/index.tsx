@@ -289,13 +289,13 @@ function FleetRosterComponent({
   return (
     <Panel
       panelTitle="Fleet"
-      panelSubtitle={`viewing from: ${vantageName}`}
       panelAside={
         <Badge severity={severityFromBadgeTone(rollup.tone)}>
           {rollup.badgeLabel}
         </Badge>
       }
     >
+      <VantageCaption>viewing from: {vantageName}</VantageCaption>
       {total === 0 ? (
         <EmptyState>
           {known ? "No vessels tracked." : "Fleet data not available yet."}
@@ -601,6 +601,12 @@ const FooterRow = styled.div`
   margin-top: auto;
   padding-top: var(--space-6);
   flex-shrink: 0;
+`;
+
+const VantageCaption = styled.div`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
 `;
 
 registerComponent<FleetRosterConfig>({
