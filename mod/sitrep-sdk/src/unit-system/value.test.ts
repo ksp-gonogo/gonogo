@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
-import { hydrate, isValue, value, vectorMagnitude } from "./value";
+import {
+  hydrate,
+  isValue,
+  type UnknownUnit,
+  type Value,
+  value,
+  vectorMagnitude,
+} from "./value";
 
 describe("dimension arithmetic", () => {
   it("subtracts exponents, so repeated division recurses", () => {
@@ -185,6 +192,21 @@ describe("units outside the catalog", () => {
     expect(value("widgets", 2).plus(value("widgets", 3)).magnitude).toBe(5);
     expect(() => value("widgets", 2).plus(value("m", 3))).toThrow();
     expect(value("widgets", 6).dividedBy(value("s", 2)).unit).toBe("widgets/s");
+  });
+
+  it("UnknownUnit is a compile-time brand only; the runtime never sees it", () => {
+    // `UnknownUnitBrand` is a `declare const`, which TypeScript never emits,
+    // and `UnknownUnit`/`CombinableWith` are type aliases, which are erased
+    // entirely. So a value born with an "unknown" unit is, at runtime,
+    // exactly the same object `value()` always produced: two own properties
+    // and the shared prototype. `CombinableWith` blocks `.plus` on it at
+    // compile time; nothing changes below that line. `as` stands in here for
+    // the narrowing a real boundary (a decoder, an Uplink adapter) would do
+    // before choosing to combine two values it cannot statically vouch for.
+    const a = value("Klevin", 300) as Value<UnknownUnit>;
+    const b = value("Klevin", 12) as Value<UnknownUnit>;
+    expect(a.plus(b as never).magnitude).toBe(312);
+    expect(Object.getPrototypeOf(a)).toBe(Object.getPrototypeOf(value("m", 1)));
   });
 });
 

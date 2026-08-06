@@ -26,6 +26,7 @@ export {
   hydrate,
   isValue,
   type SameDimensionAs,
+  type UnknownUnit,
   type Value,
   type Vector3,
   value,

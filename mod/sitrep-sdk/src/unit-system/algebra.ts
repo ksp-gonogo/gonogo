@@ -1,4 +1,5 @@
 import type { UNIT_DEFINITIONS } from "./definitions";
+import type { UnknownUnit } from "./value";
 
 /**
  * Multiplication and division, at the type level.
@@ -318,14 +319,36 @@ type ResourceDim<T> = T extends `${infer R}:u`
           : { readonly [K in `res${R}` | "funds"]: K extends "funds" ? 1 : -1 }
         : never;
 
-/** The dimension a unit token denotes, or `never` if nothing declares it. */
-export type DimOf<U> = U extends StaticUnit
-  ? Norm<Def<U>["dim"]>
-  : U extends ExtUnit
-    ? Norm<UnitExtensions[U] extends { dim: infer D } ? D : never>
-    : [ResourceDim<U>] extends [never]
-      ? never
-      : Norm<ResourceDim<U>>;
+/**
+ * The dimension a unit token denotes, or `never` if nothing declares it.
+ *
+ * `UnknownUnit` is checked first, ahead of the three real lookups, and forced
+ * to `never` on its own branch rather than left to fall out of them by
+ * accident. Today it WOULD fall out the same way unassisted: `UnknownUnit` is
+ * a branded, non-literal `string`, so it fails `extends StaticUnit` and
+ * `extends ExtUnit` the same way any unrecognised token does, and it fails
+ * `ResourceDim`'s template-literal patterns for the same reason (a non-literal
+ * string cannot be proven to end in `:u`, `:u/s`, etc.), confirmed by deleting
+ * this branch and rerunning `algebra.test-d.ts`, which still passed.
+ *
+ * The branch stays anyway. That pass is an accident of what the other three
+ * happen to reject today, not a commitment, and this module's own rule is
+ * "narrow first": a future change to `ResourceDim`'s grammar or a new
+ * `ExtUnit` shape could start matching a branded string without anyone
+ * noticing, silently letting an unknown unit compose. `algebra.test-d.ts`
+ * pins the OUTCOME (`Product`/`Quotient` on `UnknownUnit` degrade to
+ * `string`), and that outcome would still catch such a regression even if
+ * this branch is currently redundant with it.
+ */
+export type DimOf<U> = [U] extends [UnknownUnit]
+  ? never
+  : U extends StaticUnit
+    ? Norm<Def<U>["dim"]>
+    : U extends ExtUnit
+      ? Norm<UnitExtensions[U] extends { dim: infer D } ? D : never>
+      : [ResourceDim<U>] extends [never]
+        ? never
+        : Norm<ResourceDim<U>>;
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Dimensions in, a symbol out

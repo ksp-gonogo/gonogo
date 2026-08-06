@@ -9,7 +9,7 @@
 // decoded payload); the compile error is what turns a mistake in hand-written
 // code into a red squiggle instead of a crash in flight.
 
-import { value } from "./value";
+import { type UnknownUnit, type Value, value } from "./value";
 
 const watts = value("W", 5);
 const joulesPerSecond = value("J/s", 3);
@@ -116,3 +116,39 @@ export const _ceiling = metres.max(value("km", 1));
 
 // @ts-expect-error: selecting between different dimensions has no answer
 export const _acrossDimensions = metres.max(seconds);
+
+// ── UnknownUnit: shape guaranteed, contents blocked ─────────────────────────
+// The wire named a unit this build has no static knowledge of (an Uplink's
+// symbol off a payload, not a hand-typed literal). `Value<UnknownUnit>` reads
+// like `Array<unknown>`: the SHAPE is guaranteed, so `.magnitude` and `.unit`
+// need no narrowing, but the CONTENT is not, so nothing that combines two
+// values is allowed through, not even a second `Value<UnknownUnit>`.
+
+type Expect<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? "OK"
+    : ["MISMATCH", A, B];
+
+declare const unknownA: Value<UnknownUnit>;
+declare const unknownB: Value<UnknownUnit>;
+
+export const _unknownMagnitudeReadable: Expect<
+  typeof unknownA.magnitude,
+  number
+> = "OK";
+export const _unknownUnitReadable: Expect<typeof unknownA.unit, UnknownUnit> =
+  "OK";
+
+// @ts-expect-error: two unknowns are not known to match one another either,
+// so plus does not even accept a second UnknownUnit value.
+export const _unknownPlusUnknown = unknownA.plus(unknownB);
+
+// @ts-expect-error: nor does it accept an exact match of a KNOWN unit, since
+// UnknownUnit carries no symbol to check that match against.
+export const _unknownPlusMetres = unknownA.plus(metres);
+
+// A value with an unknown unit still satisfies a `Value`-shaped prop: the
+// generic default (`U = string`) is what a rendering component like
+// `<Unit value={v} />` actually accepts, and UnknownUnit is still a string.
+function acceptsAnyValue(_v: Value): void {}
+acceptsAnyValue(unknownA);

@@ -54,6 +54,7 @@ export {
   UNIT_DEFINITIONS,
   type UnitDefinition,
   type UnitRegistration,
+  type UnknownUnit,
   type Value,
   type Vector3,
   value,

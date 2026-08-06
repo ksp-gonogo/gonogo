@@ -26,6 +26,32 @@ type DimensionOf<U> = U extends KnownUnit
   ? (typeof UNIT_DEFINITIONS)[U]["dim"]
   : never;
 
+declare const UnknownUnitBrand: unique symbol;
+
+/**
+ * A unit token the wire named but this build cannot see: an Uplink's custom
+ * symbol decoded off a payload with no local `declare module` augmentation for
+ * it, as opposed to `string`, which means "any unit, including ones this build
+ * knows perfectly well." The distinction is the same one TypeScript's own
+ * `unknown` draws against `any`: `Value<string>` is a value whose unit this
+ * code has chosen not to track; `Value<UnknownUnit>` is a value whose unit
+ * genuinely cannot be known here, and the type has to keep saying so at every
+ * step or the branding is decorative.
+ *
+ * Branded rather than a bare alias for `string`, because a bare alias would be
+ * indistinguishable from `string` and every degradation in this module already
+ * targets `string`. The brand is what lets `CombinableWith` (below) and
+ * `Product`/`Quotient` (`algebra.ts`) tell "unit not in the catalog, but at
+ * least it is a literal we can compare" apart from "unit not in the catalog
+ * because there is nothing here to compare," and block only the latter.
+ *
+ * `.magnitude` and `.unit` stay readable on a `Value<UnknownUnit>` with no
+ * narrowing: the SHAPE is guaranteed even though the CONTENT is not, exactly
+ * as `Array<unknown>` still has a `.length`. Arithmetic is what the brand
+ * blocks, not field access.
+ */
+export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
+
 /**
  * Every declared unit sharing `U`'s dimension.
  *
@@ -54,10 +80,24 @@ export type SameDimensionAs<U> = {
  * Previously named `Addend`, which fit `plus` and nothing else: `in` is a
  * conversion and the comparisons are orderings, not additions, and the name
  * read as nonsense on those.
+ *
+ * `UnknownUnit` is checked first and short-circuits to `never`, BEFORE the
+ * generic fallback below gets a chance to answer `U`. Left to the generic
+ * rule, `UnknownUnit` would combine with itself: `SameDimensionAs<UnknownUnit>`
+ * is `never` (it matches no `KnownUnit`), and the fallback exists precisely to
+ * let an out-of-catalog unit like `"widgets"` combine with an exact match of
+ * itself. That fallback is right for a THIRD PARTY'S literal symbol, which is
+ * at least a symbol two values can be checked against each other. It is wrong
+ * for `UnknownUnit`, which carries no symbol at all, so two unknowns are not
+ * known to match one another either. Hence the separate branch: unknown blocks
+ * everything, including itself, the same way TypeScript's own `unknown`
+ * blocks `x + x`.
  */
-type CombinableWith<U extends string> = [SameDimensionAs<U>] extends [never]
-  ? U
-  : SameDimensionAs<U>;
+type CombinableWith<U extends string> = [U] extends [UnknownUnit]
+  ? never
+  : [SameDimensionAs<U>] extends [never]
+    ? U
+    : SameDimensionAs<U>;
 
 /**
  * A quantity that carries its own unit.

@@ -18,7 +18,7 @@ import type {
   Quotient,
   SymbolFor,
 } from "./algebra";
-import { type Value, value } from "./value";
+import { type UnknownUnit, type Value, value } from "./value";
 
 /**
  * Invariant type equality. `A extends B` is not enough: `"m/s"` extends
@@ -115,6 +115,25 @@ export const _undeclared: Expect<Quotient<"rep", "funds">, string> = "OK";
 
 // An unknown token is its own base at runtime and unknown here.
 export const _unknownToken: Expect<Quotient<"snacks:g", "s">, string> = "OK";
+
+// `UnknownUnit` degrades the same way, on EITHER side: it is not merely "not
+// in the catalogue" (that alone still composes, see `_unknownToken` above),
+// it is "no symbol to compose with at all," which `DimOf` answers with
+// `never` before it ever reaches a lookup. `Mul`/`Div`'s `[X] extends [never]`
+// guards then take the whole product down with it, on the LEFT operand, the
+// RIGHT operand, or both.
+export const _unknownProductLeft: Expect<
+  Product<UnknownUnit, "s">,
+  string
+> = "OK";
+export const _unknownProductRight: Expect<
+  Product<"s", UnknownUnit>,
+  string
+> = "OK";
+export const _unknownQuotientBoth: Expect<
+  Quotient<UnknownUnit, UnknownUnit>,
+  string
+> = "OK";
 
 /* ── The resource token grammar ───────────────────────────────────────────── */
 
