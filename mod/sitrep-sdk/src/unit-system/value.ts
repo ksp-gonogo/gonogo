@@ -40,8 +40,22 @@ export type SameDimensionAs<U> = {
     : never;
 }[KnownUnit];
 
-/** A unit `U` can be added to: itself, plus anything sharing its dimension. */
-type Addend<U extends string> = [SameDimensionAs<U>] extends [never]
+/**
+ * What `U` can be paired with in `plus`, `minus`, `in`, a comparison, or
+ * `min`/`max`: itself, plus anything sharing its dimension.
+ *
+ * The usable counterpart to {@link SameDimensionAs}, which is the raw computed
+ * set and collapses to `never` for a unit outside the catalog. `never` is
+ * correct as an intermediate answer but useless as a parameter type: nothing
+ * would ever satisfy it, and `Value<string>.plus` would take no argument at
+ * all. `CombinableWith` is that set with the `never` case replaced by `U`
+ * itself, so an out-of-catalog unit still combines with an exact match.
+ *
+ * Previously named `Addend`, which fit `plus` and nothing else: `in` is a
+ * conversion and the comparisons are orderings, not additions, and the name
+ * read as nonsense on those.
+ */
+type CombinableWith<U extends string> = [SameDimensionAs<U>] extends [never]
   ? U
   : SameDimensionAs<U>;
 
@@ -86,8 +100,8 @@ export interface Value<U extends string = string> {
    * carries the LEFT operand's unit: it reads as "a, but more", the type needs
    * no base lookup, and display re-picks the rung anyway.
    */
-  plus(other: Value<Addend<U>>): Value<U>;
-  minus(other: Value<Addend<U>>): Value<U>;
+  plus(other: Value<CombinableWith<U>>): Value<U>;
+  minus(other: Value<CombinableWith<U>>): Value<U>;
 
   /**
    * Total. Any dimension over any dimension; `rep/f` is coherent.
@@ -125,7 +139,7 @@ export interface Value<U extends string = string> {
   /** Scales the magnitude, leaving the unit alone. */
   scaled(factor: number): Value<U>;
   /** Re-expressed in another unit of the same dimension. */
-  in<T extends Addend<U>>(unit: T): Value<T>;
+  in<T extends CombinableWith<U>>(unit: T): Value<T>;
 
   equals(other: Value | number): boolean;
 
@@ -143,16 +157,16 @@ export interface Value<U extends string = string> {
    * 120 s and is thirty times the duration. It is the one hole the object type
    * does not close on its own.
    */
-  lessThan(other: Value<Addend<U>>): boolean;
-  lessThanOrEqual(other: Value<Addend<U>>): boolean;
-  greaterThan(other: Value<Addend<U>>): boolean;
-  greaterThanOrEqual(other: Value<Addend<U>>): boolean;
+  lessThan(other: Value<CombinableWith<U>>): boolean;
+  lessThanOrEqual(other: Value<CombinableWith<U>>): boolean;
+  greaterThan(other: Value<CombinableWith<U>>): boolean;
+  greaterThanOrEqual(other: Value<CombinableWith<U>>): boolean;
 
   /**
    * Negative, zero or positive. For `Array.prototype.sort`, which wants that
    * shape; for a yes-or-no question use the predicates above.
    */
-  compare(other: Value<Addend<U>>): number;
+  compare(other: Value<CombinableWith<U>>): number;
 
   /**
    * Sign, which needs no operand.
@@ -180,8 +194,8 @@ export interface Value<U extends string = string> {
    * compares 1 against 90 and returns the 90 minutes, which is the shorter
    * duration. These convert first.
    */
-  min(other: Value<Addend<U>>): Value<U> | Value<Addend<U>>;
-  max(other: Value<Addend<U>>): Value<U> | Value<Addend<U>>;
+  min(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
+  max(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
 }
 
 // Through the REGISTRY, not the static table: a unit an Uplink registered has

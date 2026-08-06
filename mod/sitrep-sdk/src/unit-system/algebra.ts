@@ -3,8 +3,8 @@ import type { UNIT_DEFINITIONS } from "./definitions";
 /**
  * Multiplication and division, at the type level.
  *
- * `plus` has been type-safe since the model shipped: `Addend<U>` refuses to add
- * metres to seconds. `times` and `per` were not, because they can produce a
+ * `plus` has been type-safe since the model shipped: `CombinableWith<U>` refuses
+ * to add metres to seconds. `times` and `per` were not, because they can produce a
  * unit neither operand names, and until this module the interface said
  * `times(other: Value | number): Value` and gave up. Dimensional correctness
  * was enforced only at runtime, so `value("m",10).per(value("s",2))` was
@@ -31,11 +31,11 @@ import type { UNIT_DEFINITIONS } from "./definitions";
  *
  * ## Everything degrades to `string`, never to `never`
  *
- * `Value<string>` is the status quo, and it is safe: `Addend<string>` collapses
- * to `never` and falls back to `string`, so `plus` on a degraded value accepts
- * anything, exactly as before. An unknown unit is never made LESS safe by this
- * module and using one is never a compile error. That is the rule `Addend`
- * already set, followed literally.
+ * `Value<string>` is the status quo, and it is safe: `CombinableWith<string>`
+ * collapses to `never` and falls back to `string`, so `plus` on a degraded value
+ * accepts anything, exactly as before. An unknown unit is never made LESS safe
+ * by this module and using one is never a compile error. That is the rule
+ * `CombinableWith` already set, followed literally.
  */
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ export type Neg<A extends number> = `${A}` extends keyof Negate
  *
  * It relies on how tsc relates two conditional types rather than on a
  * documented feature. That is a bet, but not a NEW bet: the SDK has made it
- * since `Addend` shipped.
+ * since `CombinableWith` (née `Addend`) shipped.
  */
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
