@@ -6,7 +6,6 @@ import {
   Cluster,
   EmptyState,
   Panel,
-  ProgressBar,
   Stack,
   StatusIndicator,
   type StatusTone,
@@ -389,10 +388,30 @@ function DeployedScienceComponent(
                         )}
                       </Value>
                     </Cluster>
-                    <ProgressBar
-                      value={exp.progress * 100}
-                      ariaLabel={`${exp.name} progress`}
-                    />
+                    {/* Plain-div track (4px stadium, surface-raised) + go-toned
+                        fill, preserving the original bar's exact dims/colour
+                        rather than the generic ProgressBar (parity restore). */}
+                    <div
+                      role="progressbar"
+                      aria-label={`${exp.name} progress`}
+                      aria-valuenow={Math.round(exp.progress * 100)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      style={{
+                        height: 4,
+                        borderRadius: "var(--radius-pill)",
+                        background: "var(--color-surface-raised)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${Math.min(100, Math.max(0, exp.progress * 100))}%`,
+                          background: "var(--color-status-go-bg)",
+                        }}
+                      />
+                    </div>
                     {/* Per-experiment-card body slot (augment-slot-map:
                         deployed-science.sections). A Kerbalism Uplink appends a
                         background-transmission progress bar here; because the
