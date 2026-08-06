@@ -304,10 +304,9 @@ function ContractManagerComponent({
 
   if (active === null) {
     return (
-      <Panel
-        panelTitle="CONTRACT MANAGER"
-        panelSubtitle={showSubtitle ? "Awaiting contract telemetry" : undefined}
-      />
+      <Panel panelTitle="CONTRACT MANAGER">
+        {showSubtitle && <Empty>Awaiting contract telemetry</Empty>}
+      </Panel>
     );
   }
 
@@ -316,20 +315,16 @@ function ContractManagerComponent({
   const recentCount = recent?.length ?? 0;
 
   return (
-    <Panel
-      panelTitle="CONTRACT MANAGER"
-      panelSubtitle={
-        showSubtitle ? (
-          <span role="status" aria-live="polite">
-            {activeCount} active · {offeredCount} offered · {recentCount} recent
-          </span>
-        ) : undefined
-      }
-    >
+    <Panel panelTitle="CONTRACT MANAGER">
       <CommandDelay
         handles={[acceptCmd, declineCmd, cancelCmd]}
         ariaLabel="Contract commands: in flight"
       />
+      {showSubtitle && (
+        <Summary role="status" aria-live="polite">
+          {activeCount} active · {offeredCount} offered · {recentCount} recent
+        </Summary>
+      )}
       {activeCount === 0 && offeredCount === 0 && (
         <Empty>No active contracts. Pick one up in Mission Control.</Empty>
       )}
@@ -633,6 +628,13 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-sm);
   padding: var(--space-8) 0;
+`;
+
+const Summary = styled.div`
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 `;
 
 // Single column by default (portrait / square). In landscape we switch to a
