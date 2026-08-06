@@ -972,13 +972,13 @@ const PanelGhost__Root = styled.div<{ $visible: boolean; $animated: boolean }>`
   );
   backdrop-filter: blur(3px);
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  /* Entrance ~0.18s in, ~0.22s out, matching the mockup. Gated in JS rather
+  /* Entrance: --duration-base in, --duration-slow out (was raw 0.18s/0.22s). Gated in JS rather
      than by a CSS @media block so reduced motion is observable in tests and so
      the same flag suppresses the dot's one-shot pulse; the harness emulates
      reduce, so this degrades to a static shown/hidden state under it. */
   ${({ $animated, $visible }) =>
     $animated
-      ? `transition: opacity ${$visible ? "0.18s" : "0.22s"} var(--ease-standard, ease);`
+      ? `transition: opacity ${$visible ? "var(--duration-base)" : "var(--duration-slow)"} var(--ease-standard, ease);`
       : "transition: none;"}
 `;
 

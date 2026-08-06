@@ -280,7 +280,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * what it is timed against at the call site and raise its entry.
    */
   motion: {
-    "packages/ui-kit/src/Panel.tsx": 2,
     "mod/": 2,
     "packages/app/src/styles/global.css": 2,
     "packages/components/src/ContractManager/index.tsx": 2,
