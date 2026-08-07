@@ -477,17 +477,46 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     surface: "m²",
     volume: "m³",
   },
+  "KerbalismProcessDef": {
+    dumpValves: "text",
+    modifiers: "text",
+    name: "text",
+  },
   "KerbalismProcessEntry": {
     broken: "flag",
     capacity: "units",
+    flightId: "id",
     resource: "text",
     running: "flag",
     title: "text",
+    valveIndex: "count",
+  },
+  "KerbalismProfile": {
+    name: "text",
   },
   "KerbalismResource": {
     amount: "units",
     capacity: "units",
     rate: "units/s",
+  },
+  "KerbalismResourceDef": {
+    density: "kg/m³",
+    displayName: "text",
+    flowMode: "text",
+    isSupply: "flag",
+    lowThreshold: "ratio",
+  },
+  "KerbalismRuleDef": {
+    breakdown: "flag",
+    degeneration: "units/s",
+    fatalThreshold: "units",
+    input: "text",
+    interval: "s",
+    modifiers: "text",
+    name: "text",
+    output: "text",
+    rate: "units",
+    ratePerSecond: "units/s",
   },
   "KerbalismSpaceWeather": {
     blackout: "flag",
@@ -1359,6 +1388,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     spaceWeather: "flag",
     supplies: "flag",
   },
+  "kerbalism.profile": {
+    name: "text",
+  },
   "kerbalism.spaceweather": {
     blackout: "flag",
     habitatRadiationRadPerSecond: "rad/s",
@@ -1877,13 +1909,14 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     rules: "KerbalismCrewRule",
   },
   "KerbalismLifeSupport": {
-    electricCharge: "KerbalismResource",
-    food: "KerbalismResource",
     greenhouses: "KerbalismGreenhouseEntry",
     habitat: "KerbalismHabitat",
-    oxygen: "KerbalismResource",
     processes: "KerbalismProcessEntry",
-    water: "KerbalismResource",
+  },
+  "KerbalismProfile": {
+    processes: "KerbalismProcessDef",
+    resources: "*KerbalismResourceDef",
+    rules: "KerbalismRuleDef",
   },
   "ManeuverNode": {
     patches: "OrbitPatch",
@@ -2067,13 +2100,14 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     rules: "KerbalismCrewRule",
   },
   "kerbalism.lifesupport": {
-    electricCharge: "KerbalismResource",
-    food: "KerbalismResource",
     greenhouses: "KerbalismGreenhouseEntry",
     habitat: "KerbalismHabitat",
-    oxygen: "KerbalismResource",
     processes: "KerbalismProcessEntry",
-    water: "KerbalismResource",
+  },
+  "kerbalism.profile": {
+    processes: "KerbalismProcessDef",
+    resources: "*KerbalismResourceDef",
+    rules: "KerbalismRuleDef",
   },
   "parts.power": {
     alternators: "AlternatorEntry",

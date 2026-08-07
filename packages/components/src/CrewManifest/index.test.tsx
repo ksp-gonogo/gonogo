@@ -359,6 +359,8 @@ describe("CrewManifestComponent, survival meters", () => {
         "vessel.state",
         "kerbalism.crew",
         "kerbalism.lifesupport",
+        "kerbalism.profile",
+        "vessel.resources",
       ],
       pinnedUt: 10,
     });
@@ -373,9 +375,20 @@ describe("CrewManifestComponent, survival meters", () => {
         capacity: 2,
         crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
       });
-      // A life-support resource draining → stage-1 death-clock is a real time.
-      fixture.emit("kerbalism.lifesupport", {
-        food: { amount: 0.35, capacity: 1.35, rate: -0.000036 },
+      // A life-support resource draining -> stage-1 death-clock is a real time.
+      // Three channels now, because the clock no longer names its own
+      // resources: the rate says Food is draining, vessel.resources says how
+      // much is left, and the profile says Food is a Supply and so counts.
+      // Without the profile half it would either ignore Food or, if it fell
+      // back to "anything draining", report a burn's LiquidFuel as the crew's
+      // time to live.
+      fixture.emit("kerbalism.lifesupport", { rates: { Food: -0.000036 } });
+      fixture.emit("vessel.resources", {
+        resources: { Food: { current: 0.35, max: 1.35, active: true } },
+      });
+      fixture.emit("kerbalism.profile", {
+        name: "Default",
+        resources: { Food: { isSupply: true, flowMode: "ALL_VESSEL" } },
       });
       // Real wire shape: `rules` is an ARRAY of `{name, value, fatalThreshold}`
       // (KerbalismCrewEntry/KerbalismCrewRule), Kerbalism's default profile

@@ -125,11 +125,41 @@ describe("LifeSupportSystemsComponent", () => {
 
   function emit(ls: LsState) {
     act(() => {
+      // The ledger's two halves: `kerbalism.lifesupport` carries rates keyed by
+      // resource name (it no longer names its consumables), and the levels ride
+      // the generic `vessel.resources`. `LsState` keeps the old grouped shape
+      // because it is this test's own vocabulary, not the wire's.
+      stream.emit("vessel.resources", {
+        resources: {
+          Food: {
+            current: ls.food.amount,
+            max: ls.food.capacity,
+            active: true,
+          },
+          Water: {
+            current: ls.water.amount,
+            max: ls.water.capacity,
+            active: true,
+          },
+          Oxygen: {
+            current: ls.oxygen.amount,
+            max: ls.oxygen.capacity,
+            active: true,
+          },
+          ElectricCharge: {
+            current: ls.ec.amount,
+            max: ls.ec.capacity,
+            active: true,
+          },
+        },
+      });
       stream.emit("kerbalism.lifesupport", {
-        food: ls.food,
-        water: ls.water,
-        oxygen: ls.oxygen,
-        electricCharge: ls.ec,
+        rates: {
+          Food: ls.food.rate,
+          Water: ls.water.rate,
+          Oxygen: ls.oxygen.rate,
+          ElectricCharge: ls.ec.rate,
+        },
         habitat: {
           pressure: ls.pressure,
           poisoning: ls.co2Poisoning,
@@ -284,11 +314,38 @@ describe("LifeSupportSystemsComponent", () => {
   describe("greenhouse section (life-support.sections augment)", () => {
     function emitWithGreenhouse(greenhouses: unknown[]) {
       act(() => {
+        // Same two-channel split as `emit` above.
+        stream.emit("vessel.resources", {
+          resources: {
+            Food: {
+              current: NOMINAL.food.amount,
+              max: NOMINAL.food.capacity,
+              active: true,
+            },
+            Water: {
+              current: NOMINAL.water.amount,
+              max: NOMINAL.water.capacity,
+              active: true,
+            },
+            Oxygen: {
+              current: NOMINAL.oxygen.amount,
+              max: NOMINAL.oxygen.capacity,
+              active: true,
+            },
+            ElectricCharge: {
+              current: NOMINAL.ec.amount,
+              max: NOMINAL.ec.capacity,
+              active: true,
+            },
+          },
+        });
         stream.emit("kerbalism.lifesupport", {
-          food: NOMINAL.food,
-          water: NOMINAL.water,
-          oxygen: NOMINAL.oxygen,
-          electricCharge: NOMINAL.ec,
+          rates: {
+            Food: NOMINAL.food.rate,
+            Water: NOMINAL.water.rate,
+            Oxygen: NOMINAL.oxygen.rate,
+            ElectricCharge: NOMINAL.ec.rate,
+          },
           habitat: {
             pressure: NOMINAL.pressure,
             poisoning: NOMINAL.co2Poisoning,

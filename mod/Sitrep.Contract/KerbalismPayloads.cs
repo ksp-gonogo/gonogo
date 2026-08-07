@@ -117,16 +117,223 @@ public class KerbalismHabitat
 #endif
 public class KerbalismProcessEntry
 {
+    /// <summary>
+    /// The PSEUDO-RESOURCE this controller gates on ("_Scrubber",
+    /// "_WaterRecycler", ...), not a real resource. It is the JOIN KEY onto
+    /// <see cref="KerbalismProcessDef.Modifiers"/>: the profile Process whose
+    /// modifier list contains this token is the one this controller runs.
+    /// Confirmed against a captured fixture and the stock profile config.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Resource { get; set; }
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
+    /// <summary>
+    /// Process capacity of the hosting part. Kerbalism scales EVERY rate in the
+    /// matched <see cref="KerbalismProcessDef"/> by this, so
+    /// <c>profileRate * capacity</c> is this instance's contribution and the
+    /// unit the per-source ledger is built from.
+    /// </summary>
     [SitrepUnit(Units.ResourceUnits)]
     public double? Capacity { get; set; }
     [SitrepUnit(Units.Flag)]
     public bool? Running { get; set; }
     [SitrepUnit(Units.Flag)]
     public bool? Broken { get; set; }
+    /// <summary>
+    /// Host part, as KSP's <c>Part.flightID</c>: matches <c>ShipMapPart.flightId</c>
+    /// exactly, so a ledger row joins straight onto a part in the ship diagram.
+    /// flightID and NOT the part name: the dev dump records its <c>_part</c> as
+    /// a part name ("mk1pod.v2") for readability, which would collapse a vessel
+    /// carrying two identical pods into one row. Without this field the ledger
+    /// can say WHAT is consuming but never WHERE.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public double? FlightId { get; set; }
+    /// <summary>
+    /// Active dump valve, indexing <see cref="KerbalismProcessDef.DumpValves"/>
+    /// (<c>ProcessController.valve_i</c>). Which outputs are vented rather than
+    /// stored is live per-part state and changes what the ledger means, the
+    /// profile only lists the possible combinations.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? ValveIndex { get; set; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The loaded profile (Topic "kerbalism.profile").
+//
+// Kerbalism's own static configuration, normalised onto the wire so the app can
+// derive the resource graph, the per-source rate ledger and the root-cause walk
+// WITHOUT gonogo ever naming a resource. Kerbalism ships static config; we read
+// it. We never ship a list of resources.
+//
+// The mod parses, the app derives: these are DEFINITIONS only. No adjacency, no
+// cycle detection, no derived rates beyond the one noted on
+// KerbalismRuleDef.RatePerSecond. That keeps the wire stable while the app's
+// analysis evolves.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Static facts about one resource the loaded profile touches, from KSP's own
+/// resource definition plus the profile's Supply declarations.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class KerbalismResourceDef
+{
+    /// <summary>
+    /// KSP <c>ResourceFlowMode</c> as its enum NAME (<c>ALL_VESSEL</c>,
+    /// <c>ALL_VESSEL_BALANCE</c>, <c>STAGE_PRIORITY_FLOW</c>,
+    /// <c>STACK_PRIORITY_SEARCH</c>, <c>NO_FLOW</c>). An open string rather than a
+    /// closed enum: an unrecognised mode must degrade, not break the payload.
+    ///
+    /// <para>Why it matters: for a POOLED mode the per-part split is bookkeeping
+    /// and the vessel drains one pool, so a per-tank meter is at best decorative
+    /// and at worst misleading. A consumer cannot know that without this field,
+    /// which is why per-part resource meters depend on it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? FlowMode { get; set; }
+    /// <summary>Localised display name from the KSP resource definition, when it differs from the key.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? DisplayName { get; set; }
+    [SitrepUnit(Units.KilogramsPerCubicMetre)]
+    public double? Density { get; set; }
+    /// <summary>
+    /// True when the profile declares a <c>Supply</c> for this resource, i.e. it is
+    /// life support rather than a propellant some process merely touches.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsSupply { get; set; }
+    /// <summary>Kerbalism's own warning level (<c>Supply.low_threshold</c>). Null when not a Supply.</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? LowThreshold { get; set; }
+}
+
+/// <summary>
+/// One <c>Profile.rules[]</c> entry: a PER-KERBAL consumption, not a vessel
+/// process. Crew rules scale with head count; processes scale with part capacity.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class KerbalismRuleDef
+{
+    [SitrepUnit(Units.Text)]
+    public string? Name { get; set; }
+    /// <summary>Consumed resource. Empty for rules modelling a pure accumulator (stress, radiation).</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Input { get; set; }
+    /// <summary>Produced resource. Empty when the rule produces nothing; rule outputs are always dumped by Kerbalism.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Output { get; set; }
+    /// <summary>
+    /// CANONICAL. Consumption per kerbal per SECOND, already divided by
+    /// <see cref="Interval"/>. Use this one.
+    ///
+    /// <para>Carried pre-divided, rather than leaving each consumer to do it,
+    /// because forgetting to is a silent error that reads as entirely plausible:
+    /// <c>drinking</c> has <c>interval = 5400</c> and <c>eating</c> has
+    /// <c>interval = 10800</c>, so reading their raw <c>rate</c> as per-second
+    /// overstates them by 5,400x and 10,800x. <c>breathing</c> has no interval
+    /// and genuinely IS per second, which is why the mistake survives the one
+    /// resource anybody sanity-checks first.</para>
+    /// </summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
+    public double? RatePerSecond { get; set; }
+    /// <summary>Raw <c>Profile.rules[].rate</c>, for fidelity. NOT a per-second figure unless <see cref="Interval"/> is 0.</summary>
+    [SitrepUnit(Units.ResourceUnits)]
+    public double? Rate { get; set; }
+    /// <summary>
+    /// <c>Profile.rules[].interval</c>, seconds: the rule fires once per interval.
+    /// 0 means continuous, in which case <see cref="RatePerSecond"/> equals <see cref="Rate"/>.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? Interval { get; set; }
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
+    public double? Degeneration { get; set; }
+    [SitrepUnit(Units.ResourceUnits)]
+    public double? FatalThreshold { get; set; }
+    /// <summary>When true, reaching fatal redirects to a recoverable breakdown event instead of killing the kerbal.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Breakdown { get; set; }
+    /// <summary>Raw modifier keyword tokens, deliberately unparsed. See <see cref="KerbalismProcessDef.Modifiers"/>.</summary>
+    [SitrepUnit(Units.Text)]
+    public List<string>? Modifiers { get; set; }
+}
+
+/// <summary>
+/// One <c>Profile.processes[]</c> entry: a vessel converter. Every rate below is
+/// PER UNIT OF PROCESS CAPACITY; multiply by a hosting
+/// <see cref="KerbalismProcessEntry.Capacity"/> for that instance's real contribution.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class KerbalismProcessDef
+{
+    [SitrepUnit(Units.Text)]
+    public string? Name { get; set; }
+    /// <summary>Resource name -> rate per unit of process capacity, per second.</summary>
+    public Dictionary<string, double>? Inputs { get; set; }
+    /// <summary>Resource name -> rate per unit of process capacity, per second.</summary>
+    public Dictionary<string, double>? Outputs { get; set; }
+    /// <summary>
+    /// The Process's own modifier tokens. REQUIRED: this list contains the
+    /// pseudo-resource (e.g. "_Scrubber") that joins to
+    /// <see cref="KerbalismProcessEntry.Resource"/>, which is how a part's
+    /// controller is matched to the recipe it runs.
+    ///
+    /// <para>Tokens are shipped RAW and unparsed on purpose. Kerbalism's
+    /// <c>Modifiers.cs</c> recognises 14 keywords and its default case treats any
+    /// UNKNOWN token as a resource-amount lookup (with an <c>inv:</c> prefix
+    /// inverting it), so there is no closed set to model. Parsing them here would
+    /// mean freezing a keyword list we would then have to chase, or shipping a
+    /// half-interpretation the app cannot reason about. Raw tokens let a consumer
+    /// act on what it recognises and render the rest as honest provenance.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public List<string>? Modifiers { get; set; }
+    /// <summary>
+    /// <c>dump_valve</c> options in the profile's own order, each an
+    /// <c>&amp;</c>-joined combination of output resources.
+    /// <see cref="KerbalismProcessEntry.ValveIndex"/> indexes into this list.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public List<string>? DumpValves { get; set; }
+}
+
+/// <summary>
+/// The loaded Kerbalism profile's own definitions. Static for the life of the
+/// KSP session (swapping profile is a restart), so this Topic is declared
+/// low-cadence and built once.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+[SitrepTopic("kerbalism.profile")]
+public class KerbalismProfile
+{
+    /// <summary>Loaded profile name ("Default", "RealismOverhaul", ...). Display and fixture keying only, never a behavioural switch.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Name { get; set; }
+    /// <summary>
+    /// Every resource this profile touches: the union of all rule and process
+    /// inputs/outputs plus every declared Supply, keyed by KSP resource name.
+    ///
+    /// <para>THE authoritative list. gonogo must never carry one of its own: the
+    /// same enumeration drives which names the life-support capture asks
+    /// Kerbalism for a rate about, so the two can never drift.</para>
+    /// </summary>
+    public Dictionary<string, KerbalismResourceDef>? Resources { get; set; }
+    public List<KerbalismRuleDef>? Rules { get; set; }
+    public List<KerbalismProcessDef>? Processes { get; set; }
 }
 
 /// <summary>
@@ -189,10 +396,37 @@ public class KerbalismGreenhouseEntry
 [SitrepTopic("kerbalism.lifesupport")]
 public class KerbalismLifeSupport
 {
-    public KerbalismResource? Food { get; set; }
-    public KerbalismResource? Water { get; set; }
-    public KerbalismResource? Oxygen { get; set; }
-    public KerbalismResource? ElectricCharge { get; set; }
+    /// <summary>
+    /// Signed net rate per resource, units/s, keyed by KSP resource name
+    /// (Kerbalism's <c>ResourceAverageRate</c>). Negative = draining.
+    ///
+    /// <para><b>Amounts and capacities are deliberately NOT here.</b>
+    /// <c>vessel.resources</c> already carries them for every resource on the
+    /// vessel, and <c>ShipMapPart.resources</c> carries them per part. The rate
+    /// is the one number the generic path cannot derive, so it is the only one
+    /// this channel adds.</para>
+    ///
+    /// <para><b>Three-way absence</b>, identical to <c>vessel.resources</c>'s
+    /// convention: a key ABSENT means Kerbalism reports no rate for that
+    /// resource; a key present with 0 is a real, measured zero (in balance); the
+    /// whole channel absent means no vessel, or Kerbalism not installed. Every
+    /// emission is the FULL map, never a delta, so a key disappearing is itself
+    /// a real statement.</para>
+    ///
+    /// <para>Which resources appear is enumerated from the loaded profile
+    /// (<see cref="KerbalismProfile.Resources"/>), never from a list in gonogo.
+    /// This map replaced four fixed properties (Food/Water/Oxygen/ElectricCharge)
+    /// against a default profile that runs on twelve.</para>
+    ///
+    /// <para><b>The unit is units/s and is NOT carried in the type.</b> The
+    /// codegen refuses <c>[SitrepUnit]</c> on a dictionary ("has no magnitude to
+    /// carry"), so unlike every scalar on the wire this map's values arrive as
+    /// bare numbers and a consumer must wrap them itself. Teaching the generator
+    /// about unit-carrying dictionary VALUES would fix it for every name-keyed
+    /// channel at once and is worth doing separately; do not paper over it here
+    /// with a non-quantity token, which would state something false.</para>
+    /// </summary>
+    public Dictionary<string, double>? Rates { get; set; }
     public KerbalismHabitat? Habitat { get; set; }
     public List<KerbalismProcessEntry>? Processes { get; set; }
     /// <summary>

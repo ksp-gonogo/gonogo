@@ -443,17 +443,46 @@
       "surface": "m²",
       "volume": "m³"
     },
+    "KerbalismProcessDef": {
+      "dumpValves": "text",
+      "modifiers": "text",
+      "name": "text"
+    },
     "KerbalismProcessEntry": {
       "broken": "flag",
       "capacity": "units",
+      "flightId": "id",
       "resource": "text",
       "running": "flag",
-      "title": "text"
+      "title": "text",
+      "valveIndex": "count"
+    },
+    "KerbalismProfile": {
+      "name": "text"
     },
     "KerbalismResource": {
       "amount": "units",
       "capacity": "units",
       "rate": "units/s"
+    },
+    "KerbalismResourceDef": {
+      "density": "kg/m³",
+      "displayName": "text",
+      "flowMode": "text",
+      "isSupply": "flag",
+      "lowThreshold": "ratio"
+    },
+    "KerbalismRuleDef": {
+      "breakdown": "flag",
+      "degeneration": "units/s",
+      "fatalThreshold": "units",
+      "input": "text",
+      "interval": "s",
+      "modifiers": "text",
+      "name": "text",
+      "output": "text",
+      "rate": "units",
+      "ratePerSecond": "units/s"
     },
     "KerbalismSpaceWeather": {
       "blackout": "flag",
@@ -1320,6 +1349,9 @@
       "spaceWeather": "flag",
       "supplies": "flag"
     },
+    "kerbalism.profile": {
+      "name": "text"
+    },
     "kerbalism.spaceweather": {
       "blackout": "flag",
       "habitatRadiationRadPerSecond": "rad/s",
@@ -1820,13 +1852,14 @@
       "rules": "KerbalismCrewRule"
     },
     "KerbalismLifeSupport": {
-      "electricCharge": "KerbalismResource",
-      "food": "KerbalismResource",
       "greenhouses": "KerbalismGreenhouseEntry",
       "habitat": "KerbalismHabitat",
-      "oxygen": "KerbalismResource",
-      "processes": "KerbalismProcessEntry",
-      "water": "KerbalismResource"
+      "processes": "KerbalismProcessEntry"
+    },
+    "KerbalismProfile": {
+      "processes": "KerbalismProcessDef",
+      "resources": "*KerbalismResourceDef",
+      "rules": "KerbalismRuleDef"
     },
     "ManeuverNode": {
       "patches": "OrbitPatch"
@@ -2008,13 +2041,14 @@
       "rules": "KerbalismCrewRule"
     },
     "kerbalism.lifesupport": {
-      "electricCharge": "KerbalismResource",
-      "food": "KerbalismResource",
       "greenhouses": "KerbalismGreenhouseEntry",
       "habitat": "KerbalismHabitat",
-      "oxygen": "KerbalismResource",
-      "processes": "KerbalismProcessEntry",
-      "water": "KerbalismResource"
+      "processes": "KerbalismProcessEntry"
+    },
+    "kerbalism.profile": {
+      "processes": "KerbalismProcessDef",
+      "resources": "*KerbalismResourceDef",
+      "rules": "KerbalismRuleDef"
     },
     "parts.power": {
       "alternators": "AlternatorEntry",

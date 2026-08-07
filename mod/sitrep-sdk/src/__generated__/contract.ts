@@ -467,6 +467,44 @@ export interface KerbalismProcessEntry
 	capacity?: Value<"units">;
 	running?: boolean;
 	broken?: boolean;
+	flightId?: number;
+	valveIndex?: Value<"count">;
+}
+export interface KerbalismResourceDef
+{
+	flowMode?: string;
+	displayName?: string;
+	density?: Value<"kg/m³">;
+	isSupply?: boolean;
+	lowThreshold?: Value<"ratio">;
+}
+export interface KerbalismRuleDef
+{
+	name?: string;
+	input?: string;
+	output?: string;
+	ratePerSecond?: Value<"units/s">;
+	rate?: Value<"units">;
+	interval?: Value<"s">;
+	degeneration?: Value<"units/s">;
+	fatalThreshold?: Value<"units">;
+	breakdown?: boolean;
+	modifiers?: string[];
+}
+export interface KerbalismProcessDef
+{
+	name?: string;
+	inputs?: { [key:string]: number };
+	outputs?: { [key:string]: number };
+	modifiers?: string[];
+	dumpValves?: string[];
+}
+export interface KerbalismProfile
+{
+	name?: string;
+	resources?: { [key:string]: KerbalismResourceDef };
+	rules?: KerbalismRuleDef[];
+	processes?: KerbalismProcessDef[];
 }
 export interface KerbalismGreenhouseEntry
 {
@@ -484,10 +522,7 @@ export interface KerbalismGreenhouseEntry
 }
 export interface KerbalismLifeSupport
 {
-	food?: KerbalismResource;
-	water?: KerbalismResource;
-	oxygen?: KerbalismResource;
-	electricCharge?: KerbalismResource;
+	rates?: { [key:string]: number };
 	habitat?: KerbalismHabitat;
 	processes?: KerbalismProcessEntry[];
 	greenhouses?: KerbalismGreenhouseEntry[];
