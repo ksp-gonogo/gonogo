@@ -23,12 +23,16 @@ namespace Gonogo.KerbalismUplink
         private const string SpaceWeatherTopic = "kerbalism.spaceweather";
         private const string LifeSupportTopic = "kerbalism.lifesupport";
         private const string CrewTopic = "kerbalism.crew";
+        private const string ProfileTopic = "kerbalism.profile";
 
         private readonly KerbalismReflection _k = new();
 
         private IChannelPublisher? _spaceWeather;
         private IChannelPublisher? _lifeSupport;
         private IChannelPublisher? _crew;
+
+        /// <summary>Built once on first use; see <see cref="Profile"/>.</summary>
+        private ProfileRaw? _profile;
 
         public UplinkManifest Manifest { get; }
 
@@ -42,6 +46,7 @@ namespace Gonogo.KerbalismUplink
                 {
                     TrueNow(AvailableTopic),
                     TrueNow(FeaturesTopic),
+                    Static(ProfileTopic),
                     Delayed(SpaceWeatherTopic),
                     Delayed(LifeSupportTopic),
                     Delayed(CrewTopic),
@@ -54,6 +59,23 @@ namespace Gonogo.KerbalismUplink
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            Delay = DelayRole.TrueNow,
+        };
+
+        /// <summary>
+        /// A ground-side fact that never changes within a session (swapping the
+        /// Kerbalism profile is a KSP restart). Keyframed occasionally so a late
+        /// or rejoining subscriber still gets it, and sampled at most once a
+        /// minute so a static payload costs nothing to carry.
+        /// </summary>
+        private static ChannelDeclaration Static(string topic) => new()
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Emission = new EmissionPolicy(
+                keyframeIntervalUt: 300,
+                quantum: EmissionQuantum.Absolute(0),
+                minSampleIntervalUt: 60),
             Delay = DelayRole.TrueNow,
         };
 
@@ -72,6 +94,8 @@ namespace Gonogo.KerbalismUplink
             host.AddChannelSource(AvailableTopic, _ => _k.IsAvailable);
             host.AddChannelSource(FeaturesTopic, _ =>
                 _k.IsAvailable ? KerbalismCapture.BuildFeatures(_k.Features()) : null);
+            host.AddChannelSource(ProfileTopic, _ =>
+                _k.IsAvailable ? KerbalismCapture.BuildProfile(Profile()) : null);
 
             _spaceWeather = host.Publisher(SpaceWeatherTopic);
             _lifeSupport = host.Publisher(LifeSupportTopic);
@@ -133,10 +157,12 @@ namespace Gonogo.KerbalismUplink
                 InSunlight = _k.ApiBool("InSunlight", v) ?? false,
                 ShieldingAmount = R("Shielding"),
                 ShieldingCapacity = Cap("Shielding"),
-                FoodAmount = R("Food"), FoodCapacity = Cap("Food"), FoodRate = Rate("Food"),
-                WaterAmount = R("Water"), WaterCapacity = Cap("Water"), WaterRate = Rate("Water"),
-                OxygenAmount = R("Oxygen"), OxygenCapacity = Cap("Oxygen"), OxygenRate = Rate("Oxygen"),
-                EcAmount = R("ElectricCharge"), EcCapacity = Cap("ElectricCharge"), EcRate = Rate("ElectricCharge"),
+                // One rate per resource the LOADED PROFILE mentions, not per name
+                // we picked. `ResourceAverageRate` needs a name to ask about, so
+                // something must enumerate; the only honest enumerator is the
+                // profile itself, and it is the same list kerbalism.profile
+                // publishes so the two cannot drift.
+                Rates = RatesFor(Rate),
                 Pressure = _k.Api("Pressure", v) ?? 0,
                 Poisoning = _k.Api("Poisoning", v) ?? 0,
                 Shielding = _k.Api("Shielding", v) ?? 0,
@@ -156,12 +182,34 @@ namespace Gonogo.KerbalismUplink
             };
         }
 
+        /// <summary>
+        /// Ask Kerbalism for a net rate per resource the loaded profile mentions.
+        /// Resources it will not answer for are simply absent from the map, which
+        /// is the channel's documented "no rate reported" case, distinct from a
+        /// present zero.
+        /// </summary>
+        private Dictionary<string, double> RatesFor(Func<string, double> rate)
+        {
+            var names = KerbalismCapture.ResourceNames(Profile());
+            var map = new Dictionary<string, double>(names.Count, StringComparer.Ordinal);
+            foreach (var name in names) map[name] = rate(name);
+            return map;
+        }
+
+        /// <summary>
+        /// The loaded profile, read once. `Profile.rules`/`.processes`/`.supplies`
+        /// are static and do not change after load, so rebuilding this per sample
+        /// would be the one way to make a static Topic expensive.
+        /// </summary>
+        private ProfileRaw Profile() => _profile ??= _k.Profile();
+
         /// <summary>COURIER-THREAD handle: publish the captured value trees. No KSP access.</summary>
         private void HandleOnCourier(object? captured)
         {
             if (captured is not KerbalismCaptured c) return;
             _spaceWeather?.Publish(KerbalismCapture.BuildSpaceWeather(c.Snapshot), c.Ut);
-            _lifeSupport?.Publish(KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes), c.Ut);
+            _lifeSupport?.Publish(
+                KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates), c.Ut);
             _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants), c.Ut);
         }
 

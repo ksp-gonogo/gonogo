@@ -128,10 +128,16 @@ function toKerbalRules(rules: KerbalismRuleWire[] | undefined): KerbalRules {
 
 /**
  * Stage 1 of the two-stage death-clock: the soonest life-support resource
- * time-to-empty across food/water/oxygen (amount ÷ drain-rate), the shared
- * "time until crew start dying" headline. `null` when nothing is draining.
- * Reads the real `kerbalism.lifesupport` Topic (same source
- * `LifeSupportSystems` reads its own consumable ledger from).
+ * time-to-empty (amount ÷ drain-rate), the shared "time until crew start
+ * dying" headline. `null` when nothing is draining.
+ *
+ * Across EVERY resource the loaded profile declares as a Supply, not the three
+ * this used to name. That was not a judgement about which resources matter, it
+ * was all the wire carried: `kerbalism.lifesupport` named four consumables as
+ * fixed properties against a stock profile that runs on twelve. Under
+ * ROKerbalism, whose supplies are not the stock set, the clock was reading
+ * three names that profile may not even use. It now joins the rates map, the
+ * generic `vessel.resources` levels, and the profile's own `isSupply` flag.
  * (Stage 2, per-kerbal accumulator-time-to-fatal after a resource hits zero,
  * needs a per-rule degeneration rate; the wire carries `degenPerSec` but the
  * mod does not yet resolve a rule's linked resource, so `deathClockSec` always
@@ -140,15 +146,22 @@ function toKerbalRules(rules: KerbalismRuleWire[] | undefined): KerbalRules {
  * then with no presentation change. See DECISIONS §CrewManifest.)
  */
 function useLifeSupportTimeToEmptySec(): number | null {
-  const ls = useTelemetry("kerbalism.lifesupport");
+  const rates = useTelemetry("kerbalism.lifesupport")?.rates;
+  const levels = useTelemetry("vessel.resources")?.resources;
+  // Which resources are life support is the loaded profile's call, carried as
+  // `isSupply`. Without it this would have to iterate every draining resource,
+  // and a burn would report LiquidFuel as the crew's time to live.
+  const profile = useTelemetry("kerbalism.profile")?.resources;
 
   const ttes: number[] = [];
-  for (const c of [ls?.food, ls?.water, ls?.oxygen]) {
-    const amount = magnitudeOf(c?.amount);
-    const rate = magnitudeOf(c?.rate);
-    if (amount !== null && rate !== null && rate < 0) {
-      ttes.push(amount / -rate);
-    }
+  for (const [name, rate] of Object.entries(rates ?? {})) {
+    // The map's values are units/s quantities, not bare numbers, so the
+    // comparison and the division both go through the magnitude.
+    const perSecond = magnitudeOf(rate);
+    if (perSecond === null || perSecond >= 0) continue;
+    if (!profile?.[name]?.isSupply) continue;
+    const amount = magnitudeOf(levels?.[name]?.current);
+    if (amount !== null) ttes.push(amount / -perSecond);
   }
   return ttes.length ? Math.min(...ttes) : null;
 }

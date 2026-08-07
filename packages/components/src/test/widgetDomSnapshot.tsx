@@ -184,11 +184,6 @@ function resolveSpaceWeatherFlightWire(fixture: Fixture): unknown {
 function resolveKerbalismLifeSupportWire(fixture: Fixture): unknown {
   const hasLs = Object.keys(fixture).some((k) => k.startsWith("ls."));
   if (!hasLs) return undefined;
-  const res = (p: string) => ({
-    amount: fnum(fixture, `${p}.amount`) ?? 0,
-    capacity: fnum(fixture, `${p}.capacity`) ?? 0,
-    rate: fnum(fixture, `${p}.rate`) ?? 0,
-  });
   const proc = (id: string, resource: string, title: string) => {
     const state = Math.round(fnum(fixture, `ls.process.${id}`) ?? 0);
     return {
@@ -199,11 +194,17 @@ function resolveKerbalismLifeSupportWire(fixture: Fixture): unknown {
       broken: state === 2,
     };
   };
+  // `kerbalism.lifesupport` carries RATES only, keyed by resource name; the
+  // levels ride the generic `vessel.resources` (see `lifeSupportLevels` below).
+  // Absent means "no rate reported", so a fixture that names no consumables
+  // emits an empty map rather than a map of zeros.
+  const rates: Record<string, number> = {};
+  for (const [name, prefix] of RESOURCE_FIXTURE_KEYS) {
+    const rate = fnum(fixture, `${prefix}.rate`);
+    if (rate !== null && rate !== undefined) rates[name] = rate;
+  }
   return {
-    food: res("ls.food"),
-    water: res("ls.water"),
-    oxygen: res("ls.oxygen"),
-    electricCharge: res("ls.ec"),
+    rates,
     habitat: {
       pressure: fbool(fixture, "ls.pressure") ? 1 : 0,
       poisoning: fnum(fixture, "ls.co2Poisoning") ?? 0,
@@ -220,6 +221,47 @@ function resolveKerbalismLifeSupportWire(fixture: Fixture): unknown {
       proc("fuelCell", "_MonopropFuelCell", "Fuel cell"),
     ],
   };
+}
+
+/**
+ * KSP resource name -> the fixture prefix its levels/rate live under. The
+ * fixtures predate the wire carrying resource names, so they still use short
+ * keys (`ls.ec`); this is the one place the two vocabularies meet.
+ */
+const RESOURCE_FIXTURE_KEYS: ReadonlyArray<readonly [string, string]> = [
+  ["Food", "ls.food"],
+  ["Water", "ls.water"],
+  ["Oxygen", "ls.oxygen"],
+  ["ElectricCharge", "ls.ec"],
+];
+
+/**
+ * The `vessel.resources` half of a life-support fixture: amounts and
+ * capacities, which were never Kerbalism-specific and now ride the generic
+ * name-keyed channel every consumer already has.
+ */
+function vesselResourcesFromLifeSupportFixture(
+  fixture: Record<string, unknown>,
+):
+  | {
+      resources: Record<
+        string,
+        { current: number; max: number; active: boolean }
+      >;
+    }
+  | undefined {
+  if (!Object.keys(fixture).some((k) => k.startsWith("ls."))) return undefined;
+  const resources: Record<
+    string,
+    { current: number; max: number; active: boolean }
+  > = {};
+  for (const [name, prefix] of RESOURCE_FIXTURE_KEYS) {
+    const current = fnum(fixture, `${prefix}.amount`);
+    const max = fnum(fixture, `${prefix}.capacity`);
+    if (current === null || current === undefined) continue;
+    resources[name] = { current, max: max ?? 0, active: true };
+  }
+  return { resources };
 }
 
 /**
@@ -294,6 +336,7 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
   const kerbalismSpaceWeatherWire = resolveKerbalismSpaceWeatherWire(fixture);
   const spaceWeatherFlightWire = resolveSpaceWeatherFlightWire(fixture);
   const kerbalismLifeSupportWire = resolveKerbalismLifeSupportWire(fixture);
+  const lifeSupportLevelsWire = vesselResourcesFromLifeSupportFixture(fixture);
   if (
     pinnedUt === undefined &&
     vesselPartsWire === undefined &&
@@ -350,6 +393,12 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
       }
       if (kerbalismLifeSupportWire !== undefined) {
         stream.emit("kerbalism.lifesupport", kerbalismLifeSupportWire);
+      }
+      // The levels half. Emitted alongside because a life-support fixture is
+      // only meaningful with both: rates say which way each resource is going,
+      // vessel.resources says how much is left.
+      if (lifeSupportLevelsWire !== undefined) {
+        stream.emit("vessel.resources", lifeSupportLevelsWire);
       }
     },
   };

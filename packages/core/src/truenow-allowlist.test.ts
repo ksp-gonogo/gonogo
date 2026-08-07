@@ -138,7 +138,19 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside the helper
   // body + 2 call sites + the helper's own declaration line = 3 helper
   // matches. 1 explicit + 3 helper = 4.
-  "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 4,
+  //
+  // Plus kerbalism.profile, which carries the loaded profile's own rules,
+  // processes and resource definitions so the app can derive the resource
+  // graph without gonogo naming a resource. Same class as kerbalism.features
+  // and reviewed on the same grounds: it is the player's INSTALL talking about
+  // itself, read once at load from static config, and it cannot leak a vessel's
+  // future state because it carries no vessel state and never changes within a
+  // session. It rides its own `Static(topic)` helper rather than `TrueNow`
+  // (a much longer keyframe interval; a static payload should not re-emit at
+  // telemetry cadence), so it contributes exactly 1 more EXPLICIT match, the
+  // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
+  // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
+  "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 5,
   // avionics.available: whether the RP-1 avionics assembly is INSTALLED, a
   // fact about the player's install the command centre knows independent of any
   // vessel's comms link, same class as kerbcast.available / uplink health. (Its

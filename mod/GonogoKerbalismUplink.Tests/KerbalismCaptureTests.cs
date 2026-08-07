@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Gonogo.KerbalismUplink;
 using Sitrep.Contract;
 using Xunit;
@@ -32,27 +33,203 @@ public class KerbalismCaptureTests
     }
 
     [Fact]
-    public void BuildLifeSupport_maps_food_consumable_and_processes()
+    public void BuildLifeSupport_carries_a_rate_per_resource_and_the_process_list()
     {
-        var snap = new KerbalismSnapshot
+        var rates = new Dictionary<string, double>
         {
-            FoodAmount = 1.35,
-            FoodCapacity = 1.35,
-            FoodRate = -1.2035471250352793e-05,
+            ["Food"] = -1.2035471250352793e-05,
+            // A resource the old four-property shape could not carry at all.
+            ["CarbonDioxide"] = 1.2457997500000001e-03,
+            // A present ZERO: a real, measured "in balance" reading, and
+            // distinguishable from an absent key. Both matter to a consumer.
+            ["Nitrogen"] = 0.0,
         };
         var processes = new List<ProcessRaw>
         {
-            new() { Resource = "_Scrubber", Title = "Scrubber", Capacity = 1.67, Running = true, Broken = false },
+            new()
+            {
+                Resource = "_Scrubber", Title = "Scrubber", Capacity = 1.67,
+                Running = true, Broken = false, FlightId = 4088652289, ValveIndex = 0,
+            },
         };
-        var ls = KerbalismCapture.BuildLifeSupport(snap, processes);
-        var food = (Dictionary<string, object?>)ls["food"]!;
-        Assert.Equal(1.35, (double)food["amount"]!, 6);
-        Assert.Equal(-1.2035471250352793e-05, (double)food["rate"]!, 12);
+
+        var ls = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), processes, rates);
+
+        var map = (Dictionary<string, object?>)ls["rates"]!;
+        Assert.Equal(-1.2035471250352793e-05, (double)map["Food"]!, 12);
+        Assert.Equal(1.2457997500000001e-03, (double)map["CarbonDioxide"]!, 12);
+        Assert.Equal(0.0, (double)map["Nitrogen"]!, 12);
+        Assert.False(map.ContainsKey("Unobtainium"));
+
+        // Resource names are dictionary KEYS, not property names, so
+        // CamelCaseForProperties must not touch them.
+        Assert.Contains("ElectricCharge", new[] { "ElectricCharge" });
+        Assert.DoesNotContain("food", map.Keys);
 
         var procs = (List<object>)ls["processes"]!;
         var scrubber = (Dictionary<string, object?>)procs[0];
         Assert.Equal("Scrubber", scrubber["title"]);
         Assert.Equal(true, scrubber["running"]);
+        // The two additions: WHERE the process runs, and which valve is open.
+        Assert.Equal(4088652289d, (double)scrubber["flightId"]!);
+        Assert.Equal(0, scrubber["valveIndex"]);
+    }
+
+    [Fact]
+    public void BuildLifeSupport_emits_an_empty_map_rather_than_null_when_no_rates()
+    {
+        var ls = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), new List<ProcessRaw>());
+        var map = (Dictionary<string, object?>)ls["rates"]!;
+        Assert.Empty(map);
+    }
+
+    // ── kerbalism.profile ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The stock profile's own numbers for the two rules that make the interval
+    /// trap visible: `drinking` fires once per 5400s, `breathing` is continuous.
+    /// </summary>
+    private static ProfileRaw StockishProfile() => new()
+    {
+        Name = "Default",
+        Rules =
+        {
+            new RuleDefRaw
+            {
+                Name = "drinking", Input = "Water", Output = "WasteWater",
+                Rate = 0.03359375, Interval = 5400.0, Degeneration = 0.08333,
+                FatalThreshold = 1.0,
+            },
+            new RuleDefRaw
+            {
+                Name = "breathing", Input = "Oxygen", Output = "WasteAtmosphere",
+                Rate = 0.00172379825, Interval = 0.0, Degeneration = 0.0055555,
+                FatalThreshold = 1.0, Modifiers = { "non_breathable" },
+            },
+        },
+        Processes =
+        {
+            new ProcessDefRaw
+            {
+                Name = "scrubber",
+                Inputs = { ["ElectricCharge"] = 0.025, ["WasteAtmosphere"] = 0.00124579975 },
+                Outputs = { ["CarbonDioxide"] = 0.00124579975 },
+                Modifiers = { "_Scrubber" },
+            },
+        },
+        Supplies = { new SupplyDefRaw { Resource = "Water", LowThreshold = 0.15 } },
+        Resources =
+        {
+            ["Water"] = new ResourceDefRaw
+            {
+                Name = "Water", DisplayName = "Water",
+                FlowMode = "ALL_VESSEL", Density = 0.001,
+            },
+        },
+    };
+
+    [Fact]
+    public void BuildProfile_divides_an_interval_rule_down_to_per_second()
+    {
+        var rules = (List<object>)KerbalismCapture.BuildProfile(StockishProfile())["rules"]!;
+        var drinking = (Dictionary<string, object?>)rules[0];
+
+        // The whole reason RatePerSecond exists. Reading `rate` as per-second
+        // overstates drinking by its 5400s interval, and the result stays
+        // plausible-looking, which is exactly why it must be divided once, here.
+        Assert.Equal(0.03359375 / 5400.0, (double)drinking["ratePerSecond"]!, 15);
+        Assert.Equal(0.03359375, (double)drinking["rate"]!, 15);
+        Assert.Equal(5400.0, (double)drinking["interval"]!, 6);
+    }
+
+    [Fact]
+    public void BuildProfile_leaves_a_continuous_rule_alone()
+    {
+        var rules = (List<object>)KerbalismCapture.BuildProfile(StockishProfile())["rules"]!;
+        var breathing = (Dictionary<string, object?>)rules[1];
+
+        // No interval means genuinely per-second. This is the rule that hides
+        // the bug from anyone who sanity-checks only one.
+        Assert.Equal(0.00172379825, (double)breathing["ratePerSecond"]!, 15);
+        Assert.Equal(0.0, (double)breathing["interval"]!, 6);
+    }
+
+    [Fact]
+    public void ResourceNames_unions_rules_processes_and_supplies_and_drops_pseudo_resources()
+    {
+        var names = KerbalismCapture.ResourceNames(StockishProfile());
+
+        Assert.Equal(
+            new[]
+            {
+                "CarbonDioxide", "ElectricCharge", "Oxygen",
+                "WasteAtmosphere", "WasteWater", "Water",
+            },
+            names);
+
+        // "_Scrubber" is a process gate, not a consumable: it must never reach
+        // the ledger or ResourceAverageRate.
+        Assert.DoesNotContain(names, n => n.StartsWith("_"));
+    }
+
+    [Fact]
+    public void BuildProfile_carries_flow_mode_and_supply_status_per_resource()
+    {
+        var resources = (Dictionary<string, object?>)
+            KerbalismCapture.BuildProfile(StockishProfile())["resources"]!;
+
+        var water = (Dictionary<string, object?>)resources["Water"]!;
+        // Without flowMode a consumer cannot know that a per-tank split is
+        // bookkeeping for a pooled resource.
+        Assert.Equal("ALL_VESSEL", water["flowMode"]);
+        Assert.Equal(true, water["isSupply"]);
+        Assert.Equal(0.15, (double)water["lowThreshold"]!, 6);
+
+        // Mentioned by a process but not declared as a Supply: still carried,
+        // still enumerated, just not life support.
+        var ec = (Dictionary<string, object?>)resources["ElectricCharge"]!;
+        Assert.Equal(false, ec["isSupply"]);
+        Assert.Null(ec["lowThreshold"]);
+        // No KSP resource definition available in a headless test: degrades to
+        // empty rather than throwing or omitting the resource.
+        Assert.Equal("", ec["flowMode"]);
+    }
+
+    [Fact]
+    public void BuildProfile_keeps_the_process_join_key_and_its_rates()
+    {
+        var processes = (List<object>)KerbalismCapture.BuildProfile(StockishProfile())["processes"]!;
+        var scrubber = (Dictionary<string, object?>)processes[0];
+
+        // "_Scrubber" is what joins this recipe to a part's ProcessController.
+        // Lose it and every ledger row for that part silently disappears.
+        Assert.Contains("_Scrubber", (List<object>)scrubber["modifiers"]!);
+
+        var inputs = (Dictionary<string, object?>)scrubber["inputs"]!;
+        Assert.Equal(0.025, (double)inputs["ElectricCharge"]!, 12);
+    }
+
+    /// <summary>
+    /// The anti-regression guard for the whole exercise: no per-resource property
+    /// may reappear on the life-support payload. Four of them
+    /// (Food/Water/Oxygen/ElectricCharge) were the original hardcoding, against a
+    /// default profile that runs on twelve, and they were spelled out in three
+    /// separate files. If someone adds a fifth, this fails before it ships.
+    /// </summary>
+    [Fact]
+    public void KerbalismLifeSupport_declares_no_per_resource_property()
+    {
+        var offenders = typeof(Sitrep.Contract.KerbalismLifeSupport)
+            .GetProperties()
+            .Where(p => p.PropertyType == typeof(Sitrep.Contract.KerbalismResource))
+            .Select(p => p.Name)
+            .ToArray();
+
+        Assert.True(
+            offenders.Length == 0,
+            "kerbalism.lifesupport must name no resource of its own; the rates map "
+                + "carries every resource the loaded profile mentions. Found: "
+                + string.Join(", ", offenders));
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Gonogo.KerbalismUplink
@@ -27,10 +28,115 @@ namespace Gonogo.KerbalismUplink
             ["shieldingCapacity"] = s.ShieldingCapacity,
         };
 
-        private static Dictionary<string, object?> Res(double a, double c, double r) =>
-            new() { ["amount"] = a, ["capacity"] = c, ["rate"] = r };
+        /// <summary>
+        /// The resources the life-support ledger reports a rate for: the union of
+        /// every rule input/output, every process input/output and every Supply in
+        /// the loaded profile. Pseudo-resources (the leading-underscore tokens
+        /// Kerbalism uses to gate a process, e.g. "_Scrubber") are excluded, they
+        /// are plumbing, not consumables.
+        ///
+        /// <para>THE authoritative list, and deliberately the ONLY one. It drives
+        /// both which names <c>CaptureOnMain</c> asks Kerbalism for a rate about and
+        /// what <c>kerbalism.profile</c> declares, so the two cannot drift; a second
+        /// list anywhere would be the old hardcoding in a new disguise. Asserted by
+        /// <c>LifeSupportResourceCoverageTests</c>.</para>
+        /// </summary>
+        public static List<string> ResourceNames(ProfileRaw profile)
+        {
+            var seen = new SortedSet<string>(StringComparer.Ordinal);
+            void Add(string? name)
+            {
+                if (!string.IsNullOrEmpty(name) && !name!.StartsWith("_", StringComparison.Ordinal))
+                    seen.Add(name);
+            }
 
-        public static Dictionary<string, object?> BuildLifeSupport(KerbalismSnapshot s, List<ProcessRaw> processes)
+            foreach (var r in profile.Rules) { Add(r.Input); Add(r.Output); }
+            foreach (var p in profile.Processes)
+            {
+                foreach (var k in p.Inputs.Keys) Add(k);
+                foreach (var k in p.Outputs.Keys) Add(k);
+            }
+            foreach (var s in profile.Supplies) Add(s.Resource);
+            return new List<string>(seen);
+        }
+
+        /// <summary>
+        /// The loaded profile's own definitions (Topic "kerbalism.profile"). Pure:
+        /// no KSP, no Kerbalism, fixture-testable.
+        /// </summary>
+        public static Dictionary<string, object?> BuildProfile(ProfileRaw profile)
+        {
+            var lowThresholds = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var s in profile.Supplies)
+                if (!string.IsNullOrEmpty(s.Resource)) lowThresholds[s.Resource] = s.LowThreshold;
+
+            var resources = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var name in ResourceNames(profile))
+            {
+                profile.Resources.TryGetValue(name, out var def);
+                var isSupply = lowThresholds.TryGetValue(name, out var low);
+                resources[name] = new Dictionary<string, object?>
+                {
+                    ["flowMode"] = def?.FlowMode ?? "",
+                    ["displayName"] = def?.DisplayName ?? name,
+                    ["density"] = def?.Density ?? 0,
+                    ["isSupply"] = isSupply,
+                    ["lowThreshold"] = isSupply ? low : (double?)null,
+                };
+            }
+
+            var rules = new List<object>();
+            foreach (var r in profile.Rules)
+                rules.Add(new Dictionary<string, object?>
+                {
+                    ["name"] = r.Name,
+                    ["input"] = r.Input,
+                    ["output"] = r.Output,
+                    // The whole reason this field exists: a Rule with an interval
+                    // consumes `rate` ONCE PER INTERVAL. Dividing here, once, is
+                    // what stops every consumer rediscovering that the hard way.
+                    ["ratePerSecond"] = r.Interval > 0 ? r.Rate / r.Interval : r.Rate,
+                    ["rate"] = r.Rate,
+                    ["interval"] = r.Interval,
+                    ["degeneration"] = r.Degeneration,
+                    ["fatalThreshold"] = r.FatalThreshold,
+                    ["breakdown"] = r.Breakdown,
+                    ["modifiers"] = new List<object>(r.Modifiers),
+                });
+
+            var processes = new List<object>();
+            foreach (var p in profile.Processes)
+                processes.Add(new Dictionary<string, object?>
+                {
+                    ["name"] = p.Name,
+                    ["inputs"] = new Dictionary<string, object?>(
+                        Cast(p.Inputs), StringComparer.Ordinal),
+                    ["outputs"] = new Dictionary<string, object?>(
+                        Cast(p.Outputs), StringComparer.Ordinal),
+                    ["modifiers"] = new List<object>(p.Modifiers),
+                    ["dumpValves"] = new List<object>(p.DumpValves),
+                });
+
+            return new Dictionary<string, object?>
+            {
+                ["name"] = profile.Name,
+                ["resources"] = resources,
+                ["rules"] = rules,
+                ["processes"] = processes,
+            };
+        }
+
+        private static Dictionary<string, object?> Cast(Dictionary<string, double> src)
+        {
+            var outMap = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var kv in src) outMap[kv.Key] = kv.Value;
+            return outMap;
+        }
+
+        public static Dictionary<string, object?> BuildLifeSupport(
+            KerbalismSnapshot s,
+            List<ProcessRaw> processes,
+            IReadOnlyDictionary<string, double>? rates = null)
         {
             var procs = new List<object>();
             foreach (var p in processes)
@@ -41,14 +147,19 @@ namespace Gonogo.KerbalismUplink
                     ["capacity"] = p.Capacity,
                     ["running"] = p.Running,
                     ["broken"] = p.Broken,
+                    ["flightId"] = p.FlightId,
+                    ["valveIndex"] = p.ValveIndex,
                 });
+
+            // Full map every emission, never a delta: a key disappearing is then
+            // itself a real statement (vessel.resources' own convention).
+            var rateMap = new Dictionary<string, object?>(StringComparer.Ordinal);
+            if (rates != null)
+                foreach (var kv in rates) rateMap[kv.Key] = kv.Value;
 
             return new Dictionary<string, object?>
             {
-                ["food"] = Res(s.FoodAmount, s.FoodCapacity, s.FoodRate),
-                ["water"] = Res(s.WaterAmount, s.WaterCapacity, s.WaterRate),
-                ["oxygen"] = Res(s.OxygenAmount, s.OxygenCapacity, s.OxygenRate),
-                ["electricCharge"] = Res(s.EcAmount, s.EcCapacity, s.EcRate),
+                ["rates"] = rateMap,
                 ["habitat"] = new Dictionary<string, object?>
                 {
                     ["pressure"] = s.Pressure,
@@ -123,10 +234,15 @@ namespace Gonogo.KerbalismUplink
     {
         public double Radiation, HabitatRadiation, ShieldingAmount, ShieldingCapacity;
         public bool Magnetosphere, InnerBelt, OuterBelt, StormIncoming, StormInProgress, Blackout, InSunlight;
-        public double FoodAmount, FoodCapacity, FoodRate;
-        public double WaterAmount, WaterCapacity, WaterRate;
-        public double OxygenAmount, OxygenCapacity, OxygenRate;
-        public double EcAmount, EcCapacity, EcRate;
         public double Pressure, Poisoning, Shielding, LivingSpace, Comfort, Volume, Surface;
+        /// <summary>
+        /// Signed net rate per resource (units/s), keyed by KSP resource name.
+        /// Replaced the Food/Water/Oxygen/ElectricCharge triples: those were four
+        /// of the twelve the default profile runs on, and were spelled out in
+        /// three separate files. The names here come from
+        /// <see cref="KerbalismCapture.ResourceNames"/> reading the loaded
+        /// profile, never from a list in gonogo.
+        /// </summary>
+        public Dictionary<string, double> Rates;
     }
 }

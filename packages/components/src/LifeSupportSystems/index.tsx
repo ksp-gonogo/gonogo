@@ -70,17 +70,34 @@ interface LifeSupportData {
   greenhouses: GreenhouseRow[];
 }
 
-interface WireResource {
-  amount?: Quantityish;
-  capacity?: Quantityish;
-  rate?: Quantityish;
-}
-
-function consumable(r: WireResource | undefined): Consumable {
+/**
+ * One consumable, joined across the two channels that now own its halves.
+ *
+ * `kerbalism.lifesupport` carries a `rates` map keyed by KSP resource name; it
+ * no longer names Food/Water/Oxygen/ElectricCharge as fixed properties, because
+ * that was four of the twelve the stock profile runs on and it made a Kerbalism
+ * player's "where did my CO2 reading go" a three-file question. Amounts and
+ * capacities were never Kerbalism-specific and come off `vessel.resources`,
+ * which is generic and already carries every resource on the craft.
+ *
+ * Absence is meaningful on both sides and must NOT be conflated with zero:
+ * an absent `vessel.resources` key means the craft carries no such tank, and an
+ * absent `rates` key means Kerbalism reports no rate. Both default to 0 here
+ * only because this widget's meters need a number; the redesign that renders
+ * every profile resource should distinguish them.
+ */
+function consumable(
+  name: string,
+  rates: Record<string, Quantityish> | undefined,
+  levels:
+    | { [key: string]: { current?: Quantityish; max?: Quantityish } }
+    | undefined,
+): Consumable {
+  const level = levels?.[name];
   return {
-    amount: magnitudeOr(r?.amount, 0),
-    capacity: magnitudeOr(r?.capacity, 0),
-    rate: magnitudeOr(r?.rate, 0),
+    amount: magnitudeOr(level?.current, 0),
+    capacity: magnitudeOr(level?.max, 0),
+    rate: magnitudeOr(rates?.[name], 0),
   };
 }
 
@@ -135,11 +152,18 @@ function toGreenhouseRow(g: WireGreenhouse): GreenhouseRow {
 
 function useLifeSupport(): LifeSupportData {
   const t = useTelemetry("kerbalism.lifesupport");
+  // Levels come from the generic channel now; see `consumable`.
+  const levels = useTelemetry("vessel.resources")?.resources;
+  const rates = t?.rates;
   return {
-    food: consumable(t?.food),
-    water: consumable(t?.water),
-    oxygen: consumable(t?.oxygen),
-    ec: consumable(t?.electricCharge),
+    // These four names are the LAST hardcoded resource list in the Kerbalism
+    // path: the contract and the capture both enumerate from the loaded profile
+    // now. They stay here only until this widget is rebuilt to render every
+    // resource the profile carries, at which point they go too.
+    food: consumable("Food", rates, levels),
+    water: consumable("Water", rates, levels),
+    oxygen: consumable("Oxygen", rates, levels),
+    ec: consumable("ElectricCharge", rates, levels),
     pressurized: magnitudeOr(t?.habitat?.pressure, 0) > 0.5,
     co2Poisoning: magnitudeOr(t?.habitat?.poisoning, 0),
     comfort: magnitudeOr(t?.habitat?.comfort, 0),

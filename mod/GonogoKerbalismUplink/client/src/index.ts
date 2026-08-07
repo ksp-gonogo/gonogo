@@ -9,3 +9,35 @@
 // the visual/snapshot probe harness that renders them lives in components, so
 // the move is a mechanical file relocation with no data-path change.
 import "./topics";
+
+export type {
+  DiagnosisGroup,
+  DiagnosisInput,
+  GraphNode,
+  Ledger,
+  LedgerInput,
+  LedgerTerm,
+  ResourceFacts,
+  ResourceGraph,
+  ResourceRow,
+  Summary,
+  SummaryInput,
+  WearRow,
+} from "./ecosystem";
+// The derivation layer over the Kerbalism payloads: the resource graph, the
+// per-source rate ledger, and the root-cause walk. Pure functions of the wire
+// shapes, no React and no KSP, so a widget calls them and so does a test.
+// Exported rather than kept private because the graph is the interesting part
+// of this Domain and more than one surface wants it (the life-support ledger,
+// the ecosystem view, and ShipMap's per-part resource meters).
+export {
+  buildGraph,
+  buildLedger,
+  closedLoops,
+  diagnose,
+  resourceFacts,
+  stronglyConnected,
+  summarise,
+  timeToEmptySeconds,
+  wearRows,
+} from "./ecosystem";

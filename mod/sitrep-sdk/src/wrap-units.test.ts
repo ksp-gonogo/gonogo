@@ -20,6 +20,39 @@ describe("wrapTopicPayload", () => {
     expect(payload.heatShieldTemp.magnitude).toBe(1_200);
   });
 
+  it("wraps every VALUE of a name-keyed map of same-unit readings", () => {
+    // `kerbalism.lifesupport.rates` is a rate per resource NAME. Before this,
+    // every name-keyed channel's values were nested shapes (`vessel.resources`
+    // -> ResourceAmount) whose own properties carried the units, so a map of
+    // bare scalars had no case and arrived as raw numbers a consumer had to
+    // guess at.
+    const payload = wrapTopicPayload("kerbalism.lifesupport", {
+      rates: { Water: -0.000054, ElectricCharge: -0.1856, Nitrogen: 0 },
+    } as never) as { rates: Record<string, Value> };
+
+    expect(isValue(payload.rates.Water)).toBe(true);
+    expect(payload.rates.Water.unit).toBe("units/s");
+    expect(payload.rates.Water.magnitude).toBe(-0.000054);
+    // The key is a resource name and must survive untouched: it is data, not a
+    // property name, so nothing may camel-case it.
+    expect(Object.keys(payload.rates)).toContain("ElectricCharge");
+    // A present ZERO is a real reading (in balance), not an absence.
+    expect(asValue(payload.rates.Nitrogen).magnitude).toBe(0);
+  });
+
+  it("wrapping a map twice leaves it alone", () => {
+    // Same idempotence the scalar and list cases have, and for the same
+    // reason: a payload can be re-decoded on reconnect.
+    const once = wrapTopicPayload("kerbalism.lifesupport", {
+      rates: { Water: -0.000054 },
+    } as never);
+    const twice = wrapTopicPayload("kerbalism.lifesupport", once);
+    const rates = (twice as { rates: Record<string, Value> }).rates;
+    expect(isValue(rates.Water)).toBe(true);
+    expect(rates.Water.magnitude).toBe(-0.000054);
+    expect(rates.Water.unit).toBe("units/s");
+  });
+
   it("leaves a non-quantity alone", () => {
     // text, flag, enum, id and n/a have no dimension and were never units, so
     // the registry lookup skips them without needing a list.

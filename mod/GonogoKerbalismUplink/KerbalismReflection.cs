@@ -159,7 +159,12 @@ namespace Gonogo.KerbalismUplink
             return result;
         }
 
-        /// <summary>ProcessController PartModules on the vessel (scrubber/recycler/fuel cell).</summary>
+        /// <summary>
+        /// ProcessController PartModules on the vessel (scrubber/recycler/fuel cell).
+        /// <c>Resource</c> is the PSEUDO-resource the controller gates on ("_Scrubber"),
+        /// which joins onto the profile Process whose modifier list contains it;
+        /// <c>FlightId</c> is the host part, so a ledger row can say WHERE.
+        /// </summary>
         public IEnumerable<ProcessRaw> Processes(Vessel v)
         {
             if (v?.parts == null) yield break;
@@ -177,9 +182,181 @@ namespace Gonogo.KerbalismUplink
                         Capacity = MemberDouble(pm, "capacity") ?? 0,
                         Running = MemberBool(pm, "running") ?? MemberBool(pm, "toggle") ?? false,
                         Broken = MemberBool(pm, "broken") ?? false,
+                        FlightId = part.flightID,
+                        ValveIndex = (int)(MemberDouble(pm, "valve_i") ?? 0),
                     };
                 }
             }
+        }
+
+        /// <summary>
+        /// The loaded profile's own static definitions: <c>Profile.rules</c>,
+        /// <c>Profile.processes</c>, <c>Profile.supplies</c>, plus a KSP resource
+        /// definition for every resource they mention.
+        ///
+        /// <para>This is what lets gonogo carry NO list of resource names. Read once
+        /// (the caller caches): these are static after load and do not change
+        /// within a session.</para>
+        /// </summary>
+        public ProfileRaw Profile()
+        {
+            var profile = new ProfileRaw();
+            if (_profileType == null) return profile;
+
+            foreach (var rule in StaticList("rules"))
+            {
+                var t = rule.GetType();
+                var name = Field<string>(rule, t, "name");
+                if (string.IsNullOrEmpty(name)) continue;
+                profile.Rules.Add(new RuleDefRaw
+                {
+                    Name = name!,
+                    Input = Field<string>(rule, t, "input") ?? "",
+                    Output = Field<string>(rule, t, "output") ?? "",
+                    Rate = FieldDouble(rule, t, "rate"),
+                    Interval = FieldDouble(rule, t, "interval"),
+                    Degeneration = FieldDouble(rule, t, "degeneration"),
+                    FatalThreshold = FieldDouble(rule, t, "fatal_threshold"),
+                    Breakdown = Field<bool?>(rule, t, "breakdown") ?? false,
+                    Modifiers = StringList(rule, t, "modifiers"),
+                });
+            }
+
+            foreach (var proc in StaticList("processes"))
+            {
+                var t = proc.GetType();
+                var name = Field<string>(proc, t, "name");
+                if (string.IsNullOrEmpty(name)) continue;
+                profile.Processes.Add(new ProcessDefRaw
+                {
+                    Name = name!,
+                    Inputs = RateMap(proc, t, "inputs"),
+                    Outputs = RateMap(proc, t, "outputs"),
+                    Modifiers = StringList(proc, t, "modifiers"),
+                    DumpValves = DumpValves(proc, t),
+                });
+            }
+
+            foreach (var supply in StaticList("supplies"))
+            {
+                var t = supply.GetType();
+                var resource = Field<string>(supply, t, "resource");
+                if (string.IsNullOrEmpty(resource)) continue;
+                profile.Supplies.Add(new SupplyDefRaw
+                {
+                    Resource = resource!,
+                    LowThreshold = FieldDouble(supply, t, "low_threshold"),
+                });
+            }
+
+            profile.Name = ProfileName();
+            foreach (var name in KerbalismCapture.ResourceNames(profile))
+            {
+                var def = PartResourceLibrary.Instance?.GetDefinition(name);
+                if (def == null) continue;
+                profile.Resources[name] = new ResourceDefRaw
+                {
+                    Name = name,
+                    DisplayName = string.IsNullOrEmpty(def.displayName) ? name : def.displayName,
+                    FlowMode = def.resourceFlowMode.ToString(),
+                    Density = def.density,
+                };
+            }
+            return profile;
+        }
+
+        /// <summary>
+        /// The loaded profile's name. Kerbalism stores it on Settings rather than
+        /// Profile; an empty string is fine, it is display/fixture keying only and
+        /// never a behavioural switch.
+        /// </summary>
+        private string ProfileName()
+        {
+            var settings = FindType("KERBALISM.Settings") ?? FindType("Kerbalism.Settings");
+            var field = settings?.GetField("Profile", BindingFlags.Public | BindingFlags.Static);
+            try { return field?.GetValue(null) as string ?? ""; } catch { return ""; }
+        }
+
+        private IEnumerable<object> StaticList(string fieldName)
+        {
+            var field = _profileType?.GetField(fieldName, BindingFlags.Public | BindingFlags.Static);
+            object? value = null;
+            try { value = field?.GetValue(null); } catch { }
+            if (value is not IEnumerable items) yield break;
+            foreach (var item in items)
+                if (item != null) yield return item;
+        }
+
+        private static T? Field<T>(object obj, Type t, string name)
+        {
+            try { return t.GetField(name)?.GetValue(obj) is T v ? v : default; }
+            catch { return default; }
+        }
+
+        private static double FieldDouble(object obj, Type t, string name)
+        {
+            try { return AsDouble(t.GetField(name)?.GetValue(obj)) ?? 0; } catch { return 0; }
+        }
+
+        private static List<string> StringList(object obj, Type t, string name)
+        {
+            var result = new List<string>();
+            object? value = null;
+            try { value = t.GetField(name)?.GetValue(obj); } catch { }
+            if (value is IEnumerable items)
+                foreach (var item in items)
+                    if (item is string s && s.Length > 0) result.Add(s);
+            return result;
+        }
+
+        /// <summary>
+        /// A Process's inputs/outputs: Kerbalism holds these as
+        /// <c>Dictionary&lt;string, double&gt;</c> of resource name -> rate per unit
+        /// of process capacity, per second.
+        /// </summary>
+        private static Dictionary<string, double> RateMap(object obj, Type t, string name)
+        {
+            var result = new Dictionary<string, double>(StringComparer.Ordinal);
+            object? value = null;
+            try { value = t.GetField(name)?.GetValue(obj); } catch { }
+            if (value is IDictionary dict)
+                foreach (DictionaryEntry entry in dict)
+                    if (entry.Key is string key)
+                        result[key] = AsDouble(entry.Value) ?? 0;
+            return result;
+        }
+
+        /// <summary>
+        /// The Process's dump_valve options, in the profile's declared order, so
+        /// ProcessController.valve_i indexes into the same list. Kerbalism models
+        /// this as a DumpSpecs with a list of resource-name combinations; the shape
+        /// has moved between versions, so read defensively and degrade to empty.
+        /// </summary>
+        private static List<string> DumpValves(object obj, Type t)
+        {
+            var result = new List<string>();
+            object? specs = null;
+            try { specs = t.GetField("dump_valve")?.GetValue(obj) ?? t.GetField("dumpValve")?.GetValue(obj); }
+            catch { }
+            if (specs == null) return result;
+
+            var st = specs.GetType();
+            object? combos = null;
+            try { combos = st.GetField("valves")?.GetValue(specs) ?? st.GetField("combos")?.GetValue(specs); }
+            catch { }
+            if (combos is not IEnumerable items) return result;
+
+            foreach (var combo in items)
+            {
+                if (combo is string s) { result.Add(s); continue; }
+                if (combo is IEnumerable names)
+                {
+                    var parts = new List<string>();
+                    foreach (var n in names) if (n is string ns) parts.Add(ns);
+                    if (parts.Count > 0) result.Add(string.Join("&", parts.ToArray()));
+                }
+            }
+            return result;
         }
 
         /// <summary>

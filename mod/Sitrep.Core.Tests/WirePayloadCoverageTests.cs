@@ -209,6 +209,13 @@ namespace Sitrep.Core.Tests
             "KerbalismSpaceWeather", "KerbalismLifeSupport", "KerbalismResource",
             "KerbalismHabitat", "KerbalismProcessEntry", "KerbalismCrewRule",
             "KerbalismCrewEntry", "KerbalismFeatures",
+            // kerbalism.profile: KerbalismCapture.BuildProfile flattens the whole
+            // profile (resources map, rules, processes) to nested
+            // Dictionary<string, object?> / List<object> before the uplink's
+            // AddChannelSource returns it, same as every other kerbalism.* payload
+            // above; these POCOs exist for the generated TS shape only.
+            "KerbalismProfile", "KerbalismResourceDef", "KerbalismRuleDef",
+            "KerbalismProcessDef",
             // KerbalismGreenhouseEntry is contract-and-TS-shape only: nothing
             // builds or publishes it yet (there is no BuildGreenhouse to match
             // its siblings above, only a GonogoDevTools dump that reads the

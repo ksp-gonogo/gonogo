@@ -144,6 +144,30 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
       typeof entry === "number" ? value(unit, entry) : entry,
     );
   }
+  // A name-keyed MAP of same-unit readings (a rate per resource name). Same
+  // rule as the list: the unit belongs to each VALUE, and the key is just a
+  // name. The `*` branch above already covers a map whose values are nested
+  // SHAPES; this is the map whose values are bare scalars, which had no case
+  // until `kerbalism.lifesupport.rates` needed one. Every earlier name-keyed
+  // channel used a shape as its value (`vessel.resources` -> ResourceAmount),
+  // and a shape's own properties carry the units.
+  //
+  // Guarded by `!isValue`, because a Value IS an object: without the guard
+  // this branch would walk an already-wrapped scalar and re-wrap its own
+  // `magnitude` field, turning `{magnitude: 1200, unit: "K"}` into
+  // `{magnitude: Value(1200), unit: "K"}` on the second decode. The existing
+  // idempotence test caught exactly that.
+  //
+  // Non-numeric entries then pass through untouched, so a map that is already
+  // wrapped is left alone too and this stays idempotent like the cases above.
+  if (current !== null && typeof current === "object" && !isValue(current)) {
+    const entries = current as Record<string, unknown>;
+    for (const key of Object.keys(entries)) {
+      const entry = entries[key];
+      if (typeof entry === "number") entries[key] = value(unit, entry);
+    }
+    return entries;
+  }
   // Absent, null, or already wrapped. Leaving it alone keeps this idempotent,
   // which matters because a payload can be re-decoded on reconnect.
   return current;
