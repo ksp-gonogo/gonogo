@@ -1,3 +1,4 @@
+import { clearProcessors, defineProcessor } from "@ksp-gonogo/sitrep-client";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type ContributionDefinition,
@@ -90,5 +91,29 @@ describe("getContributionSettings", () => {
         fields: [{ key: "showExtra", type: "boolean", default: false }],
       },
     ]);
+  });
+});
+
+describe("ContributionDefinition.deps accepting a ProcessorHandle", () => {
+  beforeEach(() => clearProcessors());
+
+  it("type-checks and registers a contribution whose deps mixes a TopicId and a ProcessorHandle", () => {
+    const processor = defineProcessor({
+      id: "fixture-processor",
+      owner: "core",
+      deps: [] as const,
+      compute: () => 1,
+    });
+
+    // Compile-time proof: registering must not error at the type level now
+    // that `deps` accepts `Dep`, not just `TopicId`.
+    registerContribution({
+      id: "mixed-deps",
+      contributes: "test.slot",
+      deps: ["vessel.orbit", processor],
+      compute: () => null,
+    });
+
+    expect(getContributionsForSlot("test.slot")[0].id).toBe("mixed-deps");
   });
 });

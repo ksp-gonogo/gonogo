@@ -1,4 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
+import type { Dep } from "@ksp-gonogo/sitrep-client";
 import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import type {
   AugmentSettingField,
@@ -40,10 +41,17 @@ type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
     : never
   : never;
 
-/** The typed argument a slot's contributions receive: current values of every declared topic. */
+/**
+ * The typed argument a slot's contributions receive: current values of every
+ * declared topic, keyed by topic id. The `& Record<string, unknown>` tail keeps
+ * a Processor dep readable by its stamped id (`topics[processor.id]`, typed
+ * `unknown`) while the mapped head preserves each declared Topic's precise
+ * payload type (intersection: a declared topic key keeps `TopicPayload<K>`,
+ * since `X & unknown = X`).
+ */
 export type ContributionTopics<S extends string> = {
   readonly [K in DeclaredTopicUnion<S> & TopicId]: TopicPayload<K> | undefined;
-};
+} & Record<string, unknown>;
 
 /** One rendered entry, tagged with provenance for keys and blame. */
 export type Contributed<E> = E & {
@@ -57,11 +65,12 @@ export interface ContributionDefinition<S extends string = string> {
   /** The slot this contribution feeds. */
   contributes: S;
   /**
-   * This contribution's own Topics, statically declared (contribution-slots-
-   * spec §14: shared `deps` field with Processor; Phase 1 accepts Topics
-   * only, widened to accept ProcessorHandle deps once Processor lands).
+   * This contribution's own deps: Topics and/or Processors, statically
+   * declared (contribution-slots-spec §14: shared `deps` field with Processor).
+   * A ProcessorHandle dep resolves to that processor's frame-memoised value
+   * (read by its stamped id); a TopicId dep resolves as it always has.
    */
-  deps?: readonly TopicId[];
+  deps?: readonly Dep[];
   /**
    * Pure. Receives the current values of `deps`, typed. Returns entries to
    * render, or null/undefined for "nothing now". MUST be referentially

@@ -1,3 +1,4 @@
+import { clearProcessors, getProcessor } from "@ksp-gonogo/sitrep-client";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearContributions, getContributionsForSlot } from "./contributions";
 import {
@@ -22,7 +23,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
     expect(getUplinkClients()).toContainEqual(handle);
   });
 
-  it("returns a frozen handle carrying exactly the declared fields plus a bound registerContribution", () => {
+  it("returns a frozen handle carrying exactly the declared fields plus bound registerContribution/registerProcessor", () => {
     const handle = defineUplinkClient({
       id: "mod-beta",
       version: "1.2.3",
@@ -35,6 +36,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       version: "1.2.3",
       name: "Mod Beta",
       registerContribution: expect.any(Function),
+      registerProcessor: expect.any(Function),
     });
   });
 
@@ -122,5 +124,26 @@ describe("UplinkClientHandle.registerContribution", () => {
 describe("CORE_UPLINK_CLIENT", () => {
   it('is a reserved handle with id "core" for built-in registrations', () => {
     expect(CORE_UPLINK_CLIENT.id).toBe("core");
+  });
+});
+
+describe("UplinkClientHandle.registerProcessor", () => {
+  beforeEach(() => clearProcessors());
+
+  it("stamps the processor's owner with the client's own id", () => {
+    const client = defineUplinkClient({
+      id: "example-uplink",
+      version: "1.0.0",
+      name: "Example",
+    });
+
+    const handle = client.registerProcessor({
+      id: "fuel-level",
+      deps: [] as const,
+      compute: () => 42,
+    });
+
+    expect(handle.id).toBe("example-uplink:fuel-level");
+    expect(getProcessor(handle.id)?.owner).toBe("example-uplink");
   });
 });

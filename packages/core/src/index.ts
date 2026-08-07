@@ -1,3 +1,15 @@
+// Single import surface for the Processor primitive (contribution-slots-spec
+// §14): the definition/hook/types live in the sitrep-client spine (importing
+// core would cycle); re-exported here so client code has one `@ksp-gonogo/core`
+// import. The bare `./processorPerfBudget` import is for its side effect: it
+// wires the evaluator's recorder seam to a real core-side PerfBudget at load.
+export {
+  type Dep,
+  defineProcessor,
+  type ProcessorHandle,
+  type ResolvedDeps,
+  useProcessor,
+} from "@ksp-gonogo/sitrep-client";
 export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";
@@ -39,6 +51,7 @@ export { ErrorBoundary } from "./logger/ErrorBoundary";
 export * from "./mapPoi";
 export * from "./orbital";
 export * from "./perf/PerfBudget";
+export { PROCESSOR_EVAL_BUDGET } from "./processorPerfBudget";
 export * from "./registry";
 export * from "./rss-bodies";
 export * from "./safeRandomUuid";

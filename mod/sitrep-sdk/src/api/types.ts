@@ -219,6 +219,27 @@ export interface UplinkClientHandle {
     priority?: number;
     settings?: readonly AugmentSettingField[];
   }): void;
+  /**
+   * Register a Processor auto-namespaced to this client (mirrors
+   * `registerContribution`'s owner-stamping). Same leaf constraint as the rest
+   * of this file: the shared derived-logic primitive (`ProcessorHandle`, `Dep`,
+   * `ResolvedDeps`, sitrep-client's `processors.ts`) is not part of the frozen
+   * author-facing surface, so its shape is inlined loosely here (a name+arity
+   * probe, like `registerContribution`) rather than named.
+   */
+  registerProcessor<
+    const Deps extends readonly (
+      | TopicId
+      | { readonly id: string; readonly __resultType?: unknown }
+    )[],
+    R,
+  >(def: {
+    id: string;
+    deps: Deps;
+    /** Intentionally loose: the leaf cannot name `ResolvedDeps<Deps>`. */
+    // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
+    compute: (values: any) => R;
+  }): { readonly id: string; readonly __resultType?: R };
 }
 
 // --- Fog reveal sources ------------------------------------------------------

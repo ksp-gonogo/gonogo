@@ -21,6 +21,12 @@
  */
 
 import {
+  type Dep,
+  defineProcessor,
+  type ProcessorHandle,
+  type ResolvedDeps,
+} from "@ksp-gonogo/sitrep-client";
+import {
   type ContributionDefinition,
   registerContribution,
 } from "./contributions";
@@ -43,6 +49,18 @@ export interface UplinkClientHandle {
   registerContribution<S extends string>(
     def: Omit<ContributionDefinition<S>, "owner">,
   ): void;
+  /**
+   * Register a Processor auto-namespaced to this client (mirrors
+   * registerContribution's owner-stamping). sitrep-client's defineProcessor
+   * takes a plain string owner (it cannot import this package's
+   * UplinkClientHandle type without a dependency cycle); this method is the
+   * bridge that lets a client call it by handle instead of by hand-typed id.
+   */
+  registerProcessor<const Deps extends readonly Dep[], R>(def: {
+    id: string;
+    deps: Deps;
+    compute: (values: ResolvedDeps<Deps>) => R;
+  }): ProcessorHandle<R>;
 }
 
 const clients = new Map<string, UplinkClientHandle>();
@@ -79,6 +97,13 @@ export function defineUplinkClient(cfg: {
         id: `${cfg.id}:${def.id}`,
         owner: handle,
       });
+    },
+    registerProcessor<const Deps extends readonly Dep[], R>(def: {
+      id: string;
+      deps: Deps;
+      compute: (values: ResolvedDeps<Deps>) => R;
+    }): ProcessorHandle<R> {
+      return defineProcessor({ ...def, owner: cfg.id });
     },
   });
   clients.set(handle.id, handle);

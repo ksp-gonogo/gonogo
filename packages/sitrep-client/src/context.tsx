@@ -26,6 +26,7 @@ import {
 import { vesselManeuverLegacyChannel } from "./maneuver-legacy";
 import { mapCommand } from "./map-command";
 import { mapTopic } from "./map-topic";
+import { setActiveTimelineStore as setProcessorEvaluatorStore } from "./processorEvaluator";
 import { StreamRecorder, type StreamRecorderOptions } from "./replay-recorder";
 import { spaceCenterStateChannel } from "./space-center-state";
 import { systemStateChannel } from "./system-state";
@@ -257,9 +258,15 @@ export function TelemetryProvider({
   useEffect(() => {
     activeViewClock = store.clock;
     activeTimelineStore = store;
+    // Same store, same lifecycle: point the Processor evaluator (Phase 3) at
+    // this provider's frame source so useProcessor / contribution Processor
+    // deps evaluate against it. Cleared on unmount so a torn-down provider
+    // never leaves the evaluator reading a dead store.
+    setProcessorEvaluatorStore(store);
     return () => {
       if (activeViewClock === store.clock) activeViewClock = undefined;
       if (activeTimelineStore === store) activeTimelineStore = undefined;
+      setProcessorEvaluatorStore(undefined);
     };
   }, [store]);
   // Registers the client itself as `getActiveTelemetryClient()`'s source,

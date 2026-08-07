@@ -1,7 +1,11 @@
 import {
+  clearProcessors,
+  defineProcessor,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
+  TimelineStore,
+  ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
@@ -36,7 +40,10 @@ declare module "./contributions" {
   }
 }
 
-beforeEach(() => clearContributions());
+beforeEach(() => {
+  clearContributions();
+  clearProcessors();
+});
 
 function Harness({ slots }: { slots: readonly ["fixture.rows"] }) {
   return (
@@ -110,6 +117,44 @@ describe("useContributions", () => {
     });
 
     await waitFor(() => expect(screen.getByText("sma:700000")).toBeTruthy());
+  });
+
+  it("a contribution's compute() receives a Processor dep's resolved value alongside Topic values", async () => {
+    const processor = defineProcessor({
+      id: "fixture-doubled",
+      owner: "core",
+      deps: [] as const,
+      compute: () => 21,
+    });
+    registerContribution({
+      id: "uses-processor",
+      contributes: "fixture.rows",
+      deps: [processor],
+      compute: (topics) => [
+        { id: "p-row", label: `p:${topics[processor.id]}` },
+      ],
+    });
+
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    // Inject the store so the test drives the frame boundary deterministically
+    // (the provider's own rAF-scheduled beginFrame races waitFor); the provider
+    // still wires THIS store into the evaluator via setActiveTimelineStore.
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+
+    render(
+      <TelemetryProvider client={client} store={store}>
+        <Harness slots={["fixture.rows"] as const} />
+      </TelemetryProvider>,
+    );
+
+    // Pump one frame so the evaluator runs (it evaluates on the frame
+    // boundary); the processor's value is constant, so one frame is enough.
+    act(() => store.beginFrame());
+
+    await waitFor(() => expect(screen.getByText("p:21")).toBeTruthy());
   });
 
   it("isolates a throwing contribution: logs once and contributes nothing, siblings still render", async () => {

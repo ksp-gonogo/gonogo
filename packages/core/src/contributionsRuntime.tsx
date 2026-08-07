@@ -1,6 +1,10 @@
 import { logger } from "@ksp-gonogo/logger";
 import {
+  activateProcessor,
+  evaluateActiveProcessors,
   type FrameToken,
+  getProcessorValue,
+  type ProcessorHandle,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -134,23 +138,52 @@ function SlotAggregator({
   );
 
   const unionDeps = useMemo(() => {
-    const set = new Set<TopicId>();
+    const topics = new Set<TopicId>();
+    const processors = new Map<string, ProcessorHandle<unknown>>();
     for (const c of contribs) {
-      for (const d of c.deps ?? []) set.add(d);
+      for (const d of c.deps ?? []) {
+        if (typeof d === "string") topics.add(d as TopicId);
+        else processors.set(d.id, d);
+      }
     }
-    return Array.from(set);
+    return {
+      topics: Array.from(topics),
+      processors: Array.from(processors.values()),
+    };
   }, [contribs]);
 
   const client = useTelemetryClientOptional();
   const telemetryStore = useTelemetryStoreOptional();
 
+  // Activate every Processor this slot's contributions dep on, for the slot's
+  // lifetime. Processor freshness rides the same `subscribeFrame` the Topic
+  // reads already use (the evaluator evaluates on that frame boundary), so no
+  // separate per-processor subscription is needed in `subscribe`.
+  useEffect(() => {
+    const deactivates = unionDeps.processors.map((p) =>
+      activateProcessor(p.id),
+    );
+    return () => {
+      for (const d of deactivates) d();
+    };
+  }, [unionDeps.processors]);
+
   const subscribe = useCallback(
     (onChange: () => void) => {
       if (!client || !telemetryStore) return () => {};
-      const unsubscribeInputs = unionDeps.map((topic) =>
+      const unsubscribeInputs = unionDeps.topics.map((topic) =>
         client.subscribe(topic, () => {}),
       );
-      const unsubscribeFrame = telemetryStore.subscribeFrame(onChange);
+      const unsubscribeFrame = telemetryStore.subscribeFrame(() => {
+        // Force this slot's Processor deps fresh for the just-begun frame
+        // BEFORE notifying React: a slot's own frame listener can fire before
+        // the evaluator's shared one (the evaluator connects on the parent
+        // provider's effect, after this child already subscribed), which would
+        // otherwise cache a pre-evaluation snapshot for the frame. Idempotent
+        // and skipped entirely for a slot with no Processor deps.
+        if (unionDeps.processors.length > 0) evaluateActiveProcessors();
+        onChange();
+      });
       return () => {
         unsubscribeFrame();
         for (const u of unsubscribeInputs) u();
@@ -178,9 +211,12 @@ function SlotAggregator({
     const cached = topicCacheRef.current;
     if (cached && cached.token === token) return cached.values;
     const values: Record<string, unknown> = {};
-    for (const topic of unionDeps) {
+    for (const topic of unionDeps.topics) {
       const point = telemetryStore.sample(topic, token);
       values[topic] = point ? point.payload : undefined;
+    }
+    for (const p of unionDeps.processors) {
+      values[p.id] = getProcessorValue(p.id);
     }
     topicCacheRef.current = { token, values };
     return values;

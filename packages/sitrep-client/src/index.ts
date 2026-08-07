@@ -168,6 +168,23 @@ export {
   mapOrbitPatch,
   ROTATION_PERIOD_SECONDS,
 } from "./orbit-patches";
+export {
+  activateProcessor,
+  evaluateActiveProcessors,
+  getProcessorValue,
+  setProcessorEvaluationRecorder,
+} from "./processorEvaluator";
+export {
+  type AnyProcessorDefinition,
+  clearProcessors,
+  type Dep,
+  defineProcessor,
+  getAllProcessors,
+  getProcessor,
+  type ProcessorDefinition,
+  type ProcessorHandle,
+  type ResolvedDeps,
+} from "./processors";
 export type {
   BuildPatchesInput,
   BuildPatchesOptions,
@@ -234,6 +251,7 @@ export {
   type Unsubscribe,
   useLateTelemetrySubscribe,
 } from "./use-late-telemetry-subscribe";
+export { useProcessor } from "./use-processor";
 export type {
   PendingUplinkQueueLike,
   UseRouteCommandsResult,
