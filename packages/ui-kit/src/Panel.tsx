@@ -146,10 +146,9 @@ export const PanelContainer = styled.div`
    here keeps all headers readable with no per-widget change. */
 export const PanelTitle = styled.h3`
   margin: 0;
-  /* Halved from --space-12: the sticky header sits higher, closer to the
-     panel's true top edge, so the extended top ScrollOverflowGlow (see
-     PanelGlow below) covers the title text rather than leaving a gap of bare
-     header above the glow's old, shorter reach. */
+  /* Halved top inset (--space-6, from --space-12) so the sticky header sits
+     close to the panel's true top edge rather than leaving a band of bare
+     header above it. */
   padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -280,6 +279,8 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
 const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
   position: relative;
   margin: 0;
+  display: flex;
+  align-items: center;
   /* ::details-content is the browser-native pseudo-element (shipped Chrome
      131, present in every engine the visual gate now runs) that wraps a
      details element's non-summary children, added upstream so the
@@ -310,6 +311,13 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     gap: var(--space-4, 4px);
     list-style: none;
     cursor: pointer;
+    /* Nudge the whole summary up 1px so the dots' circle centre lands on the
+       title's CAP-BAND centre rather than the title line box centre: measured
+       (Playwright, in the collapsed review render) the row's align-items:center
+       leaves the dots ~1px below the caps, since the flush line box still keeps
+       a hair of descender headroom the all-caps title never fills. Fixed chrome
+       (font-size-xs, 16px dots) so this offset is constant across widgets. */
+    transform: translateY(-1px);
     /* The chevron below is drawn from currentColor borders, and nothing
        between here and the document root sets one: Panel deliberately
        carries no default foreground (see the "Color is intentionally not
@@ -330,14 +338,29 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     box-sizing: border-box;
     width: 6px;
     height: 6px;
+    /* On top of summary's own gap (the even spacing between dots), an extra
+       margin ONLY here doubles the visual gap between the last dot and the
+       chevron specifically, without opening up the gap BETWEEN dots (a
+       uniform bigger gap would do both). Needed because the layout gap
+       alone reads tighter than its nominal value: the 45deg rotation below
+       turns this 6x6 box into a diamond whose corner points left of its own
+       un-rotated layout edge, so the rendered chevron encroaches on the
+       gap ahead of it by about a fifth of the diameter. */
+    margin-left: var(--space-4, 4px);
     border-right: 1.5px solid currentColor;
     border-bottom: 1.5px solid currentColor;
-    transform: rotate(45deg);
+    /* The visible ink (the two borders forming an L) has its centroid toward
+       the box's bottom-right corner; rotate(45deg) swings that centroid to
+       ~1.4px BELOW the box centre, so the drawn chevron reads low against the
+       dots. Lift it 1.4px (on top of the summary's own -1px) so the chevron's
+       ink centre coincides with the dot circles and the title cap band. */
+    transform: translateY(-1.4px) rotate(45deg);
     transition: transform var(--duration-base, 150ms) var(--ease-standard, ease);
   }
   &[open] > summary [data-panel-aside-chevron] {
-    /* Points up when open. */
-    transform: rotate(225deg);
+    /* Points up when open: the rotation swings the ink centroid the other way
+       (above centre), so the compensating lift flips sign to keep it centred. */
+    transform: translateY(1.4px) rotate(225deg);
   }
 
   & > [data-panel-aside-full] {
@@ -662,13 +685,6 @@ const ScrollAreaInner = styled.div`
 const ScrollOverflowGlow = styled.div<{
   $position: "top" | "bottom";
   $visible: boolean;
-  /** Vertical reach in px, before the pad-y compensation. Defaults to the
-   * original 16px sliver; `PanelGlow`'s TOP glow (the one that backs the
-   * sticky header) asks for more so it reaches down through the header text
-   * instead of stopping short of it. Left alone for every other
-   * `ScrollOverflowGlow` user (`ScrollArea`'s own top/bottom pair, used for a
-   * second scrolling region inside a widget), which has no header to back. */
-  $reach?: number;
 }>`
   position: absolute;
   /* Extend past the scroll container so the glow sits flush with the panel
@@ -681,35 +697,46 @@ const ScrollOverflowGlow = styled.div<{
     $position === "top"
       ? "top: calc(-1 * var(--scroll-glow-pad-y, 0px));"
       : "bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));"}
-  height: calc(${({ $reach }) => $reach ?? 16}px + var(--scroll-glow-pad-y, 0px));
+  /* 44px box (before the pad-y compensation) is the container both layers fade
+     within; each layer sets its OWN reach through its gradient stops below
+     (mask ~50%, affordance ~40%). Height is outside the ratchet's scanned
+     properties, so it stays a literal. */
+  height: calc(44px + var(--scroll-glow-pad-y, 0px));
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity var(--duration-base, 150ms) var(--ease-standard, ease);
-  /* Full-width linear fade anchored on the chrome edge, brightest right at
-     the scrollable boundary and tapering inward across the whole width. A
-     centred radial ellipse read as a discrete glowing blob floating over the
-     content; a full-width edge fade reads as the content itself dissolving
-     under a soft overlay at the edge, which is the intended "there's more,
-     scroll" affordance.
+  /* TWO stacked layers, uniform on every edge (the first gradient in a
+     comma-separated background paints on TOP of the later one):
 
-     The peak alpha is keyed on $reach rather than $position: only
-     PanelGlow's top glow (the one that backs the sticky header, see
-     PANEL_HEADER_GLOW_REACH_PX above) passes an explicit $reach, every
-     other caller, PanelGlow's own bottom edge and ScrollArea's plain
-     top/bottom pair for a second scrolling region, leaves it unset and
-     keeps the original 0.13, a genuinely subtle "there's more" hint with no
-     text to back. The header-backing glow has a job the plain affordance
-     never did: it is the ONLY backing PanelStickyHeader's transparent title
-     gets (see PanelStickyHeader below), and 0.13 measurably failed at that
-     job, ContractManager's title read as illegible over scrolled body
-     content. 0.42 lightens scrolled content enough for the dim title token
-     to read cleanly while still fading to nothing by the glow's own reach,
-     so it stays a glow, not an opaque scrim. */
-  background: linear-gradient(
-    ${({ $position }) => ($position === "top" ? "to bottom" : "to top")},
-    rgba(255, 255, 255, ${({ $reach }) => ($reach !== undefined ? 0.42 : 0.13)}),
-    rgba(255, 255, 255, 0)
-  );
+     1. Affordance (top): the ~20%-lighter-than-panel tint at partial alpha,
+        fading out fast (by ~40% of the reach). The subtle "there is more,
+        scroll" highlight right at the boundary.
+     2. Mask (bottom): var(--color-surface-panel) at FULL opacity, held solid
+        across the title band (to ~27% of the box) then blurring to transparent
+        by ~50%, about half its earlier reach so the dark no longer bleeds so
+        far into the body while still fully covering the title. A
+        semi-transparent tint cannot cover scrolled content (that was the v7
+        ghost); only a fully opaque base masks it, so the sticky title reads
+        over clean panel colour rather than over the content behind it.
+
+     Both keep colour token-derived, so a future light theme inherits them from
+     --color-surface-panel. */
+  background:
+    linear-gradient(
+      ${({ $position }) => ($position === "top" ? "to bottom" : "to top")},
+      color-mix(
+        in srgb,
+        color-mix(in srgb, var(--color-surface-panel), white 20%) 55%,
+        transparent
+      ),
+      transparent 40%
+    ),
+    linear-gradient(
+      ${({ $position }) => ($position === "top" ? "to bottom" : "to top")},
+      var(--color-surface-panel) 0%,
+      var(--color-surface-panel) 27%,
+      transparent 50%
+    );
   /* Local sibling ordering inside the panel's own stacking context (the glow
      over the scrolling element). Off the app-global z ladder on purpose: any
      named rung would lift a widget-internal overlay over dashboard chrome. */
@@ -1048,21 +1075,6 @@ function useScrollerMetric<T>(
   return value;
 }
 
-/**
- * How far PanelGlow's TOP glow reaches down, in place of `ScrollOverflowGlow`'s
- * 16px default. The sticky header is transparent on purpose (see
- * `PanelStickyHeader`): this glow is its only backing, so scrolled content
- * behind the title reads as dissolving under it rather than showing straight
- * through. At the old 16px reach that only covered a sliver above the header;
- * with `PanelTitle`'s own padding halved (--space-6 instead of --space-12, so
- * the header sits closer to the panel's true top edge) 48px comfortably
- * covers the title's text band, plus a toolbar row when one is present.
- * Not on the spacing ladder: this is a decorative glow's reach, not an inset,
- * and `height` is outside the ratchet's scanned properties for exactly that
- * kind of value.
- */
-const PANEL_HEADER_GLOW_REACH_PX = 48;
-
 const PanelGlow__Root = styled.div`
   position: relative;
   display: flex;
@@ -1118,11 +1130,7 @@ export function PanelGlow({
   return (
     <PanelGlow__Root {...rest}>
       {children}
-      <ScrollOverflowGlow
-        $position="top"
-        $visible={overflow.top}
-        $reach={PANEL_HEADER_GLOW_REACH_PX}
-      />
+      <ScrollOverflowGlow $position="top" $visible={overflow.top} />
       <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
     </PanelGlow__Root>
   );
@@ -1342,6 +1350,20 @@ const PanelStickyHeader = styled(PanelHeader)`
      width; the negative top keeps the title at the same inset the old pinned
      band used and lines the header up with the pulled-up sticky offset. */
   margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
+  /* The sticky header is transparent (the scroll glow, now a uniform lighter
+     tint, is only a scroll affordance and no longer masks). So the ONE header
+     designed to read over the glow AND over scrolled content gets a brighter
+     title than the standard dim chrome token: a notch up from
+     --color-text-dim, token-derived so a future light theme inherits it. Only
+     here, not on the plain/overlay PanelTitle (the overlay header has its own
+     opaque backing and needs no lift). */
+  & h3 {
+    color: color-mix(
+      in srgb,
+      var(--color-text-dim),
+      var(--color-text-primary) 45%
+    );
+  }
 `;
 
 function PanelRoot({
