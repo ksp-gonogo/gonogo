@@ -181,7 +181,11 @@ describe("generated contract.ts unit types", () => {
         }
         const wrapped =
           tsType === `Value<"${token}">` ||
+          // A sequence of same-unit readings: the unit is on each ELEMENT.
           tsType === `Value<"${token}">[]` ||
+          // A name-keyed map of same-unit readings: the unit is on each VALUE,
+          // and the key is just a name.
+          tsType === `{ [key: string]: Value<"${token}"> }` ||
           tsType === `Vec3Of<"${token}">`;
         const bare = !tsType.includes("Value<") && !tsType.includes("Vec3Of<");
         const ok = NON_QUANTITY.has(token) ? bare : wrapped;
@@ -197,6 +201,14 @@ describe("generated contract.ts unit types", () => {
     // The unit belongs to each ELEMENT: a terrain profile is a list of
     // distances, not one distance.
     expect(interfaces.VesselLanding?.terrainPatch).toBe('Value<"m">[]');
+  });
+
+  it("keeps the unit inside the map for a name-keyed set of readings", () => {
+    // Same rule as the sequence above: the unit belongs to each VALUE, and the
+    // key is a resource NAME, not a property, so nothing camel-cases it.
+    expect(interfaces.KerbalismLifeSupport?.rates).toBe(
+      '{ [key: string]: Value<"units/s"> }',
+    );
   });
 
   it("keeps optionality alongside the wrapped type", () => {

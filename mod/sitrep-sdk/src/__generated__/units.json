@@ -443,10 +443,15 @@
       "surface": "m²",
       "volume": "m³"
     },
+    "KerbalismLifeSupport": {
+      "rates": "units/s"
+    },
     "KerbalismProcessDef": {
       "dumpValves": "text",
+      "inputs": "units/s",
       "modifiers": "text",
-      "name": "text"
+      "name": "text",
+      "outputs": "units/s"
     },
     "KerbalismProcessEntry": {
       "broken": "flag",
@@ -1348,6 +1353,9 @@
       "shielding": "flag",
       "spaceWeather": "flag",
       "supplies": "flag"
+    },
+    "kerbalism.lifesupport": {
+      "rates": "units/s"
     },
     "kerbalism.profile": {
       "name": "text"

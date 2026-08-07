@@ -280,8 +280,10 @@ public class KerbalismProcessDef
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
     /// <summary>Resource name -> rate per unit of process capacity, per second.</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public Dictionary<string, double>? Inputs { get; set; }
     /// <summary>Resource name -> rate per unit of process capacity, per second.</summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public Dictionary<string, double>? Outputs { get; set; }
     /// <summary>
     /// The Process's own modifier tokens. REQUIRED: this list contains the
@@ -418,14 +420,8 @@ public class KerbalismLifeSupport
     /// This map replaced four fixed properties (Food/Water/Oxygen/ElectricCharge)
     /// against a default profile that runs on twelve.</para>
     ///
-    /// <para><b>The unit is units/s and is NOT carried in the type.</b> The
-    /// codegen refuses <c>[SitrepUnit]</c> on a dictionary ("has no magnitude to
-    /// carry"), so unlike every scalar on the wire this map's values arrive as
-    /// bare numbers and a consumer must wrap them itself. Teaching the generator
-    /// about unit-carrying dictionary VALUES would fix it for every name-keyed
-    /// channel at once and is worth doing separately; do not paper over it here
-    /// with a non-quantity token, which would state something false.</para>
     /// </summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public Dictionary<string, double>? Rates { get; set; }
     public KerbalismHabitat? Habitat { get; set; }
     public List<KerbalismProcessEntry>? Processes { get; set; }

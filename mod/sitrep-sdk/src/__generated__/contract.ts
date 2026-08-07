@@ -494,8 +494,8 @@ export interface KerbalismRuleDef
 export interface KerbalismProcessDef
 {
 	name?: string;
-	inputs?: { [key:string]: number };
-	outputs?: { [key:string]: number };
+	inputs?: { [key: string]: Value<"units/s"> };
+	outputs?: { [key: string]: Value<"units/s"> };
 	modifiers?: string[];
 	dumpValves?: string[];
 }
@@ -522,7 +522,7 @@ export interface KerbalismGreenhouseEntry
 }
 export interface KerbalismLifeSupport
 {
-	rates?: { [key:string]: number };
+	rates?: { [key: string]: Value<"units/s"> };
 	habitat?: KerbalismHabitat;
 	processes?: KerbalismProcessEntry[];
 	greenhouses?: KerbalismGreenhouseEntry[];

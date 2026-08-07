@@ -155,10 +155,13 @@ function useLifeSupportTimeToEmptySec(): number | null {
 
   const ttes: number[] = [];
   for (const [name, rate] of Object.entries(rates ?? {})) {
-    if (rate >= 0) continue;
+    // The map's values are units/s quantities, not bare numbers, so the
+    // comparison and the division both go through the magnitude.
+    const perSecond = magnitudeOf(rate);
+    if (perSecond === null || perSecond >= 0) continue;
     if (!profile?.[name]?.isSupply) continue;
     const amount = magnitudeOf(levels?.[name]?.current);
-    if (amount !== null) ttes.push(amount / -rate);
+    if (amount !== null) ttes.push(amount / -perSecond);
   }
   return ttes.length ? Math.min(...ttes) : null;
 }

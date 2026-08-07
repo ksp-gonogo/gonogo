@@ -477,10 +477,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     surface: "m²",
     volume: "m³",
   },
+  "KerbalismLifeSupport": {
+    rates: "units/s",
+  },
   "KerbalismProcessDef": {
     dumpValves: "text",
+    inputs: "units/s",
     modifiers: "text",
     name: "text",
+    outputs: "units/s",
   },
   "KerbalismProcessEntry": {
     broken: "flag",
@@ -1387,6 +1392,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     shielding: "flag",
     spaceWeather: "flag",
     supplies: "flag",
+  },
+  "kerbalism.lifesupport": {
+    rates: "units/s",
   },
   "kerbalism.profile": {
     name: "text",

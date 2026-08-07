@@ -528,6 +528,22 @@ public static class RtConfig
                     // so it lands inside the array rather than on it.
                     tsType = value + "[]";
                 }
+                else if (IsNumeric(UnitDescriptor.DictionaryValueType(prop.PropertyType)))
+                {
+                    // A name-keyed map of same-unit readings (a rate per resource
+                    // name). Same rule as the sequence above: the unit belongs to
+                    // each VALUE, so it lands inside the map rather than on it,
+                    // and the key is just a name.
+                    //
+                    // Every name-keyed channel before this one had a POCO value
+                    // (vessel.resources -> ResourceAmount, career.facilities ->
+                    // CareerFacility) whose own properties carried the units, so
+                    // a map of BARE scalars had never come up and this branch did
+                    // not exist. Its absence was a gap, not a decision: without it
+                    // the only ways to declare such a map were a wrapper object
+                    // per entry, or a bare `number` the client has to guess at.
+                    tsType = "{ [key: string]: " + value + " }";
+                }
                 else
                 {
                     throw new InvalidOperationException(

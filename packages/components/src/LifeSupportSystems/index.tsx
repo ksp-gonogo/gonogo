@@ -88,7 +88,7 @@ interface LifeSupportData {
  */
 function consumable(
   name: string,
-  rates: Record<string, number> | undefined,
+  rates: Record<string, Quantityish> | undefined,
   levels:
     | { [key: string]: { current?: Quantityish; max?: Quantityish } }
     | undefined,
@@ -97,7 +97,7 @@ function consumable(
   return {
     amount: magnitudeOr(level?.current, 0),
     capacity: magnitudeOr(level?.max, 0),
-    rate: rates?.[name] ?? 0,
+    rate: magnitudeOr(rates?.[name], 0),
   };
 }
 
