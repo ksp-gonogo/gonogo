@@ -267,8 +267,10 @@ export function useCommand(
   nowUtRef.current = nowUt;
 
   // --- must-consume token (dev only, Task 4 of the delay-UX plan) ---
-  // A stable token handed out on the return value; `<CommandDelay handle={cmd}>`
-  // flips `consumed` on mount. `send` bumps `dispatchTick` on its FIRST dispatch
+  // A stable token handed out on the return value; `usePanelDelay(cmd)` flips
+  // `consumed` on mount (contributing the handle to the panel's delay rail, the
+  // role the inline `<CommandDelay>` filled before the rail existed). `send`
+  // bumps `dispatchTick` on its FIRST dispatch
   // to schedule the check below; once the check passes it latches
   // `verifiedRef` so a hot dispatch loop (e.g. `useControlStream`'s 10 Hz axis
   // send) doesn't re-render every frame just to re-assert an invariant already
@@ -286,10 +288,10 @@ export function useCommand(
     if (outputRef.current && !outputRef.current.consumed) {
       throw new Error(
         `useCommand(${JSON.stringify(command)}).send() dispatched a command, ` +
-          "but no <CommandDelay handle={cmd}> (or handles={[…]}) is mounted to " +
-          "render its signal-delay UX. Render <CommandDelay handle={cmd} /> " +
-          "next to the control (it draws nothing when there is no delay). " +
-          "There is no opt-out: this keeps every delayed command's delay visible.",
+          "but usePanelDelay(cmd) was never called to contribute its signal-delay " +
+          "UX to the panel rail. Call usePanelDelay(cmd) in the widget body (it " +
+          "no-ops when there is no delay, and outside a Panel). There is no " +
+          "opt-out: this keeps every delayed command's delay visible.",
       );
     }
     consumeVerifiedRef.current = true;

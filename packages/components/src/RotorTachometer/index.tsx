@@ -10,7 +10,6 @@ import { Gauge } from "@ksp-gonogo/ui";
 import {
   ActionButton,
   Cluster,
-  CommandDelay,
   EmptyState,
   Inline,
   Panel,
@@ -21,6 +20,7 @@ import {
   ToggleButton,
   Unit,
   useElementSize,
+  usePanelDelay,
   Value,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -157,6 +157,12 @@ function RotorTachometerComponent({
   const motorCmd = useCommand("robotics.rotor.setMotor");
   const lockCmd = useCommand("robotics.rotor.setLock");
   const reverseCmd = useCommand("robotics.rotor.reverse");
+  usePanelDelay(rpmCmd);
+  usePanelDelay(torqueCmd);
+  usePanelDelay(brakeCmd);
+  usePanelDelay(motorCmd);
+  usePanelDelay(lockCmd);
+  usePanelDelay(reverseCmd);
 
   // Measure the gauge slot so the dial follows the column width instead of a
   // fixed 180px that clips in a narrow slot.
@@ -285,18 +291,6 @@ function RotorTachometerComponent({
               />
             </Cluster>
           )}
-
-          <CommandDelay
-            handles={[
-              rpmCmd,
-              torqueCmd,
-              brakeCmd,
-              motorCmd,
-              lockCmd,
-              reverseCmd,
-            ]}
-            ariaLabel="Rotor commands: in flight"
-          />
 
           <Stack gap="sm">
             <Cluster justify="between" gap="md" wrap>

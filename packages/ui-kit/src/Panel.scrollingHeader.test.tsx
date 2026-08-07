@@ -3,37 +3,38 @@ import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 
 /**
- * Option 5's structural fix: the standard header stops being a fixed band
- * ABOVE the scroller and becomes the first in-flow child INSIDE it, so title
- * and body scroll as one unit and a short widget reclaims the reserved chrome.
- *
- * These assert the relationship (where the heading sits relative to the
- * scroller) rather than pixels, because that relationship is the whole change.
- * The pinned toolbar and the floating header keep today's arrangement, so they
- * are asserted here too as the negative cases.
+ * The sticky header (Task 6): the standard header is the first in-flow child
+ * INSIDE the body scroller and sticks at `top: var(--panel-rail-height)` while
+ * the body scrolls under it, so title + aside stay in view without a scroll-away
+ * ghost. A `panelToolbar` header uses the SAME sticky mechanism (reconciled from
+ * the old pinned-sibling branch); only a `floatingHeader` is an overlay outside
+ * the scroller. These assert the relationships (and `position`), not pixels.
  */
-describe("Panel scrolling header (standard)", () => {
-  it("puts the heading INSIDE the scrolling body, not in a pinned band above it", () => {
+describe("Panel sticky header (standard)", () => {
+  it("puts the heading INSIDE the scrolling body as the first in-flow child", () => {
     render(<Panel panelTitle="ALTITUDE">body</Panel>);
     const heading = screen.getByRole("heading", { name: "ALTITUDE" });
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     expect(scroller).not.toBeNull();
-    // The header row moved inside the scroller: title + body scroll together.
     expect(scroller.contains(heading)).toBe(true);
-    // …and it is the FIRST in-flow child, before the body content.
+    // First in-flow child (the delay rail renders null with no command in flight).
     const header = scroller.querySelector("[data-panel-header]") as HTMLElement;
     expect(scroller.firstElementChild).toBe(header);
   });
 
-  it("renders exactly one heading, and the ghost never adds a second", () => {
+  it("sticks the header (position: sticky) so the title stays in view", () => {
+    render(<Panel panelTitle="ALTITUDE">body</Panel>);
+    const header = document.querySelector("[data-panel-header]") as HTMLElement;
+    expect(getComputedStyle(header).position).toBe("sticky");
+  });
+
+  it("renders exactly one heading and no scroll-away ghost", () => {
     render(<Panel panelTitle="ALTITUDE">body</Panel>);
     const headings = screen.getAllByRole("heading");
     expect(headings).toHaveLength(1);
     expect(headings[0]).toHaveTextContent("ALTITUDE");
-    // The ghost duplicate is aria-hidden and role-less, so it is not a heading.
-    const ghost = document.querySelector("[data-panel-ghost]");
-    expect(ghost).not.toBeNull();
-    expect(ghost).toHaveAttribute("aria-hidden", "true");
+    // The condensing ghost is deleted: the real heading is always in view.
+    expect(document.querySelector("[data-panel-ghost]")).toBeNull();
   });
 
   it("keeps the header first in the DOM, before the body content", () => {
@@ -51,8 +52,8 @@ describe("Panel scrolling header (standard)", () => {
   });
 });
 
-describe("Panel scrolling header, pinned cases keep today's tree", () => {
-  it("toolbar header stays a pinned band ABOVE the scroller, with no ghost", () => {
+describe("Panel sticky header, one mechanism for the toolbar case", () => {
+  it("toolbar header rides the scroller as a sticky child (not a pinned sibling), no ghost", () => {
     render(
       <Panel
         panelTitle="MAP"
@@ -63,13 +64,18 @@ describe("Panel scrolling header, pinned cases keep today's tree", () => {
     );
     const heading = screen.getByRole("heading", { name: "MAP" });
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
-    // Pinned: the heading is a sibling above the scroller, not inside it.
-    expect(scroller.contains(heading)).toBe(false);
-    // A pinned header wants no scroll-away ghost.
+    // Reconciled into the sticky model: the heading now rides inside the scroller.
+    expect(scroller.contains(heading)).toBe(true);
+    const header = document.querySelector("[data-panel-header]") as HTMLElement;
+    expect(getComputedStyle(header).position).toBe("sticky");
     expect(document.querySelector("[data-panel-ghost]")).toBeNull();
+    // The toolbar's controls ride along in the sticky header.
+    expect(
+      scroller.contains(screen.getByRole("button", { name: "Layers" })),
+    ).toBe(true);
   });
 
-  it("floatingHeader keeps its overlay row and renders no ghost", () => {
+  it("floatingHeader keeps its overlay row outside the scroller, no ghost", () => {
     render(
       <Panel panelTitle="ORBIT" floatingHeader>
         <p>globe</p>
@@ -84,8 +90,8 @@ describe("Panel scrolling header, pinned cases keep today's tree", () => {
   });
 });
 
-describe("Panel scrolling header, sidebar", () => {
-  it("moves the header inside the body scroller and still renders a ghost", () => {
+describe("Panel sticky header, sidebar", () => {
+  it("moves the header inside the body scroller, no ghost", () => {
     render(
       <Panel panelTitle="SYSTEM" panelSidebar={<p>almanac</p>}>
         <p>diagram</p>
@@ -95,7 +101,7 @@ describe("Panel scrolling header, sidebar", () => {
     const body = document.querySelector("[data-panel-body]") as HTMLElement;
     // Header rides the body scroller exactly as the standard case.
     expect(body.contains(heading)).toBe(true);
-    expect(document.querySelector("[data-panel-ghost]")).not.toBeNull();
+    expect(document.querySelector("[data-panel-ghost]")).toBeNull();
     // The sidebar keeps its own independent scroller, untouched.
     const almanac = screen.getByText("almanac");
     expect(body.contains(almanac)).toBe(false);

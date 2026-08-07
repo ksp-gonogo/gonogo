@@ -1,232 +1,159 @@
-import { act, render, screen, within } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
+import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { axe } from "./test/axe";
+import { usePanelAsideSize } from "./usePanelAsideSize";
 
 /**
- * Below a measured width, the header's `aside` slot collapses to the panel's
- * compact status summary instead of overflowing the row. Generic `PanelHeader`
- * behaviour (not LandingStatus-specific): the motivating case is a fixed-width
- * `Readout` in the aside that doesn't wrap, but this drives it with plain
- * content so the test doesn't depend on any particular widget's markup.
- *
- * jsdom lays nothing out, so the header row's width has to be supplied, the
- * same problem `Panel.sidebar.test.tsx`'s `PanelSplit` measurement solves: a
- * drivable `ResizeObserver` stands in for the package's global no-op stub.
+ * Task 9 (operator-review rework, see usePanelAsideSize.ts): the header aside
+ * collapses via `useHeaderAsideFit`'s measured-fit + hysteresis, not a fixed
+ * `@container` width threshold. jsdom never completes a real ResizeObserver
+ * cycle and gives `<canvas>` no 2D backend, so it always renders the WIDE
+ * default (the full aside inline inside the box), exactly as the old
+ * `@container`-based version did (jsdom could not evaluate that either).
+ * These assert the JS-observable structure; the measured collapse itself is
+ * left to the visual gate.
  */
-
-type Entry = {
-  target: Element;
-  contentRect: { width: number; height: number };
-};
-
-class DrivableResizeObserver {
-  static instances: DrivableResizeObserver[] = [];
-  readonly observed = new Set<Element>();
-  readonly callback: (entries: Entry[]) => void;
-  constructor(callback: (entries: Entry[]) => void) {
-    this.callback = callback;
-    DrivableResizeObserver.instances.push(this);
-  }
-  observe(el: Element) {
-    this.observed.add(el);
-  }
-  unobserve(el: Element) {
-    this.observed.delete(el);
-  }
-  disconnect() {
-    this.observed.clear();
-  }
-}
-
-function resizeHeaderTo(el: Element, width: number) {
-  act(() => {
-    for (const ro of DrivableResizeObserver.instances) {
-      if (!ro.observed.has(el)) continue;
-      ro.callback([{ target: el, contentRect: { width, height: 40 } }]);
-    }
-  });
-}
-
-const realResizeObserver = globalThis.ResizeObserver;
-
-beforeEach(() => {
-  DrivableResizeObserver.instances = [];
-  globalThis.ResizeObserver =
-    DrivableResizeObserver as unknown as typeof ResizeObserver;
-});
-
-afterEach(() => {
-  globalThis.ResizeObserver = realResizeObserver;
-});
 
 function header(): HTMLElement {
   return document.querySelector("[data-panel-header]") as HTMLElement;
 }
+function expandBox(): HTMLDetailsElement {
+  return header().querySelector(
+    "[data-panel-aside-expand]",
+  ) as HTMLDetailsElement;
+}
+function statusDots(): NodeListOf<Element> {
+  return header().querySelectorAll("[data-panel-status-dot]");
+}
 
-describe("Panel header aside-collapse, wide", () => {
-  it("renders the full aside when there is room for it", () => {
+describe("Panel header aside expand box", () => {
+  it("routes the full aside (badges AND controls) into the <details> box", () => {
     render(
-      <Panel panelTitle="LANDING" panelAside={<span>NO LANDING VECTOR</span>}>
+      <Panel
+        panelTitle="MAP"
+        panelAside={
+          <>
+            <span>LAYER</span>
+            <button type="button">Toggle grid</button>
+          </>
+        }
+      >
         body
       </Panel>,
     );
-    resizeHeaderTo(header(), 500);
-    expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
+    const box = expandBox();
+    expect(box.tagName).toBe("DETAILS");
+    const full = box.querySelector("[data-panel-aside-full]") as HTMLElement;
+    // Both a badge-like readout and a real control live in the box's full slot,
+    // so a collapsed panel reaches the control by expanding it (Task 9's point).
+    expect(within(full).getByText("LAYER")).toBeInTheDocument();
+    expect(
+      within(full).getByRole("button", { name: "Toggle grid" }),
+    ).toBeInTheDocument();
   });
 
-  it("stays uncollapsed before any measurement lands (first paint, and jsdom forever unless driven)", () => {
-    // No resizeHeaderTo call at all: this is every existing widget test today.
-    render(
-      <Panel panelTitle="LANDING" panelAside={<span>NO LANDING VECTOR</span>}>
-        body
-      </Panel>,
-    );
-    expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
-  });
-});
-
-describe("Panel header aside-collapse, narrow, with a status summary", () => {
-  it("swaps the arbitrary aside for the compact status badge", () => {
+  it("makes the per-severity dots the collapsed summary, worst-first with count inside", () => {
     render(
       <PanelStatusStoreProvider>
-        <Panel.Status status="held-stale">
-          <Panel
-            panelTitle="LANDING"
-            panelAside={<span>NO LANDING VECTOR</span>}
-          >
-            body
-          </Panel>
-        </Panel.Status>
-      </PanelStatusStoreProvider>,
-    );
-    resizeHeaderTo(header(), 150);
-    expect(screen.queryByText("NO LANDING VECTOR")).toBeNull();
-    expect(within(header()).getByText("STALE")).toBeInTheDocument();
-  });
-
-  it("restores the full aside once the row is wide again (no oscillation lock-in)", () => {
-    render(
-      <PanelStatusStoreProvider>
-        <Panel.Status status="held-stale">
-          <Panel
-            panelTitle="LANDING"
-            panelAside={<span>NO LANDING VECTOR</span>}
-          >
-            body
-          </Panel>
-        </Panel.Status>
-      </PanelStatusStoreProvider>,
-    );
-    resizeHeaderTo(header(), 150);
-    expect(screen.queryByText("NO LANDING VECTOR")).toBeNull();
-
-    resizeHeaderTo(header(), 500);
-    // The full aside is back, its own stream badge riding beside it exactly
-    // as `Panel.status.test.tsx` pins ("beside it, not instead of it"); this
-    // feature only replaces that pairing when collapsed, not the pairing
-    // itself.
-    expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
-    expect(screen.getByText("STALE")).toBeInTheDocument();
-  });
-
-  it("marks the header with the resolved decision for inspection", () => {
-    render(
-      <PanelStatusStoreProvider>
-        <Panel.Status status="held-stale">
-          <Panel
-            panelTitle="LANDING"
-            panelAside={<span>NO LANDING VECTOR</span>}
-          >
-            body
-          </Panel>
-        </Panel.Status>
-      </PanelStatusStoreProvider>,
-    );
-    resizeHeaderTo(header(), 500);
-    expect(header()).not.toHaveAttribute("data-panel-aside-collapsed");
-    resizeHeaderTo(header(), 150);
-    expect(header()).toHaveAttribute("data-panel-aside-collapsed");
-  });
-});
-
-describe("Panel header aside-collapse, narrow, no status summary", () => {
-  it("renders nothing for the slot rather than the overflowing raw aside (healthy panel)", () => {
-    render(
-      <PanelStatusStoreProvider>
-        <Panel.Status status="live">
-          <Panel
-            panelTitle="LANDING"
-            panelAside={<span>NO LANDING VECTOR</span>}
-          >
-            body
-          </Panel>
-        </Panel.Status>
-      </PanelStatusStoreProvider>,
-    );
-    resizeHeaderTo(header(), 150);
-    expect(screen.queryByText("NO LANDING VECTOR")).toBeNull();
-    // No compact badge either: a healthy panel's summary is null.
-    expect(within(header()).queryByRole("status")).toBeNull();
-  });
-
-  it("renders nothing for the slot when there is no status store in the tree at all", () => {
-    render(
-      <Panel panelTitle="LANDING" panelAside={<span>NO LANDING VECTOR</span>}>
-        body
-      </Panel>,
-    );
-    resizeHeaderTo(header(), 150);
-    expect(screen.queryByText("NO LANDING VECTOR")).toBeNull();
-    expect(within(header()).queryByRole("status")).toBeNull();
-  });
-});
-
-describe("Panel header aside-collapse, no aside at all", () => {
-  it("is unaffected by width when there is nothing to collapse", () => {
-    render(<Panel panelTitle="LANDING">body</Panel>);
-    resizeHeaderTo(header(), 150);
-    expect(header().querySelector("[data-panel-aside-collapsed]")).toBeNull();
-    expect(screen.getByText("LANDING")).toBeInTheDocument();
-  });
-});
-
-describe("Panel header aside-collapse, hand-composed Panel.Header", () => {
-  it("collapses the same way outside the Panel compound, since this is generic PanelHeader behaviour", () => {
-    // PanelHeader alone (no PanelRoot) does not fold a host stream status into
-    // the store itself; a hand-composed panel that wants a summary seeds it
-    // the same way any widget does, a reporting Badge elsewhere in the tree.
-    render(
-      <PanelStatusStoreProvider>
-        <Badge report={{ id: "stream" }} severity="offline">
-          OFFLINE
+        <Badge report={{ id: "a" }} severity="caution">
+          A
         </Badge>
-        <PanelHeader title="MANUAL" aside={<span>WIDE CONTROL</span>} />
+        <Badge report={{ id: "b" }} severity="caution">
+          B
+        </Badge>
+        <Badge report={{ id: "c" }} severity="critical">
+          C
+        </Badge>
+        <PanelHeader title="MULTI" aside={<span>WIDE</span>} />
       </PanelStatusStoreProvider>,
     );
-    resizeHeaderTo(header(), 150);
-    expect(screen.queryByText("WIDE CONTROL")).toBeNull();
-    expect(within(header()).getByText("OFFLINE")).toBeInTheDocument();
+    const summary = expandBox().querySelector("summary") as HTMLElement;
+    const dots = summary.querySelectorAll("[data-panel-status-dot]");
+    expect(dots).toHaveLength(2);
+    // Critical leads (worst-first); two cautions stay one caution dot, count 2.
+    expect(dots[0]).toHaveAttribute("data-severity", "critical");
+    expect(dots[1]).toHaveAttribute("data-severity", "caution");
+    expect(dots[1]).toHaveTextContent("2");
+  });
+
+  it("renders no dots when the panel has no active status, but keeps the chevron affordance", () => {
+    render(
+      <Panel panelTitle="MAP" panelAside={<span>WIDE</span>}>
+        body
+      </Panel>,
+    );
+    // No store / healthy panel: empty breakdown, so no dots.
+    expect(statusDots()).toHaveLength(0);
+    // The chevron is always present so a control-only collapsed box is still
+    // discoverable (the deferred affordance decision: chevron, not a bare dot).
+    expect(header().querySelector("[data-panel-aside-chevron]")).not.toBeNull();
+  });
+
+  it("toggles the expand box open and closed", () => {
+    render(
+      <Panel panelTitle="MAP" panelAside={<button type="button">Ctl</button>}>
+        body
+      </Panel>,
+    );
+    const box = expandBox();
+    const summary = box.querySelector("summary") as HTMLElement;
+    expect(box.open).toBe(false);
+    fireEvent.click(summary);
+    expect(box.open).toBe(true);
+    fireEvent.click(summary);
+    expect(box.open).toBe(false);
+  });
+
+  it("has no aside box at all when the widget passes no aside", () => {
+    render(<Panel panelTitle="BARE">body</Panel>);
+    expect(header().querySelector("[data-panel-aside-expand]")).toBeNull();
+  });
+
+  it("routes usePanelAsideSize() through PanelHeader's own provider, not just the context default", () => {
+    function Probe() {
+      return <span>bucket: {usePanelAsideSize()}</span>;
+    }
+    render(
+      <Panel panelTitle="MAP" panelAside={<Probe />}>
+        body
+      </Panel>,
+    );
+    // jsdom never completes a measurement, so this is the wide default same as
+    // an un-provided call would report; the point of the test is that it comes
+    // from PanelHeader's PanelAsideSizeProvider around `aside`, so a widget
+    // reading it from inside its own panelAside content is wired up at all.
+    expect(screen.getByText("bucket: full")).toBeInTheDocument();
+  });
+
+  it("stays inline (the wide default) in jsdom, where @container cannot fire", () => {
+    // Every existing widget test that renders a Panel sees the aside content
+    // inline, unchanged: jsdom never evaluates the collapse query.
+    render(
+      <Panel panelTitle="LANDING" panelAside={<span>NO LANDING VECTOR</span>}>
+        body
+      </Panel>,
+    );
+    expect(screen.getByText("NO LANDING VECTOR")).toBeInTheDocument();
   });
 });
 
-describe("Panel header aside-collapse, accessibility", () => {
-  it("has no axe violations while collapsed", async () => {
+describe("Panel header aside expand box, accessibility", () => {
+  it("has no axe violations (summary named, dots labelled, chevron hidden)", async () => {
     const { container } = render(
       <PanelStatusStoreProvider>
         <Panel.Status status="held-stale">
           <Panel
             panelTitle="LANDING"
-            panelAside={<span>NO LANDING VECTOR</span>}
+            panelAside={<button type="button">Recenter</button>}
           >
             <p>content</p>
           </Panel>
         </Panel.Status>
       </PanelStatusStoreProvider>,
     );
-    resizeHeaderTo(header(), 150);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });

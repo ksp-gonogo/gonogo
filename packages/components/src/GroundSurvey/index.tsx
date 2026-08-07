@@ -143,8 +143,8 @@ function GroundSurveyComponent({
 
 /**
  * Nodes rather than a string, because two of these parts are altitudes and a
- * quantity is rendered by `<Unit>`. `panelSubtitle` takes a `ReactNode`, so
- * the only thing that changes is the join.
+ * quantity is rendered by `<Unit>`. `SurveyMeta` (the body caption this feeds)
+ * takes a `ReactNode`, so the only thing that changes is the join.
  */
 function subtitleFor(
   survey: ReturnType<typeof useGroundSurveySamples>,

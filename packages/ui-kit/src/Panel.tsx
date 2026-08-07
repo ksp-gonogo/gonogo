@@ -12,16 +12,19 @@ import {
   useRef,
   useState,
 } from "react";
-import styled, { css, keyframes } from "styled-components";
+import styled, { css } from "styled-components";
 import { Badge } from "./Badge";
+import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
+import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
+import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
-import { type Severity, severityFromStreamStatus } from "./status/severity";
-import { severityDotColor } from "./status/severityDotColor";
+import { severityFromStreamStatus } from "./status/severity";
+import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
 import { useElementSize } from "./useElementSize";
-import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
 
 interface PanelContextValue {
   scroller: HTMLElement | null;
@@ -47,6 +50,21 @@ export function PanelContextProvider({ children }: { children?: ReactNode }) {
     [scroller],
   );
   return <PanelCtx.Provider value={value}>{children}</PanelCtx.Provider>;
+}
+
+/**
+ * The per-panel providers a `Panel` mounts. Currently just the scroller-
+ * coordination context, kept as a named seam so later per-panel providers have
+ * one place to join. The delay-rail store is deliberately NOT here: a widget
+ * calls `usePanelDelay` in its body, ABOVE the `<Panel>` it returns, so a
+ * Panel-held store would be unreachable from there. The delay store is provided
+ * ABOVE the widget instead (app-side `GridItemContent`, exactly like
+ * `PanelStatusStoreProvider`); the rail, inside the Panel, reads that
+ * above-store via `useActiveHandles()`. `Panel.Root` renders this; a
+ * hand-composed panel can too.
+ */
+export function PanelProviders({ children }: { children?: ReactNode }) {
+  return <PanelContextProvider>{children}</PanelContextProvider>;
 }
 
 /**
@@ -98,6 +116,14 @@ export const PanelContainer = styled.div`
   /* Chrome only. The inset belongs to Panel.Body and the glow to Panel.Glow;
      this is the border, the surface and the clip, and nothing else. */
   background: var(--color-surface-panel);
+  /* A size-query container so the popped-open aside expand box (see
+     PanelAsideExpand) can size itself in cqw against the panel's own width
+     rather than the viewport's. The aside's collapse decision itself is no
+     longer an @container condition on this box (see useHeaderAsideFit in
+     usePanelAsideSize.ts): a fixed width threshold here was content-blind,
+     collapsing a short-title widget with room to spare just because the panel
+     itself was narrow. This declaration stays for the cqw unit alone. */
+  container-type: inline-size;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md, 4px);
   /* No uniform content inset here: the inset is Panel.Body's, so that visual
@@ -119,37 +145,62 @@ export const PanelContainer = styled.div`
    here keeps all headers readable with no per-widget change. */
 export const PanelTitle = styled.h3`
   margin: 0;
-  padding: var(--space-12, 12px) var(--space-16, 16px) var(--space-8, 8px);
+  /* Halved from --space-12: the sticky header sits higher, closer to the
+     panel's true top edge, so the extended top ScrollOverflowGlow (see
+     PanelGlow below) covers the title text rather than leaving a gap of bare
+     header above the glow's old, shorter reach. */
+  padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--color-text-dim);
-`;
-
-export const PanelSubtitle = styled.div`
-  padding: 0 var(--space-16, 16px);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  letter-spacing: 0.05em;
-  /* Off the spacing ladder: -4px is half PanelTitle's 8px bottom inset, a
-     derived value rather than a chosen one. Recompute it if that inset moves;
-     do not point it at a rung. */
-  margin-top: -4px;
+  /* Flush, not the browser's metrics-based "normal": this is single-line
+     chrome text (never wraps, see white-space below), exactly the case
+     --line-height-flush documents ("collapses the line box so an icon or a
+     one-character button centres in a fixed height"). Left at "normal", the
+     line box carries descender headroom this all-caps title never uses, so
+     the glyphs visually ride higher than the box's own geometric centre.
+     PanelHeader__Row's align-items:center centres the dots/chevron summary
+     against that geometric centre, which is math-exact against the box but
+     reads as too LOW against the glyphs sitting above it. Flush shrinks the
+     line box down to the font's own metrics and removes most of that
+     unused headroom, closing the gap between the two centres. */
+  line-height: var(--line-height-flush, 1);
+  /* One line, always. A long title (a widget name plus context, e.g. a
+     Strategies aside label) used to wrap to a second line, which pushed the
+     chevron/aside down with it and broke the "aside never drops to its own
+     row" invariant PanelHeader__Row already enforces on the OTHER side of the
+     row. min-width:0 lives on PanelHeader__Titles (the flex item), which is
+     what lets this actually shrink and truncate instead of forcing the row
+     wider. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
   display: flex;
-  align-items: flex-start;
+  /* Centre, not flex-start: the title is now single-line and truncates
+     rather than wrapping (see PanelTitle's overflow rules below), so its box
+     height is a fixed one-line measure and there is no second line that
+     could ever push a top-aligned aside out of register. With that settled,
+     centring is what actually levels the collapsed dot row + chevron on the
+     title's own text line; top-aligning them left the dots sitting visibly
+     lower, since PanelTitle's line-height gives the glyphs some headroom
+     above the box's top edge that the dots (a fixed box with none) did not
+     share. */
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-8, 8px);
   min-width: 0;
-  /* Wrap rather than crush. Widgets are small and get smaller, and an aside
-     carrying a tally or a select will not fit beside the title at every tile
-     width. Given the choice between the aside dropping to its own row and the
-     title being squeezed to an ellipsis, the second row is the honest one:
-     both stay readable, and the panel grows by exactly the height it needs. */
-  flex-wrap: wrap;
+  /* The aside NEVER wraps to a second row. When it stops fitting beside the
+     title the panel COLLAPSES it (to the status dots) via useHeaderAsideFit's
+     measured-fit collapse below, which is the whole point of the redesign, so
+     there is no drop-to-its-own-row fallback: title left, aside top-right, one
+     row, always. The title column (min-width:0) truncates within its own box
+     instead. */
+  flex-wrap: nowrap;
   /* Never shrink: at very short widget heights the flex column would squeeze
      the header toward zero and the body would overprint the title. */
   flex-shrink: 0;
@@ -195,50 +246,161 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--space-4, 4px);
-  /* Grow to fill the line it lands on. Alone this only right-aligns the whole
-     aside, which is right for the common case (a chip or two) but not for an
-     aside carrying a headline readout AND badges: that widget wants its state
-     reading left and only the badges floating right, which it gets by making
-     its own aside content a full-width row. Growing the box is what gives it a
-     row to align within; a shrink-to-fit box has none. */
-  flex-grow: 1;
-  /* Wraps internally too, so a multi-chip aside stacks its own contents
-     rather than forcing the whole aside onto a third row. */
-  flex-wrap: wrap;
+  /* Shrink to its content and sit right-aligned on the title's row. It never
+     grows to a full row and never wraps: an aside that stops fitting collapses
+     to the dots (the measured-fit collapse on PanelAsideExpand), it does not
+     spill onto a second row. flex-shrink 0 keeps it intact; the title column
+     yields the space (its min-width 0). */
   justify-content: flex-end;
   flex-shrink: 0;
   /* PanelTitle owns the left inset and the vertical rhythm; mirror both here
      so the badges line up with the title rather than the panel edge. */
-  padding: var(--space-12, 12px) var(--space-16, 16px) var(--space-8, 8px);
+  padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 
 /**
- * Width below which the header row cannot comfortably hold an arbitrary
- * aside beside the title, so the aside collapses to the panel's own compact
- * status summary instead of overflowing it. The motivating case:
- * LandingStatus's commit hero, a fixed-width `Readout` reading
- * "NO LANDING VECTOR", which is `inline-flex` sized-to-content and does not
- * wrap, so a narrow tile clips it rather than reflowing it.
+ * The aside's collapse box (Task 9, reworked for operator review: the
+ * collapse trigger itself). At the panel's full width, or wherever
+ * `useHeaderAsideFit` reports content that genuinely fits, the aside shows
+ * inline (the default rules below, and what jsdom sees, since it never runs a
+ * real `ResizeObserver` cycle). Once `$collapsed` is true, it swaps to the
+ * summary, the per-severity status dots plus a chevron, and the FULL aside
+ * (badges AND controls) floats open in a glow-backed box on toggle.
  *
- * Measures the ROW, not the aside box alone. The row's width is fixed by the
- * panel's own flex-column stretch (it is a block-level flex item, not sized
- * to its children), so it never moves when the aside's CONTENT changes;
- * measuring the aside box instead would create a feedback loop, since
- * swapping in the small compact badge would itself shrink the box that was
- * just measured as too narrow, immediately reporting "room again" and
- * flipping straight back.
- *
- * A fixed threshold rather than a live overflow probe (comparing the aside's
- * `scrollWidth` to its `clientWidth`) for the same reason `PanelSplit` picks
- * its axis off a measured width against `SIDEBAR_INLINE_SIZE` rather than the
- * sidebar's own content size: the row's width is genuinely stable to measure,
- * where the aside's overflow is not, without the swap already having happened.
+ * `$collapsed` is JS state (`useHeaderAsideFit`, in usePanelAsideSize.ts) now,
+ * not a `@container` condition on a fixed panel-width threshold: the old
+ * fixed breakpoint collapsed a short-title widget with room to spare for its
+ * aside just because the PANEL was narrow, which is content-blind by
+ * construction. The measured-fit version and its hysteresis (why collapsing
+ * and re-expanding use different thresholds) are documented on
+ * `nextAsideCollapsed`.
  */
-const PANEL_ASIDE_COLLAPSE_WIDTH = 320;
+const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
+  position: relative;
+  margin: 0;
+  /* ::details-content is the browser-native pseudo-element (shipped Chrome
+     131, present in every engine the visual gate now runs) that wraps a
+     details element's non-summary children, added upstream so the
+     open/close transition has a box to animate block-size on. It generates
+     its OWN box with its OWN sizing, which breaks the shrink-to-fit chain
+     this element relies on for BOTH states: confirmed live, this element
+     collapsed to a few px regardless of its [data-panel-aside-full] child's
+     real width, in the WIDE case too (not just collapsed), pushing the
+     (still correctly sized, merely mispositioned) aside almost entirely off
+     the panel to the right. display: contents removes that box from layout,
+     so this element's own intrinsic sizing is computed straight off
+     [data-panel-aside-full] again, the behaviour every comment in this file
+     already assumed. We don't animate the open/close transition, so losing
+     that box costs nothing. */
+  &::details-content {
+    display: contents;
+  }
+  /* Shrink to its content: the aside sits right-aligned on the title row and
+     never grows to a full row (that wrap-and-grow behaviour was removed), so
+     the box is exactly its content wide, inline when there is room and the
+     dots + caret summary when the measured-fit collapse fires. */
+  flex: 0 0 auto;
+
+  & > summary {
+    /* Wide default: no collapsed affordance, the aside just shows inline. */
+    display: none;
+    align-items: center;
+    gap: var(--space-4, 4px);
+    list-style: none;
+    cursor: pointer;
+    /* The chevron below is drawn from currentColor borders, and nothing
+       between here and the document root sets one: Panel deliberately
+       carries no default foreground (see the "Color is intentionally not
+       set" note in app/src/styles/global.css, every panel/component owns
+       its own), so an unset currentColor resolved to the UA default black,
+       an invisible chevron on the dark theme. Same dim token PanelTitle
+       uses, so the affordance reads as chrome beside the title rather than
+       a colour of its own. */
+    color: var(--color-text-dim);
+  }
+  & > summary::-webkit-details-marker {
+    display: none;
+  }
+  & > summary [data-panel-aside-chevron] {
+    /* A CSS caret, not an icon element: keeps the header out of every widget's
+       SVG query surface and keeps the DOM snapshot light. Points down closed. */
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform var(--duration-base, 150ms) var(--ease-standard, ease);
+  }
+  &[open] > summary [data-panel-aside-chevron] {
+    /* Points up when open. */
+    transform: rotate(225deg);
+  }
+
+  & > [data-panel-aside-full] {
+    /* Wide default: the full aside shows inline regardless of the [open] state,
+       so a wide panel reads exactly like a plain aside row. */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-4, 4px);
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  ${({ $collapsed }) =>
+    $collapsed &&
+    css`
+      & > summary {
+        display: inline-flex;
+      }
+      /* Collapsed + closed: pulled out of the row's visible flow, but kept
+         visibility: hidden rather than display: none, so it stays reachable
+         to useHeaderAsideFit's clone-based re-measurement (see
+         measureNaturalElementWidth in usePanelAsideSize.ts) exactly the same
+         as the wide/inline state, rather than a display:none box being a
+         special case the measurement would need to route around. */
+      &:not([open]) > [data-panel-aside-full] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      /* Collapsed + open: the full aside floats over the body in a glow-backed
+         box, the same surface + border language as the sticky header, so the
+         controls it holds do not push the panel layout around. */
+      &[open] > [data-panel-aside-full] {
+        position: absolute;
+        top: calc(100% + var(--space-4, 4px));
+        right: 0;
+        /* Local sibling ordering inside the panel's own stacking context: lift the
+           popped box over the header's overlay (2) and the body beneath it. Not
+           app-global chrome, so no named z rung. */
+        z-index: 3;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        /* A real floor so a control (e.g. a Select) has room and is not squeezed
+           to its shrink-to-nothing min-content, capped at the panel width so it
+           never overflows a very narrow tile. */
+        min-width: min(14rem, 90cqw);
+        max-width: 90cqw;
+        padding: var(--space-8, 8px);
+        background: var(--color-surface-panel);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-md, 4px);
+        box-shadow: 0 var(--space-4, 4px) var(--space-12, 12px)
+          rgba(0, 0, 0, 0.35);
+      }
+    `}
+`;
 
 /**
- * Title, optional subtitle, and an optional right-hand aside on one row.
+ * Title and an optional right-hand aside on one row.
  *
  * The aside is why this exists. Twenty-seven of forty-three widgets had grown
  * a bespoke `TitleRow`/`Header` styled div for exactly this, and what went in
@@ -247,22 +409,23 @@ const PANEL_ASIDE_COLLAPSE_WIDTH = 320;
  * hand-rolled rows for two recurring things is a missing name, so this is the
  * name.
  *
- * Below `PANEL_ASIDE_COLLAPSE_WIDTH` the aside collapses to the panel's own
- * status summary (see `Panel.useStatusSummary`) instead of the caller's raw
- * `aside` content. This is generic `PanelHeader` behaviour, not specific to
- * `Panel`/`PanelRoot`: a hand-composed header gets it too, which is why the
- * measurement and the summary read both live here rather than in `PanelRoot`.
+ * Wherever `useHeaderAsideFit` finds the title + aside no longer fit the
+ * header row side by side, the aside collapses to the panel's own
+ * per-severity status DOTS (one `PanelStatusDot` per `useStatusBreakdown`
+ * entry, worst-first) plus a chevron, and the FULL aside (badges AND
+ * controls) floats open in a glow-backed `<details>` box on toggle. This is
+ * generic `PanelHeader` behaviour, not specific to `Panel`/`PanelRoot`: a
+ * hand-composed header gets it too, which is why the breakdown read lives
+ * here rather than in `PanelRoot`.
  */
 export function PanelHeader({
   title,
-  subtitle,
   aside,
   toolbar,
   overlay,
   ...rest
 }: Omit<ComponentPropsWithoutRef<"div">, "title"> & {
   title?: ReactNode;
-  subtitle?: ReactNode;
   aside?: ReactNode;
   /**
    * A row of controls on its own line below the title. See `Panel.Toolbar`.
@@ -274,62 +437,66 @@ export function PanelHeader({
    */
   overlay?: boolean;
 }) {
-  // Seeded AT the threshold, so an unmeasured header (first paint, and jsdom
-  // forever unless a test drives the ResizeObserver) renders today's full
-  // aside unchanged: every existing widget test that never drives a resize
-  // keeps seeing exactly what it asserts today.
-  const { ref: rowRef, size: rowSize } = useElementSize<HTMLDivElement>({
-    w: PANEL_ASIDE_COLLAPSE_WIDTH,
-    h: 0,
-  });
-  // `> 0` guards the same "not really laid out yet" case the ghost's header
-  // height check guards: a genuinely-zero measurement means hidden/unmounted,
-  // not narrow, and must not read as a reason to collapse.
-  const asideCollapsed =
-    rowSize.w > 0 && rowSize.w < PANEL_ASIDE_COLLAPSE_WIDTH;
-  const summary = useStatusSummary();
+  const breakdown = useStatusBreakdown();
 
-  // Nothing to collapse when there is no aside at all; the row's width never
-  // enters into it. Below threshold WITH an aside, swap to the compact
-  // summary badge when there is one to show. A collapsed row with no summary
-  // (no status store in the tree, or a healthy panel) renders NOTHING for the
-  // slot: re-showing the raw aside would be exactly the overflow this
-  // measurement exists to avoid, so of the two documented options this is the
-  // one that actually fixes it.
-  const resolvedAside: ReactNode | undefined =
-    aside === undefined ? undefined : !asideCollapsed ? (
-      aside
-    ) : summary !== null ? (
-      <Badge severity={summary.severity} size="sm" live>
-        {summary.label}
-      </Badge>
-    ) : undefined;
+  // The measured-fit collapse: `rowRef` is the room available to title +
+  // aside together, `titleRef` + `asideFullRef` are what they actually need.
+  // See `useHeaderAsideFit` for the measurement and its hysteresis. `jsdom`
+  // never fires a real ResizeObserver cycle or gives `<canvas>` a 2D backend,
+  // so it always sees `collapsed === false`, the wide default every existing
+  // widget test already renders.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const asideFullRef = useRef<HTMLDivElement>(null);
+  const collapsed = useHeaderAsideFit(
+    rowRef,
+    titleRef,
+    asideFullRef,
+    title,
+    aside,
+  );
 
   return (
     /* `data-panel-header` is a stable targeting hook, the same contract as
        ScrollArea's `data-scroll-area-inner`. The row splits titles and aside
-       into two boxes so they can align independently, which means walking up
-       from the title with `closest("div")` reaches the titles box and NOT the
-       aside beside it. Anything that wants "the whole header" should say so
-       by name rather than by counting ancestors.
-
-       `data-panel-aside-collapsed` mirrors the resolved decision (present
-       only while collapsed), the same "expose the internal call" contract
-       `PanelSplit`'s `data-panel-split={axis}` uses. */
+       into two boxes so they can align independently. */
     <PanelHeader__Row
       ref={rowRef}
       data-panel-header=""
-      data-panel-aside-collapsed={asideCollapsed ? "" : undefined}
       $overlay={overlay}
       {...rest}
     >
       <PanelHeader__Titles $overlay={overlay}>
-        {title !== undefined && <PanelTitle>{title}</PanelTitle>}
-        {subtitle !== undefined && <PanelSubtitle>{subtitle}</PanelSubtitle>}
+        {title !== undefined && <PanelTitle ref={titleRef}>{title}</PanelTitle>}
       </PanelHeader__Titles>
-      {resolvedAside !== undefined && (
+      {aside !== undefined && (
         <PanelHeader__Aside $overlay={overlay}>
-          {resolvedAside}
+          {/* The aside lives in a measured-fit collapse box: while it fits it
+              shows inline; once it does not it collapses to the summary (the
+              per-severity status dots + a chevron) and the FULL aside, badges
+              AND controls, floats open on toggle. jsdom never completes a
+              measurement cycle, so it sees the wide default (the aside inline
+              in the box). */}
+          {/* A native `<details>`: it carries an implicit `role="group"`, so a
+              widget aside that itself uses `getByRole("group")` must scope that
+              query to its own subtree (this box is the panel-level group). */}
+          <PanelAsideExpand data-panel-aside-expand="" $collapsed={collapsed}>
+            <summary aria-label="Panel status and controls">
+              {breakdown.map((e) => (
+                <PanelStatusDot
+                  key={e.severity}
+                  severity={e.severity}
+                  count={e.count}
+                />
+              ))}
+              <span data-panel-aside-chevron="" aria-hidden="true" />
+            </summary>
+            <PanelAsideSizeProvider value={collapsed ? "collapsed" : "full"}>
+              <div data-panel-aside-full="" ref={asideFullRef}>
+                {aside}
+              </div>
+            </PanelAsideSizeProvider>
+          </PanelAsideExpand>
         </PanelHeader__Aside>
       )}
       {toolbar !== undefined && (
@@ -494,6 +661,13 @@ const ScrollAreaInner = styled.div`
 const ScrollOverflowGlow = styled.div<{
   $position: "top" | "bottom";
   $visible: boolean;
+  /** Vertical reach in px, before the pad-y compensation. Defaults to the
+   * original 16px sliver; `PanelGlow`'s TOP glow (the one that backs the
+   * sticky header) asks for more so it reaches down through the header text
+   * instead of stopping short of it. Left alone for every other
+   * `ScrollOverflowGlow` user (`ScrollArea`'s own top/bottom pair, used for a
+   * second scrolling region inside a widget), which has no header to back. */
+  $reach?: number;
 }>`
   position: absolute;
   /* Extend past the scroll container so the glow sits flush with the panel
@@ -506,7 +680,7 @@ const ScrollOverflowGlow = styled.div<{
     $position === "top"
       ? "top: calc(-1 * var(--scroll-glow-pad-y, 0px));"
       : "bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));"}
-  height: calc(16px + var(--scroll-glow-pad-y, 0px));
+  height: calc(${({ $reach }) => $reach ?? 16}px + var(--scroll-glow-pad-y, 0px));
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity var(--duration-base, 150ms) var(--ease-standard, ease);
@@ -515,10 +689,24 @@ const ScrollOverflowGlow = styled.div<{
      centred radial ellipse read as a discrete glowing blob floating over the
      content; a full-width edge fade reads as the content itself dissolving
      under a soft overlay at the edge, which is the intended "there's more,
-     scroll" affordance. */
+     scroll" affordance.
+
+     The peak alpha is keyed on $reach rather than $position: only
+     PanelGlow's top glow (the one that backs the sticky header, see
+     PANEL_HEADER_GLOW_REACH_PX above) passes an explicit $reach, every
+     other caller, PanelGlow's own bottom edge and ScrollArea's plain
+     top/bottom pair for a second scrolling region, leaves it unset and
+     keeps the original 0.13, a genuinely subtle "there's more" hint with no
+     text to back. The header-backing glow has a job the plain affordance
+     never did: it is the ONLY backing PanelStickyHeader's transparent title
+     gets (see PanelStickyHeader below), and 0.13 measurably failed at that
+     job, ContractManager's title read as illegible over scrolled body
+     content. 0.42 lightens scrolled content enough for the dim title token
+     to read cleanly while still fading to nothing by the glow's own reach,
+     so it stays a glow, not an opaque scrim. */
   background: linear-gradient(
     ${({ $position }) => ($position === "top" ? "to bottom" : "to top")},
-    rgba(255, 255, 255, 0.13),
+    rgba(255, 255, 255, ${({ $reach }) => ($reach !== undefined ? 0.42 : 0.13)}),
     rgba(255, 255, 255, 0)
   );
   /* Local sibling ordering inside the panel's own stacking context (the glow
@@ -859,6 +1047,21 @@ function useScrollerMetric<T>(
   return value;
 }
 
+/**
+ * How far PanelGlow's TOP glow reaches down, in place of `ScrollOverflowGlow`'s
+ * 16px default. The sticky header is transparent on purpose (see
+ * `PanelStickyHeader`): this glow is its only backing, so scrolled content
+ * behind the title reads as dissolving under it rather than showing straight
+ * through. At the old 16px reach that only covered a sliver above the header;
+ * with `PanelTitle`'s own padding halved (--space-6 instead of --space-12, so
+ * the header sits closer to the panel's true top edge) 48px comfortably
+ * covers the title's text band, plus a toolbar row when one is present.
+ * Not on the spacing ladder: this is a decorative glow's reach, not an inset,
+ * and `height` is outside the ratchet's scanned properties for exactly that
+ * kind of value.
+ */
+const PANEL_HEADER_GLOW_REACH_PX = 48;
+
 const PanelGlow__Root = styled.div`
   position: relative;
   display: flex;
@@ -914,190 +1117,13 @@ export function PanelGlow({
   return (
     <PanelGlow__Root {...rest}>
       {children}
-      <ScrollOverflowGlow $position="top" $visible={overflow.top} />
+      <ScrollOverflowGlow
+        $position="top"
+        $visible={overflow.top}
+        $reach={PANEL_HEADER_GLOW_REACH_PX}
+      />
       <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
     </PanelGlow__Root>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// The condensing ghost
-//
-// The ghost's dot consumes the status build's canonical `useStatusSummary()`
-// (store-backed `{ severity, label } | null`), the SAME summary the header's
-// `PanelSummaryBadge` renders. The header badge scrolls away with the header;
-// the ghost re-surfaces identity + status at the top edge while scrolled off.
-// ---------------------------------------------------------------------------
-
-// The header wraps to a second row at narrow widths by design, so "scrolled
-// past the header" keys off the MEASURED header height, never a constant. One
-// px of slack so a sub-pixel scrollTop at the exact boundary does not flutter.
-const PANEL_GHOST_EPSILON = 1;
-
-const ghostDotPulse = keyframes`
-  0% { transform: scale(1); }
-  45% { transform: scale(1.9); }
-  100% { transform: scale(1); }
-`;
-
-const PanelGhost__Root = styled.div<{ $visible: boolean; $animated: boolean }>`
-  position: absolute;
-  /* Sit BELOW the delay rail when one is present (the rail publishes its own
-     height); with no rail this resolves to the very top of the panel. Anchoring
-     to the rail keeps the ghost and the v3 rail reading as one stacked system,
-     and honours the rule that the title must not live in the drag-bar strip. */
-  top: var(--panel-rail-height, 0px);
-  left: 0;
-  right: 0;
-  /* Local sibling ordering inside the panel's own stacking context, the same
-     rung the glows and the overlay header use. Off the app-global z ladder. */
-  z-index: 1;
-  /* Never intercepts: the real content scrolls under it. */
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8, 8px);
-  /* Mirror the title's horizontal inset so the condensed title sits directly
-     under the real one; a compact vertical rhythm keeps the strip ~20px, not
-     the ~35px band this design removes. */
-  padding: var(--space-6, 6px) var(--space-16, 16px);
-  /* v3 "condensing from the top edge": a panel-coloured wash heaviest at the
-     top that dissolves to nothing before the bottom, so the ghost fades in from
-     the top edge with no hard bottom border, over a soft backdrop blur. */
-  background: linear-gradient(
-    to bottom,
-    var(--color-surface-panel) 45%,
-    transparent
-  );
-  backdrop-filter: blur(3px);
-  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  /* Entrance: --duration-base in, --duration-slow out (was raw 0.18s/0.22s). Gated in JS rather
-     than by a CSS @media block so reduced motion is observable in tests and so
-     the same flag suppresses the dot's one-shot pulse; the harness emulates
-     reduce, so this degrades to a static shown/hidden state under it. */
-  ${({ $animated, $visible }) =>
-    $animated
-      ? `transition: opacity ${$visible ? "var(--duration-base)" : "var(--duration-slow)"} var(--ease-standard, ease);`
-      : "transition: none;"}
-`;
-
-const PanelGhost__Title = styled.span`
-  min-width: 0;
-  /* Match PanelTitle's type so the ghost reads as the same title, condensed. */
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const PanelGhost__Dot = styled.span<{ $color: string; $pulse: boolean }>`
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  background: ${({ $color }) => $color};
-  ${({ $pulse }) =>
-    $pulse
-      ? css`
-          animation: ${ghostDotPulse} 0.4s var(--ease-standard, ease);
-        `
-      : ""}
-`;
-
-/**
- * A condensed, presentation-only duplicate of the title that fades in below the
- * delay rail ONLY while the real title is scrolled out of view. It fixes plain
- * scroll-away's flaw (identity and status going invisible mid-scroll) at ~20px
- * of transient overlay instead of a permanent ~35px band.
- *
- * It is `aria-hidden` and role-less: the real `<h3>` inside the scroller stays
- * the single heading for assistive tech whatever the scroll position, so this
- * never adds a second heading or a second status announcement. It is queried by
- * `data-panel-ghost` for the same reason `data-panel-header`/`data-panel-body`
- * exist, since it carries no role.
- */
-export function PanelGhost({ title }: { title?: ReactNode }) {
-  const ctx = useContext(PanelCtx);
-  const el = ctx?.scroller ?? null;
-  const prefersReducedMotion = usePrefersReducedMotion();
-  // The store-backed canonical summary from the status build: `{ severity,
-  // label } | null`. Null (empty store, or no store in the tree) renders no dot.
-  const summary = useStatusSummary();
-
-  // "Real title scrolled out of view", computed from the SAME registered
-  // scroller the glow observes. The header is the scroller's first child, so
-  // its measured height IS the threshold; a wrapped aside grows the header and
-  // the ResizeObserver in the shared helper re-derives, keeping the trigger
-  // measured rather than constant.
-  const showGhost = useScrollerMetric(
-    el,
-    (e) => {
-      const header = e.querySelector(
-        "[data-panel-header]",
-      ) as HTMLElement | null;
-      // A zero-height header means the scroller has not laid out yet (and is
-      // the permanent state in jsdom, which lays nothing out). Treat that as
-      // "not scrolled past", so the ghost stays inert until there is a real
-      // header to have scrolled past, rather than showing over an unmeasured
-      // panel.
-      if (!header || header.offsetHeight <= 0) return false;
-      return e.scrollTop >= header.offsetHeight - PANEL_GHOST_EPSILON;
-    },
-    Object.is,
-    false,
-  );
-
-  // Surface a status CHANGE with a brief pulse: a severity transition should
-  // catch the operator's eye even while the title is scrolled off. Keyed so the
-  // animation replays on each change; the initial state does not pulse (only
-  // transitions do), and reduced motion suppresses it entirely.
-  const severity = summary?.severity ?? null;
-  const prevSeverity = useRef<Severity | null>(severity);
-  const [pulseKey, setPulseKey] = useState(0);
-  useEffect(() => {
-    if (severity !== prevSeverity.current) {
-      prevSeverity.current = severity;
-      if (severity !== null) setPulseKey((k) => k + 1);
-    }
-  }, [severity]);
-
-  return (
-    // The root stays mounted whatever the scroll position, so it can observe
-    // the scroller and so `data-panel-ghost` is always targetable. Its CONTENT
-    // renders only while shown: a permanent duplicate of the title text would
-    // be a second match for every `getByText(title)` in a widget's tests (and a
-    // second copy in the a11y-adjacent DOM), so the condensed title and its dot
-    // exist only in the state they are meant for, scrolled past the header.
-    <PanelGhost__Root
-      data-panel-ghost=""
-      aria-hidden="true"
-      $visible={showGhost}
-      $animated={!prefersReducedMotion}
-    >
-      {showGhost && (
-        <>
-          {title !== undefined && (
-            <PanelGhost__Title>{title}</PanelGhost__Title>
-          )}
-          {summary !== null && (
-            <PanelGhost__Dot
-              key={pulseKey}
-              data-panel-ghost-dot=""
-              data-severity={summary.severity}
-              title={summary.label}
-              aria-hidden="true"
-              $color={severityDotColor(summary.severity)}
-              $pulse={pulseKey > 0 && !prefersReducedMotion}
-            />
-          )}
-        </>
-      )}
-    </PanelGhost__Root>
   );
 }
 
@@ -1107,8 +1133,8 @@ export function PanelGhost({ title }: { title?: ReactNode }) {
 // Governing principle: `Panel` is EXCLUSIVELY the composition of named
 // subcomponents, with no bespoke markup or styling of its own. If it grew a
 // `<div>`, a widget needing a variant could no longer reproduce it by hand.
-// Every piece below is reachable as `Panel.Container` / `.Title` / `.Subtitle`
-// / `.Glow` / `.Body`.
+// Every piece below is reachable as `Panel.Container` / `.Title` / `.Glow` /
+// `.Body`.
 //
 // `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so it
 // owns both the glow's behaviour and the inset compensation it needs. That
@@ -1117,8 +1143,8 @@ export function PanelGhost({ title }: { title?: ReactNode }) {
 // scrollable shell making `calc(-1 * 0)` invalid, so the glow never rendered
 // there at all.
 //
-// Title, subtitle and toolbar sit inside the glow but BESIDE the body rather
-// than in it, and the body is the scroller, so the header stays pinned while
+// Title and toolbar sit inside the glow but BESIDE the body rather than in
+// it, and the body is the scroller, so the header stays pinned while
 // the content scrolls under the glow. (The retired `PanelScrollable` wrapped
 // all its children in the scroll area, so a widget passing a title got a title
 // that scrolled away; that is what this arrangement fixes.)
@@ -1140,7 +1166,6 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * named subcomponent exports are retired.
    */
   panelTitle?: ReactNode;
-  panelSubtitle?: ReactNode;
   /**
    * Content for the right of the header row, beside the stream-status badge:
    * state chips, an `AugmentSlot` for Uplink badges, a small control such as a
@@ -1284,13 +1309,27 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: boolean }>`
    and the title lands exactly where the pinned band put it (top-left, same
    inset); only the body content below keeps the body's padding. `PanelHeader`
    itself is untouched, this is purely how `PanelRoot` assembles it. */
-const PanelScrollingHeader = styled(PanelHeader)`
+const PanelStickyHeader = styled(PanelHeader)`
+  /* Sticks below the delay rail (which publishes its height into
+     --panel-rail-height) while the body scrolls under it, so title + aside stay
+     in view without a scroll-away ghost. It stays TRANSPARENT: the panel glow
+     under it is its backing, so scrolled content reads faintly through/behind it
+     rather than the header being an opaque bar. z-index lifts it over the
+     scrolling content and the overflow glow. */
+  position: sticky;
+  /* Reach the panel's true top edge: stick at the rail height (0 with no rail)
+     MINUS the body's top padding, since that padding sits inside the scroller
+     and would otherwise leave a strip of bare content above the stuck header. */
+  top: calc(var(--panel-rail-height, 0px) - var(--space-8, 8px));
+  z-index: 2;
+  /* Cancel the body's inset horizontally so the header spans the full panel
+     width; the negative top keeps the title at the same inset the old pinned
+     band used and lines the header up with the pulled-up sticky offset. */
   margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
 `;
 
 function PanelRoot({
   panelTitle,
-  panelSubtitle,
   panelAside,
   panelStatus,
   panelToolbar,
@@ -1310,7 +1349,6 @@ function PanelRoot({
   // simply keeps showing no badge until it moves to `panelTitle`.
   const hasHeader =
     panelTitle !== undefined ||
-    panelSubtitle !== undefined ||
     panelAside !== undefined ||
     panelToolbar !== undefined;
 
@@ -1342,6 +1380,13 @@ function PanelRoot({
   );
   const summary = useStatusSummary();
 
+  // A ref to the panel's own container element so `PanelDelayRail` can publish
+  // `--panel-rail-height` onto it (an ancestor of both the rail and the ghost)
+  // through `PanelRailTargetContext`, with no DOM query. A ref, not state, so
+  // capturing the container costs no extra render: the rail reads `ref.current`
+  // in its effect, which runs after the container ref is attached.
+  const railTargetRef = useRef<HTMLDivElement>(null);
+
   // With a store in the tree the header renders the winning contribution; with
   // none (a standalone panel in the settings modal or the station connect view,
   // and every unit test that wraps only `Panel.Status`) it falls back to the
@@ -1365,39 +1410,39 @@ function PanelRoot({
     return <PanelContainer {...rest}>{children}</PanelContainer>;
   }
 
-  // Whether the header must stay pinned above the scroller.
-  //
-  // A `panelToolbar` widget deliberately pins a control row, and scrolling the
-  // title out from over pinned controls would invert their reading order, so a
-  // toolbar header stays pinned exactly as before. A `floatingHeader` already
-  // floats over a non-scrolling `bleed` body and is its own path. Both keep
-  // today's tree (header a sibling ABOVE the scroller) and get NO scroll-away
-  // ghost. Everything else, the common standard header, moves the header inside
-  // the scroller and gains the condensing ghost.
-  const pinned = floatingHeader || panelToolbar !== undefined;
-
-  const header = pinned ? (
+  // A `floatingHeader` is the one overlay case: it paints over a non-scrolling
+  // `bleed` body (a map/globe/plot fills the tile) rather than sticking above
+  // scrolling content. Every OTHER header, standard or with a `panelToolbar`, is
+  // ONE sticky header inside the scroller (see `body` below): it sticks at
+  // `top: var(--panel-rail-height)` so title + aside (+ toolbar) stay in view
+  // while the body scrolls under it. One mechanism, and no scroll-away ghost.
+  const header = floatingHeader ? (
     <PanelHeader
       title={panelTitle}
-      subtitle={panelSubtitle}
       aside={aside}
       toolbar={panelToolbar}
-      overlay={floatingHeader}
+      overlay
     />
   ) : (
-    <PanelScrollingHeader
+    <PanelStickyHeader
       title={panelTitle}
-      subtitle={panelSubtitle}
       aside={aside}
+      toolbar={panelToolbar}
     />
   );
 
   const body = (
     <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
-      {/* Standard header rides INSIDE the scroller as its first child, so title
-          and body scroll as one unit and a short widget reclaims the reserved
-          band. Written first so it stays first in reading and tab order. */}
-      {!pinned && header}
+      {/* The signal-delay rail rides at the true top of the scroller, above the
+          header: in-flight command countdowns sit over the title and the sticky
+          header / ghost rest below its published height. Renders nothing when no
+          command is in flight, so a no-command panel's DOM is unchanged. */}
+      <PanelDelayRail />
+      {/* The sticky header rides INSIDE the scroller, directly under the rail: it
+          sticks at `top: var(--panel-rail-height)` so title + aside (+ toolbar)
+          stay in view while the body scrolls under it. Only a floating (overlay)
+          header lives outside the scroller. */}
+      {!floatingHeader && header}
       {children}
     </PanelBody>
   );
@@ -1419,33 +1464,33 @@ function PanelRoot({
     );
 
   return (
-    <PanelContextProvider>
-      <PanelContainer {...rest}>
-        <PanelGlow>
-          {/* Pinned header is a sibling ABOVE the scroller (unchanged tree);
-              overlay is a paint change, not a structural one. */}
-          {pinned && header}
-          {bodyRegion}
-          {/* The condensing ghost re-surfaces identity + status while the real
-              title is scrolled off. Only the standard, non-pinned header gets
-              one; it observes the SAME registered scroller the glow does. */}
-          {!pinned && <PanelGhost title={panelTitle} />}
-        </PanelGlow>
-      </PanelContainer>
-    </PanelContextProvider>
+    <PanelProviders>
+      <PanelRailTargetContext.Provider value={railTargetRef}>
+        <PanelContainer ref={railTargetRef} {...rest}>
+          <PanelGlow>
+            {/* Only a floating (overlay) header sits outside the scroller, as a
+                sibling above it painting over the bleed body. Every other header
+                is a sticky child of the scroller (in `body`), so there is no
+                scroll-away ghost to re-surface. */}
+            {floatingHeader && header}
+            {bodyRegion}
+          </PanelGlow>
+        </PanelContainer>
+      </PanelRailTargetContext.Provider>
+    </PanelProviders>
   );
 }
 
 export const Panel = Object.assign(PanelRoot, {
   Context: PanelContextProvider,
+  Providers: PanelProviders,
+  Delay: PanelDelayRail,
   Container: PanelContainer,
   Header: PanelHeader,
   Toolbar: PanelToolbar,
   Title: PanelTitle,
-  Subtitle: PanelSubtitle,
   Glow: PanelGlow,
   Body: PanelBody,
-  Ghost: PanelGhost,
   Split: PanelSplit,
   Sidebar: PanelSidebar,
   Status: PanelStatusProvider,

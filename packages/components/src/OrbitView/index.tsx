@@ -14,13 +14,12 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   Panel,
-  PanelSubtitle,
   PanelTitle,
   type ReadoutTone,
   StatusPill,
   StreamStatusBadge,
 } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Value } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -372,7 +371,9 @@ function OrbitViewComponent({
               <StreamStatusBadge status={streamStatus} />
             </TitleRow>
             {bodyName !== undefined && (
-              <PanelSubtitle>{bodyName}</PanelSubtitle>
+              <Value tone="muted" size="xs">
+                {bodyName}
+              </Value>
             )}
             <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
           </LandscapeChrome>
@@ -390,24 +391,40 @@ function OrbitViewComponent({
   // a diagram, though. The no-data and pill-only branches are centred text,
   // and floating a title over centred text just overlaps it.
   const drawingFillsPanel = hasOrbit && showDiagram;
+  // The body name used to be `panelSubtitle`, which the floating-header case
+  // rendered for free (no body row, it floated in the header alongside the
+  // title). Now that subtitles are gone entirely, the two cases split:
+  // floating keeps that free placement by riding along in the aside next to
+  // the badges slot (still zero body cost); the non-floating case moves it
+  // into the body as a caption, same as everywhere else the subtitle sweep
+  // touched, gated on the same height tier (`showSubtitle`) the caption used
+  // to gate on.
+  const showBodyNameInAside = drawingFillsPanel && bodyName !== undefined;
+  const showBodyNameInBody =
+    !drawingFillsPanel && showSubtitle && bodyName !== undefined;
   return (
     <Panel
       panelTitle="ORBIT VIEW"
-      // Overlaying costs the subtitle no vertical space, so the size gate that
-      // used to hide it does not apply in that mode.
-      panelSubtitle={
-        (showSubtitle || drawingFillsPanel) && bodyName !== undefined
-          ? bodyName
-          : undefined
-      }
       // The stream badge is gone from here on purpose: the composed header
       // renders the host-derived status, which watches every topic this widget
       // declares rather than the one this hook picked by hand.
       panelAside={
-        <AugmentSlot name="orbit-view.badges" props={badgesContext} />
+        <>
+          {showBodyNameInAside && (
+            <Value tone="muted" size="xs">
+              {bodyName}
+            </Value>
+          )}
+          <AugmentSlot name="orbit-view.badges" props={badgesContext} />
+        </>
       }
       floatingHeader={drawingFillsPanel}
     >
+      {showBodyNameInBody && (
+        <Value tone="muted" size="xs">
+          {bodyName}
+        </Value>
+      )}
       {!hasOrbit ? (
         <NoData>
           {/* "measured" (Loaded/packed) basis: there IS an orbit, just no

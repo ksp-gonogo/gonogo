@@ -446,11 +446,18 @@ describe("FleetRosterComponent", () => {
       trigger.click();
     });
     // round-trip = 2 x one-way = 9.0 s
-    await waitFor(() =>
-      expect(visibleText(screen.getByRole("group"))).toMatch(
+    // Scope to the disclosure's own group via the trigger's aria-controls: the
+    // panel header now nests the aside in a `<details>`, itself a role="group",
+    // so a bare getByRole("group") is ambiguous.
+    await waitFor(() => {
+      const panel = document.getElementById(
+        trigger.getAttribute("aria-controls") ?? "",
+      );
+      expect(panel).not.toBeNull();
+      expect(visibleText(panel as HTMLElement)).toMatch(
         /round-trip[\s~]*9\s*s/i,
-      ),
-    );
+      );
+    });
   });
 
   it("has no accessible violations with a delay disclosure open", async () => {
@@ -473,11 +480,18 @@ describe("FleetRosterComponent", () => {
     act(() => {
       trigger.click();
     });
-    await waitFor(() =>
-      expect(visibleText(screen.getByRole("group"))).toMatch(
+    // Scope to the disclosure's own group via the trigger's aria-controls: the
+    // panel header now nests the aside in a `<details>`, itself a role="group",
+    // so a bare getByRole("group") is ambiguous.
+    await waitFor(() => {
+      const panel = document.getElementById(
+        trigger.getAttribute("aria-controls") ?? "",
+      );
+      expect(panel).not.toBeNull();
+      expect(visibleText(panel as HTMLElement)).toMatch(
         /round-trip[\s~]*9\s*s/i,
-      ),
-    );
+      );
+    });
     expect(await axe(container)).toHaveNoViolations();
   });
 

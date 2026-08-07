@@ -22,8 +22,6 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
-  CommandDelay,
-  type CommandDelayHandle,
   ConfigForm,
   ControlDelayStream,
   Countdown,
@@ -38,6 +36,7 @@ import {
   ToggleButton,
   Unit,
   useModalSaveBar,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -343,6 +342,10 @@ function NavballComponent({
   const rcsCmd = useCommand("vessel.control.setRcs");
   const sasModeCmd = useCommand("vessel.control.setSasMode");
   const fbwCmd = useCommand("vessel.control.setFlyByWire");
+  usePanelDelay(sasCmd);
+  usePanelDelay(rcsCmd);
+  usePanelDelay(sasModeCmd);
+  usePanelDelay(fbwCmd);
 
   // Raw (uncoerced) current values for the toggle-invert guard: `sasOn`/
   // `rcsOn` above already collapse "unknown" to `false` for DISPLAY, but
@@ -688,7 +691,6 @@ function NavballComponent({
             onSetSasMode={setSasMode}
             showFbwDelayWarning={showFbwDelayWarning}
             delaySeconds={delaySeconds}
-            commandHandles={[sasCmd, rcsCmd, sasModeCmd, fbwCmd]}
           />
         )}
       </div>
@@ -719,9 +721,6 @@ interface ControlSurfaceProps {
   onSetSasMode: (mode: SasMode) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
-  /** The SAS/RCS/SAS-mode/FBW command handles, rendered as one merged
-   * `<CommandDelay>` in-flight list. */
-  commandHandles: CommandDelayHandle[];
 }
 
 function ControlSurface({
@@ -742,7 +741,6 @@ function ControlSurface({
   onSetSasMode,
   showFbwDelayWarning,
   delaySeconds,
-  commandHandles,
 }: ControlSurfaceProps) {
   return (
     <div style={CONTROL_WRAP}>
@@ -751,10 +749,6 @@ function ControlSurface({
           Vessel not controllable: buttons disabled.
         </div>
       )}
-      <CommandDelay
-        handles={commandHandles}
-        ariaLabel="Navball commands: in flight"
-      />
       <div style={GROUP}>
         <div style={GROUP_LABEL}>SAS</div>
         <div style={BUTTON_GRID}>

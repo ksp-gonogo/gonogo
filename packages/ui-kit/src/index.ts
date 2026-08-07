@@ -102,6 +102,15 @@ export {
   type ControlStreamSample,
 } from "./CommandDelay/ControlDelayStream";
 export {
+  type CommandHandle,
+  createDelayRailStore,
+  DelayRailContext,
+  DelayRailProvider,
+  type DelayRailStore,
+  useActiveHandles,
+  useDelayRailStore,
+} from "./CommandDelay/DelayRailContext";
+export {
   InFlightList,
   type InFlightListDensity,
   type InFlightListItem,
@@ -109,10 +118,12 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
+export { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 export {
   type InFlightCommandLike,
   toInFlightListItems,
 } from "./CommandDelay/toInFlightListItems";
+export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 export {
@@ -238,16 +249,15 @@ export {
   PanelBody,
   PanelContainer,
   PanelContextProvider,
-  PanelGhost,
   PanelGlow,
   PanelHeader,
   type PanelProps,
+  PanelProviders,
   PanelSidebar,
   type PanelSidebarSide,
   PanelSplit,
   type PanelSplitProps,
   PanelStatusProvider,
-  PanelSubtitle,
   PanelTitle,
   PanelToolbar,
   ScrollArea,
@@ -287,9 +297,14 @@ export {
   type ScienceInstrument,
 } from "./science/ScienceExperimentRow";
 export {
+  PanelStatusDot,
+  type PanelStatusDotProps,
+} from "./status/PanelStatusDot";
+export {
   createPanelStatusStore,
   type PanelStatusStore,
   PanelStatusStoreProvider,
+  type StatusBreakdownEntry,
   type StatusContribution,
   type StatusSummary,
   usePanelStatusStore,
@@ -306,8 +321,12 @@ export {
   worstSeverity,
 } from "./status/severity";
 export { severityDotColor } from "./status/severityDotColor";
+export { useStatusBreakdown } from "./status/useStatusBreakdown";
 export { useStatusContribution } from "./status/useStatusContribution";
 export { useStatusSummary } from "./status/useStatusSummary";
+// ── Store factory (generic off-tree store + per-panel context wrapper) ────────
+export { createPanelStore, type PanelStore } from "./store/createPanelStore";
+export { createStore, type Store } from "./store/createStore";
 export {
   Tape,
   type TapeMarker,
@@ -349,6 +368,11 @@ export {
   writeQuantity,
 } from "./units";
 export { type ElementSize, useElementSize } from "./useElementSize";
+export {
+  type PanelAsideSize,
+  PanelAsideSizeProvider,
+  usePanelAsideSize,
+} from "./usePanelAsideSize";
 export { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 export {
   Value,

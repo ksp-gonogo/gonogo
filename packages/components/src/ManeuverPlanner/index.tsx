@@ -22,11 +22,11 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   CheckIcon,
-  CommandDelay,
   Panel,
   ScrollArea,
   SectionTitle,
   Stack,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -171,6 +171,9 @@ function ManeuverPlannerComponent({
   const addNodeCmd = useCommand("vessel.maneuver.add");
   const updateNodeCmd = useCommand("vessel.maneuver.update");
   const removeNodeCmd = useCommand("vessel.maneuver.remove");
+  usePanelDelay(addNodeCmd);
+  usePanelDelay(updateNodeCmd);
+  usePanelDelay(removeNodeCmd);
 
   // The maneuver-node id round-trip. `o.maneuverNodes` itself (behind
   // `useManeuverNodes` above) now rides the stream (the `vessel.maneuver.
@@ -587,10 +590,6 @@ function ManeuverPlannerComponent({
     >
       <ScrollBody>
         {refBody !== undefined && <RefBodyCaption>{refBody}</RefBodyCaption>}
-        <CommandDelay
-          handles={[addNodeCmd, updateNodeCmd, removeNodeCmd]}
-          ariaLabel="Maneuver commands: in flight"
-        />
         {renderNodesSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}

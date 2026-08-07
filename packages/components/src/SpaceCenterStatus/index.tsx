@@ -14,12 +14,12 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CommandDelay,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
   speakQuantity,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -221,11 +221,12 @@ function SpaceCenterStatusComponent({
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
   // Facility upgrades are a KSC ground action with no vessel signal delay, so
-  // they dispatch at the meta-vantage (instant). The handle is consumed by the
-  // <CommandDelay> in the panel below.
+  // they dispatch at the meta-vantage (instant). The handle is contributed to
+  // the panel's delay rail by usePanelDelay below.
   const upgradeCmd = useCommand("career.facility.upgrade", {
     vantage: META_VANTAGE,
   });
+  usePanelDelay(upgradeCmd);
 
   const facilities = parseFacilityLevels(facilitiesRaw);
 
@@ -294,10 +295,6 @@ function SpaceCenterStatusComponent({
          Renders nothing until an augment binds it. */
       panelAside={<AugmentSlot name="space-center-status.badges" props={{}} />}
     >
-      <CommandDelay
-        handle={upgradeCmd}
-        ariaLabel="Facility upgrade: in flight"
-      />
       <Body>
         {showSubtitle && (
           <PadStatusLine role="status" aria-live="polite">

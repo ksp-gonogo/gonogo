@@ -14,19 +14,17 @@ describe("Panel (compound)", () => {
     // a widget needing a variant cannot reproduce it by hand.
     expect(Panel.Container).toBeDefined();
     expect(Panel.Title).toBeDefined();
-    expect(Panel.Subtitle).toBeDefined();
     expect(Panel.Glow).toBeDefined();
     expect(Panel.Body).toBeDefined();
   });
 
-  it("renders panelTitle and panelSubtitle from props", () => {
+  it("renders panelTitle from props", () => {
     render(
-      <Panel panelTitle="ORBIT" panelSubtitle="KERBIN">
+      <Panel panelTitle="ORBIT">
         <span>body</span>
       </Panel>,
     );
     expect(screen.getByRole("heading", { name: "ORBIT" })).toBeInTheDocument();
-    expect(screen.getByText("KERBIN")).toBeInTheDocument();
     expect(screen.getByText("body")).toBeInTheDocument();
   });
 

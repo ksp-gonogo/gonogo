@@ -125,3 +125,90 @@ describe("PanelStatusStore", () => {
     expect(store.getSummary()).toEqual({ severity: "info", label: "NOTE" });
   });
 });
+
+describe("PanelStatusStore.getBreakdown", () => {
+  it("is empty with no contributors", () => {
+    const store = createPanelStatusStore();
+    expect(store.getBreakdown()).toEqual([]);
+  });
+
+  it("counts a single contributor as one entry", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "warning", label: "A" });
+    expect(store.getBreakdown()).toEqual([{ severity: "warning", count: 1 }]);
+  });
+
+  it("counts N contributors at one severity as ONE entry (never folded into a worse tier)", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "caution", label: "A" });
+    store.register({ id: "b", severity: "caution", label: "B" });
+    // Two cautions are ONE caution entry with count 2, NOT merged into a warning.
+    expect(store.getBreakdown()).toEqual([{ severity: "caution", count: 2 }]);
+  });
+
+  it("orders entries worst-first", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "caution", label: "A" });
+    store.register({ id: "b", severity: "critical", label: "B" });
+    store.register({ id: "c", severity: "info", label: "C" });
+    expect(store.getBreakdown()).toEqual([
+      { severity: "critical", count: 1 },
+      { severity: "caution", count: 1 },
+      { severity: "info", count: 1 },
+    ]);
+  });
+
+  it("keeps each severity distinct with its own count, worst-first", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "caution", label: "A" });
+    store.register({ id: "b", severity: "caution", label: "B" });
+    store.register({ id: "c", severity: "warning", label: "C" });
+    store.register({ id: "d", severity: "offline", label: "D" });
+    expect(store.getBreakdown()).toEqual([
+      { severity: "offline", count: 1 },
+      { severity: "warning", count: 1 },
+      { severity: "caution", count: 2 },
+    ]);
+  });
+
+  it("drops a severity's entry once its last contributor deregisters", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "warning", label: "A" });
+    const dropB = store.register({ id: "b", severity: "caution", label: "B" });
+    expect(store.getBreakdown()).toEqual([
+      { severity: "warning", count: 1 },
+      { severity: "caution", count: 1 },
+    ]);
+    dropB();
+    expect(store.getBreakdown()).toEqual([{ severity: "warning", count: 1 }]);
+  });
+
+  it("is referentially stable while the contribution set is unchanged", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "warning", label: "A" });
+    const first = store.getBreakdown();
+    expect(store.getBreakdown()).toBe(first);
+  });
+
+  it("preserves identity when a label-only change leaves the breakdown unchanged", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "warning", label: "A" });
+    const first = store.getBreakdown();
+    store.update("a", { severity: "warning", label: "RENAMED" });
+    // Same severities + counts, so the breakdown object is unchanged.
+    expect(store.getBreakdown()).toBe(first);
+  });
+
+  it("returns a fresh breakdown when a count or severity actually changes", () => {
+    const store = createPanelStatusStore();
+    store.register({ id: "a", severity: "warning", label: "A" });
+    const first = store.getBreakdown();
+    store.register({ id: "b", severity: "caution", label: "B" });
+    const next = store.getBreakdown();
+    expect(next).not.toBe(first);
+    expect(next).toEqual([
+      { severity: "warning", count: 1 },
+      { severity: "caution", count: 1 },
+    ]);
+  });
+});

@@ -9,7 +9,6 @@ import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
-  CommandDelay,
   GhostButton,
   NULL_DISPLAY,
   Panel,
@@ -18,6 +17,7 @@ import {
   Stack,
   speakQuantity,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -164,13 +164,15 @@ function StrategiesComponent({
   const science = career?.economy?.science;
   // Activating/deactivating a strategy is an Administration-building action
   // with no vessel signal delay, so it dispatches at the meta-vantage
-  // (instant). The handles are consumed by the <CommandDelay> in the panel.
+  // (instant). The handles are contributed to the panel delay rail by usePanelDelay.
   const activateCmd = useCommand("career.strategy.activate", {
     vantage: META_VANTAGE,
   });
   const deactivateCmd = useCommand("career.strategy.deactivate", {
     vantage: META_VANTAGE,
   });
+  usePanelDelay(activateCmd);
+  usePanelDelay(deactivateCmd);
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
 
@@ -332,10 +334,6 @@ function StrategiesComponent({
         </HeaderMeta>
       }
     >
-      <CommandDelay
-        handles={[activateCmd, deactivateCmd]}
-        ariaLabel="Strategy commands: in flight"
-      />
       <ScrollArea>
         <DividedSection aria-label="Active">
           <SectionLabel>Active</SectionLabel>

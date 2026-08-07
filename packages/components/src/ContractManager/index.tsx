@@ -16,11 +16,11 @@ import {
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
-  CommandDelay,
   formatDuration,
   GhostButton,
   Panel,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
@@ -273,7 +273,7 @@ function ContractManagerComponent({
   // Career actions dispatch at the meta-vantage: accepting/declining/cancelling
   // a contract is a program-desk action with no vessel signal delay, so it
   // stays instant regardless of the selected command centre. The handles are
-  // consumed by the <CommandDelay> below (which draws nothing at meta-vantage).
+  // contributed to the panel delay rail by usePanelDelay (nothing at meta-vantage).
   const acceptCmd = useCommand("career.contract.accept", {
     vantage: META_VANTAGE,
   });
@@ -283,6 +283,9 @@ function ContractManagerComponent({
   const cancelCmd = useCommand("career.contract.cancel", {
     vantage: META_VANTAGE,
   });
+  usePanelDelay(acceptCmd);
+  usePanelDelay(declineCmd);
+  usePanelDelay(cancelCmd);
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 
@@ -316,10 +319,6 @@ function ContractManagerComponent({
 
   return (
     <Panel panelTitle="CONTRACT MANAGER">
-      <CommandDelay
-        handles={[acceptCmd, declineCmd, cancelCmd]}
-        ariaLabel="Contract commands: in flight"
-      />
       {showSubtitle && (
         <Summary role="status" aria-live="polite">
           {activeCount} active · {offeredCount} offered · {recentCount} recent

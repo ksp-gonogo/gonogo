@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import {
+  DelayRailProvider,
   PanelStatusProvider,
   PanelStatusStoreProvider,
 } from "@ksp-gonogo/ui-kit";
@@ -85,51 +86,58 @@ export const GridItemContent = memo(function GridItemContent({
     // the same summary. This provider replaces the old bespoke aside-injection:
     // stream health now reaches the header through the store like every other
     // contribution rather than as the panel's single host-provided status.
-    <PanelStatusStoreProvider>
-      {/* Folds active alarms attributed to this widget's subject into the same
+    // The per-widget delay-rail store, provided ABOVE the widget exactly like
+    // the status store: a command widget calls usePanelDelay in its body, above
+    // the <Panel> it returns, so a Panel-held store would be unreachable from
+    // there. The Panel's rail (inside) reads this above-store via
+    // useActiveHandles(); usePanelDelay (in the widget body) writes to it.
+    <DelayRailProvider>
+      <PanelStatusStoreProvider>
+        {/* Folds active alarms attributed to this widget's subject into the same
           store, so a firing alarm lights the widget's summary with its own name.
           Renders nothing; no-op where no alarm host is mounted. */}
-      <AlarmStatusBridge dataRequirements={def.dataRequirements} />
-      <CellHeader className="drag-handle" title="Drag to reposition">
-        {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
-        <ActionButtons className="widget-action-buttons">
-          {(hasConfig || hasActions) && (
-            <GearWrapper>
-              <GearButton
-                item={item}
-                def={def}
-                onSaveConfig={onSaveConfig}
-                onSaveMappings={onSaveMappings}
-              />
-            </GearWrapper>
-          )}
-          <PushButton
-            item={item}
-            pushable={def.pushable === true}
-            w={w ?? 3}
-            h={h ?? 3}
-          />
-          <RemoveButton onRemove={onRemove} />
-        </ActionButtons>
-      </CellHeader>
-      <ComponentWrapper>
-        <DashboardItemContext.Provider value={itemContext}>
-          <WidgetStreamStatus def={def}>
-            <ErrorBoundary fallback={renderErrorFallback}>
-              <RequiresGuard requires={def.requires} channels={def.channels}>
-                <Comp
-                  id={item.i}
-                  config={item.config}
-                  w={w}
-                  h={h}
-                  onConfigChange={onSaveConfig}
+        <AlarmStatusBridge dataRequirements={def.dataRequirements} />
+        <CellHeader className="drag-handle" title="Drag to reposition">
+          {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
+          <ActionButtons className="widget-action-buttons">
+            {(hasConfig || hasActions) && (
+              <GearWrapper>
+                <GearButton
+                  item={item}
+                  def={def}
+                  onSaveConfig={onSaveConfig}
+                  onSaveMappings={onSaveMappings}
                 />
-              </RequiresGuard>
-            </ErrorBoundary>
-          </WidgetStreamStatus>
-        </DashboardItemContext.Provider>
-      </ComponentWrapper>
-    </PanelStatusStoreProvider>
+              </GearWrapper>
+            )}
+            <PushButton
+              item={item}
+              pushable={def.pushable === true}
+              w={w ?? 3}
+              h={h ?? 3}
+            />
+            <RemoveButton onRemove={onRemove} />
+          </ActionButtons>
+        </CellHeader>
+        <ComponentWrapper>
+          <DashboardItemContext.Provider value={itemContext}>
+            <WidgetStreamStatus def={def}>
+              <ErrorBoundary fallback={renderErrorFallback}>
+                <RequiresGuard requires={def.requires} channels={def.channels}>
+                  <Comp
+                    id={item.i}
+                    config={item.config}
+                    w={w}
+                    h={h}
+                    onConfigChange={onSaveConfig}
+                  />
+                </RequiresGuard>
+              </ErrorBoundary>
+            </WidgetStreamStatus>
+          </DashboardItemContext.Provider>
+        </ComponentWrapper>
+      </PanelStatusStoreProvider>
+    </DelayRailProvider>
   );
 });
 

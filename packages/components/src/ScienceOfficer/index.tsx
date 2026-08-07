@@ -10,7 +10,6 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
-  CommandDelay,
   Divider,
   EmptyState,
   Grid,
@@ -23,6 +22,7 @@ import {
   SectionTitle,
   Stack,
   Unit,
+  usePanelDelay,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
@@ -233,6 +233,8 @@ function ScienceOfficerComponent({
   const instruments = parseInstruments(instrumentsRaw);
   const deployCmd = useCommand("science.experiment.deploy");
   const transmitCmd = useCommand("science.experiment.transmit");
+  usePanelDelay(deployCmd);
+  usePanelDelay(transmitCmd);
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
   // science.lab is a NEW capability (no legacy sci.instruments equivalent,
@@ -341,10 +343,6 @@ function ScienceOfficerComponent({
         </Value>
       )}
       {showLab && <LabSection labs={labs} />}
-      <CommandDelay
-        handles={[deployCmd, transmitCmd]}
-        ariaLabel="Science commands: in flight"
-      />
       <ScrollArea>
         {isLandscape ? (
           <Grid minColWidth="200px" gap="md">

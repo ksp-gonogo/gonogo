@@ -9,11 +9,11 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
-  CommandDelay,
   Panel,
   Section,
   SectionTitle,
   type Severity,
+  usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
@@ -121,6 +121,9 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   const engage = useCommand("mechjeb.engageAscentAutopilot");
   const executeNode = useCommand("mechjeb.executeNextNode");
   const land = useCommand("mechjeb.landAtTarget");
+  usePanelDelay(engage);
+  usePanelDelay(executeNode);
+  usePanelDelay(land);
 
   const commsDelay = useTelemetry("comms.delay");
   const oneWay =
@@ -201,10 +204,6 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
           label="Execute next node"
           phase={executeNode.status.phase}
           onFire={fireExecuteNode}
-        />
-        <CommandDelay
-          handles={[engage, executeNode, land]}
-          ariaLabel="MechJeb commands: in flight"
         />
         <CommandRow
           label="Land at target"

@@ -201,9 +201,9 @@
    *         depend on it, not because the ladder needed a rung there.
    *   12    Section inset, nesting-ladder top inside a widget.
    *   16    Panel horizontal inset. Cross-package locked: PanelTitle,
-   *         PanelSubtitle, PanelBody and EmptyState all align on it, so
-   *         any widget re-inserting a local text inset must use this
-   *         rung or it will not line up with the title above it.
+   *         PanelBody and EmptyState all align on it, so any widget
+   *         re-inserting a local text inset must use this rung or it
+   *         will not line up with the title above it.
    *   24    Screen and modal outer inset. Page chrome, not widget
    *         chrome; do not use it inside a dashboard tile.
    *

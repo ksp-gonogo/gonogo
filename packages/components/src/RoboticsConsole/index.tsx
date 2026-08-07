@@ -9,7 +9,6 @@ import {
   ActionButton,
   Badge,
   Cluster,
-  CommandDelay,
   EmptyState,
   Inline,
   Panel,
@@ -19,6 +18,7 @@ import {
   Stack,
   ToggleButton,
   Unit,
+  usePanelDelay,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -193,6 +193,9 @@ function RoboticsConsoleComponent({
   const targetCmd = useCommand("robotics.servo.setTarget");
   const motorCmd = useCommand("robotics.servo.setMotor");
   const lockCmd = useCommand("robotics.servo.setLock");
+  usePanelDelay(targetCmd);
+  usePanelDelay(motorCmd);
+  usePanelDelay(lockCmd);
 
   const servos = parseServos(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -297,11 +300,6 @@ function RoboticsConsoleComponent({
               </Badge>
             )}
           </Cluster>
-
-          <CommandDelay
-            handles={[targetCmd, motorCmd, lockCmd]}
-            ariaLabel="Robotics commands: in flight"
-          />
 
           <Stack gap="sm">
             <Cluster justify="between" gap="md" wrap>

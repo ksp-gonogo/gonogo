@@ -24,7 +24,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
-  CommandDelay,
   ConfigForm,
   Field,
   FieldHint,
@@ -36,6 +35,7 @@ import {
   Section,
   Spinner,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import {
@@ -245,6 +245,8 @@ function TargetPickerComponent({
   // `target.available` entries carry `entry.kind` as).
   const setTargetCmd = useCommand("vessel.target.set");
   const clearTargetCmd = useCommand("vessel.target.clear");
+  usePanelDelay(setTargetCmd);
+  usePanelDelay(clearTargetCmd);
 
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
@@ -502,10 +504,6 @@ function TargetPickerComponent({
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         aria-label="Filter targets"
-      />
-      <CommandDelay
-        handles={[setTargetCmd, clearTargetCmd]}
-        ariaLabel="Target commands: in flight"
       />
       {available === undefined ? (
         <Hint>Waiting for target list...</Hint>

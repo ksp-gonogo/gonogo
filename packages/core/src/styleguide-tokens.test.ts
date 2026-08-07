@@ -130,7 +130,7 @@ function baselineKey(file: string): string {
  */
 const BASELINES: Record<Family, Record<string, number>> = {
   /**
-   * 51 across 21 files. Mostly four groups: the `StationConnectView` page
+   * 50 across 20 files. Mostly four groups: the `StationConnectView` page
    * (19, exempted wholesale by the migration reviewer, it needs a
    * page-scale decision rather than a widget-ladder one), negative offsets
    * that are computed halves rather than rungs (`margin: -1px` sr-only
@@ -155,7 +155,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
-    "packages/ui-kit/src/Panel.tsx": 1,
     "packages/ui/src/FileInput.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
     "packages/ui/src/VisuallyHidden.tsx": 1,
@@ -174,13 +173,14 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/InputTester/index.tsx": 2,
   },
   /**
-   * 60 across 32 files. Two thirds are display-tier sizes above the
+   * 61 across 33 files. Two thirds are display-tier sizes above the
    * scale's `lg` ceiling (18/20/22/24/28px readouts) and fluid `clamp()`
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
    * (Navball's 9px and 14px terms in a 74px reserve, TechTree's card
-   * ladder against CARD_H = 48, DistanceToTarget's 11px), plus `shared/`
-   * and mod widgets no slice owned.
+   * ladder against CARD_H = 48, DistanceToTarget's 11px, PanelStatusDot's
+   * 7px pinned under an 11px dot), plus `shared/` and mod widgets no slice
+   * owned.
    */
   fontSize: {
     "mod/": 2,
@@ -213,6 +213,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Form.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 3,
+    "packages/ui-kit/src/status/PanelStatusDot.tsx": 1,
     "packages/ui/src/FabPrompt.tsx": 1,
   },
   /**
@@ -254,12 +255,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // component's own stacking context (lifts the popped panel above following
     // content). Not app-global chrome, so no named z rung.
     "packages/ui-kit/src/Disclosure.tsx": 1,
-    // Two, both local sibling ordering inside the panel's own stacking
-    // context: the scroll glow over the scrolling body, and the overlay
-    // header over the content that runs beneath it. Neither is app-global
-    // chrome, so a named rung would lift a widget-internal overlay above the
-    // dashboard's.
-    "packages/ui-kit/src/Panel.tsx": 3,
+    // Local sibling ordering inside the panel's own stacking context: the
+    // scroll glow over the scrolling body, the overlay header over the content
+    // beneath it, and the popped aside-expand box over that header. None is
+    // app-global chrome, so a named rung would lift a widget-internal overlay
+    // above the dashboard's.
+    "packages/ui-kit/src/Panel.tsx": 4,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,

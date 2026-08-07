@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { DelayRailProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -44,7 +45,12 @@ function renderMechJeb(defaultAscentAltitudeKm = 100) {
   const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "mj" }}>
-        <MechJebComponent config={{ defaultAscentAltitudeKm }} id="mj" />
+        {/* Provides the delay-rail store ABOVE the widget, as GridItemContent
+            does in the app: usePanelDelay in the widget body reaches it, and the
+            Panel's rail reads it. */}
+        <DelayRailProvider>
+          <MechJebComponent config={{ defaultAscentAltitudeKm }} id="mj" />
+        </DelayRailProvider>
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -117,7 +123,7 @@ describe("MechJeb command widget", () => {
   });
 });
 
-describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => {
+describe("MechJeb in-flight indicator (surfaces in the Panel delay rail)", () => {
   it("appears on dispatch, shows a countdown, and clears once the command resolves", async () => {
     const { fixture } = renderMechJeb();
 
@@ -169,9 +175,13 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
         await vi.advanceTimersByTimeAsync(20);
       });
 
-      const list = screen.getByLabelText("MechJeb commands: in flight");
+      const list = screen.getByLabelText("In-flight commands");
       expect(list).toHaveTextContent("Execute next node");
       expect(list).toHaveTextContent("4s");
+      // The delay UX now surfaces in the Panel's delay rail (the first in-flow
+      // child of the body scroller, above the header), not as an inline body
+      // child: this is what the usePanelDelay migration moves.
+      expect(list.closest("[data-panel-rail]")).not.toBeNull();
 
       // Advance nowUt past the reply (dispatchedAt + 2*oneWaySeconds = 108)
       // with the path connected throughout -> resolves ("due") and clears.
@@ -199,7 +209,7 @@ describe("MechJeb in-flight indicator (useCommand().inFlight folded in)", () => 
       });
 
       expect(
-        screen.queryByLabelText("MechJeb commands: in flight"),
+        screen.queryByLabelText("In-flight commands"),
       ).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();

@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { CommandDelay } from "@ksp-gonogo/ui-kit";
+import { CommandDelay, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -374,7 +374,8 @@ describe("useCommand inFlight", () => {
   });
 });
 
-// ── must-consume invariant (dev): a dispatch needs a mounted <CommandDelay> ──
+// ── must-consume invariant (dev): a dispatch needs usePanelDelay (the panel-
+// rail path) or an inline <CommandDelay>, either of which consumes the token ──
 
 describe("useCommand must-consume invariant (dev)", () => {
   function makeClient() {
@@ -398,7 +399,7 @@ describe("useCommand must-consume invariant (dev)", () => {
     );
   }
 
-  it("throws in dev when a command is dispatched without a <CommandDelay>", () => {
+  it("throws in dev when a command is dispatched without usePanelDelay or a CommandDelay", () => {
     render(
       <TelemetryProvider client={makeClient()}>
         <Unlock withDelay={false} />
@@ -406,7 +407,33 @@ describe("useCommand must-consume invariant (dev)", () => {
     );
     expect(() => {
       fireEvent.click(screen.getByText("unlock"));
-    }).toThrow(/CommandDelay/);
+    }).toThrow(/usePanelDelay/);
+  });
+
+  function UnlockViaPanelDelay() {
+    const cmd = useCommand("career.tech.unlock");
+    // The panel-rail path: usePanelDelay consumes the token even with no delay
+    // store in the tree (a headerless / no-Panel test), so a dispatch is allowed.
+    usePanelDelay(cmd);
+    return (
+      <button
+        type="button"
+        onClick={() => void cmd.send({ id: "n" }).catch(() => {})}
+      >
+        unlock
+      </button>
+    );
+  }
+
+  it("does not throw when usePanelDelay(cmd) is called (the panel-rail path)", () => {
+    render(
+      <TelemetryProvider client={makeClient()}>
+        <UnlockViaPanelDelay />
+      </TelemetryProvider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).not.toThrow();
   });
 
   it("does not throw when <CommandDelay handle={cmd}> is mounted", () => {

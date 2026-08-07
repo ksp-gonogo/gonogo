@@ -9,12 +9,12 @@ import {
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
 import {
-  CommandDelay,
   NULL_DISPLAY,
   Panel,
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -117,10 +117,12 @@ function WarpControlComponent({
   const isPaused = warp?.paused;
   // Time-warp + pause are sim-meta controls (they act on the simulation, not a
   // vessel), so they dispatch at the meta-vantage and are never signal-delayed
-  // (`commandDelayed` is false for `time.*`); the <CommandDelay> below draws
-  // nothing but still consumes the handles per the must-consume invariant.
+  // (`commandDelayed` is false for `time.*`); usePanelDelay below draws nothing
+  // in the panel rail but still consumes the handles per the must-consume invariant.
   const warpCmd = useCommand("time.setWarpIndex", { vantage: META_VANTAGE });
   const pauseCmd = useCommand("time.setPaused", { vantage: META_VANTAGE });
+  usePanelDelay(warpCmd);
+  usePanelDelay(pauseCmd);
 
   // Optimistic pause state: tracks the operator's *intent* between click
   // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
@@ -221,10 +223,6 @@ function WarpControlComponent({
          (renders nothing) until an augment binds `warp-control.badges`. */
       panelAside={<AugmentSlot name="warp-control.badges" props={{}} />}
     >
-      <CommandDelay
-        handles={[warpCmd, pauseCmd]}
-        ariaLabel="Time controls: in flight"
-      />
       <DimmedOverlay
         show={dimBody}
         message="No active save"

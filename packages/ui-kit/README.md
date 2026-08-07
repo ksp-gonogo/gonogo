@@ -49,9 +49,8 @@ export function Altitude({ metres }: { metres: number }) {
 ```
 
 `Panel` gives you the heading and a padded, scrolling body. Pass `panelTitle`
-and `panelSubtitle` rather than rendering a title yourself; the panel owns its
-own presentation so a change to how titles look is one edit here, not one per
-widget.
+rather than rendering a title yourself; the panel owns its own presentation so
+a change to how titles look is one edit here, not one per widget.
 
 If you need a different arrangement, `Panel` is nothing but a composition of
 parts you can reach individually:

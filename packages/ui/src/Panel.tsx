@@ -18,7 +18,6 @@ export {
   PanelContextProvider,
   PanelGlow,
   type PanelProps,
-  PanelSubtitle,
   PanelTitle,
   ScrollArea,
 } from "@ksp-gonogo/ui-kit";

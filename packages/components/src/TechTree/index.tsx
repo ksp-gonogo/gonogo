@@ -8,10 +8,10 @@ import {
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CommandDelay,
   Panel,
   ScrollArea,
   Unit,
+  usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
@@ -335,9 +335,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const scene = useTelemetry("spaceCenter.scene")?.scene;
   const careerScience = useTelemetry("career.status")?.economy?.science;
   // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
-  // so it dispatches at the meta-vantage (instant). The handle is consumed by
-  // the <CommandDelay> in the panel below (draws nothing at meta-vantage).
+  // so it dispatches at the meta-vantage (instant). The handle is contributed to
+  // the panel delay rail by usePanelDelay (draws nothing at meta-vantage).
   const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
+  usePanelDelay(unlockCmd);
 
   const allNodes = parseTechNodes(nodesRaw);
 
@@ -474,7 +475,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
     return (
       <Panel panelTitle="TECH TREE">
-        <CommandDelay handle={unlockCmd} ariaLabel="Tech unlock: in flight" />
         {subtitle && <TechMeta>{subtitle}</TechMeta>}
         <GraphToolbar>
           <Legend aria-hidden="true">
@@ -541,7 +541,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
 
   return (
     <Panel panelTitle="TECH TREE">
-      <CommandDelay handle={unlockCmd} ariaLabel="Tech unlock: in flight" />
       {subtitle && <TechMeta>{subtitle}</TechMeta>}
       <Controls>
         <FilterRow role="group" aria-label="Filter tech nodes">

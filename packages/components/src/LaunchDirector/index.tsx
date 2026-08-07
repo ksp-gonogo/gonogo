@@ -20,12 +20,12 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CommandDelay,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
   Spinner,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -287,8 +287,8 @@ function LaunchDirectorComponent({
   // LAUNCH itself (a delayed command to the pad) still rides `execute` below;
   // the non-launch scene ops (recover / revert / to-tracking-station / switch
   // vessel) are KSC-desk actions with no vessel signal delay, so they dispatch
-  // at the meta-vantage (instant). Their handles are consumed by the
-  // <CommandDelay> in the panel below.
+  // at the meta-vantage (instant). Their handles are contributed to the panel
+  // delay rail by usePanelDelay below.
   const execute = useExecuteAction("data");
   const recoverCmd = useCommand("ksp.recover", { vantage: META_VANTAGE });
   const revertLaunchCmd = useCommand("ksp.revertToLaunch", {
@@ -301,6 +301,11 @@ function LaunchDirectorComponent({
     vantage: META_VANTAGE,
   });
   const switchCmd = useCommand("ksp.switchVessel", { vantage: META_VANTAGE });
+  usePanelDelay(recoverCmd);
+  usePanelDelay(revertLaunchCmd);
+  usePanelDelay(revertEditorCmd);
+  usePanelDelay(toTrackingCmd);
+  usePanelDelay(switchCmd);
 
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
@@ -430,16 +435,6 @@ function LaunchDirectorComponent({
         <AugmentSlot name="launch-director.badges" props={slotContext} />
       }
     >
-      <CommandDelay
-        handles={[
-          recoverCmd,
-          revertLaunchCmd,
-          revertEditorCmd,
-          toTrackingCmd,
-          switchCmd,
-        ]}
-        ariaLabel="Launch-ops commands: in flight"
-      />
       <Body>
         {showSubtitle && (
           <div

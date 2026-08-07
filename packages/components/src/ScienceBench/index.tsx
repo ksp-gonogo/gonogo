@@ -9,7 +9,6 @@ import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
   NULL_DISPLAY,
   Panel,
-  PanelSubtitle,
   ScrollArea,
   Section,
   SectionTitle,
@@ -401,7 +400,7 @@ function ScienceBenchComponent({
         message="Sensors require flight"
         hint="Career stats below stay current."
       >
-        <PanelSubtitle
+        <SituationLine
           style={SITUATION_LINE}
           role="status"
           aria-live="polite"
@@ -413,7 +412,7 @@ function ScienceBenchComponent({
               : "Awaiting situation telemetry"}
           </span>
           {showNew && <span style={NEW_BADGE}>NEW</span>}
-        </PanelSubtitle>
+        </SituationLine>
 
         <Body>
           {showSensors && (
@@ -631,14 +630,25 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 // Structural inline styles (CSS-var tokens): a bespoke science station board,
 // no reusable ui-kit primitive fits the layout, so it stays local. Toned/
-// weighted numeric readouts render through ui-kit `Value`; the one kit piece it
-// reuses (PanelSubtitle) takes only this widget's flex layout inline. Body keeps
+// weighted numeric readouts render through ui-kit `Value`. Body keeps
 // styled-components (see the import's biome-ignore).
 
-// Subtitle typography, but a body element: the situation line lives inside the
-// DimmedOverlay with the sensors it describes, so it dims with them rather than
-// sitting in the pinned header. It therefore drops the horizontal inset
-// PanelSubtitle carries as a header part, since Panel.Body already pays it.
+/**
+ * The situation line's typography, once `PanelSubtitle` (deleted along with
+ * the rest of the header subtitle mechanism) and now a local styled
+ * component: the line lives inside the DimmedOverlay with the sensors it
+ * describes, so it dims with them rather than sitting in the pinned header.
+ * It carries none of `PanelSubtitle`'s header-part concerns (no horizontal
+ * inset, `SITUATION_LINE` below pays its own layout; no pull-up margin
+ * compensating for sitting under `PanelTitle`, since it doesn't), only the
+ * type scale and tone.
+ */
+const SituationLine = styled.div`
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+`;
+
 const SITUATION_LINE: CSSProperties = {
   display: "flex",
   alignItems: "center",
