@@ -19,6 +19,10 @@ export type {
   LedgerTerm,
   ResourceFacts,
   ResourceGraph,
+  ResourceRow,
+  Summary,
+  SummaryInput,
+  WearRow,
 } from "./ecosystem";
 // The derivation layer over the Kerbalism payloads: the resource graph, the
 // per-source rate ledger, and the root-cause walk. Pure functions of the wire
@@ -33,5 +37,7 @@ export {
   diagnose,
   resourceFacts,
   stronglyConnected,
+  summarise,
   timeToEmptySeconds,
+  wearRows,
 } from "./ecosystem";

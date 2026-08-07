@@ -497,3 +497,227 @@ export function timeToEmptySeconds(
   if (perSecond >= 0) return null;
   return (stored[resource] ?? 0) / -perSecond;
 }
+
+// ── The row model ───────────────────────────────────────────────────────────
+
+/**
+ * One resource as a widget row: the live reading, plus the ecosystem facts
+ * folded in as METADATA rather than held back for a separate panel.
+ *
+ * This is the shape the whole design turns on. The naive version of a Kerbalism
+ * widget is four stacked panels (consumables, loops, deficits, converters); the
+ * useful version is one list where "this loop is closed" and "this shortage is
+ * the root cause" are per-row state. Both come from the same derivation, so the
+ * row carries them and the widget just renders.
+ */
+export interface ResourceRow {
+  name: string;
+  displayName: string;
+  amount: number;
+  capacity: number;
+  /** 0..1, or null when the vessel carries no tank for it. */
+  fraction: number | null;
+  /** Signed units/s from Kerbalism, or null when it reported none. */
+  ratePerSecond: number | null;
+  secondsToEmpty: number | null;
+  isSupply: boolean;
+  /** See ResourceFacts.pooled: `undefined` is unknown, NOT "not pooled". */
+  pooled: boolean | undefined;
+  /**
+   * True when this resource sits in a closed loop, i.e. something aboard turns
+   * its waste back into it. A badge, not a panel: "Water, recycled" versus
+   * "Food, consumable, no source aboard".
+   */
+  closed: boolean;
+  /** The loop it closes through, for the expanded row. Null when open-ended. */
+  loop: string[] | null;
+  /** From `diagnose`, or null when this resource is not short. */
+  role: "root" | "downstream" | null;
+  /** Resources this one is waiting on. Empty unless `role` is "downstream". */
+  blockedBy: string[];
+  /** What this root cause explains. Empty unless `role` is "root". */
+  explains: string[];
+  /**
+   * Below KERBALISM'S OWN warning level (`Supply.low_threshold`), not a number
+   * we picked. A widget must not invent a threshold for a resource whose mod
+   * ships one: stock warns at 15%, another profile may not, and guessing means
+   * the readout disagrees with the game's own alarm. `undefined` when the
+   * profile declares no threshold.
+   */
+  belowLowThreshold: boolean | undefined;
+}
+
+/**
+ * A pseudo-resource being consumed: a wear gauge, not a consumable.
+ *
+ * Kerbalism models finite service life as a hidden resource a process eats:
+ * `_NonRegenScrubber` drains as a single-use scrubber saturates,
+ * `_RTG` decays over a 28.8-kerbin-year half-life. They are real KSP resources
+ * so they ride `vessel.resources` like any other, but every other surface here
+ * filters them out as plumbing, which means a scrubber quietly reaching the end
+ * of its life is invisible. It is the one thing in the profile that is
+ * genuinely a countdown rather than a rate.
+ */
+export interface WearRow {
+  /** The pseudo-resource name, `_`-prefixed. */
+  name: string;
+  /** The process it limits, from the profile. */
+  process: string;
+  amount: number;
+  capacity: number;
+  fraction: number | null;
+  secondsRemaining: number | null;
+}
+
+export interface SummaryInput {
+  profile: KerbalismProfile | undefined;
+  lifeSupport: KerbalismLifeSupport | undefined;
+  /** Current amount per resource name, from `vessel.resources`. */
+  stored: Record<string, number>;
+  /** Current capacity per resource name, from `vessel.resources`. */
+  capacity: Record<string, number>;
+  crew: number;
+}
+
+export interface Summary {
+  /**
+   * Root-cause rows, drawn from BOTH buckets below and repeated there.
+   *
+   * `supplies` and `other` are each sorted independently, so a root cause that
+   * is not itself a Supply would sit buried in the secondary list while the
+   * operator reads the symptoms in the primary one. Which resources count as
+   * Supplies is the profile's call and it varies: stock declares eight
+   * including ElectricCharge, another profile may declare three. A widget must
+   * be able to surface the thing to act on without knowing which bucket the
+   * profile happened to put it in.
+   *
+   * Empty when nothing is short.
+   */
+  causes: ResourceRow[];
+  /** Life support, worst first with root causes pinned above what they explain. */
+  supplies: ResourceRow[];
+  /** Everything else the profile touches: waste, feedstocks, propellant. */
+  other: ResourceRow[];
+  /** Pseudo-resource wear gauges. See {@link WearRow}. */
+  wear: WearRow[];
+}
+
+/**
+ * Every resource the loaded profile touches, as rows ready to render.
+ *
+ * Ordering encodes the diagnosis rather than restating it: a root cause sorts
+ * above the shortages it explains even when those are more urgent, because
+ * acting on the symptom is wasted effort. Within a role, soonest-empty first.
+ */
+export function summarise({
+  profile,
+  lifeSupport,
+  stored,
+  capacity,
+  crew,
+}: SummaryInput): Summary {
+  const facts = resourceFacts(profile);
+  const groups = diagnose({ profile, lifeSupport, stored });
+  const loops = closedLoops(profile);
+
+  const roleOf = new Map<string, DiagnosisGroup>();
+  for (const group of groups) {
+    for (const name of group.resources) roleOf.set(name, group);
+  }
+  const loopOf = new Map<string, string[]>();
+  for (const loop of loops) {
+    for (const name of loop) if (!loopOf.has(name)) loopOf.set(name, loop);
+  }
+
+  const row = (f: ResourceFacts): ResourceRow => {
+    const amount = stored[f.name] ?? 0;
+    const cap = capacity[f.name] ?? 0;
+    const reported = lifeSupport?.rates?.[f.name];
+    const group = roleOf.get(f.name);
+    const low = profile?.resources?.[f.name]?.lowThreshold;
+    const lowMagnitude = low === undefined ? undefined : mag(low, Number.NaN);
+    return {
+      name: f.name,
+      displayName: f.displayName,
+      amount,
+      capacity: cap,
+      fraction: cap > 0 ? amount / cap : null,
+      ratePerSecond: reported === undefined ? null : mag(reported),
+      secondsToEmpty: timeToEmptySeconds(f.name, lifeSupport, stored),
+      isSupply: f.isSupply,
+      pooled: f.pooled,
+      closed: loopOf.has(f.name),
+      loop: loopOf.get(f.name) ?? null,
+      role: group?.role ?? null,
+      blockedBy: group?.role === "downstream" ? group.blockedBy : [],
+      explains: group?.role === "root" ? group.explains : [],
+      belowLowThreshold:
+        lowMagnitude === undefined || Number.isNaN(lowMagnitude) || cap <= 0
+          ? undefined
+          : amount / cap < lowMagnitude,
+    };
+  };
+
+  const ROLE_ORDER = { root: 0, downstream: 1 } as const;
+  const order = (a: ResourceRow, b: ResourceRow): number => {
+    const ra = a.role ? ROLE_ORDER[a.role] : 2;
+    const rb = b.role ? ROLE_ORDER[b.role] : 2;
+    if (ra !== rb) return ra - rb;
+    // Within a role, soonest-empty first; anything not draining sorts last.
+    const ta = a.secondsToEmpty ?? Number.POSITIVE_INFINITY;
+    const tb = b.secondsToEmpty ?? Number.POSITIVE_INFINITY;
+    if (ta !== tb) return ta - tb;
+    return a.name.localeCompare(b.name);
+  };
+
+  const rows = [...facts.values()].map(row);
+  return {
+    causes: rows.filter((r) => r.role === "root").sort(order),
+    supplies: rows.filter((r) => r.isSupply).sort(order),
+    other: rows.filter((r) => !r.isSupply).sort(order),
+    wear: wearRows({ profile, lifeSupport, stored, capacity, crew }),
+  };
+}
+
+/**
+ * The wear gauges this vessel is actually burning through. See {@link WearRow}.
+ *
+ * A pseudo-resource is identified structurally, by the leading underscore
+ * Kerbalism uses, never by name: `_RTG` and `_NonRegenScrubber` are stock, but
+ * a third-party profile invents its own and they must work identically.
+ */
+export function wearRows({
+  profile,
+  lifeSupport,
+  stored,
+  capacity,
+}: SummaryInput): WearRow[] {
+  const byModifier = processesByModifier(profile);
+  const out: WearRow[] = [];
+  for (const entry of lifeSupport?.processes ?? []) {
+    if (entry.broken === true || entry.running !== true) continue;
+    const def = entry.resource ? byModifier.get(entry.resource) : undefined;
+    if (!def) continue;
+    for (const [name, perCapacity] of Object.entries(def.inputs ?? {})) {
+      // The process's own gate token is an input too and is not wear; only a
+      // DIFFERENT pseudo-resource is a life gauge.
+      if (!name.startsWith("_") || name === entry.resource) continue;
+      const drain = mag(perCapacity) * mag(entry.capacity);
+      const amount = stored[name] ?? 0;
+      const cap = capacity[name] ?? 0;
+      out.push({
+        name,
+        process: def.name || entry.title || name,
+        amount,
+        capacity: cap,
+        fraction: cap > 0 ? amount / cap : null,
+        secondsRemaining: drain > 0 ? amount / drain : null,
+      });
+    }
+  }
+  return out.sort(
+    (a, b) =>
+      (a.secondsRemaining ?? Number.POSITIVE_INFINITY) -
+      (b.secondsRemaining ?? Number.POSITIVE_INFINITY),
+  );
+}

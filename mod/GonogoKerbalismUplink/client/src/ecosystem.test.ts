@@ -9,7 +9,9 @@ import {
   closedLoops,
   diagnose,
   resourceFacts,
+  summarise,
   timeToEmptySeconds,
+  wearRows,
 } from "./ecosystem";
 
 // Real numbers from Kerbalism's stock profile config, trimmed to the processes
@@ -36,7 +38,11 @@ const PROFILE = {
     ElectricCharge: {
       flowMode: "ALL_VESSEL_BALANCE",
       displayName: "Electric Charge",
-      isSupply: false,
+      // Stock declares EC as a Supply (Default.cfg's first Supply block), which
+      // is easy to assume otherwise: it is the most common root cause AND a
+      // life-support consumable.
+      isSupply: true,
+      lowThreshold: 0.15,
     },
     Oxygen: { flowMode: "ALL_VESSEL", displayName: "Oxygen", isSupply: true },
     Hydrogen: {
@@ -342,5 +348,172 @@ describe("timeToEmptySeconds", () => {
     // Absent is not zero: Kerbalism reported no rate, so there is no countdown
     // to give, which is different from "it will never run out".
     expect(timeToEmptySeconds("Ammonia", ls, { Ammonia: 10 })).toBeNull();
+  });
+});
+
+describe("summarise", () => {
+  const RUNNING = {
+    rates: {
+      Water: rate(-0.000054),
+      ElectricCharge: rate(-0.1856),
+      Hydrogen: rate(-0.03),
+      Oxygen: rate(0.4),
+    },
+    processes: [
+      {
+        resource: "_WaterRecycler",
+        title: "Water recycler",
+        capacity: 30,
+        running: true,
+        broken: false,
+        flightId: 101,
+      },
+      {
+        resource: "_FuelCell",
+        title: "Fuel cell",
+        capacity: 40,
+        running: true,
+        broken: false,
+        flightId: 303,
+      },
+    ],
+  } as unknown as KerbalismLifeSupport;
+  const STORED = { Water: 20, ElectricCharge: 215, Hydrogen: 0, Oxygen: 1180 };
+  const CAPACITY = {
+    Water: 400,
+    ElectricCharge: 350,
+    Hydrogen: 60,
+    Oxygen: 2000,
+  };
+
+  const summary = summarise({
+    profile: PROFILE,
+    lifeSupport: RUNNING,
+    stored: STORED,
+    capacity: CAPACITY,
+    crew: CREW,
+  });
+
+  it("splits supplies from everything else the profile touches", () => {
+    // Which is which is the profile's call (`isSupply`), never a list of ours.
+    expect(summary.supplies.map((r) => r.name).sort()).toEqual([
+      "ElectricCharge",
+      "Oxygen",
+      "Water",
+    ]);
+    expect(summary.other.map((r) => r.name)).toContain("Ammonia");
+  });
+
+  it("folds the ecosystem in as per-row metadata, not a separate panel", () => {
+    const water = summary.supplies.find((r) => r.name === "Water");
+    // Water is recycled AND part of the mutual block. Both are row state.
+    expect(water?.closed).toBe(true);
+    expect(water?.loop).toEqual(expect.arrayContaining(["Water"]));
+    expect(water?.role).not.toBeNull();
+  });
+
+  it("pins a root cause above the shortages it explains, within a list", () => {
+    // Ordering IS the diagnosis. Acting on a symptom is wasted effort, so the
+    // cause sorts first even when a symptom is more urgent.
+    const roles = summary.supplies
+      .map((r) => r.role)
+      .filter((r): r is "root" | "downstream" => r !== null);
+    const firstDownstream = roles.indexOf("downstream");
+    const lastRoot = roles.lastIndexOf("root");
+    if (firstDownstream !== -1 && lastRoot !== -1) {
+      expect(lastRoot).toBeLessThan(firstDownstream);
+    }
+  });
+
+  it("surfaces root causes separately, because a list can bury one", () => {
+    // supplies and other are sorted INDEPENDENTLY, so a root cause that is not
+    // a Supply would sit in the secondary list while the operator reads the
+    // symptoms in the primary one. Which resources are Supplies is the
+    // profile's call and it varies between profiles, so a widget cannot rely on
+    // the cause landing in the bucket it happens to render first.
+    expect(summary.causes.every((r) => r.role === "root")).toBe(true);
+    const named = new Set(summary.causes.map((r) => r.name));
+    for (const list of [summary.supplies, summary.other]) {
+      for (const r of list) {
+        if (r.role === "root") expect(named.has(r.name)).toBe(true);
+      }
+    }
+  });
+
+  it("uses KERBALISM's own low threshold rather than one we picked", () => {
+    // Water: 20/400 = 5%, under the profile's own 15% Supply threshold.
+    const water = summary.supplies.find((r) => r.name === "Water");
+    expect(water?.belowLowThreshold).toBe(true);
+    // Oxygen declares no threshold in this profile, so there is nothing to be
+    // under. undefined, not false: we did not check and passed, we cannot check.
+    const oxygen = summary.supplies.find((r) => r.name === "Oxygen");
+    expect(oxygen?.belowLowThreshold).toBeUndefined();
+  });
+
+  it("reports a rate of null rather than 0 when Kerbalism reported none", () => {
+    // Absent is not "in balance". A row that reads 0.00/s implies a measurement.
+    const ammonia = summary.other.find((r) => r.name === "Ammonia");
+    expect(ammonia?.ratePerSecond).toBeNull();
+    expect(ammonia?.secondsToEmpty).toBeNull();
+  });
+});
+
+describe("wearRows", () => {
+  // A single-use scrubber: its service life IS a pseudo-resource draining.
+  const WEARING_PROFILE = {
+    ...PROFILE,
+    processes: [
+      ...(PROFILE.processes ?? []),
+      {
+        name: "non-regenerative scrubber",
+        modifiers: ["_NonRegenScrubber"],
+        inputs: {
+          WasteAtmosphere: rate(0.0024915995),
+          // Consumes 0.5 capacity in 6h: the wear term.
+          _NonRegenScrubberLife: rate(0.000023148),
+        },
+        outputs: {},
+      },
+    ],
+  } as unknown as KerbalismProfile;
+
+  const rows = wearRows({
+    profile: WEARING_PROFILE,
+    lifeSupport: {
+      processes: [
+        {
+          resource: "_NonRegenScrubber",
+          title: "Vac scrubber",
+          capacity: 1,
+          running: true,
+          broken: false,
+        },
+      ],
+    } as unknown as KerbalismLifeSupport,
+    stored: { _NonRegenScrubberLife: 0.25 },
+    capacity: { _NonRegenScrubberLife: 1 },
+    crew: CREW,
+  });
+
+  it("surfaces a service life every other view filters out as plumbing", () => {
+    // A scrubber quietly reaching the end of its life is invisible everywhere
+    // else here, and it is the one thing in the profile that is genuinely a
+    // countdown rather than a rate.
+    expect(rows).toHaveLength(1);
+    expect(rows[0].process).toBe("non-regenerative scrubber");
+    expect(rows[0].fraction).toBeCloseTo(0.25, 6);
+    expect(rows[0].secondsRemaining).toBeCloseTo(0.25 / 0.000023148, 3);
+  });
+
+  it("identifies a pseudo-resource structurally, never by name", () => {
+    // `_RTG` and `_NonRegenScrubber` are stock, but a third-party profile
+    // invents its own and they must work identically. The leading underscore is
+    // the whole test.
+    expect(rows[0].name.startsWith("_")).toBe(true);
+  });
+
+  it("does not mistake a process's own gate token for wear", () => {
+    // `_NonRegenScrubber` gates the process; it is not the thing running out.
+    expect(rows.map((r) => r.name)).not.toContain("_NonRegenScrubber");
   });
 });
