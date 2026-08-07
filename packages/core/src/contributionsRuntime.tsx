@@ -243,7 +243,18 @@ export function ContributionsProvider({
 function ContributionsAggregation({ children }: { children?: ReactNode }) {
   const meta = useWidgetMeta();
   const store = ContributionsPanelStore.useStore();
-  const slots = meta?.contributionSlots ?? [];
+  // The standard badges slot is ALWAYS aggregated, on top of whatever the
+  // widget itself declared (contribution-slots-spec §13.2: automatic, zero
+  // widget-side input). Deduped in case a widget also explicitly lists its
+  // own badges slot in contributionSlots (harmless either way).
+  const slots = useMemo(() => {
+    const declared = meta?.contributionSlots ?? [];
+    if (!meta) return declared;
+    const badgesSlot = `${meta.componentId}.badges`;
+    return declared.includes(badgesSlot as never)
+      ? declared
+      : [...declared, badgesSlot as never];
+  }, [meta]);
 
   if (!store) return <>{children}</>;
 

@@ -5,12 +5,14 @@ import {
   DashboardItemContext,
   ErrorBoundary,
   getComponent,
+  useWidgetBadges,
   useWidgetStreamStatus,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import {
   DelayRailProvider,
+  PanelBadgesProvider,
   PanelStatusProvider,
   PanelStatusStoreProvider,
 } from "@ksp-gonogo/ui-kit";
@@ -124,22 +126,24 @@ export const GridItemContent = memo(function GridItemContent({
         <ComponentWrapper>
           <DashboardItemContext.Provider value={itemContext}>
             <WidgetContributions def={def}>
-              <WidgetStreamStatus def={def}>
-                <ErrorBoundary fallback={renderErrorFallback}>
-                  <RequiresGuard
-                    requires={def.requires}
-                    channels={def.channels}
-                  >
-                    <Comp
-                      id={item.i}
-                      config={item.config}
-                      w={w}
-                      h={h}
-                      onConfigChange={onSaveConfig}
-                    />
-                  </RequiresGuard>
-                </ErrorBoundary>
-              </WidgetStreamStatus>
+              <WidgetBadges>
+                <WidgetStreamStatus def={def}>
+                  <ErrorBoundary fallback={renderErrorFallback}>
+                    <RequiresGuard
+                      requires={def.requires}
+                      channels={def.channels}
+                    >
+                      <Comp
+                        id={item.i}
+                        config={item.config}
+                        w={w}
+                        h={h}
+                        onConfigChange={onSaveConfig}
+                      />
+                    </RequiresGuard>
+                  </ErrorBoundary>
+                </WidgetStreamStatus>
+              </WidgetBadges>
             </WidgetContributions>
           </DashboardItemContext.Provider>
         </ComponentWrapper>
@@ -179,6 +183,17 @@ function WidgetContributions({
       <ContributionsProvider>{children}</ContributionsProvider>
     </WidgetMetaContext.Provider>
   );
+}
+
+/**
+ * Feeds the widget's automatic `<id>.badges` contribution slot to whatever
+ * `Panel` it renders, through ui-kit's `PanelBadgesProvider`. Mounted INSIDE
+ * `WidgetContributions` so `useWidgetBadges` has a `ContributionsProvider`
+ * above it in the tree; the widget itself wires nothing.
+ */
+function WidgetBadges({ children }: { children: ReactNode }) {
+  const badges = useWidgetBadges();
+  return <PanelBadgesProvider badges={badges}>{children}</PanelBadgesProvider>;
 }
 
 /**

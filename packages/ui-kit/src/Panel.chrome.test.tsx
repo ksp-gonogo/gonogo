@@ -1,6 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
+import { PanelBadgesProvider } from "./PanelBadges";
 
 /**
  * The two header shapes that exist for widgets whose chrome does not fit one
@@ -114,5 +115,53 @@ describe("Panel floatingHeader", () => {
     expect(
       header.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+});
+
+describe("Panel panelBadges", () => {
+  it("renders an explicit panelBadges list as standard Badge pills in the header", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[{ id: "b1", label: "CRITICAL", tone: "nogo" }]}
+      />,
+    );
+    expect(screen.getByText("CRITICAL")).toBeTruthy();
+  });
+
+  it("falls back to the ambient PanelBadgesProvider context when panelBadges is not set", () => {
+    render(
+      <PanelBadgesProvider
+        badges={[{ id: "b2", label: "NOMINAL", tone: "go" }]}
+      >
+        <Panel panelTitle="Fixture" />
+      </PanelBadgesProvider>,
+    );
+    expect(screen.getByText("NOMINAL")).toBeTruthy();
+  });
+
+  it("an explicit panelBadges prop overrides the ambient context rather than merging with it", () => {
+    render(
+      <PanelBadgesProvider badges={[{ id: "ctx", label: "FROM-CONTEXT" }]}>
+        <Panel
+          panelTitle="Fixture"
+          panelBadges={[{ id: "prop", label: "FROM-PROP" }]}
+        />
+      </PanelBadgesProvider>,
+    );
+    expect(screen.getByText("FROM-PROP")).toBeTruthy();
+    expect(screen.queryByText("FROM-CONTEXT")).toBeNull();
+  });
+
+  it("still renders custom panelAside content alongside badges (the escape hatch stays open)", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[{ id: "b1", label: "CRITICAL" }]}
+        panelAside={<button type="button">Custom control</button>}
+      />,
+    );
+    expect(screen.getByText("CRITICAL")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Custom control" })).toBeTruthy();
   });
 });

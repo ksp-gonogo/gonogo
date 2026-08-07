@@ -29,6 +29,7 @@ export * from "./hooks/useTelemetry";
 export * from "./hooks/useTelemetryHostStatus";
 export * from "./hooks/useTouchDevice";
 export * from "./hooks/useUplinkHealthFor";
+export { useWidgetBadges } from "./hooks/useWidgetBadges";
 export * from "./hooks/useWidgetStreamStatus";
 // ErrorBoundary stays in core (React-specific). The rest of the
 // logger surface: `logger`, `AxiomTransport`, `tagRegistry`, types,

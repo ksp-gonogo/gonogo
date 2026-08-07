@@ -16,6 +16,7 @@ import styled, { css } from "styled-components";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
+import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
@@ -1182,6 +1183,21 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelAside?: ReactNode;
   /**
+   * Standard badge pills rendered in the header aside, sourced from the
+   * widget's automatic `<id>.badges` contribution slot (contribution-slots
+   * spec §13.2) unless explicitly set here. Renders through the kit's own
+   * `Badge`, so every widget's badges share one visual vocabulary instead of
+   * each widget hand-rolling a pill. An explicit value here REPLACES the
+   * ambient context value rather than merging with it (same relationship
+   * `panelStatus` has to the derived stream status): a panel that wants both
+   * concatenates them itself before passing the prop.
+   *
+   * Distinct from `panelAside`, which stays the escape hatch for non-badge
+   * content (a select, a toggle, a headline readout): the two compose, badges
+   * render alongside whatever `panelAside` supplies, never instead of it.
+   */
+  panelBadges?: readonly BadgeEntry[];
+  /**
    * Override the host-derived stream status.
    *
    * Leave it unset: the panel reads the status the host derived from this
@@ -1331,6 +1347,7 @@ const PanelStickyHeader = styled(PanelHeader)`
 function PanelRoot({
   panelTitle,
   panelAside,
+  panelBadges,
   panelStatus,
   panelToolbar,
   floatingHeader,
@@ -1347,10 +1364,28 @@ function PanelRoot({
   // that would restructure the widget on a data transition, which is both a
   // layout surprise and impossible to see coming in review. Such a widget
   // simply keeps showing no badge until it moves to `panelTitle`.
+  // Standard badge pills for this widget: an explicit `panelBadges` prop wins,
+  // else the ambient `PanelBadgesProvider` the orchestrator mounts (Task 2.4),
+  // else none. Rendered through the kit's own `Badge` so every widget's badges
+  // share one vocabulary. Computed before `hasHeader` because badges alone are
+  // enough to give an otherwise-headerless panel a header.
+  const contextBadges = usePanelBadgesContext();
+  const badges = panelBadges ?? contextBadges ?? [];
+  const badgePills =
+    badges.length === 0 ? null : (
+      <>
+        {badges.map((b) => (
+          <Badge key={b.id} tone={b.tone ?? "neutral"}>
+            {b.label}
+          </Badge>
+        ))}
+      </>
+    );
   const hasHeader =
     panelTitle !== undefined ||
     panelAside !== undefined ||
-    panelToolbar !== undefined;
+    panelToolbar !== undefined ||
+    badgePills !== null;
 
   // The panel's header status now comes from the per-item PanelStatusStore, so
   // stream staleness, active alarms, and any `report` badge merge into one
@@ -1399,9 +1434,12 @@ function PanelRoot({
   // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
   // and skips the box, where a null child would still render the padded slot.
   const aside =
-    panelAside === undefined && statusBadge === null ? undefined : (
+    panelAside === undefined &&
+    statusBadge === null &&
+    badgePills === null ? undefined : (
       <>
         {panelAside}
+        {badgePills}
         {statusBadge}
       </>
     );

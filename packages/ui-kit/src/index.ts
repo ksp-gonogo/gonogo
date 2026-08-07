@@ -263,6 +263,7 @@ export {
   ScrollArea,
   usePanelStreamStatus,
 } from "./Panel";
+export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
 export {
   BigReadout,

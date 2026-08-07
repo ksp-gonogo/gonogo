@@ -19,6 +19,7 @@ import {
   useWidgetMeta,
 } from "@ksp-gonogo/core";
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { Panel } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
@@ -216,5 +217,34 @@ describe("GridItemContent: draggableCancel structural guard", () => {
 
     expect(screen.getByText("componentId:meta-probe")).toBeInTheDocument();
     expect(screen.getByText("hello from a contribution")).toBeInTheDocument();
+  });
+
+  it("a widget's Panel shows a badge from a contribution registered against `${componentId}.badges`, with no widget-side wiring", () => {
+    clearContributions();
+    registerContribution({
+      id: "auto-badge",
+      contributes: "badge-probe.badges",
+      compute: () => [{ id: "b1", label: "AUTO-BADGE" }],
+    });
+    registerComponent({
+      id: "badge-probe",
+      name: "Badge Probe",
+      description: "Badge probe",
+      tags: [],
+      component: () => <Panel panelTitle="Badge Probe" />,
+    });
+
+    render(
+      <GridItemContent
+        item={{ i: "instance-2", componentId: "badge-probe" }}
+        w={3}
+        h={3}
+        updateItemConfig={vi.fn()}
+        updateItemMappings={vi.fn()}
+        removeItem={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("AUTO-BADGE")).toBeTruthy();
   });
 });
