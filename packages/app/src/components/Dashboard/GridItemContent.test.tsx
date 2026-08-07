@@ -11,13 +11,23 @@
  */
 import {
   type ComponentProps,
+  clearContributions,
   clearRegistry,
   registerComponent,
+  registerContribution,
+  useContributions,
+  useWidgetMeta,
 } from "@ksp-gonogo/core";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
+
+declare module "@ksp-gonogo/core" {
+  interface ContributionRegistry {
+    "meta-probe.rows": { entry: { id: string; label: string } };
+  }
+}
 
 /* Stub context hooks and heavy dependencies pulled in transitively. */
 // Capture what the chrome hands the render-gate so we can assert optionalChannels
@@ -78,6 +88,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
 
   afterEach(() => {
     clearRegistry();
+    clearContributions();
   });
 
   it("wraps Remove and Configure buttons in .widget-action-buttons", () => {
@@ -163,5 +174,47 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     expect(guardCapture.last?.channels).toEqual(["comms.link"]);
     expect(guardCapture.last?.optionalChannels).toBeUndefined();
     expect(screen.getByTestId("stub-widget")).toBeInTheDocument();
+  });
+
+  it("wraps a rendered widget in WidgetMetaContext + ContributionsProvider so useContributions works with zero widget-side setup", () => {
+    registerContribution({
+      id: "probe-row",
+      contributes: "meta-probe.rows",
+      compute: () => [{ id: "row-1", label: "hello from a contribution" }],
+    });
+    registerComponent({
+      id: "meta-probe",
+      name: "Meta Probe",
+      description: "Test probe for contribution wiring",
+      tags: [],
+      contributionSlots: ["meta-probe.rows"],
+      component: function MetaProbe() {
+        const meta = useWidgetMeta();
+        const rows = useContributions("meta-probe.rows");
+        return (
+          <div>
+            <span>componentId:{meta?.componentId}</span>
+            {rows.map((r) => (
+              <span key={r.contributionId}>{r.label}</span>
+            ))}
+          </div>
+        );
+      },
+    });
+
+    const item: DashboardItem = { i: "w4", componentId: "meta-probe" };
+    render(
+      <GridItemContent
+        item={item}
+        w={3}
+        h={3}
+        updateItemConfig={vi.fn()}
+        updateItemMappings={vi.fn()}
+        removeItem={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("componentId:meta-probe")).toBeInTheDocument();
+    expect(screen.getByText("hello from a contribution")).toBeInTheDocument();
   });
 });

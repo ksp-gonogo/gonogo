@@ -2,6 +2,7 @@
 
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
+import type { ContributionSlotId } from "./contributions";
 import type { TelemaachusSchema } from "./schemas/telemachus";
 import type { GonogoTheme } from "./theme";
 import type { UplinkClientHandle } from "./uplinkClients";
@@ -285,6 +286,14 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * core-widget privilege: an Uplink-owned widget can expose slots too (§4.6).
    */
   augmentSlots?: string[];
+  /**
+   * Addressable CONTRIBUTION slots this widget owns (contribution-slots-spec
+   * §4.3), the pure-data sibling of `augmentSlots`. Declared once so
+   * `useContributions([...] as const)` (overload B) types its keyed result
+   * off this widget's own list. A slot id is one kind or the other, never
+   * both: do not list a slot here that is also in `augmentSlots`.
+   */
+  contributionSlots?: readonly ContributionSlotId[];
   /**
    * Replacement escape hatch (Uplink architecture spec §4.5): declares that this
    * widget REPLACES the widget with the given id, the registry suppresses the

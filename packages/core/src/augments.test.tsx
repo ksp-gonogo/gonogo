@@ -11,8 +11,10 @@ import {
   clearAugments,
   getAugmentSettings,
   getAugmentsForSlot,
+  getMergedSlotSettings,
   registerAugment,
 } from "./augments";
+import { clearContributions, registerContribution } from "./contributions";
 
 // The augment registry is intentionally NOT reset by `clearRegistry` (see its
 // doc comment): module-load augments must survive the per-widget-test data-source
@@ -340,5 +342,33 @@ describe("suppressesVanillaBase (mapview-stackable-layers spec)", () => {
       (a) => a.suppressesVanillaBase === true,
     );
     expect(suppressing.map((a) => a.id)).toEqual(["a"]);
+  });
+});
+
+describe("getMergedSlotSettings", () => {
+  beforeEach(() => {
+    clearAugments();
+    clearContributions();
+  });
+
+  it("returns augment settings blocks followed by contribution settings blocks for the same slot", () => {
+    registerAugment({
+      id: "aug-with-settings",
+      augments: "test.slot",
+      component: () => null,
+      settings: [{ key: "showAug", type: "boolean", default: true }],
+    });
+    registerContribution({
+      id: "contrib-with-settings",
+      contributes: "test.slot",
+      settings: [{ key: "showContrib", type: "boolean", default: false }],
+      compute: () => null,
+    });
+
+    const merged = getMergedSlotSettings("test.slot");
+    expect(merged.map((b) => b.namespace)).toEqual([
+      "aug-with-settings",
+      "contrib-with-settings",
+    ]);
   });
 });

@@ -29,6 +29,11 @@ import { getHost } from "./host";
 // merge lives here rather than in packages/components). No named export
 // added to the barrel by this import.
 import "./slots";
+// Side-effect only: carries the `ContributionRegistry` declaration-merge
+// scaffold (Phase 1 of the contributions primitive; see ./contribution-
+// slots.ts's own header). Same reasoning as the `./slots` import above, one
+// merge target per declaration-merge seam.
+import "./contribution-slots";
 import type {
   ActionDefinition,
   ActionHandlers,
@@ -72,6 +77,7 @@ export type {
   ComponentRequirement,
   ConfigComponentProps,
   ConfigField,
+  ContributionRegistry,
   DataKey,
   DataRequirement,
   DataSource,
@@ -138,11 +144,14 @@ export const registerUplinkHandle = <T>(uplinkId: string, handle: T): void =>
 /**
  * Declare an Uplink client's identity (Uplink Client Contract design §3.1).
  * One call per client bundle; stamp the returned handle as `owner` on every
- * `registerComponent`/`registerAugment` call the client makes.
+ * `registerComponent`/`registerAugment` call the client makes, or call the
+ * returned handle's own `registerContribution` for the contributions path.
  */
-export const defineUplinkClient = (
-  cfg: UplinkClientHandle,
-): UplinkClientHandle => getHost().defineUplinkClient(cfg);
+export const defineUplinkClient = (cfg: {
+  id: string;
+  version: string;
+  name: string;
+}): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
 export const registerSettingsTab = (def: SettingsTabDefinition): void =>
   getHost().registerSettingsTab(def);

@@ -7,6 +7,13 @@ export * from "./calc";
 export * from "./chromeProviders";
 export * from "./contexts/DashboardItemContext";
 export * from "./contexts/ScreenContext";
+export * from "./contexts/WidgetMetaContext";
+export * from "./contributions";
+export {
+  ContributionsProvider,
+  useContributions,
+  useContributionsBySlotId,
+} from "./contributionsRuntime";
 export * from "./fog";
 export * from "./fogReveal";
 export * from "./hooks/defineTopicManifest";

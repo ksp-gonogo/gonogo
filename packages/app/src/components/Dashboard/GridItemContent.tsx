@@ -1,10 +1,12 @@
 import { RequiresGuard } from "@ksp-gonogo/components";
 import type { ComponentDefinition } from "@ksp-gonogo/core";
 import {
+  ContributionsProvider,
   DashboardItemContext,
   ErrorBoundary,
   getComponent,
   useWidgetStreamStatus,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import {
@@ -121,25 +123,63 @@ export const GridItemContent = memo(function GridItemContent({
         </CellHeader>
         <ComponentWrapper>
           <DashboardItemContext.Provider value={itemContext}>
-            <WidgetStreamStatus def={def}>
-              <ErrorBoundary fallback={renderErrorFallback}>
-                <RequiresGuard requires={def.requires} channels={def.channels}>
-                  <Comp
-                    id={item.i}
-                    config={item.config}
-                    w={w}
-                    h={h}
-                    onConfigChange={onSaveConfig}
-                  />
-                </RequiresGuard>
-              </ErrorBoundary>
-            </WidgetStreamStatus>
+            <WidgetContributions def={def}>
+              <WidgetStreamStatus def={def}>
+                <ErrorBoundary fallback={renderErrorFallback}>
+                  <RequiresGuard
+                    requires={def.requires}
+                    channels={def.channels}
+                  >
+                    <Comp
+                      id={item.i}
+                      config={item.config}
+                      w={w}
+                      h={h}
+                      onConfigChange={onSaveConfig}
+                    />
+                  </RequiresGuard>
+                </ErrorBoundary>
+              </WidgetStreamStatus>
+            </WidgetContributions>
           </DashboardItemContext.Provider>
         </ComponentWrapper>
       </PanelStatusStoreProvider>
     </DelayRailProvider>
   );
 });
+
+/**
+ * Identifies the widget instance (`componentId` + declared
+ * `contributionSlots`) via `WidgetMetaContext`, and mounts a
+ * `ContributionsProvider` scoped to it, so `useWidgetMeta`/`useContributions`
+ * work inside any registered component with zero widget-side setup: the
+ * widget never has to know its own `ComponentDefinition`, the dashboard
+ * already does.
+ *
+ * Contributions are widget-identity-scoped, not stream-status-scoped, so it
+ * doesn't matter whether this wraps inside or outside `WidgetStreamStatus`;
+ * outside keeps the two concerns visually separate in the JSX.
+ */
+function WidgetContributions({
+  def,
+  children,
+}: {
+  def: ComponentDefinition;
+  children: ReactNode;
+}) {
+  const meta = useMemo(
+    () => ({
+      componentId: def.id,
+      contributionSlots: def.contributionSlots ?? [],
+    }),
+    [def.id, def.contributionSlots],
+  );
+  return (
+    <WidgetMetaContext.Provider value={meta}>
+      <ContributionsProvider>{children}</ContributionsProvider>
+    </WidgetMetaContext.Provider>
+  );
+}
 
 /**
  * Derives the widget's stream status from the `dataRequirements` it already

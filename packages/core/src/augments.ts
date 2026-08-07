@@ -1,6 +1,7 @@
 import { logger } from "@ksp-gonogo/logger";
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
+import { getContributionSettings } from "./contributions";
 import type { UplinkClientHandle } from "./uplinkClients";
 
 // ---------------------------------------------------------------------------
@@ -247,6 +248,22 @@ export function getAugmentSettings(
       namespace: def.id,
       fields: def.settings ?? [],
     }));
+}
+
+/**
+ * A widget's ENTIRE settings surface for one slot: augment settings blocks
+ * followed by contribution settings blocks (contribution-slots-spec §10
+ * resolved decision 1: the two are ONE merged section per widget, not two).
+ * Both halves already share `NamespacedAugmentSettings`'s shape, so the
+ * result renders straight through `AugmentSettingsPanel` unchanged.
+ */
+export function getMergedSlotSettings(
+  slotName: string,
+): NamespacedAugmentSettings[] {
+  return [
+    ...getAugmentSettings(slotName),
+    ...getContributionSettings(slotName),
+  ];
 }
 
 /** For use in tests only, resets the augment registry to empty. */

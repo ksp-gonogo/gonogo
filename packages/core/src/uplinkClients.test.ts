@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { clearContributions, getContributionsForSlot } from "./contributions";
 import {
+  CORE_UPLINK_CLIENT,
   clearUplinkClients,
   defineUplinkClient,
   getUplinkClients,
@@ -20,7 +22,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
     expect(getUplinkClients()).toContainEqual(handle);
   });
 
-  it("returns a frozen handle carrying exactly the declared fields", () => {
+  it("returns a frozen handle carrying exactly the declared fields plus a bound registerContribution", () => {
     const handle = defineUplinkClient({
       id: "mod-beta",
       version: "1.2.3",
@@ -32,6 +34,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       id: "mod-beta",
       version: "1.2.3",
       name: "Mod Beta",
+      registerContribution: expect.any(Function),
     });
   });
 
@@ -60,5 +63,64 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
     clearUplinkClients();
 
     expect(getUplinkClients()).toEqual([]);
+  });
+});
+
+describe("UplinkClientHandle.registerContribution", () => {
+  beforeEach(() => {
+    clearContributions();
+    clearUplinkClients();
+  });
+
+  it("stamps the registered contribution's id with the client's own id and sets owner to the handle", () => {
+    const client = defineUplinkClient({
+      id: "example-uplink",
+      version: "1.0.0",
+      name: "Example",
+    });
+
+    client.registerContribution({
+      id: "my-widget",
+      contributes: "test.slot",
+      compute: () => [{ id: "row" }],
+    });
+
+    const [registered] = getContributionsForSlot("test.slot");
+    expect(registered.id).toBe("example-uplink:my-widget");
+    expect(registered.owner).toBe(client);
+  });
+
+  it("throws when two different clients' contributions collide on the STAMPED id (never possible: ids are auto-namespaced)", () => {
+    const clientA = defineUplinkClient({
+      id: "a",
+      version: "1.0.0",
+      name: "A",
+    });
+    const clientB = defineUplinkClient({
+      id: "b",
+      version: "1.0.0",
+      name: "B",
+    });
+    clientA.registerContribution({
+      id: "shared-local-id",
+      contributes: "test.slot",
+      compute: () => null,
+    });
+    // Different owner namespace, so this does NOT collide; proves the
+    // auto-namespacing actually prevents cross-Uplink collision by
+    // construction rather than merely reducing its likelihood.
+    expect(() =>
+      clientB.registerContribution({
+        id: "shared-local-id",
+        contributes: "test.slot",
+        compute: () => null,
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe("CORE_UPLINK_CLIENT", () => {
+  it('is a reserved handle with id "core" for built-in registrations', () => {
+    expect(CORE_UPLINK_CLIENT.id).toBe("core");
   });
 });

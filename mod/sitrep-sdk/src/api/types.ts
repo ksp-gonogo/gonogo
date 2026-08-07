@@ -139,6 +139,22 @@ export type SlotProps<S extends string> = S extends keyof SlotRegistry
   ? SlotRegistry[S]
   : Record<string, unknown>;
 
+// --- Contributions (pure-data slot composition) ------------------------------
+
+/**
+ * Declaration-merging seam for the contribution model (contribution-slots-
+ * spec §3-4), mirrors `SlotRegistry` above: an augmenting package (in
+ * practice today, `mod/sitrep-sdk/src/api/contribution-slots.ts`) merges a
+ * contribution slot id into this interface. Empty until the first
+ * first-party contribution slot lands (Application phase, a separate
+ * follow-up plan); this base declaration is what lets that satellite file's
+ * `declare module "./types"` block be recognised as an AUGMENTATION of an
+ * existing export rather than a fresh ambient module declaration (which TS
+ * rejects for a relative specifier).
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
+export interface ContributionRegistry {}
+
 export interface AugmentSettingField {
   key: string;
   type: "boolean" | "text" | "number";
@@ -181,6 +197,28 @@ export interface UplinkClientHandle {
   version: string;
   /** Human label for management/health surfaces. */
   name: string;
+  /**
+   * Register a contribution auto-namespaced to this client: `def.id` is
+   * stamped `${this.id}:${def.id}` before it reaches the contribution
+   * registry, so two Uplinks can never collide on a local id. Mirrors
+   * `packages/core/src/uplinkClients.ts`'s bound method; the contribution
+   * primitive itself (`ContributionDefinition` et al., core's
+   * `packages/core/src/contributions.ts`) is not yet part of the frozen
+   * author-facing surface, so its shape is inlined here rather than named.
+   */
+  registerContribution<S extends string>(def: {
+    id: string;
+    contributes: S;
+    deps?: readonly TopicId[];
+    /** Intentionally loose: this mirror is a name+arity probe (see file
+     *  header); the real signature's `topics`/return shapes are derived from
+     *  `ContributionRegistry` declaration merging, which this leaf cannot see. */
+    // biome-ignore lint/suspicious/noExplicitAny: see comment above
+    compute: (topics: any) => readonly any[] | null | undefined;
+    requires?: string;
+    priority?: number;
+    settings?: readonly AugmentSettingField[];
+  }): void;
 }
 
 // --- Fog reveal sources ------------------------------------------------------

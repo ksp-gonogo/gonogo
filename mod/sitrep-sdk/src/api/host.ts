@@ -177,10 +177,17 @@ export interface GonogoHost {
    * Declare an Uplink client's identity (Uplink Client Contract design
    * §3.1) and record it in the app's client registry, the membership half
    * (which clients are actually present in this build). Returns a frozen
-   * handle; the client stamps it as `owner` on every `registerComponent`/
-   * `registerAugment` call it makes.
+   * handle carrying a bound `registerContribution`; the client stamps the
+   * handle itself as `owner` on every `registerComponent`/`registerAugment`
+   * call it makes. `cfg` is the plain identity triple only, the returned
+   * handle's `registerContribution` isn't (and can't be) supplied by the
+   * caller.
    */
-  defineUplinkClient(cfg: UplinkClientHandle): UplinkClientHandle;
+  defineUplinkClient(cfg: {
+    id: string;
+    version: string;
+    name: string;
+  }): UplinkClientHandle;
 
   /** Register (or replace) a full custom Settings-modal tab. */
   registerSettingsTab(def: SettingsTabDefinition): void;

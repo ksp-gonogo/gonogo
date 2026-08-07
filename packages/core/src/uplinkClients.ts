@@ -20,6 +20,11 @@
  * hardcode a mod name here.
  */
 
+import {
+  type ContributionDefinition,
+  registerContribution,
+} from "./contributions";
+
 export interface UplinkClientHandle {
   /** MUST match the mod's `[SitrepUplink("<id>")]` id and its gonogo-uplink.json id. */
   id: string;
@@ -28,6 +33,16 @@ export interface UplinkClientHandle {
   version: string;
   /** Human label for management/health surfaces. */
   name: string;
+  /**
+   * Register a contribution auto-namespaced to this client (contribution-
+   * slots-spec §14): `def.id` is stamped `${this.id}:${def.id}` before it
+   * reaches the flat ContributionRegistry, so two Uplinks can never collide
+   * on a local id. Throws synchronously at THIS call site (registerContribution's
+   * own collision check) on a genuine id clash within one client's own ids.
+   */
+  registerContribution<S extends string>(
+    def: Omit<ContributionDefinition<S>, "owner">,
+  ): void;
 }
 
 const clients = new Map<string, UplinkClientHandle>();
@@ -35,7 +50,9 @@ const clients = new Map<string, UplinkClientHandle>();
 /**
  * Declare a client's identity and record it in the client registry. Returns
  * a frozen handle: stamp it as `owner` on every `registerComponent`/
- * `registerAugment` call the client makes.
+ * `registerAugment` call the client makes, or call its bound
+ * `registerContribution` for the contributions path (auto-stamped, no manual
+ * `owner` field needed there).
  *
  * Best-effort on re-declaration under the same id: last-write-wins (a plain
  * `Map.set`), matching `registerUplinkHandle`'s overwrite semantics rather
@@ -45,13 +62,35 @@ const clients = new Map<string, UplinkClientHandle>();
  * cross-package collision risk to guard against the way there is for widget
  * ids shared across a flat namespace.
  */
-export function defineUplinkClient(
-  cfg: UplinkClientHandle,
-): UplinkClientHandle {
-  const handle = Object.freeze({ ...cfg });
+export function defineUplinkClient(cfg: {
+  id: string;
+  version: string;
+  name: string;
+}): UplinkClientHandle {
+  const handle: UplinkClientHandle = Object.freeze({
+    id: cfg.id,
+    version: cfg.version,
+    name: cfg.name,
+    registerContribution<S extends string>(
+      def: Omit<ContributionDefinition<S>, "owner">,
+    ): void {
+      registerContribution({
+        ...def,
+        id: `${cfg.id}:${def.id}`,
+        owner: handle,
+      });
+    },
+  });
   clients.set(handle.id, handle);
   return handle;
 }
+
+/** Reserved handle for built-in (packages/core, packages/components) contributions. */
+export const CORE_UPLINK_CLIENT: UplinkClientHandle = defineUplinkClient({
+  id: "core",
+  version: "0.0.0",
+  name: "Gonogo Core",
+});
 
 /** Every declared Uplink client, in registration order. */
 export function getUplinkClients(): UplinkClientHandle[] {
