@@ -15,7 +15,10 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useFogMaskCache } from "@ksp-gonogo/data";
-import { useLateTelemetrySubscribe } from "@ksp-gonogo/sitrep-client";
+import {
+  useCommand,
+  useLateTelemetrySubscribe,
+} from "@ksp-gonogo/sitrep-client";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 
@@ -50,6 +53,9 @@ installTestHost({
   registerComponent,
   registerFogRevealSource,
   registerMapPoiProvider,
+  useCommand: ((command: string) => useCommand(command)) as Parameters<
+    typeof installTestHost
+  >[0]["useCommand"],
   useExecuteAction,
   useTelemetry,
   useFogMaskCache: useFogMaskCache as Parameters<

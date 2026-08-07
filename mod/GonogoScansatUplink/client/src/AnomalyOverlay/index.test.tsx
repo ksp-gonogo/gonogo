@@ -9,6 +9,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -114,13 +115,11 @@ describe("scansat:anomalies map POI provider", () => {
     expect(pyramid).toMatchObject({ label: "(unknown)" });
   });
 
-  it("a POI's set-target action dispatches tar.setTargetPosition with the resolved body index", async () => {
-    const anomalySource = new MockDataSource({ id: "data" });
-    let capturedAction: string | undefined;
-    anomalySource.execute = async (action: string) => {
-      capturedAction = action;
-    };
-    registerDataSource(anomalySource);
+  it("a POI's set-target action dispatches vessel.target.set with the resolved body index", async () => {
+    // Migrated off the legacy `useExecuteAction`/`tar.setTargetPosition[...]`
+    // string path: the action now rides `useCommand("vessel.target.set")`, so
+    // the dispatch is asserted against the command client's recorded envelope
+    // (`transport.sentCommands`), same as TargetPicker's migrated test.
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const provider = getProvider();
@@ -166,7 +165,16 @@ describe("scansat:anomalies map POI provider", () => {
       await poi?.actions?.[0].run();
     });
 
-    expect(capturedAction).toBe("tar.setTargetPosition[1,10,33]");
+    const sent = transport.sentCommands.find(
+      (c) => c.command === "vessel.target.set",
+    );
+    expect(sent).toBeDefined();
+    expect(sent?.args).toEqual({
+      kind: TargetKind.Position,
+      bodyIndex: 1,
+      latitude: 10,
+      longitude: 33,
+    });
   });
 
   it("returns [] (no actions dispatched) once loaded with no anomalies for the body", async () => {

@@ -1,10 +1,8 @@
 import type { MapPoi } from "@ksp-gonogo/core";
-import {
-  registerMapPoiProvider,
-  useExecuteAction,
-  useTelemetry,
-} from "@ksp-gonogo/core";
-import type { SpaceCenterPoiEntry } from "@ksp-gonogo/sitrep-sdk";
+import { registerMapPoiProvider, useTelemetry } from "@ksp-gonogo/core";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { type SpaceCenterPoiEntry, TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 
 /**
@@ -46,7 +44,7 @@ function useBodyNameByIndex(): Map<number, string> {
 function toMapPoi(
   entry: SpaceCenterPoiEntry,
   bodyId: string,
-  execute: (action: string) => Promise<void>,
+  setTargetCmd: ReturnType<typeof useCommand>,
 ): MapPoi | null {
   if (
     entry.id == null ||
@@ -64,13 +62,19 @@ function toMapPoi(
       ? entry.status
       : "info";
 
+  // Capture the validated position as bare numbers here so the dispatch
+  // closure below carries plain values, not the nullable wire quantities.
+  const bodyIndex = entry.bodyIndex;
+  const latitude = entry.latitude.magnitude;
+  const longitude = entry.longitude.magnitude;
+
   return {
     id: entry.id,
     bodyId,
     // Plain degrees: a POI's position is projected into map pixels, never
     // read as a quantity.
-    lat: entry.latitude.magnitude,
-    lon: entry.longitude.magnitude,
+    lat: latitude,
+    lon: longitude,
     kind: entry.kind,
     label: entry.label,
     status,
@@ -87,12 +91,14 @@ function toMapPoi(
       {
         id: "set-target",
         label: "Set as Target",
+        // Rides `useCommand("vessel.target.set")` (a Position-kind SetTarget)
+        // instead of the legacy `useExecuteAction` string path. Instant today
+        // (the command is not delayed), so `usePanelDelay` consumes the handle
+        // and the widget stays behaviour-free.
         run: () =>
-          execute(
-            // `.magnitude`: the command is a wire WRITE and takes bare
-            // numbers. Interpolating the quantities themselves put
-            // "-0.1 °" into the argument list.
-            `tar.setTargetPosition[${entry.bodyIndex},${entry.latitude?.magnitude},${entry.longitude?.magnitude}]`,
+          void setTargetCmd.send(
+            { kind: TargetKind.Position, bodyIndex, latitude, longitude },
+            { label: "Set as Target" },
           ),
       },
     ],
@@ -104,7 +110,8 @@ registerMapPoiProvider({
   // no `requires`, core Sitrep data, always potentially present.
   usePois: (ctx) => {
     const raw = useTelemetry("spaceCenter.pois");
-    const execute = useExecuteAction("data");
+    const setTargetCmd = useCommand("vessel.target.set");
+    usePanelDelay(setTargetCmd);
     const nameByIndex = useBodyNameByIndex();
 
     return useMemo(() => {
@@ -116,8 +123,8 @@ registerMapPoiProvider({
             entry.bodyIndex != null &&
             nameByIndex.get(entry.bodyIndex) === bodyId,
         )
-        .map((entry) => toMapPoi(entry, bodyId, execute))
+        .map((entry) => toMapPoi(entry, bodyId, setTargetCmd))
         .filter((poi): poi is MapPoi => poi !== null);
-    }, [raw, ctx.bodyId, execute, nameByIndex]);
+    }, [raw, ctx.bodyId, setTargetCmd, nameByIndex]);
   },
 });

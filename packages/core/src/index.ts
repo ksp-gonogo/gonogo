@@ -30,7 +30,6 @@ export * from "./fog";
 export * from "./fogReveal";
 export * from "./hooks/defineTopicManifest";
 export * from "./hooks/useActionInput";
-export * from "./hooks/useCommand";
 export * from "./hooks/useDataSourceSubscription";
 export * from "./hooks/useDataSources";
 export * from "./hooks/useDataStreamStatus";

@@ -22,9 +22,11 @@
 import type { MapPoi } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerMapPoiProvider,
-  useExecuteAction,
+  TargetKind,
+  useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
+import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { useScanAnomalies } from "../FogReveal/useScanLayers";
 
@@ -53,7 +55,8 @@ registerMapPoiProvider({
   requires: "scansat",
   usePois: (ctx) => {
     const anomalies = useScanAnomalies(ctx.bodyId);
-    const execute = useExecuteAction("data");
+    const setTargetCmd = useCommand("vessel.target.set");
+    usePanelDelay(setTargetCmd);
     const bodyIndexByName = useBodyIndexByName();
 
     return useMemo(() => {
@@ -73,9 +76,12 @@ registerMapPoiProvider({
             label: a.detail ? a.name : "(unknown)",
             status: "info",
             meta: { known: a.known, detail: a.detail },
-            // Only dispatchable once the body index has resolved; never
-            // hand a malformed `tar.setTargetPosition[undefined,...]` command
-            // to the queue while `system.bodies` is still loading.
+            // Only dispatchable once the body index has resolved; never hand a
+            // malformed Position SetTarget to the queue while `system.bodies`
+            // is still loading. Rides `useCommand("vessel.target.set")` (a
+            // Position-kind SetTarget) instead of the legacy `useExecuteAction`
+            // string path; instant today, so `usePanelDelay` consumes the
+            // handle and the widget stays behaviour-free.
             actions:
               bodyIndex === undefined
                 ? []
@@ -84,13 +90,19 @@ registerMapPoiProvider({
                       id: "set-target",
                       label: "Set as Target",
                       run: () =>
-                        execute(
-                          `tar.setTargetPosition[${bodyIndex},${a.latitude},${a.longitude}]`,
+                        void setTargetCmd.send(
+                          {
+                            kind: TargetKind.Position,
+                            bodyIndex,
+                            latitude: a.latitude,
+                            longitude: a.longitude,
+                          },
+                          { label: "Set as Target" },
                         ),
                     },
                   ],
           }),
         );
-    }, [anomalies, ctx.bodyId, execute, bodyIndexByName]);
+    }, [anomalies, ctx.bodyId, setTargetCmd, bodyIndexByName]);
   },
 });

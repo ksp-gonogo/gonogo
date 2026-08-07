@@ -1,10 +1,5 @@
-import {
-  clearRegistry,
-  getMapPoiProviders,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { clearRegistry, getMapPoiProviders } from "@ksp-gonogo/core";
+import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -151,16 +146,17 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
     });
   });
 
-  it("a POI's set-target action dispatches tar.setTargetPosition with its own bodyIndex/lat/lon", async () => {
-    const executeSpy = new MockDataSource({ id: "data" });
-    let capturedAction: string | undefined;
-    executeSpy.execute = async (action: string) => {
-      capturedAction = action;
-    };
-    registerDataSource(executeSpy);
-
+  it("a POI's set-target action dispatches vessel.target.set with its own bodyIndex/lat/lon", async () => {
+    // Migrated off the legacy `useExecuteAction`/`tar.setTargetPosition[...]`
+    // string path: the action now rides `useCommand("vessel.target.set")`, so
+    // the dispatch is asserted against the command client's recorded envelope
+    // (`fixture.transport.sentCommands`), same as TargetPicker's migrated test.
     const fixture = setupStreamFixture({
-      carriedChannels: ["spaceCenter.pois", "system.bodies"],
+      carriedChannels: [
+        "spaceCenter.pois",
+        "system.bodies",
+        "vessel.target.set",
+      ],
     });
     const provider = getProvider();
 
@@ -196,6 +192,15 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
       await poi?.actions?.[0].run();
     });
 
-    expect(capturedAction).toBe("tar.setTargetPosition[1,-0.0486,-74.72]");
+    const sent = fixture.transport.sentCommands.find(
+      (c) => c.command === "vessel.target.set",
+    );
+    expect(sent).toBeDefined();
+    expect(sent?.args).toEqual({
+      kind: TargetKind.Position,
+      bodyIndex: 1,
+      latitude: -0.0486,
+      longitude: -74.72,
+    });
   });
 });

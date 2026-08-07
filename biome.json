@@ -39,6 +39,10 @@
               "@testing-library/react": {
                 "message": "Import from @ksp-gonogo/test-utils instead: its render/renderHook supply the theme every kit primitive needs (pass `wrapper` to add providers on top), and it re-exports the rest of Testing Library unchanged. Testing Library also auto-cleans after every test, so a manual cleanup import/call is redundant and masks real teardown bugs."
               },
+              "@ksp-gonogo/core": {
+                "importNames": ["useCommand"],
+                "message": "useCommand from @ksp-gonogo/core was the legacy non-delay bridge (deleted in the unified-delay-ux plan). useCommand now means the delay-aware per-topic hook: import it from @ksp-gonogo/sitrep-client or the sitrep-sdk facade so the signal-delay UX rides along. The only surviving legacy escape is useExecuteAction, kept solely for the deferred Navball + LaunchDirector migrations."
+              },
               "@ksp-gonogo/sitrep-sdk/src": {
                 "message": "Import from the package root. `src/` is internal layout; the same rule ships to third parties in the SDK's own biome.json, so keep our call sites honest to it."
               },
