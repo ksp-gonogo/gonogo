@@ -19,6 +19,7 @@
     "kPa",
     "kW",
     "kg/m³",
+    "km",
     "m",
     "m/s",
     "m²",
@@ -624,6 +625,9 @@
       "dvTotal": "m/s",
       "id": "id",
       "ut": "s"
+    },
+    "MechJebAscentArgs": {
+      "targetAltitudeKm": "km"
     },
     "Meta": {
       "active": "flag",

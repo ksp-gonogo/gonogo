@@ -1,0 +1,106 @@
+<!--
+  GonogoMechJebUplink: the MechJeb2 remote-autopilot bridge for gonogo/Sitrep
+  (mod/GonogoMechJebUplink). See local_docs/design/mechjeb-uplink-sketch.md
+  and local_docs/design/mechjeb-decompile-lock.md.
+
+  This assembly compile-time links MechJeb2 (GPLv3, see
+  GameData/MechJeb2/LICENSE.md). It reads/writes MechJeb2's public API
+  in-process: no arm's-length reflection to INVOKE it (reflection is used
+  ONLY for the version-guard's presence/shape probe, MechJebVersionGuard.cs),
+  no loopback anything. Mirrors GonogoKosUplink's GPLv3-link rationale
+  exactly.
+
+  gonogo overall is MIT (see LICENSING.md). GonogoMechJebUplink is a
+  deliberate exception, same as GonogoKosUplink: linking GPLv3 MechJeb2 makes
+  this assembly GPL-3.0-only. It is a dependency leaf (nothing references
+  it), so that obligation propagates nowhere, and the MIT Sitrep.Contract
+  it links is GPL-compatible in that direction.
+
+  This program is free software: you can redistribute it and/or modify it
+  under the terms of the GNU General Public License v3.0 as published by
+  the Free Software Foundation. The full text is in this directory's LICENSE
+  and at the repository root as LICENSE-GPL-3.0.txt.
+
+  Packaging: GonogoMechJebUplink is a SEPARATE, optional deployable extension
+  (its own GameData/GonogoMechJebUplink folder + its own CKAN/SpaceDock
+  listing via GonogoMechJebUplink.netkan, GPLv3-linkage documented in
+  NOTICE-MECHJEB.txt): build + deploy with `build gonogomechjebuplink`
+  (build_gonogomechjebuplink in scripts/gonogo_claude_tools.sh). It must not
+  bundle core Gonogo's or MechJeb2's assemblies; every Reference/
+  ProjectReference below that isn't unique to this extension is
+  Private="false" for exactly that reason (see each ItemGroup's comment).
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <!-- net48, not net472: the live MechJeb2.dll we link
+         (local_docs/syncthing/kspdata/GameData/MechJeb2/Plugins/) is built
+         against .NETFramework 4.8 (MSB3274/3275 otherwise) - KSP's Mono
+         runtime loads either target fine. Mirrors GonogoKosUplink /
+         GonogoScansatUplink. -->
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoMechJebUplink</AssemblyName>
+    <RootNamespace>Gonogo.MechJebUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- KspManaged / KspGameData: roots for the portable reference DLLs below.
+       Default to the repo's local dev copies so a plain `dotnet build` with
+       no /p: overrides keeps working unchanged; CI passes /p:KspManaged=...
+       /p:KspGameData=... pointing at a checked-out ksp-managed reference-
+       assembly repo instead (see kerbcam's Plugin.csproj for the precedent
+       this mirrors). -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+    <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
+  </PropertyGroup>
+
+  <!-- KSP / Unity reference assemblies - same portable copy + HintPath
+       pattern as GonogoKosUplink.csproj / GonogoScansatUplink.csproj.
+       Private=false: never copied to output; KSP's own KSP_Data/Managed
+       satisfies the load at runtime. -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- MechJeb2 is a THIRD-PARTY mod the user installs separately - direct-link
+       reference only (Private="false"), never bundled/copied into this
+       Uplink's own output. Provided by the user's live MechJeb2 install at
+       runtime; see local_docs/syncthing/kspdata/GameData/MechJeb2/Plugins/
+       for the copy this repo builds against (verified 2.15.3.0, see
+       local_docs/design/mechjeb-decompile-lock.md). -->
+  <ItemGroup>
+    <Reference Include="MechJeb2" Private="false">
+      <HintPath>$(KspGameData)\MechJeb2\Plugins\MechJeb2.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Sitrep.Contract only - the whole point of the Uplink split is that a
+       third-party Uplink author's compile-time surface needs nothing from
+       Sitrep.Host (the engine). Private="false": Sitrep.Contract.dll is
+       provided by the core mod (GonogoCore) at runtime, never copied here. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

@@ -17,6 +17,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
+import { MECHJEB } from "../uplink";
 
 /**
  * MechJeb: a delayed-command CONTROL surface (not a telemetry readout;
@@ -28,10 +29,13 @@ import { useId, useState } from "react";
  * command lifecycle (idle → commanding/awaiting-reply → confirmed | rejected |
  * no-reply) exactly like `LandingStatus`'s gear/brakes rows.
  *
- * This is the CLIENT command surface only. The mod-side MechJeb2-reflection
- * uplink that HANDLES `mechjeb.*` (alongside the planned GonogoAvionicsUplink
- * family) is a separate task; until it lands these commands dispatch and time
- * out to `no reply`, which the UX already renders honestly.
+ * Co-located with the `GonogoMechJebUplink` mod
+ * (`mod/GonogoMechJebUplink/MechJebUplink.cs`), which HANDLES `mechjeb.*` by
+ * direct-linking MechJeb2's own ascent-autopilot/node-executor/landing-
+ * autopilot API (see `local_docs/design/mechjeb-decompile-lock.md`). Command
+ * handling is fail-soft: MechJeb2 absent, or an API drift the version guard
+ * catches, takes the mod-side uplink inert and these commands degrade to the
+ * same `no reply` the UX already renders honestly.
  */
 
 type MechJebConfig = {
@@ -231,6 +235,7 @@ registerComponent<MechJebConfig>({
   defaultConfig: { defaultAscentAltitudeKm: DEFAULT_ASCENT_ALTITUDE_KM },
   actions: mechjebActions,
   requires: ["flight"],
+  owner: MECHJEB,
 });
 
 export { MechJebComponent };

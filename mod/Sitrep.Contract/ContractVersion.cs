@@ -361,7 +361,17 @@ namespace Sitrep.Contract
         /// a program-meta command can pin <c>"meta"</c> (instant) regardless of the
         /// connection's selected centre. Optional/backward-compatible: absent means
         /// the server uses the session vantage as before. Never touches an existing member.</para>
+        ///
+        /// <para><b>Bumped 5 -&gt; 6:</b> the <c>GonogoMechJebUplink</c> command arg
+        /// DTOs, <see cref="MechJebAscentArgs"/> (its one field tagged with the new
+        /// <see cref="Units.Kilometres"/> token) and <see cref="MechJebNoArgs"/> (the
+        /// trivial no-payload marker for <c>mechjeb.executeNextNode</c>/
+        /// <c>mechjeb.landAtTarget</c>). Both brand-new <c>[SitrepContract]</c> types,
+        /// plus a brand-new unit token: additive-only, nothing removed or retyped, so
+        /// it cannot break an Uplink built against an older Minor. See
+        /// <c>local_docs/design/mechjeb-uplink-sketch.md</c> and
+        /// <c>local_docs/design/mechjeb-decompile-lock.md</c>.</para>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

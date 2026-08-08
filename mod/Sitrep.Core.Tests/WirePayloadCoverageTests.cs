@@ -186,6 +186,11 @@ namespace Sitrep.Core.Tests
             // POCO. The OUTBOUND KosRunResult IS allowlisted above
             // (self-flattened by KosRunResultBuilder at the publish boundary).
             "KosRunArgs",
+            // mechjeb.engageAscentAutopilot / mechjeb.executeNextNode /
+            // mechjeb.landAtTarget command args: inbound only
+            // (MechJebUplink.Ksp.cs's AddCommandHandler for each); deserialized
+            // client → server, never serialized outbound as a raw POCO.
+            "MechJebAscentArgs", "MechJebNoArgs",
             // system.uplink.pending: PendingUplink is only ever nested inside
             // PendingUplinkQueue.Pending, flattened element-by-element by
             // AppendPendingUplinkQueue's own loop (AppendPendingUplink); it is

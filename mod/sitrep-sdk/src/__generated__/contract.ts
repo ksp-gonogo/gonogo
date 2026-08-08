@@ -659,6 +659,13 @@ export interface KosTerminalCloseArgs
 	coreId: number;
 	leaseToken: string;
 }
+export interface MechJebAscentArgs
+{
+	targetAltitudeKm: number;
+}
+export interface MechJebNoArgs
+{
+}
 export enum Quality {
 	OnRails = 0,
 	Loaded = 1

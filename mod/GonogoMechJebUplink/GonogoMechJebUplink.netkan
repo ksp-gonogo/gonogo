@@ -1,0 +1,27 @@
+{
+  "spec_version": 1,
+  "identifier": "GonogoMechJebUplink",
+  "name": "Gonogo MechJeb Uplink",
+  "abstract": "Bridges MechJeb2's ascent autopilot, node executor, and landing autopilot to remote mechjeb.* commands over the Gonogo telemetry connection.",
+  "author": "jonpepler",
+  "license": "GPL-3.0",
+  "release_status": "development",
+  "resources": {
+    "homepage": "https://github.com/ksp-gonogo/gonogo"
+  },
+  "tags": [
+    "plugin",
+    "telemetry",
+    "mechjeb"
+  ],
+  "depends": [
+    { "name": "GonogoCore" },
+    { "name": "MechJeb2" }
+  ],
+  "install": [
+    {
+      "file": "GameData/GonogoMechJebUplink",
+      "install_to": "GameData"
+    }
+  ]
+}

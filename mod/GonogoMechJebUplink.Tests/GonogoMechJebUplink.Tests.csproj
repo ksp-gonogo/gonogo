@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Sitrep.Contract is the pure-DTO/SPI assembly MechJebUplink's
+         MechJeb2-free half compiles against (UplinkManifest, ISitrepUplink,
+         IUplinkHost, CommandResult, MechJebAscentArgs/MechJebNoArgs, ...):
+         netstandard2.0;net472, no KSP/Unity/MechJeb2 linkage. Mirrors
+         GonogoKosUplink.Tests's split (that project also references
+         Sitrep.Host for its discovery test, which this project has no
+         equivalent of). -->
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Only the KSP/Unity/MechJeb2-type-free half of GonogoMechJebUplink is
+         exercised here: net10.0, no MechJeb2.dll/UnityEngine.dll reference
+         assemblies needed, same headless-test split as
+         GonogoKosUplink/GonogoKosUplink.Tests and
+         GonogoScansatUplink/GonogoScansatUplink.Tests. MechJebUplink.cs is
+         split into a MechJeb2-free half (this file) and a MechJeb2-touching
+         half (MechJebUplink.Ksp.cs, NOT included below) via `partial class`,
+         see MechJebUplink.cs's class doc comment for the seam
+         (InstallProductionDefaults). MechJebController.cs (touches
+         MuMech/UnityEngine/Assembly-CSharp types) and
+         MechJebMainThreadDispatcherAddon.cs (touches UnityEngine/GameObject)
+         are deliberately NOT included: nothing this project needs reaches
+         them. -->
+    <Compile Include="..\GonogoMechJebUplink\MechJebChannels.cs" />
+    <Compile Include="..\GonogoMechJebUplink\MechJebVersionGuard.cs" />
+    <Compile Include="..\GonogoMechJebUplink\MainThreadDispatcher.cs" />
+    <Compile Include="..\GonogoMechJebUplink\MechJebUplink.cs" />
+    <Compile Include="..\GonogoMechJebUplink\ExpectedClientHash.g.cs" />
+  </ItemGroup>
+</Project>

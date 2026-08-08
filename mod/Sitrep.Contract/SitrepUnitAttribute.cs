@@ -36,6 +36,20 @@ namespace Sitrep.Contract
         // --- Length ---
         public const string Metres = "m";
 
+        /// <summary>
+        /// Kilometres. Exists for <c>MechJebAscentArgs.TargetAltitudeKm</c>: the
+        /// pre-existing MechJeb widget (predating the Uplink) already builds this
+        /// wire key in km, and the attribute states what the wire ALREADY carries
+        /// rather than requesting a conversion.
+        ///
+        /// <para>Do not reach for this on anything new. Every other distance on
+        /// this wire is <see cref="Metres"/>; the client's own presentation ladder
+        /// already promotes a metres value to km above 1000m, so a wire field only
+        /// needs this token when it is genuinely authored in km, not merely
+        /// displayed that way.</para>
+        /// </summary>
+        public const string Kilometres = "km";
+
         // --- Area / volume ---
         /// <summary>Square metres, KSP's own habitat surface unit.</summary>
         public const string SquareMetres = "m²";

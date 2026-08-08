@@ -292,6 +292,10 @@ public static class RtConfig
                 typeof(ReliabilityPartEntry),
                 // avionics.status, RP-1 controllable-mass ascent go/no-go
                 typeof(AvionicsStatus),
+                // mechjeb.engageAscentAutopilot / mechjeb.executeNextNode /
+                // mechjeb.landAtTarget command args
+                typeof(MechJebAscentArgs),
+                typeof(MechJebNoArgs),
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
 

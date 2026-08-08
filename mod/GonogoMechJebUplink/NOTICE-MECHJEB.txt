@@ -1,0 +1,29 @@
+GonogoMechJebUplink compile-time links MechJeb2 (MechJeb2.dll). It reads and
+writes MechJeb2's public API in-process; reflection is used ONLY for the
+version-guard's presence/shape probe (MechJebVersionGuard.cs), never to
+invoke MechJeb2. See local_docs/design/mechjeb-uplink-sketch.md and
+local_docs/design/mechjeb-decompile-lock.md.
+
+MechJeb2 is distributed under the GNU General Public License v3.0. Because
+GonogoMechJebUplink direct-links MechJeb2, GonogoMechJebUplink is itself
+GPL-3.0-only.
+
+gonogo as a whole is MIT-licensed (repository root LICENSE). GonogoMechJebUplink
+is a deliberate exception, same as GonogoKosUplink: it is one of the few
+assemblies in the repository that links a copyleft dependency, and it is a
+leaf, nothing references it, so its GPL obligations propagate to nothing
+else. The MIT-licensed Sitrep.Contract assembly it links is GPL-compatible in
+that direction, and GonogoMechJebUplink ships as its own CKAN package in its
+own GameData folder.
+
+The full GPLv3 text is in this directory's LICENSE, and at the repository
+root as LICENSE-GPL-3.0.txt.
+
+MechJeb2:
+  Copyright (c) the MechJeb2 contributors (https://github.com/MuMech/MechJeb2)
+  Licensed under GNU General Public License v3.0
+  https://github.com/MuMech/MechJeb2/blob/dev/LICENSE.md
+
+No MechJeb2 assembly is bundled with GonogoMechJebUplink: it is
+reference-only (Private="false") and provided by the user's own MechJeb2
+install at runtime.

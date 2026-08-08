@@ -77,9 +77,9 @@ function renderApp(): void {
 // registry when the dashboard mounts. Two paths, unconditional (D4 step 2,
 // the loader is no longer flag-gated for the first-party 3):
 //
-//  - kerbalism + avionics have no runtime-loader bundle/registry entry yet
-//    (out of the loader's scope this step), so they stay plain static
-//    imports, each self-registering on import.
+//  - kerbalism + avionics + mechjeb have no runtime-loader bundle/registry
+//    entry yet (out of the loader's scope this step), so they stay plain
+//    static imports, each self-registering on import.
 //  - scansat + kos + kerbcast (`LOADER_UPLINK_IDS`) ALWAYS go through the
 //    runtime loader: it fetches + verifies + import()s each standalone
 //    bundle, its externals resolving through the baked import map to the
@@ -96,10 +96,10 @@ function renderApp(): void {
 // system.uplinks read is bounded by its own timeout (default 3000ms) measured
 // from the moment it's called, and the roster-vs-fallback boot behaviour
 // (`deriveEnabledIds` in loader.ts) is timing-sensitive. Awaiting the
-// kerbalism/avionics imports first would needlessly delay the probe's start
-// by however long those chunks take to fetch, for no benefit, starting both
-// in the same tick keeps the probe's timing independent of the static-import
-// half's duration.
+// kerbalism/avionics/mechjeb imports first would needlessly delay the
+// probe's start by however long those chunks take to fetch, for no benefit,
+// starting both in the same tick keeps the probe's timing independent of
+// the static-import half's duration.
 //
 // STATION BOOT (#6, station boot re-sequence, 2026-07-25): a station NEVER
 // talks to KSP or an Uplink author host directly, it gets everything from
@@ -108,8 +108,8 @@ function renderApp(): void {
 // is a direct `fetch()` of the bundle bytes, both are exactly the
 // station→KSP / station→author-host paths the peer architecture forbids. So
 // on `/station` this function skips both calls entirely: the static
-// (kerbalism/avionics) imports are in-app self-registering imports with no
-// network involved, so they stay; the fetch-based loader for
+// (kerbalism/avionics/mechjeb) imports are in-app self-registering imports
+// with no network involved, so they stay; the fetch-based loader for
 // scansat/kos/kerbcast instead runs LATER, inside `StationUplinkLoader`
 // (`./uplinks/StationUplinkLoader.tsx`), mounted by `StationScreen` once the
 // station is connected to a host and has its own peer-backed
@@ -121,6 +121,7 @@ async function registerScansatAndRender(): Promise<void> {
   const staticImports = Promise.all([
     import("@ksp-gonogo/gonogo-kerbalism-uplink"),
     import("@ksp-gonogo/gonogo-avionics-uplink"),
+    import("@ksp-gonogo/gonogo-mechjeb-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

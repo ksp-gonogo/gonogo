@@ -29,6 +29,7 @@ export type KnownSitrepUnit =
   | "kPa"
   | "kW"
   | "kg/m³"
+  | "km"
   | "m"
   | "m/s"
   | "m²"
@@ -658,6 +659,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dvTotal: "m/s",
     id: "id",
     ut: "s",
+  },
+  "MechJebAscentArgs": {
+    targetAltitudeKm: "km",
   },
   "Meta": {
     active: "flag",
