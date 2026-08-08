@@ -62,7 +62,7 @@ export type _ResolvesPartsPower = Expect<
 >;
 // The bare-array channels resolve to `Element[]`, not a wrapper object.
 export type _ResolvesPartsRobotics = Expect<
-  Equal<TopicPayload<"parts.robotics">, ServoEntry[]>
+  Equal<TopicPayload<"robotics.servos">, ServoEntry[]>
 >;
 export type _ResolvesScienceExperiments = Expect<
   Equal<TopicPayload<"science.experiments">, ExperimentEntry[]>
@@ -74,7 +74,7 @@ export type _ResolvesScienceLab = Expect<
   Equal<TopicPayload<"science.lab">, LabEntry[]>
 >;
 export type _ResolvesScienceDeployed = Expect<
-  Equal<TopicPayload<"science.deployed">, DeployedEntry[]>
+  Equal<TopicPayload<"deployed.bases">, DeployedEntry[]>
 >;
 export type _ResolvesSystemBodies = Expect<
   Equal<TopicPayload<"system.bodies">, SystemBodies>

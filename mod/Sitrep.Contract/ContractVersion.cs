@@ -329,6 +329,23 @@ namespace Sitrep.Contract
         /// only the SDK unifies them. See
         /// <c>local_docs/design/plans/2026-08-02-bidirectional-control-channels-plan.md</c>.</para>
         ///
+        /// <para><b>Bumped 5 -&gt; 6:</b> the Breaking Ground uplink extraction's
+        /// wire rename. <see cref="ServoEntry"/>'s Topic renamed
+        /// <c>parts.robotics</c> -&gt; <c>robotics.servos</c>, and
+        /// <see cref="DeployedEntry"/>'s Topic renamed <c>science.deployed</c> -&gt;
+        /// <c>deployed.bases</c>: both
+        /// moving under the uplink's own <c>robotics.*</c>/<c>deployed.*</c>
+        /// prefixes as the robotics + deployed-science surfaces come out of the
+        /// vanilla-comingled <c>PartsUplink</c>/<c>ScienceUplink</c> and into a
+        /// single bundled, DLC-gated <c>GonogoBreakingGroundUplink</c>
+        /// (<c>Expansions.ExpansionsLoader.IsExpansionInstalled("Serenity")</c>).
+        /// A Topic rename changes the wire key a subscriber must ask for, so it
+        /// is additive-but-renaming rather than a pure addition: existing readers
+        /// of the old string keys stop receiving data, but no member is removed
+        /// or retyped on the payload shapes themselves, and the mod + app ship
+        /// together, so this is sanctioned as a Minor on the same standing
+        /// grounds as the other pre-release renames in this file.</para>
+        ///
         /// <para>Same Minor-1 batch (Major 6 parked, additive changes accumulate):
         /// added the new nullable <see cref="VesselLanding.DragToWeightRatio"/>
         /// (aggregate drag force ÷ vessel weight; the numeric form of
@@ -371,7 +388,19 @@ namespace Sitrep.Contract
         /// it cannot break an Uplink built against an older Minor. See
         /// <c>local_docs/design/mechjeb-uplink-sketch.md</c> and
         /// <c>local_docs/design/mechjeb-decompile-lock.md</c>.</para>
+        ///
+        /// <para><b>Bumped 6 -&gt; 7:</b> the Breaking Ground uplink split.
+        /// The two Serenity-DLC wire topics move to their own prefix,
+        /// <c>parts.robotics</c> -&gt; <c>robotics.servos</c> and
+        /// <c>science.deployed</c> -&gt; <c>deployed.bases</c>, owned by the new
+        /// DLC-gated <c>[SitrepUplink("breakingGround")]</c> and trimmed off
+        /// <c>PartsUplink</c>/<c>ScienceUplink</c>. These are topic-key renames on
+        /// the channel map, not member changes on any wire-visible
+        /// <c>[TsInterface]</c> type, so no payload shape is removed, renamed or
+        /// retyped and the contract-shape gate is unaffected. The DTO shapes carried
+        /// on both channels are unchanged. See
+        /// <c>mod/GonogoBreakingGroundUplink/</c>.</para>
         /// </summary>
-        public const int Minor = 6;
+        public const int Minor = 7;
     }
 }

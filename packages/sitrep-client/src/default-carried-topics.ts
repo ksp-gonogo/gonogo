@@ -115,14 +115,14 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "dv.summary",
   // Mod-served topics mapped in TELEMACHUS_CLEAN_HOMES: they must be promoted
   // here or `isTopicCarried` routes their reads to the legacy source instead of
-  // the stream. parts.robotics, parts.power and science.lab have no legacy
+  // the stream. parts.power, robotics.servos and science.lab have no legacy
   // equivalent, so the stream is their only source of data.
   "parts.power",
-  "parts.robotics",
+  "robotics.servos",
   "science.experiments",
   "science.experimentBreakdown",
   "science.lab",
-  "science.deployed",
+  "deployed.bases",
   // spaceCenter.crewRoster/savedShips/partsAvailable: StaffRoster/
   // LaunchDirector/SpaceCenterStatus's kc.crewRoster/kc.savedShips/
   // kc.partsAvailable reads are now mapped in TELEMACHUS_CLEAN_HOMES, same

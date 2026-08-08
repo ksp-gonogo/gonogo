@@ -31,7 +31,6 @@ import type {
   CrewBadgeContext,
   CrewSurvivalSlotContext,
 } from "./CrewManifest";
-import type { DeployedExperimentContext } from "./DeployedScience";
 import type {
   DistanceToTargetBadgeContext,
   DistanceToTargetHudContext,
@@ -331,18 +330,12 @@ type _ScienceOfficerBadgesBack = Expect<
   Assignable<ScienceOfficerSlotContext, SdkSlotProps<"science-officer.badges">>
 >;
 
-type _DeployedSections = Expect<
-  Assignable<
-    SdkSlotProps<"deployed-science.sections">,
-    DeployedExperimentContext
-  >
->;
-type _DeployedSectionsBack = Expect<
-  Assignable<
-    DeployedExperimentContext,
-    SdkSlotProps<"deployed-science.sections">
-  >
->;
+// _DeployedSections/_DeployedSectionsBack (deployed-science.sections vs
+// DeployedExperimentContext) moved to
+// mod/GonogoBreakingGroundUplink/client/src/slot-registry.conformance.test-d.ts:
+// DeployedScience no longer lives in this package (Breaking Ground uplink
+// extraction), so the real widget-owned type this file's header describes
+// checking against is no longer visible from here.
 
 type _PowerSections = Expect<
   Assignable<SdkSlotProps<"power-systems.sections">, PowerSystemsSlotContext>
@@ -421,8 +414,6 @@ export type _SlotRegistryConformance = [
   _ScienceOfficerSectionsBack,
   _ScienceOfficerBadges,
   _ScienceOfficerBadgesBack,
-  _DeployedSections,
-  _DeployedSectionsBack,
   _PowerSections,
   _PowerSectionsBack,
   _PowerBadges,

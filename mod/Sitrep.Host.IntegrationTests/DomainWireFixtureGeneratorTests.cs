@@ -690,15 +690,15 @@ namespace Sitrep.Host.IntegrationTests
             {
                 ScienceViewProvider.ExperimentsTopic,
                 ScienceViewProvider.LabTopic,
-                ScienceViewProvider.DeployedTopic,
+                BreakingGroundViewProvider.DeployedTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink(), new TestBreakingGroundUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             // ScienceViewProvider.BuildExperiments's payload IS the entry
             // list itself (see its doc comment / BuildList), not a wrapping
-            // dict keyed "experiments": same shape as parts.robotics below,
+            // dict keyed "experiments": same shape as robotics.servos below,
             // so parse the raw StreamData payloads rather than
             // ParsePayloads' IDictionary-only filter.
             var experimentsStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.ExperimentsTopic);
@@ -720,14 +720,14 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(situations.Count >= 2, $"expected experiments across >=2 distinct situations, saw: {string.Join(", ", situations)}");
 
             var labStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.LabTopic);
-            var deployedStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.DeployedTopic);
+            var deployedStream = ParseStreamFrames(capture.Frames, BreakingGroundViewProvider.DeployedTopic);
             Assert.True(labStream.Count == 0, "expected ZERO science.lab frames, this recording never carries a lab, so the channel is never 'born' (see ChannelEngine's _born doc comment) and should stay silent, not tombstone");
-            Assert.True(deployedStream.Count == 0, "expected ZERO science.deployed frames, this recording never carries a deployed experiment, so the channel is never 'born' and should stay silent, not tombstone");
+            Assert.True(deployedStream.Count == 0, "expected ZERO deployed.bases frames, this recording never carries a deployed experiment, so the channel is never 'born' and should stay silent, not tombstone");
 
             _output.WriteLine(
                 $"science fixture: {experimentsStream.Count} science.experiments frames, {experimentEntries.Count} experiment entries, " +
                 $"situations {{{string.Join(",", situations)}}}; science.lab {labStream.Count} frames; " +
-                $"science.deployed {deployedStream.Count} frames: both zero (never captured this session, channel never born) as expected.");
+                $"deployed.bases {deployedStream.Count} frames: both zero (never captured this session, channel never born) as expected.");
 
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
@@ -803,11 +803,11 @@ namespace Sitrep.Host.IntegrationTests
         /// standing). Rather than block the DeployedScience migration on
         /// that re-capture, this test hand-authors a synthetic "science"
         /// RAW snapshot dict carrying a "deployed" sub-group that matches
-        /// <see cref="ScienceViewProvider"/>'s own documented raw encoding
-        /// EXACTLY (see its doc comment / <c>Gonogo.KSP.KspHost.
+        /// <see cref="BreakingGroundViewProvider"/>'s own documented raw
+        /// encoding EXACTLY (see its doc comment / <c>Gonogo.KSP.KspHost.
         /// BuildDeployedScience</c>'s doc comment for the authoritative
         /// field list) and replays it through the REAL
-        /// <see cref="ScienceViewProvider.BuildDeployed"/> mapper via the
+        /// <see cref="BreakingGroundViewProvider.BuildDeployed"/> mapper via the
         /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
         /// fixture in this file uses. The resulting WIRE SHAPE is therefore
         /// the provider's genuine mapping output, not a hand-guessed shape,
@@ -821,17 +821,17 @@ namespace Sitrep.Host.IntegrationTests
         {
             const string fixtureFileName = "reference-wire-fixture-deployed-synthetic.json";
             var session = BuildSyntheticDeployedScienceSession();
-            var topics = new[] { ScienceViewProvider.DeployedTopic };
+            var topics = new[] { BreakingGroundViewProvider.DeployedTopic };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestBreakingGroundUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
-            // ScienceViewProvider.BuildDeployed's payload IS the entry list
-            // itself (see BuildList), not a wrapping dict, parse the raw
-            // StreamData payloads, same as every other science.* channel in
-            // this file.
-            var deployedStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.DeployedTopic);
-            Assert.True(deployedStream.Count > 0, "expected at least one science.deployed frame");
+            // BreakingGroundViewProvider.BuildDeployed's payload IS the entry
+            // list itself (see BuildList), not a wrapping dict, parse the raw
+            // StreamData payloads, same as every other science-adjacent
+            // channel in this file.
+            var deployedStream = ParseStreamFrames(capture.Frames, BreakingGroundViewProvider.DeployedTopic);
+            Assert.True(deployedStream.Count > 0, "expected at least one deployed.bases frame");
 
             var deployedEntries = deployedStream
                 .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
@@ -890,9 +890,9 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             _output.WriteLine(
-                $"synthetic deployed-science fixture: {deployedStream.Count} science.deployed frames, " +
+                $"synthetic deployed-science fixture: {deployedStream.Count} deployed.bases frames, " +
                 $"{deployedEntries.Count} deployed entries across {vesselNames.Count} distinct vessels " +
-                "(real-shape synthetic: values hand-authored, wire shape produced by the real ScienceViewProvider mapper).");
+                "(real-shape synthetic: values hand-authored, wire shape produced by the real BreakingGroundViewProvider mapper).");
             WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot: no source recording file)", session.Entries.Count, topics, capture);
         }
 
@@ -904,7 +904,7 @@ namespace Sitrep.Host.IntegrationTests
         /// other generator in this file produces. Three deployed
         /// experiments across TWO non-active ground-cluster vessels: the
         /// raw "science"/"deployed" list mirrors EXACTLY the shape
-        /// <see cref="ScienceViewProvider"/>'s own doc comment documents
+        /// <see cref="BreakingGroundViewProvider"/>'s own doc comment documents
         /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c> must populate.
         /// </summary>
         private static RecordedSession BuildSyntheticDeployedScienceSession()
@@ -1022,10 +1022,10 @@ namespace Sitrep.Host.IntegrationTests
             var topics = new[]
             {
                 PartsViewProvider.PowerTopic,
-                PartsViewProvider.RoboticsTopic,
+                BreakingGroundViewProvider.RoboticsTopic,
             };
 
-            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestPartsUplink() }, topics);
+            var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestPartsUplink(), new TestBreakingGroundUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
             var powerFrames = ParsePayloads(capture.Frames, PartsViewProvider.PowerTopic);
@@ -1036,13 +1036,14 @@ namespace Sitrep.Host.IntegrationTests
                 raw is IEnumerable<object?> panels &&
                 panels.OfType<IDictionary<string, object?>>().Any(sp => !string.IsNullOrEmpty(sp.TryGetValue("partName", out var pn) ? pn as string : null)));
 
-            // parts.robotics's own payload IS the list (see PartsViewProvider.BuildRobotics,
-            // it returns List<object?> directly, not a wrapping dict), so
+            // robotics.servos's own payload IS the list (see
+            // BreakingGroundViewProvider.BuildRobotics, it returns
+            // List<object?> directly, not a wrapping dict), so
             // ParsePayloads' IDictionary-only filter would yield nothing
             // useful for this channel; parse the raw StreamData payloads
             // instead.
-            var roboticsStream = ParseStreamFrames(capture.Frames, PartsViewProvider.RoboticsTopic);
-            Assert.True(roboticsStream.Count > 0, "expected at least one parts.robotics frame");
+            var roboticsStream = ParseStreamFrames(capture.Frames, BreakingGroundViewProvider.RoboticsTopic);
+            Assert.True(roboticsStream.Count > 0, "expected at least one robotics.servos frame");
             var roboticsEntries = roboticsStream
                 .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
                 .OfType<IDictionary<string, object?>>()
@@ -1051,7 +1052,7 @@ namespace Sitrep.Host.IntegrationTests
             var rotorPresent = roboticsEntries.Any(r => (r.TryGetValue("type", out var t) ? t as string : null) == "rotor");
 
             _output.WriteLine(
-                $"parts fixture: {powerFrames.Count} parts.power frames, {roboticsStream.Count} parts.robotics frames, " +
+                $"parts fixture: {powerFrames.Count} parts.power frames, {roboticsStream.Count} robotics.servos frames, " +
                 $"{roboticsEntries.Count} servo entries; rotor present: {rotorPresent}.");
 
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);

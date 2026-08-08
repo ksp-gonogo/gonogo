@@ -240,6 +240,11 @@ export {
   useModalChrome,
   useModalSaveBar,
 } from "./ModalSaveBar";
+export {
+  magnitudeOf,
+  magnitudeOr,
+  type Quantityish,
+} from "./magnitude";
 // ── Null-display token ──────────────────────────────────────────────────────
 // The one sanctioned em dash in the codebase; see NullValue.tsx's own header
 // comment for the full rationale and the ratchet that enforces it.

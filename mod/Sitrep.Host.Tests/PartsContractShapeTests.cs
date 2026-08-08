@@ -13,22 +13,23 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Locks the P0.5 typing change for <c>parts.*</c>: proves the named
+    /// Locks the P0.5 typing change for <c>parts.power</c>: proves the named
     /// <c>Sitrep.Contract</c> payload types (<see cref="PartsPower"/> and its
     /// nested <see cref="SolarPanelEntry"/>/<see cref="BatteryEntry"/>/
-    /// <see cref="FuelCellEntry"/>/<see cref="AlternatorEntry"/>, plus
-    /// <see cref="ServoEntry"/>) mirror: field name for field name, camelCase
-    /// wire key for camelCase wire key, type for type, the EXACT serialized
-    /// shape <see cref="PartsViewProvider"/> already emits. This is a typing
-    /// change only: the wire is written by <c>JsonWriter</c> walking the
-    /// provider's dictionary, not by serializing these POCOs, so if the two
-    /// shapes ever drift (a field renamed, removed, added, or retyped on either
-    /// side) this test fails.
+    /// <see cref="FuelCellEntry"/>/<see cref="AlternatorEntry"/>) mirror:
+    /// field name for field name, camelCase wire key for camelCase wire key,
+    /// type for type, the EXACT serialized shape <see cref="PartsViewProvider"/>
+    /// already emits. This is a typing change only: the wire is written by
+    /// <c>JsonWriter</c> walking the provider's dictionary, not by serializing
+    /// these POCOs, so if the two shapes ever drift (a field renamed, removed,
+    /// added, or retyped on either side) this test fails.
     ///
     /// <para><c>parts.power</c> is a single WRAPPER OBJECT (tagged
-    /// <c>IsArray = false</c>) whose four arrays hold the nested entry types;
-    /// <c>parts.robotics</c> is a BARE ARRAY of <see cref="ServoEntry"/>
-    /// (tagged <c>isArray: true</c>), like the <c>science.*</c> channels.</para>
+    /// <c>IsArray = false</c>) whose four arrays hold the nested entry types.
+    /// The sibling <see cref="ServoEntry"/>/<see cref="RoboticsAvailability"/>
+    /// shape tests that used to live here moved to
+    /// <c>BreakingGroundContractShapeTests</c> alongside the split-out
+    /// <see cref="BreakingGroundViewProvider"/>.</para>
     /// </summary>
     public class PartsContractShapeTests
     {
@@ -98,62 +99,9 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void ServoEntryTypeMirrorsProviderWireShape()
-        {
-            var snapshot = PartsSnapshot(robotics: new List<object?>
-            {
-                new Dictionary<string, object?>
-                {
-                    ["partName"] = "Rotation Servo Rotor M",
-                    ["partId"] = "2001",
-                    ["type"] = "rotor",
-                    ["servoIsLocked"] = false,
-                    ["servoIsMotorized"] = true,
-                    ["servoMotorIsEngaged"] = true,
-                    ["servoMotorLimit"] = 100.0,
-                    ["motorState"] = "Moving",
-                    ["currentAngle"] = 12.0,
-                    ["targetAngle"] = 90.0,
-                    ["traverseVelocity"] = 15.0,
-                    ["currentRPM"] = 12.5,
-                    ["rpmLimit"] = 60.0,
-                    ["normalizedOutput"] = 0.2,
-                    ["brakePercentage"] = 100.0,
-                    ["currentExtension"] = 0.5,
-                    ["targetExtension"] = 1.0,
-                },
-            });
-
-            AssertArrayEntriesMirror(typeof(ServoEntry), PartsViewProvider.BuildRobotics(snapshot));
-        }
-
-        [Fact]
-        public void RoboticsAvailabilityTypeMirrorsProviderWireShape()
-        {
-            var snapshot = new KspSnapshot
-            {
-                Ut = 0.0,
-                Values = new Dictionary<string, object?>
-                {
-                    ["parts"] = new Dictionary<string, object?> { ["roboticsAvailable"] = true },
-                },
-            };
-
-            var root = Assert.IsType<Dictionary<string, object?>>(PartsViewProvider.BuildRoboticsAvailable(snapshot));
-
-            // Wrapper object: its key set must equal RoboticsAvailability's
-            // camelCase'd props, and the emitted value's runtime type must
-            // match the (Nullable-unwrapped) property type.
-            AssertKeysMatchType(typeof(RoboticsAvailability), root);
-            Assert.IsType<bool>(root["available"]);
-        }
-
-        [Fact]
         public void PayloadTypesAreTaggedWithTheirTopics()
         {
             AssertTopicTag(typeof(PartsPower), "parts.power", expectArray: false);
-            AssertTopicTag(typeof(ServoEntry), "parts.robotics", expectArray: true);
-            AssertTopicTag(typeof(RoboticsAvailability), "robotics.available", expectArray: false);
         }
 
         private static void AssertTopicTag(Type type, string expectedTopic, bool expectArray)
@@ -245,18 +193,12 @@ namespace Sitrep.Host.Tests
             return null;
         }
 
-        private static KspSnapshot PartsSnapshot(
-            Dictionary<string, object?>? power = null,
-            List<object?>? robotics = null)
+        private static KspSnapshot PartsSnapshot(Dictionary<string, object?>? power = null)
         {
             var parts = new Dictionary<string, object?>();
             if (power != null)
             {
                 parts["power"] = power;
-            }
-            if (robotics != null)
-            {
-                parts["robotics"] = robotics;
             }
 
             return new KspSnapshot

@@ -7,23 +7,29 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The <c>science.*</c> capture surface: added THIS session so a live
-    /// recording carries onboard experiment/container data, science-lab
-    /// processing state, and Breaking Ground deployed-experiment status
-    /// alongside <c>career.*</c>. Mirrors <see cref="CareerUplink"/>'s
-    /// retrofit shape exactly: this class is thin KSP-adjacent wiring; the
-    /// actual mapping lives in the KSP-free <c>Sitrep.Host</c> assembly
-    /// (<see cref="ScienceViewProvider"/>), headlessly testable there. No
-    /// <see cref="ISnapshotSampler"/> is registered because <c>KspHost.Sample</c>
-    /// already populates the raw <c>"science"</c> snapshot key (guarded to
-    /// "there's an active vessel": see <c>KspHost.BuildScience</c>'s doc
-    /// comment).
+    /// recording carries onboard experiment/container data and science-lab
+    /// processing state alongside <c>career.*</c>. Mirrors
+    /// <see cref="CareerUplink"/>'s retrofit shape exactly: this class is
+    /// thin KSP-adjacent wiring; the actual mapping lives in the KSP-free
+    /// <c>Sitrep.Host</c> assembly (<see cref="ScienceViewProvider"/>),
+    /// headlessly testable there. No <see cref="ISnapshotSampler"/> is
+    /// registered because <c>KspHost.Sample</c> already populates the raw
+    /// <c>"science"</c> snapshot key (guarded to "there's an active vessel":
+    /// see <c>KspHost.BuildScience</c>'s doc comment).
     ///
     /// <para>One channel per science sub-group, rather than one combined
-    /// topic: experiments/lab/deployed genuinely change at different
-    /// cadences (an experiment's data changes on run/collect; a lab
-    /// processes continuously; deployed science is placed once and then
-    /// mostly idles), and ScienceOfficer/ScienceBench/DeployedScience each
-    /// only need one of the three.</para>
+    /// topic: experiments/instruments/lab/sensors/experimentBreakdown
+    /// genuinely change at different cadences (an experiment's data changes
+    /// on run/collect; a lab processes continuously), and
+    /// ScienceOfficer/ScienceBench each only need a subset. The Breaking
+    /// Ground deployed-experiment channel that used to live here (placed
+    /// once and then mostly idling, a genuinely different cadence again)
+    /// moved to the bundled, DLC-gated <see cref="BreakingGroundUplink"/>:
+    /// deployed science is a Serenity-specific surface, not vanilla onboard
+    /// science. <see cref="BreakingGroundUplink"/> still reads the same raw
+    /// <c>Values["science"]["deployed"]</c> snapshot key <c>KspHost.BuildScience</c>
+    /// populates; only which Uplink registers the channel source
+    /// changed.</para>
     ///
     /// <para>Experiment actuation rides here too: <c>science.experiment.deploy</c>
     /// and <c>science.experiment.transmit</c> (<see cref="ScienceCommandProvider"/>'s
@@ -89,14 +95,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Topic = ScienceViewProvider.DeployedTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Explicit retrofit: same as ExperimentsTopic above.
-                    Delay = DelayRole.Delayed,
-                },
-                new ChannelDeclaration
-                {
                     Topic = ScienceViewProvider.SensorsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -135,7 +133,6 @@ namespace Gonogo.KSP
             host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
             host.AddChannelSource(ScienceViewProvider.InstrumentsTopic, ScienceViewProvider.BuildInstruments);
             host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
-            host.AddChannelSource(ScienceViewProvider.DeployedTopic, ScienceViewProvider.BuildDeployed);
             host.AddChannelSource(ScienceViewProvider.SensorsTopic, ScienceViewProvider.BuildSensors);
             host.AddChannelSource(ScienceViewProvider.ExperimentBreakdownTopic, ScienceViewProvider.BuildExperimentBreakdown);
 

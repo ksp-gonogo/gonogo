@@ -9,11 +9,15 @@ namespace Sitrep.Host
     /// session (speed prioritized, same posture as <see cref="CareerViewProvider"/>'s
     /// doc comment: a primitives-dict pass-through is fine for now, a typed
     /// <c>Sitrep.Contract</c> POCO is a follow-up). Reads
-    /// <c>Values["science"]["experiments"/"lab"/"deployed"]</c>
-    /// (<c>Gonogo.KSP.KspHost.BuildScience</c>'s raw dict) and republishes
-    /// each sub-group through <see cref="SnapshotDict"/>'s readers so every
-    /// scalar gets the same R1/F-1 non-finite-is-absent rule every other
-    /// provider in this assembly applies.
+    /// <c>Values["science"]["experiments"/"instruments"/"lab"/"sensors"/
+    /// "experimentBreakdown"]</c> (<c>Gonogo.KSP.KspHost.BuildScience</c>'s raw
+    /// dict) and republishes each sub-group through <see cref="SnapshotDict"/>'s
+    /// readers so every scalar gets the same R1/F-1 non-finite-is-absent rule
+    /// every other provider in this assembly applies. The sibling Breaking
+    /// Ground <c>deployed.bases</c> channel that used to live here (reading
+    /// the same raw <c>Values["science"]</c> group's <c>"deployed"</c> sub-key)
+    /// moved to <see cref="BreakingGroundViewProvider"/> alongside the
+    /// DLC-gated bundled uplink.
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildScience must
     /// populate exactly this shape at <c>Values["science"]</c>: entirely
@@ -30,18 +34,10 @@ namespace Sitrep.Host
     ///   "lab": [ { "partName", "dataStored", "dataStorage", "storedScience",
     ///     "processingData", "statusText", "scientistCount", "scienceRate",
     ///     "isOperational" }, ... ] | null
-    ///   "deployed": [ { "vesselName", "partName", "body", "situation",
-    ///     "biome", "experimentId", "scienceCompletedPercentage",
-    ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",
-    ///     "powerState", "connectionState", "deployedOnGround" }, ... ] | null
+    ///   "deployed": [ ... ] | null   // read by BreakingGroundViewProvider
     /// }
-    /// The "deployed" list is captured GLOBALLY across every loaded vessel
-    /// (a Breaking Ground cluster is its OWN ground vessel, never on the
-    /// active one - see Gonogo.KSP.KspHost.BuildDeployedScience), so an entry
-    /// can and normally does describe a vessel OTHER than the active one,
-    /// distinguished by "vesselName".
     /// </code>
-    /// Three separate channels (one per sub-group) rather than one combined
+    /// Separate channels (one per sub-group) rather than one combined
     /// topic: see <c>Gonogo.KSP.ScienceUplink</c>'s doc comment for why.
     /// </summary>
     public static class ScienceViewProvider
@@ -49,7 +45,6 @@ namespace Sitrep.Host
         public const string ExperimentsTopic = "science.experiments";
         public const string InstrumentsTopic = "science.instruments";
         public const string LabTopic = "science.lab";
-        public const string DeployedTopic = "science.deployed";
         public const string SensorsTopic = "science.sensors";
         public const string ExperimentBreakdownTopic = "science.experimentBreakdown";
 
@@ -61,9 +56,6 @@ namespace Sitrep.Host
 
         public static object? BuildLab(KspSnapshot? snapshot) =>
             BuildList(snapshot, "lab", BuildLabEntry);
-
-        public static object? BuildDeployed(KspSnapshot? snapshot) =>
-            BuildList(snapshot, "deployed", BuildDeployedEntry);
 
         public static object? BuildSensors(KspSnapshot? snapshot) =>
             BuildList(snapshot, "sensors", BuildSensorEntry);
@@ -148,23 +140,6 @@ namespace Sitrep.Host
             ["scientistCount"] = SnapshotDict.GetInt(raw, "scientistCount"),
             ["scienceRate"] = SnapshotDict.GetDouble(raw, "scienceRate"),
             ["isOperational"] = SnapshotDict.GetBool(raw, "isOperational"),
-        };
-
-        private static Dictionary<string, object?> BuildDeployedEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
-        {
-            ["vesselName"] = SnapshotDict.GetString(raw, "vesselName"),
-            ["partName"] = SnapshotDict.GetString(raw, "partName"),
-            ["body"] = SnapshotDict.GetString(raw, "body"),
-            ["situation"] = SnapshotDict.GetString(raw, "situation"),
-            ["biome"] = SnapshotDict.GetString(raw, "biome"),
-            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
-            ["scienceCompletedPercentage"] = SnapshotDict.GetDouble(raw, "scienceCompletedPercentage"),
-            ["scienceTransmittedPercentage"] = SnapshotDict.GetDouble(raw, "scienceTransmittedPercentage"),
-            ["scienceValue"] = SnapshotDict.GetDouble(raw, "scienceValue"),
-            ["scienceLimit"] = SnapshotDict.GetDouble(raw, "scienceLimit"),
-            ["powerState"] = SnapshotDict.GetString(raw, "powerState"),
-            ["connectionState"] = SnapshotDict.GetString(raw, "connectionState"),
-            ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
         };
 
         private static Dictionary<string, object?> BuildSensorEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>

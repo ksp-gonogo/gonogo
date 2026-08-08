@@ -255,10 +255,13 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceUplink</c>,
     /// same cross-project rationale as <see cref="TestSystemUplink"/>'s
-    /// doc comment. Registers all three <c>science.*</c> channels against
+    /// doc comment. Registers the <c>science.*</c> channels against
     /// <see cref="ScienceViewProvider"/>'s builders verbatim, so the domain
     /// wire-fixture generator can replay a science-mode recording through
-    /// the real engine pipeline exactly like a live capture would.
+    /// the real engine pipeline exactly like a live capture would. The
+    /// sibling <c>deployed.bases</c> channel that used to live here moved to
+    /// <see cref="TestBreakingGroundUplink"/> alongside the real
+    /// <c>Gonogo.KSP.ScienceUplink</c> -&gt; <c>Gonogo.KSP.BreakingGroundUplink</c> split.
     /// </summary>
     internal sealed class TestScienceUplink : ISitrepUplink
     {
@@ -283,12 +286,6 @@ namespace Sitrep.Host.IntegrationTests
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                new ChannelDeclaration
-                {
-                    Topic = ScienceViewProvider.DeployedTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
             },
         };
 
@@ -296,17 +293,19 @@ namespace Sitrep.Host.IntegrationTests
         {
             host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
             host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
-            host.AddChannelSource(ScienceViewProvider.DeployedTopic, ScienceViewProvider.BuildDeployed);
         }
     }
 
     /// <summary>
     /// KSP-free integration-test replica of <c>Gonogo.KSP.PartsUplink</c>,
     /// same cross-project rationale as <see cref="TestSystemUplink"/>'s
-    /// doc comment. Registers both <c>parts.*</c> channels against
-    /// <see cref="PartsViewProvider"/>'s builders verbatim, so the domain
-    /// wire-fixture generator can replay a parts/robotics-mode recording
-    /// through the real engine pipeline exactly like a live capture would.
+    /// doc comment. Registers the <c>parts.power</c> channel against
+    /// <see cref="PartsViewProvider"/>'s builder verbatim, so the domain
+    /// wire-fixture generator can replay a parts-mode recording through the
+    /// real engine pipeline exactly like a live capture would. The sibling
+    /// <c>robotics.*</c> channels that used to live here moved to
+    /// <see cref="TestBreakingGroundUplink"/> alongside the real
+    /// <c>Gonogo.KSP.PartsUplink</c> -&gt; <c>Gonogo.KSP.BreakingGroundUplink</c> split.
     /// </summary>
     internal sealed class TestPartsUplink : ISitrepUplink
     {
@@ -325,9 +324,59 @@ namespace Sitrep.Host.IntegrationTests
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+            },
+        };
+
+        public void Register(IUplinkHost host)
+        {
+            host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
+        }
+    }
+
+    /// <summary>
+    /// KSP-free integration-test replica of the bundled, DLC-gated
+    /// <c>Gonogo.KSP.BreakingGroundUplink</c>, same cross-project rationale as
+    /// <see cref="TestSystemUplink"/>'s doc comment (this project can't
+    /// reference the net472/KSP-referencing <c>Gonogo.KSP</c> assembly).
+    /// Registers the <c>robotics.servos</c>/<c>robotics.available</c>/
+    /// <c>deployed.bases</c> channels against
+    /// <see cref="BreakingGroundViewProvider"/>'s builders verbatim, so the
+    /// domain wire-fixture generator can replay a robotics/deployed-science
+    /// recording through the real engine pipeline exactly like a live
+    /// capture would. No command handlers: this suite replays recordings
+    /// (snapshots + lifecycle events only), no client ever dispatches a
+    /// robotics command against it, same "read pipeline only" rationale as
+    /// <see cref="TestVesselUplink"/>'s doc comment. Always registers as
+    /// though Serenity were installed: the DLC-presence gate itself is real
+    /// KSP-side logic (<c>Gonogo.KSP.BreakingGroundUplink.Register</c>), out
+    /// of reach for this KSP-free project.
+    /// </summary>
+    internal sealed class TestBreakingGroundUplink : ISitrepUplink
+    {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "test-breaking-ground",
+            Version = "1.0.0",
+            Channels = new List<ChannelDeclaration>
+            {
                 new ChannelDeclaration
                 {
-                    Topic = PartsViewProvider.RoboticsTopic,
+                    Topic = BreakingGroundViewProvider.RoboticsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = BreakingGroundViewProvider.RoboticsAvailableTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = BreakingGroundViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
@@ -336,8 +385,9 @@ namespace Sitrep.Host.IntegrationTests
 
         public void Register(IUplinkHost host)
         {
-            host.AddChannelSource(PartsViewProvider.PowerTopic, PartsViewProvider.BuildPower);
-            host.AddChannelSource(PartsViewProvider.RoboticsTopic, PartsViewProvider.BuildRobotics);
+            host.AddChannelSource(BreakingGroundViewProvider.RoboticsTopic, BreakingGroundViewProvider.BuildRobotics);
+            host.AddChannelSource(BreakingGroundViewProvider.RoboticsAvailableTopic, BreakingGroundViewProvider.BuildRoboticsAvailable);
+            host.AddChannelSource(BreakingGroundViewProvider.DeployedTopic, BreakingGroundViewProvider.BuildDeployed);
         }
     }
 

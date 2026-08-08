@@ -177,18 +177,18 @@ public class LabEntry
 }
 
 /// <summary>
-/// One entry in the <c>science.deployed</c> channel payload, a Breaking
+/// One entry in the <c>deployed.bases</c> channel payload, a Breaking
 /// Ground deployed-science experiment. The channel payload is a BARE ARRAY
 /// (<c>DeployedEntry[]</c>) or <c>null</c>. Unlike the other two channels,
-/// <c>science.deployed</c> is captured GLOBALLY across every loaded vessel: a
+/// <c>deployed.bases</c> is captured GLOBALLY across every loaded vessel: a
 /// deployed cluster is its own ground vessel, so an entry normally describes a
 /// vessel OTHER than the active one, distinguished by <see cref="VesselName"/>.
-/// Typing-only mirror of <c>Sitrep.Host.ScienceViewProvider.BuildDeployedEntry</c>;
+/// Typing-only mirror of <c>Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry</c>;
 /// see <see cref="ExperimentEntry"/> for the "no wire change, all fields
 /// nullable" rationale.
 /// </summary>
 [SitrepContract]
-[SitrepTopic("science.deployed", isArray: true)]
+[SitrepTopic("deployed.bases", isArray: true)]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif

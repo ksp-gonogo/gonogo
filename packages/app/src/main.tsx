@@ -77,9 +77,11 @@ function renderApp(): void {
 // registry when the dashboard mounts. Two paths, unconditional (D4 step 2,
 // the loader is no longer flag-gated for the first-party 3):
 //
-//  - kerbalism + avionics + mechjeb have no runtime-loader bundle/registry
-//    entry yet (out of the loader's scope this step), so they stay plain
-//    static imports, each self-registering on import.
+//  - kerbalism + avionics + mechjeb + breakingGround have no runtime-loader
+//    bundle/registry entry (breakingGround is bundled IN the core mod DLL,
+//    same as parts/vessel; the other three are out of the loader's scope this
+//    step), so all four stay plain static imports, each self-registering on
+//    import.
 //  - scansat + kos + kerbcast (`LOADER_UPLINK_IDS`) ALWAYS go through the
 //    runtime loader: it fetches + verifies + import()s each standalone
 //    bundle, its externals resolving through the baked import map to the
@@ -122,6 +124,11 @@ async function registerScansatAndRender(): Promise<void> {
     import("@ksp-gonogo/gonogo-kerbalism-uplink"),
     import("@ksp-gonogo/gonogo-avionics-uplink"),
     import("@ksp-gonogo/gonogo-mechjeb-uplink"),
+    // Bundled IN the core mod DLL (Gonogo.KSP.BreakingGroundUplink, like
+    // PartsUplink/VesselUplink), so its client rides the same "no
+    // runtime-loader entry, plain static import" path as kerbalism/avionics
+    // above, never the fetch-based loader.
+    import("@ksp-gonogo/gonogo-breaking-ground-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

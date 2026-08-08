@@ -470,18 +470,29 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- science/parts topics: NEW capability, no legacy widget key existed
   // for either: `parts.power` (dict: solarPanels/batteries/fuelCells/
   // alternators/totalProductionEc, mod/Sitrep.Host/PartsViewProvider.cs) and
-  // `parts.robotics` (raw array of hinge+piston+rotor servo state) are both
+  // `robotics.servos` (raw array of hinge+piston+rotor servo state, renamed
+  // from `parts.robotics` when the Breaking Ground robotics + deployed
+  // science surfaces moved into their own bundled uplink) are both
   // 2-segment raw wire topics read WHOLESALE (same "no legacy analogue, key
   // == topic" shape `system.vessels`'s own whole-topic mapping precedent
   // established) rather than a `<domain>.<channel>.<field>` walk. PowerSystems reads `parts.power` as a
   // MIXED-source enrichment (preferring `totalProductionEc` over its
   // topology-summed total when carried, `??` falls back otherwise, same
   // pattern as DistanceToTarget's Vec3 merges). RoboticsConsole/
-  // RotorTachometer read `parts.robotics` (filtered by `type`) as their
+  // RotorTachometer read `robotics.servos` (filtered by `type`) as their
   // WHOLE identity list: partId-keyed selection and every `robotics.*`
   // command key off the stable stringified `partId` each entry carries.
+  //
+  // NOTE: `robotics.servos` deliberately has NO identity entry here (unlike
+  // `parts.power`/`science.lab` below): the string is already claimed, in
+  // this same table, by the OLD gapped Telemachus identity-list key of the
+  // same name (see the "robotics.available" gap test/comment further down,
+  // `robotics.rotors`/`robotics.servos` as legacy keys with no stable id).
+  // A widget never calls the legacy 2-arg form with this string meaning the
+  // new topic (RoboticsConsole/RotorTachometer both read it canonically,
+  // one-arg, bypassing this shim entirely), so no entry is needed, and
+  // adding one would silently un-gap the unrelated legacy key.
   "parts.power": "parts.power",
-  "parts.robotics": "parts.robotics",
 
   // --- science.lab mapping. NEW capability, no
   // legacy widget key existed: `science.lab` (raw array of Mobile
@@ -489,28 +500,28 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // pre-existing `sci.*` analogue at all (`sci.instruments` below tracks a
   // DIFFERENT set of parts: crew-report/mystery-goo/barometer experiment
   // modules: not the lab itself), so this is a whole-topic identity read,
-  // same `parts.power`/`parts.robotics` "key == topic" precedent above.
+  // same `parts.power`/`robotics.servos` "key == topic" precedent above.
   // ScienceOfficer/index.tsx's `parseLab` reads it directly. ---
   "science.lab": "science.lab",
 
-  // --- DeployedScience mapping. `science.deployed`
+  // --- DeployedScience mapping. `deployed.bases`
   // (raw FLAT array of individual `ModuleGroundExperiment` entries, no
   // legacy base/power-balance grouping: ScienceViewProvider.BuildDeployed,
   // itself fed by Gonogo.KSP.KspHost.BuildDeployedScience's GLOBAL
-  // FlightGlobals.Vessels walk, see that method's doc comment) is routed
-  // onto the SAME widget-facing key `deployed.bases` used to point at,
-  // same "one parser accepts either wire shape" pattern `science.experiments`
-  // established above. DeployedScience/index.tsx's `parseBases` now detects
-  // the shape (legacy: numeric `id`; new: string `vesselName`, no `id`) and,
-  // for the new shape, groups the flat list by `vesselName` into the
-  // existing `DeployedBase[]` display type
+  // FlightGlobals.Vessels walk, see that method's doc comment) is a whole-topic
+  // identity read, renamed from `science.deployed` when the Breaking Ground
+  // deployed-science surface moved into its own bundled uplink: the widget-facing
+  // key and the wire topic are now the SAME string.
+  // DeployedScience/index.tsx's `parseBases` detects the shape (legacy: numeric
+  // `id`; new: string `vesselName`, no `id`) and, for the new shape, groups the
+  // flat list by `vesselName` into the existing `DeployedBase[]` display type
   // (`groupFlatDeployedEntries`): vesselName groups 1:1 with a Breaking
   // Ground cluster, itself its own vessel. `powerAvailable`/`powerRequired`
   // (no EC numbers on the new wire, only a coarse `powerState` enum) degrade
   // to `0`/`0`, same "no new-wire equivalent, degrade" posture the
   // `currentLevelText`/`nextLevelText` career-detail fields established.
   // `deployed.available` stays gapped below: see that entry for why. ---
-  "deployed.bases": "science.deployed",
+  "deployed.bases": "deployed.bases",
 
   // --- career.mode + science.sensors. ---
 

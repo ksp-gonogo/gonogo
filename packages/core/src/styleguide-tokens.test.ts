@@ -196,7 +196,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Navball/AttitudeIndicator.tsx": 3,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/components/src/PowerSystems/index.tsx": 1,
-    "packages/components/src/RoboticsConsole/index.tsx": 1,
     "packages/components/src/ScienceBench/index.tsx": 1,
     "packages/components/src/SemiMajorAxis/index.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,

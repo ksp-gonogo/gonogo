@@ -102,6 +102,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.path": CommsPath;
   "comms.signalStrength": CommsSignalStrength;
   "crash.lastCrash": CrashReport;
+  "deployed.bases": DeployedEntry[];
   "dv.stages": StageDeltaVEntry[];
   "dv.summary": StageDeltaVSummary;
   "flight.current": FlightCurrent;
@@ -118,14 +119,13 @@ export interface GeneratedTopicPayloadMap {
   "kos.processors": KosProcessorInfo[];
   "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
-  "parts.robotics": ServoEntry[];
   "recovery.lastSummary": RecoveryReport;
   "reliability.parts": ReliabilityPartEntry[];
   "reliability.summary": ReliabilitySummary;
   "robotics.available": RoboticsAvailability;
+  "robotics.servos": ServoEntry[];
   "scansat.scanningVessels": ScanningVesselEntry[];
   "scansat.science": ScanScienceEntry[];
-  "science.deployed": DeployedEntry[];
   "science.experimentBreakdown": ExperimentBreakdownEntry[];
   "science.experiments": ExperimentEntry[];
   "science.instruments": InstrumentEntry[];
@@ -179,6 +179,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.path",
   "comms.signalStrength",
   "crash.lastCrash",
+  "deployed.bases",
   "dv.stages",
   "dv.summary",
   "flight.current",
@@ -195,14 +196,13 @@ export const GENERATED_TOPIC_IDS = [
   "kos.processors",
   "ksp.revertAvailability",
   "parts.power",
-  "parts.robotics",
   "recovery.lastSummary",
   "reliability.parts",
   "reliability.summary",
   "robotics.available",
+  "robotics.servos",
   "scansat.scanningVessels",
   "scansat.science",
-  "science.deployed",
   "science.experimentBreakdown",
   "science.experiments",
   "science.instruments",

@@ -12,7 +12,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Locks the P0.5 typing change for <c>science.*</c>: proves the named
     /// <c>Sitrep.Contract</c> payload types (<see cref="ExperimentEntry"/>,
-    /// <see cref="LabEntry"/>, <see cref="DeployedEntry"/>) mirror: field name
+    /// <see cref="LabEntry"/>) mirror: field name
     /// for field name, camelCase wire key for camelCase wire key, type for
     /// type: the EXACT serialized shape <see cref="ScienceViewProvider"/>
     /// already emits. This is a typing change only: the wire is written by
@@ -89,28 +89,9 @@ namespace Sitrep.Host.Tests
             AssertTypeMirrorsEntry(typeof(LabEntry), ScienceViewProvider.BuildLab(snapshot));
         }
 
-        [Fact]
-        public void DeployedEntryTypeMirrorsProviderWireShape()
-        {
-            var snapshot = SnapshotWith("deployed", new Dictionary<string, object?>
-            {
-                ["vesselName"] = "Probodobodyne Experiment Control Station",
-                ["partName"] = "Atmospheric Fluid Spectro-Variometer",
-                ["body"] = "Mun",
-                ["situation"] = "LANDED",
-                ["biome"] = "Highlands",
-                ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
-                ["scienceCompletedPercentage"] = 42.5,
-                ["scienceTransmittedPercentage"] = 10.0,
-                ["scienceValue"] = 8.0,
-                ["scienceLimit"] = 20.0,
-                ["powerState"] = "Powered",
-                ["connectionState"] = "Connected",
-                ["deployedOnGround"] = true,
-            });
-
-            AssertTypeMirrorsEntry(typeof(DeployedEntry), ScienceViewProvider.BuildDeployed(snapshot));
-        }
+        // DeployedEntry ("deployed.bases") is exercised in
+        // BreakingGroundContractShapeTests, alongside BreakingGroundViewProvider,
+        // the two moved together out of ScienceViewProvider.
 
         [Fact]
         public void SensorEntryTypeMirrorsProviderWireShape()

@@ -1284,6 +1284,21 @@
       "vesselType": "id",
       "what": "text"
     },
+    "deployed.bases": {
+      "biome": "text",
+      "body": "text",
+      "connectionState": "text",
+      "deployedOnGround": "flag",
+      "experimentId": "id",
+      "partName": "text",
+      "powerState": "text",
+      "scienceCompletedPercentage": "%",
+      "scienceLimit": "science",
+      "scienceTransmittedPercentage": "%",
+      "scienceValue": "science",
+      "situation": "text",
+      "vesselName": "text"
+    },
     "dv.stages": {
       "burnTime": "s",
       "dryMass": "t",
@@ -1414,27 +1429,6 @@
     "parts.power": {
       "totalProductionEc": "units/s"
     },
-    "parts.robotics": {
-      "brakePercentage": "%",
-      "counterClockwise": "flag",
-      "currentAngle": "°",
-      "currentExtension": "m",
-      "currentRPM": "rpm",
-      "maxTorque": "kN",
-      "motorState": "text",
-      "normalizedOutput": "ratio",
-      "partId": "id",
-      "partName": "text",
-      "rpmLimit": "rpm",
-      "servoIsLocked": "flag",
-      "servoIsMotorized": "flag",
-      "servoMotorIsEngaged": "flag",
-      "servoMotorLimit": "%",
-      "targetAngle": "°",
-      "targetExtension": "m",
-      "traverseVelocity": "n/a",
-      "type": "id"
-    },
     "recovery.lastSummary": {
       "capturedAtUT": "s",
       "displayReputation": "flag",
@@ -1471,6 +1465,27 @@
     "robotics.available": {
       "available": "flag"
     },
+    "robotics.servos": {
+      "brakePercentage": "%",
+      "counterClockwise": "flag",
+      "currentAngle": "°",
+      "currentExtension": "m",
+      "currentRPM": "rpm",
+      "maxTorque": "kN",
+      "motorState": "text",
+      "normalizedOutput": "ratio",
+      "partId": "id",
+      "partName": "text",
+      "rpmLimit": "rpm",
+      "servoIsLocked": "flag",
+      "servoIsMotorized": "flag",
+      "servoMotorIsEngaged": "flag",
+      "servoMotorLimit": "%",
+      "targetAngle": "°",
+      "targetExtension": "m",
+      "traverseVelocity": "n/a",
+      "type": "id"
+    },
     "scansat.scanningVessels": {
       "altitude": "m",
       "body": "text",
@@ -1490,21 +1505,6 @@
       "partTitle": "text",
       "rerunnable": "flag",
       "title": "text"
-    },
-    "science.deployed": {
-      "biome": "text",
-      "body": "text",
-      "connectionState": "text",
-      "deployedOnGround": "flag",
-      "experimentId": "id",
-      "partName": "text",
-      "powerState": "text",
-      "scienceCompletedPercentage": "%",
-      "scienceLimit": "science",
-      "scienceTransmittedPercentage": "%",
-      "scienceValue": "science",
-      "situation": "text",
-      "vesselName": "text"
     },
     "science.experimentBreakdown": {
       "biome": "text",

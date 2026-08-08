@@ -108,7 +108,7 @@ public class AlternatorEntry
 /// The <c>parts.power</c> channel payload: the active vessel's electric-charge
 /// production surface (solar panels, batteries, fuel cells, engine
 /// alternators, and a rolled-up production total). Unlike the bare-array
-/// <c>parts.robotics</c> and the <c>science.*</c> channels, this payload is a
+/// <c>robotics.servos</c> and the <c>science.*</c> channels, this payload is a
 /// single WRAPPER OBJECT (or <c>null</c> when there is no active vessel / no
 /// power sub-group): so the Topic tag sits on this type directly with the
 /// default <c>IsArray = false</c>.
@@ -143,7 +143,7 @@ public class PartsPower
 }
 
 /// <summary>
-/// One entry in the <c>parts.robotics</c> channel payload, a single Breaking
+/// One entry in the <c>robotics.servos</c> channel payload, a single Breaking
 /// Ground robotic servo (rotor / hinge / piston) on the active vessel. The
 /// channel payload is a BARE ARRAY of these (<c>ServoEntry[]</c>) or
 /// <c>null</c> (never a wrapper object) so the Topic tag sits on this
@@ -154,12 +154,12 @@ public class PartsPower
 /// what the provider emits today; the enum cleanup is a later phase.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
-/// <c>Sitrep.Host.PartsViewProvider.BuildServoEntry</c>: see
+/// <c>Sitrep.Host.BreakingGroundViewProvider.BuildServoEntry</c>: see
 /// <see cref="PartsPower"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>
 [SitrepContract]
-[SitrepTopic("parts.robotics", isArray: true)]
+[SitrepTopic("robotics.servos", isArray: true)]
 #if NETSTANDARD2_0
 [TsInterface]
 #endif
@@ -264,7 +264,7 @@ public class ServoEntry
 /// carries a concrete <c>true</c>/<c>false</c>.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
-/// <c>Sitrep.Host.PartsViewProvider.BuildRoboticsAvailable</c>: see
+/// <c>Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable</c>: see
 /// <see cref="PartsPower"/> for the "no wire change" rationale.</para>
 /// </summary>
 [SitrepContract]

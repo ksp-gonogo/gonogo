@@ -369,6 +369,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoMechJebUplink/MechJebVersionGuard.cs",
       "mod/GonogoMechJebUplink/client/src/test/setup.ts",
       "mod/GonogoMechJebUplink.Tests/MechJebVersionGuardFakes.cs",
+      // Breaking Ground uplink extraction (2026-08-08): the new bundled
+      // uplink's doc comments and its client package's scaffolding name
+      // GonogoScansatUplink/client as the structural template they were
+      // built from ("mirroring GonogoScansatUplink/client's structure").
+      // Doc mentions + boilerplate config only, nothing imports from the
+      // scansat Uplink.
+      "mod/Gonogo.KSP/BreakingGroundUplink.cs",
+      "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts",
+      "mod/GonogoBreakingGroundUplink/client/vitest.config.ts",
     ],
   },
 

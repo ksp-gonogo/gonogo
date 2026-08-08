@@ -551,7 +551,7 @@ export interface ScienceOfficerSlotContext {
   dataAmount: number;
 }
 
-// --- DeployedScience (packages/components/src/DeployedScience) -------------
+// --- DeployedScience (mod/GonogoBreakingGroundUplink/client/src/DeployedScience) ---
 
 /** Mirrors `DeployedExperiment` (DeployedScience/index.tsx). */
 export interface DeployedScienceExperiment {

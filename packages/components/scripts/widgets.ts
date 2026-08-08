@@ -443,38 +443,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  {
-    widgetId: "deployed-science",
-    fixturesPath: "DeployedScience/__fixtures__",
-    outPath: "renders/deployed-science-widget",
-    modes: [
-      // Minimum size: base header + first experiment, rest scrolls.
-      { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size: a base card with its experiments.
-      { name: "default-5x9", w: 5, h: 9 },
-      // Tall: multiple bases stacked.
-      { name: "tall-5x16", w: 5, h: 16 },
-      // DLC-absent empty state.
-      { name: "unavailable-5x9", w: 5, h: 9, forFixtures: ["unavailable"] },
-    ],
-  },
-  {
-    widgetId: "robotics-console",
-    fixturesPath: "RoboticsConsole/__fixtures__",
-    outPath: "renders/robotics-console-widget",
-    modes: [
-      // Minimum size: readout + Target stepper only; the motor/lock toggles
-      // and the joint list both hide below h=6 so neither clips the stepper
-      // (see the showToggles/showServoList gates in RoboticsConsole/index.tsx).
-      { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size: readout + controls + joint list.
-      { name: "default-5x8", w: 5, h: 8 },
-      // Wide: controls and list get horizontal room.
-      { name: "wide-9x6", w: 9, h: 6 },
-      // DLC-absent empty state.
-      { name: "unavailable-5x8", w: 5, h: 8, forFixtures: ["unavailable"] },
-    ],
-  },
+  // deployed-science / robotics-console moved to
+  // @ksp-gonogo/gonogo-breaking-ground-uplink/scripts/widgets.ts alongside
+  // the Breaking Ground uplink extraction.
   {
     widgetId: "objectives",
     fixturesPath: "Objectives/__fixtures__",
@@ -488,26 +459,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-5x16", w: 5, h: 16 },
     ],
   },
-  {
-    widgetId: "rotor-tachometer",
-    fixturesPath: "RotorTachometer/__fixtures__",
-    outPath: "renders/rotor-tachometer-widget",
-    modes: [
-      // Minimum registered size (h<6): gauge suppressed, controls + list.
-      { name: "min-4x4", w: 4, h: 4 },
-      // Default registered size: dial + controls + 2-rotor list.
-      { name: "default-6x10", w: 6, h: 10 },
-      // Wide: controls and list get horizontal room.
-      { name: "wide-9x7", w: 9, h: 7 },
-      // DLC-absent empty state.
-      {
-        name: "unavailable-5x9",
-        w: 5,
-        h: 9,
-        forFixtures: ["unavailable"],
-      },
-    ],
-  },
+  // rotor-tachometer moved to
+  // @ksp-gonogo/gonogo-breaking-ground-uplink/scripts/widgets.ts alongside
+  // the Breaking Ground uplink extraction.
   {
     widgetId: "action-group",
     fixturesPath: "ActionGroup/__fixtures__",

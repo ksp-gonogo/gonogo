@@ -4,8 +4,8 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// The KSP-actuation seam for the Breaking Ground robotics commands, the
-    /// command-side twin of <see cref="PartsViewProvider"/>'s robotics read
-    /// channel, and the robotics analogue of <see cref="IVesselActuator"/>.
+    /// command-side twin of <see cref="BreakingGroundViewProvider"/>'s robotics
+    /// read channel, and the robotics analogue of <see cref="IVesselActuator"/>.
     /// One method per command, taking already-parsed typed args and returning
     /// an already-typed <see cref="CommandResult"/>.
     /// <see cref="RoboticsCommandProvider"/> (KSP-free, this assembly) does the
@@ -20,7 +20,7 @@ namespace Sitrep.Host
     /// <para>Every method operates on <c>FlightGlobals.ActiveVessel</c>: there
     /// is no per-call vessel selector, matching the read side's "the vessel"
     /// scoping. The <c>partId</c> is the <c>flightID.ToString()</c> the read
-    /// side stamps on each <c>parts.robotics</c> entry. A real implementation
+    /// side stamps on each <c>robotics.servos</c> entry. A real implementation
     /// returns a typed failure code rather than throwing: no active vessel
     /// (<see cref="CommandErrorCode.NoVessel"/>), no part with that id
     /// (<see cref="CommandErrorCode.NotFound"/>), or a request the resolved

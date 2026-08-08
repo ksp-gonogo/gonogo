@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "scenario": "unavailable",
+    "notes": "Breaking Ground not installed: empty state."
+  },
+  "robotics.available": false,
+  "robotics.servos": [],
+  "_stream": {
+    "carriedChannels": ["robotics.servos", "robotics.available"],
+    "emits": [
+      {
+        "channel": "robotics.servos",
+        "value": []
+      },
+      {
+        "channel": "robotics.available",
+        "value": {
+          "available": false
+        }
+      }
+    ]
+  }
+}
