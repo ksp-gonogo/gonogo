@@ -217,6 +217,21 @@ export function useStream<T>(topic: string): T | undefined {
   return getHost().useStream<T>(topic);
 }
 
+/**
+ * Reactively read a Processor's current, frame-memoised value. Pass the handle
+ * `defineUplinkClient(...).registerProcessor` returned: `R` is inferred from
+ * its brand, so `useProcessor(SHIP_SYSTEMS)` is typed as the processor's own
+ * result. One evaluation per Sitrep frame is shared across every widget reading
+ * the same handle (and any contribution that lists it in `deps`). Returns
+ * `undefined` with no provider mounted, or before the first frame lands.
+ */
+export function useProcessor<R>(handle: {
+  readonly id: string;
+  readonly __resultType?: R;
+}): R | undefined {
+  return getHost().useProcessor(handle);
+}
+
 export function useViewClock(): unknown {
   return getHost().useViewClock();
 }

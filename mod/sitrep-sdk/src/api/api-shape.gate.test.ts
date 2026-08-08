@@ -46,6 +46,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useFogMaskCache",
   "useLateTelemetrySubscribe",
   "useLatestValue",
+  "useProcessor",
   "useReplaySessionActive",
   "useRouteCommands",
   "useSetting",

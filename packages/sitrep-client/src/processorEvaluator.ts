@@ -43,6 +43,19 @@ let activeStore: TimelineStore | undefined;
 let frameUnsubscribe: (() => void) | undefined;
 let activeProcessorCount = 0;
 
+// Topic-subscription seam (contribution-slots-spec.md §14): a Processor that
+// declares raw Topic deps must SUBSCRIBE them, not merely sample them off the
+// store. A topic nothing else reads never streams (see use-stream.ts: a topic
+// flows only once `client.subscribe` asks the server for it), so sampling an
+// unsubscribed dep returns undefined forever. The evaluator cannot reach the
+// TelemetryClient (that would cycle sitrep-client -> core), so the provider
+// injects `client.subscribe` here, the same seam pattern as
+// `setProcessorEvaluationRecorder`. Ref-counted for each active processor's
+// lifetime, back-filled on late store/subscriber arrival exactly like the
+// frame subscription.
+let subscribeInputTopic: (topic: string) => () => void = () => () => {};
+let hasTopicSubscriber = false;
+
 function ensureFrameSubscription(): void {
   if (activeProcessorCount > 0 && activeStore && !frameUnsubscribe) {
     frameUnsubscribe = activeStore.subscribeFrame(evaluateAllActive);
@@ -58,10 +71,35 @@ function teardownFrameSubscription(): void {
 export function setActiveTimelineStore(store: TimelineStore | undefined): void {
   if (store === activeStore) return;
   teardownFrameSubscription();
+  // Topic subscriptions resolved against the OLD store's derived-topic graph
+  // must be torn down and re-established against the new one.
+  teardownAllTopicSubscriptions();
+  // A fresh store restarts frame generations from a low number, which can
+  // COLLIDE with a `lastFrameGeneration` cached from the previous store and
+  // make `evaluate` wrongly skip as "already fresh this frame", serving the old
+  // store's stale value. Clear the per-frame freshness marks (NOT the values or
+  // refCounts) so every active processor re-evaluates on the new store's frames.
+  resetFrameTracking();
   activeStore = store;
   // Back-fill: any processors activated before the store arrived get their
   // frame source connected now.
   ensureFrameSubscription();
+  ensureAllTopicSubscriptions();
+}
+
+/**
+ * Wire the raw-topic subscriber (the provider's `client.subscribe`). Called
+ * when the provider mounts or its client changes; pass `undefined` to clear it
+ * on unmount. Back-fills every already-active processor, so activation-before-
+ * provider (the real child-then-parent effect order) still subscribes.
+ */
+export function setProcessorTopicSubscriber(
+  fn: ((topic: string) => () => void) | undefined,
+): void {
+  subscribeInputTopic = fn ?? (() => () => {});
+  hasTopicSubscriber = fn !== undefined;
+  if (hasTopicSubscriber) ensureAllTopicSubscriptions();
+  else teardownAllTopicSubscriptions();
 }
 
 interface ProcessorRuntimeEntry {
@@ -69,6 +107,8 @@ interface ProcessorRuntimeEntry {
   lastFrameGeneration: number | undefined;
   value: unknown;
   listeners: Set<() => void>;
+  /** Live `client.subscribe` unsubscribes for this processor's raw Topic deps, while active. */
+  topicUnsubs: (() => void)[] | undefined;
 }
 
 const runtime = new Map<string, ProcessorRuntimeEntry>();
@@ -81,6 +121,7 @@ function entryFor(id: string): ProcessorRuntimeEntry {
       lastFrameGeneration: undefined,
       value: undefined,
       listeners: new Set(),
+      topicUnsubs: undefined,
     };
     runtime.set(id, entry);
   }
@@ -107,6 +148,71 @@ function topoOrder(
   }
   out.push(id);
   return out;
+}
+
+/** The transitive raw Topic-id deps of `id` and every Processor it depends on. */
+function collectRawTopicDeps(id: string): string[] {
+  const topics = new Set<string>();
+  for (const procId of topoOrder(id)) {
+    const def = getProcessor(procId);
+    if (!def) continue;
+    for (const dep of def.deps) {
+      if (!isHandle(dep)) topics.add(dep);
+    }
+  }
+  return [...topics];
+}
+
+/**
+ * Subscribe an active processor's transitive raw Topic deps (resolved to the
+ * wire topics the server understands, exactly as use-stream does) so they
+ * stream. No-op until BOTH the store (to resolve) and the subscriber (to
+ * subscribe) are wired, so the last of the two to arrive back-fills it.
+ */
+function ensureTopicSubscriptions(id: string): void {
+  const entry = entryFor(id);
+  if (
+    entry.refCount === 0 ||
+    entry.topicUnsubs ||
+    !activeStore ||
+    !hasTopicSubscriber
+  ) {
+    return;
+  }
+  const unsubs: (() => void)[] = [];
+  for (const depTopic of collectRawTopicDeps(id)) {
+    for (const inputTopic of activeStore.resolveSubscriptionTopics(depTopic)) {
+      unsubs.push(subscribeInputTopic(inputTopic));
+    }
+  }
+  entry.topicUnsubs = unsubs;
+}
+
+function teardownTopicSubscriptions(entry: ProcessorRuntimeEntry): void {
+  if (!entry.topicUnsubs) return;
+  for (const unsub of entry.topicUnsubs) unsub();
+  entry.topicUnsubs = undefined;
+}
+
+function ensureAllTopicSubscriptions(): void {
+  for (const [id, entry] of runtime) {
+    if (entry.refCount > 0) ensureTopicSubscriptions(id);
+  }
+}
+
+function teardownAllTopicSubscriptions(): void {
+  for (const entry of runtime.values()) teardownTopicSubscriptions(entry);
+}
+
+/**
+ * Clear every entry's per-frame freshness mark, forcing a re-evaluation on the
+ * next frame. Deliberately keeps `value` (a swap holds the last-known value
+ * until the new store produces one) and `refCount`/`listeners` (the widgets are
+ * still mounted). Used on store change to defeat the fresh-store generation
+ * collision.
+ */
+function resetFrameTracking(): void {
+  for (const entry of runtime.values()) entry.lastFrameGeneration = undefined;
 }
 
 function resolveDep(dep: Dep, token: { generation: number }): unknown {
@@ -155,14 +261,16 @@ export function activateProcessor(id: string): () => void {
   entry.refCount++;
   if (entry.refCount === 1) {
     activeProcessorCount++;
-    // Connect the frame source (a no-op if the store hasn't arrived yet, in
-    // which case setActiveTimelineStore back-fills it).
+    // Connect the frame source and subscribe this processor's raw Topic deps
+    // (both no-ops until the store / subscriber arrive, then back-filled).
     ensureFrameSubscription();
+    ensureTopicSubscriptions(id);
   }
   return () => {
     entry.refCount--;
     if (entry.refCount === 0) {
       activeProcessorCount--;
+      teardownTopicSubscriptions(entry);
       if (activeProcessorCount === 0) teardownFrameSubscription();
     }
   };
@@ -196,8 +304,11 @@ export function subscribeProcessor(id: string, cb: () => void): () => void {
 /** Test-only: tear down the frame subscription and reset the runtime. */
 export function clearProcessorRuntime(): void {
   teardownFrameSubscription();
+  teardownAllTopicSubscriptions();
   runtime.clear();
   activeProcessorCount = 0;
   activeStore = undefined;
   recordEvaluation = () => {};
+  subscribeInputTopic = () => () => {};
+  hasTopicSubscriber = false;
 }

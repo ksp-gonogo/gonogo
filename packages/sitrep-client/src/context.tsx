@@ -26,7 +26,10 @@ import {
 import { vesselManeuverLegacyChannel } from "./maneuver-legacy";
 import { mapCommand } from "./map-command";
 import { mapTopic } from "./map-topic";
-import { setActiveTimelineStore as setProcessorEvaluatorStore } from "./processorEvaluator";
+import {
+  setActiveTimelineStore as setProcessorEvaluatorStore,
+  setProcessorTopicSubscriber,
+} from "./processorEvaluator";
 import { StreamRecorder, type StreamRecorderOptions } from "./replay-recorder";
 import { spaceCenterStateChannel } from "./space-center-state";
 import { systemStateChannel } from "./system-state";
@@ -269,6 +272,15 @@ export function TelemetryProvider({
       setProcessorEvaluatorStore(undefined);
     };
   }, [store]);
+  // A Processor that declares raw Topic deps must SUBSCRIBE them to stream, not
+  // just sample them (see processorEvaluator's setProcessorTopicSubscriber):
+  // wire the evaluator's subscribe seam to this provider's client, the same
+  // `client.subscribe` path useStream uses. Cleared on unmount / client swap so
+  // the evaluator never holds a dead client's subscribe.
+  useEffect(() => {
+    setProcessorTopicSubscriber((topic) => client.subscribe(topic, () => {}));
+    return () => setProcessorTopicSubscriber(undefined);
+  }, [client]);
   // Registers the client itself as `getActiveTelemetryClient()`'s source,
   // the plain-class (non-hook) command-dispatch equivalent of
   // `useTelemetryClientOptional()`, same rationale as `activeViewClock`/

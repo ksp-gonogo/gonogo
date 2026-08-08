@@ -1,0 +1,142 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-08",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the Ship Systems widget: the NOMINAL/healthy counterpart to resource-shortage.json, same profile shape and channel envelope. Every supply sits well above its low threshold with a flat or positive rate, so `diagnose()` finds nothing short: no root cause, no downstream block, overall status reads Nominal. Both processes are running (not broken) and the greenhouse is active, so Processes/Habitat/Greenhouse all read healthy too. Crew is aboard (3/4) to exercise the crew-rule ledger term on a non-shortage vessel."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "kerbalism.profile",
+      "kerbalism.lifesupport",
+      "vessel.resources",
+      "vessel.crew"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "kerbalism.profile",
+        "value": {
+          "name": "Test Profile",
+          "resources": {
+            "Water": {
+              "flowMode": "ALL_VESSEL",
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "ElectricCharge": {
+              "flowMode": "ALL_VESSEL_BALANCE",
+              "displayName": "Electric Charge",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "Oxygen": {
+              "flowMode": "ALL_VESSEL",
+              "displayName": "Oxygen",
+              "isSupply": true
+            },
+            "WasteWater": {
+              "flowMode": "ALL_VESSEL",
+              "displayName": "Waste Water",
+              "isSupply": false
+            },
+            "_NonRegenScrubber": {
+              "flowMode": "",
+              "displayName": "Scrubber Cartridge",
+              "isSupply": false
+            }
+          },
+          "rules": [
+            {
+              "name": "drinking",
+              "input": "Water",
+              "output": "WasteWater",
+              "ratePerSecond": 0.00001
+            }
+          ],
+          "processes": [
+            {
+              "name": "Water Recycler",
+              "modifiers": ["_WaterRecycler"],
+              "inputs": { "WasteWater": 0.0002, "ElectricCharge": 0.01 },
+              "outputs": { "Water": 0.00018 }
+            },
+            {
+              "name": "CO2 Scrubber",
+              "modifiers": ["_Scrubber"],
+              "inputs": { "_NonRegenScrubber": 0.00002 },
+              "outputs": {}
+            }
+          ]
+        }
+      },
+      {
+        "channel": "kerbalism.lifesupport",
+        "value": {
+          "rates": {
+            "Water": 0,
+            "ElectricCharge": 0.02
+          },
+          "habitat": {
+            "pressure": 0.95,
+            "poisoning": 0.02,
+            "comfort": 0.85,
+            "livingSpace": 0.8
+          },
+          "processes": [
+            {
+              "resource": "_WaterRecycler",
+              "title": "Water Recycler",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_Scrubber",
+              "title": "CO2 Scrubber",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            }
+          ],
+          "greenhouses": [
+            {
+              "cropResource": "Food",
+              "foodRatePerSec": 0.0001,
+              "natural": 300,
+              "artificial": 0,
+              "active": true,
+              "issue": ""
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "Water": { "current": 450, "max": 500, "active": true },
+            "ElectricCharge": { "current": 380, "max": 400, "active": true },
+            "Oxygen": { "current": 390, "max": 400, "active": true },
+            "WasteWater": { "current": 5, "max": 200, "active": true },
+            "_NonRegenScrubber": { "current": 90, "max": 100, "active": true }
+          },
+          "meta": { "source": "test", "quality": 1 }
+        }
+      },
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 3,
+          "capacity": 4,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bill Kerman", "trait": "Engineer" },
+            { "name": "Bob Kerman", "trait": "Scientist" }
+          ],
+          "meta": { "source": "test", "quality": 1 }
+        }
+      }
+    ]
+  }
+}

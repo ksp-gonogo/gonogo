@@ -12,11 +12,18 @@
 // widgets call: wiring the sdk facade's fail-loud shims to the SAME real
 // core / data / sitrep-client singletons the probe already imports. Its own
 // imports carry no facade self-registration, so running it first is safe.
+// `AugmentSlot`/`registerAugment`/`useProcessor` were added alongside the
+// `@ksp-gonogo/gonogo-kerbalism-uplink` probe import: Ship Systems calls
+// `useProcessor` + `AugmentSlot` at render, and its Greenhouse augment calls
+// `registerAugment` at module load, same as the Kerbalism client's own
+// `test/setup.ts`.
 import {
+  AugmentSlot,
   defineUplinkClient,
   getDataSource,
   getUplinkHandle,
   PerfBudget,
+  registerAugment,
   registerComponent,
   registerDataSource,
   registerUplinkHandle,
@@ -27,6 +34,7 @@ import {
   getActiveTelemetryClient,
   useCommand,
   useLatestValue,
+  useProcessor,
   useRouteCommands,
   useStream,
   useStreamEvent,
@@ -37,6 +45,7 @@ import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installTestHost({
+  AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
   createPerfBudget: (opts) => new PerfBudget(opts),
   defineUplinkClient,
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
@@ -45,6 +54,9 @@ installTestHost({
   getDataSource,
   getUplinkHandle,
   logger,
+  registerAugment: registerAugment as Parameters<
+    typeof installTestHost
+  >[0]["registerAugment"],
   registerComponent,
   registerDataSource: registerDataSource as Parameters<
     typeof installTestHost
@@ -55,6 +67,7 @@ installTestHost({
   useCommand: (command) =>
     useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
   useLatestValue,
+  useProcessor: useProcessor as GonogoHost["useProcessor"],
   useRouteCommands: (topic) =>
     useRouteCommands(topic) as unknown as ReturnType<
       GonogoHost["useRouteCommands"]

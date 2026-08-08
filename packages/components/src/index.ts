@@ -22,7 +22,6 @@ export * from "./GroundSurvey";
 export * from "./KeplerPeriod";
 export * from "./LandingStatus";
 export * from "./LaunchDirector";
-export * from "./LifeSupportSystems";
 export * from "./ManeuverPlanner";
 export * from "./ManeuverPlanner/planning";
 export * from "./ManeuverPlanner/presets";

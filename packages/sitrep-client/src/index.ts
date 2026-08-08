@@ -170,6 +170,21 @@ export {
 } from "./orbit-patches";
 export {
   activateProcessor,
+  // Test-only: resets the shared Processor runtime cache (evaluated values +
+  // frame-generation bookkeeping). Needed by any test suite that mounts
+  // MULTIPLE independent TelemetryProvider/TimelineStore fixtures across
+  // sequential `it()` blocks while varying the data fed to the SAME
+  // globally-registered Processor id: each fresh store's frame generation
+  // counter restarts at 0, so a later fixture's `beginFrame()` can coincide
+  // with an earlier fixture's `lastFrameGeneration`, and `evaluate()` then
+  // (wrongly) treats the new store's frame as "already fresh," permanently
+  // serving the earlier fixture's stale computed value. This was previously
+  // sitrep-client-internal only (its own `use-processor.test.tsx` /
+  // `processorEvaluator.test.ts` import it by relative path); exported here
+  // so a consuming package's own Processor tests (e.g. an Uplink's) can
+  // reset between cases the same way, without reaching into this package's
+  // internals across the workspace boundary.
+  clearProcessorRuntime,
   evaluateActiveProcessors,
   getProcessorValue,
   setProcessorEvaluationRecorder,

@@ -4,9 +4,12 @@ import {
   clearProcessorRuntime,
   getProcessorValue,
   setActiveTimelineStore,
+  setProcessorTopicSubscriber,
   subscribeProcessor,
 } from "./processorEvaluator";
 import { clearProcessors, defineProcessor } from "./processors";
+import { makeMeta } from "./stub-transport";
+import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
@@ -105,6 +108,128 @@ describe("processorEvaluator", () => {
     expect(cb).toHaveBeenCalledTimes(1);
 
     unsubscribe();
+    deactivate();
+  });
+});
+
+function pointOf<T>(validAt: number, payload: T): TimelinePoint<T> {
+  return {
+    validAt,
+    payload,
+    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    epoch: 0,
+  };
+}
+
+describe("processorEvaluator topic-dep subscription", () => {
+  it("subscribes a processor's raw Topic deps on activation, so a topic nothing else reads still streams", () => {
+    const store = makeStore();
+
+    // Model the server: a topic's data is delivered only once that topic is
+    // SUBSCRIBED (use-stream's contract, and the reason sampling alone is the
+    // bug). Nothing else reads `env.pressure` and we deliberately do NOT prime
+    // a subscription: activating the processor must be what makes it flow.
+    const served = new Map<string, TimelinePoint<number>>([
+      ["env.pressure", pointOf(0, 101)],
+    ]);
+    const subscribed: string[] = [];
+    setProcessorTopicSubscriber((topic) => {
+      subscribed.push(topic);
+      const point = served.get(topic);
+      if (point) store.ingest(topic, point);
+      return () => {};
+    });
+    setActiveTimelineStore(store);
+
+    const pressure = defineProcessor({
+      id: "pressure",
+      owner: "test",
+      deps: ["env.pressure"] as const,
+      compute: (values) => values[0],
+    });
+
+    const deactivate = activateProcessor(pressure.id);
+    store.beginFrame();
+
+    expect(subscribed).toContain("env.pressure");
+    expect(getProcessorValue(pressure.id)).toBe(101);
+
+    deactivate();
+  });
+
+  it("unsubscribes the topic deps when the last activator deactivates", () => {
+    const store = makeStore();
+    const unsub = vi.fn();
+    setProcessorTopicSubscriber(() => unsub);
+    setActiveTimelineStore(store);
+
+    const p = defineProcessor({
+      id: "p",
+      owner: "test",
+      deps: ["env.pressure"] as const,
+      compute: (values) => values[0],
+    });
+    const deactivate = activateProcessor(p.id);
+    expect(unsub).not.toHaveBeenCalled();
+
+    deactivate();
+    expect(unsub).toHaveBeenCalledTimes(1);
+  });
+
+  it("back-fills subscriptions when the store/subscriber arrive AFTER activation (the real effect order)", () => {
+    const store = makeStore();
+    const served = new Map<string, TimelinePoint<number>>([
+      ["env.pressure", pointOf(0, 202)],
+    ]);
+
+    // Activate FIRST, before any store or subscriber is wired, exactly as a
+    // child `useProcessor` effect runs before the parent provider's effects.
+    const pressure = defineProcessor({
+      id: "pressure",
+      owner: "test",
+      deps: ["env.pressure"] as const,
+      compute: (values) => values[0],
+    });
+    const deactivate = activateProcessor(pressure.id);
+
+    // Provider wiring lands late.
+    setProcessorTopicSubscriber((topic) => {
+      const point = served.get(topic);
+      if (point) store.ingest(topic, point);
+      return () => {};
+    });
+    setActiveTimelineStore(store);
+    store.beginFrame();
+
+    expect(getProcessorValue(pressure.id)).toBe(202);
+    deactivate();
+  });
+});
+
+describe("processorEvaluator store swap", () => {
+  it("re-evaluates after a store swap even when the new store's frame generation collides with the cached one", () => {
+    const storeA = makeStore();
+    setActiveTimelineStore(storeA);
+    let source = 1;
+    const swap = defineProcessor({
+      id: "swap",
+      owner: "test",
+      deps: [] as const,
+      compute: () => source,
+    });
+    const deactivate = activateProcessor(swap.id);
+    storeA.beginFrame();
+    expect(getProcessorValue(swap.id)).toBe(1);
+
+    // Swap to a fresh store: its generation restarts and collides with the
+    // generation cached on the entry. Change the source so a genuine re-eval
+    // yields a new value; a stale skip would wrongly keep 1.
+    source = 2;
+    const storeB = makeStore();
+    setActiveTimelineStore(storeB);
+    storeB.beginFrame();
+    expect(getProcessorValue(swap.id)).toBe(2);
+
     deactivate();
   });
 });

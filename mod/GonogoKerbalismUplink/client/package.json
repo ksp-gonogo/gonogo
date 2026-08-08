@@ -19,10 +19,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ksp-gonogo/sitrep-sdk": "workspace:*"
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
+    "styled-components": "^6.0.0"
   },
   "devDependencies": {
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/test-utils": "workspace:*",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/jest-axe": "^3.5.9",
+    "@types/react": "^18.3.28",
+    "jest-axe": "^10.0.0",
+    "jsdom": "^29.0.2",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
   }
 }

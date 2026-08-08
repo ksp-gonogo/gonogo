@@ -1,12 +1,5 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -14,6 +7,7 @@ import {
   type CrewAvatarContext,
   type CrewBadgeContext,
   CrewManifestComponent,
+  type CrewSurvivalSlotContext,
 } from "./index";
 
 /**
@@ -343,105 +337,24 @@ describe("CrewManifestComponent, avatar slot", () => {
 });
 
 /**
- * Kerbalism per-kerbal survival meters. These ride the real
- * `kerbalism.crew`/`kerbalism.lifesupport` Topics (canonical `useTelemetry`,
- * same plumbing as `LifeSupportSystems`) on the SAME stream as `vessel.crew`
- *, no legacy `MockDataSource` anywhere in this file. Absent the
- * KerbalismUplink neither topic ever arrives, `kerbals` stays `undefined`,
- * and the meters simply never render, the roster behaves exactly as the
- * tests above assert.
+ * Per-kerbal survival (death clock, worst rule, degen) is a Kerbalism
+ * concept, not a vanilla one: it moved wholesale out of this widget into the
+ * Kerbalism Uplink's own `crew-manifest-survival` augment
+ * (mod/GonogoKerbalismUplink/client/src/CrewSurvival), which fills the
+ * generic `crew-manifest.survival` slot this widget exposes. This widget
+ * itself reads ONLY the vanilla `vessel.crew` roster now, no `kerbalism.*`
+ * topic anywhere in index.tsx (grep-verified below), so it must render
+ * identically with or without a KerbalismUplink present, and it must NEVER
+ * subscribe to a `kerbalism.*` topic even when one is carried on the stream.
  */
-describe("CrewManifestComponent, survival meters", () => {
-  function newSurvivalFixture() {
-    return setupStreamFixture({
-      carriedChannels: [
-        "vessel.crew",
-        "vessel.state",
-        "kerbalism.crew",
-        "kerbalism.lifesupport",
-        "kerbalism.profile",
-        "vessel.resources",
-      ],
+describe("CrewManifestComponent, de-contaminated from Kerbalism", () => {
+  it("never subscribes to a kerbalism.* topic, even when one is carried", async () => {
+    const fixture = setupStreamFixture({
+      // Carry a kerbalism.* topic alongside vessel.crew: if the widget ever
+      // read one, this is where it would show up as a subscription.
+      carriedChannels: ["vessel.crew", "kerbalism.crew"],
       pinnedUt: 10,
     });
-  }
-
-  it("renders per-kerbal dose + stress meters and a death-clock once toggled on", async () => {
-    const fixture = newSurvivalFixture();
-    renderCrew(fixture);
-    act(() => {
-      fixture.emit("vessel.crew", {
-        count: 2,
-        capacity: 2,
-        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
-      });
-      // A life-support resource draining -> stage-1 death-clock is a real time.
-      // Three channels now, because the clock no longer names its own
-      // resources: the rate says Food is draining, vessel.resources says how
-      // much is left, and the profile says Food is a Supply and so counts.
-      // Without the profile half it would either ignore Food or, if it fell
-      // back to "anything draining", report a burn's LiquidFuel as the crew's
-      // time to live.
-      fixture.emit("kerbalism.lifesupport", { rates: { Food: -0.000036 } });
-      fixture.emit("vessel.resources", {
-        resources: { Food: { current: 0.35, max: 1.35, active: true } },
-      });
-      fixture.emit("kerbalism.profile", {
-        name: "Default",
-        resources: { Food: { isSupply: true, flowMode: "ALL_VESSEL" } },
-      });
-      // Real wire shape: `rules` is an ARRAY of `{name, value, fatalThreshold}`
-      // (KerbalismCrewEntry/KerbalismCrewRule), Kerbalism's default profile
-      // gives radiation a fatal threshold of 50 and everything else 1, so the
-      // widget must normalize each rule by its OWN threshold, not assume 0..1.
-      fixture.emit("kerbalism.crew", [
-        {
-          name: "Jebediah Kerman",
-          trait: "Pilot",
-          rules: [
-            { name: "radiation", value: 30, fatalThreshold: 50 },
-            { name: "stress", value: 0.3, fatalThreshold: 1 },
-          ],
-        },
-        {
-          name: "Bill Kerman",
-          trait: "Engineer",
-          rules: [
-            { name: "radiation", value: 5, fatalThreshold: 50 },
-            { name: "stress", value: 0.05, fatalThreshold: 1 },
-          ],
-        },
-      ]);
-    });
-
-    // Roster renders first; meters are off by default outside Flight, behind
-    // the scene-aware toggle.
-    await waitFor(() =>
-      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
-    );
-    expect(
-      screen.queryByRole("meter", { name: "Dose" }),
-    ).not.toBeInTheDocument();
-
-    // Flip the toggle on and the per-kerbal meters appear.
-    fireEvent.click(screen.getByRole("button", { name: /show meters/i }));
-
-    const doseMeters = await screen.findAllByRole("meter", { name: "Dose" });
-    expect(doseMeters).toHaveLength(2);
-    expect(screen.getAllByRole("meter", { name: "Stress" })).toHaveLength(2);
-
-    // Jeb's dose is 30/50 = 60% on his meter.
-    const jebRow = screen.getByText("Jebediah Kerman").closest("li");
-    expect(
-      within(jebRow as HTMLElement).getByRole("meter", { name: "Dose" }),
-    ).toHaveAttribute("aria-valuenow", "60");
-
-    // Stage-1 death-clock headline while resources drain.
-    expect(screen.getAllByText(/to LS depletion/i).length).toBeGreaterThan(0);
-  });
-
-  it("shows no meters toggle when no per-kerbal survival data is present", async () => {
-    const fixture = newSurvivalFixture();
     renderCrew(fixture);
     act(() => {
       fixture.emit("vessel.crew", {
@@ -449,12 +362,94 @@ describe("CrewManifestComponent, survival meters", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman" }],
       });
+      fixture.emit("kerbalism.crew", [
+        {
+          name: "Jebediah Kerman",
+          rules: [{ name: "stress", value: 0.9, fatalThreshold: 1 }],
+        },
+      ]);
     });
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
+    expect(fixture.transport.isSubscribed("kerbalism.crew")).toBe(false);
+    // No leftover survival chrome (dose/stress meters, a meters toggle):
+    // that UI moved to the augment slot below, not rendered inline anymore.
     expect(
       screen.queryByRole("button", { name: /meters/i }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("meter", { name: /dose|stress/i })).toBeNull();
+  });
+
+  it("does not import any kerbalism.* topic string in its own source", async () => {
+    // Belt-and-braces static check alongside the behavioural one above: the
+    // whole point of the de-contamination is that this file's source never
+    // names a Kerbalism topic. Reads the source file's own text directly.
+    const path = await import("node:path");
+    const fs = await import("node:fs/promises");
+    const source = await fs.readFile(
+      path.join(import.meta.dirname, "index.tsx"),
+      "utf-8",
+    );
+    expect(source).not.toMatch(/kerbalism\./);
+  });
+});
+
+/**
+ * The `crew-manifest.survival` per-row slot: the generic home a Kerbalism (or
+ * any other) Uplink fills with per-kerbal survival state. Same per-row
+ * keying as `.badges`/`.avatar` above; this suite builds only the slot +
+ * empty-composes-to-nothing contract, matching those siblings' own tests.
+ */
+describe("CrewManifestComponent, survival slot", () => {
+  it("renders nothing extra per row when no survival augment is bound", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
+    expect(screen.queryByTestId("crew-survival")).not.toBeInTheDocument();
+  });
+
+  it("composes a bound crew-manifest.survival augment once per row, carrying each kerbal's identity", async () => {
+    registerAugment<"crew-manifest.survival">({
+      id: "test-crew-survival",
+      augments: "crew-manifest.survival",
+      component: ({ crewName, crewIndex }: CrewSurvivalSlotContext) => (
+        <span data-testid="crew-survival" data-index={crewIndex}>
+          {crewName} survival
+        </span>
+      ),
+    });
+
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+
+    const rows = await screen.findAllByTestId("crew-survival");
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.textContent)).toEqual([
+      "Jebediah Kerman survival",
+      "Bill Kerman survival",
+    ]);
+    const billRow = screen.getByText("Bill Kerman").closest("li");
+    expect(billRow).not.toBeNull();
+    expect(
+      within(billRow as HTMLElement).getByTestId("crew-survival"),
+    ).toHaveTextContent("Bill Kerman survival");
   });
 });

@@ -143,7 +143,43 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../../../packages/ui-kit
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@ksp-gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../../../packages/sitrep-client
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../../../packages/test-utils
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/jest-axe':
+        specifier: ^3.5.9
+        version: 3.5.9
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      jest-axe:
+        specifier: ^10.0.0
+        version: 10.0.0
+      jsdom:
+        specifier: ^29.0.2
+        version: 29.0.2
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -574,6 +610,9 @@ importers:
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
+      '@ksp-gonogo/gonogo-kerbalism-uplink':
+        specifier: workspace:*
+        version: link:../../mod/GonogoKerbalismUplink/client
       '@ksp-gonogo/gonogo-kos-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoKosUplink/client

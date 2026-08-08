@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-08",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the Kerbalism CrewSurvival augment: a crew-critical counterpart to nominal.json. Jebediah's radiation accumulator is 47/50 (94%, nogo tone) and Bill carries a wire-reported deathClockSec of 240s (also nogo, under the 600s SOON_DEATH_SEC threshold), so the death-clock badge shows a countdown rather than a rule percentage. Bob is fine (mirrors the nominal fixture's low accumulators) as the sorting/contrast case, same convention ShipSystems' resource-shortage.json uses (root cause pinned above a healthy row). Emit ORDER matters, see nominal.json's own note: vessel.crew first (mints the roster rows + the crew-manifest.survival AugmentSlot), then kerbalism.available (the augment's requires gate), then kerbalism.crew (the Processor's own topic subscription)."
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.crew", "kerbalism.crew", "kerbalism.available"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 3,
+          "capacity": 4,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bill Kerman", "trait": "Engineer" },
+            { "name": "Bob Kerman", "trait": "Scientist" }
+          ]
+        }
+      },
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "kerbalism.crew",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "rules": [
+              { "name": "radiation", "value": 47, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.3, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "rules": [{ "name": "stress", "value": 0.2, "fatalThreshold": 1 }],
+            "deathClockSec": 240
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "rules": [
+              { "name": "radiation", "value": 6, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.08, "fatalThreshold": 1 }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

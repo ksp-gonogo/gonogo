@@ -623,6 +623,27 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // CrewManifest's per-kerbal survival, an ADDITIVE Kerbalism augment: the
+    // widget itself (registered above) reads only the vanilla `vessel.crew`
+    // roster now; the CrewSurvival augment lives entirely in the Uplink
+    // (mod/GonogoKerbalismUplink/client/src/CrewSurvival) and fills the
+    // generic `crew-manifest.survival` slot CrewManifest exposes. Same
+    // widget as above, a dedicated fixtures dir (mirrors landing-status's
+    // multi-scenario convention): `label` disambiguates this render set from
+    // the base-widget one since both share `widgetId: "crew-manifest"`.
+    widgetId: "crew-manifest",
+    label: "crew-manifest/kerbalism-survival",
+    fixturesPath: "CrewManifest/__render_kerbalism_survival__",
+    outPath: "renders/kerbalism-crew-survival",
+    modes: [
+      // defaultSize 6×8: the common operator view, both fixtures.
+      { name: "default-6x8", w: 6, h: 8 },
+      // Wide/tall review shot: every row's survival meter + badge readable
+      // without scrolling, both fixtures.
+      { name: "wide-9x12", w: 9, h: 12 },
+    ],
+  },
+  {
     widgetId: "staff-roster",
     fixturesPath: "StaffRoster/__fixtures__",
     outPath: "renders/staff-roster-widget",
@@ -1133,20 +1154,53 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // LifeSupportSystems: Kerbalism vessel-centric consumable ledger,
-    // habitat, and process board. Fixtures: nominal is a real Deck capture
-    // (kerbalism-fixture-baseline-crp.json); depleting/critical are
-    // synthesised by scaling it down. See local_docs/kerbalism-fixtures/.
-    widgetId: "life-support",
-    fixturesPath: "LifeSupportSystems/__fixtures__",
-    outPath: "renders/life-support-widget",
+    // ShipSystems: Kerbalism vessel-wide resource ledger, replacing the
+    // deleted LifeSupportSystems widget. Its actual source lives at
+    // mod/GonogoKerbalismUplink/client/src/ShipSystems, the fixture stays
+    // under packages/components/src/ShipSystems/__fixtures__ purely because
+    // `fixturesPath` resolves against packages/components/src/ (see that
+    // fixture's own `_meta` for the same convention). Drives the widget over
+    // a real `setupStreamFixture` via probe-entry.tsx's `_stream` path.
+    widgetId: "ship-systems",
+    fixturesPath: "ShipSystems/__fixtures__",
+    outPath: "renders/kerbalism-ship-systems",
     modes: [
-      // Registered default.
-      { name: "default-8x13", w: 8, h: 13 },
-      // Showcase: full habitat + process grids read best with room.
-      { name: "showcase-10x14", w: 10, h: 14 },
-      // Compact: sheds the habitat/process detail grids to one-line summaries.
-      { name: "compact-5x7", w: 5, h: 7 },
+      // minSize 4×5: tightest placement the widget allows.
+      { name: "min-4x5", w: 4, h: 5 },
+      // defaultSize 9×15: the common operator view.
+      { name: "default-9x15", w: 9, h: 15 },
+      // Generous size: every section (root cause, ledger, wear, habitat,
+      // processes, greenhouse augment) reads with room to spare.
+      { name: "wide-12x18", w: 12, h: 18 },
+      // Healthy-vessel review shot: nominal fixture only, no shortage banner,
+      // panelAside status chip reads "Nominal".
+      { name: "nominal-9x15", w: 9, h: 15, forFixtures: ["nominal"] },
+      // Root-cause banner review shot: shortage fixture only, generous height
+      // so the banner and every section below it is visible uncropped.
+      {
+        name: "root-cause-9x18",
+        w: 9,
+        h: 18,
+        forFixtures: ["resource-shortage"],
+      },
+      // Ledger accordion expanded: click the first supply row's Disclosure
+      // trigger (Electric Charge, the root cause, sorted first) to reveal its
+      // buildLedger terms. aria-label is the stable selector: Disclosure's
+      // trigger is a plain <button> with no other hook, and this fixture's
+      // profile always names Electric Charge's displayName the same way.
+      {
+        name: "ledger-expanded-12x18",
+        w: 12,
+        h: 18,
+        forFixtures: ["resource-shortage"],
+        clicks: [
+          {
+            selector:
+              'button[aria-label="Show rate ledger for Electric Charge"]',
+            awaitMs: 100,
+          },
+        ],
+      },
     ],
   },
   {

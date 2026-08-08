@@ -3,13 +3,45 @@
 // Registers the Kerbalism Domain's bare-primitive presence Topic. Bare
 // side-effect import so bundlers never tree-shake the registration call.
 //
-// NOTE: the SpaceWeather + LifeSupportSystems widgets currently live in
-// @ksp-gonogo/components (they read the canonical kerbalism.* Topics via
-// useTelemetry). Physically relocating them into this package is a follow-up,
-// the visual/snapshot probe harness that renders them lives in components, so
-// the move is a mechanical file relocation with no data-path change.
+// NOTE: SpaceWeather still lives in @ksp-gonogo/components; Ship Systems (the
+// rebuilt Life Support) now lives HERE, registered through the Uplink client,
+// since life support is a Kerbalism concept that never belonged in the base
+// library. SpaceWeather's relocation is a follow-up.
 import "./topics";
+// The Uplink client identity, then the per-frame `summarise` Processor that
+// stamps against it. Bare side-effect imports so the registrations survive
+// tree-shaking when the app pulls the package entry in.
+import "./uplink";
+import "./processor";
+// The Ship Systems widget (registerComponent) and its panel badge (a
+// contribution off the same Processor). Side-effect imports so both register
+// when the app pulls the package entry in.
+import "./ShipSystems";
+import "./ShipSystems/badge";
+// CrewManifest's per-kerbal survival: a Processor (CrewSurvival/processor.ts),
+// the `crew-manifest.survival` augment that renders it into the BASE widget's
+// (packages/components/src/CrewManifest) own slot, and the panel badge off
+// the same Processor. Per-kerbal survival is a Kerbalism concept and never
+// belonged in the base widget itself, see that widget's own doc comment on
+// the slot. Side-effect imports so all three register when the app pulls the
+// package entry in.
+import "./CrewSurvival";
+import "./CrewSurvival/badge";
+// The Space Weather panel badge: a contribution to the SpaceWeather widget's
+// `space-weather.badges` slot off the `kerbalism.spaceweather` Topic. The
+// widget stays in @ksp-gonogo/components for now (relocation is a later step);
+// only the Kerbalism-derived badge lives here.
+import "./SpaceWeather/badge";
 
+// The CrewSurvival Processor handle + its result types, the single per-frame
+// derivation the `crew-manifest.survival` augment and its badge both consume.
+export {
+  CREW_SURVIVAL,
+  type CrewSurvival,
+  type KerbalRuleState,
+  type KerbalSurvival,
+  type SurvivalTone,
+} from "./CrewSurvival/processor";
 export type {
   DiagnosisGroup,
   DiagnosisInput,
@@ -41,3 +73,6 @@ export {
   timeToEmptySeconds,
   wearRows,
 } from "./ecosystem";
+// The Ship Systems Processor handle + its result type, the single per-frame
+// derivation the widget and its badge both consume.
+export { SHIP_SYSTEMS, type ShipSystems } from "./processor";

@@ -47,10 +47,14 @@ import {
   unregisterDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 // Side-effect import: mod-client widgets (kOS terminal, processors, …)
 // self-register on module load, same contract as the built-in library.
 import "@ksp-gonogo/gonogo-kos-uplink";
+// Side-effect import: the Kerbalism Uplink's own widgets (Ship Systems,
+// its Greenhouse augment, …) self-register on module load, same contract.
+import "@ksp-gonogo/gonogo-kerbalism-uplink";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -257,6 +261,21 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   }
   activeSource = null;
   activeStore = null;
+  // The Processor evaluator's runtime cache (evaluated value + frame
+  // generation, `@ksp-gonogo/sitrep-client`'s processorEvaluator.ts) is a
+  // module-global singleton keyed by Processor id, and this file's own
+  // `_stream` path builds a BRAND NEW TimelineStore per `renderProbe()` call
+  // (see `setupStreamFixture` below) whose frame-generation counter always
+  // restarts at 0. Without a reset, a later fixture's own frame can coincide
+  // with an earlier fixture's `lastFrameGeneration` (the driver replays the
+  // same deterministic sequence of `waitForSubscription`/`rafTick` awaits for
+  // every fixture, so the two renders' generation counters tend to land on
+  // the SAME number), and the evaluator then wrongly treats the new store's
+  // frame as "already fresh," permanently serving the earlier fixture's
+  // stale computed value: found while rendering CrewManifest's Kerbalism
+  // survival augment fixtures, where "nominal" and "crew-critical" rendered
+  // byte-identical until this reset was added.
+  clearProcessorRuntime();
 
   // Stream-driven mod-client widgets (kOS terminal, …) carry their fixture
   // data in `_stream` rather than plain data keys; see this file's top doc

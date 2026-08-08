@@ -80,6 +80,20 @@ export interface GonogoHost {
    */
   useRouteCommands(topic: string): UseRouteCommandsResult;
   useStream<T>(topic: string): T | undefined;
+  /**
+   * Reactively read a Processor's current, frame-memoised value (mirrors
+   * `@ksp-gonogo/sitrep-client`'s `useProcessor`, the augment-side consumption
+   * form of the same evaluation a contribution's `deps` pulls). The handle is
+   * the branded shape `defineUplinkClient(...).registerProcessor` returns,
+   * named structurally here because the sdk leaf cannot depend on
+   * sitrep-client's `ProcessorHandle` (same constraint as
+   * `useTelemetryStoreOptional`'s opaque return). Degrades to `undefined` with
+   * no provider mounted, or before the processor's first frame lands.
+   */
+  useProcessor<R>(handle: {
+    readonly id: string;
+    readonly __resultType?: R;
+  }): R | undefined;
   useViewClock(): unknown;
   useActionInput<TActions extends readonly ActionDefinition[]>(
     handlers: ActionHandlers<TActions>,

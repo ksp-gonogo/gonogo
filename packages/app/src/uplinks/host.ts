@@ -48,6 +48,7 @@ import {
   useCommand,
   useLatestValue,
   useLateTelemetrySubscribe,
+  useProcessor,
   useRouteCommands,
   useStream,
   useStreamEvent,
@@ -114,6 +115,8 @@ export function buildGonogoHost(): GonogoHost {
         GonogoHost["useRouteCommands"]
       >,
     useStream: (topic) => useStream(topic),
+    useProcessor: ((handle) =>
+      useProcessor(handle)) as GonogoHost["useProcessor"],
     useViewClock: () => useViewClock(),
     useActionInput: (handlers) =>
       useActionInput(handlers as Parameters<typeof useActionInput>[0]),

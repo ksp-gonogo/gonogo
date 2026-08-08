@@ -26,7 +26,11 @@
 import type { SlotProps as SdkSlotProps } from "@ksp-gonogo/sitrep-sdk";
 import type { ActionGroupSlotContext } from "./ActionGroup";
 import type { ContractBadgeContext } from "./ContractManager";
-import type { CrewAvatarContext, CrewBadgeContext } from "./CrewManifest";
+import type {
+  CrewAvatarContext,
+  CrewBadgeContext,
+  CrewSurvivalSlotContext,
+} from "./CrewManifest";
 import type { DeployedExperimentContext } from "./DeployedScience";
 import type {
   DistanceToTargetBadgeContext,
@@ -183,6 +187,13 @@ type _CrewAvatar = Expect<
 >;
 type _CrewAvatarBack = Expect<
   Assignable<CrewAvatarContext, SdkSlotProps<"crew-manifest.avatar">>
+>;
+
+type _CrewSurvival = Expect<
+  Assignable<SdkSlotProps<"crew-manifest.survival">, CrewSurvivalSlotContext>
+>;
+type _CrewSurvivalBack = Expect<
+  Assignable<CrewSurvivalSlotContext, SdkSlotProps<"crew-manifest.survival">>
 >;
 
 type _LaunchBadges = Expect<
@@ -376,6 +387,8 @@ export type _SlotRegistryConformance = [
   _ContractBadgesBack,
   _CrewBadges,
   _CrewBadgesBack,
+  _CrewSurvival,
+  _CrewSurvivalBack,
   _LaunchBadges,
   _LaunchSections,
   _LaunchBack,

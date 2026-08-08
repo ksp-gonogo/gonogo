@@ -20,10 +20,10 @@ import type {
 // ── Shared plumbing ─────────────────────────────────────────────────────────
 
 /** A wire quantity, or a bare number where a unit could not be carried. */
-type Quantityish = { magnitude?: number } | number | null | undefined;
+export type Quantityish = { magnitude?: number } | number | null | undefined;
 
 /** Magnitude of a wire quantity, defaulting rather than throwing on absence. */
-function mag(q: Quantityish, fallback = 0): number {
+export function mag(q: Quantityish, fallback = 0): number {
   if (typeof q === "number") return q;
   const m = q?.magnitude;
   return typeof m === "number" && Number.isFinite(m) ? m : fallback;

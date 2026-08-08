@@ -1,0 +1,55 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-08",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the Kerbalism CrewSurvival augment (mod/GonogoKerbalismUplink/client/src/CrewSurvival) filling CrewManifest's crew-manifest.survival slot: the NOMINAL/healthy counterpart to crew-critical.json. Three kerbals aboard, each with a low rule accumulator (well under 50%), so every row's survival meter reads 'go' and no death-clock badge fires. Mirrors ShipSystems/__fixtures__/nominal.json's role for the Ship Systems widget. Emit ORDER matters: vessel.crew must land first (it creates the roster rows, and with them the crew-manifest.survival AugmentSlot instances), THEN kerbalism.available (the augment's requires gate subscribes to it only once mounted), THEN kerbalism.crew (the CrewSurvival Processor's own topic subscription only starts once the augment itself has mounted past the gate). Emitting kerbalism.available/kerbalism.crew before the rows exist means nothing has subscribed yet, and the probe's subscription-gated StubTransport.emit silently drops them."
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.crew", "kerbalism.crew", "kerbalism.available"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 3,
+          "capacity": 4,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bill Kerman", "trait": "Engineer" },
+            { "name": "Bob Kerman", "trait": "Scientist" }
+          ]
+        }
+      },
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "kerbalism.crew",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "rules": [
+              { "name": "radiation", "value": 5, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.05, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "rules": [
+              { "name": "radiation", "value": 3, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.02, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "rules": [
+              { "name": "radiation", "value": 8, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.1, "fatalThreshold": 1 }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

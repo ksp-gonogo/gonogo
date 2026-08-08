@@ -209,7 +209,14 @@ export interface UplinkClientHandle {
   registerContribution<S extends string>(def: {
     id: string;
     contributes: S;
-    deps?: readonly TopicId[];
+    /** A Topic id OR a Processor handle (the branded shape `registerProcessor`
+     *  returns), mirroring core's `Dep`. The processor-handle case is the same
+     *  structural mirror used above, since the leaf cannot name
+     *  sitrep-client's `ProcessorHandle`. */
+    deps?: readonly (
+      | TopicId
+      | { readonly id: string; readonly __resultType?: unknown }
+    )[];
     /** Intentionally loose: this mirror is a name+arity probe (see file
      *  header); the real signature's `topics`/return shapes are derived from
      *  `ContributionRegistry` declaration merging, which this leaf cannot see. */

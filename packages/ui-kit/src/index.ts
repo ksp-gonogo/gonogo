@@ -225,6 +225,13 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "./kspTime";
+export {
+  Meter,
+  type MeterProps,
+  type MeterSize,
+  MeterStack,
+  type MeterTone,
+} from "./Meter";
 export { MissionDate, type MissionDateProps } from "./MissionDate";
 export {
   ModalChromeContext,
