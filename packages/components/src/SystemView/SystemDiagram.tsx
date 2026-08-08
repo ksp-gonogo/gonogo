@@ -359,7 +359,11 @@ export function SystemDiagram({
                 ry={b}
                 fill="none"
                 stroke={`url(#${tiltGradId}-${c.index})`}
-                strokeWidth={1.2}
+                // Screen-constant, like every dot/marker/label below: the SVG
+                // viewBox magnifies user-units by `zoom`, so a user-unit stroke
+                // balloons to 1.2*zoom px (30 px at the 25x cap), swallowing a
+                // near-parent orbit into an unreadable blob at SOI zoom.
+                strokeWidth={1.2 / zoom}
               />
             </g>
           );
@@ -369,7 +373,11 @@ export function SystemDiagram({
             dots and vessel marker so they read as background path. The live
             patch is solid green; upcoming patches are dashed + de-emphasised. */}
         {trajectory?.patches.map((patch) => (
-          <PredictedPatchArc key={`pred-${patch.patchIndex}`} patch={patch} />
+          <PredictedPatchArc
+            key={`pred-${patch.patchIndex}`}
+            patch={patch}
+            zoom={zoom}
+          />
         ))}
 
         {/* Vessel orbit (if any): same focus-correct geometry. */}
@@ -378,6 +386,7 @@ export function SystemDiagram({
             vessel={vessel}
             plotScale={plotScale}
             gradId={`${tiltGradId}-vessel`}
+            zoom={zoom}
           />
         )}
 
@@ -628,10 +637,12 @@ function VesselOrbitPath({
   vessel,
   plotScale,
   gradId,
+  zoom,
 }: Readonly<{
   vessel: VesselOrbit;
   plotScale: number;
   gradId: string;
+  zoom: number;
 }>) {
   const a = vessel.sma * plotScale;
   const e = Math.min(Math.max(vessel.ecc, 0), 0.999);
@@ -647,8 +658,10 @@ function VesselOrbitPath({
         ry={b}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={1.4}
-        strokeDasharray="4 3"
+        // Screen-constant stroke + dashes (see the child-orbit ellipse note):
+        // user-unit line metrics would balloon with the viewBox at SOI zoom.
+        strokeWidth={1.4 / zoom}
+        strokeDasharray={`${4 / zoom} ${3 / zoom}`}
       />
     </g>
   );
@@ -695,7 +708,10 @@ function VesselMarker({
   );
 }
 
-function PredictedPatchArc({ patch }: Readonly<{ patch: ProjectedPatch }>) {
+function PredictedPatchArc({
+  patch,
+  zoom,
+}: Readonly<{ patch: ProjectedPatch; zoom: number }>) {
   if (patch.points.length < 2) return null;
   const d = pointsToPath(patch.points);
   // Live patch: solid bright green (matches the vessel accent). Upcoming
@@ -711,8 +727,10 @@ function PredictedPatchArc({ patch }: Readonly<{ patch: ProjectedPatch }>) {
       d={d}
       fill="none"
       stroke={stroke}
-      strokeWidth={patch.isCurrent ? 1.6 : 1.2}
-      strokeDasharray={patch.isCurrent ? undefined : "5 4"}
+      // Screen-constant stroke + dashes (see the child-orbit ellipse note):
+      // user-unit line metrics would balloon with the viewBox at SOI zoom.
+      strokeWidth={(patch.isCurrent ? 1.6 : 1.2) / zoom}
+      strokeDasharray={patch.isCurrent ? undefined : `${5 / zoom} ${4 / zoom}`}
       opacity={patch.isCurrent ? 0.95 : 0.7}
       pointerEvents="none"
     />
