@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearAugments, registerAugment } from "./augments";
+import { clearContributions, registerContribution } from "./contributions";
 import { clearRegistry, registerComponent } from "./registry";
-import { effectiveSearchTags } from "./searchTags";
+import { effectiveSearchTags, uplinkAdditions } from "./searchTags";
 import type { ComponentDefinition } from "./types";
 import { defineUplinkClient } from "./uplinkClients";
 
@@ -13,6 +14,7 @@ import { defineUplinkClient } from "./uplinkClients";
 beforeEach(() => {
   clearRegistry();
   clearAugments();
+  clearContributions();
 });
 
 function baseDef(
@@ -103,6 +105,127 @@ describe("effectiveSearchTags", () => {
       "telemetry",
       "mod-alpha",
       "mod-beta",
+    ]);
+  });
+});
+
+describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
+  it("adds an augmenting Uplink's owner id (a mod that extends, not owns, the widget)", () => {
+    const MOD_GAMMA = defineUplinkClient({
+      id: "mod-gamma",
+      version: "0.0.0-dev",
+      name: "Mod Gamma",
+    });
+    registerAugment({
+      id: "gamma-badge",
+      augments: "widget.badges",
+      owner: MOD_GAMMA,
+      component: () => null,
+    });
+    const def = baseDef({
+      tags: ["telemetry"],
+      augmentSlots: ["widget.badges"],
+    });
+
+    expect(effectiveSearchTags(def)).toContain("mod-gamma");
+  });
+
+  it("adds a contributing Uplink's owner id via a declared contribution slot", () => {
+    const MOD_DELTA = defineUplinkClient({
+      id: "mod-delta",
+      version: "0.0.0-dev",
+      name: "Mod Delta",
+    });
+    registerContribution({
+      id: "delta-rows",
+      contributes: "widget.sections",
+      owner: MOD_DELTA,
+      compute: () => [],
+    });
+    const def = baseDef({
+      tags: ["telemetry"],
+      contributionSlots: ["widget.sections" as never],
+    });
+
+    expect(effectiveSearchTags(def)).toContain("mod-delta");
+  });
+
+  it("adds a contributing Uplink's owner id via the automatic `<id>.badges` slot", () => {
+    const MOD_EPSILON = defineUplinkClient({
+      id: "mod-epsilon",
+      version: "0.0.0-dev",
+      name: "Mod Epsilon",
+    });
+    registerContribution({
+      id: "epsilon-badge",
+      contributes: "widget.badges",
+      owner: MOD_EPSILON,
+      compute: () => [],
+    });
+    // No contributionSlots declared: the widget still auto-aggregates
+    // `widget.badges`, so an Uplink dropping a badge counts as provenance.
+    const def = baseDef({ tags: ["telemetry"] });
+
+    expect(effectiveSearchTags(def)).toContain("mod-epsilon");
+  });
+
+  it("dedupes an Uplink that both owns and augments the same widget", () => {
+    const MOD_ALPHA = defineUplinkClient({
+      id: "mod-alpha",
+      version: "0.0.0-dev",
+      name: "Mod Alpha",
+    });
+    registerAugment({
+      id: "alpha-badge",
+      augments: "widget.badges",
+      owner: MOD_ALPHA,
+      component: () => null,
+    });
+    const def = baseDef({
+      tags: ["telemetry"],
+      owner: MOD_ALPHA,
+      augmentSlots: ["widget.badges"],
+    });
+
+    expect(
+      effectiveSearchTags(def).filter((t) => t === "mod-alpha"),
+    ).toHaveLength(1);
+  });
+});
+
+describe("uplinkAdditions", () => {
+  it("is empty when nothing augments or contributes to the widget", () => {
+    expect(uplinkAdditions(baseDef())).toEqual([]);
+  });
+
+  it("lists the distinct augmenting/contributing Uplinks with their display names", () => {
+    const MOD_GAMMA = defineUplinkClient({
+      id: "mod-gamma",
+      version: "0.0.0-dev",
+      name: "Mod Gamma",
+    });
+    const MOD_EPSILON = defineUplinkClient({
+      id: "mod-epsilon",
+      version: "0.0.0-dev",
+      name: "Mod Epsilon",
+    });
+    registerAugment({
+      id: "gamma-badge",
+      augments: "widget.badges",
+      owner: MOD_GAMMA,
+      component: () => null,
+    });
+    registerContribution({
+      id: "epsilon-badge",
+      contributes: "widget.badges",
+      owner: MOD_EPSILON,
+      compute: () => [],
+    });
+    const def = baseDef({ augmentSlots: ["widget.badges"] });
+
+    expect(uplinkAdditions(def)).toEqual([
+      { id: "mod-gamma", name: "Mod Gamma" },
+      { id: "mod-epsilon", name: "Mod Epsilon" },
     ]);
   });
 });

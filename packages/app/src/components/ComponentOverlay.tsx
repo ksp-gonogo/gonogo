@@ -3,6 +3,7 @@ import {
   effectiveSearchTags,
   getComponents,
   safeRandomUuid,
+  uplinkAdditions,
   useChromeWrap,
 } from "@ksp-gonogo/core";
 import {
@@ -372,6 +373,9 @@ export function ComponentOverlay({
                   >
                     <ItemName>{def.name}</ItemName>
                     <ItemDesc>{def.description}</ItemDesc>
+                    {uplinkAdditions(def).map((u) => (
+                      <UplinkAddLine key={u.id}>+ {u.name}</UplinkAddLine>
+                    ))}
                     <TagRow>
                       {def.tags.map((t) => (
                         <Tag key={t} label={t} />
@@ -580,6 +584,15 @@ const ItemName = styled.span`
 const ItemDesc = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
+  line-height: var(--line-height-body);
+`;
+
+// One line per Uplink that augments or contributes to the widget, making the
+// addition explicit next to the base description. Accent-toned so it reads as
+// an extension rather than part of the stock description.
+const UplinkAddLine = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-fg);
   line-height: var(--line-height-body);
 `;
 
