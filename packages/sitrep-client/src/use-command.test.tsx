@@ -447,3 +447,67 @@ describe("useCommand must-consume invariant (dev)", () => {
     }).not.toThrow();
   });
 });
+
+function DeployWithDismiss() {
+  const cmd = useCommand("deploy");
+  return (
+    <div>
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+        go
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const first = cmd.inFlight[0];
+          if (first) cmd.dismiss(first.id);
+        }}
+      >
+        dismiss
+      </button>
+      <span>count:{cmd.inFlight.length}</span>
+      <CommandDelay handle={cmd} />
+    </div>
+  );
+}
+
+describe("useCommand dismiss", () => {
+  it("dismiss(id) clears a retained command from inFlight", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithDismiss />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    fireEvent.click(screen.getByText("go"));
+    const [rid] = fixture.transport.sentCommands.map((c) => c.requestId);
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: rid,
+              command: "deploy",
+              label: "",
+              topic: "t",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: 6,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => expect(screen.getByText("count:1")).toBeTruthy());
+    fireEvent.click(screen.getByText("dismiss"));
+    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});

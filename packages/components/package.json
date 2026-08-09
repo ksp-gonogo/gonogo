@@ -20,6 +20,7 @@
     "render-widget": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-widget.ts",
     "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts",
     "render-provenance-card": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-provenance-card.ts",
+    "render-delay-rail": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-delay-rail.ts",
     "render-cross-browser": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-cross-browser.ts",
     "visual-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-gate.ts"
   },

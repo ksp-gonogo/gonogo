@@ -37,10 +37,15 @@ function fixture(files: Record<string, string>): string {
   return root;
 }
 
+// 30s, not the 10s default: under heavy concurrent disk I/O (several worktrees
+// building/testing at once) `rmSync` on a temp dir can genuinely take longer
+// than the default hook timeout, failing this cleanup step (and so the whole
+// test) with no assertion ever having run. Purely a timeout bump, the guard's
+// own logic is untouched.
 afterEach(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true });
   roots.length = 0;
-});
+}, 30_000);
 
 describe("findHandTypedUnits", () => {
   it("finds a symbol typed after an interpolation", () => {

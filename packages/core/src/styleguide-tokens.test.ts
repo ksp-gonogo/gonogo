@@ -260,6 +260,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // app-global chrome, so a named rung would lift a widget-internal overlay
     // above the dashboard's.
     "packages/ui-kit/src/Panel.tsx": 4,
+    // The signal-delay rail's detail float, local sibling ordering inside the
+    // panel's own stacking context: it must sit above the sticky header
+    // (Panel.tsx's z-index 2) and the scrolling body it overlays. Not
+    // app-global chrome, so a named z rung would over-lift it.
+    "packages/ui-kit/src/CommandDelay/PanelDelayRail.tsx": 3,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,

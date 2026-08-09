@@ -696,6 +696,9 @@ export interface UseCommandResult {
   shape: "discrete" | "stream";
   /** Effective one-way delay under this command's vantage (0 = instant). */
   effectiveDelaySeconds: number;
+  /** Clear a dead (`overdue`/`lost`) command from `inFlight`; the manual out for
+   *  a command that would otherwise sit forever. See sitrep-client's own doc. */
+  dismiss: (id: string) => void;
   /** Dev-only must-consume token (absent in production). See `CommandOutputToken`. */
   _output?: CommandOutputToken;
 }

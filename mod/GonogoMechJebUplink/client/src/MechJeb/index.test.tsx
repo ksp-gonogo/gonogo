@@ -124,7 +124,7 @@ describe("MechJeb command widget", () => {
 });
 
 describe("MechJeb in-flight indicator (surfaces in the Panel delay rail)", () => {
-  it("appears on dispatch, shows a countdown, and clears once the command resolves", async () => {
+  it("appears on dispatch, reveals the command when pinned, and clears once the command resolves", async () => {
     const { fixture } = renderMechJeb();
 
     await userEvent.click(
@@ -175,13 +175,28 @@ describe("MechJeb in-flight indicator (surfaces in the Panel delay rail)", () =>
         await vi.advanceTimersByTimeAsync(20);
       });
 
-      const list = screen.getByLabelText("In-flight commands");
-      expect(list).toHaveTextContent("Execute next node");
-      expect(list).toHaveTextContent("4s");
       // The delay UX now surfaces in the Panel's delay rail (the first in-flow
       // child of the body scroller, above the header), not as an inline body
-      // child: this is what the usePanelDelay migration moves.
-      expect(list.closest("[data-panel-rail]")).not.toBeNull();
+      // child: this is what the usePanelDelay migration moves. Collapsed, the
+      // rail is a glow-strip SUMMARY (accessible name "In-flight commands: N in
+      // flight", no per-command text) and the delay-ux-v3 redesign conveys the
+      // countdown by the glow's position, not a "Ns" string; the command's own
+      // label is revealed only when the rail is pinned open.
+      const rail = screen.getByLabelText(/In-flight commands/);
+      expect(rail.closest("[data-panel-rail]")).not.toBeNull();
+
+      // Pin the rail open to reveal the per-command queue, then confirm THIS
+      // command is the one in flight (its label rides the listitem's name).
+      act(() => {
+        (
+          screen.getByRole("button", {
+            name: /signal-delay detail/i,
+          }) as HTMLButtonElement
+        ).click();
+      });
+      expect(
+        screen.getByRole("listitem", { name: /Execute next node/ }),
+      ).toBeInTheDocument();
 
       // Advance nowUt past the reply (dispatchedAt + 2*oneWaySeconds = 108)
       // with the path connected throughout -> resolves ("due") and clears.
@@ -209,7 +224,7 @@ describe("MechJeb in-flight indicator (surfaces in the Panel delay rail)", () =>
       });
 
       expect(
-        screen.queryByLabelText("In-flight commands"),
+        screen.queryByLabelText(/In-flight commands/),
       ).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();

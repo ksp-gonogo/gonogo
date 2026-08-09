@@ -70,6 +70,45 @@ describe("CommandDelay", () => {
     ).toBeInTheDocument();
   });
 
+  it('forwards variant="rail" to the stream branch; defaults to inline', () => {
+    const handle: CommandDelayHandle = {
+      inFlight: [],
+      shape: "stream",
+      effectiveDelaySeconds: 1.6,
+      streams: [STREAM],
+    };
+    const { container: rail } = render(
+      <CommandDelay handle={handle} variant="rail" />,
+    );
+    expect(rail.querySelector("[data-variant]")).toHaveAttribute(
+      "data-variant",
+      "rail",
+    );
+    const { container: inline } = render(<CommandDelay handle={handle} />);
+    expect(inline.querySelector("[data-variant]")).toHaveAttribute(
+      "data-variant",
+      "inline",
+    );
+  });
+
+  it('forwards variant="rail" to the discrete branch (v3 height-graph strip)', () => {
+    const handle: CommandDelayHandle = {
+      inFlight: IN_FLIGHT,
+      shape: "discrete",
+      effectiveDelaySeconds: 5,
+    };
+    const { container } = render(
+      <CommandDelay
+        handle={handle}
+        variant="rail"
+        ariaLabel="Launch: in flight"
+      />,
+    );
+    // The rail strip is an <svg role="img"> glow band, not the monospace list.
+    expect(container.querySelector("svg")).not.toBeNull();
+    expect(container.querySelector('[data-role="glow"]')).not.toBeNull();
+  });
+
   it("merges the in-flight rows of several discrete handles into one list", () => {
     const handles: CommandDelayHandle[] = [
       {

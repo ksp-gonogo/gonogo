@@ -1341,10 +1341,12 @@ const PanelStickyHeader = styled(PanelHeader)`
      rather than the header being an opaque bar. z-index lifts it over the
      scrolling content and the overflow glow. */
   position: sticky;
-  /* Reach the panel's true top edge: stick at the rail height (0 with no rail)
-     MINUS the body's top padding, since that padding sits inside the scroller
-     and would otherwise leave a strip of bare content above the stuck header. */
-  top: calc(var(--panel-rail-height, 0px) - var(--space-8, 8px));
+  /* Reach the panel's true top edge. No rail: stick at MINUS the body's top
+     padding, cancelling the inset so the header reaches the true top. Rail
+     present: the rail now sits flush at the true top (its wrap cancels the same
+     inset) and publishes its height, so the header sticks exactly at that
+     height, directly under the rail, no extra padding term. */
+  top: var(--panel-rail-height, calc(-1 * var(--space-8, 8px)));
   z-index: 2;
   /* Cancel the body's inset horizontally so the header spans the full panel
      width; the negative top keeps the title at the same inset the old pinned

@@ -35,6 +35,7 @@ import {
   Switch,
   ToggleButton,
   Unit,
+  useCommandFailures,
   useModalSaveBar,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
@@ -373,6 +374,21 @@ function NavballComponent({
     );
   };
 
+  // Ext-1 reference wiring: the SAS-mode grid is the reference control for the
+  // `useCommandFailures` + `data-failed` pattern. When a mode command goes
+  // overdue/lost, the button that issued it echoes the failure ON ITSELF (amber
+  // `data-failed` tint) and clicking it DISMISSES via the same shared dismiss
+  // the Panel-top queue uses, so clearing on either surface clears both. The
+  // queue stays the primary failure surface; this is the secondary in-context
+  // echo. Failed commands are matched back to their mode by the label
+  // `setSasMode` stamps above.
+  const sasFailures = useCommandFailures(sasModeCmd);
+  const failedSasModes = new Map<SasMode, string>();
+  for (const f of sasFailures.failed) {
+    const mode = SAS_MODES.find((m) => f.label === `SAS mode: ${m}`);
+    if (mode) failedSasModes.set(mode, f.id);
+  }
+
   // FBW arm/disarm with auto-disarm on unmount. State mirrors the latest
   // arm command rather than a Telemachus key, no readback for FBW.
   // `setFlyByWire` is absolute-set (state travels in the arg itself), no
@@ -689,6 +705,8 @@ function NavballComponent({
             onToggleSas={toggleSas}
             onToggleRcs={toggleRcs}
             onSetSasMode={setSasMode}
+            failedSasModes={failedSasModes}
+            onDismissSasFailure={sasFailures.dismiss}
             showFbwDelayWarning={showFbwDelayWarning}
             delaySeconds={delaySeconds}
           />
@@ -719,6 +737,10 @@ interface ControlSurfaceProps {
   onToggleSas: () => void;
   onToggleRcs: () => void;
   onSetSasMode: (mode: SasMode) => void;
+  /** Ext-1: SAS modes whose issued command is currently failed (overdue/lost), mapped to that command's id so the button can dismiss it. */
+  failedSasModes: Map<SasMode, string>;
+  /** Ext-1: clear a failed SAS-mode command (the shared dismiss the Panel-top queue also uses). */
+  onDismissSasFailure: (id: string) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
 }
@@ -739,6 +761,8 @@ function ControlSurface({
   onToggleSas,
   onToggleRcs,
   onSetSasMode,
+  failedSasModes,
+  onDismissSasFailure,
   showFbwDelayWarning,
   delaySeconds,
 }: ControlSurfaceProps) {
@@ -777,17 +801,29 @@ function ControlSurface({
       <div style={GROUP}>
         <div style={GROUP_LABEL}>SAS Mode</div>
         <div style={BUTTON_GRID}>
-          {SAS_MODES.map((mode) => (
-            <ToggleButton
-              key={mode}
-              type="button"
-              active={sasMode === mode}
-              onClick={() => onSetSasMode(mode)}
-              disabled={disabled}
-            >
-              {modeShort(mode)}
-            </ToggleButton>
-          ))}
+          {SAS_MODES.map((mode) => {
+            const failedId = failedSasModes.get(mode);
+            const isFailed = failedId !== undefined;
+            return (
+              <ToggleButton
+                key={mode}
+                type="button"
+                active={sasMode === mode}
+                data-failed={isFailed ? "true" : undefined}
+                aria-label={
+                  isFailed
+                    ? `SAS ${mode} command failed, activate to dismiss`
+                    : undefined
+                }
+                onClick={() =>
+                  isFailed ? onDismissSasFailure(failedId) : onSetSasMode(mode)
+                }
+                disabled={disabled}
+              >
+                {modeShort(mode)}
+              </ToggleButton>
+            );
+          })}
         </div>
       </div>
 

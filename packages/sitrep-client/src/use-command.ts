@@ -110,6 +110,17 @@ export interface UseCommandResult {
    */
   effectiveDelaySeconds: number;
   /**
+   * Clear a dead command from this hook's `inFlight`. `overdue`/`lost` entries
+   * are retained on purpose (they can't silently vanish), but a `lost` command
+   * (or an `overdue` one on a still-up path that never acks) can otherwise sit
+   * forever with no user-facing out; `dismiss(id)` is that out. It filters this
+   * hook's own `inFlight`, and because the handle is the shared channel into the
+   * panel's delay rail, a dismiss from the widget-top queue OR from the issuing
+   * control clears the entry in both. Handed to `<CommandDelay>` as
+   * `handle.dismiss`.
+   */
+  dismiss: (id: string) => void;
+  /**
    * Dev-only must-consume token (absent in production). Set the moment a
    * `<CommandDelay handle={cmd}>` mounts; `send()` throws if it is dispatched
    * without one, so a delayed command can never ship without its delay UX.
@@ -215,6 +226,10 @@ export function useCommand(
   // --- inFlight bookkeeping: this hook's OWN dispatches, retained past a
   // queue age-out (Task 4 / Task 4a of the delayed-command-ux plan). ---
   const [dispatchedIds, setDispatchedIds] = useState<string[]>([]);
+  // Ids the operator has cleared from `inFlight` (a dead command's manual out).
+  // Pruned once the id leaves the underlying set anyway, so it can't grow
+  // unbounded over a long session.
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
@@ -311,7 +326,14 @@ export function useCommand(
       );
       if (resolution.kind === "classified") computed.push(resolution.item);
     }
-    if (computed.length > 0) inFlight = computed;
+    // Hide dismissed commands; the underlying `computed` set still drives the
+    // dismissed-id prune below, so a dismissed id is dropped from the set once
+    // it leaves `computed` on its own.
+    const visible =
+      dismissedIds.length > 0
+        ? computed.filter((c) => !dismissedIds.includes(c.id))
+        : computed;
+    if (visible.length > 0) inFlight = visible;
   }
 
   // Prune tracked ids once resolved/expired, so `dispatchedIds` (and the
@@ -348,7 +370,30 @@ export function useCommand(
       });
       return keep.length === prev.length ? prev : keep;
     });
+    // Prune dismissed ids that have left the underlying set (resolved/expired/
+    // gone from the pending queue), so the dismissed set stays bounded.
+    setDismissedIds((prev) => {
+      if (prev.length === 0) return prev;
+      const keep = prev.filter((id) => {
+        const resolution = resolveTracked(
+          id,
+          queue,
+          entryCacheRef.current,
+          firstSeenAtRef.current,
+          nowUtRef.current,
+          pathConnectedDuring,
+        );
+        return (
+          resolution.kind === "classified" || resolution.kind === "waiting"
+        );
+      });
+      return keep.length === prev.length ? prev : keep;
+    });
   }, [queue, pathConnectedDuring]);
+
+  const dismiss = useCallback((id: string) => {
+    setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
 
   const send = useCallback(
     (args?: unknown, opts?: { label?: string; topic?: string }) => {
@@ -382,6 +427,7 @@ export function useCommand(
     inFlight,
     shape,
     effectiveDelaySeconds,
+    dismiss,
     _output: outputRef.current,
   };
 }
