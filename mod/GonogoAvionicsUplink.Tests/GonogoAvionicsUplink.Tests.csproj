@@ -25,4 +25,11 @@
     <Compile Include="..\GonogoAvionicsUplink\AvionicsRaw.cs" />
   </ItemGroup>
 
+  <!-- GonogoAvionicsUplink.Contract: AvionicsStatus, this Uplink's own wire
+       type (relocated out of Sitrep.Contract, see that project's header
+       comment). AvionicsUnitCoverageTests.cs below reflects over it directly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoAvionicsUplink.Contract\GonogoAvionicsUplink.Contract.csproj" />
+  </ItemGroup>
+
 </Project>

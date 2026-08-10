@@ -191,9 +191,17 @@ const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);
 const barePrimitiveTopicIds = new Set<string>();
 
 /**
- * Self-register a bare-primitive Uplink Topic id. Called at module load by the owning
- * Uplink's client package alongside its `declare module` augmentation of
- * `TopicPayloadMap`. Idempotent (a `Set`), so a double import is harmless.
+ * Self-register an Uplink-owned Topic id absent from this SDK's own generated
+ * registry. Called at module load by the owning Uplink's client package
+ * alongside its `declare module` augmentation of `TopicPayloadMap`.
+ * Idempotent (a `Set`), so a double import is harmless.
+ *
+ * Named for the original case (a bare boolean with no C# payload type to
+ * reflect), but the runtime registry itself does not care about payload
+ * shape: a relocated Uplink's own STRUCTURED Topic (uplink-types-out-of-core
+ * plan; `avionics.status` is the first) registers here too, pairing this call
+ * with `registerTopicUnits` (`units.ts`) for the numeric half of the same
+ * problem.
  */
 export function registerBarePrimitiveTopic(id: string): void {
   barePrimitiveTopicIds.add(id);

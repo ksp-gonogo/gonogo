@@ -158,6 +158,23 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoMechJebUplink.Contract",
     ],
   },
+  avionics: {
+    // "avionics" alone is distinctive enough (no unrelated-word collision:
+    // the one incidental hit, "RP0Avionics" in a GonogoDevTools debug dump,
+    // is a real match on a real third-party PartModule name, allowlisted as
+    // permanent rather than excluded by the pattern). One case-insensitive
+    // pattern covers AvionicsStatus/AvionicsUplink/avionics.status/
+    // avionics.available/gonogo-avionics-uplink alike.
+    patterns: [/avionics/i],
+    ownedDirs: [
+      "mod/GonogoAvionicsUplink",
+      "mod/GonogoAvionicsUplink.Tests",
+      // GonogoAvionicsUplink's own contract slice (uplink-types-out-of-core
+      // plan, second relocation, 2026-08-10): AvionicsStatus lives here now,
+      // not in Sitrep.Contract.
+      "mod/GonogoAvionicsUplink.Contract",
+    ],
+  },
   // Excluded on purpose (per task scope):
   //   telemachus : legacy system being deleted, not an Uplink; tracked
   //                 as separate migration debt in the audit doc, §5.

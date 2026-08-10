@@ -44,9 +44,9 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>Only the MechJeb Uplink is registered today</b> (the
-    /// uplink-types-out-of-core pilot). Each of the plan's remaining
-    /// relocations (see the plan doc's §6 sequencing list) registers its own
+    /// <para><b>MechJeb and Avionics are registered today</b> (the pilot and
+    /// the second relocation). Each of the plan's remaining relocations (see
+    /// the plan doc's §6 sequencing list) registers its own
     /// token here in the same commit that moves its types out, exactly like
     /// the frontend ratchet's own token-per-Uplink shape. Naming those other
     /// mods here would itself trip THEIR frontend uplink-boundary tokens
@@ -70,6 +70,7 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, Regex> RelocatedModTokens = new(StringComparer.Ordinal)
         {
             ["mechjeb"] = new Regex("MechJeb", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            ["avionics"] = new Regex("Avionics", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         };
 
         [Fact]

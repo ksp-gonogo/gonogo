@@ -56,4 +56,15 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- GonogoAvionicsUplink.Contract: this Uplink's OWN wire type
+       (AvionicsStatus), relocated out of Sitrep.Contract (see that project's
+       own header comment). Private defaults to true (unlike the
+       Sitrep.Contract reference above): this DLL is NOT provided by core at
+       runtime, it is this Uplink's own contract slice, so it bundles into
+       GonogoAvionicsUplink's own GameData output same as any other
+       Uplink-owned assembly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoAvionicsUplink.Contract\GonogoAvionicsUplink.Contract.csproj" />
+  </ItemGroup>
+
 </Project>

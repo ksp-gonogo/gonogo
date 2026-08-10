@@ -64,6 +64,7 @@ export {
 } from "./unit-system";
 export {
   type KnownSitrepUnit,
+  registerTopicUnits,
   type SitrepUnit,
   type UnitsByField,
   unitOf,

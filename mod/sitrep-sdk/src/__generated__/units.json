@@ -70,12 +70,6 @@
       "hasOxygen": "flag",
       "seaLevelPressure": "kPa"
     },
-    "AvionicsStatus": {
-      "avionicsActive": "flag",
-      "controllable": "flag",
-      "controllableMassTons": "t",
-      "vesselMassTons": "t"
-    },
     "BatteryEntry": {
       "current": "units",
       "max": "units",
@@ -1232,12 +1226,6 @@
     }
   },
   "topics": {
-    "avionics.status": {
-      "avionicsActive": "flag",
-      "controllable": "flag",
-      "controllableMassTons": "t",
-      "vesselMassTons": "t"
-    },
     "career.mode": {
       "mode": "enum"
     },

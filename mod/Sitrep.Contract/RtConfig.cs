@@ -293,12 +293,11 @@ public static class RtConfig
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
-                // avionics.status, RP-1 controllable-mass ascent go/no-go
-                typeof(AvionicsStatus),
-                // mechjeb.engageAscentAutopilot / mechjeb.executeNextNode /
-                // mechjeb.landAtTarget command args moved OUT of core into
-                // GonogoMechJebUplink.Contract (uplink-types-out-of-core
-                // pilot, 2026-08-10): see ContractVersion.cs and
+                // avionics.status (AvionicsStatus) moved OUT of core into
+                // GonogoAvionicsUplink.Contract, and mechjeb.engageAscentAutopilot /
+                // mechjeb.executeNextNode / mechjeb.landAtTarget command args moved
+                // OUT of core into GonogoMechJebUplink.Contract (uplink-types-out-of-core
+                // plan, 2026-08-10): see ContractVersion.cs and
                 // local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());

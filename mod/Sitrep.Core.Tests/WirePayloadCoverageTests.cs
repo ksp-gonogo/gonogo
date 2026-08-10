@@ -198,12 +198,12 @@ namespace Sitrep.Core.Tests
             // UplinkPendingTopic channel-source mapper) and has its own
             // JsonWriter case, exercised by this test.
             "PendingUplink",
-            // avionics.status: GonogoAvionicsUplink.AvionicsCapture.Build returns a
-            // Dictionary<string, object?> and AvionicsUplink publishes that
-            // (AvionicsUplink.cs's _status.Publish(AvionicsCapture.Build(...))), so
-            // JsonWriter only ever sees the flattened dictionary; the POCO exists for
-            // the generated TS shape only.
-            "AvionicsStatus",
+            // avionics.status: AvionicsStatus relocated out of Sitrep.Contract into
+            // GonogoAvionicsUplink.Contract (uplink-types-out-of-core plan): no
+            // longer reflected by this assembly at all, so no allowlist entry is
+            // needed here any more. (For the record: GonogoAvionicsUplink.AvionicsCapture.Build
+            // returns a Dictionary<string, object?> and AvionicsUplink publishes that,
+            // so JsonWriter never saw this POCO raw even while it lived here.)
             // kerbalism.*: GonogoKerbalismUplink.KerbalismCapture.BuildSpaceWeather/
             // BuildLifeSupport/BuildCrew/BuildFeatures each return a
             // Dictionary<string, object?> tree (habitat/resources/processes/crew rules

@@ -18,6 +18,7 @@ PATHS=(
   mod/sitrep-sdk/src/__generated__
   packages/ui-kit/src/__generated__
   mod/GonogoMechJebUplink/client/src/__generated__
+  mod/GonogoAvionicsUplink/client/src/__generated__
 )
 
 snapshot() {

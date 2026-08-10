@@ -41,7 +41,8 @@ export type ModToken =
   | "kos"
   | "realantennas"
   | "agx"
-  | "mechjeb";
+  | "mechjeb"
+  | "avionics";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -800,6 +801,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/KspHost.cs",
       "mod/Sitrep.Contract/VesselAttitude.cs",
 
+      // -- The Avionics relocation's own doc comments, citing the MechJeb
+      // pilot as prior art (the mechanism it copies, and the specific
+      // contrast that AvionicsStatus is a real read payload where MechJeb's
+      // two types were command args) -- zero MechJeb code or type coupling --
+      "mod/GonogoAvionicsUplink.Contract/AvionicsPayloads.cs",
+      "mod/GonogoAvionicsUplink.Contract/AvionicsRtConfig.cs",
+      "mod/GonogoAvionicsUplink.Tests/AvionicsUnitCoverageTests.cs",
+      "mod/GonogoAvionicsUplink/client/src/generated-value-import.test.ts",
+
       // -- The relocation's own provenance record --
       // ContractVersion.cs's Minor-history doc-comment records the original
       // add AND the later relocation of MechJebAscentArgs/MechJebNoArgs out
@@ -820,6 +830,83 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // command-arg allowlist entries were removed because the types left
       // this assembly: provenance, not a reference to the types.
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+    ],
+  },
+  // === avionics: owning dirs mod/GonogoAvionicsUplink/ (incl. its client/),
+  // mod/GonogoAvionicsUplink.Tests, and mod/GonogoAvionicsUplink.Contract
+  // (the second uplink-types-out-of-core relocation, 2026-08-10). Every hit
+  // below is a comment/doc-mention, a sanctioned loader import, or a fixture
+  // topic-id string; there is no real code coupling outside the owning dirs,
+  // so domainDebt is empty.
+  avionics: {
+    domainDebt: [],
+    permanent: [
+      // -- Uplink loader: the sanctioned self-registration import, same
+      // pattern as kerbcast/kos/scansat/mechjeb's main.tsx entries above.
+      "packages/app/src/main.tsx",
+
+      // -- Cross-Uplink topic-registry sync test: imports every Uplink
+      // client (avionics included) to build the full C#<->registry topic
+      // union, and asserts avionics.available (the TrueNow presence
+      // primitive) is a known id. Enumerating every Uplink IS this file's
+      // job, not a boundary violation.
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
+
+      // -- TrueNow-classification ratchet: names avionics.available (the
+      // presence primitive, TrueNow) alongside its sibling avionics.status
+      // (a per-vessel telemetry fact, Delayed) purely to explain why the
+      // FIRST is allowlisted and the second is not. Same "cross-Uplink
+      // inventory naming every mod" class as topic-cs-sync.test.ts above.
+      "packages/core/src/truenow-allowlist.test.ts",
+
+      // -- The mod-side ownership ratchet itself (§5a of the plan) --
+      // UplinkContractOwnershipTests.cs necessarily names the token it is
+      // testing FOR, in its own doc comment and its RelocatedModTokens data.
+      // A ratchet naming its own subject, not a boundary violation, same
+      // class as the C# WirePayloadCoverageTests.cs entry a few lines below.
+      "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+
+      // -- The relocation's own provenance record --
+      // ContractVersion.cs's Major/Minor-history doc comments record the
+      // original add of the avionics.status Topic AND its later relocation
+      // out of this assembly: prose only, the type itself no longer lives
+      // here. RtConfig.cs's wirePayloadTypes comment records where it went
+      // (GonogoAvionicsUplink.Contract).
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      "mod/Sitrep.Contract/RtConfig.cs",
+      // WirePayloadCoverageTests.cs's comment records that the AvionicsStatus
+      // allowlist entry was removed because the type left this assembly:
+      // provenance, not a reference to the type.
+      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+
+      // -- The MechJeb pilot's own forward-looking cross-references --
+      // MechJebRtConfig.cs's and MechJebUnitCoverageTests.cs's doc comments
+      // both named Avionics as "the next Uplink in the plan's sequencing"
+      // before this relocation landed: historical prose from the pilot
+      // commit, no Avionics code or type reference.
+      "mod/GonogoMechJebUplink.Contract/MechJebRtConfig.cs",
+      "mod/GonogoMechJebUplink.Tests/MechJebUnitCoverageTests.cs",
+      // MechJeb's own generated-value-import.test.ts and client index.ts
+      // cite Avionics as the sibling that actually exercises the Value<>
+      // path / as a fellow runtime-loader-exempt Uplink: doc-comment
+      // cross-references, no coupling.
+      "mod/GonogoMechJebUplink/client/src/generated-value-import.test.ts",
+      "mod/GonogoMechJebUplink/client/src/index.ts",
+
+      // -- sitrep-sdk's own registration mechanism, naming its first
+      // relocated-Uplink caller in a doc comment (registerTopicUnits /
+      // registerBarePrimitiveTopic in topics.ts), plus the test that records
+      // avionics.status no longer being the SDK's own codegen output --
+      "mod/sitrep-sdk/src/topics.ts",
+      "mod/sitrep-sdk/src/topics.test.ts",
+
+      // -- Unrelated RP-1/RP-0 module-name collision --
+      // GonogoDevKerbalismDump.cs is a GonogoDevTools debug dump unrelated to
+      // this Uplink; it lists "RP0Avionics" as one of many third-party
+      // PartModule class names it reflects, and separately explains in prose
+      // why RP-1's avionics controllable-mass isn't dumped there. No
+      // GonogoAvionicsUplink code or type reference.
+      "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     ],
   },
 };

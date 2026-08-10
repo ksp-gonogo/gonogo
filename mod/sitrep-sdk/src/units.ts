@@ -73,6 +73,37 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
   });
 
 /**
+ * Runtime registry of Topic-scoped unit/shape maps for RELOCATED Uplink
+ * payload types (uplink-types-out-of-core plan). `GENERATED_TOPIC_UNITS`/
+ * `GENERATED_TOPIC_SHAPES` only know about payload types still reflected out
+ * of `Sitrep.Contract`; once a type's Topic moves to its owning Uplink's own
+ * contract slice, this SDK's generated map has nothing for it, and
+ * `wrapTopicPayload` would silently stop hydrating that Topic's quantities
+ * into `Value`s. Mirrors `registerBarePrimitiveTopic`'s self-registration
+ * idiom (see `topics.ts`) for the numeric half of the same problem: each
+ * relocated Uplink's own client package calls `registerTopicUnits` at module
+ * load (fed from ITS OWN generated `units.ts`), alongside its
+ * `registerBarePrimitiveTopic`/`declare module TopicPayloadMap` augmentation.
+ */
+const registeredTopicUnits = new Map<string, UnitsByField>();
+const registeredTopicShapes = new Map<string, ShapesByField>();
+
+/**
+ * Self-register a relocated Uplink Topic's unit (and optional nested-shape)
+ * map. Called at module load by the owning Uplink's client package. Last
+ * write wins for a given topic; a double import of the same Uplink client
+ * registers the same data twice, harmlessly.
+ */
+export function registerTopicUnits(
+  topic: string,
+  units: UnitsByField,
+  shapes: ShapesByField = NO_SHAPES,
+): void {
+  registeredTopicUnits.set(topic, units);
+  registeredTopicShapes.set(topic, shapes);
+}
+
+/**
  * Every field on `topic` that has a declared unit. Fields with no annotation are
  * absent from the returned object; a Topic with no annotated fields at all returns an
  * empty object rather than `undefined`, so a caller can index it unconditionally.
@@ -83,6 +114,8 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
 export function unitsForTopic(topic: TopicId): UnitsByField {
   const generated = GENERATED_TOPIC_UNITS[topic];
   if (generated !== undefined) return generated;
+  const registered = registeredTopicUnits.get(topic);
+  if (registered !== undefined) return registered;
   const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
   return handDeclared === undefined ? EMPTY : unitsForType(handDeclared);
 }
@@ -115,6 +148,8 @@ export function unitsForType(typeName: string): UnitsByField {
 export function shapesForTopic(topic: TopicId): ShapesByField {
   const generated = GENERATED_TOPIC_SHAPES[topic];
   if (generated !== undefined) return generated;
+  const registered = registeredTopicShapes.get(topic);
+  if (registered !== undefined) return registered;
   const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
   return handDeclared === undefined ? NO_SHAPES : shapesForType(handDeclared);
 }

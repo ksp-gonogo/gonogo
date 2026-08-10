@@ -81,6 +81,31 @@ echo "codegen -> $mechjeb_out_dir/contract.ts"
 echo "codegen -> $mechjeb_out_dir/units.ts"
 echo "codegen -> $mechjeb_out_dir/units.json"
 
+# Avionics: the second relocation. Unlike MechJeb, AvionicsStatus DOES carry
+# [SitrepTopic("avionics.status")], so SITREP_AVIONICS_TOPICMAP_OUT is set
+# here, mirroring the core invocation above.
+avionics_proj="$ROOT/mod/GonogoAvionicsUplink.Contract"
+avionics_out_dir="$ROOT/mod/GonogoAvionicsUplink/client/src/__generated__"
+avionics_bin="$avionics_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$avionics_proj/GonogoAvionicsUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$avionics_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$avionics_bin/"
+mkdir -p "$avionics_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_AVIONICS_TOPICMAP_OUT="$avionics_out_dir/topic-map.ts" \
+  SITREP_AVIONICS_UNITMAP_OUT="$avionics_out_dir/units.ts" \
+  SITREP_AVIONICS_UNITJSON_OUT="$avionics_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$avionics_bin/GonogoAvionicsUplink.Contract.dll" \
+  TargetFile="$avionics_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoAvionicsUplink.AvionicsRtConfig.Configure"
+echo "codegen -> $avionics_out_dir/contract.ts"
+echo "codegen -> $avionics_out_dir/topic-map.ts"
+echo "codegen -> $avionics_out_dir/units.ts"
+echo "codegen -> $avionics_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

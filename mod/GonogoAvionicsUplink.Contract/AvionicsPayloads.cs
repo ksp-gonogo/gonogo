@@ -1,8 +1,9 @@
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
+using Sitrep.Contract;
 
-namespace Sitrep.Contract;
+namespace GonogoAvionicsUplink;
 
 /// <summary>
 /// The <c>avionics.status</c> channel: RP-1 controllable-mass ascent go/no-go.
@@ -19,6 +20,15 @@ namespace Sitrep.Contract;
 /// Classified <c>DelayRole.Delayed</c> (a per-vessel telemetry fact, subject to
 /// the reveal-gate); the bare <c>avionics.available</c> presence primitive is
 /// <c>DelayRole.TrueNow</c> and declared client-side.</para>
+///
+/// <para>Relocated out of <c>Sitrep.Contract</c> into this Uplink's own
+/// contract slice (<c>GonogoAvionicsUplink.Contract</c>): see
+/// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>. No
+/// uplink-specific wire type may live in core, even for an in-monorepo
+/// Uplink. Unlike the MechJeb pilot's command-arg types, this one IS a real
+/// outbound read payload, so it is the first relocation to actually exercise
+/// <c>RtConfig.ApplyUnitValueTypes</c>'s <c>Value&lt;&gt;</c>/<c>Vec3Of&lt;&gt;</c>
+/// retype end to end (see <c>AvionicsRtConfig.Configure</c>).</para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("avionics.status")]

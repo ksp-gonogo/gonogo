@@ -104,8 +104,29 @@ namespace Sitrep.Contract
         /// together, so no artifact exists that was built against the old shape.
         /// See
         /// <c>local_docs/design/specs/2026-08-02-units-game-RESOLVED-local-files.md</c>.</para>
+        ///
+        /// <para><b>Bumped 6 -&gt; 7: the Avionics relocation.</b>
+        /// <c>AvionicsStatus</c> LEFT this assembly entirely, relocated into
+        /// the new <c>GonogoAvionicsUplink.Contract</c> project (the second
+        /// step of the uplink-types-out-of-core plan, after the MechJeb
+        /// pilot). Unlike MechJeb's two command-arg types, <c>AvionicsStatus</c>
+        /// predates the v6.0 freeze (see the Major-4 line's "Bumped 4 -&gt; 5"
+        /// Minor-history entry below): it IS part of the frozen v6.0 floor in
+        /// <c>contract-shape.baseline.json</c>, so its removal registers as a
+        /// genuine <c>type-removed:Sitrep.Contract.AvionicsStatus</c> break
+        /// against that floor, not a vacuous one. That is a real difference
+        /// from the MechJeb pilot's Minor-only bump, and exactly the case
+        /// <c>ContractShapeGateTests.CurrentShapeIsAdditiveOverTheFrozenMajorFloor</c>
+        /// exists to catch: a Major bump (with a freshly frozen Major-7 floor)
+        /// is the only way to keep that gate green here. Sanctioned on the
+        /// same standing grounds as every Major above: the mod is still
+        /// pre-release with NO external Uplinks, and the app and mod ship
+        /// together, so no artifact exists that was built against the old
+        /// shape; the wire FORMAT of <c>avionics.status</c> is unchanged, only
+        /// which assembly declares it. See
+        /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
         /// </remarks>
-        public const int Major = 6;
+        public const int Major = 7;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -440,7 +461,11 @@ namespace Sitrep.Contract
         /// today (mid Major-6 line), which is why this gets its own Minor rather
         /// than passing silently: this Minor's provenance note is that record. See
         /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
+        ///
+        /// <para>Reset 9 -&gt; 0 alongside the Major 6 -&gt; 7 bump (the
+        /// Avionics relocation; see <see cref="Major"/>). Every additive
+        /// change on the Major-6 line above is carried forward into Major 7.</para>
         /// </summary>
-        public const int Minor = 9;
+        public const int Minor = 0;
     }
 }

@@ -1,8 +1,4 @@
-import type {
-  AvionicsStatus,
-  ComponentProps,
-  Value,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
@@ -16,6 +12,15 @@ import {
   StatusPill,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { AvionicsStatus } from "../__generated__/contract";
+// Side-effect import: registers avionics.status's unit map into the SDK's
+// runtime hydration registry (registerTopicUnits) and augments
+// TopicPayloadMap for the type. This widget is the one actual consumer of
+// that decode-time wrap (vesselMassTons/controllableMassTons arrive as
+// Value<"t">), so it pulls the registration itself rather than relying on
+// the package entry point's import order (see ../index.ts, which also
+// imports this for the same reason).
+import "../topics";
 
 type AvionicsConfig = Record<string, never>;
 

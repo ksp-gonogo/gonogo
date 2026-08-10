@@ -104,12 +104,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     hasOxygen: "flag",
     seaLevelPressure: "kPa",
   },
-  "AvionicsStatus": {
-    avionicsActive: "flag",
-    controllable: "flag",
-    controllableMassTons: "t",
-    vesselMassTons: "t",
-  },
   "BatteryEntry": {
     current: "units",
     max: "units",
@@ -1271,12 +1265,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
-  "avionics.status": {
-    avionicsActive: "flag",
-    controllable: "flag",
-    controllableMassTons: "t",
-    vesselMassTons: "t",
-  },
   "career.mode": {
     mode: "enum",
   },

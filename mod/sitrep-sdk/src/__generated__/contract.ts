@@ -4,13 +4,6 @@
 
 import { Value, Vec3Of } from '../value';
 
-export interface AvionicsStatus
-{
-	avionicsActive?: boolean;
-	controllableMassTons?: Value<"t">;
-	vesselMassTons?: Value<"t">;
-	controllable?: boolean;
-}
 export interface ActivateStrategyArgs
 {
 	strategyId: string;

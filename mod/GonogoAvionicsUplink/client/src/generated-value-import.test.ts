@@ -7,21 +7,16 @@ import { describe, expect, it } from "vitest";
 // core plan's Unit guard (§5b): a wire-visible Value<"..."> / Vec3Of<"..."> in
 // this Uplink's OWN generated contract must still resolve to the core
 // unit-system module (@ksp-gonogo/sitrep-sdk), never a locally hand-rolled
-// Value type. See MechJebRtConfig.Configure's `valueImportFrom` argument,
+// Value type. See AvionicsRtConfig.Configure's `valueImportFrom` argument,
 // which is the mechanism this test verifies actually took effect in the
 // emitted file, not just in the C# call site.
 //
-// MechJebAscentArgs/MechJebNoArgs are both command ARGS (inbound-only), and
-// RtConfig.ApplyUnitValueTypes deliberately never retypes an Args property to
-// Value<>/Vec3Of<> (see its own doc comment): so this file's generated
-// contract.ts today carries the import line but never actually USES Value</
-// Vec3Of< in a property type. This test still asserts the general rule (if
-// the generated file ever DOES use one, its import must resolve to
-// @ksp-gonogo/sitrep-sdk), so it is ready without edits the moment a future
-// Uplink type here needs one; today the "uses Value<>" half is vacuously
-// true. Avionics's copy of this test (an outbound read-side payload,
-// AvionicsStatus) is the one that actually exercises a real Value<> usage;
-// see mod/GonogoAvionicsUplink/client/src/generated-value-import.test.ts.
+// UNLIKE the MechJeb pilot's copy of this test (whose two command-arg types
+// never trip the "uses Value<>" branch, so it only proved the ASSERTION
+// worked), this one is NOT vacuous: AvionicsStatus is an outbound READ
+// payload, so ControllableMassTons/VesselMassTons genuinely retype to
+// Value<"t"> (see ../__generated__/contract.ts), and this test exercises the
+// real branch below on every run.
 
 const generatedContractPath = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -35,10 +30,8 @@ describe("generated contract.ts: Value/Vec3Of usage resolves to core", () => {
       source.replace(/^import.*$/m, ""), // strip the import line itself before checking USAGE
     );
 
-    if (!usesValueOrVec3Of) {
-      // Vacuously true today: see the file-header comment above.
-      return;
-    }
+    // Not vacuous: AvionicsStatus's two Value<"t"> fields make this true.
+    expect(usesValueOrVec3Of).toBe(true);
 
     expect(source).toMatch(
       /import\s*\{\s*Value,\s*Vec3Of\s*\}\s*from\s*['"]@ksp-gonogo\/sitrep-sdk['"]/,
