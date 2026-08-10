@@ -99,6 +99,8 @@ export function Badge({
 /**
  * Decorative grey: a kind-chip or count with no severity. Distinct from
  * `offline`, which is a dimmer grey carrying a real "data absent" reading.
+ * Unaffected by the sausage restyle below: a decorative chip was never the
+ * thing that read as a live button, so it keeps its solid fill.
  */
 const DECORATIVE_STYLE = css`
   background: var(--color-surface-raised);
@@ -107,59 +109,87 @@ const DECORATIVE_STYLE = css`
 `;
 
 /**
- * `nominal`/`warning`/`critical` fill from `severityDotColor`: their chip
- * background and border were already hand-typed to that exact token twice
- * over (once here, once in the title ghost's dot map), which is precisely the
- * kind of duplication that drifts unnoticed. `info`/`caution`/`offline` stay
- * hand-written: their chip background is deliberately a MUTED/bg token so the
- * pill reads at full size, where `severityDotColor`'s vivid fg/dim token
- * would be near-invisible as a dot but too strong as a solid chip. See
- * `severityDotColor`'s own comment for the full reasoning.
+ * The pill's outline/text/glow colour for each severity. Reads off
+ * `severityDotColor`, the one function every other per-severity accent
+ * already goes through, with a single deliberate exception: `nominal`'s dot
+ * colour (`--color-status-go-bg`) is a DARK fill tuned for a small dot or a
+ * button's solid background (2.4:1 against the panel, under the 3:1
+ * non-text floor), so painting it directly as this pill's outline/text would
+ * fail contrast on the pill's transparent background. `--color-accent-fg` is
+ * the bright "go" text token PrimaryButton itself already uses and clears
+ * the floor with room to spare.
+ */
+function pillColor(severity: Severity): string {
+  return severity === "nominal"
+    ? "var(--color-accent-fg)"
+    : severityDotColor(severity);
+}
+
+/**
+ * Sausage-shaped severity pill: transparent background, a coloured outline,
+ * and coloured text, restoring the look from before the solid-fill
+ * consolidation (see `bd7ff353^` for the pre-refactor version). The solid
+ * fill made a `nominal` badge read as indistinguishable from a live "go"
+ * button, since both painted the exact same `--color-status-go-bg` chip; a
+ * transparent pill with only its outline and text lit up reads as status,
+ * not as a control.
+ *
+ * The glow (`box-shadow`) scales with severity: `nominal`/`offline` carry
+ * none at all (a healthy or data-absent pill has nothing to shout about),
+ * `info`/`caution` get a soft bloom, and `warning`/`critical` get a
+ * progressively stronger one, so the AMOUNT a badge glows is itself a
+ * severity signal at a glance, before the label is even read. Kept
+ * deliberately soft ("slight glow", not a neon sign): a static box-shadow
+ * needs no `prefers-reduced-motion` guard, it never animates.
  */
 const SEVERITY_STYLES: Record<Severity, ReturnType<typeof css>> = {
   nominal: css`
-    background: ${severityDotColor("nominal")};
-    border-color: ${severityDotColor("nominal")};
-    color: var(--color-status-go-fg);
+    background: transparent;
+    border-color: ${pillColor("nominal")};
+    color: ${pillColor("nominal")};
   `,
   info: css`
-    background: var(--color-status-info-bg);
-    border-color: var(--color-status-info-bg);
-    color: var(--color-status-info-fg);
+    background: transparent;
+    border-color: ${pillColor("info")};
+    color: ${pillColor("info")};
+    box-shadow: 0 0 4px 0 color-mix(in srgb, ${pillColor("info")} 40%, transparent);
   `,
   caution: css`
-    background: var(--color-status-warning-bg-muted);
-    border-color: var(--color-status-warning-border-muted);
-    color: var(--color-status-warning-fg-muted);
+    background: transparent;
+    border-color: ${pillColor("caution")};
+    color: ${pillColor("caution")};
+    box-shadow: 0 0 5px 0 color-mix(in srgb, ${pillColor("caution")} 45%, transparent);
   `,
   warning: css`
-    background: ${severityDotColor("warning")};
-    border-color: ${severityDotColor("warning")};
-    color: var(--color-status-warning-fg);
+    background: transparent;
+    border-color: ${pillColor("warning")};
+    color: ${pillColor("warning")};
+    box-shadow: 0 0 6px 1px color-mix(in srgb, ${pillColor("warning")} 55%, transparent);
   `,
   critical: css`
-    background: ${severityDotColor("critical")};
-    border-color: ${severityDotColor("critical")};
-    color: var(--color-status-nogo-on-bg);
+    background: transparent;
+    border-color: ${pillColor("critical")};
+    color: ${pillColor("critical")};
+    box-shadow: 0 0 8px 2px color-mix(in srgb, ${pillColor("critical")} 65%, transparent);
   `,
-  // Data gone: a dim, hollow grey, deliberately quieter than a red critical and
-  // dimmer than a decorative chip, so "disconnected" reads as faded rather than
-  // alarming.
+  // Data gone: a dim, hollow grey with no glow, deliberately quieter than a
+  // red critical and dimmer than a decorative chip, so "disconnected" reads
+  // as faded rather than alarming.
   offline: css`
-    background: var(--color-surface-raised);
-    border-color: var(--color-border-subtle);
-    color: var(--color-text-dim);
+    background: transparent;
+    border-color: ${pillColor("offline")};
+    color: ${pillColor("offline")};
   `,
 };
 
 const SIZE_STYLES = {
   sm: css`
     font-size: var(--font-size-2xs, 10px);
-    padding: var(--space-hair, 1px) var(--space-4, 4px);
+    padding: var(--space-hair, 1px) var(--space-6, 6px);
   `,
   md: css`
     font-size: var(--font-size-xs);
-    padding: var(--space-hair, 1px) var(--space-6, 6px);
+    padding: var(--space-hair, 1px) var(--space-8, 8px);
   `,
 } as const;
 
@@ -169,11 +199,19 @@ const Badge__Body = styled.span<{
 }>`
   display: inline-block;
   border: 1px solid;
-  border-radius: var(--radius-sm, 3px);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
+
+  /* Sausage-shaped ONLY for a real severity: a decorative kind-chip (no
+     severity) keeps the small rounded-rect shape, since it was never the
+     thing that read as a live button and the operator's ask was scoped to
+     the status/severity pill. */
+  border-radius: ${({ $severity }) =>
+    $severity === undefined
+      ? "var(--radius-sm, 3px)"
+      : "var(--radius-pill, 999px)"};
 
   ${({ $size }) => SIZE_STYLES[$size]}
   ${({ $severity }) =>
