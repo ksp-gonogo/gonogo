@@ -23,16 +23,62 @@
 // specify relative module name". Drop this line once the first real
 // contribution slot's context type gives the file a natural export.
 //
-// Empty today: no first-party contribution slot exists yet (Application
-// phase, contribution-slots-spec §14, is a separate follow-up plan). This
-// file is the scaffold the first one (e.g. "ship-map.part-meta") fills in.
+// The first two first-party contribution slots landed here (spec §13.4, the
+// framework's self-contribution flagship): ShipMap's `ship-map.part-meters`
+// and `ship-map.part-meta`, both owned by `packages/components/src/ShipMap`.
+// Every OTHER first-party contribution to date rides the automatic
+// `${componentId}.badges` slot, which is a runtime string, never a member of
+// this declaration-merged registry (see `useWidgetBadges`'s own doc
+// comment); these two are the first GENUINELY typed, declared slots.
+//
+// `MeterTone` is duplicated rather than imported from `@ksp-gonogo/ui-kit`:
+// ui-kit's own `Meter.tsx` imports `value` from this package, so importing
+// ui-kit back here would be the exact same leaf-cycle this file's header
+// (and `./slots.ts`'s) already explains for `@ksp-gonogo/components`.
+//
+// `ShipMapPartMeterEntry` no longer carries a `tone` (design doc:
+// local_docs/design/2026-08-08-resource-colour-system.md, gonogo main
+// repo): the meter's fill is the resource's IDENTITY colour, derived by the
+// renderer from `resource` via ui-kit's `resourceColor`, never chosen by a
+// contributor. `status` is the SEPARATE, level-driven signal (a border tint
+// or badge) that `tone` used to conflate with the fill hue. `ShipMapMeterTone`
+// stays exported for `ShipMapPartMetaEntry`, which is a different kind of
+// row (process running/broken, habitat pressure, ...) and is unaffected by
+// this change: its `tone` genuinely IS a status colour, not an identity.
 // ---------------------------------------------------------------------------
 
-export {};
+/** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */
+export type ShipMapMeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
+
+/** Mirrors `ShipMapPartMeterEntry` (`ShipMap/shipTopology.ts`). */
+export interface ShipMapPartMeterEntry {
+  partId: string;
+  resource: string;
+  displayName: string;
+  amount: number;
+  capacity: number;
+  status?: "low" | "critical" | null;
+}
+
+/** Mirrors `ShipMapPartMetaEntry` (`ShipMap/shipTopology.ts`). */
+export interface ShipMapPartMetaEntry {
+  partId: string;
+  label: string;
+  tone: ShipMapMeterTone;
+  kind: "ratio" | "text";
+  value?: number;
+  text?: string;
+}
 
 declare module "./types" {
-  // Empty merge, no biome suppression needed here: unlike the base
-  // declaration in types.ts, biome's noEmptyInterface rule doesn't fire
-  // inside a declare-module augmentation block.
-  interface ContributionRegistry {}
+  interface ContributionRegistry {
+    "ship-map.part-meters": {
+      entry: ShipMapPartMeterEntry;
+      topics: "vessel.parts" | "kerbalism.profile";
+    };
+    "ship-map.part-meta": {
+      entry: ShipMapPartMetaEntry;
+      topics: "kerbalism.lifesupport" | "kerbalism.profile";
+    };
+  }
 }

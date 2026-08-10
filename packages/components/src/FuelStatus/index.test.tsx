@@ -306,7 +306,7 @@ describe("FuelStatusComponent", () => {
     // Totals row reports vacuum ΔV (mode="vac") and total burn duration.
     await waitFor(() => expect(visibleText()).toContain("4200 m/s"));
     expect(screen.queryByText("VAC")).not.toBeNull();
-    expect(screen.queryByText("2m 5s")).not.toBeNull();
+    expect(screen.queryByText("2min 5s")).not.toBeNull();
 
     // Per-stage ΔV picks the vacuum column.
     // `visibleText`, not `.textContent`: a readout carries a hidden word for

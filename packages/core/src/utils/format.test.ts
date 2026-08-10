@@ -15,8 +15,8 @@ describe("formatAge", () => {
   });
 
   it("formats minutes", () => {
-    expect(formatAge(60_000)).toBe("1m");
-    expect(formatAge(120_000)).toBe("2m");
+    expect(formatAge(60_000)).toBe("1min");
+    expect(formatAge(120_000)).toBe("2min");
   });
 
   it("formats hours for large values", () => {
@@ -34,8 +34,8 @@ describe("formatAge", () => {
   });
 
   it("shows the second tier when it is non-zero", () => {
-    expect(formatAge(90_000)).toBe("1m 30s");
-    expect(formatAge(5_400_000)).toBe("1h 30m");
+    expect(formatAge(90_000)).toBe("1min 30s");
+    expect(formatAge(5_400_000)).toBe("1h 30min");
   });
 });
 

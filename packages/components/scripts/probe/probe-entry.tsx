@@ -39,12 +39,14 @@
 // at module load). ES imports are hoisted in source order.
 import "./probe-install-host";
 import {
+  ContributionsProvider,
   DashboardItemContext,
   getComponent,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
+  WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
@@ -429,22 +431,45 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     // probe-only stubs: clicking them does nothing because there's no
     // alarm pipeline in the probe page; but the rendered chrome is the
     // thing we want to verify.
+    //
+    // `WidgetMetaContext` + `ContributionsProvider` mirror the real app's
+    // `WidgetContributions` wrapper (GridItemContent.tsx): without them any
+    // widget calling `useContributions`/`useWidgetBadges` in its own body
+    // sees no store at all (a silent empty result, not an error), so a
+    // widget whose RENDERED content depends on a contribution (ShipMap's
+    // per-part meters/meta, spec §13.4) would render as if nothing had ever
+    // contributed, in every probe/render-widget/visual-gate PNG. Safe for
+    // every other widget: nothing here reads `useWidgetBadges` from its own
+    // body (only the dashboard's Panel chrome does, which the probe never
+    // mounts), so this changes zero existing pixels.
+    const meta = {
+      componentId: def.id,
+      contributionSlots: def.contributionSlots ?? [],
+    };
     return createElement(
-      AlarmsLauncherProvider,
-      {
-        launcher: () => {},
-        creator: () => {},
-        manager: { find: () => null, remove: () => {} },
-      },
+      WidgetMetaContext.Provider,
+      { value: meta },
       createElement(
-        DashboardItemContext.Provider,
-        { value: { instanceId } },
-        createElement(WidgetComponent, {
-          config: payload.config ?? def.defaultConfig ?? {},
-          id: instanceId,
-          w: payload.w,
-          h: payload.h,
-        }),
+        ContributionsProvider,
+        null,
+        createElement(
+          AlarmsLauncherProvider,
+          {
+            launcher: () => {},
+            creator: () => {},
+            manager: { find: () => null, remove: () => {} },
+          },
+          createElement(
+            DashboardItemContext.Provider,
+            { value: { instanceId } },
+            createElement(WidgetComponent, {
+              config: payload.config ?? def.defaultConfig ?? {},
+              id: instanceId,
+              w: payload.w,
+              h: payload.h,
+            }),
+          ),
+        ),
       ),
     );
   }

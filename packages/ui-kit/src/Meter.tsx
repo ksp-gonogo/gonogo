@@ -1,5 +1,5 @@
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { Unit } from "./Unit";
 import { speakQuantity } from "./units";
@@ -13,10 +13,32 @@ export interface MeterProps
   label: string;
   /** Fill fraction, 0..1. Clamped; non-finite renders empty. */
   value: number;
-  /** Semantic colour of the fill. */
+  /** Semantic colour of the fill. Ignored when `fillColor` is set. */
   tone?: MeterTone;
-  /** Text shown on the right of the header (e.g. "5.0 rad/h"). Defaults to a percentage. */
+  /**
+   * Arbitrary CSS colour for the fill (e.g. `resourceColor(name)`), for
+   * meters whose fill carries an IDENTITY rather than a status (a resource
+   * kind, not "how is it doing"). Wins over `tone` for the fill colour only;
+   * `tone` still exists for the status-driven cases (dose, reliability,
+   * generic health bars) and is unaffected when this prop is absent.
+   */
+  fillColor?: string;
+  /**
+   * Text shown on the right of the header (e.g. "5.0 rad/h"). Defaults to a
+   * percentage. Also doubles as the `aria-valuetext` spoken value, so it
+   * stays a plain string; pass `valueLabelNode` alongside it when the
+   * VISIBLE header needs live markup (e.g. a `<Unit>`) that this string
+   * can't carry (an attribute can only hold text).
+   */
   valueLabel?: string;
+  /**
+   * Visual override for the header's value display. Wins over `valueLabel`
+   * for what's ON SCREEN, but `aria-valuetext` still reads from `valueLabel`
+   * (falling back to the bare percentage), since that's an attribute and
+   * can only hold a string. Pass both together: this for the eye, `valueLabel`
+   * for the accessibility tree.
+   */
+  valueLabelNode?: ReactNode;
   size?: MeterSize;
 }
 
@@ -33,7 +55,9 @@ export function Meter({
   label,
   value,
   tone = "neutral",
+  fillColor,
   valueLabel,
+  valueLabelNode,
   size = "md",
   ...rest
 }: MeterProps) {
@@ -41,15 +65,16 @@ export function Meter({
   const pct = Math.round(clamped * 100);
   // `value` is a 0..1 ratio, which is a unit the kit knows, so <Unit> does the
   // *100 and writes the symbol. `valueLabel` still wins when a caller has a
-  // better sentence than a bare percentage.
+  // better sentence than a bare percentage; `valueLabelNode` wins over both
+  // when that sentence itself needs live markup (see the prop doc).
   //
   // Two forms, because they go to two places. The visible one is a NODE, so
   // the symbol keeps its own styling; `aria-valuetext` is an attribute and can
-  // only hold a string, which is what `speakQuantity` is for. Writing one
-  // string for both is what the unit layer exists to stop: it would announce
-  // "72 percent-sign".
+  // only hold a string, which is what `speakQuantity` (or a caller-supplied
+  // `valueLabel`) is for. Writing one string for both is what the unit layer
+  // exists to stop: it would announce "72 percent-sign".
   const reading = quantity("ratio", clamped);
-  const display = valueLabel ?? <Unit value={reading} />;
+  const display = valueLabelNode ?? valueLabel ?? <Unit value={reading} />;
   const spoken = valueLabel ?? speakQuantity(reading);
   return (
     <Meter__Root $size={size} {...rest}>
@@ -66,7 +91,11 @@ export function Meter({
         aria-valuemax={100}
         aria-valuetext={spoken}
       >
-        <Meter__Fill $tone={tone} style={{ width: `${pct}%` }} />
+        <Meter__Fill
+          $tone={tone}
+          $fillColor={fillColor}
+          style={{ width: `${pct}%` }}
+        />
       </Meter__Track>
     </Meter__Root>
   );
@@ -94,7 +123,11 @@ const TONE_FILL = {
     background: var(--color-status-nogo-bg);
   `,
   info: css`
-    background: var(--color-status-info-bg);
+    /* The visible info hue (--color-status-info-fg), NOT --color-status-info-bg:
+       the -bg token is a near-black subtle panel background and vanishes as a
+       filled bar on a dark surface. The other tones' -bg values happen to be
+       saturated; info's is not, its saturated counterpart is -fg. */
+    background: var(--color-status-info-fg);
   `,
 } as const;
 
@@ -150,11 +183,19 @@ const Meter__Track = styled.div<{ $size: MeterSize }>`
   ${({ $size }) => SIZE_TRACK[$size]}
 `;
 
-const Meter__Fill = styled.div<{ $tone: MeterTone }>`
+const Meter__Fill = styled.div<{ $tone: MeterTone; $fillColor?: string }>`
   height: 100%;
   border-radius: var(--radius-pill);
   transition: width var(--duration-slow) var(--ease-standard);
-  ${({ $tone }) => TONE_FILL[$tone]}
+  /* $fillColor wins outright when set: an identity fill (a resource's own
+     colour) isn't "one of five tones", it's a fully arbitrary CSS colour,
+     so this is a straight override rather than another TONE_FILL entry. */
+  ${({ $tone, $fillColor }) =>
+    $fillColor
+      ? css`
+          background: ${$fillColor};
+        `
+      : TONE_FILL[$tone]}
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

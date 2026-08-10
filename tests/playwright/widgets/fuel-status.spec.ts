@@ -13,7 +13,7 @@
  * Fixture craft (topology server): the same "Mun Tester" vessel, currently
  * on its single propulsive stage (stage 1 of 2, stage 0 is the final
  * pod+chute stage, no engine):
- *   dv.summary: totalDvActual 1310.8 m/s, totalBurnTime 210.4s ("3m 30s")
+ *   dv.summary: totalDvActual 1310.8 m/s, totalBurnTime 210.4s ("3min 30s")
  *   dv.stages[stage 1]: deltaVActual 1310.8, TWRActual 1.4321, burnTime
  *     210.4s, resources.LiquidFuel/Oxidizer matching the shared snapshot's
  *     `vessel.resources` totals (539.8/1980, 659.8/2420): the
@@ -76,12 +76,12 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     await expect(
       pair.main.getByText("Total burn", { exact: true }),
     ).toBeVisible();
-    // "3m 30s" is now its OWN text node in two places (the total and the
+    // "3min 30s" is now its OWN text node in two places (the total and the
     // active stage's row), because <Countdown> splits it out of the longer
     // string the stage row used to be. An exact-text match resolves to both
     // and trips strict mode; what this line is for is that the total reads
-    // 3m 30s, and the stage row has its own assertion below.
-    await expectVisibleText(pair.main, "3m 30s");
+    // 3min 30s, and the stage row has its own assertion below.
+    await expectVisibleText(pair.main, "3min 30s");
 
     // Resource list: the stage-scoped LiquidFuel/Oxidizer rows now
     // resolve (previously always 0/0 with dv.stages absent), plus the
@@ -104,7 +104,7 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     await expect(pair.main.getByText(/Stages · ΔV \(ACT\)/)).toBeVisible();
     await expect(pair.main.getByText(/S1/)).toBeVisible();
     await expect(pair.main.getByText(/S0/)).toBeVisible();
-    await expectVisibleText(pair.main, "3m 30s · TWR 1.43");
+    await expectVisibleText(pair.main, "3min 30s · TWR 1.43");
     await expectVisibleText(pair.main, "0s · TWR 0.00");
 
     // Station: chrome only (known station-telemetry gap, see module doc).

@@ -1,16 +1,41 @@
-import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
-import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import type {
+  ComponentProps,
+  Contributed,
+  VesselTopology,
+} from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  registerComponent,
+  useContributions,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { Box } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
+// Side-effect import: the built-in half of the `ship-map.part-meters`
+// self-contribution self-registers on module load, same contract as every
+// other built-in registration. See that file's own header for why the five
+// classic drainable propellants now live there instead of a hardcoded Set
+// inside `ShipDiagramSvg`.
+import "./partMetersContribution";
 import { ShipDiagram } from "./ShipDiagram";
 import { computeShipLayout, type ShipBounds } from "./ShipDiagramSvg";
 import {
   buildShipMapPart,
   pickLateralAxis,
   type ShipMapPart,
+  type ShipMapPartMetaEntry,
+  type ShipMapPartMeterEntry,
 } from "./shipTopology";
+
+// Re-exported so a sibling file (the contribution-slot-registry conformance
+// test, an Uplink's own contribution) can import these from the widget's
+// package root the same way every other mirrored slot-context type is
+// imported, even though the interfaces themselves are authored in
+// `shipTopology.ts` (avoids a type-only import cycle back into this file,
+// which itself imports `ShipDiagramSvg`/`ShipDiagram`).
+export type { ShipMapPartMetaEntry, ShipMapPartMeterEntry };
 
 // ---------------------------------------------------------------------------
 // Augment slots (Uplink architecture). ShipMap is a HOST that exposes
@@ -68,6 +93,26 @@ declare module "@ksp-gonogo/core" {
     "ship-map.overlay": ShipMapOverlayContext;
     "ship-map.badges": ShipMapBadgesContext;
   }
+
+  // The framework's first widget-authored `ContributionRegistry` slots
+  // (contribution-slots-spec §13.4): every OTHER first-party contribution to
+  // date rides the automatic `${componentId}.badges` slot, which is a
+  // runtime string, never a declared member of this registry (see
+  // `useWidgetBadges`'s own doc comment). These two are genuinely typed,
+  // declared slots: `ship-map.part-meters` (per-part resource meters) and
+  // `ship-map.part-meta` (per-part status/metadata rows), each fed by BOTH
+  // the built-in `core` contribution (`./partMetersContribution.ts`) and a
+  // Kerbalism-style Uplink contribution, on equal footing.
+  interface ContributionRegistry {
+    "ship-map.part-meters": {
+      entry: ShipMapPartMeterEntry;
+      topics: "vessel.parts" | "kerbalism.profile";
+    };
+    "ship-map.part-meta": {
+      entry: ShipMapPartMetaEntry;
+      topics: "kerbalism.lifesupport" | "kerbalism.profile";
+    };
+  }
 }
 
 interface ShipMapConfig {
@@ -106,6 +151,22 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [topology],
   );
   const liveByFlightId = usePartsLive(flightIds);
+
+  // The unified self-contribution path (spec §13.4): every per-part meter and
+  // meta row, built-in and Kerbalism alike, arrives through these two typed
+  // slots. Grouped by partId here, once, so `ShipDiagramSvg` (the compact
+  // in-body fill bars) and `ShipDiagram` (the hover tooltip) both read the
+  // SAME per-part lookup rather than each re-deriving it.
+  const meterContributions = useContributions("ship-map.part-meters");
+  const metaContributions = useContributions("ship-map.part-meta");
+  const partMeters = useMemo(
+    () => groupByPart(meterContributions, (e) => `${e.partId}:${e.resource}`),
+    [meterContributions],
+  );
+  const partMeta = useMemo(
+    () => groupByPart(metaContributions, (e) => `${e.partId}:${e.label}`),
+    [metaContributions],
+  );
 
   // Flatten topology + live data into the diagram's view-model. Axis
   // pick happens once per topology rebuild so every part shares the
@@ -197,9 +258,37 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         throttle,
         badgesContext,
         overlayContext,
+        partMeters,
+        partMeta,
       )}
     </Box>
   );
+}
+
+/**
+ * Groups aggregated contribution entries by `partId`, deduplicating on
+ * `dedupeKey` so two contributors landing an entry for the same identity
+ * (e.g. the same part+resource pair) don't render two overlapping bars. Kept
+ * to first-wins: `useContributions` already returns entries in the
+ * aggregator's priority/registration order (`getContributionsForSlot`'s own
+ * sort), so "first" here means "highest-priority contributor", the same rule
+ * every other contribution-consuming surface in the framework relies on.
+ */
+function groupByPart<E extends { partId: string }>(
+  entries: readonly Contributed<E>[],
+  dedupeKey: (entry: E) => string,
+): Map<string, E[]> {
+  const seen = new Set<string>();
+  const out = new Map<string, E[]>();
+  for (const entry of entries) {
+    const key = dedupeKey(entry);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const list = out.get(entry.partId);
+    if (list) list.push(entry);
+    else out.set(entry.partId, [entry]);
+  }
+  return out;
 }
 
 /**
@@ -242,6 +331,8 @@ function renderBody(
   throttle: number,
   badgesContext: ShipMapBadgesContext,
   overlayContext: ShipMapOverlayContext | null,
+  partMeters: Map<string, ShipMapPartMeterEntry[]>,
+  partMeta: Map<string, ShipMapPartMetaEntry[]>,
 ) {
   if (!topology) {
     return (
@@ -275,6 +366,8 @@ function renderBody(
           width={size.w}
           height={size.h}
           throttle={throttle}
+          partMeters={partMeters}
+          partMeta={partMeta}
         />
         {overlayContext && (
           <div style={OVERLAY_LAYER}>
@@ -384,6 +477,11 @@ registerComponent<ShipMapConfig>({
   // base-frame projection) and a broad badges escape-hatch slot in the header
   // meta row. No first-party augment fills either yet.
   augmentSlots: ["ship-map.overlay", "ship-map.badges"],
+  // The self-contribution slots (spec §13.4): per-part resource meters and
+  // per-part status/meta rows. The built-in `core` contribution
+  // (./partMetersContribution.ts) always fills the first; a Kerbalism-style
+  // Uplink may fill both.
+  contributionSlots: ["ship-map.part-meters", "ship-map.part-meta"],
   // useTopology reads the `vessel.parts` stream Topic directly (bypassing
   // the mapTopic shim, same as useVesselDeltaV's stream-native reads); the
   // per-part thermal/resources/module-state joins in usePartsLive all ride

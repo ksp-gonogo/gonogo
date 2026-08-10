@@ -174,7 +174,11 @@ export interface Rung {
  *    prefixes anyone uses. Scientific notation instead: see `SCIENTIFIC`.
  *  - `planeAngle`, `ratio`, `dimensionless`, which have no magnitudes to climb.
  */
-const LADDERS: Record<string, readonly Rung[]> = {
+// Exported (rather than kept module-private like the tables around it) so
+// `unit-symbol-collision.test.ts` can walk every declared rung symbol
+// directly, the same source `formatQuantity` itself reads, instead of a
+// second hand-copied list that could silently drift from this one.
+export const LADDERS: Record<string, readonly Rung[]> = {
   length: [
     { from: 0, symbol: "m", per: 1 },
     { from: 1e3, symbol: "km", per: 1e3 },
@@ -526,6 +530,7 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   "\u00B0C": "degrees celsius",
   // Everything else the contract declares.
   s: "seconds",
+  min: "minutes",
   h: "hours",
   dB: "decibels",
   "rad/s": "radians per second",

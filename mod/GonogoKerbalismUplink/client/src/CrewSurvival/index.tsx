@@ -2,46 +2,35 @@ import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useProcessor, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  formatDuration,
   Meter,
   type MeterTone,
   Stack,
-  speakQuantity,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
-import { CREW_SURVIVAL, type KerbalSurvival } from "./processor";
+import {
+  CREW_SURVIVAL,
+  type CrewSurvival,
+  type KerbalSurvival,
+} from "./processor";
 
 /**
- * CrewManifest's `crew-manifest.survival` augment: fills the base widget's
- * generic per-row survival slot with the per-kerbal death clock / worst
- * rule this Uplink derives (`CREW_SURVIVAL`, processor.ts). Replaces the
- * inline `SurvivalMeters` that used to live in CrewManifest itself, a
- * straight move (not a rewrite of the presentation), now sourced off the
- * Processor instead of a direct `useTelemetry("kerbalism.crew")` read.
- *
- * Matched by `crewIndex` first (the row order CrewManifest renders IS
- * `vessel.crew.crew`'s own order, and so is `CREW_SURVIVAL.kerbals`, both
- * built from the same array), falling back to a name search only if that
+ * Shared lookup: matched by `crewIndex` first (the row order CrewManifest
+ * renders IS `vessel.crew.crew`'s own order, and so is `CREW_SURVIVAL.kerbals`,
+ * both built from the same array), falling back to a name search only if that
  * position's name has drifted (e.g. a future base-widget change that
- * filters/reorders the roster). Renders nothing when the kerbal has neither
- * a rule nor a death clock reported, so a vessel with no Kerbalism data (or
- * a kerbal Kerbalism has nothing to say about yet) leaves the row exactly as
- * the base widget renders it alone.
+ * filters/reorders the roster).
  */
-function CrewSurvivalAugment({
-  crewName,
-  crewIndex,
-}: SlotProps<"crew-manifest.survival">) {
-  const survival = useProcessor(CREW_SURVIVAL);
-  if (!survival) return null;
+function findKerbal(
+  survival: CrewSurvival,
+  crewName: string,
+  crewIndex: number,
+): KerbalSurvival | undefined {
   const byIndex = survival.kerbals[crewIndex];
-  const kerbal =
-    byIndex?.name === crewName
-      ? byIndex
-      : survival.kerbals.find((k) => k.name === crewName);
-  if (!kerbal) return null;
-  if (!kerbal.worstRule && kerbal.deathClockSec === null) return null;
-  return <SurvivalMeters kerbal={kerbal} />;
+  return byIndex?.name === crewName
+    ? byIndex
+    : survival.kerbals.find((k) => k.name === crewName);
 }
 
 // A string because it feeds `valueLabel` props, not JSX children.
@@ -53,23 +42,30 @@ function ruleLabel(name: string): string {
   return name.length > 0 ? name.charAt(0).toUpperCase() + name.slice(1) : name;
 }
 
-function clockLabel(kerbal: KerbalSurvival): string {
-  if (kerbal.deathClockSec !== null) {
-    return `~${speakQuantity(value("s", Math.max(0, kerbal.deathClockSec)))} to fatal`;
-  }
-  if (kerbal.worstRule) {
-    return `${ruleLabel(kerbal.worstRule.name)} ${pct(kerbal.worstRule.fraction)}`;
-  }
-  return "stable";
-}
-
 /**
- * The per-kerbal survival readout: the worst reported rule as a
- * 0..1-toward-fatal meter, plus the derived death-clock/worst-rule badge.
- * Presentational (no hooks besides the parent's `useProcessor`).
+ * CrewManifest's `crew-manifest.survival` augment: fills the base widget's
+ * generic per-row survival slot with the per-kerbal worst-rule meter this
+ * Uplink derives (`CREW_SURVIVAL`, processor.ts). The meter is GENERIC
+ * telemetry, a 0..1-toward-fatal magnitude, nothing more. It used to also
+ * carry a badge that just restated the same rule name and percentage
+ * underneath itself (redundant with the meter directly above it); that
+ * badge has moved to `CrewSurvivalBadgeAugment` below, which states the
+ * CONSEQUENCE instead and lives next to the kerbal's name, not stacked under
+ * its own meter.
+ *
+ * Renders nothing when the kerbal has neither a rule nor a death clock
+ * reported, so a vessel with no Kerbalism data (or a kerbal Kerbalism has
+ * nothing to say about yet) leaves the row exactly as the base widget
+ * renders it alone.
  */
-function SurvivalMeters({ kerbal }: { kerbal: KerbalSurvival }) {
-  const tone: MeterTone = kerbal.tone;
+function CrewSurvivalAugment({
+  crewName,
+  crewIndex,
+}: SlotProps<"crew-manifest.survival">) {
+  const survival = useProcessor(CREW_SURVIVAL);
+  if (!survival) return null;
+  const kerbal = findKerbal(survival, crewName, crewIndex);
+  if (!kerbal?.worstRule) return null;
   return (
     <Stack
       gap="xs"
@@ -79,19 +75,74 @@ function SurvivalMeters({ kerbal }: { kerbal: KerbalSurvival }) {
       }}
       aria-label="survival meters"
     >
-      {kerbal.worstRule && (
-        <Meter
-          size="sm"
-          label={ruleLabel(kerbal.worstRule.name)}
-          value={kerbal.worstRule.fraction}
-          tone={tone}
-          valueLabel={pct(kerbal.worstRule.fraction)}
-        />
-      )}
-      <Badge tone={tone} size="sm">
-        {clockLabel(kerbal)}
-      </Badge>
+      <Meter
+        size="sm"
+        label={ruleLabel(kerbal.worstRule.name)}
+        value={kerbal.worstRule.fraction}
+        tone={kerbal.tone}
+        valueLabel={pct(kerbal.worstRule.fraction)}
+      />
     </Stack>
+  );
+}
+
+/**
+ * The consequence a kerbal's derived state implies, never a restated meter
+ * number: only fires in the danger band (`tone === "nogo"`, the same
+ * threshold `processor.ts`'s `kerbalTone` uses for an imminent death clock
+ * or a rule past its critical fraction). A merely-elevated ("warn") kerbal
+ * is already flagged by the meter's own colour in `.survival`; this badge
+ * exists for the case that actually threatens the kerbal, so a nominal or
+ * warn-tier kerbal carries no redundant badge next to their name.
+ */
+function warningFor(
+  kerbal: KerbalSurvival,
+): { label: string; tone: MeterTone } | null {
+  if (kerbal.tone !== "nogo") return null;
+  if (kerbal.deathClockSec !== null) {
+    // A death clock is a DURATION, not a scalar quantity: it must render
+    // through `formatDuration`, the same composite ladder the delay/countdown
+    // strips use, never `speakQuantity(value("s", ...))`. Routing a duration
+    // through the scalar `time` unit-kind is how this used to render "~4M TO
+    // FATAL", an ambiguous "M" indistinguishable from metres once the Badge's
+    // `text-transform: uppercase` got hold of it.
+    return {
+      label: `~${formatDuration(Math.max(0, kerbal.deathClockSec))} to fatal`,
+      tone: kerbal.tone,
+    };
+  }
+  if (kerbal.worstRule) {
+    return {
+      label: `${ruleLabel(kerbal.worstRule.name)} critical`,
+      tone: kerbal.tone,
+    };
+  }
+  return null;
+}
+
+/**
+ * CrewManifest's `crew-manifest.badges` augment: the name-adjacent per-row
+ * slot (renders inline in the roster row's `Cluster`, right next to the
+ * kerbal's name, per `CrewBadgeContext`'s own doc comment: "a future
+ * Kerbalism Habitat/Radiation Uplink can badge each kerbal"). Fed by the
+ * SAME `CREW_SURVIVAL` Processor `CrewSurvivalAugment` above reads, one
+ * per-frame derivation, two consumers, same dogfood pattern as
+ * `ShipSystems/badge.ts`'s `ship-systems-badge`.
+ */
+function CrewSurvivalBadgeAugment({
+  crewName,
+  crewIndex,
+}: SlotProps<"crew-manifest.badges">) {
+  const survival = useProcessor(CREW_SURVIVAL);
+  if (!survival) return null;
+  const kerbal = findKerbal(survival, crewName, crewIndex);
+  if (!kerbal) return null;
+  const warning = warningFor(kerbal);
+  if (!warning) return null;
+  return (
+    <Badge tone={warning.tone} size="sm">
+      {warning.label}
+    </Badge>
   );
 }
 
@@ -103,4 +154,12 @@ registerAugment({
   owner: KERBALISM,
 });
 
-export { CrewSurvivalAugment };
+registerAugment({
+  id: "crew-manifest-survival-badge",
+  augments: "crew-manifest.badges",
+  component: CrewSurvivalBadgeAugment,
+  requires: "kerbalism",
+  owner: KERBALISM,
+});
+
+export { CrewSurvivalAugment, CrewSurvivalBadgeAugment };

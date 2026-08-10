@@ -559,6 +559,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // minSize 3×3: single-crew row, tightest placement.
       { name: "tiny-3x3", w: 3, h: 3 },
+      // narrowest roster width (showRoster's own w>=4 floor): exercises the
+      // per-crew-row badge WRAP behaviour (a badge that doesn't fit next to
+      // the name drops to its own line instead of truncating it).
+      { name: "narrow-4x10", w: 4, h: 10 },
       // defaultSize 6×8: the common operator view.
       { name: "default-6x8", w: 6, h: 8 },
       // wide/tall: roomy crew list.
@@ -579,6 +583,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "CrewManifest/__render_kerbalism_survival__",
     outPath: "renders/kerbalism-crew-survival",
     modes: [
+      // Narrowest roster width: the badge-wrap case actually has badges to
+      // wrap here (crew-critical.json's per-kerbal warnings), unlike the
+      // vanilla base-widget fixtures above which never bind the slot.
+      { name: "narrow-4x10", w: 4, h: 10 },
       // defaultSize 6×8: the common operator view, both fixtures.
       { name: "default-6x8", w: 6, h: 8 },
       // Wide/tall review shot: every row's survival meter + badge readable
@@ -1097,6 +1105,45 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // ShipMap: part diagram + the spec §13.4 self-contribution flagship
+    // (`ship-map.part-meters` / `ship-map.part-meta`). A dedicated
+    // `probe/` subfolder under the widget's own `__fixtures__/`, separate
+    // from the SSR-only legacy `{ "v.topology": ... }` fixtures the
+    // `render-ship-map` script + snapshot tests use: those carry no
+    // `_stream` block, so the probe would render them as a permanent
+    // "Waiting for vessel topology" placeholder. These two are authored
+    // straight in the modern `vessel.parts` wire shape instead.
+    widgetId: "ship-map",
+    fixturesPath: "ShipMap/__fixtures__/probe",
+    // Renamed from `kerbalism-shipmap` alongside the resource-colour system
+    // landing (local_docs/design/2026-08-08-resource-colour-system.md): the
+    // fills these renders show are no longer the old MeterTone palette, so
+    // the folder name says so rather than silently going stale under the
+    // pre-colour-system name.
+    outPath: "renders/kerbalism-shipmap-colour",
+    modes: [
+      // Registered default.
+      { name: "default-8x10", w: 8, h: 10 },
+      // Wider/taller: the colour-spread fixture stacks four parts with
+      // several meters each, the default size crops it.
+      {
+        name: "colour-spread-10x16",
+        w: 10,
+        h: 16,
+        forFixtures: ["03-resource-colour-spread"],
+      },
+      // Water-family review shot: Water, WasteWater, Waste, CarbonDioxide,
+      // and Oxygen (for contrast) across two parts, three meters on the
+      // taller one, so all five bars read uncropped at once.
+      {
+        name: "water-family-10x14",
+        w: 10,
+        h: 14,
+        forFixtures: ["04-water-family"],
+      },
+    ],
+  },
+  {
     // ShipSystems: Kerbalism vessel-wide resource ledger, replacing the
     // deleted LifeSupportSystems widget. Its actual source lives at
     // mod/GonogoKerbalismUplink/client/src/ShipSystems, the fixture stays
@@ -1139,7 +1186,69 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [
           {
             selector:
-              'button[aria-label="Show rate ledger for Electric Charge"]',
+              'button[aria-label="Show rate breakdown for Electric Charge"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Same accordion, at the default and minimum widths: the shape that
+      // caught the ledger overflowing the panel at anything narrower than
+      // wide-12x18 (see LedgerBody's own doc comment).
+      {
+        name: "ledger-expanded-9x15",
+        w: 9,
+        h: 15,
+        forFixtures: ["resource-shortage"],
+        clicks: [
+          {
+            selector:
+              'button[aria-label="Show rate breakdown for Electric Charge"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      {
+        name: "ledger-expanded-4x8",
+        w: 4,
+        h: 8,
+        forFixtures: ["resource-shortage"],
+        clicks: [
+          {
+            selector:
+              'button[aria-label="Show rate breakdown for Electric Charge"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Ledger DESIGN review shot: resource-shortage's Electric Charge only
+      // has ONE ledger term (Water Recycler), which is not enough to judge a
+      // bar that is meant to diverge either side of zero. ledger-showcase's
+      // Electric Charge has five terms of mixed sign and varied magnitude
+      // (a dominant +0.45/s producer down to a -0.003/s trickle), at both
+      // the default and a generous width, so the diverging red/green
+      // DivergingBar treatment is legible across several rows at once.
+      {
+        name: "ledger-showcase-9x15",
+        w: 9,
+        h: 15,
+        forFixtures: ["ledger-showcase"],
+        clicks: [
+          {
+            selector:
+              'button[aria-label="Show rate breakdown for Electric Charge"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      {
+        name: "ledger-showcase-12x18",
+        w: 12,
+        h: 18,
+        forFixtures: ["ledger-showcase"],
+        clicks: [
+          {
+            selector:
+              'button[aria-label="Show rate breakdown for Electric Charge"]',
             awaitMs: 100,
           },
         ],

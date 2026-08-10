@@ -77,6 +77,7 @@ export type {
   ComponentRequirement,
   ConfigComponentProps,
   ConfigField,
+  ContributionEntry,
   ContributionRegistry,
   DataKey,
   DataRequirement,

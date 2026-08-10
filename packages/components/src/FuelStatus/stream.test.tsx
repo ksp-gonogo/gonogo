@@ -162,7 +162,7 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
     );
     // Totals row: default mode is "actual".
     expect(visibleText()).toContain("3900 m/s");
-    expect(visibleText()).toContain("2m 5s");
+    expect(visibleText()).toContain("2min 5s");
     // Per-stage ΔV (actual column) for both rows.
     expect(visibleText()).toContain("2300 m/s");
     expect(visibleText()).toContain("1600 m/s");

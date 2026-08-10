@@ -58,7 +58,7 @@ test.describe("Sitrep stream: recorded flight mirror", () => {
       pair.main.getByText("Bob Kerman", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
     await expect(
-      pair.main.getByText("1 / 1 aboard", { exact: true }),
+      pair.main.getByText("1/1 aboard", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Station proves real connectivity (the dashboard mounts, the widget

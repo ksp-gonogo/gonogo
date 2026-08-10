@@ -11,32 +11,90 @@
 // AND is where every first-party contribution slot will eventually be
 // owned, same split as the augment-slot mirror).
 //
-// Both sides are the empty declaration-merge seam today (Task 1.7, Phase 1
-// scaffold: no first-party contribution slot has landed yet, the
-// Application phase is a separate follow-up plan). This compiles as long as
-// every key the sdk mirrors also exists, with an assignable shape, on
-// core's real registry; it has no teeth until the first real slot's
-// `declare module` block lands on both sides, at which point this file
-// grows the same per-key bidirectional checks as
-// `slot-registry.conformance.test-d.ts`.
+// `ship-map.part-meters` / `ship-map.part-meta` (spec §13.4, the framework's
+// self-contribution flagship) are the first real slots to land here, so this
+// file grows real per-key bidirectional checks (mirrors ↔ core's real
+// registry, mirrors ↔ the real widget-owned entry types), exactly the same
+// two-directions-per-slot pattern `slot-registry.conformance.test-d.ts`
+// established for `SlotRegistry`.
 // ---------------------------------------------------------------------------
 
-import type { ContributionRegistry as CoreContributionRegistry } from "@ksp-gonogo/core";
-import type { ContributionRegistry as SdkContributionRegistry } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ContributionEntry as CoreContributionEntry,
+  ContributionRegistry as CoreContributionRegistry,
+} from "@ksp-gonogo/core";
+import type {
+  ContributionEntry as SdkContributionEntry,
+  ContributionRegistry as SdkContributionRegistry,
+} from "@ksp-gonogo/sitrep-sdk";
+import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
 
 // Every key the sdk mirrors must exist, with an assignable shape, on core's
-// real registry. `keyof {}` is `never` on both sides today, and a
-// distributive conditional over `never` itself evaluates to `never`, which
-// satisfies `Expect`'s `extends true` constraint trivially: this is the
-// harness the first real contribution slot's `declare module` block (added
-// to both core and `mod/sitrep-sdk/src/api/contribution-slots.ts`) plugs
-// into, same as `slot-registry.conformance.test-d.ts` for `SlotRegistry`.
+// real registry.
 type _SdkKeysAssignableToCore = Expect<
   Assignable<keyof SdkContributionRegistry, keyof CoreContributionRegistry>
 >;
 
-// Keep the alias "used" under noUnusedLocals.
-export type _ContributionRegistryConformance = [_SdkKeysAssignableToCore];
+// --- ship-map.part-meters: checked both directions -------------------------
+
+type _ShipMapPartMeters = Expect<
+  Assignable<
+    SdkContributionEntry<"ship-map.part-meters">,
+    CoreContributionEntry<"ship-map.part-meters">
+  >
+>;
+type _ShipMapPartMetersBack = Expect<
+  Assignable<
+    CoreContributionEntry<"ship-map.part-meters">,
+    SdkContributionEntry<"ship-map.part-meters">
+  >
+>;
+type _ShipMapPartMetersReal = Expect<
+  Assignable<
+    SdkContributionEntry<"ship-map.part-meters">,
+    ShipMapPartMeterEntry
+  >
+>;
+type _ShipMapPartMetersRealBack = Expect<
+  Assignable<
+    ShipMapPartMeterEntry,
+    SdkContributionEntry<"ship-map.part-meters">
+  >
+>;
+
+// --- ship-map.part-meta: checked both directions ----------------------------
+
+type _ShipMapPartMeta = Expect<
+  Assignable<
+    SdkContributionEntry<"ship-map.part-meta">,
+    CoreContributionEntry<"ship-map.part-meta">
+  >
+>;
+type _ShipMapPartMetaBack = Expect<
+  Assignable<
+    CoreContributionEntry<"ship-map.part-meta">,
+    SdkContributionEntry<"ship-map.part-meta">
+  >
+>;
+type _ShipMapPartMetaReal = Expect<
+  Assignable<SdkContributionEntry<"ship-map.part-meta">, ShipMapPartMetaEntry>
+>;
+type _ShipMapPartMetaRealBack = Expect<
+  Assignable<ShipMapPartMetaEntry, SdkContributionEntry<"ship-map.part-meta">>
+>;
+
+// Keep every alias "used" under noUnusedLocals.
+export type _ContributionRegistryConformance = [
+  _SdkKeysAssignableToCore,
+  _ShipMapPartMeters,
+  _ShipMapPartMetersBack,
+  _ShipMapPartMetersReal,
+  _ShipMapPartMetersRealBack,
+  _ShipMapPartMeta,
+  _ShipMapPartMetaBack,
+  _ShipMapPartMetaReal,
+  _ShipMapPartMetaRealBack,
+];

@@ -1,0 +1,122 @@
+{
+  "_meta": {
+    "scenario": "kerbalism-supply-tanks",
+    "notes": "One vessel, both contributors active: part 2 (LiquidFuel/Oxidizer) gets its meter from the built-in `core` contribution, part 3 (Water/Food) gets its meter from the Kerbalism Uplink contribution (mod/GonogoKerbalismUplink/client/src/ShipMap/partMeters.ts), and part 3 also carries a fitted-process ship-map.part-meta row (a running water recycler). Demonstrates spec §13.4's self-contribution unify: one aggregated slot, two contributors, rendered by the SAME code path. Food.amount is deliberately small (0.4) to catch a fmtAmt-style rounding-to-zero bug in the tooltip's Meter valueLabel."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.parts",
+      "kerbalism.available",
+      "kerbalism.profile",
+      "kerbalism.lifesupport"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": { "x": 0, "y": 0, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+              "dryMass": 0.8,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "modules": ["ModuleCommand"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": { "x": 0, "y": -1.145, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.85, "z": 1.25 } },
+              "dryMass": 0.25,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": { "amount": 90, "maxAmount": 180 },
+                "Oxidizer": { "amount": 100, "maxAmount": 220 }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "3",
+              "parentId": "2",
+              "name": "kerbalismSupplyTank",
+              "title": "PPD-12 Life Support Tank",
+              "position": { "x": 0, "y": -2.79, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.0, "z": 1.25 } },
+              "dryMass": 0.3,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "Water": { "amount": 42.3, "maxAmount": 180 },
+                "Food": { "amount": 0.4, "maxAmount": 90 }
+              },
+              "moduleStates": []
+            }
+          ]
+        }
+      },
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "kerbalism.profile",
+        "value": {
+          "name": "Default",
+          "resources": {
+            "Water": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.2
+            },
+            "Food": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Food",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            }
+          },
+          "rules": [],
+          "processes": []
+        }
+      },
+      {
+        "channel": "kerbalism.lifesupport",
+        "value": {
+          "rates": { "Water": -0.002, "Food": -0.0007 },
+          "processes": [
+            {
+              "resource": "recycler",
+              "title": "Water Recycler",
+              "capacity": 1,
+              "running": true,
+              "broken": false,
+              "flightId": 3
+            }
+          ],
+          "greenhouses": []
+        }
+      }
+    ]
+  }
+}

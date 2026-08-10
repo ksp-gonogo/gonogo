@@ -207,7 +207,7 @@ describe("formatQuantity", () => {
     // Time climbs by 60 and 6 and 426, and reads two tiers at once. A KSP day
     // is 6h, which is exactly the kind of thing a hand-rolled ladder gets wrong.
     expect(formatQuantity(8100, "s")).toMatchObject({
-      value: "2h 15m",
+      value: "2h 15min",
       // Interleaved with the number, so there is no symbol to pull out.
       symbol: "",
     });
@@ -561,10 +561,10 @@ describe("the two time kinds", () => {
   });
 
   it("carries no symbol, because the parts are inside the number", () => {
-    // Same reason `s` comes back bare: "2h 15m" cannot be split into a value
-    // and a symbol the way "12.4" and "km" can.
+    // Same reason `s` comes back bare: "2h 15min" cannot be split into a
+    // value and a symbol the way "12.4" and "km" can.
     expect(formatQuantity(90, "irl:s").symbol).toBe("");
-    expect(writeQuantity(value("irl:s", 90))).toBe("1m 30s");
+    expect(writeQuantity(value("irl:s", 90))).toBe("1min 30s");
   });
 });
 
@@ -606,7 +606,7 @@ describe("thousands", () => {
     // Both interleave their own notation into the number, and a comma inside
     // either one is noise rather than a separator.
     expect(formatQuantity(86_400, "s").value).toBe("4d");
-    expect(formatQuantity(12_400, "irl:s").value).toBe("3h 26m");
+    expect(formatQuantity(12_400, "irl:s").value).toBe("3h 26min");
   });
 });
 

@@ -7,8 +7,9 @@
  *   - vessel.crew.capacity = 1
  *   - vessel.crew.crew     = [{ name: "Bob Kerman" }]
  *
- * At the default 8×6 grid footprint the widget renders the full
- * subtitle ("1 / 1 aboard") and the roster row for Bob Kerman.
+ * At the default 8×6 grid footprint the widget renders the roster row for
+ * Bob Kerman, and the panel header carries the "1/1 aboard" headcount badge
+ * (`crew-manifest.badges`, see `CrewManifest/badge.ts`).
  *
  * Station-side scope: only the "CREW" panel title (static chrome) is
  * checked on the station: the roster/headcount come from live Sitrep
@@ -39,7 +40,7 @@ test.describe("widget DOM mirror: CrewManifest", () => {
     }
 
     await expect(
-      pair.main.getByText("1 / 1 aboard", { exact: true }),
+      pair.main.getByText("1/1 aboard", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
     await expect(
       pair.main.getByText("Bob Kerman", { exact: true }),

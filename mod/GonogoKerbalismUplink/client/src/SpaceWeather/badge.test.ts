@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import { spaceWeatherBadges } from "./badge";
 
 describe("spaceWeatherBadges", () => {
-  it("flags a storm in progress as Take cover (nogo)", () => {
+  it("flags a storm in progress as Storm in progress (nogo)", () => {
     expect(spaceWeatherBadges({ stormInProgress: true })).toEqual([
-      { id: "space-weather-status", label: "Take cover", tone: "nogo" },
+      {
+        id: "space-weather-status",
+        label: "Storm in progress",
+        tone: "nogo",
+      },
     ]);
   });
 
@@ -20,7 +24,7 @@ describe("spaceWeatherBadges", () => {
     expect(
       spaceWeatherBadges({ stormInProgress: true, innerBelt: true })?.[0]
         ?.label,
-    ).toBe("Take cover");
+    ).toBe("Storm in progress");
   });
 
   it("shows no badge when sheltered or when there is no data", () => {

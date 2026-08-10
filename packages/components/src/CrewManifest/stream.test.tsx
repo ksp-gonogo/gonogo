@@ -1,6 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewManifestComponent } from "./index";
@@ -56,10 +55,14 @@ describe("CrewManifest, genuinely runs off the stream (M3 batch 4)", () => {
       });
     });
 
-    await waitFor(() => expect(visibleText()).toContain("3 / 4 aboard"));
     // The roster now renders straight off the stream, no legacy fallback
-    // needed for names or capacity.
-    expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();
+    // needed for names or capacity. The "3 / 4 aboard" headcount itself has
+    // moved to the info-tone `crew-manifest.badges` panel-badge contribution
+    // (`./badge.ts`), which this bare-component render tree (no
+    // `ContributionsProvider`/`Panel` chrome) never mounts.
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     expect(screen.getByText("Bob Kerman")).toBeInTheDocument();
   });

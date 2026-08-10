@@ -29,9 +29,26 @@ function tiers(): readonly Tier[] {
     { symbol: "y", size: calendar.year },
     { symbol: "d", size: calendar.day },
     { symbol: "h", size: calendar.hour },
-    { symbol: "m", size: calendar.minute },
+    // "min", not "m": the generated unit model already declares `min` as
+    // the `time` kind's minute symbol (`__generated__/unit-kinds.ts`), and
+    // this ladder used to disagree with its own bare "m", colliding with
+    // the `length` kind's metre. A duration composed of "4m" and rendered
+    // through a widget that uppercases its text (a severity Badge's
+    // `text-transform: uppercase`) reads as "4M", indistinguishable from
+    // four METRES. See `unit-symbol-collision.test.ts`.
+    { symbol: "min", size: calendar.minute },
     { symbol: "s", size: SECOND },
   ];
+}
+
+/**
+ * The game-time ladder's own symbols, kind `"time"`, exposed for
+ * `unit-symbol-collision.test.ts`: the tier list above is the one place a
+ * duration's displayed symbol is decided, so a collision guard has to read
+ * it rather than keep a second copy that can drift out of sync.
+ */
+export function durationTierSymbols(): readonly string[] {
+  return tiers().map((tier) => tier.symbol);
 }
 
 /**
@@ -56,9 +73,14 @@ function tiers(): readonly Tier[] {
 const IRL_TIERS: readonly Tier[] = [
   { symbol: "d", size: 24 * HOUR },
   { symbol: "h", size: HOUR },
-  { symbol: "m", size: MINUTE },
+  { symbol: "min", size: MINUTE },
   { symbol: "s", size: SECOND },
 ];
+
+/** `IRL_TIERS`' own symbols, kind `"irlTime"`; see `durationTierSymbols`. */
+export function irlDurationTierSymbols(): readonly string[] {
+  return IRL_TIERS.map((tier) => tier.symbol);
+}
 
 export interface FormatDurationOptions {
   /** Below 1s, render milliseconds (`820 ms`, `0 ms`) instead of `0s`. Default false. */

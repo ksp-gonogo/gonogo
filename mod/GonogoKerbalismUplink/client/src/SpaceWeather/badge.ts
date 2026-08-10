@@ -11,10 +11,12 @@ import { KERBALISM } from "../uplink";
 // Panel with zero widget-side wiring.
 //
 // The badge flags only a hazard, and mirrors the widget's own `statusFor`
-// vocabulary so header and body agree: a storm in progress is "Take cover"
-// (nogo), an incoming storm or a radiation belt is "Exposed" (warn). It
-// returns null when the vessel is sheltered, so a quiet magnetosphere carries
-// no header clutter.
+// vocabulary so header and body agree: a storm in progress reads "Storm in
+// progress" (nogo), an incoming storm or a radiation belt is "Exposed"
+// (warn). A badge states the CONDITION; it never instructs the operator
+// (no "take cover", no imperative of any kind), the operator decides what to
+// do with that fact. It returns null when the vessel is sheltered, so a
+// quiet magnetosphere carries no header clutter.
 // ---------------------------------------------------------------------------
 
 function spaceWeatherBadges(
@@ -22,7 +24,9 @@ function spaceWeatherBadges(
 ): BadgeEntry[] | null {
   if (!weather) return null;
   if (weather.stormInProgress === true) {
-    return [{ id: "space-weather-status", label: "Take cover", tone: "nogo" }];
+    return [
+      { id: "space-weather-status", label: "Storm in progress", tone: "nogo" },
+    ];
   }
   if (
     weather.stormIncoming === true ||

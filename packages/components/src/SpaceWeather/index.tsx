@@ -117,7 +117,7 @@ const TONE_HEX: Record<Tone, string> = {
 
 function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
   if (d.stormState === "inprogress" || d.radiationRadPerHour >= 3)
-    return { label: "Take cover", tone: "nogo" };
+    return { label: "Storm in progress", tone: "nogo" };
   if (d.stormState === "incoming" || d.innerBelt || d.outerBelt)
     return { label: "Exposed", tone: "warn" };
   if (!d.magnetosphere) return { label: "Unshielded", tone: "info" };

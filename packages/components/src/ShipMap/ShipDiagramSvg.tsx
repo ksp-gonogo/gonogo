@@ -1,4 +1,5 @@
 import type { PartStateModule } from "@ksp-gonogo/core";
+import { resourceColor } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
@@ -10,7 +11,14 @@ import { useMemo } from "react";
 // styled-components migration report.
 // biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
 import { styled } from "styled-components";
-import type { PartType, ShipMapPart } from "./shipTopology";
+import type {
+  PartType,
+  ShipMapPart,
+  ShipMapPartMeterEntry,
+} from "./shipTopology";
+
+/** Empty per-part meter list, shared so a lookup miss doesn't allocate. */
+const NO_METERS: readonly ShipMapPartMeterEntry[] = [];
 
 export interface BodyBox {
   latMin: number;
@@ -65,6 +73,17 @@ export interface ShipDiagramSvgProps {
    *  snapshot fixtures + the harness keep rendering engine flames
    *  exactly as before. */
   throttle?: number;
+  /**
+   * Per-part resource meters, keyed by `ShipMapPart.flightId` (stringified),
+   * aggregated from the `ship-map.part-meters` contribution slot (spec
+   * §13.4). Drives the fuel-fill bars on tanks/boosters: there is no
+   * hardcoded resource allowlist here any more, an empty/omitted map simply
+   * renders no bars, same as a part with no contributed meters. Defaults to
+   * empty so the SSR (`render.ts`) and snapshot-test call sites, which
+   * render outside the contribution framework entirely, keep working
+   * unchanged.
+   */
+  partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
 }
 
 /** Lateral offset under which a child counts as "stack-attached" rather
@@ -145,6 +164,7 @@ export function ShipDiagramSvg({
   onPartHover,
   onPartFocus,
   throttle = 1,
+  partMeters,
 }: Readonly<ShipDiagramSvgProps>) {
   const { projected, bounds, stages, edges } = useMemo(
     () => project(parts),
@@ -282,12 +302,13 @@ export function ShipDiagramSvg({
           const center = toBase(p.lat, p.axial);
           const outerSign = p.lat >= 0 ? 1 : -1;
           const showFuel = p.type === "tank" || p.type === "booster";
+          const meters = partMeters?.get(String(p.flightId)) ?? NO_METERS;
 
           const interactiveProps = interactive
             ? {
                 tabIndex: 0,
                 role: "button",
-                "aria-label": partAriaLabel(p),
+                "aria-label": partAriaLabel(p, meters),
                 onPointerEnter: () => onPartHover?.(p),
                 onPointerLeave: () => onPartHover?.(null),
                 onFocus: () => {
@@ -358,7 +379,7 @@ export function ShipDiagramSvg({
                   pointerEvents="none"
                 />
               )}
-              {showFuel && renderResourceFill(p.resources, box)}
+              {showFuel && renderResourceFill(meters, box)}
               {p.ecFlowSign && !isHot && (
                 <rect
                   data-role="ec-flow-ring"
@@ -968,33 +989,20 @@ function renderPartShape(
   }
 }
 
-/** Resources we're willing to draw as a fuel-fill bar. ElectricCharge,
- *  Ablator, etc. are deliberately excluded, they'd add bars to most
- *  parts without being meaningful at a glance. */
-const DRAINABLE = new Set([
-  "LiquidFuel",
-  "Oxidizer",
-  "SolidFuel",
-  "MonoPropellant",
-  "XenonGas",
-]);
-
-function resourceColor(name: string): string {
-  switch (name) {
-    case "LiquidFuel":
-      return "var(--color-accent-fg)";
-    case "Oxidizer":
-      return "var(--color-status-info-fg)";
-    case "SolidFuel":
-      return "var(--color-status-warning-bg)";
-    case "MonoPropellant":
-      return "var(--color-status-warning-bg)";
-    case "XenonGas":
-      return "var(--color-tag-cyan-fg)";
-    default:
-      return "var(--color-text-muted)";
-  }
-}
+/**
+ * `ShipMapPartMeterEntry.status` -> a border/tint colour, deliberately NOT
+ * a fill hue (design doc: local_docs/design/2026-08-08-resource-colour-
+ * system.md, gonogo main repo). The fill itself is the resource's IDENTITY
+ * colour (`resourceColor(m.resource)` below); this is the SEPARATE status
+ * signal, painted as a stroke around the bar's track rather than blended
+ * into the fill, so "what resource is this" and "how is it doing" stay two
+ * independently legible things rather than one conflated hue, which is
+ * exactly what the old `MeterTone`-as-identity scheme did.
+ */
+const STATUS_BORDER: Record<"low" | "critical", string> = {
+  low: "var(--color-status-warning-bg)",
+  critical: "var(--color-status-nogo-bg)",
+};
 
 function colorFor(type: PartType): string {
   switch (type) {
@@ -1025,12 +1033,20 @@ function colorFor(type: PartType): string {
   }
 }
 
+/**
+ * The compact in-body fill bars: one segment per contributed
+ * `ship-map.part-meters` entry for this part. Renders as raw SVG `<rect>`s
+ * rather than the HTML `<Meter>` (this is inside an `<svg>`, no
+ * `<foreignObject>` detour); `ShipDiagram`'s hover tooltip renders the SAME
+ * entries through the real `<Meter>` component instead, see that file's own
+ * doc comment for why the two contexts render differently from one shared
+ * data path.
+ */
 function renderResourceFill(
-  resources: ShipMapPart["resources"],
+  meters: readonly ShipMapPartMeterEntry[],
   box: ScreenBox,
 ): React.ReactNode {
-  if (!resources || resources.length === 0) return null;
-  const drainable = resources.filter((r) => DRAINABLE.has(r.n) && r.c > 0);
+  const drainable = meters.filter((m) => m.capacity > 0);
   if (drainable.length === 0) return null;
 
   const padX = Math.max(2, box.w * 0.18);
@@ -1044,13 +1060,17 @@ function renderResourceFill(
 
   return (
     <g pointerEvents="none">
-      {drainable.map((r, i) => {
-        const ratio = Math.max(0, Math.min(1, r.a / r.c));
+      {drainable.map((m, i) => {
+        const ratio = Math.max(0, Math.min(1, m.amount / m.capacity));
         const fillH = innerH * ratio;
         const barX = box.x + padX + i * (barW + gap);
         const barTop = box.y + padY + (innerH - fillH);
+        // Status is a border tint on the TRACK rect, never the fill hue:
+        // the fill below is always the resource's identity colour,
+        // regardless of level.
+        const statusBorder = m.status ? STATUS_BORDER[m.status] : undefined;
         return (
-          <g key={r.n}>
+          <g key={m.resource}>
             <rect
               x={barX}
               y={box.y + padY}
@@ -1058,13 +1078,16 @@ function renderResourceFill(
               height={innerH}
               fill="var(--color-surface-raised)"
               opacity={0.35}
+              stroke={statusBorder}
+              strokeWidth={statusBorder ? 1 : 0}
+              strokeOpacity={0.9}
             />
             <rect
               x={barX}
               y={barTop}
               width={barW}
               height={fillH}
-              fill={resourceColor(r.n)}
+              fill={resourceColor(m.resource)}
               opacity={0.85}
             />
           </g>
@@ -1074,15 +1097,15 @@ function renderResourceFill(
   );
 }
 
-export function partAriaLabel(p: ShipMapPart): string {
+export function partAriaLabel(
+  p: ShipMapPart,
+  meters: readonly ShipMapPartMeterEntry[] = NO_METERS,
+): string {
   const name = p.title || p.name;
   const bits: string[] = [name, p.type, `${p.dryMass.toFixed(2)} tonnes`];
-  if (p.resources) {
-    const drainable = p.resources.filter((r) => DRAINABLE.has(r.n) && r.c > 0);
-    for (const r of drainable) {
-      const pct = Math.round((r.a / r.c) * 100);
-      bits.push(`${r.n} ${pct} percent`);
-    }
+  for (const m of meters.filter((e) => e.capacity > 0)) {
+    const pct = Math.round((m.amount / m.capacity) * 100);
+    bits.push(`${m.displayName} ${pct} percent`);
   }
   const maxK = p.maxTemperatureK ?? p.maxTemp;
   if (p.temperatureK !== undefined && maxK > 0) {

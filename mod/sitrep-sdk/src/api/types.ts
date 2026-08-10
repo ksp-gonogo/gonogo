@@ -155,6 +155,23 @@ export type SlotProps<S extends string> = S extends keyof SlotRegistry
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface ContributionRegistry {}
 
+/**
+ * The entry type a `ContributionRegistry` slot's contributions render,
+ * mirroring `packages/core/src/contributions.ts`'s own `ContributionEntry<S>`
+ * (same name, same extraction: `ContributionRegistry[S] extends { entry:
+ * infer E } ? E : ...`), same leaf constraint as `SlotProps<S>` above. An
+ * Uplink contribution built against `ContributionEntry<"ship-map.part-
+ * meters">` gets the real, host-declared entry shape once
+ * `./contribution-slots.ts` mirrors that slot; a slot not yet declared here
+ * falls back to the loose bag, matching `SlotProps`'s own fallback.
+ */
+export type ContributionEntry<S extends string> =
+  S extends keyof ContributionRegistry
+    ? ContributionRegistry[S] extends { entry: infer E }
+      ? E
+      : Record<string, unknown>
+    : Record<string, unknown>;
+
 export interface AugmentSettingField {
   key: string;
   type: "boolean" | "text" | "number";

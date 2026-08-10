@@ -1009,7 +1009,9 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
     );
 
     await waitFor(() =>
-      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent("1m 20s"),
+      expect(screen.getByLabelText("Uplink queue")).toHaveTextContent(
+        "1min 20s",
+      ),
     );
     const strip = screen.getByLabelText("Uplink queue");
     expect(strip).not.toHaveTextContent("80s");

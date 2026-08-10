@@ -5,6 +5,7 @@ import type {
   PartThermal,
   TopologyPart,
 } from "@ksp-gonogo/core";
+import type { MeterTone } from "@ksp-gonogo/ui-kit";
 
 /**
  * Diagram-side categories. Narrower than KSP's `PartCategories` enum
@@ -105,6 +106,93 @@ export interface ShipMapPart {
    * (consumers should treat it as "unknown" rather than "all retracted").
    */
   partState?: PartStateModule[];
+}
+
+/**
+ * One resource meter for a single part, aggregated from the
+ * `ship-map.part-meters` contribution slot (the framework's self-
+ * contribution flagship, spec §13.4). Both the built-in `core` contribution
+ * (the five classic drainable propellants, `ShipMap/partMetersContribution.ts`)
+ * and a Kerbalism-style Uplink contribution (its supply tanks) emit this SAME
+ * shape onto the SAME slot, so `ShipDiagramSvg`'s per-part fill bars and
+ * `ShipDiagram`'s hover tooltip read one aggregated list regardless of which
+ * contributor produced an entry. There is no hardcoded resource allowlist
+ * left in ShipMap itself: which resource earns a meter on which part is
+ * entirely the contributor's call.
+ *
+ * Identity vs status (design doc: local_docs/design/2026-08-08-resource-
+ * colour-system.md, gonogo main repo): the meter's FILL colour is the
+ * resource's IDENTITY (`resourceColor(resource)`, derived by the renderer
+ * from `resource`, not carried on the wire), and is entirely independent of
+ * `status`. This retires the previous `tone`-as-identity field, which
+ * conflated "what resource is this" with "how full is it" into one
+ * five-value enum; a contributor no longer picks a colour at all, only a
+ * name and a status.
+ */
+export interface ShipMapPartMeterEntry {
+  /**
+   * `ShipMapPart.flightId`, stringified: contribution entries travel through
+   * the generic per-slot aggregation store as plain data, so the key stays a
+   * string rather than baking in a numeric-vs-string identity assumption.
+   */
+  partId: string;
+  /** Resource name exactly as it appears on `vessel.parts` (e.g.
+   *  "LiquidFuel", "Water"). Doubles as part of this meter's identity: a
+   *  contributor should emit at most one entry per (partId, resource) pair.
+   *  Also the renderer's key into `resourceColor` for the fill's identity
+   *  colour, see this interface's own doc comment. */
+  resource: string;
+  /** Human label. Falls back to `resource` when the contributor has no nicer
+   *  name (the built-in five don't; a Kerbalism profile's
+   *  `KerbalismResourceDef.displayName` does). */
+  displayName: string;
+  /** Current stored amount, resource units. */
+  amount: number;
+  /** Max storage capacity, resource units. A renderer drops any entry with
+   *  `capacity <= 0` (nothing to fill), the same guard the old hardcoded
+   *  `renderResourceFill` applied. */
+  capacity: number;
+  /**
+   * A SEPARATE status signal, never the fill hue: `"critical"` /
+   * `"low"` draw a border tint or badge alongside the identity-coloured
+   * fill; `null`/`undefined` means healthy, no status signal drawn. A
+   * contributor decides its own low/critical thresholds (a Kerbalism
+   * profile's `lowThreshold`, or the built-in contribution's own ratio
+   * cutoffs); ShipMap only renders whichever of the two levels it's given.
+   */
+  status?: "low" | "critical" | null;
+}
+
+/**
+ * One per-part status/metadata row for the `ship-map.part-meta` slot: things
+ * about a part that aren't a fill-level meter. Today the Kerbalism
+ * contribution only has real per-part data for a fitted process's
+ * running/broken state (`KerbalismLifeSupport.processes[].flightId`); habitat
+ * pressure, radiation dose, and reliability MTBF are NOT yet on the wire with
+ * per-part granularity (only vessel-wide aggregates), so no contributor emits
+ * a `"ratio"` entry yet. The shape reserves that case rather than leaving it
+ * unmodelled, see the Kerbalism contribution's own doc comment for the exact
+ * gap.
+ */
+export interface ShipMapPartMetaEntry {
+  /** `ShipMapPart.flightId`, stringified (see `ShipMapPartMeterEntry.partId`). */
+  partId: string;
+  /** Short label, e.g. "Water Recycler". Doubles as part of this row's
+   *  identity: a contributor should emit at most one entry per (partId,
+   *  label) pair. */
+  label: string;
+  tone: MeterTone;
+  /**
+   * "ratio": a 0..1 reading, rendered as a `<Meter>` (reserved: see the
+   * interface doc above, nothing emits this today). "text": a free-form
+   * status string, rendered as a plain label/value row (fitted-process
+   * running/broken/idle state today).
+   */
+  kind: "ratio" | "text";
+  /** Present when `kind === "ratio"`. */
+  value?: number;
+  /** Present when `kind === "text"`. */
+  text?: string;
 }
 
 /**

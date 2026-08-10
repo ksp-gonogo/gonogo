@@ -1,7 +1,6 @@
 import type {
   KerbalismLifeSupport,
   KerbalismProcessDef,
-  KerbalismProcessEntry,
   KerbalismProfile,
 } from "@ksp-gonogo/sitrep-sdk";
 
@@ -533,9 +532,17 @@ export interface ResourceRow {
   loop: string[] | null;
   /** From `diagnose`, or null when this resource is not short. */
   role: "root" | "downstream" | null;
-  /** Resources this one is waiting on. Empty unless `role` is "downstream". */
+  /**
+   * Display names of the resources this one is waiting on. Empty unless
+   * `role` is "downstream". THIS row's own resource is the subject: a
+   * widget renders these as "<this row's resource> limited by <blockedBy>",
+   * never the reverse.
+   */
   blockedBy: string[];
-  /** What this root cause explains. Empty unless `role` is "root". */
+  /**
+   * Display names of what this root cause explains, i.e. everything
+   * downstream of it. Empty unless `role` is "root".
+   */
   explains: string[];
   /**
    * Below KERBALISM'S OWN warning level (`Supply.low_threshold`), not a number
@@ -628,6 +635,12 @@ export function summarise({
   for (const loop of loops) {
     for (const name of loop) if (!loopOf.has(name)) loopOf.set(name, loop);
   }
+  // `diagnose` works in raw profile keys (ElectricCharge); a row is read by
+  // an operator, so blockedBy/explains carry the same displayName every
+  // other row field uses, never the bare key a widget would have to
+  // re-resolve (or worse, print verbatim).
+  const displayNameOf = (name: string): string =>
+    facts.get(name)?.displayName ?? name;
 
   const row = (f: ResourceFacts): ResourceRow => {
     const amount = stored[f.name] ?? 0;
@@ -649,8 +662,9 @@ export function summarise({
       closed: loopOf.has(f.name),
       loop: loopOf.get(f.name) ?? null,
       role: group?.role ?? null,
-      blockedBy: group?.role === "downstream" ? group.blockedBy : [],
-      explains: group?.role === "root" ? group.explains : [],
+      blockedBy:
+        group?.role === "downstream" ? group.blockedBy.map(displayNameOf) : [],
+      explains: group?.role === "root" ? group.explains.map(displayNameOf) : [],
       belowLowThreshold:
         lowMagnitude === undefined || Number.isNaN(lowMagnitude) || cap <= 0
           ? undefined

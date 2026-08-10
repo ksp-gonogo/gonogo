@@ -227,7 +227,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
       // 2000 m puts the widget in approach mode (100 m – 5 km); z-only Vec3
       // so |relPos| = 2000 and the radial rate is −5 (closing). Closest
       // approach at UT 1125 → 125 s from the pinned view-UT (1000) →
-      // T−2m 5s: now carried inside vessel.target.closestApproach (the
+      // T−2min 5s: now carried inside vessel.target.closestApproach (the
       // MOD-side ITargetApproachSolver output) rather than a separate
       // o.closestTgtApprUT key.
       fixture.emit("vessel.target", {
@@ -242,7 +242,7 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    expect(visibleText()).toMatch(/T−2m 5s/);
+    expect(visibleText()).toMatch(/T−2min 5s/);
 
     teardownMockDataSource(legacyAux);
   });

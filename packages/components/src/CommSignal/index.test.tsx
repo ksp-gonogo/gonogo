@@ -122,8 +122,8 @@ describe("CommSignalComponent", () => {
         signalStrength: 0.5,
         controlState: CONTROL_STATE_FULL,
       });
-      fixture.emit("comms.delay", { oneWaySeconds: 135 }); // 2m 15s
+      fixture.emit("comms.delay", { oneWaySeconds: 135 }); // 2min 15s
     });
-    await waitFor(() => expect(visibleText()).toContain("2m 15s"));
+    await waitFor(() => expect(visibleText()).toContain("2min 15s"));
   });
 });

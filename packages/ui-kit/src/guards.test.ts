@@ -86,6 +86,16 @@ describe("findHandTypedUnits", () => {
     expect(findHandTypedUnits({ dir })).toEqual([]);
   });
 
+  it("ignores a colour function, which is a CSS value not a readout", () => {
+    const dir = fixture({
+      "Colour.tsx": [
+        "const fill = `hsl(${hue}deg ${sat}% ${light}%)`;",
+        "const bg = `rgb(${r} ${g} ${b})`;",
+      ].join("\n"),
+    });
+    expect(findHandTypedUnits({ dir })).toEqual([]);
+  });
+
   it("still catches a percentage that IS a readout", () => {
     // The pair to the case above: the CSS filter must not be so broad that a
     // real percentage readout slips through it.

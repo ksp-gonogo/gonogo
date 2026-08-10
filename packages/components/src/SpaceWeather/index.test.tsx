@@ -106,11 +106,11 @@ describe("SpaceWeatherComponent", () => {
     expect(screen.getByText("No storm activity")).toBeInTheDocument();
   });
 
-  it("flags the inner belt with a take-cover status and lit belt tag", async () => {
+  it("flags the inner belt with a storm-in-progress status and lit belt tag", async () => {
     renderWidget();
     emit(INNER_BELT);
     await waitFor(() => expect(visibleText()).toContain("10.38 rad/h"));
-    expect(screen.getByText("Take cover")).toBeInTheDocument();
+    expect(screen.getByText("Storm in progress")).toBeInTheDocument();
     // The shielding meter reflects the fraction (1.2 / 3.308 ≈ 36%).
     expect(screen.getByRole("meter", { name: "Shielding" })).toHaveAttribute(
       "aria-valuenow",
@@ -122,7 +122,12 @@ describe("SpaceWeatherComponent", () => {
     renderWidget();
     emit(STORM_PEAK);
     await waitFor(() => expect(visibleText()).toContain("5.00 rad/h"));
-    expect(screen.getByText(/Storm in progress/)).toBeInTheDocument();
+    // Both the timeline headline and the status badge read "Storm in
+    // progress" at peak: the badge scoped by role, the timeline by its own
+    // findAllByText count, so this doesn't collide with getByText's
+    // single-match requirement.
+    expect(screen.getByRole("status")).toHaveTextContent("Storm in progress");
+    expect(await screen.findAllByText(/Storm in progress/)).toHaveLength(2);
     expect(screen.getByText("Comms blackout")).toBeInTheDocument();
   });
 
@@ -142,7 +147,7 @@ describe("SpaceWeatherComponent", () => {
     // The status badge is the discrete mission-state announcement (label
     // changes only on a state transition, not every telemetry tick).
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Take cover");
+    expect(status).toHaveTextContent("Storm in progress");
     expect(status).toHaveAttribute("aria-live", "polite");
   });
 

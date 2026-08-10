@@ -1,0 +1,74 @@
+{
+  "_meta": {
+    "scenario": "builtin-drainable-meters",
+    "notes": "Plain stock stack, no Kerbalism domain present. Exercises the built-in `core` ship-map.part-meters contribution alone (packages/components/src/ShipMap/partMetersContribution.ts): LiquidFuel + Oxidizer bars on the fuel tank, no bars anywhere else."
+  },
+  "_stream": {
+    "carriedChannels": ["vessel.parts"],
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": { "x": 0, "y": 0, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+              "dryMass": 0.8,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "modules": ["ModuleCommand"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": { "x": 0, "y": -1.145, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.85, "z": 1.25 } },
+              "dryMass": 0.25,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": { "amount": 90, "maxAmount": 180 },
+                "Oxidizer": { "amount": 100, "maxAmount": 220 }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "3",
+              "parentId": "2",
+              "name": "liquidEngine3",
+              "title": "LV-T30 \"Reliant\" Liquid Fuel Engine",
+              "position": { "x": 0, "y": -3.0, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.0, "z": 1.25 } },
+              "dryMass": 1.25,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "Engine",
+              "modules": ["ModuleEngines"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

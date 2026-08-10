@@ -1144,8 +1144,10 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
       });
     });
 
-    expect(await screen.findByText("1m 20s")).toBeTruthy();
-    expect(screen.getByLabelText("Signal delay: 1m 20s one-way")).toBeTruthy();
+    expect(await screen.findByText("1min 20s")).toBeTruthy();
+    expect(
+      screen.getByLabelText("Signal delay: 1min 20s one-way"),
+    ).toBeTruthy();
   });
 
   it("hides the delay badge when the delay is zero (LAN / no delay authority)", async () => {

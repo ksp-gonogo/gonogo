@@ -15,6 +15,7 @@ import {
   Box,
   Cluster,
   Disclosure,
+  DivergingBar,
   Divider,
   EmptyState,
   Meter,
@@ -24,6 +25,7 @@ import {
   Stack,
   severityFromBadgeTone,
   speakQuantity,
+  Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -109,10 +111,32 @@ function toneForRow(row: ResourceRow): Tone {
   return "nogo";
 }
 
-/** "12 / 40 · 3m 20s" style meter caption; "not fitted" for a tankless resource. */
+/** "12 / 40 · 3m 20s" style meter caption; "not fitted" for a tankless resource.
+ *  Kept as a plain string for `Meter`'s `aria-valuetext` (an attribute, so it
+ *  can only hold text); the visible header reads `RowValueDisplay` instead,
+ *  which renders the same content through `<Unit>`. */
 function rowValueLabel(row: ResourceRow): string {
   if (row.capacity <= 0) return "not fitted";
   return `${fmtAmt(row.amount)} / ${fmtAmt(row.capacity)} · ${formatTimeToEmpty(row.secondsToEmpty)}`;
+}
+
+/** Visible counterpart to `rowValueLabel`: same "amount / capacity · time"
+ *  shape, but the time-to-empty renders through `<Unit>` (the canonical
+ *  duration path, `formatQuantity` → `formatDuration`) instead of the
+ *  hand-rolled `speakQuantity` string that function returns. */
+function RowValueDisplay({ row }: { row: ResourceRow }) {
+  if (row.capacity <= 0) return <>not fitted</>;
+  const sec = row.secondsToEmpty;
+  return (
+    <>
+      {fmtAmt(row.amount)} / {fmtAmt(row.capacity)} ·{" "}
+      {sec == null || !Number.isFinite(sec) ? (
+        "steady"
+      ) : (
+        <Unit value={value("s", Math.max(0, sec))} />
+      )}
+    </>
+  );
 }
 
 function wearTone(w: WearRow): Tone {
@@ -224,6 +248,14 @@ function overallStatus(ship: ShipSystems): { label: string; tone: Tone } {
 function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
   const { summary } = ship;
   const status = overallStatus(ship);
+  // The "Limiting factors" banner names a cause's ROOT resource but the
+  // sentence's subject is the resource it explains (see `LimitedByMessage`),
+  // so its own time-to-empty has to come from that OTHER row, not the
+  // cause's. displayName is unique per profile (it is the key the operator
+  // reads by), so it is a safe lookup key here.
+  const rowsByDisplayName = new Map(
+    [...summary.supplies, ...summary.other].map((r) => [r.displayName, r]),
+  );
   const habitat: KerbalismHabitat | undefined = ship.lifeSupport?.habitat;
   const processes = (ship.lifeSupport?.processes ?? []).map(toProcessRow);
   const greenhouses = (ship.lifeSupport?.greenhouses ?? []).map(
@@ -266,25 +298,53 @@ function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
     >
       <Stack gap="md">
         {summary.causes.length > 0 && (
-          <Box
-            surface="sunken"
-            pad="sm"
-            radius="sm"
-            role="status"
-            aria-live="polite"
-          >
+          // No `surface`: this used to sit on `sunken` (a near-black tile
+          // that visually detached from the rest of the panel). Transparent
+          // lets it sit on the Panel's own surface like every other block.
+          <Box pad="md" radius="sm" role="status" aria-live="polite">
             <Stack gap="xs">
               <Value tone="nogo" weight="semibold" size="sm">
-                Root cause
+                Limiting factors
               </Value>
-              {summary.causes.map((cause) => (
-                <Value key={cause.name} tone="nogo" size="xs">
-                  {cause.displayName}
-                  {cause.explains.length > 0
-                    ? ` → blocks ${cause.explains.join(", ")}`
-                    : ""}
-                </Value>
-              ))}
+              {summary.causes.flatMap((cause) =>
+                cause.explains.length > 0
+                  ? cause.explains.map((explained) => {
+                      const explainedRow = rowsByDisplayName.get(explained);
+                      return (
+                        <Value
+                          key={`${cause.name}-${explained}`}
+                          tone="nogo"
+                          size="xs"
+                        >
+                          <LimitedByMessage
+                            subjectDisplayName={explained}
+                            blockedBy={[cause.displayName]}
+                            secondsToEmpty={
+                              explainedRow?.secondsToEmpty ?? null
+                            }
+                          />
+                        </Value>
+                      );
+                    })
+                  : [
+                      <Value key={cause.name} tone="nogo" size="xs">
+                        {cause.displayName} is running critically low
+                        {cause.secondsToEmpty !== null && (
+                          <>
+                            {" "}
+                            (~
+                            <Unit
+                              value={value(
+                                "s",
+                                Math.max(0, cause.secondsToEmpty),
+                              )}
+                            />{" "}
+                            left)
+                          </>
+                        )}
+                      </Value>,
+                    ],
+              )}
             </Stack>
           </Box>
         )}
@@ -393,6 +453,7 @@ function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
             value={ecRow.fraction ?? 0}
             tone={toneForRow(ecRow)}
             valueLabel={rowValueLabel(ecRow)}
+            valueLabelNode={<RowValueDisplay row={ecRow} />}
             size="md"
           />
         </FooterRow>
@@ -436,11 +497,16 @@ function FooterRow({ children }: { children: ReactNode }) {
 }
 
 /**
- * One resource row: a `Meter` plus an accessible `Disclosure` revealing its
- * per-source rate ledger (`buildLedger`, a click-time pure call over the
- * already-carried profile/lifeSupport/crew, never re-derived by the
- * Processor). `blockedBy`/`explains` render as a footnote beneath the meter
- * so the diagnosis reads without opening the ledger.
+ * One resource row: a `Meter` on its own full-width line (never squeezed
+ * against the disclosure trigger, the narrow-width overlap operators hit),
+ * an optional "X limited by Y" footnote naming THIS row's resource as the
+ * subject and its blocker as the object (never the reverse: a root cause's
+ * own row carries no footnote, since nothing blocks it, `diagnose` says so
+ * via an empty `blockedBy`), and an accessible `variant="inline"` accordion
+ * revealing the per-source rate ledger (`buildLedger`, a click-time pure
+ * call over the already-carried profile/lifeSupport/crew, never re-derived
+ * by the Processor). `inline` expands the ledger in flow below the trigger,
+ * so it pushes the row taller instead of overlaying whatever follows.
  */
 function ResourceLedgerRow({
   row,
@@ -461,69 +527,149 @@ function ResourceLedgerRow({
   );
 
   return (
-    <Box pad="xs" surface="raised" radius="sm">
-      <Cluster justify="between" align="start" gap="sm">
+    // pad="md": pad="sm" (4px) still read as cramped once the meter, the
+    // footnote, and the disclosure trigger were all stacked in one block.
+    <Box pad="md" surface="raised" radius="sm">
+      <Stack gap="sm">
         <Meter
           label={row.displayName}
           value={row.fraction ?? 0}
           tone={toneForRow(row)}
           valueLabel={rowValueLabel(row)}
+          valueLabelNode={<RowValueDisplay row={row} />}
           size="sm"
         />
+        {row.role === "downstream" && row.blockedBy.length > 0 && (
+          // `tone="warn"` alone renders --color-status-warning-fg, a
+          // near-black meant for text ON the warning "-bg" orange, e.g.
+          // inside a Badge. Standalone on this row's dark surface that is
+          // functionally invisible. The `-fg-muted` override is the same
+          // fix GreenhouseSection.tsx documents for the identical landmine
+          // (LaunchDirector, CommSignal, DeployedScience hit it too).
+          <Value
+            tone="warn"
+            size="xs"
+            style={{ color: "var(--color-status-warning-fg-muted)" }}
+          >
+            <LimitedByMessage
+              subjectDisplayName={row.displayName}
+              blockedBy={row.blockedBy}
+              secondsToEmpty={row.secondsToEmpty}
+            />
+          </Value>
+        )}
         <Disclosure
-          label="Ledger"
-          ariaLabel={`Show rate ledger for ${row.displayName}`}
+          variant="inline"
+          chevron={false}
+          asButton
+          buttonSize="sm"
+          label={(open) => (open ? "Hide detail" : "Show detail")}
+          ariaLabel={`Show rate breakdown for ${row.displayName}`}
         >
           <LedgerBody ledger={ledger} />
         </Disclosure>
-      </Cluster>
-      {row.role === "root" && row.explains.length > 0 && (
-        <Value tone="nogo" size="xs">
-          Explains: {row.explains.join(", ")}
-        </Value>
-      )}
-      {row.role === "downstream" && row.blockedBy.length > 0 && (
-        <Value tone="warn" size="xs">
-          Blocked by: {row.blockedBy.join(", ")}
-        </Value>
-      )}
+      </Stack>
     </Box>
+  );
+}
+
+/**
+ * "<subject> is being limited by <blockers>", the resource in shortage named
+ * first because that is what an operator is trying to fix, followed by a
+ * prediction of how long THAT resource (never the blocker) has left. Shared
+ * by the per-row footnote and the panel-level "Limiting factors" banner so
+ * the two never drift into different phrasings for the same diagnosis.
+ */
+function LimitedByMessage({
+  subjectDisplayName,
+  blockedBy,
+  secondsToEmpty,
+}: {
+  subjectDisplayName: string;
+  blockedBy: string[];
+  secondsToEmpty: number | null;
+}) {
+  return (
+    <>
+      {subjectDisplayName} is being limited by {blockedBy.join(", ")}.
+      {secondsToEmpty !== null && (
+        <>
+          {" "}
+          ~<Unit value={value("s", Math.max(0, secondsToEmpty))} /> of{" "}
+          {subjectDisplayName} left
+        </>
+      )}
+    </>
   );
 }
 
 function LedgerBody({ ledger }: { ledger: Ledger }) {
   const hasResidual =
     ledger.residual !== undefined && Math.abs(ledger.residual) > 1e-6;
+  // Every bar in this ledger scales against the largest |rate| among ITS OWN
+  // terms (never a cross-resource or cross-row scale), matching the
+  // kerbalism-graph-mock prototype (`kerbalism-graph-mock/water-entity.html`)
+  // `DivergingBar` ports the design from: the biggest term reaches the
+  // half-bar mark, everything else is relative to it. 0 when there are no
+  // terms (the "No modelled sources" branch never reaches `DivergingBar`).
+  const maxAbsRate = Math.max(
+    0,
+    ...ledger.terms.map((t) => Math.abs(t.ratePerSecond)),
+  );
   return (
-    <Stack gap="xs" style={{ minWidth: "12rem" }}>
+    // No `minWidth`: a fixed floor here is exactly what used to force this
+    // panel wider than the row that hosts it (see this component's own
+    // history), spilling the ledger past the widget's right edge at any
+    // width narrower than the floor. `width: 100%` lets it size to whatever
+    // the accordion panel actually has, at every panel width down to
+    // minSize.
+    <Stack gap="xs" style={{ width: "100%", minWidth: 0 }}>
       {ledger.terms.length === 0 ? (
         <Value tone="muted" size="xs">
           No modelled sources
         </Value>
       ) : (
         ledger.terms.map((term) => (
+          // `wrap`: the rate ("-0.01/s") is one unbreakable token (no space
+          // for the browser's own text-wrap to catch), so once the term
+          // NAME has shrunk as far as ITS wrapping allows, the rate has
+          // nowhere left to shrink to. Flex-wrapping the row lets the
+          // trailing group drop to a line of its own at the narrowest panel
+          // widths instead of forcing the row (and everything above it)
+          // wider than the panel, which is exactly the overflow this
+          // component used to have (see this function's own doc comment).
           <Cluster
             key={`${term.kind}-${term.name}-${term.flightId ?? ""}`}
             justify="between"
+            wrap
           >
             <Value tone="default" size="xs">
               {term.name}
             </Value>
-            <Value tone={term.ratePerSecond >= 0 ? "go" : "nogo"} size="xs">
-              {formatRate(term.ratePerSecond)}
-            </Value>
+            {/* Nested Cluster, not a bespoke row: groups the bar and the
+                rate so the pair moves together as one item on the outer
+                Cluster's trailing edge. `justify="start"` packs them at
+                their own gap rather than spreading them across the (already
+                content-sized) width `DivergingBar`'s own `flex: 0 0 auto`
+                gives this inner row. */}
+            <Cluster gap="xs" justify="start">
+              <DivergingBar value={term.ratePerSecond} maxAbs={maxAbsRate} />
+              <Value tone={term.ratePerSecond >= 0 ? "go" : "nogo"} size="xs">
+                {formatRate(term.ratePerSecond)}
+              </Value>
+            </Cluster>
           </Cluster>
         ))
       )}
       <Divider space="xs" />
-      <Cluster justify="between">
+      <Cluster justify="between" wrap>
         <Value tone="muted" size="xs">
           Net (derived)
         </Value>
         <Value size="xs">{formatRate(ledger.derivedNet)}</Value>
       </Cluster>
       {ledger.reportedNet !== undefined && (
-        <Cluster justify="between">
+        <Cluster justify="between" wrap>
           <Value tone="muted" size="xs">
             Reported
           </Value>
@@ -531,7 +677,13 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
         </Cluster>
       )}
       {hasResidual && ledger.residual !== undefined && (
-        <Value tone="warn" size="xs">
+        // Same near-black-on-dark landmine as the row footnote above: the
+        // `-fg-muted` override keeps this readable on the panel surface.
+        <Value
+          tone="warn"
+          size="xs"
+          style={{ color: "var(--color-status-warning-fg-muted)" }}
+        >
           Residual {formatRate(ledger.residual)} (modifiers not modelled)
         </Value>
       )}

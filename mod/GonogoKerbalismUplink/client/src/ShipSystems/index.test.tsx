@@ -183,9 +183,14 @@ describe("ShipSystemsComponent", () => {
     renderWidget(fixture);
     emitAll(fixture);
 
-    // Root cause banner names the actual root, not the symptom.
-    await screen.findByText("Root cause");
-    expect(screen.getByText(/blocks Water/)).toBeInTheDocument();
+    // Limiting-factors banner names the actual root, not the symptom.
+    // Renders twice by design: once in the panel-level banner, once as the
+    // per-row footnote on Water's own row (the same duplicated-diagnosis
+    // convention the banner has always used).
+    await screen.findByText("Limiting factors");
+    expect(
+      screen.getAllByText(/Water is being limited by Electric Charge/).length,
+    ).toBeGreaterThan(0);
 
     // Supplies render root (Electric Charge) above the shortage it explains
     // (Water), Oxygen (healthy, no role) sorts last: `summarise`'s own order,
@@ -193,6 +198,31 @@ describe("ShipSystemsComponent", () => {
     const meters = await screen.findAllByRole("meter");
     const labels = meters.map((m) => m.getAttribute("aria-label"));
     expect(labels.slice(0, 3)).toEqual(["Electric Charge", "Water", "Oxygen"]);
+  });
+
+  it("names the blocked resource as the subject and the blocker by its display name", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+
+    // Water is downstream of Electric Charge: the footnote reads subject
+    // (Water, the row it sits on) is being limited by object (Electric
+    // Charge, the blocker), by DISPLAY name (never the raw profile key
+    // "ElectricCharge"), and the reverse never appears on Electric
+    // Charge's own row. Also carries a time-to-empty prediction for the
+    // SUBJECT resource (Water), not the blocker.
+    await screen.findByText("Limiting factors");
+    const messages = screen.getAllByText(
+      /Water is being limited by Electric Charge\./,
+    );
+    expect(messages.length).toBeGreaterThan(0);
+    for (const message of messages) {
+      expect(message.textContent).toMatch(/of Water left/);
+    }
+    expect(screen.queryByText(/ElectricCharge/)).toBeNull();
+    expect(
+      screen.queryByText(/Electric Charge is being limited by/),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a time-to-empty for a draining supply and 'steady' for a healthy one", async () => {
@@ -220,7 +250,7 @@ describe("ShipSystemsComponent", () => {
 
     await screen.findByText("Water");
     fireEvent.click(
-      screen.getByRole("button", { name: "Show rate ledger for Water" }),
+      screen.getByRole("button", { name: "Show rate breakdown for Water" }),
     );
     // "Water Recycler" now renders twice: once in the Processes list, once
     // as the newly-revealed ledger term.
@@ -228,11 +258,40 @@ describe("ShipSystemsComponent", () => {
     expect(screen.getByText("Net (derived)")).toBeInTheDocument();
   });
 
+  it("gives each ledger term a diverging bar, scaled against the largest term and coloured by sign", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+
+    await screen.findByText("Water");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show rate breakdown for Water" }),
+    );
+
+    // Water's ledger has one term of each sign: the Water Recycler produces
+    // Water (+0.00018/s once scaled by its capacity), the crew's "drinking"
+    // rule consumes it (-0.00001/s * 2 crew = -0.00002/s). Sorted by
+    // magnitude, the recycler (the larger term) sets the scale: its bar
+    // reaches the track's own half-width mark (50%), the drinking rule's is
+    // a fraction of that (0.00002 / 0.00018 * 50). The scaling math itself
+    // is `@ksp-gonogo/ui-kit`'s `DivergingBar`, unit-tested there; this only
+    // confirms ShipSystems wires each term's real rate and the ledger's own
+    // scale into it.
+    const bars = container.querySelectorAll('[data-testid="diverging-bar"]');
+    expect(bars).toHaveLength(2);
+
+    const [recyclerFill, drinkingFill] = [...bars].map(
+      (bar) => bar.lastElementChild as HTMLElement,
+    );
+    expect(recyclerFill.style.width).toBe("50%");
+    expect(drinkingFill.style.width).toBe(`${(0.00002 / 0.00018) * 50}%`);
+  });
+
   it("has no axe violations", async () => {
     const fixture = newFixture();
     const { container } = renderWidget(fixture);
     emitAll(fixture);
-    await screen.findByText("Root cause");
+    await screen.findByText("Limiting factors");
 
     expect(await axe(container)).toHaveNoViolations();
   });

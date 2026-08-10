@@ -1,0 +1,184 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-10",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the Ship Systems widget, dedicated to reviewing the per-source rate ledger's diverging red/green DivergingBar treatment. nominal.json's Electric Charge ledger only has ONE term (Water Recycler drawing power), which is not enough to judge a bar design meant to diverge either side of zero. This fixture keeps the same healthy/no-shortage vessel shape as nominal.json (diagnose() finds nothing short, overall status still reads Nominal) but gives Electric Charge FIVE producers/consumers of varied magnitude and sign, sorted by |rate|: Fuel Cell (+0.45/s, the dominant producer), Radio Transmitter (-0.05/s), CO2 Scrubber (-0.02/s, now also drawing a trickle of Electric Charge alongside its existing scrubber-cartridge draw), Generator (+0.02/s), Water Recycler (-0.01/s). Signs alternate down the list (+ - - + -) so the diverging left/right treatment reads clearly rather than clustering all one colour together. Expand Electric Charge's row (widgets.ts 'ledger-showcase' mode clicks its Disclosure trigger) to see all five bars at once, from a half-bar-dominant producer down to a small trickle, both colours represented at multiple lengths."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "kerbalism.profile",
+      "kerbalism.lifesupport",
+      "vessel.resources",
+      "vessel.crew"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "kerbalism.profile",
+        "value": {
+          "name": "Test Profile",
+          "resources": {
+            "Water": {
+              "flowMode": "ALL_VESSEL",
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "ElectricCharge": {
+              "flowMode": "ALL_VESSEL_BALANCE",
+              "displayName": "Electric Charge",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "Oxygen": {
+              "flowMode": "ALL_VESSEL",
+              "displayName": "Oxygen",
+              "isSupply": true
+            },
+            "WasteWater": {
+              "flowMode": "ALL_VESSEL",
+              "displayName": "Waste Water",
+              "isSupply": false
+            },
+            "_NonRegenScrubber": {
+              "flowMode": "",
+              "displayName": "Scrubber Cartridge",
+              "isSupply": false
+            }
+          },
+          "rules": [
+            {
+              "name": "drinking",
+              "input": "Water",
+              "output": "WasteWater",
+              "ratePerSecond": 0.00001
+            }
+          ],
+          "processes": [
+            {
+              "name": "Water Recycler",
+              "modifiers": ["_WaterRecycler"],
+              "inputs": { "WasteWater": 0.0002, "ElectricCharge": 0.01 },
+              "outputs": { "Water": 0.00018 }
+            },
+            {
+              "name": "CO2 Scrubber",
+              "modifiers": ["_Scrubber"],
+              "inputs": {
+                "_NonRegenScrubber": 0.00002,
+                "ElectricCharge": 0.02
+              },
+              "outputs": {}
+            },
+            {
+              "name": "Fuel Cell",
+              "modifiers": ["_FuelCell"],
+              "inputs": { "LiquidFuel": 0.0004, "Oxidizer": 0.0005 },
+              "outputs": { "ElectricCharge": 0.6 }
+            },
+            {
+              "name": "Generator",
+              "modifiers": ["_Generator"],
+              "inputs": {},
+              "outputs": { "ElectricCharge": 0.02 }
+            },
+            {
+              "name": "Radio Transmitter",
+              "modifiers": ["_Transmitter"],
+              "inputs": { "ElectricCharge": 0.05 },
+              "outputs": {}
+            }
+          ]
+        }
+      },
+      {
+        "channel": "kerbalism.lifesupport",
+        "value": {
+          "rates": {
+            "Water": 0,
+            "ElectricCharge": 0.4
+          },
+          "habitat": {
+            "pressure": 0.95,
+            "poisoning": 0.02,
+            "comfort": 0.85,
+            "livingSpace": 0.8
+          },
+          "processes": [
+            {
+              "resource": "_WaterRecycler",
+              "title": "Water Recycler",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_Scrubber",
+              "title": "CO2 Scrubber",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_FuelCell",
+              "title": "Fuel Cell",
+              "capacity": 0.75,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_Generator",
+              "title": "Generator",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            },
+            {
+              "resource": "_Transmitter",
+              "title": "Radio Transmitter",
+              "capacity": 1,
+              "running": true,
+              "broken": false
+            }
+          ],
+          "greenhouses": [
+            {
+              "cropResource": "Food",
+              "foodRatePerSec": 0.0001,
+              "natural": 300,
+              "artificial": 0,
+              "active": true,
+              "issue": ""
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.resources",
+        "value": {
+          "resources": {
+            "Water": { "current": 450, "max": 500, "active": true },
+            "ElectricCharge": { "current": 380, "max": 400, "active": true },
+            "Oxygen": { "current": 390, "max": 400, "active": true },
+            "WasteWater": { "current": 5, "max": 200, "active": true },
+            "_NonRegenScrubber": { "current": 90, "max": 100, "active": true }
+          },
+          "meta": { "source": "test", "quality": 1 }
+        }
+      },
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 3,
+          "capacity": 4,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bill Kerman", "trait": "Engineer" },
+            { "name": "Bob Kerman", "trait": "Scientist" }
+          ],
+          "meta": { "source": "test", "quality": 1 }
+        }
+      }
+    ]
+  }
+}

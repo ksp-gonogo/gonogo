@@ -34,6 +34,12 @@ export * from "./hooks/usePartsLive";
 export * from "./hooks/useTopology";
 export * from "./hooks/useValueKeys";
 export * from "./hooks/useVesselDeltaV";
+// `buildResourcesByFlightId`: the pure per-flightId resources lookup
+// `usePartsLive` builds internally, also needed by ShipMap's built-in
+// `ship-map.part-meters` contribution (a plain function of the same
+// `vessel.parts` Topic payload, evaluated outside React by the contribution
+// aggregator, so it can't go through the hook).
+export { buildResourcesByFlightId } from "./hooks/vesselPartsAdapter";
 export * from "./ListenerSet";
 export { debugFlight } from "./logger";
 export * from "./replaySession/ReplaySessionBanner";

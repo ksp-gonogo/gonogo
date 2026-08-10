@@ -366,6 +366,6 @@ describe("formatDeadline", () => {
   });
 
   it("formats minutes when less than an hour remains", () => {
-    expect(formatDeadline(45 * 60, 0)).toBe("45m left");
+    expect(formatDeadline(45 * 60, 0)).toBe("45min left");
   });
 });

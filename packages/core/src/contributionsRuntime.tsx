@@ -140,11 +140,26 @@ function SlotAggregator({
   const unionDeps = useMemo(() => {
     const topics = new Set<TopicId>();
     const processors = new Map<string, ProcessorHandle<unknown>>();
+    // Every domain a contribution names via `requires` needs its own
+    // `<domain>.available` subscription too, NOT just a `client.getValue()`
+    // read: `getValue` returns whatever the store currently holds, but the
+    // stub/production transport alike only ever DELIVERS a sample for a
+    // topic something has subscribed to (see `StubTransport.emit`'s own
+    // subscription gate). Without this, `requires` silently depends on
+    // some UNRELATED widget elsewhere on the dashboard happening to
+    // already subscribe to that same `.available` topic (true almost
+    // always in the live app, since a Kerbalism-gated widget's own
+    // `RequiresGuard` does exactly that) and evaluates to "domain absent"
+    // whenever this slot's own widget is the only thing on screen, e.g.
+    // ShipMap hosting a Kerbalism part-meters contribution with no OTHER
+    // Kerbalism widget mounted. Found rendering the ShipMap self-
+    // contribution arc (spec §13.4) in isolation.
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") topics.add(d as TopicId);
         else processors.set(d.id, d);
       }
+      if (c.requires) topics.add(`${c.requires}.available` as TopicId);
     }
     return {
       topics: Array.from(topics),

@@ -21,6 +21,7 @@ import type {
   ComponentRequirement,
   ConfigComponentProps,
   ConfigField,
+  ContributionEntry,
   ContributionRegistry,
   DataKey,
   DataRequirement,
@@ -79,6 +80,7 @@ declare const _dataSourceStatus: DataSourceStatus;
 declare const _delayClockLike: DelayClockLike;
 declare const _configField: ConfigField;
 declare const _contributionRegistry: ContributionRegistry;
+declare const _contributionEntry: ContributionEntry<"slot">;
 declare const _dataKey: DataKey;
 declare const _screen: Screen;
 declare const _settingsTabDef: SettingsTabDefinition;
@@ -135,6 +137,7 @@ export type _ApiShapeProbe = [
   typeof _delayClockLike,
   typeof _configField,
   typeof _contributionRegistry,
+  typeof _contributionEntry,
   typeof _dataKey,
   typeof _screen,
   typeof _settingsTabDef,

@@ -142,6 +142,7 @@ export {
   type DialZone,
 } from "./Dial";
 export { Disclosure, type DisclosureProps } from "./Disclosure";
+export { DivergingBar, type DivergingBarProps } from "./DivergingBar";
 export { Divider, type DividerProps } from "./Divider";
 // ── Leaf components ──────────────────────────────────────────────────────────
 export {
@@ -289,6 +290,7 @@ export {
   StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
+export { resourceColor } from "./resourceColor";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {
   SelectableRow,

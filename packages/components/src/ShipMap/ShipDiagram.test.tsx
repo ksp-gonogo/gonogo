@@ -1,4 +1,4 @@
-import { render } from "@ksp-gonogo/test-utils";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
@@ -106,18 +106,122 @@ describe("ShipDiagram", () => {
     ).toHaveLength(1);
   });
 
-  it("renders fuel-fill bars only inside tanks and boosters", () => {
+  it("renders fuel-fill bars only inside tanks and boosters, from contributed part-meters", () => {
+    // The compact fill bars no longer read `part.resources` directly: they
+    // render whatever `ship-map.part-meters` contributed for this part
+    // (spec §13.4's self-contribution unify), keyed by stringified
+    // flightId. Mirrors the shape the built-in `core` contribution and a
+    // Kerbalism contribution both emit.
+    const partMeters = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            resource: "LiquidFuel",
+            displayName: "LiquidFuel",
+            amount: 90,
+            capacity: 180,
+            status: null,
+          },
+          {
+            partId: "2",
+            resource: "Oxidizer",
+            displayName: "Oxidizer",
+            amount: 100,
+            capacity: 220,
+            status: "low" as const,
+          },
+        ],
+      ],
+    ]);
     const { container } = render(
-      <ShipDiagram parts={PARTS} width={400} height={400} />,
+      <ShipDiagram
+        parts={PARTS}
+        width={400}
+        height={400}
+        partMeters={partMeters}
+      />,
     );
-    // Two drainable resources on the one tank → two fill bars + two
-    // backdrop rects = 4 inner rects with the resource-fill role. The
-    // engine has no resources, so no extra bars from it.
+    // Two contributed meters on the one tank → two fill bars + two backdrop
+    // rects = 4 inner rects with the resource-fill role. The engine has no
+    // contributed meters, so no extra bars from it.
     //
     // Test the structural invariant rather than count: at least one
     // fill-bar group exists, and engine groups have none.
     const fillGroups = container.querySelectorAll('g[pointer-events="none"]');
     expect(fillGroups.length).toBeGreaterThan(0);
+  });
+
+  it("renders no fuel-fill bars when no part-meters are contributed", () => {
+    const { container } = render(
+      <ShipDiagram parts={PARTS} width={400} height={400} />,
+    );
+    expect(container.querySelectorAll('g[pointer-events="none"]')).toHaveLength(
+      0,
+    );
+  });
+
+  it("renders contributed part-meters and part-meta as real Meters in the hover tooltip", () => {
+    // The compact SVG bars and the tooltip render the SAME aggregated
+    // entries through two different renderers (spec §13.4's doc comment on
+    // ShipDiagram.tsx); this is the tooltip half, which has no PNG-render
+    // equivalent (a static probe capture never hovers), so it is only
+    // exercised here.
+    const partMeters = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            resource: "LiquidFuel",
+            displayName: "LiquidFuel",
+            amount: 90,
+            capacity: 180,
+            status: null,
+          },
+        ],
+      ],
+    ]);
+    const partMeta = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            label: "Water Recycler",
+            tone: "go" as const,
+            kind: "text" as const,
+            text: "running",
+          },
+        ],
+      ],
+    ]);
+    render(
+      <ShipDiagram
+        parts={PARTS}
+        width={400}
+        height={400}
+        partMeters={partMeters}
+        partMeta={partMeta}
+      />,
+    );
+
+    // Focusing a part's group triggers the same hover state a pointer would
+    // (ShipDiagramSvg's onFocus calls onPartHover too).
+    fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
+
+    // The contributed meter: a real ui-kit <Meter>, named by its label,
+    // announcing the amount/capacity valueLabel (not a bare percentage).
+    expect(screen.getByRole("meter", { name: "LiquidFuel" })).toBeTruthy();
+    expect(screen.getByText("90.0 / 180.0")).toBeTruthy();
+    // Oxidizer has no contributed meter for this part: still shown as the
+    // plain raw row (full transparency isn't lost).
+    expect(screen.getByText("Oxidizer")).toBeTruthy();
+    expect(screen.getByText("100 / 220")).toBeTruthy();
+    // The part-meta row: a "text"-kind entry, not a Meter.
+    expect(screen.getByText("Water Recycler")).toBeTruthy();
+    expect(screen.getByText("running")).toBeTruthy();
   });
 
   it("renders a placeholder when the parts list is empty", () => {

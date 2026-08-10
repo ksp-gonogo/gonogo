@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load registerAugment(...).
-import { CrewSurvivalAugment } from "./index";
+import { CrewSurvivalAugment, CrewSurvivalBadgeAugment } from "./index";
 
 const CARRIED = ["vessel.crew", "kerbalism.crew"];
 
@@ -33,6 +33,20 @@ function renderAugment(
   const result = render(
     <fixture.Provider>
       <CrewSurvivalAugment crewName={crewName} crewIndex={crewIndex} />
+    </fixture.Provider>,
+  );
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+function renderBadgeAugment(
+  fixture: ReturnType<typeof newFixture>,
+  crewName: string,
+  crewIndex: number,
+) {
+  const result = render(
+    <fixture.Provider>
+      <CrewSurvivalBadgeAugment crewName={crewName} crewIndex={crewIndex} />
     </fixture.Provider>,
   );
   renderedTrees.push(result.unmount);
@@ -88,7 +102,7 @@ describe("CrewSurvivalAugment", () => {
     expect(screen.queryByLabelText("survival meters")).not.toBeInTheDocument();
   });
 
-  it("renders the worst rule as a meter and the death-clock badge for a critical kerbal", async () => {
+  it("renders the worst rule as a meter, no badge alongside it", async () => {
     const fixture = newFixture();
     renderAugment(fixture, "Jebediah Kerman", 0);
     emit(fixture, CREW, [
@@ -104,7 +118,14 @@ describe("CrewSurvivalAugment", () => {
 
     const meter = await screen.findByRole("meter", { name: "Radiation" });
     expect(meter).toHaveAttribute("aria-valuenow", "90");
-    expect(screen.getByText(/radiation 90 %/i)).toBeInTheDocument();
+    expect(meter).toHaveAttribute("aria-valuetext", "90 %");
+    // The `.survival` slot is meter-only now: no badge restating the same
+    // rule name/percentage underneath it (that used to render literally as
+    // "Radiation 90 %" text of its own, the exact redundant-restatement bug
+    // this augment used to have; the consequence badge moved to
+    // CrewSurvivalBadgeAugment, tested separately below).
+    expect(screen.queryByText(/critical/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/radiation 90 %/i)).not.toBeInTheDocument();
   });
 
   it("renders nothing for a kerbal Kerbalism reports no rules or clock for", async () => {
@@ -138,13 +159,6 @@ describe("CrewSurvivalAugment", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows a death-clock countdown badge when the wire reports one", async () => {
-    const fixture = newFixture();
-    renderAugment(fixture, "Jebediah Kerman", 0);
-    emit(fixture, CREW, [{ name: "Jebediah Kerman", deathClockSec: 120 }]);
-    expect(await screen.findByText(/to fatal/i)).toBeInTheDocument();
-  });
-
   it("falls back to a name search when crewIndex has drifted from the Processor's own order", async () => {
     const fixture = newFixture();
     // crewIndex 5 does not exist in the roster; the augment must still find
@@ -171,6 +185,80 @@ describe("CrewSurvivalAugment", () => {
       },
     ]);
     await screen.findByRole("meter", { name: "Radiation" });
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("CrewSurvivalBadgeAugment", () => {
+  it("shows no badge for a nominal kerbal", async () => {
+    const fixture = newFixture();
+    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderBadgeAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [
+      {
+        name: "Jebediah Kerman",
+        rules: [{ name: "stress", value: 0.1, fatalThreshold: 1 }],
+      },
+    ]);
+    // The meter (from `.survival`) is the proof the Processor evaluated;
+    // the badge's absence right beside it is the meaningful negative.
+    await screen.findByRole("meter", { name: "Stress" });
+    expect(screen.queryByText(/critical/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/to fatal/i)).not.toBeInTheDocument();
+  });
+
+  it("shows no badge for a merely-elevated (warn-tier) kerbal", async () => {
+    const fixture = newFixture();
+    renderAugment(fixture, "Jebediah Kerman", 0);
+    renderBadgeAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [
+      {
+        name: "Jebediah Kerman",
+        rules: [{ name: "stress", value: 0.6, fatalThreshold: 1 }],
+      },
+    ]);
+    // The meter (from `.survival`) is the proof the Processor evaluated;
+    // the badge's absence right beside it is the meaningful negative, same
+    // "prove data arrived, then assert a negative" pattern as the roster
+    // test above.
+    await screen.findByRole("meter", { name: "Stress" });
+    expect(screen.queryByText(/critical/i)).not.toBeInTheDocument();
+  });
+
+  it("flags a rule past its critical fraction as a consequence, never a restated percentage", async () => {
+    const fixture = newFixture();
+    renderBadgeAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [
+      {
+        name: "Jebediah Kerman",
+        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+      },
+    ]);
+    expect(await screen.findByText("Radiation critical")).toBeInTheDocument();
+    // The bug this augment fixes: a badge that just restates the meter's
+    // own number ("radiation 90%") instead of the consequence.
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/90/)).not.toBeInTheDocument();
+  });
+
+  it("flags an imminent death clock as a countdown to fatal", async () => {
+    const fixture = newFixture();
+    renderBadgeAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [{ name: "Jebediah Kerman", deathClockSec: 120 }]);
+    expect(await screen.findByText(/to fatal/i)).toBeInTheDocument();
+  });
+
+  it("has no axe violations when flagging a critical kerbal", async () => {
+    const fixture = newFixture();
+    const { container } = renderBadgeAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [
+      {
+        name: "Jebediah Kerman",
+        rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
+      },
+    ]);
+    await screen.findByText("Radiation critical");
 
     expect(await axe(container)).toHaveNoViolations();
   });

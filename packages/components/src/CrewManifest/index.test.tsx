@@ -1,6 +1,5 @@
 import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
@@ -76,6 +75,11 @@ describe("CrewManifestComponent", () => {
   });
 
   it("lists crew names alongside count / capacity", async () => {
+    // The "N / M aboard" headcount no longer renders as body text here, it
+    // moved to the info-tone `crew-manifest.badges` panel-badge contribution
+    // (`./badge.ts`, `crewAboardBadge`'s own unit tests cover the label
+    // itself). This render tree mounts no `ContributionsProvider`/`Panel`
+    // badge chrome at all, so what's left to prove here is the roster body.
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -90,8 +94,9 @@ describe("CrewManifestComponent", () => {
       });
     });
 
-    await waitFor(() => expect(visibleText()).toContain("3 / 4 aboard"));
-    expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     expect(screen.getByText("Bob Kerman")).toBeInTheDocument();
   });
@@ -234,15 +239,17 @@ describe("CrewManifestComponent", () => {
 
 /**
  * The leading `crew-manifest.avatar` slot, the SDK-independent shell of a
- * per-kerbal avatar/portrait. A per-kerbal square cell left of the name where
- * the bullet renders today; an Uplink can later register an augment that fills
- * it with a live face. Until then (and whenever the augment yields nothing, no
- * Uplink, the avatar source off, kerbal not seated) the cell falls back to the
- * bullet dot, so CrewManifest renders fully with the slot empty. This suite
- * builds ONLY the slot + fallback; no facecam subscription (later task).
+ * per-kerbal avatar/portrait. A per-kerbal square cell left of the name; an
+ * Uplink can register an augment that fills it with a live face. The cell is
+ * only reserved while at least one augment is actually bound to the slot
+ * (operator feedback: a same-size cell showing nothing but a decorative
+ * fallback dot was wasted width on every row, and the dot never signalled
+ * anything). With no avatar augment bound, no cell renders at all and the
+ * row's leading space goes back to the name. This suite builds ONLY the slot
+ * + its presence gating; no facecam subscription (later task).
  */
 describe("CrewManifestComponent, avatar slot", () => {
-  it("falls back to the bullet in every row when no avatar augment is bound", async () => {
+  it("renders no avatar cell in any row when no avatar augment is bound", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -256,10 +263,10 @@ describe("CrewManifestComponent, avatar slot", () => {
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
-    // Roster renders as before; each row shows the fallback bullet, and no
-    // augment content is present.
+    // Roster renders as before; no leading cell is reserved on any row, and
+    // no augment content is present.
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
-    expect(screen.getAllByTestId("crew-avatar-fallback")).toHaveLength(2);
+    expect(screen.queryByTestId("crew-avatar-cell")).not.toBeInTheDocument();
     expect(screen.queryByTestId("crew-avatar")).not.toBeInTheDocument();
   });
 
@@ -298,6 +305,8 @@ describe("CrewManifestComponent, avatar slot", () => {
       "Bill Kerman face",
       "Bob Kerman face",
     ]);
+    // The cell itself is reserved now that an augment is bound to the slot.
+    expect(screen.getAllByTestId("crew-avatar-cell")).toHaveLength(3);
     // The augment lands in the right kerbal's row (props identity is correct).
     const billRow = screen.getByText("Bill Kerman").closest("li");
     expect(billRow).not.toBeNull();
@@ -306,10 +315,17 @@ describe("CrewManifestComponent, avatar slot", () => {
     ).toHaveTextContent("Bill Kerman face");
   });
 
-  it("keeps the roster + avatar cell at both small and large widget sizes", async () => {
+  it("keeps the roster + avatar cell at both small and large widget sizes when an avatar augment is bound", async () => {
     // The avatar cell lives in the roster branch, which renders whenever the
-    // widget is at least 4x5. Assert it survives the min-roster size and a large
-    // size, the fallback bullet is present per row in both.
+    // widget is at least 4x5. Assert it survives the min-roster size and a
+    // large size, once an Uplink actually binds the slot.
+    registerAugment<"crew-manifest.avatar">({
+      id: "test-crew-avatar-sizes",
+      augments: "crew-manifest.avatar",
+      component: ({ crewName }: CrewAvatarContext) => (
+        <span data-testid="crew-avatar">{crewName} face</span>
+      ),
+    });
     for (const [w, h] of [
       [4, 5],
       [10, 12],
@@ -330,9 +346,33 @@ describe("CrewManifestComponent, avatar slot", () => {
       await waitFor(() =>
         expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
       );
-      expect(screen.getByTestId("crew-avatar-fallback")).toBeInTheDocument();
+      expect(screen.getByTestId("crew-avatar-cell")).toBeInTheDocument();
       unmount();
     }
+  });
+
+  it("reclaims the leading cell's width when the widget is at roster size but no avatar augment is bound", async () => {
+    // Companion to the "no cell at all" assertion above, exercised at the
+    // same 4x5 minimum-roster size the previous test uses, proving the
+    // reclaimed-space behaviour holds across sizes too, not just the default.
+    const fixture = newFixture();
+    const { unmount } = render(
+      <fixture.Provider>
+        <CrewManifestComponent config={{}} id="crew" w={4} h={5} />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("crew-avatar-cell")).not.toBeInTheDocument();
+    unmount();
   });
 });
 

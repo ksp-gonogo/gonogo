@@ -104,9 +104,14 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
  * (`width: …`), a call (`translate(…)`), and an SVG or JSX attribute
  * (`offset={…}`), which is how a gradient stop is written and which the first
  * two forms missed.
+ *
+ * The colour functions (`hsl`/`rgb`/`hsla`/`rgba`) are here for the same
+ * reason: `hsl(${h}deg ${s}% ${l}%)` is a CSS colour value, not a readout, so
+ * its `deg`/`%` are CSS syntax the way `translate`'s `%` is (e.g. the dynamic
+ * hue in `resourceColor`).
  */
 const CSS_PROPERTY =
-  /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset)\s*[:(={]/i;
+  /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset|hsl|hsla|rgb|rgba)\s*[:(={]/i;
 
 /** Somewhere a unit symbol was typed next to a number. */
 export interface HandTypedUnit {

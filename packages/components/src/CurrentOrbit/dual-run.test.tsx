@@ -110,7 +110,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
       }
     });
     await waitFor(() => {
-      if (!visibleText(container).includes("31m 25s")) {
+      if (!visibleText(container).includes("31min 25s")) {
         throw new Error("stream leg has not rendered period yet");
       }
     });

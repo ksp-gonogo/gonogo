@@ -94,16 +94,16 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
     expect(visibleText()).toContain("0.0037");
     // Period (T row, formatDuration) renders off the newly-mapped
     // vessel.state.period: 2π·sqrt(sma³/mu), floored to whole seconds.
-    // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31m 25s";
+    // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31min 25s";
     // the formula itself has its own dedicated unit coverage in
     // vessel-state.test.ts.)
-    await waitFor(() => expect(visibleText()).toContain("31m 25s"));
+    await waitFor(() => expect(visibleText()).toContain("31min 25s"));
     // timeToAp/timeToPe (t-Ap/t-Pe rows) also render off the newly-mapped
     // vessel.state.timeToAp/timeToPe: meanAnomalyAtEpoch: 0, epoch: 10 ==
     // pinnedUt means meanAnomaly is exactly 0 (periapsis) at this frame, so
     // timeToPe is 0 and timeToAp is exactly half the period.
     expect(visibleText()).toContain("0s");
-    expect(visibleText()).toContain("15m 42s");
+    expect(visibleText()).toContain("15min 42s");
     // Only Ap/Pe stay NULL_DISPLAY: their apsis-ALTITUDE derivation needs
     // system.bodies (unemitted here). ApR/PeR resolved (sma·(1±ecc)), so the
     // diagram renders; referenceBody/v.body render nothing (no subtitle)

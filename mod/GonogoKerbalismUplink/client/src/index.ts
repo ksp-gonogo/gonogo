@@ -32,6 +32,13 @@ import "./CrewSurvival/badge";
 // widget stays in @ksp-gonogo/components for now (relocation is a later step);
 // only the Kerbalism-derived badge lives here.
 import "./SpaceWeather/badge";
+// ShipMap's self-contribution (spec §13.4): supply-tank part-meters and
+// fitted-process part-meta, on the SAME two slots the built-in `core`
+// contribution feeds (`packages/components/src/ShipMap/
+// partMetersContribution.ts`). ShipMap itself stays in @ksp-gonogo/components;
+// only these two Kerbalism-derived contributions live here.
+import "./ShipMap/partMeta";
+import "./ShipMap/partMeters";
 
 // The CrewSurvival Processor handle + its result types, the single per-frame
 // derivation the `crew-manifest.survival` augment and its badge both consume.

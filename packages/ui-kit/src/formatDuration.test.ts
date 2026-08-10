@@ -12,19 +12,19 @@ describe("formatDuration", () => {
   });
 
   it("formats minutes + seconds", () => {
-    expect(formatDuration(80)).toBe("1m 20s");
+    expect(formatDuration(80)).toBe("1min 20s");
   });
 
   it("truncates (never rounds up) the smaller unit", () => {
-    // 89s = 1m 29s exactly, but this also documents the choice for
+    // 89s = 1min 29s exactly, but this also documents the choice for
     // fractional input: the smaller unit is floored, not rounded, so a
     // countdown never displays a value that hasn't fully elapsed yet.
-    expect(formatDuration(89)).toBe("1m 29s");
-    expect(formatDuration(89.9)).toBe("1m 29s");
+    expect(formatDuration(89)).toBe("1min 29s");
+    expect(formatDuration(89.9)).toBe("1min 29s");
   });
 
   it("formats hours + minutes", () => {
-    expect(formatDuration(8100)).toBe("2h 15m");
+    expect(formatDuration(8100)).toBe("2h 15min");
   });
 
   it("formats KSP days (6h) + hours", () => {
@@ -39,7 +39,7 @@ describe("formatDuration", () => {
 
   it("drops the smaller unit when it is exactly zero at that scale", () => {
     expect(formatDuration(2 * 3600)).toBe("2h");
-    expect(formatDuration(60)).toBe("1m");
+    expect(formatDuration(60)).toBe("1min");
     expect(formatDuration(3600)).toBe("1h");
     expect(formatDuration(21600)).toBe("1d");
     expect(formatDuration(426 * 21600)).toBe("1y");
@@ -72,11 +72,11 @@ describe("formatDuration", () => {
   });
 
   it("prefixes T+ for a negative (past) signed input", () => {
-    expect(formatDuration(-95, { sign: true })).toBe("T+1m 35s");
+    expect(formatDuration(-95, { sign: true })).toBe("T+1min 35s");
   });
 
   it("prefixes T− for a positive (future) signed input", () => {
-    expect(formatDuration(95, { sign: true })).toBe("T−1m 35s");
+    expect(formatDuration(95, { sign: true })).toBe("T−1min 35s");
   });
 
   it("treats zero as future (T−) when signed", () => {
@@ -84,7 +84,7 @@ describe("formatDuration", () => {
   });
 
   it("does not prefix a sign by default", () => {
-    expect(formatDuration(-95)).toBe("1m 35s");
+    expect(formatDuration(-95)).toBe("1min 35s");
   });
 
   it("returns an em dash for non-finite input", () => {
@@ -96,7 +96,7 @@ describe("formatDuration", () => {
 
 describe("formatCountdown", () => {
   it("matches formatDuration for a positive value", () => {
-    expect(formatCountdown(89)).toBe("1m 29s");
+    expect(formatCountdown(89)).toBe("1min 29s");
   });
 
   it("clamps negative input to zero rather than going negative", () => {

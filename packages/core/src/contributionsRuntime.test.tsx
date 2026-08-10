@@ -223,6 +223,45 @@ describe("useContributions", () => {
     expect(screen.getByText("other:other one")).toBeTruthy();
   });
 
+  it("`requires` self-subscribes to `<domain>.available`, needing no OTHER subscriber for that topic", async () => {
+    // Regression: a contribution's `requires` gate reads `client.getValue
+    // ("<domain>.available")`, but a Stub/production transport alike only
+    // ever DELIVERS a sample for a topic something has subscribed to. Before
+    // this fix, the aggregator subscribed to `deps` only, so `requires`
+    // silently depended on some UNRELATED widget elsewhere in the tree
+    // happening to already subscribe to that same `.available` topic (true
+    // almost always in the live app, via that widget's own RequiresGuard,
+    // false the moment a contribution's host widget is the only thing
+    // mounted). Found rendering ShipMap's Kerbalism self-contribution
+    // (spec §13.4) in isolation: the widget itself has no `requires` of its
+    // own, so nothing ever subscribed to "kerbalism.available" and the
+    // Kerbalism contribution silently never fired.
+    registerContribution({
+      id: "gated-contrib",
+      contributes: "fixture.rows",
+      requires: "kerbalism",
+      compute: () => [{ id: "gated-row", label: "gated" }],
+    });
+
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    render(
+      <TelemetryProvider client={client}>
+        <Harness slots={["fixture.rows"] as const} />
+      </TelemetryProvider>,
+    );
+
+    // Nothing else in this tree subscribes to "kerbalism.available"; if the
+    // aggregator doesn't self-subscribe, this emit is dropped and the
+    // contribution never renders.
+    act(() => {
+      transport.emit("kerbalism.available", true);
+    });
+
+    await waitFor(() => expect(screen.getByText("gated")).toBeTruthy());
+  });
+
   it("has no cap on the number of slots requested in one call (10 slots, one useContributions call)", async () => {
     const slotIds = Array.from(
       { length: 10 },

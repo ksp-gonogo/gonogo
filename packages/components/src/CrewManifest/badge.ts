@@ -1,0 +1,62 @@
+import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
+import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
+import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
+
+// ---------------------------------------------------------------------------
+// CrewManifest's own self-contribution to its automatic `crew-manifest.badges`
+// panel-badge slot (contribution-slots-spec §13.2, the same "framework's
+// flagship" self-contribution pattern `ShipMap/partMetersContribution.ts`
+// uses): an INFO-tone crew-count readout ("3/4 aboard" / "4 aboard"), the
+// headcount promoted out of the body's plain-text `ReadoutCaption` line and
+// into the header badge row alongside it.
+//
+// Registered on `CORE_UPLINK_CLIENT` (the built-in half, not a
+// `defineUplinkClient(...).registerContribution` Uplink owner) because this
+// is a vanilla widget concern with no Uplink involved, exactly like
+// `ship-map-part-meters`. Lives on the SAME slot the Kerbalism Uplink's
+// `crew-survival-badge` contribution feeds (`mod/GonogoKerbalismUplink/
+// client/src/CrewSurvival/badge.ts`): that one is nogo-tone and vessel-danger
+// gated (fires only once a kerbal crosses into the critical band), this one
+// is info-tone and unconditional (fires whenever a headcount is known at
+// all), so the two badges coexist rather than compete, priority/order
+// doesn't matter between them.
+// ---------------------------------------------------------------------------
+
+/**
+ * Pure core, exported so a test can call it directly against a plain
+ * `VesselCrew` fixture without going through the contribution registry at
+ * all (mirrors the Kerbalism Uplink's own `survivalBadges` pattern,
+ * `mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`).
+ */
+export function crewAboardBadge(
+  crew: VesselCrew | undefined,
+): BadgeEntry[] | null {
+  if (!crew) return null;
+  const count = crew.count?.magnitude;
+  if (count === undefined) return null;
+  const capacity = crew.capacity?.magnitude;
+  const label =
+    capacity !== undefined ? `${count}/${capacity} aboard` : `${count} aboard`;
+  return [{ id: "crew-manifest-aboard", label, tone: "info" }];
+}
+
+CORE_UPLINK_CLIENT.registerContribution({
+  id: "crew-manifest-aboard-badge",
+  contributes: "crew-manifest.badges",
+  deps: ["vessel.crew"],
+  // The automatic `${componentId}.badges` slot (unlike `ship-map.part-meters`,
+  // a widget-authored slot with a real `ContributionRegistry` merge) is a
+  // RUNTIME string, never a member of that declaration-merged registry (see
+  // `useWidgetBadges`'s own doc comment), so `registerContribution`'s strict
+  // internal typing (`packages/core/src/contributions.ts`) can only see the
+  // generic `Record<string, unknown>` fallback here, not the concrete
+  // `BadgeEntry` shape. The cast bridges that gap; every OTHER first-party
+  // producer of this same badge (the Kerbalism Uplink's `badge.ts` files)
+  // sidesteps it by going through the SDK's deliberately loose, `any`-typed
+  // `registerContribution` mirror instead (`mod/sitrep-sdk/src/api/types.ts`),
+  // not available to a built-in (non-Uplink) contribution like this one.
+  compute: (topics) =>
+    crewAboardBadge(topics["vessel.crew"] as VesselCrew | undefined) as
+      | readonly Record<string, unknown>[]
+      | null,
+});

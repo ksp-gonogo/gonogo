@@ -225,9 +225,9 @@ describe("Unit: a value renders whole", () => {
     // Time is a ladder that climbs by 60 and 6 rather than by 1000, and it
     // shows two tiers at once because that is how a countdown reads. Its parts
     // are interleaved into the number, so there is no symbol to put after it:
-    // rendering the RUNG here would print a stray "s" beside "2h 14m".
+    // rendering the RUNG here would print a stray "s" beside "2h 14min".
     const { container } = render(<Unit value={value("s", 8_040)} />);
-    expect(visibleText(container)).toBe("2h 14m");
+    expect(visibleText(container)).toBe("2h 14min");
   });
 
   it("renders a currency as its glyph, and still says the word", () => {

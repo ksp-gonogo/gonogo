@@ -1,6 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import valentinaSoloOrbit from "./__fixtures__/valentina-solo-orbit.json";
@@ -48,7 +47,11 @@ describe("CrewManifest, real recorded-fixture render off the stream (delay=0)", 
       });
     });
 
-    await waitFor(() => expect(visibleText()).toContain("1 / 1 aboard"));
-    expect(screen.getByText("Valentina Kerman")).toBeInTheDocument();
+    // The "1 / 1 aboard" headcount now lives on the info-tone
+    // `crew-manifest.badges` panel-badge contribution (`./badge.ts`), which
+    // this bare-component render (no `Panel` badge chrome) never mounts.
+    await waitFor(() =>
+      expect(screen.getByText("Valentina Kerman")).toBeInTheDocument(),
+    );
   });
 });

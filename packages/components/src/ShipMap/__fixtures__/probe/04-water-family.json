@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "scenario": "water-family",
+    "notes": "Operator-requested colour-spread render for the 'water family' of resources (local_docs/design/2026-08-08-resource-colour-system.md, gonogo main repo): shows Water, WasteWater, Waste, CarbonDioxide, and Oxygen (for contrast) side-by-side so an operator can see how they currently colour before deciding whether WasteWater should get its own hue. RENDER-ONLY: does not change resourceColor.ts. Like 03-resource-colour-spread, this is NOT a realistic Kerbalism profile: WasteWater/Waste/CarbonDioxide are declared Supply + non-pooled here purely to earn a per-part meter for the render (a real Kerbalism profile usually classifies these as byproducts rather than life-support Supplies, and often pools them). Expected current colouring: Water blue, WasteWater/Waste/CarbonDioxide all the same olive (WasteWater's name contains 'waste', which matches the CURATED co2/waste family before the water family gets a chance), Oxygen cyan."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.parts",
+      "kerbalism.available",
+      "kerbalism.profile",
+      "kerbalism.lifesupport"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": { "x": 0, "y": 0, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+              "dryMass": 0.8,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "modules": ["ModuleCommand"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "name": "kerbalismSupplyTank",
+              "title": "PPD-12 Life Support Tank",
+              "position": { "x": 0, "y": -1.145, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.0, "z": 1.25 } },
+              "dryMass": 0.3,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "Water": { "amount": 100, "maxAmount": 180 },
+                "Oxygen": { "amount": 150, "maxAmount": 200 },
+                "CarbonDioxide": { "amount": 40, "maxAmount": 120 }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "3",
+              "parentId": "2",
+              "name": "modWasteTank",
+              "title": "Waste Recovery Tank",
+              "position": { "x": 0, "y": -2.145, "z": 0 },
+              "up": { "x": 0, "y": 1, "z": 0 },
+              "bounds": { "size": { "x": 1.25, "y": 1.0, "z": 1.25 } },
+              "dryMass": 0.2,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "WasteWater": { "amount": 30, "maxAmount": 90 },
+                "Waste": { "amount": 20, "maxAmount": 70 }
+              },
+              "moduleStates": []
+            }
+          ]
+        }
+      },
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "kerbalism.profile",
+        "value": {
+          "name": "Default",
+          "resources": {
+            "Water": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.2
+            },
+            "Oxygen": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Oxygen",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "CarbonDioxide": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Carbon Dioxide",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "WasteWater": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Waste Water",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            },
+            "Waste": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Waste",
+              "isSupply": true,
+              "lowThreshold": 0.15
+            }
+          },
+          "rules": [],
+          "processes": []
+        }
+      },
+      {
+        "channel": "kerbalism.lifesupport",
+        "value": {
+          "rates": { "Water": -0.002, "Oxygen": -0.0015 },
+          "processes": [],
+          "greenhouses": []
+        }
+      }
+    ]
+  }
+}
