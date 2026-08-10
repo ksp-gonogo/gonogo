@@ -679,12 +679,18 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
       {hasResidual && ledger.residual !== undefined && (
         // Same near-black-on-dark landmine as the row footnote above: the
         // `-fg-muted` override keeps this readable on the panel surface.
+        // Every term above is already scaled by Kerbalism's own live modifier
+        // product (envModifier/ruleEnvModifiers, option a'), so this residual
+        // is no longer "modifiers we didn't model" -- it is a genuine
+        // model-vs-reality gap (timewarp catch-up between samples, a consumer
+        // this ledger doesn't enumerate) and is worth keeping visible as
+        // exactly that, never hidden.
         <Value
           tone="warn"
           size="xs"
           style={{ color: "var(--color-status-warning-fg-muted)" }}
         >
-          Residual {formatRate(ledger.residual)} (modifiers not modelled)
+          Residual {formatRate(ledger.residual)} (unaccounted)
         </Value>
       )}
     </Stack>

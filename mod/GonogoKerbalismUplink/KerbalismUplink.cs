@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 
 namespace Gonogo.KerbalismUplink
@@ -172,14 +173,66 @@ namespace Gonogo.KerbalismUplink
                 Surface = _k.Api("Surface", v) ?? 0,
             };
 
+            var profile = Profile();
+            var processes = new List<ProcessRaw>(_k.Processes(v));
+            var modifierCtx = _k.BeginModifierContext(v);
+            ApplyProcessEnvModifiers(processes, profile, v, modifierCtx);
+
             return new KerbalismCaptured
             {
                 Ut = snapshot?.Ut ?? 0.0,
                 Snapshot = s,
-                Processes = new List<ProcessRaw>(_k.Processes(v)),
+                Processes = processes,
                 Crew = new List<KerbalRulesRaw>(_k.CrewRules(v)),
                 RuleConstants = _k.RuleConstants(),
+                Solar = _k.Solar(v),
+                StormEjectionSpeed = _k.StormEjectionSpeed(),
+                RuleEnvModifiers = RuleEnvModifiers(profile, v, modifierCtx),
             };
+        }
+
+        /// <summary>
+        /// Joins each captured process instance onto its profile Process definition
+        /// by the pseudo-resource token (entry.Resource), then evaluates Kerbalism's
+        /// live modifier product over that definition's modifiers MINUS the join
+        /// token itself (already accounted for via Capacity; see
+        /// KerbalismProcessEntry.EnvModifier's doc comment for why it must be
+        /// excluded). Mutates each ProcessRaw in place.
+        /// </summary>
+        private void ApplyProcessEnvModifiers(
+            List<ProcessRaw> processes, ProfileRaw profile, Vessel v, KerbalismReflection.ModifierContext? ctx)
+        {
+            if (processes.Count == 0) return;
+            var byModifierToken = new Dictionary<string, ProcessDefRaw>(StringComparer.Ordinal);
+            foreach (var def in profile.Processes)
+                foreach (var token in def.Modifiers)
+                    byModifierToken[token] = def;
+
+            foreach (var p in processes)
+            {
+                if (string.IsNullOrEmpty(p.Resource) || !byModifierToken.TryGetValue(p.Resource, out var def)) continue;
+                var filtered = def.Modifiers.Where(m => m != p.Resource).ToList();
+                p.EnvModifier = _k.EvaluateModifiers(ctx, v, filtered);
+            }
+        }
+
+        /// <summary>
+        /// Live modifier product per rule name, over each rule's FULL modifier
+        /// list (rules have no pseudo-resource join token to exclude, unlike
+        /// processes). See KerbalismLifeSupport.RuleEnvModifiers' doc comment for
+        /// why this rides the live lifesupport capture rather than the static
+        /// profile channel.
+        /// </summary>
+        private Dictionary<string, double> RuleEnvModifiers(
+            ProfileRaw profile, Vessel v, KerbalismReflection.ModifierContext? ctx)
+        {
+            var result = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var rule in profile.Rules)
+            {
+                var k = _k.EvaluateModifiers(ctx, v, rule.Modifiers);
+                if (k.HasValue) result[rule.Name] = k.Value;
+            }
+            return result;
         }
 
         /// <summary>
@@ -207,9 +260,10 @@ namespace Gonogo.KerbalismUplink
         private void HandleOnCourier(object? captured)
         {
             if (captured is not KerbalismCaptured c) return;
-            _spaceWeather?.Publish(KerbalismCapture.BuildSpaceWeather(c.Snapshot), c.Ut);
+            _spaceWeather?.Publish(
+                KerbalismCapture.BuildSpaceWeather(c.Snapshot, c.Solar.Stars, c.Solar.Storms, c.StormEjectionSpeed), c.Ut);
             _lifeSupport?.Publish(
-                KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates), c.Ut);
+                KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers), c.Ut);
             _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants), c.Ut);
         }
 
@@ -226,6 +280,9 @@ namespace Gonogo.KerbalismUplink
             public List<ProcessRaw> Processes = new();
             public List<KerbalRulesRaw> Crew = new();
             public IReadOnlyDictionary<string, RuleConstants> RuleConstants = new Dictionary<string, RuleConstants>();
+            public SolarRaw Solar = new();
+            public double? StormEjectionSpeed;
+            public IReadOnlyDictionary<string, double> RuleEnvModifiers = new Dictionary<string, double>();
         }
     }
 }

@@ -281,6 +281,9 @@ public static class RtConfig
                 typeof(KerbalismCrewRule),
                 typeof(KerbalismCrewEntry),
                 typeof(KerbalismFeatures),
+                // kerbalism.spaceweather solar vantage / storms (star-agnostic)
+                typeof(KerbalismStarInfo),
+                typeof(KerbalismStormEntry),
                 // kerbalism.profile: the loaded profile's own definitions, so the
                 // app derives the resource graph without gonogo naming a resource.
                 typeof(KerbalismResourceDef),

@@ -70,6 +70,109 @@ public class KerbalismSpaceWeather
     public double? ShieldingAmount { get; set; }
     [SitrepUnit(Units.ResourceUnits)]
     public double? ShieldingCapacity { get; set; }
+    /// <summary>
+    /// One entry per star Kerbalism enumerates (<c>Sim.suns</c>, populated from
+    /// Kopernicus <c>LightShifter</c> bodies, or the stock single sun when none
+    /// are found), this vessel's own vantage on each
+    /// (<c>VesselData.EnvSunsInfo</c>). Star-agnostic: 1..N entries, uniform
+    /// shape for a binary/trinary pack same as a single star.
+    /// </summary>
+    public List<KerbalismStarInfo>? Stars { get; set; }
+    /// <summary>
+    /// One entry per (this vessel's current SOI body, star) CME slot,
+    /// <c>Storm.StormKey(body, star)</c>-keyed. See
+    /// <see cref="KerbalismStormEntry"/> for the fair-vs-cheating read boundary
+    /// that governs which of its members are populated.
+    /// </summary>
+    public List<KerbalismStormEntry>? Storms { get; set; }
+    /// <summary>
+    /// Global CME transit speed, <c>PreferencesRadiation.Instance.StormEjectionSpeed</c>
+    /// (a fraction of c; stock default 0.33c &#x2248; 99,000 km/s, read live in case a
+    /// save overrides it). ONE value shared by every storm on every body/star pair,
+    /// never per-storm (confirmed against Kerbalism source: <c>Storm.Time_to_impact</c>
+    /// reads the same global preference for every call).
+    /// </summary>
+    [SitrepUnit(Units.MetresPerSecond)]
+    public double? StormEjectionSpeed { get; set; }
+}
+
+/// <summary>
+/// One star's vantage from the active vessel (Kerbalism's
+/// <c>VesselData.EnvSunsInfo</c> entry, i.e. <c>SunInfo</c>). Join key onto
+/// <see cref="KerbalismStormEntry.Star"/> is <see cref="Star"/> (the star's
+/// <c>CelestialBody.bodyName</c>).
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class KerbalismStarInfo
+{
+    /// <summary>Star body name (<c>Sim.SunData.body.bodyName</c>).</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Star { get; set; }
+    /// <summary>Normalized vessel-to-sun direction, <c>VesselData.SunInfo.Direction</c>.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public Vec3? Direction { get; set; }
+    /// <summary>Vessel-to-sun-surface distance, <c>VesselData.SunInfo.Distance</c>.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? Distance { get; set; }
+}
+
+/// <summary>
+/// One (this vessel's current SOI body, star) CME slot,
+/// <c>Storm.StormKey(body, star)</c>-keyed against Kerbalism's own
+/// <c>StormData</c>.
+///
+/// <para><b>FAIR-vs-CHEATING boundary.</b> <see cref="StormState"/> mirrors
+/// <c>StormData.storm_state</c> (0 none / 1 inbound-in-transit / 2 in
+/// progress-arrived) and is always read. <see cref="StormTime"/>,
+/// <see cref="StormDuration"/> and <see cref="Dist"/> are populated ONLY when
+/// <see cref="StormState"/> is nonzero: <c>Storm.CreateStorm</c> sets
+/// <c>storm_time</c>/<c>storm_duration</c> and flips <c>storm_state</c> from 0
+/// to 1 atomically, in the same call, on a successful roll, so reading all
+/// three together observes one already-launched CME, never a future one. When
+/// <c>storm_state</c> is 0 these are genuinely absent state on the Kerbalism
+/// side too (<c>StormData.Reset()</c> zeroes them), so null is the honest
+/// value, not a withheld one.</para>
+///
+/// <para><c>StormData.storm_generation</c> (the UT of the NEXT roll attempt,
+/// win or lose) is NEVER read or shipped anywhere in this contract, by design.
+/// Unlike <c>storm_time</c>/<c>storm_state</c> it is always populated whether
+/// or not a storm currently exists, so reading it would expose the RNG's
+/// schedule for an event that may never happen: information no in-universe
+/// sun-watcher could observe. This is the one deliberate omission in an
+/// otherwise "capture everything knowable" field, and it must stay that way.</para>
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class KerbalismStormEntry
+{
+    /// <summary>Source star body name. Join key onto <see cref="KerbalismStarInfo.Star"/>.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Star { get; set; }
+    /// <summary><c>StormData.storm_state</c>: 0 none, 1 inbound (in transit), 2 in progress (arrived).</summary>
+    [SitrepUnit(Units.Count)]
+    public int? StormState { get; set; }
+    /// <summary>Arrival UT, <c>StormData.storm_time</c>. Null when <see cref="StormState"/> is 0.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? StormTime { get; set; }
+    /// <summary>Storm duration once it hits, <c>StormData.storm_duration</c>. Null when <see cref="StormState"/> is 0.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? StormDuration { get; set; }
+    /// <summary>
+    /// Live sun-to-body distance (<c>Vector3d.Distance(body.position,
+    /// star.position)</c>, the identical geometry <c>Storm.Update</c> itself
+    /// computes). Kerbalism does not persist the roll-time distance on
+    /// <c>StormData</c>, so this is the CURRENT distance, not necessarily the
+    /// exact one the roll used; the two diverge only by however far the body
+    /// has moved in its orbit since the roll, negligible at interplanetary
+    /// scale. Null when <see cref="StormState"/> is 0.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? Dist { get; set; }
 }
 
 /// <summary>One life-support consumable: amount, capacity, signed net rate (units/s, negative = draining).</summary>
@@ -158,6 +261,20 @@ public class KerbalismProcessEntry
     /// </summary>
     [SitrepUnit(Units.Count)]
     public int? ValveIndex { get; set; }
+    /// <summary>
+    /// The live modifier product k, Kerbalism's own
+    /// <c>Modifiers.Evaluate(vessel, vesselData, vesselResources, modifiers)</c>,
+    /// evaluated over the matched <see cref="KerbalismProcessDef.Modifiers"/>
+    /// list MINUS the capacity join token (<see cref="Resource"/> itself,
+    /// already accounted for via <see cref="Capacity"/>, so including it here
+    /// too would double-count it). Multiply into the nominal per-capacity rate
+    /// (<c>KerbalismProcessDef</c> input/output * <see cref="Capacity"/>) for
+    /// the actual rate. Null when Kerbalism's internals moved or the join
+    /// could not be resolved; a consumer should treat null as 1.0 (no
+    /// correction applied), same as an absent term elsewhere on this contract.
+    /// </summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? EnvModifier { get; set; }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -425,6 +542,28 @@ public class KerbalismLifeSupport
     public Dictionary<string, double>? Rates { get; set; }
     public KerbalismHabitat? Habitat { get; set; }
     public List<KerbalismProcessEntry>? Processes { get; set; }
+    /// <summary>
+    /// Live modifier product k per rule name, keyed to join against
+    /// <see cref="KerbalismRuleDef.Name"/> on <c>kerbalism.profile.rules</c>
+    /// (same math as <see cref="KerbalismProcessEntry.EnvModifier"/>: Kerbalism's
+    /// own <c>Modifiers.Evaluate</c>, over the rule's full modifier list, no
+    /// capacity-token exclusion since a rule has no pseudo-resource join key).
+    ///
+    /// <para>Rides THIS live/delayed channel rather than living directly on
+    /// <see cref="KerbalismRuleDef"/> because <c>kerbalism.profile</c> is a
+    /// pull-style channel whose mapper is declared KSP-free and runs off the
+    /// main thread (<c>IUplinkHost.AddChannelSource</c>), while a live
+    /// vessel/environment read like <c>Modifiers.Evaluate</c> needs
+    /// <c>VesselData</c>/<c>VesselResources</c> and must run on the main thread
+    /// (see <c>IUplinkHost.AddSampledSource</c>'s doc comment: a Courier-thread
+    /// live-KSP read is a crash risk, not a style nit) &#x2014; exactly the thread
+    /// this <c>kerbalism.lifesupport</c> Topic is already captured on. A rule
+    /// name absent from this map means "no correction available"; a consumer
+    /// should treat that as k = 1.0, same as a null
+    /// <see cref="KerbalismProcessEntry.EnvModifier"/>.</para>
+    /// </summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public Dictionary<string, double>? RuleEnvModifiers { get; set; }
     /// <summary>
     /// Active Greenhouse parts on the vessel, if any (most vessels carry none,
     /// an empty/absent list is the normal case, not an error). NOT YET POPULATED

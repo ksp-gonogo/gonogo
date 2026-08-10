@@ -400,7 +400,27 @@ namespace Sitrep.Contract
         /// retyped and the contract-shape gate is unaffected. The DTO shapes carried
         /// on both channels are unchanged. See
         /// <c>mod/GonogoBreakingGroundUplink/</c>.</para>
+        ///
+        /// <para><b>Bumped 7 -&gt; 8:</b> the SpaceWeather reframe's solar-vantage
+        /// capture + the ShipSystems modifier-ledger completion (option a'), one
+        /// additive Minor for both batches. Solar vantage: the new
+        /// <see cref="KerbalismSpaceWeather.Stars"/> (<see cref="KerbalismStarInfo"/>,
+        /// one entry per star Kerbalism enumerates, star-agnostic) and
+        /// <see cref="KerbalismSpaceWeather.Storms"/> (<see cref="KerbalismStormEntry"/>,
+        /// one entry per (this vessel's current SOI body, star) CME slot, gated on
+        /// the fair-vs-cheating <c>storm_state</c> boundary: <c>storm_generation</c>
+        /// is never read) plus <see cref="KerbalismSpaceWeather.StormEjectionSpeed"/>.
+        /// Modifier ledger: the new <see cref="KerbalismProcessEntry.EnvModifier"/>
+        /// (live <c>Modifiers.Evaluate</c> product per process instance, capacity
+        /// join token excluded) and <see cref="KerbalismLifeSupport.RuleEnvModifiers"/>
+        /// (the same product per rule name, full modifier list). All brand-new
+        /// members/types on existing or new <c>[SitrepContract]</c> shapes, nothing
+        /// removed or retyped, so it cannot break an Uplink built against an older
+        /// Minor. See
+        /// <c>local_docs/design/2026-08-10-kerbalism-solar-vantage-and-modifiers.md</c>
+        /// and
+        /// <c>local_docs/design/2026-08-10-kerbalism-modifier-product-feasibility.md</c>.</para>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

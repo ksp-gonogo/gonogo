@@ -480,6 +480,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "KerbalismLifeSupport": {
     rates: "units/s",
+    ruleEnvModifiers: "1",
   },
   "KerbalismProcessDef": {
     dumpValves: "text",
@@ -491,6 +492,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "KerbalismProcessEntry": {
     broken: "flag",
     capacity: "units",
+    envModifier: "1",
     flightId: "id",
     resource: "text",
     running: "flag",
@@ -534,8 +536,23 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     radiationRadPerSecond: "rad/s",
     shieldingAmount: "units",
     shieldingCapacity: "units",
+    stormEjectionSpeed: "m/s",
     stormInProgress: "flag",
     stormIncoming: "flag",
+  },
+  "KerbalismStarInfo": {
+    "direction.x": "1",
+    "direction.y": "1",
+    "direction.z": "1",
+    distance: "m",
+    star: "text",
+  },
+  "KerbalismStormEntry": {
+    dist: "m",
+    star: "text",
+    stormDuration: "s",
+    stormState: "count",
+    stormTime: "s",
   },
   "KerbcastCameraEntry": {
     cameraId: "id",
@@ -1414,6 +1431,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "kerbalism.lifesupport": {
     rates: "units/s",
+    ruleEnvModifiers: "1",
   },
   "kerbalism.profile": {
     name: "text",
@@ -1428,6 +1446,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     radiationRadPerSecond: "rad/s",
     shieldingAmount: "units",
     shieldingCapacity: "units",
+    stormEjectionSpeed: "m/s",
     stormInProgress: "flag",
     stormIncoming: "flag",
   },
@@ -1930,6 +1949,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     resources: "*KerbalismResourceDef",
     rules: "KerbalismRuleDef",
   },
+  "KerbalismSpaceWeather": {
+    stars: "KerbalismStarInfo",
+    storms: "KerbalismStormEntry",
+  },
   "ManeuverNode": {
     patches: "OrbitPatch",
   },
@@ -2120,6 +2143,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     processes: "KerbalismProcessDef",
     resources: "*KerbalismResourceDef",
     rules: "KerbalismRuleDef",
+  },
+  "kerbalism.spaceweather": {
+    stars: "KerbalismStarInfo",
+    storms: "KerbalismStormEntry",
   },
   "parts.power": {
     alternators: "AlternatorEntry",

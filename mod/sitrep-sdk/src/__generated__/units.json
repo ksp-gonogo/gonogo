@@ -445,7 +445,8 @@
       "volume": "m³"
     },
     "KerbalismLifeSupport": {
-      "rates": "units/s"
+      "rates": "units/s",
+      "ruleEnvModifiers": "1"
     },
     "KerbalismProcessDef": {
       "dumpValves": "text",
@@ -457,6 +458,7 @@
     "KerbalismProcessEntry": {
       "broken": "flag",
       "capacity": "units",
+      "envModifier": "1",
       "flightId": "id",
       "resource": "text",
       "running": "flag",
@@ -500,8 +502,23 @@
       "radiationRadPerSecond": "rad/s",
       "shieldingAmount": "units",
       "shieldingCapacity": "units",
+      "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
       "stormIncoming": "flag"
+    },
+    "KerbalismStarInfo": {
+      "direction.x": "1",
+      "direction.y": "1",
+      "direction.z": "1",
+      "distance": "m",
+      "star": "text"
+    },
+    "KerbalismStormEntry": {
+      "dist": "m",
+      "star": "text",
+      "stormDuration": "s",
+      "stormState": "count",
+      "stormTime": "s"
     },
     "KerbcastCameraEntry": {
       "cameraId": "id",
@@ -1374,7 +1391,8 @@
       "supplies": "flag"
     },
     "kerbalism.lifesupport": {
-      "rates": "units/s"
+      "rates": "units/s",
+      "ruleEnvModifiers": "1"
     },
     "kerbalism.profile": {
       "name": "text"
@@ -1389,6 +1407,7 @@
       "radiationRadPerSecond": "rad/s",
       "shieldingAmount": "units",
       "shieldingCapacity": "units",
+      "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
       "stormIncoming": "flag"
     },
@@ -1873,6 +1892,10 @@
       "resources": "*KerbalismResourceDef",
       "rules": "KerbalismRuleDef"
     },
+    "KerbalismSpaceWeather": {
+      "stars": "KerbalismStarInfo",
+      "storms": "KerbalismStormEntry"
+    },
     "ManeuverNode": {
       "patches": "OrbitPatch"
     },
@@ -2061,6 +2084,10 @@
       "processes": "KerbalismProcessDef",
       "resources": "*KerbalismResourceDef",
       "rules": "KerbalismRuleDef"
+    },
+    "kerbalism.spaceweather": {
+      "stars": "KerbalismStarInfo",
+      "storms": "KerbalismStormEntry"
     },
     "parts.power": {
       "alternators": "AlternatorEntry",

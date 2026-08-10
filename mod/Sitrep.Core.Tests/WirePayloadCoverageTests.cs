@@ -214,6 +214,11 @@ namespace Sitrep.Core.Tests
             "KerbalismSpaceWeather", "KerbalismLifeSupport", "KerbalismResource",
             "KerbalismHabitat", "KerbalismProcessEntry", "KerbalismCrewRule",
             "KerbalismCrewEntry", "KerbalismFeatures",
+            // kerbalism.spaceweather stars/storms: KerbalismCapture.BuildStars/
+            // BuildStorms (called from BuildSpaceWeather) flatten these to nested
+            // Dictionary<string, object?> lists, same treatment as every other
+            // kerbalism.* payload above; these POCOs are TS-shape-only.
+            "KerbalismStarInfo", "KerbalismStormEntry",
             // kerbalism.profile: KerbalismCapture.BuildProfile flattens the whole
             // profile (resources map, rules, processes) to nested
             // Dictionary<string, object?> / List<object> before the uplink's

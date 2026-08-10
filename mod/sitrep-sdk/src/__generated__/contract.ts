@@ -443,6 +443,23 @@ export interface KerbalismSpaceWeather
 	inSunlight?: boolean;
 	shieldingAmount?: Value<"units">;
 	shieldingCapacity?: Value<"units">;
+	stars?: KerbalismStarInfo[];
+	storms?: KerbalismStormEntry[];
+	stormEjectionSpeed?: Value<"m/s">;
+}
+export interface KerbalismStarInfo
+{
+	star?: string;
+	direction?: Vec3Of<"1">;
+	distance?: Value<"m">;
+}
+export interface KerbalismStormEntry
+{
+	star?: string;
+	stormState?: Value<"count">;
+	stormTime?: Value<"s">;
+	stormDuration?: Value<"s">;
+	dist?: Value<"m">;
 }
 export interface KerbalismResource
 {
@@ -469,6 +486,7 @@ export interface KerbalismProcessEntry
 	broken?: boolean;
 	flightId?: number;
 	valveIndex?: Value<"count">;
+	envModifier?: Value<"1">;
 }
 export interface KerbalismResourceDef
 {
@@ -525,6 +543,7 @@ export interface KerbalismLifeSupport
 	rates?: { [key: string]: Value<"units/s"> };
 	habitat?: KerbalismHabitat;
 	processes?: KerbalismProcessEntry[];
+	ruleEnvModifiers?: { [key: string]: Value<"1"> };
 	greenhouses?: KerbalismGreenhouseEntry[];
 }
 export interface KerbalismCrewRule

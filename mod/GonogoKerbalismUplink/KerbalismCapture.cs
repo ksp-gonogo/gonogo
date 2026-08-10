@@ -13,7 +13,11 @@ namespace Gonogo.KerbalismUplink
     /// </summary>
     public static class KerbalismCapture
     {
-        public static Dictionary<string, object?> BuildSpaceWeather(KerbalismSnapshot s) => new()
+        public static Dictionary<string, object?> BuildSpaceWeather(
+            KerbalismSnapshot s,
+            IEnumerable<StarInfoRaw>? stars = null,
+            IEnumerable<StormEntryRaw>? storms = null,
+            double? stormEjectionSpeed = null) => new()
         {
             ["radiationRadPerSecond"] = s.Radiation,
             ["habitatRadiationRadPerSecond"] = s.HabitatRadiation,
@@ -26,7 +30,50 @@ namespace Gonogo.KerbalismUplink
             ["inSunlight"] = s.InSunlight,
             ["shieldingAmount"] = s.ShieldingAmount,
             ["shieldingCapacity"] = s.ShieldingCapacity,
+            ["stars"] = BuildStars(stars),
+            ["storms"] = BuildStorms(storms),
+            ["stormEjectionSpeed"] = stormEjectionSpeed,
         };
+
+        private static List<object> BuildStars(IEnumerable<StarInfoRaw>? stars)
+        {
+            var list = new List<object>();
+            if (stars == null) return list;
+            foreach (var s in stars)
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["star"] = s.Star,
+                    ["direction"] = new Dictionary<string, object?>
+                    {
+                        ["x"] = s.DirX,
+                        ["y"] = s.DirY,
+                        ["z"] = s.DirZ,
+                    },
+                    ["distance"] = s.Distance,
+                });
+            return list;
+        }
+
+        /// <summary>
+        /// StormTime/StormDuration/Dist ride through as-captured: KerbalismReflection.Solar
+        /// already only fills them when StormState != 0 (the fair-vs-cheating boundary),
+        /// so this mapper does no additional gating, just field-for-field carry.
+        /// </summary>
+        private static List<object> BuildStorms(IEnumerable<StormEntryRaw>? storms)
+        {
+            var list = new List<object>();
+            if (storms == null) return list;
+            foreach (var st in storms)
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["star"] = st.Star,
+                    ["stormState"] = st.StormState,
+                    ["stormTime"] = st.StormTime,
+                    ["stormDuration"] = st.StormDuration,
+                    ["dist"] = st.Dist,
+                });
+            return list;
+        }
 
         /// <summary>
         /// The resources the life-support ledger reports a rate for: the union of
@@ -136,7 +183,8 @@ namespace Gonogo.KerbalismUplink
         public static Dictionary<string, object?> BuildLifeSupport(
             KerbalismSnapshot s,
             List<ProcessRaw> processes,
-            IReadOnlyDictionary<string, double>? rates = null)
+            IReadOnlyDictionary<string, double>? rates = null,
+            IReadOnlyDictionary<string, double>? ruleEnvModifiers = null)
         {
             var procs = new List<object>();
             foreach (var p in processes)
@@ -149,6 +197,7 @@ namespace Gonogo.KerbalismUplink
                     ["broken"] = p.Broken,
                     ["flightId"] = p.FlightId,
                     ["valveIndex"] = p.ValveIndex,
+                    ["envModifier"] = p.EnvModifier,
                 });
 
             // Full map every emission, never a delta: a key disappearing is then
@@ -156,6 +205,10 @@ namespace Gonogo.KerbalismUplink
             var rateMap = new Dictionary<string, object?>(StringComparer.Ordinal);
             if (rates != null)
                 foreach (var kv in rates) rateMap[kv.Key] = kv.Value;
+
+            var ruleModifierMap = new Dictionary<string, object?>(StringComparer.Ordinal);
+            if (ruleEnvModifiers != null)
+                foreach (var kv in ruleEnvModifiers) ruleModifierMap[kv.Key] = kv.Value;
 
             return new Dictionary<string, object?>
             {
@@ -171,6 +224,7 @@ namespace Gonogo.KerbalismUplink
                     ["surface"] = s.Surface,
                 },
                 ["processes"] = procs,
+                ["ruleEnvModifiers"] = ruleModifierMap,
             };
         }
 

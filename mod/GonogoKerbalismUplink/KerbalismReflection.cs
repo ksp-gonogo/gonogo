@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace Gonogo.KerbalismUplink
 {
@@ -22,8 +23,19 @@ namespace Gonogo.KerbalismUplink
         private readonly Type? _dbType;
         private readonly Type? _profileType;
         private readonly Type? _reliabilityInfoType;
+        private readonly Type? _stormType;
+        private readonly Type? _modifiersType;
+        private readonly Type? _prefsRadiationType;
+        private readonly Type? _resourceCacheType;
         private readonly MethodInfo? _dbKerbal;
         private readonly MethodInfo? _buildReliabilityList;
+        private readonly MethodInfo? _dbStorm;
+        private readonly MethodInfo? _stormKeyMethod;
+        private readonly MethodInfo? _dbKerbalismData;
+        private readonly MethodInfo? _resourceCacheGet;
+        private readonly MethodInfo? _modifiersEvaluate;
+        private readonly PropertyInfo? _prefsRadiationInstanceProp;
+        private readonly PropertyInfo? _stormEjectionSpeedProp;
         private readonly Dictionary<string, MethodInfo> _apiVessel = new();
         private readonly Dictionary<string, MethodInfo> _apiVesselString = new();
 
@@ -42,9 +54,41 @@ namespace Gonogo.KerbalismUplink
             _dbType = FindType("KERBALISM.DB") ?? FindType("Kerbalism.DB");
             _profileType = FindType("KERBALISM.Profile") ?? FindType("Kerbalism.Profile");
             _reliabilityInfoType = FindType("KERBALISM.ReliabilityInfo") ?? FindType("Kerbalism.ReliabilityInfo");
+            _stormType = FindType("KERBALISM.Storm") ?? FindType("Kerbalism.Storm");
+            _modifiersType = FindType("KERBALISM.Modifiers") ?? FindType("Kerbalism.Modifiers");
+            _prefsRadiationType = FindType("KERBALISM.PreferencesRadiation") ?? FindType("Kerbalism.PreferencesRadiation");
+            _resourceCacheType = FindType("KERBALISM.ResourceCache") ?? FindType("Kerbalism.ResourceCache");
 
             _dbKerbal = _dbType?.GetMethod("Kerbal", BindingFlags.Public | BindingFlags.Static);
             _buildReliabilityList = _reliabilityInfoType?.GetMethod("BuildList", BindingFlags.Public | BindingFlags.Static);
+            _dbStorm = _dbType?.GetMethod("Storm", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(string) }, null);
+            _stormKeyMethod = _stormType?.GetMethod(
+                "StormKey", BindingFlags.Public | BindingFlags.Static, null,
+                new[] { typeof(CelestialBody), typeof(CelestialBody) }, null);
+            _dbKerbalismData = _dbType?.GetMethod(
+                "KerbalismData", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(Vessel) }, null);
+            _resourceCacheGet = _resourceCacheType?.GetMethod(
+                "Get", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(Vessel) }, null);
+            _prefsRadiationInstanceProp = _prefsRadiationType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+            _stormEjectionSpeedProp = _prefsRadiationType?.GetProperty("StormEjectionSpeed", BindingFlags.Public | BindingFlags.Instance);
+
+            if (_modifiersType != null)
+            {
+                // Two overloads named Evaluate exist (the live-vessel one and the
+                // VAB/SPH planner one over EnvironmentAnalyzer/VesselAnalyzer); pick
+                // the one whose first parameter is Vessel and whose last is
+                // List<string>, which uniquely identifies the live-vessel overload.
+                foreach (var m in _modifiersType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+                {
+                    if (m.Name != "Evaluate") continue;
+                    var ps = m.GetParameters();
+                    if (ps.Length == 4 && ps[0].ParameterType == typeof(Vessel) && ps[3].ParameterType == typeof(List<string>))
+                    {
+                        _modifiersEvaluate = m;
+                        break;
+                    }
+                }
+            }
 
             if (_apiType != null)
             {
@@ -398,6 +442,135 @@ namespace Gonogo.KerbalismUplink
                 }
             }
             return raw;
+        }
+
+        // ── solar vantage / storms (star-agnostic) ──────────────────────────────
+
+        /// <summary>
+        /// Per-star vantage (<c>VesselData.EnvSunsInfo</c>) plus, for each of those
+        /// stars, the CME slot for THIS vessel's current SOI body
+        /// (<c>DB.Storm(Storm.StormKey(v.mainBody, star))</c>). Star-agnostic: one
+        /// entry per star Kerbalism tracks for this vessel, 1..N uniformly.
+        /// StormTime/StormDuration/Dist are only filled when storm_state != 0 (see
+        /// <c>Sitrep.Contract.KerbalismStormEntry</c>'s fair-vs-cheating doc
+        /// comment); storm_generation is never read.
+        /// </summary>
+        public SolarRaw Solar(Vessel v)
+        {
+            var raw = new SolarRaw();
+            if (v == null || _dbKerbalismData == null) return raw;
+
+            object? vd = null;
+            try { vd = _dbKerbalismData.Invoke(null, new object[] { v }); } catch { }
+            if (vd == null) return raw;
+
+            if (Member(vd, "EnvSunsInfo") is not IEnumerable sunsInfo) return raw;
+
+            var mainBody = v.mainBody;
+            foreach (var sunInfo in sunsInfo)
+            {
+                if (sunInfo == null) continue;
+                var sunData = Member(sunInfo, "SunData");
+                var star = sunData == null ? null : Member(sunData, "body") as CelestialBody;
+                if (star == null) continue;
+
+                double dx = 0, dy = 0, dz = 0;
+                if (Member(sunInfo, "Direction") is Vector3d direction)
+                {
+                    dx = direction.x;
+                    dy = direction.y;
+                    dz = direction.z;
+                }
+
+                raw.Stars.Add(new StarInfoRaw
+                {
+                    Star = star.bodyName,
+                    DirX = dx,
+                    DirY = dy,
+                    DirZ = dz,
+                    Distance = MemberDouble(sunInfo, "Distance") ?? 0,
+                });
+
+                if (mainBody == null || _stormKeyMethod == null || _dbStorm == null) continue;
+
+                string? key = null;
+                try { key = _stormKeyMethod.Invoke(null, new object[] { mainBody, star }) as string; } catch { }
+                if (string.IsNullOrEmpty(key)) continue;
+
+                object? storm = null;
+                try { storm = _dbStorm.Invoke(null, new object[] { key }); } catch { }
+                if (storm == null) continue;
+
+                int state = 0;
+                try { state = Convert.ToInt32(Member(storm, "storm_state") ?? 0); } catch { }
+
+                var entry = new StormEntryRaw { Star = star.bodyName, StormState = state };
+                if (state != 0)
+                {
+                    entry.StormTime = MemberDouble(storm, "storm_time");
+                    entry.StormDuration = MemberDouble(storm, "storm_duration");
+                    entry.Dist = Vector3d.Distance(mainBody.position, star.position);
+                }
+                raw.Storms.Add(entry);
+            }
+            return raw;
+        }
+
+        /// <summary>
+        /// Global CME transit speed, <c>PreferencesRadiation.Instance.StormEjectionSpeed</c>
+        /// (metres/second, a fraction of c). One value for every storm on every
+        /// body/star pair.
+        /// </summary>
+        public double? StormEjectionSpeed()
+        {
+            if (_prefsRadiationInstanceProp == null || _stormEjectionSpeedProp == null) return null;
+            try
+            {
+                var instance = _prefsRadiationInstanceProp.GetValue(null);
+                return instance == null ? null : AsDouble(_stormEjectionSpeedProp.GetValue(instance));
+            }
+            catch { return null; }
+        }
+
+        // ── modifier product (ledger option a') ─────────────────────────────────
+
+        /// <summary>
+        /// Live modifier-evaluation context for one capture tick: the vessel's
+        /// VesselData + VesselResources, resolved once and reused across every
+        /// process/rule <see cref="EvaluateModifiers"/> call that tick, rather than
+        /// re-reflecting them per process/rule.
+        /// </summary>
+        public sealed class ModifierContext
+        {
+            internal object? Vd;
+            internal object? Resources;
+        }
+
+        public ModifierContext? BeginModifierContext(Vessel v)
+        {
+            if (v == null || _dbKerbalismData == null || _resourceCacheGet == null) return null;
+            try
+            {
+                var vd = _dbKerbalismData.Invoke(null, new object[] { v });
+                var resources = _resourceCacheGet.Invoke(null, new object[] { v });
+                if (vd == null || resources == null) return null;
+                return new ModifierContext { Vd = vd, Resources = resources };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Kerbalism's own <c>Modifiers.Evaluate(vessel, vesselData, vesselResources,
+        /// modifiers)</c>, the exact math a running Process/Rule scales its recipe
+        /// by. An empty modifiers list evaluates to 1.0 (product over nothing),
+        /// matching Kerbalism's own loop starting at <c>k = 1.0</c>.
+        /// </summary>
+        public double? EvaluateModifiers(ModifierContext? ctx, Vessel v, List<string> modifiers)
+        {
+            if (v == null || ctx?.Vd == null || ctx.Resources == null || _modifiersEvaluate == null) return null;
+            if (modifiers == null || modifiers.Count == 0) return 1.0;
+            try { return AsDouble(_modifiersEvaluate.Invoke(null, new object[] { v, ctx.Vd, ctx.Resources, modifiers })); }
+            catch { return null; }
         }
 
         // ── member readers (field-or-property, fail-soft) ──────────────────────

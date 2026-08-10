@@ -153,11 +153,18 @@ export function buildLedger({
       (Number.isNaN(perCapacityOut) ? 0 : perCapacityOut) -
       (Number.isNaN(perCapacityIn) ? 0 : perCapacityIn);
     if (signed === 0) continue;
+    // Kerbalism's own live modifier product (pressure/radiation/lamps/...),
+    // reflected mod-side and shipped as one double per process instance,
+    // capacity join token already excluded. Absent/null (an older mod build,
+    // or the reflection target having moved) means "no correction available",
+    // which is exactly what k = 1 encodes: falls back to the pre-a' nominal
+    // rate rather than zeroing the term.
+    const envModifier = mag(entry.envModifier, 1);
     terms.push({
       name: def.name || entry.title || entry.resource || "process",
       kind: "process",
       flightId: entry.flightId === undefined ? undefined : mag(entry.flightId),
-      ratePerSecond: signed * capacity,
+      ratePerSecond: signed * capacity * envModifier,
       scale: capacity,
     });
   }
@@ -174,10 +181,19 @@ export function buildLedger({
           ? perSecond
           : 0;
     if (signed === 0) continue;
+    // Same live modifier product as the process terms above, keyed by rule
+    // name on kerbalism.lifesupport.ruleEnvModifiers rather than living on the
+    // rule definition itself (see KerbalismLifeSupport.RuleEnvModifiers' doc
+    // comment: the profile channel's mapper is KSP-free/off-main-thread, so a
+    // live Modifiers.Evaluate read can't land there). Missing name -> 1.
+    const ruleEnvModifier = mag(
+      rule.name ? lifeSupport?.ruleEnvModifiers?.[rule.name] : undefined,
+      1,
+    );
     terms.push({
       name: rule.name || "rule",
       kind: "rule",
-      ratePerSecond: signed * crew,
+      ratePerSecond: signed * crew * ruleEnvModifier,
       scale: crew,
     });
   }
