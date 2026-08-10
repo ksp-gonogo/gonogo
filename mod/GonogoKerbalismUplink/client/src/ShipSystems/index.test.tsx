@@ -10,6 +10,7 @@ const CARRIED = [
   "kerbalism.lifesupport",
   "vessel.resources",
   "vessel.crew",
+  "kerbalism.spaceweather",
 ];
 
 // A minimal-but-real profile: three Supplies (Water/ElectricCharge/Oxygen), a
@@ -292,6 +293,84 @@ describe("ShipSystemsComponent", () => {
     const { container } = renderWidget(fixture);
     emitAll(fixture);
     await screen.findByText("Limiting factors");
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("ShipSystemsComponent: radiation", () => {
+  it("renders nothing extra when no spaceweather frame has landed", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+
+    await screen.findByText("Limiting factors");
+    expect(screen.queryByText("Ambient", { exact: false })).toBeNull();
+  });
+
+  it("shows the Radiation section once a spaceweather frame lands, and flags a greenhouse over its own tolerance", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            // 0.001 rad/s: below the ambient reading emitted below.
+            radiationToleranceRadPerSec: 0.001,
+          },
+        ],
+      });
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        outerBelt: true,
+      });
+    });
+
+    // The ambient/shielded readouts and the belt badge from RadiationSection.
+    await screen.findByText("Ambient", { exact: false });
+    expect(screen.getByText("Shielded", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("Outer belt")).toBeInTheDocument();
+
+    // The greenhouse's own instantaneous threshold flag, fed the SAME
+    // ambient reading via the life-support.sections augment slot.
+    expect(screen.getByText("Radiation too high")).toBeInTheDocument();
+  });
+
+  it("has no axe violations with the radiation section and greenhouse flag showing", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            radiationToleranceRadPerSec: 0.001,
+          },
+        ],
+      });
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        innerBelt: true,
+      });
+    });
+    await screen.findByText("Ambient", { exact: false });
 
     expect(await axe(container)).toHaveNoViolations();
   });

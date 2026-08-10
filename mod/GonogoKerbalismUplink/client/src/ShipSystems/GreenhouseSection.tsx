@@ -63,11 +63,22 @@ export interface GreenhouseRow {
   issue: string;
   /** Derived continuous production rate, units/s (0 when inactive or blocked). */
   foodRatePerSec: number;
+  /** rad/s. `<= 0` means "not reported": never flag against it. */
+  radiationToleranceRadPerSec: number;
 }
 
 export interface LifeSupportSlotContext {
   /** Active Greenhouse parts on the vessel; empty when none are fitted. */
   greenhouses: readonly GreenhouseRow[];
+  /**
+   * Current ambient (unshielded) dose rate, rad/s, from
+   * `kerbalism.spaceweather`. Ambient, not the crew's shielded/habitat
+   * figure: a greenhouse part's own tolerance is a limit on what's hitting
+   * the HULL, not on what the vessel's habitat shielding lets through to
+   * the crew. 0 when no spaceweather frame has landed yet, which never
+   * trips a threshold check on its own.
+   */
+  ambientRadiationRadPerSecond: number;
 }
 
 // Declaration-merge the slot id → props type into the sdk facade's
@@ -111,34 +122,68 @@ function greenhouseStateLabel(g: GreenhouseRow): string {
 }
 
 /**
+ * Instantaneous threshold flag, never a trend: a greenhouse carries no
+ * radiation memory of its own (unlike a crew rule, which accumulates), so
+ * this reads only the CURRENT ambient rate against the part's own fixed
+ * tolerance, no history involved. `<= 0` on either side means "nothing to
+ * compare" (an unreported tolerance, or no spaceweather frame yet) and
+ * never flags.
+ */
+function radiationTooHigh(
+  g: GreenhouseRow,
+  ambientRadiationRadPerSecond: number,
+): boolean {
+  return (
+    g.radiationToleranceRadPerSec > 0 &&
+    ambientRadiationRadPerSecond > g.radiationToleranceRadPerSec
+  );
+}
+
+/**
  * ONE greenhouse entry, rendered in the same two-line-per-item budget as the
  * Processes section above it (a title/badge row + a single compact value
  * line) so a fully-populated widget (broken process + habitat detail +
  * greenhouse + power) still fits the default grid size without pushing the
  * Power meter below the fold. A single-vessel-greenhouse widget, by far the
- * common case, costs exactly 2 lines (3 when blocked).
+ * common case, costs exactly 2 lines (3 when blocked, 4 when also
+ * over-tolerance: both conditions are independent and can co-occur).
  */
 function GreenhouseEntryRow({
   g,
   titlePrefix,
+  ambientRadiationRadPerSecond,
 }: {
   g: GreenhouseRow;
   /** "Greenhouse" for the single-entry case, or the crop name when there are several. */
   titlePrefix: string;
+  ambientRadiationRadPerSecond: number;
 }) {
   const blocked = g.active && g.issue.length > 0;
+  const tooHigh = radiationTooHigh(g, ambientRadiationRadPerSecond);
   return (
     <Section>
       <RowHead>
         <RowTitle>{titlePrefix}</RowTitle>
-        <Badge
-          role="status"
-          aria-live="polite"
-          severity={greenhouseTone(g)}
-          size="sm"
-        >
-          {greenhouseStateLabel(g)}
-        </Badge>
+        <BadgeGroup>
+          {tooHigh && (
+            <Badge
+              role="status"
+              aria-live="polite"
+              severity="critical"
+              size="sm"
+            >
+              Radiation too high
+            </Badge>
+          )}
+          <Badge
+            role="status"
+            aria-live="polite"
+            severity={greenhouseTone(g)}
+            size="sm"
+          >
+            {greenhouseStateLabel(g)}
+          </Badge>
+        </BadgeGroup>
       </RowHead>
       <ValueLine>
         Natural {fmtWm2(g.natural)} · Artificial {fmtWm2(g.artificial)} · Rate{" "}
@@ -149,7 +194,10 @@ function GreenhouseEntryRow({
   );
 }
 
-function GreenhouseSection({ greenhouses }: LifeSupportSlotContext) {
+function GreenhouseSection({
+  greenhouses,
+  ambientRadiationRadPerSecond,
+}: LifeSupportSlotContext) {
   // No greenhouse part on the vessel, the common case. Render nothing
   // rather than an empty "Greenhouse" header with no content beneath it.
   if (greenhouses.length === 0) return null;
@@ -161,7 +209,11 @@ function GreenhouseSection({ greenhouses }: LifeSupportSlotContext) {
   if (greenhouses.length === 1) {
     return (
       <Wrap>
-        <GreenhouseEntryRow g={greenhouses[0]} titlePrefix="Greenhouse" />
+        <GreenhouseEntryRow
+          g={greenhouses[0]}
+          titlePrefix="Greenhouse"
+          ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
+        />
       </Wrap>
     );
   }
@@ -174,6 +226,7 @@ function GreenhouseSection({ greenhouses }: LifeSupportSlotContext) {
           key={`${g.cropResource}-${i}`}
           g={g}
           titlePrefix={g.cropResource}
+          ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
         />
       ))}
     </Wrap>
@@ -199,6 +252,14 @@ const RowHead = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: var(--space-8);
+`;
+
+const BadgeGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 `;
 
 const RowTitle = styled.span`
@@ -233,4 +294,4 @@ registerAugment({
   owner: KERBALISM,
 });
 
-export { GreenhouseSection };
+export { GreenhouseSection, radiationTooHigh };
