@@ -44,14 +44,20 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
    */
   accentColor?: string;
   /**
-   * Explicit CSS colour for a TOP-edge strip: the resource/category identity
+   * Short, centred tab on the TOP edge: the resource/category identity
    * counterpart to the leading edge, which stays reserved for STATUS
    * (`tone`/`accentColor`). The operator's own colour-language split: status
    * reads on the left, "what kind of thing is this" reads on top. The two
    * compose deliberately, a card can show a status accent on its left AND a
-   * resource-identity strip on top at the same time, they answer different
+   * resource-identity tab on top at the same time, they answer different
    * questions and neither should have to win over the other the way
    * `accentColor` wins over `tone` on the shared left edge.
+   *
+   * Deliberately NOT a full-width border: operator feedback on the first
+   * pass called a full-edge strip too busy, it read as a second meter
+   * stacked on the card rather than a quiet identity mark. Rendered as a
+   * `--space-24` (24px, the token nearest the requested 25px) tab centred on
+   * the top edge instead, short enough to read as a label, not a gauge.
    *
    * A plain colour, not a resource name, same contract as `accentColor`:
    * this primitive has no opinion on how the colour was chosen. A caller
@@ -80,6 +86,7 @@ const STRIP_WIDTH = "3px";
  * `VesselCard`.
  */
 export const Card = styled.div<CardProps>`
+  position: relative;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm, 3px);
@@ -89,6 +96,20 @@ export const Card = styled.div<CardProps>`
     return tone ? `border-left: 2px solid ${TONE_COLOR[tone]};` : "";
   }}
   ${({ categoryColor }) =>
-    categoryColor ? `border-top: ${STRIP_WIDTH} solid ${categoryColor};` : ""}
+    categoryColor
+      ? `
+    &::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: var(--space-24, 24px);
+      height: ${STRIP_WIDTH};
+      background: ${categoryColor};
+      border-radius: var(--radius-sm, 3px) var(--radius-sm, 3px) 0 0;
+    }
+  `
+      : ""}
   ${({ dimmed }) => (dimmed ? "opacity: 0.5;" : "")}
 `;

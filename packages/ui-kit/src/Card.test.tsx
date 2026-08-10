@@ -52,18 +52,32 @@ describe("Card", () => {
     );
   });
 
-  it("colours the top edge from categoryColor, distinct from the left status strip", () => {
+  it("colours a short centred top tab from categoryColor, distinct from the left status strip", () => {
+    // Not a full-width border: operator feedback called the earlier
+    // full-edge strip too busy (it read as a second meter). categoryColor
+    // now draws a short, centred `::before` tab instead of a `border-top`,
+    // so `toHaveStyle` (which only sees the real element's own computed
+    // style) can't reach it; assert on the injected <style> text instead,
+    // matching the pattern the `tone` accent test already uses for the same
+    // jsdom limitation.
     render(
       <Card categoryColor="#654321" data-testid="card">
         Contents
       </Card>,
     );
-    expect(screen.getByTestId("card")).toHaveStyle(
-      "border-top: 3px solid #654321",
-    );
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    expect(styleText).toContain("::before{");
+    expect(styleText).toContain("width:var(--space-24, 24px);");
+    expect(styleText).toContain("left:50%;");
+    expect(styleText).toContain("transform:translateX(-50%);");
+    expect(styleText).toContain("background:#654321;");
+    // No leftover full-width border-top rule from the old strip.
+    expect(styleText).not.toContain("border-top: 3px solid #654321");
   });
 
-  it("shows a status accent on the left AND a category strip on top at once", () => {
+  it("shows a status accent on the left AND a category tab on top at once", () => {
     render(
       <Card tone="alert" categoryColor="#654321" data-testid="card">
         Contents
@@ -78,12 +92,11 @@ describe("Card", () => {
     expect(styleText).toContain(
       "border-left:2px solid var(--color-status-nogo-bg);",
     );
-    expect(screen.getByTestId("card")).toHaveStyle(
-      "border-top: 3px solid #654321",
-    );
+    expect(styleText).toContain("::before{");
+    expect(styleText).toContain("background:#654321;");
   });
 
-  it("composes categoryColor with accentColor too (left identity, top category)", () => {
+  it("composes categoryColor with accentColor too (left identity, top category tab)", () => {
     render(
       <Card accentColor="#123456" categoryColor="#654321" data-testid="card">
         Contents
@@ -92,9 +105,11 @@ describe("Card", () => {
     expect(screen.getByTestId("card")).toHaveStyle(
       "border-left: 3px solid #123456",
     );
-    expect(screen.getByTestId("card")).toHaveStyle(
-      "border-top: 3px solid #654321",
-    );
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    expect(styleText).toContain("::before{");
+    expect(styleText).toContain("background:#654321;");
   });
 
   it("falls back to the tone accent rule when no accentColor is given", () => {

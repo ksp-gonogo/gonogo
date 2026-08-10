@@ -111,13 +111,34 @@ function fmtRatePerDay(perSec: number): string {
   return `${perDay >= 10 ? perDay.toFixed(0) : perDay.toFixed(2)}/day`;
 }
 
-function greenhouseTone(g: GreenhouseRow): Severity | undefined {
+/**
+ * `tooHigh` (this widget's own client-side ambient-vs-tolerance check, see
+ * `radiationTooHigh` below) folds into BOTH the tone and the state label,
+ * not just the standalone "Radiation too high" badge: grounded against
+ * Kerbalism's own `Greenhouse.SimulateGreenhouse`
+ * (`src/Kerbalism/Modules/Greenhouse.cs`), exceeding `radiation_tolerance`
+ * makes the module return before it ever queues the food `ResourceRecipe`,
+ * i.e. production HALTS outright for that tick, the same as a lighting or
+ * pressure failure, not a mere slowdown. Without folding `tooHigh` in here,
+ * a growing greenhouse whose mod-reported `issue` field hasn't yet caught
+ * up (see this file's own "NOT YET fed by live data" doc comment) could
+ * show "Growing" right next to a "Radiation too high" badge, an operator-
+ * visible contradiction: this widget's own real bug, not a hypothetical.
+ * `warning`, not `critical`: a greenhouse halt is a warning-level condition
+ * (recoverable once the storm passes), matching the panel-level "System
+ * halted" badge's own tone.
+ */
+function greenhouseTone(
+  g: GreenhouseRow,
+  tooHigh: boolean,
+): Severity | undefined {
   if (!g.active) return undefined;
-  return g.issue.length > 0 ? "warning" : "nominal";
+  return g.issue.length > 0 || tooHigh ? "warning" : "nominal";
 }
 
-function greenhouseStateLabel(g: GreenhouseRow): string {
+function greenhouseStateLabel(g: GreenhouseRow, tooHigh: boolean): string {
   if (!g.active) return "Off";
+  if (tooHigh) return "Halted";
   return g.issue.length > 0 ? "Blocked" : "Growing";
 }
 
@@ -128,6 +149,16 @@ function greenhouseStateLabel(g: GreenhouseRow): string {
  * tolerance, no history involved. `<= 0` on either side means "nothing to
  * compare" (an unreported tolerance, or no spaceweather frame yet) and
  * never flags.
+ *
+ * This is a genuine HALT, not a degrade: verified against Kerbalism's own
+ * `Greenhouse.SimulateGreenhouse` (`src/Kerbalism/Modules/Greenhouse.cs`),
+ * which returns before queuing the food `ResourceRecipe` whenever
+ * `radiation > radiation_tolerance` (same early-return as a lighting or
+ * pressure failure), and sets its own `issue` string to "excessive
+ * radiation" (`KERBALISM_Greenhouse_issue3`). Production resumes on its own
+ * once the ambient rate drops back under tolerance, no manual re-arm
+ * needed, so `greenhouseStateLabel`/`greenhouseTone` fold this flag in
+ * directly rather than treating it as a side note next to "Growing".
  */
 function radiationTooHigh(
   g: GreenhouseRow,
@@ -145,8 +176,9 @@ function radiationTooHigh(
  * line) so a fully-populated widget (broken process + habitat detail +
  * greenhouse + power) still fits the default grid size without pushing the
  * Power meter below the fold. A single-vessel-greenhouse widget, by far the
- * common case, costs exactly 2 lines (3 when blocked, 4 when also
- * over-tolerance: both conditions are independent and can co-occur).
+ * common case, costs exactly 2 lines (3 when the mod's own `issue` field is
+ * also populated, e.g. once its "excessive radiation" report catches up to
+ * this row's own `tooHigh` check).
  */
 function GreenhouseEntryRow({
   g,
@@ -166,10 +198,13 @@ function GreenhouseEntryRow({
         <RowTitle>{titlePrefix}</RowTitle>
         <BadgeGroup>
           {tooHigh && (
+            // `warning`, not `critical`: matches the panel-level "System
+            // halted" badge's own tone (both describe the same recoverable,
+            // non-mission-ending condition, see this file's doc comments).
             <Badge
               role="status"
               aria-live="polite"
-              severity="critical"
+              severity="warning"
               size="sm"
             >
               Radiation too high
@@ -178,10 +213,10 @@ function GreenhouseEntryRow({
           <Badge
             role="status"
             aria-live="polite"
-            severity={greenhouseTone(g)}
+            severity={greenhouseTone(g, tooHigh)}
             size="sm"
           >
-            {greenhouseStateLabel(g)}
+            {greenhouseStateLabel(g, tooHigh)}
           </Badge>
         </BadgeGroup>
       </RowHead>

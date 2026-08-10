@@ -310,11 +310,19 @@ describe("ShipSystemsComponent", () => {
     const ecCard = container.querySelector(
       '[data-testid="resource-card-ElectricCharge"]',
     );
-    expect(waterCard).toHaveStyle(
-      `border-top: 3px solid ${resourceColor("Water")}`,
-    );
-    expect(ecCard).toHaveStyle(
-      `border-top: 3px solid ${resourceColor("ElectricCharge")}`,
+    expect(waterCard).not.toBeNull();
+    expect(ecCard).not.toBeNull();
+    // categoryColor now renders a short centred `::before` tab (operator
+    // feedback: a full-width `border-top` read as a second meter), not a
+    // real `border-top` `toHaveStyle` can see on the element itself; assert
+    // via the injected <style> text instead, same technique Card's own
+    // categoryColor tests use for the identical jsdom gap.
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    expect(styleText).toContain(`background:${resourceColor("Water")};`);
+    expect(styleText).toContain(
+      `background:${resourceColor("ElectricCharge")};`,
     );
     // Two different resources never collide on the same strip colour in
     // this profile's small set (a substring-collision would be a real bug).

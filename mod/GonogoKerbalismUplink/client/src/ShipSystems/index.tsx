@@ -346,7 +346,13 @@ function ShipSystemsBody({
             {status.label}
           </Badge>
           {anyGreenhouseHalted && (
-            <Badge role="status" aria-live="polite" severity="critical">
+            // `warning`, not `critical`: a greenhouse radiation halt is
+            // recoverable on its own once the ambient rate drops back under
+            // the part's tolerance (see GreenhouseSection's own doc
+            // comment, grounded against Kerbalism's `Greenhouse.cs`), not a
+            // mission-ending failure. Operator feedback: the red pill here
+            // overstated it.
+            <Badge role="status" aria-live="polite" severity="warning">
               System halted
             </Badge>
           )}

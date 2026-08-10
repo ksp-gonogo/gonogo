@@ -1,14 +1,11 @@
 import type { KerbalismSpaceWeather } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
-  Card,
   Cluster,
   Fill,
   GraphNotice,
   LineGraph,
   type LineGraphSeries,
-  type Severity,
   Stack,
   Unit,
   Value,
@@ -42,6 +39,21 @@ import { mag } from "../ecosystem";
 // dashed safe-threshold line. This is also the widget's LEAD section now
 // (rendered first in `index.tsx`'s body), the attractive visual earns the
 // top slot rather than being buried below the resource ledger.
+//
+// OPEN, not boxed: a second round of operator feedback called the graph too
+// chart-like still, partly because it sat inside a `Card` (a boxy container
+// that reads as "yet another gauge" in a widget that is already box-after-
+// box) and only took a fraction of the row's width beside the belt badges.
+// The `Card` wrapper is gone; the graph now spans the widget's FULL width
+// and breathes on the Panel's own background, the way a sparkline is meant
+// to sit inline with surrounding text rather than fenced off in its own
+// instrument housing.
+//
+// The belt/location badges are gone too: belt membership is a neutral
+// status fact (which magnetic zone the vessel is in right now), not an
+// alert, so a red "Inner belt" pill was miscommunicating severity that
+// belongs to the dose-rate readouts, not the location. It renders as plain
+// low-emphasis text under the graph instead (see `locationLabel` below).
 // ---------------------------------------------------------------------------
 
 export interface RadiationSample {
@@ -126,33 +138,21 @@ function toRadPerHourSeries(
 }
 
 /**
- * Compact belt/location badges from the raw spaceweather flags. Belt
- * membership (the more specific, more severe fact) wins over the general
- * magnetosphere/unshielded read when a vessel is inside one; both belts can
- * show together at a boundary crossing.
+ * Plain-text belt/location read from the raw spaceweather flags: neutral
+ * status, not a severity call, so this returns a label string for
+ * low-emphasis text under the graph rather than a badge/severity pairing.
+ * Belt membership (the more specific fact) is named alongside the general
+ * magnetosphere read when a vessel is inside one; both belts can show
+ * together at a boundary crossing.
  */
-function locationBadges(
-  weather: KerbalismSpaceWeather,
-): Array<{ id: string; label: string; severity: Severity }> {
-  const badges: Array<{ id: string; label: string; severity: Severity }> = [];
-  if (weather.innerBelt === true) {
-    badges.push({
-      id: "inner-belt",
-      label: "Inner belt",
-      severity: "critical",
-    });
+function locationLabel(weather: KerbalismSpaceWeather): string {
+  const labels: string[] = [];
+  if (weather.innerBelt === true) labels.push("Inner belt");
+  if (weather.outerBelt === true) labels.push("Outer belt");
+  if (labels.length === 0) {
+    labels.push(weather.magnetosphere === true ? "Magnetosphere" : "None");
   }
-  if (weather.outerBelt === true) {
-    badges.push({ id: "outer-belt", label: "Outer belt", severity: "warning" });
-  }
-  if (badges.length === 0) {
-    badges.push(
-      weather.magnetosphere === true
-        ? { id: "magnetosphere", label: "Magnetosphere", severity: "nominal" }
-        : { id: "unshielded", label: "Unshielded", severity: "info" },
-    );
-  }
-  return badges;
+  return labels.join(" · ");
 }
 
 export interface RadiationSectionProps {
@@ -173,7 +173,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
   if (!weather) return null;
 
   const hasTrend = history.length >= 2;
-  const badges = locationBadges(weather);
+  const location = locationLabel(weather);
   // Always a real Value (never undefined): an unreported field reads as a
   // genuine "0 rad/h" rather than a blank readout beside a live label.
   const ambientValue = value("rad/s", mag(weather.radiationRadPerSecond));
@@ -198,54 +198,48 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
   ];
 
   return (
-    <Cluster gap="md" wrap align="start">
-      <Card style={{ flex: "1 1 220px", minWidth: 0 }}>
-        <Fill style={{ height: 96 }}>
-          <LineGraph
-            series={series}
-            variant="sparkline"
-            thresholds={[
-              {
-                id: "safe",
-                label: "Safe threshold",
-                value: HIGH_RADIATION_RAD_PER_HOUR,
-                color: "var(--color-status-warning-fg-muted)",
-              },
-            ]}
-            height={96}
-            ariaLabel="Radiation dose rate trend: ambient versus shielded, last 10 minutes"
-          />
-          {!hasTrend && (
-            <GraphNotice placement="overlay">
-              Collecting radiation history…
-            </GraphNotice>
-          )}
-        </Fill>
-        <Cluster
-          gap="md"
-          justify="between"
-          style={{ marginTop: "var(--space-2)" }}
-        >
-          <Value tone="nogo" size="xs">
-            Ambient <Unit value={ambientValue} />
-          </Value>
-          <Value tone="info" size="xs">
-            Shielded <Unit value={shieldedValue} />
-          </Value>
-        </Cluster>
-      </Card>
-      <Stack
-        gap="xs"
-        role="status"
-        aria-live="polite"
-        style={{ flex: "0 0 auto" }}
+    // No Card, no side-by-side badge column: the graph is OPEN and spans
+    // the widget's full width (see the header doc comment). Belt/location
+    // moved below as plain low-emphasis text; `role="status"` stays on that
+    // text (not a Stack of badges) since it is still the one bit of this
+    // section that changes without the operator watching for it.
+    <Stack gap="xs">
+      <Fill style={{ height: 96 }}>
+        <LineGraph
+          series={series}
+          variant="sparkline"
+          thresholds={[
+            {
+              id: "safe",
+              label: "Safe threshold",
+              value: HIGH_RADIATION_RAD_PER_HOUR,
+              color: "var(--color-status-warning-fg-muted)",
+            },
+          ]}
+          height={96}
+          ariaLabel="Radiation dose rate trend: ambient versus shielded, last 10 minutes"
+        />
+        {!hasTrend && (
+          <GraphNotice placement="overlay">
+            Collecting radiation history…
+          </GraphNotice>
+        )}
+      </Fill>
+      <Cluster
+        gap="md"
+        justify="between"
+        style={{ marginTop: "var(--space-2)" }}
       >
-        {badges.map((b) => (
-          <Badge key={b.id} severity={b.severity} size="sm">
-            {b.label}
-          </Badge>
-        ))}
-      </Stack>
-    </Cluster>
+        <Value tone="nogo" size="xs">
+          Ambient <Unit value={ambientValue} />
+        </Value>
+        <Value tone="info" size="xs">
+          Shielded <Unit value={shieldedValue} />
+        </Value>
+      </Cluster>
+      <Value tone="muted" size="xs" role="status" aria-live="polite">
+        {location}
+      </Value>
+    </Stack>
   );
 }

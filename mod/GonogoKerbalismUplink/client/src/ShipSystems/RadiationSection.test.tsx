@@ -101,9 +101,6 @@ describe("RadiationSection", () => {
         weather={{
           radiationRadPerSecond: 0.006,
           habitatRadiationRadPerSecond: 0.00006,
-          // Avoids the belt/location badge falling back to "Unshielded",
-          // whose text otherwise substring-collides with the "Shielded"
-          // readout query below.
           magnetosphere: true,
         }}
         utNow={10}
@@ -136,18 +133,21 @@ describe("RadiationSection", () => {
     expect(bareLines).toHaveLength(0);
   });
 
-  it("shows the inner-belt badge as the most severe location fact when active", () => {
+  it("names the belt(s) as plain text under the graph, never a badge", () => {
     render(
       <RadiationSection
         weather={{ innerBelt: true, outerBelt: true, magnetosphere: true }}
         utNow={10}
       />,
     );
-    expect(screen.getByText("Inner belt")).toBeInTheDocument();
-    expect(screen.getByText("Outer belt")).toBeInTheDocument();
+    // Belt location is a neutral status fact, not an alert: no Badge/pill
+    // renders for it, just the plain text line naming both belts.
+    const location = screen.getByText("Inner belt · Outer belt");
+    expect(location).toBeInTheDocument();
+    expect(location.tagName).toBe("SPAN");
   });
 
-  it("falls back to a magnetosphere/unshielded badge outside any belt", () => {
+  it("falls back to magnetosphere, then none, outside any belt", () => {
     const { rerender } = render(
       <RadiationSection weather={{ magnetosphere: true }} utNow={10} />,
     );
@@ -156,7 +156,7 @@ describe("RadiationSection", () => {
     rerender(
       <RadiationSection weather={{ magnetosphere: false }} utNow={10} />,
     );
-    expect(screen.getByText("Unshielded")).toBeInTheDocument();
+    expect(screen.getByText("None")).toBeInTheDocument();
   });
 
   it("builds a rolling history off the live stream as UT advances", async () => {

@@ -87,8 +87,26 @@ describe("LineGraph sparkline variant", () => {
     const areas = container.querySelectorAll("polygon");
     expect(areas).toHaveLength(2);
     for (const area of areas) {
-      expect(area).toHaveAttribute("fill-opacity", "0.16");
+      expect(area).toHaveAttribute("fill-opacity", "0.12");
     }
+  });
+
+  it("draws thinner strokes than the chart variant, for a glance-read trend", () => {
+    const { container: chart } = render(
+      <LineGraph series={[AMBIENT]} ariaLabel="Radiation trend" />,
+    );
+    const chartLine = chart.querySelector("polyline");
+    expect(chartLine).toHaveAttribute("stroke-width", "1.4");
+
+    const { container: sparkline } = render(
+      <LineGraph
+        series={[AMBIENT]}
+        variant="sparkline"
+        ariaLabel="Radiation trend"
+      />,
+    );
+    const sparklineLine = sparkline.querySelector("polyline");
+    expect(sparklineLine).toHaveAttribute("stroke-width", "1");
   });
 
   it("drops the quarter gridlines a chart variant draws", () => {

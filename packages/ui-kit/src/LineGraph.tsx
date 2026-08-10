@@ -172,7 +172,11 @@ export function LineGraph({
                 key={`${s.id}-area`}
                 points={areaPoints}
                 fill={s.color}
-                fillOpacity={0.16}
+                // Subtler than a chart-style fill: operator feedback on the
+                // second pass still read the sparkline as too instrument-like,
+                // a lighter shade reads as a glance trend rather than a
+                // filled-in area chart.
+                fillOpacity={0.12}
                 stroke="none"
               />
             );
@@ -206,7 +210,10 @@ export function LineGraph({
               points={points}
               fill="none"
               stroke={s.color}
-              strokeWidth={1.4}
+              // Thinner in the sparkline variant: a glance trend reads as a
+              // fine line, not the same weight an engineering `"chart"`
+              // instrument uses.
+              strokeWidth={isSparkline ? 1 : 1.4}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"

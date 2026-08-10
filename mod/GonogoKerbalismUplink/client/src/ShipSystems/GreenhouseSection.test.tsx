@@ -1,4 +1,5 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { Badge } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerAugment(...).
@@ -87,7 +88,7 @@ describe("GreenhouseSection: radiation-too-high badge", () => {
     expect(screen.queryByText("Radiation too high")).not.toBeInTheDocument();
   });
 
-  it("is an INSTANTANEOUS flag: it can fire on an otherwise-healthy, unblocked greenhouse", () => {
+  it("is an INSTANTANEOUS flag: it can fire before the mod's own issue string catches up", () => {
     renderSection(
       [
         row({
@@ -98,8 +99,42 @@ describe("GreenhouseSection: radiation-too-high badge", () => {
       ],
       0.005,
     );
-    expect(screen.getByText("Growing")).toBeInTheDocument();
+    // Kerbalism halts food production the instant ambient exceeds
+    // tolerance (see GreenhouseSection's own doc comment, grounded against
+    // Greenhouse.cs), so the row never claims "Growing" while this flag is
+    // up, even if the mod's own `issue` field hasn't reported it yet: that
+    // exact contradiction was the operator-reported bug this reconciles.
+    expect(screen.queryByText("Growing")).not.toBeInTheDocument();
+    expect(screen.getByText("Halted")).toBeInTheDocument();
     expect(screen.getByText("Radiation too high")).toBeInTheDocument();
+  });
+
+  it("uses warning severity, not critical, for the radiation-too-high badge", () => {
+    renderSection([row({ radiationToleranceRadPerSec: 0.001 })], 0.005);
+    const badgeClass = screen.getByText("Radiation too high").className;
+    // Severity drives styled-components' generated class, not an inline
+    // style (`toHaveStyle` can't see a `var()`-based rule, same jsdom gap
+    // Card's own tone tests document); comparing classes against reference
+    // `Badge` instances at each severity is the same technique
+    // `Badge.test.tsx`'s own "applies a different class for different
+    // tones" case already uses.
+    const { unmount: unmountWarning } = render(
+      <Badge severity="warning" size="sm">
+        ref
+      </Badge>,
+    );
+    const warningClass = screen.getByText("ref").className;
+    unmountWarning();
+    const { unmount: unmountCritical } = render(
+      <Badge severity="critical" size="sm">
+        ref
+      </Badge>,
+    );
+    const criticalClass = screen.getByText("ref").className;
+    unmountCritical();
+
+    expect(badgeClass).toBe(warningClass);
+    expect(badgeClass).not.toBe(criticalClass);
   });
 
   it("threads the check through the multi-greenhouse path too", () => {
