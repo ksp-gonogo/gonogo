@@ -3,11 +3,14 @@ import type {
   KerbalismGreenhouseEntry,
   KerbalismHabitat,
   KerbalismProcessEntry,
+  KerbalismSpaceWeather,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   registerComponent,
   useProcessor,
+  useTelemetry,
+  useUtNow,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -46,6 +49,7 @@ import { KERBALISM } from "../uplink";
 // `@ksp-gonogo/components`), replacing the deleted `LifeSupportSystems`
 // widget that used to own it.
 import "./GreenhouseSection";
+import { RadiationSection } from "./RadiationSection";
 
 type ShipSystemsConfig = Record<string, never>;
 
@@ -186,6 +190,9 @@ interface GreenhouseRow {
   active: boolean;
   issue: string;
   foodRatePerSec: number;
+  /** rad/s. `<= 0` means "not reported", the same "not fitted" convention
+   *  `row.capacity <= 0` uses elsewhere in this file: never flag against it. */
+  radiationToleranceRadPerSec: number;
 }
 
 function toGreenhouseRow(g: KerbalismGreenhouseEntry): GreenhouseRow {
@@ -195,6 +202,7 @@ function toGreenhouseRow(g: KerbalismGreenhouseEntry): GreenhouseRow {
     artificial: mag(g.artificial),
     active: g.active ?? false,
     issue: g.issue ?? "",
+    radiationToleranceRadPerSec: mag(g.radiationToleranceRadPerSec),
     foodRatePerSec: mag(g.foodRatePerSec),
   };
 }
@@ -207,6 +215,14 @@ function ShipSystemsComponent(
   _props: Readonly<ComponentProps<ShipSystemsConfig>>,
 ) {
   const ship = useProcessor(SHIP_SYSTEMS);
+  // Read outside the Processor (unlike the four `kerbalism.profile`/
+  // `lifesupport`/resources/crew deps `SHIP_SYSTEMS` already shares with the
+  // panel badge): nothing else in this widget's own render derives from
+  // `kerbalism.spaceweather`, so a second Processor dependant is not worth
+  // adding for one section. Read unconditionally, ahead of both early
+  // returns below, to keep hook order stable.
+  const weather = useTelemetry("kerbalism.spaceweather");
+  const utNow = useUtNow();
 
   if (!ship) {
     return (
@@ -233,7 +249,7 @@ function ShipSystemsComponent(
     );
   }
 
-  return <ShipSystemsBody ship={ship} />;
+  return <ShipSystemsBody ship={ship} weather={weather} utNow={utNow} />;
 }
 
 function overallStatus(ship: ShipSystems): { label: string; tone: Tone } {
@@ -245,7 +261,15 @@ function overallStatus(ship: ShipSystems): { label: string; tone: Tone } {
   return { label: "Nominal", tone: "go" };
 }
 
-function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
+function ShipSystemsBody({
+  ship,
+  weather,
+  utNow,
+}: {
+  ship: ShipSystems;
+  weather: KerbalismSpaceWeather | undefined;
+  utNow: number | undefined;
+}) {
   const { summary } = ship;
   const status = overallStatus(ship);
   // The "Limiting factors" banner names a cause's ROOT resource but the
@@ -261,6 +285,10 @@ function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
   const greenhouses = (ship.lifeSupport?.greenhouses ?? []).map(
     toGreenhouseRow,
   );
+  // Ambient, not habitat/shielded: a greenhouse part's own tolerance is an
+  // exposure limit on what's hitting the HULL, not the crew-shielded figure
+  // (see the per-row threshold check this feeds, below).
+  const ambientRadiationRadPerSecond = mag(weather?.radiationRadPerSecond);
 
   // The power footer: ElectricCharge is universal across every Kerbalism
   // profile (stock and RO both declare it), so it is worth a permanently
@@ -415,6 +443,13 @@ function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
           </Cluster>
         </Section>
 
+        {weather && (
+          <Section>
+            <SectionHead label="Radiation" />
+            <RadiationSection weather={weather} utNow={utNow} />
+          </Section>
+        )}
+
         <Section>
           <SectionHead
             label="Processes"
@@ -443,7 +478,10 @@ function ShipSystemsBody({ ship }: { ship: ShipSystems }) {
             when the old LifeSupportSystems widget was deleted) fills this
             slot: it self-registers into `life-support.sections` via the
             side-effect import above. */}
-        <AugmentSlot name="life-support.sections" props={{ greenhouses }} />
+        <AugmentSlot
+          name="life-support.sections"
+          props={{ greenhouses, ambientRadiationRadPerSecond }}
+        />
       </Stack>
 
       {ecRow && (

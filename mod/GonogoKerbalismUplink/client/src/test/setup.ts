@@ -8,7 +8,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useProcessor } from "@ksp-gonogo/sitrep-client";
+import { useProcessor, useUtNow } from "@ksp-gonogo/sitrep-client";
 import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
@@ -23,18 +23,19 @@ PerfBudget.installTestGate();
 // sitrep-client singletons this suite exercises: mirrors buildGonogoHost()
 // member-for-member, scoped to the subset this client's widget actually
 // calls (defineUplinkClient + registerComponent + registerAugment at module
-// load, the last two at render: useProcessor + AugmentSlot for the
-// Processor-backed augments, useTelemetry for the crew-status.summary
-// augment's direct `kerbalism.spaceweather` Topic read, the first augment in
-// this package to read a raw Topic instead of a Processor). Without this,
-// the facade shims throw "the gonogo host has not been installed" the moment
-// a sealed file renders.
+// load, the rest at render: useProcessor + AugmentSlot for the
+// Processor-backed augments, useTelemetry for a direct `kerbalism.
+// spaceweather` Topic read (crew-status.summary, ShipSystems' Radiation
+// section), useUtNow for that same Radiation section's rolling-buffer x-axis.
+// Without this, the facade shims throw "the gonogo host has not been
+// installed" the moment a sealed file renders.
 installTestHost({
   AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
   defineUplinkClient,
   registerAugment: registerAugment as GonogoHost["registerAugment"],
   registerComponent,
   useProcessor: useProcessor as GonogoHost["useProcessor"],
+  useUtNow: useUtNow as GonogoHost["useUtNow"],
   // Overloaded on the sdk side (canonical one-arg Topic read, and the
   // retired useDataValue's legacy two-arg DataSourceRegistry read carried
   // over onto this same name), mirrors the app's own `buildGonogoHost()`

@@ -245,6 +245,16 @@ export const LADDERS: Record<string, readonly Rung[]> = {
     { from: 1e6, symbol: "MW", per: 1e6 },
     { from: 1e9, symbol: "GW", per: 1e9 },
   ],
+  // A single always-on rung rather than a real multi-step ladder: the wire's
+  // base unit (rad/s) is unreadable at the magnitudes Kerbalism actually
+  // reports (dose rates sit in the 1e-6..1e-2 rad/s range), and every
+  // existing radiation readout in this codebase already hand-converts to
+  // rad/h before display (SpaceWeather's `doseText`, CrewSurvival's
+  // `HIGH_RADIATION_RAD_PER_HOUR` threshold). Laddering it here is what lets
+  // `<Unit value={weather.radiationRadPerSecond} />` show the same "X rad/h"
+  // an operator already reads on those two widgets, with no per-call-site
+  // conversion.
+  doseRate: [{ from: 0, symbol: "rad/h", per: 1 / 3600 }],
 };
 
 /**
