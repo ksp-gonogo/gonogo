@@ -643,9 +643,6 @@
       "id": "id",
       "ut": "s"
     },
-    "MechJebAscentArgs": {
-      "targetAltitudeKm": "km"
-    },
     "Meta": {
       "active": "flag",
       "deliveredAt": "s",

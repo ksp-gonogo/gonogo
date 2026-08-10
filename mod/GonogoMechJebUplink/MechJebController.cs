@@ -30,7 +30,7 @@ namespace Gonogo.MechJebUplink
     /// <c>MechJebCore.Target</c> (public field) for the target controller.</item>
     /// <item>Ascent engage: write <c>MechJebModuleAscentSettings.DesiredOrbitAltitude.Val</c>
     /// (metres; the arg DTO carries kilometres, see
-    /// <see cref="Sitrep.Contract.MechJebAscentArgs"/>), then
+    /// <see cref="MechJebAscentArgs"/>), then
     /// <c>MechJebModuleAscentBaseAutopilot.Users.Add(controller)</c> --
     /// <c>Users</c> is the public <c>UserPool</c> every <c>ComputerModule</c>
     /// carries, NOT a bare <c>enabled = true</c>.</item>

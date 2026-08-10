@@ -296,9 +296,10 @@ public static class RtConfig
                 // avionics.status, RP-1 controllable-mass ascent go/no-go
                 typeof(AvionicsStatus),
                 // mechjeb.engageAscentAutopilot / mechjeb.executeNextNode /
-                // mechjeb.landAtTarget command args
-                typeof(MechJebAscentArgs),
-                typeof(MechJebNoArgs),
+                // mechjeb.landAtTarget command args moved OUT of core into
+                // GonogoMechJebUplink.Contract (uplink-types-out-of-core
+                // pilot, 2026-08-10): see ContractVersion.cs and
+                // local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
 
@@ -637,11 +638,21 @@ public static class RtConfig
     /// into <c>./contract.ts</c> by the registrations above, so the map's imports
     /// always resolve.
     /// </summary>
-    private static void EmitTopicMap(string outPath)
+    /// <param name="outPath">Where to write the generated map.</param>
+    /// <param name="assembly">
+    /// Which assembly to reflect over. Defaults to this one (first-party
+    /// core). An Uplink's own <c>Configure</c> (see
+    /// <c>MechJebRtConfig.Configure</c> for the first one to do this) passes
+    /// its own contract assembly and gets its own topic map, written into
+    /// ITS OWN generated directory, never into <c>sitrep-sdk</c>: same
+    /// per-assembly opt-in <see cref="ApplyUnitValueTypes"/> already
+    /// established.
+    /// </param>
+    public static void EmitTopicMap(string outPath, Assembly assembly = null)
     {
         var entries = new List<KeyValuePair<string, string>>();
         var typeNames = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var type in typeof(RtConfig).Assembly.GetTypes())
+        foreach (var type in (assembly ?? typeof(RtConfig).Assembly).GetTypes())
         {
             var attr = type.GetCustomAttribute<SitrepTopicAttribute>();
             if (attr == null)
@@ -717,7 +728,20 @@ public static class RtConfig
     /// it is the stable vocabulary a client-side formatter can switch over
     /// exhaustively while annotation coverage is still being filled in.</para>
     /// </summary>
-    private static void EmitUnitMap(string outPath, string jsonOutPath = null)
+    /// <param name="outPath">Where to write the generated map.</param>
+    /// <param name="jsonOutPath">Where to write the JSON twin, or null to skip it.</param>
+    /// <param name="assembly">
+    /// Which assembly to reflect over. Defaults to this one. See
+    /// <see cref="EmitTopicMap"/>'s matching parameter: an Uplink's own
+    /// <c>Configure</c> passes its own contract assembly.
+    /// <see cref="UnitDescriptor.Collect"/> already scopes catalog
+    /// VALIDATION to the first-party assembly regardless of this argument
+    /// (an Uplink's token is never checked against <see cref="Units"/>, it
+    /// cannot add to a const-string class compiled into this one), so
+    /// passing <c>validateVocabulary: true</c> unconditionally below is safe
+    /// for every caller.
+    /// </param>
+    public static void EmitUnitMap(string outPath, string jsonOutPath = null, Assembly assembly = null)
     {
         // Collected by UnitDescriptor, not here: the mod serves this same
         // document at runtime and two reflection passes over one assembly is
@@ -725,7 +749,7 @@ public static class RtConfig
         // everything reflected at CODEGEN time is compiled into this
         // assembly, so a token outside the catalog is drift and should stop
         // the build. The runtime pass deliberately does not throw.
-        var maps = UnitDescriptor.Collect(validateVocabulary: true);
+        var maps = UnitDescriptor.Collect(validateVocabulary: true, assembly: assembly);
         var vocabulary = maps.Vocabulary;
         var byType = maps.ByType;
         var byTopic = maps.ByTopic;

@@ -853,11 +853,22 @@ build_gonogomechjebuplink() {
     return 4
   fi
   mkdir -p "$install_dir"
-  # Only GonogoMechJebUplink.dll - Sitrep.Contract.dll (provided by
-  # GonogoCore) and MechJeb2.dll (provided by the user's MechJeb2 install)
-  # are reference-only (Private="false") and must NOT be copied here - see
-  # .superpowers/sdd/uplink-packaging-pattern.md.
+  # GonogoMechJebUplink.dll AND GonogoMechJebUplink.Contract.dll: the
+  # uplink-types-out-of-core pilot split MechJebAscentArgs/MechJebNoArgs into
+  # their own contract-slice project (Private="true", the default, so
+  # `dotnet build` DOES copy it into $out_dir, unlike the two references
+  # below). Sitrep.Contract.dll (provided by GonogoCore) and MechJeb2.dll
+  # (provided by the user's MechJeb2 install) are reference-only
+  # (Private="false") and must NOT be copied here - see
+  # .superpowers/sdd/uplink-packaging-pattern.md. This is the first Uplink
+  # with a second self-owned deployable DLL; the next relocated Uplink's
+  # build_<name> function needs the same two-line copy.
   cp "$out_dir/GonogoMechJebUplink.dll" "$install_dir/"
+  if [ ! -f "$out_dir/GonogoMechJebUplink.Contract.dll" ]; then
+    echo "GonogoMechJebUplink.Contract.dll not produced (missing at $out_dir/GonogoMechJebUplink.Contract.dll)"
+    return 4
+  fi
+  cp "$out_dir/GonogoMechJebUplink.Contract.dll" "$install_dir/"
   {
     echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
     echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"

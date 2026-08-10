@@ -38,6 +38,49 @@ echo "codegen -> $TOPIC_MAP_OUT"
 echo "codegen -> $UNIT_MAP_OUT"
 echo "codegen -> $UNIT_JSON_OUT"
 echo "codegen -> $CHANNEL_MAP_OUT"
+
+# --- Per-Uplink codegen ---
+#
+# One rtcli run per Uplink that owns its own wire types, in addition to the
+# core Sitrep.Contract run above. Each Uplink's types live in its OWN
+# contract-slice project (e.g. GonogoMechJebUplink.Contract), never in
+# Sitrep.Contract (see local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md),
+# and each writes into ITS OWN client/src/__generated__/, never into
+# sitrep-sdk: sitrep-sdk stays core-only, an Uplink's client package imports
+# its generated types locally (Option A in the plan's §4b).
+#
+# MechJeb is the pilot (the smallest Uplink, 2 command-arg types, neither
+# wire-published raw). To migrate the next Uplink: add its own
+# <X>RtConfig.Configure (mirroring MechJebRtConfig.cs) to its own
+# <X>.Contract.csproj, then add one block below following the same shape.
+mechjeb_proj="$ROOT/mod/GonogoMechJebUplink.Contract"
+mechjeb_out_dir="$ROOT/mod/GonogoMechJebUplink/client/src/__generated__"
+mechjeb_bin="$mechjeb_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$mechjeb_proj/GonogoMechJebUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$mechjeb_bin/"
+# Sitrep.Contract.dll: not copied by the build (Private="false", provided by
+# core at runtime), but rtcli loads GonogoMechJebUplink.Contract.dll's
+# metadata and has to resolve every type it references (SitrepContractAttribute,
+# SitrepUnitAttribute, Units, ...), so it must sit alongside it here.
+cp "$BIN/Sitrep.Contract.dll" "$mechjeb_bin/"
+mkdir -p "$mechjeb_out_dir"
+
+# No SITREP_MECHJEB_TOPICMAP_OUT: MechJeb has no [SitrepTopic]-tagged type
+# yet (it is command-only), so there is nothing for a topic map to name. The
+# next Uplink that DOES read a Topic (Avionics is next in the plan's
+# sequencing) should set it, mirroring the core invocation above.
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_MECHJEB_UNITMAP_OUT="$mechjeb_out_dir/units.ts" \
+  SITREP_MECHJEB_UNITJSON_OUT="$mechjeb_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$mechjeb_bin/GonogoMechJebUplink.Contract.dll" \
+  TargetFile="$mechjeb_out_dir/contract.ts" \
+  ConfigurationMethod="Gonogo.MechJebUplink.MechJebRtConfig.Configure"
+echo "codegen -> $mechjeb_out_dir/contract.ts"
+echo "codegen -> $mechjeb_out_dir/units.ts"
+echo "codegen -> $mechjeb_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

@@ -1,8 +1,9 @@
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
+using Sitrep.Contract;
 
-namespace Sitrep.Contract;
+namespace Gonogo.MechJebUplink;
 
 /// <summary>
 /// Args for the <c>mechjeb.engageAscentAutopilot</c> command: the target
@@ -14,6 +15,12 @@ namespace Sitrep.Contract;
 /// field name and unit are carried forward rather than invented fresh. The
 /// mod converts to metres (<c>EditableDoubleMult.Val = TargetAltitudeKm *
 /// 1000.0</c>) before writing it.
+///
+/// <para>Relocated out of <c>Sitrep.Contract</c> into this Uplink's own
+/// contract slice (<c>GonogoMechJebUplink.Contract</c>): see
+/// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>. No
+/// uplink-specific wire type may live in core, even for an in-monorepo
+/// Uplink.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -32,6 +39,9 @@ public class MechJebAscentArgs
 /// marker DTO the engine's generic <c>AddCommandHandler&lt;TArgs,
 /// TResult&gt;</c> binds to, so the two commands still have a real typed arg
 /// shape rather than a bare <c>object?</c>.
+///
+/// <para>Relocated out of <c>Sitrep.Contract</c> alongside
+/// <see cref="MechJebAscentArgs"/>; see its doc comment.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0

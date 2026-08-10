@@ -143,6 +143,21 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoActionGroupsExtendedUplink.Tests",
     ],
   },
+  mechjeb: {
+    // "mechjeb" alone is distinctive enough (no unrelated-word collision
+    // in this codebase, unlike bare "kos"/"scan"): one case-insensitive
+    // pattern covers MechJeb2/MechJebAscentArgs/mechjeb.* topic prefixes/
+    // gonogo-mechjeb-uplink alike.
+    patterns: [/mechjeb/i],
+    ownedDirs: [
+      "mod/GonogoMechJebUplink",
+      "mod/GonogoMechJebUplink.Tests",
+      // GonogoMechJebUplink's own contract slice (uplink-types-out-of-core
+      // pilot, 2026-08-10): MechJebAscentArgs/MechJebNoArgs live here now,
+      // not in Sitrep.Contract.
+      "mod/GonogoMechJebUplink.Contract",
+    ],
+  },
   // Excluded on purpose (per task scope):
   //   telemachus : legacy system being deleted, not an Uplink; tracked
   //                 as separate migration debt in the audit doc, §5.

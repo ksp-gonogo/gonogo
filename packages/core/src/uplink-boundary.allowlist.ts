@@ -35,7 +35,13 @@
  * the mention is just words, it's permanent.
  */
 
-export type ModToken = "kerbcast" | "scansat" | "kos" | "realantennas" | "agx";
+export type ModToken =
+  | "kerbcast"
+  | "scansat"
+  | "kos"
+  | "realantennas"
+  | "agx"
+  | "mechjeb";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -747,6 +753,73 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // (same rationale as map-command.ts above): no AGX import, just
       // exercising the generic mapCommand rule with high indices.
       "packages/sitrep-client/src/map-command.test.ts",
+    ],
+  },
+  // === mechjeb: owning dirs mod/GonogoMechJebUplink/ (incl. its client/),
+  // mod/GonogoMechJebUplink.Tests, and mod/GonogoMechJebUplink.Contract (the
+  // uplink-types-out-of-core pilot's own contract slice, 2026-08-10). Every
+  // hit below is a comment/doc-mention or the sanctioned loader import; there
+  // is no real code coupling outside the owning dirs, so domainDebt is empty.
+  mechjeb: {
+    domainDebt: [],
+    permanent: [
+      // -- Uplink loader: the sanctioned self-registration import, same
+      // pattern as kerbcast/kos/scansat's main.tsx entries above.
+      "packages/app/src/main.tsx",
+
+      // -- The mod-side ownership ratchet itself (§5a of the plan) --
+      // UplinkContractOwnershipTests.cs is a new xUnit test asserting
+      // Sitrep.Contract carries zero non-comment "MechJeb" references: it
+      // necessarily names the token it is testing FOR, in its own doc
+      // comment and its RelocatedModTokens data. A ratchet naming its own
+      // subject, not a boundary violation, same class as the C#
+      // WirePayloadCoverageTests.cs entry a few lines below.
+      "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+
+      // -- Widget-name mentions in doc comments, zero code coupling --
+      // "ManeuverPlanner, TargetPicker, RoboticsConsole, MechJeb, Navball,"
+      // lists sibling command widgets this shared list-item helper serves.
+      "packages/ui-kit/src/CommandDelay/toInFlightListItems.ts",
+      // Porkchop heatmap doc-comment: "(MechJeb/alexmoon style)" cites the
+      // familiar visual convention it mirrors, not a dependency.
+      "packages/core/src/calc/porkchop.ts",
+      // ActionGroup's own doc-comment lists sibling vessel command widgets
+      // sharing its pattern, MechJeb among them.
+      "packages/components/src/ActionGroup/stream.test.tsx",
+      // Navball's doc-comments describe a FUTURE "autopilot Uplink
+      // (MechJeb-alike)" as the proposed filler for an open badge slot:
+      // aspirational prose, no MechJeb import.
+      "packages/components/src/Navball/index.tsx",
+      // RoboticsConsole/RotorTachometer doc-comments cite MechJeb as a
+      // precedent for this widget's shape; no MechJeb import or coupling.
+      "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx",
+      "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx",
+
+      // -- Core-mod doc-comments citing MechJeb2 as prior art or a use case,
+      // zero coupling --
+      "mod/Gonogo.KSP/KspHost.cs",
+      "mod/Sitrep.Contract/VesselAttitude.cs",
+
+      // -- The relocation's own provenance record --
+      // ContractVersion.cs's Minor-history doc-comment records the original
+      // add AND the later relocation of MechJebAscentArgs/MechJebNoArgs out
+      // of this assembly: see ContractVersion.Minor's doc comment. Prose
+      // only, the types themselves no longer live here.
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      // RtConfig.cs's wirePayloadTypes comment records where the two types
+      // went (GonogoMechJebUplink.Contract) and EmitTopicMap/EmitUnitMap's
+      // doc comments name MechJebRtConfig as the first caller of the
+      // assembly-generic overloads: provenance/seam documentation, no type
+      // reference.
+      "mod/Sitrep.Contract/RtConfig.cs",
+      // SitrepUnitAttribute.cs's Kilometres doc-comment explains why that
+      // token exists by citing MechJebAscentArgs.TargetAltitudeKm as the
+      // originating field: prose only.
+      "mod/Sitrep.Contract/SitrepUnitAttribute.cs",
+      // WirePayloadCoverageTests.cs's comment records that the mechjeb.*
+      // command-arg allowlist entries were removed because the types left
+      // this assembly: provenance, not a reference to the types.
+      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
     ],
   },
 };

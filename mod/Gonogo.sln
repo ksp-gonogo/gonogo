@@ -54,9 +54,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKerbalismUplink", "GonogoKerbalismUplink\GonogoKerbalismUplink.csproj", "{4125310D-0D74-48E3-A9E4-462737ED5AAC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKerbalismUplink.Tests", "GonogoKerbalismUplink.Tests\GonogoKerbalismUplink.Tests.csproj", "{0FFA2316-2C37-46BF-8C2C-993022EBDBED}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoTestFlightUplink", "GonogoTestFlightUplink\GonogoTestFlightUplink.csproj", "{0E8B8EBE-D184-4337-82B2-EF5B9D3175D6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoTestFlightUplink.Tests", "GonogoTestFlightUplink.Tests\GonogoTestFlightUplink.Tests.csproj", "{CA12E7FC-85E7-41BA-B969-6A87B65A5EE4}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoAvionicsUplink", "GonogoAvionicsUplink\GonogoAvionicsUplink.csproj", "{E2329C59-6696-4421-879E-3020002F6D3F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoAvionicsUplink.Tests", "GonogoAvionicsUplink.Tests\GonogoAvionicsUplink.Tests.csproj", "{B080C120-A42E-44B1-9565-8C9F47338E2B}"
@@ -64,6 +66,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoMechJebUplink", "GonogoMechJebUplink\GonogoMechJebUplink.csproj", "{361CF7E8-98CF-48CE-A830-CE534189EDD6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoMechJebUplink.Tests", "GonogoMechJebUplink.Tests\GonogoMechJebUplink.Tests.csproj", "{A9E42EDD-0FF4-4FD4-8F98-9D4856047B46}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoMechJebUplink.Contract", "GonogoMechJebUplink.Contract\GonogoMechJebUplink.Contract.csproj", "{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -459,6 +463,18 @@ Global
 		{A9E42EDD-0FF4-4FD4-8F98-9D4856047B46}.Release|x64.Build.0 = Release|Any CPU
 		{A9E42EDD-0FF4-4FD4-8F98-9D4856047B46}.Release|x86.ActiveCfg = Release|Any CPU
 		{A9E42EDD-0FF4-4FD4-8F98-9D4856047B46}.Release|x86.Build.0 = Release|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Debug|x64.Build.0 = Debug|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Debug|x86.Build.0 = Debug|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Release|x64.ActiveCfg = Release|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Release|x64.Build.0 = Release|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Release|x86.ActiveCfg = Release|Any CPU
+		{AD9CFCDC-5F5E-48F5-A90B-461C4BC9972C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

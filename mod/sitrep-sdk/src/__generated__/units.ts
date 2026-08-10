@@ -677,9 +677,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     ut: "s",
   },
-  "MechJebAscentArgs": {
-    targetAltitudeKm: "km",
-  },
   "Meta": {
     active: "flag",
     deliveredAt: "s",

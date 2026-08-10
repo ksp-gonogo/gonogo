@@ -8,13 +8,13 @@ namespace Gonogo.MechJebUplink
     /// </summary>
     public static class MechJebChannels
     {
-        /// <summary>Engage the ascent autopilot to a target altitude (<see cref="Sitrep.Contract.MechJebAscentArgs"/>).</summary>
+        /// <summary>Engage the ascent autopilot to a target altitude (<see cref="MechJebAscentArgs"/>).</summary>
         public const string EngageAscentAutopilotCommand = "mechjeb.engageAscentAutopilot";
 
-        /// <summary>Execute the next maneuver node (<see cref="Sitrep.Contract.MechJebNoArgs"/>).</summary>
+        /// <summary>Execute the next maneuver node (<see cref="MechJebNoArgs"/>).</summary>
         public const string ExecuteNextNodeCommand = "mechjeb.executeNextNode";
 
-        /// <summary>Autopilot land at the selected target (<see cref="Sitrep.Contract.MechJebNoArgs"/>).</summary>
+        /// <summary>Autopilot land at the selected target (<see cref="MechJebNoArgs"/>).</summary>
         public const string LandAtTargetCommand = "mechjeb.landAtTarget";
     }
 }

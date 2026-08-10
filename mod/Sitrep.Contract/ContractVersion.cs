@@ -380,14 +380,16 @@ namespace Sitrep.Contract
         /// the server uses the session vantage as before. Never touches an existing member.</para>
         ///
         /// <para><b>Bumped 5 -&gt; 6:</b> the <c>GonogoMechJebUplink</c> command arg
-        /// DTOs, <see cref="MechJebAscentArgs"/> (its one field tagged with the new
-        /// <see cref="Units.Kilometres"/> token) and <see cref="MechJebNoArgs"/> (the
+        /// DTOs, <c>MechJebAscentArgs</c> (its one field tagged with the new
+        /// <see cref="Units.Kilometres"/> token) and <c>MechJebNoArgs</c> (the
         /// trivial no-payload marker for <c>mechjeb.executeNextNode</c>/
         /// <c>mechjeb.landAtTarget</c>). Both brand-new <c>[SitrepContract]</c> types,
         /// plus a brand-new unit token: additive-only, nothing removed or retyped, so
         /// it cannot break an Uplink built against an older Minor. See
         /// <c>local_docs/design/mechjeb-uplink-sketch.md</c> and
-        /// <c>local_docs/design/mechjeb-decompile-lock.md</c>.</para>
+        /// <c>local_docs/design/mechjeb-decompile-lock.md</c>. (<c>MechJebAscentArgs</c>/
+        /// <c>MechJebNoArgs</c> later left this assembly entirely: see the
+        /// uplink-types-out-of-core provenance note below.)</para>
         ///
         /// <para><b>Bumped 6 -&gt; 7:</b> the Breaking Ground uplink split.
         /// The two Serenity-DLC wire topics move to their own prefix,
@@ -420,7 +422,25 @@ namespace Sitrep.Contract
         /// <c>local_docs/design/2026-08-10-kerbalism-solar-vantage-and-modifiers.md</c>
         /// and
         /// <c>local_docs/design/2026-08-10-kerbalism-modifier-product-feasibility.md</c>.</para>
+        ///
+        /// <para><b>Bumped 8 -&gt; 9: the uplink-types-out-of-core pilot.</b>
+        /// <c>MechJebAscentArgs</c>/<c>MechJebNoArgs</c> LEFT this assembly
+        /// entirely, relocated into the new <c>GonogoMechJebUplink.Contract</c>
+        /// project (their owning Uplink's own contract slice). Deliberately NOT a
+        /// Major bump: <see cref="Major"/>'s own frozen ledger floor
+        /// (<c>contract-shape.baseline.json</c>, frozen at v6.0) never included
+        /// these two types in the first place, they were added afterward as an
+        /// additive Minor (see the v5-&gt;6 entry above), so removing them now
+        /// restores exactly the shape that WAS frozen: the ledger's own
+        /// <c>ComputeRemovals</c> against that floor is empty, and
+        /// <c>ContractShapeGateTests.EveryMajorBumpDeclaresExactlyWhatItBroke</c>
+        /// refuses a Major that breaks nothing, on purpose, precisely to stop a
+        /// vacuous bump like this one. A relocation to a DIFFERENT assembly is
+        /// still an ABI change for anyone who compiled against Sitrep.Contract.dll
+        /// today (mid Major-6 line), which is why this gets its own Minor rather
+        /// than passing silently: this Minor's provenance note is that record. See
+        /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
         /// </summary>
-        public const int Minor = 8;
+        public const int Minor = 9;
     }
 }
