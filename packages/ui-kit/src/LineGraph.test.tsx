@@ -74,3 +74,66 @@ describe("LineGraph", () => {
     ).not.toThrow();
   });
 });
+
+describe("LineGraph sparkline variant", () => {
+  it("area-shades under each series down to the frame's bottom edge", () => {
+    const { container } = render(
+      <LineGraph
+        series={[AMBIENT, SHIELDED]}
+        variant="sparkline"
+        ariaLabel="Radiation trend"
+      />,
+    );
+    const areas = container.querySelectorAll("polygon");
+    expect(areas).toHaveLength(2);
+    for (const area of areas) {
+      expect(area).toHaveAttribute("fill-opacity", "0.16");
+    }
+  });
+
+  it("drops the quarter gridlines a chart variant draws", () => {
+    const { container: chart } = render(
+      <LineGraph series={[AMBIENT]} ariaLabel="Radiation trend" />,
+    );
+    const chartLines = chart.querySelectorAll("line:not([stroke-dasharray])");
+    expect(chartLines.length).toBeGreaterThan(0);
+
+    const { container: sparkline } = render(
+      <LineGraph
+        series={[AMBIENT]}
+        variant="sparkline"
+        ariaLabel="Radiation trend"
+      />,
+    );
+    const sparklineLines = sparkline.querySelectorAll(
+      "line:not([stroke-dasharray])",
+    );
+    expect(sparklineLines).toHaveLength(0);
+  });
+
+  it("keeps the dashed threshold line and the stroked polylines on top of the fill", () => {
+    const { container } = render(
+      <LineGraph
+        series={[AMBIENT, SHIELDED]}
+        variant="sparkline"
+        thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
+        ariaLabel="Radiation trend"
+      />,
+    );
+    expect(
+      container.querySelector('line[stroke-dasharray="2 1.5"]'),
+    ).not.toBeNull();
+    expect(container.querySelectorAll("polyline")).toHaveLength(2);
+  });
+
+  it("skips the area for a series with fewer than two points", () => {
+    const { container } = render(
+      <LineGraph
+        series={[{ ...AMBIENT, points: [{ x: 0, y: 1 }] }, SHIELDED]}
+        variant="sparkline"
+        ariaLabel="Radiation trend"
+      />,
+    );
+    expect(container.querySelectorAll("polygon")).toHaveLength(1);
+  });
+});

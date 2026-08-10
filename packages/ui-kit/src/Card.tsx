@@ -43,6 +43,22 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
    * with the caller.
    */
   accentColor?: string;
+  /**
+   * Explicit CSS colour for a TOP-edge strip: the resource/category identity
+   * counterpart to the leading edge, which stays reserved for STATUS
+   * (`tone`/`accentColor`). The operator's own colour-language split: status
+   * reads on the left, "what kind of thing is this" reads on top. The two
+   * compose deliberately, a card can show a status accent on its left AND a
+   * resource-identity strip on top at the same time, they answer different
+   * questions and neither should have to win over the other the way
+   * `accentColor` wins over `tone` on the shared left edge.
+   *
+   * A plain colour, not a resource name, same contract as `accentColor`:
+   * this primitive has no opinion on how the colour was chosen. A caller
+   * wanting the resource-identity look resolves it first (e.g. via a
+   * `resourceColor(name)`-backed map) and passes the result in.
+   */
+  categoryColor?: string;
   children?: ReactNode;
 }
 
@@ -72,5 +88,7 @@ export const Card = styled.div<CardProps>`
     if (accentColor) return `border-left: ${STRIP_WIDTH} solid ${accentColor};`;
     return tone ? `border-left: 2px solid ${TONE_COLOR[tone]};` : "";
   }}
+  ${({ categoryColor }) =>
+    categoryColor ? `border-top: ${STRIP_WIDTH} solid ${categoryColor};` : ""}
   ${({ dimmed }) => (dimmed ? "opacity: 0.5;" : "")}
 `;

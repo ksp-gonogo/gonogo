@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { resourceColor } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -296,6 +297,29 @@ describe("ShipSystemsComponent", () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("strips each resource row's Card with that resource's own colour from the shared map", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+
+    await screen.findByText("Water");
+    const waterCard = container.querySelector(
+      '[data-testid="resource-card-Water"]',
+    );
+    const ecCard = container.querySelector(
+      '[data-testid="resource-card-ElectricCharge"]',
+    );
+    expect(waterCard).toHaveStyle(
+      `border-top: 3px solid ${resourceColor("Water")}`,
+    );
+    expect(ecCard).toHaveStyle(
+      `border-top: 3px solid ${resourceColor("ElectricCharge")}`,
+    );
+    // Two different resources never collide on the same strip colour in
+    // this profile's small set (a substring-collision would be a real bug).
+    expect(resourceColor("Water")).not.toBe(resourceColor("ElectricCharge"));
+  });
 });
 
 describe("ShipSystemsComponent: radiation", () => {
@@ -343,6 +367,64 @@ describe("ShipSystemsComponent: radiation", () => {
     // The greenhouse's own instantaneous threshold flag, fed the SAME
     // ambient reading via the life-support.sections augment slot.
     expect(screen.getByText("Radiation too high")).toBeInTheDocument();
+
+    // The SAME condition also fires a panel-level badge, alongside (not
+    // instead of) the per-row flag above: an operator scanning the header
+    // should not have to scroll down to discover the greenhouse halted.
+    expect(screen.getByText("System halted")).toBeInTheDocument();
+  });
+
+  it("renders the Radiation section ahead of Supplies, the widget's lead visual", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        magnetosphere: true,
+      });
+    });
+
+    await screen.findByText("Ambient", { exact: false });
+    const text = container.textContent ?? "";
+    const radiationAt = text.indexOf("RADIATION");
+    const suppliesAt = text.indexOf("SUPPLIES");
+    expect(radiationAt).toBeGreaterThanOrEqual(0);
+    expect(suppliesAt).toBeGreaterThan(radiationAt);
+  });
+
+  it("omits the panel-level halted badge when no greenhouse crosses its own tolerance", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            // Comfortably above the ambient reading emitted below: never
+            // crosses its own tolerance.
+            radiationToleranceRadPerSec: 0.05,
+          },
+        ],
+      });
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        outerBelt: true,
+      });
+    });
+
+    await screen.findByText("Ambient", { exact: false });
+    expect(screen.queryByText("Radiation too high")).not.toBeInTheDocument();
+    expect(screen.queryByText("System halted")).not.toBeInTheDocument();
   });
 
   it("has no axe violations with the radiation section and greenhouse flag showing", async () => {

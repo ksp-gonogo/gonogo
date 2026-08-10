@@ -52,6 +52,51 @@ describe("Card", () => {
     );
   });
 
+  it("colours the top edge from categoryColor, distinct from the left status strip", () => {
+    render(
+      <Card categoryColor="#654321" data-testid="card">
+        Contents
+      </Card>,
+    );
+    expect(screen.getByTestId("card")).toHaveStyle(
+      "border-top: 3px solid #654321",
+    );
+  });
+
+  it("shows a status accent on the left AND a category strip on top at once", () => {
+    render(
+      <Card tone="alert" categoryColor="#654321" data-testid="card">
+        Contents
+      </Card>,
+    );
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    // Left edge still carries the STATUS accent (tone), unaffected by
+    // categoryColor: the two strips answer different questions and neither
+    // should have to win over the other.
+    expect(styleText).toContain(
+      "border-left:2px solid var(--color-status-nogo-bg);",
+    );
+    expect(screen.getByTestId("card")).toHaveStyle(
+      "border-top: 3px solid #654321",
+    );
+  });
+
+  it("composes categoryColor with accentColor too (left identity, top category)", () => {
+    render(
+      <Card accentColor="#123456" categoryColor="#654321" data-testid="card">
+        Contents
+      </Card>,
+    );
+    expect(screen.getByTestId("card")).toHaveStyle(
+      "border-left: 3px solid #123456",
+    );
+    expect(screen.getByTestId("card")).toHaveStyle(
+      "border-top: 3px solid #654321",
+    );
+  });
+
   it("falls back to the tone accent rule when no accentColor is given", () => {
     render(
       <Card tone="alert" data-testid="card">

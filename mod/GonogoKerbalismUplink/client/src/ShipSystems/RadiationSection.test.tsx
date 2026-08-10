@@ -117,6 +117,25 @@ describe("RadiationSection", () => {
     expect(screen.getByText("Shielded", { exact: false })).toBeInTheDocument();
   });
 
+  it("renders the graph as a sparkline (area-shaded, no gridlines), not an engineering chart", () => {
+    const { container } = render(
+      <RadiationSection
+        weather={{
+          radiationRadPerSecond: 0.006,
+          habitatRadiationRadPerSecond: 0.00006,
+          magnetosphere: true,
+        }}
+        utNow={10}
+      />,
+    );
+    // Sparkline variant draws no quarter gridlines: every bare (undashed)
+    // `<line>` in the graph is the dashed safe-threshold rule or nothing.
+    const bareLines = container.querySelectorAll(
+      "line:not([stroke-dasharray])",
+    );
+    expect(bareLines).toHaveLength(0);
+  });
+
   it("shows the inner-belt badge as the most severe location fact when active", () => {
     render(
       <RadiationSection

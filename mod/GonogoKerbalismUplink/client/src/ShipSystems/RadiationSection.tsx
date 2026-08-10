@@ -2,7 +2,7 @@ import type { KerbalismSpaceWeather } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Box,
+  Card,
   Cluster,
   Fill,
   GraphNotice,
@@ -34,6 +34,14 @@ import { mag } from "../ecosystem";
 // itself is vessel-wide (Kerbalism's habitat radiation is a property of the
 // vessel's shielding, not of any one Kerbal), see this widget's own doc
 // comment / the task this was built against.
+//
+// Renders as a SPARKLINE (`LineGraph`'s `variant="sparkline"`), not an
+// engineering chart: operator feedback on the first pass called the plain
+// `LineGraph` too technical for what is meant to be a glance-read trend.
+// Area-shaded lines, no gridlines, still the same two series plus the
+// dashed safe-threshold line. This is also the widget's LEAD section now
+// (rendered first in `index.tsx`'s body), the attractive visual earns the
+// top slot rather than being buried below the resource ledger.
 // ---------------------------------------------------------------------------
 
 export interface RadiationSample {
@@ -191,15 +199,11 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
 
   return (
     <Cluster gap="md" wrap align="start">
-      <Box
-        pad="sm"
-        surface="raised"
-        radius="sm"
-        style={{ flex: "1 1 220px", minWidth: 0 }}
-      >
+      <Card style={{ flex: "1 1 220px", minWidth: 0 }}>
         <Fill style={{ height: 96 }}>
           <LineGraph
             series={series}
+            variant="sparkline"
             thresholds={[
               {
                 id: "safe",
@@ -229,7 +233,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
             Shielded <Unit value={shieldedValue} />
           </Value>
         </Cluster>
-      </Box>
+      </Card>
       <Stack
         gap="xs"
         role="status"

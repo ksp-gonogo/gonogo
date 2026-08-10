@@ -36,6 +36,15 @@ export interface LineGraphProps {
    */
   ariaLabel?: string;
   className?: string;
+  /**
+   * `"chart"` (default): the original instrument look, quarter gridlines,
+   * bare strokes. `"sparkline"`: drops the gridlines and area-shades under
+   * each series down to the frame's bottom edge, reading as a compact glance
+   * trend rather than a technical instrument. Threshold lines and series
+   * strokes render identically in both, this only changes the frame
+   * decoration and whether a fill sits under the lines.
+   */
+  variant?: "chart" | "sparkline";
 }
 
 const VIEW_W = 100;
@@ -88,10 +97,12 @@ function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
  *
  * Deliberately spare: no axis ticks, no legend, no interaction. A widget
  * pairs this with its own labelled current-value readouts and belt/state
- * badges; this component only draws the shape of the trend. Grid lines are
- * fixed quarter-marks (25/50/75%) rather than data-derived ticks, since
- * nothing here knows the quantity's kind well enough to pick a sensible
- * round-number tick.
+ * badges; this component only draws the shape of the trend. In `"chart"`
+ * variant, grid lines are fixed quarter-marks (25/50/75%) rather than
+ * data-derived ticks, since nothing here knows the quantity's kind well
+ * enough to pick a sensible round-number tick; `"sparkline"` drops them
+ * entirely and area-shades under each series instead, for a reading that
+ * wants to look like a glance trend rather than an engineering instrument.
  *
  * SVG rather than a canvas/library dependency: matches the rest of the kit's
  * hand-drawn primitives (`Dial`, `Tape`, `DivergingBar`), keeps ui-kit's zero
@@ -107,11 +118,13 @@ export function LineGraph({
   height = 120,
   ariaLabel,
   className,
+  variant = "chart",
 }: LineGraphProps) {
   const [yMin, yMax] = yDomain ?? computeDomain(series, thresholds);
   const [xMin, xMax] = computeXDomain(series);
   const ySpan = yMax - yMin || 1;
   const xSpan = xMax - xMin || 1;
+  const isSparkline = variant === "sparkline";
 
   const toX = (x: number) => ((x - xMin) / xSpan) * VIEW_W;
   const toY = (y: number) => VIEW_H - ((y - yMin) / ySpan) * VIEW_H;
@@ -127,18 +140,43 @@ export function LineGraph({
         aria-label={ariaLabel}
         aria-hidden={ariaLabel ? undefined : "true"}
       >
-        {[0.25, 0.5, 0.75].map((f) => (
-          <line
-            key={f}
-            x1={0}
-            x2={VIEW_W}
-            y1={VIEW_H * f}
-            y2={VIEW_H * f}
-            stroke="var(--color-border-subtle)"
-            strokeWidth={0.4}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
+        {!isSparkline &&
+          [0.25, 0.5, 0.75].map((f) => (
+            <line
+              key={f}
+              x1={0}
+              x2={VIEW_W}
+              y1={VIEW_H * f}
+              y2={VIEW_H * f}
+              stroke="var(--color-border-subtle)"
+              strokeWidth={0.4}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+
+        {isSparkline &&
+          series.map((s) => {
+            // Same "fewer than two points draws nothing" rule as the stroke
+            // below: an area under a single point is not a shape, it is a
+            // triangle standing in for data that was never there.
+            if (s.points.length < 2) return null;
+            const first = s.points[0];
+            const last = s.points[s.points.length - 1];
+            const areaPoints = [
+              ...s.points.map((p) => `${toX(p.x)},${toY(p.y)}`),
+              `${toX(last.x)},${VIEW_H}`,
+              `${toX(first.x)},${VIEW_H}`,
+            ].join(" ");
+            return (
+              <polygon
+                key={`${s.id}-area`}
+                points={areaPoints}
+                fill={s.color}
+                fillOpacity={0.16}
+                stroke="none"
+              />
+            );
+          })}
 
         {thresholds.map((t) => {
           const y = toY(t.value);

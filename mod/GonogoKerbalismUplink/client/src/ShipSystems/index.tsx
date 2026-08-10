@@ -16,6 +16,7 @@ import {
 import {
   Badge,
   Box,
+  Card,
   Cluster,
   Disclosure,
   DivergingBar,
@@ -49,7 +50,9 @@ import { KERBALISM } from "../uplink";
 // `@ksp-gonogo/components`), replacing the deleted `LifeSupportSystems`
 // widget that used to own it.
 import "./GreenhouseSection";
+import { radiationTooHigh } from "./GreenhouseSection";
 import { RadiationSection } from "./RadiationSection";
+import { useResourceColorMap } from "./resourceColorMap";
 
 type ShipSystemsConfig = Record<string, never>;
 
@@ -311,25 +314,63 @@ function ShipSystemsBody({
 
   const pressurized = mag(habitat?.pressure) > 0.5;
 
+  // A halted greenhouse is a WIDGET-level event, not just a per-row one: the
+  // panel badge fires alongside the existing "Radiation too high" flag on
+  // the greenhouse's own row (GreenhouseSection.tsx), same underlying
+  // `radiationTooHigh` check, surfaced a second time where an operator
+  // scanning the panel header (not scrolled down to the greenhouse section)
+  // would otherwise miss it.
+  const anyGreenhouseHalted = greenhouses.some((g) =>
+    radiationTooHigh(g, ambientRadiationRadPerSecond),
+  );
+
+  // Every resource this render pass shows a Card for, supplies and other
+  // alike: one colour map covers both sections so the same resource always
+  // strips the same colour regardless of which bucket `summarise` sorted it
+  // into.
+  const resourceColors = useResourceColorMap([
+    ...summary.supplies.map((r) => r.name),
+    ...summary.other.map((r) => r.name),
+  ]);
+
   return (
     <Panel
       panelTitle="Ship Systems"
       panelAside={
-        <Badge
-          role="status"
-          aria-live="polite"
-          severity={severityFromBadgeTone(status.tone)}
-        >
-          {status.label}
-        </Badge>
+        <Cluster gap="xs">
+          <Badge
+            role="status"
+            aria-live="polite"
+            severity={severityFromBadgeTone(status.tone)}
+          >
+            {status.label}
+          </Badge>
+          {anyGreenhouseHalted && (
+            <Badge role="status" aria-live="polite" severity="critical">
+              System halted
+            </Badge>
+          )}
+        </Cluster>
       }
     >
       <Stack gap="md">
+        {/* Radiation leads the widget: the operator's own call, it is the
+            attractive visual (the sparkline trend), so it earns the top
+            slot rather than sitting below the resource ledger. Renders
+            nothing when no spaceweather frame has ever landed, matching
+            RadiationSection's own contract. */}
+        {weather && (
+          <Section>
+            <SectionHead label="Radiation" />
+            <RadiationSection weather={weather} utNow={utNow} />
+          </Section>
+        )}
+
         {summary.causes.length > 0 && (
-          // No `surface`: this used to sit on `sunken` (a near-black tile
-          // that visually detached from the rest of the panel). Transparent
-          // lets it sit on the Panel's own surface like every other block.
-          <Box pad="md" radius="sm" role="status" aria-live="polite">
+          // Card, matching every other container in this widget now
+          // (operator feedback: the widget used to hand-stitch `Box`
+          // inconsistently, some rows boxed, some not).
+          <Card role="status" aria-live="polite">
             <Stack gap="xs">
               <Value tone="nogo" weight="semibold" size="sm">
                 Limiting factors
@@ -374,14 +415,19 @@ function ShipSystemsBody({
                     ],
               )}
             </Stack>
-          </Box>
+          </Card>
         )}
 
         <Section>
           <SectionHead label="Supplies" />
           <MeterStack>
             {summary.supplies.map((row) => (
-              <ResourceLedgerRow key={row.name} row={row} ship={ship} />
+              <ResourceLedgerRow
+                key={row.name}
+                row={row}
+                ship={ship}
+                categoryColor={resourceColors.get(row.name)}
+              />
             ))}
           </MeterStack>
         </Section>
@@ -391,7 +437,12 @@ function ShipSystemsBody({
             <SectionHead label="Other resources" />
             <MeterStack>
               {summary.other.map((row) => (
-                <ResourceLedgerRow key={row.name} row={row} ship={ship} />
+                <ResourceLedgerRow
+                  key={row.name}
+                  row={row}
+                  ship={ship}
+                  categoryColor={resourceColors.get(row.name)}
+                />
               ))}
             </MeterStack>
           </Section>
@@ -442,13 +493,6 @@ function ShipSystemsBody({
             />
           </Cluster>
         </Section>
-
-        {weather && (
-          <Section>
-            <SectionHead label="Radiation" />
-            <RadiationSection weather={weather} utNow={utNow} />
-          </Section>
-        )}
 
         <Section>
           <SectionHead
@@ -549,9 +593,15 @@ function FooterRow({ children }: { children: ReactNode }) {
 function ResourceLedgerRow({
   row,
   ship,
+  categoryColor,
 }: {
   row: ResourceRow;
   ship: ShipSystems;
+  /** This resource's colour from `useResourceColorMap`, rendered as the
+   *  Card's top-edge identity strip. `undefined` renders no strip (the
+   *  colour map is always populated for a row present in `summary`, this
+   *  is just the prop's own honest optionality). */
+  categoryColor?: string;
 }) {
   const ledger = useMemo<Ledger>(
     () =>
@@ -565,9 +615,14 @@ function ResourceLedgerRow({
   );
 
   return (
-    // pad="md": pad="sm" (4px) still read as cramped once the meter, the
-    // footnote, and the disclosure trigger were all stacked in one block.
-    <Box pad="md" surface="raised" radius="sm">
+    // testid escape hatch: a plain visual container, no role/label of its
+    // own to query by (the Meter it wraps already carries the accessible
+    // name), so a stable hook is the only way a test can reach THIS row's
+    // own Card to assert its categoryColor strip.
+    <Card
+      categoryColor={categoryColor}
+      data-testid={`resource-card-${row.name}`}
+    >
       <Stack gap="sm">
         <Meter
           label={row.displayName}
@@ -607,7 +662,7 @@ function ResourceLedgerRow({
           <LedgerBody ledger={ledger} />
         </Disclosure>
       </Stack>
-    </Box>
+    </Card>
   );
 }
 
