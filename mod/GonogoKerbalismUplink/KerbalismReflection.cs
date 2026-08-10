@@ -178,7 +178,7 @@ namespace Gonogo.KerbalismUplink
         /// profile leaves it at the Rule.cs ctor default of 1.0 for every rule
         /// except radiation, which overrides it to 50.0
         /// (GameData/KerbalismConfig/Profiles/Default.cfg's `radiation` Rule
-        /// block): confirming the CrewManifest widget's per-rule
+        /// block): confirming the CrewStatus widget's per-rule
         /// value/fatalThreshold normalization is correct, not a hardcoded-1.0 bug.
         /// </summary>
         public IReadOnlyDictionary<string, RuleConstants> RuleConstants()

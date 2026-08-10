@@ -1182,7 +1182,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    *
    * Named `aside` rather than `badges` because it is not only badges. It began
    * as a badge slot and immediately started carrying PowerSystems' resource
-   * select and CrewManifest's meters toggle, which is the normal case rather
+   * select and CrewStatus's meters toggle, which is the normal case rather
    * than an abuse: whatever a widget puts next to its title belongs here.
    *
    * Keep it small all the same. This is a header slot, not a second body;

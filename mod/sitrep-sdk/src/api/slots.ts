@@ -223,9 +223,9 @@ export interface ContractBadgeContext {
   section: "active" | "offered";
 }
 
-// --- CrewManifest (packages/components/src/CrewManifest) -------------------
+// --- CrewStatus (packages/components/src/CrewStatus) -------------------
 
-/** Mirrors `CrewBadgeContext` (CrewManifest/index.tsx). */
+/** Mirrors `CrewBadgeContext` (CrewStatus/index.tsx). */
 export interface CrewBadgeContext {
   /** The crew member this badge row belongs to, its identity for the augment. */
   crewName: string;
@@ -233,7 +233,7 @@ export interface CrewBadgeContext {
   crewIndex: number;
 }
 
-/** Mirrors `CrewAvatarContext` (CrewManifest/index.tsx). */
+/** Mirrors `CrewAvatarContext` (CrewStatus/index.tsx). */
 export interface CrewAvatarContext {
   /** The crew member this avatar belongs to, its identity for the augment. */
   crewName: string;
@@ -241,7 +241,7 @@ export interface CrewAvatarContext {
   crewIndex: number;
 }
 
-/** Mirrors `CrewSurvivalSlotContext` (CrewManifest/index.tsx). */
+/** Mirrors `CrewSurvivalSlotContext` (CrewStatus/index.tsx). */
 export interface CrewSurvivalSlotContext {
   /** The crew member this row belongs to, its identity for the augment. */
   crewName: string;
@@ -643,9 +643,10 @@ declare module "./types" {
 
     "contract-manager.badges": ContractBadgeContext;
 
-    "crew-manifest.badges": CrewBadgeContext;
-    "crew-manifest.avatar": CrewAvatarContext;
-    "crew-manifest.survival": CrewSurvivalSlotContext;
+    "crew-status.badges": CrewBadgeContext;
+    "crew-status.avatar": CrewAvatarContext;
+    "crew-status.survival": CrewSurvivalSlotContext;
+    "crew-status.summary": Record<string, never>;
 
     "launch-director.badges": LaunchDirectorSlotContext;
     "launch-director.sections": LaunchDirectorSlotContext;

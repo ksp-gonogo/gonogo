@@ -385,7 +385,7 @@ describe("CameraFeed: camera selection", () => {
 
   it("excludes kerbal face cameras from the picker (facecam kind separation)", async () => {
     // Facecam-stage6 consumption design, "requirements gonogo-side" §5: kerbal
-    // face cams get their own crew surfaces (CrewManifest's avatar augment,
+    // face cams get their own crew surfaces (CrewStatus's avatar augment,
     // eventually a dedicated facecam wall) and should never also show up in
     // this general part-camera picker/auto-latch.
     await buildConnectedSource([

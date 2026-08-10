@@ -1,5 +1,5 @@
 /**
- * Presence-gate wiring for the `crew-manifest.avatar` slot: proves the
+ * Presence-gate wiring for the `crew-status.avatar` slot: proves the
  * augment is bound to the real slot id, behind the real `requires:
  * "kerbcast"` gate `<AugmentSlot>` enforces: not just callable directly with
  * hand-picked props (that's index.test.tsx's job).
@@ -27,7 +27,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 // would wipe the one real registration this file exists to check.
 import "./index";
 
-const CONTEXT: SlotProps<"crew-manifest.avatar"> = {
+const CONTEXT: SlotProps<"crew-status.avatar"> = {
   crewName: "Jebediah Kerman",
   crewIndex: 0,
 };
@@ -51,14 +51,14 @@ function renderSlot(transport: StubTransport) {
     <TelemetryProvider client={client}>
       <SettingsProvider service={settings}>
         <ModalProvider>
-          <AugmentSlot name="crew-manifest.avatar" props={CONTEXT} />
+          <AugmentSlot name="crew-status.avatar" props={CONTEXT} />
         </ModalProvider>
       </SettingsProvider>
     </TelemetryProvider>,
   );
 }
 
-describe("kerbcast crew-avatar augment: crew-manifest.avatar slot", () => {
+describe("kerbcast crew-avatar augment: crew-status.avatar slot", () => {
   beforeEach(() => {
     clearRegistry();
     clearUplinkHandles();
@@ -75,7 +75,7 @@ describe("kerbcast crew-avatar augment: crew-manifest.avatar slot", () => {
     const { container } = render(
       <SettingsProvider service={settings}>
         <ModalProvider>
-          <AugmentSlot name="crew-manifest.avatar" props={CONTEXT} />
+          <AugmentSlot name="crew-status.avatar" props={CONTEXT} />
         </ModalProvider>
       </SettingsProvider>,
     );

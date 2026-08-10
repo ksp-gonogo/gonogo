@@ -36,7 +36,7 @@
  * (file or directory prefixes, relative to repo root) to scope the scan,
  * e.g. to audit a single directory another sweep owns:
  *
- *   node scripts/emdash-audit.mjs packages/components/src/CrewManifest
+ *   node scripts/emdash-audit.mjs packages/components/src/CrewStatus
  *
  * Pass --exclude to additionally prune path prefixes from a repo-wide
  * scan (used here to skip directories a concurrent sweep owns).

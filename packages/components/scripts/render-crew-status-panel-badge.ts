@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 /**
- * Render CrewManifest's WIDGET-LEVEL panel badges to a PNG under
- * `local_docs/renders/crew-manifest-panel-badge/`, the header chips two
- * SEPARATE `crew-manifest.badges` contributions drop into the panel chrome:
+ * Render CrewStatus's WIDGET-LEVEL panel badges to a PNG under
+ * `local_docs/renders/crew-status-panel-badge/`, the header chips two
+ * SEPARATE `crew-status.badges` contributions drop into the panel chrome:
  * the base widget's own info-tone "N/M aboard" headcount
- * (`src/CrewManifest/badge.ts`, `crewAboardBadge`) and the Kerbalism
+ * (`src/CrewStatus/badge.ts`, `crewAboardBadge`) and the Kerbalism
  * Uplink's nogo-tone "N crew critical" danger badge
  * (`mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`). Both are
  * registered against the SAME automatic slot and coexist (info is
@@ -19,11 +19,11 @@
  * wires the real app's badge-composition chain (`WidgetMetaContext` ->
  * `ContributionsProvider` -> `useWidgetBadges` -> `PanelBadgesProvider` ->
  * `Panel`, see `crew-badge-probe-entry.tsx`'s own doc comment) around the
- * real `CrewManifestComponent`, so the PNG shows exactly what the dashboard
+ * real `CrewStatusComponent`, so the PNG shows exactly what the dashboard
  * would render, not a hand-built mock.
  *
  * Replays the existing crew-critical fixture
- * (`src/CrewManifest/__render_kerbalism_survival__/crew-critical.json`,
+ * (`src/CrewStatus/__render_kerbalism_survival__/crew-critical.json`,
  * already used for the per-row survival render) so the two renders describe
  * the SAME vessel state: Jebediah at 94% radiation and Bill's 240s death
  * clock both cross the "nogo" threshold, so the header reads "2 crew
@@ -60,12 +60,12 @@ const PROBE_ENTRY = join(PROBE_DIR, "crew-badge-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "crew-badge-probe.html");
 const OUT_DIR = resolve(
   HERE,
-  "../../../local_docs/renders/crew-manifest-panel-badge",
+  "../../../local_docs/renders/crew-status-panel-badge",
 );
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 const FIXTURE_PATH = resolve(
   HERE,
-  "../src/CrewManifest/__render_kerbalism_survival__/crew-critical.json",
+  "../src/CrewStatus/__render_kerbalism_survival__/crew-critical.json",
 );
 
 // Wide enough for "CREW" + both badges ("3/4 ABOARD" info + "2 CREW
@@ -206,10 +206,10 @@ async function main(): Promise<void> {
         ).__renderCrewBadgeProbe(p),
       payload,
     );
-    const outName = "crew-manifest-panel-badge-crew-critical.png";
+    const outName = "crew-status-panel-badge-crew-critical.png";
     await page.screenshot({ path: join(OUT_DIR, outName), fullPage: false });
     console.log(`  ${outName}`);
-    console.log(`\nRendered crew-manifest panel badge -> ${OUT_DIR}`);
+    console.log(`\nRendered crew-status panel badge -> ${OUT_DIR}`);
   } finally {
     await browser.close();
   }

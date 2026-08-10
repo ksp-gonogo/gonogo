@@ -3,12 +3,12 @@ import { KERBALISM } from "../uplink";
 import { CREW_SURVIVAL, type CrewSurvival } from "./processor";
 
 // ---------------------------------------------------------------------------
-// CrewManifest's panel badge (mirrors `ShipSystems/badge.ts`'s
+// CrewStatus's panel badge (mirrors `ShipSystems/badge.ts`'s
 // `ship-systems-badge`): a pure contribution to the widget's auto-wired
-// `crew-manifest.badges` slot (the collapsed-header badge the panel-header
+// `crew-status.badges` slot (the collapsed-header badge the panel-header
 // redesign surfaces, contribution-slots-spec §13.2 `panelBadges`, DISTINCT
-// from the widget-authored per-row `crew-manifest.badges` AugmentSlot the
-// CrewManifest base widget itself declares for `CrewSurvivalBadgeAugment` in
+// from the widget-authored per-row `crew-status.badges` AugmentSlot the
+// CrewStatus base widget itself declares for `CrewSurvivalBadgeAugment` in
 // `index.tsx`: same slot NAME, two different registries, `augments.ts`'s
 // SlotRegistry for the per-row one and `contributions.ts`'s
 // ContributionRegistry for this one). Fed by the SAME `CREW_SURVIVAL`
@@ -39,7 +39,7 @@ function survivalBadges(
 
 KERBALISM.registerContribution({
   id: "crew-survival-badge",
-  contributes: "crew-manifest.badges",
+  contributes: "crew-status.badges",
   deps: [CREW_SURVIVAL],
   requires: "kerbalism",
   compute: (topics) =>

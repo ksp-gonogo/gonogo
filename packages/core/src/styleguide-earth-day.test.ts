@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
  * and it renders as a plausible number rather than as an obvious fault.
  *
  * This existed in four widgets at once when the guard was written:
- * `CrewManifest` and `LifeSupportSystems` both said "Xd Yh to depletion" on an
+ * `CrewStatus` and `LifeSupportSystems` both said "Xd Yh to depletion" on an
  * Earth calendar while the mission clock beside them counted Kerbin days;
  * `TransferWindow` quoted transfer durations and a `/365` year on top of the
  * same error; `GreenhouseSection` scaled a per-second crop rate to a

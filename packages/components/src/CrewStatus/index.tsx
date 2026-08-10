@@ -22,7 +22,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
-// Side-effect import: the widget's own `crew-manifest.badges` panel-badge
+// Side-effect import: the widget's own `crew-status.badges` panel-badge
 // self-contribution (the info-tone "N/M aboard" header chip) registers on
 // module load, see that file's own doc comment for why it lives apart from
 // the per-row AugmentSlot declarations below.
@@ -51,7 +51,7 @@ const TINY_READOUT_STYLE = {
  * and never dominates a roomy one.
  *
  * The size itself tracks the widget's own measured content width (`useElementSize`
- * on the roster wrapper in `CrewManifestComponent`, `avatarCellSizePx` below),
+ * on the roster wrapper in `CrewStatusComponent`, `avatarCellSizePx` below),
  * not a `vw` viewport-relative clamp (the previous version's approach, and
  * `TINY_READOUT_STYLE`'s idiom, still fine THERE because that readout
  * genuinely wants to track the browser window). A dashboard tile's on-screen
@@ -62,7 +62,7 @@ const TINY_READOUT_STYLE = {
  * measured-slot-width idiom (`useElementSize` + `Math.min`/`Math.max`), not
  * a CSS-only fix.
  *
- * Only reserved when an Uplink actually binds `crew-manifest.avatar`
+ * Only reserved when an Uplink actually binds `crew-status.avatar`
  * (`avatarAugmentPresent` in `renderBody`, below): a vanilla roster with no
  * avatar-providing Uplink installed carries no leading cell at all, not a
  * same-size cell showing an empty placeholder. Operator feedback: a ~40-56px
@@ -99,7 +99,7 @@ function avatarCellSizePx(containerWidthPx: number): number {
   );
 }
 
-type CrewManifestConfig = Record<string, never>;
+type CrewStatusConfig = Record<string, never>;
 
 // -----------------------------------------------------------------------
 // EVA suit resources (additive; only meaningful while the active vessel IS
@@ -178,7 +178,7 @@ function EvaSuitReadout({
 }
 
 // ---------------------------------------------------------------------------
-// The `crew-manifest.badges` slot contract (see augment-slot-map)
+// The `crew-status.badges` slot contract (see augment-slot-map)
 //
 // A per-crew-row inline badges slot: a future Kerbalism `Habitat`/`Radiation`
 // Uplink can badge each kerbal with comfort/radiation-dose without leaving this
@@ -188,7 +188,7 @@ function EvaSuitReadout({
 // `crewIndex` disambiguates in the (legal) case of two kerbals sharing a name.
 // ---------------------------------------------------------------------------
 
-/** Props passed to every `crew-manifest.badges` augment, one per crew row. */
+/** Props passed to every `crew-status.badges` augment, one per crew row. */
 export interface CrewBadgeContext {
   /** The crew member this badge row belongs to, its identity for the augment. */
   crewName: string;
@@ -199,21 +199,21 @@ export interface CrewBadgeContext {
 // Declaration-merge the slot id → props type into core's `SlotRegistry`.
 // Co-located here (not in a shared central file) so parallel slot work in
 // other widgets can't collide. Makes `registerAugment({ augments:
-// "crew-manifest.badges" })` and `<AugmentSlot name="crew-manifest.badges"
+// "crew-status.badges" })` and `<AugmentSlot name="crew-status.badges"
 // props={...} />` type-check precisely against `CrewBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "crew-manifest.badges": CrewBadgeContext;
+    "crew-status.badges": CrewBadgeContext;
   }
 }
 
 // ---------------------------------------------------------------------------
-// The `crew-manifest.avatar` slot contract (see augment-slot-map)
+// The `crew-status.avatar` slot contract (see augment-slot-map)
 //
 // A per-crew-row LEADING square cell (left of the name): the SDK-independent
 // shell of a per-kerbal avatar/portrait. An Uplink can register an augment
 // that fills it with a live face, keyed by kerbal identity. Same per-row
-// keying as `crew-manifest.badges`, `crewName` is the augment's identity
+// keying as `crew-status.badges`, `crewName` is the augment's identity
 // handle and `crewIndex` disambiguates duplicate names. The cell itself is
 // only reserved while at least one augment is bound to this slot at all
 // (`avatarAugmentPresent`, `renderBody` below); with no avatar-providing
@@ -225,7 +225,7 @@ declare module "@ksp-gonogo/core" {
 // entirely optional, both at the slot level and per-kerbal.
 // ---------------------------------------------------------------------------
 
-/** Props passed to every `crew-manifest.avatar` augment, one per crew row. */
+/** Props passed to every `crew-status.avatar` augment, one per crew row. */
 export interface CrewAvatarContext {
   /** The crew member this avatar belongs to, its identity for the augment. */
   crewName: string;
@@ -235,27 +235,27 @@ export interface CrewAvatarContext {
 
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "crew-manifest.avatar": CrewAvatarContext;
+    "crew-status.avatar": CrewAvatarContext;
   }
 }
 
 // ---------------------------------------------------------------------------
-// The `crew-manifest.survival` slot contract (see augment-slot-map)
+// The `crew-status.survival` slot contract (see augment-slot-map)
 //
 // A per-crew-row section slot, directly below each roster row: the generic
 // home for a per-kerbal survival readout (death clock, worst rule, degen).
 // This widget carries NO Kerbalism-specific reads itself (it used to, the
 // Kerbalism crew-rules and life-support Topics were read inline here; that
 // contaminated the vanilla roster with a Kerbalism concept and has moved
-// wholesale to the Kerbalism Uplink's own `crew-manifest-survival` augment,
+// wholesale to the Kerbalism Uplink's own `crew-status-survival` augment,
 // mod/GonogoKerbalismUplink/client/src/CrewSurvival). Same per-row keying as
-// `crew-manifest.badges`/`.avatar`: `crewName` is the augment's identity
+// `crew-status.badges`/`.avatar`: `crewName` is the augment's identity
 // handle, `crewIndex` disambiguates duplicate names. Renders nothing when no
 // augment is bound (no Uplink, or the Uplink has nothing to show for this
 // kerbal), so the roster degrades gracefully exactly like the avatar slot.
 // ---------------------------------------------------------------------------
 
-/** Props passed to every `crew-manifest.survival` augment, one per crew row. */
+/** Props passed to every `crew-status.survival` augment, one per crew row. */
 export interface CrewSurvivalSlotContext {
   /** The crew member this row belongs to, its identity for the augment. */
   crewName: string;
@@ -265,7 +265,27 @@ export interface CrewSurvivalSlotContext {
 
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "crew-manifest.survival": CrewSurvivalSlotContext;
+    "crew-status.survival": CrewSurvivalSlotContext;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The `crew-status.summary` slot contract (see augment-slot-map)
+//
+// A WHOLE-WIDGET section slot, rendered once above the roster rather than
+// once per kerbal: the generic home for a status that affects the whole
+// crew together, not any one of them individually (e.g. a Kerbalism vessel
+// radiation-environment reading). Unlike `.badges`/`.avatar`/`.survival`
+// above, this carries no per-kerbal identity, there is exactly one instance
+// of it per widget, mirroring `ThermalStatus`'s `thermal-status.badges`
+// slot (`ThermalStatus/index.tsx`): no props, an empty object contract.
+// Renders nothing when no augment is bound, so the roster degrades
+// gracefully exactly like the other slots.
+// ---------------------------------------------------------------------------
+
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "crew-status.summary": Record<string, never>;
   }
 }
 
@@ -299,10 +319,10 @@ function toCrewNames(raw: unknown): string[] {
   return out;
 }
 
-function CrewManifestComponent({
+function CrewStatusComponent({
   w,
   h,
-}: Readonly<ComponentProps<CrewManifestConfig>>) {
+}: Readonly<ComponentProps<CrewStatusConfig>>) {
   // Roster, count, and capacity all ride the single `vessel.crew` Topic,
   // read it once and pick the three fields off it.
   const crew = useTelemetry("vessel.crew");
@@ -372,7 +392,7 @@ function CrewManifestComponent({
   }
 
   // Headcount ("N/M aboard") moved off this body-level caption entirely, an
-  // info-tone `crew-manifest.badges` self-contribution (`./badge.ts`) now
+  // info-tone `crew-status.badges` self-contribution (`./badge.ts`) now
   // carries it as a header panel badge instead, the same badge system the
   // Kerbalism Uplink's nogo-tone crew-critical badge already rides. Only the
   // EVA marker is left for this line to carry; when the vessel isn't an EVA
@@ -381,6 +401,10 @@ function CrewManifestComponent({
 
   return (
     <Panel panelTitle="CREW">
+      {/* Whole-widget status slot: a vessel-level condition (e.g. the
+          Kerbalism Uplink's radiation-environment reading), never a
+          per-kerbal one. Renders nothing until an Uplink binds it. */}
+      <AugmentSlot name="crew-status.summary" props={{}} />
       {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
       <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
       <div ref={rosterWidthRef}>
@@ -443,7 +467,7 @@ function renderBody({
   // avatars, no cell is rendered and that width goes back to the name instead
   // of sitting empty behind a decorative dot that never signalled anything.
   const avatarAugmentPresent =
-    getAugmentsForSlot("crew-manifest.avatar").length > 0;
+    getAugmentsForSlot("crew-status.avatar").length > 0;
 
   return (
     // `gap="lg"` (12px, up from `sm`'s 4px): the between-ROW breathing room
@@ -480,7 +504,7 @@ function renderBody({
                           nothing to show yet. */}
                       <div style={{ width: "100%", height: "100%" }}>
                         <AugmentSlot
-                          name="crew-manifest.avatar"
+                          name="crew-status.avatar"
                           props={{ crewName: name, crewIndex: index }}
                         />
                       </div>
@@ -515,7 +539,7 @@ function renderBody({
                       so no `marginLeft: auto` is needed here. */}
                   <Inline gap="xs">
                     <AugmentSlot
-                      name="crew-manifest.badges"
+                      name="crew-status.badges"
                       props={{ crewName: name, crewIndex: index }}
                     />
                   </Inline>
@@ -525,7 +549,7 @@ function renderBody({
                     Kerbalism-specific data itself, see the slot's own doc
                     comment above. */}
                 <AugmentSlot
-                  name="crew-manifest.survival"
+                  name="crew-status.survival"
                   props={{ crewName: name, crewIndex: index }}
                 />
               </Stack>
@@ -599,30 +623,34 @@ function CrewAvatarCell({
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
-registerComponent<CrewManifestConfig>({
-  id: "crew-manifest",
-  name: "Crew Manifest",
+registerComponent<CrewStatusConfig>({
+  id: "crew-status",
+  name: "Crew Status",
   description:
     "Kerbals aboard the active vessel, count vs capacity + full roster. Shows EVA state and handles unmanned probes gracefully.",
   tags: ["telemetry", "crew"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
-  component: CrewManifestComponent,
+  component: CrewStatusComponent,
   // Per-crew-row augment slots (augment-slot-map). All unfilled until an Uplink
   // binds, the roster renders as before:
-  //   crew-manifest.badges, trailing inline badges (e.g. Kerbalism dose/comfort);
+  //   crew-status.badges, trailing inline badges (e.g. Kerbalism dose/comfort);
   //     wraps under the name (Cluster `wrap`) rather than truncating it.
-  //   crew-manifest.avatar, leading square face cell (Uplink-provided avatar); only
+  //   crew-status.avatar, leading square face cell (Uplink-provided avatar); only
   //     reserved while an Uplink actually binds it, see `avatarAugmentPresent`.
-  //   crew-manifest.survival, per-row survival section (e.g. Kerbalism death
+  //   crew-status.survival, per-row survival section (e.g. Kerbalism death
   //     clock/worst rule), see that slot's own doc comment above. This widget
   //     carries no Kerbalism-specific reads itself; the per-kerbal survival
   //     model lives entirely in the Kerbalism Uplink's own Processor/augment
   //     (mod/GonogoKerbalismUplink/client/src/CrewSurvival).
+  //   crew-status.summary, ONE whole-widget section above the roster (e.g. a
+  //     Kerbalism vessel radiation-environment reading), not per-kerbal, see
+  //     that slot's own doc comment above.
   augmentSlots: [
-    "crew-manifest.badges",
-    "crew-manifest.avatar",
-    "crew-manifest.survival",
+    "crew-status.badges",
+    "crew-status.avatar",
+    "crew-status.survival",
+    "crew-status.summary",
   ],
   dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
   // `vessel.resources` is the (already-existing, already-consumed-by-
@@ -639,4 +667,4 @@ registerComponent<CrewManifestConfig>({
   requires: ["flight"],
 });
 
-export { CrewManifestComponent };
+export { CrewStatusComponent };

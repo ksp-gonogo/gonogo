@@ -19,7 +19,7 @@ type StaffRosterConfig = Record<string, never>;
 // ---------------------------------------------------------------------------
 // The `staff-roster.badges` slot contract (see augment-slot-map)
 //
-// Whole-program roster analogue of `crew-manifest.badges`: a per-kerbal inline
+// Whole-program roster analogue of `crew-status.badges`: a per-kerbal inline
 // badges slot so a future Kerbalism `Habitat`/`Radiation` Uplink can badge each
 // staff row with comfort/radiation-dose without leaving this widget. Because the
 // slot renders once PER ROW, its props MUST carry the kerbal's identity so the

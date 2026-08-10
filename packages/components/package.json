@@ -21,8 +21,8 @@
     "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts",
     "render-provenance-card": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-provenance-card.ts",
     "render-delay-rail": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-delay-rail.ts",
-    "render-crew-manifest-panel-badge": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-manifest-panel-badge.ts",
-    "render-crew-manifest-avatar": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-manifest-avatar.ts",
+    "render-crew-status-panel-badge": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-panel-badge.ts",
+    "render-crew-status-avatar": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-avatar.ts",
     "render-cross-browser": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-cross-browser.ts",
     "visual-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-gate.ts"
   },

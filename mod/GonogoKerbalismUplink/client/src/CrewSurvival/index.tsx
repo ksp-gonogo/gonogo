@@ -12,11 +12,13 @@ import { KERBALISM } from "../uplink";
 import {
   CREW_SURVIVAL,
   type CrewSurvival,
+  type KerbalRuleState,
   type KerbalSurvival,
+  toneFor,
 } from "./processor";
 
 /**
- * Shared lookup: matched by `crewIndex` first (the row order CrewManifest
+ * Shared lookup: matched by `crewIndex` first (the row order CrewStatus
  * renders IS `vessel.crew.crew`'s own order, and so is `CREW_SURVIVAL.kerbals`,
  * both built from the same array), falling back to a name search only if that
  * position's name has drifted (e.g. a future base-widget change that
@@ -37,35 +39,70 @@ function findKerbal(
 const pct = (v: number): string =>
   writeQuantity(value("%", v * 100), { decimals: 0 });
 
-/** Title-cases a wire rule name for display, e.g. "co2 poisoning" -> "Co2 poisoning". */
+/**
+ * Wire rule names that mean the radiation dose accumulator: "radiation" is
+ * Kerbalism's stock default-profile name, "dose" shows up under some other
+ * profiles. Both read as a bare word on their own ("Radiation", "Dose") that
+ * doesn't say what is being measured; naming the quantity ("Radiation dose")
+ * reads clearly regardless of which name the loaded profile uses.
+ */
+const RADIATION_DOSE_RULE_NAMES = new Set(["radiation", "dose"]);
+
+/** Title-cases a wire rule name for display, e.g. "co2 poisoning" -> "Co2
+ *  poisoning", with the radiation dose rule mapped to a clearer label (see
+ *  `RADIATION_DOSE_RULE_NAMES`). */
 function ruleLabel(name: string): string {
+  if (RADIATION_DOSE_RULE_NAMES.has(name.toLowerCase()))
+    return "Radiation dose";
   return name.length > 0 ? name.charAt(0).toUpperCase() + name.slice(1) : name;
 }
 
+function RuleMeter({ rule }: Readonly<{ rule: KerbalRuleState }>) {
+  return (
+    <Meter
+      size="sm"
+      label={ruleLabel(rule.name)}
+      value={rule.fraction}
+      tone={toneFor(rule.fraction)}
+      valueLabel={pct(rule.fraction)}
+    />
+  );
+}
+
 /**
- * CrewManifest's `crew-manifest.survival` augment: fills the base widget's
- * generic per-row survival slot with the per-kerbal worst-rule meter this
- * Uplink derives (`CREW_SURVIVAL`, processor.ts). The meter is GENERIC
- * telemetry, a 0..1-toward-fatal magnitude, nothing more. It used to also
- * carry a badge that just restated the same rule name and percentage
- * underneath itself (redundant with the meter directly above it); that
- * badge has moved to `CrewSurvivalBadgeAugment` below, which states the
- * CONSEQUENCE instead and lives next to the kerbal's name, not stacked under
- * its own meter.
+ * CrewStatus's `crew-status.survival` augment: fills the base widget's
+ * generic per-row survival slot with EVERY rule Kerbalism reports for this
+ * kerbal (`CREW_SURVIVAL`, processor.ts), not only the worst one, so a
+ * radiation dose sitting at 40% never hides behind a stress rule the
+ * operator happened to be watching. Each meter is GENERIC telemetry, a
+ * 0..1-toward-fatal magnitude, nothing more. It used to also carry a badge
+ * that just restated the same rule name and percentage underneath itself
+ * (redundant with the meter directly above it); that badge has moved to
+ * `CrewSurvivalBadgeAugment` below, which states the CONSEQUENCE instead and
+ * lives next to the kerbal's name, not stacked under its own meter.
  *
- * Renders nothing when the kerbal has neither a rule nor a death clock
- * reported, so a vessel with no Kerbalism data (or a kerbal Kerbalism has
- * nothing to say about yet) leaves the row exactly as the base widget
- * renders it alone.
+ * Renders EVERY rule Kerbalism reports for this kerbal, unconditionally: no
+ * overflow disclosure. An earlier version collapsed rules past a visible
+ * count behind a "Show N more" `Disclosure` (reasoned as "Kerbalism's stock
+ * profile only ever reports two rules per kerbal"), but the full profile
+ * reports up to ~7 (eating, drinking, breathing, co2 poisoning, radiation,
+ * climatization, stress); hiding most of them behind an extra click was
+ * exactly the kind of clutter-avoidance nobody asked for, and the operator
+ * confirmed the disclosure served no purpose. A crowded profile just renders
+ * a taller Stack.
+ *
+ * Renders nothing when the kerbal has no rule reported at all, so a vessel
+ * with no Kerbalism data (or a kerbal Kerbalism has nothing to say about
+ * yet) leaves the row exactly as the base widget renders it alone.
  */
 function CrewSurvivalAugment({
   crewName,
   crewIndex,
-}: SlotProps<"crew-manifest.survival">) {
+}: SlotProps<"crew-status.survival">) {
   const survival = useProcessor(CREW_SURVIVAL);
   if (!survival) return null;
   const kerbal = findKerbal(survival, crewName, crewIndex);
-  if (!kerbal?.worstRule) return null;
+  if (!kerbal || kerbal.rules.length === 0) return null;
   return (
     <Stack
       gap="xs"
@@ -75,13 +112,9 @@ function CrewSurvivalAugment({
       }}
       aria-label="survival meters"
     >
-      <Meter
-        size="sm"
-        label={ruleLabel(kerbal.worstRule.name)}
-        value={kerbal.worstRule.fraction}
-        tone={kerbal.tone}
-        valueLabel={pct(kerbal.worstRule.fraction)}
-      />
+      {kerbal.rules.map((rule) => (
+        <RuleMeter key={rule.name} rule={rule} />
+      ))}
     </Stack>
   );
 }
@@ -121,7 +154,7 @@ function warningFor(
 }
 
 /**
- * CrewManifest's `crew-manifest.badges` augment: the name-adjacent per-row
+ * CrewStatus's `crew-status.badges` augment: the name-adjacent per-row
  * slot (renders inline in the roster row's `Cluster`, right next to the
  * kerbal's name, per `CrewBadgeContext`'s own doc comment: "a future
  * Kerbalism Habitat/Radiation Uplink can badge each kerbal"). Fed by the
@@ -132,7 +165,7 @@ function warningFor(
 function CrewSurvivalBadgeAugment({
   crewName,
   crewIndex,
-}: SlotProps<"crew-manifest.badges">) {
+}: SlotProps<"crew-status.badges">) {
   const survival = useProcessor(CREW_SURVIVAL);
   if (!survival) return null;
   const kerbal = findKerbal(survival, crewName, crewIndex);
@@ -147,16 +180,16 @@ function CrewSurvivalBadgeAugment({
 }
 
 registerAugment({
-  id: "crew-manifest-survival",
-  augments: "crew-manifest.survival",
+  id: "crew-status-survival",
+  augments: "crew-status.survival",
   component: CrewSurvivalAugment,
   requires: "kerbalism",
   owner: KERBALISM,
 });
 
 registerAugment({
-  id: "crew-manifest-survival-badge",
-  augments: "crew-manifest.badges",
+  id: "crew-status-survival-badge",
+  augments: "crew-status.badges",
   component: CrewSurvivalBadgeAugment,
   requires: "kerbalism",
   owner: KERBALISM,

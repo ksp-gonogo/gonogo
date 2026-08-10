@@ -553,9 +553,9 @@ const WIDGETS: WidgetRenderConfig[] = [
   // ── Wave 2 (2026-05-29): widgets fixtured from a live career capture
   //    (Kerbin orbit, Mk1 pod). See local_docs/.../captures/. ─────────────
   {
-    widgetId: "crew-manifest",
-    fixturesPath: "CrewManifest/__fixtures__",
-    outPath: "renders/crew-manifest-widget",
+    widgetId: "crew-status",
+    fixturesPath: "CrewStatus/__fixtures__",
+    outPath: "renders/crew-status-widget",
     modes: [
       // minSize 3×3: single-crew row, tightest placement.
       { name: "tiny-3x3", w: 3, h: 3 },
@@ -570,17 +570,17 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // CrewManifest's per-kerbal survival, an ADDITIVE Kerbalism augment: the
+    // CrewStatus's per-kerbal survival, an ADDITIVE Kerbalism augment: the
     // widget itself (registered above) reads only the vanilla `vessel.crew`
     // roster now; the CrewSurvival augment lives entirely in the Uplink
     // (mod/GonogoKerbalismUplink/client/src/CrewSurvival) and fills the
-    // generic `crew-manifest.survival` slot CrewManifest exposes. Same
+    // generic `crew-status.survival` slot CrewStatus exposes. Same
     // widget as above, a dedicated fixtures dir (mirrors landing-status's
     // multi-scenario convention): `label` disambiguates this render set from
-    // the base-widget one since both share `widgetId: "crew-manifest"`.
-    widgetId: "crew-manifest",
-    label: "crew-manifest/kerbalism-survival",
-    fixturesPath: "CrewManifest/__render_kerbalism_survival__",
+    // the base-widget one since both share `widgetId: "crew-status"`.
+    widgetId: "crew-status",
+    label: "crew-status/kerbalism-survival",
+    fixturesPath: "CrewStatus/__render_kerbalism_survival__",
     outPath: "renders/kerbalism-crew-survival",
     modes: [
       // Narrowest roster width: the badge-wrap case actually has badges to

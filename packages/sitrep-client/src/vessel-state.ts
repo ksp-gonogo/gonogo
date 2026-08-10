@@ -569,7 +569,7 @@ export interface VesselState {
   isControllable: boolean | null | undefined;
   /**
    * Whether the active vessel is a kerbal on EVA, `vessel.identity.vesselType
-   * === EVA` (old Telemachus `v.isEVA`, CrewManifest). Populated in BOTH
+   * === EVA` (old Telemachus `v.isEVA`, CrewStatus). Populated in BOTH
    * bases. `undefined` while `vessel.identity` hasn't arrived; `null` on a
    * confirmed tombstone.
    */

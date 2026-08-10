@@ -5,12 +5,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   type CrewAvatarContext,
   type CrewBadgeContext,
-  CrewManifestComponent,
+  CrewStatusComponent,
   type CrewSurvivalSlotContext,
 } from "./index";
 
 /**
- * CrewManifest runs entirely off the stream: `vessel.crew`
+ * CrewStatus runs entirely off the stream: `vessel.crew`
  * (count/capacity/crew roster, read via the canonical one-arg `useTelemetry`)
  * plus the derived `vessel.state.isEVA` (from `vessel.identity.vesselType`,
  * read via `useStream`). No legacy `MockDataSource` is registered, a real
@@ -54,7 +54,7 @@ function newFixture() {
 function renderCrew(fixture: ReturnType<typeof newFixture>) {
   const { unmount } = render(
     <fixture.Provider>
-      <CrewManifestComponent config={{}} id="crew" />
+      <CrewStatusComponent config={{}} id="crew" />
     </fixture.Provider>,
   );
   renderedTrees.push(unmount);
@@ -68,7 +68,7 @@ afterEach(() => {
   clearAugments();
 });
 
-describe("CrewManifestComponent", () => {
+describe("CrewStatusComponent", () => {
   it("shows the waiting placeholder until crew telemetry arrives", () => {
     renderCrew(newFixture());
     expect(screen.getByText(/Waiting for telemetry/i)).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("CrewManifestComponent", () => {
 
   it("lists crew names alongside count / capacity", async () => {
     // The "N / M aboard" headcount no longer renders as body text here, it
-    // moved to the info-tone `crew-manifest.badges` panel-badge contribution
+    // moved to the info-tone `crew-status.badges` panel-badge contribution
     // (`./badge.ts`, `crewAboardBadge`'s own unit tests cover the label
     // itself). This render tree mounts no `ContributionsProvider`/`Panel`
     // badge chrome at all, so what's left to prove here is the roster body.
@@ -193,13 +193,13 @@ describe("CrewManifestComponent", () => {
   });
 
   it("renders a bound augment once per crew row, carrying each kerbal's identity", async () => {
-    // A test Uplink binds `crew-manifest.badges` and echoes the slot props back.
+    // A test Uplink binds `crew-status.badges` and echoes the slot props back.
     // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
     // the per-row props carry the right kerbal so the badge lands on the right
     // one. `requires` is omitted so no Domain presence gate applies.
-    registerAugment<"crew-manifest.badges">({
+    registerAugment<"crew-status.badges">({
       id: "test-crew-badge",
-      augments: "crew-manifest.badges",
+      augments: "crew-status.badges",
       component: ({ crewName, crewIndex }: CrewBadgeContext) => (
         <span data-testid="crew-badge" data-index={crewIndex}>
           {crewName} ✓
@@ -238,7 +238,7 @@ describe("CrewManifestComponent", () => {
 });
 
 /**
- * The leading `crew-manifest.avatar` slot, the SDK-independent shell of a
+ * The leading `crew-status.avatar` slot, the SDK-independent shell of a
  * per-kerbal avatar/portrait. A per-kerbal square cell left of the name; an
  * Uplink can register an augment that fills it with a live face. The cell is
  * only reserved while at least one augment is actually bound to the slot
@@ -248,7 +248,7 @@ describe("CrewManifestComponent", () => {
  * row's leading space goes back to the name. This suite builds ONLY the slot
  * + its presence gating; no facecam subscription (later task).
  */
-describe("CrewManifestComponent, avatar slot", () => {
+describe("CrewStatusComponent, avatar slot", () => {
   it("renders no avatar cell in any row when no avatar augment is bound", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
@@ -270,13 +270,13 @@ describe("CrewManifestComponent, avatar slot", () => {
     expect(screen.queryByTestId("crew-avatar")).not.toBeInTheDocument();
   });
 
-  it("composes a bound crew-manifest.avatar augment once per row, carrying each kerbal's identity", async () => {
+  it("composes a bound crew-status.avatar augment once per row, carrying each kerbal's identity", async () => {
     // A test Uplink binds the avatar slot and echoes the slot props, proves the
     // slot is exposed, an augment composes into it, and the per-row props carry
     // the right kerbal. `requires` omitted so no Domain presence gate applies.
-    registerAugment<"crew-manifest.avatar">({
+    registerAugment<"crew-status.avatar">({
       id: "test-crew-avatar",
-      augments: "crew-manifest.avatar",
+      augments: "crew-status.avatar",
       component: ({ crewName, crewIndex }: CrewAvatarContext) => (
         <span data-testid="crew-avatar" data-index={crewIndex}>
           {crewName} face
@@ -319,9 +319,9 @@ describe("CrewManifestComponent, avatar slot", () => {
     // The avatar cell lives in the roster branch, which renders whenever the
     // widget is at least 4x5. Assert it survives the min-roster size and a
     // large size, once an Uplink actually binds the slot.
-    registerAugment<"crew-manifest.avatar">({
+    registerAugment<"crew-status.avatar">({
       id: "test-crew-avatar-sizes",
-      augments: "crew-manifest.avatar",
+      augments: "crew-status.avatar",
       component: ({ crewName }: CrewAvatarContext) => (
         <span data-testid="crew-avatar">{crewName} face</span>
       ),
@@ -333,7 +333,7 @@ describe("CrewManifestComponent, avatar slot", () => {
       const fixture = newFixture();
       const { unmount } = render(
         <fixture.Provider>
-          <CrewManifestComponent config={{}} id="crew" w={w} h={h} />
+          <CrewStatusComponent config={{}} id="crew" w={w} h={h} />
         </fixture.Provider>,
       );
       act(() => {
@@ -358,7 +358,7 @@ describe("CrewManifestComponent, avatar slot", () => {
     const fixture = newFixture();
     const { unmount } = render(
       <fixture.Provider>
-        <CrewManifestComponent config={{}} id="crew" w={4} h={5} />
+        <CrewStatusComponent config={{}} id="crew" w={4} h={5} />
       </fixture.Provider>,
     );
     act(() => {
@@ -379,15 +379,15 @@ describe("CrewManifestComponent, avatar slot", () => {
 /**
  * Per-kerbal survival (death clock, worst rule, degen) is a Kerbalism
  * concept, not a vanilla one: it moved wholesale out of this widget into the
- * Kerbalism Uplink's own `crew-manifest-survival` augment
+ * Kerbalism Uplink's own `crew-status-survival` augment
  * (mod/GonogoKerbalismUplink/client/src/CrewSurvival), which fills the
- * generic `crew-manifest.survival` slot this widget exposes. This widget
+ * generic `crew-status.survival` slot this widget exposes. This widget
  * itself reads ONLY the vanilla `vessel.crew` roster now, no `kerbalism.*`
  * topic anywhere in index.tsx (grep-verified below), so it must render
  * identically with or without a KerbalismUplink present, and it must NEVER
  * subscribe to a `kerbalism.*` topic even when one is carried on the stream.
  */
-describe("CrewManifestComponent, de-contaminated from Kerbalism", () => {
+describe("CrewStatusComponent, de-contaminated from Kerbalism", () => {
   it("never subscribes to a kerbalism.* topic, even when one is carried", async () => {
     const fixture = setupStreamFixture({
       // Carry a kerbalism.* topic alongside vessel.crew: if the widget ever
@@ -436,12 +436,12 @@ describe("CrewManifestComponent, de-contaminated from Kerbalism", () => {
 });
 
 /**
- * The `crew-manifest.survival` per-row slot: the generic home a Kerbalism (or
+ * The `crew-status.survival` per-row slot: the generic home a Kerbalism (or
  * any other) Uplink fills with per-kerbal survival state. Same per-row
  * keying as `.badges`/`.avatar` above; this suite builds only the slot +
  * empty-composes-to-nothing contract, matching those siblings' own tests.
  */
-describe("CrewManifestComponent, survival slot", () => {
+describe("CrewStatusComponent, survival slot", () => {
   it("renders nothing extra per row when no survival augment is bound", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
@@ -459,10 +459,10 @@ describe("CrewManifestComponent, survival slot", () => {
     expect(screen.queryByTestId("crew-survival")).not.toBeInTheDocument();
   });
 
-  it("composes a bound crew-manifest.survival augment once per row, carrying each kerbal's identity", async () => {
-    registerAugment<"crew-manifest.survival">({
+  it("composes a bound crew-status.survival augment once per row, carrying each kerbal's identity", async () => {
+    registerAugment<"crew-status.survival">({
       id: "test-crew-survival",
-      augments: "crew-manifest.survival",
+      augments: "crew-status.survival",
       component: ({ crewName, crewIndex }: CrewSurvivalSlotContext) => (
         <span data-testid="crew-survival" data-index={crewIndex}>
           {crewName} survival
@@ -491,5 +491,54 @@ describe("CrewManifestComponent, survival slot", () => {
     expect(
       within(billRow as HTMLElement).getByTestId("crew-survival"),
     ).toHaveTextContent("Bill Kerman survival");
+  });
+});
+
+/**
+ * The `crew-status.summary` slot: a WHOLE-WIDGET section, rendered once
+ * above the roster rather than once per row, for a status that affects the
+ * whole crew together (e.g. a Kerbalism vessel radiation reading). Same
+ * empty-composes-to-nothing contract as the other slots, just one instance
+ * instead of one per kerbal.
+ */
+describe("CrewStatusComponent, summary slot", () => {
+  it("renders nothing extra when no summary augment is bound", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("crew-summary")).not.toBeInTheDocument();
+  });
+
+  it("composes a bound crew-status.summary augment exactly once, not per row", async () => {
+    registerAugment<"crew-status.summary">({
+      id: "test-crew-summary",
+      augments: "crew-status.summary",
+      component: () => <span data-testid="crew-summary">vessel status</span>,
+    });
+
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    // One instance total, not one per crew row.
+    expect(screen.getAllByTestId("crew-summary")).toHaveLength(1);
   });
 });

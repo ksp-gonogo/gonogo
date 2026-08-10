@@ -1,5 +1,5 @@
 /**
- * Dedicated probe for CrewManifest's `crew-manifest.avatar` slot: shows the
+ * Dedicated probe for CrewStatus's `crew-status.avatar` slot: shows the
  * avatar-LEFT-of-the-WHOLE-block layout (avatar column | name + wrapping
  * badge + survival meters stacked to its right) that the normal widget
  * probe/visual-gate harness never exercises, no avatar-providing Uplink is
@@ -8,8 +8,8 @@
  * neither).
  *
  * Mirrors `crew-badge-probe-entry.tsx`'s own pattern (a narrow, standalone
- * copy of the real composition chain, scoped to CrewManifest only) but adds
- * ONE thing that probe doesn't: a stub `crew-manifest.avatar` augment,
+ * copy of the real composition chain, scoped to CrewStatus only) but adds
+ * ONE thing that probe doesn't: a stub `crew-status.avatar` augment,
  * registered before mount, standing in for the real
  * `mod/GonogoKerbcastUplink/client/src/CrewAvatarGate` augment (a live
  * facecam feed the probe harness has no camera to source). The stub renders
@@ -41,7 +41,7 @@ import {
 } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 // Side-effect import: the Kerbalism Uplink's crew-survival augment (per-row
-// badges + meters, `crew-manifest.survival`) self-registers on module load.
+// badges + meters, `crew-status.survival`) self-registers on module load.
 // Its SEPARATE panel-level "N crew critical" contribution also registers
 // here but is deliberately never surfaced by this probe (no
 // ContributionsProvider->useWidgetBadges->PanelBadgesProvider chain, unlike
@@ -55,10 +55,10 @@ import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-// Side-effect import: every built-in widget (CrewManifest included)
+// Side-effect import: every built-in widget (CrewStatus included)
 // self-registers on module load, same contract as the shared probe.
 import "../../src";
-import type { CrewAvatarContext } from "../../src/CrewManifest";
+import type { CrewAvatarContext } from "../../src/CrewStatus";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -67,7 +67,7 @@ import {
 registerStockBodies();
 
 /**
- * Stub `crew-manifest.avatar` augment: a plain initials box standing in for
+ * Stub `crew-status.avatar` augment: a plain initials box standing in for
  * a real facecam feed (kerbcast's `KerbcastAvatarAugment`, not available in
  * this headless probe). `requires` is deliberately omitted, this render is
  * about the row-layout composition, not Domain presence gating, which the
@@ -104,9 +104,9 @@ function StubAvatar({ crewName }: CrewAvatarContext) {
   );
 }
 
-registerAugment<"crew-manifest.avatar">({
+registerAugment<"crew-status.avatar">({
   id: "probe-crew-avatar-stub",
-  augments: "crew-manifest.avatar",
+  augments: "crew-status.avatar",
   component: StubAvatar,
 });
 
@@ -172,9 +172,9 @@ async function renderCrewAvatarProbe(
   // `setupStreamFixture` TimelineStore).
   clearProcessorRuntime();
 
-  const def = getComponent("crew-manifest");
+  const def = getComponent("crew-status");
   if (!def) {
-    throw new Error('Crew-avatar probe: "crew-manifest" not registered');
+    throw new Error('Crew-avatar probe: "crew-status" not registered');
   }
   const WidgetComponent = def.component as React.ComponentType<
     ComponentProps<Record<string, unknown>>

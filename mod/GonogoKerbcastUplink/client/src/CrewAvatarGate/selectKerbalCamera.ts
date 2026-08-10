@@ -9,13 +9,13 @@ import { CameraKind, type CameraState } from "@ksp-gonogo/kerbcast";
  * but actually changes seat<->EVA (KSP mints a fresh `persistentID` on EVA),
  * so it is the WRONG key. `cameraName` (the kerbal's full name, e.g.
  * "Jebediah Kerman") stays constant across seat/EVA transitions and is
- * unique in the roster: and it is also the only identity CrewManifest's
+ * unique in the roster: and it is also the only identity CrewStatus's
  * `vessel.crew` roster carries (no kerbal id crosses the Sitrep contract),
  * so it is the sole correlation key available on either side.
  *
  * Returns `null` when no kerbal camera exists for this name (mod not
- * installed, kerbal not seated/on EVA, or facecams not yet connected), the
- * caller falls back to CrewManifest's bullet in that case.
+ * installed, kerbal not seated/on EVA, or facecams not yet connected); the
+ * caller renders nothing for that row's avatar cell in that case.
  */
 export function selectKerbalCamera(
   cameras: readonly CameraState[],

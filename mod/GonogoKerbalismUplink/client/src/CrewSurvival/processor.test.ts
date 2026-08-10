@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { deriveCrewSurvival } from "./processor";
+import { deriveCrewSurvival, toneFor } from "./processor";
 
 const units = (n: number) => value("units", n);
 const seconds = (n: number) => value("s", n);
@@ -45,6 +45,31 @@ describe("deriveCrewSurvival", () => {
       fraction: 0.1,
     });
     expect(result.kerbals[1].tone).toBe("go");
+  });
+
+  it("carries every rule, not just the worst, sorted worst-first", () => {
+    const result = deriveCrewSurvival(
+      {
+        count: value("count", 1),
+        capacity: value("count", 1),
+        crew: [{ name: "Val" }],
+      },
+      [
+        {
+          name: "Val",
+          rules: [
+            { name: "stress", value: units(0.2), fatalThreshold: units(1) },
+            { name: "radiation", value: units(45), fatalThreshold: units(50) },
+          ],
+        },
+      ],
+    );
+    // Worst (radiation, 0.9) first, regardless of wire order.
+    expect(result.kerbals[0].rules).toEqual([
+      { name: "radiation", fraction: 0.9 },
+      { name: "stress", fraction: 0.2 },
+    ]);
+    expect(result.kerbals[0].worstRule).toEqual(result.kerbals[0].rules[0]);
   });
 
   it("normalizes each rule by its OWN fatalThreshold, not a fixed 1.0", () => {
@@ -169,5 +194,13 @@ describe("deriveCrewSurvival", () => {
     ]);
     expect(result.kerbals).toEqual([]);
     expect(result.soonestDeathClockSec).toBeNull();
+  });
+});
+
+describe("toneFor", () => {
+  it("bands a fraction go/warn/nogo at the 0.5/0.8 thresholds", () => {
+    expect(toneFor(0.2)).toBe("go");
+    expect(toneFor(0.5)).toBe("warn");
+    expect(toneFor(0.8)).toBe("nogo");
   });
 });

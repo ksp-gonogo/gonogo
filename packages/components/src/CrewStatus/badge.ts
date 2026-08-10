@@ -3,7 +3,7 @@ import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 
 // ---------------------------------------------------------------------------
-// CrewManifest's own self-contribution to its automatic `crew-manifest.badges`
+// CrewStatus's own self-contribution to its automatic `crew-status.badges`
 // panel-badge slot (contribution-slots-spec §13.2, the same "framework's
 // flagship" self-contribution pattern `ShipMap/partMetersContribution.ts`
 // uses): an INFO-tone crew-count readout ("3/4 aboard" / "4 aboard"), the
@@ -37,12 +37,12 @@ export function crewAboardBadge(
   const capacity = crew.capacity?.magnitude;
   const label =
     capacity !== undefined ? `${count}/${capacity} aboard` : `${count} aboard`;
-  return [{ id: "crew-manifest-aboard", label, tone: "info" }];
+  return [{ id: "crew-status-aboard", label, tone: "info" }];
 }
 
 CORE_UPLINK_CLIENT.registerContribution({
-  id: "crew-manifest-aboard-badge",
-  contributes: "crew-manifest.badges",
+  id: "crew-status-aboard-badge",
+  contributes: "crew-status.badges",
   deps: ["vessel.crew"],
   // The automatic `${componentId}.badges` slot (unlike `ship-map.part-meters`,
   // a widget-authored slot with a real `ContributionRegistry` merge) is a

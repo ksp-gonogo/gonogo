@@ -13,7 +13,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import "./badge";
 
 /**
- * End-to-end proof that the CrewManifest panel badge (`badge.ts`) actually
+ * End-to-end proof that the CrewStatus panel badge (`badge.ts`) actually
  * reaches the header, not just that `survivalBadges` returns the right
  * object (that is `badge.test.ts`'s job). This wires the same three layers
  * the real app's `GridItemContent` does (`WidgetMetaContext` ->
@@ -29,7 +29,7 @@ import "./badge";
 
 const CARRIED = ["vessel.crew", "kerbalism.crew", "kerbalism.available"];
 
-function CrewManifestPanelHeader() {
+function CrewStatusPanelHeader() {
   const badges = useWidgetBadges();
   return (
     <PanelBadgesProvider badges={badges}>
@@ -51,10 +51,10 @@ function renderPanel(fixture: ReturnType<typeof newFixture>) {
   return render(
     <fixture.Provider>
       <WidgetMetaContext.Provider
-        value={{ componentId: "crew-manifest", contributionSlots: [] }}
+        value={{ componentId: "crew-status", contributionSlots: [] }}
       >
         <ContributionsProvider>
-          <CrewManifestPanelHeader />
+          <CrewStatusPanelHeader />
         </ContributionsProvider>
       </WidgetMetaContext.Provider>
     </fixture.Provider>,
@@ -89,7 +89,7 @@ afterEach(() => {
   unmount = undefined;
 });
 
-describe("CrewManifest panel badge (crew-survival-badge contribution)", () => {
+describe("CrewStatus panel badge (crew-survival-badge contribution)", () => {
   it("shows no badge in the header while the whole crew is nominal", async () => {
     const fixture = newFixture();
     const result = renderPanel(fixture);

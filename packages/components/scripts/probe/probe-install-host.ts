@@ -27,6 +27,7 @@ import {
   registerComponent,
   registerDataSource,
   registerUplinkHandle,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
@@ -75,6 +76,21 @@ installTestHost({
   useReplaySessionActive,
   useStream,
   useStreamEvent,
+  // Overloaded on the sdk side (canonical one-arg Topic read, and the
+  // retired useDataValue's legacy two-arg DataSourceRegistry read carried
+  // over onto this same name: see GonogoHost.useTelemetry's doc). Mirrors
+  // the app's own `buildGonogoHost()` wiring (packages/app/src/uplinks/
+  // host.ts) member-for-member: real core `useTelemetry` already branches
+  // internally on whether `key` is present while keeping every hook call
+  // unconditional, so this is a single, unconditional forward of both args.
+  // Added alongside the CrewStatus Kerbalism Uplink's `crew-status.summary`
+  // augment, the first probe-rendered augment to read a raw Topic via
+  // `useTelemetry` instead of a Processor's `useProcessor`.
+  useTelemetry: ((dataSourceIdOrTopic: string, key?: string) =>
+    (useTelemetry as (a: string, b?: string) => unknown)(
+      dataSourceIdOrTopic,
+      key,
+    )) as GonogoHost["useTelemetry"],
   useTelemetryClientOptional: useTelemetryClientOptional as Parameters<
     typeof installTestHost
   >[0]["useTelemetryClientOptional"],

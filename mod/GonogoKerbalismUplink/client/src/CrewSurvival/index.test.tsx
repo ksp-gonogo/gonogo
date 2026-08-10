@@ -102,7 +102,7 @@ describe("CrewSurvivalAugment", () => {
     expect(screen.queryByLabelText("survival meters")).not.toBeInTheDocument();
   });
 
-  it("renders the worst rule as a meter, no badge alongside it", async () => {
+  it("renders a single rule as a meter, no badge alongside it", async () => {
     const fixture = newFixture();
     renderAugment(fixture, "Jebediah Kerman", 0);
     emit(fixture, CREW, [
@@ -116,16 +116,85 @@ describe("CrewSurvivalAugment", () => {
       },
     ]);
 
-    const meter = await screen.findByRole("meter", { name: "Radiation" });
+    // "radiation" maps to the clearer "Radiation dose" label (see
+    // ruleLabel's own doc comment).
+    const meter = await screen.findByRole("meter", { name: "Radiation dose" });
     expect(meter).toHaveAttribute("aria-valuenow", "90");
     expect(meter).toHaveAttribute("aria-valuetext", "90 %");
     // The `.survival` slot is meter-only now: no badge restating the same
     // rule name/percentage underneath it (that used to render literally as
-    // "Radiation 90 %" text of its own, the exact redundant-restatement bug
-    // this augment used to have; the consequence badge moved to
+    // "Radiation dose 90 %" text of its own, the exact redundant-restatement
+    // bug this augment used to have; the consequence badge moved to
     // CrewSurvivalBadgeAugment, tested separately below).
     expect(screen.queryByText(/critical/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/radiation 90 %/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/radiation dose 90 %/i)).not.toBeInTheDocument();
+  });
+
+  it("renders every rule as its own meter, not just the worst", async () => {
+    const fixture = newFixture();
+    renderAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [
+      {
+        name: "Jebediah Kerman",
+        rules: [
+          { name: "radiation", value: 45, fatalThreshold: 50 },
+          { name: "stress", value: 0.2, fatalThreshold: 1 },
+        ],
+      },
+    ]);
+
+    // Both meters present, worst (radiation dose, 90%) shown before stress
+    // (20%): rules are sorted worst-first (processor.ts).
+    const doseMeter = await screen.findByRole("meter", {
+      name: "Radiation dose",
+    });
+    const stressMeter = await screen.findByRole("meter", { name: "Stress" });
+    expect(doseMeter).toHaveAttribute("aria-valuenow", "90");
+    expect(stressMeter).toHaveAttribute("aria-valuenow", "20");
+    const meters = screen.getAllByRole("meter");
+    expect(meters.indexOf(doseMeter)).toBeLessThan(meters.indexOf(stressMeter));
+  });
+
+  it("renders every rule unconditionally, no overflow disclosure", async () => {
+    const fixture = newFixture();
+    renderAugment(fixture, "Jebediah Kerman", 0);
+    emit(fixture, CREW, [
+      {
+        name: "Jebediah Kerman",
+        rules: [
+          { name: "radiation", value: 45, fatalThreshold: 50 },
+          { name: "stress", value: 0.6, fatalThreshold: 1 },
+          { name: "co2 poisoning", value: 0.3, fatalThreshold: 1 },
+          { name: "eating", value: 0.2, fatalThreshold: 1 },
+          { name: "drinking", value: 0.15, fatalThreshold: 1 },
+          { name: "breathing", value: 0.1, fatalThreshold: 1 },
+          { name: "climatization", value: 0.05, fatalThreshold: 1 },
+        ],
+      },
+    ]);
+
+    // Every rule renders directly, unconditionally: no "Show N more" trigger
+    // and nothing collapsed behind it.
+    await screen.findByRole("meter", { name: "Radiation dose" });
+    await screen.findByRole("meter", { name: "Stress" });
+    expect(
+      await screen.findByRole("meter", { name: "Co2 poisoning" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("meter", { name: "Eating" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("meter", { name: "Drinking" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("meter", { name: "Breathing" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("meter", { name: "Climatization" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /show.*more/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders nothing for a kerbal Kerbalism reports no rules or clock for", async () => {
@@ -153,7 +222,7 @@ describe("CrewSurvivalAugment", () => {
       // Bill has no entry at all.
     ]);
 
-    await within(jeb.container).findByRole("meter", { name: "Radiation" });
+    await within(jeb.container).findByRole("meter", { name: "Radiation dose" });
     expect(
       within(bill.container).queryByLabelText("survival meters"),
     ).not.toBeInTheDocument();
@@ -184,7 +253,7 @@ describe("CrewSurvivalAugment", () => {
         rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
       },
     ]);
-    await screen.findByRole("meter", { name: "Radiation" });
+    await screen.findByRole("meter", { name: "Radiation dose" });
 
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -235,9 +304,11 @@ describe("CrewSurvivalBadgeAugment", () => {
         rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
       },
     ]);
-    expect(await screen.findByText("Radiation critical")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Radiation dose critical"),
+    ).toBeInTheDocument();
     // The bug this augment fixes: a badge that just restates the meter's
-    // own number ("radiation 90%") instead of the consequence.
+    // own number ("radiation dose 90%") instead of the consequence.
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
     expect(screen.queryByText(/90/)).not.toBeInTheDocument();
   });
@@ -258,7 +329,7 @@ describe("CrewSurvivalBadgeAugment", () => {
         rules: [{ name: "radiation", value: 45, fatalThreshold: 50 }],
       },
     ]);
-    await screen.findByText("Radiation critical");
+    await screen.findByText("Radiation dose critical");
 
     expect(await axe(container)).toHaveNoViolations();
   });

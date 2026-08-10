@@ -22,7 +22,7 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 import { selectKerbalCamera } from "./selectKerbalCamera";
 
 /**
- * kerbcast crew-avatar augment: fills CrewManifest's `crew-manifest.avatar`
+ * kerbcast crew-avatar augment: fills CrewStatus's `crew-status.avatar`
  * slot (facecam-stage6 consumption design) with a live per-kerbal face,
  * layering an EVA/IVA badge and a click-to-spotlight modal over kerbcast-
  * react's shared `KerbalFaceFeed` primitive.
@@ -34,16 +34,18 @@ import { selectKerbalCamera } from "./selectKerbalCamera";
  *    COMPONENT-BOUNDARY split: OFF returns before the subscribing child
  *    mounts, so no facecam stream is ever requested.
  *
- * `selectKerbalCamera` correlates CrewManifest's name-keyed roster row
+ * `selectKerbalCamera` correlates CrewStatus's name-keyed roster row
  * against kerbcast's `kind: Kerbal` cameras by `cameraName` (see that
  * module's doc: name is the only identity stable across seat<->EVA and the
  * only one both sides carry). When no camera matches, kerbcast absent, this
- * kerbal not seated, embedded facecams off: the augment renders nothing and
- * CrewManifest's own bullet fallback shows through underneath.
+ * kerbal not seated, embedded facecams off: the augment renders nothing,
+ * and CrewStatus itself renders no leading avatar cell at all for that row
+ * (no decorative fallback dot; see `avatarAugmentPresent` in
+ * `CrewStatus/index.tsx`).
  */
 export function KerbcastAvatarAugment({
   crewName,
-}: SlotProps<"crew-manifest.avatar">) {
+}: SlotProps<"crew-status.avatar">) {
   const [embedded] = useSetting<boolean>("kerbcast.embeddedFacecams", true);
   if (!embedded) return null;
   return <FacecamAvatar crewName={crewName} />;
@@ -164,7 +166,7 @@ function LocationBadge({
 
 registerAugment({
   id: "kerbcast-crew-avatar",
-  augments: "crew-manifest.avatar",
+  augments: "crew-status.avatar",
   requires: "kerbcast",
   component: KerbcastAvatarAugment,
 });

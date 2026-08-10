@@ -1,5 +1,5 @@
 /**
- * KerbcastAvatarAugment: the crew-manifest.avatar filler.
+ * KerbcastAvatarAugment: the crew-status.avatar filler.
  *
  * Exercises the real component against a real `KerbcastDataSource`, with
  * only the WebRTC transport faked by the SDK's canonical `MockSidecar` (per

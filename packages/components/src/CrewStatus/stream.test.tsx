@@ -2,10 +2,10 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { CrewManifestComponent } from "./index";
+import { CrewStatusComponent } from "./index";
 
 /**
- * The stream test-adapter proof for CrewManifest (mirrors
+ * The stream test-adapter proof for CrewStatus (mirrors
  * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`, no legacy `DataSource` is registered anywhere in this
@@ -21,7 +21,7 @@ import { CrewManifestComponent } from "./index";
  * stream alone, proving the mapped fields genuinely drive the widget's
  * rendering off the real pipeline.
  */
-describe("CrewManifest, genuinely runs off the stream (M3 batch 4)", () => {
+describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.crew"],
@@ -31,7 +31,7 @@ describe("CrewManifest, genuinely runs off the stream (M3 batch 4)", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "crew-stream" }}>
-          <CrewManifestComponent id="crew-stream" w={6} h={8} />
+          <CrewStatusComponent id="crew-stream" w={6} h={8} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -57,7 +57,7 @@ describe("CrewManifest, genuinely runs off the stream (M3 batch 4)", () => {
 
     // The roster now renders straight off the stream, no legacy fallback
     // needed for names or capacity. The "3 / 4 aboard" headcount itself has
-    // moved to the info-tone `crew-manifest.badges` panel-badge contribution
+    // moved to the info-tone `crew-status.badges` panel-badge contribution
     // (`./badge.ts`), which this bare-component render tree (no
     // `ContributionsProvider`/`Panel` chrome) never mounts.
     await waitFor(() =>

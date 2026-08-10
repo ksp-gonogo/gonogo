@@ -1,9 +1,9 @@
 /**
- * Dedicated probe for CrewManifest's WIDGET-LEVEL panel badge ("Crew
+ * Dedicated probe for CrewStatus's WIDGET-LEVEL panel badge ("Crew
  * critical" / "N crew critical"), a CONTRIBUTION the Kerbalism Uplink drops
- * into the auto-wired `crew-manifest.badges` CONTRIBUTION slot
+ * into the auto-wired `crew-status.badges` CONTRIBUTION slot
  * (`mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`). This is a
- * different registry from the per-row `crew-manifest.badges` AugmentSlot the
+ * different registry from the per-row `crew-status.badges` AugmentSlot the
  * base widget itself declares in `index.tsx`: same slot NAME, two different
  * mechanisms (contributions vs. augments), see `badge.ts`'s own doc comment.
  *
@@ -14,7 +14,7 @@
  * contribute panel badges) for a concern only this one render needs. This
  * probe is a narrow, standalone copy of the real chain
  * `GridItemContent.tsx` wires (WidgetMetaContext -> ContributionsProvider ->
- * useWidgetBadges -> PanelBadgesProvider -> Panel), scoped to CrewManifest
+ * useWidgetBadges -> PanelBadgesProvider -> Panel), scoped to CrewStatus
  * only, mirroring `provenance-card-probe`'s pattern of a dedicated probe for
  * a concern the shared harness can't show, and `panel-badge.test.tsx`'s own
  * three-layer wiring (this is that same chain, rendered to a PNG instead of
@@ -43,7 +43,7 @@ import { defaultDarkTheme, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-// Side-effect import: every built-in widget (CrewManifest included)
+// Side-effect import: every built-in widget (CrewStatus included)
 // self-registers on module load, same contract as the shared probe.
 import "../../src";
 import {
@@ -129,9 +129,9 @@ async function renderCrewBadgeProbe(
   // every fresh `setupStreamFixture` TimelineStore).
   clearProcessorRuntime();
 
-  const def = getComponent("crew-manifest");
+  const def = getComponent("crew-status");
   if (!def) {
-    throw new Error('Crew-badge probe: "crew-manifest" not registered');
+    throw new Error('Crew-badge probe: "crew-status" not registered');
   }
   const WidgetComponent = def.component as React.ComponentType<
     ComponentProps<Record<string, unknown>>

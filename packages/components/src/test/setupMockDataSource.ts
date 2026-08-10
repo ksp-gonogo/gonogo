@@ -57,7 +57,7 @@ export interface MockDataSourceFixture {
  *
  * Faithfully reproduces the existing setup (e.g. `ManeuverPlanner`,
  * `CurrentOrbit`, `CommSignal`, `ScienceBench`, `DistanceToTarget`,
- * `TargetPicker`, `CrewManifest`):
+ * `TargetPicker`, `CrewStatus`):
  *
  * ```ts
  * clearRegistry();

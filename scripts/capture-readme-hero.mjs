@@ -94,7 +94,7 @@ const DASHBOARD = {
     },
     { i: "comm", componentId: "comm-signal", config: {} },
     { i: "landing", componentId: "landing-status", config: {} },
-    { i: "crew", componentId: "crew-manifest", config: {} },
+    { i: "crew", componentId: "crew-status", config: {} },
   ],
   layouts: {
     lg: [

@@ -3,12 +3,12 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import valentinaSoloOrbit from "./__fixtures__/valentina-solo-orbit.json";
-import { CrewManifestComponent } from "./index";
+import { CrewStatusComponent } from "./index";
 
 /**
- * CrewManifest's real recorded-fixture render off the stream.
+ * CrewStatus's real recorded-fixture render off the stream.
  *
- * All of CrewManifest's reads are now stream reads, `vessel.crew`
+ * All of CrewStatus's reads are now stream reads, `vessel.crew`
  * (count/capacity/roster, canonical `useTelemetry`) plus the derived
  * `vessel.state.isEVA` (`useStream`). The original version of this test rendered
  * the same crew state once off a legacy `DataSource` (`snapshotWidgetMode`,
@@ -22,7 +22,7 @@ import { CrewManifestComponent } from "./index";
  * fixture (single pilot in a 1-seat Mk1 pod) run genuinely through the stream
  * pipeline.
  */
-describe("CrewManifest, real recorded-fixture render off the stream (delay=0)", () => {
+describe("CrewStatus, real recorded-fixture render off the stream (delay=0)", () => {
   it("renders Valentina's solo-orbit roster and headcount off the stream", async () => {
     const mode = { name: "default-6x8", w: 6, h: 8 };
 
@@ -34,7 +34,7 @@ describe("CrewManifest, real recorded-fixture render off the stream (delay=0)", 
     render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "crew-dual" }}>
-          <CrewManifestComponent id="crew-dual" w={mode.w} h={mode.h} />
+          <CrewStatusComponent id="crew-dual" w={mode.w} h={mode.h} />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );
@@ -48,7 +48,7 @@ describe("CrewManifest, real recorded-fixture render off the stream (delay=0)", 
     });
 
     // The "1 / 1 aboard" headcount now lives on the info-tone
-    // `crew-manifest.badges` panel-badge contribution (`./badge.ts`), which
+    // `crew-status.badges` panel-badge contribution (`./badge.ts`), which
     // this bare-component render (no `Panel` badge chrome) never mounts.
     await waitFor(() =>
       expect(screen.getByText("Valentina Kerman")).toBeInTheDocument(),

@@ -30,7 +30,7 @@ import type {
   CrewAvatarContext,
   CrewBadgeContext,
   CrewSurvivalSlotContext,
-} from "./CrewManifest";
+} from "./CrewStatus";
 import type {
   DistanceToTargetBadgeContext,
   DistanceToTargetHudContext,
@@ -175,24 +175,31 @@ type _ContractBadgesBack = Expect<
 >;
 
 type _CrewBadges = Expect<
-  Assignable<SdkSlotProps<"crew-manifest.badges">, CrewBadgeContext>
+  Assignable<SdkSlotProps<"crew-status.badges">, CrewBadgeContext>
 >;
 type _CrewBadgesBack = Expect<
-  Assignable<CrewBadgeContext, SdkSlotProps<"crew-manifest.badges">>
+  Assignable<CrewBadgeContext, SdkSlotProps<"crew-status.badges">>
 >;
 
 type _CrewAvatar = Expect<
-  Assignable<SdkSlotProps<"crew-manifest.avatar">, CrewAvatarContext>
+  Assignable<SdkSlotProps<"crew-status.avatar">, CrewAvatarContext>
 >;
 type _CrewAvatarBack = Expect<
-  Assignable<CrewAvatarContext, SdkSlotProps<"crew-manifest.avatar">>
+  Assignable<CrewAvatarContext, SdkSlotProps<"crew-status.avatar">>
 >;
 
 type _CrewSurvival = Expect<
-  Assignable<SdkSlotProps<"crew-manifest.survival">, CrewSurvivalSlotContext>
+  Assignable<SdkSlotProps<"crew-status.survival">, CrewSurvivalSlotContext>
 >;
 type _CrewSurvivalBack = Expect<
-  Assignable<CrewSurvivalSlotContext, SdkSlotProps<"crew-manifest.survival">>
+  Assignable<CrewSurvivalSlotContext, SdkSlotProps<"crew-status.survival">>
+>;
+
+// crew-status.summary carries no widget-owned context type (whole-widget,
+// empty-props contract, same as ThermalStatus's `.badges` slot), so there is
+// nothing to mirror-check beyond the sdk's own `Record<string, never>`.
+type _CrewSummary = Expect<
+  Assignable<SdkSlotProps<"crew-status.summary">, Record<string, never>>
 >;
 
 type _LaunchBadges = Expect<

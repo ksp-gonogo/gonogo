@@ -14,7 +14,7 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 
 registerSetting({
   // (1) The embedded-facecam kill-switch: a pure client-pref preference
-  // (no mod round-trip). Gates ambient crew facecams (the crew-manifest.avatar
+  // (no mod round-trip). Gates ambient crew facecams (the crew-status.avatar
   // augment); the dedicated Facecam Wall widget is exempt (placing it is the
   // opt-in). Default ON to match the always-live UX.
   id: "kerbcast.embeddedFacecams",
@@ -23,7 +23,7 @@ registerSetting({
   category: "Kerbcast",
   label: "Embedded facecams",
   description:
-    "Show live crew faces in CrewManifest avatars. Off means no ambient facecam streams; the dedicated Facecam Wall widget still works.",
+    "Show live crew faces in CrewStatus avatars. Off means no ambient facecam streams; the dedicated Facecam Wall widget still works.",
   screens: ["main"],
 });
 

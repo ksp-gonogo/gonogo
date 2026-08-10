@@ -1,5 +1,5 @@
 /**
- * Widget DOM mirror: CrewManifest. Asserts the panel renders on host and
+ * Widget DOM mirror: CrewStatus. Asserts the panel renders on host and
  * station, and the roster + headcount render on the host.
  *
  * Fixture snapshot (`sitrep-stream-server.mjs`):
@@ -9,7 +9,7 @@
  *
  * At the default 8×6 grid footprint the widget renders the roster row for
  * Bob Kerman, and the panel header carries the "1/1 aboard" headcount badge
- * (`crew-manifest.badges`, see `CrewManifest/badge.ts`).
+ * (`crew-status.badges`, see `CrewStatus/badge.ts`).
  *
  * Station-side scope: only the "CREW" panel title (static chrome) is
  * checked on the station: the roster/headcount come from live Sitrep
@@ -21,11 +21,11 @@
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
-test.describe("widget DOM mirror: CrewManifest", () => {
+test.describe("widget DOM mirror: CrewStatus", () => {
   test("panel renders on host and station; roster + headcount on host", async ({
     browser,
   }) => {
-    const pair = await bootstrapPair(browser, "crew-manifest", {
+    const pair = await bootstrapPair(browser, "crew-status", {
       waitForMain: async (page) => {
         await expect(page.getByText("CREW", { exact: true })).toBeVisible({
           timeout: 30_000,

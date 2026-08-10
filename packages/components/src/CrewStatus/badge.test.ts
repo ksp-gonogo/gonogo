@@ -27,7 +27,7 @@ describe("crewAboardBadge", () => {
 
   it("labels count/capacity, info tone", () => {
     expect(crewAboardBadge(crew())).toEqual([
-      { id: "crew-manifest-aboard", label: "3/4 aboard", tone: "info" },
+      { id: "crew-status-aboard", label: "3/4 aboard", tone: "info" },
     ]);
   });
 
@@ -36,9 +36,7 @@ describe("crewAboardBadge", () => {
       crewAboardBadge(
         crew({ capacity: undefined as unknown as VesselCrew["capacity"] }),
       ),
-    ).toEqual([
-      { id: "crew-manifest-aboard", label: "3 aboard", tone: "info" },
-    ]);
+    ).toEqual([{ id: "crew-status-aboard", label: "3 aboard", tone: "info" }]);
   });
 
   it("handles an unmanned probe (zero crew)", () => {
@@ -49,7 +47,7 @@ describe("crewAboardBadge", () => {
         }),
       ),
     ).toEqual([
-      { id: "crew-manifest-aboard", label: "0/4 aboard", tone: "info" },
+      { id: "crew-status-aboard", label: "0/4 aboard", tone: "info" },
     ]);
   });
 });

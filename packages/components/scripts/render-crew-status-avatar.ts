@@ -1,15 +1,15 @@
 #!/usr/bin/env tsx
 /**
- * Renders CrewManifest's per-row `crew-manifest.avatar` slot to PNGs under
- * `local_docs/renders/crew-manifest-avatar/`, showing the avatar-LEFT-of-
+ * Renders CrewStatus's per-row `crew-status.avatar` slot to PNGs under
+ * `local_docs/renders/crew-status-avatar/`, showing the avatar-LEFT-of-
  * the-WHOLE-block row layout (avatar column | name + wrapping badge +
  * survival meters stacked to its right) at narrow/default/wide sizes.
  *
  * The standard widget probe never registers an avatar augment (no facecam
  * source in the harness), so this is a dedicated probe (`crew-avatar-probe/`),
  * same esbuild -> injected HTML -> playwright pipeline as
- * `render-crew-manifest-panel-badge.ts`, that registers a plain-initials
- * STUB avatar augment before mounting the real `CrewManifestComponent`
+ * `render-crew-status-panel-badge.ts`, that registers a plain-initials
+ * STUB avatar augment before mounting the real `CrewStatusComponent`
  * (`crew-avatar-probe-entry.tsx`'s own doc comment). Replays the existing
  * `crew-critical.json` fixture (already used by the panel-badge render and
  * the kerbalism-crew-survival widget-render set) so the avatar column shows
@@ -17,7 +17,7 @@
  * layout fix targets: the badge used to render awkwardly low because the
  * avatar sat next to the name only, not the whole block.
  *
- * Sizes mirror the `crew-manifest/kerbalism-survival` render-widget config
+ * Sizes mirror the `crew-status/kerbalism-survival` render-widget config
  * (`widgets.ts`) so this set is directly comparable to the no-avatar
  * renders: narrow-4x10 (badge-wrap width floor), default-6x8 (defaultSize),
  * wide-9x12 (roomy review shot).
@@ -37,14 +37,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "crew-avatar-probe");
 const PROBE_ENTRY = join(PROBE_DIR, "crew-avatar-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "crew-avatar-probe.html");
-const OUT_DIR = resolve(
-  HERE,
-  "../../../local_docs/renders/crew-manifest-avatar",
-);
+const OUT_DIR = resolve(HERE, "../../../local_docs/renders/crew-status-avatar");
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 const FIXTURE_PATH = resolve(
   HERE,
-  "../src/CrewManifest/__render_kerbalism_survival__/crew-critical.json",
+  "../src/CrewStatus/__render_kerbalism_survival__/crew-critical.json",
 );
 
 // Grid-unit -> pixel conversion, verbatim from `widgetRenderHarness.ts`
@@ -60,16 +57,16 @@ interface Mode {
   h: number;
 }
 
-// Mirrors `widgets.ts`'s `crew-manifest/kerbalism-survival` mode set, so
+// Mirrors `widgets.ts`'s `crew-status/kerbalism-survival` mode set, so
 // this render is directly comparable to the no-avatar renders produced by
-// `render-widget crew-manifest`.
+// `render-widget crew-status`.
 const MODES: Mode[] = [
   { name: "narrow-4x10", w: 4, h: 10 },
   { name: "default-6x8", w: 6, h: 8 },
   { name: "wide-9x12", w: 9, h: 12 },
 ];
 
-// Same rationale as `render-crew-manifest-panel-badge.ts`'s own copy.
+// Same rationale as `render-crew-status-panel-badge.ts`'s own copy.
 const cssSideEffectPlugin: Plugin = {
   name: "css-side-effect",
   setup(pluginBuild) {
@@ -199,7 +196,7 @@ async function main(): Promise<void> {
       // WHOLE roster (all three crew-critical rows, badges + meters), never
       // a tile-height crop. Based on `widgetRenderHarness.ts`'s own
       // `fullContent` technique, EXTENDED with `[data-panel-body]`: Panel's
-      // own body box (`PanelBody__Box`, ui-kit's `Panel.tsx`) is CrewManifest's
+      // own body box (`PanelBody__Box`, ui-kit's `Panel.tsx`) is CrewStatus's
       // actual scroller (`overflow: auto`, its own nested scroll context), not
       // `[data-scroll-area-inner]` (a different, opt-in wrapper other widgets
       // use). A nested scroll context clips independently of its ancestors, so
@@ -237,19 +234,19 @@ async function main(): Promise<void> {
 
       const root = await page.$("#root");
       if (!root) throw new Error("Crew-avatar probe: #root missing");
-      const outName = `crew-manifest-avatar-crew-critical-${mode.name}.png`;
+      const outName = `crew-status-avatar-crew-critical-${mode.name}.png`;
       await root.screenshot({ path: join(OUT_DIR, outName) });
       console.log(`  ${outName}`);
 
       await context.close();
     }
-    console.log(`\nRendered crew-manifest avatar layout -> ${OUT_DIR}`);
+    console.log(`\nRendered crew-status avatar layout -> ${OUT_DIR}`);
   } finally {
     await browser.close();
   }
 }
 
-/** Verbatim copy of `render-crew-manifest-panel-badge.ts`'s own helper. */
+/** Verbatim copy of `render-crew-status-panel-badge.ts`'s own helper. */
 async function jetbrainsMonoFontFace(): Promise<string> {
   const regular = require.resolve(
     "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2",

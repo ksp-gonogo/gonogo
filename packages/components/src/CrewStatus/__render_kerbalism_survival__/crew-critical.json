@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-10",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the Kerbalism CrewSurvival augment: a crew-critical counterpart to nominal.json. Jebediah carries Kerbalism's full ~7-rule default profile (eating, drinking, breathing, co2 poisoning, radiation, climatization, stress; operator feedback: the old fixture only carried two rules, which is why the widget only ever appeared to render two even after the overflow disclosure was removed) with radiation at 47/50 (94%, nogo tone) and a couple of others elevated into warn. Bill carries a wire-reported deathClockSec of 240s (also nogo, under the 600s SOON_DEATH_SEC threshold), so the death-clock badge shows a countdown rather than a rule percentage. Bob is fine (mirrors the nominal fixture's low accumulators) as the sorting/contrast case, same convention ShipSystems' resource-shortage.json uses (root cause pinned above a healthy row). Also carries kerbalism.spaceweather with an active storm, so the crew-status.summary vessel-wide radiation banner (summary.tsx) fires alongside the per-kerbal survival state. Emit ORDER matters, see nominal.json's own note: vessel.crew first (mints the roster rows + the crew-status.survival AugmentSlot), then kerbalism.available (the augment's requires gate), then kerbalism.crew (the Processor's own topic subscription)."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.crew",
+      "kerbalism.crew",
+      "kerbalism.available",
+      "kerbalism.spaceweather"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 3,
+          "capacity": 4,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bill Kerman", "trait": "Engineer" },
+            { "name": "Bob Kerman", "trait": "Scientist" }
+          ]
+        }
+      },
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "kerbalism.crew",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "rules": [
+              { "name": "radiation", "value": 47, "fatalThreshold": 50 },
+              { "name": "co2 poisoning", "value": 0.62, "fatalThreshold": 1 },
+              { "name": "eating", "value": 0.55, "fatalThreshold": 1 },
+              { "name": "drinking", "value": 0.35, "fatalThreshold": 1 },
+              { "name": "stress", "value": 0.3, "fatalThreshold": 1 },
+              { "name": "breathing", "value": 0.15, "fatalThreshold": 1 },
+              { "name": "climatization", "value": 0.1, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "rules": [{ "name": "stress", "value": 0.2, "fatalThreshold": 1 }],
+            "deathClockSec": 240
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "rules": [
+              { "name": "radiation", "value": 6, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.08, "fatalThreshold": 1 }
+            ]
+          }
+        ]
+      },
+      {
+        "channel": "kerbalism.spaceweather",
+        "value": {
+          "radiationRadPerSecond": 0.001388888888888889,
+          "habitatRadiationRadPerSecond": 0.001388888888888889,
+          "magnetosphere": false,
+          "innerBelt": false,
+          "outerBelt": false,
+          "stormIncoming": false,
+          "stormInProgress": true,
+          "blackout": true,
+          "inSunlight": true,
+          "shieldingAmount": 0.8,
+          "shieldingCapacity": 3.308
+        }
+      }
+    ]
+  }
+}

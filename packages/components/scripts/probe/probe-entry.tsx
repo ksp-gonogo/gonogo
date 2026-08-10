@@ -274,7 +274,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // every fixture, so the two renders' generation counters tend to land on
   // the SAME number), and the evaluator then wrongly treats the new store's
   // frame as "already fresh," permanently serving the earlier fixture's
-  // stale computed value: found while rendering CrewManifest's Kerbalism
+  // stale computed value: found while rendering CrewStatus's Kerbalism
   // survival augment fixtures, where "nominal" and "crew-critical" rendered
   // byte-identical until this reset was added.
   clearProcessorRuntime();

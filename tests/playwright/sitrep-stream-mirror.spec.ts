@@ -44,7 +44,7 @@ test.describe("Sitrep stream: recorded flight mirror", () => {
   test("host renders every representative value shape; station connects", async ({
     browser,
   }) => {
-    const pair = await bootstrapPair(browser, "crew-manifest", {
+    const pair = await bootstrapPair(browser, "crew-status", {
       waitForMain: async (page) => {
         await expect(page.getByText("CREW", { exact: true })).toBeVisible({
           timeout: 30_000,
@@ -52,7 +52,7 @@ test.describe("Sitrep stream: recorded flight mirror", () => {
       },
     });
 
-    // String + array shape: vessel.crew.crew[0].name via CrewManifest,
+    // String + array shape: vessel.crew.crew[0].name via CrewStatus,
     // already on the dashboard.
     await expect(
       pair.main.getByText("Bob Kerman", { exact: true }),

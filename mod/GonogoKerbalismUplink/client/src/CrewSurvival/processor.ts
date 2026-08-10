@@ -9,13 +9,13 @@ import { KERBALISM } from "../uplink";
 // ---------------------------------------------------------------------------
 // Per-kerbal Kerbalism survival: dose/stress/etc rule state plus a death
 // clock, derived once per frame off the vessel's real crew roster
-// (`vessel.crew`, the same identity source CrewManifest itself renders) joined
+// (`vessel.crew`, the same identity source CrewStatus itself renders) joined
 // against Kerbalism's own per-kerbal rule accumulators (`kerbalism.crew`).
 //
-// This is the derivation that used to live INLINE in CrewManifest
+// This is the derivation that used to live INLINE in CrewStatus
 // (`packages/components`), contaminating the vanilla base widget with a
 // Kerbalism-specific read. It now lives here, the Kerbalism Uplink's own
-// Processor, consumed by the `crew-manifest.survival` augment (index.tsx)
+// Processor, consumed by the `crew-status.survival` augment (index.tsx)
 // and the panel badge (badge.ts): one per-frame derivation, two consumers,
 // same dogfood pattern as `SHIP_SYSTEMS`/`ship-systems-badge`.
 //
@@ -48,7 +48,14 @@ export type SurvivalTone = "go" | "warn" | "nogo";
 export interface KerbalSurvival {
   name: string;
   trait: string | undefined;
-  /** The rule closest to fatal; undefined when Kerbalism reports no rules for this kerbal. */
+  /**
+   * Every rule Kerbalism reports for this kerbal, worst (closest to fatal)
+   * first. Empty when Kerbalism reports no rules for this kerbal.
+   */
+  rules: KerbalRuleState[];
+  /** `rules[0]`; undefined when Kerbalism reports no rules for this kerbal.
+   *  Kept alongside `rules` since the death-clock badge only ever needs the
+   *  worst one, not the full list. */
   worstRule: KerbalRuleState | undefined;
   /** Seconds until this kerbal dies, straight off the wire; null while not resolved. */
   deathClockSec: number | null;
@@ -69,7 +76,11 @@ export interface CrewSurvival {
  */
 const SOON_DEATH_SEC = 600;
 
-function toneFor(fraction: number): SurvivalTone {
+/** Tone for a single rule's own fraction, independent of the kerbal's
+ *  overall tone (which a death clock can force to `nogo` even when every
+ *  individual rule reads calm). Exported so the per-rule meters in the
+ *  `.survival` augment (index.tsx) can colour each rule by its own reading. */
+export function toneFor(fraction: number): SurvivalTone {
   if (fraction >= 0.8) return "nogo";
   if (fraction >= 0.5) return "warn";
   return "go";
@@ -88,7 +99,7 @@ function kerbalTone(
  * Kerbalism's default profile uses `fatal_threshold=1.0` for most rules but
  * overrides it per-rule (radiation's is 50), dividing by the rule's OWN
  * `fatalThreshold` rather than assuming it's always 1 keeps every rule
- * comparable on the same 0..1 scale (ported unchanged from CrewManifest's
+ * comparable on the same 0..1 scale (ported unchanged from CrewStatus's
  * old `ruleFraction`, moved here with the rest of the Kerbalism-specific
  * logic it contaminated the base widget with).
  */
@@ -112,19 +123,21 @@ function toKerbalSurvival(
   trait: string | undefined,
   entry: KerbalismCrewEntry | undefined,
 ): KerbalSurvival {
-  let worstRule: KerbalRuleState | undefined;
+  const rules: KerbalRuleState[] = [];
   for (const rule of entry?.rules ?? []) {
     if (!rule.name) continue;
-    const fraction = ruleFraction(rule);
-    if (!worstRule || fraction > worstRule.fraction) {
-      worstRule = { name: rule.name, fraction };
-    }
+    rules.push({ name: rule.name, fraction: ruleFraction(rule) });
   }
+  // Worst (closest to fatal) first: the `.survival` augment shows the most
+  // alarming rule first when it has to collapse the rest behind a disclosure.
+  rules.sort((a, b) => b.fraction - a.fraction);
+  const worstRule = rules[0];
   const rawDeathClock = mag(entry?.deathClockSec, Number.NaN);
   const deathClockSec = Number.isFinite(rawDeathClock) ? rawDeathClock : null;
   return {
     name,
     trait,
+    rules,
     worstRule,
     deathClockSec,
     tone: kerbalTone(worstRule?.fraction ?? 0, deathClockSec),

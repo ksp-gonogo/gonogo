@@ -28,7 +28,7 @@
  * checked on the station: real values come from live Sitrep stream data,
  * and only the MAIN screen mounts `SitrepTelemetryProvider` today (station
  * stream forwarding over PeerJS is a documented pending gap). Same pattern
- * as crew-manifest.spec.ts.
+ * as crew-status.spec.ts.
  */
 import { test } from "@playwright/test";
 import { PORTS } from "../../../playwright.config";

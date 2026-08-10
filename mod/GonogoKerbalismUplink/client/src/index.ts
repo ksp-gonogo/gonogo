@@ -18,15 +18,19 @@ import "./processor";
 // when the app pulls the package entry in.
 import "./ShipSystems";
 import "./ShipSystems/badge";
-// CrewManifest's per-kerbal survival: a Processor (CrewSurvival/processor.ts),
-// the `crew-manifest.survival` augment that renders it into the BASE widget's
-// (packages/components/src/CrewManifest) own slot, and the panel badge off
+// CrewStatus's per-kerbal survival: a Processor (CrewSurvival/processor.ts),
+// the `crew-status.survival` augment that renders it into the BASE widget's
+// (packages/components/src/CrewStatus) own slot, and the panel badge off
 // the same Processor. Per-kerbal survival is a Kerbalism concept and never
 // belonged in the base widget itself, see that widget's own doc comment on
 // the slot. Side-effect imports so all three register when the app pulls the
 // package entry in.
 import "./CrewSurvival";
 import "./CrewSurvival/badge";
+// The whole-widget `crew-status.summary` slot: a vessel radiation-environment
+// reading off `kerbalism.spaceweather`, distinct from the per-kerbal survival
+// above (a storm affects the whole crew together, not one kerbal at a time).
+import "./CrewSurvival/summary";
 // The Space Weather panel badge: a contribution to the SpaceWeather widget's
 // `space-weather.badges` slot off the `kerbalism.spaceweather` Topic. The
 // widget stays in @ksp-gonogo/components for now (relocation is a later step);
@@ -41,7 +45,7 @@ import "./ShipMap/partMeta";
 import "./ShipMap/partMeters";
 
 // The CrewSurvival Processor handle + its result types, the single per-frame
-// derivation the `crew-manifest.survival` augment and its badge both consume.
+// derivation the `crew-status.survival` augment and its badge both consume.
 export {
   CREW_SURVIVAL,
   type CrewSurvival,
