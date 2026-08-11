@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GonogoKerbalismUplink's OWN contract slice: the fifteen wire payload types
+    that used to live in mod/Sitrep.Contract/KerbalismPayloads.cs, relocated
+    here per the operator mandate that NO uplink-specific wire type may live in
+    core, even for an in-monorepo Uplink (see
+    local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md). Fifth Uplink
+    through the types-out-of-core mechanism, and the largest by every measure:
+    fifteen types against the previous high of five, FIVE [SitrepTopic]-tagged
+    roots (kerbalism.spaceweather / .profile / .lifesupport / .crew /
+    .features) against the previous high of two, and nesting three levels deep
+    rather than two.
+
+    The nesting is what makes this slice's generated shape map load-bearing
+    rather than incidental: KerbalismSpaceWeather holds
+    List<KerbalismStarInfo> and List<KerbalismStormEntry>,
+    KerbalismCrewEntry holds List<KerbalismCrewRule>, KerbalismLifeSupport
+    holds a KerbalismHabitat plus List<KerbalismProcessEntry> and
+    List<KerbalismGreenhouseEntry>, and KerbalismProfile holds
+    Dictionary<string, KerbalismResourceDef> plus two more lists. It is also
+    the first slice where a Vec3 sits on a NESTED type
+    (KerbalismStarInfo.Direction), so the unit has to travel down two levels of
+    shape resolution and then out to the vector's three leaves.
+
+    Deliberately its own small project rather than folding into
+    GonogoKerbalismUplink.csproj, and the reason is sharper here than for any
+    predecessor. GonogoKerbalismUplink.csproj is net48-only and carries
+    UnityEngine/Assembly-CSharp HintPath references; rtcli cannot load that. It
+    also could not host the netstandard2.0 codegen leg without dragging those
+    references along. None of the fifteen types here touches Kerbalism or KSP
+    at all (Kerbalism is reached exclusively by runtime reflection, see
+    KerbalismReflection.cs), so the split costs nothing and keeps the codegen
+    input clean. This project's dual-target boilerplate stays a straight copy
+    of Sitrep.Contract.csproj's.
+
+    MIT, matching GonogoKerbalismUplink.csproj. That project's own header
+    records why the runtime half is MIT despite Kerbalism being Unlicense: it
+    NEVER links Kerbalism's assembly and never derives from its types. This
+    slice links even less (nothing but Sitrep.Contract), so it inherits the
+    same licence with no new consideration. Kerbalism's attribution stays in
+    ../GonogoKerbalismUplink/NOTICE-Kerbalism.txt.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>GonogoKerbalismUplink.Contract</AssemblyName>
+    <RootNamespace>GonogoKerbalismUplink</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Reinforced.Typings is a compile-time-only codegen dependency: rtcli
+       reads the [TsInterface] attributes baked into this assembly's metadata
+       to generate this Uplink's own TS SDK slice (see codegen.sh). Must NOT
+       flow to net48 (the runtime TFM GonogoKerbalismUplink.csproj bundles):
+       same PrivateAssets/Condition/#if NETSTANDARD2_0 discipline as
+       Sitrep.Contract.csproj, for the identical reason (a KSP-loaded net48
+       assembly must never try to resolve Reinforced.Typings.dll). -->
+  <ItemGroup>
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <!-- Sitrep.Contract only, Private="false": SitrepContractAttribute/
+       SitrepTopicAttribute/SitrepUnitAttribute/Units are core's cross-package
+       surface, provided by the core mod (GonogoCore) at runtime, never copied
+       here. Vec3 comes from the same place and for the same reason: it is the
+       ONE canonical vector shape every Domain's vector fields reuse (see its
+       own doc comment on why the unit sits on the FIELD, not the type), so a
+       per-Uplink copy would defeat the point. Same pattern
+       GonogoKerbalismUplink.csproj already uses for its own Sitrep.Contract
+       reference. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

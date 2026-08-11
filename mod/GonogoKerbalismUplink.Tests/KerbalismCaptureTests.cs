@@ -219,9 +219,9 @@ public class KerbalismCaptureTests
     [Fact]
     public void KerbalismLifeSupport_declares_no_per_resource_property()
     {
-        var offenders = typeof(Sitrep.Contract.KerbalismLifeSupport)
+        var offenders = typeof(GonogoKerbalismUplink.KerbalismLifeSupport)
             .GetProperties()
-            .Where(p => p.PropertyType == typeof(Sitrep.Contract.KerbalismResource))
+            .Where(p => p.PropertyType == typeof(GonogoKerbalismUplink.KerbalismResource))
             .Select(p => p.Name)
             .ToArray();
 

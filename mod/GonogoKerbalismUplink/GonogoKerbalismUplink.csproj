@@ -46,12 +46,23 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface.
+  <!-- Sitrep.Contract (Private="false"): the arm's-length compile surface.
        NO reference to Kerbalism.dll, by design. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
       <Private>false</Private>
     </ProjectReference>
+  </ItemGroup>
+
+  <!-- GonogoKerbalismUplink.Contract: this Uplink's OWN wire types (the five
+       kerbalism.* Topic payloads and their ten nested shapes), relocated out
+       of Sitrep.Contract (see that project's own header comment). Private
+       defaults to true (unlike the Sitrep.Contract reference above): this DLL
+       is NOT provided by core at runtime, it is this Uplink's own contract
+       slice, so it bundles into GonogoKerbalismUplink's own GameData output
+       same as any other Uplink-owned assembly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoKerbalismUplink.Contract\GonogoKerbalismUplink.Contract.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,13 +1,51 @@
 // @ksp-gonogo/gonogo-kerbalism-uplink: the KerbalismUplink client package entry.
 //
-// Registers the Kerbalism Domain's bare-primitive presence Topic. Bare
-// side-effect import so bundlers never tree-shake the registration call.
+// Registers the Kerbalism Domain's Topics: the bare-primitive presence gate plus
+// the five structured Topics whose payload types this Uplink now owns outright
+// (relocated out of Sitrep.Contract, see ./topics.ts). RE-EXPORTED rather than
+// imported for side effect alone, and that is load-bearing in two ways: it keeps
+// bundlers from tree-shaking the registration calls, AND it puts a real
+// `export ... from "./topics"` into the built `dist/index.d.ts`, which is what
+// carries topics.ts's `declare module "@ksp-gonogo/sitrep-sdk"` TopicPayloadMap
+// augmentation across the package boundary. A bare `import "./topics"` is elided
+// from the emitted declaration, so a consumer would silently see
+// `useTelemetry("kerbalism.spaceweather")` resolve to `unknown` with nothing
+// going red here (the same failure mode ui-kit's styledComponentsTheme.ts
+// documents for its own augmentation).
 //
 // NOTE: SpaceWeather still lives in @ksp-gonogo/components; Ship Systems (the
 // rebuilt Life Support) now lives HERE, registered through the Uplink client,
 // since life support is a Kerbalism concept that never belonged in the base
 // library. SpaceWeather's relocation is a follow-up.
-import "./topics";
+
+// This Uplink's own wire payload types, now that it declares them rather than
+// core. A consumer that reads a kerbalism.* Topic names its shape from HERE, the
+// same way it used to name it from @ksp-gonogo/sitrep-sdk.
+export type {
+  KerbalismCrewEntry,
+  KerbalismCrewRule,
+  KerbalismFeatures,
+  KerbalismGreenhouseEntry,
+  KerbalismHabitat,
+  KerbalismLifeSupport,
+  KerbalismProcessDef,
+  KerbalismProcessEntry,
+  KerbalismProfile,
+  KerbalismResource,
+  KerbalismResourceDef,
+  KerbalismRuleDef,
+  KerbalismSpaceWeather,
+  KerbalismStarInfo,
+  KerbalismStormEntry,
+} from "./__generated__/contract";
+export {
+  KERBALISM_AVAILABLE_TOPIC,
+  KERBALISM_CREW_TOPIC,
+  KERBALISM_FEATURES_TOPIC,
+  KERBALISM_LIFESUPPORT_TOPIC,
+  KERBALISM_PROFILE_TOPIC,
+  KERBALISM_SPACEWEATHER_TOPIC,
+} from "./topics";
 // The Uplink client identity, then the per-frame `summarise` Processor that
 // stamps against it. Bare side-effect imports so the registrations survive
 // tree-shaking when the app pulls the package entry in.

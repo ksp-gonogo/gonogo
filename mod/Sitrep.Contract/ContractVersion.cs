@@ -176,8 +176,56 @@ namespace Sitrep.Contract
         /// <c>scansat.anomalies.&lt;body&gt;</c> is unchanged, only which
         /// assembly declares them. See
         /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
+        ///
+        /// <para><b>Bumped 9 -&gt; 10: the Kerbalism relocation.</b> All fifteen
+        /// <c>Kerbalism*</c> payload types LEFT this assembly entirely, relocated
+        /// into the new <c>GonogoKerbalismUplink.Contract</c> project (the fifth
+        /// step of the uplink-types-out-of-core plan, and the largest by every
+        /// measure: fifteen types against the previous high of five, five
+        /// <c>[SitrepTopic]</c> roots against two, and nesting three levels deep).
+        /// Same shape as the Avionics, Kerbcast and SCANsat cases, not the MechJeb
+        /// one: NINE of the fifteen predate the v6.0 freeze
+        /// (<c>KerbalismSpaceWeather</c>, <c>KerbalismLifeSupport</c>,
+        /// <c>KerbalismResource</c>, <c>KerbalismHabitat</c>,
+        /// <c>KerbalismProcessEntry</c>, <c>KerbalismGreenhouseEntry</c>,
+        /// <c>KerbalismCrewEntry</c>, <c>KerbalismCrewRule</c>,
+        /// <c>KerbalismFeatures</c>: see the Minor-history entry below that
+        /// records the KerbalismUplink Domain landing on the Major-4 line), so
+        /// those nine ARE part of the frozen v9.0 floor in
+        /// <c>contract-shape.baseline.json</c> and their removal registers as nine
+        /// genuine <c>type-removed:</c> breaks against it. The other six
+        /// (<c>KerbalismStarInfo</c>, <c>KerbalismStormEntry</c>,
+        /// <c>KerbalismProfile</c>, <c>KerbalismResourceDef</c>,
+        /// <c>KerbalismRuleDef</c>, <c>KerbalismProcessDef</c>) were added after
+        /// the v9.0 floor was frozen, so they are not in it and their removal
+        /// breaks nothing recorded. A Major bump (with a freshly frozen Major-10
+        /// floor) is the only way to keep
+        /// <c>ContractShapeGateTests.CurrentShapeIsAdditiveOverTheFrozenMajorFloor</c>
+        /// green here. Sanctioned on the same standing grounds as every Major
+        /// above: the mod is still pre-release with NO external Uplinks, and the
+        /// app and mod ship together, so no artifact exists that was built against
+        /// the old shape; the wire FORMAT of
+        /// <c>kerbalism.spaceweather</c>/<c>kerbalism.profile</c>/
+        /// <c>kerbalism.lifesupport</c>/<c>kerbalism.crew</c>/
+        /// <c>kerbalism.features</c> is unchanged, only which assembly declares
+        /// them.</para>
+        ///
+        /// <para><b>One consequence worth naming, so it is not mistaken for a
+        /// fix.</b> The Major-9 floor recorded <c>KerbalismLifeSupport</c> with
+        /// four per-resource properties (<c>ElectricCharge</c>/<c>Food</c>/
+        /// <c>Oxygen</c>/<c>Water</c>, each a <c>KerbalismResource</c>) that the
+        /// live shape had already dropped in favour of the <c>Rates</c> map, and
+        /// the shape gate had been reporting exactly those four as a standing red
+        /// on this branch. Freezing Major 10 as the Major-9 floor MINUS the nine
+        /// relocated types (never as the live shape, which would have absorbed
+        /// unrelated drift wholesale) removes that type from the floor along with
+        /// its four members, so the red clears. It clears because the type left
+        /// core, not because the drift was forgiven: every OTHER frozen member on
+        /// the Major-9 floor is carried into Major 10 untouched, so any drift
+        /// elsewhere is still caught. The four-member break is recorded for good
+        /// in the Major-9 entry of the ledger.</para>
         /// </remarks>
-        public const int Major = 9;
+        public const int Major = 10;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -524,6 +572,10 @@ namespace Sitrep.Contract
         /// <para>Reset 0 alongside the Major 8 -&gt; 9 bump (the SCANsat
         /// relocation; see <see cref="Major"/>). Every additive change on the
         /// Major-8 line above is carried forward into Major 9.</para>
+        ///
+        /// <para>Reset 0 alongside the Major 9 -&gt; 10 bump (the Kerbalism
+        /// relocation; see <see cref="Major"/>). Every additive change on the
+        /// Major-9 line above is carried forward into Major 10.</para>
         /// </summary>
         public const int Minor = 0;
     }

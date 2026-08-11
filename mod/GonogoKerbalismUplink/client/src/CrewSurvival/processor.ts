@@ -1,8 +1,8 @@
+import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
 import type {
   KerbalismCrewEntry,
   KerbalismCrewRule,
-  VesselCrew,
-} from "@ksp-gonogo/sitrep-sdk";
+} from "../__generated__/contract";
 import { mag } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 

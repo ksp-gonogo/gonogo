@@ -203,34 +203,24 @@ namespace Sitrep.Core.Tests
             // needed here any more. (For the record: GonogoAvionicsUplink.AvionicsCapture.Build
             // returns a Dictionary<string, object?> and AvionicsUplink publishes that,
             // so JsonWriter never saw this POCO raw even while it lived here.)
-            // kerbalism.*: GonogoKerbalismUplink.KerbalismCapture.BuildSpaceWeather/
-            // BuildLifeSupport/BuildCrew/BuildFeatures each return a
-            // Dictionary<string, object?> tree (habitat/resources/processes/crew rules
-            // + entries built as nested dictionaries in those methods) and
-            // KerbalismUplink publishes those dictionaries; these POCOs are
-            // TS-shape-only, never handed to AppendValue raw.
-            "KerbalismSpaceWeather", "KerbalismLifeSupport", "KerbalismResource",
-            "KerbalismHabitat", "KerbalismProcessEntry", "KerbalismCrewRule",
-            "KerbalismCrewEntry", "KerbalismFeatures",
-            // kerbalism.spaceweather stars/storms: KerbalismCapture.BuildStars/
-            // BuildStorms (called from BuildSpaceWeather) flatten these to nested
-            // Dictionary<string, object?> lists, same treatment as every other
-            // kerbalism.* payload above; these POCOs are TS-shape-only.
-            "KerbalismStarInfo", "KerbalismStormEntry",
-            // kerbalism.profile: KerbalismCapture.BuildProfile flattens the whole
-            // profile (resources map, rules, processes) to nested
-            // Dictionary<string, object?> / List<object> before the uplink's
-            // AddChannelSource returns it, same as every other kerbalism.* payload
-            // above; these POCOs exist for the generated TS shape only.
-            "KerbalismProfile", "KerbalismResourceDef", "KerbalismRuleDef",
-            "KerbalismProcessDef",
-            // KerbalismGreenhouseEntry is contract-and-TS-shape only: nothing
-            // builds or publishes it yet (there is no BuildGreenhouse to match
-            // its siblings above, only a GonogoDevTools dump that reads the
-            // PartModules by hand). It cannot be dropped at the wire boundary
-            // because it never reaches it. Move it out of this list the moment
-            // a producer publishes it raw.
-            "KerbalismGreenhouseEntry",
+            // The fifteen kerbalism payload types (the five [SitrepTopic] roots
+            // KerbalismSpaceWeather/KerbalismProfile/KerbalismLifeSupport/
+            // KerbalismCrewEntry/KerbalismFeatures plus the ten nested shapes
+            // KerbalismStarInfo/KerbalismStormEntry/KerbalismResource/
+            // KerbalismHabitat/KerbalismProcessEntry/KerbalismGreenhouseEntry/
+            // KerbalismCrewRule/KerbalismResourceDef/KerbalismRuleDef/
+            // KerbalismProcessDef) relocated out of Sitrep.Contract into
+            // GonogoKerbalismUplink.Contract (uplink-types-out-of-core plan, fifth
+            // relocation): no longer reflected by this assembly at all, so no
+            // allowlist entries are needed here any more. (For the record: every one
+            // of the fifteen was already TS-shape-only while it lived here.
+            // GonogoKerbalismUplink.KerbalismCapture's BuildSpaceWeather/
+            // BuildLifeSupport/BuildCrew/BuildFeatures/BuildProfile each return a
+            // nested Dictionary<string, object?> / List<object> tree, and
+            // KerbalismUplink publishes those dictionaries, so JsonWriter never saw
+            // any of the POCOs raw. KerbalismGreenhouseEntry did not even have a
+            // producer: it is a forward-looking wire shape with no BuildGreenhouse to
+            // match its siblings.)
             // vessel.landing: VesselViewProvider.ToWire(VesselLanding) flattens it to
             // a Dictionary<string, object?> before Publish, same as every other
             // vessel.* POCO above; JsonWriter only ever sees the dictionary.

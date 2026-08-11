@@ -59,6 +59,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKerbalismUplink", "Go
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKerbalismUplink.Tests", "GonogoKerbalismUplink.Tests\GonogoKerbalismUplink.Tests.csproj", "{0FFA2316-2C37-46BF-8C2C-993022EBDBED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoKerbalismUplink.Contract", "GonogoKerbalismUplink.Contract\GonogoKerbalismUplink.Contract.csproj", "{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoTestFlightUplink", "GonogoTestFlightUplink\GonogoTestFlightUplink.csproj", "{0E8B8EBE-D184-4337-82B2-EF5B9D3175D6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoTestFlightUplink.Tests", "GonogoTestFlightUplink.Tests\GonogoTestFlightUplink.Tests.csproj", "{CA12E7FC-85E7-41BA-B969-6A87B65A5EE4}"
@@ -421,6 +423,18 @@ Global
 		{0FFA2316-2C37-46BF-8C2C-993022EBDBED}.Release|x64.Build.0 = Release|Any CPU
 		{0FFA2316-2C37-46BF-8C2C-993022EBDBED}.Release|x86.ActiveCfg = Release|Any CPU
 		{0FFA2316-2C37-46BF-8C2C-993022EBDBED}.Release|x86.Build.0 = Release|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Debug|x64.Build.0 = Debug|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Debug|x86.Build.0 = Debug|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Release|x64.ActiveCfg = Release|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Release|x64.Build.0 = Release|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Release|x86.ActiveCfg = Release|Any CPU
+		{1B7C4E5A-9F30-4D82-B6A1-3C58D7E41F09}.Release|x86.Build.0 = Release|Any CPU
 		{0E8B8EBE-D184-4337-82B2-EF5B9D3175D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0E8B8EBE-D184-4337-82B2-EF5B9D3175D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E8B8EBE-D184-4337-82B2-EF5B9D3175D6}.Debug|x64.ActiveCfg = Debug|Any CPU

@@ -263,25 +263,9 @@ public static class RtConfig
                 // One NAMED custom action group on vessel.control.actionGroups,
                 // the element type that replaced the positional bool[].
                 typeof(ActionGroupState),
-                // kerbalism.* channels (Domain "kerbalism") + nested value shapes
-                typeof(KerbalismSpaceWeather),
-                typeof(KerbalismResource),
-                typeof(KerbalismHabitat),
-                typeof(KerbalismProcessEntry),
-                typeof(KerbalismGreenhouseEntry),
-                typeof(KerbalismLifeSupport),
-                typeof(KerbalismCrewRule),
-                typeof(KerbalismCrewEntry),
-                typeof(KerbalismFeatures),
-                // kerbalism.spaceweather solar vantage / storms (star-agnostic)
-                typeof(KerbalismStarInfo),
-                typeof(KerbalismStormEntry),
-                // kerbalism.profile: the loaded profile's own definitions, so the
-                // app derives the resource graph without gonogo naming a resource.
-                typeof(KerbalismResourceDef),
-                typeof(KerbalismRuleDef),
-                typeof(KerbalismProcessDef),
-                typeof(KerbalismProfile),
+                // kerbalism.* channels (Domain "kerbalism") + their nested value
+                // shapes: see the trailing comment below (moved OUT of core into
+                // GonogoKerbalismUplink.Contract).
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
@@ -295,7 +279,15 @@ public static class RtConfig
                 // ScanningVesselEntry + its nested ScanSensorEntry/ScanTrackColor,
                 // scansat.science's ScanScienceEntry, and the typing-only
                 // scansat.anomalies.<body> element ScanAnomalyEntry) moved OUT of
-                // core into GonogoScansatUplink.Contract
+                // core into GonogoScansatUplink.Contract, and the fifteen
+                // kerbalism payload types (the five [SitrepTopic] roots
+                // KerbalismSpaceWeather/KerbalismProfile/KerbalismLifeSupport/
+                // KerbalismCrewEntry/KerbalismFeatures plus the ten nested shapes
+                // KerbalismStarInfo/KerbalismStormEntry/KerbalismResource/
+                // KerbalismHabitat/KerbalismProcessEntry/KerbalismGreenhouseEntry/
+                // KerbalismCrewRule/KerbalismResourceDef/KerbalismRuleDef/
+                // KerbalismProcessDef) moved OUT of core into
+                // GonogoKerbalismUplink.Contract
                 // (uplink-types-out-of-core plan, 2026-08-10): see ContractVersion.cs
                 // and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
             };

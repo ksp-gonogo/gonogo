@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { TopicId } from "./topics";
 import { isValue, type Value, value } from "./unit-system";
+import { registerTopicUnits } from "./units";
 import {
   hydratePayload,
   wrapTopicPayload,
@@ -7,6 +9,25 @@ import {
 } from "./wrap-units";
 
 const asValue = (v: unknown) => v as Value;
+
+// A name-keyed map of same-unit readings, registered rather than named out of
+// this assembly's generated map.
+//
+// The form used to be exercised through a real core Topic, because the four
+// fields carrying it all lived in Sitrep.Contract. They relocated into the
+// Uplink that owns them (uplink-types-out-of-core plan), so core's generated
+// output now contains no example of the form and this file cannot reach one
+// without naming a mod: which is exactly what the relocation exists to stop a
+// mod-agnostic file doing.
+//
+// Registering a synthetic Topic through the SDK's own public
+// `registerTopicUnits` keeps the MECHANISM tested here, where it lives, and
+// keeps it non-vacuous (a bare number would fail every assertion below). The
+// real Topic's decode is asserted in the owning Uplink's client tests, driven
+// through a live TelemetryClient. Both halves exist; neither names the other's
+// business.
+const MAP_TOPIC = "test.nameKeyedRates" as TopicId;
+registerTopicUnits(MAP_TOPIC, { rates: "units/s" });
 
 describe("wrapTopicPayload", () => {
   it("turns a declared quantity into a value that knows its unit", () => {
@@ -21,12 +42,11 @@ describe("wrapTopicPayload", () => {
   });
 
   it("wraps every VALUE of a name-keyed map of same-unit readings", () => {
-    // `kerbalism.lifesupport.rates` is a rate per resource NAME. Before this,
-    // every name-keyed channel's values were nested shapes (`vessel.resources`
-    // -> ResourceAmount) whose own properties carried the units, so a map of
-    // bare scalars had no case and arrived as raw numbers a consumer had to
-    // guess at.
-    const payload = wrapTopicPayload("kerbalism.lifesupport", {
+    // A rate per resource NAME. Before this case existed, every name-keyed
+    // channel's values were nested shapes (`vessel.resources` ->
+    // ResourceAmount) whose own properties carried the units, so a map of bare
+    // scalars had no case and arrived as raw numbers a consumer had to guess at.
+    const payload = wrapTopicPayload(MAP_TOPIC, {
       rates: { Water: -0.000054, ElectricCharge: -0.1856, Nitrogen: 0 },
     } as never) as { rates: Record<string, Value> };
 
@@ -43,10 +63,10 @@ describe("wrapTopicPayload", () => {
   it("wrapping a map twice leaves it alone", () => {
     // Same idempotence the scalar and list cases have, and for the same
     // reason: a payload can be re-decoded on reconnect.
-    const once = wrapTopicPayload("kerbalism.lifesupport", {
+    const once = wrapTopicPayload(MAP_TOPIC, {
       rates: { Water: -0.000054 },
     } as never);
-    const twice = wrapTopicPayload("kerbalism.lifesupport", once);
+    const twice = wrapTopicPayload(MAP_TOPIC, once);
     const rates = (twice as { rates: Record<string, Value> }).rates;
     expect(isValue(rates.Water)).toBe(true);
     expect(rates.Water.magnitude).toBe(-0.000054);

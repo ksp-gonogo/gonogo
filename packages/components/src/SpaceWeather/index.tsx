@@ -1,5 +1,25 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+// Type-only import of the KerbalismUplink client, for its
+// `declare module "@ksp-gonogo/sitrep-sdk"` TopicPayloadMap augmentation and
+// nothing else: erased at runtime, so it adds no import at all to the bundle.
+//
+// This is where this widget's Kerbalism coupling now shows up honestly in its
+// imports. `kerbalism.spaceweather`'s payload type (KerbalismSpaceWeather) used
+// to be core's own codegen output, so `useTelemetry("kerbalism.spaceweather")`
+// resolved out of @ksp-gonogo/sitrep-sdk like any vanilla Topic. It relocated
+// into the Uplink that owns it (uplink-types-out-of-core plan, fifth
+// relocation), which means this file has to say which Uplink it reads from
+// rather than getting a Kerbalism type for free from a mod-agnostic package.
+//
+// The real fix is for this widget to LIVE in that Uplink's client, next to Ship
+// Systems and the CrewStatus survival augment, which is where every other
+// Kerbalism surface already went and what that package's own index.ts records as
+// the outstanding follow-up. This import is what makes the debt visible until
+// then: it is a shrink-only `domainDebt` entry on the frontend uplink-boundary
+// ratchet, so moving the widget deletes the entry and the ratchet forces that
+// deletion in the same commit.
+import type {} from "@ksp-gonogo/gonogo-kerbalism-uplink";
 import { Meter } from "@ksp-gonogo/ui";
 import { Badge, Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";

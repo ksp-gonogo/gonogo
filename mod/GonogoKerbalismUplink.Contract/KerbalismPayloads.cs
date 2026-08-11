@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
 
-namespace Sitrep.Contract;
+namespace GonogoKerbalismUplink;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Kerbalism Topic payloads (Domain "kerbalism").
@@ -15,12 +16,18 @@ namespace Sitrep.Contract;
 // fixtures these shapes are grounded in: local_docs/kerbalism-fixtures/,
 // canonical kerbalism-fixture-baseline-crp.json).
 //
-// TYPING-ONLY, like ScanPayloads.cs: these mirror, field-for-field, the
+// TYPING-ONLY: these mirror, field-for-field, the
 // Dictionary<string, object?> value trees KerbalismCapture.Build* emit (camelCase
 // wire keys via RtConfig.CamelCaseForProperties). They add no wire bytes; the
 // wire is written by JsonWriter walking the uplink's live value tree. All members
 // are nullable to mirror the permissive-on-absence convention; a live payload
 // always carries concrete values.
+//
+// These types used to live in mod/Sitrep.Contract/KerbalismPayloads.cs. They
+// were relocated into this Uplink's own contract slice per the mandate that no
+// uplink-specific wire type may live in core: see this project's .csproj header
+// and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md. The wire
+// FORMAT is untouched; only the declaring assembly changed.
 //
 // kerbalism.available is a BARE JSON boolean declared client-side
 // (mod/GonogoKerbalismUplink/client/src/topics.ts via registerBarePrimitiveTopic),

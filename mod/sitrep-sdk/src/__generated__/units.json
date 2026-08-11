@@ -390,130 +390,6 @@
       "resettable": "flag",
       "title": "text"
     },
-    "KerbalismCrewEntry": {
-      "deathClockSec": "s",
-      "name": "text",
-      "trait": "text"
-    },
-    "KerbalismCrewRule": {
-      "degenPerSec": "units/s",
-      "fatalThreshold": "units",
-      "name": "text",
-      "value": "units"
-    },
-    "KerbalismFeatures": {
-      "automation": "flag",
-      "comfort": "flag",
-      "deploy": "flag",
-      "habitat": "flag",
-      "livingSpace": "flag",
-      "poisoning": "flag",
-      "pressure": "flag",
-      "radiation": "flag",
-      "reliability": "flag",
-      "science": "flag",
-      "shielding": "flag",
-      "spaceWeather": "flag",
-      "supplies": "flag"
-    },
-    "KerbalismGreenhouseEntry": {
-      "active": "flag",
-      "artificial": "W/m²",
-      "cropResource": "text",
-      "ecRateMaxPerSec": "units/s",
-      "foodRatePerSec": "units/s",
-      "issue": "text",
-      "lampEcDrawPerSec": "units/s",
-      "lightToleranceWm2": "W/m²",
-      "natural": "W/m²",
-      "pressureTolerance": "ratio",
-      "radiationToleranceRadPerSec": "rad/s"
-    },
-    "KerbalismHabitat": {
-      "comfort": "ratio",
-      "livingSpace": "ratio",
-      "poisoning": "ratio",
-      "pressure": "ratio",
-      "shielding": "ratio",
-      "surface": "m²",
-      "volume": "m³"
-    },
-    "KerbalismLifeSupport": {
-      "rates": "units/s",
-      "ruleEnvModifiers": "1"
-    },
-    "KerbalismProcessDef": {
-      "dumpValves": "text",
-      "inputs": "units/s",
-      "modifiers": "text",
-      "name": "text",
-      "outputs": "units/s"
-    },
-    "KerbalismProcessEntry": {
-      "broken": "flag",
-      "capacity": "units",
-      "envModifier": "1",
-      "flightId": "id",
-      "resource": "text",
-      "running": "flag",
-      "title": "text",
-      "valveIndex": "count"
-    },
-    "KerbalismProfile": {
-      "name": "text"
-    },
-    "KerbalismResource": {
-      "amount": "units",
-      "capacity": "units",
-      "rate": "units/s"
-    },
-    "KerbalismResourceDef": {
-      "density": "kg/m³",
-      "displayName": "text",
-      "flowMode": "text",
-      "isSupply": "flag",
-      "lowThreshold": "ratio"
-    },
-    "KerbalismRuleDef": {
-      "breakdown": "flag",
-      "degeneration": "units/s",
-      "fatalThreshold": "units",
-      "input": "text",
-      "interval": "s",
-      "modifiers": "text",
-      "name": "text",
-      "output": "text",
-      "rate": "units",
-      "ratePerSecond": "units/s"
-    },
-    "KerbalismSpaceWeather": {
-      "blackout": "flag",
-      "habitatRadiationRadPerSecond": "rad/s",
-      "inSunlight": "flag",
-      "innerBelt": "flag",
-      "magnetosphere": "flag",
-      "outerBelt": "flag",
-      "radiationRadPerSecond": "rad/s",
-      "shieldingAmount": "units",
-      "shieldingCapacity": "units",
-      "stormEjectionSpeed": "m/s",
-      "stormInProgress": "flag",
-      "stormIncoming": "flag"
-    },
-    "KerbalismStarInfo": {
-      "direction.x": "1",
-      "direction.y": "1",
-      "direction.z": "1",
-      "distance": "m",
-      "star": "text"
-    },
-    "KerbalismStormEntry": {
-      "dist": "m",
-      "star": "text",
-      "stormDuration": "s",
-      "stormState": "count",
-      "stormTime": "s"
-    },
     "KosComputeStatus": {
       "lastGoodAt": "s",
       "parseError": "text",
@@ -1282,47 +1158,6 @@
       "breakingGround": "flag",
       "makingHistory": "flag"
     },
-    "kerbalism.crew": {
-      "deathClockSec": "s",
-      "name": "text",
-      "trait": "text"
-    },
-    "kerbalism.features": {
-      "automation": "flag",
-      "comfort": "flag",
-      "deploy": "flag",
-      "habitat": "flag",
-      "livingSpace": "flag",
-      "poisoning": "flag",
-      "pressure": "flag",
-      "radiation": "flag",
-      "reliability": "flag",
-      "science": "flag",
-      "shielding": "flag",
-      "spaceWeather": "flag",
-      "supplies": "flag"
-    },
-    "kerbalism.lifesupport": {
-      "rates": "units/s",
-      "ruleEnvModifiers": "1"
-    },
-    "kerbalism.profile": {
-      "name": "text"
-    },
-    "kerbalism.spaceweather": {
-      "blackout": "flag",
-      "habitatRadiationRadPerSecond": "rad/s",
-      "inSunlight": "flag",
-      "innerBelt": "flag",
-      "magnetosphere": "flag",
-      "outerBelt": "flag",
-      "radiationRadPerSecond": "rad/s",
-      "shieldingAmount": "units",
-      "shieldingCapacity": "units",
-      "stormEjectionSpeed": "m/s",
-      "stormInProgress": "flag",
-      "stormIncoming": "flag"
-    },
     "kos.processors": {
       "bootFilePath": "text",
       "coreId": "id",
@@ -1749,23 +1584,6 @@
     "IUplinkHost": {
       "kernel": "Kernel"
     },
-    "KerbalismCrewEntry": {
-      "rules": "KerbalismCrewRule"
-    },
-    "KerbalismLifeSupport": {
-      "greenhouses": "KerbalismGreenhouseEntry",
-      "habitat": "KerbalismHabitat",
-      "processes": "KerbalismProcessEntry"
-    },
-    "KerbalismProfile": {
-      "processes": "KerbalismProcessDef",
-      "resources": "*KerbalismResourceDef",
-      "rules": "KerbalismRuleDef"
-    },
-    "KerbalismSpaceWeather": {
-      "stars": "KerbalismStarInfo",
-      "storms": "KerbalismStormEntry"
-    },
     "ManeuverNode": {
       "patches": "OrbitPatch"
     },
@@ -1937,23 +1755,6 @@
     },
     "dv.stages": {
       "resources": "*ResourceAmount"
-    },
-    "kerbalism.crew": {
-      "rules": "KerbalismCrewRule"
-    },
-    "kerbalism.lifesupport": {
-      "greenhouses": "KerbalismGreenhouseEntry",
-      "habitat": "KerbalismHabitat",
-      "processes": "KerbalismProcessEntry"
-    },
-    "kerbalism.profile": {
-      "processes": "KerbalismProcessDef",
-      "resources": "*KerbalismResourceDef",
-      "rules": "KerbalismRuleDef"
-    },
-    "kerbalism.spaceweather": {
-      "stars": "KerbalismStarInfo",
-      "storms": "KerbalismStormEntry"
     },
     "parts.power": {
       "alternators": "AlternatorEntry",

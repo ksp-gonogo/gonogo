@@ -982,6 +982,52 @@ build_gonogokerbcastuplink() {
   ls -la "$install_dir"
 }
 
+build_gonogokerbalismuplink() {
+  local proj="$ROOT/mod/GonogoKerbalismUplink/GonogoKerbalismUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoKerbalismUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbalismUplink/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoKerbalismUplink csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoKerbalismUplink ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoKerbalismUplink.dll" ]; then
+    echo "GonogoKerbalismUplink.dll not produced (missing at $out_dir/GonogoKerbalismUplink.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # GonogoKerbalismUplink.dll AND GonogoKerbalismUplink.Contract.dll: the
+  # uplink-types-out-of-core plan split the fifteen kerbalism payload types into
+  # their own contract-slice project (Private="true", the default, so
+  # `dotnet build` DOES copy it into $out_dir, unlike the reference below).
+  # Sitrep.Contract.dll (provided by GonogoCore) is reference-only
+  # (Private="false") and must NOT be copied here, and Kerbalism.dll is never
+  # referenced at all (this uplink reaches Kerbalism entirely by runtime
+  # reflection) - see .superpowers/sdd/uplink-packaging-pattern.md. Applies the
+  # deploy-script lesson the MechJeb pilot's build_gonogomechjebuplink fixed: a
+  # single-DLL copy here would silently drop the Contract.dll from the deployed
+  # GameData folder and break the mod at KSP load.
+  cp "$out_dir/GonogoKerbalismUplink.dll" "$install_dir/"
+  if [ ! -f "$out_dir/GonogoKerbalismUplink.Contract.dll" ]; then
+    echo "GonogoKerbalismUplink.Contract.dll not produced (missing at $out_dir/GonogoKerbalismUplink.Contract.dll)"
+    return 4
+  fi
+  cp "$out_dir/GonogoKerbalismUplink.Contract.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -1151,9 +1197,10 @@ case "${1:-help}" in
       gonogomechjebuplink) build_gonogomechjebuplink ;;
       gonogoavionicsuplink) build_gonogoavionicsuplink ;;
       gonogokerbcastuplink) build_gonogokerbcastuplink ;;
+      gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink"
         exit 2
         ;;
     esac

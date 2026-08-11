@@ -1,9 +1,9 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { describe, expect, it } from "vitest";
 import type {
   KerbalismLifeSupport,
   KerbalismProfile,
-} from "@ksp-gonogo/sitrep-sdk";
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { describe, expect, it } from "vitest";
+} from "./__generated__/contract";
 import {
   buildLedger,
   closedLoops,

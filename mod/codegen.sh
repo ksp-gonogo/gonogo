@@ -163,6 +163,39 @@ echo "codegen -> $scansat_out_dir/topic-map.ts"
 echo "codegen -> $scansat_out_dir/units.ts"
 echo "codegen -> $scansat_out_dir/units.json"
 
+# Kerbalism: the fifth relocation, and the largest by every measure. FIFTEEN
+# types and FIVE [SitrepTopic]-tagged roots (kerbalism.spaceweather / .profile /
+# .lifesupport / .crew (isArray) / .features), so SITREP_KERBALISM_TOPICMAP_OUT
+# is set here the same as the earlier legs above. The emitted units.ts carries
+# more weight here than in any predecessor: EmitUnitMap writes the field->unit
+# map AND the field->nested-type SHAPE map from one pass, and this slice nests at
+# four separate roots (spaceweather's stars/storms, crew's rules, lifesupport's
+# habitat/processes/greenhouses, profile's resources/rules/processes), plus a
+# Vec3 on a NESTED type (KerbalismStarInfo.direction) that no earlier slice had.
+# The client has to register both halves: see KerbalismRtConfig.Configure's doc
+# comment.
+kerbalism_proj="$ROOT/mod/GonogoKerbalismUplink.Contract"
+kerbalism_out_dir="$ROOT/mod/GonogoKerbalismUplink/client/src/__generated__"
+kerbalism_bin="$kerbalism_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$kerbalism_proj/GonogoKerbalismUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$kerbalism_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$kerbalism_bin/"
+mkdir -p "$kerbalism_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_KERBALISM_TOPICMAP_OUT="$kerbalism_out_dir/topic-map.ts" \
+  SITREP_KERBALISM_UNITMAP_OUT="$kerbalism_out_dir/units.ts" \
+  SITREP_KERBALISM_UNITJSON_OUT="$kerbalism_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$kerbalism_bin/GonogoKerbalismUplink.Contract.dll" \
+  TargetFile="$kerbalism_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoKerbalismUplink.KerbalismRtConfig.Configure"
+echo "codegen -> $kerbalism_out_dir/contract.ts"
+echo "codegen -> $kerbalism_out_dir/topic-map.ts"
+echo "codegen -> $kerbalism_out_dir/units.ts"
+echo "codegen -> $kerbalism_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

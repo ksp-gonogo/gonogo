@@ -30,4 +30,12 @@
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
   </ItemGroup>
 
+  <!-- GonogoKerbalismUplink.Contract: this Uplink's own wire types (relocated
+       out of Sitrep.Contract, see that project's header comment).
+       KerbalismUnitCoverageTests.cs reflects over it directly, and
+       KerbalismCaptureTests.cs asserts against KerbalismLifeSupport's shape. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoKerbalismUplink.Contract\GonogoKerbalismUplink.Contract.csproj" />
+  </ItemGroup>
+
 </Project>

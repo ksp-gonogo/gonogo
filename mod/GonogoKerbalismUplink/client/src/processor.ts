@@ -1,8 +1,8 @@
+import type { ResourceAmount } from "@ksp-gonogo/sitrep-sdk";
 import type {
   KerbalismLifeSupport,
   KerbalismProfile,
-  ResourceAmount,
-} from "@ksp-gonogo/sitrep-sdk";
+} from "./__generated__/contract";
 import { mag, type Summary, summarise } from "./ecosystem";
 import { KERBALISM } from "./uplink";
 

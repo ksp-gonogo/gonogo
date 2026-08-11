@@ -1,5 +1,5 @@
-import type { KerbalismSpaceWeather } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
+import type { KerbalismSpaceWeather } from "../__generated__/contract";
 import { KERBALISM } from "../uplink";
 
 // ---------------------------------------------------------------------------

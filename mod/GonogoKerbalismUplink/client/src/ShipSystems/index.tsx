@@ -1,9 +1,4 @@
-import type {
-  ComponentProps,
-  KerbalismGreenhouseEntry,
-  KerbalismHabitat,
-  KerbalismProcessEntry,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   registerComponent,
@@ -30,6 +25,11 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
+import type {
+  KerbalismGreenhouseEntry,
+  KerbalismHabitat,
+  KerbalismProcessEntry,
+} from "../__generated__/contract";
 import {
   buildLedger,
   type Ledger,

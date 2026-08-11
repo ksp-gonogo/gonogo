@@ -44,8 +44,9 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>MechJeb, Avionics, Kerbcast, and SCANsat are registered
-    /// today</b> (the pilot and the second, third, and fourth relocations).
+    /// <para><b>MechJeb, Avionics, Kerbcast, SCANsat, and Kerbalism are
+    /// registered today</b> (the pilot and the second through fifth
+    /// relocations).
     /// Each of the plan's
     /// remaining relocations (see
     /// the plan doc's §6 sequencing list) registers its own
@@ -87,6 +88,14 @@ namespace Sitrep.Core.Tests
             ["scansat"] = new Regex(
                 @"scansat|Scan(?:ningVesselEntry|SensorEntry|TrackColor|ScienceEntry|AnomalyEntry)",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            // "Kerbalism" is back to being distinctive enough for a bare mod
+            // name, unlike "Scan" above: no unrelated identifier in this
+            // repository contains it, and every one of the fifteen relocated
+            // types is prefixed with it. Note it is deliberately NOT "Kerbal":
+            // that IS a colliding token in a Kerbal Space Program codebase (crew
+            // members, kerbal names, KerbalX, half the domain vocabulary), so
+            // the full mod name is what makes a bare pattern safe here.
+            ["kerbalism"] = new Regex("Kerbalism", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         };
 
         [Fact]

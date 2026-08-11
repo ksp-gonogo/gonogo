@@ -1,8 +1,5 @@
-import type {
-  ContributionEntry,
-  KerbalismProfile,
-  VesselParts,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { ContributionEntry, VesselParts } from "@ksp-gonogo/sitrep-sdk";
+import type { KerbalismProfile } from "../__generated__/contract";
 import { mag, resourceFacts } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 

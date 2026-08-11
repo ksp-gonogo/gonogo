@@ -42,7 +42,8 @@ export type ModToken =
   | "realantennas"
   | "agx"
   | "mechjeb"
-  | "avionics";
+  | "avionics"
+  | "kerbalism";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -944,6 +945,214 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbcastUplink.Tests/KerbcastUnitCoverageTests.cs",
       "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
       "mod/GonogoKerbcastUplink/client/src/topics.test.ts",
+    ],
+  },
+
+  // === kerbalism: owning dirs mod/GonogoKerbalismUplink/ (incl. its client/),
+  //     mod/GonogoKerbalismUplink.Tests/, mod/GonogoKerbalismUplink.Contract/.
+  //
+  // SEEDED LATE, by the types-out-of-core relocation (fifth step) rather than by
+  // the original boundary audit, so it does not carry that audit's HARD/gray
+  // categorisation history. Two things follow from the late seed and are worth
+  // stating rather than leaving to be inferred:
+  //
+  //   (1) The seed is LARGE (fifty-odd files) and overwhelmingly PROSE. Kerbalism
+  //       is this repository's canonical worked example of the augment/slot
+  //       architecture, so a dozen base widgets' doc comments name it while
+  //       describing the slot they expose ("an augment, e.g. a Kerbalism
+  //       Habitat/Radiation badge, binds here"). Those are words about a
+  //       hypothetical contributor, not coupling. Filing them as debt would make
+  //       the shrink-only gate demand that the ARCHITECTURE stop being explained.
+  //   (2) The debt bucket is deliberately SMALL and specific: four files, all of
+  //       them a single outstanding piece of work (the SpaceWeather widget still
+  //       living in the base library while every other Kerbalism surface has
+  //       moved into this Uplink), plus the app's bundle-time Uplink import that
+  //       every token already carries.
+  kerbalism: {
+    domainDebt: [
+      // -- The SpaceWeather widget relocation, the one genuine outstanding
+      // coupling. This widget reads `kerbalism.spaceweather` directly and lives
+      // in the mod-agnostic base library, which is precisely what the Uplink
+      // decoupling exists to end. Every other Kerbalism surface already moved
+      // (Ship Systems, the CrewStatus survival augment and its badge, the
+      // ShipMap part-meters/part-meta contributions, the space-weather panel
+      // badge); this widget is what the Uplink client's own index.ts records as
+      // the remaining follow-up.
+      //
+      // Until the relocation the coupling is at least HONEST: the widget carries
+      // a type-only import of the Uplink client for its TopicPayloadMap
+      // augmentation, because its payload type is no longer core's own codegen
+      // output. Before the fifth relocation it got a Kerbalism type for free out
+      // of @ksp-gonogo/sitrep-sdk and named no mod at all, so the coupling
+      // existed and was invisible.
+      //
+      // Moving the widget deletes these three lines and the ratchet forces that
+      // deletion in the same commit.
+      "packages/components/src/SpaceWeather/index.tsx",
+      "packages/components/src/SpaceWeather/index.test.tsx",
+      // widgetDomSnapshot.tsx: the shared SSR-snapshot harness carries
+      // Kerbalism-specific fixture reshaping (`resolveKerbalismSpaceWeatherWire`
+      // and the kerbalism.lifesupport reshape) so the legacy flat `sw.*`/`ls.*`
+      // fixtures still drive the modern Topics. Real code, and it goes with the
+      // widget: the fixtures stay under packages/components/src because
+      // `fixturesPath` resolves against that directory (the same convention Ship
+      // Systems' own fixtures already follow from inside this Uplink), but the
+      // reshaping belongs beside the widget that needs it.
+      "packages/components/src/test/widgetDomSnapshot.tsx",
+      // -- Uplink loader: the app's bundle-time import of this Uplink's client.
+      // Not this Uplink's own debt so much as the loader's: every token above
+      // carries the same entry for the same reason (today every Uplink client is
+      // bundled at build, so the app must name them to import them), and they all
+      // clear together when the runtime loader lands.
+      "packages/app/src/main.tsx",
+    ],
+    permanent: [
+      // -- contract/SDK layer --
+      // ContractVersion.cs and RtConfig.cs carry the relocation's PROVENANCE
+      // prose (the Major 9 -> 10 entry, the Minor-history entry recording the
+      // Domain's original landing, and the wirePayloadTypes comment recording
+      // what left), which is exactly what the permanent bucket is for.
+      // KerbalismPayloads.cs is NOT here: it left this bucket by leaving core
+      // outright.
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      "mod/Sitrep.Contract/RtConfig.cs",
+      // Reliability.cs: the DOMAIN-NEUTRAL reliability capability contract. It
+      // names Kerbalism as one of the two backends that can serve the channel
+      // (the other being TestFlight) because the whole point of the shape is
+      // that it is a source-agnostic superset: several fields are documented as
+      // "TestFlight fills it; null for Kerbalism" and vice versa. Naming both is
+      // the contract's job.
+      "mod/Sitrep.Contract/Reliability.cs",
+      // contribution-slots.ts: the SDK's mirror of the host-declared
+      // contribution slots. `ship-map.part-meters` / `ship-map.part-meta`
+      // declare `kerbalism.profile` / `kerbalism.lifesupport` as the Topics a
+      // contribution to those slots may read, because that IS the slot's
+      // contract. String literal types in a slot declaration, not a payload
+      // type and not a TopicId: nothing kerbalism-specific is imported.
+      "mod/sitrep-sdk/src/api/contribution-slots.ts",
+      // wrap-units.ts (the hand-written decoder, not a generated map): its
+      // name-keyed-map branch cites kerbalism.lifesupport.rates as the case that
+      // forced it, since every earlier name-keyed channel used a nested SHAPE as
+      // its value and a map of bare scalars had no case. Prose in a mod-agnostic
+      // file explaining a general mechanism.
+      "mod/sitrep-sdk/src/unit-system/guards.ts",
+      "mod/sitrep-sdk/src/wrap-units.ts",
+
+      // -- app / core --
+      // topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate. It
+      // statically imports every Uplink client (incl. this one) so their
+      // registration calls fire, then asserts the registry matches the C#. A
+      // sanctioned self-registration import, same class as the entry every other
+      // token carries for this file.
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
+      // defineTopicManifest.ts: `kerbalism.power` in a DOC-COMMENT example of the
+      // manifest helper's shape. That Topic does not exist; it is illustrative.
+      "packages/core/src/hooks/defineTopicManifest.ts",
+      // searchTags.ts: "Kerbalism" as the example value of an Uplink's display
+      // name field, in that field's doc comment.
+      "packages/core/src/searchTags.ts",
+      // contributionsRuntime.tsx: the `requires`-gate subscription bug's own
+      // post-mortem comment names the case it was found on (a ShipMap hosting a
+      // Kerbalism part-meters contribution with no other Kerbalism widget
+      // mounted, so nothing had subscribed to the gate Topic). Provenance for a
+      // generic fix.
+      "packages/core/src/contributionsRuntime.tsx",
+      // map-topic.ts / event-timeline.ts: a section header for the kerbalism
+      // Topic block, and a design-doc citation respectively.
+      "packages/sitrep-client/src/event-timeline.ts",
+      "packages/sitrep-client/src/map-topic.ts",
+
+      // -- base-library widgets: SLOT DOCUMENTATION, not coupling --
+      // Each of these names Kerbalism in prose while documenting a slot,
+      // augment or badge surface it exposes for an Uplink to fill: "an augment
+      // (e.g. a Kerbalism EC-broker breakdown) renders here", "unfilled until a
+      // Kerbalism-style Uplink binds". The named mod is a hypothetical
+      // contributor, and the widget reads no kerbalism Topic and imports no
+      // kerbalism type. ShipMap additionally declares `kerbalism.profile`/
+      // `kerbalism.lifesupport` in its two ContributionRegistry slot entries,
+      // the host half of the same contract sitrep-sdk mirrors above. FleetRoster
+      // and its sibling carry "kerbalism" as a registerComponent search TAG,
+      // which is metadata text.
+      "packages/components/src/ActionGroup/index.tsx",
+      "packages/components/src/CrewStatus/badge.ts",
+      "packages/components/src/CrewStatus/index.tsx",
+      "packages/components/src/FleetReliability/index.tsx",
+      "packages/components/src/FleetRoster/index.tsx",
+      "packages/components/src/LaunchDirector/index.tsx",
+      "packages/components/src/PowerSystems/index.tsx",
+      "packages/components/src/ScienceOfficer/index.tsx",
+      "packages/components/src/ShipMap/index.tsx",
+      "packages/components/src/ShipMap/partMetersContribution.ts",
+      "packages/components/src/ShipMap/shipTopology.ts",
+      "packages/components/src/StaffRoster/index.tsx",
+      "packages/components/src/ThermalStatus/index.tsx",
+      // DivergingBar.tsx: the kit primitive credits the HTML prototype its
+      // design was ported from, which happens to be named after the Domain it
+      // was mocked for. A provenance citation.
+      "packages/ui-kit/src/DivergingBar.tsx",
+
+      // -- sibling Uplinks + core mod: prose only --
+      // ReliabilityCoreUplink.cs / ReliabilityElection.cs /
+      // NoneReliabilityBackend.cs: the reliability capability's ELECTION, which
+      // by design enumerates its candidate backends by name and priority. Naming
+      // them is the mechanism, and the whole point is that core declares the
+      // channels so neither backend has to.
+      "mod/Gonogo.KSP/ReliabilityCoreUplink.cs",
+      "mod/Sitrep.Host/Reliability/ReliabilityElection.cs",
+      "mod/Sitrep.Host/Reliability/NoneReliabilityBackend.cs",
+      // GonogoDevKerbalismDump.cs: a DEV-ONLY fixture collector, never shipped.
+      // It reflects into Kerbalism at runtime with no compile-time reference and
+      // exists precisely so this Uplink's shapes could be grounded in captured
+      // fixtures. It is arguably this Uplink's own tooling living in the dev-tools
+      // project; it stays permanent rather than debt because moving a dev-only
+      // dump into a shipped Uplink would be the wrong direction.
+      "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
+      // Sibling Uplink clients citing a shared design doc by filename
+      // (local_docs/kerbalism-RO-design-DECISIONS.md), or noting that a
+      // Kerbalism-shaped filler for one of their own slots is a later phase, or
+      // recording that they share this Uplink's "no runtime-loader entry, plain
+      // static import" bootstrap path. Zero code or type coupling.
+      "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx",
+      "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
+      "mod/GonogoKerbcastUplink/client/src/KerbcastEventProducer.ts",
+      "mod/GonogoMechJebUplink/client/src/index.ts",
+      "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx",
+
+      // -- TEST-only --
+      // UplinkContractOwnershipTests.cs / WirePayloadCoverageTests.cs: the
+      // mod-side relocation-ownership ratchet and the wire-payload coverage
+      // ratchet. Both are inventories that by design enumerate the mods they
+      // guard; the first registers this Uplink's own token so no Kerbalism* wire
+      // type may return to Sitrep.Contract, the second records that the fifteen
+      // types left.
+      "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+      // sitrep-sdk's own tests: both now carry a comment recording what MOVED
+      // OUT of core's generated surface with this relocation (the five Topic ids,
+      // and the name-keyed-map unit assertion). What matches is the explanation
+      // of an absence.
+      "mod/sitrep-sdk/src/generated.test.ts",
+      "mod/sitrep-sdk/src/topics.test.ts",
+      // Base-library and core tests using "kerbalism" as a generic EXAMPLE
+      // provider/augment/component id ("kerbalism-ec", "kerbalism-power-systems",
+      // requires: "kerbalism"), asserting a base widget does NOT couple to it
+      // (CrewStatus asserts it never subscribes to kerbalism.crew), or naming it
+      // in prose as one possible reliability source. FleetReliability emits
+      // `source: "kerbalism"` on the source-AGNOSTIC reliability.summary Topic,
+      // which is the field's whole point.
+      "packages/core/src/augments.test.tsx",
+      "packages/core/src/contributionsRuntime.test.tsx",
+      "packages/core/src/registry.replacement.test.ts",
+      "packages/core/src/truenow-allowlist.test.ts",
+      "packages/components/src/CrewStatus/index.test.tsx",
+      "packages/components/src/FleetReliability/index.test.tsx",
+      "packages/components/src/FleetRoster/index.test.tsx",
+      "packages/components/src/ShipMap/ShipDiagram.test.tsx",
+      "packages/components/src/ShipMap/contributions.test.tsx",
+      // unit-symbol-collision.test.ts: the guard for a real shipped bug, named
+      // after where it was seen (a death-clock badge reading "~4M" for four
+      // minutes). Provenance for a general unit-symbol rule.
+      "packages/ui-kit/src/unit-symbol-collision.test.ts",
     ],
   },
 };

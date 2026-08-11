@@ -1,4 +1,4 @@
-import type { KerbalismSpaceWeather, SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -7,6 +7,7 @@ import {
   ReadoutCaption,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { KerbalismSpaceWeather } from "../__generated__/contract";
 import { mag } from "../ecosystem";
 import { KERBALISM } from "../uplink";
 

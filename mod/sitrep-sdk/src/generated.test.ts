@@ -203,13 +203,21 @@ describe("generated contract.ts unit types", () => {
     expect(interfaces.VesselLanding?.terrainPatch).toBe('Value<"m">[]');
   });
 
-  it("keeps the unit inside the map for a name-keyed set of readings", () => {
-    // Same rule as the sequence above: the unit belongs to each VALUE, and the
-    // key is a resource NAME, not a property, so nothing camel-cases it.
-    expect(interfaces.KerbalismLifeSupport?.rates).toBe(
-      '{ [key: string]: Value<"units/s"> }',
-    );
-  });
+  // No name-keyed-map assertion here any more, and that is a statement about
+  // core's contract rather than a gap. The form (`{ [key: string]:
+  // Value<"units/s"> }`, the unit on each VALUE with the key a resource NAME
+  // nothing may camel-case) existed at exactly four sites, all of them on the
+  // kerbalism payloads, and those relocated into the Uplink that owns them
+  // (uplink-types-out-of-core plan). This assembly's generated output now
+  // contains no example of the form at all, so an assertion here could only be
+  // vacuous. It moved, non-vacuously, to that Uplink's own
+  // generated-value-import.test.ts, which names all four fields. The
+  // sequence-of-readings case above (`Value<"m">[]`) is core's own and stays.
+  //
+  // The general WALK at the top of this file still covers the form: it accepts
+  // `{ [key: string]: Value<"<token>"> }` as a correctly-wrapped shape, so if a
+  // core payload ever grows a name-keyed unit map it is checked without anyone
+  // editing this file.
 
   it("keeps optionality alongside the wrapped type", () => {
     expect(src).toMatch(/heatShieldFlux\?: Value<"kW">;/);

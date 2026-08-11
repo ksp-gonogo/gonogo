@@ -2,7 +2,7 @@ import type {
   KerbalismLifeSupport,
   KerbalismProcessDef,
   KerbalismProfile,
-} from "@ksp-gonogo/sitrep-sdk";
+} from "./__generated__/contract";
 
 /**
  * Derivation over the Kerbalism wire payloads: the resource graph, the

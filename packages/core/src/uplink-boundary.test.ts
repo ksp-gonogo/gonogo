@@ -191,6 +191,25 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       "mod/GonogoAvionicsUplink.Contract",
     ],
   },
+  kerbalism: {
+    // "kerbalism" alone is distinctive enough: no unrelated word in this
+    // codebase contains it, and every one of this Uplink's fifteen wire types
+    // and five Topic namespaces is prefixed with it. Deliberately NOT the
+    // shorter "kerbal": THAT is a colliding token in a Kerbal Space Program
+    // codebase (crew members, kerbal names, KerbalX, half the domain
+    // vocabulary), which is the same collision the scansat entry above solves
+    // by naming its types individually. The full mod name needs no such
+    // workaround.
+    patterns: [/kerbalism/i],
+    ownedDirs: [
+      "mod/GonogoKerbalismUplink",
+      "mod/GonogoKerbalismUplink.Tests",
+      // GonogoKerbalismUplink's own contract slice (uplink-types-out-of-core
+      // plan, fifth relocation, 2026-08-11): all fifteen kerbalism payload
+      // types live here now, not in Sitrep.Contract.
+      "mod/GonogoKerbalismUplink.Contract",
+    ],
+  },
   // Excluded on purpose (per task scope):
   //   telemachus : legacy system being deleted, not an Uplink; tracked
   //                 as separate migration debt in the audit doc, §5.
