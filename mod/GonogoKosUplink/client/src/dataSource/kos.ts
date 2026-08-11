@@ -1,9 +1,10 @@
-import type { KosProcessorInfo, TelemetryClient } from "@ksp-gonogo/sitrep-sdk";
+import type { TelemetryClient } from "@ksp-gonogo/sitrep-sdk";
 import {
   createPerfBudget,
   getActiveTelemetryClient,
   registerUplinkHandle,
 } from "@ksp-gonogo/sitrep-sdk";
+import type { KosProcessorInfo } from "../__generated__/contract";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
 import type { KosManagedScript } from "../shared/ScriptableDataSource";
 import { KosUplinkExecutor } from "./kosUplinkExecutor";

@@ -1,6 +1,6 @@
 import { StubTransport, TelemetryClient } from "@ksp-gonogo/sitrep-client";
-import type { KosProcessorInfo, KosRunResult } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { isKosScriptError } from "../shared/KosScriptError";
 import { KosUplinkExecutor } from "./kosUplinkExecutor";
 import { buildKosWrapper } from "./kosWrapper";

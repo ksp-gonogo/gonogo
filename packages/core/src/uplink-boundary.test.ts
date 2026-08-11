@@ -127,7 +127,14 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       /kos\.(processors|run|compute|terminal|keystroke)/,
       /kOS/,
     ],
-    ownedDirs: ["mod/GonogoKosUplink", "mod/GonogoKosUplink.Tests"],
+    ownedDirs: [
+      "mod/GonogoKosUplink",
+      "mod/GonogoKosUplink.Tests",
+      // GonogoKosUplink's own contract slice (uplink-types-out-of-core plan,
+      // sixth and last relocation, 2026-08-10): all eleven Kos* wire and
+      // command-arg types live here now, not in Sitrep.Contract.
+      "mod/GonogoKosUplink.Contract",
+    ],
   },
   realantennas: {
     // Matches both "realantennas" and the singular "realantenna".

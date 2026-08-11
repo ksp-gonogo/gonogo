@@ -2,12 +2,6 @@ import type {
   CommsLink,
   ComponentProps,
   ConfigComponentProps,
-  KosKeystrokeArgs,
-  KosProcessorInfo,
-  KosTerminalCloseArgs,
-  KosTerminalFrame,
-  KosTerminalOpenArgs,
-  KosTerminalResizeArgs,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
@@ -46,6 +40,14 @@ import {
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import type {
+  KosKeystrokeArgs,
+  KosProcessorInfo,
+  KosTerminalCloseArgs,
+  KosTerminalFrame,
+  KosTerminalOpenArgs,
+  KosTerminalResizeArgs,
+} from "../__generated__/contract";
 import { KOS } from "../uplink";
 import { useKosScriptListing } from "./useKosScriptListing";
 import "@xterm/xterm/css/xterm.css";

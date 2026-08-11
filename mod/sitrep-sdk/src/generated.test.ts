@@ -45,7 +45,13 @@ describe("generated contract.ts", () => {
     expect(src).toMatch(/export interface VesselOrbit\b/);
     expect(src).toMatch(/export interface VesselComms\b/);
     expect(src).toMatch(/export interface CommsConnectivity\b/);
-    expect(src).toMatch(/export interface KosProcessorInfo\b/);
+    // KosProcessorInfo used to stand here as the "an Uplink's payload type is
+    // emitted too" example. It is not, any more: it relocated into
+    // GonogoKosUplink.Contract with the last of the Uplink slices
+    // (uplink-types-out-of-core plan), so core's generated contract now emits
+    // ONLY core's own types and there is no Uplink example left to name. The
+    // equivalent assertion lives in each Uplink's own client package
+    // (generated-value-import.test.ts).
     expect(src).toMatch(/export interface Vec3\b/);
     // shared value shapes carry data only: no static factory methods leaked
     expect(src).toMatch(/export interface CommandResult\b/);

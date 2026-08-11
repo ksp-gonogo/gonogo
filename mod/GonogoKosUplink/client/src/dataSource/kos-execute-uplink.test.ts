@@ -13,9 +13,9 @@ import {
   setActiveTelemetryClientForTests,
   TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
-import type { KosProcessorInfo, KosRunResult } from "@ksp-gonogo/sitrep-sdk";
 import { getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
+import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { KosDataSource, kosSource } from "./kos";
 
 function makeSource() {

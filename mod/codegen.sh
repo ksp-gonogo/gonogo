@@ -196,6 +196,39 @@ echo "codegen -> $kerbalism_out_dir/topic-map.ts"
 echo "codegen -> $kerbalism_out_dir/units.ts"
 echo "codegen -> $kerbalism_out_dir/units.json"
 
+# kOS: the sixth and last relocation in the plan's per-Uplink list. ELEVEN types,
+# but only ONE [SitrepTopic]-tagged root (kos.processors, isArray), so
+# SITREP_KOS_TOPICMAP_OUT is set here and names exactly one entry. That ratio is
+# the point: the other ten are the payloads of DYNAMIC channels
+# (kos.terminal.<coreId>, kos.run.<coreId>, kos.compute.<id>.status, whose names
+# are only known at runtime and so cannot carry a static tag) and seven
+# inbound-only command args. Nothing in this slice nests, so the field ->
+# nested-type SHAPE half of the emitted units.ts comes out empty, and exactly one
+# declared quantity in the whole slice survives to a Value<> (KosComputeStatus's
+# lastGoodAt, Units.Seconds): see KosRtConfig.Configure's doc comment for that
+# accounting in full, and this Uplink's client topics.ts for the runtime half.
+kos_proj="$ROOT/mod/GonogoKosUplink.Contract"
+kos_out_dir="$ROOT/mod/GonogoKosUplink/client/src/__generated__"
+kos_bin="$kos_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$kos_proj/GonogoKosUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$kos_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$kos_bin/"
+mkdir -p "$kos_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_KOS_TOPICMAP_OUT="$kos_out_dir/topic-map.ts" \
+  SITREP_KOS_UNITMAP_OUT="$kos_out_dir/units.ts" \
+  SITREP_KOS_UNITJSON_OUT="$kos_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$kos_bin/GonogoKosUplink.Contract.dll" \
+  TargetFile="$kos_out_dir/contract.ts" \
+  ConfigurationMethod="Gonogo.KosUplink.KosRtConfig.Configure"
+echo "codegen -> $kos_out_dir/contract.ts"
+echo "codegen -> $kos_out_dir/topic-map.ts"
+echo "codegen -> $kos_out_dir/units.ts"
+echo "codegen -> $kos_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

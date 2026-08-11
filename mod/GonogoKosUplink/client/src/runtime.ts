@@ -27,6 +27,16 @@
 
 import "./uplink"; // defineUplinkClient(KOS): idempotent re-registration
 import "./dataSource/kos"; // registerUplinkHandle("kos", kosSource): idempotent
+// registerBarePrimitiveTopic("kos.processors") + the two unit-registry loops,
+// all idempotent (a Set, and last-write-wins Maps), so re-running them from both
+// this file AND `index.ts`'s re-export is harmless in the same way the two above
+// are. It has to be HERE and not only in `index.ts`, because this is the module
+// MainScreen/StationScreen import: `kos.processors` used to be a static member of
+// the SDK's own TOPIC_IDS and is now a runtime registration, so without this any
+// consumer that loads only the runtime half would see `isTopicId
+// ("kos.processors")` go false and `getAllKnownTopicIds()` drop it, which would
+// quietly cost the replay recorder a channel.
+import "./topics";
 
 export { KosCpuDiscovery } from "./dataSource/KosCpuDiscovery";
 export * from "./shared";

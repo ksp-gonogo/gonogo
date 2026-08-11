@@ -44,24 +44,23 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>MechJeb, Avionics, Kerbcast, SCANsat, and Kerbalism are
-    /// registered today</b> (the pilot and the second through fifth
-    /// relocations).
-    /// Each of the plan's
-    /// remaining relocations (see
-    /// the plan doc's §6 sequencing list) registers its own
-    /// token here in the same commit that moves its types out, exactly like
-    /// the frontend ratchet's own token-per-Uplink shape. Naming those other
-    /// mods here would itself trip THEIR frontend uplink-boundary tokens
-    /// (this file lives outside every owning Uplink dir), so the plan's own
-    /// document is the cross-reference, not this comment. Deliberately NOT
-    /// sharing pattern
+    /// <para><b>All six Uplinks from the plan's per-Uplink sequencing list are
+    /// registered</b> (the pilot plus the second through sixth relocations),
+    /// each having added its own token here in the same commit that moved its
+    /// types out. Naming those mods here would itself trip THEIR frontend
+    /// uplink-boundary tokens (this file lives outside every owning Uplink dir),
+    /// so the plan's own document is the cross-reference, not this comment. What
+    /// remains of that plan is a PARTIAL extract from one shared-shape file
+    /// rather than a whole-file move, so when it lands it registers a seventh
+    /// token whose pattern has to name the extracted types rather than the mod:
+    /// the file it leaves behind is legitimately core and will keep naming the
+    /// mod in prose. Deliberately NOT sharing pattern
     /// data with <c>uplink-boundary.allowlist.ts</c> yet (the plan flags this
     /// as a good follow-up, "worth doing regardless of relocation scope"):
-    /// two independent small pattern lists is an acceptable duplication for
-    /// one token, and cross-linking them (a shared generated JSON) is real
-    /// work better justified once a second or third token proves the pattern
-    /// need not drift.</para>
+    /// six independent small pattern lists is a duplication worth revisiting
+    /// now that the set is complete, and cross-linking them (a shared generated
+    /// JSON) is real work with a clearer shape once the seventh token shows
+    /// whether a partial extract fits the same pattern form at all.</para>
     /// </summary>
     public class UplinkContractOwnershipTests
     {
@@ -96,6 +95,14 @@ namespace Sitrep.Core.Tests
             // members, kerbal names, KerbalX, half the domain vocabulary), so
             // the full mod name is what makes a bare pattern safe here.
             ["kerbalism"] = new Regex("Kerbalism", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            // A bare three-letter mod name, which sounds like the riskiest
+            // pattern here and is the safest: "kos" appears as a substring in no
+            // identifier this contract uses, verified by scanning every
+            // non-comment line in the directory before registering it. The
+            // scansat case above needed an alternation because "Scan" is a
+            // common English verb this repo's own ratchets use; "kos" is not a
+            // word, and the eleven relocated types are all prefixed with it.
+            ["kos"] = new Regex("kos", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         };
 
         [Fact]

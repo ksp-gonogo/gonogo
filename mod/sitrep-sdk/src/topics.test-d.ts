@@ -16,7 +16,6 @@ import type {
   DeployedEntry,
   DockAlignment,
   ExperimentEntry,
-  KosProcessorInfo,
   LabEntry,
   PartsPower,
   ServoEntry,
@@ -34,7 +33,7 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// ── vessel.* / comms.* / kos.* known Topics resolve to their precise interface ──────
+// ── vessel.* / comms.* known Topics resolve to their precise interface ──────────────
 export type _ResolvesOrbit = Expect<
   Equal<TopicPayload<"vessel.orbit">, VesselOrbit>
 >;
@@ -47,9 +46,12 @@ export type _ResolvesDelay = Expect<
 export type _ResolvesDock = Expect<
   Equal<TopicPayload<"vessel.dock">, DockAlignment>
 >;
-export type _ResolvesKosProcessors = Expect<
-  Equal<TopicPayload<"kos.processors">, KosProcessorInfo[]>
->;
+// kos.processors used to be asserted here. Its payload type relocated into
+// GonogoKosUplink.Contract (uplink-types-out-of-core plan), so the Topic is no
+// longer in this package's own TopicPayloadMap at all: it augments the map from
+// that Uplink's client, which this program cannot see. The equivalent
+// Expect<Equal<...>> lives there, inline in its topics.ts, for the same reason
+// every other relocated Uplink's does.
 
 // ── career.* / parts.* / system.* / science.* now resolve to their REAL contract
 //    payload type (formerly `unknown`: P0.5 typed them, codegen wired them in) ──────

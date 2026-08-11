@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "vocabulary": [
+    "%",
+    "1",
+    "K",
+    "Mit",
+    "W/m²",
+    "bit/s",
+    "count",
+    "dB",
+    "enum",
+    "flag",
+    "funds",
+    "g",
+    "h",
+    "id",
+    "kN",
+    "kPa",
+    "kW",
+    "kg/m³",
+    "km",
+    "m",
+    "m/s",
+    "m²",
+    "m³",
+    "m³/s²",
+    "n/a",
+    "rad",
+    "rad/s",
+    "ratio",
+    "rep",
+    "rpm",
+    "s",
+    "science",
+    "science/day",
+    "t",
+    "text",
+    "units",
+    "units/s",
+    "°"
+  ],
+  "types": {
+    "KosComputeStatus": {
+      "lastGoodAt": "s",
+      "parseError": "text",
+      "paused": "flag",
+      "running": "flag",
+      "scriptError": "text"
+    },
+    "KosExecArgs": {
+      "coreId": "id",
+      "scriptId": "id"
+    },
+    "KosKeystrokeArgs": {
+      "chars": "text",
+      "coreId": "id",
+      "leaseToken": "id"
+    },
+    "KosProcessorInfo": {
+      "bootFilePath": "text",
+      "coreId": "id",
+      "hasBooted": "flag",
+      "partName": "text",
+      "processorMode": "text",
+      "tag": "text"
+    },
+    "KosReEnableArgs": {
+      "scriptId": "id"
+    },
+    "KosRunArgs": {
+      "command": "text",
+      "coreId": "id",
+      "requestId": "id"
+    },
+    "KosRunResult": {
+      "coreId": "id",
+      "error": "text",
+      "requestId": "id"
+    },
+    "KosTerminalCloseArgs": {
+      "coreId": "id",
+      "leaseToken": "id"
+    },
+    "KosTerminalFrame": {
+      "chunk": "text",
+      "coreId": "id",
+      "fullRepaint": "flag"
+    },
+    "KosTerminalOpenArgs": {
+      "coreId": "id",
+      "leaseToken": "id"
+    },
+    "KosTerminalResizeArgs": {
+      "cols": "count",
+      "coreId": "id",
+      "leaseToken": "id",
+      "rows": "count"
+    }
+  },
+  "topics": {
+    "kos.processors": {
+      "bootFilePath": "text",
+      "coreId": "id",
+      "hasBooted": "flag",
+      "partName": "text",
+      "processorMode": "text",
+      "tag": "text"
+    }
+  },
+  "typeShapes": {
+
+  },
+  "topicShapes": {
+
+  }
+}

@@ -1,8 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import type {
-  KosProcessorInfo,
-  PendingUplinkQueue,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -13,6 +10,7 @@ import {
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { KosProcessorInfo } from "../__generated__/contract";
 import { kosSource } from "../dataSource/kos";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";

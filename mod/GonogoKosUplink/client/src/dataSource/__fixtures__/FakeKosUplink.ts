@@ -45,11 +45,11 @@ import {
   setActiveTelemetryClientForTests,
   TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
+import type { CommandResult } from "@ksp-gonogo/sitrep-sdk";
 import type {
-  CommandResult,
   KosProcessorInfo,
   KosRunResult,
-} from "@ksp-gonogo/sitrep-sdk";
+} from "../../__generated__/contract";
 import { parseKosData } from "../../shared/kos-data-parser";
 
 export interface FakeKosCpu {

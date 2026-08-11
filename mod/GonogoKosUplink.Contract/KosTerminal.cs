@@ -1,8 +1,9 @@
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
+using Sitrep.Contract;
 
-namespace Sitrep.Contract;
+namespace Gonogo.KosUplink;
 
 /// <summary>
 /// One frame of interactive-terminal output for a single kOS CPU, delivered on

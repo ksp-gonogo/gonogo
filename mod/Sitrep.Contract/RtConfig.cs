@@ -61,8 +61,9 @@ public static class RtConfig
 
         // --- Wire payload types (non-generic) ---
         // Everything else marked [SitrepContract]/[TsInterface] that crosses the wire:
-        // vessel.* channel payloads, comms.* channels, kos.* channels, command args,
-        // and the shared value shapes (Vec3, PayloadMeta, CommandResult).
+        // vessel.* channel payloads, comms.* channels, command args, and the
+        // shared value shapes (Vec3, PayloadMeta, CommandResult). Every Uplink's
+        // own payload types have left this list; see its trailing comment.
         // Held in a local rather than passed inline because the unit-typing
         // pass below re-enters this set: only a type registered with rtcli may
         // have its properties retyped, so the two lists must not drift apart.
@@ -122,20 +123,10 @@ public static class RtConfig
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
                 typeof(FleetVesselLink),
-                // kos.* channels
-                typeof(KosProcessorInfo),
-                typeof(KosComputeStatus),
-                typeof(KosExecArgs),
-                typeof(KosReEnableArgs),
-                // kos.terminal.<coreId> interactive terminal, downlink frame + command args
-                typeof(KosTerminalFrame),
-                typeof(KosTerminalOpenArgs),
-                typeof(KosKeystrokeArgs),
-                typeof(KosTerminalResizeArgs),
-                typeof(KosTerminalCloseArgs),
-                // kos.run.<coreId> ad-hoc RPC (kos-uplink-full-migration.md), command args + result
-                typeof(KosRunArgs),
-                typeof(KosRunResult),
+                // kos.* channels + the kos.terminal.<coreId> / kos.run.<coreId>
+                // dynamic-channel payloads and their command args: see the
+                // trailing comment below (moved OUT of core into
+                // GonogoKosUplink.Contract).
                 // command args
                 typeof(AddManeuverNodeArgs),
                 typeof(UpdateManeuverNodeArgs),
@@ -287,9 +278,20 @@ public static class RtConfig
                 // KerbalismHabitat/KerbalismProcessEntry/KerbalismGreenhouseEntry/
                 // KerbalismCrewRule/KerbalismResourceDef/KerbalismRuleDef/
                 // KerbalismProcessDef) moved OUT of core into
-                // GonogoKerbalismUplink.Contract
+                // GonogoKerbalismUplink.Contract, and the eleven kOS types (the one
+                // [SitrepTopic] root kos.processors' KosProcessorInfo, the
+                // dynamic-channel payloads KosTerminalFrame/KosRunResult/
+                // KosComputeStatus, and the seven command args KosExecArgs/
+                // KosReEnableArgs/KosRunArgs/KosTerminalOpenArgs/KosKeystrokeArgs/
+                // KosTerminalResizeArgs/KosTerminalCloseArgs) moved OUT of core into
+                // GonogoKosUplink.Contract, completing the plan's per-Uplink list
                 // (uplink-types-out-of-core plan, 2026-08-10): see ContractVersion.cs
                 // and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
+                // What REMAINS of that plan is a PARTIAL extract from Comms.cs, a
+                // split of one shared-shape file rather than a whole-file move, which
+                // is why it is sequenced separately; the plan doc names the mod, this
+                // file deliberately does not, since doing so would trip that mod's
+                // own frontend uplink-boundary token.
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
 

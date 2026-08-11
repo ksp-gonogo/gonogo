@@ -1,8 +1,9 @@
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
+using Sitrep.Contract;
 
-namespace Sitrep.Contract;
+namespace Gonogo.KosUplink;
 
 /// <summary>
 /// One kOS CPU as it appears on the <c>kos.processors</c> channel, the

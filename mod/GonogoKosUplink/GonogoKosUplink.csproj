@@ -127,4 +127,16 @@
     <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
   </ItemGroup>
 
+  <!-- GonogoKosUplink.Contract: THIS Uplink's own eleven wire types, relocated
+       out of Sitrep.Contract (see that project's header comment). Deliberately
+       WITHOUT Private="false", unlike every reference above: those four are
+       core Gonogo's assemblies, already in GameData/Gonogo/Plugins, and a
+       bundled copy here would shadow them. This one is ours and nothing else
+       ships it, so it must be copied into this extension's own deploy set,
+       making GonogoKosUplink a TWO-DLL deployable (see build_gonogokosuplink in
+       scripts/gonogo_claude_tools.sh). -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoKosUplink.Contract\GonogoKosUplink.Contract.csproj" />
+  </ItemGroup>
+
 </Project>

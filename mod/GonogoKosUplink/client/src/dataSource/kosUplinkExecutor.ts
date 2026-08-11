@@ -1,11 +1,10 @@
+import type { CommandResult, TelemetryClient } from "@ksp-gonogo/sitrep-sdk";
+import { safeRandomUuid } from "@ksp-gonogo/sitrep-sdk";
 import type {
-  CommandResult,
   KosProcessorInfo,
   KosRunArgs,
   KosRunResult,
-  TelemetryClient,
-} from "@ksp-gonogo/sitrep-sdk";
-import { safeRandomUuid } from "@ksp-gonogo/sitrep-sdk";
+} from "../__generated__/contract";
 import { KosScriptError } from "../shared/KosScriptError";
 import type { KosData, KosScriptArg } from "../shared/kos-data-parser";
 import type { KosManagedScript } from "../shared/ScriptableDataSource";

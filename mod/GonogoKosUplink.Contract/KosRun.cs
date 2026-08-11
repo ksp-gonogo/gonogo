@@ -2,8 +2,9 @@
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
+using Sitrep.Contract;
 
-namespace Sitrep.Contract;
+namespace Gonogo.KosUplink;
 
 /// <summary>
 /// Args for the <c>kos.run</c> command, the general-purpose in-process

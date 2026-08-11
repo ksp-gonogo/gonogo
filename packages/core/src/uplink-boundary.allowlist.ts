@@ -448,11 +448,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
       "mod/Sitrep.Host.IntegrationTests/SharedVantageCatchUpTests.cs",
-      // -- contract/SDK layer (real kOS POCOs, not just topic strings) --
+      // -- contract/SDK layer. KosCommands.cs / KosRun.cs / KosTerminal.cs used
+      // to sit here, and were the last three files in this whole allowlist
+      // holding real Uplink POCOs in core: all eleven Kos* types relocated into
+      // GonogoKosUplink.Contract (uplink-types-out-of-core plan, sixth and last
+      // relocation, 2026-08-10), so the files are gone from Sitrep.Contract and
+      // the ratchet demanded these lines go with them. The two below are prose
+      // only now: ContractVersion.cs's Major/Minor history records what moved
+      // and when, and RtConfig.cs's wirePayloadTypes carries the same
+      // provenance note where the eleven typeof() entries used to be. That is
+      // the rationale this file's header used to assert in the opposite
+      // direction ("every Uplink's wire types live in Sitrep.Contract, by
+      // design") fully inverted: for these tokens core now names them in
+      // history and nowhere else.
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/KosCommands.cs",
-      "mod/Sitrep.Contract/KosRun.cs",
-      "mod/Sitrep.Contract/KosTerminal.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       // Engine sticky-reveal integration test: the diff-channel keyframe-retention
@@ -463,14 +472,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // pending-uplink contract: its Command field doc-comment gives
       // `kos.run` as the example wire command name, doc-mention only.
       "mod/Sitrep.Contract/UplinkPending.cs",
-      "mod/sitrep-sdk/src/__generated__/contract.ts",
-      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-      // The third file the same codegen run emits, from the same reflection over
-      // the same assembly. It joined this bucket when the unit-coverage ratchet
-      // annotated the kOS command-arg and terminal-frame payloads, so it now
-      // names their types the way its two siblings above already do. Generated,
-      // not authored; same class, same reason.
-      "mod/sitrep-sdk/src/__generated__/units.ts",
+      // The three generated SDK files (contract.ts / topic-map.ts / units.ts)
+      // used to sit here too, because core's codegen reflected the Kos* types
+      // out of Sitrep.Contract and emitted them. It does not any more: the
+      // relocation moved them to this Uplink's own
+      // client/src/__generated__/, so core's generated output names no kOS
+      // type at all and the ratchet demanded these three lines go. Nothing was
+      // fixed in those files; the input to the codegen changed.
       // topics.test-d.ts / topics.test.ts / topics.ts stay in the kos bucket: each
       // still names a kos.* dynamic namespace or a Kos-prefixed contract type
       // (`kos.compute.*`, `kos.processors`, `KosProcessorInfo`) as a generic

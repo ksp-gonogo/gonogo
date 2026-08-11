@@ -424,62 +424,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     resettable: "flag",
     title: "text",
   },
-  "KosComputeStatus": {
-    lastGoodAt: "s",
-    parseError: "text",
-    paused: "flag",
-    running: "flag",
-    scriptError: "text",
-  },
-  "KosExecArgs": {
-    coreId: "id",
-    scriptId: "id",
-  },
-  "KosKeystrokeArgs": {
-    chars: "text",
-    coreId: "id",
-    leaseToken: "id",
-  },
-  "KosProcessorInfo": {
-    bootFilePath: "text",
-    coreId: "id",
-    hasBooted: "flag",
-    partName: "text",
-    processorMode: "text",
-    tag: "text",
-  },
-  "KosReEnableArgs": {
-    scriptId: "id",
-  },
-  "KosRunArgs": {
-    command: "text",
-    coreId: "id",
-    requestId: "id",
-  },
-  "KosRunResult": {
-    coreId: "id",
-    error: "text",
-    requestId: "id",
-  },
-  "KosTerminalCloseArgs": {
-    coreId: "id",
-    leaseToken: "id",
-  },
-  "KosTerminalFrame": {
-    chunk: "text",
-    coreId: "id",
-    fullRepaint: "flag",
-  },
-  "KosTerminalOpenArgs": {
-    coreId: "id",
-    leaseToken: "id",
-  },
-  "KosTerminalResizeArgs": {
-    cols: "count",
-    coreId: "id",
-    leaseToken: "id",
-    rows: "count",
-  },
   "LabEntry": {
     dataStorage: "Mit",
     dataStored: "Mit",
@@ -1196,14 +1140,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "game.dlc": {
     breakingGround: "flag",
     makingHistory: "flag",
-  },
-  "kos.processors": {
-    bootFilePath: "text",
-    coreId: "id",
-    hasBooted: "flag",
-    partName: "text",
-    processorMode: "text",
-    tag: "text",
   },
   "ksp.revertAvailability": {
     canRevertToEditor: "flag",

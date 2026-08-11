@@ -64,16 +64,6 @@ namespace Sitrep.Core.Tests
             // Dictionary<string, object?> before Publish; TS-shape-only, never
             // handed to AppendValue raw.
             "VesselParts", "VesselPart", "PartBounds", "PartResourceFlow", "PartModuleState",
-            // kOS status: flattened by its provider before publish.
-            "KosComputeStatus",
-            // kos.processors / kos.terminal.<coreId> / kos.run.<coreId>,
-            // Gonogo.KosUplink.Kos*Builder.Build() returns a
-            // Dictionary<string, object?> and the actual publish call sites
-            // (KosExtension.HandleProcessors, KosExtension.Ksp.cs's terminal
-            // and run publish delegates) flatten through it before reaching
-            // the Courier, so JsonWriter only ever sees the flattened
-            // dictionary; the POCOs exist for the generated TS shape only.
-            "KosProcessorInfo", "KosTerminalFrame", "KosRunResult",
             // fleet.<guid>.delay: FleetVesselLinkBuilder.Build returns a
             // Dictionary<string, object?> and FleetDelayUplink.HandleOnCourier
             // publishes that, so JsonWriter only ever sees the flattened
@@ -142,26 +132,27 @@ namespace Sitrep.Core.Tests
             // Inbound command-arg types: only ever DESERIALIZED (client → server);
             // never serialized outbound as a raw POCO.
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",
-            "KosExecArgs", "KosReEnableArgs", "SetActionGroupArgs", "SetEnabledArgs",
+            "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",
             "SetWarpIndexArgs", "SetFlyByWireArgs", "SetControlAxesArgs",
             "ActivateStrategyArgs", "DeactivateStrategyArgs", "UnlockTechArgs",
             "ContractActionArgs", "UpgradeFacilityArgs", "RevertToEditorArgs",
             "SwitchVesselArgs", "LaunchArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",
             "RotorSetValueArgs", "RotorReverseArgs", "ExperimentActionArgs",
-            // kos.terminal.* command args: inbound only (KosExtension.cs
-            // AddCommandHandler for open/keystroke/resize/close); deserialized
-            // client → server, never serialized outbound as a raw POCO. The
-            // OUTBOUND KosTerminalFrame IS allowlisted above (self-flattened
-            // by KosTerminalFrameBuilder at the publish boundary).
-            "KosTerminalOpenArgs", "KosKeystrokeArgs", "KosTerminalResizeArgs",
-            "KosTerminalCloseArgs",
-            // kos.run command args, inbound only (KosExtension.Ksp.cs's Run
-            // handler, AddCommandHandler<KosRunArgs, CommandResult>);
-            // deserialized client → server, never serialized outbound as a raw
-            // POCO. The OUTBOUND KosRunResult IS allowlisted above
-            // (self-flattened by KosRunResultBuilder at the publish boundary).
-            "KosRunArgs",
+            // The eleven kOS payload/command-arg types (kos.processors'
+            // KosProcessorInfo, the dynamic-channel KosTerminalFrame/KosRunResult/
+            // KosComputeStatus, and the seven command args KosExecArgs/
+            // KosReEnableArgs/KosRunArgs/KosTerminalOpenArgs/KosKeystrokeArgs/
+            // KosTerminalResizeArgs/KosTerminalCloseArgs) relocated out of
+            // Sitrep.Contract into GonogoKosUplink.Contract (uplink-types-out-of-core
+            // plan, sixth and last relocation): no longer reflected by this assembly
+            // at all, so no allowlist entries are needed here any more. (For the
+            // record, since this slice held the plan's only types the allowlist had
+            // split across THREE reasons: the three outbound ones were
+            // self-flattened producer-side by Gonogo.KosUplink's Kos*Builder.Build
+            // at the publish boundary, KosComputeStatus was flattened by its
+            // provider, and the seven args were inbound-only. JsonWriter never saw
+            // any of the eleven raw.)
             // mechjeb.* command args relocated out of Sitrep.Contract into
             // GonogoMechJebUplink.Contract (uplink-types-out-of-core pilot):
             // no longer reflected by this assembly at all, so no allowlist
@@ -294,10 +285,12 @@ namespace Sitrep.Core.Tests
             // asserted NOT hidden behind the allowlist, so this test genuinely
             // exercises them (it would have gone RED before their JsonWriter
             // cases existed). KosProcessorInfo used to sit in this same list,
-            // as of the kos migration (2026-07-18) it self-flattens
-            // producer-side (KosProcessorInfoBuilder) and IS allowlisted (see
-            // FlattenedByProducer above), so it no longer belongs in a "must
-            // NOT be allowlisted" assertion.
+            // then moved to the allowlist at the kos migration (2026-07-18) once
+            // it began self-flattening producer-side, and has now left this
+            // assembly altogether for GonogoKosUplink.Contract. Either way it
+            // does not belong in a "must NOT be allowlisted" assertion; the
+            // relocation note in FlattenedByProducer above records where it
+            // went. Its own Uplink's tests own its coverage now.
             foreach (var name in new[]
                      {
                          nameof(CommsConnectivity), nameof(CommsSignalStrength),

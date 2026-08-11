@@ -224,8 +224,48 @@ namespace Sitrep.Contract
         /// the Major-9 floor is carried into Major 10 untouched, so any drift
         /// elsewhere is still caught. The four-member break is recorded for good
         /// in the Major-9 entry of the ledger.</para>
+        ///
+        /// <para><b>Bumped 10 -&gt; 11: the kOS relocation, which completes the
+        /// plan's per-Uplink list.</b> All ELEVEN <c>Kos*</c> types LEFT this
+        /// assembly entirely, relocated into the new
+        /// <c>GonogoKosUplink.Contract</c> project (the sixth and last step of the
+        /// uplink-types-out-of-core plan): the one <c>[SitrepTopic]</c> root
+        /// <c>KosProcessorInfo</c>, the three dynamic-channel payloads
+        /// <c>KosTerminalFrame</c>/<c>KosRunResult</c>/<c>KosComputeStatus</c>, and
+        /// the seven command args <c>KosExecArgs</c>/<c>KosReEnableArgs</c>/
+        /// <c>KosRunArgs</c>/<c>KosTerminalOpenArgs</c>/<c>KosKeystrokeArgs</c>/
+        /// <c>KosTerminalResizeArgs</c>/<c>KosTerminalCloseArgs</c>. Unlike every
+        /// earlier relocation, ALL ELEVEN sit in the outgoing floor, so this Major
+        /// declares eleven <c>type-removed:</c> breaks with no
+        /// added-after-the-freeze remainder: the four P1 compute/processor types
+        /// and the five terminal types landed on the Major-4 line's Minors
+        /// 1-&gt;2 and 3-&gt;4 (see the two Minor-history entries below), and
+        /// <c>KosRunArgs</c>/<c>KosRunResult</c> followed on the same line, so the
+        /// whole slice predates the v6.0 freeze and has been carried into every
+        /// floor since. A Major bump (with a freshly frozen Major-11 floor) is the
+        /// only way to keep
+        /// <c>ContractShapeGateTests.CurrentShapeIsAdditiveOverTheFrozenMajorFloor</c>
+        /// green here. Sanctioned on the same standing grounds as every Major
+        /// above: the mod is still pre-release with NO external Uplinks, and the
+        /// app and mod ship together, so no artifact exists that was built against
+        /// the old shape; the wire FORMAT of <c>kos.processors</c>,
+        /// <c>kos.terminal.&lt;coreId&gt;</c>, <c>kos.run.&lt;coreId&gt;</c>,
+        /// <c>kos.compute.&lt;id&gt;.status</c> and the seven commands is
+        /// unchanged, only which assembly declares them.</para>
+        ///
+        /// <para><b>What the Major-11 floor deliberately does NOT absorb.</b>
+        /// Frozen as the Major-10 floor MINUS exactly those eleven types, never as
+        /// the live reflected shape. The Major-10 floor recorded
+        /// <c>KosProcessorInfo</c> with FIVE members; the live type has six
+        /// (<c>PartName</c> was added later on the same Major-4 line, see the
+        /// Minor-history entry below). Re-freezing from HEAD would have quietly
+        /// taken in that difference along with any other drift standing in the
+        /// contract. Subtracting the type instead removes its five frozen members
+        /// as one declared <c>type-removed:</c> break and leaves every other frozen
+        /// member carried forward untouched, so drift elsewhere is still
+        /// caught.</para>
         /// </remarks>
-        public const int Major = 10;
+        public const int Major = 11;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -313,17 +353,17 @@ namespace Sitrep.Contract
         /// <c>local_docs/telemetry-mod/comms-uplink-design.md</c>.</para>
         ///
         /// <para>Bumped 1 -&gt; 2: additive-only Minor for the kOS Uplink P1
-        /// compute/processor wire types (<see cref="KosProcessorInfo"/>,
-        /// <see cref="KosComputeStatus"/>, <see cref="KosExecArgs"/>,
-        /// <see cref="KosReEnableArgs"/>): brand-new <c>[SitrepContract]</c>
+        /// compute/processor wire types (<c>KosProcessorInfo</c>,
+        /// <c>KosComputeStatus</c>, <c>KosExecArgs</c>,
+        /// <c>KosReEnableArgs</c>): brand-new <c>[SitrepContract]</c>
         /// types only, no existing type touched, so it cannot break any Uplink
         /// built against an older Minor. See <c>kos-migration-spec.md</c> §4-5
         /// and <c>.superpowers/sdd/u3-kos-report.md</c>.</para>
         ///
         /// <para>Bumped 3 -&gt; 4: additive-only Minor for the kOS interactive
-        /// terminal-over-Uplink wire types (<see cref="KosTerminalFrame"/>,
-        /// <see cref="KosTerminalOpenArgs"/>, <see cref="KosKeystrokeArgs"/>,
-        /// <see cref="KosTerminalResizeArgs"/>, <see cref="KosTerminalCloseArgs"/>),
+        /// terminal-over-Uplink wire types (<c>KosTerminalFrame</c>,
+        /// <c>KosTerminalOpenArgs</c>, <c>KosKeystrokeArgs</c>,
+        /// <c>KosTerminalResizeArgs</c>, <c>KosTerminalCloseArgs</c>),
         /// the <c>kos.terminal.&lt;coreId&gt;</c> ReliableOrdered screen
         /// downlink + its single-owner keystroke/resize/open/close commands,
         /// replacing the standalone telnet proxy. Brand-new
@@ -476,7 +516,7 @@ namespace Sitrep.Contract
         /// against an older Minor.</para>
         ///
         /// <para>Same Minor batch (Major 6 parked): added the new nullable
-        /// <see cref="KosProcessorInfo.PartName"/> (the CPU part's display title,
+        /// <c>KosProcessorInfo.PartName</c> (the CPU part's display title,
         /// e.g. "Probe Core"), so the kOS terminal's CPU picker can label an
         /// untagged CPU by its part name instead of a bare "CPU &lt;id&gt;". A
         /// NEW nullable field on an existing wire type, additive-only.</para>
