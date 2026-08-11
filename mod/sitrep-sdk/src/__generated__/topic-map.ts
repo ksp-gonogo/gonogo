@@ -32,6 +32,8 @@ import type {
   FlightVesselChanged,
   GameDlc,
   InstrumentEntry,
+  IsruConverterEntry,
+  IsruDrillEntry,
   LabEntry,
   LaunchSiteEntry,
   PartsPower,
@@ -93,6 +95,8 @@ export interface GeneratedTopicPayloadMap {
   "flight.started": FlightStarted;
   "flight.vesselChanged": FlightVesselChanged;
   "game.dlc": GameDlc;
+  "isru.converters": IsruConverterEntry[];
+  "isru.drills": IsruDrillEntry[];
   "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
   "recovery.lastSummary": RecoveryReport;
@@ -157,6 +161,8 @@ export const GENERATED_TOPIC_IDS = [
   "flight.started",
   "flight.vesselChanged",
   "game.dlc",
+  "isru.converters",
+  "isru.drills",
   "ksp.revertAvailability",
   "parts.power",
   "recovery.lastSummary",

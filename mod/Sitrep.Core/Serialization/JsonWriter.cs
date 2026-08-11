@@ -314,6 +314,19 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.ReliabilityPartEntry reliabilityPartEntry:
                     AppendReliabilityPartEntry(sb, reliabilityPartEntry);
                     break;
+                case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
+                    // Same boundary again: isru.drills/isru.converters publish
+                    // List<IsruDrillEntry>/List<IsruConverterEntry> raw, whose
+                    // elements route through here one by one, and a converter's
+                    // recipe flows nest one level deeper still.
+                    AppendIsruDrillEntry(sb, isruDrillEntry);
+                    break;
+                case Sitrep.Contract.IsruConverterEntry isruConverterEntry:
+                    AppendIsruConverterEntry(sb, isruConverterEntry);
+                    break;
+                case Sitrep.Contract.IsruResourceFlow isruResourceFlow:
+                    AppendIsruResourceFlow(sb, isruResourceFlow);
+                    break;
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
@@ -586,6 +599,101 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.IsruDrillEntry"/> to the wire
+        /// object <c>{ partId, partTitle, resource, deployed, running, abundance,
+        /// rate }</c>, plus <c>extensions</c> when a provider filled its namespace
+        /// (see <see cref="AppendProviderExtensions"/>, and note that key is OMITTED
+        /// rather than null when empty): camelCase keys, JSON null for absent
+        /// nullable fields, matching the generated SDK interface. <c>isru.drills</c>
+        /// publishes a <c>List&lt;IsruDrillEntry&gt;</c> raw, whose elements route
+        /// through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
+        /// </summary>
+        private static void AppendIsruDrillEntry(StringBuilder sb, Sitrep.Contract.IsruDrillEntry d)
+        {
+            sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, d.PartId);
+            sb.Append(',');
+            AppendString(sb, "partTitle");
+            sb.Append(':');
+            AppendNullableString(sb, d.PartTitle);
+            sb.Append(',');
+            AppendString(sb, "resource");
+            sb.Append(':');
+            AppendNullableString(sb, d.Resource);
+            sb.Append(',');
+            AppendString(sb, "deployed");
+            sb.Append(':');
+            AppendNullableBool(sb, d.Deployed);
+            sb.Append(',');
+            AppendString(sb, "running");
+            sb.Append(':');
+            AppendNullableBool(sb, d.Running);
+            sb.Append(',');
+            AppendString(sb, "abundance");
+            sb.Append(':');
+            AppendNullableNumber(sb, d.Abundance);
+            sb.Append(',');
+            AppendString(sb, "rate");
+            sb.Append(':');
+            AppendNullableNumber(sb, d.Rate);
+            AppendProviderExtensions(sb, d.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.IsruConverterEntry"/> to the wire
+        /// object <c>{ partId, partTitle, running, inputs, outputs }</c>, plus
+        /// <c>extensions</c> when a provider filled its namespace. The two recipe
+        /// sides are ALWAYS written as arrays, empty rather than null, because the
+        /// contract declares them non-nullable lists: a converter with no recipe has
+        /// no flows, which is an empty recipe rather than an unknown one.
+        /// </summary>
+        private static void AppendIsruConverterEntry(StringBuilder sb, Sitrep.Contract.IsruConverterEntry c)
+        {
+            sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, c.PartId);
+            sb.Append(',');
+            AppendString(sb, "partTitle");
+            sb.Append(':');
+            AppendNullableString(sb, c.PartTitle);
+            sb.Append(',');
+            AppendString(sb, "running");
+            sb.Append(':');
+            AppendNullableBool(sb, c.Running);
+            sb.Append(',');
+            AppendString(sb, "inputs");
+            sb.Append(':');
+            AppendArray(sb, c.Inputs ?? new List<Sitrep.Contract.IsruResourceFlow>());
+            sb.Append(',');
+            AppendString(sb, "outputs");
+            sb.Append(':');
+            AppendArray(sb, c.Outputs ?? new List<Sitrep.Contract.IsruResourceFlow>());
+            AppendProviderExtensions(sb, c.Extensions);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.IsruResourceFlow"/> to the wire
+        /// object <c>{ resource, rate }</c>. Nested inside a converter entry's two
+        /// recipe sides, never published on its own.
+        /// </summary>
+        private static void AppendIsruResourceFlow(StringBuilder sb, Sitrep.Contract.IsruResourceFlow f)
+        {
+            sb.Append('{');
+            AppendString(sb, "resource");
+            sb.Append(':');
+            AppendNullableString(sb, f.Resource);
+            sb.Append(',');
+            AppendString(sb, "rate");
+            sb.Append(':');
+            AppendNullableNumber(sb, f.Rate);
+            sb.Append('}');
+        }
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightCurrent"/> to the wire

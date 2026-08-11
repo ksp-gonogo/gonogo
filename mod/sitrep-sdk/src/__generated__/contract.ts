@@ -407,6 +407,31 @@ export interface GameDlc
 	breakingGround: boolean;
 	makingHistory: boolean;
 }
+export interface IsruDrillEntry
+{
+	partId?: string;
+	partTitle?: string;
+	resource?: string;
+	deployed?: boolean;
+	running?: boolean;
+	abundance?: Value<"ratio">;
+	rate?: Value<"units/s">;
+	extensions?: ProviderExtensions;
+}
+export interface IsruResourceFlow
+{
+	resource?: string;
+	rate?: Value<"units/s">;
+}
+export interface IsruConverterEntry
+{
+	partId?: string;
+	partTitle?: string;
+	running?: boolean;
+	inputs: IsruResourceFlow[];
+	outputs: IsruResourceFlow[];
+	extensions?: ProviderExtensions;
+}
 export enum Quality {
 	OnRails = 0,
 	Loaded = 1

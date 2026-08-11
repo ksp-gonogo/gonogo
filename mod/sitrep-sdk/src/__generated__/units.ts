@@ -415,6 +415,24 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     resettable: "flag",
     title: "text",
   },
+  "IsruConverterEntry": {
+    partId: "id",
+    partTitle: "text",
+    running: "flag",
+  },
+  "IsruDrillEntry": {
+    abundance: "ratio",
+    deployed: "flag",
+    partId: "id",
+    partTitle: "text",
+    rate: "units/s",
+    resource: "text",
+    running: "flag",
+  },
+  "IsruResourceFlow": {
+    rate: "units/s",
+    resource: "text",
+  },
   "LabEntry": {
     dataStorage: "Mit",
     dataStored: "Mit",
@@ -1122,6 +1140,20 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     breakingGround: "flag",
     makingHistory: "flag",
   },
+  "isru.converters": {
+    partId: "id",
+    partTitle: "text",
+    running: "flag",
+  },
+  "isru.drills": {
+    abundance: "ratio",
+    deployed: "flag",
+    partId: "id",
+    partTitle: "text",
+    rate: "units/s",
+    resource: "text",
+    running: "flag",
+  },
   "ksp.revertAvailability": {
     canRevertToEditor: "flag",
     canRevertToLaunch: "flag",
@@ -1552,6 +1584,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "IUplinkHost": {
     kernel: "Kernel",
   },
+  "IsruConverterEntry": {
+    inputs: "IsruResourceFlow",
+    outputs: "IsruResourceFlow",
+  },
   "ManeuverNode": {
     patches: "OrbitPatch",
   },
@@ -1716,6 +1752,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "dv.stages": {
     resources: "*ResourceAmount",
+  },
+  "isru.converters": {
+    inputs: "IsruResourceFlow",
+    outputs: "IsruResourceFlow",
   },
   "parts.power": {
     alternators: "AlternatorEntry",

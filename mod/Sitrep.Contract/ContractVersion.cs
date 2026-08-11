@@ -707,7 +707,20 @@ namespace Sitrep.Contract
         /// in a mits-typed field would have been a silent lie rather than a
         /// superset. See
         /// <c>local_docs/design/2026-08-11-science-subsume-build-spec.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 2 -&gt; 3: the isru.* capability.</b> Two
+        /// new Kernel-elected channels (<c>isru.drills</c>, <c>isru.converters</c>)
+        /// and three new types (<see cref="IsruDrillEntry"/>,
+        /// <see cref="IsruConverterEntry"/>, <see cref="IsruResourceFlow"/>), both
+        /// entry types carrying the provider extension bag from the outset rather
+        /// than growing a hand-curated superset first. Purely additive: no existing
+        /// type gains, loses or retypes a member, so an Uplink built against any
+        /// earlier Major-12 minor is unaffected and the frozen Major-12 floor is NOT
+        /// re-frozen. Every unit these types use already existed in
+        /// <see cref="Units"/>, so no unit token was declared and no existing field
+        /// changed dimension. See
+        /// <c>local_docs/design/2026-08-10-isru-resource-ops-topic-api.md</c>.</para>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

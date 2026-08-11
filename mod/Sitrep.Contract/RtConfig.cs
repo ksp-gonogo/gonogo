@@ -264,6 +264,11 @@ public static class RtConfig
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
+                // isru.* capability channels (Domain-neutral; see Isru.cs) + the
+                // nested recipe-flow shape both converter sides are lists of
+                typeof(IsruDrillEntry),
+                typeof(IsruConverterEntry),
+                typeof(IsruResourceFlow),
                 // avionics.status (AvionicsStatus) moved OUT of core into
                 // GonogoAvionicsUplink.Contract, mechjeb.engageAscentAutopilot /
                 // mechjeb.executeNextNode / mechjeb.landAtTarget command args moved

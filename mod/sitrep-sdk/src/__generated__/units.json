@@ -381,6 +381,24 @@
       "resettable": "flag",
       "title": "text"
     },
+    "IsruConverterEntry": {
+      "partId": "id",
+      "partTitle": "text",
+      "running": "flag"
+    },
+    "IsruDrillEntry": {
+      "abundance": "ratio",
+      "deployed": "flag",
+      "partId": "id",
+      "partTitle": "text",
+      "rate": "units/s",
+      "resource": "text",
+      "running": "flag"
+    },
+    "IsruResourceFlow": {
+      "rate": "units/s",
+      "resource": "text"
+    },
     "LabEntry": {
       "dataStorage": "Mit",
       "dataStored": "Mit",
@@ -1083,6 +1101,20 @@
       "breakingGround": "flag",
       "makingHistory": "flag"
     },
+    "isru.converters": {
+      "partId": "id",
+      "partTitle": "text",
+      "running": "flag"
+    },
+    "isru.drills": {
+      "abundance": "ratio",
+      "deployed": "flag",
+      "partId": "id",
+      "partTitle": "text",
+      "rate": "units/s",
+      "resource": "text",
+      "running": "flag"
+    },
     "ksp.revertAvailability": {
       "canRevertToEditor": "flag",
       "canRevertToLaunch": "flag"
@@ -1495,6 +1527,10 @@
     "IUplinkHost": {
       "kernel": "Kernel"
     },
+    "IsruConverterEntry": {
+      "inputs": "IsruResourceFlow",
+      "outputs": "IsruResourceFlow"
+    },
     "ManeuverNode": {
       "patches": "OrbitPatch"
     },
@@ -1657,6 +1693,10 @@
     },
     "dv.stages": {
       "resources": "*ResourceAmount"
+    },
+    "isru.converters": {
+      "inputs": "IsruResourceFlow",
+      "outputs": "IsruResourceFlow"
     },
     "parts.power": {
       "alternators": "AlternatorEntry",
