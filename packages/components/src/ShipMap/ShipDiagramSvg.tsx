@@ -68,6 +68,20 @@ export interface ShipDiagramSvgProps {
   /** Fired on keyboard focus with the focused part's pre-transform centre,
    *  so the parent can position a tooltip near it. */
   onPartFocus?: (part: ShipMapPart, center: { x: number; y: number }) => void;
+  /**
+   * Fired when a part is ACTIVATED rather than merely pointed at: a left click,
+   * Enter/Space on the focused part, or a right click (`contextmenu`, which is
+   * also what a touch long-press raises). Carries the same pre-transform centre
+   * as `onPartFocus` so the parent can anchor a popover to the part.
+   *
+   * Both mouse buttons are bound on purpose: right-click matches KSP's own PAW
+   * muscle memory, and left-click/Enter is what makes the same surface reachable
+   * without a mouse, so neither audience needs a second UI.
+   */
+  onPartActivate?: (
+    part: ShipMapPart,
+    center: { x: number; y: number },
+  ) => void;
   /** Current `f.throttle` (0..1+). Gates engine-flame overlays so a
    *  staged-but-idle engine doesn't render thrust. Defaults to 1 so
    *  snapshot fixtures + the harness keep rendering engine flames
@@ -163,6 +177,7 @@ export function ShipDiagramSvg({
   cam = IDENTITY,
   onPartHover,
   onPartFocus,
+  onPartActivate,
   throttle = 1,
   partMeters,
 }: Readonly<ShipDiagramSvgProps>) {
@@ -304,6 +319,13 @@ export function ShipDiagramSvg({
           const showFuel = p.type === "tank" || p.type === "booster";
           const meters = partMeters?.get(String(p.flightId)) ?? NO_METERS;
 
+          // Screen-space centre of this part, the anchor point both the
+          // focus-tooltip and the action popover position against.
+          const anchor = {
+            x: center.x * cam.zoom + cam.panX,
+            y: center.y * cam.zoom + cam.panY,
+          };
+
           const interactiveProps = interactive
             ? {
                 tabIndex: 0,
@@ -312,13 +334,28 @@ export function ShipDiagramSvg({
                 onPointerEnter: () => onPartHover?.(p),
                 onPointerLeave: () => onPartHover?.(null),
                 onFocus: () => {
-                  onPartFocus?.(p, {
-                    x: center.x * cam.zoom + cam.panX,
-                    y: center.y * cam.zoom + cam.panY,
-                  });
+                  onPartFocus?.(p, anchor);
                   onPartHover?.(p);
                 },
                 onBlur: () => onPartHover?.(null),
+                onClick: () => onPartActivate?.(p, anchor),
+                // Right-click opens the same menu (KSP's own PAW gesture, and
+                // what a touch long-press raises), with the browser's own
+                // context menu suppressed so the two don't both appear.
+                onContextMenu: (e: React.MouseEvent) => {
+                  if (!onPartActivate) return;
+                  e.preventDefault();
+                  onPartActivate(p, anchor);
+                },
+                // A <g role="button"> gets no native keyboard activation, so
+                // Enter/Space are wired explicitly: without this the part would
+                // be focusable but unusable without a mouse.
+                onKeyDown: (e: React.KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onPartActivate?.(p, anchor);
+                  }
+                },
                 style: { cursor: "pointer" as const },
               }
             : {};

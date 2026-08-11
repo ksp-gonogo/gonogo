@@ -381,6 +381,10 @@
       "resettable": "flag",
       "title": "text"
     },
+    "InvokePartActionArgs": {
+      "eventName": "id",
+      "partId": "id"
+    },
     "IsruConverterEntry": {
       "partId": "id",
       "partTitle": "text",
@@ -480,6 +484,19 @@
       "semiMinorAxis": "m",
       "sma": "m",
       "startUt": "s"
+    },
+    "PartActionEntry": {
+      "active": "flag",
+      "advancedTweakable": "flag",
+      "group": "text",
+      "guiActiveUnfocused": "flag",
+      "label": "text",
+      "moduleName": "id",
+      "name": "id",
+      "requireFullControl": "flag"
+    },
+    "PartActions": {
+      "partId": "id"
     },
     "PartBounds": {
       "center.x": "m",
@@ -1549,6 +1566,10 @@
     },
     "ManeuverNode": {
       "patches": "OrbitPatch"
+    },
+    "PartActions": {
+      "actions": "PartActionEntry",
+      "meta": "PayloadMeta"
     },
     "PartsPower": {
       "alternators": "AlternatorEntry",

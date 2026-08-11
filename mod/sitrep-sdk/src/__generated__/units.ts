@@ -415,6 +415,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     resettable: "flag",
     title: "text",
   },
+  "InvokePartActionArgs": {
+    eventName: "id",
+    partId: "id",
+  },
   "IsruConverterEntry": {
     partId: "id",
     partTitle: "text",
@@ -514,6 +518,19 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     semiMinorAxis: "m",
     sma: "m",
     startUt: "s",
+  },
+  "PartActionEntry": {
+    active: "flag",
+    advancedTweakable: "flag",
+    group: "text",
+    guiActiveUnfocused: "flag",
+    label: "text",
+    moduleName: "id",
+    name: "id",
+    requireFullControl: "flag",
+  },
+  "PartActions": {
+    partId: "id",
   },
   "PartBounds": {
     "center.x": "m",
@@ -1606,6 +1623,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ManeuverNode": {
     patches: "OrbitPatch",
+  },
+  "PartActions": {
+    actions: "PartActionEntry",
+    meta: "PayloadMeta",
   },
   "PartsPower": {
     alternators: "AlternatorEntry",

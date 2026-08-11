@@ -33,6 +33,11 @@ export {
   type ActionButtonTone,
 } from "./ActionButton";
 export {
+  ActionMenu,
+  type ActionMenuItem,
+  type ActionMenuProps,
+} from "./ActionMenu";
+export {
   type AugmentSettingField,
   AugmentSettingsPanel,
   type AugmentSettingsPanelProps,

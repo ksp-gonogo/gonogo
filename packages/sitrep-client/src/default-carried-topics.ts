@@ -241,4 +241,11 @@ export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
   // revealed at their source vessel's own light-time. One prefix carries the whole
   // per-vessel namespace, same as fleet. above.
   "currency.",
+  // vessel.partActions.<flightId>: the per-part PAW action lists (mod's
+  // PartActionsViewProvider.TopicPrefix). One prefix carries every part, which is
+  // the only workable form here: the keys are per-part and only ever computed at
+  // interaction time, so they cannot be enumerated up front. The mod only
+  // PRODUCES a part's channel while that part is subscribed, so carrying the
+  // whole prefix costs nothing for parts nobody has open.
+  "vessel.partActions.",
 ];

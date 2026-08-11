@@ -774,7 +774,20 @@ namespace Sitrep.Contract
         /// (<c>currency.&lt;guid&gt;.*</c>), which carry a vessel on the EVENT and
         /// are a different mechanism entirely.</para>
         ///
+        /// <para>Bumped 7 -&gt; 8: PAW part actions. Adds
+        /// <see cref="PartActionEntry"/>/<see cref="PartActions"/> (the payload of
+        /// the new dynamic <c>vessel.partActions.&lt;flightId&gt;</c> namespace, a
+        /// part's right-click Part Action Window buttons) and
+        /// <see cref="InvokePartActionArgs"/> (the args of the new delayed
+        /// <c>vessel.invokePartAction</c> command that fires one). Purely additive,
+        /// two new types plus a new channel namespace and a new command, no
+        /// existing member gains, loses or retypes anything, so an Uplink built
+        /// against any earlier Major-12 minor is unaffected and the frozen Major-12
+        /// floor is NOT re-frozen. <c>PartActions</c> carries NO per-Topic
+        /// <c>vesselId</c>: the dynamic namespace is keyed by the part's flight id
+        /// and the subject boundary belongs at the ledger, the same conclusion the
+        /// withdrawal above records.</para>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }
