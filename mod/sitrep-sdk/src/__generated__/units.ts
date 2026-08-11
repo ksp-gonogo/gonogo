@@ -645,6 +645,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     requiresFunds: "funds",
     totalMass: "t",
   },
+  "ScienceCreditEvent": {
+    amount: "science",
+    subjectId: "id",
+    subjectTitle: "text",
+    ut: "s",
+    vesselId: "id",
+    vesselName: "text",
+  },
   "SensorEntry": {
     active: "flag",
     partId: "id",

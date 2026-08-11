@@ -77,6 +77,13 @@ export {
   normalize01,
 } from "./control-stream-model";
 export {
+  type AgedScienceCredit,
+  type ScienceCreditEvent,
+  scienceCreditTopic,
+  useRevealedScience,
+  useScienceCredit,
+} from "./currency-events";
+export {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
 } from "./default-carried-topics";

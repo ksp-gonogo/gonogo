@@ -1072,6 +1072,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // outright.
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
+      // The source-attributed currency events name Kerbalism in PROSE ONLY, to
+      // record why the science-credit event is a core type rather than a
+      // Kerbalism one: stock's lump credit on transmit-stream completion and
+      // Kerbalism's continuous accrual both arrive on the same stock
+      // GameEvents.OnScienceRecieved hook carrying the same ProtoVessel, so
+      // neither mod needs special handling and the event belongs to core. Zero
+      // code coupling: no Kerbalism type, import, topic or field is referenced.
+      "mod/Gonogo.KSP/CurrencyEventUplink.cs",
+      "mod/Sitrep.Contract/CurrencyEventPayloads.cs",
       // Reliability.cs: the DOMAIN-NEUTRAL reliability capability contract. It
       // names Kerbalism as one of the two backends that can serve the channel
       // (the other being TestFlight) because the whole point of the shape is

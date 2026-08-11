@@ -275,6 +275,15 @@ export interface CrashFlightStats
 	groundDistance: Value<"m">;
 	liftOff: boolean;
 }
+export interface ScienceCreditEvent
+{
+	vesselId: string;
+	vesselName: string;
+	amount: Value<"science">;
+	subjectId: string;
+	subjectTitle: string;
+	ut: Value<"s">;
+}
 export interface StreamData<T>
 {
 	type: "stream-data";

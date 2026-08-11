@@ -127,6 +127,10 @@ public static class RtConfig
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
                 typeof(FleetVesselLink),
+                // currency.<guid>.* source-attributed currency events: a discrete
+                // per-vessel delta revealed at its SOURCE vessel's light-time, so an
+                // operator cannot infer a distant event from the instant career total.
+                typeof(ScienceCreditEvent),
                 // kos.* channels + the kos.terminal.<coreId> / kos.run.<coreId>
                 // dynamic-channel payloads and their command args: see the
                 // trailing comment below (moved OUT of core into

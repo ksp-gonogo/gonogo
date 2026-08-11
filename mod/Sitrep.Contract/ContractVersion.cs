@@ -720,7 +720,23 @@ namespace Sitrep.Contract
         /// <see cref="Units"/>, so no unit token was declared and no existing field
         /// changed dimension. See
         /// <c>local_docs/design/2026-08-10-isru-resource-ops-topic-api.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 3 -&gt; 4: source-attributed currency
+        /// events.</b> A new per-vessel dynamic namespace
+        /// <c>currency.&lt;guid&gt;.&lt;currency&gt;</c> and its
+        /// <see cref="ScienceCreditEvent"/> type: a discrete currency delta carrying
+        /// the vessel that caused it, revealed at THAT vessel's own light-time (the
+        /// topic routes to the per-vessel <c>fleet.&lt;guid&gt;</c> node) instead of
+        /// instantly. Closes the inference gap where an operator could read a distant
+        /// event off the instant career total before the confirming vessel telemetry
+        /// was allowed to arrive. Purely additive: <c>career.status</c> and every one of
+        /// its <c>economy</c> fields keep their existing shape and their
+        /// <see cref="DelayRole.TrueNow"/> classification (they gate spend decisions and
+        /// must stay ground-truth), so an Uplink built against any earlier Major-12
+        /// minor is unaffected and the frozen Major-12 floor is NOT re-frozen. Every
+        /// unit these types use already existed in <see cref="Units"/>. See
+        /// <c>local_docs/design/2026-08-10-currency-delay-escape-hatch.md</c>.</para>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }

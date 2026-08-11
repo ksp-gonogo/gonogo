@@ -237,4 +237,8 @@ export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
   // the store timelines each vessel's delayed elements/link facts and useStream
   // samples them (a dead-reckoned fleet position + FleetRoster per-row delay).
   "fleet.",
+  // currency.<guid>.science (+ .reputation): source-attributed currency events,
+  // revealed at their source vessel's own light-time. One prefix carries the whole
+  // per-vessel namespace, same as fleet. above.
+  "currency.",
 ];

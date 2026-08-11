@@ -69,20 +69,64 @@ namespace Sitrep.Host
         public const string FleetNodePrefix = "fleet.";
 
         /// <summary>
+        /// Source-attributed currency-event namespace: a
+        /// "currency.&lt;guid&gt;.&lt;currency&gt;" topic records under the SAME
+        /// per-vessel node "fleet.&lt;guid&gt;" that vessel's telemetry uses, so the
+        /// event is revealed at <c>DelayTo(vantage, thatVessel)</c> -- the light-time
+        /// of the vessel the delta came FROM, not the observer's ambient
+        /// vantage-to-KSC delay (which is 0 for an operator at the default KSC
+        /// vantage, i.e. no delay at all) and not the active vessel's.
+        ///
+        /// <para>A currency total reveals instantly (<c>career.status</c> is
+        /// <see cref="DelayRole.TrueNow"/>, deliberately: it gates spend decisions)
+        /// while the vessel telemetry that would confirm the underlying event is
+        /// Delayed, so an operator could infer a distant event early by watching the
+        /// number. Attributing a delta to its source vessel and revealing it on that
+        /// vessel's own clock closes that gap without touching the gating total.</para>
+        ///
+        /// <para>A DISJOINT prefix rather than publishing under
+        /// <see cref="FleetNodePrefix"/> directly, because
+        /// <see cref="RegisterDynamicNamespace"/> is last-registration-wins per
+        /// prefix: a second uplink registering "fleet." would overwrite the fleet
+        /// capture's LossyLatest template (and its channel ownership) with the
+        /// event lane's ReliableOrdered one. Same node, own namespace.</para>
+        /// </summary>
+        public const string CurrencyEventPrefix = "currency.";
+
+        /// <summary>
         /// Resolves the Courier node a topic records/subscribes under. A
         /// per-vessel "fleet.&lt;guid&gt;.&lt;field&gt;" topic maps to its own node
-        /// "fleet.&lt;guid&gt;"; everything else stays on the single
-        /// <see cref="NodeId"/>. This is the ONLY seam that makes the node axis
+        /// "fleet.&lt;guid&gt;", and a source-attributed
+        /// "currency.&lt;guid&gt;.&lt;currency&gt;" event maps to that same per-vessel
+        /// node (see <see cref="CurrencyEventPrefix"/>); everything else stays on the
+        /// single <see cref="NodeId"/>. This is the ONLY seam that makes the node axis
         /// per-vessel (Plan 2) -- the Courier/Archive already key by opaque node.
         /// </summary>
         internal static string NodeForTopic(string topic)
         {
+            if (topic.StartsWith(CurrencyEventPrefix, StringComparison.Ordinal))
+            {
+                var guid = GuidSegment(topic, CurrencyEventPrefix.Length);
+                return guid == null ? NodeId : FleetNodePrefix + guid;
+            }
             if (!topic.StartsWith(FleetNodePrefix, StringComparison.Ordinal))
             {
                 return NodeId;
             }
             var dot = topic.IndexOf('.', FleetNodePrefix.Length);
             return dot < 0 ? NodeId : topic.Substring(0, dot);
+        }
+
+        /// <summary>
+        /// The vessel-guid segment of a per-vessel topic: the text between
+        /// <paramref name="start"/> and the next '.', or null when the topic carries
+        /// no field after the guid (a bare "currency.&lt;guid&gt;" is not a channel, so
+        /// it falls back to <see cref="NodeId"/> rather than inventing a node).
+        /// </summary>
+        private static string? GuidSegment(string topic, int start)
+        {
+            var dot = topic.IndexOf('.', start);
+            return dot <= start ? null : topic.Substring(start, dot - start);
         }
 
         private static readonly TimeSpan JobPollInterval = TimeSpan.FromMilliseconds(50);
