@@ -12,7 +12,8 @@ namespace Gonogo.KSP.CommandCentres
     /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> pass covers all three with no KK
     /// API dependency). Static membership, but the node list is re-read each pass.
     /// The enumerator is injectable so the source is unit-testable without a live
-    /// scene (run at the full-sln fold; this worktree has no KSP refs).
+    /// scene. The node and body come through <see cref="CommNetHomeAccess"/> because
+    /// stock keeps both protected.
     /// </summary>
     public sealed class StockHomeNodeSource : ICommandCentreSource
     {
@@ -31,7 +32,13 @@ namespace Gonogo.KSP.CommandCentres
         {
             foreach (var home in _homes())
             {
-                if (home == null || home.comm == null)
+                if (home == null)
+                {
+                    continue;
+                }
+
+                var comm = CommNetHomeAccess.Comm(home);
+                if (comm == null)
                 {
                     continue;
                 }
@@ -43,14 +50,14 @@ namespace Gonogo.KSP.CommandCentres
                     id,
                     name,
                     CommandCentreKind.GroundStation,
-                    BodyIndexOf(home.body),
-                    home.comm,
-                    home.comm.precisePosition,
+                    BodyIndexOf(CommNetHomeAccess.Body(home)),
+                    comm,
+                    comm.precisePosition,
                     active: true);
             }
         }
 
-        private static int? BodyIndexOf(CelestialBody body)
+        private static int? BodyIndexOf(CelestialBody? body)
         {
             if (body == null)
             {
