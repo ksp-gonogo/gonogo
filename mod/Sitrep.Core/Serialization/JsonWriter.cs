@@ -469,7 +469,7 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
-        /// object <c>{ unmodeled, malfunction, critical, source,
+        /// object <c>{ vesselId, unmodeled, malfunction, critical, source,
         /// worstReliabilityFraction }</c>, plus <c>extensions</c> when a provider
         /// filled its namespace (see <see cref="AppendProviderExtensions"/>, and note
         /// that key is OMITTED rather than null when empty): camelCase keys, JSON
@@ -482,6 +482,10 @@ namespace Sitrep.Core.Serialization
         private static void AppendReliabilitySummary(StringBuilder sb, Sitrep.Contract.ReliabilitySummary r)
         {
             sb.Append('{');
+            AppendString(sb, "vesselId");
+            sb.Append(':');
+            AppendNullableString(sb, r.VesselId);
+            sb.Append(',');
             AppendString(sb, "unmodeled");
             sb.Append(':');
             AppendNullableBool(sb, r.Unmodeled);
@@ -539,7 +543,7 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilityPartEntry"/> to the wire
-        /// object <c>{ partId, title, group, broken, critical, mtbfHours,
+        /// object <c>{ vesselId, partId, title, group, broken, critical, mtbfHours,
         /// reliabilityFraction, remainingRatedBurn, ignitionsConsumed,
         /// durationConsumed, needsRepair }</c>, plus <c>extensions</c> when a
         /// provider filled its namespace (see
@@ -552,6 +556,10 @@ namespace Sitrep.Core.Serialization
         private static void AppendReliabilityPartEntry(StringBuilder sb, Sitrep.Contract.ReliabilityPartEntry p)
         {
             sb.Append('{');
+            AppendString(sb, "vesselId");
+            sb.Append(':');
+            AppendNullableString(sb, p.VesselId);
+            sb.Append(',');
             AppendString(sb, "partId");
             sb.Append(':');
             AppendNullableString(sb, p.PartId);
@@ -601,7 +609,7 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.IsruDrillEntry"/> to the wire
-        /// object <c>{ partId, partTitle, resource, deployed, running, abundance,
+        /// object <c>{ vesselId, partId, partTitle, resource, deployed, running, abundance,
         /// rate }</c>, plus <c>extensions</c> when a provider filled its namespace
         /// (see <see cref="AppendProviderExtensions"/>, and note that key is OMITTED
         /// rather than null when empty): camelCase keys, JSON null for absent
@@ -612,6 +620,10 @@ namespace Sitrep.Core.Serialization
         private static void AppendIsruDrillEntry(StringBuilder sb, Sitrep.Contract.IsruDrillEntry d)
         {
             sb.Append('{');
+            AppendString(sb, "vesselId");
+            sb.Append(':');
+            AppendNullableString(sb, d.VesselId);
+            sb.Append(',');
             AppendString(sb, "partId");
             sb.Append(':');
             AppendNullableString(sb, d.PartId);
@@ -645,7 +657,7 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.IsruConverterEntry"/> to the wire
-        /// object <c>{ partId, partTitle, running, inputs, outputs }</c>, plus
+        /// object <c>{ vesselId, partId, partTitle, running, inputs, outputs }</c>, plus
         /// <c>extensions</c> when a provider filled its namespace. The two recipe
         /// sides are ALWAYS written as arrays, empty rather than null, because the
         /// contract declares them non-nullable lists: a converter with no recipe has
@@ -654,6 +666,10 @@ namespace Sitrep.Core.Serialization
         private static void AppendIsruConverterEntry(StringBuilder sb, Sitrep.Contract.IsruConverterEntry c)
         {
             sb.Append('{');
+            AppendString(sb, "vesselId");
+            sb.Append(':');
+            AppendNullableString(sb, c.VesselId);
+            sb.Append(',');
             AppendString(sb, "partId");
             sb.Append(':');
             AppendNullableString(sb, c.PartId);

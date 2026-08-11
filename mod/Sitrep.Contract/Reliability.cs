@@ -38,6 +38,23 @@ namespace Sitrep.Contract;
 [SitrepTopic("reliability.summary")]
 public class ReliabilitySummary
 {
+    /// <summary>
+    /// The vessel this summary is for: the RAW <c>Vessel.id</c> guid, the same
+    /// identity <c>fleet.&lt;guid&gt;</c> and <c>currency.&lt;guid&gt;.*</c> key
+    /// by and that <see cref="VesselIdentity.VesselId"/> publishes, with no
+    /// <c>"vessel:"</c> prefix.
+    ///
+    /// <para><c>reliability.summary</c> is an active-vessel read on ONE fixed
+    /// topic name and it is <see cref="DelayRole.Delayed"/>, so without this a
+    /// light-time-old "malfunction" cannot be told apart from the current
+    /// vessel's after a switch: it would read as the new ship being broken.
+    /// <see cref="Source"/> names the backend that produced the reading, never
+    /// the craft it describes. Stamped by the core registrar, which owns the
+    /// topic, never by the elected backend.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     /// <summary>True when the elected backend does not model reliability (Kerbalism with Features.Reliability off).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Unmodeled { get; set; }
@@ -78,6 +95,15 @@ public class ReliabilitySummary
 [SitrepTopic("reliability.parts", isArray: true)]
 public class ReliabilityPartEntry
 {
+    /// <summary>
+    /// The vessel this part is on. Same identity, and the same reason, as
+    /// <see cref="ReliabilitySummary.VesselId"/>; repeated per entry because this
+    /// is an array Topic with no enclosing object to hold one copy, and
+    /// <see cref="PartId"/> names a part rather than the vessel carrying it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
     [SitrepUnit(Units.Text)]

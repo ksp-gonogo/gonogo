@@ -99,6 +99,11 @@ namespace Sitrep.Host.Tests
                         {
                             new Dictionary<string, object?>
                             {
+                                // The HOST vessel's own guid, not the active
+                                // vessel's: deployed.bases is a global walk and each
+                                // entry names the cluster it was found on (see
+                                // DeployedEntry.VesselId).
+                                ["vesselId"] = "e34e5a6d-2c1f-4b18-9c4a-1f2b3c4d5e6f",
                                 ["vesselName"] = "Probodobodyne Experiment Control Station",
                                 ["partName"] = "Atmospheric Fluid Spectro-Variometer",
                                 ["body"] = "Mun",

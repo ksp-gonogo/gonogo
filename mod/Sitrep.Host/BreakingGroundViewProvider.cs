@@ -33,7 +33,7 @@ namespace Sitrep.Host
     ///     "brakePercentage", "currentExtension", "targetExtension",
     ///     "counterClockwise", "maxTorque" (rotor entries only, null otherwise) }, ... ] | null
     /// snapshot.Values["parts"]["roboticsAvailable"] = bool   // any Breaking Ground servo on THIS vessel
-    /// snapshot.Values["science"]["deployed"] = [ { "vesselName", "partName", "body", "situation",
+    /// snapshot.Values["science"]["deployed"] = [ { "vesselId", "vesselName", "partName", "body", "situation",
     ///     "biome", "experimentId", "scienceCompletedPercentage",
     ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",
     ///     "powerState", "connectionState", "deployedOnGround" }, ... ] | null
@@ -170,6 +170,11 @@ namespace Sitrep.Host
 
         private static Dictionary<string, object?> BuildDeployedEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
+            // The HOST vessel's own guid, stamped per entry by the capture walk
+            // (Gonogo.KSP.KspHost.BuildDeployedScience). Not the active vessel:
+            // see DeployedEntry.VesselId for why this channel attributes
+            // differently from every other capability payload.
+            ["vesselId"] = SnapshotDict.GetString(raw, "vesselId"),
             ["vesselName"] = SnapshotDict.GetString(raw, "vesselName"),
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
             ["body"] = SnapshotDict.GetString(raw, "body"),

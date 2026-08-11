@@ -65,6 +65,31 @@ public static class ScienceValueModels
 #endif
 public class ExperimentEntry
 {
+    /// <summary>
+    /// The vessel this result is stored on: the RAW <c>Vessel.id</c> guid, the
+    /// same identity <c>fleet.&lt;guid&gt;</c> and <c>currency.&lt;guid&gt;.*</c>
+    /// key by and that <see cref="VesselIdentity.VesselId"/> publishes, with no
+    /// <c>"vessel:"</c> prefix, so a consumer joins across all of them without a
+    /// translation step.
+    ///
+    /// <para>Every <c>science.*</c> channel is an active-vessel read published on
+    /// ONE fixed topic name, and all five are <see cref="DelayRole.Delayed"/>: a
+    /// delivered sample is light-time old while the client's notion of which
+    /// vessel is active is whatever it holds now, so without this a stored-science
+    /// list cached across a vessel switch reads as the NEW ship's science, which
+    /// is the one thing an operator must not be told wrongly before a transmit
+    /// decision. Repeated per entry because this is an array Topic with no
+    /// enclosing object to hold one copy.</para>
+    ///
+    /// <para>Stamped by the core registrar (<c>Gonogo.KSP.ScienceCoreUplink</c>),
+    /// which owns the topic declaration, from the identity on the very snapshot
+    /// the entries were mapped off. NOT by the elected backend: a science-modelling
+    /// mod implements <c>IScienceBackend</c> to model science and must not have to
+    /// know that a fixed-name topic needs a subject.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
@@ -167,6 +192,10 @@ public class ExperimentEntry
 #endif
 public class InstrumentEntry
 {
+    /// <summary>The vessel this instrument is on. Same identity, and the same reason, as <see cref="ExperimentEntry.VesselId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     /// <summary>The part's KSP <c>flightID</c> (stringified): the stable join key for this instrument.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
@@ -226,6 +255,10 @@ public class InstrumentEntry
 #endif
 public class LabEntry
 {
+    /// <summary>The vessel this lab is on. Same identity, and the same reason, as <see cref="ExperimentEntry.VesselId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
@@ -301,6 +334,28 @@ public class LabEntry
 #endif
 public class DeployedEntry
 {
+    /// <summary>
+    /// The vessel this experiment is deployed on: the RAW <c>Vessel.id</c> guid,
+    /// the same identity <c>fleet.&lt;guid&gt;</c> and
+    /// <c>currency.&lt;guid&gt;.*</c> key by and that
+    /// <see cref="VesselIdentity.VesselId"/> publishes.
+    ///
+    /// <para><b>HOST attribution, deliberately NOT active-vessel
+    /// attribution</b>, unlike every other <c>VesselId</c> on a capability
+    /// payload (<see cref="ExperimentEntry.VesselId"/> and friends). This channel
+    /// is a global walk: an entry normally describes a vessel other than the
+    /// active one, so it names the deployed cluster's OWN vessel, read per entry
+    /// in the walk that found it. Stamping the active vessel here would be a
+    /// fiction; naming the host cannot be, because there is exactly one host per
+    /// entry.</para>
+    ///
+    /// <para>What it adds over <see cref="VesselName"/>, which is a display
+    /// string: a stable, unique key. Two clusters can share a name, one rename
+    /// changes it, and neither joins to <c>fleet.&lt;guid&gt;</c>.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     [SitrepUnit(Units.Text)]
     public string? VesselName { get; set; }
 
@@ -367,6 +422,10 @@ public class DeployedEntry
 #endif
 public class SensorEntry
 {
+    /// <summary>The vessel this sensor is on. Same identity, and the same reason, as <see cref="ExperimentEntry.VesselId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     /// <summary>Flight-scoped <c>part.flightID</c> as a string (null when the sentinel 0), the join key that disambiguates symmetric same-named sensor parts.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
@@ -422,6 +481,10 @@ public class SensorEntry
 #endif
 public class ExperimentBreakdownEntry
 {
+    /// <summary>The vessel this rollup covers. Same identity, and the same reason, as <see cref="ExperimentEntry.VesselId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? SubjectId { get; set; }
 

@@ -52,6 +52,13 @@ namespace Sitrep.Host.Tests
         /// </summary>
         private static readonly string[] FrozenSummaryMembers =
         {
+            // Core ATTRIBUTION, not a provider-specific reading: the core
+            // registrar that owns the topic stamps the subject vessel's guid, and
+            // no elected backend can vary it, so it is source-agnostic by
+            // construction rather than by curation. The rule this ratchet holds is
+            // unchanged: a field one provider knows and another does not still goes
+            // in the bag.
+            nameof(ReliabilitySummary.VesselId),
             nameof(ReliabilitySummary.Unmodeled),
             nameof(ReliabilitySummary.Malfunction),
             nameof(ReliabilitySummary.Critical),
@@ -70,6 +77,8 @@ namespace Sitrep.Host.Tests
         /// </summary>
         private static readonly string[] FrozenPartEntryMembers =
         {
+            // Core attribution: see the note on FrozenSummaryMembers above.
+            nameof(ReliabilityPartEntry.VesselId),
             nameof(ReliabilityPartEntry.PartId),
             nameof(ReliabilityPartEntry.Title),
             nameof(ReliabilityPartEntry.Group),

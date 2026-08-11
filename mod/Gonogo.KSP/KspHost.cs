@@ -4004,6 +4004,16 @@ namespace Gonogo.KSP
                     continue;
                 }
 
+                // HOST attribution, deliberately not active-vessel attribution:
+                // this is a global walk, so every entry names the vessel it was
+                // FOUND on (the deployed cluster's own ground vessel), read here
+                // per vessel. That cannot lie the way stamping the active vessel
+                // would, because there is exactly one host per entry. It is the
+                // same raw Vessel.id guid the fleet./currency. namespaces key by,
+                // and it gives deployed.bases the stable, unique key vesselName
+                // has never been (two clusters can share a name; a rename changes
+                // it; neither joins to fleet.<guid>).
+                var vesselId = vessel.id.ToString();
                 var vesselName = vessel.vesselName;
                 var situation = vessel.situation.ToString();
                 var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
@@ -4031,6 +4041,7 @@ namespace Gonogo.KSP
                         list ??= new List<object?>();
                         list.Add(new Dictionary<string, object?>
                         {
+                            ["vesselId"] = vesselId,
                             ["vesselName"] = vesselName,
                             ["partName"] = partName,
                             ["body"] = bodyName,

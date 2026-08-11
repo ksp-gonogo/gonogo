@@ -312,6 +312,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scienceTransmittedPercentage: "%",
     scienceValue: "science",
     situation: "text",
+    vesselId: "id",
     vesselName: "text",
   },
   "DockAlignment": {
@@ -347,6 +348,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     situation: "text",
     subjectId: "id",
     valueModel: "id",
+    vesselId: "id",
   },
   "ExperimentEntry": {
     baseTransmitValue: "science",
@@ -363,6 +365,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
     transmitBonus: "ratio",
     valueModel: "id",
+    vesselId: "id",
   },
   "FleetVesselLink": {
     connected: "flag",
@@ -414,11 +417,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     rerunnable: "flag",
     resettable: "flag",
     title: "text",
+    vesselId: "id",
   },
   "IsruConverterEntry": {
     partId: "id",
     partTitle: "text",
     running: "flag",
+    vesselId: "id",
   },
   "IsruDrillEntry": {
     abundance: "ratio",
@@ -428,6 +433,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     rate: "units/s",
     resource: "text",
     running: "flag",
+    vesselId: "id",
   },
   "IsruResourceFlow": {
     rate: "units/s",
@@ -444,6 +450,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     statusText: "text",
     storedScience: "science",
     valueModel: "id",
+    vesselId: "id",
   },
   "LaunchArgs": {
     crew: "text",
@@ -604,12 +611,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     reliabilityFraction: "ratio",
     remainingRatedBurn: "s",
     title: "text",
+    vesselId: "id",
   },
   "ReliabilitySummary": {
     critical: "flag",
     malfunction: "flag",
     source: "id",
     unmodeled: "flag",
+    vesselId: "id",
     worstReliabilityFraction: "ratio",
   },
   "RemoveManeuverNodeArgs": {
@@ -667,6 +676,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     readout: "text",
     type: "id",
+    vesselId: "id",
   },
   "ServoEntry": {
     brakePercentage: "%",
@@ -1100,6 +1110,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     scienceTransmittedPercentage: "%",
     scienceValue: "science",
     situation: "text",
+    vesselId: "id",
     vesselName: "text",
   },
   "dv.stages": {
@@ -1160,6 +1171,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
     partTitle: "text",
     running: "flag",
+    vesselId: "id",
   },
   "isru.drills": {
     abundance: "ratio",
@@ -1169,6 +1181,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     rate: "units/s",
     resource: "text",
     running: "flag",
+    vesselId: "id",
   },
   "ksp.revertAvailability": {
     canRevertToEditor: "flag",
@@ -1202,12 +1215,14 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     reliabilityFraction: "ratio",
     remainingRatedBurn: "s",
     title: "text",
+    vesselId: "id",
   },
   "reliability.summary": {
     critical: "flag",
     malfunction: "flag",
     source: "id",
     unmodeled: "flag",
+    vesselId: "id",
     worstReliabilityFraction: "ratio",
   },
   "robotics.available": {
@@ -1242,6 +1257,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     situation: "text",
     subjectId: "id",
     valueModel: "id",
+    vesselId: "id",
   },
   "science.experiments": {
     baseTransmitValue: "science",
@@ -1258,6 +1274,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
     transmitBonus: "ratio",
     valueModel: "id",
+    vesselId: "id",
   },
   "science.instruments": {
     dataIsCollectable: "flag",
@@ -1269,6 +1286,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     rerunnable: "flag",
     resettable: "flag",
     title: "text",
+    vesselId: "id",
   },
   "science.lab": {
     dataStorage: "Mit",
@@ -1281,6 +1299,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     statusText: "text",
     storedScience: "science",
     valueModel: "id",
+    vesselId: "id",
   },
   "science.sensors": {
     active: "flag",
@@ -1288,6 +1307,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     readout: "text",
     type: "id",
+    vesselId: "id",
   },
   "spaceCenter.crewRoster": {
     available: "flag",

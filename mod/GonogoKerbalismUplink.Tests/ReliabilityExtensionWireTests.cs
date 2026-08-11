@@ -153,6 +153,14 @@ namespace GonogoKerbalismUplink.Tests
         /// <para>The expected string is written out in full on purpose. A comparison
         /// built by stripping the extensions segment out of the other payload would
         /// pass even if both had drifted together.</para>
+        ///
+        /// <para>One key here postdates the bag: <c>vesselId</c>, the subject the
+        /// channel always needed and never named (see
+        /// <see cref="ReliabilitySummary.VesselId"/>). It is null in these fixtures
+        /// because the CORE registrar stamps it, not the provider whose map this
+        /// exercises, which is exactly the seam that lets a provider stay
+        /// attribution-agnostic. Everything else is byte for byte the pre-bag
+        /// wire.</para>
         /// </summary>
         [Fact]
         public void AnUnextendedPayloadIsByteIdenticalToTheOldWireShape()
@@ -168,7 +176,7 @@ namespace GonogoKerbalismUplink.Tests
 
             Assert.Equal(
                 "{\"type\":\"stream-data\",\"topic\":\"reliability.summary\"," +
-                "\"payload\":{\"unmodeled\":false,\"malfunction\":true,\"critical\":false," +
+                "\"payload\":{\"vesselId\":null,\"unmodeled\":false,\"malfunction\":true,\"critical\":false," +
                 "\"source\":\"kerbalism\",\"worstReliabilityFraction\":null}," +
                 "\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75," +
                 "\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}",
@@ -188,7 +196,7 @@ namespace GonogoKerbalismUplink.Tests
             var json = WriteSummary(KerbalismReliabilityMap.Summary(Raw(), modeled: true));
 
             Assert.Contains(
-                "\"payload\":{\"unmodeled\":false,\"malfunction\":true,\"critical\":false," +
+                "\"payload\":{\"vesselId\":null,\"unmodeled\":false,\"malfunction\":true,\"critical\":false," +
                 "\"source\":\"kerbalism\",\"worstReliabilityFraction\":null,\"extensions\":",
                 json);
         }

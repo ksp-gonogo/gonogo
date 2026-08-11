@@ -78,11 +78,27 @@ namespace Gonogo.KSP
             }
             try
             {
+                // Same source the backend reads (FlightGlobals.ActiveVessel), same
+                // thread, same tick: see IsruCoreUplink.CaptureOnMain and
+                // Sitrep.Host.VesselAttribution for why a fixed-name capability
+                // topic needs a subject and why it is stamped by the uplink that
+                // owns the topic rather than by the elected backend.
+                var vesselId = FlightGlobals.ActiveVessel?.id.ToString();
+
+                var summary = backend.Summary();
+                var parts = new List<ReliabilityPartEntry>(backend.Parts());
+
+                summary.VesselId = vesselId;
+                foreach (var part in parts)
+                {
+                    part.VesselId = vesselId;
+                }
+
                 return new ReliabilityCapture
                 {
                     Ut = snapshot?.Ut ?? 0.0,
-                    Summary = backend.Summary(),
-                    Parts = new List<ReliabilityPartEntry>(backend.Parts()),
+                    Summary = summary,
+                    Parts = parts,
                 };
             }
             catch (Exception)

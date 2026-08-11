@@ -56,6 +56,27 @@ namespace Sitrep.Contract;
 [SitrepTopic("isru.drills", isArray: true)]
 public class IsruDrillEntry
 {
+    /// <summary>
+    /// The vessel this drill is on: the RAW <c>Vessel.id</c> guid, the same
+    /// identity <c>fleet.&lt;guid&gt;</c> and <c>currency.&lt;guid&gt;.*</c> key
+    /// by and that <see cref="VesselIdentity.VesselId"/> publishes, with no
+    /// <c>"vessel:"</c> prefix, so a consumer joins across all of them without a
+    /// translation step.
+    ///
+    /// <para><c>isru.drills</c> is an active-vessel read published on ONE fixed
+    /// topic name, and it is <see cref="DelayRole.Delayed"/>: a delivered sample
+    /// is light-time old while the client's notion of which vessel is active is
+    /// whatever it holds now, so without this a value cached across a vessel
+    /// switch describes the previous ship with nothing in-band to mark the
+    /// boundary. <see cref="PartId"/> does not close that: <c>flightID</c> names
+    /// a part, not the vessel carrying it. Repeated per entry because this is an
+    /// array Topic with no enclosing object to hold one copy. Stamped by the core
+    /// registrar, which owns the topic, never by the elected backend.
+    /// </para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     /// <summary>Part.flightID stringified: the same join key vessel.parts/parts.power/reliability.parts use.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
@@ -143,6 +164,10 @@ public class IsruResourceFlow
 [SitrepTopic("isru.converters", isArray: true)]
 public class IsruConverterEntry
 {
+    /// <summary>The vessel this converter is on. Same identity, and the same reason, as <see cref="IsruDrillEntry.VesselId"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
