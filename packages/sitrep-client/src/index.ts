@@ -78,10 +78,14 @@ export {
 } from "./control-stream-model";
 export {
   type AgedScienceCredit,
+  type ReputationLossEvent,
+  reputationLossTopic,
   type ScienceCreditEvent,
   scienceCreditTopic,
+  useReputationLossEvents,
   useRevealedScience,
   useScienceCredit,
+  useStickyVesselGuids,
 } from "./currency-events";
 export {
   DEFAULT_SITREP_CARRIED_TOPICS,

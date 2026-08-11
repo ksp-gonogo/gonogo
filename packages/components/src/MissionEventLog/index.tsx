@@ -35,6 +35,8 @@ const KIND_SEVERITY: Record<MissionEventKind, Severity | undefined> = {
   eva: "info",
   "contract-completed": "nominal",
   "science-collected": "nominal",
+  // A crew loss is as grave as a crash, and it is the reason the crash mattered.
+  "reputation-loss": "critical",
 };
 
 /** Compact badge label per kind (the full sentence lives in `event.label`). */
@@ -52,6 +54,7 @@ const KIND_LABEL: Record<MissionEventKind, string> = {
   eva: "EVA",
   "contract-completed": "CONTRACT",
   "science-collected": "SCIENCE",
+  "reputation-loss": "REP",
 };
 
 /**

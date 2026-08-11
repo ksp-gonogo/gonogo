@@ -2,7 +2,12 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { useRevealedScience, useScienceCredit } from "./currency-events";
+import {
+  useReputationLossEvents,
+  useRevealedScience,
+  useScienceCredit,
+  useStickyVesselGuids,
+} from "./currency-events";
 import { StubTransport } from "./stub-transport";
 
 function CreditProbe({ guid }: { guid: string }) {
@@ -131,5 +136,123 @@ describe("useRevealedScience", () => {
       </TelemetryProvider>,
     );
     expect(Object.keys(shape).sort()).toEqual(["credits", "revealedTotal"]);
+  });
+});
+
+function LossProbe({ guids }: { guids: string[] }) {
+  const losses = useReputationLossEvents(guids);
+  return (
+    <div>
+      {`losses:${losses.map((l) => `${l.vesselName}${l.delta}@${l.ut}`).join("|")}`}
+    </div>
+  );
+}
+
+const loss = (vesselId: string, delta: number, ut: number) => ({
+  vesselId,
+  vesselName: `Probe ${vesselId}`,
+  delta,
+  cause: "crew-loss",
+  crewLost: ["Jebediah Kerman"],
+  ut,
+});
+
+describe("useReputationLossEvents", () => {
+  it("collects revealed losses newest-first and de-dupes on (vesselId, ut)", async () => {
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    render(
+      <TelemetryProvider client={client}>
+        <LossProbe guids={["a", "b"]} />
+      </TelemetryProvider>,
+    );
+    expect(screen.getByText("losses:")).toBeTruthy();
+
+    act(() => {
+      t.emit("currency.a.reputation", loss("a", -6, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("losses:Probe a-6@100")).toBeTruthy(),
+    );
+
+    // An older loss from another vessel sorts after the newer one.
+    act(() => {
+      t.emit("currency.b.reputation", loss("b", -3, 50));
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText("losses:Probe a-6@100|Probe b-3@50"),
+      ).toBeTruthy(),
+    );
+
+    // The reliable lane replaying the same event does not duplicate the row.
+    act(() => {
+      t.emit("currency.a.reputation", loss("a", -6, 100));
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText("losses:Probe a-6@100|Probe b-3@50"),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("carries no absolute reputation, only a delta", async () => {
+    // Structural guard on the hazard: the number that gates a strategy activate or a
+    // contract accept is career.status.economy.reputation, which stays instant. A
+    // narrative event carrying an absolute could be mistaken for it.
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    let seen: Record<string, unknown> | undefined;
+    function ShapeProbe() {
+      seen = useReputationLossEvents(["a"])[0] as
+        | Record<string, unknown>
+        | undefined;
+      return null;
+    }
+    render(
+      <TelemetryProvider client={client}>
+        <ShapeProbe />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      t.emit("currency.a.reputation", loss("a", -6, 100));
+    });
+    await waitFor(() => expect(seen).toBeTruthy());
+    expect(Object.keys(seen ?? {}).sort()).toEqual([
+      "cause",
+      "crewLost",
+      "delta",
+      "ut",
+      "vesselId",
+      "vesselName",
+    ]);
+  });
+});
+
+describe("useStickyVesselGuids", () => {
+  it("retains a guid after it leaves the roster", async () => {
+    // A destroyed vessel drops off the roster while its own reputation-loss event is
+    // still crossing its light-time. Dropping the subscription with it would mean the
+    // news of the loss never arrives.
+    function StickyProbe({ roster }: { roster: string[] }) {
+      const guids = useStickyVesselGuids(roster);
+      return <div>{`guids:${guids.join("|")}`}</div>;
+    }
+    const { rerender } = render(<StickyProbe roster={["alive", "doomed"]} />);
+    await waitFor(() =>
+      expect(screen.getByText("guids:alive|doomed")).toBeTruthy(),
+    );
+
+    // "doomed" is destroyed and leaves the roster; its guid is retained.
+    rerender(<StickyProbe roster={["alive"]} />);
+    await waitFor(() =>
+      expect(screen.getByText("guids:alive|doomed")).toBeTruthy(),
+    );
+
+    // A newly launched vessel is added alongside.
+    rerender(<StickyProbe roster={["alive", "fresh"]} />);
+    await waitFor(() =>
+      expect(screen.getByText("guids:alive|doomed|fresh")).toBeTruthy(),
+    );
   });
 });

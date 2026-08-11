@@ -139,3 +139,110 @@ export function useRevealedScience(
     [credits, viewUt],
   );
 }
+
+/**
+ * One revealed reputation loss, attributed to the vessel it happened aboard.
+ *
+ * NARRATIVE ONLY. `delta` is a change, never a total, and there is deliberately no
+ * absolute reputation on this shape: the number that GATES (a strategy's minimum-rep
+ * unlock, contract offer availability) is `career.status.economy.reputation`, which
+ * stays instant and untouched. Never render this beside an activate/accept control.
+ */
+export interface ReputationLossEvent {
+  /** The vessel the loss happened aboard. */
+  vesselId: string;
+  /** The vessel's display name at the moment of the loss. */
+  vesselName: string;
+  /** The reputation CHANGE, negative for a penalty (bare wire number). */
+  delta: number;
+  /** What caused it, e.g. `crew-loss`. */
+  cause: string;
+  /** The kerbals lost, all of those folded into this event's `delta`. */
+  crewLost: string[];
+  /** UT the loss HAPPENED at, not when it arrived. */
+  ut: number;
+}
+
+/** The topic one vessel's reputation losses arrive on. */
+export function reputationLossTopic(guid: string): string {
+  return `currency.${guid}.reputation`;
+}
+
+function isReputationLoss(payload: unknown): payload is ReputationLossEvent {
+  if (!payload || typeof payload !== "object") return false;
+  const r = payload as Partial<ReputationLossEvent>;
+  return (
+    typeof r.vesselId === "string" &&
+    typeof r.delta === "number" &&
+    Number.isFinite(r.delta) &&
+    typeof r.ut === "number" &&
+    Number.isFinite(r.ut)
+  );
+}
+
+/**
+ * Every reputation loss revealed for `guids`, newest first.
+ *
+ * Each arrives only once its vessel's light-time has elapsed, so an operator cannot
+ * infer a distant crew loss from the instant career total ticking down.
+ *
+ * Callers should pass a STICKY guid list, not a live roster: a destroyed vessel leaves
+ * the roster while its own event is still crossing its light-time, and a subscription
+ * keyed on the live roster alone would be gone by the time the event matured. The
+ * ledger holds the event either way; only the subscription can go missing.
+ */
+export function useReputationLossEvents(
+  guids: readonly string[],
+): ReputationLossEvent[] {
+  const client = useTelemetryClientOptional();
+  const seen = useRef(new Set<string>());
+  const [losses, setLosses] = useState<ReputationLossEvent[]>([]);
+  const key = guids.join(",");
+
+  useEffect(() => {
+    if (!client) return;
+    const unsubscribes = (key === "" ? [] : key.split(",")).map((guid) =>
+      client.subscribe(reputationLossTopic(guid), (payload) => {
+        if (!isReputationLoss(payload)) return;
+        const id = `${payload.vesselId}:${payload.ut}`;
+        if (seen.current.has(id)) return;
+        seen.current.add(id);
+        setLosses((prev) => [payload, ...prev]);
+      }),
+    );
+    return () => {
+      for (const unsubscribe of unsubscribes) unsubscribe();
+    };
+  }, [client, key]);
+
+  return useMemo(() => [...losses].sort((a, b) => b.ut - a.ut), [losses]);
+}
+
+/**
+ * The vessel guids to keep a source-attributed event subscription open for: every guid
+ * currently in `roster`, plus every guid seen earlier in this session.
+ *
+ * A vessel that is destroyed leaves the roster immediately, but its own reputation-loss
+ * event is still crossing its light-time and will not be revealed for minutes. A
+ * subscription set built from the live roster alone would therefore have dropped that
+ * guid before the event matured, and the news of the loss would never arrive. Retaining
+ * every guid ever seen is bounded by the vessels one save has actually flown, which is
+ * small, and costs one idle subscription each.
+ */
+export function useStickyVesselGuids(
+  roster: readonly string[] | undefined,
+): string[] {
+  const known = useRef<string[]>([]);
+  const [guids, setGuids] = useState<string[]>([]);
+
+  const key = (roster ?? []).join(",");
+  useEffect(() => {
+    const incoming = key === "" ? [] : key.split(",");
+    const added = incoming.filter((guid) => !known.current.includes(guid));
+    if (added.length === 0) return;
+    known.current = [...known.current, ...added];
+    setGuids(known.current);
+  }, [key]);
+
+  return guids;
+}

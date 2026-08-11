@@ -205,12 +205,135 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task ReputationLossIsWithheldUntilTheLosingVesselsLightTimeElapses()
+        {
+            // The operator's own example: a crew loss aboard a vessel five light-minutes
+            // out. career.status.economy.reputation drops instantly (it must: it gates
+            // strategy and contract eligibility), so the narrative event has to be the
+            // thing that waits, and it does.
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CurrencyEventTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, CurrencyEventTopics.Reputation("probe"), Timeout);
+
+                engine.TickAndWait(0.0, Fixture(0.0, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, Fixture(1.0, delay: 4.0, lossDelta: -6.0), Timeout);
+
+                for (var ut = 2.0; ut <= 4.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, Fixture(ut, delay: 4.0), Timeout);
+                }
+                var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(beforeHorizon, f => f.Topic == CurrencyEventTopics.Reputation("probe"));
+
+                engine.TickAndWait(5.0, Fixture(5.0, delay: 4.0), Timeout);
+                var atHorizon = await DrainAllStreamDataAsync(client, Quiet);
+                var revealed = atHorizon.LastOrDefault(f => f.Topic == CurrencyEventTopics.Reputation("probe"));
+                Assert.NotNull(revealed);
+                var payload = Assert.IsType<Dictionary<string, object?>>(revealed!.Payload);
+                Assert.Equal(-6.0, payload["delta"]);
+                Assert.Equal("crew-loss", payload["cause"]);
+                // The UT it happened at, so the log row can say how old the news is.
+                Assert.Equal(1.0, payload["ut"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task TheReputationEventCarriesADeltaAndNoAbsoluteTotal()
+        {
+            // The hard constraint made structural. Reputation GATES (a strategy's
+            // RequiredReputation, contract offer availability), so a stale-high delayed
+            // number in front of an activate/accept control would fail against ground
+            // truth the operator could not see coming. This event therefore carries a
+            // DELTA and no absolute reputation at all, so it cannot be substituted for
+            // the gating figure even by accident. career.status.economy.reputation stays
+            // TrueNow and is untouched by this feature.
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CurrencyEventTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, CurrencyEventTopics.Reputation("onpad"), Timeout);
+
+                engine.TickAndWait(0.0, Fixture(0.0, delay: 0.0), Timeout);
+                engine.TickAndWait(1.0, Fixture(1.0, delay: 0.0, lossDelta: -6.0), Timeout);
+                engine.TickAndWait(2.0, Fixture(2.0, delay: 0.0), Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var arrived = frames.LastOrDefault(f => f.Topic == CurrencyEventTopics.Reputation("onpad"));
+                Assert.NotNull(arrived);
+                var payload = Assert.IsType<Dictionary<string, object?>>(arrived!.Payload);
+                Assert.True(payload.ContainsKey("delta"));
+                foreach (var forbidden in new[] { "reputation", "total", "balance", "current" })
+                {
+                    Assert.False(payload.ContainsKey(forbidden),
+                        $"the narrative reputation event must not carry \"{forbidden}\": only career.status.economy.reputation may report an absolute reputation, and it stays instant");
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task ScienceAndReputationFromTheSameVesselShareOneClock()
+        {
+            // Both currencies route to the same per-vessel node, so a vessel has ONE
+            // light-time and not one per currency.
+            Assert.Equal(
+                ChannelEngine.NodeForTopic(CurrencyEventTopics.Science("probe")),
+                ChannelEngine.NodeForTopic(CurrencyEventTopics.Reputation("probe")));
+
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CurrencyEventTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, CurrencyEventTopics.Science("probe"), Timeout);
+                await SubscribeAsync(client, CurrencyEventTopics.Reputation("probe"), Timeout);
+
+                engine.TickAndWait(0.0, Fixture(0.0, delay: 4.0), Timeout);
+                engine.TickAndWait(1.0, Fixture(1.0, delay: 4.0, creditAmount: 7.8, lossDelta: -6.0), Timeout);
+                for (var ut = 2.0; ut <= 5.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, Fixture(ut, delay: 4.0), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var science = frames.LastOrDefault(f => f.Topic == CurrencyEventTopics.Science("probe"));
+                var reputation = frames.LastOrDefault(f => f.Topic == CurrencyEventTopics.Reputation("probe"));
+                Assert.NotNull(science);
+                Assert.NotNull(reputation);
+                Assert.Equal(science!.Meta.DeliveredAt, reputation!.Meta.DeliveredAt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>
         /// A snapshot carrying one vessel ("probe"/"onpad", keyed by the caller's
         /// subscribe) with <paramref name="delay"/> one-way seconds, and optionally a
-        /// science credit of <paramref name="creditAmount"/> at this UT.
+        /// science credit of <paramref name="creditAmount"/> and/or a reputation loss of
+        /// <paramref name="lossDelta"/> at this UT.
         /// </summary>
-        private static KspSnapshot Fixture(double ut, double delay, double? creditAmount = null)
+        private static KspSnapshot Fixture(
+            double ut,
+            double delay,
+            double? creditAmount = null,
+            double? lossDelta = null)
         {
             var vessels = new List<object?>
             {
@@ -223,10 +346,21 @@ namespace Sitrep.Host.IntegrationTests
                 credits.Add(new Dictionary<string, object?> { ["vesselId"] = "probe", ["amount"] = creditAmount.Value });
                 credits.Add(new Dictionary<string, object?> { ["vesselId"] = "onpad", ["amount"] = creditAmount.Value });
             }
+            var losses = new List<object?>();
+            if (lossDelta.HasValue)
+            {
+                losses.Add(new Dictionary<string, object?> { ["vesselId"] = "probe", ["delta"] = lossDelta.Value });
+                losses.Add(new Dictionary<string, object?> { ["vesselId"] = "onpad", ["delta"] = lossDelta.Value });
+            }
             return new KspSnapshot
             {
                 Ut = ut,
-                Values = new Dictionary<string, object?> { ["vessels"] = vessels, ["credits"] = credits },
+                Values = new Dictionary<string, object?>
+                {
+                    ["vessels"] = vessels,
+                    ["credits"] = credits,
+                    ["losses"] = losses,
+                },
             };
         }
 

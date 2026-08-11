@@ -736,7 +736,22 @@ namespace Sitrep.Contract
         /// minor is unaffected and the frozen Major-12 floor is NOT re-frozen. Every
         /// unit these types use already existed in <see cref="Units"/>. See
         /// <c>local_docs/design/2026-08-10-currency-delay-escape-hatch.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 4 -&gt; 5: the reputation half of the
+        /// source-attributed currency events.</b> A new
+        /// <see cref="ReputationLossEvent"/> on <c>currency.&lt;guid&gt;.reputation</c>,
+        /// the narrative record of a crew loss and the reputation it cost, revealed at the
+        /// losing vessel's own light-time. It carries a DELTA and no absolute total, by
+        /// design: the GATING field <c>career.status.economy.reputation</c> stays TrueNow
+        /// and instant (a strategy's <c>RequiredReputation</c> and contract offer
+        /// availability key off the game's real current reputation, so a stale-high
+        /// delayed number in front of an activate/accept control would fail against ground
+        /// truth the operator could not see coming), and a delta-only type cannot be
+        /// substituted for it. Purely additive, nothing removed or retyped, so the frozen
+        /// Major-12 floor is NOT re-frozen. Every unit already existed in
+        /// <see cref="Units"/>. See
+        /// <c>local_docs/design/2026-08-10-currency-delay-escape-hatch.md</c> §3.</para>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

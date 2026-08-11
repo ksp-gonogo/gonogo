@@ -83,7 +83,22 @@ namespace Sitrep.Host.IntegrationTests
                 }
             }
 
-            return new Captured { Ut = snapshot.Ut, Delays = delays, Credits = credits };
+            var losses = new List<(string VesselId, double Delta)>();
+            if (snapshot.Values.TryGetValue("losses", out var rawLosses)
+                && rawLosses is IEnumerable<object?> lossList)
+            {
+                foreach (var entryObj in lossList)
+                {
+                    if (entryObj is not IDictionary<string, object?> entry) { continue; }
+                    if (entry.TryGetValue("vesselId", out var idObj) && idObj is string vid
+                        && entry.TryGetValue("delta", out var d) && d is double delta)
+                    {
+                        losses.Add((vid, delta));
+                    }
+                }
+            }
+
+            return new Captured { Ut = snapshot.Ut, Delays = delays, Credits = credits, Losses = losses };
         }
 
         internal void HandleOnCourier(object? captured)
@@ -115,6 +130,24 @@ namespace Sitrep.Host.IntegrationTests
                     },
                     cap.Ut);
             }
+
+            foreach (var (vesselId, delta) in cap.Losses)
+            {
+                // Mirror the production CurrencyEventBuilder.BuildReputationLoss dict.
+                // Note there is no absolute reputation on this shape, by design: the
+                // gating total stays on career.status.economy.reputation.
+                _events.Publisher(vesselId + "." + CurrencyEventTopics.ReputationField).Publish(
+                    new Dictionary<string, object?>
+                    {
+                        ["vesselId"] = vesselId,
+                        ["vesselName"] = "Probe " + vesselId,
+                        ["delta"] = delta,
+                        ["cause"] = "crew-loss",
+                        ["crewLost"] = new List<object?> { "Jebediah Kerman" },
+                        ["ut"] = cap.Ut,
+                    },
+                    cap.Ut);
+            }
         }
 
         public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -124,6 +157,7 @@ namespace Sitrep.Host.IntegrationTests
             public double Ut { get; set; }
             public List<(string Id, double Delay)> Delays { get; set; } = new List<(string, double)>();
             public List<(string VesselId, double Amount)> Credits { get; set; } = new List<(string, double)>();
+            public List<(string VesselId, double Delta)> Losses { get; set; } = new List<(string, double)>();
         }
     }
 }

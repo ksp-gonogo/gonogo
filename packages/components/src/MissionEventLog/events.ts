@@ -37,7 +37,8 @@ export type MissionEventKind =
   | "undocking"
   | "eva"
   | "contract-completed"
-  | "science-collected";
+  | "science-collected"
+  | "reputation-loss";
 
 export interface MissionEvent {
   /** Universal Time (game time) the event happened at. */
@@ -166,6 +167,67 @@ export function fromRecovery(raw: unknown): MissionEvent | null {
     label: `Recovered ${nameOf(p)}`,
     detail: funds,
     id: makeId("recovery", ut),
+  };
+}
+
+/**
+ * A source-attributed reputation loss (`currency.<guid>.reputation`).
+ *
+ * Tier A, and the first source here that is genuinely DELAYED per vessel: it is revealed
+ * only after the losing vessel's own light-time, so the log entry is news of something
+ * that happened a while ago. `ageSeconds` (view UT minus the event's own UT) is carried
+ * into the detail for exactly that reason, so the row reads as a report rather than as
+ * something happening now.
+ *
+ * NARRATIVE ONLY. This never contributes to any affordability or eligibility check: the
+ * reputation that GATES a strategy activate or a contract accept is
+ * `career.status.economy.reputation`, which stays instant and untouched.
+ */
+export function fromReputationLoss(
+  raw: unknown,
+  viewUt: number,
+): MissionEvent | null {
+  const p = asObj(raw);
+  const ut = num(p?.ut);
+  const delta = num(p?.delta);
+  if (!p || ut === null || delta === null || delta === 0) return null;
+
+  const vessel =
+    typeof p.vesselName === "string" && p.vesselName.trim().length > 0
+      ? p.vesselName
+      : "vessel";
+  const crew = Array.isArray(p.crewLost)
+    ? p.crewLost.filter((n): n is string => typeof n === "string")
+    : [];
+  const cause = typeof p.cause === "string" && p.cause ? p.cause : "loss";
+  const age = Math.max(0, viewUt - ut);
+  const rounded = Math.round(delta * 10) / 10;
+
+  return {
+    ut,
+    kind: "reputation-loss",
+    // A sign is always shown: a penalty reads "-6", and a positive delta from a
+    // non-stock penalty class would read "+6" rather than silently losing its sign.
+    label: `Reputation ${rounded > 0 ? "+" : ""}${rounded}`,
+    detail: [
+      cause === "crew-loss" ? "crew loss" : cause,
+      vessel,
+      crew.length > 0 ? crew.join(", ") : null,
+      // `writeQuantity`, not a hand-typed "5m12s": `detail` is a string on the event
+      // model and a string cannot hold `<Unit>`, but the ladder and the symbol still
+      // come from the unit registry rather than from the keyboard. Same reasoning as
+      // `fromRecovery`'s funds figure above.
+      `${writeQuantity(value("s", age))} ago`,
+    ]
+      .filter(Boolean)
+      .join(", "),
+    // Keyed on the vessel, not just the UT: two vessels lost in the same instant are
+    // two distinct events.
+    id: makeId(
+      "reputation-loss",
+      ut,
+      typeof p.vesselId === "string" ? p.vesselId : vessel,
+    ),
   };
 }
 

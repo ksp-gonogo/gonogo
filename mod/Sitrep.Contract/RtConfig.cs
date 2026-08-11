@@ -131,6 +131,7 @@ public static class RtConfig
                 // per-vessel delta revealed at its SOURCE vessel's light-time, so an
                 // operator cannot infer a distant event from the instant career total.
                 typeof(ScienceCreditEvent),
+                typeof(ReputationLossEvent),
                 // kos.* channels + the kos.terminal.<coreId> / kos.run.<coreId>
                 // dynamic-channel payloads and their command args: see the
                 // trailing comment below (moved OUT of core into

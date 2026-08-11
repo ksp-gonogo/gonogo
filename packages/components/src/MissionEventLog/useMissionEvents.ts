@@ -1,6 +1,10 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { useEffect, useRef, useState } from "react";
+import {
+  useReputationLossEvents,
+  useStickyVesselGuids,
+  useViewUt,
+} from "@ksp-gonogo/sitrep-client";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import {
   detectContractsCompleted,
@@ -13,6 +17,7 @@ import {
   fromFlightEnded,
   fromFlightStarted,
   fromRecovery,
+  fromReputationLoss,
   fromVesselChanged,
   type MissionEvent,
 } from "./events";
@@ -63,6 +68,21 @@ export function useMissionEvents(): MissionEvent[] {
   const identity = useTelemetry("vessel.identity");
   const career = useTelemetry("career.status");
 
+  // Source-attributed reputation losses: one delayed per-vessel topic each, so the
+  // subscription set is the roster PLUS every guid seen earlier. A destroyed vessel
+  // leaves the roster while its own event is still crossing its light-time, and a
+  // live-roster-only set would have dropped that guid before the news arrived.
+  const roster = useTelemetry("system.vessels");
+  const rosterGuids = useMemo(
+    () =>
+      (roster?.vessels ?? [])
+        .map((v) => v.vesselId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    [roster],
+  );
+  const stickyGuids = useStickyVesselGuids(rosterGuids);
+  const reputationLosses = useReputationLossEvents(stickyGuids);
+
   const byId = useRef<Map<string, MissionEvent>>(new Map());
   const prev = useRef<EdgePrev>({});
   const [events, setEvents] = useState<MissionEvent[]>([]);
@@ -90,6 +110,18 @@ export function useMissionEvents(): MissionEvent[] {
     );
     if (changed) flush();
   }, [flightStarted, flightEnded, vesselChanged, crash, recovery]);
+
+  // Source-attributed reputation losses. Separate from the Tier-A effect above because
+  // this is a LIST that grows as each vessel's event is revealed, not a set of single
+  // "last" slots, and each row is stamped with how old the news is at the moment it
+  // arrives (the whole point of the delayed reveal).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the revealed losses; `add` is stable and `ut` must not re-stamp an already-added row.
+  useEffect(() => {
+    const changed = add(
+      ...reputationLosses.map((loss) => fromReputationLoss(loss, ut)),
+    );
+    if (changed) flush();
+  }, [reputationLosses]);
 
   // Tier B: edge-detect against the previous sample, then update prev.
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the value topics; `add`/`prev` are stable refs.

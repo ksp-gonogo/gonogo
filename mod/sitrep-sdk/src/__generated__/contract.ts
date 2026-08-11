@@ -284,6 +284,15 @@ export interface ScienceCreditEvent
 	subjectTitle: string;
 	ut: Value<"s">;
 }
+export interface ReputationLossEvent
+{
+	vesselId: string;
+	vesselName: string;
+	delta: Value<"rep">;
+	cause: string;
+	crewLost: string[];
+	ut: Value<"s">;
+}
 export interface StreamData<T>
 {
 	type: "stream-data";

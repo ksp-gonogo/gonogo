@@ -73,7 +73,7 @@ namespace Sitrep.Core.Tests
             // a Dictionary<string, object?> and CurrencyEventUplink publishes that, so
             // JsonWriter only ever sees the flattened dictionary; the POCO exists for
             // the generated TS shape only.
-            "ScienceCreditEvent",
+            "ScienceCreditEvent", "ReputationLossEvent",
             // career.status / career.mode: CareerViewProvider builds every one of
             // these as a Dictionary<string, object?> by hand (BuildEconomy/
             // BuildFacilities/BuildContracts/BuildStrategies/BuildTech, and

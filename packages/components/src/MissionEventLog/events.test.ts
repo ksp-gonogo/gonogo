@@ -10,6 +10,7 @@ import {
   fromFlightEnded,
   fromFlightStarted,
   fromRecovery,
+  fromReputationLoss,
   fromVesselChanged,
   type MissionEvent,
 } from "./events";
@@ -124,5 +125,50 @@ describe("Tier B edge detectors", () => {
     expect(detectScienceCollected(25, 25, 1000)).toBeNull();
     expect(detectScienceCollected(25, 10, 1000)).toBeNull(); // total dropping (new flight) is not a collection
     expect(detectScienceCollected(undefined, 5, 1000)).toBeNull();
+  });
+});
+
+describe("fromReputationLoss", () => {
+  const loss = {
+    vesselId: "v-1",
+    vesselName: "Probe Kelnik-3",
+    delta: -6,
+    cause: "crew-loss",
+    crewLost: ["Jebediah Kerman"],
+    ut: 1000,
+  };
+
+  it("reads the delta, the cause, the vessel, the crew, and how old the news is", () => {
+    // Revealed at 1312 for an event at 1000: the vessel was 312 light-seconds out, so
+    // the row must read as a report, not as something happening now.
+    const e = fromReputationLoss(loss, 1312);
+    expect(e).toMatchObject({ kind: "reputation-loss", ut: 1000 });
+    expect(e?.label).toBe("Reputation -6");
+    expect(e?.detail).toContain("crew loss");
+    expect(e?.detail).toContain("Probe Kelnik-3");
+    expect(e?.detail).toContain("Jebediah Kerman");
+    // The duration comes from the unit registry's seconds ladder via writeQuantity,
+    // not from a hand-typed format: 312s renders as "5min 12s".
+    expect(e?.detail).toContain("5min 12s ago");
+  });
+
+  it("keys the id on the vessel so two losses in the same instant stay distinct", () => {
+    const a = fromReputationLoss(loss, 1000);
+    const b = fromReputationLoss({ ...loss, vesselId: "v-2" }, 1000);
+    expect(a?.id).not.toBe(b?.id);
+  });
+
+  it("drops a zero delta and anything unparseable", () => {
+    // An uncrewed vessel costs no reputation in stock, so a zero-delta row would be noise.
+    expect(fromReputationLoss({ ...loss, delta: 0 }, 1000)).toBeNull();
+    expect(fromReputationLoss({ ...loss, ut: undefined }, 1000)).toBeNull();
+    expect(fromReputationLoss(undefined, 1000)).toBeNull();
+    expect(fromReputationLoss("nonsense", 1000)).toBeNull();
+  });
+
+  it("keeps the sign on a positive delta rather than losing it", () => {
+    expect(fromReputationLoss({ ...loss, delta: 4 }, 1000)?.label).toBe(
+      "Reputation +4",
+    );
   });
 });

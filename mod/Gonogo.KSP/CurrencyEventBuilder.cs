@@ -27,5 +27,22 @@ namespace Gonogo.KSP
                 ["subjectTitle"] = subjectTitle,
                 ["ut"] = ut,
             };
+
+        public static Dictionary<string, object?> BuildReputationLoss(
+            string vesselId,
+            string vesselName,
+            double delta,
+            string cause,
+            List<string> crewLost,
+            double ut) =>
+            new Dictionary<string, object?>
+            {
+                ["vesselId"] = vesselId,
+                ["vesselName"] = vesselName,
+                ["delta"] = delta,
+                ["cause"] = cause,
+                ["crewLost"] = new List<object?>(crewLost.ConvertAll(name => (object?)name)),
+                ["ut"] = ut,
+            };
     }
 }

@@ -42,9 +42,38 @@ namespace Gonogo.KSP
     [SitrepUplink("currency")]
     public sealed class CurrencyEventUplink : ISitrepUplink
     {
+        /// <summary>
+        /// How far apart (UT seconds) a crew death and a destruction detector may be and
+        /// still count as the same occurrence for attribution. A crash kills its crew in
+        /// the same physics frame, so this only has to absorb frame-boundary noise.
+        /// </summary>
+        private const double AttributionWindowUt = 2.0;
+
         private IDynamicChannelSource? _events;
         private IUplinkHost? _host;
         private bool _subscribed;
+
+        // The vessel a destruction detector saw most recently, used to attribute a crew
+        // death whose EventReport carries no part (ProtoCrewMember.Die's null origin).
+        private Vessel? _lastDestroyed;
+        private double _lastDestroyedUt = double.NegativeInfinity;
+
+        // Reputation is tracked here because GameEvents.OnReputationChanged fires the new
+        // TOTAL, not the delta (decompile-confirmed: Reputation.AddReputation calls
+        // Fire(rep, reason)). The delta is newTotal - this.
+        private float _lastReputation;
+        private bool _haveReputationBaseline;
+
+        // A VesselLoss reputation change seen before the crew death that explains it. The
+        // two are separate GameEvents subscribers firing in the same frame and their
+        // relative order is not guaranteed, so each half looks for the other.
+        private double _unattributedRepDelta;
+        private double _unattributedRepUt = double.NegativeInfinity;
+
+        // Losses accumulating this frame, keyed by vessel. Published on the next tick
+        // rather than per death so a three-kerbal crash is ONE event carrying the whole
+        // delta and the whole crew list, not three partial ones.
+        private readonly Dictionary<string, PendingLoss> _pendingLosses = new Dictionary<string, PendingLoss>();
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -77,6 +106,14 @@ namespace Gonogo.KSP
                 Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
             });
 
+            // UNGATED per-tick drain (no subscription prefix), the same discipline
+            // CrashUplink uses for its stats capture: a loss must be recorded and
+            // published whether or not a client happens to be watching at that instant,
+            // so a station connecting later still receives it off the reliable lane's
+            // keyframe-on-subscribe. Publishes from the main thread and returns null, so
+            // nothing rides the tick path itself.
+            host.AddSampledSource(DrainPendingLosses, _ => { });
+
             HookGameEvents();
         }
 
@@ -89,6 +126,14 @@ namespace Gonogo.KSP
             _subscribed = true;
 
             GameEvents.OnScienceRecieved.Add(OnScienceReceived);
+            GameEvents.onCrewKilled.Add(OnCrewKilled);
+            GameEvents.OnReputationChanged.Add(OnReputationChanged);
+            // Destruction detectors, hooked ONLY to attribute a crew death to a vessel
+            // (see _lastDestroyed): losing an uncrewed vessel costs no reputation in
+            // stock, so these raise no event of their own.
+            GameEvents.onCrash.Add(OnCrash);
+            GameEvents.onCrashSplashdown.Add(OnCrash);
+            GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
             // The addon hosting this uplink is KSPAddon(once) + DontDestroyOnLoad, so
             // Register runs once per process and these handlers are meant to live
             // process-wide (a credit can land in any scene). Unsubscribe on return to
@@ -113,6 +158,11 @@ namespace Gonogo.KSP
             _subscribed = false;
 
             GameEvents.OnScienceRecieved.Remove(OnScienceReceived);
+            GameEvents.onCrewKilled.Remove(OnCrewKilled);
+            GameEvents.OnReputationChanged.Remove(OnReputationChanged);
+            GameEvents.onCrash.Remove(OnCrash);
+            GameEvents.onCrashSplashdown.Remove(OnCrash);
+            GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
             GameEvents.onGameSceneLoadRequested.Remove(OnSceneUnload);
         }
 
@@ -173,6 +223,228 @@ namespace Gonogo.KSP
             {
                 Debug.LogError("[Gonogo] science credit capture failed: " + ex);
             }
+        }
+
+        private void OnCrash(EventReport report) => RememberDestroyed(report?.origin?.vessel);
+
+        private void OnVesselWillDestroy(Vessel vessel) => RememberDestroyed(vessel);
+
+        /// <summary>
+        /// MAIN-THREAD: note the vessel a destruction detector just saw, so a crew death
+        /// arriving in the same frame with no part on its report can still be attributed.
+        /// </summary>
+        private void RememberDestroyed(Vessel? vessel)
+        {
+            if (vessel == null)
+            {
+                return;
+            }
+            _lastDestroyed = vessel;
+            _lastDestroyedUt = Planetarium.GetUniversalTime();
+        }
+
+        /// <summary>
+        /// MAIN-THREAD reputation-change handler. <c>GameEvents.OnReputationChanged</c>
+        /// carries the new TOTAL and a <c>TransactionReasons</c>, so the delta is derived
+        /// against the last seen total and only a <c>VesselLoss</c> reason is attributed.
+        /// Every other reason (contract reward/penalty, strategy, recruit, admin
+        /// conversion) is left entirely alone on the instant path.
+        ///
+        /// <para>This runs alongside stock's own <c>Reputation.OnCrewKilled</c>
+        /// subscriber and the two orders are both possible, so a VesselLoss delta arriving
+        /// before the crew death that explains it is stashed for that death to claim.</para>
+        /// </summary>
+        private void OnReputationChanged(float newTotal, TransactionReasons reason)
+        {
+            try
+            {
+                if (!_haveReputationBaseline)
+                {
+                    // First observation establishes the baseline only: with no previous
+                    // total there is no honest delta to derive.
+                    _lastReputation = newTotal;
+                    _haveReputationBaseline = true;
+                    return;
+                }
+
+                var delta = (double)newTotal - _lastReputation;
+                _lastReputation = newTotal;
+
+                if (reason != TransactionReasons.VesselLoss || delta == 0.0)
+                {
+                    return;
+                }
+
+                var ut = Planetarium.GetUniversalTime();
+                var pending = FindPendingAt(ut);
+                if (pending != null)
+                {
+                    pending.RepDelta += delta;
+                    return;
+                }
+
+                // The crew death has not been handled yet; hold the delta for it.
+                _unattributedRepDelta += delta;
+                _unattributedRepUt = ut;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Gonogo] reputation change capture failed: " + ex);
+            }
+        }
+
+        /// <summary>
+        /// MAIN-THREAD crew-death handler. <c>ProtoCrewMember.Die</c> fires this with a
+        /// NULL <c>EventReport.origin</c> (decompile-confirmed), so the vessel is resolved
+        /// from the report's part when one is present, else the vessel a destruction
+        /// detector armed in this frame, else the active vessel. With none of those the
+        /// death is dropped rather than blamed on a guess.
+        /// </summary>
+        private void OnCrewKilled(EventReport report)
+        {
+            try
+            {
+                var vessel = report?.origin?.vessel ?? AttributableVessel();
+                if (vessel == null)
+                {
+                    return;
+                }
+
+                var vesselId = vessel.id.ToString();
+                if (string.IsNullOrEmpty(vesselId) || vessel.id == Guid.Empty)
+                {
+                    return;
+                }
+
+                var ut = Planetarium.GetUniversalTime();
+                if (!_pendingLosses.TryGetValue(vesselId, out var pending))
+                {
+                    pending = new PendingLoss
+                    {
+                        VesselId = vesselId,
+                        VesselName = vessel.vesselName ?? string.Empty,
+                        Ut = ut,
+                        Vessel = vessel,
+                    };
+                    _pendingLosses[vesselId] = pending;
+                }
+
+                // EventReport.sender carries the kerbal's name on the crew-death path
+                // (ProtoCrewMember.Die passes it as the report's name).
+                var name = report?.sender ?? string.Empty;
+                if (name.Length > 0 && !pending.CrewLost.Contains(name))
+                {
+                    pending.CrewLost.Add(name);
+                }
+
+                // Claim a VesselLoss delta that arrived before this death.
+                if (_unattributedRepDelta != 0.0 && Math.Abs(ut - _unattributedRepUt) <= AttributionWindowUt)
+                {
+                    pending.RepDelta += _unattributedRepDelta;
+                    _unattributedRepDelta = 0.0;
+                    _unattributedRepUt = double.NegativeInfinity;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Gonogo] crew loss capture failed: " + ex);
+            }
+        }
+
+        /// <summary>The vessel a crew death with no part on its report belongs to.</summary>
+        private Vessel? AttributableVessel()
+        {
+            var ut = Planetarium.GetUniversalTime();
+            if (_lastDestroyed != null && Math.Abs(ut - _lastDestroyedUt) <= AttributionWindowUt)
+            {
+                return _lastDestroyed;
+            }
+            // A death with no destruction behind it (an EVA kerbal, or a crew member lost
+            // aboard a vessel that survives) belongs to the vessel being flown. An EVA
+            // kerbal is itself a Vessel in KSP, so this resolves a real position either way.
+            return FlightGlobals.ActiveVessel;
+        }
+
+        private PendingLoss? FindPendingAt(double ut)
+        {
+            foreach (var pending in _pendingLosses.Values)
+            {
+                if (Math.Abs(ut - pending.Ut) <= AttributionWindowUt)
+                {
+                    return pending;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// MAIN-THREAD per-tick drain: publishes one reputation-loss event per vessel for
+        /// any loss whose frame is over, so every death and every VesselLoss delta from a
+        /// single occurrence is folded into ONE event carrying the whole crew list and the
+        /// whole delta. Returns null: nothing is published on the tick path itself.
+        ///
+        /// <para>A loss with a zero delta is dropped rather than published: an uncrewed
+        /// vessel costs no reputation in stock, and a zero-delta "reputation event" would
+        /// be noise in the log.</para>
+        /// </summary>
+        private object? DrainPendingLosses(KspSnapshot? snapshot)
+        {
+            if (_pendingLosses.Count == 0 || _events == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var now = snapshot?.Ut ?? Planetarium.GetUniversalTime();
+                var settled = new List<PendingLoss>();
+                foreach (var pending in _pendingLosses.Values)
+                {
+                    // Strictly after the loss UT, so everything raised in that frame has
+                    // been folded in before the event goes out.
+                    if (now > pending.Ut)
+                    {
+                        settled.Add(pending);
+                    }
+                }
+
+                foreach (var pending in settled)
+                {
+                    _pendingLosses.Remove(pending.VesselId);
+                    if (pending.RepDelta == 0.0)
+                    {
+                        continue;
+                    }
+
+                    ArmSourceNode(pending.VesselId, pending.Vessel);
+                    var payload = CurrencyEventBuilder.BuildReputationLoss(
+                        pending.VesselId,
+                        pending.VesselName,
+                        pending.RepDelta,
+                        "crew-loss",
+                        pending.CrewLost,
+                        pending.Ut);
+                    _events.Publisher(pending.VesselId + "." + CurrencyEventTopics.ReputationField)
+                        .Publish(payload, pending.Ut);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Gonogo] reputation loss publish failed: " + ex);
+            }
+            return null;
+        }
+
+        /// <summary>One occurrence's losses, accumulating until its frame is over.</summary>
+        private sealed class PendingLoss
+        {
+            public string VesselId = string.Empty;
+            public string VesselName = string.Empty;
+            public double Ut;
+            public double RepDelta;
+            public List<string> CrewLost = new List<string>();
+            /// <summary>Held to read the light-time at publish time; may be torn down by then, which ArmSourceNode tolerates.</summary>
+            public Vessel? Vessel;
         }
 
         /// <summary>

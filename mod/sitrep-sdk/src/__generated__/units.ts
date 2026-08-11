@@ -615,6 +615,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RemoveManeuverNodeArgs": {
     nodeId: "id",
   },
+  "ReputationLossEvent": {
+    cause: "enum",
+    crewLost: "text",
+    delta: "rep",
+    ut: "s",
+    vesselId: "id",
+    vesselName: "text",
+  },
   "ResourceAmount": {
     active: "flag",
     current: "units",
