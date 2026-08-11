@@ -41,8 +41,6 @@ using Xunit;
 /// </summary>
 public class KerbalismWireParityTests
 {
-    private const string VesselId = "e34e5a6d-2c1f-4b18-9c4a-1f2b3c4d5e6f";
-
     /// <summary>
     /// Payload types that are reachable from a Topic root but have NO emitted
     /// instance anywhere in the capture, with the reason. Same polarity and same
@@ -74,8 +72,6 @@ public class KerbalismWireParityTests
     /// </summary>
     private static Dictionary<Type, object?> LocatedInstances()
     {
-        // No guid: kerbalism.spaceweather names no vessel (sun-sourced, see the
-        // payload type's doc comment).
         var spaceWeather = KerbalismCapture.BuildSpaceWeather(
             Snapshot(),
             new[] { new StarInfoRaw { Star = "Sun", DirX = 1, DirY = 0, DirZ = 0, Distance = 1.3e11 } },
@@ -83,7 +79,6 @@ public class KerbalismWireParityTests
             stormEjectionSpeed: 1.2e6);
 
         var lifeSupport = KerbalismCapture.BuildLifeSupport(
-            VesselId,
             Snapshot(),
             new List<ProcessRaw>
             {
@@ -97,7 +92,6 @@ public class KerbalismWireParityTests
             ruleEnvModifiers: new Dictionary<string, double> { ["radiation"] = 1.0 });
 
         var crew = KerbalismCapture.BuildCrew(
-            VesselId,
             new[]
             {
                 new KerbalRulesRaw
@@ -212,7 +206,7 @@ public class KerbalismWireParityTests
             new[] { "KerbalismGreenhouseEntry", "KerbalismLifeSupport.Greenhouses" },
             NoWireInstance.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
 
-        var lifeSupport = KerbalismCapture.BuildLifeSupport(VesselId, Snapshot(), new List<ProcessRaw>());
+        var lifeSupport = KerbalismCapture.BuildLifeSupport(Snapshot(), new List<ProcessRaw>());
         Assert.False(
             lifeSupport.ContainsKey("greenhouses"),
             "BuildLifeSupport now emits \"greenhouses\": drop both NoWireInstance entries so the element shape gets "

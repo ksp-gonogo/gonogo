@@ -8,9 +8,6 @@ public class KerbalismCaptureTests
 {
     // All values grounded in local_docs/kerbalism-fixtures/kerbalism-fixture-baseline-crp.json.
 
-    /// <summary>A stand-in for the captured `Vessel.id.ToString()`, in the shape the fleet./currency. namespaces key by.</summary>
-    private const string VesselId = "e34e5a6d-2c1f-4b18-9c4a-1f2b3c4d5e6f";
-
     [Fact]
     public void BuildSpaceWeather_maps_baseline_crp_fixture()
     {
@@ -56,7 +53,7 @@ public class KerbalismCaptureTests
             },
         };
 
-        var ls = KerbalismCapture.BuildLifeSupport(VesselId, new KerbalismSnapshot(), processes, rates);
+        var ls = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), processes, rates);
 
         var map = (Dictionary<string, object?>)ls["rates"]!;
         Assert.Equal(-1.2035471250352793e-05, (double)map["Food"]!, 12);
@@ -81,33 +78,9 @@ public class KerbalismCaptureTests
     [Fact]
     public void BuildLifeSupport_emits_an_empty_map_rather_than_null_when_no_rates()
     {
-        var ls = KerbalismCapture.BuildLifeSupport(VesselId, new KerbalismSnapshot(), new List<ProcessRaw>());
+        var ls = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), new List<ProcessRaw>());
         var map = (Dictionary<string, object?>)ls["rates"]!;
         Assert.Empty(map);
-    }
-
-    /// <summary>
-    /// The attribution guard: each vessel-scoped payload names the vessel it
-    /// describes, with the RAW guid (no "vessel:" prefix), so it joins directly
-    /// against a fleet.&lt;guid&gt; topic key, currency.&lt;guid&gt;.* and
-    /// vessel.identity.vesselId. A prefixed or reformatted copy here would be a
-    /// second vessel identity, which is the one thing this field must not become.
-    ///
-    /// <para>kerbalism.spaceweather is NOT in this set, on purpose: see
-    /// <see cref="Spaceweather_names_no_vessel_pending_the_sun_sourced_reframe"/>.</para>
-    /// </summary>
-    [Fact]
-    public void The_vessel_scoped_payloads_carry_the_raw_capture_guid()
-    {
-        var ls = KerbalismCapture.BuildLifeSupport(VesselId, new KerbalismSnapshot(), new List<ProcessRaw>());
-        var crew = KerbalismCapture.BuildCrew(
-            VesselId,
-            new[] { new KerbalRulesRaw { Name = "Jebediah Kerman", Trait = "Pilot" } },
-            new Dictionary<string, RuleConstants>());
-
-        Assert.Equal(VesselId, ls["vesselId"]);
-        // Repeated per kerbal: the crew Topic is an array with no enclosing object.
-        Assert.Equal(VesselId, ((Dictionary<string, object?>)crew[0])["vesselId"]);
     }
 
     /// <summary>
@@ -117,13 +90,8 @@ public class KerbalismCaptureTests
     /// geometry describe what the Sun is doing, and the intended shape for this
     /// channel is a sun-sourced one delayed by its own Sun-to-observer geometry
     /// (local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md). Stamping a
-    /// vessel guid on it now would encode the wrong subject and have to be
-    /// unpicked when that reframe lands.
-    ///
-    /// <para>A DISTINCT case from
-    /// <see cref="The_install_wide_payloads_name_no_vessel"/>: kerbalism.features
-    /// and kerbalism.profile have no subject at all, being install-wide facts.
-    /// This payload has one, and it is the Sun. Do not merge the two tests.</para>
+    /// vessel guid on it would encode the wrong subject and have to be unpicked
+    /// when that reframe lands.
     /// </summary>
     [Fact]
     public void Spaceweather_names_no_vessel_pending_the_sun_sourced_reframe()
@@ -135,39 +103,6 @@ public class KerbalismCaptureTests
         // And the declared shape agrees, so nothing reaches the generated TS SDK
         // as a permanently undefined field.
         Assert.Null(typeof(GonogoKerbalismUplink.KerbalismSpaceWeather).GetProperty("VesselId"));
-    }
-
-    /// <summary>
-    /// Absence stays absence: a capture that could not name its vessel emits the
-    /// key as null rather than an empty string, which a consumer joining on the id
-    /// would treat as a real vessel.
-    /// </summary>
-    [Fact]
-    public void An_unattributed_capture_emits_a_null_vessel_id_not_an_empty_string()
-    {
-        var ls = KerbalismCapture.BuildLifeSupport(null, new KerbalismSnapshot(), new List<ProcessRaw>());
-        Assert.True(ls.ContainsKey("vesselId"));
-        Assert.Null(ls["vesselId"]);
-    }
-
-    /// <summary>
-    /// The install-wide channels are deliberately NOT attributed: kerbalism.features
-    /// reports which Kerbalism features the install has enabled and kerbalism.profile
-    /// the loaded profile's own definitions. Neither read touches a vessel, so a
-    /// vesselId on either would be a fiction.
-    ///
-    /// <para>kerbalism.spaceweather is unattributed for a DIFFERENT reason and has
-    /// its own test,
-    /// <see cref="Spaceweather_names_no_vessel_pending_the_sun_sourced_reframe"/>;
-    /// it is neither install-wide nor vessel-attributed.</para>
-    /// </summary>
-    [Fact]
-    public void The_install_wide_payloads_name_no_vessel()
-    {
-        Assert.DoesNotContain(
-            "vesselId",
-            KerbalismCapture.BuildFeatures(new Dictionary<string, bool>()).Keys);
-        Assert.DoesNotContain("vesselId", KerbalismCapture.BuildProfile(new ProfileRaw()).Keys);
     }
 
     // ── kerbalism.profile ────────────────────────────────────────────────────
@@ -346,7 +281,7 @@ public class KerbalismCaptureTests
         {
             ["radiation"] = new RuleConstants { DegenPerSec = 1.0e-05, FatalThreshold = 1.0 },
         };
-        var built = KerbalismCapture.BuildCrew(VesselId, crew, constants);
+        var built = KerbalismCapture.BuildCrew(crew, constants);
         var kerbal = (Dictionary<string, object?>)built[0];
         Assert.Equal("Valentina Kerman", kerbal["name"]);
 

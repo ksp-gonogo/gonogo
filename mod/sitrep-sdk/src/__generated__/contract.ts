@@ -427,7 +427,6 @@ export interface GameDlc
 }
 export interface IsruDrillEntry
 {
-	vesselId?: string;
 	partId?: string;
 	partTitle?: string;
 	resource?: string;
@@ -444,7 +443,6 @@ export interface IsruResourceFlow
 }
 export interface IsruConverterEntry
 {
-	vesselId?: string;
 	partId?: string;
 	partTitle?: string;
 	running?: boolean;
@@ -614,7 +612,6 @@ export interface RecoveryCrewEntry
 }
 export interface ReliabilitySummary
 {
-	vesselId?: string;
 	unmodeled?: boolean;
 	malfunction?: boolean;
 	critical?: boolean;
@@ -624,7 +621,6 @@ export interface ReliabilitySummary
 }
 export interface ReliabilityPartEntry
 {
-	vesselId?: string;
 	partId?: string;
 	title?: string;
 	group?: string;
@@ -668,7 +664,6 @@ export interface ExperimentActionArgs
 }
 export interface ExperimentEntry
 {
-	vesselId?: string;
 	partName?: string;
 	location?: string;
 	experimentId?: string;
@@ -687,7 +682,6 @@ export interface ExperimentEntry
 }
 export interface InstrumentEntry
 {
-	vesselId?: string;
 	partId?: string;
 	partName?: string;
 	experimentId?: string;
@@ -701,7 +695,6 @@ export interface InstrumentEntry
 }
 export interface LabEntry
 {
-	vesselId?: string;
 	partName?: string;
 	dataStored?: Value<"Mit">;
 	dataStorage?: Value<"Mit">;
@@ -716,7 +709,6 @@ export interface LabEntry
 }
 export interface DeployedEntry
 {
-	vesselId?: string;
 	vesselName?: string;
 	partName?: string;
 	body?: string;
@@ -733,7 +725,6 @@ export interface DeployedEntry
 }
 export interface SensorEntry
 {
-	vesselId?: string;
 	partId?: string;
 	partName?: string;
 	type?: string;
@@ -742,7 +733,6 @@ export interface SensorEntry
 }
 export interface ExperimentBreakdownEntry
 {
-	vesselId?: string;
 	subjectId?: string;
 	biome?: string;
 	situation?: string;

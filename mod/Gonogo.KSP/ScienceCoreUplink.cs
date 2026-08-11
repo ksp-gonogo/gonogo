@@ -174,21 +174,11 @@ namespace Gonogo.KSP
             // snapshot. A backend whose data is not on the shared snapshot reads
             // it on the main thread through its own AddSampledSource capture (see
             // IScienceBackend's doc comment); nothing here may touch live KSP.
-            //
-            // ATTRIBUTION wraps every one of them: all five topics are fixed-name
-            // active-vessel reads on a Delayed channel, so a delivered sample must
-            // name the vessel it describes or a value cached across a vessel switch
-            // reads as the new ship's science. The subject is the identity on the
-            // very snapshot the entries were mapped off, never
-            // FlightGlobals.ActiveVessel: this runs on the Courier thread, where
-            // touching KSP is illegal, and the two can differ exactly when it
-            // matters. Stamped here rather than in the backend because this uplink
-            // owns the topic declaration; see Sitrep.Host.VesselAttribution.
-            host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, s => Attribute(Backend().Experiments(s), s));
-            host.AddChannelSource(ScienceViewProvider.InstrumentsTopic, s => Attribute(Backend().Instruments(s), s));
-            host.AddChannelSource(ScienceViewProvider.LabTopic, s => Attribute(Backend().Lab(s), s));
-            host.AddChannelSource(ScienceViewProvider.SensorsTopic, s => Attribute(Backend().Sensors(s), s));
-            host.AddChannelSource(ScienceViewProvider.ExperimentBreakdownTopic, s => Attribute(Backend().ExperimentBreakdown(s), s));
+            host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, s => Backend().Experiments(s));
+            host.AddChannelSource(ScienceViewProvider.InstrumentsTopic, s => Backend().Instruments(s));
+            host.AddChannelSource(ScienceViewProvider.LabTopic, s => Backend().Lab(s));
+            host.AddChannelSource(ScienceViewProvider.SensorsTopic, s => Backend().Sensors(s));
+            host.AddChannelSource(ScienceViewProvider.ExperimentBreakdownTopic, s => Backend().ExperimentBreakdown(s));
 
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.DeployCommand, args => Backend().DeployExperiment(args));
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.TransmitCommand, args => Backend().TransmitExperiment(args));
@@ -202,15 +192,6 @@ namespace Gonogo.KSP
         /// </summary>
         private IScienceBackend Backend() =>
             (_kernel != null ? ScienceElection.Elected(_kernel) : null) ?? _vanilla;
-
-        /// <summary>
-        /// Names the vessel a mapped payload describes, whichever backend produced
-        /// it and whichever shape it came back in (dictionary entries or typed
-        /// POCOs). Attribution only: it adds a subject to the entries the backend
-        /// already built and changes nothing else about them.
-        /// </summary>
-        private static object? Attribute(object? payload, KspSnapshot? snapshot) =>
-            VesselAttribution.Stamp(payload, VesselAttribution.VesselIdOf(snapshot));
 
         private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
         {

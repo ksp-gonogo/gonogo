@@ -10,15 +10,6 @@ namespace Gonogo.KerbalismUplink
     /// captured fixtures (local_docs/kerbalism-fixtures/). The uplink's
     /// capture-on-main reflection (KerbalismReflection) fills KerbalismSnapshot +
     /// the *Raw lists; these mappers run off the main thread (Courier).
-    ///
-    /// <para>The two vessel-scoped builders (<see cref="BuildLifeSupport"/> and
-    /// <see cref="BuildCrew"/>) take the subject vessel's guid as a LEADING,
-    /// non-optional parameter (never read here: a live Vessel handle must not
-    /// cross onto this thread). Leading and required on purpose, so a caller that
-    /// forgets to attribute its payload fails to compile rather than publishing an
-    /// anonymous sample. <see cref="BuildSpaceWeather"/> takes no guid: solar
-    /// activity is sun-sourced, see <c>KerbalismSpaceWeather</c>'s own doc
-    /// comment.</para>
     /// </summary>
     public static class KerbalismCapture
     {
@@ -190,7 +181,6 @@ namespace Gonogo.KerbalismUplink
         }
 
         public static Dictionary<string, object?> BuildLifeSupport(
-            string? vesselId,
             KerbalismSnapshot s,
             List<ProcessRaw> processes,
             IReadOnlyDictionary<string, double>? rates = null,
@@ -222,7 +212,6 @@ namespace Gonogo.KerbalismUplink
 
             return new Dictionary<string, object?>
             {
-                ["vesselId"] = vesselId,
                 ["rates"] = rateMap,
                 ["habitat"] = new Dictionary<string, object?>
                 {
@@ -240,7 +229,6 @@ namespace Gonogo.KerbalismUplink
         }
 
         public static List<object> BuildCrew(
-            string? vesselId,
             IEnumerable<KerbalRulesRaw> crew,
             IReadOnlyDictionary<string, RuleConstants> constants)
         {
@@ -261,10 +249,6 @@ namespace Gonogo.KerbalismUplink
                 }
                 list.Add(new Dictionary<string, object?>
                 {
-                    // Repeated per kerbal: kerbalism.crew is an array Topic with no
-                    // enclosing object to carry one copy (see
-                    // KerbalismCrewEntry.VesselId).
-                    ["vesselId"] = vesselId,
                     ["name"] = k.Name,
                     ["trait"] = k.Trait,
                     ["rules"] = rules,

@@ -278,7 +278,6 @@
       "scienceTransmittedPercentage": "%",
       "scienceValue": "science",
       "situation": "text",
-      "vesselId": "id",
       "vesselName": "text"
     },
     "DockAlignment": {
@@ -313,8 +312,7 @@
       "remainingPotential": "science",
       "situation": "text",
       "subjectId": "id",
-      "valueModel": "id",
-      "vesselId": "id"
+      "valueModel": "id"
     },
     "ExperimentEntry": {
       "baseTransmitValue": "science",
@@ -330,8 +328,7 @@
       "subjectId": "id",
       "title": "text",
       "transmitBonus": "ratio",
-      "valueModel": "id",
-      "vesselId": "id"
+      "valueModel": "id"
     },
     "FleetVesselLink": {
       "connected": "flag",
@@ -382,14 +379,12 @@
       "partName": "text",
       "rerunnable": "flag",
       "resettable": "flag",
-      "title": "text",
-      "vesselId": "id"
+      "title": "text"
     },
     "IsruConverterEntry": {
       "partId": "id",
       "partTitle": "text",
-      "running": "flag",
-      "vesselId": "id"
+      "running": "flag"
     },
     "IsruDrillEntry": {
       "abundance": "ratio",
@@ -398,8 +393,7 @@
       "partTitle": "text",
       "rate": "units/s",
       "resource": "text",
-      "running": "flag",
-      "vesselId": "id"
+      "running": "flag"
     },
     "IsruResourceFlow": {
       "rate": "units/s",
@@ -415,8 +409,7 @@
       "scientistCount": "count",
       "statusText": "text",
       "storedScience": "science",
-      "valueModel": "id",
-      "vesselId": "id"
+      "valueModel": "id"
     },
     "LaunchArgs": {
       "crew": "text",
@@ -576,15 +569,13 @@
       "partId": "id",
       "reliabilityFraction": "ratio",
       "remainingRatedBurn": "s",
-      "title": "text",
-      "vesselId": "id"
+      "title": "text"
     },
     "ReliabilitySummary": {
       "critical": "flag",
       "malfunction": "flag",
       "source": "id",
       "unmodeled": "flag",
-      "vesselId": "id",
       "worstReliabilityFraction": "ratio"
     },
     "RemoveManeuverNodeArgs": {
@@ -641,8 +632,7 @@
       "partId": "id",
       "partName": "text",
       "readout": "text",
-      "type": "id",
-      "vesselId": "id"
+      "type": "id"
     },
     "ServoEntry": {
       "brakePercentage": "%",
@@ -1071,7 +1061,6 @@
       "scienceTransmittedPercentage": "%",
       "scienceValue": "science",
       "situation": "text",
-      "vesselId": "id",
       "vesselName": "text"
     },
     "dv.stages": {
@@ -1131,8 +1120,7 @@
     "isru.converters": {
       "partId": "id",
       "partTitle": "text",
-      "running": "flag",
-      "vesselId": "id"
+      "running": "flag"
     },
     "isru.drills": {
       "abundance": "ratio",
@@ -1141,8 +1129,7 @@
       "partTitle": "text",
       "rate": "units/s",
       "resource": "text",
-      "running": "flag",
-      "vesselId": "id"
+      "running": "flag"
     },
     "ksp.revertAvailability": {
       "canRevertToEditor": "flag",
@@ -1175,15 +1162,13 @@
       "partId": "id",
       "reliabilityFraction": "ratio",
       "remainingRatedBurn": "s",
-      "title": "text",
-      "vesselId": "id"
+      "title": "text"
     },
     "reliability.summary": {
       "critical": "flag",
       "malfunction": "flag",
       "source": "id",
       "unmodeled": "flag",
-      "vesselId": "id",
       "worstReliabilityFraction": "ratio"
     },
     "robotics.available": {
@@ -1217,8 +1202,7 @@
       "remainingPotential": "science",
       "situation": "text",
       "subjectId": "id",
-      "valueModel": "id",
-      "vesselId": "id"
+      "valueModel": "id"
     },
     "science.experiments": {
       "baseTransmitValue": "science",
@@ -1234,8 +1218,7 @@
       "subjectId": "id",
       "title": "text",
       "transmitBonus": "ratio",
-      "valueModel": "id",
-      "vesselId": "id"
+      "valueModel": "id"
     },
     "science.instruments": {
       "dataIsCollectable": "flag",
@@ -1246,8 +1229,7 @@
       "partName": "text",
       "rerunnable": "flag",
       "resettable": "flag",
-      "title": "text",
-      "vesselId": "id"
+      "title": "text"
     },
     "science.lab": {
       "dataStorage": "Mit",
@@ -1259,16 +1241,14 @@
       "scientistCount": "count",
       "statusText": "text",
       "storedScience": "science",
-      "valueModel": "id",
-      "vesselId": "id"
+      "valueModel": "id"
     },
     "science.sensors": {
       "active": "flag",
       "partId": "id",
       "partName": "text",
       "readout": "text",
-      "type": "id",
-      "vesselId": "id"
+      "type": "id"
     },
     "spaceCenter.crewRoster": {
       "available": "flag",

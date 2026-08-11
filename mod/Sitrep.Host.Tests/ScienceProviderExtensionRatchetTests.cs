@@ -44,13 +44,6 @@ namespace Sitrep.Host.Tests
         /// </summary>
         private static readonly string[] FrozenExperimentMembers =
         {
-            // Core ATTRIBUTION, not a provider-specific reading: the core
-            // registrar that owns the topic stamps the subject vessel's guid, and
-            // no elected backend can vary it, so it is source-agnostic by
-            // construction rather than by curation. The rule this ratchet holds is
-            // unchanged: a field one provider knows and another does not still goes
-            // in the bag.
-            nameof(ExperimentEntry.VesselId),
             nameof(ExperimentEntry.PartName),
             nameof(ExperimentEntry.Location),
             nameof(ExperimentEntry.ExperimentId),
@@ -70,8 +63,6 @@ namespace Sitrep.Host.Tests
 
         private static readonly string[] FrozenInstrumentMembers =
         {
-            // Core attribution: see the note on the first frozen list above.
-            nameof(InstrumentEntry.VesselId),
             nameof(InstrumentEntry.PartId),
             nameof(InstrumentEntry.PartName),
             nameof(InstrumentEntry.ExperimentId),
@@ -86,8 +77,6 @@ namespace Sitrep.Host.Tests
 
         private static readonly string[] FrozenLabMembers =
         {
-            // Core attribution: see the note on the first frozen list above.
-            nameof(LabEntry.VesselId),
             nameof(LabEntry.PartName),
             nameof(LabEntry.DataStored),
             nameof(LabEntry.DataStorage),
@@ -103,8 +92,6 @@ namespace Sitrep.Host.Tests
 
         private static readonly string[] FrozenBreakdownMembers =
         {
-            // Core attribution: see the note on the first frozen list above.
-            nameof(ExperimentBreakdownEntry.VesselId),
             nameof(ExperimentBreakdownEntry.SubjectId),
             nameof(ExperimentBreakdownEntry.Biome),
             nameof(ExperimentBreakdownEntry.Situation),

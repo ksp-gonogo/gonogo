@@ -752,83 +752,28 @@ namespace Sitrep.Contract
         /// <see cref="Units"/>. See
         /// <c>local_docs/design/2026-08-10-currency-delay-escape-hatch.md</c> §3.</para>
         ///
-        /// <para><b>Major-12 line, Bumped 5 -&gt; 6: vesselId on the Kerbalism
-        /// vessel telemetry.</b> A new <c>VesselId</c> on
-        /// <c>KerbalismLifeSupport</c> and <c>KerbalismCrewEntry</c> (in
-        /// <c>GonogoKerbalismUplink.Contract</c>), carrying the RAW
-        /// <c>Vessel.id</c> guid: the same identity the
-        /// <c>fleet.&lt;guid&gt;</c> nodes and <c>currency.&lt;guid&gt;.*</c> events
-        /// key by and that <see cref="VesselIdentity.VesselId"/> already publishes,
-        /// deliberately not a second one. Both channels are
-        /// <see cref="DelayRole.Delayed"/> active-vessel reads that named no subject,
-        /// so a light-time-old sample (or one held across a blackout) could not be
-        /// told apart from the current vessel's after a switch: an unattributable
-        /// payload, which the vessel provider's own R1 rule already forbids.
-        /// <c>kerbalism.features</c> and <c>kerbalism.profile</c> deliberately get
-        /// nothing, being install-wide facts with no vessel in the read.
-        /// <c>kerbalism.spaceweather</c> gets nothing either, for a different
-        /// reason: solar activity is SUN-sourced, and the intended shape is a
-        /// sun-sourced channel delayed by its own Sun-to-observer geometry
-        /// (<c>local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md</c>), so
-        /// a vessel guid there would encode the wrong subject. It briefly carried
-        /// one within this same Minor-6 development window and was withdrawn before
-        /// the minor shipped, so no consumer ever saw it and this is a correction to
-        /// an unreleased shape, not a removal from a published one.
-        /// ATTRIBUTION only, not per-vessel routing: the capture is still one
-        /// main-thread read of the active vessel. Purely additive, no existing member
-        /// gains, loses or retypes anything, so an Uplink built against any earlier
-        /// Major-12 minor is unaffected and the frozen Major-12 floor is NOT
-        /// re-frozen (it could not name these types anyway: they left this assembly
-        /// in the v10.0 relocation). <c>Units.Id</c> already existed.</para>
+        /// <para><b>Major-12 line, Bumped 5 -&gt; 6 and 6 -&gt; 7: a per-Topic
+        /// <c>vesselId</c>, since WITHDRAWN.</b> Both minors were spent adding a
+        /// <c>VesselId</c> to the fixed-name vessel-scoped payloads
+        /// (<c>KerbalismLifeSupport</c>/<c>KerbalismCrewEntry</c> on 6; the
+        /// <c>science.*</c>, <c>isru.*</c>, <c>reliability.*</c> and
+        /// <c>deployed.bases</c> entry types on 7), so that a
+        /// <see cref="DelayRole.Delayed"/> sample delivered light-time late could
+        /// not be mistaken for the current vessel's after a switch. The gap is
+        /// real; a field repeated on every entry of every capability payload is
+        /// the wrong shape for it, and the boundary belongs at the ledger rather
+        /// than on each sample. Every one of those fields is removed here.</para>
         ///
-        /// <para><b>Major-12 line, Bumped 6 -&gt; 7: vesselId on the elected
-        /// capability channels.</b> A new <c>VesselId</c> on
-        /// <see cref="ExperimentEntry"/>, <see cref="InstrumentEntry"/>,
-        /// <see cref="LabEntry"/>, <see cref="SensorEntry"/>,
-        /// <see cref="ExperimentBreakdownEntry"/>, <see cref="IsruDrillEntry"/>,
-        /// <see cref="IsruConverterEntry"/>, <see cref="ReliabilitySummary"/>,
-        /// <see cref="ReliabilityPartEntry"/> and <see cref="DeployedEntry"/>,
-        /// carrying the RAW <c>Vessel.id</c> guid: the same identity the
-        /// <c>fleet.&lt;guid&gt;</c> nodes and <c>currency.&lt;guid&gt;.*</c>
-        /// events key by and that <see cref="VesselIdentity.VesselId"/> already
-        /// publishes, deliberately not a second one. The Kerbalism slice above
-        /// closed this gap for <c>kerbalism.*</c>; this closes it for the
-        /// Kernel-elected capability namespaces, which had it for exactly the same
-        /// reason: fixed topic names with no guid anywhere, carrying
-        /// <see cref="DelayRole.Delayed"/> active-vessel reads, so a light-time-old
-        /// sample could not be told apart from the current vessel's after a switch.
-        /// <see cref="IsruDrillEntry.PartId"/> and its siblings did not close it,
-        /// <c>flightID</c> names a part, not the vessel carrying it.</para>
+        /// <para>Both minors were added and withdrawn inside this same unreleased
+        /// window: no consumer ever saw either shape, no floor recorded them (the
+        /// frozen Major-12 baseline names none of these members), and nothing that
+        /// existed before Minor 5 gains, loses or retypes anything. The minor
+        /// stays at 7 rather than winding back, so a number never names two
+        /// different shapes. <c>Units.Id</c> was already in use elsewhere and is
+        /// untouched, as are the source-attributed currency events
+        /// (<c>currency.&lt;guid&gt;.*</c>), which carry a vessel on the EVENT and
+        /// are a different mechanism entirely.</para>
         ///
-        /// <para>Stamped by the CORE registrar that owns each topic declaration
-        /// (<c>Gonogo.KSP.ScienceCoreUplink</c>/<c>IsruCoreUplink</c>/
-        /// <c>ReliabilityCoreUplink</c>), never by the elected backend: a
-        /// modelling mod implements <c>IScienceBackend</c>/<c>IIsruBackend</c>/
-        /// <c>IReliabilityBackend</c> to model its domain and must not have to know
-        /// that a fixed-name topic needs a subject, so a provider built against any
-        /// earlier SDK gets attributed too. The isru/reliability uplinks read
-        /// <c>FlightGlobals.ActiveVessel</c> in their main-thread capture, the same
-        /// source their backends read; science reads the identity on the snapshot
-        /// its mappers were handed, because that runs on the Courier thread and the
-        /// subject is the vessel the snapshot came FROM.</para>
-        ///
-        /// <para><see cref="DeployedEntry"/> is the one exception and attributes
-        /// differently: <c>deployed.bases</c> is a GLOBAL walk across every loaded
-        /// vessel, so it carries its own HOST vessel's guid, stamped per entry in
-        /// the capture walk. Stamping the active vessel there would have been a
-        /// fiction; what it adds over <see cref="DeployedEntry.VesselName"/> is a
-        /// stable unique key that joins to <c>fleet.&lt;guid&gt;</c>.</para>
-        ///
-        /// <para>ATTRIBUTION only, not per-vessel routing: every read is still one
-        /// pass over the active vessel (or, for deployed, the same global walk).
-        /// Purely additive, no existing member gains, loses or retypes anything, so
-        /// an Uplink built against any earlier Major-12 minor is unaffected and the
-        /// frozen Major-12 floor is NOT re-frozen. <c>Units.Id</c> already existed,
-        /// and <see cref="FlightCurrent.VesselId"/> was already the in-assembly
-        /// precedent for the name and the unit. Both halves are now gated:
-        /// <c>Sitrep.Core.Tests.JsonWriterFlattenerParityTests</c> fails if a
-        /// raw-published field never reaches the wire, and the science/deployed
-        /// contract-shape tests hold the key set exactly.</para>
         /// </summary>
         public const int Minor = 7;
     }

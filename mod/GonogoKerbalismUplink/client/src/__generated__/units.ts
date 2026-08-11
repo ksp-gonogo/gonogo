@@ -79,7 +79,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     deathClockSec: "s",
     name: "text",
     trait: "text",
-    vesselId: "id",
   },
   "KerbalismCrewRule": {
     degenPerSec: "units/s",
@@ -141,7 +140,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "KerbalismLifeSupport": {
     rates: "units/s",
     ruleEnvModifiers: "1",
-    vesselId: "id",
   },
   "KerbalismProcessDef": {
     dumpValves: "text",
@@ -263,7 +261,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     deathClockSec: "s",
     name: "text",
     trait: "text",
-    vesselId: "id",
   },
   "kerbalism.features": {
     automation: "flag",
@@ -283,7 +280,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "kerbalism.lifesupport": {
     rates: "units/s",
     ruleEnvModifiers: "1",
-    vesselId: "id",
   },
   "kerbalism.profile": {
     name: "text",

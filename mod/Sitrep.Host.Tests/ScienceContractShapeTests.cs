@@ -25,14 +25,6 @@ namespace Sitrep.Host.Tests
     /// null), tagged via <c>[SitrepTopic(..., isArray: true)]</c>, so the
     /// element type's property set is what must match one emitted dictionary
     /// entry.</para>
-    ///
-    /// <para><b>The shape under test is the PUBLISHED one</b>, mapper output plus
-    /// the subject-vessel stamp <c>Gonogo.KSP.ScienceCoreUplink</c>'s channel
-    /// source adds (see <c>Sitrep.Host.VesselAttribution</c>). Attribution
-    /// belongs to the uplink that owns the topic rather than to the elected
-    /// backend, so the wire a subscriber receives is that composition, and
-    /// asserting the mapper's intermediate instead would leave <c>vesselId</c>
-    /// ungated on both sides at once.</para>
     /// </summary>
     public class ScienceContractShapeTests
     {
@@ -56,7 +48,7 @@ namespace Sitrep.Host.Tests
                 ["situation"] = "LANDED",
             });
 
-            AssertTypeMirrorsEntry(typeof(ExperimentEntry), Published(ScienceViewProvider.BuildExperiments(snapshot), snapshot));
+            AssertTypeMirrorsEntry(typeof(ExperimentEntry), ScienceViewProvider.BuildExperiments(snapshot));
         }
 
         [Fact]
@@ -75,7 +67,7 @@ namespace Sitrep.Host.Tests
                 ["dataIsCollectable"] = true,
             });
 
-            AssertTypeMirrorsEntry(typeof(InstrumentEntry), Published(ScienceViewProvider.BuildInstruments(snapshot), snapshot));
+            AssertTypeMirrorsEntry(typeof(InstrumentEntry), ScienceViewProvider.BuildInstruments(snapshot));
         }
 
         [Fact]
@@ -94,7 +86,7 @@ namespace Sitrep.Host.Tests
                 ["isOperational"] = true,
             });
 
-            AssertTypeMirrorsEntry(typeof(LabEntry), Published(ScienceViewProvider.BuildLab(snapshot), snapshot));
+            AssertTypeMirrorsEntry(typeof(LabEntry), ScienceViewProvider.BuildLab(snapshot));
         }
 
         // DeployedEntry ("deployed.bases") is exercised in
@@ -113,7 +105,7 @@ namespace Sitrep.Host.Tests
                 ["active"] = true,
             });
 
-            AssertTypeMirrorsEntry(typeof(SensorEntry), Published(ScienceViewProvider.BuildSensors(snapshot), snapshot));
+            AssertTypeMirrorsEntry(typeof(SensorEntry), ScienceViewProvider.BuildSensors(snapshot));
         }
 
         [Fact]
@@ -129,7 +121,7 @@ namespace Sitrep.Host.Tests
                 ["remainingPotential"] = 12.5,
             });
 
-            AssertTypeMirrorsEntry(typeof(ExperimentBreakdownEntry), Published(ScienceViewProvider.BuildExperimentBreakdown(snapshot), snapshot));
+            AssertTypeMirrorsEntry(typeof(ExperimentBreakdownEntry), ScienceViewProvider.BuildExperimentBreakdown(snapshot));
         }
 
         // NOTE: the [SitrepTopic("science.*", isArray: true)] tag on each entry
@@ -142,41 +134,17 @@ namespace Sitrep.Host.Tests
         // tag is source-visible and is consumed by the TS-SDK codegen via
         // metadata (the next P0.5 task), which is where it is exercised.
 
-        /// <summary>A stand-in for the captured <c>Vessel.id.ToString()</c>, in the shape the fleet./currency. namespaces key by.</summary>
-        private const string VesselGuid = "e34e5a6d-2c1f-4b18-9c4a-1f2b3c4d5e6f";
-
         private static KspSnapshot SnapshotWith(string subGroup, Dictionary<string, object?> entry) => new KspSnapshot
         {
             Ut = 0.0,
             Values = new Dictionary<string, object?>
             {
-                // The vessel group the attribution reads its subject from, the same
-                // Values["vessel"]["identity"]["id"] VesselViewProvider.BuildIdentity
-                // uses. Present here because the shape under test is the PUBLISHED
-                // one (see Published below), not the mapper's intermediate.
-                ["vessel"] = new Dictionary<string, object?>
-                {
-                    ["identity"] = new Dictionary<string, object?> { ["id"] = VesselGuid },
-                },
                 ["science"] = new Dictionary<string, object?>
                 {
                     [subGroup] = new List<object?> { entry },
                 },
             },
         };
-
-        /// <summary>
-        /// What a subscriber actually receives: the mapper's entries with the
-        /// subject vessel stamped on, which is what
-        /// <c>Gonogo.KSP.ScienceCoreUplink</c>'s channel source publishes. The
-        /// mirror assertion is deliberately against THIS rather than the bare
-        /// mapper output, because the contract type describes the wire and the wire
-        /// is the composition: attribution is added by the uplink that owns the
-        /// topic, not by the elected backend (see Sitrep.Host.VesselAttribution).
-        /// Asserting the intermediate would leave vesselId ungated on both sides.
-        /// </summary>
-        private static object? Published(object? payload, KspSnapshot snapshot) =>
-            VesselAttribution.Stamp(payload, VesselAttribution.VesselIdOf(snapshot));
 
         /// <summary>
         /// The core round-trip assertion: the single emitted dictionary entry's

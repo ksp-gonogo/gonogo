@@ -81,36 +81,11 @@ namespace Gonogo.KSP
 
             try
             {
-                // The vessel the backend just read, named from the SAME source it
-                // read (FlightGlobals.ActiveVessel, per IIsruBackend's doc
-                // comment) on the same thread in the same tick. Reading it off
-                // the snapshot instead would name whichever vessel THAT capture
-                // saw, which is a different read and can differ exactly when it
-                // matters. See Sitrep.Host.VesselAttribution for why these
-                // fixed-name capability topics need a subject at all.
-                var vesselId = FlightGlobals.ActiveVessel?.id.ToString();
-
-                var drills = new List<IsruDrillEntry>(backend.Drills());
-                var converters = new List<IsruConverterEntry>(backend.Converters());
-
-                // Stamped HERE, by the uplink that owns the topic declaration,
-                // rather than by the backend: a modelling mod implements
-                // IIsruBackend to model extraction and must not have to know that
-                // a fixed-name topic needs a subject.
-                foreach (var drill in drills)
-                {
-                    drill.VesselId = vesselId;
-                }
-                foreach (var converter in converters)
-                {
-                    converter.VesselId = vesselId;
-                }
-
                 return new IsruCapture
                 {
                     Ut = snapshot?.Ut ?? 0.0,
-                    Drills = drills,
-                    Converters = converters,
+                    Drills = new List<IsruDrillEntry>(backend.Drills()),
+                    Converters = new List<IsruConverterEntry>(backend.Converters()),
                 };
             }
             catch (Exception)

@@ -44,8 +44,7 @@
     "KerbalismCrewEntry": {
       "deathClockSec": "s",
       "name": "text",
-      "trait": "text",
-      "vesselId": "id"
+      "trait": "text"
     },
     "KerbalismCrewRule": {
       "degenPerSec": "units/s",
@@ -106,8 +105,7 @@
     },
     "KerbalismLifeSupport": {
       "rates": "units/s",
-      "ruleEnvModifiers": "1",
-      "vesselId": "id"
+      "ruleEnvModifiers": "1"
     },
     "KerbalismProcessDef": {
       "dumpValves": "text",
@@ -223,8 +221,7 @@
     "kerbalism.crew": {
       "deathClockSec": "s",
       "name": "text",
-      "trait": "text",
-      "vesselId": "id"
+      "trait": "text"
     },
     "kerbalism.features": {
       "automation": "flag",
@@ -243,8 +240,7 @@
     },
     "kerbalism.lifesupport": {
       "rates": "units/s",
-      "ruleEnvModifiers": "1",
-      "vesselId": "id"
+      "ruleEnvModifiers": "1"
     },
     "kerbalism.profile": {
       "name": "text"
