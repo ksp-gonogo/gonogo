@@ -36,6 +36,11 @@
        KerbalismCaptureTests.cs asserts against KerbalismLifeSupport's shape. -->
   <ItemGroup>
     <ProjectReference Include="..\GonogoKerbalismUplink.Contract\GonogoKerbalismUplink.Contract.csproj" />
+    <!-- Sitrep.Contract.TestSupport: the shared Unit-coverage sweep every
+         relocated Uplink's <X>UnitCoverageTests calls, extracted once five
+         near-identical copies existed (see UnitCoverageAssertion's own doc
+         comment). The [Fact]s stay here, naming this Uplink's own types. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

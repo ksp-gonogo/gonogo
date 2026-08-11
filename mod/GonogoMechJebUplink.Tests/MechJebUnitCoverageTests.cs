@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using Gonogo.MechJebUplink;
-using Sitrep.Contract;
+using Sitrep.Contract.TestSupport;
 using Xunit;
 
 namespace GonogoMechJebUplink.Tests
@@ -13,19 +9,18 @@ namespace GonogoMechJebUplink.Tests
     /// (§5b): now that <see cref="MechJebAscentArgs"/>/<see cref="MechJebNoArgs"/>
     /// live in their own assembly (<c>GonogoMechJebUplink.Contract</c>) instead
     /// of <c>Sitrep.Contract</c>, nothing FORCES a future property on this
-    /// Uplink's own contract types to declare its unit. This is a scoped-down
-    /// copy of <c>Sitrep.Core.Tests.UnitCoverageTests</c>'s exhaustiveness
-    /// check, repointed at THIS assembly instead of the hardcoded
-    /// first-party one.
+    /// Uplink's own contract types to declare its unit.
     ///
-    /// <para><b>Why a copy, not a shared helper, for the pilot.</b> The plan
-    /// (§5b) recommends extracting <c>UnitCoverageTests</c>'s reflection body
-    /// into a shared internal helper (<c>UnitCoverageAssertion.AssertExhaustive
-    /// (Assembly)</c>) once a second Uplink migrates, so both call sites stay
-    /// in lockstep. One Uplink does not justify standing up a new shared
-    /// test-support project yet; this file is the thing to fold into that
-    /// helper when Avionics (the plan's next step) needs the identical
-    /// check.</para>
+    /// <para><b>The sweep is shared now.</b> This file used to hold its own copy
+    /// of the reflection body, as the pilot for the mechanism; the plan (§5b)
+    /// always intended a shared
+    /// <c>UnitCoverageAssertion.AssertExhaustive(Assembly)</c> once a second
+    /// Uplink needed the identical check, and five of them ended up with one
+    /// each. The copies had drifted: this one, being the pilot for two flat
+    /// command-arg DTOs, trimmed <c>RequiresUnit</c> to scalars-only and said so.
+    /// The shared helper carries core's rule in full, so a
+    /// <c>List&lt;double&gt;</c> added here later is demanded rather than waved
+    /// through.</para>
     ///
     /// <para><b>Why no baseline file, unlike the core gate.</b>
     /// <c>UnitCoverageTests</c> ships a shrink-only baseline because core has
@@ -45,62 +40,29 @@ namespace GonogoMechJebUplink.Tests
     /// to a core gonogo Value type" half of §5b has nothing to check here,
     /// <c>mod/GonogoMechJebUplink/client/src/generated-value-import.test.ts</c>
     /// covers the mechanism generically (it passes vacuously for MechJeb
-    /// today) and is the one that will actually fire once an Uplink with an
-    /// outbound, unit-bearing payload migrates (Avionics's
-    /// <c>AvionicsStatus</c> is next in the plan's sequencing).</para>
+    /// today) and is the one that fires for an Uplink with an outbound,
+    /// unit-bearing payload.</para>
     /// </summary>
     public class MechJebUnitCoverageTests
     {
-        private static Type Unwrap(Type t) => Nullable.GetUnderlyingType(t) ?? t;
-
-        private static bool IsScalar(Type t) =>
-            t.IsEnum
-            || t == typeof(string)
-            || t == typeof(bool)
-            || t == typeof(double) || t == typeof(float) || t == typeof(decimal)
-            || t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte)
-            || t == typeof(uint) || t == typeof(ulong) || t == typeof(ushort) || t == typeof(sbyte);
+        [Fact]
+        public void EveryScalarWirePropertyDeclaresAUnit() =>
+            UnitCoverageAssertion.AssertExhaustive(
+                typeof(MechJebAscentArgs).Assembly,
+                "Units.Kilometres");
 
         /// <summary>
-        /// Mirrors <c>UnitCoverageTests.RequiresUnit</c>, minus the Vec3/
-        /// sequence/dictionary branches this Uplink's two trivial DTOs have no
-        /// use for yet: kept simple deliberately, extend alongside a real need
-        /// rather than pre-building unreachable branches.
+        /// Both types are reached by the sweep, and nothing else is. Cheap here,
+        /// where the set is two flat DTOs, and the reason it is still worth
+        /// asserting is that <see cref="EveryScalarWirePropertyDeclaresAUnit"/>
+        /// passes VACUOUSLY on a type that quietly loses
+        /// <c>[SitrepContract]</c>.
         /// </summary>
-        private static bool RequiresUnit(PropertyInfo prop) => IsScalar(Unwrap(prop.PropertyType));
-
-        private static IEnumerable<Type> ContractTypes() =>
-            typeof(MechJebAscentArgs).Assembly.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition)
-                .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false));
-
         [Fact]
-        public void EveryScalarWirePropertyDeclaresAUnit()
-        {
-            var bare = new List<string>();
-            foreach (var type in ContractTypes())
-            {
-                foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-                {
-                    if (!RequiresUnit(prop))
-                    {
-                        continue;
-                    }
-
-                    if (prop.GetCustomAttribute<SitrepUnitAttribute>() is null)
-                    {
-                        bare.Add(type.Name + "." + prop.Name);
-                    }
-                }
-            }
-
-            Assert.True(
-                bare.Count == 0,
-                "These GonogoMechJebUplink.Contract wire properties carry no [SitrepUnit]:\n  " +
-                string.Join("\n  ", bare) +
-                "\n\nDeclare one (Units.Kilometres etc.), or a non-quantity token (Units.Count/" +
-                "Id/Text/Flag/Enumeration/NotApplicable) if it genuinely is not a magnitude. " +
-                "This Uplink started fully annotated; it should never regress.");
-        }
+        public void TheContractTypesAreExactlyTheTwoCommandArgShapes() =>
+            UnitCoverageAssertion.AssertContractTypesAreExactly(
+                typeof(MechJebAscentArgs).Assembly,
+                nameof(MechJebAscentArgs),
+                nameof(MechJebNoArgs));
     }
 }

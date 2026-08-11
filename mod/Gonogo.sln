@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Contract", "Sitrep.Contract\Sitrep.Contract.csproj", "{6A59F6E4-5B9E-499E-BD61-E0D7449F9359}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Contract.TestSupport", "Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj", "{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Core", "Sitrep.Core\Sitrep.Core.csproj", "{B55CCFD2-B058-4112-90FA-69E0E4599CB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Core.Tests", "Sitrep.Core.Tests\Sitrep.Core.Tests.csproj", "{F880A375-A163-4BAC-B850-0CC3E7088D59}"
@@ -99,6 +101,18 @@ Global
 		{6A59F6E4-5B9E-499E-BD61-E0D7449F9359}.Release|x64.Build.0 = Release|Any CPU
 		{6A59F6E4-5B9E-499E-BD61-E0D7449F9359}.Release|x86.ActiveCfg = Release|Any CPU
 		{6A59F6E4-5B9E-499E-BD61-E0D7449F9359}.Release|x86.Build.0 = Release|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Debug|x64.Build.0 = Debug|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Debug|x86.Build.0 = Debug|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Release|x64.ActiveCfg = Release|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Release|x64.Build.0 = Release|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Release|x86.ActiveCfg = Release|Any CPU
+		{3E7A1C42-6D5B-4F18-9A20-B84C6E71D3F5}.Release|x86.Build.0 = Release|Any CPU
 		{B55CCFD2-B058-4112-90FA-69E0E4599CB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B55CCFD2-B058-4112-90FA-69E0E4599CB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B55CCFD2-B058-4112-90FA-69E0E4599CB4}.Debug|x64.ActiveCfg = Debug|Any CPU

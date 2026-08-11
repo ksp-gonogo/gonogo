@@ -30,6 +30,11 @@
        comment). AvionicsUnitCoverageTests.cs below reflects over it directly. -->
   <ItemGroup>
     <ProjectReference Include="..\GonogoAvionicsUplink.Contract\GonogoAvionicsUplink.Contract.csproj" />
+    <!-- Sitrep.Contract.TestSupport: the shared Unit-coverage sweep every
+         relocated Uplink's <X>UnitCoverageTests calls, extracted once five
+         near-identical copies existed (see UnitCoverageAssertion's own doc
+         comment). The [Fact]s stay here, naming this Uplink's own types. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

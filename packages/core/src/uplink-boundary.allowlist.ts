@@ -826,7 +826,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // two types were command args) -- zero MechJeb code or type coupling --
       "mod/GonogoAvionicsUplink.Contract/AvionicsPayloads.cs",
       "mod/GonogoAvionicsUplink.Contract/AvionicsRtConfig.cs",
-      "mod/GonogoAvionicsUplink.Tests/AvionicsUnitCoverageTests.cs",
+      // AvionicsUnitCoverageTests.cs used to sit here too, and stopped naming
+      // the pilot when the five per-Uplink copies of the Unit-coverage sweep
+      // were extracted into one shared helper: each Uplink's own file now
+      // describes only its own types, and the cross-Uplink "same shape as
+      // <sibling>'s" prose that had to be allowlisted went with the copies. The
+      // ratchet demanded this line. Same for the Kerbcast entry below.
       "mod/GonogoAvionicsUplink/client/src/generated-value-import.test.ts",
 
       // -- The relocation's own provenance record --
@@ -856,7 +861,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // skips retyping both alike) -- zero MechJeb code or type coupling --
       "mod/GonogoKerbcastUplink.Contract/KerbcastPayloads.cs",
       "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
-      "mod/GonogoKerbcastUplink.Tests/KerbcastUnitCoverageTests.cs",
       "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
     ],
   },
@@ -908,12 +912,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
 
       // -- The MechJeb pilot's own forward-looking cross-references --
-      // MechJebRtConfig.cs's and MechJebUnitCoverageTests.cs's doc comments
-      // both named Avionics as "the next Uplink in the plan's sequencing"
-      // before this relocation landed: historical prose from the pilot
-      // commit, no Avionics code or type reference.
+      // MechJebRtConfig.cs's doc comment named Avionics as "the next Uplink in
+      // the plan's sequencing" before this relocation landed: historical prose
+      // from the pilot commit, no Avionics code or type reference.
+      // MechJebUnitCoverageTests.cs used to be here for the same kind of prose
+      // and stopped naming Avionics when the five per-Uplink copies of the
+      // Unit-coverage sweep were extracted into one shared helper: each file now
+      // describes only its own types. The ratchet demanded this line.
       "mod/GonogoMechJebUplink.Contract/MechJebRtConfig.cs",
-      "mod/GonogoMechJebUplink.Tests/MechJebUnitCoverageTests.cs",
       // MechJeb's own generated-value-import.test.ts and client index.ts
       // cite Avionics as the sibling that actually exercises the Value<>
       // path / as a fellow runtime-loader-exempt Uplink: doc-comment
@@ -942,7 +948,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // fields are the second proof) -- zero Avionics code or type coupling --
       "mod/GonogoKerbcastUplink.Contract/KerbcastPayloads.cs",
       "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
-      "mod/GonogoKerbcastUplink.Tests/KerbcastUnitCoverageTests.cs",
       "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
       "mod/GonogoKerbcastUplink/client/src/topics.test.ts",
     ],

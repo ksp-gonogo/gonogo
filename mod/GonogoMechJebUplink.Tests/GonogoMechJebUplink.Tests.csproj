@@ -27,6 +27,11 @@
          project's header comment). MechJebChannels.cs/MechJebUplink.cs
          below reference them directly. -->
     <ProjectReference Include="..\GonogoMechJebUplink.Contract\GonogoMechJebUplink.Contract.csproj" />
+    <!-- Sitrep.Contract.TestSupport: the shared Unit-coverage sweep every
+         relocated Uplink's <X>UnitCoverageTests calls, extracted once five
+         near-identical copies existed (see UnitCoverageAssertion's own doc
+         comment). The [Fact]s stay here, naming this Uplink's own types. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Only the KSP/Unity/MechJeb2-type-free half of GonogoMechJebUplink is

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Shared test-support for the per-Uplink contract slices: one copy of the
+    Unit-coverage assertion every relocated Uplink's Tests project used to hold
+    its own near-identical copy of. Called in as a debt by the
+    uplink-types-out-of-core plan
+    (local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md §5b, which
+    names this project as the helper's natural home) once five copies existed.
+
+    NOT a test project (no IsTestProject, no test SDK): it holds assertions, it
+    does not hold [Fact]s. Every [Fact] stays in the Uplink's own Tests project,
+    naming that Uplink's own types, so a red still names the Uplink that broke.
+
+    net10.0 to match the Tests projects that reference it. Sitrep.Contract's
+    netstandard2.0 leg is what resolves for that reference, the same way each
+    Uplink's Tests project already consumes its own <Uplink>.Contract slice.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Sitrep.Contract.TestSupport</AssemblyName>
+    <RootNamespace>Sitrep.Contract.TestSupport</RootNamespace>
+  </PropertyGroup>
+
+  <!-- xunit.assert alone, not the xunit metapackage: this project needs
+       Assert, not a test runner or the [Fact]-shaped analysers. Version pinned
+       to the same 2.9.x line every Tests project references, so there is one
+       xunit.assert in the graph. -->
+  <ItemGroup>
+    <PackageReference Include="xunit.assert" Version="2.9.2" />
+  </ItemGroup>
+
+  <!-- SitrepContractAttribute/SitrepUnitAttribute/Vec3: core's cross-package
+       surface, the same three things every Uplink contract slice reaches for. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+  </ItemGroup>
+</Project>
