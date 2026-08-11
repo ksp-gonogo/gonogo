@@ -12,7 +12,7 @@ namespace Gonogo.KSP
     /// BOTH the <c>robotics.*</c> and <c>deployed.*</c> prefixes, the
     /// robotics servo state/actuation and the deployed-science surfaces that
     /// used to be co-mingled with vanilla code in <see cref="PartsUplink"/>
-    /// (robotics) and <see cref="ScienceUplink"/> (deployed science). Shipped
+    /// (robotics) and <see cref="ScienceCoreUplink"/> (deployed science). Shipped
     /// IN the core mod DLL like <see cref="PartsUplink"/>/
     /// <see cref="VesselUplink"/> (auto-discovered, not a separate
     /// installable package), but goes INERT when Breaking Ground isn't

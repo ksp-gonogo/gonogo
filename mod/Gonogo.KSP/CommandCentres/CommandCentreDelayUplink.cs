@@ -3,6 +3,7 @@ using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
+using Sitrep.Host.Comms;
 using UnityEngine;
 
 namespace Gonogo.KSP.CommandCentres

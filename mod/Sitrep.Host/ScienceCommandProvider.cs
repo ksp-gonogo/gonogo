@@ -7,8 +7,8 @@ namespace Sitrep.Host
     /// the command-side twin of <see cref="ScienceViewProvider"/> and the
     /// science-domain analogue of <see cref="VesselCommandProvider"/>. Each
     /// <c>Handle*</c> method is the exact delegate
-    /// <c>Gonogo.KSP.ScienceUplink.Register</c> hands to
-    /// <see cref="IUplinkHost.AddCommandHandler{TArgs,TResult}"/>: parse the
+    /// <see cref="Science.StockScienceBackend"/> (the Vanilla factory of the
+    /// elected <c>"science"</c> capability) implements: parse the
     /// already-typed args, do the one check that needs no live game state (an
     /// empty <c>partId</c> resolves to nothing), then call the matching
     /// <see cref="IScienceActuator"/> method and hand back its already-typed
@@ -21,7 +21,7 @@ namespace Sitrep.Host
     /// <para><b>Delayed (uplink to the craft):</b> both commands actuate an
     /// experiment ON the vessel, so they ride the same light-time delay every
     /// other actuation does, declared <c>delayed: true</c> in
-    /// <c>ScienceUplink</c>'s command table.</para>
+    /// <c>ScienceCoreUplink</c>'s command table.</para>
     /// </summary>
     public static class ScienceCommandProvider
     {

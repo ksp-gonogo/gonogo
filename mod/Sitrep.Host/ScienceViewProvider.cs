@@ -38,7 +38,13 @@ namespace Sitrep.Host
     /// }
     /// </code>
     /// Separate channels (one per sub-group) rather than one combined
-    /// topic: see <c>Gonogo.KSP.ScienceUplink</c>'s doc comment for why.
+    /// topic: see <c>Gonogo.KSP.ScienceCoreUplink</c>'s doc comment for why.
+    ///
+    /// <para>These builders are no longer wired into the channel sources
+    /// directly: they are the body of <see cref="Science.StockScienceBackend"/>,
+    /// the Vanilla factory of the elected <c>"science"</c> capability (see
+    /// <see cref="Science.ScienceElection"/>). Nothing about the mapping changed,
+    /// the election is indirection only.</para>
     /// </summary>
     public static class ScienceViewProvider
     {

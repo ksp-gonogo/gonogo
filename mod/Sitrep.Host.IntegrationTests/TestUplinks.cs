@@ -5,6 +5,7 @@ using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 using Sitrep.Host.Comms;
+using Sitrep.Host.Science;
 
 namespace Sitrep.Host.IntegrationTests
 {
@@ -253,20 +254,38 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceUplink</c>,
+    /// KSP-free integration-test replica of <c>Gonogo.KSP.ScienceCoreUplink</c>,
     /// same cross-project rationale as <see cref="TestSystemUplink"/>'s
-    /// doc comment. Registers the <c>science.*</c> channels against
-    /// <see cref="ScienceViewProvider"/>'s builders verbatim, so the domain
-    /// wire-fixture generator can replay a science-mode recording through
-    /// the real engine pipeline exactly like a live capture would. The
-    /// sibling <c>deployed.bases</c> channel that used to live here moved to
-    /// <see cref="TestBreakingGroundUplink"/> alongside the real
-    /// <c>Gonogo.KSP.ScienceUplink</c> -&gt; <c>Gonogo.KSP.BreakingGroundUplink</c> split.
+    /// doc comment. Owns the <c>"science"</c> capability the way the real
+    /// registrar does (declared in the two-pass capability pass, sourced from
+    /// whichever backend the election picked, falling back to stock vanilla when
+    /// the capability has not resolved), so the domain wire-fixture generator can
+    /// replay a science-mode recording through the real engine pipeline exactly
+    /// like a live capture would. The sibling <c>deployed.bases</c> channel that
+    /// used to live here moved to <see cref="TestBreakingGroundUplink"/> alongside
+    /// the real <c>Gonogo.KSP.ScienceCoreUplink</c> -&gt;
+    /// <c>Gonogo.KSP.BreakingGroundUplink</c> split.
     /// </summary>
-    internal sealed class TestScienceUplink : ISitrepUplink
+    internal sealed class TestScienceUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
             // Mandatory health floor (test double).
             public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        // No command handler is registered here (this suite replays recordings;
+        // no client dispatches a science command against it), but the capability's
+        // vanilla factory needs an actuator: see TestVesselUplink's "read pipeline
+        // only" rationale.
+        private sealed class NoopScienceActuator : IScienceActuator
+        {
+            public CommandResult DeployExperiment(string partId) => CommandResult.Ok();
+            public CommandResult TransmitExperiment(string partId) => CommandResult.Ok();
+        }
+
+        private readonly IScienceActuator _actuator = new NoopScienceActuator();
+        private readonly IScienceBackend _vanilla;
+        private Kernel? _kernel;
+
+        public TestScienceUplink() => _vanilla = new StockScienceBackend(_actuator);
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -289,11 +308,17 @@ namespace Sitrep.Host.IntegrationTests
             },
         };
 
+        public void DeclareCapabilities(Kernel kernel) => ScienceElection.RegisterCapability(kernel, _actuator);
+
         public void Register(IUplinkHost host)
         {
-            host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, ScienceViewProvider.BuildExperiments);
-            host.AddChannelSource(ScienceViewProvider.LabTopic, ScienceViewProvider.BuildLab);
+            _kernel = host.Kernel;
+            host.AddChannelSource(ScienceViewProvider.ExperimentsTopic, s => Backend().Experiments(s));
+            host.AddChannelSource(ScienceViewProvider.LabTopic, s => Backend().Lab(s));
         }
+
+        private IScienceBackend Backend() =>
+            (_kernel != null ? ScienceElection.Elected(_kernel) : null) ?? _vanilla;
     }
 
     /// <summary>
