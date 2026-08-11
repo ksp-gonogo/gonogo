@@ -152,4 +152,99 @@ namespace Gonogo.KerbalismUplink
         public double DurationConsumed;
         public bool NeedsRepair;
     }
+
+    // ── science (the elected "science" capability's Kerbalism provider) ───────
+    // One capture per tick on the MAIN thread (KerbalismReflection.Science), mapped
+    // off it on the Courier thread by KerbalismScienceMap. Nothing here holds a live
+    // KSP/Kerbalism reference, which is what makes that hand-off legal.
+
+    /// <summary>KerbalismReflection.Science's return bundle for one vessel.</summary>
+    public sealed class ScienceRaw
+    {
+        /// <summary>True when the Kerbalism assembly is loaded AND the science feature is on. False makes the whole capture a no-op.</summary>
+        public bool Modeled;
+        public List<ScienceExperimentRaw> Experiments = new();
+        public List<ScienceStoredRaw> Stored = new();
+        public List<ScienceLabRaw> Labs = new();
+        public List<ScienceSensorRaw> Sensors = new();
+    }
+
+    /// <summary>One Kerbalism <c>Experiment</c> PartModule: the instrument, running or not, data or not.</summary>
+    public sealed class ScienceExperimentRaw
+    {
+        public string PartId = "";
+        public string PartName = "";
+        public string ExperimentId = "";
+        public string Title = "";
+        /// <summary>Kerbalism's own free-text reason production is blocked; empty when nothing is wrong.</summary>
+        public string Issue = "";
+        /// <summary>Stopped | Running | Forced | Broken (the simulated state).</summary>
+        public string RunningState = "";
+        /// <summary>Stopped | Running | Forced | Waiting | Issue | Broken (the derived display state).</summary>
+        public string ExpStatus = "";
+        public double DataRate;
+        public double ProdFactor;
+        public double? RemainingSampleMass;
+        /// <summary>Whether the module takes a finite sample at all (drives whether RemainingSampleMass means anything).</summary>
+        public bool TakesSample;
+    }
+
+    /// <summary>
+    /// One file or sample sitting on a Kerbalism drive, plus that drive's capacity:
+    /// the stored-result row core's <c>science.experiments</c> is a list of. The
+    /// drive figures are repeated per entry rather than hoisted, because the topic
+    /// has no per-part storage payload to hang them on and an operator reads
+    /// "this result, on this drive, this full".
+    /// </summary>
+    public sealed class ScienceStoredRaw
+    {
+        public string PartId = "";
+        public string PartName = "";
+        public string SubjectId = "";
+        public string ExperimentId = "";
+        public string Title = "";
+        public string Situation = "";
+        public string Biome = "";
+        /// <summary>"file" or "sample".</summary>
+        public string Kind = "";
+        public double SizeMB;
+        public double? SampleMass;
+        public bool? Analyze;
+        public double SciencePerMB;
+        public double ScienceMaxValue;
+        public double ScienceRemainingTotal;
+        public double PercentCollectedTotal;
+        public double ScienceCollectedInFlight;
+        public int TimesCompleted;
+        public double TransmitRate;
+        public bool Transmitting;
+        /// <summary>Null when the drive is unlimited (Kerbalism's -1 sentinel), never a negative number.</summary>
+        public double? DriveCapacityMB;
+        public double DriveUsedMB;
+        /// <summary>Null when sample slots are unlimited.</summary>
+        public int? SampleSlotsTotal;
+        public int SampleSlotsUsed;
+    }
+
+    /// <summary>One Kerbalism <c>Laboratory</c> PartModule.</summary>
+    public sealed class ScienceLabRaw
+    {
+        public string PartId = "";
+        public string PartName = "";
+        public double AnalysisRate;
+        public double EffectiveRate;
+        /// <summary>DISABLED | NO_EC | NO_STORAGE | NO_SAMPLE | NO_RESEARCHER | RUNNING.</summary>
+        public string Status = "";
+        public bool Running;
+    }
+
+    /// <summary>One Kerbalism <c>Sensor</c> PartModule: pure live readout, no storage.</summary>
+    public sealed class ScienceSensorRaw
+    {
+        public string PartId = "";
+        public string PartName = "";
+        public string Type = "";
+        public string Readout = "";
+        public bool Active;
+    }
 }

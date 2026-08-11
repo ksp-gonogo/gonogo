@@ -17,10 +17,10 @@ namespace Sitrep.Contract;
 //     science.* channel itself, that is the same
 //     shared-namespace-single-declaration rule comms follows.
 //
-// Kerbalism is the provider this exists for: it models science as a data-rate
-// and per-subject ledger rather than as stored experiment blobs, so before the
-// election it could only ship a parallel kerbalism.* topic that could never
-// supersede science.*, which means two widgets and two mental models forever.
+// The provider this exists for is a mod that models science as a data-rate and
+// per-subject ledger rather than as stored experiment blobs. Before the election
+// such a mod could only ship a parallel topic of its own, which could never
+// supersede science.*: two widgets and two mental models, forever.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
@@ -62,7 +62,7 @@ namespace Sitrep.Contract;
 /// </summary>
 public interface IScienceBackend
 {
-    /// <summary>A short id for the elected backend, e.g. "stock" or "kerbalism".</summary>
+    /// <summary>A short id for the elected backend, e.g. "stock", or a modelling mod's own id.</summary>
     string BackendId { get; }
 
     /// <summary>One entry per stored science result on the active vessel (<c>science.experiments</c>).</summary>
@@ -93,8 +93,8 @@ public interface IScienceBackend
     /// Transmit the stored result on the given part
     /// (<c>science.experiment.transmit</c>). Same never-throws contract as
     /// <see cref="DeployExperiment"/>. A backend whose transmission is
-    /// continuous rather than a one-shot send (Kerbalism drains files by value
-    /// over time) implements this as "flag this for sending".
+    /// continuous rather than a one-shot send (a modelling mod may drain
+    /// stored results by value over time) implements this as "flag this for sending".
     /// </summary>
     CommandResult TransmitExperiment(ExperimentActionArgs args);
 }

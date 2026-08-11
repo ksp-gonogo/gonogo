@@ -15,7 +15,7 @@ namespace Gonogo.KSP
     /// <c>science.experiment.*</c> commands ONCE, and sources them from whichever
     /// backend the election picked, resolved at map/dispatch time via
     /// <c>host.Kernel.Query&lt;IScienceBackend&gt;("science")</c>. A
-    /// science-modelling mod (Kerbalism) registers a provider from its OWN
+    /// science-modelling mod registers a provider from its OWN
     /// uplink's Register and declares none of these channels itself: that is the
     /// shared-namespace-single-declaration rule comms.*/reliability.* follow.
     ///
@@ -152,7 +152,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Declared HERE in the pre-Register capability pass (two-pass fix, same
         /// as CommsCoreUplink/ReliabilityCoreUplink), so the capability exists
-        /// before any provider uplink's Register runs: a Kerbalism provider
+        /// before any provider uplink's Register runs: a provider's
         /// registration can never race ahead of this declaration regardless of
         /// assembly-scan order.
         /// </summary>

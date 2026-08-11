@@ -50,6 +50,27 @@ export {
   RELIABILITY_SUMMARY_TOPIC,
   readKerbalismReliabilityExt,
 } from "./reliability";
+// This Uplink's namespaces of the four elected `science.*` payloads' extension bags,
+// same boundary and same load-bearing re-export as ./reliability above. Kerbalism
+// WINS the science election, so on a Kerbalism install these readers are how a widget
+// gets at what the shared fields cannot carry (see ./science.ts, and note which core
+// fields Kerbalism deliberately leaves null).
+export {
+  KERBALISM_SCIENCE_PROVIDER_ID,
+  KERBALISM_SCIENCE_VALUE_MODEL,
+  type KerbalismScienceBreakdownExt,
+  type KerbalismScienceExperimentExt,
+  type KerbalismScienceInstrumentExt,
+  type KerbalismScienceLabExt,
+  readKerbalismScienceBreakdownExt,
+  readKerbalismScienceExperimentExt,
+  readKerbalismScienceInstrumentExt,
+  readKerbalismScienceLabExt,
+  SCIENCE_EXPERIMENT_BREAKDOWN_TOPIC,
+  SCIENCE_EXPERIMENTS_TOPIC,
+  SCIENCE_INSTRUMENTS_TOPIC,
+  SCIENCE_LAB_TOPIC,
+} from "./science";
 export {
   KERBALISM_AVAILABLE_TOPIC,
   KERBALISM_CREW_TOPIC,

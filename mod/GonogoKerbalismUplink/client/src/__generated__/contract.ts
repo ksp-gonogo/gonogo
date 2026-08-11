@@ -156,3 +156,39 @@ export interface KerbalismReliabilityExt
 	brokenPartCount?: Value<"count">;
 	maintenanceDueCount?: Value<"count">;
 }
+export interface KerbalismScienceExperimentExt
+{
+	dataSizeMB?: Value<"MB">;
+	sciencePerMB?: Value<"science/MB">;
+	kind?: string;
+	sampleMass?: Value<"t">;
+	analyze?: boolean;
+	storageCapacityMB?: Value<"MB">;
+	storageUsedMB?: Value<"MB">;
+	sampleSlotsTotal?: Value<"count">;
+	sampleSlotsUsed?: Value<"count">;
+	transmitRateMBps?: Value<"MB/s">;
+	transmitting?: boolean;
+}
+export interface KerbalismScienceInstrumentExt
+{
+	issue?: string;
+	runningState?: string;
+	expStatus?: string;
+	dataRateMBps?: Value<"MB/s">;
+	prodFactor?: Value<"ratio">;
+	remainingSampleMass?: Value<"t">;
+}
+export interface KerbalismScienceLabExt
+{
+	analysisRateMBps?: Value<"MB/s">;
+	effectiveRateMBps?: Value<"MB/s">;
+	status?: string;
+}
+export interface KerbalismScienceBreakdownExt
+{
+	scienceRemainingTotal?: Value<"science">;
+	percentCollectedTotal?: Value<"ratio">;
+	scienceCollectedInFlight?: Value<"science">;
+	timesCompleted?: Value<"count">;
+}

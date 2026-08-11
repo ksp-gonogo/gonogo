@@ -18,8 +18,7 @@ namespace Sitrep.Host.Tests
     /// dictionary.</b> The claim is about the wire, so these go through
     /// <see cref="EnvelopeCodec.WriteStreamData"/>, the same call the courier
     /// makes: the same discipline
-    /// <c>GonogoKerbalismUplink.Tests.ReliabilityExtensionWireTests</c> used to
-    /// prove the provider-extension bag.</para>
+    /// the provider-extension bag's own wire test used to prove that mechanism.</para>
     ///
     /// <para>Two assertions per claim, deliberately. The elected-vs-direct
     /// comparison would still pass if BOTH sides had drifted together, so one
@@ -183,10 +182,15 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The same claim against a literal, so it cannot be satisfied by both
-        /// sides drifting together: this is the exact <c>science.experiments</c>
-        /// frame the wire carried before the capability existed, spelled out.
-        /// A field order change, a renamed key, a dropped null, or a wrapped
-        /// number would all show up here.
+        /// sides drifting together: the exact <c>science.experiments</c> frame the
+        /// stock backend puts on the wire, spelled out. A field order change, a
+        /// renamed key, a dropped null, or a wrapped number would all show up here.
+        ///
+        /// <para>One key here postdates the election seam: <c>valueModel</c>, the
+        /// additive discriminator that landed with the science superset (see
+        /// <see cref="ScienceValueModels"/>). Everything else is byte for byte what
+        /// the pre-election wiring emitted, which is what the per-channel equality
+        /// test above holds continuously.</para>
         /// </summary>
         [Fact]
         public void TheElectedExperimentsFrameIsTheLiteralPreElectionWire()
@@ -201,7 +205,7 @@ namespace Sitrep.Host.Tests
                 "\"experimentId\":\"mysteryGoo\",\"subjectId\":\"mysteryGoo@KerbinSrfLandedLaunchPad\"," +
                 "\"title\":\"Mystery Goo Observation\",\"dataAmount\":5,\"scienceValueRatio\":0.75," +
                 "\"baseTransmitValue\":0.3,\"transmitBonus\":1,\"labValue\":1.25,\"deployed\":true," +
-                "\"inoperable\":false,\"situation\":\"SrfLanded\"}]," +
+                "\"inoperable\":false,\"situation\":\"SrfLanded\",\"valueModel\":\"stock\"}]," +
                 "\"meta\":{\"source\":\"vessel-1\",\"validAt\":55,\"seq\":3,\"deliveredAt\":55," +
                 "\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}",
                 json);

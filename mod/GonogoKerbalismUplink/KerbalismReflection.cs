@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using UnityEngine;
 
@@ -573,6 +574,227 @@ namespace Gonogo.KerbalismUplink
             catch { return null; }
         }
 
+        // ── science (the "science" capability's Kerbalism provider) ─────────────
+
+        /// <summary>
+        /// Everything the Kerbalism science provider needs off one vessel, in one
+        /// main-thread pass: the <c>Experiment</c> modules (instruments), every file
+        /// and sample on every <c>HardDrive</c> (stored results, with the drive's own
+        /// capacity), the <c>Laboratory</c> modules, and the <c>Sensor</c> modules.
+        ///
+        /// <para>Gated on <c>Features.Science</c> as well as assembly presence: with
+        /// the feature off, Kerbalism is not simulating science and the provider must
+        /// report nothing rather than an empty vessel (see
+        /// <c>KerbalismScienceBackend.IsModeled</c>, the same
+        /// <c>Features.Reliability</c> shape the reliability backend uses).</para>
+        ///
+        /// <para>[fixture-confirm] every member name below against a live install.
+        /// Each read is independently fail-soft: a renamed member yields null for
+        /// that field, a moved type yields fewer rows, and nothing throws into the
+        /// capture. The alternative, one strongly-typed read, would take the whole
+        /// provider out on any Kerbalism refactor.</para>
+        /// </summary>
+        public ScienceRaw Science(Vessel v)
+        {
+            var raw = new ScienceRaw { Modeled = Modeled("Science") };
+            if (!raw.Modeled || v?.parts == null) return raw;
+
+            foreach (var part in v.parts)
+            {
+                if (part?.Modules == null) continue;
+                var partId = part.flightID.ToString(CultureInfo.InvariantCulture);
+                var partName = part.partInfo?.title ?? part.partName ?? "";
+
+                foreach (PartModule pm in part.Modules)
+                {
+                    if (pm == null) continue;
+                    var moduleName = pm.GetType().Name;
+
+                    if (string.Equals(moduleName, "Experiment", StringComparison.Ordinal))
+                    {
+                        raw.Experiments.Add(ExperimentOf(pm, partId, partName));
+                        continue;
+                    }
+                    if (string.Equals(moduleName, "HardDrive", StringComparison.Ordinal))
+                    {
+                        StoredOf(pm, partId, partName, raw.Stored);
+                        continue;
+                    }
+                    if (string.Equals(moduleName, "Laboratory", StringComparison.Ordinal))
+                    {
+                        raw.Labs.Add(new ScienceLabRaw
+                        {
+                            PartId = partId,
+                            PartName = partName,
+                            AnalysisRate = MemberDouble(pm, "analysis_rate") ?? 0,
+                            EffectiveRate = InvokeDoubleMethod(pm, "EffectiveRate") ?? MemberDouble(pm, "analysis_rate") ?? 0,
+                            Status = MemberEnumName(pm, "Status") ?? MemberString(pm, "status") ?? "",
+                            Running = MemberBool(pm, "running") ?? false,
+                        });
+                        continue;
+                    }
+                    if (string.Equals(moduleName, "Sensor", StringComparison.Ordinal))
+                    {
+                        raw.Sensors.Add(new ScienceSensorRaw
+                        {
+                            PartId = partId,
+                            PartName = partName,
+                            Type = MemberString(pm, "type") ?? "",
+                            // Kerbalism formats its own readout string; gonogo passes
+                            // it through rather than re-deriving a number it would
+                            // then have to unit-label without knowing the sensor type.
+                            Readout = MemberString(pm, "Status") ?? MemberString(pm, "status") ?? "",
+                            Active = MemberBool(pm, "active") ?? true,
+                        });
+                    }
+                }
+            }
+            return raw;
+        }
+
+        private static ScienceExperimentRaw ExperimentOf(PartModule pm, string partId, string partName)
+        {
+            var sampleAmount = MemberDouble(pm, "sample_amount") ?? 0;
+            return new ScienceExperimentRaw
+            {
+                PartId = partId,
+                PartName = partName,
+                ExperimentId = MemberString(pm, "experiment_id") ?? "",
+                // Kerbalism's own display title when it has one, else the part's.
+                Title = MemberString(pm, "ExperimentTitle") ?? MemberString(pm, "experiment_title") ?? partName,
+                Issue = MemberString(pm, "issue") ?? "",
+                // The simulated state is `State`, the derived display state `Status`
+                // (Modules/Experiment.cs's two-layer RunningState -> ExpStatus).
+                RunningState = MemberEnumName(pm, "State") ?? MemberEnumName(pm, "RunningState") ?? "",
+                ExpStatus = MemberEnumName(pm, "Status") ?? MemberEnumName(pm, "ExpStatus") ?? "",
+                DataRate = MemberDouble(pm, "data_rate") ?? 0,
+                ProdFactor = MemberDouble(pm, "prodFactor") ?? 0,
+                TakesSample = sampleAmount > 0,
+                // Only meaningful for a finite-sample experiment: for a
+                // sample-less one the field is a zero that would read as
+                // "depleted" rather than "not applicable".
+                RemainingSampleMass = sampleAmount > 0 ? MemberDouble(pm, "remainingSampleMass") : null,
+            };
+        }
+
+        /// <summary>
+        /// Every file and sample on one <c>HardDrive</c>, each carrying that drive's
+        /// own capacity figures. <c>dataCapacity</c>/<c>sampleCapacity</c> use
+        /// <c>-1</c> for unlimited, which is normalised to null HERE rather than
+        /// forwarded: a negative capacity would read in a widget as a real number.
+        /// </summary>
+        private static void StoredOf(PartModule pm, string partId, string partName, List<ScienceStoredRaw> into)
+        {
+            var dataCapacity = MemberDouble(pm, "dataCapacity");
+            var sampleCapacity = MemberDouble(pm, "sampleCapacity");
+            var drive = Member(pm, "Drive") ?? InvokeMethod(pm, "GetDrive");
+            if (drive == null) return;
+
+            var files = Pairs(Member(drive, "files") as IEnumerable);
+            var samples = Pairs(Member(drive, "samples") as IEnumerable);
+            var usedMB = 0.0;
+            foreach (var entry in files)
+            {
+                usedMB += MemberDouble(entry.Value, "size") ?? 0;
+            }
+            // Kerbalism quantises sample capacity in SLOTS, one per stored sample,
+            // not by mass or size.
+            var slotsUsed = samples.Count;
+
+            foreach (var entry in files)
+            {
+                var row = StoredRow(entry.Key, entry.Value, partId, partName, "file");
+                row.TransmitRate = MemberDouble(entry.Value, "transmitRate") ?? 0;
+                row.Transmitting = row.TransmitRate > 0;
+                Fill(row, dataCapacity, usedMB, sampleCapacity, slotsUsed);
+                into.Add(row);
+            }
+            foreach (var entry in samples)
+            {
+                var row = StoredRow(entry.Key, entry.Value, partId, partName, "sample");
+                row.SampleMass = MemberDouble(entry.Value, "mass");
+                row.Analyze = MemberBool(entry.Value, "analyze");
+                Fill(row, dataCapacity, usedMB, sampleCapacity, slotsUsed);
+                into.Add(row);
+            }
+        }
+
+        private static void Fill(ScienceStoredRaw row, double? dataCapacity, double usedMB, double? sampleCapacity, int slotsUsed)
+        {
+            row.DriveCapacityMB = dataCapacity.HasValue && dataCapacity.Value >= 0 ? dataCapacity : null;
+            row.DriveUsedMB = usedMB;
+            row.SampleSlotsTotal = sampleCapacity.HasValue && sampleCapacity.Value >= 0 ? (int)sampleCapacity.Value : (int?)null;
+            row.SampleSlotsUsed = slotsUsed;
+        }
+
+        /// <summary>
+        /// One stored row from a (SubjectData, File|Sample) pair. Everything about
+        /// WHAT the result is comes off the SubjectData (Kerbalism's per-subject
+        /// ledger); everything about the stored blob comes off the file/sample.
+        /// </summary>
+        private static ScienceStoredRaw StoredRow(object? subject, object? blob, string partId, string partName, string kind)
+        {
+            var row = new ScienceStoredRaw
+            {
+                PartId = partId,
+                PartName = partName,
+                Kind = kind,
+                SizeMB = blob != null ? MemberDouble(blob, "size") ?? 0 : 0,
+            };
+            if (subject == null) return row;
+
+            // StockSubjectId, not Id: the stock-format string is the one a widget can
+            // join against anything else, and it is what Kerbalism maintains for
+            // exactly that interop reason.
+            row.SubjectId = MemberString(subject, "StockSubjectId") ?? MemberString(subject, "Id") ?? "";
+            row.SciencePerMB = MemberDouble(subject, "SciencePerMB") ?? 0;
+            row.ScienceMaxValue = MemberDouble(subject, "ScienceMaxValue") ?? 0;
+            row.ScienceRemainingTotal = MemberDouble(subject, "ScienceRemainingTotal") ?? 0;
+            row.PercentCollectedTotal = MemberDouble(subject, "PercentCollectedTotal") ?? 0;
+            row.ScienceCollectedInFlight = MemberDouble(subject, "ScienceCollectedInFlight") ?? 0;
+            row.TimesCompleted = (int)(MemberDouble(subject, "TimesCompleted") ?? 0);
+
+            var expInfo = Member(subject, "ExpInfo");
+            if (expInfo != null)
+            {
+                row.ExperimentId = MemberString(expInfo, "ExperimentId") ?? "";
+                row.Title = MemberString(expInfo, "Title") ?? "";
+            }
+            var situation = Member(subject, "Situation");
+            if (situation != null)
+            {
+                row.Biome = MemberString(situation, "Biome") ?? "";
+                // ScienceSituation is a superset of stock's 6-value mask (it adds
+                // Surface/Flying/Space/BodyGlobal), so this string is Kerbalism's
+                // vocabulary, not stock's, and core's Situation field says so via
+                // the entry's valueModel tag.
+                row.Situation = MemberEnumName(situation, "ScienceSituation") ?? MemberString(situation, "Situation") ?? "";
+            }
+            return row;
+        }
+
+        /// <summary>
+        /// Key/value pairs out of a reflected <c>Dictionary&lt;SubjectData, T&gt;</c>
+        /// without naming either generic argument: enumerating a dictionary yields
+        /// <c>KeyValuePair</c> structs, whose Key/Value are readable as members like
+        /// anything else. Returns nothing for a null/non-enumerable input.
+        /// </summary>
+        private static List<KeyValuePair<object?, object?>> Pairs(IEnumerable? dictionary)
+        {
+            var pairs = new List<KeyValuePair<object?, object?>>();
+            if (dictionary == null) return pairs;
+            foreach (var kvp in dictionary)
+            {
+                if (kvp == null) continue;
+                pairs.Add(new KeyValuePair<object?, object?>(Member(kvp, "Key"), Member(kvp, "Value")));
+            }
+            return pairs;
+        }
+
+        /// <summary>A KERBALISM.Features.* flag, false when absent (see <see cref="Features"/>).</summary>
+        private bool Modeled(string feature) =>
+            Features().TryGetValue(feature, out var on) && on;
+
         // ── member readers (field-or-property, fail-soft) ──────────────────────
 
         private static object? Member(object obj, string name)
@@ -593,6 +815,32 @@ namespace Gonogo.KerbalismUplink
             var m = obj.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
             if (m == null) return null;
             try { return m.Invoke(obj, null) as bool?; } catch { return null; }
+        }
+
+        private static object? InvokeMethod(object obj, string name)
+        {
+            var m = obj.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+            if (m == null) return null;
+            try { return m.Invoke(obj, null); } catch { return null; }
+        }
+
+        private static double? InvokeDoubleMethod(object obj, string name) => AsDouble(InvokeMethod(obj, name));
+
+        /// <summary>
+        /// An enum-valued member as its NAME. Kerbalism's state machines are enums
+        /// (<c>RunningState</c>, <c>ExpStatus</c>, the lab's <c>Status</c>,
+        /// <c>ScienceSituation</c>), and the name is the only stable thing about
+        /// them: the numeric value shifts whenever a case is inserted, so carrying
+        /// the ordinal on the wire would silently relabel states across a Kerbalism
+        /// update. Returns null when the member is absent or is not an enum, so a
+        /// caller can fall back to a plain string member of the same name.
+        /// </summary>
+        private static string? MemberEnumName(object obj, string name)
+        {
+            var raw = Member(obj, name);
+            if (raw == null) return null;
+            var t = raw.GetType();
+            return t.IsEnum ? raw.ToString() : null;
         }
 
         private Type? FindType(string fullName)

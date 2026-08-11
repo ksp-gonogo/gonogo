@@ -1,8 +1,43 @@
+using System.Collections.Generic;
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
 
 namespace Sitrep.Contract;
+
+/// <summary>
+/// The vocabulary for the <c>valueModel</c> discriminator that the value-bearing
+/// <c>science.*</c> payloads carry (<see cref="ExperimentEntry.ValueModel"/>,
+/// <see cref="LabEntry.ValueModel"/>,
+/// <see cref="ExperimentBreakdownEntry.ValueModel"/>).
+///
+/// <para><b>Why a discriminator at all.</b> <c>science</c> is a Kernel-elected
+/// capability, and the mods that model science do not merely put different NUMBERS
+/// in these fields, they compute them from different models. Stock's "value of the
+/// next report" is a diminishing-returns curve tracked per subject in R&amp;D;
+/// another's is a flat rate times remaining data. A widget that treats one
+/// provider's <c>scienceValueRatio</c> as comparable to another's is silently
+/// wrong, and nothing in the field's name or unit says so. This is the same job
+/// <see cref="ReliabilitySummary.Unmodeled"/> does for reliability: stop a
+/// consumer reading a number as something it is not.</para>
+///
+/// <para><b>An OPEN vocabulary, deliberately.</b> Like <see cref="Units"/> and the
+/// generated <c>SitrepUnit</c> union it feeds, this is a bag of known tokens, not
+/// a closed enum: a provider Uplink cannot add a member to a const-string class in
+/// this assembly, so closing the set would mean a third-party science provider
+/// could never tag its own model. The tag is a plain string on the wire and a
+/// consumer must treat an unrecognised token as "a model I do not know", never as
+/// stock.</para>
+/// </summary>
+public static class ScienceValueModels
+{
+    /// <summary>
+    /// Stock KSP: per-subject diminishing returns tracked in R&amp;D, data in mits.
+    /// Emitted by the stock backend on every value-bearing entry, so a consumer
+    /// never has to read ABSENCE as "probably stock".
+    /// </summary>
+    public const string Stock = "stock";
+}
 
 /// <summary>
 /// One entry in the <c>science.experiments</c> channel payload, a single
@@ -74,6 +109,39 @@ public class ExperimentEntry
 
     [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
+
+    /// <summary>
+    /// Which value model produced <see cref="ScienceValueRatio"/> /
+    /// <see cref="BaseTransmitValue"/> / <see cref="LabValue"/>, and which unit
+    /// <see cref="DataAmount"/> is really in. See
+    /// <see cref="ScienceValueModels"/> for why this exists and why the
+    /// vocabulary is open.
+    ///
+    /// <para><b>The one field on this payload that is not simply "what the game
+    /// says".</b> A provider whose data is not in mits leaves
+    /// <see cref="DataAmount"/> null rather than putting a megabyte figure in a
+    /// mits-typed field: a field's unit is compile-time-baked here and cannot
+    /// vary by elected provider, so the honest move is absence plus the real
+    /// figure in the provider's own <see cref="Extensions"/> namespace.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ValueModel { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag: how a science backend carries a
+    /// per-experiment field this shared shape does not declare, WITHOUT a PR
+    /// against this file. See <see cref="ProviderExtensionBagAttribute"/> for the
+    /// whole mechanism.
+    ///
+    /// <para>This is where everything a richer science model knows that stock has
+    /// no concept of belongs: storage capacity, file-vs-sample, transmit rate,
+    /// per-unit science rate. Adding those as nullable members here instead is the
+    /// hand-curated-superset anti-pattern the bag replaces
+    /// (<c>Sitrep.Host.Tests.ScienceProviderExtensionRatchetTests</c> holds that
+    /// line).</para>
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>
@@ -126,6 +194,21 @@ public class InstrumentEntry
 
     [SitrepUnit(Units.Flag)]
     public bool? DataIsCollectable { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag, instrument half. Same mechanism and
+    /// same rule as <see cref="ExperimentEntry.Extensions"/>. This payload carries
+    /// no value-model-dependent number (it is pure operability), so it takes the
+    /// bag but no <c>valueModel</c> tag.
+    ///
+    /// <para>Stock's operability picture is a flat pair of bools
+    /// (<see cref="Deployed"/>/<see cref="Inoperable"/>). A provider that models
+    /// running as a state machine with a reason ("shrouded", "no EC", "sample
+    /// depleted") projects it down to those bools and carries the state and the
+    /// reason here.</para>
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>
@@ -174,6 +257,30 @@ public class LabEntry
 
     [SitrepUnit(Units.Flag)]
     public bool? IsOperational { get; set; }
+
+    /// <summary>
+    /// Which value model produced <see cref="ScienceRate"/> and
+    /// <see cref="StoredScience"/>, and which unit <see cref="DataStored"/> /
+    /// <see cref="DataStorage"/> are really in. See
+    /// <see cref="ScienceValueModels"/>.
+    ///
+    /// <para>A lab is not the same KIND of thing under every model. Stock's is
+    /// terminal: it turns stored data into science per game-day and you are done.
+    /// A provider whose lab is an intermediate pipeline stage (analysing a sample
+    /// into a transmissible file, which then still has to be sent) produces NO
+    /// science itself, leaves <see cref="ScienceRate"/> null, and carries its own
+    /// rate in <see cref="Extensions"/>. Without this tag a widget cannot tell
+    /// that null apart from "idle".</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ValueModel { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag, lab half. Same mechanism and same
+    /// rule as <see cref="ExperimentEntry.Extensions"/>.
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>
@@ -334,4 +441,24 @@ public class ExperimentBreakdownEntry
     /// <summary>Absolute science still recoverable from this subject (<c>scienceCap - science</c>); <c>0</c> outside Career/Science mode.</summary>
     [SitrepUnit(Units.Science)]
     public double? RemainingPotential { get; set; }
+
+    /// <summary>
+    /// Which value model produced <see cref="RemainingPotential"/>, and which unit
+    /// <see cref="DataMits"/> is really in. See <see cref="ScienceValueModels"/>.
+    ///
+    /// <para>Stock's rollup is a snapshot: one summed data figure and one
+    /// "how much is left". A provider with a full per-subject ledger (collected vs
+    /// retrieved, in-flight split, times completed) projects it down to those two
+    /// and carries the ledger in <see cref="Extensions"/>: stock's pair is a lossy
+    /// VIEW of the richer set, never the other way round.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ValueModel { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag, per-subject-rollup half. Same
+    /// mechanism and same rule as <see cref="ExperimentEntry.Extensions"/>.
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }

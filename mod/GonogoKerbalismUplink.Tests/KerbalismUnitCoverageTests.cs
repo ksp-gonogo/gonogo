@@ -83,7 +83,17 @@ namespace GonogoKerbalismUplink.Tests
                 // guard: a quantity inside an extension is a Value like any other,
                 // and its unit reaches the decode through this Uplink's own
                 // generated TYPE map.
-                nameof(KerbalismReliabilityExt));
+                nameof(KerbalismReliabilityExt),
+                // The four Kerbalism namespaces of the CORE science.* payloads'
+                // extension bags (KerbalismScienceExt.cs), same rationale as
+                // KerbalismReliabilityExt above at a larger scale: Kerbalism wins the
+                // science election, and most of what it knows has no core field to
+                // land in. These carry this repo's FIRST Uplink-declared units
+                // ("MB"/"MB/s"/"science/MB"), which makes the annotation guard load
+                // -bearing in a new way: an unannotated megabyte figure would decode
+                // as a bare number while the generated type still claimed Value<"MB">.
+                nameof(KerbalismScienceExperimentExt), nameof(KerbalismScienceInstrumentExt),
+                nameof(KerbalismScienceLabExt), nameof(KerbalismScienceBreakdownExt));
 
         /// <summary>
         /// The three <c>RequiresUnit</c> branches, exercised by real properties

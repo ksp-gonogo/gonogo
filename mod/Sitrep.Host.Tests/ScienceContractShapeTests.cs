@@ -159,8 +159,16 @@ namespace Sitrep.Host.Tests
             var list = Assert.IsType<List<object?>>(payload);
             var emitted = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
 
+            // The provider extension bag is the one member that must NOT mirror:
+            // it is omitted from the wire entirely unless a provider filled it
+            // (see Sitrep.Contract/ProviderExtensions.cs, and
+            // ReliabilityExtensionWireTests, which pins that omission as bytes),
+            // so the stock backend never emits the key. Excluded by ATTRIBUTE
+            // rather than by name so the exemption cannot quietly widen to a
+            // hand-added field.
             var props = entryType
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.GetCustomAttribute<ProviderExtensionBagAttribute>() == null)
                 .ToDictionary(p => CamelCase(p.Name), p => p);
 
             Assert.Equal(

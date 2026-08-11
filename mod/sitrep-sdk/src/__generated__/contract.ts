@@ -634,6 +634,8 @@ export interface ExperimentEntry
 	deployed?: boolean;
 	inoperable?: boolean;
 	situation?: string;
+	valueModel?: string;
+	extensions?: ProviderExtensions;
 }
 export interface InstrumentEntry
 {
@@ -646,6 +648,7 @@ export interface InstrumentEntry
 	rerunnable?: boolean;
 	resettable?: boolean;
 	dataIsCollectable?: boolean;
+	extensions?: ProviderExtensions;
 }
 export interface LabEntry
 {
@@ -658,6 +661,8 @@ export interface LabEntry
 	scientistCount?: Value<"count">;
 	scienceRate?: Value<"science/day">;
 	isOperational?: boolean;
+	valueModel?: string;
+	extensions?: ProviderExtensions;
 }
 export interface DeployedEntry
 {
@@ -691,6 +696,8 @@ export interface ExperimentBreakdownEntry
 	expTitle?: string;
 	dataMits?: Value<"Mit">;
 	remainingPotential?: Value<"science">;
+	valueModel?: string;
+	extensions?: ProviderExtensions;
 }
 export interface LaunchSiteEntry
 {

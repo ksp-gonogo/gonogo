@@ -20,7 +20,7 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class ScienceElectionTests
     {
-        /// <summary>A provider standing in for a science-modelling mod (Kerbalism in production).</summary>
+        /// <summary>A provider standing in for whichever science-modelling mod is installed.</summary>
         private sealed class FakeBackend : IScienceBackend
         {
             public FakeBackend(string id) => BackendId = id;
@@ -68,7 +68,7 @@ namespace Sitrep.Host.Tests
             public void Register(IUplinkHost host) { }
         }
 
-        // A provider-only uplink (the Kerbalism shape): registers a "science"
+        // A provider-only uplink (the shape a modelling mod's uplink has): registers a "science"
         // PROVIDER in Register and declares no capability of its own.
         private sealed class ProviderOnlyUplink : ISitrepUplink
         {

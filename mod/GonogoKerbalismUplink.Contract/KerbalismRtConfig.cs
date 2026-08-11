@@ -131,6 +131,15 @@ public static class KerbalismRtConfig
             // reason everything else here does: the type belongs to whoever fills
             // it, and core must never learn its shape.
             typeof(KerbalismReliabilityExt),
+            // The Kerbalism namespaces of the four elected science.* payloads'
+            // extension bags. Same reasoning as KerbalismReliabilityExt above, at a
+            // larger scale: Kerbalism WINS the science election, and most of what it
+            // knows (drive capacity, file-vs-sample, the requirement gate's reason,
+            // the per-subject ledger) has no stock field to borrow.
+            typeof(KerbalismScienceExperimentExt),
+            typeof(KerbalismScienceInstrumentExt),
+            typeof(KerbalismScienceLabExt),
+            typeof(KerbalismScienceBreakdownExt),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());

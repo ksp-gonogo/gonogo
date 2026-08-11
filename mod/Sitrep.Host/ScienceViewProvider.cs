@@ -120,6 +120,11 @@ namespace Sitrep.Host
             ["deployed"] = SnapshotDict.GetBool(raw, "deployed"),
             ["inoperable"] = SnapshotDict.GetBool(raw, "inoperable"),
             ["situation"] = SnapshotDict.GetString(raw, "situation"),
+            // Always emitted, never inferred from absence: see
+            // ScienceValueModels. Stock's numbers above are R&D-curve values in
+            // mits, and a consumer comparing them with another provider's needs
+            // to be told so on every frame, not only on the other provider's.
+            ["valueModel"] = ScienceValueModels.Stock,
         };
 
         private static Dictionary<string, object?> BuildInstrumentEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
@@ -146,6 +151,9 @@ namespace Sitrep.Host
             ["scientistCount"] = SnapshotDict.GetInt(raw, "scientistCount"),
             ["scienceRate"] = SnapshotDict.GetDouble(raw, "scienceRate"),
             ["isOperational"] = SnapshotDict.GetBool(raw, "isOperational"),
+            // Stock's lab is terminal: it produces science per game-day. See
+            // ScienceValueModels and LabEntry.ValueModel.
+            ["valueModel"] = ScienceValueModels.Stock,
         };
 
         private static Dictionary<string, object?> BuildSensorEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
@@ -165,6 +173,9 @@ namespace Sitrep.Host
             ["expTitle"] = SnapshotDict.GetString(raw, "expTitle"),
             ["dataMits"] = SnapshotDict.GetDouble(raw, "dataMits"),
             ["remainingPotential"] = SnapshotDict.GetDouble(raw, "remainingPotential"),
+            // Stock's rollup is the R&D snapshot, in mits. See
+            // ScienceValueModels and ExperimentBreakdownEntry.ValueModel.
+            ["valueModel"] = ScienceValueModels.Stock,
         };
     }
 }

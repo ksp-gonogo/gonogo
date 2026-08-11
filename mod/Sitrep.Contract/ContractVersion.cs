@@ -679,7 +679,35 @@ namespace Sitrep.Contract
         /// <c>Sitrep.Host.Tests.ReliabilityContractShapeTests</c> now pins their
         /// member set, so a new provider field lands in the bag instead. See
         /// <c>local_docs/design/2026-08-11-provider-extension-mechanism-build-spec.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 1 -&gt; 2: science becomes an elected
+        /// capability with a superset.</b> Four of the <c>science.*</c> payloads
+        /// (<see cref="ExperimentEntry"/>, <see cref="InstrumentEntry"/>,
+        /// <see cref="LabEntry"/>, <see cref="ExperimentBreakdownEntry"/>) gain the
+        /// same nullable <c>Extensions</c> bag, and the three that carry
+        /// value-model-dependent numbers gain a nullable <c>ValueModel</c>
+        /// discriminator (see <see cref="ScienceValueModels"/>). Additive and
+        /// nullable: seven new members across four existing shapes, nothing removed
+        /// or retyped, so an Uplink built against Major 12.0/12.1 is unaffected and
+        /// the frozen Major-12 floor is NOT re-frozen.</para>
+        ///
+        /// <para>The wire gains ONE key on the stock path,
+        /// <c>valueModel: "stock"</c> on those three payloads: deliberately present
+        /// rather than inferred from absence, so a consumer never has to read a
+        /// missing tag as "probably stock" (which would silently mislabel a third
+        /// provider that forgot to tag). The bag itself stays byte-invisible until a
+        /// provider fills it, the same omit-when-empty rule reliability's bag
+        /// already proved.</para>
+        ///
+        /// <para>No unit changed on any existing field, which is the one thing a
+        /// "superset" invites. A provider whose data is not in the declared unit
+        /// leaves the field NULL and carries its real figure in its own bag
+        /// namespace: a field's <see cref="SitrepUnitAttribute"/> is compile-time
+        /// baked and cannot vary by elected provider, so putting a megabyte figure
+        /// in a mits-typed field would have been a silent lie rather than a
+        /// superset. See
+        /// <c>local_docs/design/2026-08-11-science-subsume-build-spec.md</c>.</para>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

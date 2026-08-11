@@ -28,6 +28,13 @@ namespace Gonogo.KerbalismUplink
 
         private readonly KerbalismReflection _k = new();
 
+        /// <summary>
+        /// The elected "science" backend, held rather than constructed per factory
+        /// call because it is fed by this Uplink's own main-thread capture: see
+        /// <see cref="RegisterScience"/>.
+        /// </summary>
+        private readonly KerbalismScienceBackend _science = new();
+
         private IChannelPublisher? _spaceWeather;
         private IChannelPublisher? _lifeSupport;
         private IChannelPublisher? _crew;
@@ -132,7 +139,68 @@ namespace Gonogo.KerbalismUplink
                 {
                     Console.Error.WriteLine("[KerbalismUplink] could not register reliability provider: " + ex.Message);
                 }
+
+                RegisterScience(host);
             }
+        }
+
+        /// <summary>
+        /// Register Kerbalism as the "science" provider, above the stock vanilla
+        /// backend so it WINS when Kerbalism is installed. Same
+        /// registering-is-the-gate rule as reliability above, and the same two-pass
+        /// guarantee: the capability is owned and declared by ScienceCoreUplink
+        /// (bundled core) in the pre-Register pass, so it exists here regardless of
+        /// assembly-scan order.
+        ///
+        /// <para>Unlike reliability, this provider is STATEFUL: its reads run on the
+        /// Courier thread and Kerbalism's science lives in PartModules that must be
+        /// read on the main thread, so it is fed by its own capture-on-main source
+        /// below and the SAME instance has to be both fed and elected. Hence one
+        /// instance closed over by the factory, rather than a factory that
+        /// constructs.</para>
+        ///
+        /// <para>The capture is gated on <c>"science."</c> subscriptions, so a
+        /// vessel-wide drive/module walk costs nothing while no client is looking at
+        /// science. The gate is a pure early-out: a late subscriber still gets the
+        /// current value the ordinary way.</para>
+        /// </summary>
+        private void RegisterScience(IUplinkHost host)
+        {
+            try
+            {
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = "science",
+                    Id = KerbalismScienceMap.ProviderId,
+                    // Above the stock vanilla backend: on a Kerbalism install the
+                    // stock walk finds nothing (results live on Kerbalism's drives,
+                    // not in ModuleScienceExperiment), so losing this election would
+                    // mean an empty science dashboard, not a degraded one.
+                    Priority = 1.0,
+                    Factory = _ => _science,
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("[KerbalismUplink] could not register science provider: " + ex.Message);
+                return;
+            }
+
+            host.AddSampledSource(CaptureScienceOnMain, HandleScienceOnCourier, "science.");
+        }
+
+        /// <summary>MAIN-THREAD capture: read live Kerbalism science into a plain bundle (no KSP handles cross threads).</summary>
+        private object? CaptureScienceOnMain(KspSnapshot? snapshot)
+        {
+            var v = FlightGlobals.ActiveVessel;
+            if (v == null || !_k.IsAvailable) return null;
+            return _k.Science(v);
+        }
+
+        /// <summary>COURIER-THREAD handle: hand the capture to the elected backend, which maps it per channel. No KSP access.</summary>
+        private void HandleScienceOnCourier(object? captured)
+        {
+            if (captured is ScienceRaw raw) _science.Stash(raw);
         }
 
         /// <summary>MAIN-THREAD capture: read live Kerbalism into a plain bundle (no KSP handles cross threads).</summary>

@@ -364,7 +364,11 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Mystery Goo Observation", first["expTitle"]);
             Assert.Equal(5.0, first["dataMits"]);
             Assert.Equal(12.5, first["remainingPotential"]);
-            Assert.Equal(6, first.Count);
+            // The stock backend tags every value-bearing entry with the model that
+            // produced its numbers: present on every frame rather than inferred from
+            // absence, see Sitrep.Contract.ScienceValueModels.
+            Assert.Equal(ScienceValueModels.Stock, first["valueModel"]);
+            Assert.Equal(7, first.Count);
 
             var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal("crewReport@KerbinInSpaceLow", second["subjectId"]);

@@ -346,6 +346,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     remainingPotential: "science",
     situation: "text",
     subjectId: "id",
+    valueModel: "id",
   },
   "ExperimentEntry": {
     baseTransmitValue: "science",
@@ -361,6 +362,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     subjectId: "id",
     title: "text",
     transmitBonus: "ratio",
+    valueModel: "id",
   },
   "FleetVesselLink": {
     connected: "flag",
@@ -423,6 +425,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scientistCount: "count",
     statusText: "text",
     storedScience: "science",
+    valueModel: "id",
   },
   "LaunchArgs": {
     crew: "text",
@@ -1190,6 +1193,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     remainingPotential: "science",
     situation: "text",
     subjectId: "id",
+    valueModel: "id",
   },
   "science.experiments": {
     baseTransmitValue: "science",
@@ -1205,6 +1209,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     subjectId: "id",
     title: "text",
     transmitBonus: "ratio",
+    valueModel: "id",
   },
   "science.instruments": {
     dataIsCollectable: "flag",
@@ -1227,6 +1232,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     scientistCount: "count",
     statusText: "text",
     storedScience: "science",
+    valueModel: "id",
   },
   "science.sensors": {
     active: "flag",

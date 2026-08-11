@@ -17,7 +17,7 @@ namespace Sitrep.Host.Science
     /// registered a provider, which is every stock install.</item>
     /// <item><b>A modelling mod registers as a provider</b> from its own uplink's
     /// Register (host.Kernel.RegisterProvider), ONLY when its reflection probe
-    /// confirms the mod is loaded: registering IS the gate. Kerbalism registers
+    /// confirms the mod is loaded: registering IS the gate. A provider registers
     /// above vanilla, so it wins when installed; absent, stock wins and the wire
     /// is exactly what it was before the election existed.</item>
     /// </list>
