@@ -829,7 +829,18 @@ namespace Sitrep.Contract
         /// <c>Sitrep.Core.Tests.JsonWriterFlattenerParityTests</c> fails if a
         /// raw-published field never reaches the wire, and the science/deployed
         /// contract-shape tests hold the key set exactly.</para>
+        ///
+        /// <para>Bumped 7 -&gt; 8: PAW part actions. Adds
+        /// <see cref="PartActionEntry"/>/<see cref="PartActions"/> (the payload of
+        /// the new dynamic <c>vessel.partActions.&lt;flightId&gt;</c> namespace, a
+        /// part's right-click Part Action Window buttons) and
+        /// <see cref="InvokePartActionArgs"/> (the args of the new delayed
+        /// <c>vessel.invokePartAction</c> command that fires one). Purely additive,
+        /// two new types plus a new channel namespace and a new command, no
+        /// existing member gains, loses or retypes anything, so an Uplink built
+        /// against any earlier Major-12 minor is unaffected and the frozen Major-12
+        /// floor is NOT re-frozen.</para>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

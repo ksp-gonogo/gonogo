@@ -49,12 +49,39 @@ namespace Gonogo.KSP
         /// </summary>
         private readonly KspVesselActuator? _kspActuator;
 
+        /// <summary>
+        /// The PAW part-action seam (<c>vessel.partActions.&lt;flightId&gt;</c> +
+        /// <c>vessel.invokePartAction</c>): a separate actuator from
+        /// <see cref="_actuator"/> because reading and firing <c>BaseEvent</c>s has
+        /// nothing to do with the vessel-wide control surfaces
+        /// <see cref="IVesselActuator"/> models, exactly as robotics kept its own
+        /// <see cref="IRoboticsActuator"/>.
+        /// </summary>
+        private readonly IPartActionActuator _partActionActuator;
+
         private Kernel? _kernel;
 
+        private IUplinkHost? _host;
+
+        private IDynamicChannelSource? _partActionsSource;
+
+        /// <summary>
+        /// Change-gate for the per-part action channels: without it a per-tick
+        /// rebuild of an identical payload emits every tick (see
+        /// <see cref="PartActionsPublicationCache"/>).
+        /// </summary>
+        private readonly PartActionsPublicationCache _partActionsCache = new PartActionsPublicationCache();
+
         public VesselUplink(IVesselActuator actuator)
+            : this(actuator, new KspPartActionActuator())
+        {
+        }
+
+        public VesselUplink(IVesselActuator actuator, IPartActionActuator partActionActuator)
         {
             _actuator = actuator;
             _kspActuator = actuator as KspVesselActuator;
+            _partActionActuator = partActionActuator;
         }
 
         /// <summary>
@@ -213,6 +240,11 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.TargetClearCommand, delayed: false),
                 Command(VesselCommandProvider.SetWarpIndexCommand, delayed: false),
                 Command(VesselCommandProvider.SetPausedCommand, delayed: false),
+                // vessel.invokePartAction: firing a button in a part's right-click
+                // PAW actuates a part ON the craft, so it belongs in the DELAYED
+                // bucket above alongside vessel.control.* rather than with the
+                // ground-station nav aids below it.
+                Command(PartActionCommandProvider.InvokePartActionCommand, delayed: true),
             },
         };
 
@@ -239,6 +271,7 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
+            _host = host;
 
             // Install the WRITE-side elected-backend resolver. Resolved lazily
             // per command (not captured now) because the election hasn't run
@@ -292,6 +325,140 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
             host.AddCommandHandler<SetWarpIndexArgs, CommandResult>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));
             host.AddCommandHandler<SetPausedArgs, CommandResult>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
+            host.AddCommandHandler<InvokePartActionArgs, CommandResult>(PartActionCommandProvider.InvokePartActionCommand, args => PartActionCommandProvider.HandleInvoke(_partActionActuator, args));
+
+            RegisterPartActions(host);
+        }
+
+        /// <summary>
+        /// Wires the per-part PAW action channels: one dynamic sub-topic per part
+        /// (<c>vessel.partActions.&lt;flightId&gt;</c>), fed by a
+        /// SUBSCRIPTION-GATED capture-on-main / handle-on-Courier source.
+        ///
+        /// <para><b>The gating is the whole design.</b> A vessel is 50-200+ parts and
+        /// each exposes ~5-15 PAW events across its modules, so enumerating them all
+        /// would be both an expensive main-thread walk and a large payload, for data
+        /// only needed while an operator has a part open. Two gates stack: the engine
+        /// skips <see cref="CapturePartActionsOnMain"/> entirely while nothing under
+        /// the prefix is subscribed, and the capture itself enumerates only the
+        /// individual parts that ARE subscribed. Nothing open costs nothing; one
+        /// popover open costs one part's events.</para>
+        /// </summary>
+        private void RegisterPartActions(IUplinkHost host)
+        {
+            _partActionsSource = host.RegisterDynamicNamespace(
+                PartActionsViewProvider.PartActionsPrefix,
+                new ChannelDeclaration
+                {
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Vessel-sourced like every other vessel.* channel: the operator
+                    // learns what buttons a remote craft offers at light-time, and
+                    // the invoke command rides the same clock back.
+                    Delay = DelayRole.Delayed,
+                });
+
+            host.AddSampledSource(
+                CapturePartActionsOnMain,
+                HandlePartActionsOnCourier,
+                PartActionsViewProvider.PartActionsPrefix);
+
+            // A fresh subscriber needs the current list even when it has not
+            // changed since the previous subscriber closed their popover: the
+            // producer's change-gate would otherwise hold it back. See
+            // PartActionsPublicationCache.Invalidate.
+            _partActionsSource.OnSubscribed(subTopic => _partActionsCache.Invalidate(subTopic));
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture: which parts is a client watching, and what does each
+        /// one's PAW currently offer? Reads live KSP (part ids, then
+        /// <c>BaseEvent</c>s via <see cref="IPartActionActuator"/>) and returns plain
+        /// data for the Courier thread to publish.
+        ///
+        /// <para>The two-pass shape matters: the first pass is a cheap
+        /// <c>flightID</c> walk that touches no events, and only ids that pass the
+        /// per-part subscription check reach the expensive enumeration.</para>
+        /// </summary>
+        private object? CapturePartActionsOnMain(KspSnapshot? snapshot)
+        {
+            var host = _host;
+            if (host == null)
+            {
+                return null;
+            }
+
+            var vessel = FlightGlobals.ActiveVessel;
+            if (vessel == null || vessel.parts == null)
+            {
+                return null;
+            }
+
+            List<string>? subscribed = null;
+            foreach (var part in vessel.parts)
+            {
+                // flightID is 0 until the part loads into flight; the same
+                // uninitialized-sentinel skip the read and invoke sides use.
+                if (part == null || part.flightID == 0)
+                {
+                    continue;
+                }
+
+                var partId = part.flightID.ToString();
+                if (!host.IsAnyTopicSubscribed(PartActionsViewProvider.Topic(partId)))
+                {
+                    continue;
+                }
+
+                if (subscribed == null)
+                {
+                    subscribed = new List<string>();
+                }
+                subscribed.Add(partId);
+            }
+
+            if (subscribed == null)
+            {
+                return null;
+            }
+
+            // Named from the SAME read the enumeration came from, on this thread in
+            // this tick, rather than off the snapshot: see PartActions.VesselId for
+            // why a per-part topic still needs to say which vessel it describes.
+            var vesselId = vessel.id.ToString();
+
+            return new PartActionsCapture
+            {
+                Ut = snapshot?.Ut ?? 0.0,
+                Publications = PartActionsViewProvider.Build(_partActionActuator, subscribed, vesselId),
+            };
+        }
+
+        /// <summary>COURIER-THREAD handle: publish the parts whose action list actually moved. No KSP access.</summary>
+        private void HandlePartActionsOnCourier(object? captured)
+        {
+            if (captured is not PartActionsCapture capture)
+            {
+                return;
+            }
+
+            foreach (var publication in _partActionsCache.Changed(capture.Publications))
+            {
+                _partActionsSource?.Publisher(publication.SubTopic).Publish(publication.Payload, capture.Ut);
+            }
+        }
+
+        /// <summary>
+        /// The opaque payload <see cref="CapturePartActionsOnMain"/> hands across to
+        /// <see cref="HandlePartActionsOnCourier"/>: plain data only, no live KSP
+        /// reference, per <see cref="IUplinkHost.AddSampledSource"/>'s contract.
+        /// </summary>
+        private sealed class PartActionsCapture
+        {
+            public double Ut { get; set; }
+
+            public List<PartActionsViewProvider.Publication> Publications { get; set; } =
+                new List<PartActionsViewProvider.Publication>();
         }
 
         private static ChannelDeclaration Channel(string topic, bool absenceIsData = false) => new ChannelDeclaration

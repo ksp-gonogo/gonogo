@@ -64,6 +64,12 @@ namespace Sitrep.Core.Tests
             // Dictionary<string, object?> before Publish; TS-shape-only, never
             // handed to AppendValue raw.
             "VesselParts", "VesselPart", "PartBounds", "PartResourceFlow", "PartModuleState",
+            // vessel.partActions.<flightId>: PartActionsViewProvider.ToWire flattens
+            // PartActions/PartActionEntry to Dictionary<string, object?> before
+            // Publish (the producer also has to own the flatten to compute its own
+            // change-gate signature, see PartActionsPublicationCache); JsonWriter
+            // only ever sees the dictionary, never the POCO.
+            "PartActions", "PartActionEntry",
             // fleet.<guid>.delay: FleetVesselLinkBuilder.Build returns a
             // Dictionary<string, object?> and FleetDelayUplink.HandleOnCourier
             // publishes that, so JsonWriter only ever sees the flattened
@@ -144,6 +150,7 @@ namespace Sitrep.Core.Tests
             "ContractActionArgs", "UpgradeFacilityArgs", "RevertToEditorArgs",
             "SwitchVesselArgs", "LaunchArgs", "ServoSetTargetArgs", "ServoSetEnabledArgs",
             "RotorSetValueArgs", "RotorReverseArgs", "ExperimentActionArgs",
+            "InvokePartActionArgs",
             // The eleven kOS payload/command-arg types (kos.processors'
             // KosProcessorInfo, the dynamic-channel KosTerminalFrame/KosRunResult/
             // KosComputeStatus, and the seven command args KosExecArgs/

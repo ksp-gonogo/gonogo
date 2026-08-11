@@ -1124,6 +1124,20 @@ const KOS_COMPUTE_NON_VALUE =
 const SCANSAT_DYNAMIC =
   /^scansat\.(coverage|mask)\.\w+\.\d+$|^scansat\.(height|biome|anomalies)\.\w+$/;
 
+/**
+ * `vessel.partActions.<flightId>`: the dynamic per-part PAW namespace
+ * `VesselUplink` publishes (mod's `PartActionsViewProvider.TopicPrefix` +
+ * `Part.flightID`). Identity-mapped, same pattern as `KOS_COMPUTE_FIELD` and
+ * `SCANSAT_DYNAMIC` above: the widget-facing key IS the wire topic.
+ *
+ * `\d+` rather than `\w+` because `flightID` is a `uint` and the mod stringifies
+ * it, so a non-numeric segment is a caller mistake rather than a topic this
+ * namespace could ever carry. Unlike the SCANsat family, this one IS promoted to
+ * the stream: `DYNAMIC_CARRIED_TOPIC_PREFIXES` carries the whole prefix (see
+ * `default-carried-topics.ts`).
+ */
+const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
+
 export function mapTopic(
   dataSourceId: string,
   key: string,
@@ -1145,6 +1159,8 @@ export function mapTopic(
   if (clean !== undefined) return clean;
 
   if (SCANSAT_DYNAMIC.test(key)) return key;
+
+  if (PART_ACTIONS_DYNAMIC.test(key)) return key;
 
   if (BODY_INDEXED_CLEAN.test(key)) return "system.bodies";
   if (BODY_INDEXED_GAP.test(key)) return undefined;

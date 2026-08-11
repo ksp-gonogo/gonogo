@@ -161,6 +161,8 @@ public static class RtConfig
                 typeof(RotorSetValueArgs),
                 typeof(RotorReverseArgs),
                 typeof(ExperimentActionArgs),
+                // vessel.invokePartAction args (fire one PAW button)
+                typeof(InvokePartActionArgs),
                 // vessel.control fly-by-wire command args
                 typeof(SetFlyByWireArgs),
                 typeof(SetControlAxesArgs),
@@ -229,6 +231,13 @@ public static class RtConfig
                 // vessel.parts per-part action-group bindings (retires the
                 // f.ag.bindings shim)
                 typeof(ActionBinding),
+                // vessel.partActions.<flightId> payload + its entry shape: a part's
+                // right-click PAW buttons. A dynamic per-part namespace, so neither
+                // type carries [SitrepTopic] (there is no fixed topic name to tag);
+                // registered here so both get the plain no-I-prefix name every other
+                // wire payload has.
+                typeof(PartActions),
+                typeof(PartActionEntry),
                 // spaceCenter.launchSites / spaceCenter.scene (P1b)
                 typeof(LaunchSiteEntry),
                 typeof(SpaceCenterScene),

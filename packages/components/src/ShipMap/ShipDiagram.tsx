@@ -2,8 +2,9 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, resourceColor, TextButton, Unit } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useZoomPan } from "../shared/useZoomPan";
+import { PartActionCount, PartActionMenu } from "./PartActionMenu";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type {
   ShipMapPart,
@@ -49,6 +50,19 @@ interface Props {
    *  `partMeters`. Rendered only in the hover tooltip, ShipDiagramSvg has
    *  no compact-body equivalent for these. */
   partMeta?: ReadonlyMap<string, readonly ShipMapPartMetaEntry[]>;
+  /**
+   * Fires one PAW action on one part. Supplied by the widget (which owns the
+   * `useCommand` handle so it outlives this popover, see
+   * `PartActionMenuProps.onInvoke`). Omitted in the harness / snapshot renders,
+   * which pass no command surface at all: without it the part-action affordances
+   * simply do not appear, so a static render is unchanged.
+   */
+  onInvokePartAction?: (
+    flightId: number,
+    eventName: string,
+    actionLabel: string,
+    partTitle: string,
+  ) => void;
 }
 
 export function ShipDiagram({
@@ -60,9 +74,29 @@ export function ShipDiagram({
   throttle,
   partMeters,
   partMeta,
+  onInvokePartAction,
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  // The part whose action menu is open, plus where to anchor it. Held together
+  // so the menu can never render without a position.
+  const [openPart, setOpenPart] = useState<{
+    part: ShipMapPart;
+    anchor: { x: number; y: number };
+  } | null>(null);
+  // Whatever had focus when the menu opened (the part's own <g>, when opened by
+  // keyboard). Restored on dismiss so Escape returns the operator to the part
+  // they were on instead of dropping focus to the document body.
+  const triggerRef = useRef<Element | null>(null);
+
+  const dismissMenu = () => {
+    setOpenPart(null);
+    const trigger = triggerRef.current;
+    triggerRef.current = null;
+    if (trigger instanceof HTMLElement || trigger instanceof SVGElement) {
+      trigger.focus();
+    }
+  };
   const {
     ref: wrapperRef,
     cam,
@@ -133,6 +167,16 @@ export function ShipDiagram({
         throttle={throttle}
         onPartHover={setHovered}
         onPartFocus={(_, center) => setMouse(center)}
+        // Only offered when the widget supplied a command surface: a harness /
+        // snapshot render passes none, so parts stay non-activating there.
+        onPartActivate={
+          onInvokePartAction
+            ? (part, anchor) => {
+                triggerRef.current = document.activeElement;
+                setOpenPart({ part, anchor });
+              }
+            : undefined
+        }
         partMeters={partMeters}
       />
 
@@ -169,6 +213,12 @@ export function ShipDiagram({
             <span>stage</span>
             <span style={TOOLTIP_ROW_VALUE}>{hovered.stage}</span>
           </div>
+          {/* The WW spec's discoverability line. Mounted only when the widget
+              can actually act, and only for the hovered part: mounting IS the
+              subscription that makes the mod enumerate that part's PAW. */}
+          {onInvokePartAction ? (
+            <PartActionCount flightId={hovered.flightId} />
+          ) : null}
           {hoveredMeters.map((m) => (
             <Meter
               key={`meter-${m.resource}`}
@@ -213,6 +263,28 @@ export function ShipDiagram({
           )}
         </div>
       )}
+
+      {openPart && onInvokePartAction ? (
+        <PartActionMenu
+          flightId={openPart.part.flightId}
+          partTitle={openPart.part.title || openPart.part.name}
+          onInvoke={(eventName, actionLabel) =>
+            onInvokePartAction(
+              openPart.part.flightId,
+              eventName,
+              actionLabel,
+              openPart.part.title || openPart.part.name,
+            )
+          }
+          onDismiss={dismissMenu}
+          style={{
+            // Clamped to the canvas so a part near an edge does not open a menu
+            // half off-screen. Same clamping idea as the tooltip above.
+            left: Math.min(openPart.anchor.x + 12, Math.max(0, width - 200)),
+            top: Math.min(openPart.anchor.y + 12, Math.max(0, height - 120)),
+          }}
+        />
+      ) : null}
     </div>
   );
 }

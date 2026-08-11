@@ -10,15 +10,17 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
-import { Box } from "@ksp-gonogo/ui-kit";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { Box, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 // Side-effect import: the built-in half of the `ship-map.part-meters`
 // self-contribution self-registers on module load, same contract as every
 // other built-in registration. See that file's own header for why the five
 // classic drainable propellants now live there instead of a hardcoded Set
 // inside `ShipDiagramSvg`.
 import "./partMetersContribution";
+import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
 import { ShipDiagram } from "./ShipDiagram";
 import { computeShipLayout, type ShipBounds } from "./ShipDiagramSvg";
 import {
@@ -213,6 +215,35 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     return () => ro.disconnect();
   }, [wrapEl]);
 
+  // PAW part actions. The handle lives HERE, at the always-mounted widget, not
+  // in the popover: the menu closes the moment an action fires (like a real PAW
+  // click), and a handle that unmounted with it would take its in-flight delay
+  // row along with it. `usePanelDelay` registers it with the Panel's delay rail
+  // AND consumes the must-consume token, so a dispatch can never ship without
+  // its delay UX.
+  const invokePartAction = useCommand(INVOKE_PART_ACTION_COMMAND);
+  usePanelDelay(invokePartAction);
+
+  const onInvokePartAction = useCallback(
+    (
+      flightId: number,
+      eventName: string,
+      actionLabel: string,
+      partTitle: string,
+    ) => {
+      void invokePartAction.send(
+        // The wire keys parts by the stringified flightID, the same form
+        // `vessel.parts` stamps and every cross-channel join uses; the diagram
+        // holds it as a number purely for its own geometry.
+        { partId: String(flightId), eventName },
+        // Operator-facing description for the delay readouts: the raw event name
+        // alone would not say which part it acts on.
+        { label: `${actionLabel} on ${partTitle}` },
+      );
+    },
+    [invokePartAction],
+  );
+
   const highlight =
     typeof hottestPartName === "string" ? hottestPartName : null;
 
@@ -260,6 +291,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         overlayContext,
         partMeters,
         partMeta,
+        onInvokePartAction,
       )}
     </Box>
   );
@@ -333,6 +365,12 @@ function renderBody(
   overlayContext: ShipMapOverlayContext | null,
   partMeters: Map<string, ShipMapPartMeterEntry[]>,
   partMeta: Map<string, ShipMapPartMetaEntry[]>,
+  onInvokePartAction: (
+    flightId: number,
+    eventName: string,
+    actionLabel: string,
+    partTitle: string,
+  ) => void,
 ) {
   if (!topology) {
     return (
@@ -368,6 +406,7 @@ function renderBody(
           throttle={throttle}
           partMeters={partMeters}
           partMeta={partMeta}
+          onInvokePartAction={onInvokePartAction}
         />
         {overlayContext && (
           <div style={OVERLAY_LAYER}>

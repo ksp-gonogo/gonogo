@@ -499,6 +499,29 @@ export interface OrbitPatch
 	referenceBody: string;
 	closestEncounterBody?: string;
 }
+export interface InvokePartActionArgs
+{
+	partId: string;
+	eventName: string;
+}
+export interface PartActionEntry
+{
+	name: string;
+	label: string;
+	group?: string;
+	moduleName?: string;
+	active: boolean;
+	guiActiveUnfocused: boolean;
+	advancedTweakable: boolean;
+	requireFullControl: boolean;
+}
+export interface PartActions
+{
+	vesselId?: string;
+	partId: string;
+	actions: PartActionEntry[];
+	meta: PayloadMeta;
+}
 export interface SolarPanelEntry
 {
 	partName?: string;
