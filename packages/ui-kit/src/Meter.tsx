@@ -154,6 +154,11 @@ const Meter__Head = styled.div`
   align-items: baseline;
   gap: var(--space-8);
   min-width: 0;
+  /* The value may drop to a line of its own at narrow widths (see
+     Meter__Value): better a second line than the label being crushed to
+     nothing while the value clips through the host's border, which is what
+     a nowrap head did at the narrowest tile placements. */
+  flex-wrap: wrap;
 `;
 
 const Meter__Label = styled.span`
@@ -164,6 +169,13 @@ const Meter__Label = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Never shrink below the name itself: overflow hidden zeroes a flex
+     item's automatic minimum size, so without a floor the LABEL is what
+     gave way (all the way to invisible) when the head ran out of room. The
+     name is the meter's identity; the value wraps below instead. Alone on
+     its line a pathological name still ellipsizes via max-width. */
+  flex: 0 0 auto;
+  max-width: 100%;
 `;
 
 const Meter__Value = styled.span`
@@ -172,10 +184,22 @@ const Meter__Value = styled.span`
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex: 0 0 auto;
+  /* Pins the value to the trailing edge on the shared line AND when it
+     wraps to a line of its own, instead of a wrapped value sitting
+     orphaned at flex-start. */
+  margin-left: auto;
+  /* Last resort at widths where even a line of its own is not enough:
+     truncate rather than clip through the host's padding and border. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Meter__Track = styled.div<{ $size: MeterSize }>`
   width: 100%;
+  /* border-box: width 100% + the 1px borders otherwise overflows the host
+     by 2px, one of the "boxes don't sit inside their card" offenders. */
+  box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);

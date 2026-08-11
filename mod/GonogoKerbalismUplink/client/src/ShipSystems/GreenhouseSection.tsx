@@ -1,12 +1,13 @@
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Cluster,
   KSP_DAY_SECONDS,
   Section,
   type Severity,
+  Stack,
+  Value,
 } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: this augment renders inside Ship Systems' own Panel, which is itself still styled-components throughout (not yet migrated to ui-kit), matching the host's existing pattern rather than mixing two styling systems in one widget.
-import styled from "styled-components";
 import { KERBALISM } from "../uplink";
 
 /**
@@ -124,16 +125,18 @@ function fmtRatePerDay(perSec: number): string {
  * up (see this file's own "NOT YET fed by live data" doc comment) could
  * show "Growing" right next to a "Radiation too high" badge, an operator-
  * visible contradiction: this widget's own real bug, not a hypothetical.
- * `warning`, not `critical`: a greenhouse halt is a warning-level condition
- * (recoverable once the storm passes), matching the panel-level "System
- * halted" badge's own tone.
+ * `warning`, not `critical`: a greenhouse halt is recoverable once the
+ * storm passes, the same rung the host widget's Degraded status folds it
+ * into. "Growing" and "Off" carry NO severity (decorative grey chips):
+ * ordinary operating states earn no colour, the same resting-tone rule the
+ * host's process list follows.
  */
 function greenhouseTone(
   g: GreenhouseRow,
   tooHigh: boolean,
 ): Severity | undefined {
   if (!g.active) return undefined;
-  return g.issue.length > 0 || tooHigh ? "warning" : "nominal";
+  return g.issue.length > 0 || tooHigh ? "warning" : undefined;
 }
 
 function greenhouseStateLabel(g: GreenhouseRow, tooHigh: boolean): string {
@@ -194,13 +197,18 @@ function GreenhouseEntryRow({
   const tooHigh = radiationTooHigh(g, ambientRadiationRadPerSecond);
   return (
     <Section>
-      <RowHead>
-        <RowTitle>{titlePrefix}</RowTitle>
-        <BadgeGroup>
+      <Cluster justify="between" gap="md">
+        {/* Same head treatment as the host widget's own SectionHead (a
+            muted uppercase Value), so the greenhouse rows read as part of
+            one system rather than a second heading style. */}
+        <Value tone="muted" size="xs">
+          {titlePrefix.toUpperCase()}
+        </Value>
+        <Cluster gap="xs" justify="end" wrap>
           {tooHigh && (
-            // `warning`, not `critical`: matches the panel-level "System
-            // halted" badge's own tone (both describe the same recoverable,
-            // non-mission-ending condition, see this file's doc comments).
+            // `warning`, not `critical`: recoverable once the storm passes,
+            // the same rung the host widget's Degraded status uses for it
+            // (see this file's doc comments).
             <Badge
               role="status"
               aria-live="polite"
@@ -218,13 +226,27 @@ function GreenhouseEntryRow({
           >
             {greenhouseStateLabel(g, tooHigh)}
           </Badge>
-        </BadgeGroup>
-      </RowHead>
-      <ValueLine>
+        </Cluster>
+      </Cluster>
+      {/* Wraps rather than truncating at narrow widths, a hidden number is
+          worse than an extra line. */}
+      <Value tone="default" size="xs">
         Natural {fmtWm2(g.natural)} · Artificial {fmtWm2(g.artificial)} · Rate{" "}
         {fmtRatePerDay(g.foodRatePerSec)}
-      </ValueLine>
-      {blocked && <IssueText>{g.issue}</IssueText>}
+      </Value>
+      {blocked && (
+        // The bare "-fg" warning token is meant to sit ON the warning "-bg"
+        // (e.g. inside a Badge); standalone on the panel's dark surface it
+        // is near-black. "-fg-muted" is the standalone-warning-text token
+        // (LaunchDirector, CommSignal, DeployedScience all use it).
+        <Value
+          tone="warn"
+          size="xs"
+          style={{ color: "var(--color-status-warning-fg-muted)" }}
+        >
+          {g.issue}
+        </Value>
+      )}
     </Section>
   );
 }
@@ -243,18 +265,20 @@ function GreenhouseSection({
   // titled by its own crop.
   if (greenhouses.length === 1) {
     return (
-      <Wrap>
+      <Stack gap="xs">
         <GreenhouseEntryRow
           g={greenhouses[0]}
           titlePrefix="Greenhouse"
           ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
         />
-      </Wrap>
+      </Stack>
     );
   }
   return (
-    <Wrap>
-      <SectionLabel>Greenhouses</SectionLabel>
+    <Stack gap="xs">
+      <Value tone="muted" size="xs">
+        GREENHOUSES
+      </Value>
       {greenhouses.map((g, i) => (
         <GreenhouseEntryRow
           // biome-ignore lint/suspicious/noArrayIndexKey: greenhouse parts carry no stable id on the wire yet
@@ -264,63 +288,9 @@ function GreenhouseSection({
           ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
         />
       ))}
-    </Wrap>
+    </Stack>
   );
 }
-
-const Wrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-6);
-`;
-
-const SectionLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
-
-const RowHead = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
-
-const BadgeGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  justify-content: flex-end;
-`;
-
-const RowTitle = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
-
-const ValueLine = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  /* Wraps rather than truncating with an ellipsis at narrow widths, a
-     hidden number is worse than an extra line. */
-`;
-
-const IssueText = styled.span`
-  font-size: var(--font-size-xs);
-  /* "-fg" (not "-fg-muted") is meant to sit on the warning "-bg" background
-     (e.g. inside a Badge), using it for standalone text on the Panel's dark
-     background renders as near-black-on-black. The "-muted" variant is the
-     one other widgets use for warning-toned text directly on a dark surface
-     (LaunchDirector, CommSignal, DeployedScience). */
-  color: var(--color-status-warning-fg-muted);
-`;
 
 registerAugment({
   id: "life-support-greenhouse",

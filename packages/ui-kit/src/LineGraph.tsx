@@ -19,9 +19,15 @@ export interface LineGraphThreshold {
   /** Defaults to a muted warning colour: a reference line reads as "the line
    *  to watch", distinct from either data series. */
   color?: string;
+  /**
+   * Short text drawn beside a `"marker"`-style threshold (e.g. `"0.5"`),
+   * naming the level the tick sits at. Without it the marker is a bare tick.
+   * Ignored by the `"full"` rule, which is its own annotation.
+   */
+  valueText?: string;
 }
 
-export type LineGraphThresholdStyle = "full" | "centered-marker";
+export type LineGraphThresholdStyle = "full" | "marker";
 
 export interface LineGraphProps {
   series: readonly LineGraphSeries[];
@@ -50,25 +56,19 @@ export interface LineGraphProps {
   /**
    * How a threshold draws at its y-height. `"full"` (default) is the
    * original dashed rule spanning the whole frame, which reads as "this
-   * chart is about staying under this line". `"centered-marker"` draws a
-   * short solid segment centred in the frame instead: same boundary, same
-   * height, but the colour carries the severity rather than a rule across
-   * the whole graph shouting it. Use it where the threshold is context for
-   * a glance trend, not the subject of the chart.
+   * chart is about staying under this line". `"marker"` draws a short FIXED
+   * ~24px tick anchored at the frame's left edge instead, with the
+   * threshold's `valueText` beside it: an axis annotation, not a rule. It
+   * renders as an HTML overlay rather than inside the stretched viewBox, so
+   * its length is genuinely fixed on screen at every width. Use it where
+   * the threshold is context for a glance trend, not the subject of the
+   * chart.
    */
   thresholdStyle?: LineGraphThresholdStyle;
 }
 
 const VIEW_W = 100;
 const VIEW_H = 40;
-
-/** Fraction of the frame's width a `"centered-marker"` threshold spans. A
- *  third is long enough to read as a deliberate boundary at that height and
- *  short enough that it never becomes the loudest thing in the frame. Kept
- *  proportional rather than a pixel length because the `viewBox` is stretched
- *  to its container (`preserveAspectRatio="none"`), so user units are the
- *  only measure that stays stable across widths. */
-const CENTERED_MARKER_WIDTH_FRACTION = 1 / 3;
 
 function computeDomain(
   series: readonly LineGraphSeries[],
@@ -203,28 +203,20 @@ export function LineGraph({
             );
           })}
 
-        {thresholds.map((t) => {
-          const y = toY(t.value);
-          const isMarker = thresholdStyle === "centered-marker";
-          const halfMarker = (VIEW_W * CENTERED_MARKER_WIDTH_FRACTION) / 2;
-          return (
+        {thresholdStyle === "full" &&
+          thresholds.map((t) => (
             <line
               key={t.id}
-              x1={isMarker ? VIEW_W / 2 - halfMarker : 0}
-              x2={isMarker ? VIEW_W / 2 + halfMarker : VIEW_W}
-              y1={y}
-              y2={y}
+              x1={0}
+              x2={VIEW_W}
+              y1={toY(t.value)}
+              y2={toY(t.value)}
               stroke={t.color ?? "var(--color-status-warning-fg-muted)"}
-              // A short segment reads as a marker only if it is solid and
-              // rounded: dashes over a third of the width fragment into
-              // specks, and a hard-ended stub reads as a clipped rule.
-              strokeWidth={isMarker ? 1.2 : 0.6}
-              strokeDasharray={isMarker ? undefined : "2 1.5"}
-              strokeLinecap={isMarker ? "round" : undefined}
+              strokeWidth={0.6}
+              strokeDasharray="2 1.5"
               vectorEffect="non-scaling-stroke"
             />
-          );
-        })}
+          ))}
 
         {series.map((s) => {
           if (s.points.length < 2) return null;
@@ -248,9 +240,61 @@ export function LineGraph({
           );
         })}
       </svg>
+
+      {/* "marker" thresholds live OUTSIDE the stretched viewBox: an HTML
+          overlay at the threshold's own height, so the tick's ~24px length
+          and the label's type size stay genuinely fixed on screen instead of
+          scaling with the frame. Decorative beside the labelled readouts, so
+          it is hidden from the accessibility tree like the rest of the
+          drawing. */}
+      {thresholdStyle === "marker" &&
+        thresholds.map((t) => {
+          const topPct = ((yMax - t.value) / ySpan) * 100;
+          // A threshold outside the pinned domain has no honest place to
+          // draw; skip it rather than pinning it to an edge it isn't at.
+          if (topPct < 0 || topPct > 100) return null;
+          return (
+            <LineGraph__ThresholdMarker
+              key={t.id}
+              aria-hidden="true"
+              data-threshold-marker={t.id}
+              style={{
+                top: `${topPct}%`,
+                color: t.color ?? "var(--color-status-warning-fg-muted)",
+              }}
+            >
+              <LineGraph__ThresholdTick />
+              {t.valueText !== undefined && <span>{t.valueText}</span>}
+            </LineGraph__ThresholdMarker>
+          );
+        })}
     </LineGraph__Root>
   );
 }
+
+const LineGraph__ThresholdMarker = styled.div`
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  pointer-events: none;
+  font-size: var(--font-size-2xs, 10px);
+  font-variant-numeric: tabular-nums;
+  /* Single-glyph chrome text centring against a 2px tick: the flush rung. */
+  line-height: var(--line-height-flush, 1);
+`;
+
+/** The fixed tick: ~24px, matching the length the identity tab on `Card`
+ *  uses for the same "a mark, not a rule" reading. */
+const LineGraph__ThresholdTick = styled.span`
+  display: inline-block;
+  width: var(--space-24, 24px);
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+`;
 
 const LineGraph__Root = styled.div`
   position: relative;

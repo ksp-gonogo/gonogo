@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
+  doseRateDecimals,
+  niceCeil,
   pushRadiationSample,
   RADIATION_WINDOW_SEC,
   type RadiationSample,
@@ -64,6 +66,34 @@ describe("pushRadiationSample", () => {
   });
 });
 
+describe("niceCeil", () => {
+  it("steps up a 1-2-2.5-5-10 ladder", () => {
+    expect(niceCeil(0.7)).toBe(1);
+    expect(niceCeil(1)).toBe(1);
+    expect(niceCeil(1.3)).toBe(2);
+    expect(niceCeil(2.2)).toBe(2.5);
+    expect(niceCeil(3.1)).toBe(5);
+    expect(niceCeil(7)).toBe(10);
+    expect(niceCeil(21.9)).toBe(25);
+    expect(niceCeil(60)).toBe(100);
+  });
+
+  it("floors degenerate input at 1 rather than a broken domain", () => {
+    expect(niceCeil(0)).toBe(1);
+    expect(niceCeil(-5)).toBe(1);
+    expect(niceCeil(Number.NaN)).toBe(1);
+  });
+});
+
+describe("doseRateDecimals", () => {
+  it("keeps a stable digit budget per decade", () => {
+    expect(doseRateDecimals(216)).toBe(0);
+    expect(doseRateDecimals(21.6)).toBe(1);
+    expect(doseRateDecimals(2.16)).toBe(2);
+    expect(doseRateDecimals(0.216)).toBe(3);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // RadiationSection component
 // ---------------------------------------------------------------------------
@@ -114,7 +144,7 @@ describe("RadiationSection", () => {
     expect(screen.getByText("Shielded", { exact: false })).toBeInTheDocument();
   });
 
-  it("renders the graph as a sparkline (area-shaded, no gridlines), not an engineering chart", () => {
+  it("renders the graph as a sparkline with no in-frame lines at all", () => {
     const { container } = render(
       <RadiationSection
         weather={{
@@ -125,16 +155,57 @@ describe("RadiationSection", () => {
         utNow={10}
       />,
     );
-    // Sparkline variant draws no quarter gridlines: the only `<line>` in the
-    // graph is the safe-threshold marker.
-    const lines = container.querySelectorAll("line");
-    expect(lines).toHaveLength(1);
+    // No quarter gridlines (sparkline) and no SVG threshold rule either:
+    // the safe threshold renders as a fixed HTML tick outside the viewBox.
+    expect(container.querySelectorAll("line")).toHaveLength(0);
   });
 
-  it("marks the safe threshold with a short centred amber segment, not a full-width rule", () => {
+  it("marks the safe threshold as a fixed tick labelled with its own level", () => {
     const { container } = render(
       <RadiationSection
         weather={{
+          // Quiet cruise, 0.36 rad/h ambient: the domain floors at twice
+          // the threshold, so the 0.5 marker sits exactly mid-frame.
+          radiationRadPerSecond: 0.0001,
+          habitatRadiationRadPerSecond: 0.00001,
+          magnetosphere: true,
+        }}
+        utNow={10}
+      />,
+    );
+    const marker = container.querySelector<HTMLElement>(
+      '[data-threshold-marker="safe"]',
+    );
+    expect(marker).not.toBeNull();
+    // The "0.5" level reads beside the tick, an axis annotation rather
+    // than a rule across the frame.
+    expect(marker?.textContent).toBe("0.5");
+    // The domain is clamped to [0, 2*threshold] on a quiet reading, so the
+    // marker sits mid-frame, not crawling with the data extent.
+    expect(marker?.style.top).toBe("50%");
+  });
+
+  it("wears identity hues at rest and escalates only above the threshold", () => {
+    const quiet = render(
+      <RadiationSection
+        weather={{
+          // 0.0001 rad/s = 0.36 rad/h ambient: under the 0.5 threshold.
+          radiationRadPerSecond: 0.0001,
+          habitatRadiationRadPerSecond: 0.00001,
+          magnetosphere: true,
+        }}
+        utNow={10}
+      />,
+    );
+    const quietAmbient = screen.getByText("Ambient", { exact: false });
+    // No alarm styling in quiet cruise: the warning-tone override is absent.
+    expect(quietAmbient.getAttribute("style")).toBeNull();
+    quiet.unmount();
+
+    render(
+      <RadiationSection
+        weather={{
+          // 0.006 rad/s = 21.6 rad/h ambient: well over the threshold.
           radiationRadPerSecond: 0.006,
           habitatRadiationRadPerSecond: 0.00006,
           magnetosphere: true,
@@ -142,15 +213,31 @@ describe("RadiationSection", () => {
         utNow={10}
       />,
     );
-    const marker = container.querySelector("line");
-    expect(marker).not.toBeNull();
-    const x1 = Number(marker?.getAttribute("x1"));
-    const x2 = Number(marker?.getAttribute("x2"));
-    // Centred, and well short of the frame's full 100-unit width: the
-    // boundary is context for the trend, not the subject of the graph.
-    expect((x1 + x2) / 2).toBeCloseTo(50);
-    expect(x2 - x1).toBeLessThan(50);
-    expect(marker).toHaveAttribute("stroke", "var(--color-status-warning-bg)");
+    const hotAmbient = screen.getByText("Ambient", { exact: false });
+    expect(hotAmbient.getAttribute("style")).toContain(
+      "--color-status-warning-fg-muted",
+    );
+  });
+
+  it("rounds dose readouts to magnitude-aware decimals, not a fixed four", () => {
+    render(
+      <RadiationSection
+        weather={{
+          // 21.6 rad/h ambient, 0.216 rad/h shielded.
+          radiationRadPerSecond: 0.006,
+          habitatRadiationRadPerSecond: 0.00006,
+          magnetosphere: true,
+        }}
+        utNow={10}
+      />,
+    );
+    expect(screen.getByText("Ambient", { exact: false }).textContent).toContain(
+      "21.6",
+    );
+    expect(
+      screen.getByText("Shielded", { exact: false }).textContent,
+    ).toContain("0.216");
+    expect(document.body.textContent).not.toContain("21.6000");
   });
 
   it("names the belt(s) as plain text under the graph, never a badge", () => {

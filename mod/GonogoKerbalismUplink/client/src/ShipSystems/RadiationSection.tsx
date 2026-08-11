@@ -21,16 +21,26 @@ import { mag } from "../ecosystem";
 // this derivation" reasoning `SpaceWeather/badge.ts` and `CrewSurvival/
 // summary.tsx` already use for the same Topic.
 //
-// The whole point of the red/blue pairing is the GAP between the two lines:
-// ambient (red, `radiationRadPerSecond`) is what the environment is doing,
-// shielded (blue, `habitatRadiationRadPerSecond`) is what actually reaches
-// the crew after the vessel's fixed shielding factor. A wide gap with blue
-// pinned under the threshold line reads as "ambient is spiking, shielding is
-// doing its job"; a gap that closes reads as "shielding isn't enough
-// anymore". Per-kerbal lines are deliberately never drawn here: the rate
-// itself is vessel-wide (Kerbalism's habitat radiation is a property of the
-// vessel's shielding, not of any one Kerbal), see this widget's own doc
-// comment / the task this was built against.
+// The whole point of the two-line pairing is the GAP between them: ambient
+// (`radiationRadPerSecond`) is what the environment is doing, shielded
+// (`habitatRadiationRadPerSecond`) is what actually reaches the crew after
+// the vessel's fixed shielding factor. A wide gap with shielded pinned under
+// the threshold marker reads as "ambient is spiking, shielding is doing its
+// job"; a gap that closes reads as "shielding isn't enough anymore".
+// Per-kerbal lines are deliberately never drawn here: the rate itself is
+// vessel-wide (Kerbalism's habitat radiation is a property of the vessel's
+// shielding, not of any one Kerbal), see this widget's own doc comment / the
+// task this was built against.
+//
+// The series wear IDENTITY hues at rest (ambient the muted text grey,
+// shielded the calm info blue), never alarm colours: a permanently-red
+// ambient trace shouted CRITICAL through every quiet cruise (operator
+// feedback, the widget's own worst colour offender). Status enters only
+// when a line's CURRENT reading crosses the 0.5 rad/h threshold: ambient
+// escalates to warning amber (the environment is hot, shielding still
+// deciding the outcome), shielded to nogo red (the crew is actually taking
+// dose). The paired readouts below the graph escalate in step so colour
+// never carries the reading alone.
 //
 // Renders as a SPARKLINE (`LineGraph`'s `variant="sparkline"`), not an
 // engineering chart: operator feedback on the first pass called the plain
@@ -55,12 +65,20 @@ import { mag } from "../ecosystem";
 // belongs to the dose-rate readouts, not the location. It renders as plain
 // low-emphasis text under the graph instead (see `locationLabel` below).
 //
-// The 0.5 rad/h boundary draws as a SHORT CENTRED MARKER, not a rule across
-// the frame (`LineGraph`'s `thresholdStyle="centered-marker"`): a full-width
-// dashed line made the boundary the loudest thing in a section whose subject
-// is the ambient/shielded gap. The marker sits at the same height and carries
-// the same meaning, with the warning-tone amber doing the "this is the danger
-// level" work the line's length used to.
+// The 0.5 rad/h boundary draws as a FIXED ~24px tick at the frame's left
+// edge with the "0.5" level beside it (`LineGraph`'s
+// `thresholdStyle="marker"`), an axis annotation rather than a rule: a
+// full-width dashed line made the boundary the loudest thing in the frame,
+// and the earlier centred marker stretched with the viewBox so its length
+// changed with every widget width. The muted warning amber carries "this is
+// the danger level" quietly.
+//
+// The Y domain is CLAMPED to a 1-2-2.5-5-10 nice ceiling (never below twice
+// the threshold), instead of hugging the live data extent: an extent-fitted
+// domain rescaled the whole frame on every sample, so the threshold marker
+// and both traces crawled continuously, the live jank operators called out.
+// With the clamp the frame is still until a trace actually crosses into the
+// next step.
 // ---------------------------------------------------------------------------
 
 export interface RadiationSample {
@@ -145,6 +163,35 @@ function toRadPerHourSeries(
 }
 
 /**
+ * Smallest 1-2-2.5-5-10 "nice" number at or above `v`: the graph's stable
+ * Y ceiling. Stepped rather than continuous so the frame rescales only when
+ * a trace genuinely crosses into the next step, not on every sample.
+ * Exported for direct unit testing.
+ */
+export function niceCeil(v: number): number {
+  if (!Number.isFinite(v) || v <= 0) return 1;
+  const base = 10 ** Math.floor(Math.log10(v));
+  const mantissa = v / base;
+  for (const step of [1, 2, 2.5, 5]) {
+    if (mantissa <= step) return step * base;
+  }
+  return 10 * base;
+}
+
+/**
+ * Magnitude-aware decimals for a rad/h readout: `21.6` needs one decimal,
+ * `0.216` needs three, and the kind's fixed four ("21.6000") implied a
+ * precision the reading does not have. Exported for direct unit testing.
+ */
+export function doseRateDecimals(radPerHour: number): number {
+  const abs = Math.abs(radPerHour);
+  if (abs >= 100) return 0;
+  if (abs >= 10) return 1;
+  if (abs >= 1) return 2;
+  return 3;
+}
+
+/**
  * Plain-text belt/location read from the raw spaceweather flags: neutral
  * status, not a severity call, so this returns a label string for
  * low-emphasis text under the graph rather than a badge/severity pairing.
@@ -183,26 +230,55 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
   const location = locationLabel(weather);
   // Always a real Value (never undefined): an unreported field reads as a
   // genuine "0 rad/h" rather than a blank readout beside a live label.
-  const ambientValue = value("rad/s", mag(weather.radiationRadPerSecond));
-  const shieldedValue = value(
-    "rad/s",
-    mag(weather.habitatRadiationRadPerSecond ?? weather.radiationRadPerSecond),
+  const ambientRadPerSec = mag(weather.radiationRadPerSecond);
+  const shieldedRadPerSec = mag(
+    weather.habitatRadiationRadPerSecond ?? weather.radiationRadPerSecond,
   );
+  const ambientValue = value("rad/s", ambientRadPerSec);
+  const shieldedValue = value("rad/s", shieldedRadPerSec);
+  const ambientRadPerHour = ambientRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
+  const shieldedRadPerHour = shieldedRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
+  // Escalation is per-line and threshold-gated (see the header comment):
+  // identity hues at rest, warning amber when the ENVIRONMENT is hot, nogo
+  // red only when the CREW-side reading itself is over the line.
+  const ambientHigh = ambientRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
+  const shieldedHigh = shieldedRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
 
+  const ambientPoints = toRadPerHourSeries(history, (s) => s.ambientRadPerSec);
+  const shieldedPoints = toRadPerHourSeries(
+    history,
+    (s) => s.shieldedRadPerSec,
+  );
   const series: LineGraphSeries[] = [
     {
       id: "ambient",
       label: "Ambient",
-      color: "var(--color-status-nogo-bg)",
-      points: toRadPerHourSeries(history, (s) => s.ambientRadPerSec),
+      color: ambientHigh
+        ? "var(--color-status-warning-bg)"
+        : "var(--color-text-muted)",
+      points: ambientPoints,
     },
     {
       id: "shielded",
       label: "Shielded",
-      color: "var(--color-status-info-fg)",
-      points: toRadPerHourSeries(history, (s) => s.shieldedRadPerSec),
+      color: shieldedHigh
+        ? "var(--color-status-nogo-bg)"
+        : "var(--color-status-info-fg)",
+      points: shieldedPoints,
     },
   ];
+
+  // Stable frame: 0 up to a stepped nice ceiling, never below twice the
+  // threshold so the 0.5 marker always has an honest place mid-frame.
+  const dataMaxRadPerHour = Math.max(
+    ambientRadPerHour,
+    shieldedRadPerHour,
+    ...ambientPoints.map((p) => p.y),
+    ...shieldedPoints.map((p) => p.y),
+  );
+  const yMax = niceCeil(
+    Math.max(dataMaxRadPerHour, HIGH_RADIATION_RAD_PER_HOUR * 2),
+  );
 
   return (
     // No Card, no side-by-side badge column: the graph is OPEN and spans
@@ -215,15 +291,16 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
         <LineGraph
           series={series}
           variant="sparkline"
+          yDomain={[0, yMax]}
           thresholds={[
             {
               id: "safe",
               label: "Safe threshold",
               value: HIGH_RADIATION_RAD_PER_HOUR,
-              color: "var(--color-status-warning-bg)",
+              valueText: String(HIGH_RADIATION_RAD_PER_HOUR),
             },
           ]}
-          thresholdStyle="centered-marker"
+          thresholdStyle="marker"
           height={96}
           ariaLabel="Radiation dose rate trend: ambient versus shielded, last 10 minutes"
         />
@@ -238,11 +315,32 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
         justify="between"
         style={{ marginTop: "var(--space-2)" }}
       >
-        <Value tone="nogo" size="xs">
-          Ambient <Unit value={ambientValue} />
+        {/* Identity tones at rest (grey/info-blue, matching the traces),
+            escalation only over the threshold. `warn`'s bare -fg token is
+            near-black on this dark surface, so the escalated ambient reads
+            through the same -fg-muted override every warning-toned text on
+            a panel surface uses (see LedgerBody's residual note). */}
+        <Value
+          tone={ambientHigh ? "warn" : "default"}
+          size="xs"
+          style={
+            ambientHigh
+              ? { color: "var(--color-status-warning-fg-muted)" }
+              : undefined
+          }
+        >
+          Ambient{" "}
+          <Unit
+            value={ambientValue}
+            decimals={doseRateDecimals(ambientRadPerHour)}
+          />
         </Value>
-        <Value tone="info" size="xs">
-          Shielded <Unit value={shieldedValue} />
+        <Value tone={shieldedHigh ? "nogo" : "info"} size="xs">
+          Shielded{" "}
+          <Unit
+            value={shieldedValue}
+            decimals={doseRateDecimals(shieldedRadPerHour)}
+          />
         </Value>
       </Cluster>
       <Value tone="muted" size="xs" role="status" aria-live="polite">

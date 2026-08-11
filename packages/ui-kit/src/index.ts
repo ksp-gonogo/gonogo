@@ -273,6 +273,7 @@ export {
   PanelBody,
   PanelContainer,
   PanelContextProvider,
+  PanelFooter,
   PanelGlow,
   PanelHeader,
   type PanelProps,

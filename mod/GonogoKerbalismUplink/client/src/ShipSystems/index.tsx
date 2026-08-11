@@ -15,24 +15,24 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Box,
   Card,
   Cluster,
   Disclosure,
   DivergingBar,
   Divider,
   EmptyState,
+  Grid,
   Meter,
   MeterStack,
   Panel,
   Section,
+  type Severity,
   Stack,
   severityFromBadgeTone,
   speakQuantity,
   Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
 import { useMemo } from "react";
 import {
   buildLedger,
@@ -60,9 +60,18 @@ type ShipSystemsConfig = Record<string, never>;
 // Tone + format helpers. `Tone` mirrors the vocabulary `Meter`/`Value`/
 // `Badge` (via `severityFromBadgeTone`) already speak; nothing here invents a
 // second colour system.
+//
+// `neutral` is the RESTING tone, and it is load-bearing (operator feedback:
+// "the mix of colours everywhere ... is what makes it nauseating"). A status
+// tone means something is WRONG; a healthy reading renders quiet grey, and
+// its level is carried by the bar's fill fraction plus the text beside it,
+// never by paint. In particular a LEVEL alone is not a status: a steady
+// half-empty tank, or a nearly-empty waste container, is a fact, not an
+// alarm, so tones escalate only off an actual drain, a diagnosis role, or an
+// explicit low-threshold flag.
 // ---------------------------------------------------------------------------
 
-type Tone = "go" | "info" | "warn" | "nogo";
+type Tone = "neutral" | "go" | "info" | "warn" | "nogo";
 
 /**
  * Below this many seconds to empty, a resource is treated as critical
@@ -102,8 +111,11 @@ function formatRate(perSecond: number): string {
 /**
  * A root cause is always the worst tone (it's the thing to act on); a
  * downstream shortage that isn't itself draining fast still reads as at
- * least a warning, because it is genuinely blocked. Otherwise falls back to
- * the profile's own low-threshold call, then a plain fraction read.
+ * least a warning, because it is genuinely blocked. Beyond those and the
+ * profile's own low-threshold flag, only a resource that is actually
+ * DRAINING low earns a tone: a steady tank is quiet whatever its level
+ * (an empty waste container rendering alarm-red was this function's own
+ * defect: empty waste is good).
  */
 function toneForRow(row: ResourceRow): Tone {
   if (row.role === "root") return "nogo";
@@ -112,10 +124,14 @@ function toneForRow(row: ResourceRow): Tone {
   }
   if (row.belowLowThreshold === true) return "warn";
   if (row.role === "downstream") return "warn";
-  if (row.fraction === null) return "info";
-  if (row.fraction >= 0.5) return "go";
-  if (row.fraction >= 0.2) return "warn";
-  return "nogo";
+  if (
+    row.secondsToEmpty !== null &&
+    row.fraction !== null &&
+    row.fraction < 0.2
+  ) {
+    return "warn";
+  }
+  return "neutral";
 }
 
 /** "12 / 40 · 3m 20s" style meter caption; "not fitted" for a tankless resource.
@@ -146,14 +162,15 @@ function RowValueDisplay({ row }: { row: ResourceRow }) {
   );
 }
 
+/** Same resting-tone rule as `toneForRow`: wear is always slowly draining by
+ *  nature, so the countdown does the alarming and the fraction only warns at
+ *  the genuinely-low tail. "69 days left" in amber was tone inflation. */
 function wearTone(w: WearRow): Tone {
   if (w.secondsRemaining !== null && w.secondsRemaining < SOON_EMPTY_SEC) {
     return "nogo";
   }
-  if (w.fraction === null) return "info";
-  if (w.fraction >= 0.5) return "go";
-  if (w.fraction >= 0.2) return "warn";
-  return "nogo";
+  if (w.fraction !== null && w.fraction < 0.2) return "warn";
+  return "neutral";
 }
 
 function wearValueLabel(w: WearRow): string {
@@ -177,10 +194,11 @@ function toProcessRow(p: KerbalismProcessEntry, index: number): ProcessRow {
   };
 }
 
-function processTone(state: ProcessRunState): Tone {
-  if (state === "broken") return "nogo";
-  if (state === "running") return "go";
-  return "info";
+/** Only a BROKEN process carries a severity; running and idle are both
+ *  ordinary operating states and render as decorative grey chips (severity
+ *  omitted), so a healthy process list adds no colour at all. */
+function processSeverity(state: ProcessRunState): Severity | undefined {
+  return state === "broken" ? "critical" : undefined;
 }
 
 /** Mirrors GreenhouseSection's own `GreenhouseRow`, ported field-for-field so
@@ -255,12 +273,23 @@ function ShipSystemsComponent(
   return <ShipSystemsBody ship={ship} weather={weather} utNow={utNow} />;
 }
 
-function overallStatus(ship: ShipSystems): { label: string; tone: Tone } {
+/**
+ * The single header pill. A halted greenhouse folds in HERE (as Degraded)
+ * rather than raising a second "System halted" pill beside this one:
+ * operator feedback called the two-pill header a colour pile-up, and a
+ * recoverable subsystem halt is exactly what the Degraded rung means. The
+ * greenhouse's own row still names the specific halt.
+ */
+function overallStatus(
+  ship: ShipSystems,
+  anyGreenhouseHalted: boolean,
+): { label: string; tone: Tone } {
   if (ship.summary.causes.length > 0)
     return { label: "Critical", tone: "nogo" };
   const tones = ship.summary.supplies.map(toneForRow);
   if (tones.includes("nogo")) return { label: "Critical", tone: "nogo" };
-  if (tones.includes("warn")) return { label: "Degraded", tone: "warn" };
+  if (tones.includes("warn") || anyGreenhouseHalted)
+    return { label: "Degraded", tone: "warn" };
   return { label: "Nominal", tone: "go" };
 }
 
@@ -274,7 +303,6 @@ function ShipSystemsBody({
   utNow: number | undefined;
 }) {
   const { summary } = ship;
-  const status = overallStatus(ship);
   // The "Limiting factors" banner names a cause's ROOT resource but the
   // sentence's subject is the resource it explains (see `LimitedByMessage`),
   // so its own time-to-empty has to come from that OTHER row, not the
@@ -314,15 +342,13 @@ function ShipSystemsBody({
 
   const pressurized = mag(habitat?.pressure) > 0.5;
 
-  // A halted greenhouse is a WIDGET-level event, not just a per-row one: the
-  // panel badge fires alongside the existing "Radiation too high" flag on
-  // the greenhouse's own row (GreenhouseSection.tsx), same underlying
-  // `radiationTooHigh` check, surfaced a second time where an operator
-  // scanning the panel header (not scrolled down to the greenhouse section)
-  // would otherwise miss it.
+  // A halted greenhouse is a WIDGET-level event, not just a per-row one: it
+  // folds into the header status (see `overallStatus`) so an operator
+  // scanning the panel header still catches it without a second pill.
   const anyGreenhouseHalted = greenhouses.some((g) =>
     radiationTooHigh(g, ambientRadiationRadPerSecond),
   );
+  const status = overallStatus(ship, anyGreenhouseHalted);
 
   // Every resource this render pass shows a Card for, supplies and other
   // alike: one colour map covers both sections so the same resource always
@@ -337,26 +363,31 @@ function ShipSystemsBody({
     <Panel
       panelTitle="Ship Systems"
       panelAside={
-        <Cluster gap="xs">
-          <Badge
-            role="status"
-            aria-live="polite"
-            severity={severityFromBadgeTone(status.tone)}
-          >
-            {status.label}
-          </Badge>
-          {anyGreenhouseHalted && (
-            // `warning`, not `critical`: a greenhouse radiation halt is
-            // recoverable on its own once the ambient rate drops back under
-            // the part's tolerance (see GreenhouseSection's own doc
-            // comment, grounded against Kerbalism's `Greenhouse.cs`), not a
-            // mission-ending failure. Operator feedback: the red pill here
-            // overstated it.
-            <Badge role="status" aria-live="polite" severity="warning">
-              System halted
-            </Badge>
-          )}
-        </Cluster>
+        <Badge
+          role="status"
+          aria-live="polite"
+          severity={severityFromBadgeTone(status.tone)}
+        >
+          {status.label}
+        </Badge>
+      }
+      panelFooter={
+        // The power footer, PINNED below the scroller by the Panel itself
+        // (not merely rendered last, which still scrolled away with the
+        // body): ElectricCharge is universal across every Kerbalism profile,
+        // so it earns the one permanently visible readout, the same
+        // "duplicate the balance next to where it matters" convention the
+        // funds rule uses. Rendered only when the profile carries EC.
+        ecRow && (
+          <Meter
+            label="Power"
+            value={ecRow.fraction ?? 0}
+            tone={toneForRow(ecRow)}
+            valueLabel={rowValueLabel(ecRow)}
+            valueLabelNode={<RowValueDisplay row={ecRow} />}
+            size="md"
+          />
+        )
       }
     >
       <Stack gap="md">
@@ -478,26 +509,31 @@ function ShipSystemsBody({
             value={pressurized ? "Pressurized" : "Unpressurized"}
             tone={pressurized ? "go" : "warn"}
           />
-          <Cluster gap="md" wrap>
+          {/* A real grid, not a wrapping Cluster: `Meter` is `width: 100%`,
+              so as flex items the three meters each claimed a full row and
+              the "cluster" was three stacked bars at every width. Grid
+              tracks give them even side-by-side columns wherever the panel
+              is wide enough and a clean stack where it isn't. */}
+          <Grid minColWidth="10rem" gap="md">
             <Meter
               label="Comfort"
               value={mag(habitat?.comfort)}
-              tone={mag(habitat?.comfort) >= 0.5 ? "go" : "warn"}
+              tone={mag(habitat?.comfort) < 0.25 ? "warn" : "neutral"}
               size="sm"
             />
             <Meter
               label="Living space"
               value={mag(habitat?.livingSpace)}
-              tone="info"
+              tone="neutral"
               size="sm"
             />
             <Meter
               label="CO2 poisoning"
               value={mag(habitat?.poisoning)}
-              tone={mag(habitat?.poisoning) >= 0.5 ? "nogo" : "go"}
+              tone={mag(habitat?.poisoning) >= 0.5 ? "nogo" : "neutral"}
               size="sm"
             />
-          </Cluster>
+          </Grid>
         </Section>
 
         <Section>
@@ -512,10 +548,7 @@ function ShipSystemsBody({
                 <Value tone="default" size="xs">
                   {p.name}
                 </Value>
-                <Badge
-                  severity={severityFromBadgeTone(processTone(p.state))}
-                  size="sm"
-                >
+                <Badge severity={processSeverity(p.state)} size="sm">
                   {p.state}
                 </Badge>
               </Cluster>
@@ -533,19 +566,6 @@ function ShipSystemsBody({
           props={{ greenhouses, ambientRadiationRadPerSecond }}
         />
       </Stack>
-
-      {ecRow && (
-        <FooterRow>
-          <Meter
-            label="Power"
-            value={ecRow.fraction ?? 0}
-            tone={toneForRow(ecRow)}
-            valueLabel={rowValueLabel(ecRow)}
-            valueLabelNode={<RowValueDisplay row={ecRow} />}
-            size="md"
-          />
-        </FooterRow>
-      )}
     </Panel>
   );
 }
@@ -565,22 +585,16 @@ function SectionHead({
         {label.toUpperCase()}
       </Value>
       {value !== undefined && (
-        <Value tone={tone ?? "muted"} size="xs">
+        // `neutral` is a Meter/Badge tone, not a Value one: a resting
+        // section reading renders in the same muted text as the label.
+        <Value
+          tone={tone === undefined || tone === "neutral" ? "muted" : tone}
+          size="xs"
+        >
           {value}
         </Value>
       )}
     </Cluster>
-  );
-}
-
-/** Not a styled component: a plain flex footer pinned below the scrolling
- *  Stack, matching the old widget's `marginTop: auto` footer convention with
- *  ui-kit's own Box primitive instead of a bespoke styled.div. */
-function FooterRow({ children }: { children: ReactNode }) {
-  return (
-    <Box pad={["sm", "md"]} bordered={false}>
-      {children}
-    </Box>
   );
 }
 
@@ -657,12 +671,15 @@ function ResourceLedgerRow({
             />
           </Value>
         )}
+        {/* Chevron-only: five worded "Show detail" buttons in one column
+            read as five competing controls (operator feedback). The rotating
+            chevron is the whole affordance; the aria-label still names what
+            it reveals. */}
         <Disclosure
           variant="inline"
-          chevron={false}
           asButton
           buttonSize="sm"
-          label={(open) => (open ? "Hide detail" : "Show detail")}
+          label={null}
           ariaLabel={`Show rate breakdown for ${row.displayName}`}
         >
           <LedgerBody ledger={ledger} />
@@ -753,7 +770,11 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
                 gives this inner row. */}
             <Cluster gap="xs" justify="start">
               <DivergingBar value={term.ratePerSecond} maxAbs={maxAbsRate} />
-              <Value tone={term.ratePerSecond >= 0 ? "go" : "nogo"} size="xs">
+              {/* The DivergingBar already paints the sign; a red/green
+                  NUMBER beside a red/green bar doubled the same reading and
+                  fed the widget's colour pile-up. The signed prefix keeps
+                  the direction legible in text. */}
+              <Value tone="default" size="xs">
                 {formatRate(term.ratePerSecond)}
               </Value>
             </Cluster>
@@ -765,14 +786,21 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
         <Value tone="muted" size="xs">
           Net (derived)
         </Value>
-        <Value size="xs">{formatRate(ledger.derivedNet)}</Value>
+        {/* tone="default", never the accent default: `Value`'s accent green
+            on a NEGATIVE net read as "this drain is good". The sign prefix
+            carries the direction. */}
+        <Value tone="default" size="xs">
+          {formatRate(ledger.derivedNet)}
+        </Value>
       </Cluster>
       {ledger.reportedNet !== undefined && (
         <Cluster justify="between" wrap>
           <Value tone="muted" size="xs">
             Reported
           </Value>
-          <Value size="xs">{formatRate(ledger.reportedNet)}</Value>
+          <Value tone="default" size="xs">
+            {formatRate(ledger.reportedNet)}
+          </Value>
         </Cluster>
       )}
       {hasResidual && ledger.residual !== undefined && (

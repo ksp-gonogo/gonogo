@@ -75,45 +75,48 @@ describe("LineGraph", () => {
   });
 });
 
-describe("LineGraph centered-marker threshold style", () => {
-  const withMarker = () =>
+describe("LineGraph marker threshold style", () => {
+  const withMarker = (valueText?: string) =>
     render(
       <LineGraph
         series={[AMBIENT]}
         variant="sparkline"
-        thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
-        thresholdStyle="centered-marker"
+        thresholds={[{ id: "safe", label: "Safe", value: 1.75, valueText }]}
+        thresholdStyle="marker"
         ariaLabel="Radiation trend"
       />,
     );
 
-  it("draws a short segment centred in the frame instead of a full-width rule", () => {
+  it("draws a fixed HTML tick instead of any in-frame threshold line", () => {
     const { container } = withMarker();
-    const marker = container.querySelector("line");
+    // No SVG threshold at all: the marker is an HTML overlay so its length
+    // does not stretch with the viewBox.
+    expect(container.querySelector("line")).toBeNull();
+    const marker = container.querySelector('[data-threshold-marker="safe"]');
     expect(marker).not.toBeNull();
-    const x1 = Number(marker?.getAttribute("x1"));
-    const x2 = Number(marker?.getAttribute("x2"));
-    // Centred on the 100-unit viewBox and a third of it wide: short enough
-    // to read as a marker, not a rule across the graph.
-    expect((x1 + x2) / 2).toBeCloseTo(50);
-    expect(x2 - x1).toBeCloseTo(100 / 3);
   });
 
-  it("stays flat at the threshold's own height", () => {
+  it("anchors at the threshold's own height within the frame", () => {
     const { container } = withMarker();
-    const marker = container.querySelector("line");
-    const y1 = Number(marker?.getAttribute("y1"));
-    const y2 = Number(marker?.getAttribute("y2"));
-    expect(y1).toBe(y2);
-    expect(y1).toBeGreaterThan(0);
-    expect(y1).toBeLessThan(40);
+    const marker = container.querySelector<HTMLElement>(
+      '[data-threshold-marker="safe"]',
+    );
+    const top = Number.parseFloat(marker?.style.top ?? "");
+    expect(top).toBeGreaterThan(0);
+    expect(top).toBeLessThan(100);
   });
 
-  it("renders solid and round-capped, never dashed", () => {
-    const { container } = withMarker();
-    const marker = container.querySelector("line");
-    expect(marker).not.toHaveAttribute("stroke-dasharray");
-    expect(marker).toHaveAttribute("stroke-linecap", "round");
+  it("renders the valueText label beside the tick", () => {
+    const { container } = withMarker("0.5");
+    const marker = container.querySelector('[data-threshold-marker="safe"]');
+    expect(marker?.textContent).toBe("0.5");
+  });
+
+  it("is decorative: hidden from the accessibility tree", () => {
+    const { container } = withMarker("0.5");
+    expect(
+      container.querySelector('[data-threshold-marker="safe"]'),
+    ).toHaveAttribute("aria-hidden", "true");
   });
 
   it("takes the threshold's own colour so the tone carries the severity", () => {
@@ -126,17 +129,33 @@ describe("LineGraph centered-marker threshold style", () => {
             id: "safe",
             label: "Safe",
             value: 1.75,
-            color: "var(--color-status-warning-bg)",
+            color: "var(--color-status-warning-fg-muted)",
           },
         ]}
-        thresholdStyle="centered-marker"
+        thresholdStyle="marker"
         ariaLabel="Radiation trend"
       />,
     );
-    expect(container.querySelector("line")).toHaveAttribute(
-      "stroke",
-      "var(--color-status-warning-bg)",
+    const marker = container.querySelector<HTMLElement>(
+      '[data-threshold-marker="safe"]',
     );
+    expect(marker?.style.color).toBe("var(--color-status-warning-fg-muted)");
+  });
+
+  it("skips a threshold outside a pinned domain rather than pinning it to an edge", () => {
+    const { container } = render(
+      <LineGraph
+        series={[AMBIENT]}
+        variant="sparkline"
+        yDomain={[0, 1]}
+        thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
+        thresholdStyle="marker"
+        ariaLabel="Radiation trend"
+      />,
+    );
+    expect(
+      container.querySelector('[data-threshold-marker="safe"]'),
+    ).toBeNull();
   });
 });
 

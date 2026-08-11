@@ -376,10 +376,54 @@ describe("ShipSystemsComponent: radiation", () => {
     // ambient reading via the life-support.sections augment slot.
     expect(screen.getByText("Radiation too high")).toBeInTheDocument();
 
-    // The SAME condition also fires a panel-level badge, alongside (not
-    // instead of) the per-row flag above: an operator scanning the header
-    // should not have to scroll down to discover the greenhouse halted.
-    expect(screen.getByText("System halted")).toBeInTheDocument();
+    // No second "System halted" pill: the halt folds into the single header
+    // status instead (operator feedback called the two-pill header a colour
+    // pile-up). Here the vessel is already Critical, which outranks it.
+    expect(screen.queryByText("System halted")).not.toBeInTheDocument();
+    expect(screen.getByText("Critical")).toBeInTheDocument();
+  });
+
+  it("folds a greenhouse halt into the header status as Degraded on an otherwise-healthy vessel", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    act(() => {
+      fixture.emit("kerbalism.profile", PROFILE);
+      // No drains at all: nothing is short, so without the greenhouse halt
+      // the status would read Nominal.
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        rates: {},
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            radiationToleranceRadPerSec: 0.001,
+          },
+        ],
+      });
+      fixture.emit("vessel.resources", {
+        ...RESOURCES,
+        resources: {
+          ...RESOURCES.resources,
+          Water: { current: 450, max: 500, active: true },
+          ElectricCharge: { current: 380, max: 400, active: true },
+        },
+      });
+      fixture.emit("vessel.crew", CREW);
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        outerBelt: true,
+      });
+    });
+
+    await screen.findByText("Radiation too high");
+    expect(screen.getByText("Degraded")).toBeInTheDocument();
+    expect(screen.queryByText("System halted")).not.toBeInTheDocument();
   });
 
   it("renders the Radiation section ahead of Supplies, the widget's lead visual", async () => {
