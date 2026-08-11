@@ -2,14 +2,15 @@
   "_meta": {
     "capturedAt": "2026-08-08",
     "vessel": "synthetic (hand-authored, no live capture)",
-    "notes": "SYNTHETIC probe fixture for the Ship Systems widget. The widget's actual source lives at mod/GonogoKerbalismUplink/client/src/ShipSystems: this fixture lives under packages/components/src/ShipSystems/__fixtures__ only because widgetRenderHarness resolves `fixturesPath` against packages/components/src/ (see KosTerminal/CurrentOrbit's own fixtures for the same convention). Drives the widget over a REAL setupStreamFixture (TelemetryProvider + StubTransport) via probe-entry.tsx's `_stream` fixture path. Electric Charge is the ROOT CAUSE (nothing in the profile produces it, and it's short); Water is DOWNSTREAM (its one producer, the Water Recycler, also drinks the short Electric Charge); Oxygen is healthy. One greenhouse is included so the life-support.sections augment (this Uplink's own GreenhouseSection, which self-registers alongside the widget) has something to render."
+    "notes": "SYNTHETIC probe fixture for the Ship Systems widget. The widget's actual source lives at mod/GonogoKerbalismUplink/client/src/ShipSystems: this fixture lives under packages/components/src/ShipSystems/__fixtures__ only because widgetRenderHarness resolves `fixturesPath` against packages/components/src/ (see KosTerminal/CurrentOrbit's own fixtures for the same convention). Drives the widget over a REAL setupStreamFixture (TelemetryProvider + StubTransport) via probe-entry.tsx's `_stream` fixture path. Electric Charge is the ROOT CAUSE (nothing in the profile produces it, and it's short); Water is DOWNSTREAM (its one producer, the Water Recycler, also drinks the short Electric Charge); Oxygen is healthy. One greenhouse is included so the life-support.sections augment (this Uplink's own GreenhouseSection, which self-registers alongside the widget) has something to render, its own `radiationToleranceRadPerSec` set below the spaceweather emit's ambient reading so the 'Radiation too high' badge shows. The spaceweather emit itself lands at a single fixed `pinnedUt`: this `_stream.emits` replay format has no way to advance UT between entries (see `RadiationSection.tsx`'s own `pushRadiationSample` doc comment), so the Radiation graph renders its honest one-sample 'Collecting radiation history…' state here rather than a trend line; the ambient/shielded readouts, the belt badge, and the greenhouse's threshold flag are all still real coverage off this one sample."
   },
   "_stream": {
     "carriedChannels": [
       "kerbalism.profile",
       "kerbalism.lifesupport",
       "vessel.resources",
-      "vessel.crew"
+      "vessel.crew",
+      "kerbalism.spaceweather"
     ],
     "pinnedUt": 10,
     "emits": [
@@ -106,9 +107,22 @@
               "natural": 300,
               "artificial": 0,
               "active": true,
-              "issue": ""
+              "issue": "",
+              "radiationToleranceRadPerSec": 0.002
             }
           ]
+        }
+      },
+      {
+        "channel": "kerbalism.spaceweather",
+        "value": {
+          "radiationRadPerSecond": 0.006,
+          "habitatRadiationRadPerSecond": 0.00006,
+          "magnetosphere": true,
+          "outerBelt": true,
+          "innerBelt": false,
+          "stormIncoming": false,
+          "stormInProgress": false
         }
       },
       {

@@ -1,12 +1,13 @@
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Cluster,
   KSP_DAY_SECONDS,
   Section,
   type Severity,
+  Stack,
+  Value,
 } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: this augment renders inside Ship Systems' own Panel, which is itself still styled-components throughout (not yet migrated to ui-kit), matching the host's existing pattern rather than mixing two styling systems in one widget.
-import styled from "styled-components";
 import { KERBALISM } from "../uplink";
 
 /**
@@ -63,11 +64,22 @@ export interface GreenhouseRow {
   issue: string;
   /** Derived continuous production rate, units/s (0 when inactive or blocked). */
   foodRatePerSec: number;
+  /** rad/s. `<= 0` means "not reported": never flag against it. */
+  radiationToleranceRadPerSec: number;
 }
 
 export interface LifeSupportSlotContext {
   /** Active Greenhouse parts on the vessel; empty when none are fitted. */
   greenhouses: readonly GreenhouseRow[];
+  /**
+   * Current ambient (unshielded) dose rate, rad/s, from
+   * `kerbalism.spaceweather`. Ambient, not the crew's shielded/habitat
+   * figure: a greenhouse part's own tolerance is a limit on what's hitting
+   * the HULL, not on what the vessel's habitat shielding lets through to
+   * the crew. 0 when no spaceweather frame has landed yet, which never
+   * trips a threshold check on its own.
+   */
+  ambientRadiationRadPerSecond: number;
 }
 
 // Declaration-merge the slot id → props type into the sdk facade's
@@ -100,14 +112,65 @@ function fmtRatePerDay(perSec: number): string {
   return `${perDay >= 10 ? perDay.toFixed(0) : perDay.toFixed(2)}/day`;
 }
 
-function greenhouseTone(g: GreenhouseRow): Severity | undefined {
+/**
+ * `tooHigh` (this widget's own client-side ambient-vs-tolerance check, see
+ * `radiationTooHigh` below) folds into BOTH the tone and the state label,
+ * not just the standalone "Radiation too high" badge: grounded against
+ * Kerbalism's own `Greenhouse.SimulateGreenhouse`
+ * (`src/Kerbalism/Modules/Greenhouse.cs`), exceeding `radiation_tolerance`
+ * makes the module return before it ever queues the food `ResourceRecipe`,
+ * i.e. production HALTS outright for that tick, the same as a lighting or
+ * pressure failure, not a mere slowdown. Without folding `tooHigh` in here,
+ * a growing greenhouse whose mod-reported `issue` field hasn't yet caught
+ * up (see this file's own "NOT YET fed by live data" doc comment) could
+ * show "Growing" right next to a "Radiation too high" badge, an operator-
+ * visible contradiction: this widget's own real bug, not a hypothetical.
+ * `warning`, not `critical`: a greenhouse halt is recoverable once the
+ * storm passes, the same rung the host widget's Degraded status folds it
+ * into. "Growing" and "Off" carry NO severity (decorative grey chips):
+ * ordinary operating states earn no colour, the same resting-tone rule the
+ * host's process list follows.
+ */
+function greenhouseTone(
+  g: GreenhouseRow,
+  tooHigh: boolean,
+): Severity | undefined {
   if (!g.active) return undefined;
-  return g.issue.length > 0 ? "warning" : "nominal";
+  return g.issue.length > 0 || tooHigh ? "warning" : undefined;
 }
 
-function greenhouseStateLabel(g: GreenhouseRow): string {
+function greenhouseStateLabel(g: GreenhouseRow, tooHigh: boolean): string {
   if (!g.active) return "Off";
+  if (tooHigh) return "Halted";
   return g.issue.length > 0 ? "Blocked" : "Growing";
+}
+
+/**
+ * Instantaneous threshold flag, never a trend: a greenhouse carries no
+ * radiation memory of its own (unlike a crew rule, which accumulates), so
+ * this reads only the CURRENT ambient rate against the part's own fixed
+ * tolerance, no history involved. `<= 0` on either side means "nothing to
+ * compare" (an unreported tolerance, or no spaceweather frame yet) and
+ * never flags.
+ *
+ * This is a genuine HALT, not a degrade: verified against Kerbalism's own
+ * `Greenhouse.SimulateGreenhouse` (`src/Kerbalism/Modules/Greenhouse.cs`),
+ * which returns before queuing the food `ResourceRecipe` whenever
+ * `radiation > radiation_tolerance` (same early-return as a lighting or
+ * pressure failure), and sets its own `issue` string to "excessive
+ * radiation" (`KERBALISM_Greenhouse_issue3`). Production resumes on its own
+ * once the ambient rate drops back under tolerance, no manual re-arm
+ * needed, so `greenhouseStateLabel`/`greenhouseTone` fold this flag in
+ * directly rather than treating it as a side note next to "Growing".
+ */
+function radiationTooHigh(
+  g: GreenhouseRow,
+  ambientRadiationRadPerSecond: number,
+): boolean {
+  return (
+    g.radiationToleranceRadPerSec > 0 &&
+    ambientRadiationRadPerSecond > g.radiationToleranceRadPerSec
+  );
 }
 
 /**
@@ -116,40 +179,82 @@ function greenhouseStateLabel(g: GreenhouseRow): string {
  * line) so a fully-populated widget (broken process + habitat detail +
  * greenhouse + power) still fits the default grid size without pushing the
  * Power meter below the fold. A single-vessel-greenhouse widget, by far the
- * common case, costs exactly 2 lines (3 when blocked).
+ * common case, costs exactly 2 lines (3 when the mod's own `issue` field is
+ * also populated, e.g. once its "excessive radiation" report catches up to
+ * this row's own `tooHigh` check).
  */
 function GreenhouseEntryRow({
   g,
   titlePrefix,
+  ambientRadiationRadPerSecond,
 }: {
   g: GreenhouseRow;
   /** "Greenhouse" for the single-entry case, or the crop name when there are several. */
   titlePrefix: string;
+  ambientRadiationRadPerSecond: number;
 }) {
   const blocked = g.active && g.issue.length > 0;
+  const tooHigh = radiationTooHigh(g, ambientRadiationRadPerSecond);
   return (
     <Section>
-      <RowHead>
-        <RowTitle>{titlePrefix}</RowTitle>
-        <Badge
-          role="status"
-          aria-live="polite"
-          severity={greenhouseTone(g)}
-          size="sm"
-        >
-          {greenhouseStateLabel(g)}
-        </Badge>
-      </RowHead>
-      <ValueLine>
+      <Cluster justify="between" gap="md">
+        {/* Same head treatment as the host widget's own SectionHead (a
+            muted uppercase Value), so the greenhouse rows read as part of
+            one system rather than a second heading style. */}
+        <Value tone="muted" size="xs">
+          {titlePrefix.toUpperCase()}
+        </Value>
+        <Cluster gap="xs" justify="end" wrap>
+          {tooHigh && (
+            // `warning`, not `critical`: recoverable once the storm passes,
+            // the same rung the host widget's Degraded status uses for it
+            // (see this file's doc comments).
+            <Badge
+              role="status"
+              aria-live="polite"
+              severity="warning"
+              size="sm"
+            >
+              Radiation too high
+            </Badge>
+          )}
+          <Badge
+            role="status"
+            aria-live="polite"
+            severity={greenhouseTone(g, tooHigh)}
+            size="sm"
+          >
+            {greenhouseStateLabel(g, tooHigh)}
+          </Badge>
+        </Cluster>
+      </Cluster>
+      {/* Wraps rather than truncating at narrow widths, a hidden number is
+          worse than an extra line. */}
+      <Value tone="default" size="xs">
         Natural {fmtWm2(g.natural)} · Artificial {fmtWm2(g.artificial)} · Rate{" "}
         {fmtRatePerDay(g.foodRatePerSec)}
-      </ValueLine>
-      {blocked && <IssueText>{g.issue}</IssueText>}
+      </Value>
+      {blocked && (
+        // The bare "-fg" warning token is meant to sit ON the warning "-bg"
+        // (e.g. inside a Badge); standalone on the panel's dark surface it
+        // is near-black. "-fg-muted" is the standalone-warning-text token
+        // (LaunchDirector, CommSignal, DeployedScience all use it).
+        <Value
+          tone="warn"
+          size="xs"
+          style={{ color: "var(--color-status-warning-fg-muted)" }}
+        >
+          {g.issue}
+        </Value>
+      )}
     </Section>
   );
 }
 
-function GreenhouseSection({ greenhouses }: LifeSupportSlotContext) {
+function GreenhouseSection({
+  greenhouses,
+  ambientRadiationRadPerSecond,
+}: LifeSupportSlotContext) {
   // No greenhouse part on the vessel, the common case. Render nothing
   // rather than an empty "Greenhouse" header with no content beneath it.
   if (greenhouses.length === 0) return null;
@@ -160,71 +265,32 @@ function GreenhouseSection({ greenhouses }: LifeSupportSlotContext) {
   // titled by its own crop.
   if (greenhouses.length === 1) {
     return (
-      <Wrap>
-        <GreenhouseEntryRow g={greenhouses[0]} titlePrefix="Greenhouse" />
-      </Wrap>
+      <Stack gap="xs">
+        <GreenhouseEntryRow
+          g={greenhouses[0]}
+          titlePrefix="Greenhouse"
+          ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
+        />
+      </Stack>
     );
   }
   return (
-    <Wrap>
-      <SectionLabel>Greenhouses</SectionLabel>
+    <Stack gap="xs">
+      <Value tone="muted" size="xs">
+        GREENHOUSES
+      </Value>
       {greenhouses.map((g, i) => (
         <GreenhouseEntryRow
           // biome-ignore lint/suspicious/noArrayIndexKey: greenhouse parts carry no stable id on the wire yet
           key={`${g.cropResource}-${i}`}
           g={g}
           titlePrefix={g.cropResource}
+          ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
         />
       ))}
-    </Wrap>
+    </Stack>
   );
 }
-
-const Wrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-6);
-`;
-
-const SectionLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
-
-const RowHead = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-`;
-
-const RowTitle = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-`;
-
-const ValueLine = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  /* Wraps rather than truncating with an ellipsis at narrow widths, a
-     hidden number is worse than an extra line. */
-`;
-
-const IssueText = styled.span`
-  font-size: var(--font-size-xs);
-  /* "-fg" (not "-fg-muted") is meant to sit on the warning "-bg" background
-     (e.g. inside a Badge), using it for standalone text on the Panel's dark
-     background renders as near-black-on-black. The "-muted" variant is the
-     one other widgets use for warning-toned text directly on a dark surface
-     (LaunchDirector, CommSignal, DeployedScience). */
-  color: var(--color-status-warning-fg-muted);
-`;
 
 registerAugment({
   id: "life-support-greenhouse",
@@ -233,4 +299,4 @@ registerAugment({
   owner: KERBALISM,
 });
 
-export { GreenhouseSection };
+export { GreenhouseSection, radiationTooHigh };

@@ -231,6 +231,13 @@ export {
   setKspCalendar,
 } from "./kspTime";
 export {
+  LineGraph,
+  type LineGraphProps,
+  type LineGraphSeries,
+  type LineGraphThreshold,
+  type LineGraphThresholdStyle,
+} from "./LineGraph";
+export {
   Meter,
   type MeterProps,
   type MeterSize,
@@ -266,6 +273,7 @@ export {
   PanelBody,
   PanelContainer,
   PanelContextProvider,
+  PanelFooter,
   PanelGlow,
   PanelHeader,
   type PanelProps,

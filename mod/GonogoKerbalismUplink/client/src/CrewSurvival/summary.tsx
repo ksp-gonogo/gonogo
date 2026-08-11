@@ -31,8 +31,10 @@ import { KERBALISM } from "../uplink";
 
 /** rad/h at or above which the crew reads as exposed to a high radiation
  *  environment even without an active storm. Matches SpaceWeather's own
- *  `doseTone` warn threshold. */
-const HIGH_RADIATION_RAD_PER_HOUR = 0.5;
+ *  `doseTone` warn threshold. Exported: `ShipSystems/RadiationSection` reuses
+ *  it verbatim as the graph's "biological safe threshold" reference line, so
+ *  the two widgets never drift onto different numbers for the same call. */
+export const HIGH_RADIATION_RAD_PER_HOUR = 0.5;
 
 interface RadiationSummary {
   label: string;

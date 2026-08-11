@@ -245,6 +245,13 @@ export const LADDERS: Record<string, readonly Rung[]> = {
     { from: 1e6, symbol: "MW", per: 1e6 },
     { from: 1e9, symbol: "GW", per: 1e9 },
   ],
+  // A single always-on rung rather than a real multi-step ladder: the wire's
+  // base unit (rad/s) is unreadable at the magnitudes dose rates actually
+  // occupy (typically 1e-6..1e-2 rad/s), and radiation readouts are
+  // conventionally shown in rad/h. Laddering it here lets
+  // `<Unit value={someRadPerSecond} />` render "X rad/h" directly, with no
+  // per-call-site conversion.
+  doseRate: [{ from: 0, symbol: "rad/h", per: 1 / 3600 }],
 };
 
 /**

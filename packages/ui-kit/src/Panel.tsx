@@ -1250,6 +1250,15 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   fitToSize?: boolean;
   /**
+   * A pinned strip at the very bottom of the panel, OUTSIDE the scrolling
+   * body: the one readout an operator must never have to scroll for (Ship
+   * Systems' power meter, a mission clock). Renders after the glow region
+   * with its own top border, so body content scrolls behind the glow and
+   * the footer stays put. Keep it to a single row; anything taller belongs
+   * in the body or a sidebar.
+   */
+  panelFooter?: ReactNode;
+  /**
    * Secondary content beside or below the body, in its own scrolling region:
    * an almanac for a diagram, a legend for a plot, a detail pane for the
    * selected row.
@@ -1327,6 +1336,18 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: boolean }>`
   }
 `;
 
+/**
+ * The pinned bottom strip `panelFooter` renders into: a flex-column sibling
+ * AFTER the glow region, so it never scrolls and never shrinks. Mirrors the
+ * body's horizontal inset so footer content lines up with the rows above it.
+ */
+export const PanelFooter = styled.div`
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
+  background: var(--color-surface-panel);
+`;
+
 /* The standard header, reparented as the FIRST in-flow child of the scroller
    so title and body scroll as one unit. The negative margins cancel the body's
    own top/side inset for the header alone, so `PanelTitle`'s own inset governs
@@ -1374,6 +1395,7 @@ function PanelRoot({
   panelBadges,
   panelStatus,
   panelToolbar,
+  panelFooter,
   floatingHeader,
   fitToSize,
   panelSidebar,
@@ -1469,7 +1491,12 @@ function PanelRoot({
     );
 
   if (!hasHeader) {
-    return <PanelContainer {...rest}>{children}</PanelContainer>;
+    return (
+      <PanelContainer {...rest}>
+        {children}
+        {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
+      </PanelContainer>
+    );
   }
 
   // A `floatingHeader` is the one overlay case: it paints over a non-scrolling
@@ -1537,6 +1564,11 @@ function PanelRoot({
             {floatingHeader && header}
             {bodyRegion}
           </PanelGlow>
+          {/* After the glow region, so it sits below the scroller and stays
+              pinned while the body scrolls. */}
+          {panelFooter !== undefined && (
+            <PanelFooter>{panelFooter}</PanelFooter>
+          )}
         </PanelContainer>
       </PanelRailTargetContext.Provider>
     </PanelProviders>
@@ -1550,6 +1582,7 @@ export const Panel = Object.assign(PanelRoot, {
   Container: PanelContainer,
   Header: PanelHeader,
   Toolbar: PanelToolbar,
+  Footer: PanelFooter,
   Title: PanelTitle,
   Glow: PanelGlow,
   Body: PanelBody,

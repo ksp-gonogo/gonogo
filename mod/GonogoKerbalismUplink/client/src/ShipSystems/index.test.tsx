@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { resourceColor } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -10,6 +11,7 @@ const CARRIED = [
   "kerbalism.lifesupport",
   "vessel.resources",
   "vessel.crew",
+  "kerbalism.spaceweather",
 ];
 
 // A minimal-but-real profile: three Supplies (Water/ElectricCharge/Oxygen), a
@@ -292,6 +294,217 @@ describe("ShipSystemsComponent", () => {
     const { container } = renderWidget(fixture);
     emitAll(fixture);
     await screen.findByText("Limiting factors");
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("strips each resource row's Card with that resource's own colour from the shared map", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+
+    await screen.findByText("Water");
+    const waterCard = container.querySelector(
+      '[data-testid="resource-card-Water"]',
+    );
+    const ecCard = container.querySelector(
+      '[data-testid="resource-card-ElectricCharge"]',
+    );
+    expect(waterCard).not.toBeNull();
+    expect(ecCard).not.toBeNull();
+    // categoryColor now renders a short centred `::before` tab (operator
+    // feedback: a full-width `border-top` read as a second meter), not a
+    // real `border-top` `toHaveStyle` can see on the element itself; assert
+    // via the injected <style> text instead, same technique Card's own
+    // categoryColor tests use for the identical jsdom gap.
+    const styleText = Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent)
+      .join("\n");
+    expect(styleText).toContain(`background:${resourceColor("Water")};`);
+    expect(styleText).toContain(
+      `background:${resourceColor("ElectricCharge")};`,
+    );
+    // Two different resources never collide on the same strip colour in
+    // this profile's small set (a substring-collision would be a real bug).
+    expect(resourceColor("Water")).not.toBe(resourceColor("ElectricCharge"));
+  });
+});
+
+describe("ShipSystemsComponent: radiation", () => {
+  it("renders nothing extra when no spaceweather frame has landed", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+
+    await screen.findByText("Limiting factors");
+    expect(screen.queryByText("Ambient", { exact: false })).toBeNull();
+  });
+
+  it("shows the Radiation section once a spaceweather frame lands, and flags a greenhouse over its own tolerance", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            // 0.001 rad/s: below the ambient reading emitted below.
+            radiationToleranceRadPerSec: 0.001,
+          },
+        ],
+      });
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        outerBelt: true,
+      });
+    });
+
+    // The ambient/shielded readouts and the belt badge from RadiationSection.
+    await screen.findByText("Ambient", { exact: false });
+    expect(screen.getByText("Shielded", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("Outer belt")).toBeInTheDocument();
+
+    // The greenhouse's own instantaneous threshold flag, fed the SAME
+    // ambient reading via the life-support.sections augment slot.
+    expect(screen.getByText("Radiation too high")).toBeInTheDocument();
+
+    // No second "System halted" pill: the halt folds into the single header
+    // status instead (operator feedback called the two-pill header a colour
+    // pile-up). Here the vessel is already Critical, which outranks it.
+    expect(screen.queryByText("System halted")).not.toBeInTheDocument();
+    expect(screen.getByText("Critical")).toBeInTheDocument();
+  });
+
+  it("folds a greenhouse halt into the header status as Degraded on an otherwise-healthy vessel", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    act(() => {
+      fixture.emit("kerbalism.profile", PROFILE);
+      // No drains at all: nothing is short, so without the greenhouse halt
+      // the status would read Nominal.
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        rates: {},
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            radiationToleranceRadPerSec: 0.001,
+          },
+        ],
+      });
+      fixture.emit("vessel.resources", {
+        ...RESOURCES,
+        resources: {
+          ...RESOURCES.resources,
+          Water: { current: 450, max: 500, active: true },
+          ElectricCharge: { current: 380, max: 400, active: true },
+        },
+      });
+      fixture.emit("vessel.crew", CREW);
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        outerBelt: true,
+      });
+    });
+
+    await screen.findByText("Radiation too high");
+    expect(screen.getByText("Degraded")).toBeInTheDocument();
+    expect(screen.queryByText("System halted")).not.toBeInTheDocument();
+  });
+
+  it("renders the Radiation section ahead of Supplies, the widget's lead visual", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        magnetosphere: true,
+      });
+    });
+
+    await screen.findByText("Ambient", { exact: false });
+    const text = container.textContent ?? "";
+    const radiationAt = text.indexOf("RADIATION");
+    const suppliesAt = text.indexOf("SUPPLIES");
+    expect(radiationAt).toBeGreaterThanOrEqual(0);
+    expect(suppliesAt).toBeGreaterThan(radiationAt);
+  });
+
+  it("omits the panel-level halted badge when no greenhouse crosses its own tolerance", async () => {
+    const fixture = newFixture();
+    renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            // Comfortably above the ambient reading emitted below: never
+            // crosses its own tolerance.
+            radiationToleranceRadPerSec: 0.05,
+          },
+        ],
+      });
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        outerBelt: true,
+      });
+    });
+
+    await screen.findByText("Ambient", { exact: false });
+    expect(screen.queryByText("Radiation too high")).not.toBeInTheDocument();
+    expect(screen.queryByText("System halted")).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations with the radiation section and greenhouse flag showing", async () => {
+    const fixture = newFixture();
+    const { container } = renderWidget(fixture);
+    emitAll(fixture);
+    act(() => {
+      fixture.emit("kerbalism.lifesupport", {
+        ...LIFE_SUPPORT,
+        greenhouses: [
+          {
+            cropResource: "Food",
+            foodRatePerSec: 0.0001,
+            natural: 300,
+            artificial: 0,
+            active: true,
+            issue: "",
+            radiationToleranceRadPerSec: 0.001,
+          },
+        ],
+      });
+      fixture.emit("kerbalism.spaceweather", {
+        radiationRadPerSecond: 0.005,
+        habitatRadiationRadPerSecond: 0.00005,
+        innerBelt: true,
+      });
+    });
+    await screen.findByText("Ambient", { exact: false });
 
     expect(await axe(container)).toHaveNoViolations();
   });
