@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GonogoKerbcastUplink's OWN contract slice: the wire payload types
+    (KerbcastCameraEntry, KerbcastSetFieldOfViewArgs, KerbcastSetPanArgs) that
+    used to live in Sitrep.Contract, relocated here per the operator mandate
+    that NO uplink-specific wire type may live in core, even for an
+    in-monorepo Uplink (see
+    local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md). Third
+    Uplink through the types-out-of-core mechanism (after the MechJeb pilot
+    and the Avionics relocation): the first to carry BOTH a real
+    [SitrepTopic]-tagged, Value<>-typed read payload (KerbcastCameraEntry, 9
+    Value<"deg"> fields) AND inbound-only command-arg types
+    (KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs) in the same relocation.
+
+    Deliberately its own small project rather than folding into
+    GonogoKerbcastUplink.csproj: same reasoning as MechJeb/Avionics before it.
+    None of these three types has an RP-1/KSP/kerbcast dependency at all, so
+    splitting them out keeps the netstandard2.0 codegen leg clear of the
+    UnityEngine/Assembly-CSharp HintPath references GonogoKerbcastUplink.csproj
+    carries, and this project's dual-target boilerplate stays a straight copy
+    of Sitrep.Contract.csproj's.
+
+    MIT, same as GonogoKerbcastUplink.csproj itself: this slice declares only
+    plain DTOs against Sitrep.Contract, no kerbcast code or types at all (the
+    licence boundary that matters, kerbcast's CC-BY-NC-SA-4.0 assembly, is
+    never linked here either, same as the runtime project).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>GonogoKerbcastUplink.Contract</AssemblyName>
+    <RootNamespace>GonogoKerbcastUplink</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Reinforced.Typings is a compile-time-only codegen dependency: rtcli
+       reads the [TsInterface] attributes baked into this assembly's metadata
+       to generate this Uplink's own TS SDK slice (see codegen.sh). Must NOT
+       flow to net48 (the runtime TFM GonogoKerbcastUplink.csproj bundles):
+       same PrivateAssets/Condition/#if NETSTANDARD2_0 discipline as
+       Sitrep.Contract.csproj, for the identical reason (a Kopernicus-loaded
+       net48 assembly must never try to resolve Reinforced.Typings.dll). -->
+  <ItemGroup>
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <!-- Sitrep.Contract only, Private="false": SitrepContractAttribute/
+       SitrepTopicAttribute/SitrepUnitAttribute/Units are core's cross-package
+       surface, provided by the core mod (GonogoCore) at runtime, never copied
+       here. Same pattern GonogoKerbcastUplink.csproj already uses for its own
+       Sitrep.Contract reference. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

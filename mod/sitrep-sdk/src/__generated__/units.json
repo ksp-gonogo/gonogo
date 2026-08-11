@@ -514,37 +514,6 @@
       "stormState": "count",
       "stormTime": "s"
     },
-    "KerbcastCameraEntry": {
-      "cameraId": "id",
-      "cameraName": "text",
-      "dockingPortNodeType": "text",
-      "dockingPortState": "text",
-      "fieldOfView": "°",
-      "fieldOfViewMaximum": "°",
-      "fieldOfViewMinimum": "°",
-      "isDockingCamera": "flag",
-      "panPitch": "°",
-      "panPitchMaximum": "°",
-      "panPitchMinimum": "°",
-      "panYaw": "°",
-      "panYawMaximum": "°",
-      "panYawMinimum": "°",
-      "partId": "id",
-      "partName": "text",
-      "partTitle": "text",
-      "supportsPan": "flag",
-      "supportsZoom": "flag",
-      "vesselId": "id"
-    },
-    "KerbcastSetFieldOfViewArgs": {
-      "cameraId": "id",
-      "fieldOfView": "°"
-    },
-    "KerbcastSetPanArgs": {
-      "cameraId": "id",
-      "pitch": "°",
-      "yaw": "°"
-    },
     "KosComputeStatus": {
       "lastGoodAt": "s",
       "parseError": "text",
@@ -1395,28 +1364,6 @@
       "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
       "stormIncoming": "flag"
-    },
-    "kerbcast.cameras": {
-      "cameraId": "id",
-      "cameraName": "text",
-      "dockingPortNodeType": "text",
-      "dockingPortState": "text",
-      "fieldOfView": "°",
-      "fieldOfViewMaximum": "°",
-      "fieldOfViewMinimum": "°",
-      "isDockingCamera": "flag",
-      "panPitch": "°",
-      "panPitchMaximum": "°",
-      "panPitchMinimum": "°",
-      "panYaw": "°",
-      "panYawMaximum": "°",
-      "panYawMinimum": "°",
-      "partId": "id",
-      "partName": "text",
-      "partTitle": "text",
-      "supportsPan": "flag",
-      "supportsZoom": "flag",
-      "vesselId": "id"
     },
     "kos.processors": {
       "bootFilePath": "text",

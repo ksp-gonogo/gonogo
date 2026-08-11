@@ -125,8 +125,31 @@ namespace Sitrep.Contract
         /// shape; the wire FORMAT of <c>avionics.status</c> is unchanged, only
         /// which assembly declares it. See
         /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
+        ///
+        /// <para><b>Bumped 7 -&gt; 8: the Kerbcast relocation.</b>
+        /// <c>KerbcastCameraEntry</c>/<c>KerbcastSetFieldOfViewArgs</c>/
+        /// <c>KerbcastSetPanArgs</c> LEFT this assembly entirely, relocated
+        /// into the new <c>GonogoKerbcastUplink.Contract</c> project (the
+        /// third step of the uplink-types-out-of-core plan, after the MechJeb
+        /// pilot and the Avionics relocation). Same shape as the Avionics
+        /// case, not the MechJeb one: these three types predate the v6.0
+        /// freeze (added on the Major-4 line, see the "Major-4 line, Bumped 0
+        /// -&gt; 1" Minor-history entry below), so all three ARE part of the
+        /// frozen v7.0 floor in <c>contract-shape.baseline.json</c>, and their
+        /// removal registers as three genuine <c>type-removed:</c> breaks
+        /// against that floor, not vacuous ones. A Major bump (with a freshly
+        /// frozen Major-8 floor) is the only way to keep
+        /// <c>ContractShapeGateTests.CurrentShapeIsAdditiveOverTheFrozenMajorFloor</c>
+        /// green here. Sanctioned on the same standing grounds as every Major
+        /// above: the mod is still pre-release with NO external Uplinks, and
+        /// the app and mod ship together, so no artifact exists that was
+        /// built against the old shape; the wire FORMAT of
+        /// <c>kerbcast.cameras</c>/<c>kerbcast.setFieldOfView</c>/
+        /// <c>kerbcast.setPan</c> is unchanged, only which assembly declares
+        /// them. See
+        /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
         /// </remarks>
-        public const int Major = 7;
+        public const int Major = 8;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -465,6 +488,10 @@ namespace Sitrep.Contract
         /// <para>Reset 9 -&gt; 0 alongside the Major 6 -&gt; 7 bump (the
         /// Avionics relocation; see <see cref="Major"/>). Every additive
         /// change on the Major-6 line above is carried forward into Major 7.</para>
+        ///
+        /// <para>Reset 0 alongside the Major 7 -&gt; 8 bump (the Kerbcast
+        /// relocation; see <see cref="Major"/>). Every additive change on the
+        /// Major-7 line above is carried forward into Major 8.</para>
         /// </summary>
         public const int Minor = 0;
     }

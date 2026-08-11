@@ -19,6 +19,7 @@ PATHS=(
   packages/ui-kit/src/__generated__
   mod/GonogoMechJebUplink/client/src/__generated__
   mod/GonogoAvionicsUplink/client/src/__generated__
+  mod/GonogoKerbcastUplink/client/src/__generated__
 )
 
 snapshot() {

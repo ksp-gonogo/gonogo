@@ -106,6 +106,33 @@ echo "codegen -> $avionics_out_dir/topic-map.ts"
 echo "codegen -> $avionics_out_dir/units.ts"
 echo "codegen -> $avionics_out_dir/units.json"
 
+# Kerbcast: the third relocation. KerbcastCameraEntry carries
+# [SitrepTopic("kerbcast.cameras")], same as Avionics, so
+# SITREP_KERBCAST_TOPICMAP_OUT is set here too. Unlike either predecessor
+# alone, this leg also carries two inbound-only command-arg types
+# (KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs), same shape as MechJeb's.
+kerbcast_proj="$ROOT/mod/GonogoKerbcastUplink.Contract"
+kerbcast_out_dir="$ROOT/mod/GonogoKerbcastUplink/client/src/__generated__"
+kerbcast_bin="$kerbcast_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$kerbcast_proj/GonogoKerbcastUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$kerbcast_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$kerbcast_bin/"
+mkdir -p "$kerbcast_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_KERBCAST_TOPICMAP_OUT="$kerbcast_out_dir/topic-map.ts" \
+  SITREP_KERBCAST_UNITMAP_OUT="$kerbcast_out_dir/units.ts" \
+  SITREP_KERBCAST_UNITJSON_OUT="$kerbcast_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$kerbcast_bin/GonogoKerbcastUplink.Contract.dll" \
+  TargetFile="$kerbcast_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoKerbcastUplink.KerbcastRtConfig.Configure"
+echo "codegen -> $kerbcast_out_dir/contract.ts"
+echo "codegen -> $kerbcast_out_dir/topic-map.ts"
+echo "codegen -> $kerbcast_out_dir/units.ts"
+echo "codegen -> $kerbcast_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

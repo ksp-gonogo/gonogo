@@ -1,4 +1,4 @@
-import type { KerbcastCameraEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { KerbcastCameraEntry } from "../__generated__/contract";
 
 /**
  * Picks the camera that should back DistanceToTarget's docking HUD, from the

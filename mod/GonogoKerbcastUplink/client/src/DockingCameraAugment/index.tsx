@@ -33,6 +33,13 @@ import {
 import { useEffect, useMemo, useRef } from "react";
 import { useDelayedKerbcastStream } from "../CameraFeed/useDelayedKerbcastStream";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
+// Side-effect import: registers kerbcast.cameras's unit map into the SDK's
+// runtime hydration registry (registerTopicUnits) and augments
+// TopicPayloadMap for the type. This augment is the one production consumer
+// of that decode-time wrap today, so it pulls the registration itself rather
+// than relying on the package entry point's import order (see ../index.ts,
+// which also imports this module for the same reason).
+import "../topics";
 import { selectDockingCamera } from "./selectDockingCamera";
 
 export function DockingCameraAugment({

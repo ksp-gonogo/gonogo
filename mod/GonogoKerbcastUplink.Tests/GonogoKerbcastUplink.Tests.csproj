@@ -45,4 +45,12 @@
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
   </ItemGroup>
 
+  <!-- GonogoKerbcastUplink.Contract: KerbcastCameraEntry/KerbcastSetFieldOfViewArgs/
+       KerbcastSetPanArgs, this Uplink's own wire types (relocated out of
+       Sitrep.Contract, see that project's header comment).
+       KerbcastUnitCoverageTests.cs below reflects over it directly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoKerbcastUplink.Contract\GonogoKerbcastUplink.Contract.csproj" />
+  </ItemGroup>
+
 </Project>

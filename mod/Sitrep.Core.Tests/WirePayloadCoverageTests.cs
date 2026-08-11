@@ -79,11 +79,6 @@ namespace Sitrep.Core.Tests
             // publishes that, so JsonWriter only ever sees the flattened
             // dictionary; the POCO exists for the generated TS shape only.
             "FleetVesselLink",
-            // kerbcast.cameras: KerbcastCameraEntryBuilder.Build returns a
-            // Dictionary<string, object?> and KerbcastUplink publishes that list
-            // directly, so JsonWriter only ever sees the flattened dictionary;
-            // the POCO exists for the generated TS shape only.
-            "KerbcastCameraEntry",
             // career.status / career.mode: CareerViewProvider builds every one of
             // these as a Dictionary<string, object?> by hand (BuildEconomy/
             // BuildFacilities/BuildContracts/BuildStrategies/BuildTech, and
@@ -175,11 +170,6 @@ namespace Sitrep.Core.Tests
             // by KosTerminalFrameBuilder at the publish boundary).
             "KosTerminalOpenArgs", "KosKeystrokeArgs", "KosTerminalResizeArgs",
             "KosTerminalCloseArgs",
-            // kerbcast.setFieldOfView / kerbcast.setPan command args: inbound
-            // only (KerbcastUplink.Register's AddCommandHandler for each);
-            // deserialized client → server, never serialized outbound as a raw
-            // POCO.
-            "KerbcastSetFieldOfViewArgs", "KerbcastSetPanArgs",
             // kos.run command args, inbound only (KosExtension.Ksp.cs's Run
             // handler, AddCommandHandler<KosRunArgs, CommandResult>);
             // deserialized client → server, never serialized outbound as a raw
@@ -190,6 +180,16 @@ namespace Sitrep.Core.Tests
             // GonogoMechJebUplink.Contract (uplink-types-out-of-core pilot):
             // no longer reflected by this assembly at all, so no allowlist
             // entry is needed here any more.
+            // kerbcast.cameras (KerbcastCameraEntry) + kerbcast.setFieldOfView/
+            // kerbcast.setPan command args (KerbcastSetFieldOfViewArgs/
+            // KerbcastSetPanArgs) relocated out of Sitrep.Contract into
+            // GonogoKerbcastUplink.Contract (uplink-types-out-of-core plan,
+            // third relocation): no longer reflected by this assembly at all,
+            // so no allowlist entry is needed here any more. (For the record:
+            // KerbcastCameraEntryBuilder.Build returns a Dictionary<string,
+            // object?> and KerbcastUplink publishes that list directly, so
+            // JsonWriter never saw KerbcastCameraEntry raw even while it lived
+            // here; the two Args types were always inbound-only.)
             // system.uplink.pending: PendingUplink is only ever nested inside
             // PendingUplinkQueue.Pending, flattened element-by-element by
             // AppendPendingUplinkQueue's own loop (AppendPendingUplink); it is

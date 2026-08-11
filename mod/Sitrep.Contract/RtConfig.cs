@@ -221,11 +221,8 @@ public static class RtConfig
                 // scansat.anomalies.<body> dynamic-namespace element shape
                 // (typing-only, no [SitrepTopic], see ScanAnomalyEntry's doc)
                 typeof(ScanAnomalyEntry),
-                // kerbcast.cameras payload + its command args (control plane
-                // only, kerbcast's video stays on WebRTC, see KerbcastPayloads)
-                typeof(KerbcastCameraEntry),
-                typeof(KerbcastSetFieldOfViewArgs),
-                typeof(KerbcastSetPanArgs),
+                // kerbcast.cameras payload + its command args: see the trailing
+                // comment below (moved OUT of core into GonogoKerbcastUplink.Contract).
                 // vessel.parts channel payload + nested value shapes (P1b)
                 typeof(VesselParts),
                 typeof(VesselPart),
@@ -294,11 +291,13 @@ public static class RtConfig
                 typeof(ReliabilitySummary),
                 typeof(ReliabilityPartEntry),
                 // avionics.status (AvionicsStatus) moved OUT of core into
-                // GonogoAvionicsUplink.Contract, and mechjeb.engageAscentAutopilot /
+                // GonogoAvionicsUplink.Contract, mechjeb.engageAscentAutopilot /
                 // mechjeb.executeNextNode / mechjeb.landAtTarget command args moved
-                // OUT of core into GonogoMechJebUplink.Contract (uplink-types-out-of-core
-                // plan, 2026-08-10): see ContractVersion.cs and
-                // local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
+                // OUT of core into GonogoMechJebUplink.Contract, and kerbcast.cameras
+                // (KerbcastCameraEntry) + kerbcast.setFieldOfView/kerbcast.setPan
+                // command args moved OUT of core into GonogoKerbcastUplink.Contract
+                // (uplink-types-out-of-core plan, 2026-08-10): see ContractVersion.cs
+                // and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
 

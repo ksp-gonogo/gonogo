@@ -78,7 +78,15 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // (mod/GonogoKerbcastUplink covers client/: isUnderOwnedDir is a prefix
     // match: so the client half needs no separate entry.)
     patterns: [/kerbcast/i, /hullcam/i],
-    ownedDirs: ["mod/GonogoKerbcastUplink", "mod/GonogoKerbcastUplink.Tests"],
+    ownedDirs: [
+      "mod/GonogoKerbcastUplink",
+      "mod/GonogoKerbcastUplink.Tests",
+      // GonogoKerbcastUplink's own contract slice (uplink-types-out-of-core
+      // plan, third relocation, 2026-08-10): KerbcastCameraEntry/
+      // KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs live here now, not in
+      // Sitrep.Contract.
+      "mod/GonogoKerbcastUplink.Contract",
+    ],
   },
   scansat: {
     patterns: [

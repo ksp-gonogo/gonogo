@@ -1,5 +1,5 @@
-import type { KerbcastCameraEntry } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import type { KerbcastCameraEntry } from "../__generated__/contract";
 import { selectDockingCamera } from "./selectDockingCamera";
 
 // Only the fields the selector reads; the wire entry has ~20 more.

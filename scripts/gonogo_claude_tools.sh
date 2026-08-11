@@ -922,6 +922,52 @@ build_gonogoavionicsuplink() {
   ls -la "$install_dir"
 }
 
+build_gonogokerbcastuplink() {
+  local proj="$ROOT/mod/GonogoKerbcastUplink/GonogoKerbcastUplink.csproj"
+  local out_dir="$ROOT/mod/GonogoKerbcastUplink/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbcastUplink/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoKerbcastUplink csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoKerbcastUplink ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoKerbcastUplink.dll" ]; then
+    echo "GonogoKerbcastUplink.dll not produced (missing at $out_dir/GonogoKerbcastUplink.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  # GonogoKerbcastUplink.dll AND GonogoKerbcastUplink.Contract.dll: the
+  # uplink-types-out-of-core plan split KerbcastCameraEntry/
+  # KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs into their own contract-slice
+  # project (Private="true", the default, so `dotnet build` DOES copy it into
+  # $out_dir, unlike the reference below). Sitrep.Contract.dll (provided by
+  # GonogoCore) is reference-only (Private="false") and must NOT be copied
+  # here - see .superpowers/sdd/uplink-packaging-pattern.md. Applies the
+  # deploy-script lesson the MechJeb pilot's build_gonogomechjebuplink fixed
+  # (and build_gonogoavionicsuplink applied from day one): a single-DLL copy
+  # here would silently drop the Contract.dll from the deployed GameData
+  # folder and break the mod at KSP load.
+  cp "$out_dir/GonogoKerbcastUplink.dll" "$install_dir/"
+  if [ ! -f "$out_dir/GonogoKerbcastUplink.Contract.dll" ]; then
+    echo "GonogoKerbcastUplink.Contract.dll not produced (missing at $out_dir/GonogoKerbcastUplink.Contract.dll)"
+    return 4
+  fi
+  cp "$out_dir/GonogoKerbcastUplink.Contract.dll" "$install_dir/"
+  {
+    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  } > "$install_dir/build-info.txt"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -1090,9 +1136,10 @@ case "${1:-help}" in
       gonogokosuplink) build_gonogokosuplink ;;
       gonogomechjebuplink) build_gonogomechjebuplink ;;
       gonogoavionicsuplink) build_gonogoavionicsuplink ;;
+      gonogokerbcastuplink) build_gonogokerbcastuplink ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink"
         exit 2
         ;;
     esac

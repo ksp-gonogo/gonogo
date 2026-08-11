@@ -109,23 +109,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/sitrep-client/src/view-clock-formula.ts",
       "packages/sitrep-client/src/view-clock.ts",
 
-      // -- the kerbcast Uplink's CONTRACT/SDK layer --
-      // Every Uplink's wire types live in Sitrep.Contract and its generated
-      // SDK, by design: that is the arm's-length compile surface a
-      // third-party Uplink author codes against, and it is the same shape
-      // the scansat/kos/comms payload types already have there. These name
-      // kerbcast because they ARE kerbcast's contract, they are not core
-      // reaching into a mod.
+      // -- the kerbcast Uplink's provenance record in core --
+      // ContractVersion.cs's Minor-history doc comment records the ORIGINAL
+      // add of kerbcast's control-plane types (Major-4 line, Bumped 0 -> 1)
+      // AND RtConfig.cs's own comment records where they went (moved OUT of
+      // core into GonogoKerbcastUplink.Contract, uplink-types-out-of-core
+      // plan, third relocation, 2026-08-10): prose/history only, the types
+      // themselves no longer live here.
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/KerbcastPayloads.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
-      "mod/sitrep-sdk/src/__generated__/contract.ts",
-      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-      // The third file the same codegen run emits, from the same reflection
-      // over the same assembly: it names a payload type for every field
-      // carrying a [SitrepUnit]. Same class as its two siblings above, and
-      // for the same reason.
-      "mod/sitrep-sdk/src/__generated__/units.ts",
       // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
       // (2026-07-20). It statically imports every first-party Uplink client
       // (kerbcast/kos/scansat) so their `registerBarePrimitiveTopic` calls fire
@@ -143,11 +135,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // FlattenedByProducer set is a literal-string allowlist over every
       // [SitrepContract] type, so it necessarily names every Uplink's payload
       // types: kOS's and the career/vessel POCOs are already listed there the
-      // same way. kerbcast's entries record that KerbcastCameraEntry is
-      // flattened by its producer (KerbcastCameraEntryBuilder.Build returns a
-      // Dictionary) and that the two command-arg types are inbound-only.
-      // Type-name strings in a ratchet, not a dependency.
+      // same way. kerbcast's comment now records the RELOCATION (the three
+      // types left this assembly for GonogoKerbcastUplink.Contract, so no
+      // allowlist entry is needed there any more), for the record noting
+      // KerbcastCameraEntry was flattened by its producer even while it
+      // lived here. Type-name strings in a ratchet, not a dependency.
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+
+      // UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
+      // ratchet (uplink-types-out-of-core plan, §5a). It necessarily names
+      // every relocated Uplink's token in its own RelocatedModTokens data and
+      // doc comment, kerbcast included now that its three types have moved
+      // out: a ratchet naming its own subject, not a boundary violation, same
+      // class as the WirePayloadCoverageTests.cs entry above.
+      "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       // truenow-allowlist.test.ts: the sibling architectural ratchet. It is a
       // path-keyed allowlist over every Uplink's .cs files, so it necessarily
@@ -830,6 +831,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // command-arg allowlist entries were removed because the types left
       // this assembly: provenance, not a reference to the types.
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+
+      // -- The Kerbcast relocation's own doc comments, citing the MechJeb
+      // pilot as prior art (its two command-arg types are the precedent
+      // KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs follow: ApplyUnitValueTypes
+      // skips retyping both alike) -- zero MechJeb code or type coupling --
+      "mod/GonogoKerbcastUplink.Contract/KerbcastPayloads.cs",
+      "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
+      "mod/GonogoKerbcastUplink.Tests/KerbcastUnitCoverageTests.cs",
+      "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
     ],
   },
   // === avionics: owning dirs mod/GonogoAvionicsUplink/ (incl. its client/),
@@ -907,6 +917,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // why RP-1's avionics controllable-mass isn't dumped there. No
       // GonogoAvionicsUplink code or type reference.
       "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
+
+      // -- The Kerbcast relocation's own doc comments, citing Avionics as
+      // prior art (the second relocation, first to prove the Value<>/
+      // Vec3Of<> retype end to end; KerbcastCameraEntry's nine Units.Degrees
+      // fields are the second proof) -- zero Avionics code or type coupling --
+      "mod/GonogoKerbcastUplink.Contract/KerbcastPayloads.cs",
+      "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
+      "mod/GonogoKerbcastUplink.Tests/KerbcastUnitCoverageTests.cs",
+      "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
+      "mod/GonogoKerbcastUplink/client/src/topics.test.ts",
     ],
   },
 };

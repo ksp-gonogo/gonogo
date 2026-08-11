@@ -44,8 +44,9 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>MechJeb and Avionics are registered today</b> (the pilot and
-    /// the second relocation). Each of the plan's remaining relocations (see
+    /// <para><b>MechJeb, Avionics, and Kerbcast are registered today</b> (the
+    /// pilot and the second and third relocations). Each of the plan's
+    /// remaining relocations (see
     /// the plan doc's §6 sequencing list) registers its own
     /// token here in the same commit that moves its types out, exactly like
     /// the frontend ratchet's own token-per-Uplink shape. Naming those other
@@ -71,6 +72,7 @@ namespace Sitrep.Core.Tests
         {
             ["mechjeb"] = new Regex("MechJeb", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             ["avionics"] = new Regex("Avionics", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            ["kerbcast"] = new Regex("Kerbcast", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         };
 
         [Fact]

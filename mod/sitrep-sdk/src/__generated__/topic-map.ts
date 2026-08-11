@@ -40,7 +40,6 @@ import type {
   KerbalismLifeSupport,
   KerbalismProfile,
   KerbalismSpaceWeather,
-  KerbcastCameraEntry,
   KosProcessorInfo,
   LabEntry,
   LaunchSiteEntry,
@@ -113,7 +112,6 @@ export interface GeneratedTopicPayloadMap {
   "kerbalism.lifesupport": KerbalismLifeSupport;
   "kerbalism.profile": KerbalismProfile;
   "kerbalism.spaceweather": KerbalismSpaceWeather;
-  "kerbcast.cameras": KerbcastCameraEntry[];
   "kos.processors": KosProcessorInfo[];
   "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
@@ -189,7 +187,6 @@ export const GENERATED_TOPIC_IDS = [
   "kerbalism.lifesupport",
   "kerbalism.profile",
   "kerbalism.spaceweather",
-  "kerbcast.cameras",
   "kos.processors",
   "ksp.revertAvailability",
   "parts.power",
