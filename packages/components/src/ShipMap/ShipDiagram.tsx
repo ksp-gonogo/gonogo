@@ -2,8 +2,10 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, resourceColor, TextButton, Unit } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useZoomPan } from "../shared/useZoomPan";
+import { anchoredMenuPosition } from "./anchoredMenuPosition";
 import { PartActionCount, PartActionMenu } from "./PartActionMenu";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type {
@@ -79,10 +81,25 @@ export function ShipDiagram({
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   // The part whose action menu is open, plus where to anchor it. Held together
-  // so the menu can never render without a position.
+  // so the menu can never render without a position. The anchor is kept in BOTH
+  // spaces: canvas-local (what the diagram reports, and what re-placement
+  // recomputes from when the page scrolls) and viewport (what the portalled
+  // menu is actually positioned with, so its first paint already lands on the
+  // part rather than at the corner of the window).
   const [openPart, setOpenPart] = useState<{
     part: ShipMapPart;
     anchor: { x: number; y: number };
+    viewportAnchor: { x: number; y: number };
+  } | null>(null);
+  // The portalled menu's host box, and where it sits. `null` until the first
+  // measurement, which happens in a layout effect (so before paint) and then
+  // again whenever the menu's own size changes: the action list arrives a
+  // light-time after the menu opens, so the menu it was first placed for is
+  // shorter than the one the operator ends up reading.
+  const [menuHost, setMenuHost] = useState<HTMLDivElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{
+    left: number;
+    top: number;
   } | null>(null);
   // Whatever had focus when the menu opened (the part's own <g>, when opened by
   // keyboard). Restored on dismiss so Escape returns the operator to the part
@@ -91,6 +108,7 @@ export function ShipDiagram({
 
   const dismissMenu = () => {
     setOpenPart(null);
+    setMenuPos(null);
     const trigger = triggerRef.current;
     triggerRef.current = null;
     if (trigger instanceof HTMLElement || trigger instanceof SVGElement) {
@@ -104,6 +122,46 @@ export function ShipDiagram({
     panMoved,
     pointerHandlers,
   } = useZoomPan<HTMLDivElement>();
+
+  // Re-place the portalled menu against the viewport once it can be measured.
+  // A layout effect, not a passive one: it runs before the browser paints, so
+  // the corrected position is the first one on screen rather than a visible
+  // jump from the unmeasured guess the render above starts with.
+  useLayoutEffect(() => {
+    if (!openPart || !menuHost) return;
+    const place = () => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const menuRect = menuHost.getBoundingClientRect();
+      const next = anchoredMenuPosition(
+        {
+          x: wrapperRect.left + openPart.anchor.x,
+          y: wrapperRect.top + openPart.anchor.y,
+        },
+        { w: menuRect.width, h: menuRect.height },
+        { w: window.innerWidth, h: window.innerHeight },
+      );
+      setMenuPos((prev) =>
+        prev && prev.left === next.left && prev.top === next.top ? prev : next,
+      );
+    };
+    place();
+    // The menu grows when its actions land; the window and the dashboard both
+    // move the part out from under a fixed-position menu. All three re-place.
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
+    observer?.observe(menuHost);
+    window.addEventListener("resize", place);
+    // Capture phase: the dashboard scrolls an inner container, not the window,
+    // and scroll events from those do not bubble.
+    window.addEventListener("scroll", place, true);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [openPart, menuHost, wrapperRef]);
 
   const onWrapperMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -173,7 +231,16 @@ export function ShipDiagram({
           onInvokePartAction
             ? (part, anchor) => {
                 triggerRef.current = document.activeElement;
-                setOpenPart({ part, anchor });
+                const rect = wrapperRef.current?.getBoundingClientRect();
+                setMenuPos(null);
+                setOpenPart({
+                  part,
+                  anchor,
+                  viewportAnchor: {
+                    x: (rect?.left ?? 0) + anchor.x,
+                    y: (rect?.top ?? 0) + anchor.y,
+                  },
+                });
               }
             : undefined
         }
@@ -264,27 +331,47 @@ export function ShipDiagram({
         </div>
       )}
 
-      {openPart && onInvokePartAction ? (
-        <PartActionMenu
-          flightId={openPart.part.flightId}
-          partTitle={openPart.part.title || openPart.part.name}
-          onInvoke={(eventName, actionLabel) =>
-            onInvokePartAction(
-              openPart.part.flightId,
-              eventName,
-              actionLabel,
-              openPart.part.title || openPart.part.name,
-            )
-          }
-          onDismiss={dismissMenu}
-          style={{
-            // Clamped to the canvas so a part near an edge does not open a menu
-            // half off-screen. Same clamping idea as the tooltip above.
-            left: Math.min(openPart.anchor.x + 12, Math.max(0, width - 200)),
-            top: Math.min(openPart.anchor.y + 12, Math.max(0, height - 120)),
-          }}
-        />
-      ) : null}
+      {openPart && onInvokePartAction
+        ? // Portalled to the document body, the same mechanism the app's Modal
+          // uses, because the menu has to draw OUTSIDE this widget: the Panel
+          // around it clips with `overflow: hidden`, so on a small tile a menu
+          // taller than the canvas lost its lower items, and the clip sat
+          // outside the menu's own scroll box so nothing could reveal them.
+          // Drawn at the popover rung of the z-index ladder (the same rung the
+          // menu declares for itself in-flow), which clears the dashboard grid
+          // while staying under the FAB column and any modal.
+          createPortal(
+            <div
+              ref={setMenuHost}
+              style={{
+                ...MENU_HOST,
+                // The unmeasured first guess: the anchor plus the same offset
+                // the in-widget version used. The layout effect above replaces
+                // it with the measured, viewport-clamped position before paint.
+                left: menuPos?.left ?? openPart.viewportAnchor.x + 12,
+                top: menuPos?.top ?? openPart.viewportAnchor.y + 12,
+              }}
+            >
+              <PartActionMenu
+                flightId={openPart.part.flightId}
+                partTitle={openPart.part.title || openPart.part.name}
+                onInvoke={(eventName, actionLabel) =>
+                  onInvokePartAction(
+                    openPart.part.flightId,
+                    eventName,
+                    actionLabel,
+                    openPart.part.title || openPart.part.name,
+                  )
+                }
+                onDismiss={dismissMenu}
+                // Positioning belongs to the host box now: the menu itself goes
+                // back in flow so the host wraps it and can be measured.
+                style={MENU_IN_HOST}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -318,6 +405,24 @@ const RESET_BUTTON: CSSProperties = {
   borderRadius: "var(--radius-xs)",
   textDecoration: "none",
 };
+
+// The portalled action menu's host box: fixed to the viewport, since its
+// coordinates come from `getBoundingClientRect`, which is viewport-relative.
+const MENU_HOST: CSSProperties = {
+  position: "fixed",
+  // The popover rung of the app's ladder, and it has to sit HERE rather than on
+  // the menu: `position: fixed` makes this host its own stacking context, so a
+  // rung declared inside it is trapped there, and any widget's own local
+  // `z-index` (the ship diagram's svg carries 1) then paints over the menu.
+  // Held as the token rather than its value so the ladder stays stated once;
+  // `zIndex` is typed as a number, hence the assertion to pass the var through.
+  zIndex: "var(--z-dropdown, 200)" as unknown as CSSProperties["zIndex"],
+};
+
+// Positioning is the host's job now, and so is the rung. Static rather than the
+// menu's own `absolute` so it stays in the host's flow: an out-of-flow menu
+// would collapse the very box there is to measure.
+const MENU_IN_HOST: CSSProperties = { position: "static" };
 
 const TOOLTIP: CSSProperties = {
   position: "absolute",
