@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "scenario": "vanilla-stock",
+    "notes": "Stock ISRU chain on a mining base: two ore drills (one running, one stopped with no deploy animation) feeding a Convert-O-Tron 250 running Lf+Ox and a second small converter that is genuinely starved (has an output, moving nothing)."
+  },
+  "_stream": {
+    "carriedChannels": ["isru.drills", "isru.converters"],
+    "emits": [
+      {
+        "channel": "isru.drills",
+        "value": [
+          {
+            "partId": "101",
+            "partTitle": "Drill-O-Matic",
+            "resource": "Ore",
+            "deployed": true,
+            "running": true,
+            "abundance": 0.075,
+            "rate": 0.0037
+          },
+          {
+            "partId": "102",
+            "partTitle": "Drill-O-Matic Junior",
+            "resource": "Ore",
+            "deployed": null,
+            "running": false,
+            "abundance": null,
+            "rate": 0
+          }
+        ]
+      },
+      {
+        "channel": "isru.converters",
+        "value": [
+          {
+            "partId": "201",
+            "partTitle": "Convert-O-Tron 250",
+            "running": true,
+            "inputs": [
+              { "resource": "Ore", "rate": 0.5 },
+              { "resource": "ElectricCharge", "rate": 30 }
+            ],
+            "outputs": [
+              { "resource": "LiquidFuel", "rate": 0.45 },
+              { "resource": "Oxidizer", "rate": 0.55 }
+            ]
+          },
+          {
+            "partId": "202",
+            "partTitle": "Convert-O-Tron 125",
+            "running": true,
+            "inputs": [{ "resource": "Ore", "rate": 0.25 }],
+            "outputs": [{ "resource": "Monopropellant", "rate": 0 }]
+          }
+        ]
+      }
+    ]
+  }
+}

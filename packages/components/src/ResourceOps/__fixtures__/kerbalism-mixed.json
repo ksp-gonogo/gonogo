@@ -1,0 +1,74 @@
+{
+  "_meta": {
+    "scenario": "kerbalism-mixed",
+    "notes": "A Kerbalism-style life-support stack sharing the channel with a chemical plant: a CO2 scrubber that consumes and dumps (empty outputs, healthy), a water recycler whose rates are sub-milli (working, not dead), a long Sabatier recipe that exercises wrapping at the default width, and a drill."
+  },
+  "_stream": {
+    "carriedChannels": ["isru.drills", "isru.converters"],
+    "emits": [
+      {
+        "channel": "isru.drills",
+        "value": [
+          {
+            "partId": "301",
+            "partTitle": "Mini-Drill",
+            "resource": "Water",
+            "deployed": true,
+            "running": true,
+            "abundance": 0.021,
+            "rate": 0.00042
+          }
+        ]
+      },
+      {
+        "channel": "isru.converters",
+        "value": [
+          {
+            "partId": "401",
+            "partTitle": "CO2 Scrubber",
+            "running": true,
+            "inputs": [
+              { "resource": "CarbonDioxide", "rate": 0.0006 },
+              { "resource": "ElectricCharge", "rate": 0.05 }
+            ],
+            "outputs": []
+          },
+          {
+            "partId": "402",
+            "partTitle": "Water Recycler",
+            "running": true,
+            "inputs": [
+              { "resource": "WasteWater", "rate": 0.00025 },
+              { "resource": "ElectricCharge", "rate": 0.02 }
+            ],
+            "outputs": [{ "resource": "Water", "rate": 0.0002 }]
+          },
+          {
+            "partId": "403",
+            "partTitle": "Sabatier Process",
+            "running": true,
+            "inputs": [
+              { "resource": "CarbonDioxide", "rate": 0.00119 },
+              { "resource": "Hydrogen", "rate": 0.0048 },
+              { "resource": "ElectricCharge", "rate": 0.12 }
+            ],
+            "outputs": [
+              { "resource": "Water", "rate": 0.00107 },
+              { "resource": "Methane", "rate": 0.00053 }
+            ]
+          },
+          {
+            "partId": "404",
+            "partTitle": "Fuel Cell",
+            "running": false,
+            "inputs": [
+              { "resource": "Hydrogen", "rate": 0.0015 },
+              { "resource": "Oxygen", "rate": 0.00075 }
+            ],
+            "outputs": [{ "resource": "ElectricCharge", "rate": 1.5 }]
+          }
+        ]
+      }
+    ]
+  }
+}

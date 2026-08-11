@@ -147,6 +147,57 @@ describe("ResourceOps", () => {
     expect(await screen.findAllByText("no output")).toHaveLength(1);
   });
 
+  it("does not flag a consume-and-dump process with no outputs", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", []);
+      // A scrubber consumes and dumps: an EMPTY output side is its healthy
+      // state. `outputs.every(rate === 0)` is vacuously true on [], which is
+      // exactly the false positive this case pins down.
+      fixture.emit("isru.converters", [
+        {
+          partId: "301",
+          partTitle: "CO2 Scrubber",
+          running: true,
+          inputs: [
+            { resource: "CarbonDioxide", rate: 0.0006 },
+            { resource: "ElectricCharge", rate: 0.05 },
+          ],
+          outputs: [],
+        },
+      ]);
+    });
+
+    expect(await screen.findByText("CO2 Scrubber")).toBeInTheDocument();
+    expect(screen.queryByText("no output")).not.toBeInTheDocument();
+    // The empty side still reads as a fact, not a blank.
+    expect(screen.getByText("none")).toBeInTheDocument();
+  });
+
+  it("shows a sub-milli rate as nonzero rather than 0.000", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", []);
+      // Life-support rates genuinely sit this low: a recycler at 0.0002
+      // units/s is WORKING, and fixed 3 dp rendered it "0.000", a dead-looking
+      // reading no operator should have to second-guess.
+      fixture.emit("isru.converters", [
+        {
+          partId: "302",
+          partTitle: "Water Recycler",
+          running: true,
+          inputs: [{ resource: "WasteWater", rate: 0.00025 }],
+          outputs: [{ resource: "Water", rate: 0.0002 }],
+        },
+      ]);
+    });
+
+    expect(await screen.findByText("Water Recycler")).toBeInTheDocument();
+    expect(screen.getByText(/0\.00020/)).toBeInTheDocument();
+    expect(screen.getByText(/0\.00025/)).toBeInTheDocument();
+    expect(screen.queryByText(/(^|\s)0\.000(\s|$)/)).not.toBeInTheDocument();
+  });
+
   it("says an empty vessel has no units rather than blaming the stream", async () => {
     const { fixture } = renderWidget();
     act(() => {

@@ -530,6 +530,18 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "resource-ops",
+    fixturesPath: "ResourceOps/__fixtures__",
+    outPath: "renders/resource-ops-widget",
+    modes: [
+      // Registered default size: the converter recipes (inputs → outputs)
+      // must be fully readable here, wrapping rather than clipping.
+      { name: "default-6x8", w: 6, h: 8 },
+      // Generous width: recipes fit on one line, nothing wraps.
+      { name: "wide-12x8", w: 12, h: 8 },
+    ],
+  },
+  {
     widgetId: "strategies",
     fixturesPath: "Strategies/__fixtures__",
     outPath: "renders/strategies-widget",
