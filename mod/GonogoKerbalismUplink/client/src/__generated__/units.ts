@@ -237,7 +237,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stormEjectionSpeed: "m/s",
     stormInProgress: "flag",
     stormIncoming: "flag",
-    vesselId: "id",
   },
   "KerbalismStarInfo": {
     "direction.x": "1",
@@ -302,7 +301,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     stormEjectionSpeed: "m/s",
     stormInProgress: "flag",
     stormIncoming: "flag",
-    vesselId: "id",
   },
 };
 

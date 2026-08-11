@@ -202,8 +202,7 @@
       "shieldingCapacity": "units",
       "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
-      "stormIncoming": "flag",
-      "vesselId": "id"
+      "stormIncoming": "flag"
     },
     "KerbalismStarInfo": {
       "direction.x": "1",
@@ -262,8 +261,7 @@
       "shieldingCapacity": "units",
       "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
-      "stormIncoming": "flag",
-      "vesselId": "id"
+      "stormIncoming": "flag"
     }
   },
   "typeShapes": {

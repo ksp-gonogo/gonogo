@@ -22,7 +22,6 @@ export interface KerbalismIsruConverterExtension
 }
 export interface KerbalismSpaceWeather
 {
-	vesselId?: string;
 	radiationRadPerSecond?: Value<"rad/s">;
 	habitatRadiationRadPerSecond?: Value<"rad/s">;
 	magnetosphere?: boolean;

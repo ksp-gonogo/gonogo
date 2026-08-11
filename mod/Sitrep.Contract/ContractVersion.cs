@@ -754,18 +754,26 @@ namespace Sitrep.Contract
         ///
         /// <para><b>Major-12 line, Bumped 5 -&gt; 6: vesselId on the Kerbalism
         /// vessel telemetry.</b> A new <c>VesselId</c> on
-        /// <c>KerbalismSpaceWeather</c>, <c>KerbalismLifeSupport</c> and
-        /// <c>KerbalismCrewEntry</c> (in <c>GonogoKerbalismUplink.Contract</c>),
-        /// carrying the RAW <c>Vessel.id</c> guid: the same identity the
+        /// <c>KerbalismLifeSupport</c> and <c>KerbalismCrewEntry</c> (in
+        /// <c>GonogoKerbalismUplink.Contract</c>), carrying the RAW
+        /// <c>Vessel.id</c> guid: the same identity the
         /// <c>fleet.&lt;guid&gt;</c> nodes and <c>currency.&lt;guid&gt;.*</c> events
         /// key by and that <see cref="VesselIdentity.VesselId"/> already publishes,
-        /// deliberately not a second one. Those three channels are
+        /// deliberately not a second one. Both channels are
         /// <see cref="DelayRole.Delayed"/> active-vessel reads that named no subject,
         /// so a light-time-old sample (or one held across a blackout) could not be
         /// told apart from the current vessel's after a switch: an unattributable
         /// payload, which the vessel provider's own R1 rule already forbids.
         /// <c>kerbalism.features</c> and <c>kerbalism.profile</c> deliberately get
         /// nothing, being install-wide facts with no vessel in the read.
+        /// <c>kerbalism.spaceweather</c> gets nothing either, for a different
+        /// reason: solar activity is SUN-sourced, and the intended shape is a
+        /// sun-sourced channel delayed by its own Sun-to-observer geometry
+        /// (<c>local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md</c>), so
+        /// a vessel guid there would encode the wrong subject. It briefly carried
+        /// one within this same Minor-6 development window and was withdrawn before
+        /// the minor shipped, so no consumer ever saw it and this is a correction to
+        /// an unreleased shape, not a removal from a published one.
         /// ATTRIBUTION only, not per-vessel routing: the capture is still one
         /// main-thread read of the active vessel. Purely additive, no existing member
         /// gains, loses or retypes anything, so an Uplink built against any earlier

@@ -40,6 +40,18 @@ namespace GonogoKerbalismUplink;
 /// <c>HabitatRadiation</c>, <c>Magnetosphere</c>/<c>InnerBelt</c>/<c>OuterBelt</c>,
 /// <c>StormIncoming</c>/<c>StormInProgress</c>/<c>Blackout</c>, <c>InSunlight</c>)
 /// plus the <c>Shielding</c> resource.
+///
+/// <para><b>This payload carries NO <c>vesselId</c>, deliberately,</b> unlike its
+/// vessel-bound siblings <see cref="KerbalismLifeSupport"/> and
+/// <see cref="KerbalismCrewEntry"/>. Solar activity is SUN-sourced: the storms,
+/// the ejection speed and the star geometry describe what the Sun is doing, and
+/// the intended shape for this channel is a sun-sourced one delayed by its own
+/// Sun-to-observer geometry rather than a vessel-attributed sample, per
+/// <c>local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md</c>. Binding
+/// it to a vessel id now would encode the wrong subject and have to be unpicked.
+/// Distinct from <see cref="KerbalismFeatures"/>/<see cref="KerbalismProfile"/>,
+/// which are install-wide facts with no subject to name at all; this one HAS a
+/// subject, and it is the Sun.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -48,20 +60,6 @@ namespace GonogoKerbalismUplink;
 [SitrepTopic("kerbalism.spaceweather")]
 public class KerbalismSpaceWeather
 {
-    /// <summary>
-    /// The vessel whose vantage these readings were taken from. See
-    /// <see cref="KerbalismLifeSupport.VesselId"/> for the identity and the
-    /// reason the field exists.
-    ///
-    /// <para>Every member below is a read of THIS vessel: the radiation and belt
-    /// flags come from its <c>VesselData</c>, <see cref="Stars"/> is its own
-    /// vantage on each star (direction and distance are vessel-relative), and
-    /// <see cref="Storms"/> is keyed by the body it is currently orbiting. The
-    /// one exception is <see cref="StormEjectionSpeed"/>, a global preference
-    /// that rides along here rather than earning a channel of its own.</para>
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    public string? VesselId { get; set; }
     /// <summary>
     /// Raw <c>API.Radiation(v)</c>, i.e. <c>VesselData.EnvRadiation</c>. Units
     /// confirmed rad/s from Kerbalism source (UI/Monitor.cs computes rad/h

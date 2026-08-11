@@ -284,9 +284,10 @@ namespace Gonogo.KerbalismUplink
             {
                 Ut = snapshot?.Ut ?? 0.0,
                 // The same guid the fleet./currency. namespaces key by, captured
-                // here beside the readings so the published sample names the vessel
-                // it came from rather than relying on whichever vessel is active by
-                // the time it is delivered (see KerbalismLifeSupport.VesselId).
+                // here beside the readings so the published lifesupport and crew
+                // samples name the vessel they came from rather than relying on
+                // whichever vessel is active by the time they are delivered (see
+                // KerbalismLifeSupport.VesselId).
                 VesselId = v.id.ToString(),
                 Snapshot = s,
                 Processes = processes,
@@ -376,8 +377,10 @@ namespace Gonogo.KerbalismUplink
         private void HandleOnCourier(object? captured)
         {
             if (captured is not KerbalismCaptured c) return;
+            // No vesselId: solar activity is sun-sourced, so kerbalism.spaceweather
+            // names no vessel (see KerbalismSpaceWeather's doc comment).
             _spaceWeather?.Publish(
-                KerbalismCapture.BuildSpaceWeather(c.VesselId, c.Snapshot, c.Solar.Stars, c.Solar.Storms, c.StormEjectionSpeed), c.Ut);
+                KerbalismCapture.BuildSpaceWeather(c.Snapshot, c.Solar.Stars, c.Solar.Storms, c.StormEjectionSpeed), c.Ut);
             _lifeSupport?.Publish(
                 KerbalismCapture.BuildLifeSupport(c.VesselId, c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers), c.Ut);
             _crew?.Publish(KerbalismCapture.BuildCrew(c.VesselId, c.Crew, c.RuleConstants), c.Ut);

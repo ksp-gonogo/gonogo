@@ -28,7 +28,7 @@ public class KerbalismCaptureTests
             ShieldingAmount = 0,
             ShieldingCapacity = 3.308449424001643,
         };
-        var sw = KerbalismCapture.BuildSpaceWeather(VesselId, snap);
+        var sw = KerbalismCapture.BuildSpaceWeather(snap);
         Assert.Equal(3.979330252466535e-06, (double)sw["radiationRadPerSecond"]!, 12);
         Assert.Equal(true, sw["magnetosphere"]);
         Assert.Equal(false, sw["innerBelt"]);
@@ -92,21 +92,49 @@ public class KerbalismCaptureTests
     /// against a fleet.&lt;guid&gt; topic key, currency.&lt;guid&gt;.* and
     /// vessel.identity.vesselId. A prefixed or reformatted copy here would be a
     /// second vessel identity, which is the one thing this field must not become.
+    ///
+    /// <para>kerbalism.spaceweather is NOT in this set, on purpose: see
+    /// <see cref="Spaceweather_names_no_vessel_pending_the_sun_sourced_reframe"/>.</para>
     /// </summary>
     [Fact]
     public void The_vessel_scoped_payloads_carry_the_raw_capture_guid()
     {
-        var sw = KerbalismCapture.BuildSpaceWeather(VesselId, new KerbalismSnapshot());
         var ls = KerbalismCapture.BuildLifeSupport(VesselId, new KerbalismSnapshot(), new List<ProcessRaw>());
         var crew = KerbalismCapture.BuildCrew(
             VesselId,
             new[] { new KerbalRulesRaw { Name = "Jebediah Kerman", Trait = "Pilot" } },
             new Dictionary<string, RuleConstants>());
 
-        Assert.Equal(VesselId, sw["vesselId"]);
         Assert.Equal(VesselId, ls["vesselId"]);
         // Repeated per kerbal: the crew Topic is an array with no enclosing object.
         Assert.Equal(VesselId, ((Dictionary<string, object?>)crew[0])["vesselId"]);
+    }
+
+    /// <summary>
+    /// kerbalism.spaceweather names no vessel, and that is DELIBERATE, not an
+    /// oversight and not a gap waiting to be filled in by whoever reads this next.
+    /// Solar activity is SUN-sourced: the storms, the ejection speed and the star
+    /// geometry describe what the Sun is doing, and the intended shape for this
+    /// channel is a sun-sourced one delayed by its own Sun-to-observer geometry
+    /// (local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md). Stamping a
+    /// vessel guid on it now would encode the wrong subject and have to be
+    /// unpicked when that reframe lands.
+    ///
+    /// <para>A DISTINCT case from
+    /// <see cref="The_install_wide_payloads_name_no_vessel"/>: kerbalism.features
+    /// and kerbalism.profile have no subject at all, being install-wide facts.
+    /// This payload has one, and it is the Sun. Do not merge the two tests.</para>
+    /// </summary>
+    [Fact]
+    public void Spaceweather_names_no_vessel_pending_the_sun_sourced_reframe()
+    {
+        Assert.DoesNotContain(
+            "vesselId",
+            KerbalismCapture.BuildSpaceWeather(new KerbalismSnapshot()).Keys);
+
+        // And the declared shape agrees, so nothing reaches the generated TS SDK
+        // as a permanently undefined field.
+        Assert.Null(typeof(GonogoKerbalismUplink.KerbalismSpaceWeather).GetProperty("VesselId"));
     }
 
     /// <summary>
@@ -127,6 +155,11 @@ public class KerbalismCaptureTests
     /// reports which Kerbalism features the install has enabled and kerbalism.profile
     /// the loaded profile's own definitions. Neither read touches a vessel, so a
     /// vesselId on either would be a fiction.
+    ///
+    /// <para>kerbalism.spaceweather is unattributed for a DIFFERENT reason and has
+    /// its own test,
+    /// <see cref="Spaceweather_names_no_vessel_pending_the_sun_sourced_reframe"/>;
+    /// it is neither install-wide nor vessel-attributed.</para>
     /// </summary>
     [Fact]
     public void The_install_wide_payloads_name_no_vessel()

@@ -74,8 +74,9 @@ public class KerbalismWireParityTests
     /// </summary>
     private static Dictionary<Type, object?> LocatedInstances()
     {
+        // No guid: kerbalism.spaceweather names no vessel (sun-sourced, see the
+        // payload type's doc comment).
         var spaceWeather = KerbalismCapture.BuildSpaceWeather(
-            VesselId,
             Snapshot(),
             new[] { new StarInfoRaw { Star = "Sun", DirX = 1, DirY = 0, DirZ = 0, Distance = 1.3e11 } },
             new[] { new StormEntryRaw { Star = "Sun", StormState = 2, StormTime = 120, StormDuration = 3600, Dist = 1.0e10 } },

@@ -11,22 +11,23 @@ namespace Gonogo.KerbalismUplink
     /// capture-on-main reflection (KerbalismReflection) fills KerbalismSnapshot +
     /// the *Raw lists; these mappers run off the main thread (Courier).
     ///
-    /// <para>The three vessel-scoped builders take the subject vessel's guid as a
-    /// LEADING, non-optional parameter (never read here: a live Vessel handle must
-    /// not cross onto this thread). Leading and required on purpose, so a caller
-    /// that forgets to attribute its payload fails to compile rather than
-    /// publishing an anonymous sample.</para>
+    /// <para>The two vessel-scoped builders (<see cref="BuildLifeSupport"/> and
+    /// <see cref="BuildCrew"/>) take the subject vessel's guid as a LEADING,
+    /// non-optional parameter (never read here: a live Vessel handle must not
+    /// cross onto this thread). Leading and required on purpose, so a caller that
+    /// forgets to attribute its payload fails to compile rather than publishing an
+    /// anonymous sample. <see cref="BuildSpaceWeather"/> takes no guid: solar
+    /// activity is sun-sourced, see <c>KerbalismSpaceWeather</c>'s own doc
+    /// comment.</para>
     /// </summary>
     public static class KerbalismCapture
     {
         public static Dictionary<string, object?> BuildSpaceWeather(
-            string? vesselId,
             KerbalismSnapshot s,
             IEnumerable<StarInfoRaw>? stars = null,
             IEnumerable<StormEntryRaw>? storms = null,
             double? stormEjectionSpeed = null) => new()
         {
-            ["vesselId"] = vesselId,
             ["radiationRadPerSecond"] = s.Radiation,
             ["habitatRadiationRadPerSecond"] = s.HabitatRadiation,
             ["magnetosphere"] = s.Magnetosphere,
