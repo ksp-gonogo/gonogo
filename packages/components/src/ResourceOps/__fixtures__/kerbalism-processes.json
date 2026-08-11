@@ -1,0 +1,111 @@
+{
+  "_meta": {
+    "scenario": "kerbalism-processes",
+    "notes": "The same Kerbalism-style stack, but as a LIVE Kerbalism frame: the Domain is present and each converter carries the Uplink's own extension namespace (processToken, title, broken). That is what lets the Kerbalism Uplink contribute its per-process filter axis to resource-ops.filters, so this fixture renders the widget with BOTH the built-in by-resource axis and a provider-contributed one, plus the Broken facet a failed process earns. The widget itself is unchanged and still knows none of it."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "isru.drills",
+      "isru.converters",
+      "kerbalism.available"
+    ],
+    "emits": [
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "isru.drills",
+        "value": [
+          {
+            "partId": "301",
+            "partTitle": "Mini-Drill",
+            "resource": "Water",
+            "deployed": true,
+            "running": true,
+            "abundance": 0.021,
+            "rate": 0.00042
+          }
+        ]
+      },
+      {
+        "channel": "isru.converters",
+        "value": [
+          {
+            "partId": "401",
+            "partTitle": "CO2 Scrubber",
+            "running": true,
+            "inputs": [
+              { "resource": "CarbonDioxide", "rate": 0.0006 },
+              { "resource": "ElectricCharge", "rate": 0.05 }
+            ],
+            "outputs": [],
+            "extensions": {
+              "kerbalism": {
+                "processToken": "_Scrubber",
+                "title": "Scrubber",
+                "capacity": 1,
+                "broken": false
+              }
+            }
+          },
+          {
+            "partId": "402",
+            "partTitle": "Water Recycler",
+            "running": true,
+            "inputs": [
+              { "resource": "WasteWater", "rate": 0.00025 },
+              { "resource": "ElectricCharge", "rate": 0.02 }
+            ],
+            "outputs": [{ "resource": "Water", "rate": 0.0002 }],
+            "extensions": {
+              "kerbalism": {
+                "processToken": "_WaterRecycler",
+                "title": "Water Recycler",
+                "capacity": 1,
+                "broken": false
+              }
+            }
+          },
+          {
+            "partId": "403",
+            "partTitle": "Sabatier Process",
+            "running": true,
+            "inputs": [
+              { "resource": "CarbonDioxide", "rate": 0.00119 },
+              { "resource": "Hydrogen", "rate": 0.0048 },
+              { "resource": "ElectricCharge", "rate": 0.12 }
+            ],
+            "outputs": [
+              { "resource": "Water", "rate": 0.00107 },
+              { "resource": "Methane", "rate": 0.00053 }
+            ],
+            "extensions": {
+              "kerbalism": {
+                "processToken": "_Sabatier",
+                "title": "Sabatier Process",
+                "capacity": 1,
+                "broken": false
+              }
+            }
+          },
+          {
+            "partId": "404",
+            "partTitle": "Fuel Cell",
+            "running": false,
+            "inputs": [
+              { "resource": "Hydrogen", "rate": 0.0015 },
+              { "resource": "Oxygen", "rate": 0.00075 }
+            ],
+            "outputs": [{ "resource": "ElectricCharge", "rate": 1.5 }],
+            "extensions": {
+              "kerbalism": {
+                "processToken": "_FuelCell",
+                "title": "Fuel Cell",
+                "capacity": 1,
+                "broken": true
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

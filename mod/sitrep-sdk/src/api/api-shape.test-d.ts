@@ -29,6 +29,8 @@ import type {
   DataSourceStatus,
   DelayClockLike,
   DelayMode,
+  FilterEntry,
+  FilterSelection,
   FogRevealSourceDefinition,
   GonogoHost,
   InFlightCommand,
@@ -81,6 +83,8 @@ declare const _delayClockLike: DelayClockLike;
 declare const _configField: ConfigField;
 declare const _contributionRegistry: ContributionRegistry;
 declare const _contributionEntry: ContributionEntry<"slot">;
+declare const _filterEntry: FilterEntry<{ id: string }>;
+declare const _filterSelection: FilterSelection;
 declare const _dataKey: DataKey;
 declare const _screen: Screen;
 declare const _settingsTabDef: SettingsTabDefinition;

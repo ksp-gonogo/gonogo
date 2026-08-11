@@ -172,6 +172,74 @@ export type ContributionEntry<S extends string> =
       : Record<string, unknown>
     : Record<string, unknown>;
 
+/**
+ * Whether a filter group's options combine or replace each other. Declared by
+ * the CONTRIBUTOR, because it is a statement about what the facets mean, never
+ * inferred by the host from how many options happen to be present: the same
+ * axis must not change behaviour between a three-resource vessel and a
+ * twelve-resource one.
+ *
+ * - `multi` (the default): independent facets, OR'd together. Selecting two
+ *   shows items matching either
+ * - `single`: mutually exclusive facets, one at a time. Selecting one replaces
+ *   the previous selection
+ *
+ * The host picks the CONTROL (chips, a dropdown, a listbox) and may vary it
+ * with option count, but it must honour the semantics: a `multi` group is never
+ * rendered as a control that can only hold one selection.
+ */
+export type FilterSelection = "single" | "multi";
+
+/**
+ * One named, contributed filter over a host widget's list: the layer-1
+ * contributable-filters mechanism (contribution-slots-spec §15).
+ *
+ * The point is that the HOST never learns the taxonomy. A widget with a
+ * filterable list declares a `<widget-id>.filters` contribution slot whose
+ * entry is a `FilterEntry` over its own row type; whoever legitimately knows
+ * how those rows divide up (the app itself, or the Uplink whose mod produced
+ * them) contributes named predicates, and the widget renders whatever arrived
+ * as toggles without knowing what any of it means.
+ *
+ * The honesty rule this exists to serve: a filter must MEAN what its label
+ * implies. Contributing a filter gonogo's data cannot honestly support (an
+ * ISRU-versus-life-support split, on a backend that draws no such line) is
+ * exactly what the mechanism replaces, so the answer is that the provider
+ * contributes its OWN axis instead, not that the host invents one.
+ *
+ * `T` is the host's row type; predicates run against it directly.
+ */
+export interface FilterEntry<T> {
+  /** Stable id, unique within the contribution that emitted it. */
+  id: string;
+  /** Operator-facing label for this facet. The provider's own vocabulary. */
+  label: string;
+  /**
+   * Groups facets that share an axis (all the resource facets, all the process
+   * facets). Omit for a standalone filter, which becomes its own group of one.
+   * Two contributions may deliberately feed the SAME group id, in which case
+   * their facets sit side by side on one axis.
+   */
+  group?: string;
+  /** Operator-facing label for the group, e.g. "Resource". Falls back to none. */
+  groupLabel?: string;
+  /**
+   * This group's selection semantics; see {@link FilterSelection}. Declared on
+   * the entry rather than a separate group record because the runtime carries
+   * one flat entry array per slot. The first entry of a group to declare it
+   * wins, so a group fed by two contributions keeps the semantics its first
+   * contributor stated.
+   */
+  selection?: FilterSelection;
+  /**
+   * True to KEEP the item. Pure, and evaluated for every row on every render,
+   * so keep it cheap. It may close over anything the contribution's `compute`
+   * read from its declared deps, which is how a filter gets at live Topic data
+   * without the host plumbing any through.
+   */
+  predicate: (item: T) => boolean;
+}
+
 export interface AugmentSettingField {
   key: string;
   type: "boolean" | "text" | "number";

@@ -10,6 +10,10 @@ export {
   type ResolvedDeps,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
+// The filter entry shape itself is owned by the sdk leaf (a facade-sealed
+// Uplink can only reach types through the facade), re-exported here so an
+// app-side contributor has one import for the whole mechanism.
+export type { FilterEntry, FilterSelection } from "@ksp-gonogo/sitrep-sdk";
 export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";
@@ -20,6 +24,7 @@ export * from "./chromeProviders";
 export * from "./contexts/DashboardItemContext";
 export * from "./contexts/ScreenContext";
 export * from "./contexts/WidgetMetaContext";
+export * from "./contributedFilters";
 export * from "./contributions";
 export {
   ContributionsProvider,

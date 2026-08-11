@@ -85,6 +85,8 @@ export type {
   DataSourceStatus,
   DelayClockLike,
   DelayMode,
+  FilterEntry,
+  FilterSelection,
   FogRevealSourceDefinition,
   InFlightCommand,
   LateTelemetrySubscribe,

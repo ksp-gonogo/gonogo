@@ -1,7 +1,12 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  FilterEntry,
+} from "@ksp-gonogo/core";
 import {
   registerComponent,
   useActionInput,
+  useContributedFilters,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import type {
@@ -12,21 +17,24 @@ import {
   Badge,
   Cluster,
   EmptyState,
-  Field,
-  FieldLabel,
+  FilterBar,
   Inline,
   Panel,
   ReadoutCaption,
   ScrollArea,
   Section,
   SectionTitle,
-  Select,
   Stack,
   Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+// Side-effect import: the built-in half of the `resource-ops.filters`
+// self-contribution (the by-resource axis), on the same slot an Uplink
+// contributes its own axis to.
+import "./resourceFilters";
+import type { ResourceOpsUnit } from "./unit";
 
 /**
  * In-situ resource operations: every drill and every chemical converter on the
@@ -55,8 +63,19 @@ import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 type ResourceOpsConfig = Record<string, never>;
 
-/** The show-everything filter selection, and the default. */
-const ALL_RESOURCES = "__all__";
+// This widget's filter slot (contribution-slots-spec §15), co-located with the
+// widget the same way ShipMap's contribution slots are. The widget declares
+// that its list is filterable and renders whatever arrives; it never learns
+// what any contributed filter MEANS, which is the entire point. Mirrored for
+// facade-sealed Uplinks in `mod/sitrep-sdk/src/api/contribution-slots.ts`.
+declare module "@ksp-gonogo/core" {
+  interface ContributionRegistry {
+    "resource-ops.filters": {
+      entry: FilterEntry<ResourceOpsUnit>;
+      topics: "isru.drills" | "isru.converters";
+    };
+  }
+}
 
 const resourceOpsActions = [
   {
@@ -212,49 +231,41 @@ function ResourceOpsComponent(
   const allConverters = useMemo(() => converters ?? [], [converters]);
   const anything = allDrills.length + allConverters.length > 0;
 
-  // Filter by RESOURCE, which is the one axis the wire genuinely has. A backend
-  // that models life support with the same module a chemical plant uses reports
-  // both here, deliberately, so this list can get long. The answer is to let an
-  // operator pick the resource they care about rather than to hardcode a
-  // life-support-vs-ISRU split: that split is not a distinction any engine draws,
-  // and asserting it here would put gonogo's taxonomy on the wire's data.
-  const [resource, setResource] = useState(ALL_RESOURCES);
-  const filterId = useId();
+  // Both lists as one tagged row set, which is what a contributed filter runs
+  // against: an axis that only makes sense for converters (a mod's own process
+  // identity) has to be able to say so, and one that spans both (a resource)
+  // has to see both.
+  const units = useMemo<ResourceOpsUnit[]>(
+    () => [
+      ...allDrills.map((drill) => ({ kind: "drill" as const, drill })),
+      ...allConverters.map((converter) => ({
+        kind: "converter" as const,
+        converter,
+      })),
+    ],
+    [allDrills, allConverters],
+  );
 
-  const resources = useMemo(() => {
-    const names = new Set<string>();
-    for (const drill of allDrills) {
-      if (drill.resource) names.add(drill.resource);
-    }
-    for (const converter of allConverters) {
-      for (const flow of [...converter.inputs, ...converter.outputs]) {
-        if (flow.resource) names.add(flow.resource);
-      }
-    }
-    return [...names].sort((a, b) => a.localeCompare(b));
-  }, [allDrills, allConverters]);
-
-  // A filter naming a resource this vessel no longer has would hide everything
-  // with no way back, so an unavailable selection falls back to showing all.
-  const active = resources.includes(resource) ? resource : ALL_RESOURCES;
+  // Filters are CONTRIBUTED, never hardcoded here. The generic by-resource axis
+  // is a built-in contribution (`./resourceFilters.ts`); a mod that knows how
+  // its own converters divide up contributes that axis from its own Uplink, on
+  // this same slot. So no taxonomy lives in this widget: it could not assert a
+  // life-support-versus-ISRU split even if it wanted to, because it has no idea
+  // which of these facets is which.
+  const filters = useContributedFilters("resource-ops.filters");
+  const filtered = filters.apply(units);
 
   const drillList = useMemo(
     () =>
-      active === ALL_RESOURCES
-        ? allDrills
-        : allDrills.filter((drill) => drill.resource === active),
-    [allDrills, active],
+      filtered.flatMap((unit) => (unit.kind === "drill" ? [unit.drill] : [])),
+    [filtered],
   );
   const converterList = useMemo(
     () =>
-      active === ALL_RESOURCES
-        ? allConverters
-        : allConverters.filter((converter) =>
-            [...converter.inputs, ...converter.outputs].some(
-              (flow) => flow.resource === active,
-            ),
-          ),
-    [allConverters, active],
+      filtered.flatMap((unit) =>
+        unit.kind === "converter" ? [unit.converter] : [],
+      ),
+    [filtered],
   );
 
   const total = drillList.length + converterList.length;
@@ -281,24 +292,12 @@ function ResourceOpsComponent(
     },
   });
 
-  const filter = resources.length > 1 && (
-    <Field>
-      <FieldLabel htmlFor={filterId}>Resource</FieldLabel>
-      <Select
-        id={filterId}
-        value={active}
-        onChange={(event) => setResource(event.target.value)}
-      >
-        {/* Show-all is the default and the first option: nothing is hidden until
-            an operator chooses to hide it. */}
-        <option value={ALL_RESOURCES}>All resources</option>
-        {resources.map((name) => (
-          <option key={name} value={name}>
-            {name}
-          </option>
-        ))}
-      </Select>
-    </Field>
+  const filter = (
+    <FilterBar
+      groups={filters.groups}
+      onChange={filters.onChange}
+      allLabel="All resources"
+    />
   );
 
   if (!anything) {
@@ -319,7 +318,7 @@ function ResourceOpsComponent(
         <Stack gap="sm">
           {filter}
           {total === 0 && (
-            <EmptyState>{`Nothing on this vessel handles ${active}`}</EmptyState>
+            <EmptyState>Nothing on this vessel matches the filter</EmptyState>
           )}
           {drillList.length > 0 && (
             <Section as="section" aria-label="Drills">
@@ -367,9 +366,14 @@ registerComponent<ResourceOpsConfig>({
   minSize: { w: 3, h: 4 },
   component: ResourceOpsComponent,
   dataRequirements: ["isru.drills", "isru.converters"],
+  contributionSlots: ["resource-ops.filters"],
   defaultConfig: {},
   actions: resourceOpsActions,
   pushable: true,
 });
 
+// Re-exported so the sdk mirror's drift guard
+// (`contribution-slot-registry.conformance.test-d.ts`) can check this slot's
+// entry type against the real one, the same way ShipMap's entry types are.
+export type { ResourceOpsUnit } from "./unit";
 export { ResourceOpsComponent };

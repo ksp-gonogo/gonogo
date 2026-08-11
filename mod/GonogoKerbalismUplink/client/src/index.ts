@@ -129,6 +129,11 @@ import "./SpaceWeather/badge";
 // only these two Kerbalism-derived contributions live here.
 import "./ShipMap/partMeta";
 import "./ShipMap/partMeters";
+// ResourceOps' filter slot: Kerbalism's per-process axis over its own
+// converter list, contributed because Kerbalism is the only party that knows
+// which process each row is (see ./ResourceOps/processFilters.ts for what it
+// deliberately does NOT contribute).
+import "./ResourceOps/processFilters";
 
 // The CrewSurvival Processor handle + its result types, the single per-frame
 // derivation the `crew-status.survival` augment and its badge both consume.

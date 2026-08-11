@@ -47,6 +47,12 @@
 // this change: its `tone` genuinely IS a status colour, not an identity.
 // ---------------------------------------------------------------------------
 
+import type {
+  IsruConverterEntry,
+  IsruDrillEntry,
+} from "../__generated__/contract";
+import type { FilterEntry } from "./types";
+
 /** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */
 export type ShipMapMeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
 
@@ -70,8 +76,29 @@ export interface ShipMapPartMetaEntry {
   text?: string;
 }
 
+// --- ResourceOps (packages/components/src/ResourceOps) ---------------------
+//
+// The first FILTER slot (contribution-slots-spec §15). Its entry is the
+// generic `FilterEntry` over the widget's own row union, so the mirror only
+// has to carry that union: the entry shape itself is owned by `./types.ts`
+// and needs no per-slot duplicate.
+//
+// `IsruDrillEntry`/`IsruConverterEntry` are GENERATED contract types this
+// package already owns, so this one is a real import rather than a hand-kept
+// mirror: no leaf cycle exists inside the sdk's own generated surface.
+
+/** Mirrors `ResourceOpsUnit` (`ResourceOps/index.tsx`): one row of the
+ *  widget's list, tagged so a filter can tell the two kinds apart. */
+export type ResourceOpsUnit =
+  | { kind: "drill"; drill: IsruDrillEntry }
+  | { kind: "converter"; converter: IsruConverterEntry };
+
 declare module "./types" {
   interface ContributionRegistry {
+    "resource-ops.filters": {
+      entry: FilterEntry<ResourceOpsUnit>;
+      topics: "isru.drills" | "isru.converters";
+    };
     "ship-map.part-meters": {
       entry: ShipMapPartMeterEntry;
       topics: "vessel.parts" | "kerbalism.profile";

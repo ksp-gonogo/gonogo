@@ -1,9 +1,26 @@
-import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import {
+  ContributionsProvider,
+  DashboardItemContext,
+  registerContribution,
+  WidgetMetaContext,
+} from "@ksp-gonogo/core";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
+import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+// Importing the real module runs its module-load registration of the built-in
+// `resource-ops.filters` contribution (./resourceFilters.ts, a side-effect
+// import inside this file), the same way importing any widget runs its own
+// `registerComponent`.
 import { ResourceOpsComponent } from "./index";
+import { resetResourceFilterCache } from "./resourceFilters";
 
 /**
  * Resource Ops consumes the ONE elected `isru.*` topic pair, so every case below
@@ -55,12 +72,52 @@ const CONVERTERS = [
   },
 ];
 
+// The contributed filters need the same wrapper the dashboard puts around
+// every widget (`GridItemContent.tsx`'s `WidgetContributions`): without a
+// contribution store the widget renders with no filters at all, which is also
+// the honest behaviour for a bare widget with no dashboard around it.
+const META = {
+  componentId: "resource-ops",
+  contributionSlots: ["resource-ops.filters"],
+} as const;
+
+afterEach(() => {
+  resetResourceFilterCache();
+  uplinkFilterOn = false;
+});
+
+// A stand-in for an Uplink's own contributed axis. Registered once at module
+// load (the registry has no unregister, and clearing it would take the
+// built-in by-resource contribution with it), gated on a flag so only the test
+// that wants it sees it.
+let uplinkFilterOn = false;
+
+registerContribution({
+  id: "fixture-uplink",
+  contributes: "resource-ops.filters",
+  compute: () =>
+    uplinkFilterOn
+      ? [
+          {
+            id: "hydroponics",
+            label: "Hydroponics",
+            predicate: (unit) =>
+              unit.kind === "converter" && unit.converter.partId === "202",
+          },
+        ]
+      : [],
+});
+
 function renderWidget() {
   const fixture = setupStreamFixture({ carriedChannels: CARRIED });
   const utils = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "resource-ops" }}>
-        <ResourceOpsComponent w={6} h={8} />
+        <WidgetMetaContext.Provider value={META}>
+          <ContributionsProvider>
+            <ResourceOpsComponent w={6} h={8} />
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -86,11 +143,11 @@ describe("ResourceOps", () => {
     expect(within(converters).getByText(/ElectricCharge/)).toBeInTheDocument();
   });
 
-  // The filter exists because a backend that models life support with the same
-  // module a chemical plant uses reports both here, so the list can get long. It
-  // filters by RESOURCE, the one axis the wire genuinely has: gonogo does not
-  // offer a "hide life support" preset, because that would mean asserting a
-  // category no engine draws.
+  // The filter list is CONTRIBUTED, never hardcoded here: the widget holds no
+  // taxonomy, so it could not offer a "hide life support" preset even if we
+  // wanted one. The by-resource axis below is the built-in contribution; a
+  // provider that knows how its own converters divide up contributes its axis
+  // to this same slot from its own Uplink package.
   it("shows everything until the operator narrows it", async () => {
     const { fixture } = renderWidget();
     act(() => {
@@ -99,7 +156,7 @@ describe("ResourceOps", () => {
     });
 
     const filter = await screen.findByLabelText("Resource");
-    expect(filter).toHaveValue("__all__");
+    expect(filter).toHaveValue("");
     expect(screen.getByText("Drill-O-Matic")).toBeInTheDocument();
     expect(screen.getByText("Convert-O-Tron 250")).toBeInTheDocument();
   });
@@ -112,14 +169,42 @@ describe("ResourceOps", () => {
     });
 
     const filter = await screen.findByLabelText("Resource");
+    // The option's value is a host-side id namespaced by whichever
+    // contribution supplied the facet, so the test picks it by its label the
+    // way an operator does rather than pinning that id's shape.
+    const option = within(filter).getByRole("option", {
+      name: "Monopropellant",
+    }) as HTMLOptionElement;
     act(() => {
-      fireEvent.change(filter, { target: { value: "Monopropellant" } });
+      fireEvent.change(filter, { target: { value: option.value } });
     });
 
     // Only the converter whose recipe names it survives, on either side.
     expect(screen.getByText("Convert-O-Tron 125")).toBeInTheDocument();
     expect(screen.queryByText("Convert-O-Tron 250")).not.toBeInTheDocument();
     // And the ore drills go, because they handle a different resource.
+    expect(screen.queryByText("Drill-O-Matic")).not.toBeInTheDocument();
+  });
+
+  it("renders a contributed filter it knows nothing about, and applies it", async () => {
+    // The widget has never heard of "hydroponics": it renders it as a toggle
+    // because it arrived on its slot, and applies the predicate it was handed.
+    uplinkFilterOn = true;
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", DRILLS);
+      fixture.emit("isru.converters", CONVERTERS);
+    });
+
+    const toggle = await screen.findByRole("button", { name: "Hydroponics" });
+    act(() => {
+      fireEvent.click(toggle);
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByText("Convert-O-Tron 250")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("Convert-O-Tron 125")).toBeInTheDocument();
     expect(screen.queryByText("Drill-O-Matic")).not.toBeInTheDocument();
   });
 
