@@ -264,8 +264,51 @@ namespace Sitrep.Contract
         /// as one declared <c>type-removed:</c> break and leaves every other frozen
         /// member carried forward untouched, so drift elsewhere is still
         /// caught.</para>
+        ///
+        /// <para><b>Bumped 11 -&gt; 12: the RealAntennas relocation, which
+        /// COMPLETES the uplink-types-out-of-core migration.</b> Three types LEFT
+        /// this assembly: <c>CommsLinkQuality</c>, <c>CommsDataRate</c> and
+        /// <c>CommsLinkMargin</c>, relocated into the new
+        /// <c>GonogoRealAntennasUplink.Contract</c> project. All three predate the
+        /// v6.0 freeze and have been carried into every floor since, so all three
+        /// are genuine <c>type-removed:</c> breaks against the Major-11 floor with
+        /// no added-after-the-freeze remainder. Sanctioned on the same standing
+        /// grounds as every Major above: the mod is still pre-release with NO
+        /// external Uplinks, and the app and mod ship together, so no artifact
+        /// exists that was built against the old shape.</para>
+        ///
+        /// <para><b>The one step of that plan that was a PARTIAL extract, and what
+        /// stayed behind.</b> Every earlier relocation moved a whole file whose
+        /// name already said which mod owned it. This one carved three types out of
+        /// <c>Comms.cs</c>, which stays, because most of the comms family is a
+        /// SHARED shape that whichever backend wins the <c>"comms"</c> capability
+        /// election fills: connectivity, signalStrength, controlState, path,
+        /// network, delay and link, their nested hop/graph types, and all four
+        /// enums. Only the channels one Uplink declares in its OWN manifest and
+        /// publishes itself moved. The case that fixes the boundary is
+        /// <c>CommsHop.BandRateBitsPerSec</c>, which <c>Comms.cs</c> documents as a
+        /// per-hop annotation present only under that mod: it STAYS, because it is
+        /// a nullable field on a shared type rather than a type of its own, and
+        /// splitting it would fork the one shape both backends fill.</para>
+        ///
+        /// <para><b>The wire format is unchanged; the writer is not.</b> Every
+        /// earlier relocation was byte-for-byte inert because those payloads were
+        /// already flattened by their producer. These three were the last in the
+        /// mod still published as raw POCOs into a hand-written
+        /// <c>JsonWriter</c> case, and a core serializer may not reference an
+        /// Uplink assembly, so the flatten moved to the producer alongside the
+        /// types. The JSON a subscriber receives is identical, key for key,
+        /// including <c>meta</c> as <c>{ source, quality }</c> with quality as its
+        /// integer ordinal.</para>
+        ///
+        /// <para><b>What the Major-12 floor deliberately does NOT absorb.</b>
+        /// Frozen as the Major-11 floor MINUS exactly those three types, never as
+        /// the live reflected shape, for the same reason every floor since Major 8
+        /// has been: a re-freeze from HEAD takes in whatever unrelated drift
+        /// happens to be standing in the contract at the time, and the whole point
+        /// of the ledger is that a Major cannot rewrite what it inherited.</para>
         /// </remarks>
-        public const int Major = 11;
+        public const int Major = 12;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),

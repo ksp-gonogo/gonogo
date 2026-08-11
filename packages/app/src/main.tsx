@@ -129,6 +129,16 @@ async function registerScansatAndRender(): Promise<void> {
     // runtime-loader entry, plain static import" path as kerbalism/avionics
     // above, never the fetch-based loader.
     import("@ksp-gonogo/gonogo-breaking-ground-uplink"),
+    // Types and three Topic registrations, no widget and no component
+    // registration: the smallest client in the app. It is here because its
+    // three channels used to be static members of the SDK's own Topic union
+    // (their payload types lived in the core contract), and are now runtime
+    // registrations from this package. Without this import
+    // `isTopicId("comms.linkMargin")` goes false and the replay recorder drops
+    // three channels, with nothing else going red. Same "no runtime-loader
+    // entry, plain static import" path as the four above, and the cheapest of
+    // them to take unconditionally: there is no widget behind it to evaluate.
+    import("@ksp-gonogo/gonogo-realantennas-uplink"),
   ]);
 
   // Wire the real modal-backed consent prompt before the loader runs (the

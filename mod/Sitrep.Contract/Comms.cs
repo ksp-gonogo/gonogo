@@ -289,60 +289,25 @@ public class CommsLink
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>
-/// The <c>comms.linkQuality</c> payload: RealAntennas-ONLY (absent without
-/// RA). Link margin normalised to 0..1 (comms-uplink-design.md §2.2/§4.3).
-/// </summary>
-[SitrepContract]
-#if NETSTANDARD2_0
-[TsInterface]
-#endif
-[SitrepTopic("comms.linkQuality")]
-public class CommsLinkQuality
-{
-    [SitrepUnit(Units.Ratio)]
-    public double Value { get; set; }
-    public PayloadMeta Meta { get; set; } = new();
-}
-
-/// <summary>
-/// The <c>comms.dataRate</c> payload: RealAntennas-ONLY. Bidirectional link
-/// data rate in bits/sec, read live per-hop off the RA CommNet graph
-/// (comms-uplink-design.md §4.3: "reachable cleanly").
-/// </summary>
-[SitrepContract]
-#if NETSTANDARD2_0
-[TsInterface]
-#endif
-[SitrepTopic("comms.dataRate")]
-public class CommsDataRate
-{
-    [SitrepUnit(Units.BitsPerSecond)]
-    public double UpBitsPerSec { get; set; }
-    [SitrepUnit(Units.BitsPerSecond)]
-    public double DownBitsPerSec { get; set; }
-    public PayloadMeta Meta { get; set; } = new();
-}
-
-/// <summary>
-/// The <c>comms.linkMargin</c> payload: RealAntennas-ONLY. Re-derived by the
-/// RealAntennas uplink from RA's public static link-budget math, NOT read off
-/// a live field (comms-uplink-design.md §4.3: margin is computed transiently
-/// inside RA's internal Precompute job and not stored anywhere public).
-/// </summary>
-[SitrepContract]
-#if NETSTANDARD2_0
-[TsInterface]
-#endif
-[SitrepTopic("comms.linkMargin")]
-public class CommsLinkMargin
-{
-    [SitrepUnit(Units.Decibels)]
-    public double DecibelMargin { get; set; }
-    [SitrepUnit(Units.Flag)]
-    public bool ClosesLink { get; set; }
-    public PayloadMeta Meta { get; set; } = new();
-}
+// The three provider-private payloads this file used to end with
+// (comms.linkQuality / comms.dataRate / comms.linkMargin) are no longer
+// declared here. They were the one part of the comms family only ONE backend
+// could ever source, so they moved into that backend's own contract slice,
+// GonogoRealAntennasUplink.Contract, per the mandate that no uplink-specific
+// wire type lives in core (see
+// local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md, step 7, the
+// last of that migration). The wire format of all three is unchanged; only the
+// declaring assembly moved, and core's serializer no longer carries a case for
+// them because their producer now flattens them itself.
+//
+// Everything above stays, and the boundary is the PROVIDER axis this file's own
+// header describes rather than a filename: an elected backend fills the shared
+// shapes, so those shapes are core no matter which backend is winning today.
+// CommsHop.BandRateBitsPerSec is the case that shows the difference: this file
+// documents it as a RealAntennas-only annotation, absent under bare CommNet, and
+// it still belongs here, because it is a nullable FIELD on a shared type rather
+// than a type of its own. Splitting it out would fork the one shape both
+// backends fill. RA-only presence is not RA-only ownership.
 
 /// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves

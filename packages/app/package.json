@@ -23,6 +23,7 @@
     "@ksp-gonogo/gonogo-kerbcast-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-kos-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-mechjeb-uplink": "workspace:*",
+    "@ksp-gonogo/gonogo-realantennas-uplink": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/gonogo-scansat-uplink": "workspace:*",
     "@ksp-gonogo/serial": "workspace:*",

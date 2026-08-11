@@ -116,9 +116,13 @@ public static class RtConfig
                 typeof(CommsDelay),
                 // comms.link connectivity MetaTopic (Delayed, freeze-exempt)
                 typeof(CommsLink),
-                typeof(CommsLinkQuality),
-                typeof(CommsDataRate),
-                typeof(CommsLinkMargin),
+                // The three provider-private comms channels (comms.linkQuality /
+                // comms.dataRate / comms.linkMargin) used to be listed right here.
+                // They moved OUT of core into GonogoRealAntennasUplink.Contract:
+                // only one backend can ever source them, so they are its wire types,
+                // not the shared family's. Last step of the uplink-types-out-of-core
+                // migration. The rest of the comms.* list above is the shared shape
+                // the ELECTED backend fills, which is core whichever backend wins.
                 // fleet.<guid>.* per-vessel dynamic channels (Plan 2c): the
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).

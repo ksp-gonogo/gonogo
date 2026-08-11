@@ -20,15 +20,33 @@
        need the KSP/reflection-dependent assembly (same selective-Compile pattern
        GonogoScansatUplink.Tests uses). RaLinkBudget is the re-derived RA
        link-budget math (comms-uplink-design.md §4.3); RaLinkDown is the
-       link-DOWN payload builders (both KSP-free). -->
+       link-DOWN payload builders; RaWire is the publish-boundary flatten that
+       replaced core's hand-written serializer cases when these three types left
+       Sitrep.Contract (all three KSP-free). -->
   <ItemGroup>
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkBudget.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkDown.cs" />
+    <Compile Include="..\GonogoRealAntennasUplink\RaWire.cs" />
   </ItemGroup>
 
-  <!-- RaLinkDown builds Sitrep.Contract payloads (KSP-free). -->
   <ItemGroup>
+    <!-- PayloadMeta/Quality/Units and the [Sitrep*] attributes (KSP-free). -->
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+    <!-- GonogoRealAntennasUplink.Contract: this Uplink's own three wire payload
+         types, relocated out of Sitrep.Contract/Comms.cs (see that project's
+         header comment). RaLinkDown builds them and RealAntennasUnitCoverageTests
+         reflects over the assembly directly. -->
+    <ProjectReference Include="..\GonogoRealAntennasUplink.Contract\GonogoRealAntennasUplink.Contract.csproj" />
+    <!-- Sitrep.Contract.TestSupport: the shared Unit-coverage sweep every
+         relocated Uplink's <X>UnitCoverageTests calls (see
+         UnitCoverageAssertion's own doc comment). The [Fact]s stay here, naming
+         this Uplink's own types. -->
+    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
+    <!-- Sitrep.Core: the real JsonWriter, so the wire-shape tests that used to
+         live in Sitrep.Core.Tests/CommsWireTests.cs can follow their payloads
+         here and keep asserting through the production serializer rather than a
+         hand-rolled stand-in. -->
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" />
   </ItemGroup>
 
 </Project>

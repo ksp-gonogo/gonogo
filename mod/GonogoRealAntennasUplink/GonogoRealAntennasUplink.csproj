@@ -51,13 +51,21 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false"): the arm's-length compile surface
-       a third-party uplink needs. NOTE: no reference to RealAntennas.dll, by
-       design (§4.2). -->
+  <!-- Sitrep.Contract (Private="false"): the arm's-length compile surface a
+       third-party uplink needs, provided by GonogoCore at runtime and so never
+       copied into this project's output. NOTE: no reference to RealAntennas.dll,
+       by design (§4.2).
+
+       GonogoRealAntennasUplink.Contract is the opposite case and takes the
+       default Private="true": it holds THIS Uplink's own three wire payload
+       types (relocated out of Sitrep.Contract, see its csproj header) and
+       nothing else in the mod ships it, so it must land in this project's
+       output and be deployed beside this DLL. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
       <Private>false</Private>
     </ProjectReference>
+    <ProjectReference Include="..\GonogoRealAntennasUplink.Contract\GonogoRealAntennasUplink.Contract.csproj" />
   </ItemGroup>
 
 </Project>

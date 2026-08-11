@@ -232,23 +232,6 @@ export interface CommsLink
 	connected: boolean;
 	meta: PayloadMeta;
 }
-export interface CommsLinkQuality
-{
-	value: Value<"ratio">;
-	meta: PayloadMeta;
-}
-export interface CommsDataRate
-{
-	upBitsPerSec: Value<"bit/s">;
-	downBitsPerSec: Value<"bit/s">;
-	meta: PayloadMeta;
-}
-export interface CommsLinkMargin
-{
-	decibelMargin: Value<"dB">;
-	closesLink: boolean;
-	meta: PayloadMeta;
-}
 export interface CrashReport
 {
 	vesselId: string;

@@ -262,15 +262,16 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.CommsNetworkEdge edge:
                     AppendCommsNetworkEdge(sb, edge);
                     break;
-                case Sitrep.Contract.CommsLinkQuality linkQuality:
-                    AppendCommsLinkQuality(sb, linkQuality);
-                    break;
-                case Sitrep.Contract.CommsDataRate dataRate:
-                    AppendCommsDataRate(sb, dataRate);
-                    break;
-                case Sitrep.Contract.CommsLinkMargin linkMargin:
-                    AppendCommsLinkMargin(sb, linkMargin);
-                    break;
+                // The three provider-private comms payloads (comms.linkQuality /
+                // comms.dataRate / comms.linkMargin) had a case each right here.
+                // Their types left this assembly's reach for
+                // GonogoRealAntennasUplink.Contract, and a core serializer may not
+                // reference an Uplink's assembly, so their producer now flattens
+                // them to a Dictionary<string, object?> before Publish (RaWire)
+                // and they arrive through the IDictionary case below. That is the
+                // same self-flattening producer boundary every other relocated
+                // Uplink already used; this one was the last publisher in the mod
+                // still handing a raw POCO to a hand-written case.
                 case Sitrep.Contract.FlightCurrent flightCurrent:
                     // Same "producer owns the flatten" boundary as CommsDelay
                     // above: flight.current publishes a FlightCurrent POCO
@@ -980,52 +981,15 @@ namespace Sitrep.Core.Serialization
             sb.Append('}');
         }
 
-        private static void AppendCommsLinkQuality(StringBuilder sb, Sitrep.Contract.CommsLinkQuality q)
-        {
-            sb.Append('{');
-            AppendString(sb, "value");
-            sb.Append(':');
-            AppendNumber(sb, q.Value);
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, q.Meta);
-            sb.Append('}');
-        }
-
-        private static void AppendCommsDataRate(StringBuilder sb, Sitrep.Contract.CommsDataRate r)
-        {
-            sb.Append('{');
-            AppendString(sb, "upBitsPerSec");
-            sb.Append(':');
-            AppendNumber(sb, r.UpBitsPerSec);
-            sb.Append(',');
-            AppendString(sb, "downBitsPerSec");
-            sb.Append(':');
-            AppendNumber(sb, r.DownBitsPerSec);
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, r.Meta);
-            sb.Append('}');
-        }
-
-        private static void AppendCommsLinkMargin(StringBuilder sb, Sitrep.Contract.CommsLinkMargin m)
-        {
-            sb.Append('{');
-            AppendString(sb, "decibelMargin");
-            sb.Append(':');
-            AppendNumber(sb, m.DecibelMargin);
-            sb.Append(',');
-            AppendString(sb, "closesLink");
-            sb.Append(':');
-            AppendBool(sb, m.ClosesLink);
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, m.Meta);
-            sb.Append('}');
-        }
+        // AppendCommsLinkQuality / AppendCommsDataRate / AppendCommsLinkMargin
+        // stood here. They wrote { value, meta }, { upBitsPerSec, downBitsPerSec,
+        // meta } and { decibelMargin, closesLink, meta } respectively, and their
+        // types have since moved out of core into
+        // GonogoRealAntennasUplink.Contract. Their producer builds those exact
+        // objects itself now (RaWire, beside the Uplink that publishes them), so
+        // the bytes are unchanged and this file no longer needs to name a type it
+        // cannot reference. AppendPayloadMeta above is what RaWire mirrors for the
+        // nested meta object, quality as its integer ordinal included.
 
         private static void AppendObject(StringBuilder sb, IDictionary<string, object?> obj)
         {

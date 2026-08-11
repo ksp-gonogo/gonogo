@@ -718,7 +718,50 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoActionGroupsExtendedUplink/ActionGroupsExtendedUplink.cs",
       "mod/GonogoActionGroupsExtendedUplink/AgxReflection.cs",
 
-      // -- Sitrep.Contract/Comms.cs carries three RA-only payload types --
+      // -- app-side: the sanctioned self-registration import, and its gate --
+      // main.tsx takes a static side-effect import of this Uplink's client,
+      // alongside the four others that have no runtime-loader entry. It is the
+      // "sanctioned self-registration import" category this ratchet's own
+      // failure message names, and the relocation is what made it necessary:
+      // these three Topics used to be static members of the SDK's Topic union,
+      // so every consumer knew them for free, and they are runtime
+      // registrations now.
+      "packages/app/src/main.tsx",
+      // topic-cs-sync.test.ts: the C#-to-runtime-registry sync gate, which
+      // statically imports every first-party Uplink client so the assertions
+      // read the complete registered union. It is also the test that CAUGHT the
+      // gap above, by name, rather than letting three channels drop quietly.
+      // Same "one inventory naming every mod" class as the ownership ratchet.
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
+
+      // -- contract/serializer/ratchet layer: PROVENANCE, no coupling --
+      // The four files the relocation itself added a mention to, each the same
+      // category the earlier relocations put ContractVersion.cs/RtConfig.cs in:
+      // a record of what moved and when, on a comment line, with no reference
+      // to a relocated type left behind.
+      //   • ContractVersion.cs: the Major-bump history entry for the move.
+      //   • RtConfig.cs: the note standing where the three typeof() entries were.
+      //   • JsonWriter.cs: says where the three deleted serializer cases went
+      //     and why core no longer needs them, which is the one thing a reader
+      //     hitting the gap will want to know.
+      //   • UplinkContractOwnershipTests.cs: the mod-side ownership ratchet has
+      //     to NAME the token it registers, so it names this one too. Ratchet
+      //     inventory, same as truenow-allowlist.test.ts below.
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      "mod/Sitrep.Contract/RtConfig.cs",
+      "mod/Sitrep.Core/Serialization/JsonWriter.cs",
+      "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+
+      // -- Sitrep.Contract/Comms.cs, prose only as of the relocation --
+      // It carried the three RA-only payload types until the last step of the
+      // uplink-types-out-of-core plan moved them into this Uplink's own contract
+      // slice. The entry stays, and it is the clearest example in this file of
+      // why a mod name in core is not automatically a boundary problem: the
+      // comms family is a two-provider channel set, so the file legitimately
+      // explains which backend sources what, and names one of them to do it. It
+      // also documents the one field it kept for that reason
+      // (CommsHop.BandRateBitsPerSec, present only under that backend but a
+      // field on a SHARED type). What it no longer holds is a declaration.
       "mod/Sitrep.Contract/Comms.cs",
 
       // -- TEST-only --

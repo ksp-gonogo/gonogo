@@ -1,0 +1,39 @@
+{
+  "name": "@ksp-gonogo/gonogo-realantennas-uplink",
+  "license": "MIT",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ksp-gonogo/sitrep-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/test-utils": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
+    "@types/react": "^18.3.28",
+    "@vitest/coverage-v8": "^4.1.4",
+    "jsdom": "^29.0.2",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.4"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  }
+}

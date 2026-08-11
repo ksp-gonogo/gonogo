@@ -798,12 +798,24 @@ build_gonogorealantennasuplink() {
     return 4
   fi
   mkdir -p "$install_dir"
-  # Only GonogoRealAntennasUplink.dll - Sitrep.Contract.dll (provided by
-  # GonogoCore) is reference-only (Private="false") and must NOT be copied
-  # here - see .superpowers/sdd/uplink-packaging-pattern.md. RealAntennas
-  # itself is never a compile-time reference (reflection-only, see the
-  # csproj header comment), so there's no RA DLL to exclude here either.
+  # GonogoRealAntennasUplink.dll AND GonogoRealAntennasUplink.Contract.dll: the
+  # uplink-types-out-of-core plan split this Uplink's three wire payload types
+  # into their own contract-slice project (Private="true", the default, so
+  # `dotnet build` DOES copy it into $out_dir, unlike the reference below).
+  # Sitrep.Contract.dll (provided by GonogoCore) stays reference-only
+  # (Private="false") and must NOT be copied here - see
+  # .superpowers/sdd/uplink-packaging-pattern.md. RealAntennas itself is never a
+  # compile-time reference (reflection-only, see the csproj header comment), so
+  # there's no RA DLL to exclude here either. This is the same deploy-script
+  # lesson the earlier relocations' build functions record: a single-DLL copy
+  # here would silently drop the Contract.dll from the deployed GameData folder
+  # and break the mod at KSP load, with nothing in the build going red.
   cp "$out_dir/GonogoRealAntennasUplink.dll" "$install_dir/"
+  if [ ! -f "$out_dir/GonogoRealAntennasUplink.Contract.dll" ]; then
+    echo "GonogoRealAntennasUplink.Contract.dll not produced (missing at $out_dir/GonogoRealAntennasUplink.Contract.dll)"
+    return 4
+  fi
+  cp "$out_dir/GonogoRealAntennasUplink.Contract.dll" "$install_dir/"
   {
     echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
     echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"

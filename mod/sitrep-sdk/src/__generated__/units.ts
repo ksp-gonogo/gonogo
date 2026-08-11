@@ -216,10 +216,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     reason: "text",
     state: "enum",
   },
-  "CommsDataRate": {
-    downBitsPerSec: "bit/s",
-    upBitsPerSec: "bit/s",
-  },
   "CommsDelay": {
     oneWaySeconds: "s",
     source: "enum",
@@ -233,13 +229,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommsLink": {
     connected: "flag",
-  },
-  "CommsLinkMargin": {
-    closesLink: "flag",
-    decibelMargin: "dB",
-  },
-  "CommsLinkQuality": {
-    value: "ratio",
   },
   "CommsNetworkEdge": {
     a: "id",
@@ -1034,23 +1023,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     reason: "text",
     state: "enum",
   },
-  "comms.dataRate": {
-    downBitsPerSec: "bit/s",
-    upBitsPerSec: "bit/s",
-  },
   "comms.delay": {
     oneWaySeconds: "s",
     source: "enum",
   },
   "comms.link": {
     connected: "flag",
-  },
-  "comms.linkMargin": {
-    closesLink: "flag",
-    decibelMargin: "dB",
-  },
-  "comms.linkQuality": {
-    value: "ratio",
   },
   "comms.signalStrength": {
     value: "ratio",
@@ -1531,19 +1509,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsControlState": {
     meta: "PayloadMeta",
   },
-  "CommsDataRate": {
-    meta: "PayloadMeta",
-  },
   "CommsDelay": {
     meta: "PayloadMeta",
   },
   "CommsLink": {
-    meta: "PayloadMeta",
-  },
-  "CommsLinkMargin": {
-    meta: "PayloadMeta",
-  },
-  "CommsLinkQuality": {
     meta: "PayloadMeta",
   },
   "CommsNetwork": {
@@ -1717,19 +1686,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "comms.controlState": {
     meta: "PayloadMeta",
   },
-  "comms.dataRate": {
-    meta: "PayloadMeta",
-  },
   "comms.delay": {
     meta: "PayloadMeta",
   },
   "comms.link": {
-    meta: "PayloadMeta",
-  },
-  "comms.linkMargin": {
-    meta: "PayloadMeta",
-  },
-  "comms.linkQuality": {
     meta: "PayloadMeta",
   },
   "comms.network": {

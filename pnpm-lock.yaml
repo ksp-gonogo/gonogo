@@ -467,6 +467,43 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
 
+  mod/GonogoRealAntennasUplink/client:
+    dependencies:
+      '@ksp-gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../../../packages/sitrep-client
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+    devDependencies:
+      '@ksp-gonogo/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../sitrep-sdk
+      '@ksp-gonogo/test-utils':
+        specifier: workspace:*
+        version: link:../../../packages/test-utils
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../../../packages/ui-kit
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      '@vitest/coverage-v8':
+        specifier: ^4.1.4
+        version: 4.1.4(vitest@4.1.4)
+      jsdom:
+        specifier: ^29.0.2
+        version: 29.0.2
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@types/node@22.19.17)(@vitest/coverage-istanbul@4.1.4)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(msw@2.13.2(@types/node@22.19.17)(typescript@5.9.3))(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0))
+
   mod/GonogoScansatUplink/client:
     dependencies:
       '@ksp-gonogo/components':
@@ -604,6 +641,9 @@ importers:
       '@ksp-gonogo/gonogo-mechjeb-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoMechJebUplink/client
+      '@ksp-gonogo/gonogo-realantennas-uplink':
+        specifier: workspace:*
+        version: link:../../mod/GonogoRealAntennasUplink/client
       '@ksp-gonogo/gonogo-scansat-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoScansatUplink/client

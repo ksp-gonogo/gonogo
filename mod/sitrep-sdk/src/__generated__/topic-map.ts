@@ -15,11 +15,8 @@ import type {
   CommandCentreEntry,
   CommsConnectivity,
   CommsControlState,
-  CommsDataRate,
   CommsDelay,
   CommsLink,
-  CommsLinkMargin,
-  CommsLinkQuality,
   CommsNetwork,
   CommsPath,
   CommsSignalStrength,
@@ -82,11 +79,8 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.roster": CommandCentreEntry[];
   "comms.connectivity": CommsConnectivity;
   "comms.controlState": CommsControlState;
-  "comms.dataRate": CommsDataRate;
   "comms.delay": CommsDelay;
   "comms.link": CommsLink;
-  "comms.linkMargin": CommsLinkMargin;
-  "comms.linkQuality": CommsLinkQuality;
   "comms.network": CommsNetwork;
   "comms.path": CommsPath;
   "comms.signalStrength": CommsSignalStrength;
@@ -149,11 +143,8 @@ export const GENERATED_TOPIC_IDS = [
   "commandCentre.roster",
   "comms.connectivity",
   "comms.controlState",
-  "comms.dataRate",
   "comms.delay",
   "comms.link",
-  "comms.linkMargin",
-  "comms.linkQuality",
   "comms.network",
   "comms.path",
   "comms.signalStrength",

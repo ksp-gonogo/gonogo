@@ -44,23 +44,35 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>All six Uplinks from the plan's per-Uplink sequencing list are
-    /// registered</b> (the pilot plus the second through sixth relocations),
-    /// each having added its own token here in the same commit that moved its
-    /// types out. Naming those mods here would itself trip THEIR frontend
-    /// uplink-boundary tokens (this file lives outside every owning Uplink dir),
-    /// so the plan's own document is the cross-reference, not this comment. What
-    /// remains of that plan is a PARTIAL extract from one shared-shape file
-    /// rather than a whole-file move, so when it lands it registers a seventh
-    /// token whose pattern has to name the extracted types rather than the mod:
-    /// the file it leaves behind is legitimately core and will keep naming the
-    /// mod in prose. Deliberately NOT sharing pattern
-    /// data with <c>uplink-boundary.allowlist.ts</c> yet (the plan flags this
-    /// as a good follow-up, "worth doing regardless of relocation scope"):
-    /// six independent small pattern lists is a duplication worth revisiting
-    /// now that the set is complete, and cross-linking them (a shared generated
-    /// JSON) is real work with a clearer shape once the seventh token shows
-    /// whether a partial extract fits the same pattern form at all.</para>
+    /// <para><b>Every Uplink in the plan is now registered, and the migration is
+    /// complete</b>: the pilot, the five whole-file relocations after it, and the
+    /// partial extract that closed it out, each having added its own token here in
+    /// the same commit that moved its types out. Naming those mods here would
+    /// itself trip THEIR frontend uplink-boundary tokens (this file lives outside
+    /// every owning Uplink dir), so the plan's own document is the
+    /// cross-reference, not this comment.</para>
+    ///
+    /// <para><b>What the last token settled.</b> That entry was the open question
+    /// this comment used to hold: whether a partial extract from a shared-shape
+    /// file fits the same pattern form at all. It does, but only by naming the
+    /// extracted TYPES rather than the mod, and for a reason worth recording
+    /// because it inverts the usual one. The earlier tokens name their mods
+    /// because those types were written as a mod's own file and carry the mod's
+    /// name in every identifier. Types carved out of a SHARED contract are named
+    /// for the channel family instead, so the mod name appears in this directory
+    /// only in prose, which this scan already exempts. A bare mod-name pattern
+    /// would have been vacuous both before and after the move. The file the
+    /// extract left behind is legitimately core and does keep naming the mod in
+    /// prose, exactly as anticipated.</para>
+    ///
+    /// <para>Deliberately still NOT sharing pattern data with
+    /// <c>uplink-boundary.allowlist.ts</c> (the plan flags this as a good
+    /// follow-up, "worth doing regardless of relocation scope"): seven independent
+    /// small pattern lists is a duplication worth revisiting now that the set is
+    /// closed, and cross-linking them (a shared generated JSON) is real work whose
+    /// shape is finally knowable, since the last token proved the two kinds of
+    /// pattern (mod-named and type-named) have to coexist in whatever replaces
+    /// them.</para>
     /// </summary>
     public class UplinkContractOwnershipTests
     {
@@ -103,6 +115,26 @@ namespace Sitrep.Core.Tests
             // common English verb this repo's own ratchets use; "kos" is not a
             // word, and the eleven relocated types are all prefixed with it.
             ["kos"] = new Regex("kos", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            // The seventh and last token, and the only one whose pattern CANNOT
+            // usefully include the bare mod name. Scanning every non-comment line
+            // in this directory before registering it (the same check the kos
+            // entry above records) found ZERO occurrences of "realantennas"
+            // outside comments even BEFORE the relocation: the three extracted
+            // types are named for the CHANNEL FAMILY they belong to, not for the
+            // mod that sources them, because they were carved out of the shared
+            // comms contract rather than written as a mod's own file. A bare
+            // mod-name pattern would therefore have been green on the day it was
+            // registered and green again the day someone re-added
+            // `class CommsLinkMargin` to core, which is a guard in name only.
+            // Naming the three types is what actually holds the boundary, and it
+            // is sharp enough not to catch the shared comms shapes that
+            // legitimately stay here: "CommsLink" (the core connectivity
+            // MetaTopic) does not match, because each alternative requires the
+            // full extracted name. The mod name is kept in the alternation anyway
+            // so a future RA-specific identifier is covered without an edit.
+            ["realantennas"] = new Regex(
+                @"realantenna|Comms(?:LinkQuality|LinkMargin|DataRate)",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled),
         };
 
         [Fact]

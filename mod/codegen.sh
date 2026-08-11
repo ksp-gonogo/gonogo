@@ -229,6 +229,41 @@ echo "codegen -> $kos_out_dir/topic-map.ts"
 echo "codegen -> $kos_out_dir/units.ts"
 echo "codegen -> $kos_out_dir/units.json"
 
+# RealAntennas: the seventh and last relocation, and the only PARTIAL one: three
+# types carved out of Sitrep.Contract/Comms.cs rather than a whole file moved,
+# because the rest of the comms.* family is the shared shape an ELECTED backend
+# fills and stays core. Highest Topic ratio of any slice, three types and three
+# [SitrepTopic] roots (comms.linkQuality / comms.dataRate / comms.linkMargin), so
+# SITREP_REALANTENNAS_TOPICMAP_OUT names all three. No command args at all here
+# (these channels are read-only observations) and nothing nests, so the field ->
+# nested-type SHAPE half of the emitted units.ts comes out empty. What IS dense is
+# the unit retyping: four of the five annotated properties name a real dimension
+# (ratio, two bit rates, a decibel margin), so every generated interface in this
+# slice carries a Value<>, and its client can prove the runtime hydration by
+# decoding a frame rather than by inspecting a registry. See
+# RealAntennasRtConfig.Configure's doc comment.
+realantennas_proj="$ROOT/mod/GonogoRealAntennasUplink.Contract"
+realantennas_out_dir="$ROOT/mod/GonogoRealAntennasUplink/client/src/__generated__"
+realantennas_bin="$realantennas_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$realantennas_proj/GonogoRealAntennasUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$realantennas_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$realantennas_bin/"
+mkdir -p "$realantennas_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_REALANTENNAS_TOPICMAP_OUT="$realantennas_out_dir/topic-map.ts" \
+  SITREP_REALANTENNAS_UNITMAP_OUT="$realantennas_out_dir/units.ts" \
+  SITREP_REALANTENNAS_UNITJSON_OUT="$realantennas_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$realantennas_bin/GonogoRealAntennasUplink.Contract.dll" \
+  TargetFile="$realantennas_out_dir/contract.ts" \
+  ConfigurationMethod="Gonogo.RealAntennasUplink.RealAntennasRtConfig.Configure"
+echo "codegen -> $realantennas_out_dir/contract.ts"
+echo "codegen -> $realantennas_out_dir/topic-map.ts"
+echo "codegen -> $realantennas_out_dir/units.ts"
+echo "codegen -> $realantennas_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

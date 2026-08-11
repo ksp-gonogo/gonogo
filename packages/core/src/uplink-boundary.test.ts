@@ -142,6 +142,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [
       "mod/GonogoRealAntennasUplink",
       "mod/GonogoRealAntennasUplink.Tests",
+      // GonogoRealAntennasUplink's own contract slice (uplink-types-out-of-core
+      // plan, seventh and last relocation, 2026-08-11, and the only PARTIAL
+      // one): CommsLinkQuality/CommsDataRate/CommsLinkMargin live here now, not
+      // in Sitrep.Contract. The rest of the comms.* family stays core, since it
+      // is the shape whichever backend wins the "comms" election fills.
+      "mod/GonogoRealAntennasUplink.Contract",
     ],
   },
   agx: {

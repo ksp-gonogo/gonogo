@@ -204,20 +204,14 @@ namespace Sitrep.Core.Tests
             Assert.Equal(0.0, el.GetProperty("oneWaySeconds").GetDouble());
         }
 
-        [Fact]
-        public void RealAntennasOnlyPayloadsSerialize()
-        {
-            var lq = Write(new CommsLinkQuality { Value = 0.9, Meta = new PayloadMeta() });
-            Assert.Equal(0.9, lq.GetProperty("value").GetDouble());
-
-            var dr = Write(new CommsDataRate { UpBitsPerSec = 1000, DownBitsPerSec = 2000, Meta = new PayloadMeta() });
-            Assert.Equal(1000, dr.GetProperty("upBitsPerSec").GetDouble());
-            Assert.Equal(2000, dr.GetProperty("downBitsPerSec").GetDouble());
-
-            var lm = Write(new CommsLinkMargin { DecibelMargin = 3.5, ClosesLink = true, Meta = new PayloadMeta() });
-            Assert.Equal(3.5, lm.GetProperty("decibelMargin").GetDouble());
-            Assert.True(lm.GetProperty("closesLink").GetBoolean());
-        }
+        // RealAntennasOnlyPayloadsSerialize stood here, covering the three
+        // provider-private payloads (linkQuality/dataRate/linkMargin). Those types
+        // moved into GonogoRealAntennasUplink.Contract, and with them the
+        // hand-written serializer cases they needed: their producer flattens them
+        // at the publish boundary now, so core writes them through the plain
+        // dictionary path and has no type to name. Their assertions followed them
+        // to that Uplink's own RaWireTests, still going through this same real
+        // EnvelopeCodec route.
 
         [Fact]
         public void DefaultConstructedPayloadsDoNotThrow()
@@ -229,9 +223,6 @@ namespace Sitrep.Core.Tests
             Write(new CommsControlState());
             Write(new CommsPath());
             Write(new CommsNetwork());
-            Write(new CommsLinkQuality());
-            Write(new CommsDataRate());
-            Write(new CommsLinkMargin());
         }
 
         [Fact]

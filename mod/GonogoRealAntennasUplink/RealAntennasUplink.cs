@@ -235,16 +235,25 @@ namespace Gonogo.RealAntennasUplink
             return capture;
         }
 
-        /// <summary>COURIER-THREAD handle: publish only the payloads we could compute (typed absence otherwise).</summary>
+        /// <summary>
+        /// COURIER-THREAD handle: publish only the payloads we could compute (typed
+        /// absence otherwise), each flattened to its wire dictionary on the way out.
+        ///
+        /// <para>The flatten is what lets these three types live in this Uplink's own
+        /// contract slice rather than in core: core's serializer no longer carries a
+        /// case per type, so <see cref="RaWire"/> writes the same object it used to.
+        /// Publishing the POCO raw from here would reach the serializer's default
+        /// branch and drop the frame.</para>
+        /// </summary>
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not RaCapture capture)
             {
                 return;
             }
-            if (capture.DataRate != null) _dataRate?.Publish(capture.DataRate, capture.Ut);
-            if (capture.LinkMargin != null) _linkMargin?.Publish(capture.LinkMargin, capture.Ut);
-            if (capture.LinkQuality != null) _linkQuality?.Publish(capture.LinkQuality, capture.Ut);
+            if (capture.DataRate != null) _dataRate?.Publish(RaWire.DataRate(capture.DataRate), capture.Ut);
+            if (capture.LinkMargin != null) _linkMargin?.Publish(RaWire.LinkMargin(capture.LinkMargin), capture.Ut);
+            if (capture.LinkQuality != null) _linkQuality?.Publish(RaWire.LinkQuality(capture.LinkQuality), capture.Ut);
         }
 
         /// <summary>Whether the active vessel currently has a working comms link (CommNet authority).</summary>

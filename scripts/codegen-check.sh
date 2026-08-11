@@ -23,6 +23,7 @@ PATHS=(
   mod/GonogoScansatUplink/client/src/__generated__
   mod/GonogoKerbalismUplink/client/src/__generated__
   mod/GonogoKosUplink/client/src/__generated__
+  mod/GonogoRealAntennasUplink/client/src/__generated__
 )
 
 snapshot() {
