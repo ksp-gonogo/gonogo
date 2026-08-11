@@ -36,7 +36,7 @@ import { mag } from "../ecosystem";
 // engineering chart: operator feedback on the first pass called the plain
 // `LineGraph` too technical for what is meant to be a glance-read trend.
 // Area-shaded lines, no gridlines, still the same two series plus the
-// dashed safe-threshold line. This is also the widget's LEAD section now
+// safe-threshold marker. This is also the widget's LEAD section now
 // (rendered first in `index.tsx`'s body), the attractive visual earns the
 // top slot rather than being buried below the resource ledger.
 //
@@ -54,6 +54,13 @@ import { mag } from "../ecosystem";
 // alert, so a red "Inner belt" pill was miscommunicating severity that
 // belongs to the dose-rate readouts, not the location. It renders as plain
 // low-emphasis text under the graph instead (see `locationLabel` below).
+//
+// The 0.5 rad/h boundary draws as a SHORT CENTRED MARKER, not a rule across
+// the frame (`LineGraph`'s `thresholdStyle="centered-marker"`): a full-width
+// dashed line made the boundary the loudest thing in a section whose subject
+// is the ambient/shielded gap. The marker sits at the same height and carries
+// the same meaning, with the warning-tone amber doing the "this is the danger
+// level" work the line's length used to.
 // ---------------------------------------------------------------------------
 
 export interface RadiationSample {
@@ -213,9 +220,10 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
               id: "safe",
               label: "Safe threshold",
               value: HIGH_RADIATION_RAD_PER_HOUR,
-              color: "var(--color-status-warning-fg-muted)",
+              color: "var(--color-status-warning-bg)",
             },
           ]}
+          thresholdStyle="centered-marker"
           height={96}
           ariaLabel="Radiation dose rate trend: ambient versus shielded, last 10 minutes"
         />

@@ -235,6 +235,7 @@ export {
   type LineGraphProps,
   type LineGraphSeries,
   type LineGraphThreshold,
+  type LineGraphThresholdStyle,
 } from "./LineGraph";
 export {
   Meter,

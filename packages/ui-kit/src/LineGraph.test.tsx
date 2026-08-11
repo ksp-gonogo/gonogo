@@ -75,6 +75,71 @@ describe("LineGraph", () => {
   });
 });
 
+describe("LineGraph centered-marker threshold style", () => {
+  const withMarker = () =>
+    render(
+      <LineGraph
+        series={[AMBIENT]}
+        variant="sparkline"
+        thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
+        thresholdStyle="centered-marker"
+        ariaLabel="Radiation trend"
+      />,
+    );
+
+  it("draws a short segment centred in the frame instead of a full-width rule", () => {
+    const { container } = withMarker();
+    const marker = container.querySelector("line");
+    expect(marker).not.toBeNull();
+    const x1 = Number(marker?.getAttribute("x1"));
+    const x2 = Number(marker?.getAttribute("x2"));
+    // Centred on the 100-unit viewBox and a third of it wide: short enough
+    // to read as a marker, not a rule across the graph.
+    expect((x1 + x2) / 2).toBeCloseTo(50);
+    expect(x2 - x1).toBeCloseTo(100 / 3);
+  });
+
+  it("stays flat at the threshold's own height", () => {
+    const { container } = withMarker();
+    const marker = container.querySelector("line");
+    const y1 = Number(marker?.getAttribute("y1"));
+    const y2 = Number(marker?.getAttribute("y2"));
+    expect(y1).toBe(y2);
+    expect(y1).toBeGreaterThan(0);
+    expect(y1).toBeLessThan(40);
+  });
+
+  it("renders solid and round-capped, never dashed", () => {
+    const { container } = withMarker();
+    const marker = container.querySelector("line");
+    expect(marker).not.toHaveAttribute("stroke-dasharray");
+    expect(marker).toHaveAttribute("stroke-linecap", "round");
+  });
+
+  it("takes the threshold's own colour so the tone carries the severity", () => {
+    const { container } = render(
+      <LineGraph
+        series={[AMBIENT]}
+        variant="sparkline"
+        thresholds={[
+          {
+            id: "safe",
+            label: "Safe",
+            value: 1.75,
+            color: "var(--color-status-warning-bg)",
+          },
+        ]}
+        thresholdStyle="centered-marker"
+        ariaLabel="Radiation trend"
+      />,
+    );
+    expect(container.querySelector("line")).toHaveAttribute(
+      "stroke",
+      "var(--color-status-warning-bg)",
+    );
+  });
+});
+
 describe("LineGraph sparkline variant", () => {
   it("area-shades under each series down to the frame's bottom edge", () => {
     const { container } = render(
@@ -142,6 +207,20 @@ describe("LineGraph sparkline variant", () => {
       container.querySelector('line[stroke-dasharray="2 1.5"]'),
     ).not.toBeNull();
     expect(container.querySelectorAll("polyline")).toHaveLength(2);
+  });
+
+  it("keeps the full-width threshold rule when no thresholdStyle is asked for", () => {
+    const { container } = render(
+      <LineGraph
+        series={[AMBIENT]}
+        variant="sparkline"
+        thresholds={[{ id: "safe", label: "Safe", value: 1.75 }]}
+        ariaLabel="Radiation trend"
+      />,
+    );
+    const rule = container.querySelector('line[stroke-dasharray="2 1.5"]');
+    expect(rule).toHaveAttribute("x1", "0");
+    expect(rule).toHaveAttribute("x2", "100");
   });
 
   it("skips the area for a series with fewer than two points", () => {

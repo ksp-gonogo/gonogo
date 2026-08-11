@@ -21,6 +21,8 @@ export interface LineGraphThreshold {
   color?: string;
 }
 
+export type LineGraphThresholdStyle = "full" | "centered-marker";
+
 export interface LineGraphProps {
   series: readonly LineGraphSeries[];
   thresholds?: readonly LineGraphThreshold[];
@@ -45,10 +47,28 @@ export interface LineGraphProps {
    * decoration and whether a fill sits under the lines.
    */
   variant?: "chart" | "sparkline";
+  /**
+   * How a threshold draws at its y-height. `"full"` (default) is the
+   * original dashed rule spanning the whole frame, which reads as "this
+   * chart is about staying under this line". `"centered-marker"` draws a
+   * short solid segment centred in the frame instead: same boundary, same
+   * height, but the colour carries the severity rather than a rule across
+   * the whole graph shouting it. Use it where the threshold is context for
+   * a glance trend, not the subject of the chart.
+   */
+  thresholdStyle?: LineGraphThresholdStyle;
 }
 
 const VIEW_W = 100;
 const VIEW_H = 40;
+
+/** Fraction of the frame's width a `"centered-marker"` threshold spans. A
+ *  third is long enough to read as a deliberate boundary at that height and
+ *  short enough that it never becomes the loudest thing in the frame. Kept
+ *  proportional rather than a pixel length because the `viewBox` is stretched
+ *  to its container (`preserveAspectRatio="none"`), so user units are the
+ *  only measure that stays stable across widths. */
+const CENTERED_MARKER_WIDTH_FRACTION = 1 / 3;
 
 function computeDomain(
   series: readonly LineGraphSeries[],
@@ -119,6 +139,7 @@ export function LineGraph({
   ariaLabel,
   className,
   variant = "chart",
+  thresholdStyle = "full",
 }: LineGraphProps) {
   const [yMin, yMax] = yDomain ?? computeDomain(series, thresholds);
   const [xMin, xMax] = computeXDomain(series);
@@ -184,16 +205,22 @@ export function LineGraph({
 
         {thresholds.map((t) => {
           const y = toY(t.value);
+          const isMarker = thresholdStyle === "centered-marker";
+          const halfMarker = (VIEW_W * CENTERED_MARKER_WIDTH_FRACTION) / 2;
           return (
             <line
               key={t.id}
-              x1={0}
-              x2={VIEW_W}
+              x1={isMarker ? VIEW_W / 2 - halfMarker : 0}
+              x2={isMarker ? VIEW_W / 2 + halfMarker : VIEW_W}
               y1={y}
               y2={y}
               stroke={t.color ?? "var(--color-status-warning-fg-muted)"}
-              strokeWidth={0.6}
-              strokeDasharray="2 1.5"
+              // A short segment reads as a marker only if it is solid and
+              // rounded: dashes over a third of the width fragment into
+              // specks, and a hard-ended stub reads as a clipped rule.
+              strokeWidth={isMarker ? 1.2 : 0.6}
+              strokeDasharray={isMarker ? undefined : "2 1.5"}
+              strokeLinecap={isMarker ? "round" : undefined}
               vectorEffect="non-scaling-stroke"
             />
           );

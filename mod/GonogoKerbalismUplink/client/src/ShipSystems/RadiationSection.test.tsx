@@ -125,12 +125,32 @@ describe("RadiationSection", () => {
         utNow={10}
       />,
     );
-    // Sparkline variant draws no quarter gridlines: every bare (undashed)
-    // `<line>` in the graph is the dashed safe-threshold rule or nothing.
-    const bareLines = container.querySelectorAll(
-      "line:not([stroke-dasharray])",
+    // Sparkline variant draws no quarter gridlines: the only `<line>` in the
+    // graph is the safe-threshold marker.
+    const lines = container.querySelectorAll("line");
+    expect(lines).toHaveLength(1);
+  });
+
+  it("marks the safe threshold with a short centred amber segment, not a full-width rule", () => {
+    const { container } = render(
+      <RadiationSection
+        weather={{
+          radiationRadPerSecond: 0.006,
+          habitatRadiationRadPerSecond: 0.00006,
+          magnetosphere: true,
+        }}
+        utNow={10}
+      />,
     );
-    expect(bareLines).toHaveLength(0);
+    const marker = container.querySelector("line");
+    expect(marker).not.toBeNull();
+    const x1 = Number(marker?.getAttribute("x1"));
+    const x2 = Number(marker?.getAttribute("x2"));
+    // Centred, and well short of the frame's full 100-unit width: the
+    // boundary is context for the trend, not the subject of the graph.
+    expect((x1 + x2) / 2).toBeCloseTo(50);
+    expect(x2 - x1).toBeLessThan(50);
+    expect(marker).toHaveAttribute("stroke", "var(--color-status-warning-bg)");
   });
 
   it("names the belt(s) as plain text under the graph, never a badge", () => {
