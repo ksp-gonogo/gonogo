@@ -20,6 +20,7 @@ PATHS=(
   mod/GonogoMechJebUplink/client/src/__generated__
   mod/GonogoAvionicsUplink/client/src/__generated__
   mod/GonogoKerbcastUplink/client/src/__generated__
+  mod/GonogoScansatUplink/client/src/__generated__
 )
 
 snapshot() {

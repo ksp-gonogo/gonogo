@@ -65,6 +65,7 @@ export {
 export {
   type KnownSitrepUnit,
   registerTopicUnits,
+  registerTypeUnits,
   type SitrepUnit,
   type UnitsByField,
   unitOf,

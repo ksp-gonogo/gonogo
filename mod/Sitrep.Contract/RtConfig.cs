@@ -212,15 +212,10 @@ public static class RtConfig
                 // science.instruments / science.sensors entries
                 typeof(InstrumentEntry),
                 typeof(SensorEntry),
-                // scansat.scanningVessels payload + nested value shapes
-                typeof(ScanningVesselEntry),
-                typeof(ScanSensorEntry),
-                typeof(ScanTrackColor),
-                // scansat.science payload (per-part map-experiment state)
-                typeof(ScanScienceEntry),
-                // scansat.anomalies.<body> dynamic-namespace element shape
-                // (typing-only, no [SitrepTopic], see ScanAnomalyEntry's doc)
-                typeof(ScanAnomalyEntry),
+                // scansat.scanningVessels / scansat.science payloads + their
+                // nested value shapes + the scansat.anomalies.<body> element
+                // shape: see the trailing comment below (moved OUT of core into
+                // GonogoScansatUplink.Contract).
                 // kerbcast.cameras payload + its command args: see the trailing
                 // comment below (moved OUT of core into GonogoKerbcastUplink.Contract).
                 // vessel.parts channel payload + nested value shapes (P1b)
@@ -295,7 +290,12 @@ public static class RtConfig
                 // mechjeb.executeNextNode / mechjeb.landAtTarget command args moved
                 // OUT of core into GonogoMechJebUplink.Contract, and kerbcast.cameras
                 // (KerbcastCameraEntry) + kerbcast.setFieldOfView/kerbcast.setPan
-                // command args moved OUT of core into GonogoKerbcastUplink.Contract
+                // command args moved OUT of core into GonogoKerbcastUplink.Contract,
+                // and the five SCANsat payload types (scansat.scanningVessels'
+                // ScanningVesselEntry + its nested ScanSensorEntry/ScanTrackColor,
+                // scansat.science's ScanScienceEntry, and the typing-only
+                // scansat.anomalies.<body> element ScanAnomalyEntry) moved OUT of
+                // core into GonogoScansatUplink.Contract
                 // (uplink-types-out-of-core plan, 2026-08-10): see ContractVersion.cs
                 // and local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md.
             };

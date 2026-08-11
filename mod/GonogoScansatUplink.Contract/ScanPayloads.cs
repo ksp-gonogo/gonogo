@@ -2,11 +2,24 @@ using System.Collections.Generic;
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
+using Sitrep.Contract;
 
-namespace Sitrep.Contract;
+namespace GonogoScansatUplink;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCANsat Topic payloads.
+//
+// These used to live in `mod/Sitrep.Contract/`. They moved here, into
+// GonogoScansatUplink's OWN contract slice, under the operator mandate that no
+// Uplink-specific wire type may live in core, even for an in-monorepo Uplink
+// (see local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md). Fourth
+// Uplink through that mechanism, and the largest so far. The plan doc names the
+// three earlier steps; this file deliberately does not, since naming a sibling
+// Uplink here would trip ITS own frontend uplink-boundary token (the same
+// reason UplinkContractOwnershipTests.cs gives for not naming them either).
+//
+// Nothing about the WIRE changed: the same JSON bytes, the same camelCase keys,
+// the same two static Topic ids, only the assembly that declares the names.
 //
 // The GonogoScansatUplink (mod/GonogoScansatUplink/) publishes two STATIC
 // SCANsat Topics whose payload shape the client codes against:
@@ -15,19 +28,25 @@ namespace Sitrep.Contract;
 //     uplink source is `_ => true`, so the wire is a naked boolean, NOT an
 //     object. There is deliberately NO wrapper contract type for it: a
 //     `{ available: bool }` POCO would MISREPRESENT the bare-bool wire (unlike
-//     `robotics.available`, whose PROVIDER genuinely emits an object). It is a
-//     hand-declared primitive Topic in the SDK (`mod/sitrep-sdk/src/topics.ts`
-//     maps it to `boolean`) and stays that way, this file adds no type for it.
+//     `robotics.available`, whose PROVIDER genuinely emits an object). It is
+//     bare-registered client-side instead, by this Uplink's OWN client package
+//     (`mod/GonogoScansatUplink/client/src/topics.ts`, which maps it to
+//     `boolean` and calls `registerBarePrimitiveTopic`); this file adds no type
+//     for it.
 //
 //   • scansat.scanningVessels : a BARE JSON array. Its element shape is the
 //     `ScanningVesselEntry` below, tagged `[SitrepTopic(..., isArray: true)]`
-//     so codegen can replace the SDK's currently hand-declared `unknown[]`
-//     (the P0.5-logged gap this build closes) with `ScanningVesselEntry[]`.
+//     so codegen names the element type instead of leaving the client an
+//     `unknown[]`. `scansat.science` (`ScanScienceEntry`) is the same shape.
+//     Both now generate into THIS Uplink's own
+//     `client/src/__generated__/`, never into `sitrep-sdk`, so the client's
+//     `TopicPayloadMap` entry for each is a `declare module` augmentation in
+//     that same `topics.ts` rather than SDK codegen output.
 //
 // This file is TYPING-ONLY (see SitrepTopicAttribute's doc): it mirrors, field
 // for field, the exact serialized shape the uplink already builds by hand as
 // `Dictionary<string, object?>` in `Gonogo.ScansatUplink.ScanningVessels.Build`
-// (same camelCase wire keys via RtConfig.CamelCaseForProperties). Adding it
+// (same camelCase wire keys via ScansatRtConfig.CamelCaseForProperties). It
 // changes no wire bytes, the wire is written by JsonWriter walking the
 // uplink's live value tree; these POCOs just give codegen a concrete name.
 // ─────────────────────────────────────────────────────────────────────────────

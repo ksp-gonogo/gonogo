@@ -133,6 +133,36 @@ echo "codegen -> $kerbcast_out_dir/topic-map.ts"
 echo "codegen -> $kerbcast_out_dir/units.ts"
 echo "codegen -> $kerbcast_out_dir/units.json"
 
+# SCANsat: the fourth relocation, and the largest. FIVE types, TWO
+# [SitrepTopic]-tagged roots (scansat.scanningVessels and scansat.science, both
+# isArray), so SITREP_SCANSAT_TOPICMAP_OUT is set here the same as Avionics's
+# and Kerbcast's. It is also the first relocation with NESTED payload types
+# (ScanningVesselEntry.sensors/trackColor), which is why the emitted units.ts
+# matters twice over: EmitUnitMap writes the field->unit map AND the
+# field->nested-type SHAPE map from the same pass, and this Uplink's client
+# has to register both (see ScansatRtConfig.Configure's doc comment).
+scansat_proj="$ROOT/mod/GonogoScansatUplink.Contract"
+scansat_out_dir="$ROOT/mod/GonogoScansatUplink/client/src/__generated__"
+scansat_bin="$scansat_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$scansat_proj/GonogoScansatUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$scansat_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$scansat_bin/"
+mkdir -p "$scansat_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_SCANSAT_TOPICMAP_OUT="$scansat_out_dir/topic-map.ts" \
+  SITREP_SCANSAT_UNITMAP_OUT="$scansat_out_dir/units.ts" \
+  SITREP_SCANSAT_UNITJSON_OUT="$scansat_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$scansat_bin/GonogoScansatUplink.Contract.dll" \
+  TargetFile="$scansat_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoScansatUplink.ScansatRtConfig.Configure"
+echo "codegen -> $scansat_out_dir/contract.ts"
+echo "codegen -> $scansat_out_dir/topic-map.ts"
+echo "codegen -> $scansat_out_dir/units.ts"
+echo "codegen -> $scansat_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

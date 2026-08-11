@@ -781,48 +781,6 @@
       "requiresFunds": "funds",
       "totalMass": "t"
     },
-    "ScanAnomalyEntry": {
-      "detail": "flag",
-      "known": "flag",
-      "latitude": "°",
-      "longitude": "°",
-      "name": "text"
-    },
-    "ScanScienceEntry": {
-      "deployed": "flag",
-      "expId": "id",
-      "hasData": "flag",
-      "inoperable": "flag",
-      "partId": "id",
-      "partTitle": "text",
-      "rerunnable": "flag",
-      "title": "text"
-    },
-    "ScanSensorEntry": {
-      "bestAlt": "m",
-      "bestRange": "flag",
-      "fov": "°",
-      "inRange": "flag",
-      "maxAlt": "m",
-      "minAlt": "m",
-      "type": "id"
-    },
-    "ScanTrackColor": {
-      "a": "count",
-      "b": "count",
-      "g": "count",
-      "r": "count"
-    },
-    "ScanningVesselEntry": {
-      "altitude": "m",
-      "body": "text",
-      "groundTrackLonHalfDeg": "°",
-      "groundTrackWidthDeg": "°",
-      "subLatitude": "°",
-      "subLongitude": "°",
-      "vesselId": "id",
-      "vesselName": "text"
-    },
     "SensorEntry": {
       "active": "flag",
       "partId": "id",
@@ -1437,26 +1395,6 @@
       "traverseVelocity": "n/a",
       "type": "id"
     },
-    "scansat.scanningVessels": {
-      "altitude": "m",
-      "body": "text",
-      "groundTrackLonHalfDeg": "°",
-      "groundTrackWidthDeg": "°",
-      "subLatitude": "°",
-      "subLongitude": "°",
-      "vesselId": "id",
-      "vesselName": "text"
-    },
-    "scansat.science": {
-      "deployed": "flag",
-      "expId": "id",
-      "hasData": "flag",
-      "inoperable": "flag",
-      "partId": "id",
-      "partTitle": "text",
-      "rerunnable": "flag",
-      "title": "text"
-    },
     "science.experimentBreakdown": {
       "biome": "text",
       "dataMits": "Mit",
@@ -1855,10 +1793,6 @@
     "ResolveResult": {
       "notices": "ResolutionNotice"
     },
-    "ScanningVesselEntry": {
-      "sensors": "ScanSensorEntry",
-      "trackColor": "ScanTrackColor"
-    },
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"
     },
@@ -2032,10 +1966,6 @@
       "partBreakdown": "RecoveryPartEntry",
       "resourceBreakdown": "RecoveryResourceEntry",
       "scienceBreakdown": "RecoveryScienceEntry"
-    },
-    "scansat.scanningVessels": {
-      "sensors": "ScanSensorEntry",
-      "trackColor": "ScanTrackColor"
     },
     "system.bodies": {
       "bodies": "BodyEntry"

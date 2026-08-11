@@ -8,7 +8,7 @@ namespace GonogoScansatUplink.Tests
     /// Shape-tests the pure <c>scansat.science</c> wire builder
     /// (<see cref="ScanScience"/>): the exact camelCase keys, the friendly-name
     /// mapping, and the always-false <c>deployed</c>/<c>inoperable</c> constants
-    /// the client contract (<c>Sitrep.Contract.ScanScienceEntry</c> / the
+    /// the client contract (<c>GonogoScansatUplink.ScanScienceEntry</c> / the
     /// ScienceOfficer augment) reads. No live SCANsat/KSP: the builder takes
     /// plain scalars, so the SCANexperiment-typed read is exercised separately on
     /// the Deck.

@@ -19,7 +19,6 @@ import type {
   KosProcessorInfo,
   LabEntry,
   PartsPower,
-  ScanningVesselEntry,
   ServoEntry,
   SystemBodies,
   SystemVessels,
@@ -83,14 +82,15 @@ export type _ResolvesSystemVessels = Expect<
   Equal<TopicPayload<"system.vessels">, SystemVessels>
 >;
 
-// ── scansat: `scansat.scanningVessels` carries the wire-typed `ScanningVesselEntry[]`
-//    element contract. (`scansat.available` is a bare JSON boolean owned by the SCANsat
-//    Uplink's own client package: its TopicPayloadMap augmentation is NOT reachable from
-//    this leaf package's program, so its "resolves to boolean" proof lives in
-//    mod/GonogoScansatUplink/client/src/topics.test-d.ts, not here.) ─────────────────
-export type _ResolvesScansatScanningVessels = Expect<
-  Equal<TopicPayload<"scansat.scanningVessels">, ScanningVesselEntry[]>
->;
+// No scansat assertion here any more. Both structured SCANsat Topics
+// (`scansat.scanningVessels`, `scansat.science`) joined `scansat.available` in
+// being owned by the SCANsat Uplink's own client package: their payload types
+// relocated out of Sitrep.Contract into GonogoScansatUplink.Contract
+// (uplink-types-out-of-core plan), so they are no longer this SDK's codegen
+// output and their TopicPayloadMap augmentations are not reachable from this
+// leaf package's program. Their "resolves to the real payload, not `unknown`"
+// proofs live inline in mod/GonogoScansatUplink/client/src/topics.ts, the same
+// place and for the same reason as every other relocated Topic's.
 
 // ── No Topic resolves to `unknown` (the whole point of P0.5) ────────────────────────
 // Same construction as topics.ts's `_AssertNoTopicResolvesToUnknown`, asserted here too

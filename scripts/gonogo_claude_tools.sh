@@ -750,11 +750,25 @@ build_gonogoscansatuplink() {
     return 4
   fi
   mkdir -p "$install_dir"
-  # Only GonogoScansatUplink.dll - Sitrep.Contract.dll (provided by
-  # GonogoCore) and SCANsat.dll/SCANsat.Unity.dll (provided by the user's
-  # SCANsat install) are reference-only (Private="false") and must NOT be
-  # copied here - see .superpowers/sdd/uplink-packaging-pattern.md.
+  # GonogoScansatUplink.dll AND GonogoScansatUplink.Contract.dll: the
+  # uplink-types-out-of-core plan split the five Scan* payload types
+  # (ScanningVesselEntry/ScanSensorEntry/ScanTrackColor/ScanScienceEntry/
+  # ScanAnomalyEntry) into their own contract-slice project (Private="true",
+  # the default, so `dotnet build` DOES copy it into $out_dir, unlike the
+  # references below). Sitrep.Contract.dll (provided by GonogoCore) and
+  # SCANsat.dll/SCANsat.Unity.dll (provided by the user's SCANsat install) are
+  # reference-only (Private="false") and must NOT be copied here - see
+  # .superpowers/sdd/uplink-packaging-pattern.md. Applies the deploy-script
+  # lesson the MechJeb pilot's build_gonogomechjebuplink fixed (and
+  # build_gonogoavionicsuplink/build_gonogokerbcastuplink applied from day
+  # one): a single-DLL copy here would silently drop the Contract.dll from the
+  # deployed GameData folder and break the mod at KSP load.
   cp "$out_dir/GonogoScansatUplink.dll" "$install_dir/"
+  if [ ! -f "$out_dir/GonogoScansatUplink.Contract.dll" ]; then
+    echo "GonogoScansatUplink.Contract.dll not produced (missing at $out_dir/GonogoScansatUplink.Contract.dll)"
+    return 4
+  fi
+  cp "$out_dir/GonogoScansatUplink.Contract.dll" "$install_dir/"
   {
     echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
     echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"

@@ -148,8 +148,36 @@ namespace Sitrep.Contract
         /// <c>kerbcast.setPan</c> is unchanged, only which assembly declares
         /// them. See
         /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
+        ///
+        /// <para><b>Bumped 8 -&gt; 9: the SCANsat relocation.</b>
+        /// <c>ScanningVesselEntry</c>/<c>ScanSensorEntry</c>/
+        /// <c>ScanTrackColor</c>/<c>ScanScienceEntry</c>/<c>ScanAnomalyEntry</c>
+        /// LEFT this assembly entirely, relocated into the new
+        /// <c>GonogoScansatUplink.Contract</c> project (the fourth step of the
+        /// uplink-types-out-of-core plan, after the MechJeb pilot and the
+        /// Avionics and Kerbcast relocations, and the largest: five types, two
+        /// <c>[SitrepTopic]</c> roots, and the first with NESTED payload types).
+        /// Same shape as the Avionics and Kerbcast cases, not the MechJeb one:
+        /// all five predate the v6.0 freeze (added on the Major-4 line, see the
+        /// two Minor-history entries below that record
+        /// <c>scansat.scanningVessels</c>/<c>scansat.science</c> and the
+        /// <c>scansat.anomalies.&lt;body&gt;</c> element type), so all five ARE
+        /// part of the frozen v8.0 floor in
+        /// <c>contract-shape.baseline.json</c>, and their removal registers as
+        /// five genuine <c>type-removed:</c> breaks against that floor, not
+        /// vacuous ones. A Major bump (with a freshly frozen Major-9 floor) is
+        /// the only way to keep
+        /// <c>ContractShapeGateTests.CurrentShapeIsAdditiveOverTheFrozenMajorFloor</c>
+        /// green here. Sanctioned on the same standing grounds as every Major
+        /// above: the mod is still pre-release with NO external Uplinks, and
+        /// the app and mod ship together, so no artifact exists that was
+        /// built against the old shape; the wire FORMAT of
+        /// <c>scansat.scanningVessels</c>/<c>scansat.science</c>/
+        /// <c>scansat.anomalies.&lt;body&gt;</c> is unchanged, only which
+        /// assembly declares them. See
+        /// <c>local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md</c>.</para>
         /// </remarks>
-        public const int Major = 8;
+        public const int Major = 9;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -492,6 +520,10 @@ namespace Sitrep.Contract
         /// <para>Reset 0 alongside the Major 7 -&gt; 8 bump (the Kerbcast
         /// relocation; see <see cref="Major"/>). Every additive change on the
         /// Major-7 line above is carried forward into Major 8.</para>
+        ///
+        /// <para>Reset 0 alongside the Major 8 -&gt; 9 bump (the SCANsat
+        /// relocation; see <see cref="Major"/>). Every additive change on the
+        /// Major-8 line above is carried forward into Major 9.</para>
         /// </summary>
         public const int Minor = 0;
     }

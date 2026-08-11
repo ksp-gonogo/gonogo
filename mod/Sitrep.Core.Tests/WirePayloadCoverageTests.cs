@@ -125,20 +125,6 @@ namespace Sitrep.Core.Tests
             // TS-shape-only.
             "ExperimentEntry", "InstrumentEntry", "LabEntry", "DeployedEntry",
             "SensorEntry", "ExperimentBreakdownEntry",
-            // scansat.scanningVessels: Gonogo.ScansatUplink.ScanningVessels.Build is
-            // deliberately SCANsat/KSP-type-free and hand-builds
-            // Dictionary<string, object?> trees; these POCOs are TS-shape-only.
-            "ScanSensorEntry", "ScanTrackColor", "ScanningVesselEntry",
-            // scansat.science: Gonogo.ScansatUplink.ScanScience.Build hand-builds
-            // the Dictionary<string, object?> tree the uplink publishes; this POCO
-            // is TS-shape-only, never handed to AppendValue raw.
-            "ScanScienceEntry",
-            // scansat.anomalies.<body>: Gonogo.ScansatUplink.ScanAnomalies.Build
-            // hand-builds the Dictionary<string, object?> tree the uplink
-            // publishes (via ScanPublications.Compute); this POCO is
-            // TS-shape-only (dynamic-namespace element documentation, no
-            // [SitrepTopic] root), never handed to AppendValue raw.
-            "ScanAnomalyEntry",
             // crash.lastCrash: Sitrep.Host.Crash.CrashPayload.Build hand-builds
             // the Dictionary<string, object?> tree the producer (Gonogo.KSP.
             // CrashUplink) publishes; these POCOs are TS-shape-only, never handed
@@ -190,6 +176,19 @@ namespace Sitrep.Core.Tests
             // object?> and KerbcastUplink publishes that list directly, so
             // JsonWriter never saw KerbcastCameraEntry raw even while it lived
             // here; the two Args types were always inbound-only.)
+            // The five SCANsat payload types (scansat.scanningVessels'
+            // ScanningVesselEntry + its nested ScanSensorEntry/ScanTrackColor,
+            // scansat.science's ScanScienceEntry, and the dynamic
+            // scansat.anomalies.<body> element ScanAnomalyEntry) relocated out
+            // of Sitrep.Contract into GonogoScansatUplink.Contract
+            // (uplink-types-out-of-core plan, fourth relocation): no longer
+            // reflected by this assembly at all, so no allowlist entries are
+            // needed here any more. (For the record: every one of the five was
+            // already TS-shape-only while it lived here.
+            // Gonogo.ScansatUplink's ScanningVessels.Build/ScanScience.Build/
+            // ScanAnomalies.Build each hand-build a Dictionary<string, object?>
+            // tree, deliberately SCANsat/KSP-type-free, and the uplink
+            // publishes those; JsonWriter never saw any of the POCOs raw.)
             // system.uplink.pending: PendingUplink is only ever nested inside
             // PendingUplinkQueue.Pending, flattened element-by-element by
             // AppendPendingUplinkQueue's own loop (AppendPendingUplink); it is

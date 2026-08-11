@@ -27,7 +27,7 @@ import { useId, useState } from "react";
 import { SCANSAT } from "../uplink";
 
 /**
- * Parses `scansat.science` (`Sitrep.Contract.ScanScienceEntry[]`, built by
+ * Parses `scansat.science` (`GonogoScansatUplink.ScanScienceEntry[]`, built by
  * `mod/GonogoScansatUplink/ScanScience.cs`). Field names already match the
  * ui-kit row's `ScienceInstrument` shape 1:1 (the mod-side builder
  * deliberately names them to match), so this is a straight

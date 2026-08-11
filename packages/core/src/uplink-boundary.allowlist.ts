@@ -241,22 +241,33 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
-      "mod/Sitrep.Contract/ScanPayloads.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
-      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
-      // Same codegen run as topic-map.ts above, same reflection over the same
-      // assembly: it names a payload type for every field carrying a
-      // [SitrepUnit], and ScanPayloads.cs (already listed here) now carries
-      // them. Generated output, not core reaching into a mod.
-      "mod/sitrep-sdk/src/__generated__/units.ts",
-      // topics.test-d.ts stays: it still type-asserts the GENERATED
-      // `scansat.scanningVessels` Topic (a real Sitrep.Contract payload,
-      // `ScanningVesselEntry[]`). Only the bare-primitive `scansat.available` (which
-      // had no contract type) moved out to the Uplink client, its resolution proof
-      // now lives in mod/GonogoScansatUplink/client/src/topics.ts. (topics.ts and
-      // topics.test.ts were REMOVED from this bucket 2026-07-20: the bare-primitive
-      // fix scrubbed their scansat mentions.)
+      // ScanPayloads.cs and the two sitrep-sdk generated files (topic-map.ts,
+      // units.ts) were REMOVED from this bucket 2026-08-10: the SCANsat
+      // relocation (uplink-types-out-of-core plan, fourth step) moved all five
+      // Scan* payload types into GonogoScansatUplink.Contract, which deleted the
+      // source file outright and left both generated artifacts with no scansat
+      // key at all. ContractVersion.cs and RtConfig.cs stay: each now carries
+      // the relocation's PROVENANCE prose (the Major 8 -> 9 entry, and the
+      // wirePayloadTypes comment recording what left), which is exactly what
+      // the permanent bucket is for.
+      // topics.test-d.ts stays too, but for the opposite reason to before: it no
+      // longer type-asserts any scansat Topic (that proof moved inline into
+      // mod/GonogoScansatUplink/client/src/topics.ts alongside
+      // `scansat.available`'s). What matches now is the comment recording WHY the
+      // assertion left. (topics.ts and topics.test.ts were REMOVED from this
+      // bucket 2026-07-20: the bare-primitive fix scrubbed their scansat mentions.)
       "mod/sitrep-sdk/src/topics.test-d.ts",
+      // units.ts (the hand-written accessor, not the generated map): its
+      // registerTypeUnits doc comment names scansat.scanningVessels as the case
+      // that forced a TYPE-keyed runtime registry alongside the Topic-keyed one.
+      // The three earlier relocations moved flat payloads, so a topic-scoped unit
+      // map was sufficient; this one nests (sensors: ScanSensorEntry[],
+      // trackColor: ScanTrackColor) and wrapTopicPayload resolves a nested shape
+      // by TYPE NAME, so the registry needed the second half. Prose in a
+      // mod-agnostic file explaining a general mechanism, nothing
+      // scansat-specific is imported.
+      "mod/sitrep-sdk/src/units.ts",
       // topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
       // (2026-07-20): statically imports the Uplink clients (incl. scansat) so
       // their `registerBarePrimitiveTopic` calls fire, then asserts the registry
@@ -297,6 +308,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
 
       // -- TEST-only --
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+      // UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
+      // ratchet (uplink-types-out-of-core plan §5a). Registers a "scansat"
+      // token so no Scan* wire type may return to Sitrep.Contract. A ratchet
+      // inventory naming the mods it guards, same class as the kerbcast/
+      // mechjeb/avionics entries on the same file; nothing is imported.
+      "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
       // augments.test.tsx uses "scansat" purely as a generic example
       // provider id/channel name (requires: "scansat", channels:

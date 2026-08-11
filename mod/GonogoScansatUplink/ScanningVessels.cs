@@ -9,7 +9,7 @@ namespace Gonogo.ScansatUplink
     /// <c>Dictionary&lt;string, object?&gt;</c> per tracked vessel, keyed with
     /// the EXACT camelCase field names the client decodes (JsonWriter emits a
     /// dict's keys verbatim; the client's <c>SCANScanningVessel</c> /
-    /// <c>Sitrep.Contract.ScanningVesselEntry</c> mirror these). Kept SCANsat-
+    /// <c>GonogoScansatUplink.ScanningVesselEntry</c> mirror these). Kept SCANsat-
     /// type-free: the uplink's <see cref="ScansatUplink.BuildScanningVessels"/>
     /// reads the SCANsat <c>SCANvessel</c>/<c>SCANsensor</c> fields and passes
     /// PLAIN scalars in here: so the whole shaping path (including the

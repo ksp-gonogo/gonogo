@@ -104,6 +104,53 @@ export function registerTopicUnits(
 }
 
 /**
+ * The TYPE-keyed half of the same registry, and it is not optional the moment a
+ * relocated payload has any nesting.
+ *
+ * `registerTopicUnits` above covers a Topic's OWN fields, which was the whole
+ * problem while every relocated type was flat, which the plan's first three
+ * steps all were. It is not sufficient for a nested
+ * one: `wrapTopicPayload` reads `shapesForTopic` to learn that a field holds
+ * another shape, then recurses through `wrapTypePayload`, which resolves that
+ * shape BY NAME through `unitsForType`/`shapesForType`. Those read the
+ * type-keyed generated maps, so a relocated nested type is unreachable from the
+ * topic registration alone and its quantities arrive bare while the generated
+ * TYPE still says `Value<"m">`.
+ *
+ * `scansat.scanningVessels` is the case that forced it (the fourth relocation,
+ * the first with nesting): its `sensors` field holds `ScanSensorEntry[]`, whose
+ * `minAlt`/`maxAlt`/`bestAlt`/`fov` are the deepest declared quantities on the
+ * SCANsat surface, and `trackColor` holds a `ScanTrackColor`. Registering only
+ * the topic would hydrate the vessel's own latitude/longitude/altitude and
+ * silently drop every sensor altitude.
+ *
+ * Last write wins for a given type name, same as the topic registry, so a
+ * double import of the same Uplink client is harmless. Type names live in one
+ * flat namespace across Uplinks, the same way the generated maps already do;
+ * an Uplink should keep its contract type names distinctive (a
+ * per-Uplink prefix), which every relocated slice
+ * already does.
+ */
+const registeredTypeUnits = new Map<string, UnitsByField>();
+const registeredTypeShapes = new Map<string, ShapesByField>();
+
+/**
+ * Self-register a relocated Uplink payload TYPE's unit (and optional
+ * nested-shape) map, keyed by its generated interface name. Called at module
+ * load by the owning Uplink's client package, normally by looping over its own
+ * generated `GENERATED_TYPE_UNITS`/`GENERATED_TYPE_SHAPES`, so a type added to
+ * that Uplink's contract later needs no new call site.
+ */
+export function registerTypeUnits(
+  typeName: string,
+  units: UnitsByField,
+  shapes: ShapesByField = NO_SHAPES,
+): void {
+  registeredTypeUnits.set(typeName, units);
+  registeredTypeShapes.set(typeName, shapes);
+}
+
+/**
  * Every field on `topic` that has a declared unit. Fields with no annotation are
  * absent from the returned object; a Topic with no annotated fields at all returns an
  * empty object rather than `undefined`, so a caller can index it unconditionally.
@@ -135,7 +182,9 @@ export function unitOf(topic: TopicId, field: string): SitrepUnit | undefined {
  * its own). `typeName` is the generated interface name in `./__generated__/contract`.
  */
 export function unitsForType(typeName: string): UnitsByField {
-  return GENERATED_TYPE_UNITS[typeName] ?? EMPTY;
+  const generated = GENERATED_TYPE_UNITS[typeName];
+  if (generated !== undefined) return generated;
+  return registeredTypeUnits.get(typeName) ?? EMPTY;
 }
 
 /**
@@ -156,7 +205,9 @@ export function shapesForTopic(topic: TopicId): ShapesByField {
 
 /** The same, keyed by generated interface name instead of Topic id. */
 export function shapesForType(typeName: string): ShapesByField {
-  return GENERATED_TYPE_SHAPES[typeName] ?? NO_SHAPES;
+  const generated = GENERATED_TYPE_SHAPES[typeName];
+  if (generated !== undefined) return generated;
+  return registeredTypeShapes.get(typeName) ?? NO_SHAPES;
 }
 
 /** As {@link unitOf}, but keyed by generated interface name instead of Topic id. */

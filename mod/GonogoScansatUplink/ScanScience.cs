@@ -7,7 +7,7 @@ namespace Gonogo.ScansatUplink
     /// payload: one <c>Dictionary&lt;string, object?&gt;</c> per SCANsat
     /// map-scanner part on the active vessel, keyed with the EXACT camelCase
     /// field names the client decodes (JsonWriter emits a dict's keys verbatim;
-    /// the client's ScienceOfficer augment / <c>Sitrep.Contract.ScanScienceEntry</c>
+    /// the client's ScienceOfficer augment / <c>GonogoScansatUplink.ScanScienceEntry</c>
     /// mirror these). Kept SCANsat-type-free: the uplink's
     /// <see cref="ScansatUplink.CaptureScienceOnMain"/> reads the SCANsat
     /// <c>SCANexperiment</c> fields on the main thread and passes PLAIN scalars

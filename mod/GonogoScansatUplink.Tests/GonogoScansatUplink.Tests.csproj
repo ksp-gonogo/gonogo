@@ -34,4 +34,12 @@
     <Compile Include="..\GonogoScansatUplink\ScanCapture.cs" />
     <Compile Include="..\GonogoScansatUplink\ScanPublications.cs" />
   </ItemGroup>
+
+  <!-- GonogoScansatUplink.Contract: ScanningVesselEntry/ScanSensorEntry/
+       ScanTrackColor/ScanScienceEntry/ScanAnomalyEntry, this Uplink's own wire
+       types (relocated out of Sitrep.Contract, see that project's header
+       comment). ScansatUnitCoverageTests.cs below reflects over it directly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoScansatUplink.Contract\GonogoScansatUplink.Contract.csproj" />
+  </ItemGroup>
 </Project>

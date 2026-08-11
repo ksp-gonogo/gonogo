@@ -9,7 +9,7 @@ namespace GonogoScansatUplink.Tests
     /// Shape-tests the pure <c>scansat.scanningVessels</c> wire builder
     /// (<see cref="ScanningVessels"/>): the exact camelCase keys, the sensor
     /// array shape, the trackColor packing, and the null-when-idle FoV-width
-    /// rule the client contract (<c>Sitrep.Contract.ScanningVesselEntry</c> /
+    /// rule the client contract (<c>GonogoScansatUplink.ScanningVesselEntry</c> /
     /// the widget's <c>SCANScanningVessel</c>) reads. No live SCANsat/KSP: the
     /// builder takes plain scalars, so the SCANvessel-typed read is exercised
     /// separately on the Deck.

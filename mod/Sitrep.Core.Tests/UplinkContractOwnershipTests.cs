@@ -44,8 +44,9 @@ namespace Sitrep.Core.Tests
     /// only line comments need stripping; a future block comment would need
     /// this scan extended.</para>
     ///
-    /// <para><b>MechJeb, Avionics, and Kerbcast are registered today</b> (the
-    /// pilot and the second and third relocations). Each of the plan's
+    /// <para><b>MechJeb, Avionics, Kerbcast, and SCANsat are registered
+    /// today</b> (the pilot and the second, third, and fourth relocations).
+    /// Each of the plan's
     /// remaining relocations (see
     /// the plan doc's §6 sequencing list) registers its own
     /// token here in the same commit that moves its types out, exactly like
@@ -73,6 +74,19 @@ namespace Sitrep.Core.Tests
             ["mechjeb"] = new Regex("MechJeb", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             ["avionics"] = new Regex("Avionics", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             ["kerbcast"] = new Regex("Kerbcast", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            // scansat is the first token here that CANNOT be a single bare mod
+            // name. The three above are distinctive words; "Scan" is not (it
+            // prefixes plenty of unrelated identifiers, and this repo's own
+            // ratchets use SCAN_ROOTS to mean "directories to walk", the exact
+            // collision packages/core/src/uplink-boundary.test.ts's scansat
+            // patterns already document). So this alternation names the mod
+            // itself PLUS each relocated type by full name, which is also
+            // sharper about what it is guarding: a re-added
+            // ScanningVesselEntry fails on its own name, not on a substring
+            // that might belong to something else.
+            ["scansat"] = new Regex(
+                @"scansat|Scan(?:ningVesselEntry|SensorEntry|TrackColor|ScienceEntry|AnomalyEntry)",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled),
         };
 
         [Fact]

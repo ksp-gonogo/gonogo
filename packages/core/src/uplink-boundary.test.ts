@@ -106,7 +106,15 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       // ends so it doesn't match inside "FOG_SCAN_TYPES" or similar.
       /\bSCAN_TYPE\b/,
     ],
-    ownedDirs: ["mod/GonogoScansatUplink", "mod/GonogoScansatUplink.Tests"],
+    ownedDirs: [
+      "mod/GonogoScansatUplink",
+      "mod/GonogoScansatUplink.Tests",
+      // GonogoScansatUplink's own contract slice (uplink-types-out-of-core
+      // plan, fourth relocation, 2026-08-10): ScanningVesselEntry/
+      // ScanSensorEntry/ScanTrackColor/ScanScienceEntry/ScanAnomalyEntry live
+      // here now, not in Sitrep.Contract.
+      "mod/GonogoScansatUplink.Contract",
+    ],
   },
   kos: {
     // "kos" alone false-matches inside unrelated words, so match only

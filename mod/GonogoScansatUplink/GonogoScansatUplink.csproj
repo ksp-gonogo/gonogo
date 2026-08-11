@@ -79,4 +79,16 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- GonogoScansatUplink.Contract: this Uplink's OWN wire types
+       (ScanningVesselEntry, ScanSensorEntry, ScanTrackColor,
+       ScanScienceEntry, ScanAnomalyEntry), relocated out of Sitrep.Contract
+       (see that project's own header comment). Private defaults to true
+       (unlike the Sitrep.Contract reference above): this DLL is NOT provided
+       by core at runtime, it is this Uplink's own contract slice, so it
+       bundles into GonogoScansatUplink's own GameData output same as any
+       other Uplink-owned assembly. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GonogoScansatUplink.Contract\GonogoScansatUplink.Contract.csproj" />
+  </ItemGroup>
+
 </Project>

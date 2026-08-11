@@ -8,7 +8,7 @@ namespace GonogoScansatUplink.Tests
     /// Shape-tests the pure <c>scansat.anomalies.&lt;body&gt;</c> wire builder
     /// (<see cref="ScanAnomalies"/>): the exact camelCase keys and the
     /// straight pass-through of SCANsat's own name/lat/lon/known/detail
-    /// fields the client contract (<c>Sitrep.Contract.ScanAnomalyEntry</c> /
+    /// fields the client contract (<c>GonogoScansatUplink.ScanAnomalyEntry</c> /
     /// the client's <c>SCANAnomalyEntry</c>) reads. No live SCANsat/KSP: the
     /// builder takes plain scalars, so the <c>SCANdata.Anomalies</c> read is
     /// exercised separately on the Deck.
