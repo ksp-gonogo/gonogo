@@ -163,6 +163,125 @@ describe("formatQuantity", () => {
     });
   });
 
+  it("climbs the byte ladder from the MB an Uplink declares", () => {
+    // An Uplink states every science file, drive and buffer in MB, and before
+    // this ladder existed a `Value<"MB">` had no kind at all: 4096 rendered
+    // "4096 MB" and 0.002 rendered "0.002 MB", both technically true and
+    // neither readable. The ladder normalises through the bit base and picks a
+    // rung the same way length does.
+    expect(formatQuantity(12.5, "MB")).toMatchObject({
+      value: "12.5",
+      symbol: "MB",
+    });
+    // 4096 MB is 4.096 GB. The digit that moves is the one that says which
+    // ladder this is: a binary ladder would call the same number "4.0 GB".
+    expect(formatQuantity(4096, "MB")).toMatchObject({
+      value: "4.1",
+      symbol: "GB",
+    });
+    // And down below the declared unit, which is where a single science file
+    // lives: 0.002 MB is 2 KB.
+    expect(formatQuantity(0.002, "MB")).toMatchObject({
+      value: "2.0",
+      symbol: "KB",
+    });
+    expect(formatQuantity(0.000004, "MB")).toMatchObject({
+      value: "4.0",
+      symbol: "B",
+    });
+  });
+
+  it("keeps a data size commensurable with an antenna's bits", () => {
+    // The reason the ladder is based in BIT rather than in byte. A file size
+    // and a downlink budget are the same dimension, so a value stated in the
+    // model's own `bit` climbs the byte rungs rather than sitting at seven
+    // digits of bits, and 8e6 bit is exactly the 1 MB an Uplink dimensions its
+    // own MB onto. Basing the ladder in bytes would have made the two islands.
+    expect(formatQuantity(8e6, "bit")).toMatchObject({
+      value: "1.0",
+      symbol: "MB",
+    });
+    expect(formatQuantity(4e6, "bit")).toMatchObject({
+      value: "500.0",
+      symbol: "KB",
+    });
+    // Below a byte it stays in bits rather than rendering a fraction of one.
+    expect(formatQuantity(5, "bit")).toMatchObject({
+      value: "5.0",
+      symbol: "bit",
+    });
+  });
+
+  it("is the decimal byte family, not the binary one", () => {
+    // 1 KB is 8e3 bit here, matching `kbit/s` on the rate ladder beside it and
+    // matching the 8e6 ratio an Uplink dimensions `MB` onto `bit` at. A binary
+    // rung would drift 2.4% per tier against those, which reads as a rounding
+    // difference rather than as the different unit family it is: 8192 bit
+    // would be "1.0 KB" on a KiB ladder and is 1.024 KB here.
+    expect(formatQuantity(8000, "bit")).toMatchObject({
+      value: "1.0",
+      symbol: "KB",
+    });
+    expect(formatQuantity(8192, "bit")).toMatchObject({
+      value: "1.0",
+      symbol: "KB",
+    });
+    // The distinction shows a tier up, where the drift has compounded.
+    expect(formatQuantity(8 * 1024 ** 3, "bit")).toMatchObject({
+      value: "1.1",
+      symbol: "GB",
+    });
+  });
+
+  it("does NOT derive a byte RATE ladder from the byte ladder", () => {
+    // The finding, pinned rather than described. Nothing in this module builds
+    // an `X/s` ladder out of an `X` one: every rate kind (`dataRate`, `power`,
+    // `doseRate`) declares its own rungs, so adding the byte ladder above did
+    // nothing whatsoever for `MB/s`, which has no kind and renders bare in
+    // whatever unit it arrived in.
+    //
+    // Deliberately left that way. A byte-rate ladder is a separate decision
+    // with its own question attached (does a mod's transmit rate read better
+    // in MB/s or in the Mbit/s an antenna budget is already quoted in),
+    // and hand-rolling one to make this test look tidier would answer that
+    // question by accident.
+    expect(kindOfUnit("MB/s")).toBeUndefined();
+    expect(formatQuantity(12.5, "MB/s")).toMatchObject({
+      value: "12.5",
+      symbol: "MB/s",
+    });
+    expect(formatQuantity(4096, "MB/s")).toMatchObject({
+      value: "4096",
+      symbol: "MB/s",
+    });
+    // The rate ladder the module DOES have is the bit one, untouched by any
+    // of the above.
+    expect(formatQuantity(4.2e6, "bit/s")).toMatchObject({
+      value: "4.2",
+      symbol: "Mbit/s",
+    });
+  });
+
+  it("lets a caller pin a byte rung against the ladder", () => {
+    // A rung is not a unit, so `format="MB"` resolves its ratio out of the
+    // ladder rather than out of the model. That is what lets a drive-capacity
+    // column hold one unit down a list whose entries span three rungs.
+    expect(formatQuantity(4096, "MB", { format: "MB" })).toMatchObject({
+      value: "4096.0",
+      symbol: "MB",
+    });
+    expect(formatQuantity(0.002, "MB", { format: "B" })).toMatchObject({
+      value: "2000.0",
+      symbol: "B",
+    });
+    // And the reason to pin sparingly: the same file in bytes is eight digits
+    // wide, which is the readout the ladder exists to prevent.
+    expect(formatQuantity(12.5, "MB", { format: "B" })).toMatchObject({
+      value: "12,500,000.0",
+      symbol: "B",
+    });
+  });
+
   it("labels a planetary mass on the right prefix tier", () => {
     // Kerbin, 5.2915e22 kg. SystemView's hand-rolled ladder applied GRAM
     // thresholds to a KILOGRAM value and called this "52.91 Zg", one whole
@@ -305,10 +424,19 @@ describe("catalog coverage", () => {
       "kbit/s",
       "Mbit/s",
       "Gbit/s",
+      "B",
+      "KB",
+      "MB",
+      "GB",
     ];
     expect(rungs.filter((r) => kindOfUnit(r) === undefined)).toEqual([]);
     expect(kindOfUnit("Mbit/s")).toBe("dataRate");
     expect(kindOfUnit("Yg")).toBe("mass");
+    // The byte rungs and the bit-rate rungs are two kinds, not one. `MB` is a
+    // quantity of data and `Mbit/s` is a flow of it, and the ladder each one
+    // belongs to is the only thing that says so.
+    expect(kindOfUnit("MB")).toBe("data");
+    expect(kindOfUnit("GB")).toBe("data");
   });
 
   it("names a kind for a presentation-only unit reached by conversion", () => {

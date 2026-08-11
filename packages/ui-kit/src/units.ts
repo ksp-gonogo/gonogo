@@ -105,6 +105,11 @@ export type KnownQuantityKind =
   | "irlTime"
   | "planeAngle"
   | "power"
+  // A quantity of data at rest: a file, a drive, a transmission buffer. Based
+  // in bits like `dataRate` and kept a separate kind from it for the same
+  // reason `length` and `speed` are separate: a drive and a downlink are not
+  // interchangeable, and only one of them may be shown as the other.
+  | "data"
   | "dataRate"
   | "doseRate"
   | "irradiance"
@@ -224,6 +229,34 @@ export const LADDERS: Record<string, readonly Rung[]> = {
     { from: 1e3, symbol: "kPa", per: 1e3 },
     { from: 1e6, symbol: "MPa", per: 1e6 },
   ],
+  // The byte family on a BIT base, and the base is the whole point. A drive or
+  // a science file arrives in MB, an antenna budget in bit/s, and basing this
+  // ladder in bytes would leave the two as incommensurable islands; basing it
+  // in bits makes one a rung of the other. The rungs are still bytes, because
+  // nobody reads a drive in bits.
+  //
+  // Decimal throughout: 1 KB is 8e3 bit, not 8×1024. That matches `dataRate`'s
+  // own kbit/s below, and it matches the 8e6 an Uplink dimensions `MB` onto
+  // `bit` at, which is the only reason a value it publishes lands on the right
+  // rung here. The binary powers are a different family with different symbols
+  // (KiB, MiB), and there is deliberately no rung here that could start the
+  // 2.4%-per-tier drift between them.
+  //
+  // The `bit` rung at the bottom is not decoration. Without it the lowest rung
+  // is `B`, and a sub-byte reading renders as a fraction of a byte, which is
+  // both unreadable and a claim about precision the source never made.
+  data: [
+    { from: 0, symbol: "bit", per: 1 },
+    { from: 8, symbol: "B", per: 8 },
+    { from: 8e3, symbol: "KB", per: 8e3 },
+    { from: 8e6, symbol: "MB", per: 8e6 },
+    { from: 8e9, symbol: "GB", per: 8e9 },
+  ],
+  // A SEPARATE ladder from `data` above, and it has to be: nothing in this
+  // module derives an `X/s` ladder from an `X` one. Every rate kind here
+  // (`power`, `doseRate`, this) declares its own rungs, which is why a
+  // byte-family RATE (`MB/s`) does not scale off the byte ladder and renders
+  // in whatever unit it arrived in. See `units.test.ts` for the pin.
   dataRate: [
     { from: 0, symbol: "bit/s", per: 1 },
     { from: 1e3, symbol: "kbit/s", per: 1e3 },
@@ -351,6 +384,9 @@ const DECIMALS: Record<string, number> = {
   irlTime: 0,
   planeAngle: 2,
   density: 4,
+  // One decimal on the byte ladder: a drive reads "1.4 GB" and a file
+  // "12.5 MB", and the rung changes before the digit count has to.
+  data: 1,
   dataRate: 1,
   // One decimal reads right at the kW rung a flux readout mostly sits at
   // (`842.3 kW`), and stays legible at MW (`2.4 MW`).
@@ -522,6 +558,13 @@ const WORD_BY_SYMBOL: Record<string, string> = {
   "kbit/s": "kilobits per second",
   "Mbit/s": "megabits per second",
   "Gbit/s": "gigabits per second",
+  // Data at rest. `B` is the worst of the set out loud: a screen reader
+  // announces it as the letter, so "4 B" and "4 bee" are the same utterance.
+  bit: "bits",
+  B: "bytes",
+  KB: "kilobytes",
+  MB: "megabytes",
+  GB: "gigabytes",
   // Motion.
   "m/s": "metres per second",
   "m/s\u00B2": "metres per second squared",
