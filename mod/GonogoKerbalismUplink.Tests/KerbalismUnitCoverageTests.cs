@@ -75,7 +75,15 @@ namespace GonogoKerbalismUplink.Tests
                 nameof(KerbalismProcessEntry), nameof(KerbalismGreenhouseEntry),
                 nameof(KerbalismCrewEntry), nameof(KerbalismCrewRule),
                 nameof(KerbalismProfile), nameof(KerbalismResourceDef), nameof(KerbalismRuleDef),
-                nameof(KerbalismProcessDef), nameof(KerbalismFeatures));
+                nameof(KerbalismProcessDef), nameof(KerbalismFeatures),
+                // Not a Topic payload of this Domain's own: the Kerbalism namespace
+                // of the CORE reliability.summary payload's provider extension bag
+                // (KerbalismReliabilityExt.cs). It is in this assembly for the same
+                // reason the fifteen above are, and it needs the same annotation
+                // guard: a quantity inside an extension is a Value like any other,
+                // and its unit reaches the decode through this Uplink's own
+                // generated TYPE map.
+                nameof(KerbalismReliabilityExt));
 
         /// <summary>
         /// The three <c>RequiresUnit</c> branches, exercised by real properties

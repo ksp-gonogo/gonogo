@@ -38,6 +38,18 @@ export type {
   KerbalismStarInfo,
   KerbalismStormEntry,
 } from "./__generated__/contract";
+// This Uplink's namespace of the CORE `reliability.summary` payload's provider
+// extension bag: the typed shape plus its reader. Not a Topic of this Domain, a
+// sub-tree of an elected capability's shared payload that core keeps opaque on
+// purpose (see ./reliability.ts). RE-EXPORTED, like ./topics above, so the module
+// loads (which is what registers the bag's runtime shape routing) and so the type
+// reaches `dist/index.d.ts` rather than being elided.
+export {
+  KERBALISM_RELIABILITY_PROVIDER_ID,
+  type KerbalismReliabilityExt,
+  RELIABILITY_SUMMARY_TOPIC,
+  readKerbalismReliabilityExt,
+} from "./reliability";
 export {
   KERBALISM_AVAILABLE_TOPIC,
   KERBALISM_CREW_TOPIC,

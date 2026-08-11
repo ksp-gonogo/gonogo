@@ -11,6 +11,14 @@ export {
   getControlChannel,
 } from "./control-channels";
 export * from "./envelope";
+// The provider extension bag: the opaque core half of how a provider extends a
+// Kernel-elected payload without a core change. The TYPED half is always in the
+// provider's own package (see ./extensions.ts).
+export {
+  PROVIDER_EXTENSIONS_FIELD,
+  type ProviderExtension,
+  type ProviderExtensions,
+} from "./extensions";
 export {
   getAllKnownTopicIds,
   isTopicId,
@@ -64,6 +72,8 @@ export {
 } from "./unit-system";
 export {
   type KnownSitrepUnit,
+  providerExtensionShapes,
+  registerProviderExtensionShape,
   registerTopicUnits,
   registerTypeUnits,
   type SitrepUnit,

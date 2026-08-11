@@ -151,6 +151,66 @@ export function registerTypeUnits(
 }
 
 /**
+ * The PROVIDER-EXTENSION half of the same registry: which generated type a
+ * provider's namespace inside an `extensions` bag holds.
+ *
+ * A quantity a provider puts in its namespace is a real `Value<unit>` and has to
+ * survive decode like any other, so `wrapTopicPayload` has to be able to walk into
+ * the bag. Neither registry above can express that, and not for want of trying:
+ *
+ *   • `registerTopicUnits` is dead on arrival for an elected capability's Topic.
+ *     `unitsForTopic`/`shapesForTopic` return the GENERATED entry FIRST and only
+ *     fall back to the registered one, so a provider registering against
+ *     `reliability.summary` (a core-generated Topic) is silently ignored. Were the
+ *     precedence the other way round it would be worse: the maps are whole-Topic,
+ *     so last-write-wins between two installed providers would clobber core's own
+ *     units for that Topic.
+ *   • `registerTypeUnits` resolves BY TYPE NAME, and nothing in the payload names
+ *     the provider's type. The bag's values are opaque by construction.
+ *
+ * So the routing is its own small registry, keyed by (owner, provider id) where
+ * `owner` is the Topic id (or the generated type name, for a bag on a nested
+ * shape). Two providers extending the same payload write two entries and never
+ * collide, which is exactly the property the bag exists for.
+ *
+ * GENERAL, not reliability-specific: `owner` is any Topic or type carrying a
+ * `[ProviderExtensionBag]` property, so the science-subsume step registers its own
+ * namespaces the same way with no further core change.
+ */
+const registeredExtensionShapes = new Map<string, Map<string, string>>();
+
+/**
+ * Self-register the generated type held by one provider's namespace of one
+ * payload's extension bag. Called at module load by the provider's own client
+ * package, alongside its `registerTypeUnits` loop (that loop is what makes the
+ * named type resolvable; this is what points the bag at it).
+ *
+ * @param owner Topic id (`"reliability.summary"`) or generated type name.
+ * @param providerId The Kernel provider id keying the namespace, the same string
+ *   the provider registers with the Kernel and tags its payloads with.
+ * @param typeName The provider's own generated interface name for that namespace.
+ */
+export function registerProviderExtensionShape(
+  owner: string,
+  providerId: string,
+  typeName: string,
+): void {
+  const forOwner = registeredExtensionShapes.get(owner) ?? new Map();
+  forOwner.set(providerId, typeName);
+  registeredExtensionShapes.set(owner, forOwner);
+}
+
+/**
+ * The registered namespace -> generated type map for one payload, or `undefined`
+ * when no provider has registered against it. Read by `wrapTopicPayload`'s walk.
+ */
+export function providerExtensionShapes(
+  owner: string,
+): ReadonlyMap<string, string> | undefined {
+  return registeredExtensionShapes.get(owner);
+}
+
+/**
  * Every field on `topic` that has a declared unit. Fields with no annotation are
  * absent from the returned object; a Topic with no annotated fields at all returns an
  * empty object rather than `undefined`, so a caller can index it unconditionally.

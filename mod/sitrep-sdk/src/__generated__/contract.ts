@@ -3,6 +3,7 @@
 //     the code is regenerated.
 
 import { Value, Vec3Of } from '../value';
+import { ProviderExtensions } from '../extensions';
 
 export interface ActivateStrategyArgs
 {
@@ -573,6 +574,7 @@ export interface ReliabilitySummary
 	critical?: boolean;
 	source?: string;
 	worstReliabilityFraction?: Value<"ratio">;
+	extensions?: ProviderExtensions;
 }
 export interface ReliabilityPartEntry
 {
@@ -587,6 +589,7 @@ export interface ReliabilityPartEntry
 	ignitionsConsumed?: Value<"ratio">;
 	durationConsumed?: Value<"ratio">;
 	needsRepair?: boolean;
+	extensions?: ProviderExtensions;
 }
 export interface RevertAvailability
 {

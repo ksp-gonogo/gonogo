@@ -51,6 +51,17 @@ public class ReliabilitySummary
     /// <summary>Worst engine reliability probability on the vessel (0..1), the at-a-glance number. TestFlight fills it; null for Kerbalism.</summary>
     [SitrepUnit(Units.Ratio)]
     public double? WorstReliabilityFraction { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag: how a reliability backend carries a
+    /// field this shared shape does not declare, WITHOUT a PR against this file.
+    /// See <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism.
+    /// The fields above are the hand-curated superset that predates it; a NEW
+    /// provider-specific field belongs here instead
+    /// (<c>Sitrep.Host.Tests.ReliabilityContractShapeTests</c> holds that line).
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>
@@ -93,6 +104,15 @@ public class ReliabilityPartEntry
     public double? DurationConsumed { get; set; }
     [SitrepUnit(Units.Flag)]
     public bool? NeedsRepair { get; set; }
+
+    /// <summary>
+    /// The provider-namespaced extension bag, per-part half. Same mechanism and
+    /// same rule as <see cref="ReliabilitySummary.Extensions"/>: a provider that
+    /// models something this shared shape does not declare writes it under its own
+    /// provider id rather than adding a member here.
+    /// </summary>
+    [ProviderExtensionBag]
+    public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>

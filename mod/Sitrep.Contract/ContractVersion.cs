@@ -659,7 +659,27 @@ namespace Sitrep.Contract
         /// <para>Reset 0 alongside the Major 9 -&gt; 10 bump (the Kerbalism
         /// relocation; see <see cref="Major"/>). Every additive change on the
         /// Major-9 line above is carried forward into Major 10.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 0 -&gt; 1: the provider extension
+        /// bag.</b> <see cref="ReliabilitySummary"/> and
+        /// <see cref="ReliabilityPartEntry"/> each gain one nullable
+        /// <c>Extensions</c> member, the permanent provider-namespaced hole that
+        /// lets a reliability backend carry a field this assembly does not declare
+        /// without a PR against it (see
+        /// <c>Sitrep.Contract/ProviderExtensions.cs</c>). Additive and nullable: two
+        /// new members on two existing shapes, nothing removed or retyped, so it
+        /// cannot break an Uplink built against Major 12.0, and the frozen Major-12
+        /// floor is NOT re-frozen. The wire is additive too, and provably so: the
+        /// key is omitted entirely when no provider filled a bag, so an unextended
+        /// payload is byte-for-byte what it was
+        /// (<c>ReliabilityExtensionWireTests</c> pins that, alongside the end-to-end
+        /// proof that an extension's <c>Value&lt;&gt;</c> still decodes wrapped).
+        /// The two new <c>Reliability*</c> members are the LAST hand-listed
+        /// provider-facing additions those types should ever take:
+        /// <c>Sitrep.Host.Tests.ReliabilityContractShapeTests</c> now pins their
+        /// member set, so a new provider field lands in the bag instead. See
+        /// <c>local_docs/design/2026-08-11-provider-extension-mechanism-build-spec.md</c>.</para>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

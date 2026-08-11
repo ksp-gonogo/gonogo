@@ -327,6 +327,15 @@ public static class RtConfig
         // carries the matching exemption, with this reasoning.
         ApplyUnitValueTypes(builder, wirePayloadTypes);
 
+        // --- Provider extension bags become the opaque ProviderExtensions type ---
+        // Same shape of pass as the unit retyping above, and for the same reason:
+        // the declaration lives on the C# property (a [ProviderExtensionBag]
+        // attribute) and the generated TYPE has to carry it. Left as the default
+        // Dictionary emission the bag would be `{ [key: string]: any }`, which is
+        // both wider than intended and unnamed, so nothing could hang a doc comment
+        // or a provider parser off it.
+        ApplyProviderExtensionTypes(builder, wirePayloadTypes);
+
         // --- Enums (numeric `export enum`, per the existing Quality/Staleness convention) ---
         builder.ExportAsEnums(
             new[]
@@ -583,6 +592,69 @@ public static class RtConfig
         Console.WriteLine(
             "codegen (unit types) -> " + retyped + " properties carry their unit (" +
             vectors + " as Vec3Of<...>)");
+    }
+
+    /// <summary>
+    /// Retypes every <see cref="ProviderExtensionBagAttribute"/>-marked property
+    /// from the default dictionary emission to the named, deliberately opaque
+    /// <c>ProviderExtensions</c> type the SDK hand-writes.
+    ///
+    /// <para>The same <c>PropertyExportBuilder.Type(string)</c> mechanism
+    /// <see cref="ApplyUnitValueTypes"/> uses, for the same reason: rtcli has no
+    /// notion of a TS type chosen from an attribute, and a raw name is all this
+    /// needs.</para>
+    ///
+    /// <para><b>This is what makes the bag one line per payload.</b> Adding the bag
+    /// to a future elected payload (science is next) is the attribute on the
+    /// property; nothing here, in the SDK, or in the client runtime is edited
+    /// again. That permanence is the contract, the same one the open
+    /// <c>SitrepUnit</c> union keeps for unit tokens.</para>
+    ///
+    /// <para>Public and assembly-agnostic for the same reason
+    /// <see cref="ApplyUnitValueTypes"/> is: an Uplink that puts a bag on a payload
+    /// of its OWN calls this from its own <c>Configure</c> with its own types and
+    /// its own import path, and gets the identical emission.</para>
+    /// </summary>
+    /// <param name="extensionsImportFrom">
+    /// Where the emitted file should import <c>ProviderExtensions</c> from.
+    /// Defaults to the first party's own layout; an Uplink passes the path that
+    /// reaches the SDK from ITS generated file.
+    /// </param>
+    public static void ApplyProviderExtensionTypes(
+        ConfigurationBuilder builder,
+        IEnumerable<Type> exportedTypes,
+        string extensionsImportFrom = ProviderExtensions.DefaultTsImportFrom)
+    {
+        var bags = 0;
+        foreach (var type in exportedTypes)
+        {
+            var targets = type
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(p => p.GetCustomAttribute<ProviderExtensionBagAttribute>() != null)
+                .ToArray();
+            if (targets.Length == 0)
+            {
+                continue;
+            }
+
+            bags += targets.Length;
+            builder.ExportAsInterfaces(
+                new[] { type },
+                c => c.WithProperties(targets, p => p.Type(ProviderExtensions.TsTypeName)));
+        }
+
+        if (bags == 0)
+        {
+            // No import when nothing uses it: an unused import in a generated file
+            // is a lint failure in the consuming package, and an Uplink with no bag
+            // should not gain a dependency on the SDK's extensions module.
+            return;
+        }
+
+        builder.AddImport("{ " + ProviderExtensions.TsTypeName + " }", extensionsImportFrom);
+        Console.WriteLine(
+            "codegen (provider extensions) -> " + bags + " extension bags typed as " +
+            ProviderExtensions.TsTypeName);
     }
 
     /// <summary>

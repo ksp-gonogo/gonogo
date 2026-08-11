@@ -457,8 +457,10 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
         /// object <c>{ unmodeled, malfunction, critical, source,
-        /// worstReliabilityFraction }</c>: camelCase keys, JSON null for absent
-        /// nullable fields, matching the generated SDK interface. reliability.summary
+        /// worstReliabilityFraction }</c>, plus <c>extensions</c> when a provider
+        /// filled its namespace (see <see cref="AppendProviderExtensions"/>, and note
+        /// that key is OMITTED rather than null when empty): camelCase keys, JSON
+        /// null for absent nullable fields, matching the generated SDK interface. reliability.summary
         /// (<c>Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier</c>) publishes this
         /// POCO raw, so before this existed a populated payload threw
         /// <c>NotSupportedException</c> at the wire boundary. See the <c>case</c> in
@@ -486,14 +488,49 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "worstReliabilityFraction");
             sb.Append(':');
             AppendNullableNumber(sb, r.WorstReliabilityFraction);
+            AppendProviderExtensions(sb, r.Extensions);
             sb.Append('}');
+        }
+
+        /// <summary>
+        /// Appends the provider extension bag as <c>,"extensions":{ ... }</c>, or
+        /// nothing at all when no provider filled one.
+        ///
+        /// <para><b>Omitted rather than written as null</b>, unlike every other
+        /// optional field in these flatteners. The bag is a mechanism, not a
+        /// reading: a payload no provider extended has to be byte-for-byte what it
+        /// was before the mechanism existed, so nothing downstream can tell the
+        /// difference. That is the whole additive claim, and
+        /// <c>ReliabilityExtensionWireTests</c> pins it.</para>
+        ///
+        /// <para>The namespaces themselves go through <see cref="AppendValue"/>:
+        /// they are the provider's own untyped value tree (a
+        /// <c>Dictionary&lt;string, object?&gt;</c>), exactly the shape this writer
+        /// already walks for every producer-flattened payload. Core never learns
+        /// the provider's shape, which is the point.</para>
+        /// </summary>
+        private static void AppendProviderExtensions(
+            StringBuilder sb,
+            IDictionary<string, object?>? extensions)
+        {
+            if (extensions == null || extensions.Count == 0)
+            {
+                return;
+            }
+
+            sb.Append(',');
+            AppendString(sb, Sitrep.Contract.ProviderExtensions.WireField);
+            sb.Append(':');
+            AppendObject(sb, extensions);
         }
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.ReliabilityPartEntry"/> to the wire
         /// object <c>{ partId, title, group, broken, critical, mtbfHours,
         /// reliabilityFraction, remainingRatedBurn, ignitionsConsumed,
-        /// durationConsumed, needsRepair }</c>: camelCase keys, JSON null for absent
+        /// durationConsumed, needsRepair }</c>, plus <c>extensions</c> when a
+        /// provider filled its namespace (see
+        /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for absent
         /// nullable fields, matching the generated SDK interface. reliability.parts
         /// publishes a <c>List&lt;ReliabilityPartEntry&gt;</c> raw, whose elements
         /// route through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
@@ -545,6 +582,7 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "needsRepair");
             sb.Append(':');
             AppendNullableBool(sb, p.NeedsRepair);
+            AppendProviderExtensions(sb, p.Extensions);
             sb.Append('}');
         }
 

@@ -147,6 +147,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "KerbalismProfile": {
     name: "text",
   },
+  "KerbalismReliabilityExt": {
+    brokenPartCount: "count",
+    maintenanceDueCount: "count",
+    worstMtbfHours: "h",
+  },
   "KerbalismResource": {
     amount: "units",
     capacity: "units",

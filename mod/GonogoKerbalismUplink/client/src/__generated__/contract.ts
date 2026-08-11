@@ -150,3 +150,9 @@ export interface KerbalismFeatures
 	automation?: boolean;
 	deploy?: boolean;
 }
+export interface KerbalismReliabilityExt
+{
+	worstMtbfHours?: Value<"h">;
+	brokenPartCount?: Value<"count">;
+	maintenanceDueCount?: Value<"count">;
+}

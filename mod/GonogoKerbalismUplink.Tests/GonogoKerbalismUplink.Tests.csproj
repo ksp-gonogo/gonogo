@@ -25,9 +25,23 @@
     <Compile Include="..\GonogoKerbalismUplink\KerbalismReliabilityMap.cs" />
   </ItemGroup>
 
-  <!-- KerbalismReliabilityMap builds Sitrep.Contract POCOs (KSP-free). -->
+  <!-- KerbalismReliabilityMap builds Sitrep.Contract POCOs (KSP-free).
+       Sitrep.Core: ReliabilityExtensionWireTests serialises those POCOs through
+       the REAL EnvelopeCodec/JsonWriter rather than asserting on a hand-written
+       string, which is the only way the provider-extension proof is end-to-end
+       instead of a restatement of the producer. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The cross-language golden fixture: this project WRITES it (from the real
+       codec) and this Uplink's client test READS it back through the real decode
+       path, so server and client cannot drift apart silently. Same
+       shared-JSON-both-sides pattern as mod/golden-fixtures/README.md describes,
+       run in the C#-to-TS direction. -->
+  <ItemGroup>
+    <None Include="..\golden-fixtures\reliability-extensions.json" Link="golden-fixtures/reliability-extensions.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- GonogoKerbalismUplink.Contract: this Uplink's own wire types (relocated

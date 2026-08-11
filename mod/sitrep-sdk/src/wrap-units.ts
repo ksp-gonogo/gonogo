@@ -1,6 +1,8 @@
+import { PROVIDER_EXTENSIONS_FIELD } from "./extensions";
 import type { TopicId } from "./topics";
 import { hydrate, isValue, lookupUnit, value } from "./unit-system";
 import {
+  providerExtensionShapes,
   type ShapesByField,
   shapesForTopic,
   shapesForType,
@@ -46,9 +48,18 @@ import {
  * entry and eighty-five fields' worth of declared quantities arrived bare
  * while the contract typed them as `Value`. `GENERATED_TOPIC_SHAPES` says
  * which fields hold which shape, and this walks them.
+ *
+ * ## It follows provider extension bags too
+ *
+ * A payload carrying a `[ProviderExtensionBag]` field holds sub-trees core cannot
+ * type, one per provider id. Their quantities are still `Value<unit>` in the
+ * PROVIDER's own generated type, so the walk follows them the same way it follows
+ * any nested shape, routed by `providerExtensionShapes` instead of by a generated
+ * map. See `registerProviderExtensionShape` (units.ts) for why that routing needs
+ * a registry of its own.
  */
 export function wrapTopicPayload<T>(topic: TopicId, payload: T): T {
-  return wrap(unitsForTopic(topic), shapesForTopic(topic), payload);
+  return wrap(topic, unitsForTopic(topic), shapesForTopic(topic), payload);
 }
 
 /**
@@ -57,10 +68,16 @@ export function wrapTopicPayload<T>(topic: TopicId, payload: T): T {
  * Topic names them.
  */
 export function wrapTypePayload<T>(typeName: string, payload: T): T {
-  return wrap(unitsForType(typeName), shapesForType(typeName), payload);
+  return wrap(
+    typeName,
+    unitsForType(typeName),
+    shapesForType(typeName),
+    payload,
+  );
 }
 
 function wrap<T>(
+  owner: string,
   units: Readonly<Record<string, string>>,
   shapes: ShapesByField,
   payload: T,
@@ -72,12 +89,31 @@ function wrap<T>(
   // consumer indexes into.
   if (Array.isArray(payload)) {
     for (let i = 0; i < payload.length; i++) {
-      payload[i] = wrap(units, shapes, payload[i]);
+      payload[i] = wrap(owner, units, shapes, payload[i]);
     }
     return payload;
   }
 
   const target = payload as Record<string, unknown>;
+  // Provider extension bags, before the generated shapes and units below: a
+  // namespace is a whole payload of the PROVIDER's own type, and nothing in the
+  // generated maps can name it. Only namespaces a provider has actually registered
+  // are walked, so an unknown provider's sub-tree passes through untouched rather
+  // than being guessed at.
+  const extensionShapes = providerExtensionShapes(owner);
+  if (extensionShapes !== undefined) {
+    const bag = target[PROVIDER_EXTENSIONS_FIELD];
+    if (bag !== null && typeof bag === "object") {
+      const namespaces = bag as Record<string, unknown>;
+      for (const [providerId, typeName] of extensionShapes) {
+        if (!(providerId in namespaces)) continue;
+        namespaces[providerId] = wrapTypePayload(
+          typeName,
+          namespaces[providerId],
+        );
+      }
+    }
+  }
   // Nested shapes first: a field can be both (a `Vec3` carries a unit AND is
   // an object), and the leaf propagation below owns that case, so recursing
   // first keeps the two from fighting over the same key.
