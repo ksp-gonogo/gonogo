@@ -110,6 +110,27 @@ describe("ShipMap: PAW part actions", () => {
     );
   });
 
+  it("draws the menu outside the widget, not inside its clipping container", async () => {
+    // The widget's Panel clips with `overflow: hidden`, so a menu rendered as a
+    // descendant of the diagram lost its lower items on a small tile, outside
+    // its own scroll box where nothing could reveal them. It is portalled to the
+    // body instead: being no descendant of the diagram IS the fix.
+    const user = userEvent.setup();
+    const { fixture, view } = await renderDiagram();
+
+    await user.click(partElement());
+    act(() => {
+      fixture.emit(
+        partActionsTopic(PART_FLIGHT_ID),
+        partActionsWire([{ name: "Deploy", label: "Deploy" }]),
+      );
+    });
+
+    const menu = await screen.findByRole("menu");
+    expect(view.container.contains(menu)).toBe(false);
+    expect(document.body.contains(menu)).toBe(true);
+  });
+
   it("dispatches the delayed invoke command with the part's stringified flightId", async () => {
     const user = userEvent.setup();
     const { fixture } = await renderDiagram();

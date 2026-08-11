@@ -251,9 +251,16 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
     background: var(--color-border-subtle);
   }
 
+  /* An INSET ring, not the usual outset one. A menu item is full-width inside a
+     scroll box, so an outward 2px offset has nowhere to go left or right: both
+     vertical edges are clipped and the ring reads as two loose horizontal bars
+     rather than as a ring around the focused item. Drawing it inside the item's
+     own box keeps all four edges, and the background swap makes the focused row
+     legible as a row even where the ring meets the menu border. */
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
+    outline-offset: -2px;
+    background: var(--color-border-subtle);
   }
 
   &[aria-disabled="true"] {
