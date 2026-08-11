@@ -235,6 +235,60 @@ namespace Gonogo.KerbalismUplink
         }
 
         /// <summary>
+        /// Every Kerbalism <c>Harvester</c> on the vessel: the drill half of ISRU.
+        ///
+        /// <para>Matched on the EXACT type name rather than a substring, unlike
+        /// <see cref="Processes"/>'s <c>ProcessController</c> match. Stock's own
+        /// module is <c>ModuleResourceHarvester</c>, which contains "Harvester", so a
+        /// substring match would sweep stock parts into the Kerbalism reader on any
+        /// install where both survive and report Kerbalism-shaped nulls for all of
+        /// them.</para>
+        ///
+        /// <para><c>AdjustedRate</c> is read as a property or a parameterless method,
+        /// because it is the one member here whose shape is a Kerbalism implementation
+        /// detail rather than a config field. The asteroid/comet source mass is
+        /// best-effort: null when the harvest source cannot be reached, never a
+        /// guess.</para>
+        /// </summary>
+        public IEnumerable<HarvesterRaw> Harvesters(Vessel v)
+        {
+            if (v?.parts == null) yield break;
+            foreach (var part in v.parts)
+            {
+                if (part.Modules == null) continue;
+                foreach (PartModule pm in part.Modules)
+                {
+                    if (pm == null) continue;
+                    if (!string.Equals(pm.GetType().Name, "Harvester", StringComparison.Ordinal)) continue;
+
+                    var raw = new HarvesterRaw
+                    {
+                        FlightId = part.flightID,
+                        Resource = MemberString(pm, "resource") ?? "",
+                        Deployed = MemberBool(pm, "deployed") ?? false,
+                        Running = MemberBool(pm, "running") ?? false,
+                        Issue = MemberString(pm, "issue") ?? "",
+                        Type = (int)(MemberDouble(pm, "type") ?? 0),
+                        Rate = MemberDouble(pm, "rate") ?? 0,
+                        AbundanceRate = MemberDouble(pm, "abundance_rate") ?? 0,
+                        EcRate = MemberDouble(pm, "ec_rate") ?? 0,
+                        Abundance = MemberDouble(pm, "abundance"),
+                        AdjustedRate = MemberDouble(pm, "AdjustedRate") ?? InvokeDoubleMethod(pm, "AdjustedRate"),
+                    };
+
+                    var source = Member(pm, "source") ?? Member(pm, "harvest_source") ?? Member(pm, "HarvestSource");
+                    if (source != null)
+                    {
+                        raw.SourceMassRemaining = MemberDouble(source, "mass");
+                        raw.SourceMassThreshold = MemberDouble(source, "mass_threshold");
+                    }
+
+                    yield return raw;
+                }
+            }
+        }
+
+        /// <summary>
         /// The loaded profile's own static definitions: <c>Profile.rules</c>,
         /// <c>Profile.processes</c>, <c>Profile.supplies</c>, plus a KSP resource
         /// definition for every resource they mention.

@@ -4,6 +4,22 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+export interface KerbalismIsruDrillExtension
+{
+	issue?: string;
+	harvestType?: string;
+	ecRate?: Value<"units/s">;
+	sourceMassRemaining?: Value<"t">;
+	sourceMassThreshold?: Value<"t">;
+}
+export interface KerbalismIsruConverterExtension
+{
+	processToken?: string;
+	title?: string;
+	capacity?: Value<"units">;
+	broken?: boolean;
+	valveIndex?: Value<"count">;
+}
 export interface KerbalismSpaceWeather
 {
 	radiationRadPerSecond?: Value<"rad/s">;

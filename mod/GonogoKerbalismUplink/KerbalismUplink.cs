@@ -141,6 +141,40 @@ namespace Gonogo.KerbalismUplink
                 }
 
                 RegisterScience(host);
+                RegisterIsru(host);
+            }
+        }
+
+        /// <summary>
+        /// Register Kerbalism as the "isru" provider, above the stock vanilla backend
+        /// so it WINS when Kerbalism is installed. Same registering-is-the-gate rule
+        /// as reliability above, and the same two-pass guarantee: the capability is
+        /// owned and declared by IsruCoreUplink (bundled core) in the pre-Register
+        /// pass, so it exists here regardless of assembly-scan order.
+        ///
+        /// <para>Unlike science, this provider needs no capture source of its own:
+        /// IsruCoreUplink calls the elected backend from ITS main-thread capture, so
+        /// the reads are already on the right thread and the factory can simply
+        /// construct rather than hand back a fed instance.</para>
+        /// </summary>
+        private void RegisterIsru(IUplinkHost host)
+        {
+            try
+            {
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = "isru",
+                    Id = KerbalismIsruMap.ProviderId,
+                    // Above the stock vanilla backend: Kerbalism's patches delete the
+                    // stock harvester and converter modules, so losing this election
+                    // would mean an empty ISRU dashboard, not a degraded one.
+                    Priority = 1.0,
+                    Factory = _ => new KerbalismIsruBackend(_k),
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("[KerbalismUplink] could not register isru provider: " + ex.Message);
             }
         }
 
@@ -244,7 +278,7 @@ namespace Gonogo.KerbalismUplink
             var profile = Profile();
             var processes = new List<ProcessRaw>(_k.Processes(v));
             var modifierCtx = _k.BeginModifierContext(v);
-            ApplyProcessEnvModifiers(processes, profile, v, modifierCtx);
+            ApplyProcessEnvModifiers(_k, processes, profile, v, modifierCtx);
 
             return new KerbalismCaptured
             {
@@ -266,9 +300,18 @@ namespace Gonogo.KerbalismUplink
         /// token itself (already accounted for via Capacity; see
         /// KerbalismProcessEntry.EnvModifier's doc comment for why it must be
         /// excluded). Mutates each ProcessRaw in place.
+        ///
+        /// <para>Static and internal because the ISRU backend needs the identical
+        /// join: its converter rates are the same processes scaled by the same live
+        /// product, and two copies of this would drift into two different numbers for
+        /// one part.</para>
         /// </summary>
-        private void ApplyProcessEnvModifiers(
-            List<ProcessRaw> processes, ProfileRaw profile, Vessel v, KerbalismReflection.ModifierContext? ctx)
+        internal static void ApplyProcessEnvModifiers(
+            KerbalismReflection k,
+            List<ProcessRaw> processes,
+            ProfileRaw profile,
+            Vessel v,
+            KerbalismReflection.ModifierContext? ctx)
         {
             if (processes.Count == 0) return;
             var byModifierToken = new Dictionary<string, ProcessDefRaw>(StringComparer.Ordinal);
@@ -280,7 +323,7 @@ namespace Gonogo.KerbalismUplink
             {
                 if (string.IsNullOrEmpty(p.Resource) || !byModifierToken.TryGetValue(p.Resource, out var def)) continue;
                 var filtered = def.Modifiers.Where(m => m != p.Resource).ToList();
-                p.EnvModifier = _k.EvaluateModifiers(ctx, v, filtered);
+                p.EnvModifier = k.EvaluateModifiers(ctx, v, filtered);
             }
         }
 

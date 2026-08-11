@@ -93,7 +93,12 @@ namespace GonogoKerbalismUplink.Tests
                 // -bearing in a new way: an unannotated megabyte figure would decode
                 // as a bare number while the generated type still claimed Value<"MB">.
                 nameof(KerbalismScienceExperimentExt), nameof(KerbalismScienceInstrumentExt),
-                nameof(KerbalismScienceLabExt), nameof(KerbalismScienceBreakdownExt));
+                nameof(KerbalismScienceLabExt), nameof(KerbalismScienceBreakdownExt),
+                // The two isru.* extension namespaces. Unlike the science ones these
+                // declare no unit of their own: Kerbalism measures ISRU in the same
+                // resource units the game does, so every quantity here is a
+                // first-party token and the guard is the ordinary annotation check.
+                nameof(KerbalismIsruDrillExtension), nameof(KerbalismIsruConverterExtension));
 
         /// <summary>
         /// The three <c>RequiresUnit</c> branches, exercised by real properties

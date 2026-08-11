@@ -38,6 +38,21 @@ export type {
   KerbalismStarInfo,
   KerbalismStormEntry,
 } from "./__generated__/contract";
+// This Uplink's namespaces of the two elected `isru.*` payloads' extension bags, same
+// boundary and same load-bearing re-export again. Kerbalism WINS the ISRU election too,
+// but here it fills every shared field: these readers add the blocking reason, the EC
+// draw, the asteroid depletion state and the process throttle, none of which stock has
+// a concept of (see ./isru.ts, and note that its converter list includes life-support
+// processes because Kerbalism does not separate the two).
+export {
+  ISRU_CONVERTERS_TOPIC,
+  ISRU_DRILLS_TOPIC,
+  KERBALISM_ISRU_PROVIDER_ID,
+  type KerbalismIsruConverterExtension,
+  type KerbalismIsruDrillExtension,
+  readKerbalismIsruConverterExt,
+  readKerbalismIsruDrillExt,
+} from "./isru";
 // This Uplink's namespace of the CORE `reliability.summary` payload's provider
 // extension bag: the typed shape plus its reader. Not a Topic of this Domain, a
 // sub-tree of an elected capability's shared payload that core keeps opaque on

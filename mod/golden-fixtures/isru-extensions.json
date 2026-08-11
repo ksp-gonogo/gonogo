@@ -1,0 +1,12 @@
+[
+  {
+    "name": "drills-kerbalism",
+    "topic": "isru.drills",
+    "json": "{\"type\":\"stream-data\",\"topic\":\"isru.drills\",\"payload\":[{\"partId\":\"101\",\"partTitle\":null,\"resource\":\"Ore\",\"deployed\":true,\"running\":true,\"abundance\":0.075,\"rate\":0.00375,\"extensions\":{\"kerbalism\":{\"issue\":null,\"harvestType\":\"0\",\"ecRate\":1.5,\"sourceMassRemaining\":null,\"sourceMassThreshold\":null}}},{\"partId\":\"102\",\"partTitle\":null,\"resource\":\"Water\",\"deployed\":false,\"running\":false,\"abundance\":0.4,\"rate\":0,\"extensions\":{\"kerbalism\":{\"issue\":\"not deployed\",\"harvestType\":\"4\",\"ecRate\":2.5,\"sourceMassRemaining\":18.25,\"sourceMassThreshold\":2.5}}}],\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"
+  },
+  {
+    "name": "converters-kerbalism",
+    "topic": "isru.converters",
+    "json": "{\"type\":\"stream-data\",\"topic\":\"isru.converters\",\"payload\":[{\"partId\":\"201\",\"partTitle\":null,\"running\":true,\"inputs\":[{\"resource\":\"Ore\",\"rate\":6.342e-5},{\"resource\":\"ElectricCharge\",\"rate\":2}],\"outputs\":[{\"resource\":\"Oxygen\",\"rate\":0.088843}],\"extensions\":{\"kerbalism\":{\"processToken\":\"_MoltenRegolithElectrolysis\",\"title\":\"Molten Regolith Electrolysis\",\"capacity\":2,\"broken\":false,\"valveIndex\":1}}},{\"partId\":\"202\",\"partTitle\":null,\"running\":true,\"inputs\":[{\"resource\":\"CarbonDioxide\",\"rate\":0.001}],\"outputs\":[{\"resource\":\"Oxygen\",\"rate\":0.001}],\"extensions\":{\"kerbalism\":{\"processToken\":\"_Scrubber\",\"title\":\"CO2 Scrubber\",\"capacity\":1,\"broken\":true,\"valveIndex\":0}}}],\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"
+  }
+]

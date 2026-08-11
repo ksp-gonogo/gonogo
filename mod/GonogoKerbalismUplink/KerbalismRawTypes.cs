@@ -42,6 +42,38 @@ namespace Gonogo.KerbalismUplink
         public double? EnvModifier;
     }
 
+    /// <summary>
+    /// One Kerbalism <c>Harvester</c> module: the drill half of ISRU, which has no
+    /// overlap at all with <see cref="ProcessRaw"/> (Kerbalism models extraction and
+    /// conversion with two unrelated modules, the same split stock draws).
+    /// </summary>
+    public sealed class HarvesterRaw
+    {
+        /// <summary>Host part's KSP flightID. 0 when the part could not be read.</summary>
+        public double FlightId;
+        public string Resource = "";
+        public bool Deployed;
+        public bool Running;
+        /// <summary>The live blocking-reason string. Empty when nothing is wrong, which is the normal case.</summary>
+        public string Issue = "";
+        /// <summary>0-3 are the stock-equivalent harvest situations, 4 is asteroid/comet.</summary>
+        public int Type;
+        /// <summary>Static config rate, calibrated against <see cref="AbundanceRate"/>. Not what is actually being extracted.</summary>
+        public double Rate;
+        /// <summary>The abundance level <see cref="Rate"/> is calibrated against.</summary>
+        public double AbundanceRate;
+        /// <summary>EC drawn per second, independent of abundance.</summary>
+        public double EcRate;
+        /// <summary>Live sampled abundance at the drill's position, 0..1. Null when unreadable.</summary>
+        public double? Abundance;
+        /// <summary>Rate after the abundance and crew adjustments: what is actually being extracted.</summary>
+        public double? AdjustedRate;
+        /// <summary>Asteroid/comet mining only: remaining rock mass. Null for every other harvest type.</summary>
+        public double? SourceMassRemaining;
+        /// <summary>Asteroid/comet mining only: the depletion threshold below which the source is exhausted.</summary>
+        public double? SourceMassThreshold;
+    }
+
     // ── Profile (static config) ──────────────────────────────────────────────
     // Kerbalism's own Profile.rules / .processes / .supplies, read once at load.
     // KSP-free like everything else here so the headless Tests project can

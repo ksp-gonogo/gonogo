@@ -123,6 +123,20 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     surface: "m²",
     volume: "m³",
   },
+  "KerbalismIsruConverterExtension": {
+    broken: "flag",
+    capacity: "units",
+    processToken: "text",
+    title: "text",
+    valveIndex: "count",
+  },
+  "KerbalismIsruDrillExtension": {
+    ecRate: "units/s",
+    harvestType: "text",
+    issue: "text",
+    sourceMassRemaining: "t",
+    sourceMassThreshold: "t",
+  },
   "KerbalismLifeSupport": {
     rates: "units/s",
     ruleEnvModifiers: "1",

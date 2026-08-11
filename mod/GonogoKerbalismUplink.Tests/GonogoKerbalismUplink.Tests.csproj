@@ -24,6 +24,7 @@
     <Compile Include="..\GonogoKerbalismUplink\KerbalismCapture.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismReliabilityMap.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismScienceMap.cs" />
+    <Compile Include="..\GonogoKerbalismUplink\KerbalismIsruMap.cs" />
     <!-- The science BACKEND is KSP-free too (it maps a plain captured bundle; the
          reflection that produces that bundle is the KSP-touching half and stays
          out), so the elected instance itself is testable here rather than only its
@@ -49,6 +50,7 @@
   <ItemGroup>
     <None Include="..\golden-fixtures\reliability-extensions.json" Link="golden-fixtures/reliability-extensions.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\golden-fixtures\science-extensions.json" Link="golden-fixtures/science-extensions.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\golden-fixtures\isru-extensions.json" Link="golden-fixtures/isru-extensions.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- GonogoKerbalismUplink.Contract: this Uplink's own wire types (relocated

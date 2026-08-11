@@ -140,6 +140,14 @@ public static class KerbalismRtConfig
             typeof(KerbalismScienceInstrumentExt),
             typeof(KerbalismScienceLabExt),
             typeof(KerbalismScienceBreakdownExt),
+            // The Kerbalism namespaces of the two elected isru.* payloads' extension
+            // bags. Same boundary again, at the smallest scale yet: most of what
+            // Kerbalism's ISRU knows DOES have a stock counterpart, so the core shape
+            // carries it and only the genuinely Kerbalism-only parts land here (the
+            // blocking-reason string, the asteroid depletion state, the process
+            // throttle).
+            typeof(KerbalismIsruDrillExtension),
+            typeof(KerbalismIsruConverterExtension),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
