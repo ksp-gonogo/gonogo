@@ -751,7 +751,28 @@ namespace Sitrep.Contract
         /// Major-12 floor is NOT re-frozen. Every unit already existed in
         /// <see cref="Units"/>. See
         /// <c>local_docs/design/2026-08-10-currency-delay-escape-hatch.md</c> §3.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 5 -&gt; 6: vesselId on the Kerbalism
+        /// vessel telemetry.</b> A new <c>VesselId</c> on
+        /// <c>KerbalismSpaceWeather</c>, <c>KerbalismLifeSupport</c> and
+        /// <c>KerbalismCrewEntry</c> (in <c>GonogoKerbalismUplink.Contract</c>),
+        /// carrying the RAW <c>Vessel.id</c> guid: the same identity the
+        /// <c>fleet.&lt;guid&gt;</c> nodes and <c>currency.&lt;guid&gt;.*</c> events
+        /// key by and that <see cref="VesselIdentity.VesselId"/> already publishes,
+        /// deliberately not a second one. Those three channels are
+        /// <see cref="DelayRole.Delayed"/> active-vessel reads that named no subject,
+        /// so a light-time-old sample (or one held across a blackout) could not be
+        /// told apart from the current vessel's after a switch: an unattributable
+        /// payload, which the vessel provider's own R1 rule already forbids.
+        /// <c>kerbalism.features</c> and <c>kerbalism.profile</c> deliberately get
+        /// nothing, being install-wide facts with no vessel in the read.
+        /// ATTRIBUTION only, not per-vessel routing: the capture is still one
+        /// main-thread read of the active vessel. Purely additive, no existing member
+        /// gains, loses or retypes anything, so an Uplink built against any earlier
+        /// Major-12 minor is unaffected and the frozen Major-12 floor is NOT
+        /// re-frozen (it could not name these types anyway: they left this assembly
+        /// in the v10.0 relocation). <c>Units.Id</c> already existed.</para>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

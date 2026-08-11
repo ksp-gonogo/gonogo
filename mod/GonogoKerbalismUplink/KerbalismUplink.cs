@@ -283,6 +283,11 @@ namespace Gonogo.KerbalismUplink
             return new KerbalismCaptured
             {
                 Ut = snapshot?.Ut ?? 0.0,
+                // The same guid the fleet./currency. namespaces key by, captured
+                // here beside the readings so the published sample names the vessel
+                // it came from rather than relying on whichever vessel is active by
+                // the time it is delivered (see KerbalismLifeSupport.VesselId).
+                VesselId = v.id.ToString(),
                 Snapshot = s,
                 Processes = processes,
                 Crew = new List<KerbalRulesRaw>(_k.CrewRules(v)),
@@ -372,10 +377,10 @@ namespace Gonogo.KerbalismUplink
         {
             if (captured is not KerbalismCaptured c) return;
             _spaceWeather?.Publish(
-                KerbalismCapture.BuildSpaceWeather(c.Snapshot, c.Solar.Stars, c.Solar.Storms, c.StormEjectionSpeed), c.Ut);
+                KerbalismCapture.BuildSpaceWeather(c.VesselId, c.Snapshot, c.Solar.Stars, c.Solar.Storms, c.StormEjectionSpeed), c.Ut);
             _lifeSupport?.Publish(
-                KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers), c.Ut);
-            _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants), c.Ut);
+                KerbalismCapture.BuildLifeSupport(c.VesselId, c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers), c.Ut);
+            _crew?.Publish(KerbalismCapture.BuildCrew(c.VesselId, c.Crew, c.RuleConstants), c.Ut);
         }
 
         public UplinkHealth Health() =>
@@ -387,6 +392,8 @@ namespace Gonogo.KerbalismUplink
         private sealed class KerbalismCaptured
         {
             public double Ut;
+            /// <summary>The captured vessel's <c>Vessel.id</c>, already stringified: a live Vessel handle must not cross onto the Courier thread.</summary>
+            public string? VesselId;
             public KerbalismSnapshot Snapshot;
             public List<ProcessRaw> Processes = new();
             public List<KerbalRulesRaw> Crew = new();

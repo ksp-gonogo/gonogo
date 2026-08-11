@@ -162,15 +162,16 @@ public class LifeSupportResourceCoverageTests
     public void ThePayloadNamesNoResourceOfItsOwn()
     {
         // The guard proper. Every key on the life-support payload is structural
-        // (habitat, processes, ruleEnvModifiers) or the rates map itself; none is
-        // a resource. A fifth fixed consumable cannot be added without failing
-        // here. ruleEnvModifiers joined this list 2026-08-10 (option a', the live
-        // per-rule modifier product): it is keyed by RULE name, not a resource.
+        // (vesselId, habitat, processes, ruleEnvModifiers) or the rates map itself;
+        // none is a resource. A fifth fixed consumable cannot be added without
+        // failing here. ruleEnvModifiers joined this list 2026-08-10 (option a', the
+        // live per-rule modifier product): it is keyed by RULE name, not a resource.
+        // vesselId names the SUBJECT of the ledger, not a consumable in it.
         var payload = KerbalismCapture.BuildLifeSupport(
-            new KerbalismSnapshot(), new List<ProcessRaw>());
+            "e34e5a6d-2c1f-4b18-9c4a-1f2b3c4d5e6f", new KerbalismSnapshot(), new List<ProcessRaw>());
 
         Assert.Equal(
-            new[] { "habitat", "processes", "ruleEnvModifiers", "rates" }
+            new[] { "vesselId", "habitat", "processes", "ruleEnvModifiers", "rates" }
                 .OrderBy(k => k, System.StringComparer.Ordinal),
             payload.Keys.OrderBy(k => k, System.StringComparer.Ordinal).ToArray());
     }

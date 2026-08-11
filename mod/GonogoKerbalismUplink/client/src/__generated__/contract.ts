@@ -22,6 +22,7 @@ export interface KerbalismIsruConverterExtension
 }
 export interface KerbalismSpaceWeather
 {
+	vesselId?: string;
 	radiationRadPerSecond?: Value<"rad/s">;
 	habitatRadiationRadPerSecond?: Value<"rad/s">;
 	magnetosphere?: boolean;
@@ -130,6 +131,7 @@ export interface KerbalismGreenhouseEntry
 }
 export interface KerbalismLifeSupport
 {
+	vesselId?: string;
 	rates?: { [key: string]: Value<"units/s"> };
 	habitat?: KerbalismHabitat;
 	processes?: KerbalismProcessEntry[];
@@ -145,6 +147,7 @@ export interface KerbalismCrewRule
 }
 export interface KerbalismCrewEntry
 {
+	vesselId?: string;
 	name?: string;
 	trait?: string;
 	rules?: KerbalismCrewRule[];

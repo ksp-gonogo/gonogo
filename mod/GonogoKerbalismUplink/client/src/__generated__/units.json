@@ -44,7 +44,8 @@
     "KerbalismCrewEntry": {
       "deathClockSec": "s",
       "name": "text",
-      "trait": "text"
+      "trait": "text",
+      "vesselId": "id"
     },
     "KerbalismCrewRule": {
       "degenPerSec": "units/s",
@@ -105,7 +106,8 @@
     },
     "KerbalismLifeSupport": {
       "rates": "units/s",
-      "ruleEnvModifiers": "1"
+      "ruleEnvModifiers": "1",
+      "vesselId": "id"
     },
     "KerbalismProcessDef": {
       "dumpValves": "text",
@@ -200,7 +202,8 @@
       "shieldingCapacity": "units",
       "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
-      "stormIncoming": "flag"
+      "stormIncoming": "flag",
+      "vesselId": "id"
     },
     "KerbalismStarInfo": {
       "direction.x": "1",
@@ -221,7 +224,8 @@
     "kerbalism.crew": {
       "deathClockSec": "s",
       "name": "text",
-      "trait": "text"
+      "trait": "text",
+      "vesselId": "id"
     },
     "kerbalism.features": {
       "automation": "flag",
@@ -240,7 +244,8 @@
     },
     "kerbalism.lifesupport": {
       "rates": "units/s",
-      "ruleEnvModifiers": "1"
+      "ruleEnvModifiers": "1",
+      "vesselId": "id"
     },
     "kerbalism.profile": {
       "name": "text"
@@ -257,7 +262,8 @@
       "shieldingCapacity": "units",
       "stormEjectionSpeed": "m/s",
       "stormInProgress": "flag",
-      "stormIncoming": "flag"
+      "stormIncoming": "flag",
+      "vesselId": "id"
     }
   },
   "typeShapes": {

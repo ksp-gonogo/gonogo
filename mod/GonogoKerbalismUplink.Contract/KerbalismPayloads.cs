@@ -49,6 +49,20 @@ namespace GonogoKerbalismUplink;
 public class KerbalismSpaceWeather
 {
     /// <summary>
+    /// The vessel whose vantage these readings were taken from. See
+    /// <see cref="KerbalismLifeSupport.VesselId"/> for the identity and the
+    /// reason the field exists.
+    ///
+    /// <para>Every member below is a read of THIS vessel: the radiation and belt
+    /// flags come from its <c>VesselData</c>, <see cref="Stars"/> is its own
+    /// vantage on each star (direction and distance are vessel-relative), and
+    /// <see cref="Storms"/> is keyed by the body it is currently orbiting. The
+    /// one exception is <see cref="StormEjectionSpeed"/>, a global preference
+    /// that rides along here rather than earning a channel of its own.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+    /// <summary>
     /// Raw <c>API.Radiation(v)</c>, i.e. <c>VesselData.EnvRadiation</c>. Units
     /// confirmed rad/s from Kerbalism source (UI/Monitor.cs computes rad/h
     /// display values as <c>EnvHabitatRadiation * 3600.0</c>, the same
@@ -523,6 +537,31 @@ public class KerbalismGreenhouseEntry
 public class KerbalismLifeSupport
 {
     /// <summary>
+    /// The vessel this ledger describes: KSP's <c>Vessel.id</c> GUID as a string,
+    /// the raw guid with no <c>"vessel:"</c> prefix. THE single vessel identity,
+    /// byte-identical to the one <c>fleet.&lt;guid&gt;.*</c> and
+    /// <c>currency.&lt;guid&gt;.*</c> key by and to
+    /// <c>VesselIdentity.VesselId</c>, so a consumer can join across all of them
+    /// without a translation step.
+    ///
+    /// <para><b>Why it is on the wire at all,</b> given this Topic only ever
+    /// carries the ACTIVE vessel: the channel is
+    /// <see cref="DelayRole.Delayed"/>, so a delivered sample is light-time old
+    /// while the client's notion of which vessel is active is whatever it holds
+    /// now. Switch vessels and the client's cached value keeps describing the
+    /// PREVIOUS ship, with no in-band way to see the boundary; the same holds for
+    /// a value held across a blackout, which can outlive the vessel it describes.
+    /// An unattributable payload is worse than no payload, so the sample names its
+    /// own subject.</para>
+    ///
+    /// <para>This is attribution, NOT per-vessel routing: the capture is still one
+    /// main-thread read of <c>FlightGlobals.ActiveVessel</c>. Emitting Kerbalism
+    /// telemetry for unloaded vessels through their own <c>fleet.&lt;guid&gt;</c>
+    /// nodes is separate work that this field is a precondition for.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
+    /// <summary>
     /// Signed net rate per resource, units/s, keyed by KSP resource name
     /// (Kerbalism's <c>ResourceAverageRate</c>). Negative = draining.
     ///
@@ -625,6 +664,20 @@ public class KerbalismCrewRule
 [SitrepTopic("kerbalism.crew", isArray: true)]
 public class KerbalismCrewEntry
 {
+    /// <summary>
+    /// The vessel this kerbal is aboard. See
+    /// <see cref="KerbalismLifeSupport.VesselId"/> for the identity and the
+    /// reason the field exists; the mis-attribution it closes bites hardest here,
+    /// where a stale sample means one crew's dose and death clock rendered
+    /// against another's names.
+    ///
+    /// <para>Per ENTRY rather than once for the whole payload because
+    /// <c>kerbalism.crew</c> is an array Topic: it has no enclosing object to
+    /// carry a single copy, and giving it one would retype the channel (breaking)
+    /// rather than add to it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? VesselId { get; set; }
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
     [SitrepUnit(Units.Text)]
