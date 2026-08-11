@@ -10,6 +10,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Cluster,
   EmptyState,
   Field,
   FieldLabel,
@@ -25,6 +26,7 @@ import {
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useId, useMemo, useState } from "react";
+import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 /**
  * In-situ resource operations: every drill and every chemical converter on the
@@ -69,27 +71,47 @@ const resourceOpsActions = [
 export type ResourceOpsActions = typeof resourceOpsActions;
 
 /**
- * A recipe side as a compact resource list. Rates are already live on the wire
- * (scaled by whatever efficiency or capacity multiplier the backend applies), so
- * this renders them as-is rather than deriving anything.
+ * Enough decimal places to show a rate as nonzero: `base` for an ordinary
+ * magnitude, widened to two significant digits below it. Life-support rates
+ * genuinely sit at 0.0002 units/s, and a fixed precision flattens that to
+ * "0.000", which reads as a dead process rather than a slow one.
+ */
+function rateDecimals(rate: Quantityish, base: number): number {
+  const magnitude = magnitudeOf(rate);
+  if (magnitude === null || magnitude === 0) return base;
+  const twoSignificant = 1 - Math.floor(Math.log10(Math.abs(magnitude)));
+  return Math.min(6, Math.max(base, twoSignificant));
+}
+
+/**
+ * A recipe side as a run of resource+rate items. Rates are already live on the
+ * wire (scaled by whatever efficiency or capacity multiplier the backend
+ * applies), so this renders them as-is rather than deriving anything.
+ *
+ * Renders a FRAGMENT of atomic items rather than its own row: the enclosing
+ * recipe row wraps, and each resource+rate pair moves to the next line whole
+ * (`Inline` never shrinks), so a recipe too wide for the tile wraps instead of
+ * clipping its output side.
  */
 function Flows({ flows }: Readonly<{ flows: IsruConverterEntry["inputs"] }>) {
   if (flows.length === 0) return <Value tone="faint">none</Value>;
 
   return (
-    <Inline gap="xs">
+    <>
       {flows.map((flow, index) => (
-        <Value key={`${flow.resource ?? index}`} size="sm">
-          {flow.resource ?? "?"}
-          {flow.rate !== null && flow.rate !== undefined && (
-            <>
-              {" "}
-              <Unit value={flow.rate} decimals={3} />
-            </>
-          )}
-        </Value>
+        <Inline key={`${flow.resource ?? index}`} gap="xs">
+          <Value size="sm" tone="default">
+            {flow.resource ?? "?"}
+            {flow.rate !== null && flow.rate !== undefined && (
+              <>
+                {" "}
+                <Unit value={flow.rate} decimals={rateDecimals(flow.rate, 3)} />
+              </>
+            )}
+          </Value>
+        </Inline>
       ))}
-    </Inline>
+    </>
   );
 }
 
@@ -99,8 +121,13 @@ function DrillRow({
 }: Readonly<{ drill: IsruDrillEntry; highlighted: boolean }>) {
   return (
     <Stack gap="xs" aria-current={highlighted ? "true" : undefined}>
-      <Inline gap="xs">
-        <Value size="sm">{drill.partTitle ?? drill.partId ?? "Drill"}</Value>
+      {/* Every row here wraps rather than clips: a no-wrap Inline cut badges
+          and the rate readout off at the default tile width, and a clipped
+          "0.0004" reads as a dead "0.000". */}
+      <Cluster justify="start" gap="xs" wrap>
+        <Value size="sm" tone="default">
+          {drill.partTitle ?? drill.partId ?? "Drill"}
+        </Value>
         <Badge>{drill.resource ?? "unknown"}</Badge>
         {/* Deployed is genuinely absent on a harvester with no deploy animation,
             so the chip is omitted rather than shown as a false "retracted". */}
@@ -112,21 +139,25 @@ function DrillRow({
         <Badge severity={drill.running ? "nominal" : "info"}>
           {drill.running ? "running" : "stopped"}
         </Badge>
-      </Inline>
-      <Inline gap="sm">
-        <ReadoutCaption>abundance</ReadoutCaption>
-        {drill.abundance !== null && drill.abundance !== undefined ? (
-          <Unit value={drill.abundance} as="%" decimals={2} />
-        ) : (
-          <Value tone="faint">unknown</Value>
-        )}
-        <ReadoutCaption>rate</ReadoutCaption>
-        {drill.rate !== null && drill.rate !== undefined ? (
-          <Unit value={drill.rate} decimals={4} />
-        ) : (
-          <Value tone="faint">unknown</Value>
-        )}
-      </Inline>
+      </Cluster>
+      <Cluster justify="start" align="baseline" gap="sm" wrap>
+        <Inline gap="xs">
+          <ReadoutCaption>abundance</ReadoutCaption>
+          {drill.abundance !== null && drill.abundance !== undefined ? (
+            <Unit value={drill.abundance} as="%" decimals={2} />
+          ) : (
+            <Value tone="faint">unknown</Value>
+          )}
+        </Inline>
+        <Inline gap="xs">
+          <ReadoutCaption>rate</ReadoutCaption>
+          {drill.rate !== null && drill.rate !== undefined ? (
+            <Unit value={drill.rate} decimals={rateDecimals(drill.rate, 4)} />
+          ) : (
+            <Value tone="faint">unknown</Value>
+          )}
+        </Inline>
+      </Cluster>
     </Stack>
   );
 }
@@ -138,26 +169,35 @@ function ConverterRow({
   // A converter that is on but moving nothing is a starved recipe. That is the
   // derived diagnostic the shared shape is meant to carry, rather than a string
   // no engine actually reports, so it is spelled out here rather than on the wire.
+  // A process with NO outputs is exempt: a scrubber or waste processor consumes
+  // and dumps by design, and an empty output side is its healthy state, not a
+  // stall.
   const starved =
     converter.running === true &&
+    converter.outputs.length > 0 &&
     converter.outputs.every((flow) => (flow.rate?.magnitude ?? 0) === 0);
 
   return (
     <Stack gap="xs" aria-current={highlighted ? "true" : undefined}>
-      <Inline gap="xs">
-        <Value size="sm">
+      {/* Wraps for the same reason the recipe row does: at the default tile
+          width a no-wrap Inline clipped the starved badge to "NO OUTPU". */}
+      <Cluster justify="start" gap="xs" wrap>
+        <Value size="sm" tone="default">
           {converter.partTitle ?? converter.partId ?? "Converter"}
         </Value>
         <Badge severity={converter.running ? "nominal" : "info"}>
           {converter.running ? "running" : "stopped"}
         </Badge>
         {starved && <Badge severity="warning">no output</Badge>}
-      </Inline>
-      <Inline gap="xs">
+      </Cluster>
+      {/* The recipe is the row's core content, so it wraps rather than clips:
+          a no-wrap Inline here cut the whole output side off at the default
+          tile width. */}
+      <Cluster justify="start" align="baseline" gap="xs" wrap>
         <Flows flows={converter.inputs} />
         <ReadoutCaption>{"→"}</ReadoutCaption>
         <Flows flows={converter.outputs} />
-      </Inline>
+      </Cluster>
     </Stack>
   );
 }
