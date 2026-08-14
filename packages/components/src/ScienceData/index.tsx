@@ -295,8 +295,14 @@ function ScienceDataComponent({
   // No pre-aggregated fields on the wire, derive both from the same
   // already-parsed experiments array.
   const sciCount = experiments ? experiments.length : undefined;
-  const sciDataAmount = experiments
-    ? experiments.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
+  // Summed only when at least one entry actually carries a figure. A provider
+  // whose model is not mits leaves `dataAmount` null on every entry (Kerbalism
+  // stores megabytes and says so through `valueModel`), and summing those to a
+  // confident "0.0 mits collected" states something false about a vessel that
+  // may be carrying plenty. No figure means the line simply omits it.
+  const collected = experiments?.filter((e) => e.dataAmount !== null) ?? [];
+  const sciDataAmount = collected.length
+    ? collected.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
     : undefined;
 
   const careerScience = magnitudeOf(
@@ -426,11 +432,15 @@ function AboardTab({
           : "Awaiting situation telemetry"}
       </Value>
       {!compact && typeof sciCount === "number" && (
-        <div style={META_LINE}>
+        <Value size="xs" tone="muted">
           {sciCount} record{sciCount === 1 ? "" : "s"}
-          {typeof sciDataAmount === "number" &&
-            ` · ${fixed(sciDataAmount, 1)} mits collected`}
-        </div>
+          {typeof sciDataAmount === "number" && (
+            <>
+              {" · "}
+              <Unit value={value("Mit", sciDataAmount)} /> collected
+            </>
+          )}
+        </Value>
       )}
       <ScrollArea>
         {breakdown && breakdown.length > 0 ? (
@@ -566,11 +576,6 @@ const TAB_BODY: CSSProperties = {
   gap: "var(--space-8)",
   flex: 1,
   minHeight: 0,
-};
-
-const META_LINE: CSSProperties = {
-  fontSize: "var(--font-size-xs)",
-  color: "var(--color-text-faint)",
 };
 
 const MUTED: CSSProperties = {
