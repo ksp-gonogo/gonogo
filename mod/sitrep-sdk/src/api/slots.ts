@@ -467,6 +467,16 @@ export interface TechNodeBadgeContext {
   node: TechSlotNode;
 }
 
+// --- ScienceData (packages/components/src/ScienceData) ----------------------
+
+/** Mirrors `ScienceDataAboardRowContext` (ScienceData/index.tsx). */
+export interface ScienceDataAboardRowContext {
+  /** The subject this Aboard row represents; an augment joins its own
+   *  `science.experiments` read against this id to find the file and/or
+   *  sample backing it. */
+  subjectId: string;
+}
+
 // --- LandingStatus (packages/components/src/LandingStatus) -----------------
 
 /** Mirrors `LandingStatusBadgesContext` (LandingStatus/index.tsx). */
@@ -657,6 +667,8 @@ declare module "./types" {
     "map-view.actions": MapActionsContext;
 
     "tech-tree.badges": TechNodeBadgeContext;
+
+    "science-data.aboard-row": ScienceDataAboardRowContext;
 
     "landing-status.badges": LandingStatusBadgesContext;
 

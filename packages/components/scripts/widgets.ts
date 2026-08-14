@@ -1187,6 +1187,28 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // ScienceData's Aboard row, an ADDITIVE Kerbalism augment: the widget
+    // itself (registered above) renders the row identically with no
+    // Kerbalism data at all; the File Manager controls (Send/Delete/
+    // Analyze/Dump/Move to lab, drive capacity readout) live entirely in
+    // the Uplink (mod/GonogoKerbalismUplink/client/src/ScienceFileManager)
+    // and fill the generic `science-data.aboard-row` slot this widget
+    // exposes. Same widgetId, a dedicated fixtures dir and label (mirrors
+    // crew-status/kerbalism-survival's convention) so this render set is
+    // disambiguated from the base-widget one above.
+    widgetId: "science-data",
+    label: "science-data/kerbalism-file-manager",
+    fixturesPath: "ScienceData/__render_kerbalism_file_manager__",
+    outPath: "renders/kerbalism-science-file-manager",
+    modes: [
+      // defaultSize 8×10: the common operator view, every control visible.
+      { name: "default-8x10", w: 8, h: 10 },
+      // Wide/tall review shot: both the file and sample rows plus the drive
+      // readout readable without scrolling.
+      { name: "wide-12x12", w: 12, h: 12 },
+    ],
+  },
+  {
     widgetId: "ground-survey",
     fixturesPath: "GroundSurvey/__fixtures__",
     outPath: "renders/ground-survey-widget",

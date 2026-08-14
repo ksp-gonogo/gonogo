@@ -40,6 +40,17 @@ namespace Gonogo.KerbalismUplink
         private readonly Dictionary<string, MethodInfo> _apiVessel = new();
         private readonly Dictionary<string, MethodInfo> _apiVesselString = new();
 
+        // ── drive actuation (File Manager commands) ─────────────────────────
+        private readonly Type? _driveType;
+        private readonly Type? _scienceDbType;
+        private readonly MethodInfo? _getSubjectDataFromStockId;
+        private readonly MethodInfo? _driveSend;
+        private readonly MethodInfo? _driveDeleteFile;
+        private readonly MethodInfo? _driveDeleteSample;
+        private readonly MethodInfo? _driveAnalyze;
+        private readonly MethodInfo? _driveRecordSample;
+        private readonly MethodInfo? _driveSampleCapacityAvailable;
+
         public bool IsAvailable => _asm != null && _apiType != null;
 
         public KerbalismReflection()
@@ -102,6 +113,20 @@ namespace Gonogo.KerbalismUplink
                         _apiVesselString[m.Name] = m;
                 }
             }
+
+            // Drive actuation: every method below has exactly one overload in
+            // Kerbalism's Drive/ScienceDB (ground-truthed against
+            // src/Kerbalism/Science/Drive.cs and ScienceDB.cs), so a plain
+            // name lookup is unambiguous, unlike Modifiers.Evaluate above.
+            _driveType = FindType("KERBALISM.Drive") ?? FindType("Kerbalism.Drive");
+            _scienceDbType = FindType("KERBALISM.ScienceDB") ?? FindType("Kerbalism.ScienceDB");
+            _getSubjectDataFromStockId = _scienceDbType?.GetMethod("GetSubjectDataFromStockId", BindingFlags.Public | BindingFlags.Static);
+            _driveSend = _driveType?.GetMethod("Send", BindingFlags.Public | BindingFlags.Instance);
+            _driveDeleteFile = _driveType?.GetMethod("Delete_file", BindingFlags.Public | BindingFlags.Instance);
+            _driveDeleteSample = _driveType?.GetMethod("Delete_sample", BindingFlags.Public | BindingFlags.Instance);
+            _driveAnalyze = _driveType?.GetMethod("Analyze", BindingFlags.Public | BindingFlags.Instance);
+            _driveRecordSample = _driveType?.GetMethod("Record_sample", BindingFlags.Public | BindingFlags.Instance);
+            _driveSampleCapacityAvailable = _driveType?.GetMethod("SampleCapacityAvailable", BindingFlags.Public | BindingFlags.Instance);
         }
 
         /// <summary>Invoke a public static (Vessel)->double API method (Radiation, Pressure, Comfort, …).</summary>
@@ -760,6 +785,11 @@ namespace Gonogo.KerbalismUplink
                 var row = StoredRow(entry.Key, entry.Value, partId, partName, "file");
                 row.TransmitRate = MemberDouble(entry.Value, "transmitRate") ?? 0;
                 row.Transmitting = row.TransmitRate > 0;
+                // GetFileSend wants the SubjectData's internal Id, not the
+                // StockSubjectId already carried on the row: Drive keys its
+                // fileSendFlags dictionary by the former.
+                var subjectId = entry.Key != null ? MemberString(entry.Key, "Id") : null;
+                row.SendFlagged = subjectId != null ? InvokeBoolMethod(drive, "GetFileSend", subjectId) : null;
                 Fill(row, dataCapacity, usedMB, sampleCapacity, slotsUsed);
                 into.Add(row);
             }
@@ -845,6 +875,159 @@ namespace Gonogo.KerbalismUplink
             return pairs;
         }
 
+        // ── drive actuation (File Manager commands) ─────────────────────────
+        //
+        // The File Manager commands (KerbalismFileActuator) resolve and act
+        // through these methods only, never by reaching into Kerbalism types
+        // directly: this keeps every Drive/ScienceDB member name confirmed
+        // against source in exactly one place (see this file's header
+        // comment on the reflection convention).
+
+        /// <summary>
+        /// Resolve a stock-format subject id (the same id <c>science.experiments[].subjectId</c>
+        /// carries) back to Kerbalism's live <c>SubjectData</c>, via the public
+        /// <c>ScienceDB.GetSubjectDataFromStockId(string, ScienceSubject, string)</c>
+        /// resolver (Science/ScienceDB.cs:684). Both optional parameters are
+        /// passed null, matching their own defaults. Null on a malformed id or
+        /// an absent assembly.
+        ///
+        /// <para>The resolver MUTATES the save for a parseable id it does not
+        /// know: it constructs an unknown-subject entry and registers it
+        /// permanently in the science DB. Callers must therefore validate the
+        /// requested subject against the current snapshot BEFORE resolving, so
+        /// an arbitrary wire id can never seed a player's subject DB. The
+        /// command provider does exactly that.</para>
+        /// </summary>
+        public object? ResolveSubjectData(string stockSubjectId)
+        {
+            if (_getSubjectDataFromStockId == null || string.IsNullOrEmpty(stockSubjectId)) return null;
+            try { return _getSubjectDataFromStockId.Invoke(null, new object?[] { stockSubjectId, null, null }); }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Every live <c>Drive</c> on the vessel's <c>HardDrive</c> parts,
+        /// paired with whether that same part also carries a <c>Laboratory</c>
+        /// module: the same per-part walk <see cref="Science"/> uses, so a
+        /// subject id resolvable on the read side resolves here too. Used by
+        /// <c>MoveToLab</c> to find a drive that is genuinely lab-adjacent,
+        /// not merely any drive with room.
+        /// </summary>
+        public List<(object Drive, bool LabAdjacent)> DrivesWithLabAdjacency(Vessel v)
+        {
+            var result = new List<(object, bool)>();
+            if (v?.parts == null) return result;
+            foreach (var part in v.parts)
+            {
+                if (part?.Modules == null) continue;
+                // A part can carry more than one HardDrive (a config patch can add
+                // them), and the read side emits a row per drive, so collect every
+                // one: keeping only the last would leave the extra drives' rows
+                // resolving NotFound on every command.
+                var drives = new List<object>();
+                var hasLab = false;
+                foreach (PartModule pm in part.Modules)
+                {
+                    if (pm == null) continue;
+                    var moduleName = pm.GetType().Name;
+                    if (string.Equals(moduleName, "HardDrive", StringComparison.Ordinal))
+                    {
+                        var drive = Member(pm, "Drive") ?? InvokeMethod(pm, "GetDrive");
+                        if (drive != null) drives.Add(drive);
+                    }
+                    else if (string.Equals(moduleName, "Laboratory", StringComparison.Ordinal))
+                        hasLab = true;
+                }
+                foreach (var drive in drives) result.Add((drive, hasLab));
+            }
+            return result;
+        }
+
+        /// <summary>Every live <c>Drive</c> on the vessel, lab-adjacency stripped off (see <see cref="DrivesWithLabAdjacency"/>).</summary>
+        public List<object> Drives(Vessel v) => DrivesWithLabAdjacency(v).ConvertAll(t => t.Drive);
+
+        /// <summary>The drive (among <paramref name="drives"/>) whose <c>files</c> dictionary currently holds this subject, or null if it has moved on since the caller's snapshot.</summary>
+        public object? DriveHoldingFile(List<object> drives, object subjectData) =>
+            drives.Find(d => Pairs(Member(d, "files") as IEnumerable).Exists(p => ReferenceEquals(p.Key, subjectData)));
+
+        /// <summary>The drive (among <paramref name="drives"/>) whose <c>samples</c> dictionary currently holds this subject, or null.</summary>
+        public object? DriveHoldingSample(List<object> drives, object subjectData) =>
+            drives.Find(d => Pairs(Member(d, "samples") as IEnumerable).Exists(p => ReferenceEquals(p.Key, subjectData)));
+
+        /// <summary>The live <c>Sample</c> blob for this subject on this drive, or null.</summary>
+        public object? SampleBlob(object drive, object subjectData)
+        {
+            foreach (var pair in Pairs(Member(drive, "samples") as IEnumerable))
+            {
+                if (ReferenceEquals(pair.Key, subjectData)) return pair.Value;
+            }
+            return null;
+        }
+
+        /// <summary>A <c>SubjectData</c>'s internal <c>Id</c>, the key <c>Drive.Send</c>/<c>GetFileSend</c> want (never the stock-format id carried on the wire).</summary>
+        public string? SubjectInternalId(object subjectData) => MemberString(subjectData, "Id");
+
+        /// <summary>A <c>Sample</c> blob's stored size in MB.</summary>
+        public double SampleSize(object sample) => MemberDouble(sample, "size") ?? 0;
+
+        /// <summary>A <c>Sample</c> blob's physical mass.</summary>
+        public double SampleMass(object sample) => MemberDouble(sample, "mass") ?? 0;
+
+        /// <summary>Whether a <c>Sample</c> blob was created by the Hijacker and must keep the stock crediting formula on recovery (see Sample.cs).</summary>
+        public bool SampleUsesStockCrediting(object sample) => MemberBool(sample, "useStockCrediting") ?? false;
+
+        /// <summary>Set (or clear) a file's queued-for-transmission flag: <c>Drive.Send(string subjectId, bool)</c>.</summary>
+        public bool DriveSend(object drive, string internalSubjectId, bool flag)
+        {
+            if (_driveSend == null) return false;
+            try { _driveSend.Invoke(drive, new object[] { internalSubjectId, flag }); return true; }
+            catch { return false; }
+        }
+
+        /// <summary>Delete a stored file outright: <c>Drive.Delete_file(SubjectData, double)</c>. An amount of 0.0 deletes the whole file (Drive.cs's own "delete everything" sentinel).</summary>
+        public bool DriveDeleteFile(object drive, object subjectData)
+        {
+            if (_driveDeleteFile == null) return false;
+            try { _driveDeleteFile.Invoke(drive, new object[] { subjectData, 0.0 }); return true; }
+            catch { return false; }
+        }
+
+        /// <summary>Set (or clear) a sample's lab-analysis flag: <c>Drive.Analyze(SubjectData, bool)</c>.</summary>
+        public bool DriveAnalyze(object drive, object subjectData, bool flag)
+        {
+            if (_driveAnalyze == null) return false;
+            try { _driveAnalyze.Invoke(drive, new object[] { subjectData, flag }); return true; }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// Dump a stored sample: <c>Drive.Delete_sample(SubjectData, double)</c>.
+        /// An amount of 0.0 (the default) removes the whole sample; a caller
+        /// moving part of a sample elsewhere passes the exact amount moved.
+        /// </summary>
+        public bool DriveDeleteSample(object drive, object subjectData, double amount = 0.0)
+        {
+            if (_driveDeleteSample == null) return false;
+            try { _driveDeleteSample.Invoke(drive, new object[] { subjectData, amount }); return true; }
+            catch { return false; }
+        }
+
+        /// <summary>How much sample capacity a drive has free for this subject: <c>Drive.SampleCapacityAvailable(SubjectData)</c>. Null on reflection failure, not to be confused with a genuine zero.</summary>
+        public double? DriveSampleCapacityAvailable(object drive, object subjectData)
+        {
+            if (_driveSampleCapacityAvailable == null) return null;
+            try { return AsDouble(_driveSampleCapacityAvailable.Invoke(drive, new object[] { subjectData })); }
+            catch { return null; }
+        }
+
+        /// <summary>Record a sample onto a drive, creating or topping up the existing one: <c>Drive.Record_sample(SubjectData, double, double, bool)</c>. False when the drive has no room.</summary>
+        public bool DriveRecordSample(object drive, object subjectData, double amount, double mass, bool useStockCrediting)
+        {
+            if (_driveRecordSample == null) return false;
+            try { return (bool)(_driveRecordSample.Invoke(drive, new object[] { subjectData, amount, mass, useStockCrediting }) ?? false); }
+            catch { return false; }
+        }
+
         /// <summary>A KERBALISM.Features.* flag, false when absent (see <see cref="Features"/>).</summary>
         private bool Modeled(string feature) =>
             Features().TryGetValue(feature, out var on) && on;
@@ -876,6 +1059,13 @@ namespace Gonogo.KerbalismUplink
             var m = obj.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
             if (m == null) return null;
             try { return m.Invoke(obj, null); } catch { return null; }
+        }
+
+        private static bool? InvokeBoolMethod(object obj, string name, string arg)
+        {
+            var m = obj.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance, null, new[] { typeof(string) }, null);
+            if (m == null) return null;
+            try { return m.Invoke(obj, new object[] { arg }) as bool?; } catch { return null; }
         }
 
         private static double? InvokeDoubleMethod(object obj, string name) => AsDouble(InvokeMethod(obj, name));

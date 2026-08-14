@@ -8,17 +8,17 @@ namespace GonogoKerbalismUplink.Tests
 {
     /// <summary>
     /// The per-Uplink half of the uplink-types-out-of-core plan's Unit guard
-    /// (§5b): now that the fifteen <c>kerbalism.*</c> payload types live in their
+    /// (§5b): now that the <c>kerbalism.*</c> payload types live in their
     /// own assembly (<c>GonogoKerbalismUplink.Contract</c>) instead of
     /// <c>Sitrep.Contract</c>, nothing FORCES a future property on this Uplink's
     /// own contract types to declare its unit. The sweep itself is
     /// <c>UnitCoverageAssertion.AssertExhaustive</c>, shared with every other
     /// relocated Uplink; this file names what is this Uplink's own.
     ///
-    /// <para><b>Why no baseline file.</b> This Uplink's fifteen contract types
-    /// carry every scalar property annotated already, so the surface starts, and
-    /// must stay, entirely covered: same zero-pending starting point as every
-    /// other relocated slice.</para>
+    /// <para><b>Why no baseline file.</b> This Uplink's contract types carry
+    /// every scalar property annotated already, so the surface starts, and must
+    /// stay, entirely covered: same zero-pending starting point as every other
+    /// relocated slice.</para>
     ///
     /// <para><b>This Domain is what makes all three branches of the shared
     /// <c>RequiresUnit</c> load-bearing rather than theoretical</b>, and each is
@@ -58,12 +58,13 @@ namespace GonogoKerbalismUplink.Tests
                 "Units.RadPerSecond/Units.ResourceUnitsPerSecond");
 
         /// <summary>
-        /// Every one of the fifteen is reached by the sweep, asserted rather than
-        /// assumed. <see cref="EveryScalarWirePropertyDeclaresAUnit"/> passes
+        /// Every one of this Uplink's contract types is reached by the sweep,
+        /// asserted rather than assumed.
+        /// <see cref="EveryScalarWirePropertyDeclaresAUnit"/> passes
         /// VACUOUSLY on any type the sweep does not reach, and there are two
         /// silent ways for that to happen: a type loses <c>[SitrepContract]</c>,
-        /// or a nested type stops being referenced by its parent. Ten of the
-        /// fifteen are nested-only, which is what makes it worth spelling out
+        /// or a nested type stops being referenced by its parent. Most of them
+        /// are nested-only, which is what makes it worth spelling out
         /// here more than in any other slice.
         /// </summary>
         [Fact]
@@ -79,7 +80,7 @@ namespace GonogoKerbalismUplink.Tests
                 // Not a Topic payload of this Domain's own: the Kerbalism namespace
                 // of the CORE reliability.summary payload's provider extension bag
                 // (KerbalismReliabilityExt.cs). It is in this assembly for the same
-                // reason the fifteen above are, and it needs the same annotation
+                // reason the ones above are, and it needs the same annotation
                 // guard: a quantity inside an extension is a Value like any other,
                 // and its unit reaches the decode through this Uplink's own
                 // generated TYPE map.
@@ -98,7 +99,14 @@ namespace GonogoKerbalismUplink.Tests
                 // declare no unit of their own: Kerbalism measures ISRU in the same
                 // resource units the game does, so every quantity here is a
                 // first-party token and the guard is the ordinary annotation check.
-                nameof(KerbalismIsruDrillExtension), nameof(KerbalismIsruConverterExtension));
+                nameof(KerbalismIsruDrillExtension), nameof(KerbalismIsruConverterExtension),
+                // Args for the File Manager command surface (kerbalism.file.*/
+                // kerbalism.sample.*). Inbound only, but still wire-declared
+                // quantities: SubjectId (Units.Id) and Flag (Units.Flag) both need
+                // the same annotation guard every other scalar does, even though
+                // ApplyUnitValueTypes never wraps them in a Value<> (see
+                // KerbalismRtConfig's own doc comment on the "Args" name-suffix skip).
+                nameof(KerbalismSubjectFlagArgs), nameof(KerbalismSubjectActionArgs));
 
         /// <summary>
         /// The three <c>RequiresUnit</c> branches, exercised by real properties

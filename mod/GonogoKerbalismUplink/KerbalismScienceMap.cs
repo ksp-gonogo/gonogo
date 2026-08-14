@@ -112,6 +112,7 @@ namespace Gonogo.KerbalismUplink
                             ["sampleSlotsUsed"] = s.SampleSlotsUsed,
                             ["transmitRateMBps"] = s.TransmitRate,
                             ["transmitting"] = s.Transmitting,
+                            ["sendFlagged"] = s.SendFlagged,
                         },
                     },
                 });

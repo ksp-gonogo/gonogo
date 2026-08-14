@@ -140,6 +140,16 @@ public class KerbalismScienceExperimentExt
     /// <summary>Whether this result is being sent right now.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Transmitting { get; set; }
+
+    /// <summary>
+    /// Whether this file is flagged for transmission (<c>Drive.GetFileSend</c>),
+    /// which is true even when nothing is currently flowing: no link, no EC, or a
+    /// higher-value file draining first. This is the state the File Manager's send
+    /// toggle actually reflects, distinct from <see cref="Transmitting"/>. Null for
+    /// a sample, which has no send flag.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? SendFlagged { get; set; }
 }
 
 /// <summary>

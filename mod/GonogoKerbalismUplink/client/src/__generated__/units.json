@@ -170,6 +170,7 @@
       "sampleSlotsTotal": "count",
       "sampleSlotsUsed": "count",
       "sciencePerMB": "science/MB",
+      "sendFlagged": "flag",
       "storageCapacityMB": "MB",
       "storageUsedMB": "MB",
       "transmitRateMBps": "MB/s",
@@ -215,6 +216,13 @@
       "stormDuration": "s",
       "stormState": "count",
       "stormTime": "s"
+    },
+    "KerbalismSubjectActionArgs": {
+      "subjectId": "id"
+    },
+    "KerbalismSubjectFlagArgs": {
+      "flag": "flag",
+      "subjectId": "id"
     }
   },
   "topics": {

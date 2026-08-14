@@ -30,6 +30,17 @@
          out), so the elected instance itself is testable here rather than only its
          mapper. -->
     <Compile Include="..\GonogoKerbalismUplink\KerbalismScienceBackend.cs" />
+    <!-- File Manager command validation: resolves a subject against the same
+         plain ScienceRaw snapshot the science backend above stashes, never
+         touches live Kerbalism (the actuator it delegates to is the seam;
+         only its interface is compiled here, the live Drive implementation
+         is the KSP-touching half and stays out). -->
+    <Compile Include="..\GonogoKerbalismUplink\IKerbalismFileActuator.cs" />
+    <Compile Include="..\GonogoKerbalismUplink\KerbalismFileCommandProvider.cs" />
+    <!-- moveToLab's destination-picking decision, pulled out of the live
+         KerbalismFileActuator so it is unit-testable without a vessel; see
+         that type's own doc comment. -->
+    <Compile Include="..\GonogoKerbalismUplink\KerbalismMoveDestinationSelector.cs" />
   </ItemGroup>
 
   <!-- KerbalismReliabilityMap builds Sitrep.Contract POCOs (KSP-free).

@@ -134,6 +134,11 @@ import "./ShipMap/partMeters";
 // which process each row is (see ./ResourceOps/processFilters.ts for what it
 // deliberately does NOT contribute).
 import "./ResourceOps/processFilters";
+// ScienceData's per-subject `science-data.aboard-row` slot: the File
+// Manager controls (send/delete/analyze/dump/move-to-lab) over the drive
+// picture only Kerbalism has. ScienceData itself stays in
+// @ksp-gonogo/components; only this augment lives here.
+import "./ScienceFileManager";
 
 // The CrewSurvival Processor handle + its result types, the single per-frame
 // derivation the `crew-status.survival` augment and its badge both consume.

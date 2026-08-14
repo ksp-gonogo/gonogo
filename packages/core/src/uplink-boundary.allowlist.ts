@@ -1204,6 +1204,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/registry.replacement.test.ts",
       "packages/core/src/truenow-allowlist.test.ts",
       "packages/components/src/CrewStatus/index.test.tsx",
+      // ScienceData/index.test.tsx: asserts the stock path (no Kerbalism
+      // client imported anywhere in this package's test tree) renders the
+      // science-data.aboard-row slot empty, same "base widget does NOT
+      // couple to it" shape as CrewStatus's own entry above.
+      "packages/components/src/ScienceData/index.test.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
       "packages/components/src/FleetRoster/index.test.tsx",
       "packages/components/src/ShipMap/ShipDiagram.test.tsx",

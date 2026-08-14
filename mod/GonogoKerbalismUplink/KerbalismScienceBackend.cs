@@ -47,6 +47,13 @@ namespace Gonogo.KerbalismUplink
         /// <summary>Hand the tick's main-thread capture over. Called from the Courier thread.</summary>
         public void Stash(ScienceRaw raw) => _latest = raw;
 
+        /// <summary>
+        /// The latest capture, for the File Manager command handlers'
+        /// KSP-free pre-filter (<see cref="KerbalismFileCommandProvider"/>).
+        /// Same Courier-thread-only data as every read method below.
+        /// </summary>
+        public ScienceRaw Latest => _latest;
+
         public object? Experiments(KspSnapshot? snapshot) => KerbalismScienceMap.Experiments(_latest);
 
         public object? Instruments(KspSnapshot? snapshot) => KerbalismScienceMap.Instruments(_latest);

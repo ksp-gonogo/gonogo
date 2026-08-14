@@ -250,6 +250,12 @@ namespace Gonogo.KerbalismUplink
         public int TimesCompleted;
         public double TransmitRate;
         public bool Transmitting;
+        /// <summary>
+        /// Whether Kerbalism has this file flagged for transmission
+        /// (<c>Drive.GetFileSend</c>), independent of whether it is actively
+        /// draining right now. Null for a sample, which has no send flag.
+        /// </summary>
+        public bool? SendFlagged;
         /// <summary>Null when the drive is unlimited (Kerbalism's -1 sentinel), never a negative number.</summary>
         public double? DriveCapacityMB;
         public double DriveUsedMB;

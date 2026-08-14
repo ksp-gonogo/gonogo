@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GonogoKerbalismUplink;
 using Sitrep.Contract;
 
 namespace Gonogo.KerbalismUplink
@@ -14,7 +15,9 @@ namespace Gonogo.KerbalismUplink
     /// Kernel capability (owned by ReliabilityCoreUplink); TestFlight registers
     /// Priority 10 and supersedes it under RO. Presence-gated (kerbalism.available),
     /// mandatory Health(), delay-gated per Topic (presence/features TrueNow, the
-    /// vessel telemetry Delayed).
+    /// vessel telemetry Delayed). Also declares the five File Manager commands
+    /// (<see cref="KerbalismFileCommandProvider"/>), presence-gated at the
+    /// manifest itself so they never appear at all on a vanilla install.
     /// </summary>
     [SitrepUplink("kerbalism")]
     public sealed class KerbalismUplink : ISitrepUplink
@@ -35,6 +38,9 @@ namespace Gonogo.KerbalismUplink
         /// </summary>
         private readonly KerbalismScienceBackend _science = new();
 
+        /// <summary>The live-Drive actuation seam for the File Manager commands (see <see cref="RegisterFileManagerCommands"/>).</summary>
+        private readonly IKerbalismFileActuator _fileActuator;
+
         /// <summary>
         /// The currency-delay science hook: a presence-gated Harmony postfix on Kerbalism's own
         /// RetrieveScience, handing each retrieved increment to the currency-delay core's
@@ -53,6 +59,8 @@ namespace Gonogo.KerbalismUplink
 
         public KerbalismUplink()
         {
+            _fileActuator = new KerbalismFileActuator(_k);
+
             Manifest = new UplinkManifest
             {
                 Id = "kerbalism",
@@ -66,8 +74,39 @@ namespace Gonogo.KerbalismUplink
                     Delayed(LifeSupportTopic),
                     Delayed(CrewTopic),
                 },
+                // Presence-gated at construction, unlike the channels above:
+                // _k.IsAvailable is a cheap, session-stable reflection probe
+                // (the same one the reliability/isru/science provider
+                // registrations below gate on), so when Kerbalism is absent
+                // these five commands are not merely unhandled, they never
+                // appear in the manifest at all. A client has no reason to
+                // ever learn "kerbalism.file.send exists" on a vanilla
+                // install, the same registering-is-the-gate rule Register()
+                // already applies to the provider registrations.
+                Commands = _k.IsAvailable ? FileManagerCommands() : Array.Empty<CommandDeclaration>(),
             };
         }
+
+        /// <summary>
+        /// The five File Manager commands: every one actuates Kerbalism state
+        /// ON the vessel (flag a file, delete it, flag/dump a sample, move a
+        /// sample to another drive), so all ride the same light-time delay
+        /// every other vessel actuation does, delayed: true.
+        /// </summary>
+        private static List<CommandDeclaration> FileManagerCommands() => new()
+        {
+            Command(KerbalismFileCommandProvider.SendCommand),
+            Command(KerbalismFileCommandProvider.DeleteCommand),
+            Command(KerbalismFileCommandProvider.AnalyzeCommand),
+            Command(KerbalismFileCommandProvider.DumpCommand),
+            Command(KerbalismFileCommandProvider.MoveToLabCommand),
+        };
+
+        private static CommandDeclaration Command(string command) => new()
+        {
+            Command = command,
+            Delayed = true,
+        };
 
         private static ChannelDeclaration TrueNow(string topic) => new()
         {
@@ -149,6 +188,7 @@ namespace Gonogo.KerbalismUplink
 
                 RegisterScience(host);
                 RegisterIsru(host);
+                RegisterFileManagerCommands(host);
 
                 // Attach the currency-delay science hook. Kerbalism credits science through a
                 // pooled, vessel-less buffer the stock currency interceptor can't see, so this
@@ -197,6 +237,34 @@ namespace Gonogo.KerbalismUplink
             {
                 Console.Error.WriteLine("[KerbalismUplink] could not register isru provider: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Wire the five File Manager commands to <see cref="KerbalismFileCommandProvider"/>'s
+        /// KSP-free handlers, each closed over <see cref="_fileActuator"/> (the
+        /// live Drive) and the science backend's latest capture (the
+        /// pre-filter snapshot; see <see cref="KerbalismScienceBackend.Latest"/>).
+        /// Called only inside the <c>if (_k.IsAvailable)</c> guard in
+        /// <see cref="Register"/>, after <see cref="RegisterScience"/> has
+        /// already wired the capture that feeds that snapshot.
+        /// </summary>
+        private void RegisterFileManagerCommands(IUplinkHost host)
+        {
+            host.AddCommandHandler<KerbalismSubjectFlagArgs, CommandResult>(
+                KerbalismFileCommandProvider.SendCommand,
+                args => KerbalismFileCommandProvider.HandleSend(_fileActuator, _science.Latest, args));
+            host.AddCommandHandler<KerbalismSubjectActionArgs, CommandResult>(
+                KerbalismFileCommandProvider.DeleteCommand,
+                args => KerbalismFileCommandProvider.HandleDelete(_fileActuator, _science.Latest, args));
+            host.AddCommandHandler<KerbalismSubjectFlagArgs, CommandResult>(
+                KerbalismFileCommandProvider.AnalyzeCommand,
+                args => KerbalismFileCommandProvider.HandleAnalyze(_fileActuator, _science.Latest, args));
+            host.AddCommandHandler<KerbalismSubjectActionArgs, CommandResult>(
+                KerbalismFileCommandProvider.DumpCommand,
+                args => KerbalismFileCommandProvider.HandleDump(_fileActuator, _science.Latest, args));
+            host.AddCommandHandler<KerbalismSubjectActionArgs, CommandResult>(
+                KerbalismFileCommandProvider.MoveToLabCommand,
+                args => KerbalismFileCommandProvider.HandleMoveToLab(_fileActuator, _science.Latest, args));
         }
 
         /// <summary>

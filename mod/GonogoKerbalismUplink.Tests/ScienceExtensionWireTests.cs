@@ -91,7 +91,7 @@ namespace GonogoKerbalismUplink.Tests
                     SciencePerMB = 1.6, ScienceMaxValue = 40.0,
                     ScienceRemainingTotal = 30.0, PercentCollectedTotal = 0.25,
                     ScienceCollectedInFlight = 6.5, TimesCompleted = 1,
-                    TransmitRate = 0.004, Transmitting = true,
+                    TransmitRate = 0.004, Transmitting = true, SendFlagged = true,
                     DriveCapacityMB = 512.0, DriveUsedMB = 20.0,
                     SampleSlotsTotal = 2, SampleSlotsUsed = 1,
                 },
@@ -168,6 +168,10 @@ namespace GonogoKerbalismUplink.Tests
             Assert.Contains("\"kind\":\"file\"", json);
             Assert.Contains("\"kind\":\"sample\"", json);
             Assert.Contains("\"storageCapacityMB\":512", json);
+            // The queued send flag, not the actively-draining one: true on the
+            // file even though a widget would also see transmitting true here,
+            // the two are independent states in general.
+            Assert.Contains("\"sendFlagged\":true", json);
         }
 
         /// <summary>

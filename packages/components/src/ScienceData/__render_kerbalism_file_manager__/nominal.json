@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-14",
+    "vessel": "synthetic (hand-authored, no live capture)",
+    "notes": "SYNTHETIC probe fixture for the Kerbalism File Manager Aboard-row augment (science-data.aboard-row slot, mod/GonogoKerbalismUplink/client/src/ScienceFileManager). One subject carries BOTH a file and a sample on the same drive, so every control renders at once: Send (queued, actively transmitting), Delete, Analyze (flagged), Dump, and Move to lab (enabled, a lab part is aboard). The drive is partway full so the capacity/slots readout has real numbers to show, not zeros. Emit order: science.experimentBreakdown first (mints the Aboard row and its slot), then kerbalism.available (the augment's requires gate), then science.experiments (the drive data the augment joins by subjectId), then science.lab (gates Move to lab)."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "science.experimentBreakdown",
+      "science.experiments",
+      "science.lab",
+      "kerbalism.available"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "science.experimentBreakdown",
+        "value": [
+          {
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "biome": "",
+            "situation": "InSpaceLow",
+            "expTitle": "Mystery Goo Observation in space low over Kerbin",
+            "dataMits": 20,
+            "remainingPotential": 4.4
+          }
+        ]
+      },
+      { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "science.experiments",
+        "value": [
+          {
+            "partName": "Hard Drive",
+            "location": "container",
+            "experimentId": "mysteryGoo",
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "title": "Mystery Goo Observation in space low over Kerbin",
+            "situation": "InSpaceLow",
+            "valueModel": "kerbalism-linear",
+            "extensions": {
+              "kerbalism": {
+                "dataSizeMB": 12.5,
+                "sciencePerMB": 1.6,
+                "kind": "file",
+                "storageCapacityMB": 512,
+                "storageUsedMB": 90,
+                "sampleSlotsTotal": 2,
+                "sampleSlotsUsed": 1,
+                "transmitRateMBps": 0.004,
+                "transmitting": true,
+                "sendFlagged": true
+              }
+            }
+          },
+          {
+            "partName": "Hard Drive",
+            "location": "container",
+            "experimentId": "mysteryGoo",
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "title": "Mystery Goo Observation in space low over Kerbin",
+            "situation": "InSpaceLow",
+            "valueModel": "kerbalism-linear",
+            "extensions": {
+              "kerbalism": {
+                "dataSizeMB": 7.5,
+                "sciencePerMB": 0.8,
+                "kind": "sample",
+                "sampleMass": 0.0125,
+                "analyze": true,
+                "storageCapacityMB": 512,
+                "storageUsedMB": 90,
+                "sampleSlotsTotal": 2,
+                "sampleSlotsUsed": 1,
+                "transmitRateMBps": 0,
+                "transmitting": false
+              }
+            }
+          }
+        ]
+      },
+      {
+        "channel": "science.lab",
+        "value": [
+          {
+            "partName": "Mobile Processing Lab MPL-LG-2",
+            "dataStored": 0,
+            "dataStorage": 0,
+            "storedScience": 0,
+            "processingData": false,
+            "statusText": "Idle",
+            "scientistCount": 1,
+            "scienceRate": 0,
+            "isOperational": true
+          }
+        ]
+      }
+    ]
+  }
+}

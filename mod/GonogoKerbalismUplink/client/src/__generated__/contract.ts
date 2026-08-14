@@ -4,6 +4,15 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+export interface KerbalismSubjectFlagArgs
+{
+	subjectId: string;
+	flag: boolean;
+}
+export interface KerbalismSubjectActionArgs
+{
+	subjectId: string;
+}
 export interface KerbalismIsruDrillExtension
 {
 	issue?: string;
@@ -185,6 +194,7 @@ export interface KerbalismScienceExperimentExt
 	sampleSlotsUsed?: Value<"count">;
 	transmitRateMBps?: Value<"MB/s">;
 	transmitting?: boolean;
+	sendFlagged?: boolean;
 }
 export interface KerbalismScienceInstrumentExt
 {

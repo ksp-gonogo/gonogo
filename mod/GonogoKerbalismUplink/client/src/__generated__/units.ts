@@ -204,6 +204,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sampleSlotsTotal: "count",
     sampleSlotsUsed: "count",
     sciencePerMB: "science/MB",
+    sendFlagged: "flag",
     storageCapacityMB: "MB",
     storageUsedMB: "MB",
     transmitRateMBps: "MB/s",
@@ -249,6 +250,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stormDuration: "s",
     stormState: "count",
     stormTime: "s",
+  },
+  "KerbalismSubjectActionArgs": {
+    subjectId: "id",
+  },
+  "KerbalismSubjectFlagArgs": {
+    flag: "flag",
+    subjectId: "id",
   },
 };
 

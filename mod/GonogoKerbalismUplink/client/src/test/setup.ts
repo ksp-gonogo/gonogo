@@ -8,7 +8,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useProcessor, useUtNow } from "@ksp-gonogo/sitrep-client";
+import { useCommand, useProcessor, useUtNow } from "@ksp-gonogo/sitrep-client";
 import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
@@ -26,14 +26,17 @@ PerfBudget.installTestGate();
 // load, the rest at render: useProcessor + AugmentSlot for the
 // Processor-backed augments, useTelemetry for a direct `kerbalism.
 // spaceweather` Topic read (crew-status.summary, ShipSystems' Radiation
-// section), useUtNow for that same Radiation section's rolling-buffer x-axis.
-// Without this, the facade shims throw "the gonogo host has not been
-// installed" the moment a sealed file renders.
+// section), useUtNow for that same Radiation section's rolling-buffer x-axis,
+// useCommand for the ScienceFileManager augment's five File Manager
+// dispatches. Without this, the facade shims throw "the gonogo host has not
+// been installed" the moment a sealed file renders.
 installTestHost({
   AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
   defineUplinkClient,
   registerAugment: registerAugment as GonogoHost["registerAugment"],
   registerComponent,
+  useCommand: (command) =>
+    useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
   useProcessor: useProcessor as GonogoHost["useProcessor"],
   useUtNow: useUtNow as GonogoHost["useUtNow"],
   // Overloaded on the sdk side (canonical one-arg Topic read, and the

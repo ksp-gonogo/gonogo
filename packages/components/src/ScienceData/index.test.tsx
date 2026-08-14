@@ -173,6 +173,32 @@ describe("ScienceDataComponent", () => {
     expect(screen.getByText(/12\.5 left/)).toBeInTheDocument();
   });
 
+  it("renders the science-data.aboard-row slot empty on the stock path (no Kerbalism augment imported)", async () => {
+    const fixture = newFixture();
+    renderData(fixture);
+    act(() => {
+      fixture.emit("science.experimentBreakdown", [
+        {
+          subjectId: "mysteryGoo@MunSrfLandedMidlands",
+          biome: "Midlands",
+          situation: "SrfLanded",
+          expTitle: "Mystery Goo Observation",
+          dataMits: 8,
+          remainingPotential: 12.5,
+        },
+      ]);
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/Mystery Goo Observation/)).toBeInTheDocument(),
+    );
+    // No Kerbalism Uplink client is imported anywhere in this package's test
+    // tree, so the slot has nothing bound: the row renders exactly as it
+    // did before the slot existed, no Send/Delete/Analyze/Dump control.
+    expect(
+      screen.queryByRole("button", { name: /send|delete|analyze|dump/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("falls back to the plain experiments list when no breakdown is present", async () => {
     const fixture = newFixture();
     renderData(fixture);

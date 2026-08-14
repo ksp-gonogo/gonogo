@@ -7,7 +7,7 @@ namespace GonogoKerbalismUplink;
 /// <summary>
 /// This Uplink's OWN codegen configuration: mirrors
 /// <c>Sitrep.Contract.RtConfig.Configure</c>'s shape exactly, scoped to just
-/// this assembly's fifteen wire types, and reuses
+/// this assembly's wire types, and reuses
 /// <c>RtConfig.ApplyUnitValueTypes</c> the same way each earlier relocated
 /// Uplink's own <c>Configure</c> does (the uplink-types-out-of-core plan's
 /// mechanism, unchanged here; the plan doc names the four earlier steps, this
@@ -53,12 +53,14 @@ namespace GonogoKerbalismUplink;
 /// (<c>Vec3Of&lt;"1"&gt;</c>). Earlier relocated slices used no <c>Vec3</c> at
 /// all.</para>
 ///
-/// <para>None of these fifteen types has a name ending in <c>"Args"</c>, so
-/// <c>ApplyUnitValueTypes</c> retypes the quantity properties on ALL of them:
-/// there is no inbound-only member of this set for it to skip, unlike the
-/// command-arg slices earlier in the plan. See
+/// <para>Of these, only <see cref="KerbalismSubjectFlagArgs"/> and
+/// <see cref="KerbalismSubjectActionArgs"/> end in <c>"Args"</c>, so
+/// <c>ApplyUnitValueTypes</c> skips retyping their properties (inbound only,
+/// client -&gt; mod, see those types' own header comment) and retypes the
+/// quantity properties on every other type here. See
 /// <c>generated-value-import.test.ts</c> in this Uplink's client package,
-/// which asserts the emitted import non-vacuously.</para>
+/// which asserts the emitted import non-vacuously against the outbound
+/// majority.</para>
 ///
 /// <para><b>The only name-keyed unit maps in the whole contract live here.</b>
 /// <see cref="KerbalismLifeSupport.Rates"/>,
@@ -148,6 +150,15 @@ public static class KerbalismRtConfig
             // throttle).
             typeof(KerbalismIsruDrillExtension),
             typeof(KerbalismIsruConverterExtension),
+            // Args for the File Manager command surface (kerbalism.file.*/
+            // kerbalism.sample.*): inbound only, client -> mod, so
+            // ApplyUnitValueTypes below skips retyping their properties (its
+            // own doc comment: any type name ending "Args" is a wire-WRITE,
+            // never wrapped in a Value<>). Registered here purely so AutoI(false)
+            // strips the default "I" prefix, the same reason every sibling in
+            // this array is listed.
+            typeof(KerbalismSubjectFlagArgs),
+            typeof(KerbalismSubjectActionArgs),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
@@ -159,8 +170,8 @@ public static class KerbalismRtConfig
         // mod/GonogoKerbalismUplink/client/src/__generated__/).
         Sitrep.Contract.RtConfig.ApplyUnitValueTypes(builder, wireTypes, valueImportFrom: "@ksp-gonogo/sitrep-sdk");
 
-        // Five of the fifteen carry [SitrepTopic]: there ARE topics to name
-        // here, unlike a command-arg-only slice.
+        // Five of these carry [SitrepTopic]: there ARE topics to name here,
+        // unlike a command-arg-only slice.
         var topicMapOut = Environment.GetEnvironmentVariable("SITREP_KERBALISM_TOPICMAP_OUT");
         if (!string.IsNullOrEmpty(topicMapOut))
         {

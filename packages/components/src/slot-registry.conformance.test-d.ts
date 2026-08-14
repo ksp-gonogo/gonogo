@@ -51,6 +51,7 @@ import type {
 } from "./MapView";
 import type { OrbitBadgesContext, OrbitOverlayContext } from "./OrbitView";
 import type { PowerSystemsSlotContext } from "./PowerSystems";
+import type { ScienceDataAboardRowContext } from "./ScienceData";
 import type { ShipMapBadgesContext, ShipMapOverlayContext } from "./ShipMap";
 import type { SystemBadgesContext, SystemOverlayContext } from "./SystemView";
 import type { TechNodeBadgeContext } from "./TechTree";
@@ -346,6 +347,19 @@ type _PowerBadges = Expect<
   Assignable<SdkSlotProps<"power-systems.badges">, PowerSystemsSlotContext>
 >;
 
+type _ScienceDataAboardRow = Expect<
+  Assignable<
+    SdkSlotProps<"science-data.aboard-row">,
+    ScienceDataAboardRowContext
+  >
+>;
+type _ScienceDataAboardRowBack = Expect<
+  Assignable<
+    ScienceDataAboardRowContext,
+    SdkSlotProps<"science-data.aboard-row">
+  >
+>;
+
 // Keep every alias "used" under noUnusedLocals.
 export type _SlotRegistryConformance = [
   _SpaceCenterSections,
@@ -414,4 +428,6 @@ export type _SlotRegistryConformance = [
   _PowerSections,
   _PowerSectionsBack,
   _PowerBadges,
+  _ScienceDataAboardRow,
+  _ScienceDataAboardRowBack,
 ];

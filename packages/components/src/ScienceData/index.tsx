@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
+  AugmentSlot,
   registerComponent,
   useDataStreamStatus,
   useGameContext,
@@ -365,6 +366,33 @@ function ScienceDataComponent({
 
 // ── Aboard tab ───────────────────────────────────────────────────────────────
 
+// ---------------------------------------------------------------------------
+// The `science-data.aboard-row` slot contract
+//
+// A per-subject section slot, directly below each Aboard breakdown row: the
+// generic home for a File Manager-style enrichment (files/samples, drive
+// capacity, transmit/delete/flag controls). This widget carries no drive
+// concept itself, Kerbalism is the only model that has one; a stock save
+// leaves the slot unbound and the row renders exactly as it does today. The
+// `subjectId` is identity only, matching `crew-status.survival`'s per-row
+// keying: the filling augment reads its own data (`science.experiments`)
+// and joins by this id rather than being handed the row's fields directly.
+// ---------------------------------------------------------------------------
+
+/** Props passed to every `science-data.aboard-row` augment, one per subject. */
+export interface ScienceDataAboardRowContext {
+  /** The subject this Aboard row represents. A Kerbalism augment joins its
+   *  own `science.experiments` read against this id to find the file and/or
+   *  sample backing it (a subject can hold both at once). */
+  subjectId: string;
+}
+
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "science-data.aboard-row": ScienceDataAboardRowContext;
+  }
+}
+
 function AboardTab({
   body,
   situation,
@@ -408,26 +436,31 @@ function AboardTab({
         {breakdown && breakdown.length > 0 ? (
           <ul style={ROW_LIST}>
             {breakdown.map((b) => (
-              // Each row is keyed by the subject's stable id, the future
-              // enrichment point for a Kerbalism File Manager augment
-              // (files/samples, transmit/delete/flag) to bind onto a
-              // specific row without restructuring this list. Not built
-              // here (stock-first); see the widget's registration
-              // description.
-              <Row key={b.subjectId}>
-                <RowName>
-                  {b.expTitle}
-                  {b.biome && <span style={MUTED}> · {b.biome}</span>}
-                </RowName>
-                <Inline gap="sm">
-                  <Value size="xs">{fixed(b.dataMits, 1)} mits</Value>
-                  {b.remainingPotential > 0 && (
-                    <Value size="xs" tone="muted">
-                      {fixed(b.remainingPotential, 1)} left
-                    </Value>
-                  )}
-                </Inline>
-              </Row>
+              // Each row is keyed by the subject's stable id, and carries
+              // the `science-data.aboard-row` slot directly below its own
+              // Row (a bound Kerbalism augment renders its File Manager
+              // controls there; unbound, the slot renders nothing and this
+              // list looks exactly as it always has).
+              <li key={b.subjectId}>
+                <Row as="div">
+                  <RowName>
+                    {b.expTitle}
+                    {b.biome && <span style={MUTED}> · {b.biome}</span>}
+                  </RowName>
+                  <Inline gap="sm">
+                    <Value size="xs">{fixed(b.dataMits, 1)} mits</Value>
+                    {b.remainingPotential > 0 && (
+                      <Value size="xs" tone="muted">
+                        {fixed(b.remainingPotential, 1)} left
+                      </Value>
+                    )}
+                  </Inline>
+                </Row>
+                <AugmentSlot
+                  name="science-data.aboard-row"
+                  props={{ subjectId: b.subjectId }}
+                />
+              </li>
             ))}
           </ul>
         ) : experiments && experiments.length > 0 ? (
@@ -572,7 +605,7 @@ registerComponent<ScienceDataConfig>({
   id: "science-data",
   name: "Science Data",
   description:
-    "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only for now; a future Kerbalism Uplink enriches the Aboard rows with File Manager controls (files/samples, transmit/delete/flag).",
+    "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only on its own; the Kerbalism Uplink enriches each Aboard row with File Manager controls (drive capacity, transmit/delete/flag/analyze/move-to-lab) through the science-data.aboard-row augment slot.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
@@ -589,10 +622,12 @@ registerComponent<ScienceDataConfig>({
     "career.science",
   ],
   defaultConfig: {},
-  // Both tabs are read-only in this stock-first cut, no dispatchable action
-  // exists yet (deploy/transmit live on Experiments; File Manager controls
-  // are the Kerbalism follow-on noted above).
+  // Both tabs are read-only on the base widget itself, no dispatchable
+  // action of its own (deploy/transmit live on Experiments; File Manager
+  // controls are the Kerbalism augment noted above, dispatched from within
+  // the slot rather than through this widget's own action list).
   actions: [],
+  augmentSlots: ["science-data.aboard-row"],
   pushable: true,
 });
 

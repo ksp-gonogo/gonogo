@@ -162,11 +162,13 @@ describe("kerbalism's namespaces of the elected science.* payloads", () => {
     // Non-quantity tokens stay bare, the same as anywhere else on the wire.
     expect(file?.kind).toBe("file");
     expect(file?.transmitting).toBe(true);
+    expect(file?.sendFlagged).toBe(true);
 
     const sample = readKerbalismScienceExperimentExt(entries[1]);
     expect(sample?.kind).toBe("sample");
     expect(sample?.sampleMass).toMatchObject({ magnitude: 0.0125, unit: "t" });
     expect(sample?.analyze).toBe(true);
+    expect(sample?.sendFlagged).toBeNull();
   });
 
   it("hydrates the instrument, lab and breakdown namespaces too", async () => {
