@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -169,8 +170,11 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/Mystery Goo Observation/)).toBeInTheDocument(),
     );
-    expect(screen.getByText(/8\.0 mits/)).toBeInTheDocument();
-    expect(screen.getByText(/12\.5 left/)).toBeInTheDocument();
+    // Read through the kit's helper rather than getByText: `<Unit>` renders
+    // the number, the symbol and the spoken word as separate elements, so a
+    // readout is not one text node.
+    expect(visibleText()).toContain("8.0 mits");
+    expect(visibleText()).toContain("12.5 left");
   });
 
   it("renders the science-data.aboard-row slot empty on the stock path (no Kerbalism augment imported)", async () => {
@@ -214,9 +218,7 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText("Crew Report")).toBeInTheDocument(),
     );
-    // Exact match: the meta line also carries "· 5.0 mits collected", so a
-    // substring regex would find two nodes. The row readout is exactly "5.0 mits".
-    expect(screen.getByText("5.0 mits")).toBeInTheDocument();
+    expect(visibleText()).toContain("5.0 mits");
   });
 
   it("shows the sandbox message on the Archive tab when there is no R&D archive", async () => {

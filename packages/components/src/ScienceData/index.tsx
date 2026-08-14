@@ -7,6 +7,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   DimmedOverlay,
   StreamStatusBadge,
@@ -19,12 +20,12 @@ import {
   Inline,
   NULL_DISPLAY,
   Panel,
-  PanelTitle,
   Row,
   RowName,
   ScrollArea,
   Section,
   SectionTitle,
+  Unit,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -341,9 +342,9 @@ function ScienceDataComponent({
   ];
 
   return (
-    <Panel>
-      <Cluster>
-        <PanelTitle>SCIENCE DATA</PanelTitle>
+    <Panel
+      panelTitle="SCIENCE DATA"
+      panelAside={
         <Inline gap="sm">
           {isCareerLike && careerScience !== null && (
             <Value size="sm" title="Science banked">
@@ -352,14 +353,13 @@ function ScienceDataComponent({
           )}
           <StreamStatusBadge status={breakdownStreamStatus} />
         </Inline>
-      </Cluster>
-      <div style={TAB_BODY}>
-        <Tabs
-          tabs={tabs}
-          activeId={tab}
-          onChange={(id) => setTab(id as "aboard" | "archive")}
-        />
-      </div>
+      }
+    >
+      <Tabs
+        tabs={tabs}
+        activeId={tab}
+        onChange={(id) => setTab(id as "aboard" | "archive")}
+      />
     </Panel>
   );
 }
@@ -448,10 +448,13 @@ function AboardTab({
                     {b.biome && <span style={MUTED}> · {b.biome}</span>}
                   </RowName>
                   <Inline gap="sm">
-                    <Value size="xs">{fixed(b.dataMits, 1)} mits</Value>
+                    <Value size="xs">
+                      <Unit value={value("Mit", b.dataMits)} />
+                    </Value>
                     {b.remainingPotential > 0 && (
                       <Value size="xs" tone="muted">
-                        {fixed(b.remainingPotential, 1)} left
+                        <Unit value={value("science", b.remainingPotential)} />{" "}
+                        left
                       </Value>
                     )}
                   </Inline>
