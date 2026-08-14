@@ -3,10 +3,10 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { ScienceOfficerComponent } from "./index";
+import { ExperimentsComponent } from "./index";
 
 /**
- * ScienceOfficer's stream test-adapter proof: genuinely running off the real
+ * Experiments's stream test-adapter proof: genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport` for `science.lab` (a NEW capability, no legacy
  * Telemachus/GonogoTelemetry analogue), `science.instruments`
@@ -33,7 +33,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ScienceOfficer: genuinely runs off the stream (M3 science.lab + P4a science.instruments)", () => {
+describe("Experiments: genuinely runs off the stream (M3 science.lab + P4a science.instruments)", () => {
   it("renders the idle-but-operational lab from science.lab and an instrument from science.instruments", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
@@ -47,7 +47,7 @@ describe("ScienceOfficer: genuinely runs off the stream (M3 science.lab + P4a sc
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-stream" }}>
-          <ScienceOfficerComponent id="so-stream" w={6} h={7} />
+          <ExperimentsComponent id="so-stream" w={6} h={7} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

@@ -124,6 +124,41 @@ namespace Sitrep.Host.Tests
             AssertTypeMirrorsEntry(typeof(ExperimentBreakdownEntry), ScienceViewProvider.BuildExperimentBreakdown(snapshot));
         }
 
+        [Fact]
+        public void ArchiveEntryTypeMirrorsProviderWireShape()
+        {
+            // Unlike the other channels above, the archive's raw entry lives
+            // at a TOP-LEVEL "scienceArchive" key rather than nested under
+            // "science" (see ScienceViewProvider.BuildArchive), so this
+            // fixture skips SnapshotWith and builds that shape directly.
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["scienceArchive"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["subjectId"] = "crewReport@KerbinSrfLandedKSC",
+                            ["experimentId"] = "crewReport",
+                            ["experimentTitle"] = "Crew Report",
+                            ["body"] = "Kerbin",
+                            ["situation"] = "SrfLanded",
+                            ["biome"] = "KSC",
+                            ["title"] = "Crew Report from Kerbin's Space Center",
+                            ["science"] = 5.0,
+                            ["scienceCap"] = 5.0,
+                            ["remainingPotential"] = 0.0,
+                            ["subjectValue"] = 1.0,
+                        },
+                    },
+                },
+            };
+
+            AssertTypeMirrorsEntry(typeof(ArchiveEntry), ScienceViewProvider.BuildArchive(snapshot));
+        }
+
         // NOTE: the [SitrepTopic("science.*", isArray: true)] tag on each entry
         // type is deliberately NOT asserted via CLR reflection here. These
         // types also carry [TsInterface], and reading ANY custom attribute off

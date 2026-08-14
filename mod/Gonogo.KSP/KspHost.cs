@@ -279,6 +279,18 @@ namespace Gonogo.KSP
                     Debug.LogWarning("[Gonogo] career snapshot build failed, omitting: " + ex);
                 }
 
+                // Whole-career R&D archive - global ground-side truth like
+                // "career" above, so it's captured here rather than inside
+                // the FlightGlobals/active-vessel block. Deliberately a
+                // TOP-LEVEL "scienceArchive" key rather than nested under
+                // "science": that group is entirely omitted with no active
+                // vessel (see BuildScience's own guard above), but the
+                // archive must stream at the Space Center with nothing
+                // flying. BuildScienceArchive itself returns null when
+                // ResearchAndDevelopment.Instance is null (Sandbox has no
+                // archive to walk).
+                TryBuildGroup(values, "scienceArchive", () => BuildScienceArchive());
+
                 // Game mode (SANDBOX / CAREER / SCIENCE_SANDBOX / ...) is a
                 // ground-side game-global fact, captured in ALL modes - unlike
                 // BuildCareer above, which returns null outside CAREER. A
@@ -4127,6 +4139,73 @@ namespace Gonogo.KSP
                         });
                     }
                 }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Whole-career R&amp;D archive - a GLOBAL walk of
+        /// <c>ResearchAndDevelopment.GetSubjects()</c>, not tied to the
+        /// active vessel like every other <c>science.*</c> sub-group above.
+        /// A <see cref="ScienceSubject"/> is created the first time its id
+        /// is ever collected or recovered anywhere, so this is every subject
+        /// the career has EVER touched, not just what a craft currently has
+        /// stored. Returns null - no key at all, never an empty list - when
+        /// <c>ResearchAndDevelopment.Instance</c> is null (Sandbox has no
+        /// R&amp;D archive to walk).
+        /// <c>situation</c>/<c>biome</c> come from the string-out overload of
+        /// <c>ScienceUtil.GetExperimentFieldsFromScienceID</c> (BodyName,
+        /// Situation, Biome order, confirmed via decompile), the same helper
+        /// <see cref="BuildScienceExperimentBreakdown"/> uses.
+        /// <c>experimentTitle</c> falls back to the raw experiment id when
+        /// <c>GetExperiment</c> can't resolve it (a modded experiment no
+        /// longer installed since the subject was first collected).
+        /// </summary>
+        private static List<object?>? BuildScienceArchive()
+        {
+            if (ResearchAndDevelopment.Instance == null)
+            {
+                return null;
+            }
+
+            // A live R&D instance with no subjects yet (a fresh career) must
+            // emit an EMPTY list, not null: null is reserved for "no R&D
+            // instance at all" (Sandbox, the guard above) so the client can
+            // tell a not-yet-collected career apart from a non-career save.
+            var subjects = ResearchAndDevelopment.GetSubjects() ?? new List<ScienceSubject>();
+
+            var list = new List<object?>(subjects.Count);
+            foreach (var subject in subjects)
+            {
+                if (subject == null || string.IsNullOrEmpty(subject.id))
+                {
+                    continue;
+                }
+
+                var experimentId = subject.id.Split('@')[0];
+                var experiment = ResearchAndDevelopment.GetExperiment(experimentId);
+                var experimentTitle = experiment != null && !string.IsNullOrEmpty(experiment.experimentTitle)
+                    ? experiment.experimentTitle
+                    : experimentId;
+
+                var body = ScienceUtil.GetExperimentBodyName(subject.id);
+                ScienceUtil.GetExperimentFieldsFromScienceID(subject.id, out _, out string situation, out string biome);
+
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["subjectId"] = subject.id,
+                    ["experimentId"] = experimentId,
+                    ["experimentTitle"] = experimentTitle,
+                    ["body"] = body,
+                    ["situation"] = situation,
+                    ["biome"] = biome,
+                    ["title"] = subject.title,
+                    ["science"] = (double)subject.science,
+                    ["scienceCap"] = (double)subject.scienceCap,
+                    ["remainingPotential"] = (double)(subject.scienceCap - subject.science),
+                    ["subjectValue"] = (double)subject.subjectValue,
+                });
             }
 
             return list;

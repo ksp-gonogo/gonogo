@@ -192,6 +192,8 @@ public static class RtConfig
                 typeof(DeployedEntry),
                 // science.experimentBreakdown per-subject rollup
                 typeof(ExperimentBreakdownEntry),
+                // science.archive per-subject career-wide archive entry
+                typeof(ArchiveEntry),
                 // system.* channel payloads + entries (P0.5)
                 // system.uplink.pending, the in-transit command queue snapshot
                 // (engine-declared channel, no [SitrepTopic]; hand-declared in

@@ -4,14 +4,14 @@ import { magnitudeOr, type Quantityish } from "./magnitude";
  * Client-side science aggregation off the `science.experiments` array.
  * The raw per-experiment array is a clean home on the new wire
  * (`ScienceViewProvider`'s `ExperimentEntry[]`: mirrored here defensively as
- * `unknown`), so the two legacy pre-aggregated scalars ScienceBench/
- * ScienceOfficer read (`sci.count` / `sci.dataAmount`) and the
+ * `unknown`), so the two legacy pre-aggregated scalars ScienceData/
+ * Experiments read (`sci.count` / `sci.dataAmount`) and the
  * GonogoTelemetry-only `sci.experimentBreakdown` enrichment are all derivable
  * client-side from that ONE array: no separate mod field. This shared helper
  * is the single source of that derivation so both widgets drop the legacy
  * reads.
  *
- * Every function parses defensively (same discipline as ScienceBench's own
+ * Every function parses defensively (same discipline as ScienceData's own
  * `parseExperiments`): non-arrays / non-object entries are skipped, missing
  * numeric fields contribute 0, never `NaN`.
  */
@@ -68,7 +68,7 @@ export function scienceAggregate(raw: unknown): ScienceAggregate | null {
   return { count: entries.length, dataAmount };
 }
 
-/** One derived experiment-breakdown row (the shape ScienceBench's breakdown view renders). */
+/** One derived experiment-breakdown row (the shape ScienceData's breakdown view renders). */
 export interface DerivedBreakdownEntry {
   subjectId: string;
   biome: string;

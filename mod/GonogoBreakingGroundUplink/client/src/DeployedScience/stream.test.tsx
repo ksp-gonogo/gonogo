@@ -12,7 +12,7 @@ import { DeployedScienceComponent } from "./index";
  * (map-topic.ts): a raw FLAT array read wholesale and grouped client-side
  * by `vesselName` (`groupFlatDeployedEntries`, index.tsx), same "one widget
  * key, either wire shape" pattern `science.experiments`/`sci.experiments`
- * established for ScienceBench. `deployed.available` (->
+ * established for ScienceData. `deployed.available` (->
  * `game.dlc.breakingGround`) is migrated too, no legacy `DataSource` AUX
  * needed for this widget any more, it streams through the fixture's
  * `game.dlc` topic.

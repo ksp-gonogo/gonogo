@@ -4,10 +4,10 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import mobileLabIdle from "./__fixtures__/mobile-lab-idle-one-instrument.json";
-import { ScienceOfficerComponent } from "./index";
+import { ExperimentsComponent } from "./index";
 
 /**
- * ScienceOfficer's stream render golden. This began life as a
+ * Experiments's stream render golden. This began life as a
  * legacy-`DataSource`↔stream byte-identical dual-run (comparing `science.lab`
  * + `science.instruments` streamed against every other fixture key staying
  * legacy); with the widget now reading its whole state off canonical Topics
@@ -21,7 +21,7 @@ import { ScienceOfficerComponent } from "./index";
  * wire shape (string `partId`, `partName`/`experimentId`/`dataIsCollectable`)
  * to prove `parseInstruments` reconciles it to the same rendered output.
  */
-describe("ScienceOfficer: stream render golden (delay=0)", () => {
+describe("Experiments: stream render golden (delay=0)", () => {
   it("renders the full idle-lab + instrument state off the stream pipeline", async () => {
     const mode = { name: "default-6x7", w: 6, h: 7 };
 
@@ -39,7 +39,7 @@ describe("ScienceOfficer: stream render golden (delay=0)", () => {
     const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "so-dual" }}>
-          <ScienceOfficerComponent id="so-dual" w={mode.w} h={mode.h} />
+          <ExperimentsComponent id="so-dual" w={mode.w} h={mode.h} />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );

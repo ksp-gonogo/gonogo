@@ -35,6 +35,10 @@ import type {
   DistanceToTargetBadgeContext,
   DistanceToTargetHudContext,
 } from "./DistanceToTarget";
+import type {
+  ExperimentsInstrumentSlotContext,
+  ExperimentsSlotContext,
+} from "./Experiments";
 import type { GroundSurveyBadgesContext } from "./GroundSurvey";
 import type { LandingStatusBadgesContext } from "./LandingStatus";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
@@ -47,10 +51,6 @@ import type {
 } from "./MapView";
 import type { OrbitBadgesContext, OrbitOverlayContext } from "./OrbitView";
 import type { PowerSystemsSlotContext } from "./PowerSystems";
-import type {
-  ScienceOfficerInstrumentSlotContext,
-  ScienceOfficerSlotContext,
-} from "./ScienceOfficer";
 import type { ShipMapBadgesContext, ShipMapOverlayContext } from "./ShipMap";
 import type { SystemBadgesContext, SystemOverlayContext } from "./SystemView";
 import type { TechNodeBadgeContext } from "./TechTree";
@@ -310,23 +310,23 @@ type _OrbitBadgesBack = Expect<
   Assignable<OrbitBadgesContext, SdkSlotProps<"orbit-view.badges">>
 >;
 
-type _ScienceOfficerSections = Expect<
+type _ExperimentsSections = Expect<
   Assignable<
     SdkSlotProps<"science-officer.sections">,
-    ScienceOfficerInstrumentSlotContext
+    ExperimentsInstrumentSlotContext
   >
 >;
-type _ScienceOfficerSectionsBack = Expect<
+type _ExperimentsSectionsBack = Expect<
   Assignable<
-    ScienceOfficerInstrumentSlotContext,
+    ExperimentsInstrumentSlotContext,
     SdkSlotProps<"science-officer.sections">
   >
 >;
-type _ScienceOfficerBadges = Expect<
-  Assignable<SdkSlotProps<"science-officer.badges">, ScienceOfficerSlotContext>
+type _ExperimentsBadges = Expect<
+  Assignable<SdkSlotProps<"science-officer.badges">, ExperimentsSlotContext>
 >;
-type _ScienceOfficerBadgesBack = Expect<
-  Assignable<ScienceOfficerSlotContext, SdkSlotProps<"science-officer.badges">>
+type _ExperimentsBadgesBack = Expect<
+  Assignable<ExperimentsSlotContext, SdkSlotProps<"science-officer.badges">>
 >;
 
 // _DeployedSections/_DeployedSectionsBack (deployed-science.sections vs
@@ -407,10 +407,10 @@ export type _SlotRegistryConformance = [
   _OrbitOverlayBack,
   _OrbitBadges,
   _OrbitBadgesBack,
-  _ScienceOfficerSections,
-  _ScienceOfficerSectionsBack,
-  _ScienceOfficerBadges,
-  _ScienceOfficerBadgesBack,
+  _ExperimentsSections,
+  _ExperimentsSectionsBack,
+  _ExperimentsBadges,
+  _ExperimentsBadgesBack,
   _PowerSections,
   _PowerSectionsBack,
   _PowerBadges,

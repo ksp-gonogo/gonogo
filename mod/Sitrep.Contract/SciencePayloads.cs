@@ -462,3 +462,75 @@ public class ExperimentBreakdownEntry
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
+
+/// <summary>
+/// One entry in the <c>science.archive</c> channel payload: a single
+/// SUBJECT out of the whole-career R&D archive
+/// (<c>ResearchAndDevelopment.GetSubjects()</c>): every subject the player
+/// has ever collected or recovered, across every mission and every body,
+/// not scoped to the active vessel. The channel payload is a BARE ARRAY
+/// (<c>ArchiveEntry[]</c>) or <c>null</c> when the save has no R&D
+/// instance to walk (Sandbox mode), never an empty-vs-absent distinction
+/// beyond that (a Career save with an R&D instance but nothing collected
+/// yet emits an empty array).
+///
+/// <para>Distinct from <see cref="ExperimentBreakdownEntry"/>: that one
+/// rolls up the ACTIVE VESSEL's currently-stored <c>ScienceData</c> blobs
+/// and goes null with no vessel flying; this one is career-wide ground
+/// truth and streams at the Space Center with nothing flying at all.</para>
+///
+/// <para><see cref="RemainingPotential"/> is <c>ScienceCap - Science</c>,
+/// computed by <c>Gonogo.KSP.KspHost.BuildScienceArchive</c> the same way
+/// <see cref="ExperimentBreakdownEntry.RemainingPotential"/> is; this
+/// layer only passes the already-computed figure through, matching that
+/// entry's own mapping idiom rather than re-deriving it here.</para>
+///
+/// <para><b>Typing-only mirror</b> of
+/// <c>Sitrep.Host.ScienceViewProvider.BuildArchiveEntry</c>: see
+/// <see cref="ExperimentEntry"/> for the "no wire change, all fields
+/// nullable" rationale.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("science.archive", isArray: true)]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class ArchiveEntry
+{
+    [SitrepUnit(Units.Id)]
+    public string? SubjectId { get; set; }
+
+    [SitrepUnit(Units.Id)]
+    public string? ExperimentId { get; set; }
+
+    [SitrepUnit(Units.Text)]
+    public string? ExperimentTitle { get; set; }
+
+    [SitrepUnit(Units.Text)]
+    public string? Body { get; set; }
+
+    [SitrepUnit(Units.Text)]
+    public string? Situation { get; set; }
+
+    [SitrepUnit(Units.Text)]
+    public string? Biome { get; set; }
+
+    [SitrepUnit(Units.Text)]
+    public string? Title { get; set; }
+
+    /// <summary>Science banked for this subject so far.</summary>
+    [SitrepUnit(Units.Science)]
+    public double? Science { get; set; }
+
+    /// <summary>Max science this subject can ever yield.</summary>
+    [SitrepUnit(Units.Science)]
+    public double? ScienceCap { get; set; }
+
+    /// <summary>Absolute science still recoverable from this subject (<c>scienceCap - science</c>).</summary>
+    [SitrepUnit(Units.Science)]
+    public double? RemainingPotential { get; set; }
+
+    /// <summary>Region multiplier KSP applies to this subject's yield.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? SubjectValue { get; set; }
+}

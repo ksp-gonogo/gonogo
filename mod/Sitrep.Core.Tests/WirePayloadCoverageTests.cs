@@ -126,11 +126,11 @@ namespace Sitrep.Core.Tests
             "SolarPanelEntry", "BatteryEntry", "FuelCellEntry", "AlternatorEntry",
             "PartsPower", "ServoEntry", "RoboticsAvailability",
             // science.*: ScienceViewProvider.BuildExperiments/BuildInstruments/
-            // BuildLab/BuildDeployed/BuildSensors/BuildExperimentBreakdown
-            // hand-build Dictionary<string, object?> trees; these POCOs are
-            // TS-shape-only.
+            // BuildLab/BuildDeployed/BuildSensors/BuildExperimentBreakdown/
+            // BuildArchive hand-build Dictionary<string, object?> trees; these
+            // POCOs are TS-shape-only.
             "ExperimentEntry", "InstrumentEntry", "LabEntry", "DeployedEntry",
-            "SensorEntry", "ExperimentBreakdownEntry",
+            "SensorEntry", "ExperimentBreakdownEntry", "ArchiveEntry",
             // crash.lastCrash: Sitrep.Host.Crash.CrashPayload.Build hand-builds
             // the Dictionary<string, object?> tree the producer (Gonogo.KSP.
             // CrashUplink) publishes; these POCOs are TS-shape-only, never handed

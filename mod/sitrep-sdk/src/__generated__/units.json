@@ -65,6 +65,19 @@
       "partId": "id",
       "partName": "text"
     },
+    "ArchiveEntry": {
+      "biome": "text",
+      "body": "text",
+      "experimentId": "id",
+      "experimentTitle": "text",
+      "remainingPotential": "science",
+      "science": "science",
+      "scienceCap": "science",
+      "situation": "text",
+      "subjectId": "id",
+      "subjectValue": "1",
+      "title": "text"
+    },
     "AstronautComplexInfo": {
       "activeCrew": "count",
       "crewCapacity": "count",
@@ -1229,6 +1242,19 @@
       "targetExtension": "m",
       "traverseVelocity": "n/a",
       "type": "id"
+    },
+    "science.archive": {
+      "biome": "text",
+      "body": "text",
+      "experimentId": "id",
+      "experimentTitle": "text",
+      "remainingPotential": "science",
+      "science": "science",
+      "scienceCap": "science",
+      "situation": "text",
+      "subjectId": "id",
+      "subjectValue": "1",
+      "title": "text"
     },
     "science.experimentBreakdown": {
       "biome": "text",

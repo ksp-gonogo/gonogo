@@ -9,14 +9,14 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
+  ExperimentsComponent,
+  type ExperimentsInstrumentSlotContext,
+  type ExperimentsSlotContext,
   type Instrument,
-  ScienceOfficerComponent,
-  type ScienceOfficerInstrumentSlotContext,
-  type ScienceOfficerSlotContext,
 } from "./index";
 
 /**
- * ScienceOfficer augment-slot exposure. The slots (`science-officer.sections`,
+ * Experiments augment-slot exposure. The slots (`science-officer.sections`,
  * the per-instrument row slot, and `science-officer.badges`: the header
  * escape-hatch) are exposed but ship no filler here (that's an Uplink
  * augment): an empty slot must render cleanly, and a test augment registered
@@ -53,7 +53,7 @@ async function renderFullList(): Promise<void> {
   const { unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "sci-slot" }}>
-        <ScienceOfficerComponent config={{}} id="sci-slot" w={6} h={8} />
+        <ExperimentsComponent config={{}} id="sci-slot" w={6} h={8} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -77,7 +77,7 @@ async function renderFullList(): Promise<void> {
   await waitFor(() => expect(screen.getByText("Mystery Goo")).toBeTruthy());
 }
 
-describe("ScienceOfficer: augment slots (spec §4)", () => {
+describe("Experiments: augment slots (spec §4)", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
@@ -100,9 +100,7 @@ describe("ScienceOfficer: augment slots (spec §4)", () => {
   });
 
   it("renders a test augment bound to the sections slot, passing the instrument as slot props", async () => {
-    function SectionAugment({
-      instrument,
-    }: ScienceOfficerInstrumentSlotContext) {
+    function SectionAugment({ instrument }: ExperimentsInstrumentSlotContext) {
       return (
         <div data-testid="sci-section-augment">LAB: {instrument.partTitle}</div>
       );
@@ -123,10 +121,7 @@ describe("ScienceOfficer: augment slots (spec §4)", () => {
   });
 
   it("renders a test augment bound to the badges slot in the header, receiving the instrument list", async () => {
-    function BadgeAugment({
-      instruments,
-      dataAmount,
-    }: ScienceOfficerSlotContext) {
+    function BadgeAugment({ instruments, dataAmount }: ExperimentsSlotContext) {
       return (
         <span data-testid="sci-badge-augment">
           {instruments?.length ?? 0}@{dataAmount}

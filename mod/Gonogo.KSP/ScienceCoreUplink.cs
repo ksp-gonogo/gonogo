@@ -136,6 +136,17 @@ namespace Gonogo.KSP
                     // rides the delay clock like the rest of science.*.
                     Delay = DelayRole.Delayed,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = ScienceViewProvider.ArchiveTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // The one deviation from the rest of science.*: the archive is
+                    // career-wide banked science read at KSC/R&D, ground-side
+                    // bookkeeping like CareerUplink's career.status/career.mode,
+                    // not something learned over the active vessel's comms link.
+                    Delay = DelayRole.TrueNow,
+                },
             },
             // Experiment actuation is a genuine uplink to the craft (deploy runs
             // an experiment ON the vessel; transmit drives its onboard
@@ -179,6 +190,9 @@ namespace Gonogo.KSP
             host.AddChannelSource(ScienceViewProvider.LabTopic, s => Backend().Lab(s));
             host.AddChannelSource(ScienceViewProvider.SensorsTopic, s => Backend().Sensors(s));
             host.AddChannelSource(ScienceViewProvider.ExperimentBreakdownTopic, s => Backend().ExperimentBreakdown(s));
+            // Career-wide R&D archive is provider-agnostic stock bookkeeping, wired
+            // straight to the static builder rather than through the elected backend.
+            host.AddChannelSource(ScienceViewProvider.ArchiveTopic, ScienceViewProvider.BuildArchive);
 
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.DeployCommand, args => Backend().DeployExperiment(args));
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.TransmitCommand, args => Backend().TransmitExperiment(args));

@@ -1,0 +1,102 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-14",
+    "notes": "Cross-mission career archive spanning Kerbin, Mun, Minmus, and Duna (sci.archive), alongside a single-vessel Mun breakdown (sci.experimentBreakdown) so Aboard and Archive genuinely diverge: crewReport@MunSrfLandedMidlandCraters is in both, the Kerbin/Minmus/Duna subjects are archive-only (recovered from earlier missions, nothing currently flying there)."
+  },
+  "kc.scene": "Flight",
+  "v.name": "tester",
+  "v.body": "Mun",
+  "v.situationString": "Landed",
+  "v.landedAt": "Midland Craters",
+  "v.biome": "",
+  "career.mode": "CAREER",
+  "career.funds": 421900.25,
+  "career.reputation": 88,
+  "career.science": 4200.75,
+  "sci.experiments": [],
+  "sci.experimentBreakdown": [
+    {
+      "subjectId": "crewReport@MunSrfLandedMidlandCraters",
+      "biome": "Midland Craters",
+      "situation": "SrfLanded",
+      "expTitle": "Crew Report from Midland Craters",
+      "dataMits": 6,
+      "remainingPotential": 2.4
+    },
+    {
+      "subjectId": "mysteryGoo@MunSrfLandedMidlandCraters",
+      "biome": "Midland Craters",
+      "situation": "SrfLanded",
+      "expTitle": "Mystery Goo Observation from Midland Craters",
+      "dataMits": 3.5,
+      "remainingPotential": 5.1
+    }
+  ],
+  "sci.archive": [
+    {
+      "subjectId": "crewReport@KerbinSrfLandedKSC",
+      "experimentId": "crewReport",
+      "experimentTitle": "Crew Report",
+      "body": "Kerbin",
+      "situation": "SrfLanded",
+      "biome": "KSC",
+      "title": "Crew Report from KSC",
+      "science": 5.0,
+      "scienceCap": 5.3,
+      "remainingPotential": 0.3,
+      "subjectValue": 1
+    },
+    {
+      "subjectId": "mysteryGoo@KerbinFlyingHighShores",
+      "experimentId": "mysteryGoo",
+      "experimentTitle": "Mystery Goo Observation",
+      "body": "Kerbin",
+      "situation": "FlyingHigh",
+      "biome": "Shores",
+      "title": "Mystery Goo Observation while flying high over Kerbin's shores",
+      "science": 2.0,
+      "scienceCap": 11.5,
+      "remainingPotential": 9.5,
+      "subjectValue": 1.4
+    },
+    {
+      "subjectId": "crewReport@MunSrfLandedMidlandCraters",
+      "experimentId": "crewReport",
+      "experimentTitle": "Crew Report",
+      "body": "Mun",
+      "situation": "SrfLanded",
+      "biome": "Midland Craters",
+      "title": "Crew Report from Midland Craters",
+      "science": 3.6,
+      "scienceCap": 6.0,
+      "remainingPotential": 2.4,
+      "subjectValue": 2.0
+    },
+    {
+      "subjectId": "temperatureScan@MinmusSrfLandedGreatFlats",
+      "experimentId": "temperatureScan",
+      "experimentTitle": "Temperature Scan",
+      "body": "Minmus",
+      "situation": "SrfLanded",
+      "biome": "Great Flats",
+      "title": "Temperature Scan from the Great Flats",
+      "science": 1.2,
+      "scienceCap": 4.5,
+      "remainingPotential": 3.3,
+      "subjectValue": 2.2
+    },
+    {
+      "subjectId": "barometerScan@DunaFlyingLowLowlands",
+      "experimentId": "barometerScan",
+      "experimentTitle": "Atmospheric Pressure Scan",
+      "body": "Duna",
+      "situation": "FlyingLow",
+      "biome": "Lowlands",
+      "title": "Atmospheric Pressure Scan while flying low over Duna's lowlands",
+      "science": 0,
+      "scienceCap": 8.0,
+      "remainingPotential": 8.0,
+      "subjectValue": 3.5
+    }
+  ]
+}

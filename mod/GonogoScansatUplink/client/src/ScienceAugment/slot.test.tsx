@@ -20,7 +20,7 @@ import { WithScansatAvailability } from "../test/withScansatAvailability";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: the same way the app
 // picks this augment up via the package's bare `import "./ScienceAugment"`.
-// Unlike Scanning/slot.test.tsx and ScienceOfficer/slot.test.tsx (which
+// Unlike Scanning/slot.test.tsx and Experiments/slot.test.tsx (which
 // probe the SLOT MECHANISM with disposable test augments), this suite
 // verifies the actual production registration, so it deliberately never
 // calls `clearAugments()`, that would wipe the one real registration this

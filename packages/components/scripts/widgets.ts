@@ -766,9 +766,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "science-officer",
-    fixturesPath: "ScienceOfficer/__fixtures__",
-    outPath: "renders/science-officer-widget",
+    widgetId: "experiments",
+    fixturesPath: "Experiments/__fixtures__",
+    outPath: "renders/experiments-widget",
     modes: [
       // minSize 3×4: instrument list, tight.
       { name: "min-3x4", w: 3, h: 4 },
@@ -1137,16 +1137,53 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "science-bench",
-    fixturesPath: "ScienceBench/__fixtures__",
-    outPath: "renders/science-bench-widget",
+    widgetId: "science-data",
+    fixturesPath: "ScienceData/__fixtures__",
+    outPath: "renders/science-data-widget",
     modes: [
-      // minSize 4×4: compact experiment list.
-      { name: "min-4x4", w: 4, h: 4 },
-      { name: "compact-5x7", w: 5, h: 7 },
-      // defaultSize 8×10: the common operator view.
-      { name: "default-8x11", w: 8, h: 11 },
-      { name: "wide-12x10", w: 12, h: 10 },
+      // minSize 4×4: Aboard tab, tight.
+      {
+        name: "min-4x4",
+        w: 4,
+        h: 4,
+        forFixtures: ["kerbin-flight-partial-science"],
+      },
+      {
+        name: "compact-5x7",
+        w: 5,
+        h: 7,
+        forFixtures: ["kerbin-flight-partial-science"],
+      },
+      // defaultSize 8×10: the common operator view, Aboard tab (default-active).
+      {
+        name: "aboard-8x10",
+        w: 8,
+        h: 10,
+        forFixtures: ["kerbin-flight-partial-science"],
+      },
+      {
+        name: "aboard-wide-12x10",
+        w: 12,
+        h: 10,
+        forFixtures: ["kerbin-flight-partial-science"],
+      },
+      // Archive tab: clicks the second tablist entry, scoped to the
+      // cross-mission fixture so the body -> experiment grouping (and the
+      // divergence from the Aboard tab's single-vessel breakdown) is visible.
+      {
+        name: "archive-8x10",
+        w: 8,
+        h: 10,
+        clicks: [{ selector: '[role="tablist"] [role="tab"]:nth-of-type(2)' }],
+        forFixtures: ["career-archive-multi-body"],
+      },
+      {
+        name: "archive-wide-12x14",
+        w: 12,
+        h: 14,
+        clicks: [{ selector: '[role="tablist"] [role="tab"]:nth-of-type(2)' }],
+        forFixtures: ["career-archive-multi-body"],
+      },
     ],
   },
   {

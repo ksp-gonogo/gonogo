@@ -12,7 +12,7 @@ import { DeployedScienceComponent } from "./index";
  * per-experiment shape); with the widget now reading its whole state off the
  * canonical `deployed.bases` + `game.dlc` Topics, there is no legacy read
  * path left to compare against: same "the legacy leg is gone" story as
- * `ScienceOfficer/dual-run.test.tsx`'s own doc comment. What remains proves
+ * `Experiments/dual-run.test.tsx`'s own doc comment. What remains proves
  * the widget renders the full two-experiment Mun cluster correctly off the
  * real stream pipeline, from the flat `deployed.bases` wire shape grouped by
  * `vesselName` (`groupFlatDeployedEntries`, index.tsx):

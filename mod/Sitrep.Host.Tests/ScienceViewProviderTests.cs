@@ -398,5 +398,126 @@ namespace Sitrep.Host.Tests
             Assert.Null(ScienceViewProvider.BuildExperimentBreakdown(partialScience));
         }
 
+        [Fact]
+        public void BuildArchiveMapsSubjectsFromDifferentBodiesAcrossTheWholeCareer()
+        {
+            // Unlike every other science.* builder above, the raw list lives
+            // at a TOP-LEVEL "scienceArchive" key, not nested under
+            // "science" - the archive is global R&D ground truth, not
+            // gated on an active vessel, so it can't ride the same
+            // vessel-only group. Two subjects from two different bodies,
+            // neither collected by "the active vessel" (there isn't one).
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["scienceArchive"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["subjectId"] = "crewReport@KerbinSrfLandedKSC",
+                            ["experimentId"] = "crewReport",
+                            ["experimentTitle"] = "Crew Report",
+                            ["body"] = "Kerbin",
+                            ["situation"] = "SrfLanded",
+                            ["biome"] = "KSC",
+                            ["title"] = "Crew Report from Kerbin's Space Center",
+                            ["science"] = 5.0,
+                            ["scienceCap"] = 5.0,
+                            ["remainingPotential"] = 0.0,
+                            ["subjectValue"] = 1.0,
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["subjectId"] = "mysteryGoo@MunSrfLandedMidlands",
+                            ["experimentId"] = "mysteryGoo",
+                            ["experimentTitle"] = "Mystery Goo Observation",
+                            ["body"] = "Mun",
+                            ["situation"] = "SrfLanded",
+                            ["biome"] = "Midlands",
+                            ["title"] = "Mystery Goo Observation from Mun's midlands",
+                            ["science"] = 6.0,
+                            ["scienceCap"] = 15.0,
+                            ["remainingPotential"] = 9.0,
+                            ["subjectValue"] = 1.5,
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["subjectId"] = "temperatureScan@DunaInSpaceLow",
+                            ["experimentId"] = "temperatureScan",
+                            ["experimentTitle"] = "Temperature Scan",
+                            ["body"] = "Duna",
+                            ["situation"] = "InSpaceLow",
+                            ["biome"] = "",
+                            ["title"] = "Temperature scan while in space near Duna",
+                            ["science"] = 2.0,
+                            ["scienceCap"] = 4.0,
+                            ["remainingPotential"] = 2.0,
+                            ["subjectValue"] = 3.0,
+                        },
+                    },
+                },
+            };
+
+            var payload = ScienceViewProvider.BuildArchive(snapshot);
+            var list = Assert.IsType<List<object?>>(payload);
+            Assert.Equal(3, list.Count);
+
+            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("crewReport@KerbinSrfLandedKSC", first["subjectId"]);
+            Assert.Equal("crewReport", first["experimentId"]);
+            Assert.Equal("Crew Report", first["experimentTitle"]);
+            Assert.Equal("Kerbin", first["body"]);
+            Assert.Equal("SrfLanded", first["situation"]);
+            Assert.Equal("KSC", first["biome"]);
+            Assert.Equal("Crew Report from Kerbin's Space Center", first["title"]);
+            Assert.Equal(5.0, first["science"]);
+            Assert.Equal(5.0, first["scienceCap"]);
+            Assert.Equal(0.0, first["remainingPotential"]);
+            Assert.Equal(1.0, first["subjectValue"]);
+            Assert.Equal(11, first.Count);
+
+            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal("mysteryGoo@MunSrfLandedMidlands", second["subjectId"]);
+            Assert.Equal("Mun", second["body"]);
+            Assert.Equal("Midlands", second["biome"]);
+            Assert.Equal(6.0, second["science"]);
+            Assert.Equal(15.0, second["scienceCap"]);
+            Assert.Equal(9.0, second["remainingPotential"]);
+
+            var third = Assert.IsType<Dictionary<string, object?>>(list[2]);
+            Assert.Equal("temperatureScan@DunaInSpaceLow", third["subjectId"]);
+            Assert.Equal("Duna", third["body"]);
+            Assert.Equal("", third["biome"]);
+            Assert.Equal(3.0, third["subjectValue"]);
+        }
+
+        [Fact]
+        public void BuildArchiveReturnsNullWhenSnapshotHasNoScienceArchiveKey()
+        {
+            Assert.Null(ScienceViewProvider.BuildArchive(null));
+            Assert.Null(ScienceViewProvider.BuildArchive(
+                new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+
+            // The archive lives at a TOP-LEVEL key: a snapshot carrying a
+            // populated "science" group (active vessel flying) but no
+            // "scienceArchive" sibling - e.g. Sandbox mode, no R&D instance
+            // to walk - must still map to null, never fall back to reading
+            // anything out of "science".
+            var vesselOnly = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        ["experiments"] = new List<object?>(),
+                    },
+                },
+            };
+            Assert.Null(ScienceViewProvider.BuildArchive(vesselOnly));
+        }
+
     }
 }

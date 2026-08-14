@@ -514,10 +514,10 @@ export interface OrbitBadgesContext {
 
 // "navball.badges" carries no props today.
 
-// --- ScienceOfficer (packages/components/src/ScienceOfficer) ---------------
+// --- Experiments (packages/components/src/Experiments) ---------------
 
-/** Mirrors `Instrument` (ScienceOfficer/index.tsx). */
-export interface ScienceOfficerInstrument {
+/** Mirrors `Instrument` (Experiments/index.tsx). */
+export interface ExperimentsInstrument {
   partId: string;
   partTitle: string;
   expId: string;
@@ -527,16 +527,16 @@ export interface ScienceOfficerInstrument {
   inoperable: boolean;
 }
 
-/** Mirrors `ScienceOfficerInstrumentSlotContext` (ScienceOfficer/index.tsx). */
-export interface ScienceOfficerInstrumentSlotContext {
+/** Mirrors `ExperimentsInstrumentSlotContext` (Experiments/index.tsx). */
+export interface ExperimentsInstrumentSlotContext {
   /** The instrument the augmented row is rendering. */
-  instrument: ScienceOfficerInstrument;
+  instrument: ExperimentsInstrument;
 }
 
-/** Mirrors `ScienceOfficerSlotContext` (ScienceOfficer/index.tsx). */
-export interface ScienceOfficerSlotContext {
+/** Mirrors `ExperimentsSlotContext` (Experiments/index.tsx). */
+export interface ExperimentsSlotContext {
   /** Parsed instrument list, or `null` before telemetry arrives. */
-  instruments: ScienceOfficerInstrument[] | null;
+  instruments: ExperimentsInstrument[] | null;
   /** Total stored science data across all instruments, in mits. */
   dataAmount: number;
 }
@@ -665,8 +665,8 @@ declare module "./types" {
 
     "navball.badges": Record<string, never>;
 
-    "science-officer.sections": ScienceOfficerInstrumentSlotContext;
-    "science-officer.badges": ScienceOfficerSlotContext;
+    "science-officer.sections": ExperimentsInstrumentSlotContext;
+    "science-officer.badges": ExperimentsSlotContext;
 
     "deployed-science.sections": DeployedExperimentContext;
     "deployed-science.badges": Record<string, never>;

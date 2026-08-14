@@ -160,6 +160,13 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // correctly Delayed.) 1 explicit declaration.
   "mod/GonogoAvionicsUplink/AvionicsUplink.cs": 1,
 
+  // science.archive: the whole-career R&D archive (banked science read at
+  // KSC/R&D). Career-wide ground-side bookkeeping the command centre always
+  // knows, independent of any vessel's comms link, the same class as
+  // CareerUplink's career.status/career.mode. Every other science.* channel
+  // reads live onboard vessel state and stays Delayed. 1 explicit declaration.
+  "mod/Gonogo.KSP/ScienceCoreUplink.cs": 1,
+
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched
   // and when: ground-side bookkeeping, not vessel telemetry) + system.units

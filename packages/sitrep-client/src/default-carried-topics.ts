@@ -122,6 +122,9 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.experiments",
   "science.experimentBreakdown",
   "science.lab",
+  // science.archive: the career-wide R&D archive (ScienceData's Archive tab),
+  // a new capability with no legacy read, so the stream is its only source.
+  "science.archive",
   "deployed.bases",
   // spaceCenter.crewRoster/savedShips/partsAvailable: AstronautComplex/
   // LaunchDirector/SpaceCenterStatus's kc.crewRoster/kc.savedShips/

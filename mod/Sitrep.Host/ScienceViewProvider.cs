@@ -45,6 +45,17 @@ namespace Sitrep.Host
     /// the Vanilla factory of the elected <c>"science"</c> capability (see
     /// <see cref="Science.ScienceElection"/>). Nothing about the mapping changed,
     /// the election is indirection only.</para>
+    ///
+    /// <para><b><c>science.archive</c> is the one exception to the elected
+    /// vessel-science builders above.</b> It reads a SIBLING top-level key,
+    /// <c>Values["scienceArchive"]</c>: a flat list of one entry per subject
+    /// in the whole-career R&amp;D archive, populated by
+    /// <c>Gonogo.KSP.KspHost.BuildScienceArchive</c>. It has to live outside
+    /// the vessel-gated <c>"science"</c> group because that group is entirely
+    /// omitted with no active vessel, and the archive is career-wide ground
+    /// truth that must stream at the Space Center with nothing flying. Being
+    /// stock R&amp;D bookkeeping it is provider-agnostic, wired straight to
+    /// <see cref="BuildArchive"/> rather than through the elected backend.</para>
     /// </summary>
     public static class ScienceViewProvider
     {
@@ -53,6 +64,7 @@ namespace Sitrep.Host
         public const string LabTopic = "science.lab";
         public const string SensorsTopic = "science.sensors";
         public const string ExperimentBreakdownTopic = "science.experimentBreakdown";
+        public const string ArchiveTopic = "science.archive";
 
         public static object? BuildExperiments(KspSnapshot? snapshot) =>
             BuildList(snapshot, "experiments", BuildExperimentEntry);
@@ -68,6 +80,41 @@ namespace Sitrep.Host
 
         public static object? BuildExperimentBreakdown(KspSnapshot? snapshot) =>
             BuildList(snapshot, "experimentBreakdown", BuildExperimentBreakdownEntry);
+
+        /// <summary>
+        /// Reads the whole-career R&D archive off a TOP-LEVEL
+        /// <c>Values["scienceArchive"]</c> key, deliberately NOT nested
+        /// under <c>Values["science"]</c> like every other builder in this
+        /// class. The raw <c>"science"</c> group is only populated when
+        /// there's an active vessel (see <c>KspHost.BuildScience</c>'s own
+        /// guard), but the archive is career-wide ground truth that must
+        /// stream at the Space Center with nothing flying, so it can't hang
+        /// off the same vessel-gated key. Returns <c>null</c>, never an
+        /// empty list, whenever the snapshot has no <c>"scienceArchive"</c>
+        /// key at all (no R&amp;D instance to walk, e.g. Sandbox mode).
+        /// </summary>
+        public static object? BuildArchive(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("scienceArchive", out var rawList) || rawList is not IEnumerable<object?> list)
+            {
+                return null;
+            }
+
+            var result = new List<object?>();
+            foreach (var rawEntry in list)
+            {
+                if (rawEntry is IDictionary<string, object?> entry)
+                {
+                    result.Add(BuildArchiveEntry(entry));
+                }
+            }
+            return result;
+        }
 
         /// <summary>
         /// Shared "pull a list out of Values['science'][key]" walk. Returns
@@ -176,6 +223,26 @@ namespace Sitrep.Host
             // Stock's rollup is the R&D snapshot, in mits. See
             // ScienceValueModels and ExperimentBreakdownEntry.ValueModel.
             ["valueModel"] = ScienceValueModels.Stock,
+        };
+
+        // "remainingPotential" is read straight off the raw entry rather
+        // than computed here as scienceCap - science: KspHost.BuildScienceArchive
+        // is the one place that does the subtraction (same idiom as
+        // BuildExperimentBreakdownEntry above), so this layer stays a pure
+        // pass-through with the usual non-finite-is-absent rule.
+        private static Dictionary<string, object?> BuildArchiveEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
+        {
+            ["subjectId"] = SnapshotDict.GetString(raw, "subjectId"),
+            ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
+            ["experimentTitle"] = SnapshotDict.GetString(raw, "experimentTitle"),
+            ["body"] = SnapshotDict.GetString(raw, "body"),
+            ["situation"] = SnapshotDict.GetString(raw, "situation"),
+            ["biome"] = SnapshotDict.GetString(raw, "biome"),
+            ["title"] = SnapshotDict.GetString(raw, "title"),
+            ["science"] = SnapshotDict.GetDouble(raw, "science"),
+            ["scienceCap"] = SnapshotDict.GetDouble(raw, "scienceCap"),
+            ["remainingPotential"] = SnapshotDict.GetDouble(raw, "remainingPotential"),
+            ["subjectValue"] = SnapshotDict.GetDouble(raw, "subjectValue"),
         };
     }
 }

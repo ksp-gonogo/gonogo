@@ -5,8 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
+  ExperimentsComponent,
   parseInstruments,
-  ScienceOfficerComponent,
   sumExperimentDataAmount,
 } from "./index";
 
@@ -30,7 +30,7 @@ function renderOfficer(fixture: ReturnType<typeof newFixture>) {
   const { unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "sci-off" }}>
-        <ScienceOfficerComponent config={{}} id="sci-off" />
+        <ExperimentsComponent config={{}} id="sci-off" />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -43,7 +43,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ScienceOfficerComponent", () => {
+describe("ExperimentsComponent", () => {
   it("shows the awaiting placeholder before any telemetry arrives", () => {
     renderOfficer(newFixture());
     expect(

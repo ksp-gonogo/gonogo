@@ -604,6 +604,11 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       expect(isKnownTelemachusGap("data", "sci.instruments")).toBe(false);
     });
 
+    it("maps sci.archive as a whole-topic identity read onto the career-wide R&D archive", () => {
+      expect(mapTopic("data", "sci.archive")).toBe("science.archive");
+      expect(isKnownTelemachusGap("data", "sci.archive")).toBe(false);
+    });
+
     it("maps dv.stages as a whole-topic read and the summary scalars onto dv.summary", () => {
       expect(mapTopic("data", "dv.stages")).toBe("dv.stages");
       expect(mapTopic("data", "dv.stageCount")).toBe("dv.summary.stageCount");

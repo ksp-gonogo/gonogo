@@ -28,7 +28,7 @@ import {
 import { Fragment } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
-type ScienceOfficerConfig = Record<string, never>;
+type ExperimentsConfig = Record<string, never>;
 
 export interface Instrument {
   partId: string;
@@ -47,7 +47,7 @@ export interface Instrument {
  * `deployed-science`) can render a per-instrument extension scoped to
  * exactly that instrument (a slot-parameterised augment).
  */
-export interface ScienceOfficerInstrumentSlotContext {
+export interface ExperimentsInstrumentSlotContext {
   /** The instrument the augmented row is rendering. */
   instrument: Instrument;
 }
@@ -59,7 +59,7 @@ export interface ScienceOfficerInstrumentSlotContext {
  * plus the total stored science so a header augment can summarise
  * vessel-wide science state without re-reading the topics itself.
  */
-export interface ScienceOfficerSlotContext {
+export interface ExperimentsSlotContext {
   /** Parsed instrument list, or `null` before telemetry arrives. */
   instruments: Instrument[] | null;
   /** Total stored science data across all instruments, in mits. */
@@ -75,8 +75,8 @@ export interface ScienceOfficerSlotContext {
 // fallback an unmerged slot id would receive.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "science-officer.sections": ScienceOfficerInstrumentSlotContext;
-    "science-officer.badges": ScienceOfficerSlotContext;
+    "science-officer.sections": ExperimentsInstrumentSlotContext;
+    "science-officer.badges": ExperimentsSlotContext;
   }
 }
 
@@ -215,10 +215,10 @@ export function parseLab(raw: unknown): LabStatus[] | null {
   return out;
 }
 
-function ScienceOfficerComponent({
+function ExperimentsComponent({
   w,
   h,
-}: Readonly<ComponentProps<ScienceOfficerConfig>>) {
+}: Readonly<ComponentProps<ExperimentsConfig>>) {
   // The instrument list reads the canonical `science.instruments` Topic
   // (old `sci.instruments`); parseInstruments accepts both wire shapes.
   // Deploy/transmit are commands dispatched to the craft (command-surface-
@@ -227,7 +227,7 @@ function ScienceOfficerComponent({
   // instead of the legacy `useExecuteAction` string path.
   const instrumentsRaw = useTelemetry("science.instruments");
   // No pre-aggregated data field on the wire, derive the vessel-wide total
-  // client-side from the same `science.experiments` Topic ScienceBench uses,
+  // client-side from the same `science.experiments` Topic ScienceData uses,
   // same aggregate semantics as the old Telemachus "Total science data (mits)".
   const experimentsRaw = useTelemetry("science.experiments");
   const instruments = parseInstruments(instrumentsRaw);
@@ -260,7 +260,7 @@ function ScienceOfficerComponent({
 
   if (instruments === null) {
     return (
-      <Panel panelTitle="SCIENCE LAB">
+      <Panel panelTitle="EXPERIMENTS">
         {showSubtitle && <EmptyState>Awaiting instrument telemetry</EmptyState>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
@@ -269,7 +269,7 @@ function ScienceOfficerComponent({
 
   if (instruments.length === 0) {
     return (
-      <Panel panelTitle="SCIENCE LAB">
+      <Panel panelTitle="EXPERIMENTS">
         {showSubtitle && <EmptyState>No instruments aboard</EmptyState>}
         {showLab && <LabSection labs={labs} />}
       </Panel>
@@ -321,7 +321,7 @@ function ScienceOfficerComponent({
 
   return (
     <Panel
-      panelTitle="SCIENCE LAB"
+      panelTitle="EXPERIMENTS"
       /* Header escape-hatch slot: a broad badge/summary augment composes next
          to the title. Empty (renders nothing) until an Uplink registers. */
       panelAside={
@@ -437,15 +437,15 @@ function summarise(instruments: Instrument[]): {
 
 // ── Registration ──────────────────────────────────────────────────────────────
 
-registerComponent<ScienceOfficerConfig>({
-  id: "science-officer",
-  name: "Science Lab",
+registerComponent<ExperimentsConfig>({
+  id: "experiments",
+  name: "Experiments",
   description:
     "All science instruments on the current vessel grouped by experiment, plus Mobile Processing Lab status. Shows which instruments have stored data, which have already been deployed, which are one-shot, and which are inoperable.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
-  component: ScienceOfficerComponent,
+  component: ExperimentsComponent,
   dataRequirements: ["sci.instruments", "sci.experiments", "science.lab"],
   defaultConfig: {},
   actions: [],
@@ -454,4 +454,4 @@ registerComponent<ScienceOfficerConfig>({
   requires: ["flight"],
 });
 
-export { ScienceOfficerComponent };
+export { ExperimentsComponent };

@@ -772,6 +772,20 @@ export interface ExperimentBreakdownEntry
 	valueModel?: string;
 	extensions?: ProviderExtensions;
 }
+export interface ArchiveEntry
+{
+	subjectId?: string;
+	experimentId?: string;
+	experimentTitle?: string;
+	body?: string;
+	situation?: string;
+	biome?: string;
+	title?: string;
+	science?: Value<"science">;
+	scienceCap?: Value<"science">;
+	remainingPotential?: Value<"science">;
+	subjectValue?: Value<"1">;
+}
 export interface LaunchSiteEntry
 {
 	name?: string;

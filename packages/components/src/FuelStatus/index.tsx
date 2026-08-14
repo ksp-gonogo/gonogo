@@ -185,7 +185,7 @@ function fmtFixed(value: unknown, digits: number): string {
  * `twrActual`/`thrustAsl`, and it never carries `stageMass`/`isp*` at all.
  * Normalize every entry to the `StageInfo` shape the renderer already reads
  * so `pickDeltaV`/`pickTWR` don't need to know which wire produced the row.
- * Mirrors ScienceOfficer's `parseInstruments` shape-reconciliation pattern.
+ * Mirrors Experiments's `parseInstruments` shape-reconciliation pattern.
  */
 export function parseStages(raw: unknown): StageInfo[] {
   if (!Array.isArray(raw)) return [];

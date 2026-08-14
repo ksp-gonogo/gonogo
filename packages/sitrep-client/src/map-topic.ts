@@ -165,7 +165,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // against the contract's C#-declared enum order and exposes the widget-shaped
   // value as a `vessel.state.*` field subtopic: same client-side display-map
   // pattern as the body-NAME maps above, zero per-widget change:
-  //  - situationName            (Situation enum → name; ScienceBench)
+  //  - situationName            (Situation enum → name; ScienceData)
   //  - sasModeName              (SasMode enum → name; Navball's SAS_MODES)
   //  - commsControlStateName    (ControlState enum → name; CommSignal label/tone)
   //  - commsControlStateOrdinal (ControlState enum → CommSignal's 0/1/2 level)
@@ -451,7 +451,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // `science.experiments` (mod/Sitrep.Host/ScienceViewProvider.cs) is a raw
   // array whose entries are a strict SUPERSET of the legacy `sci.experiments`
   // shape: `partName` replaces `part` (same string, renamed field;
-  // `parseExperiments` in ScienceBench/index.tsx reads `partName ?? part` so
+  // `parseExperiments` in ScienceData/index.tsx reads `partName ?? part` so
   // both wire shapes parse identically), plus new fields
   // (location/experimentId/scienceValueRatio/baseTransmitValue/
   // transmitBonus/labValue/deployed/inoperable/situation) the widget doesn't
@@ -463,9 +463,15 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // sci.experimentBreakdown: the per-subject rollup (biome/situation/
   // remainingPotential) now has a real wire home, ScienceViewProvider's
   // ExperimentBreakdownEntry[], the same field names (subjectId/biome/
-  // situation/expTitle/dataMits/remainingPotential) ScienceBench's
+  // situation/expTitle/dataMits/remainingPotential) ScienceData's
   // parseExperimentBreakdown already reads, whole-array identity read.
   "sci.experimentBreakdown": "science.experimentBreakdown",
+  // sci.archive: the whole-career R&D archive (ResearchAndDevelopment.
+  // GetSubjects(), every subject ever collected across every mission and
+  // body, not scoped to the active vessel) has no legacy `sci.*` analogue,
+  // new capability, same "key == topic" whole-array identity read as
+  // `science.lab`/`parts.power` below.
+  "sci.archive": "science.archive",
 
   // --- science/parts topics: NEW capability, no legacy widget key existed
   // for either: `parts.power` (dict: solarPanels/batteries/fuelCells/
@@ -529,7 +535,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // ({ mode: GameMode }, CareerViewProvider), a raw-field walk to the
   // single `mode` field (the numeric GameMode ordinal: Sandbox 0/Career
   // 1/Science 2/Unknown 3). useGameContext resolves the ordinal to the
-  // SANDBOX/CAREER/SCIENCE/Unknown string ScienceBench and useGameContext's
+  // SANDBOX/CAREER/SCIENCE/Unknown string ScienceData and useGameContext's
   // own callers already read (see useGameContext.ts's resolveCareerMode).
   "career.mode": "career.mode.mode",
 
@@ -537,9 +543,9 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // <type>` equivalent (those four stay individually gapped below, no
   // per-type field exists on the wire, only this general SensorEntry[]
   // list). Whole-topic identity read, same "key == topic" precedent as
-  // parts.power/parts.robotics/science.lab above: ScienceBench filters the
-  // array by `type` client-side (WIRE_SENSOR_TYPE in ScienceBench/index.tsx)
-  // rather than the mod re-shaping it into four fixed fields.
+  // parts.power/parts.robotics/science.lab above: a sensor widget filters the
+  // array by `type` client-side rather than the mod re-shaping it into four
+  // fixed fields.
   "science.sensors": "science.sensors",
 
   // --- Remaining trivial raw-field walks + whole-topic

@@ -1,9 +1,9 @@
-// SCANsat science augment for ScienceOfficer.
+// SCANsat science augment for Experiments.
 //
-// Fills ScienceOfficer's `science-officer.badges` header slot with the
+// Fills Experiments's `science-officer.badges` header slot with the
 // vessel's SCANsat map-scanner experiments: parts SCANsat manages via
 // `SCANexperiment`/`IScienceDataContainer`, which never appear in
-// `sci.instruments` (the stock-experiment topic ScienceOfficer itself
+// `sci.instruments` (the stock-experiment topic Experiments itself
 // reads), so there is no per-instrument row to hang off. `badges` is the
 // widget's broad, once-per-widget escape-hatch slot (its own doc comment:
 // "badges-as-broad-escape-hatch"): the right shape for a whole extra
@@ -12,7 +12,7 @@
 //
 // Presence-gated on `requires: "scansat"`: `AugmentSlot` renders this only
 // while `scansat.available` is live, so an install without the SCANsat mod
-// never mounts it: zero impact on ScienceOfficer for non-SCANsat users.
+// never mounts it: zero impact on Experiments for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
@@ -32,7 +32,7 @@ import { SCANSAT } from "../uplink";
  * ui-kit row's `ScienceInstrument` shape 1:1 (the mod-side builder
  * deliberately names them to match), so this is a straight
  * nullable-wire -> plain-boolean normalisation, same pattern as
- * ScienceOfficer's own `parseInstruments`: `bool?` -> `=== true`, missing
+ * Experiments's own `parseInstruments`: `bool?` -> `=== true`, missing
  * `partTitle`/`expId` -> a safe fallback, entries with no `partId` skipped.
  *
  * `deployed` and `inoperable` are always `false` on the wire and
@@ -76,7 +76,7 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
  * ships a collapsed count badge that expands a floating row list on click,
  * leaving the header's stock layout untouched either way (collapsed or
  * expanded). The clean long-term fix is a dedicated body-level
- * `science-officer.sections-append` slot on ScienceOfficer:
+ * `science-officer.sections-append` slot on Experiments:
  * flagged for live review, not built here.
  */
 function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
@@ -140,7 +140,7 @@ const DROPDOWN: CSSProperties = {
   position: "absolute",
   top: "100%",
   right: 0,
-  // Literal, and NOT --z-dropdown. This menu renders inside ScienceOfficer's
+  // Literal, and NOT --z-dropdown. This menu renders inside Experiments's
   // ui-kit Panel, which is overflow: hidden, so it is clipped at the panel
   // edge before any z-index is consulted; and that panel sits in a
   // .react-grid-item, which react-grid-layout gives a transform (its
@@ -160,7 +160,7 @@ const DROPDOWN: CSSProperties = {
 };
 
 // `ScienceExperimentRow` renders a `<li>` (ui-kit's `Row` default); needs a
-// real `<ul>` ancestor for a11y, same as ScienceOfficer's own
+// real `<ul>` ancestor for a11y, same as Experiments's own
 // `InstrumentList`.
 const ROW_LIST: CSSProperties = {
   listStyle: "none",

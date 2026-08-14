@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-13",
+    "body": "Kerbin",
+    "notes": "In flight low over Kerbin's grasslands; two subjects aboard, both partway to their science cap (neither exhausted, neither untouched). Drives the Aboard tab's default render and the dual-run/stream proofs."
+  },
+  "kc.scene": "Flight",
+  "v.name": "tester",
+  "v.body": "Kerbin",
+  "v.situationString": "Flying",
+  "v.landedAt": "",
+  "v.biome": "Grasslands",
+  "career.mode": "CAREER",
+  "career.funds": 189240.5,
+  "career.reputation": 62,
+  "career.science": 1234.5,
+  "sci.experiments": [
+    {
+      "subjectId": "crewReport@KerbinFlyingLowGrasslands",
+      "part": "Mk1 Command Pod",
+      "title": "Crew Report while flying low over Kerbin's grasslands",
+      "dataAmount": 5.5,
+      "scienceValueBase": 1,
+      "transmitBoost": 0
+    },
+    {
+      "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
+      "part": "Mystery Goo Container",
+      "title": "Mystery Goo Observation while flying low over Kerbin's grasslands",
+      "dataAmount": 2,
+      "scienceValueBase": 0.5,
+      "transmitBoost": 0
+    }
+  ],
+  "sci.experimentBreakdown": [
+    {
+      "subjectId": "crewReport@KerbinFlyingLowGrasslands",
+      "biome": "Grasslands",
+      "situation": "FlyingLow",
+      "expTitle": "Crew Report while flying low over Kerbin's grasslands",
+      "dataMits": 5.5,
+      "remainingPotential": 3.2
+    },
+    {
+      "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
+      "biome": "Grasslands",
+      "situation": "FlyingLow",
+      "expTitle": "Mystery Goo Observation while flying low over Kerbin's grasslands",
+      "dataMits": 2,
+      "remainingPotential": 6.8
+    }
+  ]
+}
