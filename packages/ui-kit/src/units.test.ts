@@ -233,27 +233,46 @@ describe("formatQuantity", () => {
     });
   });
 
-  it("does NOT derive a byte RATE ladder from the byte ladder", () => {
-    // The finding, pinned rather than described. Nothing in this module builds
-    // an `X/s` ladder out of an `X` one: every rate kind (`dataRate`, `power`,
-    // `doseRate`) declares its own rungs, so adding the byte ladder above did
-    // nothing whatsoever for `MB/s`, which has no kind and renders bare in
-    // whatever unit it arrived in.
+  it("ladders on the family a unit declares, not on its kind", () => {
+    // The question the old pin left open (does a transmit rate read better in
+    // MB/s or in the Mbit/s an antenna budget is quoted in) is answered by
+    // letting the DECLARER say. Two families can share a kind and a dimension
+    // so their values stay convertible, while each keeps its own rungs: that
+    // is what stops the mod registering second from re-scaling the first
+    // one's readouts, which is what a kind-keyed ladder did.
     //
-    // Deliberately left that way. A byte-rate ladder is a separate decision
-    // with its own question attached (does a mod's transmit rate read better
-    // in MB/s or in the Mbit/s an antenna budget is already quoted in),
-    // and hand-rolling one to make this test look tidier would answer that
-    // question by accident.
-    expect(kindOfUnit("MB/s")).toBeUndefined();
-    expect(formatQuantity(12.5, "MB/s")).toMatchObject({
-      value: "12.5",
-      symbol: "MB/s",
+    // Declared here rather than exercised through a real mod's units, because
+    // this is the kit's mechanism and no byte lives in core: an Uplink brings
+    // its own family and its own rungs.
+    registerUnit({
+      symbol: "quux",
+      kind: "dataRate",
+      family: "quuxes",
+      ladder: [
+        { from: 1, symbol: "quux", per: 1 },
+        { from: 1e3, symbol: "kquux", per: 1e3 },
+      ],
     });
-    expect(formatQuantity(4096, "MB/s")).toMatchObject({
-      value: "4096",
-      symbol: "MB/s",
+    expect(formatQuantity(2500, "quux")).toMatchObject({ symbol: "kquux" });
+    // The kind's own ladder is untouched by the family that borrowed its kind.
+    expect(formatQuantity(4.2e6, "bit/s")).toMatchObject({
+      symbol: "Mbit/s",
     });
+  });
+
+  it("refuses to let two declarations disagree about one symbol", () => {
+    // Same symbol, same meaning, declared by two mods that never met: fine,
+    // and the point of a shared family. Same symbol meaning DIFFERENT things
+    // is not, because which one wins would depend on module load order and the
+    // number on screen would change with it.
+    registerUnit({ symbol: "blorp", kind: "data", family: "bytes" });
+    registerUnit({ symbol: "blorp", kind: "data", family: "bytes" });
+    expect(() =>
+      registerUnit({ symbol: "blorp", kind: "data", family: "bits" }),
+    ).toThrow(/already registered/);
+  });
+
+  it("keeps the bit rate ladder for a bit rate", () => {
     // The rate ladder the module DOES have is the bit one, untouched by any
     // of the above.
     expect(formatQuantity(4.2e6, "bit/s")).toMatchObject({

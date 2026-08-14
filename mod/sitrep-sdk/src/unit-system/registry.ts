@@ -91,8 +91,54 @@ export function resetUnitRegistry(): void {
 }
 resetUnitRegistry();
 
+/**
+ * The two component symbols either side of the first "/" in a compound
+ * token, or `undefined` when the token is not shaped like one: no slash, or
+ * an empty side (`"/s"`, `"bit/"`).
+ */
+function splitCompound(token: string): readonly [string, string] | undefined {
+  const slash = token.indexOf("/");
+  if (slash <= 0 || slash === token.length - 1) {
+    return undefined;
+  }
+  return [token.slice(0, slash), token.slice(slash + 1)];
+}
+
+/**
+ * A slash-shaped token composed from its own registered parts: `"MB/s"`
+ * resolves once `MB` and `s` are registered, with nobody having pre-declared
+ * the rate as its own atom. `/s` falls out of the algebra this way rather
+ * than being baked into a table entry per rung.
+ *
+ * Reuses {@link resolveComponent}'s own guard for the failure rather than
+ * inventing a second error for the same mistake: a compound naming a
+ * component nobody registered is exactly the typo `registerUnit`'s
+ * `{ of, per }` form already refuses, so looking one up here is refused the
+ * same way and for the same reason, loudly rather than rendering a nonsense
+ * unit three screens later.
+ */
+function composeToken(
+  token: string,
+  parts: readonly [string, string],
+): UnitDefinition {
+  const [numeratorSymbol, denominatorSymbol] = parts;
+  const numerator = resolveComponent(numeratorSymbol, token);
+  const denominator = resolveComponent(denominatorSymbol, token);
+  return {
+    dim: Dim.divide(numerator.dim, denominator.dim),
+    ratio: numerator.ratio / denominator.ratio,
+    /** Informational only, since kind never gates arithmetic: reads the same way the rate atoms this replaces did, "science" to "scienceRate". */
+    kind: `${numerator.kind}Rate`,
+  };
+}
+
 export function lookupUnit(symbol: string): UnitDefinition | undefined {
-  return registry.get(symbol);
+  const direct = registry.get(symbol);
+  if (direct) {
+    return direct;
+  }
+  const parts = splitCompound(symbol);
+  return parts ? composeToken(symbol, parts) : undefined;
 }
 
 /**

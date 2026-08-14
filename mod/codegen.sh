@@ -18,6 +18,7 @@ BIN="$PROJ/bin/Debug/netstandard2.0"
 cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$BIN/"   # rtcli needs to resolve the attributes assembly
 
 mkdir -p "$(dirname "$OUT")"
+
 # SITREP_TOPICMAP_OUT triggers RtConfig.Configure to also emit the Topic->payload
 # map (topic-map.ts) by reflecting over the [SitrepTopic]-tagged contract types,
 # see RtConfig.EmitTopicMap. SITREP_UNITMAP_OUT does the same for the field->unit

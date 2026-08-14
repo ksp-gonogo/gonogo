@@ -16,6 +16,7 @@ export type KnownSitrepUnit =
   | "K"
   | "Mit"
   | "W/m²"
+  | "bit"
   | "bit/s"
   | "count"
   | "dB"

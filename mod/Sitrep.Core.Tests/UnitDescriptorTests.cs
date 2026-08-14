@@ -126,14 +126,30 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void AnUplinkTokenOutsideTheCatalogIsCarried()
+        public void AnUplinkTokenOutsideEveryCatalogIsRejected()
         {
-            // `validateVocabulary` is for the FIRST PARTY, where everything
-            // reflected is compiled into the contract assembly and a stray
-            // token is a typo. A third party's token is not a typo, it is the
-            // open arm of the union working as designed.
+            // An Uplink is judged against core's catalog PLUS its own, so it can
+            // declare whatever it models while a typo still fails. There is no
+            // exemption for who wrote it: an undeclared token reaches the client
+            // as an opaque symbol with no dimension and no ladder, which is the
+            // same silent wrongness whoever shipped it. An Uplink that means to
+            // introduce a unit says so in its own `Units` class.
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                UnitDescriptor.Collect(
+                    validateVocabulary: true,
+                    assembly: typeof(ExampleUplinkPayload).Assembly));
+
+            Assert.Contains("banana", ex.Message);
+        }
+
+        [Fact]
+        public void AnUplinkTokenIsCarriedWhenNobodyIsValidating()
+        {
+            // The RUNTIME pass, which deliberately does not throw: inside KSP a
+            // stray token must not take the mod down, and the value still
+            // renders, just without a dimension behind it.
             var maps = UnitDescriptor.Collect(
-                validateVocabulary: true,
+                validateVocabulary: false,
                 assembly: typeof(ExampleUplinkPayload).Assembly);
 
             Assert.Equal("banana", maps.ByType[nameof(ExampleUplinkPayload)]["silliness"]);

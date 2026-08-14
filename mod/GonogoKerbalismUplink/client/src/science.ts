@@ -34,6 +34,7 @@ import {
   registerProviderExtensionShape,
   registerUnit,
 } from "@ksp-gonogo/sitrep-sdk";
+import { registerUnit as registerDisplayUnit } from "@ksp-gonogo/ui-kit";
 import type {
   KerbalismScienceBreakdownExt,
   KerbalismScienceExperimentExt,
@@ -89,12 +90,57 @@ export const SCIENCE_EXPERIMENT_BREAKDOWN_TOPIC = "science.experimentBreakdown";
 // the catalog already scales `Mbit/s`. Mits deliberately stay their own dimension in
 // the first-party catalog, because a mit is a game abstraction with no byte count,
 // which is the whole reason the two cannot share a field.
+/**
+ * The byte family and its rungs, which belong here rather than in core: core
+ * owns the data dimension's base so a drive's bytes and an antenna's bits stay
+ * convertible, and each mod declares the units it actually models. Decimal,
+ * because Kerbalism's own source is (`BPerMB = 1000*1000`), so these agree with
+ * the figures the game's own UI shows rather than drifting per tier.
+ *
+ * `family` is what keeps bytes off the bit rungs: both are `data`, so laddering
+ * on kind alone would let whichever mod registered last re-scale the other's
+ * readouts. A rate gets its rungs the same way, so a transmit speed reads
+ * 4 kB/s rather than the 32 kbit/s a shared ladder would produce.
+ */
+const BYTE_RUNGS = [
+  { from: 8, symbol: "B", per: 8 },
+  { from: 8e3, symbol: "kB", per: 8e3 },
+  { from: 8e6, symbol: "MB", per: 8e6 },
+  { from: 8e9, symbol: "GB", per: 8e9 },
+] as const;
+
+const BYTE_RATE_RUNGS = [
+  { from: 8, symbol: "B/s", per: 8 },
+  { from: 8e3, symbol: "kB/s", per: 8e3 },
+  { from: 8e6, symbol: "MB/s", per: 8e6 },
+  { from: 8e9, symbol: "GB/s", per: 8e9 },
+] as const;
+
+// The MODEL half: what these units ARE. Dimension and ratio are what make a
+// byte count and a bit budget add up, and they are all the SDK needs.
 registerUnit({ symbol: "MB", kind: "data", dimension: { bit: 1 }, ratio: 8e6 });
 registerUnit({
   symbol: "MB/s",
   kind: "dataRate",
   dimension: { bit: 1, s: -1 },
   ratio: 8e6,
+});
+
+// The DISPLAY half: which rungs they climb. Ratio decides arithmetic and lives
+// with the model; which rung a value renders at is the kit's business, so the
+// family and its rungs are declared there. Same split the rest of the system
+// draws, and the reason these are two calls rather than one.
+registerDisplayUnit({
+  symbol: "MB",
+  kind: "data",
+  family: "bytes",
+  ladder: BYTE_RUNGS,
+});
+registerDisplayUnit({
+  symbol: "MB/s",
+  kind: "dataRate",
+  family: "byteRate",
+  ladder: BYTE_RATE_RUNGS,
 });
 registerUnit({
   symbol: "science/MB",

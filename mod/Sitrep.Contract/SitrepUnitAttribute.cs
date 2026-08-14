@@ -122,11 +122,21 @@ namespace Sitrep.Contract
         // --- Power ---
         public const string Kilowatts = "kW";
 
-        // --- Data rate ---
+        // --- Data ---
         /// <summary>
-        /// Bits per second, for link rates. Named generically on purpose: the
-        /// contract is Domain-neutral and must not know which Uplink happens to
-        /// populate a channel.
+        /// The BASE of the data dimension, and the only data unit core owns.
+        /// Rungs and families belong to whoever models them: an antenna mod
+        /// deals in bits, a life-support mod in bytes, and each declares its
+        /// own units against this axis. Core declares the axis so the two
+        /// cannot agree on it by accident, since a mod spelling it `bits`
+        /// would get a silently separate dimension.
+        /// </summary>
+        public const string Bits = "bit";
+
+        /// <summary>
+        /// Rates COMPOSE from a data unit and a second rather than being
+        /// declared one atom per rung, so any declared data unit gets its
+        /// per-second form for free.
         /// </summary>
         public const string BitsPerSecond = "bit/s";
 

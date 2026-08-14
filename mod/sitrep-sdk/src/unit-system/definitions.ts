@@ -138,11 +138,26 @@ export const UNIT_DEFINITIONS = {
   K: { dim: { K: 1 }, ratio: 1, kind: "temperature" },
 
   // ── Data, level, radiation ───────────────────────────────────────────────
+  /**
+   * The BASE of the data dimension, and the only data unit core declares.
+   *
+   * Rungs and families belong to whoever models them: an antenna mod deals in
+   * bits and a life-support mod in bytes, and neither has to know the other
+   * exists. What they cannot do is agree on an axis by accident. `Dimension`
+   * is an open string map, so a mod writing `{ bits: 1 }` instead of
+   * `{ bit: 1 }` would silently get a separate dimension, and a file size
+   * would stop being convertible with a link budget with nothing going red.
+   * Declaring the base here makes the axis name authoritative and spellable
+   * rather than a convention every mod retypes.
+   *
+   * Rates are not declared anywhere: `bit/s` and friends compose at lookup
+   * time from a data unit and `s`, so a family gets its per-second forms for
+   * free rather than one atom per rung.
+   */
   bit: { dim: { bit: 1 }, ratio: 1, kind: "data" },
+  // The one rate core declares, so the data-rate dimension has a name to
+  // render as. Rungs above it belong to whoever models them.
   "bit/s": { dim: { bit: 1, s: -1 }, ratio: 1, kind: "dataRate" },
-  "kbit/s": { dim: { bit: 1, s: -1 }, ratio: 1_000, kind: "dataRate" },
-  "Mbit/s": { dim: { bit: 1, s: -1 }, ratio: 1e6, kind: "dataRate" },
-  "Gbit/s": { dim: { bit: 1, s: -1 }, ratio: 1e9, kind: "dataRate" },
   Mit: { dim: { Mit: 1 }, ratio: 1, kind: "scienceData" },
   dB: { dim: { dB: 1 }, ratio: 1, kind: "level", log: true },
   // Absorbed dose. Its base is `radDose`, NOT the `rad` of plane angle: they

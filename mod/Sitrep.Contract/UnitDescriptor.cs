@@ -96,16 +96,67 @@ namespace Sitrep.Contract
         /// own contract assembly works exactly as well: nothing here is
         /// specific to the first-party contract except the default.
         /// </param>
-        public static Maps Collect(bool validateVocabulary = false, Assembly assembly = null)
+        /// <summary>Copy every public string constant on a type into <paramref name="into"/>.</summary>
+        private static void AddStringConstants(Type source, SortedSet<string> into)
         {
-            var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var field in typeof(Units).GetFields(BindingFlags.Public | BindingFlags.Static))
+            if (source == null) return;
+            foreach (var field in source.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 if (field.IsLiteral && field.FieldType == typeof(string))
                 {
-                    vocabulary.Add((string)field.GetRawConstantValue());
+                    into.Add((string)field.GetRawConstantValue());
                 }
             }
+        }
+
+        /// <summary>
+        /// An Uplink's own unit catalog, by convention a public static class
+        /// named <c>Units</c> in the assembly being reflected.
+        /// </summary>
+        /// <remarks>
+        /// An Uplink models quantities core has never heard of, so it declares
+        /// them alongside its wire types and they are judged the same way core's
+        /// are. Absent, the Uplink simply declares no units of its own and only
+        /// core's catalog applies.
+        /// </remarks>
+        private static void AddUplinkCatalog(Assembly target, SortedSet<string> into)
+        {
+            if (target == typeof(UnitDescriptor).Assembly) return;
+            foreach (var type in LoadableTypes(target))
+            {
+                if (type.Name == "Units" && type.IsAbstract && type.IsSealed)
+                {
+                    AddStringConstants(type, into);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether a declared token is one the catalog knows, treating a
+        /// compound as known when both of its components are.
+        /// </summary>
+        /// <remarks>
+        /// Rates and per-unit densities compose rather than being enumerated:
+        /// declaring every rung of every family crossed with every denominator
+        /// would be dozens of constants nobody reads, and the client resolves
+        /// the same way by composing the halves. A typo in either half still
+        /// fails, which is the whole point of the check.
+        /// </remarks>
+        private static bool IsKnownToken(string token, SortedSet<string> vocabulary)
+        {
+            if (token == null) return false;
+            if (vocabulary.Contains(token)) return true;
+            var slash = token.IndexOf('/');
+            if (slash <= 0 || slash == token.Length - 1) return false;
+            var numerator = token.Substring(0, slash);
+            var denominator = token.Substring(slash + 1);
+            return vocabulary.Contains(numerator) && vocabulary.Contains(denominator);
+        }
+
+        public static Maps Collect(bool validateVocabulary = false, Assembly assembly = null)
+        {
+            var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
+            AddStringConstants(typeof(Units), vocabulary);
 
             var byType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
             var byTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
@@ -114,13 +165,19 @@ namespace Sitrep.Contract
 
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
             var assemblyTypes = LoadableTypes(target);
+            AddUplinkCatalog(target, vocabulary);
             // The catalog belongs to THIS assembly, so it can only judge this
             // assembly's tokens. A third party cannot add to `Units` (a
             // const-string class compiled in here), which is exactly why the
             // generated `SitrepUnit` union is open; validating their tokens
             // against our catalog would mean an Uplink could never declare a
             // unit at all.
-            var validate = validateVocabulary && target == typeof(UnitDescriptor).Assembly;
+            // Every Uplink is judged against core's catalog PLUS its own, so an
+            // Uplink can declare whatever units it models while a typo in either
+            // still fails. There is no first-party exemption because there are no
+            // first-party Uplinks: the rule that applies to the ones shipped here
+            // is the rule that applies to anyone else's.
+            var validate = validateVocabulary;
             var contractTypes = new HashSet<string>(StringComparer.Ordinal);
             foreach (var t in assemblyTypes)
             {
@@ -165,7 +222,7 @@ namespace Sitrep.Contract
                     // Its tokens ride the open arm of the generated
                     // `SitrepUnit` union and are registered client-side
                     // through `registerUnit`.
-                    if (validate && !vocabulary.Contains(unit.Unit))
+                    if (validate && !IsKnownToken(unit.Unit, vocabulary))
                     {
                         throw new InvalidOperationException(
                             "[SitrepUnit] on " + type.Name + "." + prop.Name + " carries \"" + unit.Unit +

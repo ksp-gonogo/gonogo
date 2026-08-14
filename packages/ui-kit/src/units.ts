@@ -252,11 +252,12 @@ export const LADDERS: Record<string, readonly Rung[]> = {
     { from: 8e6, symbol: "MB", per: 8e6 },
     { from: 8e9, symbol: "GB", per: 8e9 },
   ],
-  // A SEPARATE ladder from `data` above, and it has to be: nothing in this
-  // module derives an `X/s` ladder from an `X` one. Every rate kind here
-  // (`power`, `doseRate`, this) declares its own rungs, which is why a
-  // byte-family RATE (`MB/s`) does not scale off the byte ladder and renders
-  // in whatever unit it arrived in. See `units.test.ts` for the pin.
+  /**
+   * The BIT-family rate rungs. Bits and bytes share a dimension but never
+   * share rungs, so a rate arriving in a byte unit climbs `dataRateBytes`
+   * below instead: `0.004 MB/s` reads `4 kB/s`, never `32 kbit/s`. Which of
+   * the two a value gets is decided by its declared unit, see `ladderFor`.
+   */
   dataRate: [
     { from: 0, symbol: "bit/s", per: 1 },
     { from: 1e3, symbol: "kbit/s", per: 1e3 },
@@ -461,6 +462,35 @@ const DISPLAY_BY_KIND: Record<string, string> = {
  * the key an Uplink's `declare module` augmentation targets.
  */
 const REGISTERED_KINDS: Record<string, QuantityKind> = {};
+
+/**
+ * Which family a symbol belongs to, for the symbols that declare one.
+ *
+ * A family is a set of rungs a value may climb WITHIN. Bits and bytes share
+ * the data dimension so the two stay convertible, but a byte quantity must
+ * never land on a bit rung, so they are separate families. Kind cannot carry
+ * this: both are `data`, and keying ladders on kind is what made the last
+ * mod to register silently re-scale the other's readouts.
+ */
+const FAMILY_BY_SYMBOL: Record<string, string> = {};
+
+/** Rungs owned by a family, which take precedence over the kind's ladder. */
+const LADDERS_BY_FAMILY: Record<string, readonly Rung[]> = {};
+
+/**
+ * The rungs a value climbs: its family's if it declares one, otherwise its
+ * kind's. A unit with neither never scales, which is the right default.
+ */
+function ladderForUnit(
+  kind: string,
+  unit: string | undefined,
+): readonly Rung[] | undefined {
+  const family = unit === undefined ? undefined : FAMILY_BY_SYMBOL[unit];
+  if (family !== undefined && LADDERS_BY_FAMILY[family]) {
+    return LADDERS_BY_FAMILY[family];
+  }
+  return LADDERS[kind];
+}
 
 /**
  * A rung is not a unit. `Mbit/s` and `kt` never appear in the contract and have
@@ -749,6 +779,17 @@ export interface UnitDefinition {
    * kilograms, and mixing the two is what made a real prefix bug possible.
    */
   ladder?: readonly Rung[];
+  /**
+   * Which set of rungs this symbol climbs within, when its kind is not enough
+   * to say. Bits and bytes are both `data` and must never interleave, so they
+   * declare `bits` and `bytes` and each owns its own ladder.
+   *
+   * Any Uplink may declare into a family another already introduced: the
+   * families are shared vocabulary, not private property. Declaring the same
+   * symbol into a DIFFERENT family throws, because a value that renders one
+   * way or another depending on module load order is worse than either.
+   */
+  family?: string;
   /** Render in scientific notation by default, as `gravParameter` does. */
   scientific?: boolean;
   /**
@@ -780,10 +821,30 @@ export interface UnitDefinition {
  * the same lifecycle every other registry here has.
  */
 export function registerUnit(def: UnitDefinition): void {
+  const priorFamily = FAMILY_BY_SYMBOL[def.symbol];
+  const priorKind = REGISTERED_KINDS[def.symbol];
+  if (
+    (priorKind !== undefined && priorKind !== def.kind) ||
+    (priorFamily !== undefined && priorFamily !== def.family)
+  ) {
+    throw new Error(
+      `Unit "${def.symbol}" is already registered as ${priorKind}` +
+        `${priorFamily ? ` (family ${priorFamily})` : ""} and cannot be ` +
+        `re-registered as ${def.kind}${def.family ? ` (family ${def.family})` : ""}. ` +
+        "Two mods declaring the same symbol must mean the same thing by it: " +
+        "a value would otherwise render differently depending on which loaded last.",
+    );
+  }
+
   REGISTERED_KINDS[def.symbol] = def.kind;
+  if (def.family !== undefined) FAMILY_BY_SYMBOL[def.symbol] = def.family;
   if (def.decimals !== undefined) DECIMALS[def.kind] = def.decimals;
   if (def.ladder) {
-    LADDERS[def.kind] = def.ladder;
+    // A family owns its own rungs so two families sharing a dimension never
+    // interleave: bytes climb bytes, bits climb bits, and neither replaces the
+    // other the way a kind-keyed ladder would.
+    if (def.family !== undefined) LADDERS_BY_FAMILY[def.family] = def.ladder;
+    else LADDERS[def.kind] = def.ladder;
     // The derived rung index is now stale: a replaced ladder brings its own
     // symbols and drops the ones it replaced.
     rungKinds = undefined;
@@ -1076,7 +1137,7 @@ export function formatQuantity(
     }
   }
 
-  const ladder = opts.scale === "never" ? undefined : LADDERS[kind];
+  const ladder = opts.scale === "never" ? undefined : ladderForUnit(kind, unit);
   const decimals = opts.decimals ?? DECIMALS[kind] ?? 2;
 
   // Where the non-dimensional kinds land: they have a kind (so they round to a
