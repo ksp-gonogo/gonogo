@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
@@ -302,6 +303,12 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Pilot",
                                 ["experienceLevel"] = 5,
                                 ["rosterStatus"] = "Available",
+                                ["courage"] = 0.9,
+                                ["stupidity"] = 0.1,
+                                ["experience"] = 64.0,
+                                ["experienceLevelDelta"] = 1.0,
+                                ["roleDescription"] = "Pilots are skilled at flying spacecraft.",
+                                ["descriptionEffects"] = "Full control of the vessel.",
                             },
                             new Dictionary<string, object?>
                             {
@@ -331,14 +338,25 @@ namespace Sitrep.Host.Tests
             Assert.Equal(5, jeb["experienceLevel"]);
             Assert.Equal(true, jeb["available"]);
             Assert.Equal("", jeb["unavailableReason"]);
+            Assert.Equal("Available", jeb["situation"]);
+            Assert.Equal(0.9, jeb["courage"]);
+            Assert.Equal(0.1, jeb["stupidity"]);
+            Assert.Equal(64.0, jeb["experience"]);
+            Assert.Equal(1.0, jeb["experienceLevelDelta"]);
+            Assert.Equal("Pilots are skilled at flying spacecraft.", jeb["roleDescription"]);
+            Assert.Equal("Full control of the vessel.", jeb["descriptionEffects"]);
 
             var bill = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal(false, bill["available"]);
             Assert.Equal("On mission", bill["unavailableReason"]);
+            Assert.Equal("Assigned", bill["situation"]);
 
             var bob = Assert.IsType<Dictionary<string, object?>>(list[2]);
             Assert.Equal(false, bob["available"]);
             Assert.Equal("Missing", bob["unavailableReason"]);
+            // Situation is RAW, not folded: Dead and Missing stay distinct so a
+            // client can auto-derive one tab per situation present.
+            Assert.Equal("Missing", bob["situation"]);
         }
 
         [Fact]
@@ -658,6 +676,193 @@ namespace Sitrep.Host.Tests
             var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildPois(snapshot));
             var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(list));
             Assert.Equal(98765.0, entry["contractDateDeadline"]);
+        }
+
+        // ----------------------------------------------------------------
+        // spaceCenter.astronautComplex
+        // ----------------------------------------------------------------
+
+        [Fact]
+        public void BuildAstronautComplexMapsEveryApplicantAndTheCapContext()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["astronautComplex"] = new Dictionary<string, object?>
+                        {
+                            ["applicants"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["name"] = "Desdin Kerman",
+                                    ["trait"] = "Scientist",
+                                    ["experienceLevel"] = 0,
+                                    ["rosterStatus"] = "Available",
+                                    ["isApplicant"] = true,
+                                },
+                                new Dictionary<string, object?>
+                                {
+                                    ["name"] = "Limmy Kerman",
+                                    ["trait"] = "Pilot",
+                                    ["experienceLevel"] = 0,
+                                    ["rosterStatus"] = "Available",
+                                    ["isApplicant"] = true,
+                                },
+                            },
+                            ["activeCrew"] = 4,
+                            ["crewCapacity"] = 13,
+                            ["nextHireCost"] = 24000.0,
+                        },
+                    },
+                },
+            };
+
+            var info = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildAstronautComplex(snapshot));
+            Assert.Equal(4, info["activeCrew"]);
+            Assert.Equal(13, info["crewCapacity"]);
+            Assert.Equal(24000.0, info["nextHireCost"]);
+
+            var applicants = Assert.IsType<List<object?>>(info["applicants"]);
+            Assert.Equal(2, applicants.Count);
+
+            var first = Assert.IsType<Dictionary<string, object?>>(applicants[0]);
+            Assert.Equal("Desdin Kerman", first["name"]);
+            Assert.Equal("Scientist", first["trait"]);
+            Assert.Equal(0, first["experienceLevel"]);
+            Assert.Equal("Applicant", first["situation"]);
+            Assert.Equal(true, first["available"]);
+
+            var second = Assert.IsType<Dictionary<string, object?>>(applicants[1]);
+            Assert.Equal("Limmy Kerman", second["name"]);
+            Assert.Equal("Pilot", second["trait"]);
+            Assert.Equal("Applicant", second["situation"]);
+        }
+
+        [Fact]
+        public void BuildAstronautComplexReturnsNullOffCareerButANonNullEmptyPoolInCareer()
+        {
+            // No astronautComplex key at all: "not in career" -> whole payload null.
+            Assert.Null(SpaceCenterViewProvider.BuildAstronautComplex(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
+            Assert.Null(SpaceCenterViewProvider.BuildAstronautComplex(null));
+            Assert.Null(SpaceCenterViewProvider.BuildAstronautComplex(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["spaceCenter"] = new Dictionary<string, object?>() },
+            }));
+
+            // Career with an empty pool: non-null payload, empty applicants list.
+            var info = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildAstronautComplex(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["astronautComplex"] = new Dictionary<string, object?>
+                        {
+                            ["applicants"] = new List<object?>(),
+                            ["activeCrew"] = 0,
+                            ["crewCapacity"] = 5,
+                        },
+                    },
+                },
+            }));
+            Assert.Empty(Assert.IsType<List<object?>>(info["applicants"]));
+            Assert.Equal(0, info["activeCrew"]);
+            Assert.Equal(5, info["crewCapacity"]);
+        }
+
+        [Fact]
+        public void BuildAstronautComplexSerializesCleanlyThroughTheRealWirePath()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["astronautComplex"] = new Dictionary<string, object?>
+                        {
+                            ["applicants"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["name"] = "Valentina Kerman",
+                                    ["trait"] = "Pilot",
+                                    ["experienceLevel"] = 0,
+                                    ["rosterStatus"] = "Available",
+                                    ["isApplicant"] = true,
+                                },
+                            },
+                            ["activeCrew"] = 4,
+                            ["crewCapacity"] = 13,
+                            ["nextHireCost"] = 24000.0,
+                        },
+                    },
+                },
+            };
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = SpaceCenterViewProvider.AstronautComplexTopic,
+                Payload = SpaceCenterViewProvider.BuildAstronautComplex(snapshot),
+                Meta = new Meta { Source = "spaceCenter", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+
+            var parsed = EnvelopeCodec.ParseStreamData(EnvelopeCodec.WriteStreamData(streamData));
+            var info = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
+            // Numbers arrive from the JSON round-trip widened (long/double), so
+            // compare via Convert rather than an exact CLR-type Assert.Equal.
+            Assert.Equal(13, Convert.ToInt32(info["crewCapacity"]));
+            Assert.Equal(24000.0, Convert.ToDouble(info["nextHireCost"]));
+            var applicants = Assert.IsType<List<object?>>(info["applicants"]);
+            var val = Assert.IsType<Dictionary<string, object?>>(Assert.Single(applicants));
+            Assert.Equal("Valentina Kerman", val["name"]);
+            Assert.Equal("Applicant", val["situation"]);
+        }
+
+        [Fact]
+        public void BuildAstronautComplexRoundTripsAnUncappedCrewCapacityWithoutClampingOrTruncation()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["astronautComplex"] = new Dictionary<string, object?>
+                        {
+                            ["applicants"] = new List<object?>(),
+                            ["activeCrew"] = 4,
+                            ["crewCapacity"] = int.MaxValue,
+                            ["nextHireCost"] = 24000.0,
+                        },
+                    },
+                },
+            };
+
+            var info = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildAstronautComplex(snapshot));
+            Assert.IsType<int>(info["crewCapacity"]);
+            Assert.Equal(int.MaxValue, info["crewCapacity"]);
+
+            var streamData = new StreamData<object?>
+            {
+                Topic = SpaceCenterViewProvider.AstronautComplexTopic,
+                Payload = info,
+                Meta = new Meta { Source = "spaceCenter", ValidAt = 0, Vantage = "host", Quality = Quality.Loaded, Active = true, Staleness = Staleness.Fresh },
+            };
+
+            var parsed = EnvelopeCodec.ParseStreamData(EnvelopeCodec.WriteStreamData(streamData));
+            var replayed = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
+            // Numbers arrive from the JSON round-trip widened (long/double), so
+            // compare via Convert rather than an exact CLR-type Assert.Equal.
+            Assert.Equal(2147483647, Convert.ToInt32(replayed["crewCapacity"]));
         }
     }
 }

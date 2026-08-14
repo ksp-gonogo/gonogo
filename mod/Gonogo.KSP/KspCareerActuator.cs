@@ -219,6 +219,111 @@ namespace Gonogo.KSP
             return CommandResult.Ok();
         }
 
+        /// <summary>
+        /// Reproduces the stock Astronaut Complex hire. Resolves the applicant by
+        /// the SAME <c>ProtoCrewMember.name</c> the read side emits, against the
+        /// live pool (<c>KerbalRoster.Applicants</c>); a name that no longer
+        /// resolves (a stale pool: hired since, or KSP refreshed it) fails
+        /// <see cref="CommandErrorCode.NotFound"/>. Guards the Astronaut Complex
+        /// active-crew cap (<c>GameVariables.GetActiveCrewLimit</c> over the
+        /// facility's normalised level) before spending, since a hire adds an
+        /// active crew member. <c>KerbalRoster.HireApplicant</c> does NOT debit
+        /// funds (decompile-confirmed: it only moves the applicant into the crew
+        /// list), so this reproduces the stock spend explicitly, checks
+        /// affordability, deducts the recruit cost, then hires, returning before
+        /// any spend on an unaffordable request. Outside career (no
+        /// <c>Funding</c>) it fails <see cref="CommandErrorCode.ModeUnavailable"/>.
+        /// </summary>
+        public CommandResult HireApplicant(string applicantName)
+        {
+            var roster = HighLogic.CurrentGame?.CrewRoster;
+            var funding = Funding.Instance;
+            if (roster == null || funding == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            ProtoCrewMember? applicant = null;
+            foreach (var pcm in roster.Applicants)
+            {
+                if (pcm != null && string.Equals(pcm.name, applicantName, StringComparison.Ordinal))
+                {
+                    applicant = pcm;
+                    break;
+                }
+            }
+            if (applicant == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+
+            var gameVariables = GameVariables.Instance;
+            var activeCrew = roster.GetActiveCrewCount();
+            if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
+            {
+                var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
+                if (activeCrew >= gameVariables.GetActiveCrewLimit(norm))
+                {
+                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                }
+            }
+
+            var cost = gameVariables != null ? gameVariables.GetRecruitHireCost(activeCrew) : 0f;
+            if (funding.Funds < cost)
+            {
+                return CommandResult.Fail(CommandErrorCode.Range);
+            }
+
+            funding.AddFunds(-cost, TransactionReasons.CrewRecruited);
+            roster.HireApplicant(applicant);
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// Reproduces the stock Astronaut Complex fire (the inverse of <see cref="HireApplicant"/>).
+        /// Resolves the kerbal by the SAME <c>ProtoCrewMember.name</c> the read
+        /// side emits, against the live hired-crew roster (<c>KerbalRoster.Crew</c>);
+        /// a name that doesn't resolve there fails
+        /// <see cref="CommandErrorCode.NotFound"/>. <c>KerbalRoster.SackAvailable</c>
+        /// is itself self-gating (decompile-confirmed: it silently no-ops, logging
+        /// an error, on anything other than an Available crew kerbal) rather than
+        /// throwing or reporting failure, so the <c>rosterStatus</c> check happens
+        /// HERE first, before ever calling it, so an Assigned/Dead/Missing kerbal
+        /// comes back a typed <see cref="CommandErrorCode.ModeUnavailable"/> instead
+        /// of a silent no-op. No funds change hands either way, this is a free,
+        /// reversible action.
+        /// </summary>
+        public CommandResult FireCrew(string kerbalName)
+        {
+            var roster = HighLogic.CurrentGame?.CrewRoster;
+            if (roster == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            ProtoCrewMember? kerbal = null;
+            foreach (var pcm in roster.Crew)
+            {
+                if (pcm != null && string.Equals(pcm.name, kerbalName, StringComparison.Ordinal))
+                {
+                    kerbal = pcm;
+                    break;
+                }
+            }
+            if (kerbal == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+
+            if (kerbal.rosterStatus != ProtoCrewMember.RosterStatus.Available)
+            {
+                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            }
+
+            roster.SackAvailable(kerbal);
+            return CommandResult.Ok();
+        }
+
         /// <summary>Resolve a strategy by its stable <c>StrategyConfig.Name</c> (the read-side id) against the live roster.</summary>
         private static Strategy? FindStrategy(StrategySystem system, string strategyId)
         {

@@ -26,6 +26,14 @@ export interface UpgradeFacilityArgs
 {
 	facilityId: string;
 }
+export interface HireApplicantArgs
+{
+	applicantName: string;
+}
+export interface FireCrewArgs
+{
+	kerbalName: string;
+}
 export enum GameMode {
 	Sandbox = 0,
 	Career = 1,
@@ -788,6 +796,13 @@ export interface CrewRosterEntry
 	experienceLevel?: Value<"count">;
 	available?: boolean;
 	unavailableReason?: string;
+	situation?: string;
+	courage?: Value<"ratio">;
+	stupidity?: Value<"ratio">;
+	experience?: Value<"1">;
+	experienceLevelDelta?: Value<"ratio">;
+	roleDescription?: string;
+	descriptionEffects?: string;
 }
 export interface SavedShipEntry
 {
@@ -801,6 +816,13 @@ export interface SavedShipEntry
 export interface SpaceCenterPartsAvailable
 {
 	count?: Value<"count">;
+}
+export interface AstronautComplexInfo
+{
+	applicants: CrewRosterEntry[];
+	activeCrew?: Value<"count">;
+	crewCapacity?: Value<"count">;
+	nextHireCost?: Value<"funds">;
 }
 export interface SpaceCenterPoiEntry
 {

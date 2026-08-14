@@ -89,3 +89,46 @@ public class UpgradeFacilityArgs
     [SitrepUnit(Units.Id)]
     public string FacilityId { get; set; } = "";
 }
+
+/// <summary>
+/// <c>career.crew.hire</c>'s args: the applicant's <c>ProtoCrewMember.name</c>,
+/// the same id the READ side emits for each applicant
+/// (<c>spaceCenter.astronautComplex</c>'s <c>applicants[].name</c>), so a client
+/// hires the applicant it read. Hiring debits the current recruit cost from
+/// funds and moves the applicant into the crew roster. An applicant that has
+/// left the pool since (a stale pool, someone else hired, KSP refreshed it)
+/// comes back <see cref="CommandErrorCode.NotFound"/>; an unaffordable hire
+/// <see cref="CommandErrorCode.Range"/>; a full roster (Astronaut Complex cap)
+/// or a non-career save <see cref="CommandErrorCode.ModeUnavailable"/>.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class HireApplicantArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string ApplicantName { get; set; } = "";
+}
+
+/// <summary>
+/// <c>career.crew.fire</c>'s args: a hired kerbal's <c>ProtoCrewMember.name</c>,
+/// the same id the READ side emits for each roster row
+/// (<c>spaceCenter.crewRoster</c>'s entries). Firing (<c>KerbalRoster.SackAvailable</c>)
+/// costs nothing and simply returns the kerbal to the applicant pool, so it is
+/// reversible (a re-hire brings them back with the same stats). Valid only on
+/// a kerbal whose current roster standing is Available; a name that doesn't
+/// resolve on the hired-crew roster comes back
+/// <see cref="CommandErrorCode.NotFound"/>, one that resolves but isn't
+/// Available (Assigned/Dead/Missing) comes back
+/// <see cref="CommandErrorCode.ModeUnavailable"/>.
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class FireCrewArgs
+{
+    [SitrepUnit(Units.Id)]
+    public string KerbalName { get; set; } = "";
+}

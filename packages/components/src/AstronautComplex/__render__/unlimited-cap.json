@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "notes": "Top-tier Astronaut Complex: GetActiveCrewLimit returns int.MaxValue (2147483647) at the maxed-out facility, which the widget must detect and render as 'Unlimited' rather than the raw sentinel. 22 active crew, a two-applicant pool, and a generous 1,250,000f balance.",
+    "scenario": "unlimited-cap"
+  },
+  "_stream": {
+    "carriedChannels": ["spaceCenter.astronautComplex", "career.status"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": { "economy": { "funds": 1250000 } }
+      },
+      {
+        "channel": "spaceCenter.astronautComplex",
+        "value": {
+          "applicants": [
+            {
+              "name": "Bobmy Kerman",
+              "trait": "Scientist",
+              "experienceLevel": 0,
+              "courage": 0.55,
+              "stupidity": 0.35
+            },
+            {
+              "name": "Jenrey Kerman",
+              "trait": "Engineer",
+              "experienceLevel": 0,
+              "courage": 0.7,
+              "stupidity": 0.1
+            }
+          ],
+          "activeCrew": 22,
+          "crewCapacity": 2147483647,
+          "nextHireCost": 96000
+        }
+      }
+    ]
+  }
+}

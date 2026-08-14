@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
  * Same shape as `uplink-boundary.test.ts`'s ratchet (seeded allowlist,
  * fails on new/removed/stale entries) but per-file COUNT rather than
  * per-file presence, because a single file can legitimately declare
- * several TrueNow channels (SpaceCenterUplink.cs has 6).
+ * several TrueNow channels (SpaceCenterUplink.cs has 7).
  *
  * Why a source scan, not runtime enumeration: every production uplink that
  * declares a TrueNow channel lives in a KSP-dependent assembly
@@ -71,11 +71,13 @@ const SKIP_DIR_PATTERN = /\.(Tests|IntegrationTests)$/;
 // ---------------------------------------------------------------------
 const ALLOWED_TRUENOW: Record<string, number> = {
   // Launch sites, VAB/SPH craft roster, revert availability, DLC
-  // ownership, and map POIs (KSC + contract waypoints): facilities/
+  // ownership, map POIs (KSC + contract waypoints), and the Astronaut
+  // Complex hire pool (applicant roster + facility cap): facilities/
   // inventory/mission facts about the space centre itself, known to the
   // command centre independent of any vessel's comms link, not flight
-  // state. 6 explicit declarations.
-  "mod/Gonogo.KSP/SpaceCenterUplink.cs": 6,
+  // state. The Astronaut Complex is at KSC, so its applicant pool is the
+  // same ground-side class as launchSites/crewRoster. 7 explicit declarations.
+  "mod/Gonogo.KSP/SpaceCenterUplink.cs": 7,
 
   // commandCentre.roster: the LIST of command centres a dashboard can select as
   // its vantage. Correct as TrueNow for the KSC-only present: KSC + stock Extra

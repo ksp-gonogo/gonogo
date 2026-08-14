@@ -14,6 +14,7 @@ import {
   FileText,
   Heart,
   History,
+  Info,
   Joystick,
   Layers,
   type LucideProps,
@@ -59,6 +60,7 @@ function makeIcon(
 // Existing exports: kept stable so call sites don't change.
 export const JoystickIcon = makeIcon(Joystick);
 export const HistoryIcon = makeIcon(History);
+export const InfoIcon = makeIcon(Info);
 export const BroadcastIcon = makeIcon(Radio);
 export const BellIcon = makeIcon(Bell);
 export const LayersIcon = makeIcon(Layers);

@@ -52,7 +52,6 @@ import type {
   ScienceOfficerSlotContext,
 } from "./ScienceOfficer";
 import type { ShipMapBadgesContext, ShipMapOverlayContext } from "./ShipMap";
-import type { StaffBadgeContext } from "./StaffRoster";
 import type { SystemBadgesContext, SystemOverlayContext } from "./SystemView";
 import type { TechNodeBadgeContext } from "./TechTree";
 
@@ -115,13 +114,6 @@ type _FuelBadges = Expect<
 >;
 
 // --- Named-context slots: checked both directions --------------------------
-
-type _StaffBadges = Expect<
-  Assignable<SdkSlotProps<"staff-roster.badges">, StaffBadgeContext>
->;
-type _StaffBadgesBack = Expect<
-  Assignable<StaffBadgeContext, SdkSlotProps<"staff-roster.badges">>
->;
 
 type _D2tCamera = Expect<
   Assignable<
@@ -372,8 +364,6 @@ export type _SlotRegistryConformance = [
   _ThermalBadges,
   _FuelSections,
   _FuelBadges,
-  _StaffBadges,
-  _StaffBadgesBack,
   _D2tCamera,
   _D2tCameraBack,
   _D2tOverlay,

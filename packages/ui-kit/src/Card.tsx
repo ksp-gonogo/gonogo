@@ -8,10 +8,10 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
    *
    * Three sites had hand-rolled exactly this (`PerfBudgets` colouring a budget
    * by how close it is to its cap, `AlarmsModal` colouring an alarm by whether
-   * it is firing or arming, `StaffRoster` next door in the same file), each
-   * with its own local tone-to-colour table. The tone vocabulary already exists
-   * as `ReadoutTone`, so the tables were three copies of a mapping the kit
-   * already owns.
+   * it is firing or arming, `AstronautComplex` colouring a crew row by its
+   * situation), each with its own local tone-to-colour table. The tone
+   * vocabulary already exists as `ReadoutTone`, so the tables were three
+   * copies of a mapping the kit already owns.
    *
    * Ignored on the leading edge whenever `accentColor` also resolves to a
    * colour (see below); a card carries either a STATUS accent or an IDENTITY

@@ -101,6 +101,9 @@ namespace Sitrep.Host
         /// <summary>The map points-of-interest channel (a BARE ARRAY, <c>isArray: true</c>).</summary>
         public const string PoisTopic = "spaceCenter.pois";
 
+        /// <summary>The Astronaut Complex hire channel (a wrapper object: applicant pool + roster cap + active-crew count).</summary>
+        public const string AstronautComplexTopic = "spaceCenter.astronautComplex";
+
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["launchSites"]</c> list to the
@@ -220,17 +223,49 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Maps one raw kerbal dict (KspHost's <c>BuildCrewEntry</c> shape) to
+        /// the <c>CrewRosterEntry</c> wire shape shared by the hired-crew
+        /// roster and the Astronaut Complex applicant pool. The raw
+        /// <c>rosterStatus</c> string and <c>isApplicant</c> flag fold here,
+        /// the same capture→provider split <see cref="BuildScene"/> uses:
+        /// <c>situation</c> is <c>"Applicant"</c> for an applicant, otherwise
+        /// the bare <c>RosterStatus</c> name passed straight through -
+        /// deliberately NOT folded (Dead and Missing stay distinct so a client
+        /// can auto-derive one tab per situation). <c>available</c>/
+        /// <c>unavailableReason</c> stay the older folded pair for existing
+        /// consumers: an applicant reads as available with no reason, since
+        /// nothing blocks hiring one.
+        /// </summary>
+        private static Dictionary<string, object?> BuildCrewEntryPayload(IDictionary<string, object?> raw)
+        {
+            var status = SnapshotDict.GetString(raw, "rosterStatus");
+            var isApplicant = SnapshotDict.GetBool(raw, "isApplicant") == true;
+
+            return new Dictionary<string, object?>
+            {
+                ["name"] = SnapshotDict.GetString(raw, "name"),
+                ["trait"] = SnapshotDict.GetString(raw, "trait"),
+                ["experienceLevel"] = SnapshotDict.GetInt(raw, "experienceLevel"),
+                ["available"] = isApplicant || status == "Available",
+                ["unavailableReason"] = isApplicant ? "" : MapUnavailableReason(status),
+                ["situation"] = isApplicant ? "Applicant" : status,
+                ["courage"] = SnapshotDict.GetDouble(raw, "courage"),
+                ["stupidity"] = SnapshotDict.GetDouble(raw, "stupidity"),
+                ["experience"] = SnapshotDict.GetDouble(raw, "experience"),
+                ["experienceLevelDelta"] = SnapshotDict.GetDouble(raw, "experienceLevelDelta"),
+                ["roleDescription"] = SnapshotDict.GetString(raw, "roleDescription"),
+                ["descriptionEffects"] = SnapshotDict.GetString(raw, "descriptionEffects"),
+            };
+        }
+
+        /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["crewRoster"]</c> list to the
         /// <c>spaceCenter.crewRoster</c> payload: a BARE <c>List&lt;object?&gt;</c>
-        /// (matching <c>isArray: true</c>), one dict per kerbal mirroring
-        /// <see cref="CrewRosterEntry"/>. The raw <c>rosterStatus</c> string
-        /// (the RAW <c>ProtoCrewMember.RosterStatus</c> enum name KspHost
-        /// captured) folds here: the same capture→provider split
-        /// <see cref="BuildScene"/> uses, into the <c>available</c> bool and the
-        /// <c>unavailableReason</c> string the widgets read. Returns <c>null</c>,
-        /// not an empty list: when the snapshot carries no <c>crewRoster</c> key
-        /// (no sample landed yet), distinct from a genuinely empty roster.
+        /// (matching <c>isArray: true</c>), one dict per kerbal mapped by
+        /// <see cref="BuildCrewEntryPayload"/>. Returns <c>null</c>, not an
+        /// empty list: when the snapshot carries no <c>crewRoster</c> key (no
+        /// sample landed yet), distinct from a genuinely empty roster.
         /// </summary>
         public static object? BuildCrewRoster(KspSnapshot? snapshot)
         {
@@ -248,19 +283,64 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                var status = SnapshotDict.GetString(raw, "rosterStatus");
-
-                crew.Add(new Dictionary<string, object?>
-                {
-                    ["name"] = SnapshotDict.GetString(raw, "name"),
-                    ["trait"] = SnapshotDict.GetString(raw, "trait"),
-                    ["experienceLevel"] = SnapshotDict.GetInt(raw, "experienceLevel"),
-                    ["available"] = status == "Available",
-                    ["unavailableReason"] = MapUnavailableReason(status),
-                });
+                crew.Add(BuildCrewEntryPayload(raw));
             }
 
             return crew;
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw
+        /// <c>Values["spaceCenter"]["astronautComplex"]</c> dict to the
+        /// <c>spaceCenter.astronautComplex</c> payload: a wrapper object mirroring
+        /// <see cref="AstronautComplexInfo"/> (the applicant pool plus the
+        /// facility-cap context and next-hire cost a hire is gated on).
+        /// <c>applicants</c> is mapped per-entry by <see cref="BuildCrewEntryPayload"/>,
+        /// the same shape as the hired-crew roster; the numeric header fields
+        /// are a straight re-map through <see cref="SnapshotDict"/>'s readers.
+        /// Returns <c>null</c> (the SANDBOX / no-career / no-game case) when the
+        /// snapshot carries no <c>astronautComplex</c> key at all, distinct from a
+        /// career save whose pool is genuinely empty (a non-null payload with an
+        /// empty <c>applicants</c> list).
+        /// </summary>
+        public static object? BuildAstronautComplex(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("spaceCenter", out var rawGroup) || rawGroup is not IDictionary<string, object?> group)
+            {
+                return null;
+            }
+
+            if (!group.TryGetValue("astronautComplex", out var rawComplex) || rawComplex is not IDictionary<string, object?> raw)
+            {
+                return null;
+            }
+
+            var applicants = new List<object?>();
+            if (raw.TryGetValue("applicants", out var rawApplicants) && rawApplicants is IEnumerable<object?> applicantList)
+            {
+                foreach (var rawEntry in applicantList)
+                {
+                    if (rawEntry is not IDictionary<string, object?> entry)
+                    {
+                        continue;
+                    }
+
+                    applicants.Add(BuildCrewEntryPayload(entry));
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["applicants"] = applicants,
+                ["activeCrew"] = SnapshotDict.GetInt(raw, "activeCrew"),
+                ["crewCapacity"] = SnapshotDict.GetInt(raw, "crewCapacity"),
+                ["nextHireCost"] = SnapshotDict.GetDouble(raw, "nextHireCost"),
+            };
         }
 
         /// <summary>

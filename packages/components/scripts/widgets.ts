@@ -328,6 +328,165 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // Astronaut Complex: header (funds, next-hire cost, active/max crew cap)
+    // above the Applicants | Active tabs. Applicants renders each candidate
+    // through the shared crew-stat row (trait, courage, stupidity, no rank)
+    // with an arm-then-confirm Hire button. Active is itself tabbed, one
+    // sub-tab per distinct situation auto-derived from the hired-crew roster.
+    widgetId: "astronaut-complex",
+    fixturesPath: "AstronautComplex/__render__",
+    outPath: "renders/astronaut-complex-widget",
+    fullContent: true,
+    modes: [
+      // Default registered size, Applicants tab (the initial tab).
+      { name: "default-6x8", w: 6, h: 8 },
+      // Narrow: rows compress; confirms the Hire button doesn't clip.
+      { name: "narrow-4x8", w: 4, h: 8 },
+      // Tall: full pool with room to breathe.
+      { name: "tall-6x12", w: 6, h: 12 },
+      // Switch to the Active tab: default fixtures carry no crewRoster
+      // sample, so this captures the empty state; the multi-situation
+      // fixture (below) captures the populated, auto-derived sub-tabs.
+      {
+        name: "active-tab-6x8",
+        w: 6,
+        h: 8,
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, default sub-tab (Available, the first situation present):
+      // auto-derived from active-crew-multi-situation's roster.
+      {
+        name: "active-tab-available-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Same Available sub-tab, Fire armed: proves the arm-then-confirm
+      // sequence flips the row's control to the go-toned Confirm state
+      // (career.crew.fire is only valid on this situation, so Fire never
+      // appears on the other sub-tabs).
+      {
+        name: "active-tab-available-fire-armed-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-label^="Fire "]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, Assigned sub-tab: a crewed-out kerbal (Jeb), unavailable
+      // with the "On mission" reason badge.
+      {
+        name: "active-tab-assigned-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-controls$="Assigned-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, Dead sub-tab: proves Dead/Missing get their own tabs
+      // rather than folding into a stock-style "Lost" tab.
+      {
+        name: "active-tab-dead-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-controls$="Dead-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, Retired sub-tab: the mod-introduced situation (RO/RP-1)
+      // getting its own tab with no per-mod registration.
+      {
+        name: "active-tab-retired-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-controls$="Retired-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, Missing sub-tab: the max-rank kerbal (L5), whose
+      // experience-toward-next-rank chip reads MAX rather than a redundant 100%.
+      {
+        name: "active-tab-missing-max-rank-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-controls$="Missing-panel"]',
+            awaitMs: 100,
+          },
+        ],
+      },
+      // Active tab, Available sub-tab, with Bill Kerman's per-row info
+      // popover open: the stock role description + current-rank effects
+      // (ExperienceTrait.Description/DescriptionEffects), portalled so the
+      // ScrollArea around the row can't clip it.
+      {
+        name: "info-popover-open-6x12",
+        w: 6,
+        h: 12,
+        forFixtures: ["active-crew-multi-situation"],
+        clicks: [
+          {
+            selector: 'button[aria-controls$="active-panel"]',
+            awaitMs: 100,
+          },
+          {
+            selector: 'button[aria-label="Role info for Bill Kerman"]',
+            awaitMs: 150,
+          },
+        ],
+      },
+    ],
+  },
+  {
     widgetId: "thermal-status",
     fixturesPath: "ThermalStatus/__fixtures__",
     outPath: "renders/thermal-status-widget",
@@ -604,21 +763,6 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Wide/tall review shot: every row's survival meter + badge readable
       // without scrolling, both fixtures.
       { name: "wide-9x12", w: 9, h: 12 },
-    ],
-  },
-  {
-    widgetId: "staff-roster",
-    fixturesPath: "StaffRoster/__fixtures__",
-    outPath: "renders/staff-roster-widget",
-    modes: [
-      // minSize 2×2: compact tally.
-      { name: "tiny-2x3", w: 2, h: 3 },
-      // defaultSize 5×7: roster list with traits/availability.
-      { name: "default-5x7", w: 5, h: 7 },
-      // tall: full four-kerbal roster without scrolling.
-      { name: "tall-6x14", w: 6, h: 14 },
-      // wide: trait/level/availability columns have room.
-      { name: "wide-9x10", w: 9, h: 10 },
     ],
   },
   {

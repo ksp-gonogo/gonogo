@@ -215,6 +215,7 @@ export {
   HeartIcon,
   HistoryIcon,
   type IconProps,
+  InfoIcon,
   JoystickIcon,
   LayersIcon,
   MicroscopeIcon,
@@ -365,6 +366,13 @@ export { useStatusSummary } from "./status/useStatusSummary";
 // ── Store factory (generic off-tree store + per-panel context wrapper) ────────
 export { createPanelStore, type PanelStore } from "./store/createPanelStore";
 export { createStore, type Store } from "./store/createStore";
+export {
+  shouldExpandTabs,
+  TABS_PANEL_MIN_WIDTH,
+  type TabDescriptor,
+  Tabs,
+  type TabsProps,
+} from "./Tabs";
 export {
   Tape,
   type TapeMarker,

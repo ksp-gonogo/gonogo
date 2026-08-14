@@ -99,6 +99,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
     partName: "text",
   },
+  "AstronautComplexInfo": {
+    activeCrew: "count",
+    crewCapacity: "count",
+    nextHireCost: "funds",
+  },
   "AtmosphereEntry": {
     depth: "m",
     hasOxygen: "flag",
@@ -291,8 +296,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CrewRosterEntry": {
     available: "flag",
+    courage: "ratio",
+    descriptionEffects: "text",
+    experience: "1",
     experienceLevel: "count",
+    experienceLevelDelta: "ratio",
     name: "text",
+    roleDescription: "text",
+    situation: "text",
+    stupidity: "ratio",
     trait: "text",
     unavailableReason: "text",
   },
@@ -364,6 +376,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     transmitBonus: "ratio",
     valueModel: "id",
   },
+  "FireCrewArgs": {
+    kerbalName: "id",
+  },
   "FleetVesselLink": {
     connected: "flag",
     oneWaySeconds: "s",
@@ -403,6 +418,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "GameDlc": {
     breakingGround: "flag",
     makingHistory: "flag",
+  },
+  "HireApplicantArgs": {
+    applicantName: "id",
   },
   "InstrumentEntry": {
     dataIsCollectable: "flag",
@@ -1306,10 +1324,22 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     readout: "text",
     type: "id",
   },
+  "spaceCenter.astronautComplex": {
+    activeCrew: "count",
+    crewCapacity: "count",
+    nextHireCost: "funds",
+  },
   "spaceCenter.crewRoster": {
     available: "flag",
+    courage: "ratio",
+    descriptionEffects: "text",
+    experience: "1",
     experienceLevel: "count",
+    experienceLevelDelta: "ratio",
     name: "text",
+    roleDescription: "text",
+    situation: "text",
+    stupidity: "ratio",
     trait: "text",
     unavailableReason: "text",
   },
@@ -1538,6 +1568,9 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * unit map already follows for an array Topic.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "AstronautComplexInfo": {
+    applicants: "CrewRosterEntry",
+  },
   "BodyEntry": {
     atmosphere: "AtmosphereEntry",
     orbit: "OrbitEntry",
@@ -1805,6 +1838,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     partBreakdown: "RecoveryPartEntry",
     resourceBreakdown: "RecoveryResourceEntry",
     scienceBreakdown: "RecoveryScienceEntry",
+  },
+  "spaceCenter.astronautComplex": {
+    applicants: "CrewRosterEntry",
   },
   "system.bodies": {
     bodies: "BodyEntry",

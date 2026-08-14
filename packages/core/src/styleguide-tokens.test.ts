@@ -130,15 +130,15 @@ function baselineKey(file: string): string {
  */
 const BASELINES: Record<Family, Record<string, number>> = {
   /**
-   * 50 across 20 files. Mostly four groups: the `StationConnectView` page
+   * 51 across 21 files. Mostly four groups: the `StationConnectView` page
    * (19, exempted wholesale by the migration reviewer, it needs a
    * page-scale decision rather than a widget-ladder one), negative offsets
    * that are computed halves rather than rungs (`margin: -1px` sr-only
-   * clips, MapPoiLayer's -5px centring, Strategies' -5px), off-ladder
-   * values held with an arithmetic comment (FleetRoster's 7px and 21px,
-   * Navball's 10px in a 42px reserve, Twr's 20px, ThermalStatus' 5px/10px
-   * pill), and the `components/src/shared/` files plus a few mod widgets
-   * that no migration slice owned.
+   * clips, MapPoiLayer's -5px centring, Strategies' -5px, ui-kit `Tabs`'
+   * indicator overlap), off-ladder values held with an arithmetic comment
+   * (FleetRoster's 7px and 21px, Navball's 10px in a 42px reserve, Twr's
+   * 20px, ThermalStatus' 5px/10px pill), and the `components/src/shared/`
+   * files plus a few mod widgets that no migration slice owned.
    */
   spacing: {
     "mod/": 6,
@@ -155,6 +155,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
+    "packages/ui-kit/src/Tabs.tsx": 1,
     "packages/ui/src/FileInput.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,
     "packages/ui/src/VisuallyHidden.tsx": 1,
@@ -173,7 +174,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/InputTester/index.tsx": 2,
   },
   /**
-   * 61 across 33 files. Two thirds are display-tier sizes above the
+   * 60 across 32 files. Two thirds are display-tier sizes above the
    * scale's `lg` ceiling (18/20/22/24/28px readouts) and fluid `clamp()`
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
@@ -201,7 +202,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
     "packages/components/src/shared/RequiresGuard.tsx": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 3,
-    "packages/components/src/StaffRoster/index.tsx": 1,
     "packages/components/src/StationConnectView/index.tsx": 7,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/TechTree/index.tsx": 5,
@@ -229,7 +229,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui-kit/src/Readout.tsx": 1,
   },
   /**
-   * 20 across 15 files. Every one is LOCAL sibling ordering inside a
+   * 21 across 16 files. Every one is LOCAL sibling ordering inside a
    * component's own stacking context (the 0/1/2, 5/6 and 10/20 families),
    * which the ladder in tokens.css explicitly declines to absorb: pulling
    * them onto app-global rungs would collapse independent contexts into
@@ -265,6 +265,10 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // (Panel.tsx's z-index 2) and the scrolling body it overlays. Not
     // app-global chrome, so a named z rung would over-lift it.
     "packages/ui-kit/src/CommandDelay/PanelDelayRail.tsx": 3,
+    // The scroll-shadow edge fade over the tab bar, local sibling ordering
+    // inside the tab bar's own stacking context. Not app-global chrome, so
+    // no named z rung.
+    "packages/ui-kit/src/Tabs.tsx": 1,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Tabs.tsx": 1,

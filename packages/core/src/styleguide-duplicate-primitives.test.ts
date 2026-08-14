@@ -30,8 +30,8 @@ import { describe, expect, it } from "vitest";
  * becomes a re-export from ui-kit. Thirteen of ui's files already are.
  *
  * What this does NOT forbid: a genuinely app-only primitive in ui (Modal,
- * Tabs, Gauge, LineChart and the rest are fine, they have no ui-kit twin),
- * or ui re-exporting a ui-kit name. Only a second IMPLEMENTATION.
+ * Gauge, LineChart and the rest are fine, they have no ui-kit twin), or ui
+ * re-exporting a ui-kit name. Only a second IMPLEMENTATION.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));

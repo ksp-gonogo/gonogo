@@ -7,6 +7,7 @@
 // uplink, not a base-package widget. Import that package to register them.
 
 export * from "./ActionGroup";
+export * from "./AstronautComplex";
 export * from "./AtmosphereProfile";
 export * from "./CommandSourcePicker";
 export * from "./CommSignal";
@@ -45,7 +46,6 @@ export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
 export * from "./SpaceWeather";
-export * from "./StaffRoster";
 export * from "./StationConnectView";
 export * from "./Strategies";
 export * from "./SystemView";

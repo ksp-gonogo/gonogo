@@ -20,12 +20,13 @@ namespace Gonogo.KSP
     ///
     /// <para>Alongside the read capture this uplink also carries the
     /// career-write COMMANDS (accept/decline/cancel contract, upgrade facility,
-    /// unlock tech, activate/deactivate strategy): <see cref="CareerCommandProvider"/>'s
-    /// KSP-free <c>Handle*</c> glue against the <see cref="ICareerActuator"/>
-    /// this uplink is constructed with (<see cref="KspCareerActuator"/> in
-    /// production, <c>Sitrep.Host.Tests.FakeCareerActuator</c> in tests). All
-    /// seven are ground-side KSC bookkeeping, not an uplink to a craft, so each
-    /// is declared <c>delayed: false</c> (see the command list below).</para>
+    /// unlock tech, activate/deactivate strategy, hire/fire crew):
+    /// <see cref="CareerCommandProvider"/>'s KSP-free <c>Handle*</c> glue
+    /// against the <see cref="ICareerActuator"/> this uplink is constructed
+    /// with (<see cref="KspCareerActuator"/> in production,
+    /// <c>Sitrep.Host.Tests.FakeCareerActuator</c> in tests). All nine are
+    /// ground-side KSC bookkeeping, not an uplink to a craft, so each is
+    /// declared <c>delayed: false</c> (see the command list below).</para>
     /// </summary>
     [SitrepUplink("career")]
     public sealed class CareerUplink : ISitrepUplink
@@ -90,7 +91,7 @@ namespace Gonogo.KSP
                 },
             },
             // Every career-write command is ground-side KSC bookkeeping, not a
-            // signal to a craft, so all seven are delayed: false, they take
+            // signal to a craft, so all nine are delayed: false, they take
             // effect immediately rather than at UT + uplink light-time. Only
             // commands sent to a vessel ride light-time.
             Commands = new List<CommandDeclaration>
@@ -102,6 +103,8 @@ namespace Gonogo.KSP
                 Command(CareerCommandProvider.DeclineContractCommand, delayed: false),
                 Command(CareerCommandProvider.CancelContractCommand, delayed: false),
                 Command(CareerCommandProvider.UpgradeFacilityCommand, delayed: false),
+                Command(CareerCommandProvider.HireApplicantCommand, delayed: false),
+                Command(CareerCommandProvider.FireCrewCommand, delayed: false),
             },
         };
 
@@ -121,6 +124,8 @@ namespace Gonogo.KSP
             host.AddCommandHandler<ContractActionArgs, CommandResult>(CareerCommandProvider.DeclineContractCommand, args => CareerCommandProvider.HandleDeclineContract(_actuator, args));
             host.AddCommandHandler<ContractActionArgs, CommandResult>(CareerCommandProvider.CancelContractCommand, args => CareerCommandProvider.HandleCancelContract(_actuator, args));
             host.AddCommandHandler<UpgradeFacilityArgs, CommandResult>(CareerCommandProvider.UpgradeFacilityCommand, args => CareerCommandProvider.HandleUpgradeFacility(_actuator, args));
+            host.AddCommandHandler<HireApplicantArgs, CommandResult>(CareerCommandProvider.HireApplicantCommand, args => CareerCommandProvider.HandleHireApplicant(_actuator, args));
+            host.AddCommandHandler<FireCrewArgs, CommandResult>(CareerCommandProvider.FireCrewCommand, args => CareerCommandProvider.HandleFireCrew(_actuator, args));
         }
 
         private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration

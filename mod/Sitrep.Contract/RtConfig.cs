@@ -153,6 +153,8 @@ public static class RtConfig
                 typeof(UnlockTechArgs),
                 typeof(ContractActionArgs),
                 typeof(UpgradeFacilityArgs),
+                typeof(HireApplicantArgs),
+                typeof(FireCrewArgs),
                 typeof(RevertToEditorArgs),
                 typeof(SwitchVesselArgs),
                 typeof(LaunchArgs),
@@ -247,6 +249,10 @@ public static class RtConfig
                 typeof(SpaceCenterPartsAvailable),
                 // spaceCenter.pois: the map points-of-interest union (T-POI-3)
                 typeof(SpaceCenterPoiEntry),
+                // spaceCenter.astronautComplex: the hire pool (CrewRosterEntry,
+                // shared with spaceCenter.crewRoster) + roster cap + next-hire cost
+                // (Value<"funds">)
+                typeof(AstronautComplexInfo),
                 // commandCentre.roster: the vantage/authority union (Plan 3)
                 typeof(CommandCentreEntry),
                 // dv.stages / dv.summary (P1b)

@@ -103,6 +103,13 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Pilot",
                                 ["experienceLevel"] = 3,
                                 ["rosterStatus"] = "Available",
+                                ["isApplicant"] = false,
+                                ["courage"] = 0.5,
+                                ["stupidity"] = 0.2,
+                                ["experience"] = 12.0,
+                                ["experienceLevelDelta"] = 0.4,
+                                ["roleDescription"] = "Pilots are skilled at flying spacecraft.",
+                                ["descriptionEffects"] = "Full control of the vessel.",
                             },
                         },
                     },
@@ -230,6 +237,55 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void AstronautComplexTypesMirrorProviderWireShape()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["astronautComplex"] = new Dictionary<string, object?>
+                        {
+                            ["applicants"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["name"] = "Desdin Kerman",
+                                    ["trait"] = "Scientist",
+                                    ["experienceLevel"] = 0,
+                                    ["rosterStatus"] = "Available",
+                                    ["isApplicant"] = true,
+                                    ["courage"] = 0.3,
+                                    ["stupidity"] = 0.4,
+                                    ["experience"] = 0.0,
+                                    ["experienceLevelDelta"] = 0.0,
+                                    ["roleDescription"] = "Scientists are able to conduct experiments.",
+                                    ["descriptionEffects"] = "Bonus to science transmission.",
+                                },
+                            },
+                            ["activeCrew"] = 4,
+                            ["crewCapacity"] = 13,
+                            ["nextHireCost"] = 24000.0,
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildAstronautComplex(snapshot));
+            AssertKeysMatchType(typeof(AstronautComplexInfo), root);
+            Assert.IsType<int>(root["activeCrew"]);
+            Assert.IsType<int>(root["crewCapacity"]);
+            Assert.IsType<double>(root["nextHireCost"]);
+
+            var applicants = Assert.IsType<List<object?>>(root["applicants"]);
+            var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(applicants));
+            AssertEntryMirrors(typeof(CrewRosterEntry), entry);
+            Assert.Equal("Applicant", entry["situation"]);
+        }
+
+        [Fact]
         public void PayloadTypesAreTaggedWithTheirTopics()
         {
             AssertTopicTag(typeof(LaunchSiteEntry), "spaceCenter.launchSites", expectArray: true);
@@ -238,6 +294,7 @@ namespace Sitrep.Host.Tests
             AssertTopicTag(typeof(SavedShipEntry), "spaceCenter.savedShips", expectArray: true);
             AssertTopicTag(typeof(SpaceCenterPartsAvailable), "spaceCenter.partsAvailable", expectArray: false);
             AssertTopicTag(typeof(SpaceCenterPoiEntry), "spaceCenter.pois", expectArray: true);
+            AssertTopicTag(typeof(AstronautComplexInfo), "spaceCenter.astronautComplex", expectArray: false);
         }
 
         // ----------------------------------------------------------------

@@ -10,6 +10,7 @@
 // bare JSON array of the element type.
 
 import type {
+  AstronautComplexInfo,
   CareerMode,
   CareerStatus,
   CommandCentreEntry,
@@ -109,6 +110,7 @@ export interface GeneratedTopicPayloadMap {
   "science.instruments": InstrumentEntry[];
   "science.lab": LabEntry[];
   "science.sensors": SensorEntry[];
+  "spaceCenter.astronautComplex": AstronautComplexInfo;
   "spaceCenter.crewRoster": CrewRosterEntry[];
   "spaceCenter.launchSites": LaunchSiteEntry[];
   "spaceCenter.partsAvailable": SpaceCenterPartsAvailable;
@@ -175,6 +177,7 @@ export const GENERATED_TOPIC_IDS = [
   "science.instruments",
   "science.lab",
   "science.sensors",
+  "spaceCenter.astronautComplex",
   "spaceCenter.crewRoster",
   "spaceCenter.launchSites",
   "spaceCenter.partsAvailable",

@@ -1,6 +1,7 @@
 #if NETSTANDARD2_0
 using Reinforced.Typings.Attributes;
 #endif
+using System.Collections.Generic;
 
 namespace Sitrep.Contract;
 
@@ -107,23 +108,32 @@ public class SpaceCenterScene
 }
 
 /// <summary>
-/// One kerbal in the <c>spaceCenter.crewRoster</c> channel: the hired-crew
-/// roster (KSP's <c>KerbalRoster.Crew</c>: owned crew that is either available
-/// or currently assigned to a mission, tourists/applicants excluded). Produced
-/// by <c>Sitrep.Host.SpaceCenterViewProvider.BuildCrewRoster</c>.
+/// One kerbal in the <c>spaceCenter.crewRoster</c> channel (the hired-crew
+/// roster: KSP's <c>KerbalRoster.Crew</c>, owned crew that is either available
+/// or currently assigned to a mission) and reused verbatim for every entry in
+/// <see cref="AstronautComplexInfo.Applicants"/> - ONE shape for a kerbal
+/// whether hired or still a candidate. Produced by
+/// <c>Sitrep.Host.SpaceCenterViewProvider.BuildCrewRoster</c> /
+/// <c>BuildAstronautComplex</c>.
 ///
-/// <para>The channel is a BARE ARRAY of these entries (tagged
-/// <c>isArray: true</c>, like <see cref="LaunchSiteEntry"/>), one per crew
-/// member keyed by <see cref="Name"/>. The whole payload is <c>null</c> (not an
-/// empty array) when no sample has landed yet, the provider's "no data yet" vs.
-/// "zero crew" distinction.</para>
+/// <para>The <c>spaceCenter.crewRoster</c> channel is a BARE ARRAY of these
+/// entries (tagged <c>isArray: true</c>, like <see cref="LaunchSiteEntry"/>),
+/// one per crew member keyed by <see cref="Name"/>. The whole payload is
+/// <c>null</c> (not an empty array) when no sample has landed yet, the
+/// provider's "no data yet" vs. "zero crew" distinction.</para>
 ///
-/// <para>One wire shape serves both consumers: StaffRoster reads
-/// <see cref="Name"/>/<see cref="Trait"/>/<see cref="ExperienceLevel"/>, and
-/// LaunchDirector additionally reads <see cref="Available"/>/
-/// <see cref="UnavailableReason"/> (both derived from the kerbal's roster
-/// status). A TS-shape-only typing/codegen marker: the provider hand-builds the
-/// dict and <c>JsonWriter</c> walks that live tree, these POCOs never serialize.
+/// <para>LaunchDirector reads <see cref="Name"/>/<see cref="Trait"/>/
+/// <see cref="ExperienceLevel"/>/<see cref="Available"/>/
+/// <see cref="UnavailableReason"/> (the original, folded pair); the Astronaut
+/// Complex additionally reads <see cref="Situation"/>, the RAW roster
+/// standing (<c>Applicant</c>/<c>Available</c>/<c>Assigned</c>/<c>Dead</c>/
+/// <c>Missing</c>, deliberately not folded so a client can auto-derive one tab
+/// per distinct value) plus the full stat set
+/// (<see cref="Courage"/>/<see cref="Stupidity"/>/<see cref="Experience"/>/
+/// <see cref="ExperienceLevelDelta"/>) and the role tooltip text
+/// (<see cref="RoleDescription"/>/<see cref="DescriptionEffects"/>). A TS-shape-only
+/// typing/codegen marker: the provider hand-builds the dict and
+/// <c>JsonWriter</c> walks that live tree, these POCOs never serialize.
 /// Classified <c>DelayRole.TrueNow</c>: a ground-side career fact, same class
 /// as <see cref="LaunchSiteEntry"/>.</para>
 /// </summary>
@@ -134,7 +144,7 @@ public class SpaceCenterScene
 #endif
 public class CrewRosterEntry
 {
-    /// <summary>Kerbal name (<c>ProtoCrewMember.name</c>).</summary>
+    /// <summary>Kerbal name (<c>ProtoCrewMember.name</c>): the id the hire command resolves against the live applicant pool.</summary>
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
@@ -142,17 +152,54 @@ public class CrewRosterEntry
     [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
 
-    /// <summary>Experience level (<c>ProtoCrewMember.experienceLevel</c>), 0–5.</summary>
+    /// <summary>Experience level (<c>ProtoCrewMember.experienceLevel</c>), 0–5 (0 for a fresh applicant).</summary>
     [SitrepUnit(Units.Count)]
     public int? ExperienceLevel { get; set; }
 
-    /// <summary>Whether the kerbal is free to fly, <c>true</c> when the roster status is <c>Available</c>, <c>false</c> otherwise.</summary>
+    /// <summary>Whether the kerbal is free to fly, <c>true</c> when the roster status is <c>Available</c> (also <c>true</c> for an applicant, who isn't assigned to anything yet), <c>false</c> otherwise.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
 
     /// <summary>Why the kerbal can't fly, derived from the roster status (<c>Assigned</c>→"On mission", <c>Dead</c>/<c>Missing</c>→the status name); empty string when <see cref="Available"/> is true.</summary>
     [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
+
+    /// <summary>
+    /// The kerbal's raw standing: <c>"Applicant"</c> for a hireable candidate
+    /// (<c>ProtoCrewMember.type == KerbalType.Applicant</c>), otherwise the
+    /// bare <c>ProtoCrewMember.RosterStatus</c> enum name (<c>Available</c>/
+    /// <c>Assigned</c>/<c>Dead</c>/<c>Missing</c>). Unlike
+    /// <see cref="Available"/>/<see cref="UnavailableReason"/> above, this is
+    /// NOT folded: Dead and Missing stay distinct so a client can auto-derive
+    /// one tab per situation present, and a mod introducing a new situation
+    /// (e.g. RO/RP-1 "Retired") gets a tab for free.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Situation { get; set; }
+
+    /// <summary>Courage, 0–1 (<c>ProtoCrewMember.courage</c>).</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? Courage { get; set; }
+
+    /// <summary>Stupidity, 0–1 (<c>ProtoCrewMember.stupidity</c>).</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? Stupidity { get; set; }
+
+    /// <summary>Raw experience points (<c>ProtoCrewMember.experience</c>), 0 for a fresh applicant.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? Experience { get; set; }
+
+    /// <summary>Progress toward the next rank, 0–1 (the computed <c>ProtoCrewMember.ExperienceLevelDelta</c>); <c>1</c> at max rank (5).</summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? ExperienceLevelDelta { get; set; }
+
+    /// <summary>The role's stock tooltip description (<c>ProtoCrewMember.experienceTrait.Description</c>): the exact string the in-game Astronaut Complex shows, sourced from <c>Traits.cfg</c>.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? RoleDescription { get; set; }
+
+    /// <summary>The role's current-rank effects text (<c>ProtoCrewMember.experienceTrait.DescriptionEffects</c>): rank-aware, it changes as the kerbal is promoted. Reflects this kerbal's own rank today only; there is no fetchable "effects at another rank" preview.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? DescriptionEffects { get; set; }
 }
 
 /// <summary>
@@ -220,6 +267,50 @@ public class SpaceCenterPartsAvailable
     /// <summary>Count of buildable parts.</summary>
     [SitrepUnit(Units.Count)]
     public int? Count { get; set; }
+}
+
+/// <summary>
+/// The <c>spaceCenter.astronautComplex</c> channel payload: the Astronaut
+/// Complex hire tab, the rolling pool of applicants the operator can recruit,
+/// plus the roster-cap context a hire is gated on. Produced by
+/// <c>Sitrep.Host.SpaceCenterViewProvider.BuildAstronautComplex</c>.
+///
+/// <para>A wrapper object (not a bare array) because the applicant list rides
+/// alongside the facility-level cap and the current active-crew count, both of
+/// which the hire affordance needs: the current roster comes from the separate
+/// <c>spaceCenter.crewRoster</c> channel, this one carries the hire side. The
+/// whole payload is <c>null</c> in the SANDBOX / no-career / no-game case (no
+/// applicant pool exists), the provider's "no data" signal, distinct from a
+/// career save whose pool is genuinely empty (a non-null payload with an empty
+/// <see cref="Applicants"/> list).</para>
+///
+/// <para>A TS-shape-only typing/codegen marker: the provider hand-builds the
+/// dict and <c>JsonWriter</c> walks that live tree, this POCO never serializes.
+/// Classified <c>DelayRole.TrueNow</c>: the Astronaut Complex is at KSC, known
+/// independent of any vessel's comms link, same class as
+/// <see cref="CrewRosterEntry"/>.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("spaceCenter.astronautComplex")]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class AstronautComplexInfo
+{
+    /// <summary>The hireable applicant pool (<c>KerbalRoster.Applicants</c>), sharing <see cref="CrewRosterEntry"/>'s full shape (with <see cref="CrewRosterEntry.Situation"/> always <c>"Applicant"</c>) so the Astronaut Complex's applicant and active-crew rows render off one type. Always present (empty, never null) once the payload itself is non-null.</summary>
+    public List<CrewRosterEntry> Applicants { get; set; } = new();
+
+    /// <summary>Current active (Crew-type) count (<c>KerbalRoster.GetActiveCrewCount</c>): the number counted against <see cref="CrewCapacity"/>. Null when the roster isn't queryable.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? ActiveCrew { get; set; }
+
+    /// <summary>Active-crew cap set by the Astronaut Complex facility tier (<c>GameVariables.GetActiveCrewLimit</c> over the facility's NORMALISED level). A hire is blocked once <see cref="ActiveCrew"/> reaches it. <c>int.MaxValue</c> at the top facility tier (unlimited); preserved as-is on the wire, never clamped, so the client can render "unlimited". Null when the facility isn't queryable.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? CrewCapacity { get; set; }
+
+    /// <summary>Funds cost to hire the next applicant (<c>GameVariables.GetRecruitHireCost</c>): one figure for the whole pool, the same for every applicant this tick and rising with the current roster size.</summary>
+    [SitrepUnit(Units.Funds)]
+    public double? NextHireCost { get; set; }
 }
 
 /// <summary>

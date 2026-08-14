@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "notes": "Mid-career Astronaut Complex: a four-applicant pool at a uniform 24,000f recruit cost (shown once, in the header), 4 active crew against a tier-2 cap of 13, and a healthy 289,848f balance (affordable, roster not full). Each candidate reads through the shared crew-stat row (trait, courage, stupidity), the same components the Staff Roster uses.",
+    "scenario": "mid-career-pool"
+  },
+  "_stream": {
+    "carriedChannels": ["spaceCenter.astronautComplex", "career.status"],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": { "economy": { "funds": 289848 } }
+      },
+      {
+        "channel": "spaceCenter.astronautComplex",
+        "value": {
+          "applicants": [
+            {
+              "name": "Desdin Kerman",
+              "trait": "Scientist",
+              "experienceLevel": 0,
+              "courage": 0.65,
+              "stupidity": 0.2
+            },
+            {
+              "name": "Limmy Kerman",
+              "trait": "Pilot",
+              "experienceLevel": 0,
+              "courage": 0.4,
+              "stupidity": 0.55
+            },
+            {
+              "name": "Nelemy Kerman",
+              "trait": "Engineer",
+              "experienceLevel": 0,
+              "courage": 0.8,
+              "stupidity": 0.15
+            },
+            {
+              "name": "Sherdrin Kerman",
+              "trait": "Pilot",
+              "experienceLevel": 0,
+              "courage": 0.5,
+              "stupidity": 0.3
+            }
+          ],
+          "activeCrew": 4,
+          "crewCapacity": 13,
+          "nextHireCost": 24000
+        }
+      }
+    ]
+  }
+}

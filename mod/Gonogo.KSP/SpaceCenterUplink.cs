@@ -81,6 +81,13 @@ namespace Gonogo.KSP
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = SpaceCenterViewProvider.AstronautComplexTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
             },
         };
 
@@ -96,6 +103,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(SpaceCenterViewProvider.SavedShipsTopic, SpaceCenterViewProvider.BuildSavedShips);
             host.AddChannelSource(SpaceCenterViewProvider.PartsAvailableTopic, SpaceCenterViewProvider.BuildPartsAvailable);
             host.AddChannelSource(SpaceCenterViewProvider.PoisTopic, SpaceCenterViewProvider.BuildPois);
+            host.AddChannelSource(SpaceCenterViewProvider.AstronautComplexTopic, SpaceCenterViewProvider.BuildAstronautComplex);
         }
     }
 }

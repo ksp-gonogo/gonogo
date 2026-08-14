@@ -22,6 +22,8 @@ namespace Sitrep.Host.Tests
         public string? LastDeclineContractId;
         public string? LastCancelContractId;
         public string? LastUpgradeFacilityId;
+        public string? LastHireApplicantName;
+        public string? LastFireCrewName;
 
         // ---- configurable results (default: success) ----
         public CommandResult ActivateStrategyResult = CommandResult.Ok();
@@ -31,6 +33,8 @@ namespace Sitrep.Host.Tests
         public CommandResult DeclineContractResult = CommandResult.Ok();
         public CommandResult CancelContractResult = CommandResult.Ok();
         public CommandResult UpgradeFacilityResult = CommandResult.Ok();
+        public CommandResult HireApplicantResult = CommandResult.Ok();
+        public CommandResult FireCrewResult = CommandResult.Ok();
 
         public CommandResult ActivateStrategy(string strategyId, double factor)
         {
@@ -73,6 +77,18 @@ namespace Sitrep.Host.Tests
         {
             LastUpgradeFacilityId = facilityId;
             return UpgradeFacilityResult;
+        }
+
+        public CommandResult HireApplicant(string applicantName)
+        {
+            LastHireApplicantName = applicantName;
+            return HireApplicantResult;
+        }
+
+        public CommandResult FireCrew(string kerbalName)
+        {
+            LastFireCrewName = kerbalName;
+            return FireCrewResult;
         }
     }
 }

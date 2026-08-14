@@ -65,6 +65,11 @@
       "partId": "id",
       "partName": "text"
     },
+    "AstronautComplexInfo": {
+      "activeCrew": "count",
+      "crewCapacity": "count",
+      "nextHireCost": "funds"
+    },
     "AtmosphereEntry": {
       "depth": "m",
       "hasOxygen": "flag",
@@ -257,8 +262,15 @@
     },
     "CrewRosterEntry": {
       "available": "flag",
+      "courage": "ratio",
+      "descriptionEffects": "text",
+      "experience": "1",
       "experienceLevel": "count",
+      "experienceLevelDelta": "ratio",
       "name": "text",
+      "roleDescription": "text",
+      "situation": "text",
+      "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"
     },
@@ -330,6 +342,9 @@
       "transmitBonus": "ratio",
       "valueModel": "id"
     },
+    "FireCrewArgs": {
+      "kerbalName": "id"
+    },
     "FleetVesselLink": {
       "connected": "flag",
       "oneWaySeconds": "s"
@@ -369,6 +384,9 @@
     "GameDlc": {
       "breakingGround": "flag",
       "makingHistory": "flag"
+    },
+    "HireApplicantArgs": {
+      "applicantName": "id"
     },
     "InstrumentEntry": {
       "dataIsCollectable": "flag",
@@ -1267,10 +1285,22 @@
       "readout": "text",
       "type": "id"
     },
+    "spaceCenter.astronautComplex": {
+      "activeCrew": "count",
+      "crewCapacity": "count",
+      "nextHireCost": "funds"
+    },
     "spaceCenter.crewRoster": {
       "available": "flag",
+      "courage": "ratio",
+      "descriptionEffects": "text",
+      "experience": "1",
       "experienceLevel": "count",
+      "experienceLevelDelta": "ratio",
       "name": "text",
+      "roleDescription": "text",
+      "situation": "text",
+      "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"
     },
@@ -1481,6 +1511,9 @@
     }
   },
   "typeShapes": {
+    "AstronautComplexInfo": {
+      "applicants": "CrewRosterEntry"
+    },
     "BodyEntry": {
       "atmosphere": "AtmosphereEntry",
       "orbit": "OrbitEntry"
@@ -1746,6 +1779,9 @@
       "partBreakdown": "RecoveryPartEntry",
       "resourceBreakdown": "RecoveryResourceEntry",
       "scienceBreakdown": "RecoveryScienceEntry"
+    },
+    "spaceCenter.astronautComplex": {
+      "applicants": "CrewRosterEntry"
     },
     "system.bodies": {
       "bodies": "BodyEntry"

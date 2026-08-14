@@ -61,16 +61,6 @@
 
 // "warp-control.actions" / ".badges" carry no props today.
 
-// --- StaffRoster (packages/components/src/StaffRoster) ---------------------
-
-/** Mirrors `StaffBadgeContext` (StaffRoster/index.tsx). */
-export interface StaffBadgeContext {
-  /** The kerbal this badge row belongs to, its identity for the augment. */
-  staffName: string;
-  /** Position in the sorted roster; disambiguates duplicate names. */
-  staffIndex: number;
-}
-
 // --- DistanceToTarget (packages/components/src/DistanceToTarget) -----------
 
 /** Mirrors `DistanceToTargetHudContext` (DistanceToTarget/index.tsx). */
@@ -628,8 +618,6 @@ declare module "./types" {
 
     "warp-control.actions": Record<string, never>;
     "warp-control.badges": Record<string, never>;
-
-    "staff-roster.badges": StaffBadgeContext;
 
     "distance-to-target.camera": DistanceToTargetHudContext;
     "distance-to-target.overlay": DistanceToTargetHudContext;

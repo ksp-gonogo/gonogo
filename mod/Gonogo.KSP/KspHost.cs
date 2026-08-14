@@ -390,6 +390,7 @@ namespace Gonogo.KSP
                 // The saved-ships disk walk is throttled to the keyframe cadence
                 // inside its builder; the rest are in-memory reads.
                 AttachSpaceCenterGroup(values, "crewRoster", BuildCrewRoster);
+                AttachSpaceCenterGroup(values, "astronautComplex", BuildAstronautComplex);
                 AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut));
                 AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
                 AttachSpaceCenterGroup(values, "contractTargets", BuildContractTargets);
@@ -2519,15 +2520,43 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Primitives-only snapshot of one kerbal, shared by the hired-crew
+        /// roster and the Astronaut Complex applicant pool so both ride the
+        /// same wire shape (<c>CrewRosterEntry</c>). <c>rosterStatus</c> and
+        /// <paramref name="isApplicant"/> are passed through RAW;
+        /// <c>SpaceCenterViewProvider</c> folds them into <c>available</c>/
+        /// <c>unavailableReason</c>/<c>situation</c>, the same capture-&gt;provider
+        /// split <see cref="BuildScene"/> uses. <c>experienceTrait</c> can be
+        /// null before a kerbal's stats have loaded, so its description fields
+        /// are read defensively rather than assumed present.
+        /// </summary>
+        private static Dictionary<string, object?> BuildCrewEntry(ProtoCrewMember pcm, bool isApplicant)
+        {
+            var trait = pcm.experienceTrait;
+
+            return new Dictionary<string, object?>
+            {
+                ["name"] = pcm.name,
+                ["trait"] = pcm.trait,
+                ["experienceLevel"] = pcm.experienceLevel,
+                ["rosterStatus"] = pcm.rosterStatus.ToString(),
+                ["isApplicant"] = isApplicant,
+                ["courage"] = (double)pcm.courage,
+                ["stupidity"] = (double)pcm.stupidity,
+                ["experience"] = (double)pcm.experience,
+                ["experienceLevelDelta"] = (double)pcm.ExperienceLevelDelta,
+                ["roleDescription"] = trait?.Description,
+                ["descriptionEffects"] = trait?.DescriptionEffects,
+            };
+        }
+
+        /// <summary>
         /// Primitives-only snapshot of the hired-crew roster -
         /// <c>HighLogic.CurrentGame.CrewRoster.Crew</c> (owned crew that is
-        /// available or assigned; tourists/applicants excluded). Each kerbal's
-        /// <c>rosterStatus</c> is passed through as its RAW enum name;
-        /// <c>SpaceCenterViewProvider.BuildCrewRoster</c> folds it to the
-        /// available/reason the widgets read, the same capture->provider split
-        /// as <see cref="BuildScene"/>. Returns <c>null</c> - the whole list -
-        /// when no game is loaded (main menu) so the provider distinguishes "no
-        /// data yet" from "zero crew."
+        /// available or assigned; tourists/applicants excluded). Each entry is
+        /// built by <see cref="BuildCrewEntry"/>. Returns <c>null</c> - the
+        /// whole list - when no game is loaded (main menu) so the provider
+        /// distinguishes "no data yet" from "zero crew."
         /// </summary>
         private static List<object?>? BuildCrewRoster()
         {
@@ -2546,16 +2575,67 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                crew.Add(new Dictionary<string, object?>
-                {
-                    ["name"] = pcm.name,
-                    ["trait"] = pcm.trait,
-                    ["experienceLevel"] = pcm.experienceLevel,
-                    ["rosterStatus"] = pcm.rosterStatus.ToString(),
-                });
+                crew.Add(BuildCrewEntry(pcm, isApplicant: false));
             }
 
             return crew;
+        }
+
+        /// <summary>
+        /// Primitives-only snapshot of the Astronaut Complex hire tab, the live
+        /// applicant pool (<c>KerbalRoster.Applicants</c>) plus the numbers a
+        /// hire is gated on: the current active-crew count
+        /// (<c>KerbalRoster.GetActiveCrewCount</c>), the facility-tier cap
+        /// (<c>GameVariables.GetActiveCrewLimit</c> over the Astronaut Complex's
+        /// normalised level), and the next-hire price
+        /// (<c>GameVariables.GetRecruitHireCost</c>, a function of the
+        /// active-crew count - one figure for the whole pool, not per
+        /// applicant). Each applicant is built by <see cref="BuildCrewEntry"/>,
+        /// the same shape as the hired-crew roster. CAREER-gated on
+        /// <c>Funding.Instance</c> (hiring spends funds; sandbox/science have no
+        /// funds affordance), so this returns <c>null</c> (the whole group
+        /// omitted) outside career, letting
+        /// <c>SpaceCenterViewProvider.BuildAstronautComplex</c> distinguish "not
+        /// in career" from "career with an empty pool." The cost/cap numbers are
+        /// captured raw; the KSP-free provider owns any presentation fold.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildAstronautComplex()
+        {
+            var roster = HighLogic.CurrentGame?.CrewRoster;
+            if (roster == null || Funding.Instance == null)
+            {
+                return null;
+            }
+
+            var gameVariables = GameVariables.Instance;
+            var activeCrew = roster.GetActiveCrewCount();
+            double? nextHireCost = gameVariables != null ? (double?)gameVariables.GetRecruitHireCost(activeCrew) : null;
+
+            int? crewCapacity = null;
+            if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
+            {
+                var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
+                crewCapacity = gameVariables.GetActiveCrewLimit(norm);
+            }
+
+            var applicants = new List<object?>();
+            foreach (var pcm in roster.Applicants)
+            {
+                if (pcm == null)
+                {
+                    continue;
+                }
+
+                applicants.Add(BuildCrewEntry(pcm, isApplicant: true));
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["applicants"] = applicants,
+                ["activeCrew"] = activeCrew,
+                ["crewCapacity"] = crewCapacity,
+                ["nextHireCost"] = nextHireCost,
+            };
         }
 
         /// <summary>

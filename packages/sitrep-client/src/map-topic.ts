@@ -572,8 +572,8 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // wire already, no display-map derivation needed.
   "kc.scene": "spaceCenter.scene.scene",
 
-  // kc.crewRoster/kc.savedShips: StaffRoster/LaunchDirector's whole-topic
-  // identity reads, SpaceCenterUplink's dedicated crewRoster/savedShips
+  // kc.crewRoster/kc.savedShips: LaunchDirector's whole-topic identity
+  // reads, SpaceCenterUplink's dedicated crewRoster/savedShips
   // channels are bare arrays, same "key == topic" shape as parts.robotics/
   // science.lab above. Each widget's existing parser already accepts the
   // exact fields the mod ships (name/trait/experienceLevel/available/

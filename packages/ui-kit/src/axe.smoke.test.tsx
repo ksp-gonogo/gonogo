@@ -14,6 +14,7 @@ import { Row, RowName } from "./Row";
 import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
 import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
+import { Tabs } from "./Tabs";
 import { Tape } from "./Tape";
 import { axe } from "./test/axe";
 import { WidgetHeader } from "./WidgetHeader";
@@ -159,6 +160,21 @@ describe("a11y smoke (jest-axe)", () => {
   it("ProgressBar has no axe violations", async () => {
     const { container } = render(
       <ProgressBar value={64} ariaLabel="Biome coverage: Kerbin" />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Tabs has no axe violations, switch mode", async () => {
+    const { container } = render(
+      <Tabs
+        tabs={[
+          { id: "one", label: "One", content: <p>panel one</p> },
+          { id: "two", label: "Two", content: <p>panel two</p> },
+        ]}
+        activeId="one"
+        onChange={() => undefined}
+      />,
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();

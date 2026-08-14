@@ -787,7 +787,53 @@ namespace Sitrep.Contract
         /// <c>vesselId</c>: the dynamic namespace is keyed by the part's flight id
         /// and the subject boundary belongs at the ledger, the same conclusion the
         /// withdrawal above records.</para>
-        /// </summary>
-        public const int Minor = 8;
+        ///
+        /// <para>Bumped 8 -&gt; 9: Astronaut Complex hiring. Added
+        /// <see cref="AstronautComplexInfo"/> and (Major-12-only, retired at Minor
+        /// 10 below) the payload type <c>ApplicantEntry</c> - the payload of the
+        /// new <c>spaceCenter.astronautComplex</c> channel, the hireable applicant
+        /// pool plus the roster cap + active-crew count - and
+        /// <see cref="HireApplicantArgs"/> (the args of the new
+        /// <c>career.crew.hire</c> command that recruits one, spending funds).
+        /// Purely additive: two new payload types, one new command-arg type, a new
+        /// channel and a new command, no existing member gains, loses or retypes
+        /// anything, so an Uplink built against any earlier Major-12 minor is
+        /// unaffected and the frozen Major-12 floor is NOT re-frozen. The applicant
+        /// pool rides <c>DelayRole.TrueNow</c> (the Astronaut Complex is at KSC),
+        /// same class as <c>spaceCenter.crewRoster</c>. See
+        /// <c>local_docs/design/2026-08-12-astronaut-hiring-build-spec.md</c>.</para>
+        ///
+        /// <para><b>Bumped 9 -&gt; 10: the Astronaut Complex redesign's full crew
+        /// surface.</b> <see cref="CrewRosterEntry"/> is broadened to the full
+        /// <c>ProtoCrewMember</c> stat set (<see cref="CrewRosterEntry.Courage"/>/
+        /// <see cref="CrewRosterEntry.Stupidity"/>/<see cref="CrewRosterEntry.Experience"/>/
+        /// <see cref="CrewRosterEntry.ExperienceLevelDelta"/>/
+        /// <see cref="CrewRosterEntry.Situation"/>/<see cref="CrewRosterEntry.RoleDescription"/>/
+        /// <see cref="CrewRosterEntry.DescriptionEffects"/>) and then REUSED for
+        /// <see cref="AstronautComplexInfo.Applicants"/> in place of
+        /// <c>ApplicantEntry</c>, so a kerbal has ONE wire shape whether hired or
+        /// still a candidate; hire cost moves off the per-applicant
+        /// <c>ApplicantEntry.HireCost</c> onto the single
+        /// <see cref="AstronautComplexInfo.NextHireCost"/> on the header (the price
+        /// is the same for every applicant this tick, so it never belonged
+        /// per-row). <c>ApplicantEntry</c> is removed entirely.</para>
+        ///
+        /// <para>Deliberately NOT a Major bump, the same shape as the Major-12
+        /// line's "Bumped 8 -&gt; 9" pilot above: <see cref="Major"/>'s own frozen
+        /// ledger floor (<c>contract-shape.baseline.json</c>, frozen at v12.0)
+        /// never included <c>ApplicantEntry</c>, <c>AstronautComplexInfo</c>, or
+        /// <c>ApplicantEntry.HireCost</c> in the first place - all three were added
+        /// afterward as the additive Minor 8-&gt;9 above - so removing/retyping them
+        /// now restores exactly the shape that WAS frozen: the ledger's own
+        /// <c>ComputeRemovals</c> against that floor is empty, and
+        /// <c>ContractShapeGateTests.EveryMajorBumpDeclaresExactlyWhatItBroke</c>
+        /// refuses a Major that breaks nothing, on purpose, precisely to stop a
+        /// vacuous bump like this one. Every field <see cref="CrewRosterEntry"/>
+        /// gains is additive on a type that IS in the frozen floor, so those stay
+        /// additive regardless. See
+        /// <c>local_docs/design/2026-08-13-astronaut-complex-redesign-spec.md</c>
+        /// and <c>local_docs/design/2026-08-13-astronaut-data-fetchability-audit.md</c>.</para>
+        /// </remarks>
+        public const int Minor = 10;
     }
 }

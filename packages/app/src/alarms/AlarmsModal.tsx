@@ -1049,9 +1049,9 @@ const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
   fired: "default",
 };
 
-// The third site to want a tone-accented card, after PerfBudgets and
-// StaffRoster. It drew a full state-coloured border where the kit draws a
-// leading accent rule, which is the deliberate delta.
+// A tone-accented card, same family as PerfBudgets. It draws a full
+// state-coloured border where the kit draws a leading accent rule, which is
+// the deliberate delta.
 const AlarmListItem = styled(Card).attrs({ as: "li" as const })`
   display: flex;
   align-items: center;
