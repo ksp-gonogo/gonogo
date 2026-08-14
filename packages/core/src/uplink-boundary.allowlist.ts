@@ -236,6 +236,27 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
+      // -- Kerbalism's own SCANsat bridge --
+      // Kerbalism ships a `KerbalismScansat` PartModule and a config patch that
+      // DELETES the part's `SCANexperiment` module to make room for it. So with
+      // both mods installed the scanner is Kerbalism's to report, and the
+      // Kerbalism provider reports it: one `science.instruments` row per module,
+      // with its own half of the extension bag.
+      //
+      // These are not coupling to the SCANsat Uplink, and cannot shrink into it.
+      // Every read goes through Kerbalism's reflection surface for a
+      // Kerbalism-owned type; no SCANsat assembly, API or Topic is touched, and
+      // GonogoScansatUplink is not referenced. What matches the token is the
+      // module's NAME plus the prose explaining why a Kerbalism file talks about
+      // SCANsat at all. Moving any of it into the SCANsat Uplink would be exactly
+      // backwards: that Uplink cannot see Kerbalism's modules.
+      "mod/GonogoKerbalismUplink/KerbalismReflection.cs",
+      "mod/GonogoKerbalismUplink/KerbalismRawTypes.cs",
+      "mod/GonogoKerbalismUplink/KerbalismScienceMap.cs",
+      "mod/GonogoKerbalismUplink/client/src/science.ts",
+      "mod/GonogoKerbalismUplink/client/src/science.test.ts",
+      "mod/GonogoKerbalismUplink.Contract/KerbalismScienceExt.cs",
+      "mod/GonogoKerbalismUplink.Tests/ScienceExtensionWireTests.cs",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
