@@ -1,0 +1,132 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Sitrep.Host is KSP-free (netstandard2.0;net472, zero KSP/Unity
+       reference), so KscLightTimeMath.cs's dependency on its
+       SignalDelayConfig POCO needs no KspManaged gating at all - unlike
+       PendingCreditLedger.cs's ConfigNode dependency below, this compiles
+       and runs unconditionally, on every checkout. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" />
+  </ItemGroup>
+
+  <!-- VesselScienceAggregator.cs is pure arithmetic + bookkeeping with no
+       KSP/Unity types at all, so it needs no KspManaged gating either -
+       same reasoning as KscLightTimeMath.cs above. -->
+  <ItemGroup>
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscLightTimeMath.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\VesselScienceAggregator.cs" />
+  </ItemGroup>
+
+  <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
+       pair - and everything built on it below - carries no ConfigNode dependency and needs no
+       KspManaged gating. CurrencyDelayGuard.cs (the shared re-entrancy guard between
+       StockCurrencyInterceptor and RevealApplier), RevealDecision.cs (the pure reveal-ordering
+       core behind RevealApplier), and ScienceChunkCredit.cs (the pure aggregator-chunk -> ledger
+       row conversion shared by RevealApplier's aggregator drain and the DelayedScienceSink
+       per-increment path) are the same discipline. RevealApplier.cs and DelayedScienceSink.cs
+       themselves are NOT included here (real KSP/Unity types), same treatment as
+       StockCurrencyInterceptor.cs above. -->
+  <ItemGroup>
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\PendingCreditRow.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayGuard.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\RevealDecision.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\ScienceChunkCredit.cs" />
+  </ItemGroup>
+
+  <!-- StockCurrencyDecision.cs mirrors TransactionReasons as its own plain
+       enum specifically so it carries no KSP/Unity dependency either - same
+       reasoning again. StockCurrencyStateMachine.cs (the shadow-tracking,
+       deferred-science, and recovery/lab vessel correlation core behind
+       StockCurrencyInterceptor) has the same discipline and is included
+       here too. StockCurrencyInterceptor.cs, the GameEvents glue that
+       calls into both, is NOT included here (it needs the real Vessel/
+       ProtoVessel/TransactionReasons/CurrencyModifierQuery types), same
+       treatment as KscLightTime.cs above it. -->
+  <ItemGroup>
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\StockCurrencyDecision.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\StockCurrencyStateMachine.cs" />
+  </ItemGroup>
+
+  <!-- PendingCreditLedger.cs is pure logic, but its OnSave/OnLoad round-trip
+       touches the real KSP ConfigNode type (from Assembly-CSharp), per
+       Gonogo.KSP's own rule that it is the only assembly in the mod allowed
+       to reference KSP/Unity types. ConfigNode is a plain data structure with
+       no scene/runtime dependency, so it's genuinely loadable and testable in
+       a headless process - the same reasoning GonogoKosUplink.Tests already
+       applies to kOS.Safe.dll. This project therefore compiles the ledger
+       source directly (not a ProjectReference on Gonogo.KSP, which pulls in
+       many files that DO need a live scene) and soft-degrades exactly like
+       that project: when the reference DLL isn't present (a fresh checkout
+       with no synced KSP install / local_docs), this suite is dropped with a
+       build warning instead of failing the build. -->
+  <PropertyGroup>
+    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+    <AssemblyCSharpDll>$(KspManaged)\Assembly-CSharp.dll</AssemblyCSharpDll>
+    <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
+  </PropertyGroup>
+
+  <!-- The SDK auto-globs CurrencyDelay/**; drop it unless Assembly-CSharp.dll
+       is present, then re-add it (and the ledger source) below. -->
+  <ItemGroup>
+    <Compile Remove="CurrencyDelay\**\*.cs" />
+  </ItemGroup>
+
+  <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
+       StockCurrencyStateMachineTests.cs only exercise zero-KSP-dependency
+       sources (see their own doc comments), so they are re-added here,
+       unconditionally, right after the blanket Remove above - unlike
+       PendingCreditLedgerTests.cs below, they never need KspManaged. -->
+  <ItemGroup>
+    <Compile Include="CurrencyDelay\KscLightTimeTests.cs" />
+    <Compile Include="CurrencyDelay\VesselScienceAggregatorTests.cs" />
+    <Compile Include="CurrencyDelay\StockCurrencyDecisionTests.cs" />
+    <Compile Include="CurrencyDelay\StockCurrencyStateMachineTests.cs" />
+    <Compile Include="CurrencyDelay\CurrencyDelayGuardTests.cs" />
+    <Compile Include="CurrencyDelay\RevealDecisionTests.cs" />
+    <Compile Include="CurrencyDelay\ScienceChunkCreditTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
+    <!-- ConfigNode's own overload sets (AddValue/TryGetValue for Vector3,
+         Quaternion, Color, ...) reference UnityEngine.CoreModule types even
+         though this file only calls the double/string overloads, so the
+         compiler needs it resolvable too. Private (CopyLocal) stays default
+         true here, unlike Gonogo.KSP.csproj's own Private="false" - that
+         project runs inside a live KSP process which already provides these
+         DLLs via GameData/../Managed, but this test project runs standalone
+         and needs its own copies to actually load at test time. -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(AssemblyCSharpDll)</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\PendingCreditLedger.cs" />
+    <!-- CurrencyDelayLedgerPersistence.cs merges a loaded ledger's rows into an existing
+         instance (see CurrencyDelayScenario's OnLoad) - same ConfigNode/PendingCreditLedger-only
+         dependency as PendingCreditLedger.cs itself, so it gets the same treatment. -->
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayLedgerPersistence.cs" />
+    <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
+  </ItemGroup>
+
+  <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
+    <Warning Text="Assembly-CSharp.dll not found under KspManaged=$(KspManaged): PendingCreditLedgerTests SKIPPED (soft-degrade). Pass /p:KspManaged=&lt;dir containing Assembly-CSharp.dll&gt; to compile and run it." />
+  </Target>
+
+</Project>

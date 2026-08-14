@@ -120,6 +120,7 @@ jobs:
         working-directory: mod
         env:
           KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
         run: |
           set -euo pipefail
           # Enable the headless kOS terminal harness only when the reference
@@ -130,6 +131,18 @@ jobs:
             echo "kOS reference assemblies present: headless terminal harness ENABLED"
           else
             echo "::warning::kOS reference assemblies absent: headless kOS terminal harness SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
+          fi
+          # Gonogo.KSP.Tests' PendingCreditLedgerTests touch the real
+          # ConfigNode type (Assembly-CSharp.dll), same soft-degrade contract
+          # as the kOS harness above: without the reference DLL the project
+          # still builds and runs its pure-logic currency-delay suites, the
+          # ConfigNode-backed ledger tests are dropped with a build warning.
+          ksp_managed_args=""
+          if [ -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            ksp_managed_args="/p:KspManaged=$KSP_MANAGED"
+            echo "KSP reference assemblies present: PendingCreditLedgerTests ENABLED"
+          else
+            echo "::warning::KSP reference assemblies absent: PendingCreditLedgerTests SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
           fi
           projects=(
             Sitrep.Core.Tests
@@ -144,6 +157,7 @@ jobs:
             GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
+            Gonogo.KSP.Tests
           )
           # The real-WebSocket integration suites are CPU-fragile on the shared
           # CI runner: the in-process test server's pump competes with client
@@ -169,11 +183,13 @@ jobs:
           nonblocking=" Sitrep.Host.IntegrationTests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
-            # Only GonogoKosUplink.Tests reads the kOS reference DLLs (its headless
-            # terminal harness); every other project is KSP-free and takes no
-            # extra args.
+            # Only GonogoKosUplink.Tests reads the kOS reference DLLs (its
+            # headless terminal harness) and only Gonogo.KSP.Tests reads the
+            # KSP_Data/Managed reference DLLs (its ConfigNode-backed ledger
+            # tests); every other project is KSP-free and takes no extra args.
             extra=""
             if [ "$p" = "GonogoKosUplink.Tests" ]; then extra="$kos_args"; fi
+            if [ "$p" = "Gonogo.KSP.Tests" ]; then extra="$ksp_managed_args"; fi
             attempts=4
             ok=0
             for a in $(seq 1 "$attempts"); do

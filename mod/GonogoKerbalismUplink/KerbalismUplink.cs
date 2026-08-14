@@ -35,6 +35,13 @@ namespace Gonogo.KerbalismUplink
         /// </summary>
         private readonly KerbalismScienceBackend _science = new();
 
+        /// <summary>
+        /// The currency-delay science hook: a presence-gated Harmony postfix on Kerbalism's own
+        /// RetrieveScience, handing each retrieved increment to the currency-delay core's
+        /// source-agnostic DelayedScienceSink. Held so <see cref="Register"/> attaches it once.
+        /// </summary>
+        private readonly KerbalismScienceHook _scienceHook = new();
+
         private IChannelPublisher? _spaceWeather;
         private IChannelPublisher? _lifeSupport;
         private IChannelPublisher? _crew;
@@ -142,6 +149,20 @@ namespace Gonogo.KerbalismUplink
 
                 RegisterScience(host);
                 RegisterIsru(host);
+
+                // Attach the currency-delay science hook. Kerbalism credits science through a
+                // pooled, vessel-less buffer the stock currency interceptor can't see, so this
+                // presence-gated Harmony postfix is the only way that science gets delayed. The
+                // hook forwards to the currency-delay core; if the core scenario isn't active the
+                // forward is a silent no-op.
+                try
+                {
+                    _scienceHook.TryAttach();
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("[KerbalismUplink] could not attach currency-delay science hook: " + ex.Message);
+                }
             }
         }
 

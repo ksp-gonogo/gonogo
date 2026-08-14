@@ -27,6 +27,11 @@
        pattern as GonogoRealAntennasUplink. -->
   <PropertyGroup>
     <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
+    <!-- KspGameData: root of an installed GameData tree, for 0Harmony.dll below (that reference
+         DLL lives in an installed mod's own GameData folder, not the portable KspManaged set) -
+         same property GonogoKosUplink.csproj / Gonogo.KSP.csproj already use for the identical
+         Harmony reference. -->
+    <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
   </PropertyGroup>
 
   <!-- KSP / Unity reference assemblies: Private="false", satisfied by KSP at
@@ -46,10 +51,30 @@
     </Reference>
   </ItemGroup>
 
+  <!-- Harmony (0Harmony.dll), used ONLY by KerbalismScienceHook.cs's presence-gated postfix on
+       KERBALISM.SubjectData.RetrieveScience. Private="false": KSP's own 000_Harmony/0Harmony.dll
+       satisfies the load at runtime; referenced here from the installed copy, same as
+       GonogoKosUplink's own observe-only postfix. -->
+  <ItemGroup>
+    <Reference Include="0Harmony" Private="false">
+      <HintPath>$(KspGameData)\000_Harmony\0Harmony.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <!-- Sitrep.Contract (Private="false"): the arm's-length compile surface.
        NO reference to Kerbalism.dll, by design. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- Gonogo.KSP (Private="false"): the bundled core addon. This Uplink calls its
+       Gonogo.KSP.CurrencyDelay.DelayedScienceSink to hand delayed science increments to the
+       currency-delay subsystem, which owns the aggregator/ledger/light-time. Never copied to
+       output; gonogo-core provides Gonogo.dll at runtime. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Gonogo.KSP\Gonogo.KSP.csproj">
       <Private>false</Private>
     </ProjectReference>
   </ItemGroup>
