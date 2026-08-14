@@ -8,7 +8,7 @@ import {
   isFrameDelaySupported,
   SharedDelayedStreams,
   type SnapshottableDelayClock,
-} from "@ksp-gonogo/sitrep-client/media";
+} from "@ksp-gonogo/sitrep-client";
 import {
   type DelayClockLike,
   getUplinkHandle,
@@ -120,7 +120,7 @@ export interface KerbcastStreamDelayOptions {
    *  (`ViewClock` from `@ksp-gonogo/sitrep-client`, or an equivalent). Kept as
    *  a structural type here so this file never imports the concrete
    *  `ViewClock` class: `DelayClockLike` comes from the `sitrep-sdk` facade
-   *  mirror, not from the sanctioned `sitrep-client/media` subpath above. */
+   *  mirror, not from the sanctioned `sitrep-client` media import above. */
   view: DelayClockLike;
   /** Capture-UT to stamp EACH captured video frame with, called once per
    *  frame the pipeline reads off the track, not once per stream

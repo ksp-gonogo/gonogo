@@ -7,14 +7,13 @@
 // SDK: the caller injects the clock, the raw `MediaStream`, and (for the
 // shared cache) the build function.
 //
-// SANCTIONED CLIENT IMPORT (2026-07-19): `@ksp-gonogo/sitrep-client/media` is
-// a documented exception to the two-package facade rule (an Uplink client is
-// otherwise sealed onto `@ksp-gonogo/sitrep-sdk` + `@ksp-gonogo/ui-kit` only,
-// see `docs/superpowers/plans/2026-07-19-facade-sealing.md` §2.4). This
-// barrel is the third allowed import for camera Uplinks specifically,
-// generic delayed-media infra decoupled via `DelayClockLike`, not a facade
-// gap. Import it as a dedicated subpath (`.../sitrep-client/media`), never
-// the package root.
+// SANCTIONED CLIENT IMPORT: this generic delayed-media infra (decoupled via
+// `DelayClockLike`) is a documented exception to the two-package facade rule
+// (an Uplink client is otherwise sealed onto `@ksp-gonogo/sitrep-sdk` +
+// `@ksp-gonogo/ui-kit` only). It is re-exported from the package root
+// (`@ksp-gonogo/sitrep-client`), the app's import-map only bakes exact
+// specifiers so a runtime-loaded Uplink couldn't resolve a bare subpath
+// import at all; camera Uplinks import it from there.
 
 export type { CaptureClockSample } from "./capture-clock";
 export { interpolateCaptureUt } from "./capture-clock";
