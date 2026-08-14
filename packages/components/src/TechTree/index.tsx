@@ -543,7 +543,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     <Panel panelTitle="TECH TREE">
       {subtitle && <TechMeta>{subtitle}</TechMeta>}
       <Controls>
-        <FilterRow role="group" aria-label="Filter tech nodes">
+        <FilterBar role="group" aria-label="Filter tech nodes">
           <FilterBtn
             type="button"
             $active={filter === "all"}
@@ -565,7 +565,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           >
             Unlocked
           </FilterBtn>
-        </FilterRow>
+        </FilterBar>
         <SearchInput
           type="search"
           placeholder="Filter by name or description..."
@@ -1014,7 +1014,7 @@ const Controls = styled.div`
   flex-shrink: 0;
 `;
 
-const FilterRow = styled.div`
+const FilterBar = styled.div`
   display: inline-flex;
   gap: var(--space-4);
   flex-wrap: wrap;

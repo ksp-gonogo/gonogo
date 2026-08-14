@@ -79,6 +79,7 @@ import {
   StationNameEditor,
   useStationName,
 } from "../stationIdentity";
+import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import {
   DEFAULT_SITREP_CARRIED_TOPICS,
@@ -398,6 +399,7 @@ export function StationScreen() {
                   transport={peerTransport}
                   carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
                 >
+                  <AugmentAvailabilityFeeder />
                   <ManeuverTriggerProvider service={maneuverTriggerClient}>
                     <PushClientProvider>
                       <FogMaskCacheProvider store={fogMaskStore}>

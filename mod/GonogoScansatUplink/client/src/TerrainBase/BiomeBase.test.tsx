@@ -20,6 +20,7 @@ import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SCANBiomeGrid } from "../schema";
+import { WithScansatAvailability } from "../test/withScansatAvailability";
 import {
   BIOME_LAYER_ID,
   BIOME_LAYER_OPACITY,
@@ -160,7 +161,9 @@ describe("BiomeBase: map-view.base slot", () => {
     const client = new TelemetryClient(transport);
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.base" props={props} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.base" props={props} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     return { transport };

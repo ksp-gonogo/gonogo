@@ -12,6 +12,7 @@ export * from "./FabCluster";
 export * from "./FabPrompt";
 export * from "./FileInput";
 export * from "./FilterChip";
+export * from "./FilterList";
 export * from "./Form";
 export * from "./FramedDisplay";
 export * from "./Gauge";

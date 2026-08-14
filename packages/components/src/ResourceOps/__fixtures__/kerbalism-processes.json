@@ -7,10 +7,37 @@
     "carriedChannels": [
       "isru.drills",
       "isru.converters",
-      "kerbalism.available"
+      "kerbalism.available",
+      "vessel.identity",
+      "system.bodies"
     ],
     "emits": [
       { "channel": "kerbalism.available", "value": true },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Duna",
+              "index": 2,
+              "parentIndex": 0,
+              "radius": 320000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "duna-base-1",
+          "name": "Duna Base One",
+          "vesselType": 3,
+          "situation": 1,
+          "parentBodyIndex": 2,
+          "launchUt": 0
+        }
+      },
       {
         "channel": "isru.drills",
         "value": [

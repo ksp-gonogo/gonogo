@@ -9,14 +9,14 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
-import { ModalChromeContext, type ModalChromeValue } from "@ksp-gonogo/ui-kit";
+import {
+  createDomainAvailabilityStore,
+  DomainAvailabilityContext,
+  ModalChromeContext,
+  type ModalChromeValue,
+} from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -589,11 +589,13 @@ describe("MapViewComponent", () => {
 
     it("case 1: reports available=false while the augment's required Domain has not announced (vanilla base would still paint)", () => {
       const calls: Array<[string, boolean]> = [];
-      const transport = new StubTransport();
-      const client = new TelemetryClient(transport);
+      // The gate reads ui-kit's availability store (fed from telemetry by the
+      // app), never the spine directly, so drive it store-first: an unannounced
+      // Domain reads unavailable.
+      const store = createDomainAvailabilityStore();
 
       const result = render(
-        <TelemetryProvider client={client}>
+        <DomainAvailabilityContext.Provider value={store}>
           <VanillaSuppressionProbe
             augment={{
               id: "fake-suppressing-base",
@@ -604,7 +606,7 @@ describe("MapViewComponent", () => {
             }}
             onAvailableChange={(id, available) => calls.push([id, available])}
           />
-        </TelemetryProvider>,
+        </DomainAvailabilityContext.Provider>,
       );
       probeTrees.push(result.unmount);
 
@@ -615,11 +617,10 @@ describe("MapViewComponent", () => {
 
     it("case 2: reports available=true once the augment's required Domain announces (vanilla base is suppressed)", async () => {
       const calls: Array<[string, boolean]> = [];
-      const transport = new StubTransport();
-      const client = new TelemetryClient(transport);
+      const store = createDomainAvailabilityStore();
 
       const result = render(
-        <TelemetryProvider client={client}>
+        <DomainAvailabilityContext.Provider value={store}>
           <VanillaSuppressionProbe
             augment={{
               id: "fake-suppressing-base-2",
@@ -630,19 +631,13 @@ describe("MapViewComponent", () => {
             }}
             onAvailableChange={(id, available) => calls.push([id, available])}
           />
-        </TelemetryProvider>,
+        </DomainAvailabilityContext.Provider>,
       );
       probeTrees.push(result.unmount);
 
       expect(calls).toEqual([["fake-suppressing-base-2", false]]);
 
-      act(() => {
-        transport.emit(
-          "test-suppress-domain-2.available",
-          { available: true },
-          { quality: Quality.Loaded, source: "test-suppress-domain-2" },
-        );
-      });
+      act(() => store.setAvailable("test-suppress-domain-2", true));
 
       await waitFor(() => {
         expect(calls[calls.length - 1]).toEqual([

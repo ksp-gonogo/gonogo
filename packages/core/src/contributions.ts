@@ -1,6 +1,6 @@
 import { logger } from "@ksp-gonogo/logger";
 import type { Dep } from "@ksp-gonogo/sitrep-client";
-import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { ContributionEntry, ContributionTopics } from "@ksp-gonogo/ui-kit";
 import type {
   AugmentSettingField,
   NamespacedAugmentSettings,
@@ -8,56 +8,28 @@ import type {
 import type { UplinkClientHandle } from "./uplinkClients";
 
 // ---------------------------------------------------------------------------
-// The contribution model (contribution-slots-spec.md §3-4): a pure-data
-// sibling of the augment model. An augment contributes a component and owns
-// its rendering; a contribution contributes typed DATA and the host renders
-// it with the host's own chrome. Same declaration-merge seam as SlotRegistry
-// (augments.ts), same requires/priority/settings shape, different payload.
+// The contribution REGISTRATION seam (contribution-slots-spec.md §3-4, §14).
+// The TYPE surface (`ContributionRegistry`, `ContributionEntry`, `Contributed`,
+// the segment machinery, ...) moved to `@ksp-gonogo/ui-kit` so the read hooks
+// and `FilterList` are reachable without core; it is re-exported below so every
+// `@ksp-gonogo/core` importer and `declare module "@ksp-gonogo/core"`
+// augmentation is unchanged. The write path stays here: `ContributionDefinition`
+// carries sitrep-client `Dep[]` deps (a spine type) and `registerContribution`
+// drives the live registry the core-side aggregation reads.
 // ---------------------------------------------------------------------------
 
-/**
- * Global slot -> {ctx, entry, topics} registry, extended via declaration
- * merging exactly like SlotRegistry (augments.ts). `topics` is the union of
- * Topic ids a contribution bound to this slot may read; omit it for a slot
- * that needs no topics.
- */
-// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam, mirrors SlotRegistry
-export interface ContributionRegistry {}
-
-/** Union of every declared in-tree contribution slot id. `never` until a package merges one in. */
-export type ContributionSlotId = keyof ContributionRegistry;
-
-/** The entry shape a slot renders. Falls back to a loose record for an out-of-repo slot id. */
-export type ContributionEntry<S extends string> =
-  S extends keyof ContributionRegistry
-    ? ContributionRegistry[S] extends { entry: infer E }
-      ? E
-      : Record<string, unknown>
-    : Record<string, unknown>;
-
-type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
-  ? ContributionRegistry[S] extends { topics: infer T extends string }
-    ? T
-    : never
-  : never;
-
-/**
- * The typed argument a slot's contributions receive: current values of every
- * declared topic, keyed by topic id. The `& Record<string, unknown>` tail keeps
- * a Processor dep readable by its stamped id (`topics[processor.id]`, typed
- * `unknown`) while the mapped head preserves each declared Topic's precise
- * payload type (intersection: a declared topic key keeps `TopicPayload<K>`,
- * since `X & unknown = X`).
- */
-export type ContributionTopics<S extends string> = {
-  readonly [K in DeclaredTopicUnion<S> & TopicId]: TopicPayload<K> | undefined;
-} & Record<string, unknown>;
-
-/** One rendered entry, tagged with provenance for keys and blame. */
-export type Contributed<E> = E & {
-  readonly contributionId: string;
-  readonly owner?: UplinkClientHandle;
-};
+// Re-export the type surface that moved to the design floor, so
+// `@ksp-gonogo/core` continues to export it and augmentations still merge.
+export type {
+  ComponentSlotRegistry,
+  ComponentSlotSegment,
+  Contributed,
+  ContributionEntry,
+  ContributionRegistry,
+  ContributionSlotId,
+  ContributionTopics,
+  UplinkClientIdentity,
+} from "@ksp-gonogo/ui-kit";
 
 export interface ContributionDefinition<S extends string = string> {
   /** Stable id, unique GLOBALLY (same flat namespace as augment ids). */

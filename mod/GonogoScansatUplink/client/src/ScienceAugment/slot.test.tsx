@@ -16,6 +16,7 @@ import {
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { WithScansatAvailability } from "../test/withScansatAvailability";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: the same way the app
 // picks this augment up via the package's bare `import "./ScienceAugment"`.
@@ -54,10 +55,12 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot
-          name="science-officer.badges"
-          props={{ instruments: null, dataAmount: 0 }}
-        />
+        <WithScansatAvailability>
+          <AugmentSlot
+            name="science-officer.badges"
+            props={{ instruments: null, dataAmount: 0 }}
+          />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {
@@ -76,10 +79,12 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot
-          name="science-officer.badges"
-          props={{ instruments: null, dataAmount: 0 }}
-        />
+        <WithScansatAvailability>
+          <AugmentSlot
+            name="science-officer.badges"
+            props={{ instruments: null, dataAmount: 0 }}
+          />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
 
@@ -134,10 +139,12 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot
-          name="science-officer.badges"
-          props={{ instruments: null, dataAmount: 0 }}
-        />
+        <WithScansatAvailability>
+          <AugmentSlot
+            name="science-officer.badges"
+            props={{ instruments: null, dataAmount: 0 }}
+          />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {
@@ -175,10 +182,12 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot
-          name="science-officer.badges"
-          props={{ instruments: null, dataAmount: 0 }}
-        />
+        <WithScansatAvailability>
+          <AugmentSlot
+            name="science-officer.badges"
+            props={{ instruments: null, dataAmount: 0 }}
+          />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
 

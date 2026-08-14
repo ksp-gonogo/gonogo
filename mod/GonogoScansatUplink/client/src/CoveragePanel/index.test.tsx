@@ -20,6 +20,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { WithScansatAvailability } from "../test/withScansatAvailability";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: same convention as
 // FootprintOverlay/index.test.tsx and AnomalyOverlay/slot.test.tsx.
@@ -116,7 +117,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {
@@ -149,7 +152,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     // Coverage rides the STREAM now (the dynamic `scansat.coverage.*` prefix is
@@ -193,7 +198,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     const meta = { quality: Quality.Loaded, source: "scansat" };
@@ -221,10 +228,12 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot
-          name="map-view.sections"
-          props={sectionsProps({ bodyName: undefined })}
-        />
+        <WithScansatAvailability>
+          <AugmentSlot
+            name="map-view.sections"
+            props={sectionsProps({ bodyName: undefined })}
+          />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {
@@ -243,7 +252,9 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.sections" props={sectionsProps()} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {

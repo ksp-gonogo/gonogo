@@ -1,15 +1,25 @@
-import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  clearUplinkHandles,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   Quality,
   registerUplinkHandle,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  DomainAvailabilityProvider,
+  useDomainAvailabilityStore,
+} from "@ksp-gonogo/ui-kit";
+import { useEffect } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 // Importing the real module runs its module-load `registerAugment(...)` once,
 // the same way the app picks this augment up via the package's bare
@@ -31,11 +41,28 @@ const HUD_CONTEXT = {
   cameraFlightId: undefined,
 };
 
+// AugmentSlot's presence gate reads ui-kit's DomainAvailability store, not the
+// stream directly. The app mounts an AugmentAvailabilityFeeder that bridges
+// `<domain>.available` telemetry into that store; this test-local feeder mirrors
+// it for `kerbcast` so the suite still exercises "the Domain announces on the
+// stream, then the augment mounts and subscribes" end to end.
+function KerbcastAvailabilityFeeder() {
+  const store = useDomainAvailabilityStore();
+  const value = useTelemetry("kerbcast.available" as TopicId);
+  useEffect(() => {
+    store?.setAvailable("kerbcast", value !== undefined);
+  }, [store, value]);
+  return null;
+}
+
 function renderSlot(transport: StubTransport) {
   const client = new TelemetryClient(transport);
   return render(
     <TelemetryProvider client={client}>
-      <AugmentSlot name="distance-to-target.camera" props={HUD_CONTEXT} />
+      <DomainAvailabilityProvider>
+        <KerbcastAvailabilityFeeder />
+        <AugmentSlot name="distance-to-target.camera" props={HUD_CONTEXT} />
+      </DomainAvailabilityProvider>
     </TelemetryProvider>,
   );
 }

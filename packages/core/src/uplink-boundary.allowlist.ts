@@ -316,11 +316,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mechjeb/avionics entries on the same file; nothing is imported.
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
-      // augments.test.tsx uses "scansat" purely as a generic example
-      // provider id/channel name (requires: "scansat", channels:
-      // ["scansat.available"]) exercising the augment-registration
-      // framework: no import of, or coupling to, the real scansat Uplink.
-      "packages/core/src/augments.test.tsx",
       "packages/sitrep-client/src/map-topic.test.ts",
 
       // -- Cross-mod / doc-comment-only mentions (audit §2, "not violations") --
@@ -1204,7 +1199,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // in prose as one possible reliability source. FleetReliability emits
       // `source: "kerbalism"` on the source-AGNOSTIC reliability.summary Topic,
       // which is the field's whole point.
-      "packages/core/src/augments.test.tsx",
       "packages/core/src/contributionsRuntime.test.tsx",
       "packages/core/src/registry.replacement.test.ts",
       "packages/core/src/truenow-allowlist.test.ts",

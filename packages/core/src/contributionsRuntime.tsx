@@ -9,7 +9,12 @@ import {
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
-import { createPanelStore, createStore, type Store } from "@ksp-gonogo/ui-kit";
+import {
+  type ContributionSlotEntry,
+  ContributionsPanelStore,
+  type Store,
+  useWidgetMeta,
+} from "@ksp-gonogo/ui-kit";
 import {
   type ReactElement,
   type ReactNode,
@@ -19,16 +24,24 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
-import { useWidgetMeta } from "./contexts/WidgetMetaContext";
 import {
   type AnyContribution,
-  type Contributed,
-  type ContributionEntry,
-  type ContributionSlotId,
   getContributionsForSlot,
   onContributionsChange,
 } from "./contributions";
 import { PerfBudget } from "./perf/PerfBudget";
+
+// ---------------------------------------------------------------------------
+// The contribution WRITE seam: the per-frame aggregation pipeline that pulls
+// each contribution's telemetry deps and fans the computed entries into the
+// per-widget `ContributionsPanelStore`. It lives in core (not the ui-kit design
+// floor) because it needs sitrep-client VALUES (`useTelemetryClientOptional`,
+// `activateProcessor`, ...) and a core-side `PerfBudget`. The READ half (the
+// store definition and the `useContributions` hooks) is spine-free and lives in
+// `@ksp-gonogo/ui-kit`; both halves share the one `ContributionsPanelStore`
+// imported above. The read hooks are re-exported at the bottom so
+// `@ksp-gonogo/core` importers are byte-identical.
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Per-slot PerfBudget (CLAUDE.md: any sample-fanning wrapper registers one).
@@ -54,29 +67,12 @@ function getSlotPerfBudget(slot: string): PerfBudget {
   return budget;
 }
 
-interface ContributionSlotEntry {
-  id: string; // the slot id
-  entries: readonly Contributed<unknown>[];
-}
-
-const EMPTY_ENTRIES: readonly Contributed<unknown>[] = Object.freeze([]);
-
-// Stable empty snapshot for the no-store case (a bare widget or a test
-// rendered without a `ContributionsProvider`). Same referential-stability
-// requirement as `EMPTY_ENTRIES` above, just typed for the whole-slot-array
-// shape `useAllContributionSlots` returns.
-const EMPTY_SLOT_ENTRIES: readonly ContributionSlotEntry[] = Object.freeze([]);
-
 // Stable empty snapshot for the no-`TelemetryProvider` case (a bare widget
 // or a test rendered without one). `useSyncExternalStore` requires a
 // referentially stable value between calls that haven't genuinely changed,
 // a fresh `{}` literal on every call would make React see a "changed"
 // snapshot on every render and error with "getSnapshot should be cached".
 const EMPTY_TOPIC_VALUES: Readonly<Record<string, unknown>> = Object.freeze({});
-
-const ContributionsPanelStore = createPanelStore<Store<ContributionSlotEntry>>(
-  () => createStore<ContributionSlotEntry>(),
-);
 
 // useSyncExternalStore requires a referentially-stable snapshot between
 // changes, so the registry's per-slot array is memoised the same way
@@ -100,10 +96,10 @@ function getContributionsForSlotCached(slot: string): AnyContribution[] {
   return cached;
 }
 
-/** Element-wise reference equality: true when every entry is the SAME object as before. */
+/** Element-wise reference equality: true when every entry is the SAME value as before. */
 function entriesUnchanged(
-  a: readonly Contributed<unknown>[],
-  b: readonly Contributed<unknown>[],
+  a: readonly unknown[],
+  b: readonly unknown[],
 ): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -241,7 +237,7 @@ function SlotAggregator({
   const budget = useMemo(() => getSlotPerfBudget(slot), [slot]);
 
   useEffect(() => {
-    const collected: Contributed<unknown>[] = [];
+    const collected: unknown[] = [];
     for (const def of contribs) {
       if (
         def.requires &&
@@ -253,11 +249,18 @@ function SlotAggregator({
         const result = def.compute(topicValues as never);
         if (result) {
           for (const entry of result) {
-            collected.push({
-              ...entry,
-              contributionId: def.id,
-              owner: def.owner,
-            });
+            if (entry !== null && typeof entry === "object") {
+              collected.push({
+                ...entry,
+                contributionId: def.id,
+                owner: def.owner,
+              });
+            } else {
+              // A PRIMITIVE contribution (a `filters` segment's search terms):
+              // stored verbatim. It cannot carry the provenance stamp, and the
+              // segment's consumer (`FilterList`) reads plain values, not rows.
+              collected.push(entry);
+            }
           }
         }
       } catch (err) {
@@ -291,20 +294,27 @@ export function ContributionsProvider({
   );
 }
 
+// Framework-universal segments aggregated for EVERY widget, on top of whatever
+// it declared, so a component that owns one of these slots (a mounted
+// `FilterList`, a badge) gets its contributions without the host widget writing
+// anything. `badges` is the original auto-slot (spec §13.2); `filters` is the
+// component-extension-slot generalisation, completed the same `${componentId}.
+// ${segment}` way. A widget that also lists one of these in `contributionSlots`
+// is harmlessly deduped below.
+const FRAMEWORK_SEGMENTS = ["badges", "filters"] as const;
+
 function ContributionsAggregation({ children }: { children?: ReactNode }) {
   const meta = useWidgetMeta();
   const store = ContributionsPanelStore.useStore();
-  // The standard badges slot is ALWAYS aggregated, on top of whatever the
-  // widget itself declared (contribution-slots-spec §13.2: automatic, zero
-  // widget-side input). Deduped in case a widget also explicitly lists its
-  // own badges slot in contributionSlots (harmless either way).
   const slots = useMemo(() => {
     const declared = meta?.contributionSlots ?? [];
     if (!meta) return declared;
-    const badgesSlot = `${meta.componentId}.badges`;
-    return declared.includes(badgesSlot as never)
-      ? declared
-      : [...declared, badgesSlot as never];
+    const merged = [...declared];
+    for (const segment of FRAMEWORK_SEGMENTS) {
+      const slot = `${meta.componentId}.${segment}`;
+      if (!merged.includes(slot as never)) merged.push(slot as never);
+    }
+    return merged;
   }, [meta]);
 
   if (!store) return <>{children}</>;
@@ -319,49 +329,8 @@ function ContributionsAggregation({ children }: { children?: ReactNode }) {
   );
 }
 
-/**
- * The single subscription point: the whole per-widget store's slot-entry
- * array, one `useSyncExternalStore` regardless of how many slots the caller
- * ultimately reads. Both `useContributionsBySlotId` and `useContributions`
- * build on this instead of each subscribing per slot, since the store
- * already holds every slot's entries together and a plain `.find` is all a
- * single-slot read needs.
- */
-function useAllContributionSlots(): readonly ContributionSlotEntry[] {
-  const store = ContributionsPanelStore.useStore();
-  const subscribe = useCallback(
-    (onChange: () => void) => (store ? store.subscribe(onChange) : () => {}),
-    [store],
-  );
-  const getSnapshot = useCallback(
-    (): readonly ContributionSlotEntry[] =>
-      store ? store.getSnapshot() : EMPTY_SLOT_ENTRIES,
-    [store],
-  );
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
-
-/** Untyped-by-slot-string read, shared by both public useContributions overloads and Task 2.3's useWidgetBadges. */
-export function useContributionsBySlotId(
-  slot: string,
-): readonly Contributed<unknown>[] {
-  const snapshot = useAllContributionSlots();
-  return snapshot.find((e) => e.id === slot)?.entries ?? EMPTY_ENTRIES;
-}
-
-export function useContributions<S extends ContributionSlotId>(
-  slot: S,
-): readonly Contributed<ContributionEntry<S>>[];
-export function useContributions<const T extends readonly ContributionSlotId[]>(
-  slots: T,
-): { [K in T[number]]: readonly Contributed<ContributionEntry<K>>[] };
-export function useContributions(
-  slotOrSlots: string | readonly string[],
-): unknown {
-  const snapshot = useAllContributionSlots();
-  const read = (slot: string): readonly Contributed<unknown>[] =>
-    snapshot.find((e) => e.id === slot)?.entries ?? EMPTY_ENTRIES;
-
-  if (typeof slotOrSlots === "string") return read(slotOrSlots);
-  return Object.fromEntries(slotOrSlots.map((slot) => [slot, read(slot)]));
-}
+// The contribution READ hooks live in the spine-free design floor now; re-
+// exported here so `@ksp-gonogo/core`'s barrel (and every existing importer)
+// keeps resolving `useContributions` / `useContributionsBySlotId` from this
+// module unchanged.
+export { useContributions, useContributionsBySlotId } from "@ksp-gonogo/ui-kit";

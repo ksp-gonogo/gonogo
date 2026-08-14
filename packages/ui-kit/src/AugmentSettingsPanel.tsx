@@ -1,27 +1,11 @@
+import type { NamespacedAugmentSettings } from "./augments";
 import { Field, FieldLabel, FieldRow, Input } from "./Form";
 import { Switch } from "./Switch";
 
-// ---------------------------------------------------------------------------
-// Local, structurally-equivalent mirror of `@ksp-gonogo/core`'s
-// `AugmentSettingField`/`NamespacedAugmentSettings` (spec §4.7). This package
-// is the export-safe design system and must never depend on `core` (see
-// `ModalSaveBar.tsx`'s header comment for the same rule applied elsewhere),
-// TS structural typing means callers can pass `core`'s `getAugmentSettings()`
-// result straight through without a cast.
-// ---------------------------------------------------------------------------
-
-export interface AugmentSettingField {
-  key: string;
-  type: "boolean" | "text" | "number";
-  label?: string;
-  default?: boolean | string | number;
-}
-
-export interface NamespacedAugmentSettings {
-  augmentId: string;
-  namespace: string;
-  fields: readonly AugmentSettingField[];
-}
+// `AugmentSettingField` / `NamespacedAugmentSettings` (spec §4.7) live in this
+// package's `augments.ts` (the augment model's home). `getAugmentSettings()` /
+// `getMergedSlotSettings()` return `NamespacedAugmentSettings[]`, which this
+// panel renders straight through.
 
 export interface AugmentSettingsPanelProps {
   /** Every augment's settings block for the host widget's slot(s); see `getAugmentSettings`/`getFogRevealSourceSettings`. */

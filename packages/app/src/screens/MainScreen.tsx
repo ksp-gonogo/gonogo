@@ -90,6 +90,7 @@ import {
   useMissionHistorySettings,
 } from "../settings";
 import { initSoundSettings } from "../sound";
+import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { UplinkHubWizardHost } from "../wizard/UplinkHubWizardHost";
@@ -219,6 +220,7 @@ export function MainScreen() {
     <SitrepTelemetryProvider>
       <SitrepPeerRelay peerHost={peerHostService} />
       <KosCpuDiscovery cpuRegistry={cpuRegistry} />
+      <AugmentAvailabilityFeeder />
       <ReplaySessionProvider>
         <ScreenProvider value="main">
           <SettingsProvider service={settingsService}>

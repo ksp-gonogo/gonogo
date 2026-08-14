@@ -309,3 +309,57 @@ describe("useContributions", () => {
     }
   });
 });
+
+// A reusable component reads the framework-universal `filters` segment: it
+// writes only the segment, and the hook completes `${componentId}.filters` from
+// the mounting widget's meta. The contribution's entries are plain STRINGS.
+function SegmentTerms() {
+  const terms = useContributions("filters");
+  return (
+    <ul>
+      {terms.map((term) => (
+        <li key={term}>{`term:${term}`}</li>
+      ))}
+    </ul>
+  );
+}
+
+describe("useContributions segment mode", () => {
+  it("completes `${componentId}.${segment}` from widget meta and returns the string terms", async () => {
+    registerContribution({
+      id: "seg-terms",
+      contributes: "seg-widget.filters",
+      compute: () => ["Scrubber", "Water Recycler"],
+    });
+
+    render(
+      <WidgetMetaContext.Provider
+        value={{ componentId: "seg-widget", contributionSlots: [] }}
+      >
+        <ContributionsProvider>
+          <SegmentTerms />
+        </ContributionsProvider>
+      </WidgetMetaContext.Provider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("term:Scrubber")).toBeTruthy());
+    expect(screen.getByText("term:Water Recycler")).toBeTruthy();
+  });
+
+  it("returns nothing for a bare segment outside a widget context", () => {
+    registerContribution({
+      id: "seg-terms-orphan",
+      contributes: "seg-widget.filters",
+      compute: () => ["Scrubber"],
+    });
+
+    // No WidgetMetaContext: there is nothing to complete the segment against.
+    render(
+      <ContributionsProvider>
+        <SegmentTerms />
+      </ContributionsProvider>,
+    );
+
+    expect(screen.queryByText("term:Scrubber")).toBeNull();
+  });
+});

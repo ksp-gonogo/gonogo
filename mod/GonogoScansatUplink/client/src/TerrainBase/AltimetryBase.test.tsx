@@ -20,6 +20,7 @@ import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SCANHeightGrid } from "../schema";
+import { WithScansatAvailability } from "../test/withScansatAvailability";
 import { ALTIMETRY_LAYER_ID } from "./AltimetryBase";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: same convention as
@@ -152,7 +153,9 @@ describe("AltimetryBase: map-view.base slot", () => {
     const client = new TelemetryClient(transport);
     renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.base" props={props} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.base" props={props} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     return { transport };

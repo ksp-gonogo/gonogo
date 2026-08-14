@@ -22,13 +22,11 @@
 import type {
   ContributionEntry as CoreContributionEntry,
   ContributionRegistry as CoreContributionRegistry,
-  FilterEntry,
 } from "@ksp-gonogo/core";
 import type {
   ContributionEntry as SdkContributionEntry,
   ContributionRegistry as SdkContributionRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { ResourceOpsUnit } from "./ResourceOps";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 
 type Assignable<A, B> = A extends B ? true : false;
@@ -88,37 +86,6 @@ type _ShipMapPartMetaRealBack = Expect<
   Assignable<ShipMapPartMetaEntry, SdkContributionEntry<"ship-map.part-meta">>
 >;
 
-// --- resource-ops.filters: checked both directions --------------------------
-//
-// The first FILTER slot (spec §15). Its entry is the generic `FilterEntry` over
-// the widget's own row union, so the mirror carries that union and this pair of
-// checks is what keeps the two copies of it from drifting.
-
-type _ResourceOpsFilters = Expect<
-  Assignable<
-    SdkContributionEntry<"resource-ops.filters">,
-    CoreContributionEntry<"resource-ops.filters">
-  >
->;
-type _ResourceOpsFiltersBack = Expect<
-  Assignable<
-    CoreContributionEntry<"resource-ops.filters">,
-    SdkContributionEntry<"resource-ops.filters">
-  >
->;
-type _ResourceOpsFiltersReal = Expect<
-  Assignable<
-    SdkContributionEntry<"resource-ops.filters">,
-    FilterEntry<ResourceOpsUnit>
-  >
->;
-type _ResourceOpsFiltersRealBack = Expect<
-  Assignable<
-    FilterEntry<ResourceOpsUnit>,
-    SdkContributionEntry<"resource-ops.filters">
-  >
->;
-
 // Keep every alias "used" under noUnusedLocals.
 export type _ContributionRegistryConformance = [
   _SdkKeysAssignableToCore,
@@ -130,8 +97,4 @@ export type _ContributionRegistryConformance = [
   _ShipMapPartMetaBack,
   _ShipMapPartMetaReal,
   _ShipMapPartMetaRealBack,
-  _ResourceOpsFilters,
-  _ResourceOpsFiltersBack,
-  _ResourceOpsFiltersReal,
-  _ResourceOpsFiltersRealBack,
 ];

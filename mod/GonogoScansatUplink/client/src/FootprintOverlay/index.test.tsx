@@ -18,6 +18,7 @@ import {
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { WithScansatAvailability } from "../test/withScansatAvailability";
 import { drawFootprints } from "./index";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: same convention as
@@ -199,7 +200,9 @@ describe("FootprintOverlay: map-view.overlay slot", () => {
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.overlay" props={overlayProps()} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.overlay" props={overlayProps()} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {
@@ -244,7 +247,9 @@ describe("FootprintOverlay: map-view.overlay slot", () => {
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>
-        <AugmentSlot name="map-view.overlay" props={overlayProps()} />
+        <WithScansatAvailability>
+          <AugmentSlot name="map-view.overlay" props={overlayProps()} />
+        </WithScansatAvailability>
       </TelemetryProvider>,
     );
     act(() => {

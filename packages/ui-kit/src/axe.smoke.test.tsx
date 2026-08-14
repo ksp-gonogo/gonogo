@@ -1,8 +1,8 @@
 import { render } from "@ksp-gonogo/test-utils";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
-import type { NamespacedAugmentSettings } from "./AugmentSettingsPanel";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
+import type { NamespacedAugmentSettings } from "./augments";
 import { Badge } from "./Badge";
 import { Card } from "./Card";
 import { Dial } from "./Dial";
