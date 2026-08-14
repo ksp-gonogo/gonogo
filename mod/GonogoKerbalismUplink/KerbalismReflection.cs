@@ -659,7 +659,10 @@ namespace Gonogo.KerbalismUplink
         /// Everything the Kerbalism science provider needs off one vessel, in one
         /// main-thread pass: the <c>Experiment</c> modules (instruments), every file
         /// and sample on every <c>HardDrive</c> (stored results, with the drive's own
-        /// capacity), the <c>Laboratory</c> modules, and the <c>Sensor</c> modules.
+        /// capacity), the <c>Laboratory</c> modules, the <c>Sensor</c> modules, and
+        /// the <c>KerbalismScansat</c> modules (SCANsat map scanners Kerbalism has
+        /// taken over: see <see cref="ScienceScannerRaw"/> for why nothing else
+        /// reports them).
         ///
         /// <para>Gated on <c>Features.Science</c> as well as assembly presence: with
         /// the feature off, Kerbalism is not simulating science and the provider must
@@ -712,6 +715,11 @@ namespace Gonogo.KerbalismUplink
                         });
                         continue;
                     }
+                    if (string.Equals(moduleName, "KerbalismScansat", StringComparison.Ordinal))
+                    {
+                        raw.Scanners.Add(ScannerOf(pm, partId, partName));
+                        continue;
+                    }
                     if (string.Equals(moduleName, "Sensor", StringComparison.Ordinal))
                     {
                         raw.Sensors.Add(new ScienceSensorRaw
@@ -753,6 +761,30 @@ namespace Gonogo.KerbalismUplink
                 // sample-less one the field is a zero that would read as
                 // "depleted" rather than "not applicable".
                 RemainingSampleMass = sampleAmount > 0 ? MemberDouble(pm, "remainingSampleMass") : null,
+            };
+        }
+
+        /// <summary>
+        /// One <c>KerbalismScansat</c> module. Two of these reads go through
+        /// <see cref="HiddenMember"/> rather than the usual public reader: coverage
+        /// and the power cut-out are persisted KSPFields that some Kerbalism builds
+        /// keep private and only some expose as properties, so each is read from the
+        /// property first and falls back to the field. Both are fail-soft, so a build
+        /// that has neither reports null rather than a wrong number.
+        /// </summary>
+        private static ScienceScannerRaw ScannerOf(PartModule pm, string partId, string partName)
+        {
+            return new ScienceScannerRaw
+            {
+                PartId = partId,
+                PartName = partName,
+                ExperimentId = MemberString(pm, "experimentType") ?? "",
+                Issue = MemberString(pm, "Issue") ?? "",
+                Scanning = MemberBool(pm, "IsScanning"),
+                PowerDisabled = MemberBool(pm, "PowerDisabled") ?? HiddenMember(pm, "power_disabled") as bool?,
+                BodyCoveragePercent = MemberDouble(pm, "BodyCoveragePercent")
+                    ?? AsDouble(HiddenMember(pm, "body_coverage")),
+                EcRate = MemberDouble(pm, "ec_rate"),
             };
         }
 
@@ -1043,6 +1075,22 @@ namespace Gonogo.KerbalismUplink
             if (p != null) { try { return p.GetValue(obj); } catch { return null; } }
             return null;
         }
+        /// <summary>
+        /// A private instance field or property, for the handful of Kerbalism members
+        /// that are persisted state with no public reader. Same fail-soft contract as
+        /// <see cref="Member"/>; kept separate so the ordinary reads cannot quietly
+        /// start depending on a mod's internals.
+        /// </summary>
+        private static object? HiddenMember(object obj, string name)
+        {
+            var t = obj.GetType();
+            var f = t.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (f != null) { try { return f.GetValue(obj); } catch { return null; } }
+            var p = t.GetProperty(name, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (p != null) { try { return p.GetValue(obj); } catch { return null; } }
+            return null;
+        }
+
         private static string? MemberString(object obj, string name) => Member(obj, name) as string;
         private static double? MemberDouble(object obj, string name) => AsDouble(Member(obj, name));
         private static bool? MemberBool(object obj, string name) => Member(obj, name) as bool?;

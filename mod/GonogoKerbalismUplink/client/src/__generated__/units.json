@@ -184,12 +184,17 @@
       "transmitting": "flag"
     },
     "KerbalismScienceInstrumentExt": {
+      "bodyCoveragePercent": "%",
       "dataRateMBps": "MB/s",
+      "ecRate": "units/s",
       "expStatus": "id",
       "issue": "text",
+      "kind": "id",
+      "powerDisabled": "flag",
       "prodFactor": "ratio",
       "remainingSampleMass": "t",
-      "runningState": "id"
+      "runningState": "id",
+      "scanning": "flag"
     },
     "KerbalismScienceLabExt": {
       "analysisRateMBps": "MB/s",

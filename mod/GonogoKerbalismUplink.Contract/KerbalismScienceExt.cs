@@ -164,6 +164,16 @@ public class KerbalismScienceExperimentExt
 /// reason is the single field that makes a 62-condition gate legible without
 /// modelling 62 conditions, and it is the field an operator actually needs: "why is
 /// my experiment not running".</para>
+///
+/// <para>Two DIFFERENT modules land in this one bag, told apart by
+/// <see cref="Kind"/>. Kerbalism's own <c>Experiment</c> is the usual one. A SCANsat
+/// map scanner is the other: Kerbalism's SCANsat support strips the
+/// <c>SCANexperiment</c> module off the part and fits its own
+/// <c>KerbalismScansat</c>, which turns coverage growth into files on a drive. That
+/// leaves the scanner in nobody's instrument list unless this provider claims it,
+/// so it claims it, and the four scanner-only fields below sit null on an
+/// <c>Experiment</c> row (and the six experiment-only fields null on a scanner
+/// row).</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -172,9 +182,19 @@ public class KerbalismScienceExperimentExt
 public class KerbalismScienceInstrumentExt
 {
     /// <summary>
+    /// Which Kerbalism module this row came from: <c>experiment</c> or
+    /// <c>scanner</c>. Says which of the fields below carry a fact, so a reader
+    /// never has to infer it from which ones happen to be null.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Kind { get; set; }
+
+    /// <summary>
     /// Kerbalism's own free-text reason this experiment is not producing, empty
     /// when there is nothing wrong. The collapsed form of the whole requirement
     /// system: gonogo does not re-derive it, it forwards what Kerbalism computed.
+    /// Filled for both kinds: a scanner's version is "no storage available" or
+    /// "disabled by power failure".
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Issue { get; set; }
@@ -218,6 +238,39 @@ public class KerbalismScienceInstrumentExt
     /// </summary>
     [SitrepUnit(Units.Tonnes)]
     public double? RemainingSampleMass { get; set; }
+
+    /// <summary>
+    /// SCANNER ONLY. Whether SCANsat is sweeping right now. A scanner produces data
+    /// as a side effect of coverage growing, so this is the closest thing it has to
+    /// an experiment's Running state.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Scanning { get; set; }
+
+    /// <summary>
+    /// SCANNER ONLY. Kerbalism cut this scanner for want of EC and will restart it
+    /// once the vessel is back above a quarter charge. Distinct from an operator
+    /// switching it off, which this stays false for.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? PowerDisabled { get; set; }
+
+    /// <summary>
+    /// SCANNER ONLY. How much of the current body this sensor type has covered.
+    /// The number the produced data is a function of: coverage rising is the event
+    /// that writes a file, so a stalled percentage explains a scanner that is on
+    /// and yielding nothing.
+    /// </summary>
+    [SitrepUnit(Units.Percent)]
+    public double? BodyCoveragePercent { get; set; }
+
+    /// <summary>
+    /// SCANNER ONLY. The EC draw Kerbalism bills for this scanner, loaded or in the
+    /// background. Zero means the part was patched without a rate rather than that
+    /// scanning is free.
+    /// </summary>
+    [SitrepUnit(Units.ResourceUnitsPerSecond)]
+    public double? EcRate { get; set; }
 }
 
 /// <summary>

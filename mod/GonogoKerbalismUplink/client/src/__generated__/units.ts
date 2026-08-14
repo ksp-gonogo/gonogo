@@ -218,12 +218,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     transmitting: "flag",
   },
   "KerbalismScienceInstrumentExt": {
+    bodyCoveragePercent: "%",
     dataRateMBps: "MB/s",
+    ecRate: "units/s",
     expStatus: "id",
     issue: "text",
+    kind: "id",
+    powerDisabled: "flag",
     prodFactor: "ratio",
     remainingSampleMass: "t",
     runningState: "id",
+    scanning: "flag",
   },
   "KerbalismScienceLabExt": {
     analysisRateMBps: "MB/s",

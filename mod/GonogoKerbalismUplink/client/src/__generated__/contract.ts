@@ -198,12 +198,17 @@ export interface KerbalismScienceExperimentExt
 }
 export interface KerbalismScienceInstrumentExt
 {
+	kind?: string;
 	issue?: string;
 	runningState?: string;
 	expStatus?: string;
 	dataRateMBps?: Value<"MB/s">;
 	prodFactor?: Value<"ratio">;
 	remainingSampleMass?: Value<"t">;
+	scanning?: boolean;
+	powerDisabled?: boolean;
+	bodyCoveragePercent?: Value<"%">;
+	ecRate?: Value<"units/s">;
 }
 export interface KerbalismScienceLabExt
 {

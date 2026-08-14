@@ -185,6 +185,7 @@ describe("kerbalism's namespaces of the elected science.* payloads", () => {
       magnitude: 0.002,
       unit: "MB/s",
     });
+    expect(blocked?.kind).toBe("experiment");
 
     const labs = await decoded<LabEntry[]>(
       SCIENCE_LAB_TOPIC,
@@ -210,6 +211,32 @@ describe("kerbalism's namespaces of the elected science.* payloads", () => {
       magnitude: 1,
       unit: "count",
     });
+  });
+
+  it("carries a SCANsat scanner Kerbalism took over, on the same instrument channel", async () => {
+    // With both mods installed, Kerbalism's support patch deletes the part's
+    // SCANexperiment module, so this row is the only report of that scanner
+    // anywhere: SCANsat's own reader finds nothing to describe.
+    const instruments = await decoded<InstrumentEntry[]>(
+      SCIENCE_INSTRUMENTS_TOPIC,
+      serverFrame<InstrumentEntry[]>("instruments-kerbalism").payload,
+    );
+    const scanner = instruments.find(
+      (i) => i.partId === "501",
+    ) as InstrumentEntry;
+    const ext = readKerbalismScienceInstrumentExt(scanner);
+
+    expect(ext?.kind).toBe("scanner");
+    // Stopped for want of EC, and Kerbalism's own words for why survive the trip.
+    expect(ext?.scanning).toBe(false);
+    expect(ext?.powerDisabled).toBe(true);
+    expect(ext?.issue).toBe("no storage available");
+    // The quantities arrive wrapped, so a widget renders them through Unit rather
+    // than guessing that one is a percentage and the other a charge rate.
+    expect(ext?.bodyCoveragePercent).toMatchObject({ magnitude: 0, unit: "%" });
+    expect(ext?.ecRate).toMatchObject({ magnitude: 1, unit: "units/s" });
+    // The experiment-only half of the bag is absent rather than zeroed.
+    expect(ext?.dataRateMBps).toBeUndefined();
   });
 
   it("tags the shared payload so a widget cannot compare two providers' science numbers by accident", async () => {

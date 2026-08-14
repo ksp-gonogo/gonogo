@@ -121,9 +121,9 @@ namespace Gonogo.KerbalismUplink
         }
 
         /// <summary>
-        /// <c>science.instruments</c>: one entry per <c>Experiment</c> module,
-        /// regardless of whether it currently holds data, which is stock's contract
-        /// for this channel too.
+        /// <c>science.instruments</c>: one entry per <c>Experiment</c> module and one
+        /// per SCANsat map scanner, regardless of whether either currently holds
+        /// data, which is stock's contract for this channel too.
         ///
         /// <para>The projection worth naming: Kerbalism's four-state machine folds
         /// onto stock's two bools. <c>deployed</c> is "actually producing" (Running
@@ -131,6 +131,12 @@ namespace Gonogo.KerbalismUplink
         /// sample. Both are honest as far as they go, and the state and its reason
         /// ride the bag for a reader that wants the truth rather than the
         /// projection.</para>
+        ///
+        /// <para>The scanners are here because Kerbalism's SCANsat patch deletes the
+        /// part's <c>SCANexperiment</c> module and fits <c>KerbalismScansat</c> in its
+        /// place. Whoever owns the module owns reporting it, so this provider does:
+        /// left out, a map scanner would be the one instrument on the vessel that
+        /// appears in no list at all while quietly filling the drives.</para>
         /// </summary>
         public static List<object?>? Instruments(ScienceRaw raw)
         {
@@ -164,12 +170,52 @@ namespace Gonogo.KerbalismUplink
                     {
                         [ProviderId] = new Dictionary<string, object?>
                         {
+                            ["kind"] = "experiment",
                             ["issue"] = e.Issue,
                             ["runningState"] = e.RunningState,
                             ["expStatus"] = e.ExpStatus,
                             ["dataRateMBps"] = e.DataRate,
                             ["prodFactor"] = e.ProdFactor,
                             ["remainingSampleMass"] = e.RemainingSampleMass,
+                        },
+                    },
+                });
+            }
+
+            foreach (var s in raw.Scanners)
+            {
+                // Scanning with nothing in the way is the scanner's whole "producing"
+                // condition: it has no run to start, coverage growth writes the file.
+                var producing = s.Scanning == true && string.IsNullOrEmpty(s.Issue);
+
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["partId"] = Text(s.PartId),
+                    ["partName"] = s.PartName,
+                    ["experimentId"] = Text(s.ExperimentId),
+                    // No title: Kerbalism copies the raw experiment id off the deleted
+                    // SCANexperiment and never carries SCANsat's friendly name, and
+                    // inventing one here would put a second vocabulary on the wire.
+                    ["title"] = null,
+                    ["deployed"] = producing,
+                    // A map scanner is never spent and Kerbalism gives it no broken
+                    // state, so there is a fact here and it is false.
+                    ["inoperable"] = false,
+                    // Scanning resumes by itself whenever coverage can grow again, so
+                    // "can this be re-run" is not a question the module answers.
+                    ["rerunnable"] = null,
+                    ["resettable"] = null,
+                    ["dataIsCollectable"] = false,
+                    ["extensions"] = new Dictionary<string, object?>
+                    {
+                        [ProviderId] = new Dictionary<string, object?>
+                        {
+                            ["kind"] = "scanner",
+                            ["issue"] = s.Issue,
+                            ["scanning"] = s.Scanning,
+                            ["powerDisabled"] = s.PowerDisabled,
+                            ["bodyCoveragePercent"] = s.BodyCoveragePercent,
+                            ["ecRate"] = s.EcRate,
                         },
                     },
                 });

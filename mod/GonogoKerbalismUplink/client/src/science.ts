@@ -224,6 +224,12 @@ export function readKerbalismScienceExperimentExt(
  * machine and, when something is in the way, its reason. This is the one an
  * operator wants most, because "why is my experiment not running" has no answer at
  * all in stock's flat deployed/inoperable pair.
+ *
+ * Check `kind` before reading further. A `scanner` row is a SCANsat map scanner
+ * Kerbalism took over (its support patch deletes the part's `SCANexperiment`
+ * module, which is why this channel is where a scanner surfaces at all), and it
+ * carries `scanning`/`powerDisabled`/`bodyCoveragePercent`/`ecRate` instead of the
+ * experiment state machine.
  */
 export function readKerbalismScienceInstrumentExt(
   entry: InstrumentEntry | undefined | null,

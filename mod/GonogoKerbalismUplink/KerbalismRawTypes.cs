@@ -199,6 +199,32 @@ namespace Gonogo.KerbalismUplink
         public List<ScienceStoredRaw> Stored = new();
         public List<ScienceLabRaw> Labs = new();
         public List<ScienceSensorRaw> Sensors = new();
+        public List<ScienceScannerRaw> Scanners = new();
+    }
+
+    /// <summary>
+    /// One Kerbalism <c>KerbalismScansat</c> PartModule: a SCANsat map scanner that
+    /// Kerbalism has taken over. Its config patch deletes the part's
+    /// <c>SCANexperiment</c> module outright, so with both mods installed this is
+    /// the only module that still describes the scanner, and without this capture
+    /// the part appears in no instrument list at all.
+    /// </summary>
+    public sealed class ScienceScannerRaw
+    {
+        public string PartId = "";
+        public string PartName = "";
+        /// <summary>The R&amp;D experiment id (SCANsatAltimetryHiRes, SCANsatBiomeAnomaly, ...), copied off the deleted SCANexperiment by Kerbalism's patch.</summary>
+        public string ExperimentId = "";
+        /// <summary>Kerbalism's free-text reason nothing is being produced; empty when nothing is wrong.</summary>
+        public string Issue = "";
+        /// <summary>Whether SCANsat is sweeping. Null when this build exposes no such member (see KerbalismReflection.Science).</summary>
+        public bool? Scanning;
+        /// <summary>Whether Kerbalism stopped the scanner for want of EC, as opposed to an operator stopping it.</summary>
+        public bool? PowerDisabled;
+        /// <summary>Coverage of the current body for this sensor type, 0..100.</summary>
+        public double? BodyCoveragePercent;
+        /// <summary>The EC draw Kerbalism bills for the scanner, from the part's patched ec_rate.</summary>
+        public double? EcRate;
     }
 
     /// <summary>One Kerbalism <c>Experiment</c> PartModule: the instrument, running or not, data or not.</summary>

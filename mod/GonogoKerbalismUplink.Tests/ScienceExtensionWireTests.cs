@@ -127,6 +127,23 @@ namespace GonogoKerbalismUplink.Tests
                     Type = "temperature", Readout = "293.1 K", Active = true,
                 },
             },
+            Scanners =
+            {
+                new ScienceScannerRaw
+                {
+                    PartId = "500", PartName = "SAR Altimetry Sensor",
+                    ExperimentId = "SCANsatAltimetryHiRes", Issue = "",
+                    Scanning = true, PowerDisabled = false,
+                    BodyCoveragePercent = 42.5, EcRate = 1.5,
+                },
+                new ScienceScannerRaw
+                {
+                    PartId = "501", PartName = "Multispectral Sensor",
+                    ExperimentId = "SCANsatBiomeAnomaly", Issue = "no storage available",
+                    Scanning = false, PowerDisabled = true,
+                    BodyCoveragePercent = 0.0, EcRate = 1.0,
+                },
+            },
         };
 
         private static Meta FixedMeta() => new Meta
@@ -298,6 +315,60 @@ namespace GonogoKerbalismUplink.Tests
             // Kerbalism results never sit in the instrument, so nothing is
             // collectable FROM one: false, not null, because that IS a known fact.
             Assert.Contains("\"dataIsCollectable\":false", json);
+        }
+
+        /// <summary>
+        /// A SCANsat map scanner reaches <c>science.instruments</c>, because with
+        /// Kerbalism installed nothing else reports it: Kerbalism's support patch
+        /// deletes the part's <c>SCANexperiment</c> module and fits its own, so a
+        /// scanner is invisible to every stock-shaped instrument reader and to
+        /// SCANsat's own. The row carries the state that module holds, and
+        /// <c>kind</c> is what tells a reader which half of the bag is real.
+        /// </summary>
+        [Fact]
+        public void ScannersKerbalismTookOverFromScansatAreReportedAsInstruments()
+        {
+            var json = Write("science.instruments", KerbalismScienceMap.Instruments(Raw()));
+
+            Assert.Contains("\"kind\":\"experiment\"", json);
+            Assert.Contains("\"experimentId\":\"SCANsatAltimetryHiRes\"", json);
+            Assert.Contains("\"kind\":\"scanner\",\"issue\":\"\",\"scanning\":true,\"powerDisabled\":false,\"bodyCoveragePercent\":42.5,\"ecRate\":1.5", json);
+            // The second scanner is stopped with the drives full: not producing, and
+            // the reason survives rather than being flattened into a bare false.
+            Assert.Contains("\"issue\":\"no storage available\",\"scanning\":false,\"powerDisabled\":true", json);
+        }
+
+        /// <summary>
+        /// A scanner is never spent, so <c>inoperable</c> is a known false rather
+        /// than the null an unanswerable question gets, and <c>deployed</c> follows
+        /// scanning-with-nothing-in-the-way. Asserted through the parsed payload
+        /// because both scanners' rows share a substring shape and a
+        /// <c>Contains</c> could pass on the wrong one.
+        /// </summary>
+        [Fact]
+        public void AStoppedScannerIsNotDeployedAndNeitherScannerIsInoperable()
+        {
+            var rows = KerbalismScienceMap.Instruments(Raw())!;
+            var scanning = Row(rows, "500");
+            var stopped = Row(rows, "501");
+
+            Assert.Equal(true, scanning["deployed"]);
+            Assert.Equal(false, stopped["deployed"]);
+            Assert.Equal(false, scanning["inoperable"]);
+            Assert.Equal(false, stopped["inoperable"]);
+            // No SCANsat vocabulary is invented for a name Kerbalism does not carry.
+            Assert.Null(scanning["title"]);
+        }
+
+        private static Dictionary<string, object?> Row(List<object?> rows, string partId)
+        {
+            foreach (var row in rows)
+            {
+                var dict = (Dictionary<string, object?>)row!;
+                if ((string?)dict["partId"] == partId) return dict;
+            }
+
+            throw new InvalidOperationException("No instrument row for partId " + partId);
         }
 
         /// <summary>
