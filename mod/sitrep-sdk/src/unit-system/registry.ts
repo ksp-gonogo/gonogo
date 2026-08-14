@@ -138,7 +138,20 @@ export function lookupUnit(symbol: string): UnitDefinition | undefined {
     return direct;
   }
   const parts = splitCompound(symbol);
-  return parts ? composeToken(symbol, parts) : undefined;
+  if (!parts) {
+    return undefined;
+  }
+  // A slash does not make a token a compound: `n/a` is a literal saying the
+  // field has no unit at all, and there is no unit `n` divided by a unit `a`.
+  // Composition is an OFFER here, so an unresolvable one means "not a unit I
+  // know" and the value renders bare, exactly as an unrecognised token always
+  // has. The loud version of this failure belongs to `registerUnit`, where a
+  // caller naming components that do not exist really is a typo.
+  try {
+    return composeToken(symbol, parts);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

@@ -116,6 +116,26 @@ describe("overlap policy", () => {
     expect(lookupUnit("u")?.kind).toBe("resourceUnits");
   });
 
+  it("does not mistake a slash in a literal token for a compound", () => {
+    // `n/a` says the field has no unit at all. Reading it as `n` divided by
+    // `a` threw on every render of a widget that declared one, because
+    // neither half is a unit and never will be. Composition is an offer: an
+    // unresolvable one means "not a unit I know", the same as any other
+    // unrecognised token. The loud failure belongs to `registerUnit`, where
+    // naming components that do not exist really is a typo.
+    expect(lookupUnit("n/a")).toBeUndefined();
+    expect(() => lookupUnit("n/a")).not.toThrow();
+    // Still loud where it should be.
+    expect(() =>
+      registerUnit({
+        symbol: "widgets/fortnight",
+        kind: "silly",
+        of: "widgets",
+        per: "fortnight",
+      }),
+    ).toThrow(/not a registered unit/);
+  });
+
   it("keeps the first and warns when the dimensions disagree", () => {
     // A value carries only its symbol, so one symbol cannot have two
     // dimensions and still answer whether two values can be added. One has to
