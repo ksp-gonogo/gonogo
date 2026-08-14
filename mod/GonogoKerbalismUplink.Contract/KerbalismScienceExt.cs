@@ -242,7 +242,8 @@ public class KerbalismScienceInstrumentExt
     /// <summary>
     /// SCANNER ONLY. Whether SCANsat is sweeping right now. A scanner produces data
     /// as a side effect of coverage growing, so this is the closest thing it has to
-    /// an experiment's Running state.
+    /// an experiment's Running state. Null on older Kerbalism builds, which keep no
+    /// such flag: <see cref="PowerDisabled"/> is then the only state available.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Scanning { get; set; }

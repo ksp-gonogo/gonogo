@@ -186,7 +186,13 @@ namespace Gonogo.KerbalismUplink
             {
                 // Scanning with nothing in the way is the scanner's whole "producing"
                 // condition: it has no run to start, coverage growth writes the file.
-                var producing = s.Scanning == true && string.IsNullOrEmpty(s.Issue);
+                // Older Kerbalism builds keep no scanning flag, and a false there
+                // would report every healthy scanner as stopped, so an unknown stays
+                // unknown unless the vessel-level cut-out settles it.
+                bool? producing;
+                if (s.Scanning.HasValue) producing = s.Scanning.Value && string.IsNullOrEmpty(s.Issue);
+                else if (s.PowerDisabled == true) producing = false;
+                else producing = null;
 
                 list.Add(new Dictionary<string, object?>
                 {

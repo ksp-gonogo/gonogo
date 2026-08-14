@@ -681,6 +681,11 @@ namespace Gonogo.KerbalismUplink
             var raw = new ScienceRaw { Modeled = Modeled("Science") };
             if (!raw.Modeled || v?.parts == null) return raw;
 
+            // Read once for the whole vessel: older Kerbalism builds record which
+            // scanners they cut for want of EC in a vessel-level list rather than on
+            // the scanner module (see ScannerOf).
+            var autoStopped = AutoStoppedScannerIds(v);
+
             foreach (var part in v.parts)
             {
                 if (part?.Modules == null) continue;
@@ -717,7 +722,7 @@ namespace Gonogo.KerbalismUplink
                     }
                     if (string.Equals(moduleName, "KerbalismScansat", StringComparison.Ordinal))
                     {
-                        raw.Scanners.Add(ScannerOf(pm, partId, partName));
+                        raw.Scanners.Add(ScannerOf(pm, part, partId, partName, autoStopped));
                         continue;
                     }
                     if (string.Equals(moduleName, "Sensor", StringComparison.Ordinal))
@@ -765,15 +770,27 @@ namespace Gonogo.KerbalismUplink
         }
 
         /// <summary>
-        /// One <c>KerbalismScansat</c> module. Two of these reads go through
-        /// <see cref="HiddenMember"/> rather than the usual public reader: coverage
-        /// and the power cut-out are persisted KSPFields that some Kerbalism builds
-        /// keep private and only some expose as properties, so each is read from the
-        /// property first and falls back to the field. Both are fail-soft, so a build
-        /// that has neither reports null rather than a wrong number.
+        /// One <c>KerbalismScansat</c> module, across two generations of the module.
+        ///
+        /// <para>The newer one publishes <c>IsScanning</c>, <c>Issue</c>,
+        /// <c>BodyCoveragePercent</c> and a per-module <c>power_disabled</c>. The
+        /// older one, which is what ships in KerbalismModularScience, has none of
+        /// them: it persists <c>body_coverage</c> privately and records the scanners
+        /// it cut for want of EC in <c>VesselData.scansat_id</c>, a vessel-level list
+        /// of part flightIDs (<paramref name="autoStopped"/>). So each field reads
+        /// the newer member first and falls back to the older signal, and anything
+        /// neither generation answers stays null rather than guessing.</para>
+        ///
+        /// <para>Scanning state is the one the older module genuinely cannot answer:
+        /// it delegates to SCANsat's own <c>StopScanner</c>/<c>ResumeScanner</c> and
+        /// keeps no flag. Reading SCANsat's module for it would make this Uplink
+        /// depend on another mod's assembly, so it reports null and the map projects
+        /// <c>deployed</c> accordingly.</para>
         /// </summary>
-        private static ScienceScannerRaw ScannerOf(PartModule pm, string partId, string partName)
+        private static ScienceScannerRaw ScannerOf(
+            PartModule pm, Part part, string partId, string partName, HashSet<uint>? autoStopped)
         {
+            var autoStop = autoStopped == null ? (bool?)null : autoStopped.Contains(part.flightID);
             return new ScienceScannerRaw
             {
                 PartId = partId,
@@ -781,11 +798,37 @@ namespace Gonogo.KerbalismUplink
                 ExperimentId = MemberString(pm, "experimentType") ?? "",
                 Issue = MemberString(pm, "Issue") ?? "",
                 Scanning = MemberBool(pm, "IsScanning"),
-                PowerDisabled = MemberBool(pm, "PowerDisabled") ?? HiddenMember(pm, "power_disabled") as bool?,
+                PowerDisabled = MemberBool(pm, "PowerDisabled")
+                    ?? HiddenMember(pm, "power_disabled") as bool?
+                    ?? autoStop,
                 BodyCoveragePercent = MemberDouble(pm, "BodyCoveragePercent")
                     ?? AsDouble(HiddenMember(pm, "body_coverage")),
                 EcRate = MemberDouble(pm, "ec_rate"),
             };
+        }
+
+        /// <summary>
+        /// The part flightIDs Kerbalism has auto-stopped for want of EC, off
+        /// <c>VesselData.scansat_id</c>. Null (not empty) when this build has no such
+        /// list, which is what keeps "no scanner was cut" distinguishable from "this
+        /// build does not record cuts".
+        /// </summary>
+        private HashSet<uint>? AutoStoppedScannerIds(Vessel v)
+        {
+            if (_dbKerbalismData == null) return null;
+            try
+            {
+                var vd = _dbKerbalismData.Invoke(null, new object[] { v });
+                if (vd == null) return null;
+                if (!(Member(vd, "scansat_id") is IEnumerable ids)) return null;
+                var set = new HashSet<uint>();
+                foreach (var id in ids)
+                {
+                    if (id != null) set.Add(Convert.ToUInt32(id, CultureInfo.InvariantCulture));
+                }
+                return set;
+            }
+            catch { return null; }
         }
 
         /// <summary>

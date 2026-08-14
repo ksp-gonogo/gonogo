@@ -217,9 +217,9 @@ namespace Gonogo.KerbalismUplink
         public string ExperimentId = "";
         /// <summary>Kerbalism's free-text reason nothing is being produced; empty when nothing is wrong.</summary>
         public string Issue = "";
-        /// <summary>Whether SCANsat is sweeping. Null when this build exposes no such member (see KerbalismReflection.Science).</summary>
+        /// <summary>Whether SCANsat is sweeping. Null on the older module, which keeps no such flag (see KerbalismReflection.ScannerOf).</summary>
         public bool? Scanning;
-        /// <summary>Whether Kerbalism stopped the scanner for want of EC, as opposed to an operator stopping it.</summary>
+        /// <summary>Whether Kerbalism cut the scanner for want of EC, as opposed to an operator stopping it. Null when the build records no cut-out at all.</summary>
         public bool? PowerDisabled;
         /// <summary>Coverage of the current body for this sensor type, 0..100.</summary>
         public double? BodyCoveragePercent;

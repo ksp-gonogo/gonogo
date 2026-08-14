@@ -360,6 +360,50 @@ namespace GonogoKerbalismUplink.Tests
             Assert.Null(scanning["title"]);
         }
 
+        /// <summary>
+        /// The build that actually ships in KerbalismModularScience keeps no scanning
+        /// flag on the scanner module, so <c>scanning</c> arrives null. A false
+        /// <c>deployed</c> would then report every healthy scanner on the vessel as
+        /// stopped, which is worse than saying nothing: unknown stays unknown, and
+        /// only the vessel-level EC cut-out can settle it.
+        /// </summary>
+        [Fact]
+        public void AScannerWithNoScanningFlagReportsAnUnknownRatherThanAStoppedOne()
+        {
+            var raw = new ScienceRaw
+            {
+                Modeled = true,
+                Scanners =
+                {
+                    new ScienceScannerRaw
+                    {
+                        PartId = "600", PartName = "SAR Altimetry Sensor",
+                        ExperimentId = "SCANsatAltimetryHiRes",
+                        Scanning = null, PowerDisabled = false,
+                        BodyCoveragePercent = 12.0, EcRate = 1.5,
+                    },
+                    new ScienceScannerRaw
+                    {
+                        PartId = "601", PartName = "Multispectral Sensor",
+                        ExperimentId = "SCANsatBiomeAnomaly",
+                        Scanning = null, PowerDisabled = true,
+                        BodyCoveragePercent = 12.0, EcRate = 1.0,
+                    },
+                },
+            };
+            var rows = KerbalismScienceMap.Instruments(raw)!;
+
+            Assert.Null(Row(rows, "600")["deployed"]);
+            // Cut for power IS an answer, even without a scanning flag.
+            Assert.Equal(false, Row(rows, "601")["deployed"]);
+            // Coverage still comes through: it is persisted on both generations.
+            Assert.Equal(12.0, Ext(Row(rows, "600"))["bodyCoveragePercent"]);
+        }
+
+        private static Dictionary<string, object?> Ext(Dictionary<string, object?> row) =>
+            (Dictionary<string, object?>)((Dictionary<string, object?>)row["extensions"]!)[
+                KerbalismScienceMap.ProviderId]!;
+
         private static Dictionary<string, object?> Row(List<object?> rows, string partId)
         {
             foreach (var row in rows)
