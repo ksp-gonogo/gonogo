@@ -318,10 +318,9 @@ public sealed class ReactorStatus
     [SitrepUnit("kW")]
     public double OutputPower { get; set; }
 
-    // A token the first-party catalog has never heard of is FINE. You cannot
-    // add to Sitrep.Contract.Units (a const-string class in an assembly you
-    // do not own), which is exactly why the generated SitrepUnit union is
-    // open. Teach the client what it means with registerUnit.
+    // A token the core catalog has never heard of is FINE: the generated
+    // SitrepUnit union is open. Declare it in your OWN Units class (below)
+    // so a typo still fails, then teach the client what it means.
     [SitrepUnit("thermalUnits")]
     public double Throughput { get; set; }
 }
@@ -348,15 +347,76 @@ public static class ReactorRtConfig
 `UnitDescriptor.ToJson(typeof(ReactorStatus).Assembly)` gives you the matching
 descriptor, the same document the mod serves on `system.units`.
 
-Register any unit the first party does not know, once, at client module load:
+#### Your own catalog
 
-```ts
-import { registerUnit } from "@ksp-gonogo/ui-kit";
+Declare the tokens you introduce in a public static `Units` class in your
+contract project. Codegen judges your assembly against core's catalog PLUS
+yours, so an undeclared token stops the build instead of reaching the client as
+an opaque symbol with no dimension and no ladder. There is no first-party
+exemption: the rule that applies to the Uplinks shipped in this repo is the one
+that applies to yours.
 
-registerUnit({ symbol: "thermalUnits", kind: "count" });
+```csharp
+namespace ExampleUplink.Contract
+{
+    public static class Units
+    {
+        public const string ThermalUnits = "thermalUnits";
+    }
+}
 ```
 
-Until you do, the value still renders, bare and unscaled.
+A compound counts as declared when both halves are: `MB/s` passes once `MB` and
+`s` do, so a rate does not need its own constant per rung.
+
+#### The two seams
+
+A unit has two independent halves, and they live in different packages because
+they answer different questions.
+
+```ts
+import { registerUnit } from "@ksp-gonogo/sitrep-sdk";
+import { registerUnit as registerDisplayUnit } from "@ksp-gonogo/ui-kit";
+
+// MODEL: what it IS. Dimension and ratio are what make values add up, and are
+// all the SDK needs. Dimension onto an EXISTING base where one fits (`bit`,
+// `m`, `s`) rather than inventing a private axis, or your quantity becomes an
+// island nothing else can convert with.
+registerUnit({ symbol: "MB", kind: "data", dimension: { bit: 1 }, ratio: 8e6 });
+
+// DISPLAY: how it READS. Which rung a value lands on is the kit's business.
+registerDisplayUnit({
+  symbol: "MB",
+  kind: "data",
+  family: "bytes",
+  ladder: [
+    { from: 8, symbol: "B", per: 8 },
+    { from: 8e3, symbol: "kB", per: 8e3 },
+    { from: 8e6, symbol: "MB", per: 8e6 },
+  ],
+});
+```
+
+Register a display half only, with no ladder, for a token that names a category
+rather than a scale (`{ symbol: "thermalUnits", kind: "count" }`). Until you
+register anything, the value still renders, bare and unscaled.
+
+#### Families, and sharing one with a mod you have never met
+
+`family` is the set of rungs a value climbs WITHIN. It exists because one kind
+can span scales that must never interleave: bits and bytes are both `data` and
+share a dimension so a link budget and a file size stay convertible, but a byte
+quantity landing on a bit rung would read `32 kbit/s` where it means `4 kB/s`.
+Ladders key on family, so each keeps its own rungs.
+
+Two Uplinks may declare into the SAME family, and should when they mean the
+same thing by it: a megabyte is nobody's private invention. Declaring a symbol
+identically twice is a no-op, so independent mods coalesce without coordinating.
+Declaring it DIFFERENTLY throws, because which one won would otherwise depend on
+module load order and the number on screen would change with it.
+
+Core owns only a dimension's base (`bit` for data), so that mods cannot diverge
+on the axis by accident. Rungs and families belong to whoever models them.
 
 ### Testing it
 
@@ -428,9 +488,11 @@ Two options worth knowing:
   convert. Never raise one. Going BELOW an entry throws too, so a stale
   allowance cannot quietly leave the door open behind a conversion.
 
-Skip the guard only if your Uplink renders nothing at all. The bundled
-Kerbalism Uplink is topic declarations with no widgets and no `ui-kit`
-dependency, so it carries no guard; the moment it grows a readout it gets one.
+Skip the guard only if your Uplink renders nothing at all, which is a narrower
+case than it sounds: the bundled Kerbalism Uplink was exactly that when this
+was written, and it now ships several widgets, a `ui-kit` dependency, and its
+own byte units. An Uplink that renders nothing today is an Uplink that renders
+something the week after.
 
 ---
 
@@ -446,6 +508,8 @@ dependency, so it carries no guard; the moment it grows a readout it gets one.
 - [ ] `gonogo-uplink.json` is build-generated, never hand-written
 - [ ] the mod is on CKAN and the client bundle is hosted with its URL + integrity hash
 - [ ] every quantity renders through `<Unit>`; no hand-formatted unit symbols
+- [ ] every unit token you introduce is declared in your own `Units` class, and registered on both
+      seams: dimension and ratio with the SDK, family and rungs with ui-kit
 - [ ] `expectNoHandTypedUnits({ dir: "src" })` runs as a test (skip only if the Uplink renders nothing)
 - [ ] the test setup calls `setQuantityLocale("en-GB")`, so a render is reproducible
 - [ ] widget tests read readouts with `visibleText` / `toShowQuantity`, not `getByText`
