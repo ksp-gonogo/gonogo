@@ -21,7 +21,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  CheckIcon,
+  EmptyState,
   Panel,
   ScrollArea,
   SectionTitle,
@@ -471,23 +471,19 @@ function ManeuverPlannerComponent({
     }
   }
 
-  // Per-field "is this telemetry ready?" map. Feeds the diagnostic
-  // waiting panel: a generic "Waiting for telemetry..." with no detail
-  // left us blind the first time it triggered, and real Telemachus
-  // data can land values as null / NaN mid-scene-load that wouldn't
-  // look "missing" to a simple `=== undefined` check.
-  const telemetryStatus: Array<{ label: string; ok: boolean }> = [
-    { label: "o.sma", ok: isFiniteNumber(sma) },
-    { label: "o.eccentricity", ok: isFiniteNumber(ecc) },
-    { label: "o.ApR / o.PeR", ok: isFiniteNumber(ApR) && isFiniteNumber(PeR) },
-    {
-      label: "o.timeToAp / o.timeToPe",
-      ok: isFiniteNumber(timeToAp) && isFiniteNumber(timeToPe),
-    },
-    { label: "t.universalTime", ok: isFiniteNumber(currentUT) },
-    { label: "μ (orbitalSpeed×radius or period)", ok: mu > 0 },
-  ];
-  const waiting = telemetryStatus.some((s) => !s.ok);
+  // Whether there is enough of an orbit to plan against. Values can land null
+  // or NaN mid-scene-load, so this is a positive check rather than a
+  // `!== undefined` one.
+  const planReady =
+    isFiniteNumber(sma) &&
+    isFiniteNumber(ecc) &&
+    isFiniteNumber(ApR) &&
+    isFiniteNumber(PeR) &&
+    isFiniteNumber(timeToAp) &&
+    isFiniteNumber(timeToPe) &&
+    isFiniteNumber(currentUT) &&
+    mu > 0;
+  const waiting = !planReady;
 
   // O5: a hyperbolic/escape orbit (ecc >= 1) has no apoapsis, so
   // `buildCurrentOrbit` legitimately returns null (ApR/timeToAp are NaN),
@@ -539,21 +535,12 @@ function ManeuverPlannerComponent({
   }
 
   function renderWaitingPanel() {
-    return (
-      <WaitingPanel>
-        <SectionTitle as="h4">Waiting for telemetry</SectionTitle>
-        <StatusList>
-          {telemetryStatus.map((s) => (
-            <StatusRow key={s.label}>
-              <StatusDot $ok={s.ok}>
-                {s.ok ? <CheckIcon size={11} strokeWidth={2.5} /> : "·"}
-              </StatusDot>
-              <StatusLabel>{s.label}</StatusLabel>
-            </StatusRow>
-          ))}
-        </StatusList>
-      </WaitingPanel>
-    );
+    // Was a per-field checklist naming the wire keys it was waiting on. No
+    // other widget exposes its plumbing that way, and the keys it named had
+    // stopped being the ones it reads, so it was sending an operator to look
+    // for something that no longer exists. An ordinary empty state says the
+    // one thing they can act on: there is no orbit to plan against yet.
+    return <EmptyState>Awaiting orbit telemetry.</EmptyState>;
   }
 
   function renderHyperbolicPanel() {

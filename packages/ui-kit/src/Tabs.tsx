@@ -355,7 +355,7 @@ const Tabs__Bar = styled.div`
   display: flex;
   gap: var(--space-2);
   background: var(--color-surface-sunken);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill);
   padding: var(--space-4);
   /* Single line: tabs never wrap; the bar scrolls horizontally instead. */
   flex-wrap: nowrap;
@@ -405,8 +405,8 @@ const Tabs__Blob = styled.span`
   position: absolute;
   top: var(--space-4);
   bottom: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-bg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   transition:
     left var(--duration-base) var(--ease-standard),
@@ -439,15 +439,17 @@ const Tabs__Button = styled.button<{ $active: boolean }>`
   /* Keep every tab on one line and let the bar scroll rather than wrap. */
   flex: 0 0 auto;
   white-space: nowrap;
+  /* On the green blob the label has to invert: accent-bg is a bright green and
+     primary text on it fails contrast badly. */
   color: ${({ $active }) =>
-    $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
+    $active ? "var(--color-text-inverse)" : "var(--color-text-faint)"};
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: var(--space-6) var(--space-12);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   /* Pushing: the label gives under the press and springs back, which is the
      only feedback a tab gets on a touch device where there is no hover. */
   transition: transform var(--duration-fast) var(--ease-standard);

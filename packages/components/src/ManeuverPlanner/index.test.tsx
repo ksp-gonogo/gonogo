@@ -297,16 +297,17 @@ describe("ManeuverPlannerComponent", () => {
     buffered.disconnect();
   });
 
-  it("shows the diagnostic waiting panel until every required field arrives", () => {
+  it("shows an ordinary empty state until there is an orbit to plan against", () => {
     render(
       <utFixture.Provider>
         <ManeuverPlannerComponent id="mnv" config={{}} />
       </utFixture.Provider>,
     );
-    expect(screen.getByText(/Waiting for telemetry/i)).toBeInTheDocument();
-    // Per-field checklist rows appear with the underlying data-key labels.
-    expect(screen.getByText("o.sma")).toBeInTheDocument();
-    expect(screen.getByText("t.universalTime")).toBeInTheDocument();
+    expect(screen.getByText(/Awaiting orbit telemetry/i)).toBeInTheDocument();
+    // No wire keys on an operator surface: the panel used to list the data
+    // keys it was waiting on, which named a transport this widget stopped
+    // reading at the Sitrep migration.
+    expect(screen.queryByText(/o\.sma|t\.universalTime/)).toBeNull();
     // O5: the plain no-data case must NOT show the hyperbolic notice, only
     // a hyperbolic `vessel.orbit.ecc` does that (see the dedicated test below).
     expect(screen.queryByText(/Hyperbolic trajectory/i)).toBeNull();
