@@ -45,6 +45,16 @@ namespace Gonogo.KSP
         public const string DelayTopic = "comms.delay";
 
         /// <summary>
+        /// The elected backend's DECLARED occlusion geometry, resolved per body
+        /// (see <see cref="Sitrep.Contract.CommsOcclusion"/>). Sourced the same
+        /// way as every other shared channel here: from whichever backend the
+        /// election picked, so a consumer asking "what radius of this body
+        /// blocks a radio path" never has to know whether RealAntennas is
+        /// installed.
+        /// </summary>
+        public const string OcclusionTopic = "comms.occlusion";
+
+        /// <summary>
         /// The client-facing connectivity MetaTopic (comms-delay-model-
         /// consistency spec): a Delayed channel the engine special-cases as
         /// freeze-EXEMPT (see <see cref="Sitrep.Host.ChannelEngine.ConnectivityMetaTopic"/>,
@@ -83,8 +93,20 @@ namespace Gonogo.KSP
         private IChannelPublisher? _network;
         private IChannelPublisher? _delay;
         private IChannelPublisher? _link;
+        private IChannelPublisher? _occlusion;
 
         private Kernel? _kernel;
+
+        // The occlusion declaration is effectively static within a session (the
+        // body set never changes; the stock multipliers change only if the player
+        // edits the difficulty settings), so an unchanged one republishes the
+        // SAME instance. ChannelEmitter's change-gate compares by equality, and a
+        // wire POCO has none, so identity is what buys the suppression: holding
+        // the instance costs a keyframe every 30 UT and nothing in between, where
+        // a fresh-but-identical object each tick would push a full body list at
+        // sample cadence. Late subscribers still get an immediate keyframe
+        // (ChannelEmitter.NotifySubscribed), so the suppression is invisible.
+        private CommsOcclusion? _lastOcclusion;
 
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
@@ -109,6 +131,13 @@ namespace Gonogo.KSP
                 TrueNow(PathTopic),
                 TrueNow(NetworkTopic),
                 TrueNow(DelayTopic),
+                // comms.occlusion is TrueNow for a stronger reason than its
+                // siblings: it is not an observation of the vessel at all but a
+                // statement about the universe's geometry and the rule the
+                // elected backend applies to it. A delayed model would have a
+                // predictor computing tomorrow's blackout from yesterday's
+                // assumptions.
+                TrueNow(OcclusionTopic),
                 // comms.link: Delayed (rides the normal light-time horizon) but
                 // the ENGINE special-cases it as freeze-EXEMPT by topic identity
                 // (ChannelEngine.ConnectivityMetaTopic), matching how comms.delay
@@ -153,6 +182,7 @@ namespace Gonogo.KSP
             _network = host.Publisher(NetworkTopic);
             _delay = host.Publisher(DelayTopic);
             _link = host.Publisher(LinkTopic);
+            _occlusion = host.Publisher(OcclusionTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -163,7 +193,8 @@ namespace Gonogo.KSP
                 PathTopic,
                 NetworkTopic,
                 DelayTopic,
-                LinkTopic);
+                LinkTopic,
+                OcclusionTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -333,6 +364,11 @@ namespace Gonogo.KSP
                     Path = path,
                     Network = backend.Network(),
                     Delay = delay,
+                    // The backend declares the RULE; the body list it applies to
+                    // comes from the snapshot this capture was already handed
+                    // (the same one system.bodies reads), so no backend has to
+                    // walk FlightGlobals itself.
+                    Occlusion = OcclusionFor(backend, snapshot),
                 };
             }
             catch (Exception)
@@ -344,6 +380,26 @@ namespace Gonogo.KSP
                 // already exception-safe; this guards a third-party backend too.
                 return null;
             }
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: the elected backend's declared occlusion model applied to
+        /// the snapshot's body list. Rebuilding is cheap (a couple of dozen small
+        /// objects), so it happens every tick and the result is compared to the
+        /// last one; an unchanged declaration keeps the PREVIOUS instance, which
+        /// is what makes the emitter's change-gate suppress it. See
+        /// <see cref="_lastOcclusion"/>.
+        /// </summary>
+        private CommsOcclusion OcclusionFor(ICommsBackend backend, KspSnapshot? snapshot)
+        {
+            var built = CommsOcclusionBuilder.Build(backend.OcclusionModel(), snapshot);
+            if (_lastOcclusion != null && CommsOcclusionBuilder.SameDeclaration(_lastOcclusion, built))
+            {
+                return _lastOcclusion;
+            }
+
+            _lastOcclusion = built;
+            return built;
         }
 
         /// <summary>COURIER-THREAD handle: publishes the captured payloads. No KSP access.</summary>
@@ -359,6 +415,7 @@ namespace Gonogo.KSP
             _path?.Publish(capture.Path, capture.Ut);
             _network?.Publish(capture.Network, capture.Ut);
             _delay?.Publish(capture.Delay, capture.Ut);
+            _occlusion?.Publish(capture.Occlusion, capture.Ut);
             // comms.link: the client-facing, freeze-exempt-Delayed connectivity
             // successor. Same Connected the TrueNow comms.connectivity carries,
             // but on the topic clients read so the disconnect edge survives the
@@ -392,6 +449,7 @@ namespace Gonogo.KSP
             public CommsPath Path = new();
             public CommsNetwork Network = new();
             public CommsDelay Delay = new();
+            public CommsOcclusion Occlusion = new();
         }
     }
 }

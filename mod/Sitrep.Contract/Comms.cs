@@ -352,4 +352,19 @@ public interface ICommsBackend
     CommsPath Path();
 
     CommsNetwork Network();
+
+    /// <summary>
+    /// The occlusion geometry this backend applies: which radius of a body
+    /// actually blocks a radio path through it (see
+    /// <see cref="ICommsOcclusionModel"/>). Stock CommNet shrinks the body by
+    /// its occlusion multipliers, RealAntennas does not, and that difference is
+    /// worth minutes of predicted blackout, so it is DECLARED here rather than
+    /// inferred by a consumer branching on which mod is installed.
+    ///
+    /// <para>Unlike the accessors above this returns a rule, not a reading. It
+    /// may perform a live read to BUILD the rule (stock's multipliers are a
+    /// difficulty setting), so it is called on the same capture-on-main seam;
+    /// the model it returns is thereafter pure arithmetic and safe anywhere.</para>
+    /// </summary>
+    ICommsOcclusionModel OcclusionModel();
 }

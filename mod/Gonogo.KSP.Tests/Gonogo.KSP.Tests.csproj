@@ -37,6 +37,12 @@
          KspManaged gating either. The CommNet-walking half that feeds it,
          FleetCommsReader.cs, is gated below. -->
     <Compile Include="..\Gonogo.KSP\RoutedPathDelay.cs" />
+    <!-- CommNetOcclusion.cs is stock's occlusion RULE, deliberately carved out
+         of CommNetBackend.cs so it carries no KSP dependency (the live read of
+         the two multipliers stays in the backend). CommNetBackend.cs, compiled
+         under the KspManaged gate below, calls into it, so it has to be here
+         unconditionally rather than beside it. -->
+    <Compile Include="..\Gonogo.KSP\CommNetOcclusion.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum

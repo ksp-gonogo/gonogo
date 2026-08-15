@@ -20,6 +20,7 @@ import type {
   CommsDelay,
   CommsLink,
   CommsNetwork,
+  CommsOcclusion,
   CommsPath,
   CommsSignalStrength,
   CrashReport,
@@ -86,6 +87,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.delay": CommsDelay;
   "comms.link": CommsLink;
   "comms.network": CommsNetwork;
+  "comms.occlusion": CommsOcclusion;
   "comms.path": CommsPath;
   "comms.signalStrength": CommsSignalStrength;
   "crash.lastCrash": CrashReport;
@@ -154,6 +156,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.delay",
   "comms.link",
   "comms.network",
+  "comms.occlusion",
   "comms.path",
   "comms.signalStrength",
   "crash.lastCrash",

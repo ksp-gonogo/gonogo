@@ -317,7 +317,7 @@ namespace Sitrep.Core.Tests
                      {
                          nameof(CommsConnectivity), nameof(CommsSignalStrength),
                          nameof(CommsControlState), nameof(CommsPath), nameof(CommsNetwork),
-                         nameof(CommsDelay),
+                         nameof(CommsDelay), nameof(CommsOcclusion),
                      })
             {
                 Assert.False(FlattenedByProducer.Contains(name),
@@ -331,6 +331,24 @@ namespace Sitrep.Core.Tests
             SerializeThroughWire(new CommsPath());
             SerializeThroughWire(new CommsNetwork());
             SerializeThroughWire(new CommsDelay());
+            SerializeThroughWire(new CommsOcclusion
+            {
+                ModelId = "commnet-scaled-radius",
+                ModelName = "Stock CommNet (occlusion multipliers)",
+                Bodies = new List<CommsOcclusionBody>
+                {
+                    // A populated body, not just the empty default: the nested
+                    // list is where a missing writer helper would actually bite.
+                    new CommsOcclusionBody
+                    {
+                        Index = 1,
+                        Name = "Kerbin",
+                        RadiusMeters = 600_000,
+                        HasAtmosphere = true,
+                        OccludingRadiusMeters = 450_000,
+                    },
+                },
+            });
         }
     }
 }

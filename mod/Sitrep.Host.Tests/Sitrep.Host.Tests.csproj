@@ -17,6 +17,21 @@
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
   </ItemGroup>
+  <!-- The two electable comms backends' OCCLUSION declarations. Each is a
+       deliberately KSP-free, reflection-free file carved out of its backend
+       (see CommNetOcclusion / RaOcclusion), so the difference between what
+       stock CommNet and RealAntennas consider an occluding body can be
+       asserted side by side, headlessly, against the REAL declarations rather
+       than re-stated constants. Compiling a pure source file out of another
+       project is the same pattern Gonogo.KSP.Tests and
+       GonogoRealAntennasUplink.Tests already use; a ProjectReference is not an
+       option, since both backends' assemblies need a live KSP. This is the
+       home for it because CommsElectionTests, next door, owns the election
+       these two compete in. -->
+  <ItemGroup>
+    <Compile Include="../Gonogo.KSP/CommNetOcclusion.cs" />
+    <Compile Include="../GonogoRealAntennasUplink/RaOcclusion.cs" />
+  </ItemGroup>
   <!-- Reinforced.Typings at RUNTIME, for this test host only.
        Sitrep.Contract deliberately keeps RT out of its runtime closure
        (PrivateAssets="all"), because in KSP anything scanning assemblies

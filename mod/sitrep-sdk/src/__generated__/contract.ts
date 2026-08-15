@@ -243,6 +243,21 @@ export interface CommsLink
 	connected: boolean;
 	meta: PayloadMeta;
 }
+export interface CommsOcclusionBody
+{
+	index: number;
+	name?: string;
+	radiusMeters: Value<"m">;
+	hasAtmosphere: boolean;
+	occludingRadiusMeters: Value<"m">;
+}
+export interface CommsOcclusion
+{
+	modelId: string;
+	modelName: string;
+	bodies: CommsOcclusionBody[];
+	meta: PayloadMeta;
+}
 export interface CrashReport
 {
 	vesselId: string;

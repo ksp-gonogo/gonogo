@@ -737,6 +737,25 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // reference or coupling.
       "mod/GonogoActionGroupsExtendedUplink/ActionGroupsExtendedUplink.cs",
       "mod/GonogoActionGroupsExtendedUplink/AgxReflection.cs",
+      // -- the occlusion-model seam: three prose mentions and one test --
+      // All four name RealAntennas because the seam exists to record that the
+      // two comms backends occlude at DIFFERENT radii (stock scales the body
+      // down, RA takes it bare), and a comment that omitted the disagreement
+      // would be describing the wrong problem. The contract declares the shape
+      // both backends fill, stock's own rule file cites RA as the contrast, and
+      // the builder records why no backend walks the body list itself: prose
+      // only, no RA type or reference, same category as CommsElection.cs.
+      "mod/Sitrep.Contract/CommsOcclusion.cs",
+      "mod/Gonogo.KSP/CommNetOcclusion.cs",
+      "mod/Sitrep.Host/Comms/CommsOcclusionBuilder.cs",
+      // The one real reference, and the reviewed exception the ratchet's own
+      // failure message names ("a new test"): this suite compiles BOTH
+      // backends' KSP-free occlusion declarations side by side, because the
+      // difference between them is the thing under test and asserting it
+      // against re-stated constants instead would let the two drift silently.
+      // Deliberately not domainDebt: there is no coupling here to pay off, the
+      // comparison is the point.
+      "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
 
       // -- app-side: the sanctioned self-registration import, and its gate --
       // main.tsx takes a static side-effect import of this Uplink's client,

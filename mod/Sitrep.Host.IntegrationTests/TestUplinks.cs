@@ -688,6 +688,12 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
+
+            // Occludes at the bare radius, matching what a backend that has no
+            // opinion declares. Nothing in this fixture's delay/reveal-gate
+            // subject matter reads it; it is here because the shared shape
+            // requires every backend to name its geometry.
+            public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
         }
     }
 

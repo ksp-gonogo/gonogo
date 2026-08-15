@@ -262,6 +262,15 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.CommsNetworkEdge edge:
                     AppendCommsNetworkEdge(sb, edge);
                     break;
+                case Sitrep.Contract.CommsOcclusion occlusion:
+                    AppendCommsOcclusion(sb, occlusion);
+                    break;
+                case Sitrep.Contract.CommsOcclusionBody occlusionBody:
+                    // Reached element-by-element from AppendCommsOcclusion's own
+                    // loop, and handled here too so a bare entry routed through
+                    // AppendValue flattens rather than throwing, same as CommsHop.
+                    AppendCommsOcclusionBody(sb, occlusionBody);
+                    break;
                 // The three provider-private comms payloads (comms.linkQuality /
                 // comms.dataRate / comms.linkMargin) had a case each right here.
                 // Their types left this assembly's reach for
@@ -1087,6 +1096,66 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "active");
             sb.Append(':');
             AppendBool(sb, e.Active);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsOcclusionBody(StringBuilder sb, Sitrep.Contract.CommsOcclusionBody b)
+        {
+            sb.Append('{');
+            AppendString(sb, "index");
+            sb.Append(':');
+            AppendInteger(sb, b.Index);
+            sb.Append(',');
+            AppendString(sb, "name");
+            sb.Append(':');
+            AppendNullableString(sb, b.Name);
+            sb.Append(',');
+            AppendString(sb, "radiusMeters");
+            sb.Append(':');
+            AppendNumber(sb, b.RadiusMeters);
+            sb.Append(',');
+            AppendString(sb, "hasAtmosphere");
+            sb.Append(':');
+            AppendBool(sb, b.HasAtmosphere);
+            sb.Append(',');
+            AppendString(sb, "occludingRadiusMeters");
+            sb.Append(':');
+            AppendNumber(sb, b.OccludingRadiusMeters);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsOcclusion(StringBuilder sb, Sitrep.Contract.CommsOcclusion o)
+        {
+            sb.Append('{');
+            AppendString(sb, "modelId");
+            sb.Append(':');
+            AppendString(sb, o.ModelId ?? "");
+            sb.Append(',');
+            AppendString(sb, "modelName");
+            sb.Append(':');
+            AppendString(sb, o.ModelName ?? "");
+            sb.Append(',');
+            AppendString(sb, "bodies");
+            sb.Append(':');
+            sb.Append('[');
+            if (o.Bodies != null)
+            {
+                var first = true;
+                foreach (var body in o.Bodies)
+                {
+                    if (!first)
+                    {
+                        sb.Append(',');
+                    }
+                    first = false;
+                    AppendCommsOcclusionBody(sb, body);
+                }
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, o.Meta);
             sb.Append('}');
         }
 

@@ -120,6 +120,14 @@ namespace Gonogo.RealAntennasUplink
             return new CommsNetwork { Nodes = nodes, Edges = edges, Meta = Meta() };
         }
 
+        /// <summary>
+        /// RA's occlusion geometry: the bare body radius, no multiplier (see
+        /// <see cref="RaOcclusion"/>). Nothing live to read, unlike the stock
+        /// backend whose multipliers are a per-save difficulty setting, so this
+        /// is a constant.
+        /// </summary>
+        public ICommsOcclusionModel OcclusionModel() => RaOcclusion.Model;
+
         private static void AddNode(List<CommsNetworkNode> nodes, HashSet<string> seen, CommNode node)
         {
             var id = NodeId(node);

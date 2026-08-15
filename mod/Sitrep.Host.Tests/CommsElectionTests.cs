@@ -19,13 +19,21 @@ namespace Sitrep.Host.Tests
     {
         private sealed class FakeBackend : ICommsBackend
         {
-            public FakeBackend(string id) => BackendId = id;
+            private readonly ICommsOcclusionModel _occlusion;
+
+            public FakeBackend(string id, ICommsOcclusionModel? occlusion = null)
+            {
+                BackendId = id;
+                _occlusion = occlusion ?? CommsOcclusionModels.Unknown;
+            }
+
             public string BackendId { get; }
             public CommsConnectivity Connectivity() => new CommsConnectivity();
             public CommsSignalStrength SignalStrength() => new CommsSignalStrength();
             public CommsControlState ControlState() => new CommsControlState();
             public CommsPath Path() => new CommsPath();
             public CommsNetwork Network() => new CommsNetwork();
+            public ICommsOcclusionModel OcclusionModel() => _occlusion;
         }
 
         private static Kernel ResolvedKernel(bool raPresent)

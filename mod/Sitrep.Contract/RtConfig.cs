@@ -116,6 +116,10 @@ public static class RtConfig
                 typeof(CommsDelay),
                 // comms.link connectivity MetaTopic (Delayed, freeze-exempt)
                 typeof(CommsLink),
+                // comms.occlusion: the elected backend's declared visibility
+                // geometry, per body (see CommsOcclusion.cs)
+                typeof(CommsOcclusion),
+                typeof(CommsOcclusionBody),
                 // The three provider-private comms channels (comms.linkQuality /
                 // comms.dataRate / comms.linkMargin) used to be listed right here.
                 // They moved OUT of core into GonogoRealAntennasUplink.Contract:

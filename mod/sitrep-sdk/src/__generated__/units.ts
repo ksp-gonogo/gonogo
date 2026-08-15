@@ -260,6 +260,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     kind: "enum",
   },
+  "CommsOcclusion": {
+    modelId: "id",
+    modelName: "text",
+  },
+  "CommsOcclusionBody": {
+    hasAtmosphere: "flag",
+    index: "id",
+    name: "text",
+    occludingRadiusMeters: "m",
+    radiusMeters: "m",
+  },
   "CommsSignalStrength": {
     value: "ratio",
   },
@@ -1126,6 +1137,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "comms.link": {
     connected: "flag",
   },
+  "comms.occlusion": {
+    modelId: "id",
+    modelName: "text",
+  },
   "comms.signalStrength": {
     value: "ratio",
   },
@@ -1661,6 +1676,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
     nodes: "CommsNetworkNode",
   },
+  "CommsOcclusion": {
+    bodies: "CommsOcclusionBody",
+    meta: "PayloadMeta",
+  },
   "CommsPath": {
     hops: "CommsHop",
     meta: "PayloadMeta",
@@ -1845,6 +1864,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     edges: "CommsNetworkEdge",
     meta: "PayloadMeta",
     nodes: "CommsNetworkNode",
+  },
+  "comms.occlusion": {
+    bodies: "CommsOcclusionBody",
+    meta: "PayloadMeta",
   },
   "comms.path": {
     hops: "CommsHop",

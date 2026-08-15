@@ -226,6 +226,17 @@
       "id": "id",
       "kind": "enum"
     },
+    "CommsOcclusion": {
+      "modelId": "id",
+      "modelName": "text"
+    },
+    "CommsOcclusionBody": {
+      "hasAtmosphere": "flag",
+      "index": "id",
+      "name": "text",
+      "occludingRadiusMeters": "m",
+      "radiusMeters": "m"
+    },
     "CommsSignalStrength": {
       "value": "ratio"
     },
@@ -1087,6 +1098,10 @@
     "comms.link": {
       "connected": "flag"
     },
+    "comms.occlusion": {
+      "modelId": "id",
+      "modelName": "text"
+    },
     "comms.signalStrength": {
       "value": "ratio"
     },
@@ -1604,6 +1619,10 @@
       "meta": "PayloadMeta",
       "nodes": "CommsNetworkNode"
     },
+    "CommsOcclusion": {
+      "bodies": "CommsOcclusionBody",
+      "meta": "PayloadMeta"
+    },
     "CommsPath": {
       "hops": "CommsHop",
       "meta": "PayloadMeta"
@@ -1786,6 +1805,10 @@
       "edges": "CommsNetworkEdge",
       "meta": "PayloadMeta",
       "nodes": "CommsNetworkNode"
+    },
+    "comms.occlusion": {
+      "bodies": "CommsOcclusionBody",
+      "meta": "PayloadMeta"
     },
     "comms.path": {
       "hops": "CommsHop",

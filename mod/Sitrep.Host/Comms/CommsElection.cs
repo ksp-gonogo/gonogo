@@ -107,5 +107,39 @@ namespace Sitrep.Host.Comms
                 return null;
             }
         }
+
+        /// <summary>
+        /// The elected backend's declared occlusion geometry: the one read a
+        /// consumer needs to answer "does this body block the path", without
+        /// knowing or caring which backend won.
+        ///
+        /// <para>Never null and never throws. A missing kernel, an unresolved
+        /// capability, or a backend whose own declaration throws all yield
+        /// <see cref="CommsOcclusionModels.Unknown"/>, which occludes at the
+        /// bare radius: the largest occluder in play, so a consumer built on it
+        /// under-promises contact rather than over-promising it. A consumer that
+        /// cares whether it got a real answer compares
+        /// <see cref="ICommsOcclusionModel.ModelId"/> against
+        /// <see cref="CommsOcclusionModels.UnknownModelId"/>.</para>
+        ///
+        /// <para>Calls into the live backend, so it belongs on the same
+        /// capture-on-main seam every other <see cref="ICommsBackend"/> read
+        /// does; the model it returns is pure and safe to carry anywhere.</para>
+        /// </summary>
+        public static ICommsOcclusionModel OcclusionModel(Kernel? kernel)
+        {
+            if (kernel == null)
+            {
+                return CommsOcclusionModels.Unknown;
+            }
+            try
+            {
+                return Elected(kernel)?.OcclusionModel() ?? CommsOcclusionModels.Unknown;
+            }
+            catch (Exception)
+            {
+                return CommsOcclusionModels.Unknown;
+            }
+        }
     }
 }

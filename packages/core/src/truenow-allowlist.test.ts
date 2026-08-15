@@ -115,11 +115,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // Comms-LINK meta (connectivity, signal strength, control state, path,
   // network, and the live delay value itself), facts ABOUT the link the
   // delay is computed from, so they can't ride their own delay without a
-  // circular dependency. Declared via the `TrueNow(topic)` helper: 1
-  // explicit `Delay =` line inside the helper body + 6 call sites (one
-  // per topic) + the helper's own declaration line (also matches the
-  // call-site regex) = 7 helper matches. 1 explicit + 7 helper = 8.
-  "mod/Gonogo.KSP/CommsCoreUplink.cs": 8,
+  // circular dependency. Joined by comms.occlusion, which is ground-side by
+  // an even wider margin: not an observation of the vessel at all, but the
+  // universe's geometry plus the rule the elected comms backend applies to
+  // it, and delaying the rule would have a predictor computing tomorrow's
+  // blackout from yesterday's assumptions. Declared via the `TrueNow(topic)`
+  // helper: 1 explicit `Delay =` line inside the helper body + 7 call sites
+  // (one per topic) + the helper's own declaration line (also matches the
+  // call-site regex) = 8 helper matches. 1 explicit + 8 helper = 9.
+  "mod/Gonogo.KSP/CommsCoreUplink.cs": 9,
 
   // RealAntennas link-quality/data-rate/link-margin: same "facts about
   // the link" class as CommsCoreUplink above, same helper shape: 1

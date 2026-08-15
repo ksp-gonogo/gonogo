@@ -206,6 +206,32 @@ namespace Gonogo.KSP
             return new CommsNetwork { Nodes = nodes, Edges = edges, Meta = Meta() };
         }
 
+        /// <summary>
+        /// Stock's occlusion geometry, built from the LIVE difficulty settings
+        /// (see <see cref="CommNetOcclusion"/> for the rule itself). The two
+        /// multipliers are per-save and player-settable, so they are read here
+        /// rather than baked in; a game that hasn't loaded its parameters yet
+        /// (main menu) falls back to the stock defaults instead of throwing,
+        /// which is also what the game would apply.
+        /// </summary>
+        public ICommsOcclusionModel OcclusionModel()
+        {
+            try
+            {
+                var parameters = HighLogic.CurrentGame?.Parameters?.CustomParams<CommNetParams>();
+                if (parameters == null)
+                {
+                    return CommNetOcclusion.StockDefaults();
+                }
+                return CommNetOcclusion.Model(parameters.occlusionMultiplierVac, parameters.occlusionMultiplierAtm);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] CommNetBackend.OcclusionModel read failed (using stock defaults): " + ex.Message);
+                return CommNetOcclusion.StockDefaults();
+            }
+        }
+
         private static void AddNode(List<CommsNetworkNode> nodes, HashSet<string> seen, CommNode node)
         {
             var id = NodeId(node);
