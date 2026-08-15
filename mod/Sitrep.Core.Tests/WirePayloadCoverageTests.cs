@@ -75,6 +75,11 @@ namespace Sitrep.Core.Tests
             // publishes that, so JsonWriter only ever sees the flattened
             // dictionary; the POCO exists for the generated TS shape only.
             "FleetVesselLink",
+            // fleet.<guid>.contact: FleetVesselContactBuilder.Build returns a
+            // Dictionary<string, object?> and FleetDelayUplink.HandleSilenceOnCourier
+            // publishes that, so JsonWriter only ever sees the flattened dictionary;
+            // the POCO exists for the generated TS shape only.
+            "FleetVesselContact",
             // currency.<guid>.science: CurrencyEventBuilder.BuildScienceCredit returns
             // a Dictionary<string, object?> and CurrencyEventUplink publishes that, so
             // JsonWriter only ever sees the flattened dictionary; the POCO exists for

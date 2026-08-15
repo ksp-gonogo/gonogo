@@ -393,6 +393,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "FireCrewArgs": {
     kerbalName: "id",
   },
+  "FleetVesselContact": {
+    connected: "flag",
+    deadlineBasis: "enum",
+    deadlineUt: "s",
+    lastContactUt: "s",
+    silenceSinceUt: "s",
+    state: "enum",
+  },
   "FleetVesselLink": {
     connected: "flag",
     oneWaySeconds: "s",

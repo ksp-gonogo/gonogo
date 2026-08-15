@@ -361,6 +361,15 @@ export interface FleetVesselLink
 	oneWaySeconds?: Value<"s">;
 	connected: boolean;
 }
+export interface FleetVesselContact
+{
+	connected: boolean;
+	state: string;
+	lastContactUt?: Value<"s">;
+	silenceSinceUt?: Value<"s">;
+	deadlineUt?: Value<"s">;
+	deadlineBasis?: string;
+}
 export enum FlightEndReason {
 	Recovered = 0,
 	Crashed = 1,

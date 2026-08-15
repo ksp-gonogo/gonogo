@@ -81,10 +81,12 @@
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
   </PropertyGroup>
 
-  <!-- The SDK auto-globs CurrencyDelay/**; drop it unless Assembly-CSharp.dll
-       is present, then re-add it (and the ledger source) below. -->
+  <!-- The SDK auto-globs CurrencyDelay/** and SilenceTracking/**; drop both
+       unless Assembly-CSharp.dll is present, then re-add them (and the
+       ConfigNode-touching source) below. -->
   <ItemGroup>
     <Compile Remove="CurrencyDelay\**\*.cs" />
+    <Compile Remove="SilenceTracking\**\*.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -122,6 +124,11 @@
          instance (see CurrencyDelayScenario's OnLoad) - same ConfigNode/PendingCreditLedger-only
          dependency as PendingCreditLedger.cs itself, so it gets the same treatment. -->
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayLedgerPersistence.cs" />
+    <!-- SilenceTrackerPersistence.cs is the same shape: a ConfigNode round-trip over a
+         KSP-free record (Sitrep.Host.Comms.VesselContactState, pulled in transitively via the
+         Sitrep.Host ProjectReference above), so it needs the same KspManaged gating. -->
+    <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrackerPersistence.cs" />
+    <Compile Include="SilenceTracking\**\*.cs" />
     <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
   </ItemGroup>
 

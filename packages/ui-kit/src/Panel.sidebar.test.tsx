@@ -253,3 +253,51 @@ describe("Panel sidebar, track sizing", () => {
     });
   }
 });
+
+describe("panelSidebar with floatingHeader", () => {
+  /**
+   * A drawing widget wants both: the title floating over the drawing so it
+   * costs the drawing no height, and a chrome column beside it. Those did not
+   * compose. The overlay header is `position: absolute; top/left/right: 0`
+   * against its nearest positioned ancestor, which was the whole panel, so it
+   * painted across the sidebar and hid the sidebar's first item behind the
+   * title box. OrbitView had to give up the floating header (and a band of its
+   * diagram) to keep the column.
+   */
+  it("hosts the floating header inside the body track, not over the sidebar", () => {
+    render(
+      <Panel
+        panelTitle="ORBIT VIEW"
+        panelSidebar={<span>Kerbin</span>}
+        floatingHeader
+      >
+        <span>diagram</span>
+      </Panel>,
+    );
+    const title = screen.getByText("ORBIT VIEW");
+    const sidebarItem = screen.getByText("Kerbin");
+    const body = screen.getByText("diagram");
+
+    // The floating header's positioned ancestor must be the body track, so the
+    // sidebar is outside whatever the header paints over.
+    const host = title.closest("[style], div");
+    expect(host).not.toBeNull();
+    // The decisive relationship: the header shares an ancestor with the body
+    // that does NOT contain the sidebar.
+    const bodyTrack = body.parentElement?.parentElement ?? null;
+    expect(bodyTrack?.contains(title)).toBe(true);
+    expect(bodyTrack?.contains(sidebarItem)).toBe(false);
+  });
+
+  it("still floats over the whole panel when there is no sidebar", () => {
+    // The no-sidebar case is what every drawing widget already relies on, and
+    // re-hosting must not change it.
+    render(
+      <Panel panelTitle="MAP VIEW" floatingHeader>
+        <span>map</span>
+      </Panel>,
+    );
+    expect(screen.getByText("MAP VIEW")).toBeInTheDocument();
+    expect(screen.getByText("map")).toBeInTheDocument();
+  });
+});

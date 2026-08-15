@@ -127,6 +127,11 @@ public static class RtConfig
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
                 typeof(FleetVesselLink),
+                // fleet.<guid>.contact: the officially-lost determination
+                // (SilenceTracker), a separate wire type from FleetVesselLink
+                // above so its Connected/State/deadline fields stay legible
+                // rather than growing FleetVesselLink into two concerns.
+                typeof(FleetVesselContact),
                 // currency.<guid>.* source-attributed currency events: a discrete
                 // per-vessel delta revealed at its SOURCE vessel's light-time, so an
                 // operator cannot infer a distant event from the instant career total.

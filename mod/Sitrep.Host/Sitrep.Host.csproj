@@ -26,6 +26,11 @@
          no PackageReferences - see its own csproj comment), so this doesn't
          change Sitrep.Host's zero-external-dependency invariant above. -->
     <ProjectReference Include="../Sitrep.Transport/Sitrep.Transport.csproj" />
+    <!-- SilenceTracker's default deadline policy (Comms/OrbitalPeriodSilenceDeadlinePolicy.cs)
+         needs OrbitElements.Sma/Ecc/Mu for T = 2*pi*sqrt(a^3/mu). Sitrep.Propagation is the
+         same zero-external-dependency discipline as this project (see its own csproj comment),
+         so referencing it does not touch the invariant above. -->
+    <ProjectReference Include="../Sitrep.Propagation/Sitrep.Propagation.csproj" />
   </ItemGroup>
   <!-- ChannelEngine exposes deterministic test-only members (TickAndWait,
        DispatchCommandAndWait, ChannelCounters) as `internal` rather than

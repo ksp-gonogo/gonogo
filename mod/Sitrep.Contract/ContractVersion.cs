@@ -833,7 +833,20 @@ namespace Sitrep.Contract
         /// additive regardless. See
         /// <c>local_docs/design/2026-08-13-astronaut-complex-redesign-spec.md</c>
         /// and <c>local_docs/design/2026-08-13-astronaut-data-fetchability-audit.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 10 -&gt; 11: the officially-lost
+        /// determination.</b> A new <see cref="FleetVesselContact"/> type
+        /// carried on <c>fleet.&lt;guid&gt;.contact</c> (same dynamic
+        /// namespace as <see cref="FleetVesselLink"/>'s <c>.delay</c>):
+        /// whether a vessel is currently in contact and, when it isn't, how
+        /// long its silence has run and when it becomes eligible to be
+        /// declared lost. Purely additive: a brand-new type on a brand-new
+        /// dynamic-namespace suffix, nothing removed or retyped, so an
+        /// Uplink built against any earlier Major-12 minor is unaffected and
+        /// the frozen Major-12 floor is NOT re-frozen. Every unit this type
+        /// uses already existed in <see cref="Units"/>. See
+        /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>.</para>
         /// </remarks>
-        public const int Minor = 10;
+        public const int Minor = 11;
     }
 }
