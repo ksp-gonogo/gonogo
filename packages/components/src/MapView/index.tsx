@@ -16,7 +16,6 @@ import {
   splitOnLongitudeWrap,
   useActionInput,
   useAugmentAvailable,
-  useDataStreamStatus,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -26,7 +25,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { PanelTitle, StreamStatusBadge, Switch } from "@ksp-gonogo/ui";
+import { Switch } from "@ksp-gonogo/ui";
 import { kspCalendar, NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
@@ -49,7 +48,6 @@ import {
   CompactRow,
   CompactValue,
   DataCanvas,
-  Header,
   ImagingChip,
   MapBody,
   MapFrame,
@@ -423,9 +421,6 @@ function MapViewComponent({
   // marker draw cares about the sign; the chips component owns the body/time
   // readouts.
   const encounterExists = vesselState?.encounterExists;
-  // Connectivity indicator, still sourced off the legacy `DataSource` status
-  // channel (`v.lat` is representative of the widget's stream reads).
-  const streamStatus = useDataStreamStatus("data", "v.lat");
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
   const predictionEnabled = showPrediction;
@@ -1161,12 +1156,17 @@ function MapViewComponent({
 
   if (!showMap) {
     return (
-      <Panel>
-        <Header>
-          <PanelTitle>MAP VIEW</PanelTitle>
-          <StreamStatusBadge status={streamStatus} />
-          {showBodyLabel && displayName && <BodyLabel>{displayName}</BodyLabel>}
-        </Header>
+      <Panel
+        panelTitle="MAP VIEW"
+        // No manual stream badge here: the composed header below renders the
+        // host-derived status (every topic this widget declares), same as the
+        // full map branch.
+        panelAside={
+          showBodyLabel && displayName ? (
+            <BodyLabel>{displayName}</BodyLabel>
+          ) : undefined
+        }
+      >
         <CompactReadout>
           <CompactRow>
             <CompactLabel>Lat</CompactLabel>

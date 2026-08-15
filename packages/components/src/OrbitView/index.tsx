@@ -7,18 +7,11 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
-  type StreamStatusValue,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  Panel,
-  PanelTitle,
-  type ReadoutTone,
-  StatusPill,
-  StreamStatusBadge,
-} from "@ksp-gonogo/ui";
+import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Value } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
@@ -58,38 +51,6 @@ function useStreamOptional<T>(topic: string): T | undefined {
     const point = store.sample<T>(topic, store.currentFrame());
     return point ? (point.payload as T | undefined) : undefined;
   }, [store, topic]);
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
-
-/**
- * Provider-optional staleness/absence surface for a raw stream Topic, the
- * `useStreamOptional` sibling for status. `"disconnected"` when no
- * `TelemetryProvider` is mounted, matching the empty-state posture the value
- * read degrades to.
- */
-function useStreamStatusOptional(topic: string): StreamStatusValue {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
-      };
-    },
-    [client, store, topic],
-  );
-  const getSnapshot = useCallback(
-    (): StreamStatusValue =>
-      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
-    [store, topic],
-  );
   return useSyncExternalStore(subscribe, getSnapshot);
 }
 
@@ -222,10 +183,6 @@ function OrbitViewComponent({
   // `null` only in the "measured" basis: always real whenever there's a
   // resolvable orbit, hyperbolic or not.
   const periapsisR = vesselState?.periapsisRadius;
-  // Connectivity indicator: `vessel.orbit` is this widget's representative
-  // read Topic (it gates the diagram's elements), so one badge speaks for the
-  // whole widget.
-  const streamStatus = useStreamStatusOptional("vessel.orbit");
 
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
@@ -356,20 +313,24 @@ function OrbitViewComponent({
     );
 
   if (isLandscape && showDiagram && hasOrbit) {
-    // Wide-short slot: chrome on the left, diagram on the right. The
-    // diagram lives in a square slot taking the full panel height, which
-    // is much more visible than the portrait fallback (where the title
-    // row eats most of the vertical space). Header content stacks
-    // vertically in the left chrome: title, body name, status pill.
+    // Wide-short slot: chrome on the left, diagram on the right, via
+    // `panelSidebar`. Body name and status pill stack in the sidebar column;
+    // the panel's own header sits above the diagram (a non-floating header
+    // is scoped to the body track it precedes, not the sidebar beside it),
+    // which is still far cheaper than the portrait fallback below, where the
+    // title row runs the full width and the diagram gets whatever besides.
     return (
-      <Panel>
-        <LandscapeRow>
+      <Panel
+        panelTitle="ORBIT VIEW"
+        // No manual stream badge here: the composed header renders the
+        // host-derived status, which watches every topic this widget
+        // declares rather than the one this hook picked by hand (same as
+        // the non-landscape branch below).
+        panelAside={
+          <AugmentSlot name="orbit-view.badges" props={badgesContext} />
+        }
+        panelSidebar={
           <LandscapeChrome>
-            <TitleRow>
-              <PanelTitle>ORBIT VIEW</PanelTitle>
-              <AugmentSlot name="orbit-view.badges" props={badgesContext} />
-              <StreamStatusBadge status={streamStatus} />
-            </TitleRow>
             {bodyName !== undefined && (
               <Value tone="muted" size="xs">
                 {bodyName}
@@ -377,8 +338,11 @@ function OrbitViewComponent({
             )}
             <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
           </LandscapeChrome>
-          <LandscapeDiagramSlot>{diagramWithOverlay}</LandscapeDiagramSlot>
-        </LandscapeRow>
+        }
+        sidebarSide="start"
+        sidebarSize="8rem"
+      >
+        {diagramWithOverlay}
       </Panel>
     );
   }
@@ -482,14 +446,6 @@ registerComponent<OrbitViewConfig>({
 
 export { OrbitViewComponent };
 
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-width: 0;
-`;
-
 const NoData = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
@@ -519,32 +475,16 @@ const OverlayLayer = styled.div`
   pointer-events: none;
 `;
 
-const LandscapeRow = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: var(--space-12);
-  min-height: 0;
-  min-width: 0;
-`;
-
+/**
+ * The landscape branch's sidebar content: body name and status pill, stacked
+ * and vertically centred in the narrow column `panelSidebar` reserves beside
+ * the diagram.
+ */
 const LandscapeChrome = styled.div`
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   justify-content: center;
-  /* Narrow column for header content: the diagram on the right gets
-     everything left over. */
-  min-width: 0;
-`;
-
-const LandscapeDiagramSlot = styled.div`
-  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
 `;
