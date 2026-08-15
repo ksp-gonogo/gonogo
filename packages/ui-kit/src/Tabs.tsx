@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -134,6 +135,12 @@ export function Tabs({
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const barRef = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState({ left: false, right: false });
+  // Where the selection blob sits. Measured rather than derived from flex
+  // order: labels are different widths, and the blob has to land exactly on
+  // whichever one is active, including after a resize or a font swap.
+  const [blob, setBlob] = useState<{ left: number; width: number } | null>(
+    null,
+  );
 
   // `expanded` isn't read in the body below, but toggling it swaps the tab
   // bar out of the tree entirely (the side-by-side layout has no bar to
@@ -182,6 +189,32 @@ export function Tabs({
    * tab is disabled. Bounded by the tab count, so a set with nothing
    * selectable simply does not move rather than spinning.
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the active tab or the tab set changes, which is exactly what moves the blob.
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    const button = active ? buttonRefs.current.get(active.id) : undefined;
+    if (!bar || !button) {
+      setBlob(null);
+      return;
+    }
+    const measure = () => {
+      const el = buttonRefs.current.get(active?.id ?? "");
+      if (!el) return;
+      // offsetLeft is relative to the scrolling bar's content box, so the blob
+      // travels with the tabs when the bar scrolls instead of detaching.
+      setBlob((prev) =>
+        prev && prev.left === el.offsetLeft && prev.width === el.offsetWidth
+          ? prev
+          : { left: el.offsetLeft, width: el.offsetWidth },
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    ro.observe(button);
+    return () => ro.disconnect();
+  }, [active?.id, resolved.length, expanded]);
+
   const activateByIndex = useCallback(
     (from: number, step: number) => {
       const n = resolved.length;
@@ -248,6 +281,12 @@ export function Tabs({
     <Tabs__Root ref={sizeRef} data-tabs-root="" className={className}>
       <Tabs__BarShell>
         <Tabs__Bar ref={barRef} role="tablist">
+          {blob && (
+            <Tabs__Blob
+              aria-hidden="true"
+              style={{ left: blob.left, width: blob.width }}
+            />
+          )}
           {resolved.map((tab) => {
             const isActive = tab.id === active?.id;
             return (
@@ -302,16 +341,22 @@ const Tabs__Root = styled.div`
 `;
 
 /* Positioned wrapper so the left/right overflow glows can sit over the tab
-   bar's edges. The bottom border lives here (not on the scrolling element) so
-   it spans the full width even while the tabs scroll underneath it. */
+   bar's edges. The rule the bar used to sit on is gone: the track is the
+   boundary now, and a line under it read as a second one. */
 const Tabs__BarShell = styled.div`
   position: relative;
-  border-bottom: 1px solid var(--color-border-subtle);
 `;
 
+/* The track: one dark rounded rectangle holding every tab, so the strip reads
+   as a single control rather than a row of loose words. `position: relative`
+   is what the blob measures and travels inside. */
 const Tabs__Bar = styled.div`
+  position: relative;
   display: flex;
   gap: var(--space-2);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   /* Single line: tabs never wrap; the bar scrolls horizontally instead. */
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -353,6 +398,27 @@ const Tabs__OverflowGlow = styled.div<{
   }
 `;
 
+/* The selection blob. Painted before the buttons and left unpositioned in the
+   stacking sense: the buttons are `position: relative`, so DOM order alone
+   puts the labels over it and no z-index is needed. */
+const Tabs__Blob = styled.span`
+  position: absolute;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition:
+    left var(--duration-base) var(--ease-standard),
+    width var(--duration-base) var(--ease-standard);
+
+  /* The blob's whole job is to show WHERE selection went; with motion damped
+     it simply appears on the new tab. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 const Tabs__Dot = styled.span`
   display: inline-block;
   width: 7px;
@@ -364,9 +430,12 @@ const Tabs__Dot = styled.span`
 `;
 
 const Tabs__Button = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) =>
-    $active ? "var(--color-surface-raised)" : "transparent"};
+  /* Transparent throughout: the blob behind it is the selected background, so
+     a background here would cover the thing that moves. */
+  background: transparent;
   border: none;
+  /* Lifts the label over the blob by DOM order, no z-index involved. */
+  position: relative;
   /* Keep every tab on one line and let the bar scroll rather than wrap. */
   flex: 0 0 auto;
   white-space: nowrap;
@@ -378,12 +447,21 @@ const Tabs__Button = styled.button<{ $active: boolean }>`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: var(--space-6) var(--space-12);
-  border-bottom: 2px solid
-    ${({ $active }) => ($active ? "var(--color-accent-fg)" : "transparent")};
-  /* Cancels Tabs__BarShell's 1px bottom border so the active tab's indicator
-     sits on top of the rule rather than below it. Locked to a border width,
-     so it stays off the spacing ladder. */
-  margin-bottom: -1px;
+  border-radius: var(--radius-md);
+  /* Pushing: the label gives under the press and springs back, which is the
+     only feedback a tab gets on a touch device where there is no hover. */
+  transition: transform var(--duration-fast) var(--ease-standard);
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
