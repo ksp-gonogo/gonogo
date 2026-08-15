@@ -164,6 +164,12 @@ export {
   type KeyOption,
 } from "./DataKeyPicker";
 export {
+  DataTable,
+  type DataTableColumn,
+  type DataTableProps,
+  type DataTableSection,
+} from "./DataTable";
+export {
   Dial,
   type DialProps,
   type DialTick,

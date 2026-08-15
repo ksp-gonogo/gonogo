@@ -143,6 +143,77 @@ describe("Tabs", () => {
   });
 });
 
+describe("Tabs disabled", () => {
+  const DISABLED_FIRST = [
+    {
+      id: "one",
+      label: "One",
+      content: <span>panel-one</span>,
+      disabled: true,
+    },
+    { id: "two", label: "Two", content: <span>panel-two</span> },
+    { id: "three", label: "Three", content: <span>panel-three</span> },
+  ];
+
+  it("cannot be selected by pointer", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Tabs tabs={DISABLED_FIRST} activeId="two" onChange={onChange} />);
+    await user.click(screen.getByRole("tab", { name: "One" }));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByText("panel-two")).toBeInTheDocument();
+  });
+
+  it("shows the panel of the first tab that applies when the active one turns off", () => {
+    // The case this exists for: a tab whose subsystem goes away while it is
+    // open. Rendering its (now meaningless) panel, or nothing at all, both
+    // strand the operator; the next applicable tab is what they wanted.
+    render(
+      <Tabs tabs={DISABLED_FIRST} activeId="one" onChange={() => undefined} />,
+    );
+    expect(screen.getByText("panel-two")).toBeInTheDocument();
+    expect(screen.queryByText("panel-one")).not.toBeInTheDocument();
+  });
+
+  it("is stepped over by the roving arrow navigation, in both directions", async () => {
+    const user = userEvent.setup();
+    function Harness() {
+      const [active, setActive] = useState("two");
+      return (
+        <Tabs tabs={DISABLED_FIRST} activeId={active} onChange={setActive} />
+      );
+    }
+    render(<Harness />);
+    screen.getByRole("tab", { name: "Two" }).focus();
+    // Left from Two would land on the disabled One, so it wraps past it.
+    await user.keyboard("{ArrowLeft}");
+    expect(screen.getByRole("tab", { name: "Three" })).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: "Two" })).toHaveFocus();
+  });
+
+  it("Home lands on the first tab that applies, not the first tab", async () => {
+    const user = userEvent.setup();
+    function Harness() {
+      const [active, setActive] = useState("three");
+      return (
+        <Tabs tabs={DISABLED_FIRST} activeId={active} onChange={setActive} />
+      );
+    }
+    render(<Harness />);
+    screen.getByRole("tab", { name: "Three" }).focus();
+    await user.keyboard("{Home}");
+    expect(screen.getByRole("tab", { name: "Two" })).toHaveFocus();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <Tabs tabs={DISABLED_FIRST} activeId="two" onChange={() => undefined} />,
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
 describe("shouldExpandTabs", () => {
   it("never expands a single tab", () => {
     expect(shouldExpandTabs(10_000, 1)).toBe(false);

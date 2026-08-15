@@ -8,14 +8,14 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
+import { ScienceDataComponent } from "./index";
 import {
   type ArchiveSubject,
   groupArchiveByExperiment,
   parseArchive,
   parseExperimentBreakdown,
   parseExperiments,
-  ScienceDataComponent,
-} from "./index";
+} from "./parsers";
 
 // vessel.state's declared derived inputs: body/situation route off the
 // derived vessel.state channel (parentBodyName from vessel.identity +
@@ -174,7 +174,12 @@ describe("ScienceDataComponent", () => {
     // the number, the symbol and the spoken word as separate elements, so a
     // readout is not one text node.
     expect(visibleText()).toContain("8.0 mits");
-    expect(visibleText()).toContain("12.5 left");
+    // The figure sits under a named column now, so the row carries the number
+    // and the header carries what it means, instead of a per-row "left".
+    expect(
+      screen.getByRole("columnheader", { name: "Remaining" }),
+    ).toBeInTheDocument();
+    expect(visibleText()).toContain("12.5");
   });
 
   it("renders the science-data.aboard-row slot empty on the stock path (no Kerbalism augment imported)", async () => {
@@ -282,13 +287,21 @@ describe("ScienceDataComponent", () => {
       ]);
     });
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
-    await waitFor(() => expect(screen.getByText("Kerbin")).toBeInTheDocument());
-    expect(screen.getByText("Mun")).toBeInTheDocument();
-    expect(screen.getByText("Crew Report")).toBeInTheDocument();
-    expect(screen.getByText("Mystery Goo Observation")).toBeInTheDocument();
-    // Kerbin crew report is capped out: renders "complete", not "left".
+    // Body and experiment share one section heading: two levels of indent cost
+    // more width than the figures they were pushing off the edge.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("columnheader", { name: "Kerbin · Crew Report" }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("columnheader", {
+        name: "Mun · Mystery Goo Observation",
+      }),
+    ).toBeInTheDocument();
+    // Kerbin crew report is capped out: renders "complete" rather than a zero.
     expect(screen.getByText("complete")).toBeInTheDocument();
-    expect(screen.getByText(/9\.0 left/)).toBeInTheDocument();
+    expect(visibleText()).toContain("9.0");
   });
 
   it("has no axe violations", async () => {

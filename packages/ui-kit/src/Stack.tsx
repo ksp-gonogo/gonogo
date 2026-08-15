@@ -12,6 +12,13 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
    * should not have to give up the semantic element to do so.
    */
   as?: ElementType;
+  /**
+   * Take the remaining space in a flex parent, and allow shrinking below the
+   * content's natural height. That pair is what lets a scroller nested inside
+   * actually scroll instead of growing the whole column, which is otherwise
+   * the most-copied two lines of inline style in the widget set.
+   */
+  fill?: boolean;
   children?: ReactNode;
 }
 
@@ -21,16 +28,22 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
  * scattered across widgets (e.g. ScienceOfficer's `Group`/`InstrumentList`/
  * `LabList`).
  */
-export function Stack({ gap = "sm", children, ...rest }: StackProps) {
+export function Stack({
+  gap = "sm",
+  fill = false,
+  children,
+  ...rest
+}: StackProps) {
   return (
-    <Stack__Root $gap={gap} {...rest}>
+    <Stack__Root $gap={gap} $fill={fill} {...rest}>
       {children}
     </Stack__Root>
   );
 }
 
-const Stack__Root = styled.div<{ $gap: SpaceToken }>`
+const Stack__Root = styled.div<{ $gap: SpaceToken; $fill: boolean }>`
   display: flex;
   flex-direction: column;
   gap: ${({ theme, $gap }) => theme.space[$gap]};
+  ${({ $fill }) => ($fill ? "flex: 1; min-height: 0;" : "")}
 `;

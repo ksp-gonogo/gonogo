@@ -27,6 +27,16 @@ export interface TabDescriptor {
    * offline data source). Aggregating these across tabs is the caller's job.
    */
   indicator?: boolean;
+  /**
+   * The tab's subsystem does not apply right now, so there is nothing behind
+   * it to read: an active-vessel panel with nothing flying, a per-target view
+   * with no target. It cannot be selected by pointer or keyboard, the roving
+   * navigation steps over it, and if it is the active tab when it turns off,
+   * selection falls through to the first tab that still applies. Reach for it
+   * rather than rendering an empty panel or dimming the content, both of which
+   * leave the operator to work out why the tab is blank.
+   */
+  disabled?: boolean;
 }
 
 export interface TabsProps {
@@ -91,7 +101,16 @@ export function Tabs({
     () => activeId ?? resolved[0]?.id ?? "",
   );
   const currentId = isControlled ? (activeId as string) : internalActiveId;
-  const active = resolved.find((t) => t.id === currentId) ?? resolved[0];
+  // A disabled tab is never the one on screen, even when the caller still
+  // names it: a panel that cannot be reached by click or key must not be
+  // reachable by going stale either. First tab that still applies wins, and
+  // the whole set being disabled falls back to the caller's choice rather
+  // than rendering nothing.
+  const named = resolved.find((t) => t.id === currentId);
+  const active =
+    named && !named.disabled
+      ? named
+      : (resolved.find((t) => !t.disabled) ?? named ?? resolved[0]);
 
   const select = useCallback(
     (id: string) => {
@@ -101,8 +120,16 @@ export function Tabs({
     [isControlled, onChange],
   );
 
+  // Side-by-side mode lays out panels, and a disabled tab has no panel worth
+  // laying out, so it is measured and rendered against the tabs that apply.
+  const selectable = useMemo(
+    () => resolved.filter((t) => !t.disabled),
+    [resolved],
+  );
+
   const { ref: sizeRef, size } = useElementSize<HTMLDivElement>({ w: 0, h: 0 });
-  const expanded = expandWhenRoomy && shouldExpandTabs(size.w, resolved.length);
+  const expanded =
+    expandWhenRoomy && shouldExpandTabs(size.w, selectable.length);
 
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const barRef = useRef<HTMLDivElement>(null);
@@ -150,14 +177,21 @@ export function Tabs({
     };
   }, [expanded]);
 
+  /**
+   * Move `step` tabs from `from`, wrapping, and keep going while the landing
+   * tab is disabled. Bounded by the tab count, so a set with nothing
+   * selectable simply does not move rather than spinning.
+   */
   const activateByIndex = useCallback(
-    (idx: number) => {
-      const clamped =
-        ((idx % resolved.length) + resolved.length) % resolved.length;
-      const next = resolved[clamped];
-      if (!next) return;
-      select(next.id);
-      buttonRefs.current.get(next.id)?.focus();
+    (from: number, step: number) => {
+      const n = resolved.length;
+      for (let i = 1; i <= n; i++) {
+        const next = resolved[(((from + step * i) % n) + n) % n];
+        if (!next || next.disabled) continue;
+        select(next.id);
+        buttonRefs.current.get(next.id)?.focus();
+        return;
+      }
     },
     [resolved, select],
   );
@@ -170,20 +204,22 @@ export function Tabs({
         case "ArrowRight":
         case "ArrowDown":
           e.preventDefault();
-          activateByIndex(currentIdx + 1);
+          activateByIndex(currentIdx, 1);
           break;
         case "ArrowLeft":
         case "ArrowUp":
           e.preventDefault();
-          activateByIndex(currentIdx - 1);
+          activateByIndex(currentIdx, -1);
           break;
+        // Home/End start one step OUTSIDE the strip so the search lands on the
+        // first (or last) tab itself, then walks inward past any disabled ones.
         case "Home":
           e.preventDefault();
-          activateByIndex(0);
+          activateByIndex(-1, 1);
           break;
         case "End":
           e.preventDefault();
-          activateByIndex(resolved.length - 1);
+          activateByIndex(resolved.length, -1);
           break;
       }
     },
@@ -194,7 +230,7 @@ export function Tabs({
     return (
       <Tabs__Root ref={sizeRef} data-tabs-root="" className={className}>
         <Grid minColWidth={`${TABS_PANEL_MIN_WIDTH}px`} align="start" gap="md">
-          {resolved.map((tab) => (
+          {selectable.map((tab) => (
             <Section key={tab.id}>
               <SectionTitle as="h3" $rule>
                 {tab.label}
@@ -227,6 +263,7 @@ export function Tabs({
                 aria-selected={isActive}
                 aria-controls={`${uid}${tab.id}-panel`}
                 tabIndex={isActive ? 0 : -1}
+                disabled={tab.disabled}
                 $active={isActive}
                 onClick={() => select(tab.id)}
                 onKeyDown={handleKeyDown}
@@ -349,9 +386,16 @@ const Tabs__Button = styled.button<{ $active: boolean }>`
   margin-bottom: -1px;
 
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       color: var(--color-text-primary);
     }
+  }
+
+  /* Reads as present but inert: the label stays legible enough to say what is
+     missing, and the cursor says it will not respond. */
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
   }
 
   &:focus-visible {
