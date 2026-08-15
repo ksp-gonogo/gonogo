@@ -576,7 +576,7 @@ export interface VesselState {
   isEVA: boolean | null | undefined;
   /**
    * Whether the vessel is splashed down, `vessel.identity.situation ===
-   * Splashed` (old Telemachus `v.splashed`, GroundSurvey). Populated in BOTH
+   * Splashed` (old Telemachus `v.splashed`). Populated in BOTH
    * bases. `undefined` while `vessel.identity` hasn't arrived; `null` on a
    * confirmed tombstone.
    */
@@ -669,7 +669,7 @@ export interface VesselState {
   landingSuicideBurnCountdown: number | null;
   /**
    * Predicted surface-impact latitude, degrees (old Telemachus
-   * `land.predictedLat`, LandingStatus/GroundSurvey): the last pre-surface
+   * `land.predictedLat`, LandingStatus): the last pre-surface
    * sample of a vacuum-ballistic walk over `orbitPatches` (`findImpactPoint`
    * in `orbit-patches.ts`), horizon-bounded by `landingTimeToImpact` so the
    * walk only ever runs while an impact is actually imminent. Same MEASURED

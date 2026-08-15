@@ -58,7 +58,7 @@ const TINY_READOUT_STYLE = {
  * width has no fixed relationship to the viewport, a station on a big
  * monitor with a NARROW crew tile would otherwise render a large avatar and
  * a wide tile on a small laptop a small one, backwards from what "scale with
- * the widget" means. Mirrors `Twr`/`GroundSurvey`/`SystemView`'s existing
+ * the widget" means. Mirrors `Twr`/`SystemView`'s existing
  * measured-slot-width idiom (`useElementSize` + `Math.min`/`Math.max`), not
  * a CSS-only fix.
  *

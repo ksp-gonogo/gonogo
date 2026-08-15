@@ -5,7 +5,7 @@
  *
  * | axis            | SAFE | MARGINAL | DIVERT | anchor                       |
  * | slope (deg)     | <=5  | 5-15     | >15    | Apollo LM 12-degree limit    |
- * | roughness (sigma)| A/B | C        | F      | shared GroundSurvey grade    |
+ * | roughness (sigma)| A/B | C        | F      | shared roughness grade       |
  * | vertical (m/s)  | <=2  | 2-6      | >6     | stock modal crashTolerance   |
  * | lateral (m/s)   | <=1  | 1-3      | >3     | tip-over torque              |
  *

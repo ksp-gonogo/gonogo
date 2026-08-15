@@ -1794,8 +1794,8 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The M3 R3 <c>vessel.surface</c> capture-add's raw group --
-        /// biome/landedAt/heightFromTerrain, for LandingStatus/GroundSurvey
-        /// widgets. Null whenever there's no reference body yet (mirrors
+        /// biome/landedAt/heightFromTerrain, for the LandingStatus widget.
+        /// Null whenever there's no reference body yet (mirrors
         /// <see cref="BuildAttitude"/>'s guard) or the vessel is
         /// <c>ORBITING</c>/<c>ESCAPING</c> -- KSP keeps whatever stale
         /// <c>heightFromTerrain</c>/biome-at-last-surface-contact it last
@@ -1975,8 +1975,8 @@ namespace Gonogo.KSP
                 body.TerrainAltitude(sampleLat, sampleLon, allowNegative: true);
             result["predictedBiome"] = BiomeAt(body, sampleLat, sampleLon);
 
-            // Footprint wide enough that residual sigma grades on GroundSurvey's
-            // shared scale (§2e). One ring gives slope + heading + residual
+            // Footprint wide enough that residual sigma grades on the shared
+            // roughness scale (§2e). One ring gives slope + heading + residual
             // roughness from a single plane fit.
             const double footprintMeters = 100.0;
             var samples = SampleTerrainRing(body, sampleLat, sampleLon, footprintMeters);

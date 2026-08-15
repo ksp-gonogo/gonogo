@@ -23,7 +23,6 @@ export * from "./FleetReliability";
 export * from "./FleetRoster";
 export * from "./FuelStatus";
 export * from "./Graph";
-export * from "./GroundSurvey";
 export * from "./KeplerPeriod";
 export * from "./LandingStatus";
 export * from "./LaunchDirector";

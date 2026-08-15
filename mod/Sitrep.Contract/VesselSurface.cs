@@ -5,8 +5,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.surface</c> channel payload: the landing/ground-survey
-/// capture-add (M3 R3): data a LandingStatus/GroundSurvey widget needs that
+/// The <c>vessel.surface</c> channel payload: the landing capture-add
+/// (M3 R3): data a LandingStatus widget needs that
 /// <c>vessel.flight</c> doesn't already carry. <c>vessel.flight.AltitudeTerrain</c>
 /// (KSP's <c>radarAltitude</c>, measured from the vessel's centre of mass)
 /// already ships: <see cref="HeightFromTerrain"/> here is a DIFFERENT,

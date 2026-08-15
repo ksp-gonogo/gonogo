@@ -1209,19 +1209,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "ground-survey",
-    fixturesPath: "GroundSurvey/__fixtures__",
-    outPath: "renders/ground-survey-widget",
-    modes: [
-      // minSize 3×3: readout-only.
-      { name: "tiny-3x3", w: 3, h: 3 },
-      { name: "compact-5x5", w: 5, h: 5 },
-      // defaultSize 8×7: the common operator view.
-      { name: "default-8x7", w: 8, h: 7 },
-      { name: "wide-12x8", w: 12, h: 8 },
-    ],
-  },
-  {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
     // `"data"` source (tar.* / b.* / o.* keys), no probe kos wiring needed.
     // The Target API redesign (a00c4307) replaced the old TABBED layout with a

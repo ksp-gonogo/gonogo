@@ -1,16 +1,13 @@
 /**
  * The one shared terrain-roughness calibration. Grades elevation standard
  * deviation (σ, metres) onto an A/B/C/F scale, so an "A" means the same physical
- * roughness everywhere it is used:
- *
- * - `GroundSurvey` grades σ over the flown-over track (a multi-km baseline)
- * - the Landing hazard verdict grades σ over the touchdown patch (sampled on a
- *   comparably wide footprint so the same cutoffs transfer; see the mod-side
- *   sampler)
+ * roughness everywhere it is used. LandingStatus's hazard verdict grades σ over
+ * the touchdown patch (sampled on a wide-enough footprint that the cutoffs stay
+ * meaningful; see the mod-side sampler).
  *
  * Calibrated for KSP terrain: Mun maria run ~30 m σ, mid-rough ~150 m, highlands
- * past 400 m. Extracted from `GroundSurvey`'s `rateSmoothness` so the two widgets
- * cannot drift onto different scales.
+ * past 400 m. Kept as its own module so a future second consumer shares the same
+ * scale rather than reimplementing it.
  */
 
 export type RoughnessBadge = "A" | "B" | "C" | "F";

@@ -225,7 +225,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   "tar.o.trueAnomaly": "vessel.state.targetTrueAnomaly",
 
   // --- Shared client-side derivations off channels already on the wire,
-  // used by Twr, Navball, CrewStatus, GroundSurvey, ActionGroup ag1..10,
+  // used by Twr, Navball, CrewStatus, ActionGroup ag1..10,
   // and DistanceToTarget. Each is a `vessel.state.*` field
   // `deriveVesselState` now produces (see
   // vessel-state.ts), same display-map pattern as elsewhere in this table:

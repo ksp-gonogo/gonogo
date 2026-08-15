@@ -39,7 +39,6 @@ import type {
   ExperimentsInstrumentSlotContext,
   ExperimentsSlotContext,
 } from "./Experiments";
-import type { GroundSurveyBadgesContext } from "./GroundSurvey";
 import type { LandingStatusBadgesContext } from "./LandingStatus";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
 import type {
@@ -246,13 +245,6 @@ type _SystemBadgesBack = Expect<
   Assignable<SystemBadgesContext, SdkSlotProps<"system-view.badges">>
 >;
 
-type _GroundSurveyBadges = Expect<
-  Assignable<SdkSlotProps<"ground-survey.badges">, GroundSurveyBadgesContext>
->;
-type _GroundSurveyBadgesBack = Expect<
-  Assignable<GroundSurveyBadgesContext, SdkSlotProps<"ground-survey.badges">>
->;
-
 type _MapOverlay = Expect<
   Assignable<SdkSlotProps<"map-view.overlay">, MapOverlayContext>
 >;
@@ -403,8 +395,6 @@ export type _SlotRegistryConformance = [
   _SystemOverlayBack,
   _SystemBadges,
   _SystemBadgesBack,
-  _GroundSurveyBadges,
-  _GroundSurveyBadgesBack,
   _MapOverlay,
   _MapOverlayBack,
   _MapBadges,

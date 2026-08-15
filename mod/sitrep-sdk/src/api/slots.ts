@@ -342,16 +342,6 @@ export interface SystemBadgesContext {
 
 // "system-view.actions" carries no props today.
 
-// --- GroundSurvey (packages/components/src/GroundSurvey) -------------------
-
-/** Mirrors `GroundSurveyBadgesContext` (GroundSurvey/index.tsx). */
-export interface GroundSurveyBadgesContext {
-  /** Body currently being surveyed (`v.body`), when known. */
-  body: string | null;
-  /** Survey phase driving the strip. */
-  surveyState: "idle" | "active" | "frozen" | "above-ceiling";
-}
-
 // --- MapView (packages/components/src/MapView) ------------------------------
 
 /** Mirrors `MapOverlayContext` (MapView/index.tsx). */
@@ -657,8 +647,6 @@ declare module "./types" {
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
     "system-view.badges": SystemBadgesContext;
-
-    "ground-survey.badges": GroundSurveyBadgesContext;
 
     "map-view.overlay": MapOverlayContext;
     "map-view.badges": MapBadgesContext;

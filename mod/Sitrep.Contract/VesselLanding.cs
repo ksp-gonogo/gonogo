@@ -96,11 +96,11 @@ public class VesselLanding
     [SitrepUnit(Units.Degrees)]
     public double? PredictedSlopeHeading { get; set; }
 
-    /// <summary>Metres: RESIDUAL standard deviation of sampled terrain height at the predicted point, AFTER removing the fitted slope plane (so tilt is not double-counted as roughness). Sampled over <see cref="RoughnessFootprintMeters"/> so it lives on GroundSurvey's calibrated sigma grade. The boulder-risk proxy.</summary>
+    /// <summary>Metres: RESIDUAL standard deviation of sampled terrain height at the predicted point, AFTER removing the fitted slope plane (so tilt is not double-counted as roughness). Sampled over <see cref="RoughnessFootprintMeters"/> so it lives on the client's calibrated sigma grade. The boulder-risk proxy.</summary>
     [SitrepUnit(Units.Metres)]
     public double? PredictedRoughness { get; set; }
 
-    /// <summary>Metres: the footprint radius the roughness sigma was sampled over. Ships so the client can label honestly and so the shared sigma-grade transfers between GroundSurvey (flown track) and the reticle (touchdown patch).</summary>
+    /// <summary>Metres: the footprint radius the roughness sigma was sampled over. Ships so the client can label honestly and grade it on the shared sigma scale.</summary>
     [SitrepUnit(Units.Metres)]
     public double? RoughnessFootprintMeters { get; set; }
 
