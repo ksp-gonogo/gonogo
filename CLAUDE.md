@@ -82,7 +82,7 @@ Subcommands:
 - **`./scripts/gonogo_claude_tools.sh tele action <key[args]>`**: fire a write-action key (URL-encodes brackets).
 - **`./scripts/gonogo_claude_tools.sh tele subscribe <key1> [<key2>...]`**: open a WebSocket and stream value transitions. Needs `websocat`.
 
-Wrap every call with the perl-alarm pattern (`perl -e 'alarm shift; exec @ARGV' <seconds> ./scripts/gonogo_claude_tools.sh …`), see [[feedback_bash_hangs]], and prefer `run_in_background: true` for anything that touches network or `ilspycmd`.
+Prefer `run_in_background: true` for anything that touches the network or `ilspycmd`, both of which are slow enough to be worth getting off the critical path.
 
 ---
 
