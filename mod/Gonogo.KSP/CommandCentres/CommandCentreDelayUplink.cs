@@ -8,19 +8,21 @@ using UnityEngine;
 
 namespace Gonogo.KSP.CommandCentres
 {
-    // NOTE (agent-6, Plan 3, T7 KSP glue): NOT locally compilable (no KspManaged
-    // refs). Verify at the full-sln fold. The KSC routeDelay reproduces Plan 2's
-    // node-default so T13's KSC-parity gate holds. The FindClosestControlSource
-    // multi-source tie-break is still a Deck live-confirm item, to be validated
-    // in-scene before multi-authority selection is trusted (per main's steer).
+    // The FindClosestControlSource multi-source tie-break is still a Deck
+    // live-confirm item, to be validated in-scene before multi-authority
+    // selection is trusted.
 
     /// <summary>
-    /// Populates the per-(authority, subject) command-delay matrix each fleet
-    /// tick and publishes <c>commandCentre.roster</c> (Plan 3). Owns the command-
-    /// centre sources + registry; the same registry instance is registered on the
+    /// Populates the per-(authority, subject) command-delay matrix each tick and
+    /// publishes <c>commandCentre.roster</c> (Plan 3). Owns the command-centre
+    /// sources + registry; the same registry instance is registered on the
     /// ChannelEngine (by the addon) so set-vantage validation and this delay pass
-    /// see the SAME centres. Subscription-gated on the fleet namespace, riding the
-    /// same capture cadence as <see cref="FleetDelayUplink"/>.
+    /// see the SAME centres.
+    ///
+    /// <para>Two sampled sources, deliberately: the matrix pass writes ENGINE
+    /// STATE that command dispatch and currency spends read, so it runs
+    /// UNGATED; the roster is an ordinary published channel and stays
+    /// subscription-gated. See <see cref="Register"/>.</para>
     /// </summary>
     public sealed class CommandCentreDelayUplink : ISitrepUplink
     {
@@ -64,21 +66,47 @@ namespace Gonogo.KSP.CommandCentres
             },
         };
 
+        /// <summary>
+        /// Registers the delay matrix and the roster as SEPARATE sampled
+        /// sources, because only one of the two is a published channel.
+        ///
+        /// <para>The matrix pass is UNGATED. Its output is not a topic: it is
+        /// the (vantage, node) delay ledger the engine consults when it
+        /// schedules a command, and centre-to-centre rows now price currency
+        /// spends. Riding it on a topic-prefix gate, as it used to, made every
+        /// one of those numbers depend on whether some browser tab happened to
+        /// be subscribed to a <c>fleet.*</c> topic, i.e. a career outcome
+        /// decided by an operator's dashboard layout. <see cref="FleetDelayUplink"/>'s
+        /// silence capture is ungated for exactly this reason.</para>
+        ///
+        /// <para>The cost is real and accepted: the routed solves counted by
+        /// <see cref="PathSolveBudget"/> now run every tick rather than only
+        /// while someone is watching the fleet. That budget is the place to
+        /// watch it; re-gating the ledger to save the solves would trade
+        /// correctness for frame time.</para>
+        ///
+        /// <para>The roster stays gated, on its OWN topic rather than on the
+        /// fleet namespace it used to borrow: it is published as
+        /// <see cref="RosterTopic"/> and read by nothing else, so "nobody is
+        /// subscribed to the roster" is the precise condition under which
+        /// building it is wasted work. Gating it on <c>fleet.</c> was a
+        /// coincidence of the two jobs having shared one source.</para>
+        /// </summary>
         public void Register(IUplinkHost host)
         {
             _host = host;
             _rosterPublisher = host.Publisher(RosterTopic);
-            host.AddSampledSource(CaptureOnMain, HandleOnCourier, ChannelEngine.FleetNodePrefix);
+            host.AddSampledSource(CaptureLedgerOnMain, ApplyLedgerOnCourier);
+            host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, RosterTopic);
         }
 
         /// <summary>
-        /// MAIN-THREAD capture: enumerate the active centres, compute a delay row
-        /// for each against every fleet subject AND against every other centre,
-        /// and build the roster. Both subject namespaces are captured here because
-        /// both are KSP reads (a graph solve), and KSP reads only happen on this
-        /// thread.
+        /// MAIN-THREAD capture: enumerate the active centres and compute a delay
+        /// row for each against every fleet subject AND against every other
+        /// centre. Both subject namespaces are captured here because both are KSP
+        /// reads (a graph solve), and KSP reads only happen on this thread.
         /// </summary>
-        internal object? CaptureOnMain(KspSnapshot? snapshot)
+        internal object? CaptureLedgerOnMain(KspSnapshot? snapshot)
         {
             var vessels = FlightGlobals.Vessels;
             if (vessels == null)
@@ -107,14 +135,13 @@ namespace Gonogo.KSP.CommandCentres
 
             PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
 
-            var roster = centres.Select(ToRosterEntry).ToList();
-            return new CommandCentreCapture { Rows = rows, Roster = roster };
+            return new LedgerCapture { Rows = rows };
         }
 
-        /// <summary>COURIER-THREAD handle: apply the explicit-pair delays + publish the roster.</summary>
-        internal void HandleOnCourier(object? captured)
+        /// <summary>COURIER-THREAD handle: write the explicit-pair delays into the engine's ledger.</summary>
+        internal void ApplyLedgerOnCourier(object? captured)
         {
-            if (captured is not CommandCentreCapture cap)
+            if (captured is not LedgerCapture cap)
             {
                 return;
             }
@@ -137,6 +164,19 @@ namespace Gonogo.KSP.CommandCentres
                     ? row.Node.Substring(ChannelEngine.FleetNodePrefix.Length)
                     : row.Node;
                 _host?.SetAuthorityDelay(row.Vantage, guid, row.Seconds);
+            }
+        }
+
+        /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
+        internal object? CaptureRosterOnMain(KspSnapshot? snapshot) =>
+            new RosterCapture { Roster = _registry.EnumerateActive().Select(ToRosterEntry).ToList() };
+
+        /// <summary>COURIER-THREAD handle: publish the roster.</summary>
+        internal void PublishRosterOnCourier(object? captured)
+        {
+            if (captured is not RosterCapture cap)
+            {
+                return;
             }
 
             _rosterPublisher?.Publish(cap.Roster, cap.Roster.Count);
@@ -241,9 +281,13 @@ namespace Gonogo.KSP.CommandCentres
             public double Seconds;
         }
 
-        private sealed class CommandCentreCapture
+        private sealed class LedgerCapture
         {
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
+        }
+
+        private sealed class RosterCapture
+        {
             public List<CommandCentreEntry> Roster = new List<CommandCentreEntry>();
         }
     }

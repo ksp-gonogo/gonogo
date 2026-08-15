@@ -156,6 +156,102 @@ namespace Sitrep.Host.Tests
             Assert.Equal(0, captureCalls);
         }
 
+        /// <summary>
+        /// The command-delay matrix a command centre writes is ENGINE STATE
+        /// that command dispatch and currency spends read back, not a published
+        /// channel, so it has to be current whether or not a client is
+        /// subscribed to anything. Registered UNGATED (the two-argument
+        /// overload), it is.
+        /// </summary>
+        [Fact]
+        public void AnUngatedSampledSourceWritesTheDelayLedgerWithNothingSubscribed()
+        {
+            var uplink = new LedgerWritingUplink(gatedOnFleetTopics: false);
+
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(uplink);
+            engine.Start();
+
+            // No client has ever connected, let alone subscribed.
+            engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+            Assert.Equal(
+                LedgerWritingUplink.VesselSeconds,
+                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.FleetNodePrefix + LedgerWritingUplink.Vessel));
+            Assert.Equal(
+                LedgerWritingUplink.CentreSeconds,
+                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.CentreNodePrefix + LedgerWritingUplink.OtherCentre));
+        }
+
+        /// <summary>
+        /// The contrast that makes the test above load-bearing: the SAME writes
+        /// registered behind a topic-prefix gate never happen at all while
+        /// nothing is subscribed, so a ledger on that overload would hand
+        /// command dispatch whatever stale (or absent) number it had before the
+        /// last dashboard closed.
+        /// </summary>
+        [Fact]
+        public void ATopicPrefixGatedSampledSourceWritesNothingWithNothingSubscribed()
+        {
+            var uplink = new LedgerWritingUplink(gatedOnFleetTopics: true);
+
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(uplink);
+            engine.Start();
+
+            engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+            Assert.Equal(
+                0.0,
+                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.FleetNodePrefix + LedgerWritingUplink.Vessel));
+            Assert.Equal(
+                0.0,
+                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.CentreNodePrefix + LedgerWritingUplink.OtherCentre));
+        }
+
+        /// <summary>
+        /// Mirrors <c>Gonogo.KSP.CommandCentres.CommandCentreDelayUplink</c>'s
+        /// ledger half: a sampled source whose only job is writing
+        /// (vantage, node) command-delay rows. The <paramref name="gatedOnFleetTopics"/>
+        /// switch is the difference the two tests above turn on.
+        /// </summary>
+        private sealed class LedgerWritingUplink : ISitrepUplink
+        {
+            public const string Centre = "dsn-canberra";
+            public const string OtherCentre = "ksc";
+            public const string Vessel = "vessel-guid";
+            public const double VesselSeconds = 7.5;
+            public const double CentreSeconds = 2.5;
+
+            private readonly bool _gatedOnFleetTopics;
+            private IUplinkHost? _host;
+
+            public LedgerWritingUplink(bool gatedOnFleetTopics) => _gatedOnFleetTopics = gatedOnFleetTopics;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "ledger-writing", Version = "1.0.0" };
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public void Register(IUplinkHost host)
+            {
+                _host = host;
+                if (_gatedOnFleetTopics)
+                {
+                    host.AddSampledSource(Capture, Apply, ChannelEngine.FleetNodePrefix);
+                    return;
+                }
+                host.AddSampledSource(Capture, Apply);
+            }
+
+            private object? Capture(KspSnapshot? snapshot) => snapshot;
+
+            private void Apply(object? captured)
+            {
+                _host?.SetAuthorityDelay(Centre, Vessel, VesselSeconds);
+                _host?.SetCentreDelay(Centre, OtherCentre, CentreSeconds);
+            }
+        }
+
         private sealed class RecordingUplink : ISitrepUplink, ISnapshotSampler
         {
             // Mandatory health floor (test double).

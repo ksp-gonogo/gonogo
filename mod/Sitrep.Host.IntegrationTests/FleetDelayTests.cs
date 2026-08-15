@@ -220,6 +220,85 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The officially-lost feature publishes <c>fleet.&lt;guid&gt;.contact</c>
+        /// while the craft is dark: that is the only time it has anything to
+        /// say. On the ordinary Delayed path every one of those samples takes an
+        /// infinite reveal horizon and is then dropped on reconnect, so the
+        /// operator would be told nothing at all about the vessel that went
+        /// quiet, the exact opposite of the point. The channel is freeze-exempt
+        /// (the treatment <c>comms.link</c> already carries) and this pins both
+        /// halves: the report gets through, and it gets through no earlier than
+        /// the vessel's last-known light-time allows.
+        /// </summary>
+        [Fact]
+        public async Task AContactReportPublishedWhileTheVesselIsDarkStillReachesTheClient()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var contactTopic = "fleet.q" + ChannelEngine.ContactMetaSuffix;
+                await SubscribeAsync(client, "fleet.q.orbit", Timeout);
+                await SubscribeAsync(client, contactTopic, Timeout);
+
+                // q is 3 light-seconds out while its link is up.
+                engine.TickAndWait(0.0, ContactFixture(0.0, connected: true), Timeout);
+                engine.TickAndWait(1.0, ContactFixture(1.0, connected: true), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                // Dark from UT 2. Its routed light-time collapses to 0 in the same
+                // tick (no path left to measure), as the live CommNet read does.
+                for (var ut = 2.0; ut <= 4.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, ContactFixture(ut, connected: false), Timeout);
+                }
+                var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
+                // The exemption is not a free pass: the UT-2 report still waits
+                // out the vessel's last-known 3-second light-time, so by UT 4
+                // nothing from the blackout has surfaced. KSC cannot learn of the
+                // silence ahead of the light that carries the evidence for it.
+                Assert.DoesNotContain(duringOutage, f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0);
+
+                // Reconnect at UT 5: the point at which that subject's in-blackout
+                // backlog is dropped, and at which the UT-2 report's horizon is
+                // finally reached.
+                engine.TickAndWait(5.0, ContactFixture(5.0, connected: true), Timeout);
+                engine.TickAndWait(6.0, ContactFixture(6.0, connected: true), Timeout);
+                engine.TickAndWait(7.0, ContactFixture(7.0, connected: true), Timeout);
+                var afterHorizon = await DrainAllStreamDataAsync(client, Quiet);
+
+                // The reports captured WHILE the craft was dark survived the
+                // freeze and the reconnect drop, and reached the client.
+                Assert.Contains(
+                    afterHorizon,
+                    f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
+                // Surgical, not blanket: the SAME vessel's ordinary telemetry over
+                // the SAME window is still frozen and dropped, in both phases.
+                Assert.DoesNotContain(
+                    duringOutage.Concat(afterHorizon),
+                    f => f.Topic == "fleet.q.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Vessel "q" at a 3-second light-time while connected, collapsing to 0
+        /// when it drops off the network (what the live routed read returns once
+        /// there is no path to measure).
+        /// </summary>
+        private static KspSnapshot ContactFixture(double ut, bool connected)
+        {
+            var snap = ConnFixture(ut, ("q", connected));
+            ((Dictionary<string, object?>)((List<object?>)snap.Values["vessels"]!)[0]!)["delay"] = connected ? 3.0 : 0.0;
+            return snap;
+        }
+
         private static KspSnapshot TailFixture(double ut, bool connected)
         {
             var snap = ConnFixture(ut, ("v", connected));

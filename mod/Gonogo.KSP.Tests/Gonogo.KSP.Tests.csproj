@@ -87,13 +87,14 @@
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
   </PropertyGroup>
 
-  <!-- The SDK auto-globs CurrencyDelay/** and SilenceTracking/**; drop both
-       unless Assembly-CSharp.dll is present, then re-add them (and the
-       ConfigNode-touching source) below. -->
+  <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/** and
+       CommandCentres/**; drop them all unless Assembly-CSharp.dll is present,
+       then re-add them (and the KSP-touching sources) below. -->
   <ItemGroup>
     <Compile Remove="CurrencyDelay\**\*.cs" />
     <Compile Remove="SilenceTracking\**\*.cs" />
     <Compile Remove="Comms\**\*.cs" />
+    <Compile Remove="CommandCentres\**\*.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -143,6 +144,21 @@
          headlessly against the reference DLL - same gating contract as the
          ConfigNode-backed suites above. -->
     <Compile Include="..\Gonogo.KSP\FleetCommsReader.cs" />
+    <!-- CommandCentreDelayUplink.cs is here for its REGISTRATION, which is
+         KSP-free: which of its two sampled sources is subscription-gated is
+         the whole of what CommandCentreDelayUplinkRegistrationTests asserts,
+         and it is not observable from anywhere else. Its capture half does
+         read FlightGlobals, so the type has to resolve, which drags
+         KspCommandCentre (CommNode) and CommsCoreUplink (the signal-delay
+         config it reads), and CommsCoreUplink in turn drags CommNetBackend +
+         DevCommsOverride. All CommNet/CommNode-level types, the same headless
+         reference-DLL contract FleetCommsReader.cs above already relies on. -->
+    <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
+    <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
+    <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
+    <Compile Include="..\Gonogo.KSP\CommandCentres\KspCommandCentre.cs" />
+    <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
+    <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
     <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
   </ItemGroup>

@@ -10,8 +10,9 @@ namespace Sitrep.Host.IntegrationTests
     /// the roster from <c>snapshot.Values["vessels"]</c> (a list of per-vessel
     /// dictionaries carrying <c>id</c> + an <c>orbit</c> element dict) and emits
     /// each vessel's orbit on <c>fleet.&lt;id&gt;.orbit</c> under the
-    /// <c>fleet.</c> dynamic namespace. Per-vessel node routing (Task 2) and
-    /// per-vessel delay (Task 4) are exercised through this uplink.
+    /// <c>fleet.</c> dynamic namespace. Per-vessel node routing (Task 2),
+    /// per-vessel delay (Task 4) and the freeze-exempt per-vessel contact
+    /// channel are exercised through this uplink.
     /// </summary>
     public sealed class FleetDelayTestUplink : ISitrepUplink
     {
@@ -77,6 +78,19 @@ namespace Sitrep.Host.IntegrationTests
                 }
                 _host?.SetVesselConnectivity(id, connected);
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
+                // The SilenceTracker's per-vessel contact report (mirroring the
+                // production FleetDelayUplink publisher): the ONE field under a
+                // fleet subject that the engine treats as freeze-exempt, because
+                // it describes the blackout rather than being telemetry through
+                // it. Published on EVERY tick, including while the vessel is
+                // dark, which is precisely when it matters.
+                _orbitSource.Publisher(id + ChannelEngine.ContactMetaSuffix).Publish(
+                    new Dictionary<string, object?>
+                    {
+                        ["connected"] = connected,
+                        ["state"] = connected ? "InContact" : "Silent",
+                    },
+                    cap.Ut);
                 // Plan 2c: mirror the production FleetVesselLinkBuilder.Build dict
                 // (this test project can't reference Gonogo.KSP), so the
                 // fleet.<id>.delay serialize path is exercised end-to-end.

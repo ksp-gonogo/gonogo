@@ -200,7 +200,14 @@ namespace Gonogo.KSP
             return new SilenceCapture { Ut = ut, Vessels = snapshots };
         }
 
-        /// <summary>COURIER-THREAD handle: publish each touched vessel's <c>fleet.&lt;guid&gt;.contact</c>.</summary>
+        /// <summary>
+        /// COURIER-THREAD handle: publish each touched vessel's
+        /// <c>fleet.&lt;guid&gt;.contact</c>. This channel shares the Delayed
+        /// fleet namespace but is FREEZE-EXEMPT in the engine (see
+        /// <see cref="ChannelEngine.ContactMetaSuffix"/>, which the suffix here
+        /// must match): everything it has to say is said while the vessel is
+        /// dark, so a lane frozen by that same silence would carry none of it.
+        /// </summary>
         internal void HandleSilenceOnCourier(object? captured)
         {
             if (captured is not SilenceCapture cap || _orbitSource == null)
@@ -209,7 +216,7 @@ namespace Gonogo.KSP
             }
             foreach (var v in cap.Vessels)
             {
-                _orbitSource.Publisher(v.VesselId + ".contact").Publish(
+                _orbitSource.Publisher(v.VesselId + ChannelEngine.ContactMetaSuffix).Publish(
                     FleetVesselContactBuilder.Build(v.Connected, v.State.ToString(), v.LastContactUt, v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis),
                     cap.Ut);
             }
