@@ -249,6 +249,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/ShipMap/ShipDiagram.tsx": 2,
     "packages/components/src/SystemView/SystemDiagram.tsx": 1,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 1,
+    // The table's sticky column header over its own scrolling rows, local
+    // sibling ordering inside the table's stacking context. Not app-global
+    // chrome, so a named rung would put a table header in the dashboard's
+    // layer for no reason.
+    "packages/ui-kit/src/DataTable.tsx": 1,
     // The disclosure panel overlay, local sibling ordering inside the
     // component's own stacking context (lifts the popped panel above following
     // content). Not app-global chrome, so no named z rung.

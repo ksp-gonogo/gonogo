@@ -189,6 +189,10 @@ const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
      stay named on a long list. */
   position: sticky;
   top: 0;
+  /* Local sibling ordering, not a rung on the app ladder: this only has to
+     out-stack the rows of its own table as they scroll under it, and a
+     --z-sticky here would put a table header in the same layer as the app's
+     chrome for no reason. */
   z-index: 1;
   background: var(--color-surface-panel);
   color: var(--color-text-faint);
