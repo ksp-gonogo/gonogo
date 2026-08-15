@@ -84,6 +84,8 @@ namespace Gonogo.RealAntennasUplink
                     {
                         From = NodeId(link.a),
                         To = NodeId(link.b),
+                        FromIsHome = link.a.isHome,
+                        ToIsHome = link.b.isHome,
                         Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
                         DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
                         // RA enrichment: per-hop forward data rate off the live
@@ -127,11 +129,20 @@ namespace Gonogo.RealAntennasUplink
             }
         }
 
+        /// <summary>
+        /// A node's readable identity, matching CommNetBackend.NodeId. RSS/RA
+        /// fly a dozen named ground stations, so collapsing them all to one
+        /// "home" label erased which station a link ran to and made a station
+        /// handoff read as a range change on a single station. Home-ness rides
+        /// <c>CommsHop.FromIsHome</c>/<c>ToIsHome</c> and
+        /// <c>CommsNetworkNode.Kind</c> instead of the name.
+        /// </summary>
         private static string NodeId(CommNode node)
         {
             if (node == null) return "unknown";
-            if (node.isHome) return "home";
-            return string.IsNullOrEmpty(node.displayName) ? node.name ?? "node" : node.displayName;
+            if (!string.IsNullOrEmpty(node.displayName)) return node.displayName;
+            if (!string.IsNullOrEmpty(node.name)) return node.name;
+            return node.isHome ? "home" : "node";
         }
 
         private static CommsControlSource MapSource(Vessel.ControlLevel level) => level switch

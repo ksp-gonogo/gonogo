@@ -105,7 +105,7 @@ namespace Sitrep.Core.Tests
                 {
                     new CommsHop
                     {
-                        From = "vessel", To = "ksc", Kind = CommsHopKind.Home,
+                        From = "vessel", To = "ksc", ToIsHome = true, Kind = CommsHopKind.Home,
                         DistanceMeters = 1234.5, BandRateBitsPerSec = null,
                     },
                     new CommsHop
@@ -125,6 +125,13 @@ namespace Sitrep.Core.Tests
             Assert.Equal(JsonValueKind.Null, hops[0].GetProperty("bandRateBitsPerSec").ValueKind);
             Assert.Equal(JsonValueKind.Null, hops[1].GetProperty("distanceMeters").ValueKind);
             Assert.Equal(9600, hops[1].GetProperty("bandRateBitsPerSec").GetDouble());
+            // Which END is the ground station, per hop: the bit that tells a
+            // direct vessel-to-KSC link apart from a relay-mediated one without
+            // parsing the endpoint names.
+            Assert.False(hops[0].GetProperty("fromIsHome").GetBoolean());
+            Assert.True(hops[0].GetProperty("toIsHome").GetBoolean());
+            Assert.False(hops[1].GetProperty("fromIsHome").GetBoolean());
+            Assert.False(hops[1].GetProperty("toIsHome").GetBoolean());
         }
 
         [Fact]

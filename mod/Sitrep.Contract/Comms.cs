@@ -127,6 +127,19 @@ public enum CommsHopKind
 /// never 0). <see cref="BandRateBitsPerSec"/> is the RealAntennas-only
 /// per-hop rate annotation (§1 "path hops gain RA band/rate annotations only
 /// under RA"): absent under bare CommNet.
+///
+/// <para><see cref="From"/>/<see cref="To"/> name the endpoints. Ground
+/// stations carry their OWN name (RSS/RealAntennas fly a dozen of them), not a
+/// single shared "home" label: two consecutive samples both showing a one-hop
+/// direct link, one to Kourou and one to Canberra, are a STATION HANDOFF, and
+/// under a shared label they were indistinguishable from one station whose
+/// range simply changed. That ambiguity is what made a relay handoff readable
+/// as an occlusion blackout.</para>
+///
+/// <para><see cref="FromIsHome"/>/<see cref="ToIsHome"/> carry that home-ness
+/// per endpoint, so it survives without parsing a name. <see cref="Kind"/>
+/// cannot serve: it is one value for the whole hop, so it says a ground
+/// station is involved but never which end.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -138,6 +151,10 @@ public class CommsHop
     public string From { get; set; } = "";
     [SitrepUnit(Units.Id)]
     public string To { get; set; } = "";
+    [SitrepUnit(Units.Flag)]
+    public bool FromIsHome { get; set; }
+    [SitrepUnit(Units.Flag)]
+    public bool ToIsHome { get; set; }
     [SitrepUnit(Units.Enumeration)]
     public CommsHopKind Kind { get; set; }
     [SitrepUnit(Units.Metres)]

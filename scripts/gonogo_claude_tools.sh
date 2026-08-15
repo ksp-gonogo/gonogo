@@ -1052,6 +1052,34 @@ build_gonogokerbalismuplink() {
   ls -la "$install_dir"
 }
 
+# The Deck-only dev tooling mini-mod. Never shipped in a CKAN/SpaceDock
+# release, so it has no build-info stamp and no Contract dll: a single
+# assembly referencing only KSP/Unity (see GonogoDevTools.csproj).
+build_devtools() {
+  local proj="$ROOT/mod/GonogoDevTools/GonogoDevTools.csproj"
+  local out_dir="$ROOT/mod/GonogoDevTools/bin/Release"
+  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoDevTools/Plugins"
+  if [ ! -f "$proj" ]; then
+    echo "GonogoDevTools csproj not found at $proj"
+    return 3
+  fi
+  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+    return 3
+  fi
+  echo "=== building GonogoDevTools ==="
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$proj" -c Release --nologo -v minimal
+  if [ ! -f "$out_dir/GonogoDevTools.dll" ]; then
+    echo "GonogoDevTools.dll not produced (missing at $out_dir/GonogoDevTools.dll)"
+    return 4
+  fi
+  mkdir -p "$install_dir"
+  cp "$out_dir/GonogoDevTools.dll" "$install_dir/"
+  echo "=== deployed to $install_dir ==="
+  ls -la "$install_dir"
+}
+
 tele_read() {
   if [ "$#" -lt 1 ]; then
     echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
@@ -1222,9 +1250,10 @@ case "${1:-help}" in
       gonogoavionicsuplink) build_gonogoavionicsuplink ;;
       gonogokerbcastuplink) build_gonogokerbcastuplink ;;
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
+      devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink"
+        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, devtools"
         exit 2
         ;;
     esac

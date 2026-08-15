@@ -846,7 +846,20 @@ namespace Sitrep.Contract
         /// the frozen Major-12 floor is NOT re-frozen. Every unit this type
         /// uses already existed in <see cref="Units"/>. See
         /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 11 -&gt; 12: which END of a comms hop is
+        /// the ground station.</b> <see cref="CommsHop"/> gains
+        /// <see cref="CommsHop.FromIsHome"/>/<see cref="CommsHop.ToIsHome"/>.
+        /// Both backends also stop collapsing every ground station to the single
+        /// literal name "home" and emit the station's own name instead, which is
+        /// a VALUE change, not a shape change, so it costs no version at all.
+        /// Purely additive on a type already in the frozen Major-12 floor:
+        /// nothing is removed or retyped, so an Uplink built against any earlier
+        /// Major-12 minor is unaffected. Together they make a direct
+        /// vessel-to-KSC link distinguishable from a relay-mediated one, and a
+        /// station-to-station handoff distinguishable from a single station at a
+        /// changed range, off <c>comms.path</c> alone.</para>
         /// </remarks>
-        public const int Minor = 11;
+        public const int Minor = 12;
     }
 }

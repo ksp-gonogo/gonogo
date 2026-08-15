@@ -21,7 +21,22 @@ namespace Gonogo.DevTools
     /// Hard safety rule: the save named "Unnamed" (KSP's default sandbox scratch
     /// save) is off limits and can NEVER be auto-loaded, regardless of config.
     ///
-    /// A third optional cfg line, <c>newsandbox</c>, covers the case where the
+    /// An optional <c>file=&lt;name&gt;</c> line picks WHICH .sfs inside the save
+    /// folder to load; absent, it is <c>persistent</c>, which is what this addon
+    /// always loaded before. A quicksave is just another .sfs beside the
+    /// autosave, so a cfg of
+    /// <code>
+    /// mod testing
+    /// flight
+    /// file=kerbcast black feed test
+    /// </code>
+    /// loads <c>saves/mod testing/kerbcast black feed test.sfs</c>. The value is
+    /// everything after the first <c>=</c>, so a name with spaces needs no
+    /// quoting; it must still name a sibling file (no separators, no <c>..</c>).
+    /// The post-load re-persist writes back to that SAME file, so loading a
+    /// quicksave never clobbers the save's <c>persistent.sfs</c>.
+    ///
+    /// A further optional cfg line, <c>newsandbox</c>, covers the case where the
     /// requested save doesn't exist on disk yet (e.g. the first RO/RP-1 capture
     /// run, with no pre-built save): instead of aborting, a brand-new SANDBOX
     /// game is created under that save name (via <c>GamePersistence.CreateNewGame</c>,
@@ -61,6 +76,12 @@ namespace Gonogo.DevTools
     public sealed class GonogoDevAutoLoad : MonoBehaviour
     {
         private const string LogPrefix = "[GonogoDevAutoLoad] ";
+
+        /// <summary>
+        /// The .sfs loaded when the cfg names no <c>file=</c>: KSP's rolling
+        /// autosave, and the only thing this addon could ever load before.
+        /// </summary>
+        private const string DefaultSfsFile = "persistent";
 
         /// <summary>
         /// Process-wide guard: even though <c>once: false</c> re-instantiates
@@ -231,7 +252,16 @@ namespace Gonogo.DevTools
             // Center even for a save whose active vessel is flyable, so
             // flight-scene Topics (vessel.parts, dv.*, thermal, ...) can't be
             // validated without this. Absent -> Space Center, unchanged.
+            //
+            // An optional "file=<name>" line picks WHICH .sfs inside the save
+            // folder to load, defaulting to "persistent" (the save's rolling
+            // autosave, and the only thing this could load before). A quicksave
+            // is just another .sfs beside it, so `file=kerbcast black feed test`
+            // loads `saves/<save>/kerbcast black feed test.sfs`. The value is
+            // everything after the FIRST '=', trimmed but otherwise untouched,
+            // so a name containing spaces needs no quoting or escaping.
             string? saveName = null;
+            var sfsFile = DefaultSfsFile;
             var restoreFlight = false;
             var newSandboxRequested = false;
             foreach (var line in lines)
@@ -254,6 +284,19 @@ namespace Gonogo.DevTools
                 {
                     newSandboxRequested = true;
                 }
+                else if (trimmed.StartsWith("file=", StringComparison.OrdinalIgnoreCase))
+                {
+                    var requested = trimmed.Substring("file=".Length).Trim();
+                    if (requested.Length == 0)
+                    {
+                        Debug.LogWarning(LogPrefix + "cfg line '" + trimmed + "' names an empty file; keeping the default '"
+                            + DefaultSfsFile + "'");
+                    }
+                    else
+                    {
+                        sfsFile = requested;
+                    }
+                }
             }
 
             if (string.IsNullOrEmpty(saveName))
@@ -262,7 +305,19 @@ namespace Gonogo.DevTools
                 yield break;
             }
 
-            Debug.Log(LogPrefix + "parsed saveName='" + saveName + "' restoreFlight=" + restoreFlight
+            // A file= value is pasted straight into a path, so it must name a
+            // sibling .sfs inside the save folder and nothing else - no
+            // directory separators, no "..", no drive-qualified path. Reject
+            // rather than sanitise: a request that meant to escape the folder
+            // is a mistake worth seeing in the log, not one worth guessing at.
+            if (sfsFile.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 || sfsFile.Contains(".."))
+            {
+                Debug.LogError(LogPrefix + "REFUSED: file='" + sfsFile
+                    + "' must name a .sfs inside the save folder (no path separators, no '..')");
+                yield break;
+            }
+
+            Debug.Log(LogPrefix + "parsed saveName='" + saveName + "' file='" + sfsFile + "' restoreFlight=" + restoreFlight
                 + " newSandboxRequested=" + newSandboxRequested);
 
             // HARD SAFETY RULE: "Unnamed" is off limits and can never be
@@ -275,16 +330,26 @@ namespace Gonogo.DevTools
             }
 
             var savesDir = KSPUtil.ApplicationRootPath + "saves/" + saveName;
-            var sfsPath = savesDir + "/persistent.sfs";
+            var sfsPath = savesDir + "/" + sfsFile + ".sfs";
             var saveExists = Directory.Exists(savesDir) && File.Exists(sfsPath);
             if (saveExists)
             {
                 Debug.Log(LogPrefix + "save found: " + sfsPath);
             }
-            else if (newSandboxRequested)
+            else if (newSandboxRequested && string.Equals(sfsFile, DefaultSfsFile, StringComparison.Ordinal))
             {
                 Debug.Log(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
                     + ") but 'newsandbox' was requested; will create a fresh SANDBOX game instead of aborting");
+            }
+            else if (newSandboxRequested)
+            {
+                // A fresh sandbox is always written as `persistent`, so honouring
+                // 'newsandbox' here would silently load something other than the
+                // named file. A missing named file is a typo, not a cue to invent
+                // an empty game in its place.
+                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath
+                    + " and 'newsandbox' cannot substitute for a named file= ('" + sfsFile + "') - aborting");
+                yield break;
             }
             else
             {
@@ -304,7 +369,7 @@ namespace Gonogo.DevTools
             bool triggered;
             if (saveExists)
             {
-                triggered = LoadSave(saveName!, restoreFlight, out enteredFlight);
+                triggered = LoadSave(saveName!, sfsFile, restoreFlight, out enteredFlight);
             }
             else
             {
@@ -486,18 +551,18 @@ namespace Gonogo.DevTools
         /// was requested: a save with zero protoVessels falls back to Space
         /// Center even when <paramref name="restoreFlight"/> was true.
         /// </summary>
-        private static bool LoadSave(string saveName, bool restoreFlight, out bool enteredFlight)
+        private static bool LoadSave(string saveName, string sfsFile, bool restoreFlight, out bool enteredFlight)
         {
             enteredFlight = false;
             try
             {
-                Debug.Log(LogPrefix + "invoking GamePersistence.LoadSFSFile for save '" + saveName + "'"
+                Debug.Log(LogPrefix + "invoking GamePersistence.LoadSFSFile for save '" + saveName + "' file '" + sfsFile + "'"
                     + (restoreFlight ? " (restore flight)" : ""));
 
-                var node = GamePersistence.LoadSFSFile("persistent", saveName);
+                var node = GamePersistence.LoadSFSFile(sfsFile, saveName);
                 if (node == null)
                 {
-                    Debug.LogError(LogPrefix + "LoadSFSFile returned null for save '" + saveName + "'");
+                    Debug.LogError(LogPrefix + "LoadSFSFile returned null for save '" + saveName + "' file '" + sfsFile + "'");
                     return false;
                 }
 
@@ -517,9 +582,15 @@ namespace Gonogo.DevTools
                     return false;
                 }
 
-                Debug.Log(LogPrefix + "save compatible; updating scenario modules + persisting");
+                // Written back to the file it came FROM, never to a fixed
+                // "persistent": loading a quicksave must not overwrite the
+                // save's rolling autosave with the quicksave's state, which
+                // would destroy whatever the save was actually left at. For
+                // the default file= this is byte-for-byte the previous
+                // behaviour.
+                Debug.Log(LogPrefix + "save compatible; updating scenario modules + persisting back to '" + sfsFile + "'");
                 GamePersistence.UpdateScenarioModules(HighLogic.CurrentGame);
-                GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", saveName, SaveMode.OVERWRITE);
+                GamePersistence.SaveGame(HighLogic.CurrentGame, sfsFile, saveName, SaveMode.OVERWRITE);
                 GameEvents.onGameStatePostLoad.Fire(node);
                 HighLogic.SaveFolder = saveName;
 

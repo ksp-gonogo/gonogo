@@ -149,6 +149,8 @@ namespace Gonogo.KSP
                         {
                             From = NodeId(link.a),
                             To = NodeId(link.b),
+                            FromIsHome = link.a.isHome,
+                            ToIsHome = link.b.isHome,
                             Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
                             DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
                             // CommNet has no per-hop RF rate, RA annotates this (§1).
@@ -217,17 +219,31 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>
+        /// A node's readable identity. Ground stations used to collapse to the
+        /// single literal "home", which erased WHICH station a link ran to, so
+        /// a handoff between two stations looked like one station at a changed
+        /// range: see <see cref="CommsHop"/>. Home-ness now rides
+        /// <c>CommsHop.FromIsHome</c>/<c>ToIsHome</c> and
+        /// <c>CommsNetworkNode.Kind</c> instead of the name, so the name is
+        /// free to be the station's own. "home" survives only as the last
+        /// fallback for a station with no name at all.
+        /// </summary>
         private static string NodeId(CommNode node)
         {
             if (node == null)
             {
                 return "unknown";
             }
-            if (node.isHome)
+            if (!string.IsNullOrEmpty(node.displayName))
             {
-                return "home";
+                return node.displayName;
             }
-            return string.IsNullOrEmpty(node.displayName) ? node.name ?? "node" : node.displayName;
+            if (!string.IsNullOrEmpty(node.name))
+            {
+                return node.name;
+            }
+            return node.isHome ? "home" : "node";
         }
 
         private static CommsControlSource MapControlSource(Vessel.ControlLevel level)

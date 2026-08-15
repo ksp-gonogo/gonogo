@@ -243,8 +243,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     bandRateBitsPerSec: "bit/s",
     distanceMeters: "m",
     from: "id",
+    fromIsHome: "flag",
     kind: "enum",
     to: "id",
+    toIsHome: "flag",
   },
   "CommsLink": {
     connected: "flag",

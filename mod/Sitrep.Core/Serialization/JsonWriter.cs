@@ -997,6 +997,14 @@ namespace Sitrep.Core.Serialization
             sb.Append(':');
             AppendString(sb, h.To ?? "");
             sb.Append(',');
+            AppendString(sb, "fromIsHome");
+            sb.Append(':');
+            AppendBool(sb, h.FromIsHome);
+            sb.Append(',');
+            AppendString(sb, "toIsHome");
+            sb.Append(':');
+            AppendBool(sb, h.ToIsHome);
+            sb.Append(',');
             AppendString(sb, "kind");
             sb.Append(':');
             AppendInteger(sb, (long)h.Kind);

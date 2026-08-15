@@ -200,6 +200,8 @@ export interface CommsHop
 {
 	from: string;
 	to: string;
+	fromIsHome: boolean;
+	toIsHome: boolean;
 	kind: CommsHopKind;
 	distanceMeters?: Value<"m">;
 	bandRateBitsPerSec?: Value<"bit/s">;
