@@ -125,20 +125,17 @@ namespace Gonogo.KSP.CommandCentres
                 return oneWay;
             }
 
-            // NON-KSC (Deck live-confirm): straight-line from the centre's position
-            // to the subject; a routed ControlPath walk from centre.Node is the
-            // in-scene refinement (with the FindClosestControlSource tie-break).
-            if (centre is KspCommandCentre ksp && config != null && config.LightSpeedScale > 0.0)
-            {
-                var vessel = vessels.FirstOrDefault(v => v != null && v.id.ToString() == guid);
-                if (vessel == null)
-                {
-                    return null;
-                }
-                var distance = (ksp.Position - vessel.GetWorldPos3D()).magnitude;
-                return distance / (299792458.0 * config.LightSpeedScale);
-            }
-
+            // A non-KSC centre has no delay until the routed ControlPath walk from
+            // centre.Node lands. It used to fall back to the straight-line distance
+            // between the two positions, which was wrong in a way that mattered:
+            // commands ride the relay network, so a pair with no route has no delay
+            // to quote, and the chord invented one anyway. That made an unroutable
+            // subject look reachable and timed. Null is the honest answer, and the
+            // matrix pass already reads it as "write no row for this pair".
+            //
+            // Nothing is lost by refusing to guess: off the network there is no way
+            // to send or receive a command at all, so a fallback delay could never
+            // have been acted on.
             return null;
         }
 
@@ -152,7 +149,9 @@ namespace Gonogo.KSP.CommandCentres
                 Kind = centre.Kind.ToString(),
                 BodyIndex = centre.BodyIndex,
                 Active = centre.IsActiveNow(),
-                DelayQuality = ksp?.Node != null ? "routed" : "straight-line",
+                // Only one honest value now. A centre with no CommNode cannot be
+                // routed to, so it reports that rather than a quality of estimate.
+                DelayQuality = ksp?.Node != null ? "routed" : "unroutable",
             };
         }
 

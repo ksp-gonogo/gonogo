@@ -51,7 +51,13 @@ public class CommandCentreEntry
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
 
-    /// <summary>Delay-geometry quality: <c>"routed"</c> (CommNode ControlPath, occlusion-aware) or <c>"straight-line"</c> (position-only approximation).</summary>
+    /// <summary>
+    /// Whether this centre can be routed to: <c>"routed"</c> (a CommNode
+    /// ControlPath exists, occlusion-aware) or <c>"unroutable"</c> (no CommNode,
+    /// so no command path and no delay). There is deliberately no
+    /// position-only approximation: commands ride the relay network, and a pair
+    /// with no route has no delay to quote.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? DelayQuality { get; set; }
 }
