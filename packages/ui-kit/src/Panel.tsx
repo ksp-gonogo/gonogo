@@ -879,6 +879,17 @@ function sidebarTracks(side: "start" | "end", size: string): string {
     : `minmax(0, 1fr) minmax(0, ${size})`;
 }
 
+/* Positioning context for a floating header that must cover the body track
+   only. Carries no visual style of its own. */
+const PanelFloatHost = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+`;
+
 const PanelSplit__Box = styled.div<{
   $axis: PanelSidebarAxis;
   $side: "start" | "end";
@@ -1536,6 +1547,22 @@ function PanelRoot({
     </PanelBody>
   );
 
+  // A floating header is absolutely positioned against the nearest positioned
+  // ancestor. With no sidebar that is the glow, which is what a drawing widget
+  // wants: the title paints over the whole tile. With a sidebar it would paint
+  // over the SIDEBAR too, hiding its first item behind the title box, so the
+  // header is re-hosted against the body track alone and the sidebar keeps its
+  // full height. This is what lets a drawing widget have both.
+  const floatingBody =
+    floatingHeader && panelSidebar !== undefined ? (
+      <PanelFloatHost>
+        {header}
+        {body}
+      </PanelFloatHost>
+    ) : (
+      body
+    );
+
   const bodyRegion =
     panelSidebar === undefined ? (
       body
@@ -1545,7 +1572,7 @@ function PanelRoot({
       // header rides the body scroller here exactly as the standard case, so
       // the sidebar's own ScrollArea is untouched.
       <PanelSplit side={sidebarSide} size={sidebarSize}>
-        {body}
+        {floatingBody}
         {/* Written after the body on purpose; `sidebarSide` moves it visually
             and never in the DOM. */}
         <PanelSidebar>{panelSidebar}</PanelSidebar>
@@ -1561,7 +1588,9 @@ function PanelRoot({
                 sibling above it painting over the bleed body. Every other header
                 is a sticky child of the scroller (in `body`), so there is no
                 scroll-away ghost to re-surface. */}
-            {floatingHeader && header}
+            {/* Only when there is no sidebar: with one, the header is hosted
+                inside the body track instead (see `floatingBody`). */}
+            {floatingHeader && panelSidebar === undefined && header}
             {bodyRegion}
           </PanelGlow>
           {/* After the glow region, so it sits below the scroller and stays
