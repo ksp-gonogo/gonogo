@@ -16,5 +16,75 @@
   "v.situationString": "In flight",
   "v.surfaceSpeed": 128.044919938789,
   "v.body": "Kerbin",
-  "v.verticalSpeed": -218.491265755072
+  "v.verticalSpeed": -218.491265755072,
+  "_stream": {
+    "carriedChannels": [
+      "system.bodies",
+      "vessel.orbit",
+      "vessel.identity",
+      "vessel.flight",
+      "vessel.surface",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "sma": 680000,
+          "ecc": 0.02,
+          "inc": 0,
+          "argPe": 0,
+          "mu": 3531600000000.0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "referenceBodyIndex": 1
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "parentBodyIndex": 1,
+          "situation": 5,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 2.9619135737313,
+          "longitude": -55.6193604471985,
+          "altitudeAsl": 2011.38619201363,
+          "altitudeTerrain": 2011.38623046875,
+          "verticalSpeed": -218.491265755072,
+          "surfaceSpeed": 128.044919938789
+        }
+      },
+      {
+        "channel": "vessel.surface",
+        "value": {
+          "biome": "Water",
+          "landedAt": "",
+          "heightFromTerrain": 2011.38623046875
+        }
+      }
+    ]
+  }
 }

@@ -128,5 +128,73 @@
   "o.ApA": 51472.672848284,
   "o.PeA": -566194.426928402,
   "o.orbitalSpeed": 761.5,
-  "v.body": "Kerbin"
+  "v.body": "Kerbin",
+  "_stream": {
+    "carriedChannels": [
+      "system.bodies",
+      "vessel.orbit",
+      "vessel.identity",
+      "vessel.maneuver",
+      "vessel.flight",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 43274.2794794121,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "sma": 342639.122959941,
+          "ecc": 0.9013376733527575,
+          "inc": 7.48670482007197,
+          "lan": 18.1448066391876,
+          "argPe": 185.804298723466,
+          "mu": 3531600000000.0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 43274.2794794121,
+          "referenceBodyIndex": 1
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "parentBodyIndex": 1,
+          "situation": 6,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "vessel.maneuver",
+        "value": {
+          "nodes": [
+            {
+              "id": "node-1",
+              "ut": 43301.21875,
+              "dvRadial": 0,
+              "dvNormal": 0,
+              "dvPrograde": 300,
+              "dvTotal": 300.0,
+              "patches": []
+            }
+          ]
+        }
+      }
+    ]
+  }
 }
