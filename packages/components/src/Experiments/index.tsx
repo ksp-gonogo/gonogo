@@ -23,6 +23,7 @@ import {
   Stack,
   Unit,
   usePanelDelay,
+  useRowFilter,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
@@ -241,6 +242,9 @@ function ExperimentsComponent({
   // the Mobile Processing Lab is a different part from the crew-report/goo/
   // barometer instruments science.instruments tracks), read independently of
   // the instrument list above.
+  // Declared with the other reads so it sits above every early return: a
+  // hook after a conditional return is a hooks-order bug waiting to happen.
+  const filter = useRowFilter({ placeholder: "Filter instruments…" });
   const labRaw = useTelemetry("science.lab");
   const labs = parseLab(labRaw);
 
@@ -278,7 +282,12 @@ function ExperimentsComponent({
 
   // Group by expId so a vessel with three thermometers shows them in
   // one cluster rather than scattered.
-  const grouped = groupByExpId(instruments);
+  // Filter before grouping so a group that loses every instrument disappears
+  // with its heading, rather than leaving an empty section behind.
+  const shown = instruments.filter((inst) =>
+    filter.matches(`${inst.expId} ${inst.partTitle}`),
+  );
+  const grouped = groupByExpId(shown);
 
   const totals = summarise(instruments);
 
@@ -344,7 +353,9 @@ function ExperimentsComponent({
       )}
       {showLab && <LabSection labs={labs} />}
       <ScrollArea>
-        {isLandscape ? (
+        {sectionNodes.length === 0 ? (
+          <EmptyState>No instrument matches the filter.</EmptyState>
+        ) : isLandscape ? (
           <Grid minColWidth="200px" gap="md">
             {sectionNodes}
           </Grid>
@@ -352,6 +363,7 @@ function ExperimentsComponent({
           <Stack gap="md">{sectionNodes}</Stack>
         )}
       </ScrollArea>
+      {filter.control}
     </Panel>
   );
 }

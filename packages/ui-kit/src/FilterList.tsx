@@ -1,11 +1,8 @@
-import { type ReactNode, useId, useState } from "react";
-import { Cluster } from "./Cluster";
+import type { ReactNode } from "react";
 import type { ComponentSlotSegment } from "./contributions";
-import { useContributions } from "./contributionsRead";
 import { EmptyState } from "./EmptyState";
-import { FilterChip } from "./FilterChip";
-import { Field, FieldLabel, Input } from "./Form";
 import { Stack } from "./Stack";
+import { useRowFilter } from "./useRowFilter";
 
 // ---------------------------------------------------------------------------
 // A widget-agnostic filterable list (component-extension-slots design §4).
@@ -24,10 +21,8 @@ import { Stack } from "./Stack";
 // probe / test without meta) the term list is stably empty and every row passes
 // through, so mounting is the whole lifecycle.
 //
-// Filter model: contributed toggles STACK (AND with each other), the free-text
-// box is ANDed on top and applied last, every needle a case-insensitive
-// substring. Nothing selected and nothing typed shows everything, the resting
-// state, so the list hides nothing until an operator narrows it.
+// Filter model lives in `useRowFilter`, shared with hosts that render their own
+// rows (a table cannot hand its rows over without giving up its columns).
 //
 // Lives in `@ksp-gonogo/ui-kit`: the contribution read seam (`useContributions`)
 // moved into the design floor, so a published, third-party-reachable component
@@ -60,55 +55,11 @@ export function FilterList({
   segment = "filters",
   emptyLabel = "Nothing matches the filter",
 }: FilterListProps) {
-  const terms = useContributions(segment);
-  // Distinct terms, in contribution order: two providers can land the same
-  // word, and a doubled toggle is just noise.
-  const uniqueTerms = [...new Set(terms)];
-
-  const [active, setActive] = useState<ReadonlySet<string>>(() => new Set());
-  const [typed, setTyped] = useState("");
-  const searchId = useId();
-
-  const toggle = (term: string) => {
-    setActive((prev) => {
-      const next = new Set(prev);
-      if (next.has(term)) next.delete(term);
-      else next.add(term);
-      return next;
-    });
-  };
-
-  // Toggles stack, the typed box is ANDed on top and applied last. Empty
-  // needles are dropped so the resting state passes everything through.
-  const needles = [...active, typed]
-    .filter((s) => s.length > 0)
-    .map((s) => s.toLowerCase());
-  const shown = rows.filter((row) => {
-    const haystack = row.searchText.toLowerCase();
-    return needles.every((needle) => haystack.includes(needle));
-  });
+  const filter = useRowFilter({ segment });
+  const shown = rows.filter((row) => filter.matches(row.searchText));
 
   return (
     <Stack gap="sm">
-      {uniqueTerms.length > 0 && (
-        <Cluster
-          justify="start"
-          gap="xs"
-          wrap
-          role="group"
-          aria-label="Filters"
-        >
-          {uniqueTerms.map((term) => (
-            <FilterChip
-              key={term}
-              label={term}
-              selected={active.has(term)}
-              onToggle={() => toggle(term)}
-            />
-          ))}
-        </Cluster>
-      )}
-
       {shown.length > 0 ? (
         <Stack gap="xs">
           {shown.map((row) => (
@@ -120,16 +71,7 @@ export function FilterList({
       )}
 
       {/* Search box rendered last (design §4). */}
-      <Field>
-        <FieldLabel htmlFor={searchId}>Search</FieldLabel>
-        <Input
-          id={searchId}
-          type="search"
-          value={typed}
-          placeholder="Filter…"
-          onChange={(event) => setTyped(event.target.value)}
-        />
-      </Field>
+      {filter.control}
     </Stack>
   );
 }

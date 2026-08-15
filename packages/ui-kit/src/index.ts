@@ -461,6 +461,11 @@ export {
 } from "./usePanelAsideSize";
 export { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 export {
+  type RowFilter,
+  type UseRowFilterOptions,
+  useRowFilter,
+} from "./useRowFilter";
+export {
   Value,
   type ValueProps,
   type ValueSize,

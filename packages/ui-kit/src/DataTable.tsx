@@ -132,7 +132,7 @@ export function DataTable<Row>({
                 const detail = rowDetail?.(row);
                 return (
                   <Fragment key={key}>
-                    <DataTable__Row>
+                    <DataTable__Row $hasDetail={detail != null}>
                       {columns.map((col) => (
                         <DataTable__Cell
                           key={col.key}
@@ -217,9 +217,13 @@ const DataTable__SectionCell = styled.th`
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
-const DataTable__Row = styled.tr`
+/* A row and its detail are ONE record, so only the bottom of the pair is
+   ruled. Bordering both drew a second line across every row that had a
+   detail, which read as a stray divider rather than as one record. */
+const DataTable__Row = styled.tr<{ $hasDetail: boolean }>`
   &:not(:last-child) > td {
-    border-bottom: 1px solid var(--color-border-subtle);
+    border-bottom: ${({ $hasDetail }) =>
+      $hasDetail ? "none" : "1px solid var(--color-border-subtle)"};
   }
 `;
 

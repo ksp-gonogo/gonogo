@@ -1,4 +1,4 @@
-import { AugmentSlot } from "@ksp-gonogo/core";
+import { AugmentSlot, getAugmentsForSlot } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   DataTable,
@@ -8,6 +8,7 @@ import {
   ScrollArea,
   Stack,
   Unit,
+  useRowFilter,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ExperimentBreakdownEntry, ParsedExperiment } from "./parsers";
@@ -113,6 +114,19 @@ export function AboardTab({
   sciDataAmount,
   compact,
 }: Readonly<AboardTabProps>) {
+  // Nothing registered on the slot means every row would carry an empty
+  // detail row: dead vertical space and a rule under each one. A stock save
+  // gets the plain table instead.
+  const slotFilled = getAugmentsForSlot("science-data.aboard-row").length > 0;
+  // Searchable text is the subject plus where it was taken, which is what an
+  // operator types when hunting a row: "goo", "grasslands", "flying".
+  const filter = useRowFilter({ placeholder: "Filter subjects…" });
+  const shownBreakdown = (breakdown ?? []).filter((b) =>
+    filter.matches(`${b.expTitle} ${b.biome} ${b.situation}`),
+  );
+  const shownExperiments = (experiments ?? []).filter((e) =>
+    filter.matches(e.title),
+  );
   const hasBreakdown = breakdown !== null && breakdown.length > 0;
   const hasExperiments = experiments !== null && experiments.length > 0;
 
@@ -144,29 +158,36 @@ export function AboardTab({
         {hasBreakdown ? (
           <DataTable
             caption="Science aboard the active vessel, by subject"
+            empty="No subject matches the filter."
             columns={BREAKDOWN_COLUMNS}
-            rows={breakdown}
+            rows={shownBreakdown}
             rowKey={(b) => b.subjectId}
             // The File Manager's controls land here, full width beneath their
             // own row, so a bound augment cannot disturb the columns above it.
-            rowDetail={(b) => (
-              <AugmentSlot
-                name="science-data.aboard-row"
-                props={{ subjectId: b.subjectId }}
-              />
-            )}
+            rowDetail={
+              slotFilled
+                ? (b) => (
+                    <AugmentSlot
+                      name="science-data.aboard-row"
+                      props={{ subjectId: b.subjectId }}
+                    />
+                  )
+                : undefined
+            }
           />
         ) : hasExperiments ? (
           <DataTable
             caption="Science results stored aboard the active vessel"
+            empty="No result matches the filter."
             columns={EXPERIMENT_COLUMNS}
-            rows={experiments}
+            rows={shownExperiments}
             rowKey={(e) => e.subjectId}
           />
         ) : (
           <EmptyState>No science data aboard.</EmptyState>
         )}
       </ScrollArea>
+      {(hasBreakdown || hasExperiments) && filter.control}
     </Stack>
   );
 }

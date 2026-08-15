@@ -8,6 +8,7 @@ import {
   ScrollArea,
   Stack,
   Unit,
+  useRowFilter,
   Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ArchiveBodyGroup, ArchiveSubject } from "./parsers";
@@ -65,15 +66,20 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
  */
 function sectionsOf(
   groups: ArchiveBodyGroup[],
+  matches: (searchText: string) => boolean,
 ): DataTableSection<ArchiveSubject>[] {
   const out: DataTableSection<ArchiveSubject>[] = [];
   for (const body of groups) {
     for (const exp of body.experiments) {
-      out.push({
-        id: `${body.body}/${exp.expId}`,
-        title: `${body.body || "(unknown)"} · ${exp.expTitle || "(unknown)"}`,
-        rows: exp.rows,
-      });
+      const title = `${body.body || "(unknown)"} · ${exp.expTitle || "(unknown)"}`;
+      // A career archive is the longest list in the app, so the heading text
+      // counts as searchable: typing a body name keeps that whole group
+      // rather than making the operator match every row individually.
+      const rows = exp.rows.filter((r) =>
+        matches(`${title} ${r.situation} ${r.biome}`),
+      );
+      if (rows.length === 0) continue;
+      out.push({ id: `${body.body}/${exp.expId}`, title, rows });
     }
   }
   return out;
@@ -81,6 +87,7 @@ function sectionsOf(
 
 /** The career-wide R&D archive: every subject ever recovered, any vessel. */
 export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
+  const filter = useRowFilter({ placeholder: "Filter by body, biome…" });
   if (archive === null) {
     return (
       <EmptyState>
@@ -98,10 +105,12 @@ export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
         <DataTable
           caption="Career science archive, by body and experiment"
           columns={COLUMNS}
-          sections={sectionsOf(groups)}
+          sections={sectionsOf(groups, filter.matches)}
           rowKey={(r) => r.subjectId}
+          empty="No subject matches the filter."
         />
       </ScrollArea>
+      {filter.control}
     </Stack>
   );
 }
