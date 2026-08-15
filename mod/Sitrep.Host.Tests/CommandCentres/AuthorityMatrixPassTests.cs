@@ -68,5 +68,68 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(ChannelEngine.FleetNodePrefix + "G", AuthorityMatrixPass.FleetNode("G"));
             Assert.Equal("fleet.G", AuthorityMatrixPass.FleetNode("G"));
         }
+
+        [Fact]
+        public void CentreNode_MirrorsTheFleetNamespace()
+        {
+            Assert.Equal(ChannelEngine.CentreNodePrefix + "ksc", AuthorityMatrixPass.CentreNode("ksc"));
+            Assert.Equal("centre.ksc", AuthorityMatrixPass.CentreNode("ksc"));
+        }
+
+        [Fact]
+        public void PopulateCentrePairs_WritesBothDirections_Independently()
+        {
+            var (calls, sink) = Recorder();
+            var centres = new ICommandCentre[]
+            {
+                new FakeCommandCentre("ksc"),
+                new FakeCommandCentre("ground:gs1"),
+            };
+
+            new AuthorityMatrixPass().PopulateCentrePairs(
+                centres,
+                (from, to) => from.Id == "ksc" ? 12.0 : 34.0,
+                sink);
+
+            Assert.Contains(calls, x => x.vantage == "ksc" && x.node == "centre.ground:gs1" && x.s == 12.0);
+            Assert.Contains(calls, x => x.vantage == "ground:gs1" && x.node == "centre.ksc" && x.s == 34.0);
+        }
+
+        [Fact]
+        public void PopulateCentrePairs_ACentreIsZeroDistanceFromItself()
+        {
+            var (calls, sink) = Recorder();
+
+            new AuthorityMatrixPass().PopulateCentrePairs(
+                new ICommandCentre[] { new FakeCommandCentre("ksc") },
+                // A self-path is not a route, so routing reports nothing; the
+                // pass still has to state the zero itself, or the pair would
+                // fall through to the whole-network default.
+                (_, __) => null,
+                sink);
+
+            var self = Assert.Single(calls);
+            Assert.Equal(("ksc", "centre.ksc", 0.0), self);
+        }
+
+        [Fact]
+        public void PopulateCentrePairs_SkipsUnroutablePairs_WithoutQuotingZero()
+        {
+            var (calls, sink) = Recorder();
+            var centres = new ICommandCentre[]
+            {
+                new FakeCommandCentre("ksc"),
+                new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+            };
+
+            new AuthorityMatrixPass().PopulateCentrePairs(centres, (_, __) => null, sink);
+
+            // Only the two self-rows; neither cross pair invents a delay.
+            Assert.Equal(2, calls.Count);
+            Assert.All(calls, x => Assert.Equal(0.0, x.s));
+            Assert.DoesNotContain(calls, x => x.vantage == "ksc" && x.node == "centre.vessel:G");
+            Assert.DoesNotContain(calls, x => x.vantage == "vessel:G" && x.node == "centre.ksc");
+        }
+
     }
 }

@@ -706,6 +706,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // comms backends ("CommNet / RealAntennas") in doc-comments explaining
       // what they force: comment-only, no RA coupling.
       "mod/Gonogo.KSP/DevCommsOverride.cs",
+      // the node-to-node path walk names RealAntennas in a doc comment to record
+      // WHY stock's pathfinder can be trusted over RA's links: RA overrides link
+      // construction only, never the solver. Comment-only, no RA coupling.
+      "mod/Gonogo.KSP/FleetCommsReader.cs",
       "mod/Gonogo.KSP/GonogoAddon.cs",
       "mod/GonogoDevTools/GonogoDevForceComms.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",

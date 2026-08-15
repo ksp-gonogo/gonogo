@@ -480,6 +480,19 @@ namespace Sitrep.Contract
         void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds);
 
         /// <summary>
+        /// Set the one-way light-time BETWEEN two command centres: the delay a
+        /// command takes travelling from <paramref name="fromCentreId"/> (a
+        /// vantage) to <paramref name="toCentreId"/> addressed as a destination
+        /// node. Same explicit (vantage, node) tier as
+        /// <see cref="SetAuthorityDelay"/>; the difference is that the subject is
+        /// a centre rather than a craft, which is what an act aimed at the
+        /// program's home centre (a currency spend) needs in order to be delayed
+        /// at all. Populated per capture pass, one row per ordered pair of active
+        /// centres that are routable to each other.
+        /// </summary>
+        void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds);
+
+        /// <summary>
         /// Set a FLEET vessel's connectivity (Plan 2b): its
         /// <c>fleet.&lt;vesselId&gt;.*</c> topics freeze on ITS OWN link
         /// independently of the active vessel. Call it per vessel each

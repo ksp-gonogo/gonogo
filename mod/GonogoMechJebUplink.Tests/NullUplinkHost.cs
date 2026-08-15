@@ -30,6 +30,7 @@ namespace GonogoMechJebUplink.Tests
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw NotExpected();
         public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw NotExpected();
         public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw NotExpected();
+        public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw NotExpected();
         public void SetVesselConnectivity(string vesselId, bool connected) => throw NotExpected();
         public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread) => throw NotExpected();
         public Kernel Kernel => throw NotExpected();

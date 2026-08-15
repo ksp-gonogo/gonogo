@@ -31,6 +31,12 @@
   <ItemGroup>
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscLightTimeMath.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\VesselScienceAggregator.cs" />
+    <!-- RoutedPathDelay.cs is the light-time arithmetic behind every routed
+         comms read, deliberately written against measured distances rather
+         than CommNet types (see its own doc comment) so it needs no
+         KspManaged gating either. The CommNet-walking half that feeds it,
+         FleetCommsReader.cs, is gated below. -->
+    <Compile Include="..\Gonogo.KSP\RoutedPathDelay.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
@@ -87,6 +93,7 @@
   <ItemGroup>
     <Compile Remove="CurrencyDelay\**\*.cs" />
     <Compile Remove="SilenceTracking\**\*.cs" />
+    <Compile Remove="Comms\**\*.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -129,6 +136,14 @@
          Sitrep.Host ProjectReference above), so it needs the same KspManaged gating. -->
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrackerPersistence.cs" />
     <Compile Include="SilenceTracking\**\*.cs" />
+    <!-- FleetCommsReader.cs walks the live CommNet graph, but CommNode /
+         CommLink / CommPath / CommNetwork are plain classes with no scene or
+         MonoBehaviour dependency (unlike Vessel, which is why only the
+         node-to-node half is exercised here), so the reader loads and runs
+         headlessly against the reference DLL - same gating contract as the
+         ConfigNode-backed suites above. -->
+    <Compile Include="..\Gonogo.KSP\FleetCommsReader.cs" />
+    <Compile Include="Comms\**\*.cs" />
     <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
   </ItemGroup>
 

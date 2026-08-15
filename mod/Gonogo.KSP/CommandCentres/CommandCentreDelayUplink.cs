@@ -10,11 +10,9 @@ namespace Gonogo.KSP.CommandCentres
 {
     // NOTE (agent-6, Plan 3, T7 KSP glue): NOT locally compilable (no KspManaged
     // refs). Verify at the full-sln fold. The KSC routeDelay reproduces Plan 2's
-    // node-default so T13's KSC-parity gate holds. The NON-KSC routeDelay (routed
-    // delay from a crewed-vessel / KK centre to a subject) and the
-    // FindClosestControlSource multi-source tie-break are the Deck live-confirm
-    // items: written straight-line-from-Position here, to be validated in-scene
-    // before multi-authority selection is trusted (per main's steer).
+    // node-default so T13's KSC-parity gate holds. The FindClosestControlSource
+    // multi-source tie-break is still a Deck live-confirm item, to be validated
+    // in-scene before multi-authority selection is trusted (per main's steer).
 
     /// <summary>
     /// Populates the per-(authority, subject) command-delay matrix each fleet
@@ -27,6 +25,18 @@ namespace Gonogo.KSP.CommandCentres
     public sealed class CommandCentreDelayUplink : ISitrepUplink
     {
         public const string RosterTopic = "commandCentre.roster";
+
+        /// <summary>
+        /// Soft cap on graph SOLVES per pass. Every non-KSC row and every
+        /// centre-to-centre row runs a Dijkstra over the whole CommNet node list
+        /// (stock <c>CommNetwork.FindPath</c>), unlike the KSC rows, which only
+        /// read a path the game has already solved. The count is centres x
+        /// (vessels + centres), so it grows with the fleet as well as with the
+        /// number of authorities: this is the number worth watching if the
+        /// capture ever starts costing frame time.
+        /// </summary>
+        private static readonly PerfBudget PathSolveBudget = new PerfBudget(
+            "CommandCentreDelayUplink routed path solves", threshold: 2000, windowSec: 1.0, unit: "solves");
 
         private readonly CommandCentreRegistry _registry;
         private IUplinkHost? _host;
@@ -61,7 +71,13 @@ namespace Gonogo.KSP.CommandCentres
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, ChannelEngine.FleetNodePrefix);
         }
 
-        /// <summary>MAIN-THREAD capture: enumerate active centres x fleet subjects, compute each row's delay, and build the roster.</summary>
+        /// <summary>
+        /// MAIN-THREAD capture: enumerate the active centres, compute a delay row
+        /// for each against every fleet subject AND against every other centre,
+        /// and build the roster. Both subject namespaces are captured here because
+        /// both are KSP reads (a graph solve), and KSP reads only happen on this
+        /// thread.
+        /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             var vessels = FlightGlobals.Vessels;
@@ -74,11 +90,22 @@ namespace Gonogo.KSP.CommandCentres
             var config = CommsCoreUplink.SignalDelayConfig;
 
             var rows = new List<AuthorityRow>();
-            new AuthorityMatrixPass().Populate(
+            var solves = new SolveCounter();
+            void Row(string vantage, string node, double seconds) =>
+                rows.Add(new AuthorityRow { Vantage = vantage, Node = node, Seconds = seconds });
+
+            var pass = new AuthorityMatrixPass();
+            pass.Populate(
                 centres,
                 vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                (centre, guid) => RouteDelay(centre, guid, config, vessels),
-                (vantage, node, seconds) => rows.Add(new AuthorityRow { Vantage = vantage, Node = node, Seconds = seconds }));
+                (centre, guid) => RouteDelay(centre, guid, config, vessels, solves),
+                Row);
+            pass.PopulateCentrePairs(
+                centres,
+                (from, to) => RouteCentreDelay(from, to, config, solves),
+                Row);
+
+            PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
 
             var roster = centres.Select(ToRosterEntry).ToList();
             return new CommandCentreCapture { Rows = rows, Roster = roster };
@@ -94,8 +121,18 @@ namespace Gonogo.KSP.CommandCentres
 
             foreach (var row in cap.Rows)
             {
-                // node is already "fleet.<guid>"; SetAuthorityDelay re-derives it
-                // from the vessel guid, so pass the guid back out of the node.
+                // The row's node is already namespaced ("fleet.<guid>" or
+                // "centre.<id>") and both host hooks re-derive it from the bare
+                // subject id, so strip the prefix back off to pick the hook.
+                if (row.Node.StartsWith(ChannelEngine.CentreNodePrefix))
+                {
+                    _host?.SetCentreDelay(
+                        row.Vantage,
+                        row.Node.Substring(ChannelEngine.CentreNodePrefix.Length),
+                        row.Seconds);
+                    continue;
+                }
+
                 var guid = row.Node.StartsWith(ChannelEngine.FleetNodePrefix)
                     ? row.Node.Substring(ChannelEngine.FleetNodePrefix.Length)
                     : row.Node;
@@ -107,36 +144,72 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>
         /// One-way seconds from a centre to a subject vessel. KSC reuses the
-        /// subject's OWN routed (vessel↔KSC) light-time via <see cref="FleetCommsReader"/>,
+        /// subject's OWN routed (vessel↔KSC) light-time via <see cref="FleetCommsReader.ReadVessel"/>,
         /// so the explicit (ksc, fleet.&lt;guid&gt;) row equals Plan 2's node-default
-        /// (KSC parity, T13). A non-KSC CommNode-backed centre would route via its
-        /// ControlPath; the Deck-confirm first cut is straight-line from Position.
+        /// (KSC parity, T13) -- the vessel's solved path home IS the path to KSC, and
+        /// re-solving it here could only introduce a discrepancy. Any other centre
+        /// solves the graph between its own node and the subject's.
+        ///
+        /// <para>Still null-not-zero when nothing routes. The straight-line
+        /// distance this branch used to fall back to was wrong in a way that
+        /// mattered: commands ride the relay network, so a pair with no route has
+        /// no delay to quote, and the chord invented one anyway, which made an
+        /// unroutable subject look reachable and timed. Nothing is lost by
+        /// refusing to guess, because off the network there is no way to send or
+        /// receive the command at all. The matrix pass reads null as "write no
+        /// row for this pair".</para>
         /// </summary>
-        private static double? RouteDelay(ICommandCentre centre, string guid, SignalDelayConfig? config, IList<Vessel> vessels)
+        private static double? RouteDelay(
+            ICommandCentre centre,
+            string guid,
+            SignalDelayConfig? config,
+            IList<Vessel> vessels,
+            SolveCounter solves)
         {
+            var vessel = vessels.FirstOrDefault(v => v != null && v.id.ToString() == guid);
+            if (vessel == null)
+            {
+                return null;
+            }
+
             if (centre.Id == "ksc")
             {
-                var vessel = vessels.FirstOrDefault(v => v != null && v.id.ToString() == guid);
-                if (vessel == null)
-                {
-                    return null;
-                }
                 var (oneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
                 return oneWay;
             }
 
-            // A non-KSC centre has no delay until the routed ControlPath walk from
-            // centre.Node lands. It used to fall back to the straight-line distance
-            // between the two positions, which was wrong in a way that mattered:
-            // commands ride the relay network, so a pair with no route has no delay
-            // to quote, and the chord invented one anyway. That made an unroutable
-            // subject look reachable and timed. Null is the honest answer, and the
-            // matrix pass already reads it as "write no row for this pair".
-            //
-            // Nothing is lost by refusing to guess: off the network there is no way
-            // to send or receive a command at all, so a fallback delay could never
-            // have been acted on.
-            return null;
+            var from = (centre as KspCommandCentre)?.Node;
+            var to = vessel.connection?.Comm;
+            if (from == null || to == null)
+            {
+                return null;
+            }
+
+            solves.Count++;
+            return FleetCommsReader.ReadNodePath(from, to, config);
+        }
+
+        /// <summary>
+        /// One-way seconds between two command centres, walking the relay graph
+        /// between their CommNet nodes. A centre with no node cannot be routed to
+        /// or from at all, which is the same "unroutable" the roster already
+        /// publishes for it.
+        /// </summary>
+        private static double? RouteCentreDelay(
+            ICommandCentre from,
+            ICommandCentre to,
+            SignalDelayConfig? config,
+            SolveCounter solves)
+        {
+            var fromNode = (from as KspCommandCentre)?.Node;
+            var toNode = (to as KspCommandCentre)?.Node;
+            if (fromNode == null || toNode == null)
+            {
+                return null;
+            }
+
+            solves.Count++;
+            return FleetCommsReader.ReadNodePath(fromNode, toNode, config);
         }
 
         private static CommandCentreEntry ToRosterEntry(ICommandCentre centre)
@@ -153,6 +226,12 @@ namespace Gonogo.KSP.CommandCentres
                 // routed to, so it reports that rather than a quality of estimate.
                 DelayQuality = ksp?.Node != null ? "routed" : "unroutable",
             };
+        }
+
+        /// <summary>Counts the Dijkstra solves a capture pass ran, for <see cref="PathSolveBudget"/>.</summary>
+        private sealed class SolveCounter
+        {
+            public int Count;
         }
 
         private sealed class AuthorityRow

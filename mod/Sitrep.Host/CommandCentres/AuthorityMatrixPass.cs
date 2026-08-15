@@ -12,6 +12,12 @@ namespace Sitrep.Host.CommandCentres
     /// vantage while leaving the KSC-uniform node-default underneath for any
     /// unselected vantage.
     ///
+    /// <para>Two subject namespaces, same tier: <see cref="Populate"/> writes the
+    /// centre-to-VESSEL rows, <see cref="PopulateCentrePairs"/> the
+    /// centre-to-CENTRE ones. The second exists because a centre used to be
+    /// addressable only as a vantage, which left an act aimed at another centre
+    /// (a currency spend routed to the program's home) with no delay to read.</para>
+    ///
     /// <para>KSP-free by construction: the routing (a centre's CommNet
     /// <c>ControlPath</c> to a subject, straight-line from a position) is injected
     /// as <c>routeDelay</c> by the KSP layer, which owns the KSP types. The two
@@ -28,6 +34,9 @@ namespace Sitrep.Host.CommandCentres
     {
         /// <summary>The per-subject node id for a vessel guid, matching Plan 2's fleet namespace.</summary>
         public static string FleetNode(string guid) => ChannelEngine.FleetNodePrefix + guid;
+
+        /// <summary>The per-subject node id for a command centre addressed as a DESTINATION.</summary>
+        public static string CentreNode(string centreId) => ChannelEngine.CentreNodePrefix + centreId;
 
         /// <param name="activeCentres">The registry's currently-active centres.</param>
         /// <param name="subjectGuids">The fleet subject vessel guids (same set Plan 2's fleet pass walks).</param>
@@ -63,6 +72,56 @@ namespace Sitrep.Host.CommandCentres
                     }
 
                     setDelay(centre.Id, FleetNode(guid), seconds.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Populates the CENTRE-to-CENTRE half of the same matrix: for every
+        /// ordered pair of active centres, the delay from the first (as a
+        /// vantage) to the second (as a destination <see cref="CentreNode"/>).
+        /// This is what makes an act aimed at another centre, rather than at a
+        /// craft, expressible at all.
+        ///
+        /// <para>A centre's row against ITSELF is written as an explicit zero,
+        /// and it is the one zero in this file that is not a guess: a node is
+        /// exactly no distance from itself. Without it the pair would fall
+        /// through to the whole-network default delay, so an operator at the
+        /// home centre commanding the home centre would inherit whatever
+        /// light-time the active craft happens to be at, which is the wrong
+        /// number and silently so. The routing callback still reports
+        /// <c>null</c> for a self-path, because "route from a node to itself" is
+        /// not a route; the zero is this pass's own statement, not a measurement.</para>
+        /// </summary>
+        /// <param name="activeCentres">The registry's currently-active centres.</param>
+        /// <param name="routeDelay">
+        /// KSP-layer routing: one-way seconds between two centres, or null when they are
+        /// not routable to each other (the pair is then left unset, so nothing quotes a
+        /// delay for a command that could not be delivered).
+        /// </param>
+        /// <param name="setDelay">Writes an explicit (vantage, node, seconds) pair.</param>
+        public void PopulateCentrePairs(
+            IReadOnlyList<ICommandCentre> activeCentres,
+            Func<ICommandCentre, ICommandCentre, double?> routeDelay,
+            Action<string, string, double> setDelay)
+        {
+            foreach (var from in activeCentres)
+            {
+                foreach (var to in activeCentres)
+                {
+                    if (from.Id == to.Id)
+                    {
+                        setDelay(from.Id, CentreNode(to.Id), 0.0);
+                        continue;
+                    }
+
+                    var seconds = routeDelay(from, to);
+                    if (seconds == null)
+                    {
+                        continue;
+                    }
+
+                    setDelay(from.Id, CentreNode(to.Id), seconds.Value);
                 }
             }
         }

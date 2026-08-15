@@ -49,5 +49,23 @@ namespace Sitrep.Host.Tests.CommandCentres
             // ...but any OTHER vantage still falls through to Plan 2's node-default.
             Assert.Equal(5.0, net.DelayTo("some-other-vantage", FleetNode("G")));
         }
+
+        [Fact]
+        public void CentrePairPass_AddsAnAddressableCentre_WithoutDisturbingAnyVesselRow()
+        {
+            var net = new StubNetwork();
+            net.SetNodeDelay(FleetNode("G"), 5.0); // Plan 2 node-default
+
+            new AuthorityMatrixPass().PopulateCentrePairs(
+                new ICommandCentre[] { new FakeCommandCentre("ksc") },
+                (_, __) => null,
+                (vantage, node, seconds) => net.SetDelay(vantage, node, seconds));
+
+            // The centre namespace is disjoint from the fleet one, so making a
+            // centre addressable as a destination leaves every existing
+            // centre -> vessel lookup exactly where it was.
+            Assert.Equal(5.0, net.DelayTo("ksc", FleetNode("G")));
+            Assert.Equal(0.0, net.DelayTo("ksc", AuthorityMatrixPass.CentreNode("ksc")));
+        }
     }
 }

@@ -69,6 +69,22 @@ namespace Sitrep.Host
         public const string FleetNodePrefix = "fleet.";
 
         /// <summary>
+        /// Per-centre node namespace: the id under which a command centre can be
+        /// addressed as the DESTINATION of a command, mirroring
+        /// <see cref="FleetNodePrefix"/>'s per-vessel one. A centre was
+        /// previously only ever a vantage (the left-hand side of
+        /// <c>DelayTo(vantage, node)</c>), so there was no id to name when the
+        /// thing being commanded is another centre rather than a craft, which is
+        /// what a currency spend routed to the program's home centre is.
+        ///
+        /// <para>Delay-only for now: no channel publishes under this prefix, so
+        /// <see cref="NodeForTopic"/> deliberately does not map it. The node
+        /// exists to be the right-hand side of a delay lookup, not to carry
+        /// telemetry.</para>
+        /// </summary>
+        public const string CentreNodePrefix = "centre.";
+
+        /// <summary>
         /// Source-attributed currency-event namespace: a
         /// "currency.&lt;guid&gt;.&lt;currency&gt;" topic records under the SAME
         /// per-vessel node "fleet.&lt;guid&gt;" that vessel's telemetry uses, so the
@@ -1153,6 +1169,15 @@ namespace Sitrep.Host
             // this centre. DelayTo's 3-tier lookup keeps the node-default beneath
             // it for any unselected vantage, so KSC-only behaviour is unchanged.
             _network.SetDelay(centreId, FleetNodePrefix + vesselId, oneWaySeconds);
+        }
+
+        public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds)
+        {
+            // Centre-to-centre command delay: the same explicit (vantage, node)
+            // tier as SetAuthorityDelay, with a centre on BOTH sides. Writing it
+            // is what makes "send this from a deep-space centre to the home
+            // centre" a lookup rather than a missing number.
+            _network.SetDelay(fromCentreId, CentreNodePrefix + toCentreId, oneWaySeconds);
         }
 
         public void RegisterCommandCentreSource(CommandCentres.ICommandCentreSource source)
