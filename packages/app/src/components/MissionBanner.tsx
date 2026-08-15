@@ -2,6 +2,7 @@ import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
+import { VantageControl } from "./VantageControl";
 
 /**
  * Thin, unobtrusive strip across the very top of the main screen, the
@@ -27,19 +28,9 @@ import styled from "styled-components";
 export function MissionBanner() {
   const ut = useViewUt();
 
-  // Exactly one command centre exists today, this app IS the host/KSC, so
-  // there's nothing to read from a data source yet. This is the seam that
-  // becomes a dynamic lookup once multiple command centres exist (see
-  // design memory `project_command_centres_multivantage`: gonogo's core is
-  // already vantage-keyed end to end: the gap is an Uplink-side "what
-  // counts as a command centre, and where" capability that hasn't been
-  // built). Kept as a labelled field now so a future dynamic source drops
-  // straight into this slot without touching the surrounding markup.
-  const commandCentre = "KSC";
-
   const fields: { label: string; value: ReactNode }[] = [
     { label: "UT", value: <MissionDate value={ut} /> },
-    { label: "CC", value: commandCentre },
+    { label: "CC", value: <VantageControl /> },
   ];
 
   return (

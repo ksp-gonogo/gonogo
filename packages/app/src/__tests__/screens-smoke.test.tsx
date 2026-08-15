@@ -83,12 +83,15 @@ describe("MainScreen smoke", () => {
     // UT updates, field content) is covered in
     // `components/MissionBanner.test.tsx` against a real stream fixture.
     // Full MainScreen has no telemetry stream mounted here, so the time
-    // field reads its "no sample yet" placeholder.
+    // field reads its "no sample yet" placeholder and the vantage control
+    // reads its "no roster yet" fallback (the raw client-default id).
     renderScreen(<MainScreen />);
     expect(
       screen.getByRole("group", { name: "Mission status" }),
     ).not.toBeNull();
-    expect(screen.getByText("KSC")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Command centre vantage: ksc" }),
+    ).not.toBeNull();
   });
 });
 

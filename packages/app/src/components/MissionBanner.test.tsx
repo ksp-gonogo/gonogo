@@ -5,24 +5,30 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
+import { axe } from "../test/axe";
 import { MissionBanner } from "./MissionBanner";
 
 /**
  * Mounts a real `TelemetryProvider` (`TelemetryClient` + `TimelineStore`
  * over a `StubTransport`) around a genuine, live `ViewClock`, the same
- * shape `__tests__/flight-outcome-banner.test.tsx` uses. `MissionBanner`
- * doesn't declare any `dataRequirements`, so there's no topic for a test to
- * `transport.emit` through (`StubTransport.emit` gates delivery on the
- * topic actually being subscribed, and nothing subscribes here). Feeding
- * the clock directly via `clock.observeSample(validAt, deliveredAt)`: the
- * exact call `TimelineStore.ingest` makes on every sample, for every topic,
- * regardless of who's listening: is the correct low-level equivalent of
- * "a UT-bearing sample landed on the wire", without inventing an unrelated
- * fake topic just to route one through.
+ * shape `__tests__/flight-outcome-banner.test.tsx` uses. Feeding the clock
+ * directly via `clock.observeSample(validAt, deliveredAt)`: the exact call
+ * `TimelineStore.ingest` makes on every sample, for every topic, regardless
+ * of who's listening, is the correct low-level equivalent of "a UT-bearing
+ * sample landed on the wire", without inventing an unrelated fake topic
+ * just to route one through. `emitRoster` carries `commandCentre.roster`
+ * for `VantageControl` to subscribe to.
  */
 function setupTelemetryStream() {
   const transport = new StubTransport();
@@ -32,23 +38,36 @@ function setupTelemetryStream() {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider client={client} store={store}>
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={["commandCentre.roster"]}
+      >
         {children}
       </TelemetryProvider>
     );
   }
 
   return {
-    // Advances the live view clock as if a sample valid at `ut` had just
-    // been delivered "now": mirrors what `TimelineStore.ingest` does for
-    // every incoming sample.
     advanceTo: (ut: number) => clock.observeSample(ut, ut),
+    emitRoster: (roster: unknown) =>
+      transport.emit("commandCentre.roster", roster),
     Provider,
   };
 }
 
+const MULTI_ROSTER = [
+  { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
+  {
+    id: "ground:gs1",
+    displayName: "Ground Station 1",
+    kind: "GroundStation",
+    active: true,
+  },
+];
+
 describe("MissionBanner", () => {
-  it("shows the command centre and an em dash for the time before any sample lands", () => {
+  it("shows the vantage control and an em dash for the time before any sample lands", () => {
     const fixture = setupTelemetryStream();
     render(
       <fixture.Provider>
@@ -56,7 +75,9 @@ describe("MissionBanner", () => {
       </fixture.Provider>,
     );
 
-    expect(screen.getByText("KSC")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Command centre vantage: ksc" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 
@@ -93,5 +114,92 @@ describe("MissionBanner", () => {
     const banner = screen.getByRole("group", { name: "Mission status" });
     expect(banner.getAttribute("aria-live")).toBeNull();
     expect(banner.getAttribute("role")).not.toBe("status");
+  });
+
+  it("marks KSC as home and keeps the dropdown affordance even with only one active centre", async () => {
+    const fixture = setupTelemetryStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emitRoster([
+        { id: "ksc", displayName: "KSC", kind: "GroundStation", active: true },
+      ]);
+    });
+
+    const trigger = await screen.findByRole("button", {
+      name: "Command centre vantage: KSC (home)",
+    });
+    expect(trigger).toHaveAttribute("aria-haspopup", "listbox");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Home")).toBeInTheDocument();
+
+    // Still opens, with the one centre offered.
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+  });
+
+  it("lists every active centre and re-points the vantage on selection", async () => {
+    const fixture = setupTelemetryStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emitRoster(MULTI_ROSTER);
+    });
+
+    const trigger = await screen.findByRole("button", {
+      name: "Command centre vantage: KSC (home)",
+    });
+    fireEvent.click(trigger);
+
+    const listbox = screen.getByRole("listbox");
+    const options = within(listbox).getAllByRole("option");
+    expect(options).toHaveLength(2);
+    // Home marking sits on KSC's option, not Ground Station 1's.
+    const kscOption = within(listbox)
+      .getByText("KSC")
+      .closest('[role="option"]');
+    const gs1Option = within(listbox)
+      .getByText("Ground Station 1")
+      .closest('[role="option"]');
+    expect(kscOption?.textContent).toContain("Home");
+    expect(gs1Option?.textContent).not.toContain("Home");
+
+    fireEvent.pointerDown(within(listbox).getByText("Ground Station 1"));
+
+    // Closed, and the trigger now reflects the new vantage without the home marker.
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(
+      await screen.findByRole("button", {
+        name: "Command centre vantage: Ground Station 1",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("has no accessible violations closed or open", async () => {
+    const fixture = setupTelemetryStream();
+    const { container } = render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emitRoster(MULTI_ROSTER);
+    });
+    const trigger = await screen.findByRole("button", {
+      name: "Command centre vantage: KSC (home)",
+    });
+    expect(await axe(container)).toHaveNoViolations();
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
