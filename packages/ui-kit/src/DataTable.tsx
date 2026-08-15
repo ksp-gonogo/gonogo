@@ -190,7 +190,7 @@ const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--color-surface);
+  background: var(--color-surface-panel);
   color: var(--color-text-faint);
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -204,7 +204,7 @@ const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
 const DataTable__SectionCell = styled.th`
   text-align: start;
   background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
