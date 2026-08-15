@@ -28,9 +28,9 @@ namespace Gonogo.DevTools
     /// <code>
     /// mod testing
     /// flight
-    /// file=kerbcast black feed test
+    /// file=quicksave #3
     /// </code>
-    /// loads <c>saves/mod testing/kerbcast black feed test.sfs</c>. The value is
+    /// loads <c>saves/mod testing/quicksave #3.sfs</c>. The value is
     /// everything after the first <c>=</c>, so a name with spaces needs no
     /// quoting; it must still name a sibling file (no separators, no <c>..</c>).
     /// The post-load re-persist writes back to that SAME file, so loading a
@@ -256,10 +256,10 @@ namespace Gonogo.DevTools
             // An optional "file=<name>" line picks WHICH .sfs inside the save
             // folder to load, defaulting to "persistent" (the save's rolling
             // autosave, and the only thing this could load before). A quicksave
-            // is just another .sfs beside it, so `file=kerbcast black feed test`
-            // loads `saves/<save>/kerbcast black feed test.sfs`. The value is
-            // everything after the FIRST '=', trimmed but otherwise untouched,
-            // so a name containing spaces needs no quoting or escaping.
+            // is just another .sfs beside it, so `file=quicksave #3` loads
+            // `saves/<save>/quicksave #3.sfs`. The value is everything after
+            // the FIRST '=', trimmed but otherwise untouched, so a name
+            // containing spaces needs no quoting or escaping.
             string? saveName = null;
             var sfsFile = DefaultSfsFile;
             var restoreFlight = false;
