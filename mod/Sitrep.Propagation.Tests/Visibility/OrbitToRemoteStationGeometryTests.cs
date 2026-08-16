@@ -250,6 +250,53 @@ namespace Sitrep.Propagation.Tests.Visibility
                 $"the two signs should differ by order Kerbin's orbital radius; got {correct} vs {wrongSign}");
         }
 
+        /// <summary>
+        /// The live case, against a number the GAME produced.
+        ///
+        /// <para>These elements were captured off the running save
+        /// (<c>vessel.orbit</c>), and <c>comms.path</c> reported the very
+        /// separation this geometry computes for the same link at the same
+        /// moment: commsat to "Crater Rim Station", 46,284,930 m. That makes the
+        /// backend an oracle, and lets the geometry be checked against reality
+        /// on a laptop instead of through a ten-minute game cycle.</para>
+        ///
+        /// <para>The tolerance is Minmus's own orbital radius about Kerbin
+        /// divided by nothing generous: the craft is somewhere on a 120 km
+        /// orbit about Minmus and the station somewhere on Kerbin's surface, so
+        /// the two can differ by the sum of those radii and no more.</para>
+        /// </summary>
+        [Fact]
+        public void TheLiveMinmusCraftMatchesWhatTheBackendReported()
+        {
+            const double MinmusMuLive = 1765800026.31247;
+            const double ReportedSeparation = 46_284_930.28;
+
+            var commsat = new OrbitElements(
+                sma: 119_999.888,
+                ecc: 5.74e-7,
+                inc: 0.0,
+                lan: 0.0,
+                argPe: 0.0,
+                meanAnomalyAtEpoch: 0.2684,
+                epoch: 146_735.389,
+                mu: MinmusMuLive);
+
+            var geometry = new OrbitToRemoteStationGeometry(
+                commsat,
+                new[] { new OrbitToRemoteStationGeometry.ChainLink(MinmusAroundKerbin(), MinmusRadius, descending: true) },
+                KscLikeStation(),
+                KerbinRadius);
+
+            var separation = geometry.SeparationAt(146_735.389);
+
+            // Minmus orbit radius (120 km) + Kerbin radius (600 km) is the most
+            // the two can legitimately differ by.
+            Assert.InRange(
+                separation,
+                ReportedSeparation - 800_000.0,
+                ReportedSeparation + 800_000.0);
+        }
+
         private static double Dot(Vector3d a, Vector3d b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
     }
 }
