@@ -151,7 +151,11 @@ namespace Gonogo.KSP.SilenceTracking
             CommNode fallback = null;
             CelestialBody fallbackBody = null;
 
-            foreach (var node in HomeNodes())
+            int pathHomes, sceneHomes;
+            var homes = HomeNodes(out pathHomes, out sceneHomes);
+            SilenceTrace.HomeSearch(pathHomes, sceneHomes, homes.Count);
+
+            foreach (var node in homes)
             {
                 var body = BodyUnder(node.precisePosition, bodies);
                 if (body == null)
@@ -297,31 +301,50 @@ namespace Gonogo.KSP.SilenceTracking
         /// vessel at a body the active craft never talks to gets no
         /// prediction, and falls back to the orbital-period deadline.</para>
         /// </summary>
-        private IEnumerable<CommNode> HomeNodes()
+        /// <summary>
+        /// Every home node reachable from the live scene.
+        ///
+        /// <para>Scans EVERY vessel's connection, not just the active one's. The
+        /// active vessel is the one most likely to be out of contact — it is the
+        /// craft being watched go dark — and a disconnected vessel has an EMPTY
+        /// ControlPath, so keying on it meant the predictor lost its stations at
+        /// exactly the moment it needed them. Measured live: activeVessel=True,
+        /// connection=True, pathLinks=0.</para>
+        ///
+        /// <para>Both comms backends read stock <c>CommNode</c>s from the same
+        /// control paths (RealAntennas replaces the network, not the node type),
+        /// so this is backend-agnostic without branching on which mod is
+        /// installed. The <see cref="CommNetHome"/> scene objects are a second
+        /// source for a stock install whose network has not been built yet.</para>
+        ///
+        /// <para>Returns a LIST, not a lazy sequence. The counts are traced by
+        /// the caller: a diagnostic at the end of an iterator only runs if the
+        /// consumer drains it, so an early <c>return</c> silently skipped the
+        /// one line that explains why nothing was found.</para>
+        /// </summary>
+        private List<CommNode> HomeNodes(out int pathHomes, out int sceneHomes)
         {
-            var active = FlightGlobals.ActiveVessel;
-            var path = active != null && active.connection != null ? active.connection.ControlPath : null;
+            var found = new List<CommNode>();
+            var seen = new HashSet<string>(System.StringComparer.Ordinal);
+            pathHomes = 0;
+            sceneHomes = 0;
 
-            var links = 0;
-            var nodes = 0;
-            var homes = 0;
-            string firstNode = null;
-
-            if (path != null)
+            var vessels = FlightGlobals.Vessels;
+            if (vessels != null)
             {
-                foreach (var link in path)
+                foreach (var vessel in vessels)
                 {
-                    if (link == null) continue;
-                    links++;
-                    foreach (var node in new[] { link.a, link.b })
+                    var path = vessel != null && vessel.connection != null ? vessel.connection.ControlPath : null;
+                    if (path == null) continue;
+                    foreach (var link in path)
                     {
-                        if (node == null) continue;
-                        nodes++;
-                        if (firstNode == null) firstNode = node.displayName ?? node.name ?? "?";
-                        if (node.isHome)
+                        if (link == null) continue;
+                        foreach (var node in new[] { link.a, link.b })
                         {
-                            homes++;
-                            yield return node;
+                            if (node == null || !node.isHome) continue;
+                            if (!seen.Add(node.precisePosition.ToString())) continue;
+                            pathHomes++;
+                            found.Add(node);
                         }
                     }
                 }
@@ -330,11 +353,13 @@ namespace Gonogo.KSP.SilenceTracking
             foreach (var home in _homes())
             {
                 var comm = home != null ? CommNetHomeAccess.Comm(home) : null;
-                if (comm != null)
-                {
-                    yield return comm;
-                }
+                if (comm == null) continue;
+                if (!seen.Add(comm.precisePosition.ToString())) continue;
+                sceneHomes++;
+                found.Add(comm);
             }
+
+            return found;
         }
 
         /// <summary>
@@ -486,6 +511,7 @@ namespace Gonogo.KSP.SilenceTracking
             var reference = FindVesselOrbiting(stationBody) ?? FindAnyLoadedVessel();
             if (reference == null || reference.orbitDriver == null || reference.orbitDriver.orbit == null)
             {
+                SilenceTrace.Calibration("no reference vessel to measure against for " + stationBody.bodyName);
                 return false;
             }
 
@@ -493,12 +519,15 @@ namespace Gonogo.KSP.SilenceTracking
             var refIndex = refBody != null ? FlightGlobals.Bodies.IndexOf(refBody) : -1;
             if (refIndex < 0)
             {
+                SilenceTrace.Calibration("reference vessel " + reference.vesselName + " has no known parent body");
                 return false;
             }
 
             var refChain = BuildChain(refBody, stationBody, occlusion);
             if (refChain == null)
             {
+                SilenceTrace.Calibration("no chain from reference at " + refBody.bodyName
+                    + " to station at " + stationBody.bodyName);
                 return false;
             }
 

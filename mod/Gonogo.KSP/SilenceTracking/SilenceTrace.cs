@@ -89,20 +89,12 @@ namespace Gonogo.KSP.SilenceTracking
         /// no home flagged on it" needs the counts, and inferring them from
         /// outside has already cost several rebuild cycles.
         /// </summary>
-        public static void HomeSearch(
-            bool activeVessel, bool connection, int pathLinks, int nodesSeen, int homesSeen,
-            int sceneHomes, string firstNodeName)
+        public static void HomeSearch(int pathHomes, int sceneHomes, int total)
         {
-            // Logs on CHANGE, not once: a one-shot showed only the first tick,
-            // which is the one tick where CommNet is guaranteed not to be built
-            // yet, and made a transient state look permanent.
-            var line = "home search: activeVessel=" + activeVessel
-                + " connection=" + connection
-                + " pathLinks=" + pathLinks
-                + " nodes=" + nodesSeen
-                + " isHome=" + homesSeen
-                + " sceneHomes=" + sceneHomes
-                + " firstNode=" + (firstNodeName ?? "<none>");
+            // On CHANGE, not once: a one-shot showed only the first tick, which
+            // is the one tick where CommNet is guaranteed not to be built yet,
+            // and made a transient state look permanent.
+            var line = "home search: fromPaths=" + pathHomes + " fromScene=" + sceneHomes + " total=" + total;
             if (line == _lastHomeSearch) return;
             _lastHomeSearch = line;
             Debug.Log(Prefix + line);
@@ -111,14 +103,9 @@ namespace Gonogo.KSP.SilenceTracking
         private static bool _calibrated;
 
         /// <summary>
-        /// One-shot calibration of the station's inertial-longitude convention.
-        ///
-        /// <para>Reasoning about KSP's <c>rotationAngle</c> convention has now
-        /// produced two wrong answers, so this measures it instead. The frame
-        /// self-check already computes the quantity that ought to be zero; this
-        /// reports that residual across candidate longitude offsets, so the
-        /// convention is identified by which one zeroes it rather than by
-        /// another argument about what the field means.</para>
+        /// The outcome of solving this body's station-longitude offset. Once per
+        /// process: the solve is cached per body, so a repeat would only mean the
+        /// cache was not taking.
         /// </summary>
         public static void Calibration(string report)
         {
