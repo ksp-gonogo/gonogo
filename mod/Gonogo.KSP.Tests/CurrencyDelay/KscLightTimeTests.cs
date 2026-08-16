@@ -119,7 +119,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// just on the one path that happens to consult the flag.
         ///
         /// <para>The gate lived inside <c>Resolve</c>, and every Unroutable
-        /// literal elsewhere skipped it — so with signal delay switched OFF,
+        /// literal elsewhere skipped it, so with signal delay switched OFF,
         /// ordinary science still revealed a Kerbin day late. The off switch has
         /// to be checked where the delay is CONSUMED, not only where it is
         /// computed.</para>

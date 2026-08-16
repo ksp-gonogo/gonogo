@@ -11,7 +11,7 @@ import { MARKER_STATE_COLOURS } from "./SystemDiagram";
  *
  * <p>Both happened here. The lost marker used `--color-status-critical-fg`,
  * which does not exist, so a craft declared lost lost its marker entirely, and
- * the overdue marker used `--color-status-warning-fg`, which is `#1a1a1a` — a
+ * the overdue marker used `--color-status-warning-fg`, which is `#1a1a1a`, a
  * foreground meant to sit ON the orange warning background, not a stroke for a
  * dark panel. "Distinct amber" rendered as near-black.</p>
  *

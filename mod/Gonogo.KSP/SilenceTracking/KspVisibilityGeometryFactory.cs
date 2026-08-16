@@ -186,14 +186,14 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// A ground station to predict against: one on the vessel's own parent
         /// body if there is one, otherwise any. Deliberately not "the station
-        /// the route actually uses" — that is the elected backend's business
+        /// the route actually uses", that is the elected backend's business
         /// and changes hop by hop, while an occultation prediction only needs a
         /// representative endpoint on the right body.
         ///
         /// <para>Reads the LIVE CommNet graph rather than
-        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c>. Under RealAntennas
-        /// that scene search returns nothing at all — which is exactly how this
-        /// silently produced no prediction for every vessel — while the network
+        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c>. With a network-replacing backend
+        /// that scene search returns nothing at all, which is exactly how this
+        /// silently produced no prediction for every vessel, while the network
         /// it actually routes over is full of home nodes; <c>comms.path</c> was
         /// reporting hops to "Crater Rim Station" the whole time. Home nodes
         /// carry their own <c>precisePosition</c>, so the CommNetHome
@@ -270,7 +270,7 @@ namespace Gonogo.KSP.SilenceTracking
 
         /// <summary>
         /// The bodies between <paramref name="stationBody"/> and
-        /// <paramref name="parentBody"/>, ordered nearest-the-station first —
+        /// <paramref name="parentBody"/>, ordered nearest-the-station first,
         /// the order <see cref="OrbitToRemoteStationGeometry"/> sums them in.
         ///
         /// <para>Null when no chain exists: the two are in different systems,
@@ -325,7 +325,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// Home nodes, from the LIVE routed control path first and the
         /// <see cref="CommNetHome"/> scene objects second.
         ///
-        /// <para>The scene search alone was the bug: under RealAntennas
+        /// <para>The scene search alone was the bug: with a network-replacing backend elected
         /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> returns nothing, so
         /// every vessel silently got no prediction, while <c>comms.path</c>
         /// was reporting hops to "Crater Rim Station" the whole time. The
@@ -336,8 +336,8 @@ namespace Gonogo.KSP.SilenceTracking
         ///
         /// <para>The path yields the stations the ACTIVE vessel routes
         /// through, not every station in the game. For an occultation
-        /// prediction that is enough — a representative endpoint on the right
-        /// body is what the geometry wants — but it is a real limit: a silent
+        /// prediction that is enough, a representative endpoint on the right
+        /// body is what the geometry wants, but it is a real limit: a silent
         /// vessel at a body the active craft never talks to gets no
         /// prediction, and falls back to the orbital-period deadline.</para>
         /// </summary>
@@ -345,14 +345,14 @@ namespace Gonogo.KSP.SilenceTracking
         /// Every home node reachable from the live scene.
         ///
         /// <para>Scans EVERY vessel's connection, not just the active one's. The
-        /// active vessel is the one most likely to be out of contact — it is the
-        /// craft being watched go dark — and a disconnected vessel has an EMPTY
+        /// active vessel is the one most likely to be out of contact, it is the
+        /// craft being watched go dark, and a disconnected vessel has an EMPTY
         /// ControlPath, so keying on it meant the predictor lost its stations at
         /// exactly the moment it needed them. Measured live: activeVessel=True,
         /// connection=True, pathLinks=0.</para>
         ///
-        /// <para>Both comms backends read stock <c>CommNode</c>s from the same
-        /// control paths (RealAntennas replaces the network, not the node type),
+        /// <para>Every comms backend reads stock <c>CommNode</c>s from the same
+        /// control paths (a backend replaces the network, not the node type),
         /// so this is backend-agnostic without branching on which mod is
         /// installed. The <see cref="CommNetHome"/> scene objects are a second
         /// source for a stock install whose network has not been built yet.</para>

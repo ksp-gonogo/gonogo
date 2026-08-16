@@ -724,6 +724,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // Comms/CommsElection.cs itself.
       "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
       "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
+      // Kernel provider-election tests, both halves of the golden-fixture pair.
+      // They use "realantennas" as the id of a losing/failing provider because
+      // the exclusive "comms" election is the real-world shape the kernel
+      // exists to arbitrate, and a test that elects "provider-a" over
+      // "provider-b" documents nothing. Fixture strings only: no RA type,
+      // reference or dependency.
+      "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
+      "mod/sitrep-kernel/src/registry.test.ts",
       "packages/components/src/CommSignal/index.tsx",
       "packages/components/src/SystemView/index.tsx",
       // G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in

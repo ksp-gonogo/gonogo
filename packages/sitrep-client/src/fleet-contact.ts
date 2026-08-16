@@ -22,7 +22,7 @@ export interface FleetVesselContact {
   deadlineBasis?: SilenceDeadlineBasis | null;
   /**
    * UT the radio path is predicted to re-open. Null is a prediction WITHHELD,
-   * never an emergence of "now" — see {@link contactPhase}, which is the only
+   * never an emergence of "now", see {@link contactPhase}, which is the only
    * place that distinction should have to be made.
    */
   predictedReacquisitionUt?: number | null;
@@ -46,7 +46,7 @@ export type SilenceDeadlineBasis =
  * `overdue` is the one worth having: past the moment geometry said the vessel
  * should have re-appeared, but not yet past the deadline that would declare it
  * lost. It is the "expected back, didn't show" moment, and it only exists when
- * there was a prediction to be late against — a vessel quiet with no predicted
+ * there was a prediction to be late against, a vessel quiet with no predicted
  * emergence is `waiting`, not overdue, because nothing ever promised it would
  * be back.
  */

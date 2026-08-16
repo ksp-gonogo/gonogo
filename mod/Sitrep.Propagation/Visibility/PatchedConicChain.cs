@@ -31,7 +31,7 @@ namespace Sitrep.Propagation.Visibility
     ///
     /// <para>Lifted out of the KSP-facing factory deliberately. It was
     /// previously expressed against <c>CelestialBody</c>, which meant the only
-    /// way to exercise it was to launch the game — a ten-minute cycle per
+    /// way to exercise it was to launch the game, a ten-minute cycle per
     /// question, against logic whose failure mode is a plausible-looking wrong
     /// number. Expressed against indices and elements it is pure, and a wrong
     /// chain can be demonstrated in milliseconds.</para>

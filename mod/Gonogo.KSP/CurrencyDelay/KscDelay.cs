@@ -7,11 +7,9 @@ namespace Gonogo.KSP.CurrencyDelay
     {
         /// <summary>A genuine zero: signal delay is switched off, so events land immediately and honestly.</summary>
         Instant,
-
         /// <summary>A live CommNet control path whose last hop is home. The one and only way a delay gets measured.</summary>
         Routed,
-
-        /// <summary>No route home. NOT a delay of any length — an absence of one.</summary>
+        /// <summary>No route home. NOT a delay of any length, an absence of one.</summary>
         Unroutable,
     }
 
@@ -21,7 +19,7 @@ namespace Gonogo.KSP.CurrencyDelay
     ///
     /// <para><b>This type exists to make a specific bug unwriteable.</b> The
     /// delay used to be a <c>double?</c>, and every call site ended
-    /// <c>?? 0.0</c> — so "no route home" and "no delay" collapsed into the
+    /// <c>?? 0.0</c>, so "no route home" and "no delay" collapsed into the
     /// same zero, and science transmitted from the far side of the system was
     /// credited instantly. There were five such sites. A nullable double
     /// invites that; a struct with no implicit conversion to <c>double</c> and
@@ -33,7 +31,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <c>local_docs/design/2026-08-15-unroutable-currency-consensus.md</c>): a
     /// currency event is delayed by exactly ONE number, the one-way light-time
     /// of a live control path whose last hop is home. There is no second way to
-    /// compute a delay, and specifically no straight-line distance fallback —
+    /// compute a delay, and specifically no straight-line distance fallback,
     /// a chord through the planet a craft is hiding behind is not a signal
     /// path.</para>
     /// </summary>
@@ -94,7 +92,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// The reveal UT for an event that happened at <paramref name="eventUt"/>.
         /// <paramref name="silenceDeclarationSeconds"/> is the policy deadline
-        /// an unroutable event waits out — the point at which KSC stops waiting
+        /// an unroutable event waits out, the point at which KSC stops waiting
         /// and reconciles the books. It is honestly a policy, not a pretend
         /// measurement, and it is what makes the never-regains-contact case
         /// terminate at all.

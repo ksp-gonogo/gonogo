@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "scenario": "drag-visualisation-prototype-arrow",
+    "synthetic": true,
+    "notes": "PROTOTYPE. Same mid-descent atmospheric scenario as LandingStatus/__render_atmospheric__/decelerating.json (Kerbin, 3 km, 200 m/s, terminal 105, projected touchdown 95) with a synthetic dragToWeight=1.6, rendered as the ARROW variant (up arrow anchored at the vessel dot, length scaled to the ratio). No wire field backs dragToWeight yet — for visual review only."
+  },
+  "props": {
+    "currentSpeed": 200,
+    "currentAltitude": 3000,
+    "terminalVelocity": 105,
+    "projectedTouchdownSpeed": 95,
+    "atmosphereColor": "#5a8fd8",
+    "dragToWeight": 1.6,
+    "dragDisplay": "arrow"
+  }
+}

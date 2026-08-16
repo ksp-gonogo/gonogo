@@ -67,7 +67,7 @@ namespace Sitrep.Propagation
         ///
         /// <para>Every KSP-facing caller must come through here. Passing the
         /// degree values to the normal constructor compiles and runs and yields
-        /// a rotated orbit — a plausible number in the wrong place, which is
+        /// a rotated orbit, a plausible number in the wrong place, which is
         /// the failure mode that survives review. It was written independently
         /// at three call sites and got the conversion right at one of
         /// them.</para>

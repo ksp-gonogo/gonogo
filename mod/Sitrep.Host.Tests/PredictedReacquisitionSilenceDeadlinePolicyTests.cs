@@ -9,8 +9,8 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// The geometry is covered by its own tests against margin functions with
     /// known roots; these cover the POLICY, i.e. which of the geometry's
-    /// findings becomes a prediction, which becomes a basis, and — the point
-    /// of the whole class — that none of them ever shortens a deadline.
+    /// findings becomes a prediction, which becomes a basis, and, the point
+    /// of the whole class, that none of them ever shortens a deadline.
     /// </summary>
     public class PredictedReacquisitionSilenceDeadlinePolicyTests
     {
@@ -448,8 +448,8 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A silence that geometry does not explain must not borrow a
         /// geometric explanation. If the path was already CLEAR when contact
-        /// was lost, the craft did not go behind anything — it lost power, or
-        /// its antenna went out of range — and the next time the sweep happens
+        /// was lost, the craft did not go behind anything, it lost power, or
+        /// its antenna went out of range, and the next time the sweep happens
         /// to open a path is not that craft's return.
         /// </summary>
         [Fact]

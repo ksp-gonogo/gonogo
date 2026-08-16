@@ -11,8 +11,8 @@ namespace Sitrep.Host.Comms
     /// was lost, and if it re-opens, say when.
     ///
     /// <para>The operator experience this exists for is knowing that a vessel
-    /// went round the far side, when it is due out, and — the part that
-    /// actually matters — that it did not show up. A deadline of "1.5 orbits"
+    /// went round the far side, when it is due out, and, the part that
+    /// actually matters, that it did not show up. A deadline of "1.5 orbits"
     /// cannot express any of that; a predicted emergence UT can.</para>
     ///
     /// <para><b>Every path leads back to a deadline.</b> A prediction is a
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Comms
     {
         /// <summary>
         /// Builds the path geometry for one vessel's silence, or returns null
-        /// when it cannot be built honestly — no known stations, an
+        /// when it cannot be built honestly, no known stations, an
         /// unsupported reference body, a backend that declares no occlusion
         /// model. Null means "no prediction attempted", which is a different
         /// thing from "no occultation found", and the two produce different

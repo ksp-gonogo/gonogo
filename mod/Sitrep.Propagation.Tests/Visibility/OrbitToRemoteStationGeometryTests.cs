@@ -8,8 +8,8 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// <summary>
     /// The cross-body case: a vessel orbiting one body, talking to a station on
     /// another. These pin the two things that make it different from the
-    /// same-body geometry — the parent body has moved off the origin, and the
-    /// station's own body is an occluder too — because getting either wrong
+    /// same-body geometry, the parent body has moved off the origin, and the
+    /// station's own body is an occluder too, because getting either wrong
     /// produces a plausible-looking prediction rather than an obvious failure.
     /// </summary>
     public class OrbitToRemoteStationGeometryTests
@@ -194,9 +194,9 @@ namespace Sitrep.Propagation.Tests.Visibility
         /// the tens of millions of km.
         ///
         /// <para>Frame is centred on the STATION's body (Kerbin). A craft in
-        /// solar orbit is reached by climbing to the Sun — an ASCENDING link,
+        /// solar orbit is reached by climbing to the Sun, an ASCENDING link,
         /// which subtracts, because the Sun sits on the far side of Kerbin's own
-        /// orbit — and then adding the vessel's Sun-relative position. So the
+        /// orbit, and then adding the vessel's Sun-relative position. So the
         /// answer is exactly <c>vesselAboutSun - kerbinAboutSun</c>, computable
         /// by hand.</para>
         /// </summary>

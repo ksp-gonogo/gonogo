@@ -37,8 +37,8 @@ namespace Gonogo.KSP
     ///
     /// <para><b>Not an Uplink of its own, deliberately.</b> An Uplink owns a
     /// Domain and earns an Availability by being separately installable;
-    /// <c>fleet</c> is neither. It is a SCOPE — the same comms and vessel
-    /// domains seen across every craft instead of the active one — and it
+    /// <c>fleet</c> is neither. It is a SCOPE, the same comms and vessel
+    /// domains seen across every craft instead of the active one, and it
     /// ships inside <c>Gonogo.dll</c> alongside
     /// <see cref="CommsCoreUplink"/>, so "comms present, fleet absent" is not
     /// a state a player can reach. It was an Uplink once, with an empty

@@ -684,7 +684,7 @@ function VesselOrbitPath({
  * where it is.
  *
  * - `observed`: contact right now, so the marker is a measurement
- * - `predicted`: out of contact, so the marker is dead reckoning — drawn hollow
+ * - `predicted`: out of contact, so the marker is dead reckoning, drawn hollow
  *   and desaturated, because an operator must never read a propagated position
  *   with the same confidence as a reported one
  * - `overdue`: predicted, and past the moment it should have re-appeared

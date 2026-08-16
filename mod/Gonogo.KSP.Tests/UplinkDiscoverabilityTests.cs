@@ -16,8 +16,8 @@ namespace Gonogo.KSP.Tests
     /// simply never runs.
     ///
     /// <para>That is what happened to <c>FleetDelayUplink</c>: no attribute,
-    /// not hand-registered, so the whole <c>fleet.</c> namespace — per-vessel
-    /// delay, orbit and contact — was absent from the live uplink roster with
+    /// not hand-registered, so the whole <c>fleet.</c> namespace, per-vessel
+    /// delay, orbit and contact, was absent from the live uplink roster with
     /// nothing anywhere saying so. It surfaced only by subscribing to a channel
     /// on the real wire and getting back not even a subscribe
     /// acknowledgement.</para>

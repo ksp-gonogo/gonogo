@@ -336,14 +336,14 @@ function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
 /**
  * A vessel's contact state: due back, late, or given up on.
  *
- * The state worth the widget is `overdue` — past the moment geometry said the
+ * The state worth the widget is `overdue`, past the moment geometry said the
  * craft should have re-appeared, but before the deadline that declares it lost.
  * That is the "expected back, didn't show" moment, and it is deliberately not
  * an early form of `lost`: there is still time for the craft to appear, and the
  * operator is told it is late rather than gone.
  *
  * A silent craft with no prediction renders as "no contact" with no countdown,
- * never as overdue. Nothing promised it would be back, so nothing can be late —
+ * never as overdue. Nothing promised it would be back, so nothing can be late,
  * see `contactPhase`, which is where that distinction lives so no renderer has
  * to re-derive it.
  *

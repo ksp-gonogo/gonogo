@@ -9,7 +9,7 @@ namespace Sitrep.Propagation.Tests
     /// <c>Orbit</c> reports inclination, LAN and argument of periapsis in
     /// DEGREES while reporting mean anomaly at epoch in radians. Handing KSP's
     /// numbers straight across compiles, runs, and produces a confidently wrong
-    /// position — the orbit is rotated by whatever the degree values happen to
+    /// position, the orbit is rotated by whatever the degree values happen to
     /// be, so a craft can come out on the wrong side of its star.
     ///
     /// <para>It stayed hidden because the bodies it was first checked against
@@ -21,7 +21,7 @@ namespace Sitrep.Propagation.Tests
     {
         private const double KerbolMu = 1.1723327948702891e18;
 
-        /// <summary>Kerbin, whose angles are all zero — the case that hid this.</summary>
+        /// <summary>Kerbin, whose angles are all zero, the case that hid this.</summary>
         private static OrbitElements Kerbin() => OrbitElements.FromKspDegrees(
             sma: 13_599_840_256.0,
             ecc: 0.0,
@@ -70,7 +70,7 @@ namespace Sitrep.Propagation.Tests
         /// own 600 km radius.
         ///
         /// <para>Feeding the degree values through unconverted puts the answer
-        /// at about 25,527,000,000 m — off by a factor of four and a half, and
+        /// at about 25,527,000,000 m, off by a factor of four and a half, and
         /// entirely plausible-looking in a log.</para>
         /// </summary>
         [Fact]

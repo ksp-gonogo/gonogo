@@ -6,7 +6,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// One-shot-per-transition tracing for the silence capture/publish path.
     ///
     /// <para>This path is entirely fail-soft: no tracker bound, no vessels, a
-    /// null capture — every one of them produces nothing and says nothing, so
+    /// null capture, every one of them produces nothing and says nothing, so
     /// a channel that never reaches the wire looks exactly like a channel with
     /// nothing to say. That is fine in normal running and useless the moment
     /// you need to know which of the two you have.</para>

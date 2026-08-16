@@ -93,8 +93,8 @@ public class FleetVesselContact
     /// found one. This is what "should be back in ~16 min" is rendered from,
     /// and what makes "it did not show up" expressible at all.
     ///
-    /// <para>Null whenever no honest prediction exists — no geometry, no
-    /// occultation to emerge from, or a warp too coarse to resolve one — and
+    /// <para>Null whenever no honest prediction exists, no geometry, no
+    /// occultation to emerge from, or a warp too coarse to resolve one, and
     /// <c>deadlineBasis</c> says which. A null is a prediction WITHHELD, never
     /// an emergence of "now": a client must render the absence as "no
     /// prediction", not as an overdue vessel.</para>

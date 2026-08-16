@@ -9,10 +9,8 @@ namespace Sitrep.Host.Comms
     {
         /// <summary>Contact confirmed as of the most recent sample.</summary>
         Nominal,
-
         /// <summary>No contact observed; still inside the deadline, or awaiting the consecutive-sample hysteresis.</summary>
         Silent,
-
         /// <summary>Officially declared lost: either destroyed, or silent past its deadline with the hysteresis satisfied.</summary>
         Lost,
     }
@@ -46,8 +44,8 @@ namespace Sitrep.Host.Comms
         /// offers NO explanation for this silence and predicts no emergence.
         ///
         /// <para>This means "there is no countdown to show", and it must never
-        /// be read as "declare fast". The naive treatment — no occultation, so
-        /// nothing to wait for, fall to the floor — declares an LKO vessel lost
+        /// be read as "declare fast". The naive treatment, no occultation, so
+        /// nothing to wait for, fall to the floor, declares an LKO vessel lost
         /// ten minutes after any blip, and under this save's relay ring an LKO
         /// craft is geometrically blind 0.0% of the time, so that is EVERY LKO
         /// vessel. The deadline falls through to the orbital-period policy

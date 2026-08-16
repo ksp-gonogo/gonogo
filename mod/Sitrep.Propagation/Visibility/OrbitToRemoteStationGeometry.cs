@@ -9,13 +9,13 @@ namespace Sitrep.Propagation.Visibility
     /// real deep-ish-space silences take.
     /// <see cref="OrbitToGroundStationGeometry"/> covers the same-body case and
     /// assumes one occluder at the origin, which is wrong here in two ways at
-    /// once — the vessel's parent has moved off the origin, and the station's
+    /// once, the vessel's parent has moved off the origin, and the station's
     /// own body is now an occluder too.
     ///
     /// <para><b>Frame: centred on the STATION's body</b>, Z-up inertial, the
     /// same convention <see cref="KeplerProvider"/> emits. The station is then
     /// a rotating point near the origin, and the vessel is the sum of its
-    /// parent's orbit and its own — the patched-conic chain walked properly,
+    /// parent's orbit and its own, the patched-conic chain walked properly,
     /// rather than one element set pretending to describe both. Getting this
     /// wrong is worth hundreds of kilometres within minutes.</para>
     ///
@@ -63,7 +63,7 @@ namespace Sitrep.Propagation.Visibility
             /// at Minmus reaching a Kerbin station only descends; a craft in
             /// solar orbit reaching that same station has to climb from Kerbin
             /// out to the Sun first, and a walk that could only descend simply
-            /// refused those vessels — which, in a real save, is most of
+            /// refused those vessels, which, in a real save, is most of
             /// them.</para>
             /// </param>
             public ChainLink(OrbitElements orbit, double occludingRadiusMeters, bool descending)

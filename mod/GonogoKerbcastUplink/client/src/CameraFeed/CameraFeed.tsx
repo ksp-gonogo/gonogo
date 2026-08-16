@@ -658,7 +658,7 @@ const FEED_UNAVAILABLE_STYLE: CSSProperties = {
 };
 
 const FEED_UNAVAILABLE_REASON_STYLE: CSSProperties = {
-  color: "#c9c9c9",
+  color: "var(--color-text-primary)",
   // Root-relative on purpose: this scrim replaces the video entirely and its
   // reason text should scale with the browser font size rather than with the
   // widget type scale. Converting it to a px token is an accessibility

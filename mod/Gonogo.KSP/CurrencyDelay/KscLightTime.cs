@@ -39,7 +39,7 @@ namespace Gonogo.KSP.CurrencyDelay
         ///
         /// <para>There is no proto-vessel counterpart any more. A ProtoVessel
         /// has no live CommNet connection, so the only thing that function
-        /// could ever do was measure a straight line — the exact fallback this
+        /// could ever do was measure a straight line, the exact fallback this
         /// subsystem now refuses. Its one real caller was vessel recovery,
         /// which is not an away event at all: <c>Vessel.IsRecoverable</c> is
         /// <c>LandedOrSplashed &amp;&amp; mainBody.isHomeWorld</c>, so a

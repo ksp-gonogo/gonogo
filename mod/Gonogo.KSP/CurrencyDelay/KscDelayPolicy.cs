@@ -6,7 +6,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// The single place a <see cref="KscDelay"/> becomes a number of seconds.
     ///
     /// <para><b>Why this exists rather than call sites doing the arithmetic.</b>
-    /// The feature's off switch — <c>SignalDelayConfig.Enabled</c> — used to be
+    /// The feature's off switch, <c>SignalDelayConfig.Enabled</c>, used to be
     /// consulted only inside <c>KscLightTimeMath.Resolve</c>, i.e. only where a
     /// delay is COMPUTED. Every code path that produced a
     /// <see cref="KscDelay.Unroutable"/> literal instead of calling Resolve

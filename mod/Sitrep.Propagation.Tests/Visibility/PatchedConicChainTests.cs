@@ -10,7 +10,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// Mun(2), Minmus(3), Jool(4), Laythe(5).
     ///
     /// <para>This logic used to live against <c>CelestialBody</c>, so the only
-    /// way to ask it a question was to launch the game — ten minutes per
+    /// way to ask it a question was to launch the game, ten minutes per
     /// question, against a function whose failure mode is a plausible-looking
     /// wrong number rather than a crash.</para>
     /// </summary>

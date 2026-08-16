@@ -21,7 +21,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// <para>A real network does not go blind that way. KSP had thirteen home
     /// nodes live at the time; while one faces away another faces the craft.
     /// Modelling the ground segment as a single point on a rotating sphere
-    /// invents a blackout the network never has, and it errs LATE — the
+    /// invents a blackout the network never has, and it errs LATE, the
     /// direction that delays every overdue and lost declaration.</para>
     /// </summary>
     public class GroundNetworkVisibilityTests

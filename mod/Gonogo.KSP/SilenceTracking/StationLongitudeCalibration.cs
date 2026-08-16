@@ -13,7 +13,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// where it belongs and made every prediction unpublishable. KSP defines
     /// orbital LAN against <c>Planetarium.right</c> while <c>rotationAngle</c>
     /// is measured from its own reference, so a constant offset between the two
-    /// is expected — but reasoning about which constant produced three wrong
+    /// is expected, but reasoning about which constant produced three wrong
     /// answers in a row, and a fourth guess is worth less than one
     /// measurement.</para>
     ///
