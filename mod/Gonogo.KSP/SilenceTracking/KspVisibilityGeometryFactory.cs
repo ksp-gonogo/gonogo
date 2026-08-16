@@ -674,15 +674,34 @@ namespace Gonogo.KSP.SilenceTracking
             foreach (var v in all)
             {
                 if (v == null || v.orbitDriver == null || v.orbitDriver.orbit == null) continue;
-                if (v.orbitDriver.orbit.referenceBody == body) return v;
+                if (v.orbitDriver.orbit.referenceBody != body) continue;
+                if (!IsPropagatable(v.orbitDriver.orbit)) continue;
+                return v;
             }
             return null;
         }
 
+        /// <summary>
+        /// Whether <see cref="KeplerProvider"/> can solve this orbit at all.
+        ///
+        /// <para>A save is full of things it cannot: debris on escape
+        /// trajectories, and anything else with <c>ecc &gt;= 1</c>. Picking one
+        /// as the calibration reference threw deep inside the solver, the policy
+        /// swallowed the throw, and the predictor went silent for the entire
+        /// session with no trace - which is exactly what happened here, twice,
+        /// for two different reasons.</para>
+        /// </summary>
+        private static bool IsPropagatable(Orbit orbit) =>
+            orbit.eccentricity < 1.0
+            && orbit.semiMajorAxis > 0.0
+            && orbit.referenceBody != null
+            && orbit.referenceBody.gravParameter > 0.0;
+
         private static Vessel FindAnyLoadedVessel()
         {
             var active = FlightGlobals.ActiveVessel;
-            if (active != null && active.orbitDriver != null && active.orbitDriver.orbit != null)
+            if (active != null && active.orbitDriver != null && active.orbitDriver.orbit != null
+                && IsPropagatable(active.orbitDriver.orbit))
             {
                 return active;
             }
@@ -690,7 +709,8 @@ namespace Gonogo.KSP.SilenceTracking
             if (all == null) return null;
             foreach (var v in all)
             {
-                if (v != null && v.loaded && v.orbitDriver != null && v.orbitDriver.orbit != null)
+                if (v != null && v.loaded && v.orbitDriver != null && v.orbitDriver.orbit != null
+                    && IsPropagatable(v.orbitDriver.orbit))
                 {
                     return v;
                 }
