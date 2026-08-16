@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.CaptureAnalysis/Sitrep.CaptureAnalysis.csproj" />
+  </ItemGroup>
+  <!-- Real captures off the Deck, checked in rather than referenced from a temp
+       path: the whole point of these two files is that they are the ones the
+       earlier wrong readings were made from, so the tests have to keep failing
+       the same way for the same reason a year from now. -->
+  <ItemGroup>
+    <None Include="fixtures/*.ndjson" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

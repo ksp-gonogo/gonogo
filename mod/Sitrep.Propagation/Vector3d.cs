@@ -22,6 +22,17 @@ namespace Sitrep.Propagation
             return System.Math.Sqrt(X * X + Y * Y + Z * Z);
         }
 
+        /// <summary>Squared magnitude, for comparisons and projections that do not need the square root.</summary>
+        public double MagnitudeSquared()
+        {
+            return X * X + Y * Y + Z * Z;
+        }
+
+        public static double Dot(Vector3d a, Vector3d b)
+        {
+            return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+        }
+
         public static Vector3d operator +(Vector3d a, Vector3d b)
         {
             return new Vector3d(a.X + b.X, a.Y + b.Y, a.Z + b.Z);

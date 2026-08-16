@@ -148,6 +148,7 @@ jobs:
             Sitrep.Core.Tests
             Sitrep.Transport.Tests
             Sitrep.Propagation.Tests
+            Sitrep.CaptureAnalysis.Tests
             Sitrep.Skeleton.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests

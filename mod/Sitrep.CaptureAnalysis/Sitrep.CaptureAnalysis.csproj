@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Sitrep.CaptureAnalysis</RootNamespace>
+    <AssemblyName>Sitrep.CaptureAnalysis</AssemblyName>
+  </PropertyGroup>
+  <!-- A developer console tool, NOT part of the shipped mod: it never reaches
+       GameData, it is absent from the CKAN/SpaceDock packaging, and nothing in
+       Sitrep.Host references it. It targets net10.0 (not the mod's
+       netstandard2.0/net472 floor) precisely because it runs on a workstation
+       and may use the modern BCL freely; System.Text.Json below comes from the
+       shared framework, so it is still PackageReference-free.
+
+       It references Sitrep.Propagation so the geometry it predicts with is the
+       SAME code the mod would predict with. Reimplementing the occlusion test
+       here would make a disagreement between tool and mod invisible, which is
+       the exact failure mode this tool exists to end. -->
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Propagation/Sitrep.Propagation.csproj" />
+  </ItemGroup>
+</Project>
