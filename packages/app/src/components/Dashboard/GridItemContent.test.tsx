@@ -219,7 +219,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     expect(screen.getByText("hello from a contribution")).toBeInTheDocument();
   });
 
-  it("a widget's Panel shows a badge from a contribution registered against `${componentId}.badges`, with no widget-side wiring", () => {
+  it("a widget's Panel shows a badge from a contribution registered against the widget's own `<componentId>.badges` slot, with no widget-side wiring", () => {
     clearContributions();
     registerContribution({
       id: "auto-badge",

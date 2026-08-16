@@ -1,0 +1,121 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-16",
+    "vessel": "Tester (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "Very low Kerbin orbit (~50km), Mun + Minmus also drawn",
+    "notes": "Demonstrates the vessel-marker/parent-marker overlap fix: at this frame's scale (dominated by Minmus's 47Mm orbit) a 650km-sma low Kerbin orbit projects to only a couple of screen px from the origin, so the vessel marker would land directly on Kerbin's own dot. resolveVesselMarkerPlacement (SystemDiagram.tsx) pushes the marker out to a minimum screen distance along its true bearing from Kerbin and draws a short dashed leader line back to the real (sub-pixel) position, keeping the marker's contact treatment legible without lying about where the craft actually is. No fleet/silence channel is emitted here (plain 'observed' state), isolating the overlap fix from the separate contact-colour treatment the kerbin-orbit-contact-*.json fixtures cover."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.identity",
+      "vessel.target",
+      "system.bodies"
+    ],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3.5316e12,
+              "sphereOfInfluence": 84159286,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.14,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.93228,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Minmus",
+              "parentIndex": 1,
+              "radius": 60000,
+              "gravParameter": 1765800000,
+              "sphereOfInfluence": 2247428,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 47000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.490659,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Tester",
+          "name": "Tester",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 650000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3.5316e12
+        },
+        "meta": { "quality": 1 }
+      }
+    ]
+  }
+}

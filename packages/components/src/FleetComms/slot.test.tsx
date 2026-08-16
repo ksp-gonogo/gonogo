@@ -148,7 +148,15 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
       });
     });
     await waitFor(() => {
-      const line = document.querySelector("line");
+      // Scoped to this augment's own overlay `<svg>`: `SystemDiagram`'s own
+      // vessel marker can ALSO draw a `<line>` (a leader line back to the
+      // vessel's true position when its marker would otherwise land on the
+      // frame body's own dot), a bare `document.querySelector("line")`
+      // would happily match that one instead of the commlink line this
+      // test means to check.
+      const line = document.querySelector(
+        '[aria-label="Fleet and comms overlay"] line',
+      );
       expect(line).toBeTruthy();
       // x1/y1 is the diagram origin (the frame body); x2/y2 must be a
       // distinct, non-zero point: i.e. the vessel's real projected
@@ -219,7 +227,13 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
     );
-    expect(document.querySelector("line")).toBeNull();
+    // Scoped to this augment's own overlay `<svg>`, see the doc comment on
+    // the earlier "anchors the commlink line" test for why a bare "line"
+    // selector would also match SystemDiagram's own vessel-marker leader
+    // line (not present here regardless, the vessel is off-frame).
+    expect(
+      document.querySelector('[aria-label="Fleet and comms overlay"] line'),
+    ).toBeNull();
   });
 
   it("hides the commlink highlight when the Commlinks toggle is switched off", async () => {
@@ -235,11 +249,14 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     // `getByTitle` only recognises a `<title>` child of the `<svg>` ROOT
     // element, not one nested inside a shape element (`<line>`), so the
     // commlink line's own `<title>` tooltip is asserted via a direct DOM
-    // query instead.
+    // query instead. Scoped to this augment's own overlay `<svg>` for the
+    // same reason as the earlier "anchors the commlink line" test.
     await waitFor(() => {
-      expect(document.querySelector("line > title")?.textContent).toBe(
-        "Test Ship -> KSC",
-      );
+      expect(
+        document.querySelector(
+          '[aria-label="Fleet and comms overlay"] line > title',
+        )?.textContent,
+      ).toBe("Test Ship -> KSC");
     });
 
     const commlinksButton = screen.getByRole("button", { name: "Commlinks" });
@@ -247,7 +264,9 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     await user.click(commlinksButton);
     expect(commlinksButton.getAttribute("aria-pressed")).toBe("false");
     await waitFor(() => {
-      expect(document.querySelector("line")).toBeNull();
+      expect(
+        document.querySelector('[aria-label="Fleet and comms overlay"] line'),
+      ).toBeNull();
     });
   });
 

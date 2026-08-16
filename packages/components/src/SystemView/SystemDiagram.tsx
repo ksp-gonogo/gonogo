@@ -749,6 +749,63 @@ function markerStyle(state: VesselPlotState) {
   }
 }
 
+/**
+ * Screen-px distance below which a vessel marker starts overlapping its
+ * parent body's own dot: drawn at a fixed screen radius (independent of
+ * zoom, like every other diagram element), so a craft in low orbit around a
+ * body plotted at system scale has an orbit that projects to a handful of
+ * screen px, and its marker lands directly on the parent's. Exported so a
+ * test can pin the exact value the offset logic reacts to.
+ */
+export const MARKER_CROWD_THRESHOLD_PX = 18;
+
+/** How far outside the crowd threshold an offset marker is pushed, screen px. */
+const MARKER_OFFSET_MARGIN_PX = 8;
+
+export interface VesselMarkerPlacement {
+  /** Where the marker actually renders, user-space (pre-zoom) coordinates. */
+  marker: { x: number; y: number };
+  /**
+   * The true (un-offset) position, when the marker had to move to stay
+   * legible: a leader line is drawn from here to `marker`. `null` when the
+   * marker renders at its true position.
+   */
+  leaderFrom: { x: number; y: number } | null;
+}
+
+/**
+ * Where a vessel marker actually renders, and whether it needs a leader
+ * line back to its true position.
+ *
+ * Pushing the marker out to a minimum screen distance along the SAME
+ * direction from the parent keeps whatever contact treatment it carries
+ * (colour/dash/ring) legible without lying about where the craft actually
+ * is: the leader line is what says "the true position is back here".
+ *
+ * Falls back to a fixed direction (up-and-right) only when the vessel sits
+ * exactly on the parent (a zero, or effectively zero, screen-space orbit
+ * radius): there is no real direction to preserve at that point.
+ */
+export function resolveVesselMarkerPlacement(
+  pos: { x: number; y: number },
+  zoom: number,
+): VesselMarkerPlacement {
+  const screenDist = Math.hypot(pos.x, pos.y) * zoom;
+  if (screenDist >= MARKER_CROWD_THRESHOLD_PX) {
+    return { marker: pos, leaderFrom: null };
+  }
+  const angle = screenDist > 1e-6 ? Math.atan2(pos.y, pos.x) : -Math.PI / 4;
+  const targetUserDist =
+    (MARKER_CROWD_THRESHOLD_PX + MARKER_OFFSET_MARGIN_PX) / zoom;
+  return {
+    marker: {
+      x: Math.cos(angle) * targetUserDist,
+      y: Math.sin(angle) * targetUserDist,
+    },
+    leaderFrom: pos,
+  };
+}
+
 function VesselMarker({
   vessel,
   plotScale,
@@ -768,13 +825,28 @@ function VesselMarker({
     vessel.trueAnomaly,
     plotScale,
   );
+  const { marker, leaderFrom } = resolveVesselMarkerPlacement(pos, zoom);
   const r = 5 / zoom;
   const { colour, filled, opacity } = markerStyle(state);
   return (
     <g pointerEvents="none" opacity={opacity}>
+      {leaderFrom && (
+        // Says "the true position is back here": drawn first so the marker
+        // itself sits on top of it.
+        <line
+          x1={leaderFrom.x}
+          y1={leaderFrom.y}
+          x2={marker.x}
+          y2={marker.y}
+          stroke={colour}
+          strokeWidth={0.8 / zoom}
+          strokeDasharray={`${1.5 / zoom} ${1.5 / zoom}`}
+          opacity={0.6}
+        />
+      )}
       <circle
-        cx={pos.x}
-        cy={pos.y}
+        cx={marker.x}
+        cy={marker.y}
         r={r}
         fill={filled ? colour : "none"}
         stroke={filled ? "var(--color-text-inverse)" : colour}
@@ -784,8 +856,8 @@ function VesselMarker({
         strokeDasharray={filled ? undefined : `${3 / zoom} ${2.5 / zoom}`}
       />
       <circle
-        cx={pos.x}
-        cy={pos.y}
+        cx={marker.x}
+        cy={marker.y}
         r={r * 2.2}
         fill="none"
         stroke={colour}
