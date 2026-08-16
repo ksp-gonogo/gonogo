@@ -35,6 +35,7 @@ namespace Gonogo.KSP
     /// <see cref="CurrencyEventUplink.ArmSourceNode"/>'s own doc comment both
     /// warn about. See <see cref="CaptureSilenceOnMain"/>.</para>
     /// </summary>
+    [SitrepUplink("fleet-delay")]
     public sealed class FleetDelayUplink : ISitrepUplink
     {
         /// <summary>
