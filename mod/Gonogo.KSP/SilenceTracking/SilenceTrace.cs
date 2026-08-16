@@ -102,6 +102,25 @@ namespace Gonogo.KSP.SilenceTracking
                 + " firstNode=" + (firstNodeName ?? "<none>"));
         }
 
+        private static bool _calibrated;
+
+        /// <summary>
+        /// One-shot calibration of the station's inertial-longitude convention.
+        ///
+        /// <para>Reasoning about KSP's <c>rotationAngle</c> convention has now
+        /// produced two wrong answers, so this measures it instead. The frame
+        /// self-check already computes the quantity that ought to be zero; this
+        /// reports that residual across candidate longitude offsets, so the
+        /// convention is identified by which one zeroes it rather than by
+        /// another argument about what the field means.</para>
+        /// </summary>
+        public static void Calibration(string report)
+        {
+            if (_calibrated) return;
+            _calibrated = true;
+            Debug.Log(Prefix + "longitude calibration: " + report);
+        }
+
         public static void NotPublished(object? captured, bool noSource)
         {
             if (_warnedNotPublished) return;

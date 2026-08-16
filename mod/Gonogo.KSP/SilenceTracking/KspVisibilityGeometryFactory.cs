@@ -99,7 +99,18 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
-            var station = StationOn(stationBody, comm);
+            var stationBodyIndex = bodies.IndexOf(stationBody);
+            double longitudeOffset;
+            if (!StationLongitudeCalibration.TryGet(stationBodyIndex, out longitudeOffset))
+            {
+                if (!TryCalibrate(sample, stationBody, comm, links, occlusion, stationBodyIndex, out longitudeOffset))
+                {
+                    SilenceTrace.NoGeometry("longitude not calibrated yet for " + stationBody.bodyName);
+                    return null;
+                }
+            }
+
+            var station = StationOn(stationBody, comm, longitudeOffset);
             if (station == null)
             {
                 SilenceTrace.NoGeometry("station body has no radius or no spin");
@@ -364,7 +375,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// here that is easy to get wrong silently, which is what the
         /// separation self-check exists to catch.
         /// </summary>
-        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm)
+        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double longitudeOffsetDeg)
         {
             if (!(body.Radius > 0.0) || !(Math.Abs(body.rotationPeriod) > 0.0))
             {
@@ -374,8 +385,11 @@ namespace Gonogo.KSP.SilenceTracking
             var world = comm.precisePosition;
             var latitude = body.GetLatitude(world);
             var altitude = body.GetAltitude(world);
-            var inertialLongitude = body.GetLongitude(world) + body.rotationAngle;
+            var inertialLongitude = body.GetLongitude(world) + body.rotationAngle + longitudeOffsetDeg;
 
+            // The offset is measured, not asserted: see
+            // StationLongitudeCalibration for why.
+            //
             // The reference UT is NOW, not the caller's ut.
             //
             // Both inputs are live quantities: precisePosition is where the
@@ -403,7 +417,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// the station's rotation phase all at once without ever needing to
         /// know how KSP's world axes map onto the propagation frame's.
         /// </summary>
-        private static bool ReconcilesWithTheLiveScene(
+        private bool ReconcilesWithTheLiveScene(
             IVisibilityGeometry geometry,
             SilenceSample sample,
             CommNode comm,
@@ -440,6 +454,145 @@ namespace Gonogo.KSP.SilenceTracking
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Solves for this body's longitude offset against the live scene, by
+        /// minimising the same residual the frame self-check reports: the gap
+        /// between the geometry's own vessel-to-station separation and the
+        /// world-space one. Coarse pass then fine, so the whole circle costs a
+        /// few hundred cheap evaluations, once per body.
+        ///
+        /// <para>Needs a LOADED vessel to measure against, so it returns false
+        /// until one is available. That is the correct order of events anyway:
+        /// there is nothing to calibrate against in a scene with no live craft,
+        /// and a prediction withheld for a few ticks costs nothing.</para>
+        /// </summary>
+        private bool TryCalibrate(
+            SilenceSample sample,
+            CelestialBody stationBody,
+            CommNode comm,
+            List<OrbitToRemoteStationGeometry.ChainLink> links,
+            ICommsOcclusionModel occlusion,
+            int stationBodyIndex,
+            out double offsetDegrees)
+        {
+            offsetDegrees = 0.0;
+
+            // Prefer a reference orbiting the STATION's own body, so the chain
+            // is empty and the solve isolates the one unknown it is for.
+            //
+            // Measured both ways on the live save: a Kerbin-orbiting reference
+            // converged to 373 m of 2,467 km, while a Minmus one bottomed out at
+            // 116 km of 46,327 km and was rejected. The difference is the chain
+            // link's own propagation error leaking into the fit, which then
+            // shifts the longitude to compensate - a good fit to the wrong
+            // model. One unknown at a time.
+            var reference = FindLoadedVesselOrbiting(stationBody) ?? FindAnyLoadedVessel();
+            if (reference == null || reference.orbitDriver == null || reference.orbitDriver.orbit == null)
+            {
+                return false;
+            }
+
+            var refBody = reference.orbitDriver.orbit.referenceBody;
+            var refIndex = refBody != null ? FlightGlobals.Bodies.IndexOf(refBody) : -1;
+            if (refIndex < 0)
+            {
+                return false;
+            }
+
+            var refChain = BuildChain(refBody, stationBody, occlusion);
+            if (refChain == null)
+            {
+                return false;
+            }
+
+            var now = Planetarium.GetUniversalTime();
+            var refOrbit = ElementsOf(reference.orbitDriver.orbit);
+            var live = (reference.orbitDriver.orbit.getPositionAtUT(now) - comm.precisePosition).magnitude;
+
+            var best = double.MaxValue;
+            var bestOffset = 0.0;
+            for (var coarse = -180.0; coarse < 180.0; coarse += 2.0)
+            {
+                var r = ResidualAt(coarse, refOrbit, refChain, stationBody, comm, occlusion, now, live);
+                if (r < best) { best = r; bestOffset = coarse; }
+            }
+            for (var fine = bestOffset - 2.0; fine <= bestOffset + 2.0; fine += 0.1)
+            {
+                var r = ResidualAt(fine, refOrbit, refChain, stationBody, comm, occlusion, now, live);
+                if (r < best) { best = r; bestOffset = fine; }
+            }
+
+            // Only accept a solve that actually reconciles. A minimum that is
+            // still far off is not a calibration, it is the least-bad of a set
+            // of wrong answers, and adopting it would hand the sweep a station
+            // in the wrong place with no further warning.
+            if (best > FrameCheckToleranceMeters)
+            {
+                SilenceTrace.Calibration("FAILED for " + stationBody.bodyName
+                    + ": best offset " + bestOffset.ToString("F1") + " deg still leaves "
+                    + best.ToString("F0") + "m of " + live.ToString("F0") + "m");
+                return false;
+            }
+
+            StationLongitudeCalibration.Set(stationBodyIndex, bestOffset);
+            offsetDegrees = bestOffset;
+            SilenceTrace.Calibration(stationBody.bodyName + " longitude offset "
+                + bestOffset.ToString("F1") + " deg, residual " + best.ToString("F0")
+                + "m of " + live.ToString("F0") + "m");
+            return true;
+        }
+
+        private static double ResidualAt(
+            double offsetDeg,
+            OrbitElements refOrbit,
+            List<OrbitToRemoteStationGeometry.ChainLink> refChain,
+            CelestialBody stationBody,
+            CommNode comm,
+            ICommsOcclusionModel occlusion,
+            double now,
+            double live)
+        {
+            var station = StationOn(stationBody, comm, offsetDeg);
+            if (station == null)
+            {
+                return double.MaxValue;
+            }
+            var geometry = new OrbitToRemoteStationGeometry(
+                refOrbit, refChain, station.Value, OccludingRadiusOf(occlusion, stationBody));
+            return Math.Abs(live - geometry.SeparationAt(now));
+        }
+
+        private static Vessel FindLoadedVesselOrbiting(CelestialBody body)
+        {
+            var all = FlightGlobals.Vessels;
+            if (all == null) return null;
+            foreach (var v in all)
+            {
+                if (v == null || !v.loaded || v.orbitDriver == null || v.orbitDriver.orbit == null) continue;
+                if (v.orbitDriver.orbit.referenceBody == body) return v;
+            }
+            return null;
+        }
+
+        private static Vessel FindAnyLoadedVessel()
+        {
+            var active = FlightGlobals.ActiveVessel;
+            if (active != null && active.orbitDriver != null && active.orbitDriver.orbit != null)
+            {
+                return active;
+            }
+            var all = FlightGlobals.Vessels;
+            if (all == null) return null;
+            foreach (var v in all)
+            {
+                if (v != null && v.loaded && v.orbitDriver != null && v.orbitDriver.orbit != null)
+                {
+                    return v;
+                }
+            }
+            return null;
         }
 
         private static Vessel FindVessel(string vesselId)
