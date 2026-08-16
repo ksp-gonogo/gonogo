@@ -176,7 +176,12 @@ namespace Gonogo.KSP
                 var (_, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var orbit = BuildOrbitElements(vessel);
                 var landedOrSplashed = vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.SPLASHED;
-                present.Add(new SilenceSample(vessel.id.ToString(), connected, orbit, landedOrSplashed));
+                present.Add(new SilenceSample(
+                    vessel.id.ToString(),
+                    connected,
+                    orbit,
+                    landedOrSplashed,
+                    ReferenceBodyIndexOf(vessel)));
             }
 
             SilenceCaptureBudget.Record(present.Count, ut);
@@ -194,6 +199,7 @@ namespace Gonogo.KSP
                     SilenceSinceUt = state.SilenceSinceUt,
                     DeadlineUt = state.DeadlineUt,
                     DeadlineBasis = state.DeadlineBasis,
+                    PredictedReacquisitionUt = state.PredictedReacquisitionUt,
                 });
             }
 
@@ -217,18 +223,23 @@ namespace Gonogo.KSP
             foreach (var v in cap.Vessels)
             {
                 _orbitSource.Publisher(v.VesselId + ChannelEngine.ContactMetaSuffix).Publish(
-                    FleetVesselContactBuilder.Build(v.Connected, v.State.ToString(), v.LastContactUt, v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis),
+                    FleetVesselContactBuilder.Build(v.Connected, v.State.ToString(), v.LastContactUt, v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt),
                     cap.Ut);
             }
         }
 
         /// <summary>
-        /// <see cref="SilenceTracker"/>'s deadline policy only consults
-        /// <c>Sma</c>/<c>Ecc</c>/<c>Mu</c>; the remaining
-        /// <see cref="OrbitElements"/> fields (inc/lan/argPe/meanAnomaly/
-        /// epoch) are not read by anything silence-related, so 0 is a safe
-        /// filler here rather than a genuine claim about the vessel's
-        /// attitude/epoch.
+        /// The FULL element set, matching <c>KspHost</c>'s <c>vessel.orbit</c>
+        /// extraction field for field.
+        ///
+        /// <para>These used to be sma/ecc/mu with the orientation and phase
+        /// zeroed, on the reasoning that the orbital-period deadline policy
+        /// read nothing else. That was true of that policy and false of the
+        /// predictor: zeroed inc/lan/argPe/meanAnomaly propagate an equatorial
+        /// orbit at an arbitrary phase, so every occultation it found would be
+        /// for a craft that is not where the game has it. A policy reading
+        /// fewer fields costs nothing; a policy reading fabricated ones is
+        /// worse than no policy.</para>
         /// </summary>
         private static OrbitElements? BuildOrbitElements(Vessel vessel)
         {
@@ -240,12 +251,30 @@ namespace Gonogo.KSP
             return new OrbitElements(
                 sma: orbit.semiMajorAxis,
                 ecc: orbit.eccentricity,
-                inc: 0.0,
-                lan: 0.0,
-                argPe: 0.0,
-                meanAnomalyAtEpoch: 0.0,
-                epoch: 0.0,
+                inc: orbit.inclination,
+                lan: orbit.LAN,
+                argPe: orbit.argumentOfPeriapsis,
+                meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
+                epoch: orbit.epoch,
                 mu: orbit.referenceBody.gravParameter);
+        }
+
+        /// <summary>
+        /// Index into <c>FlightGlobals.Bodies</c> of the body the vessel's
+        /// elements are relative to. The elements alone do not say, and a
+        /// predictor cannot choose an occluder without it.
+        /// </summary>
+        private static int? ReferenceBodyIndexOf(Vessel vessel)
+        {
+            var body = vessel.orbitDriver != null && vessel.orbitDriver.orbit != null
+                ? vessel.orbitDriver.orbit.referenceBody
+                : null;
+            if (body == null)
+            {
+                return null;
+            }
+            var index = FlightGlobals.Bodies.IndexOf(body);
+            return index >= 0 ? index : (int?)null;
         }
 
         public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -285,6 +314,7 @@ namespace Gonogo.KSP
             public double? SilenceSinceUt { get; set; }
             public double? DeadlineUt { get; set; }
             public string? DeadlineBasis { get; set; }
+            public double? PredictedReacquisitionUt { get; set; }
         }
     }
 }

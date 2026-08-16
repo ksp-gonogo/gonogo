@@ -10,12 +10,15 @@ namespace Sitrep.Host.Tests
         private static OrbitElements CircularOrbit(double sma, double mu, double ecc = 0.0) =>
             new OrbitElements(sma, ecc, inc: 0, lan: 0, argPe: 0, meanAnomalyAtEpoch: 0, epoch: 0, mu: mu);
 
+        private static SilenceSample Sample(OrbitElements? orbit, bool landed = false) =>
+            new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: landed);
+
         [Fact]
         public void NullOrbitFallsToTheCeilingWithNoOrbitBasis()
         {
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 600, ceilingSec: 86400);
 
-            var result = policy.Evaluate(null, landedOrSplashed: false);
+            var result = policy.Evaluate(Sample(null, landed: false));
 
             Assert.Equal(86400, result.DurationSec);
             Assert.Equal(SilenceDeadlineBasis.NoOrbit, result.Basis);
@@ -31,7 +34,7 @@ namespace Sitrep.Host.Tests
             var expectedDuration = 1.5 * expectedPeriod;
 
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 60, ceilingSec: 86400, periodMultiplier: 1.5);
-            var result = policy.Evaluate(CircularOrbit(sma, mu), landedOrSplashed: false);
+            var result = policy.Evaluate(Sample(CircularOrbit(sma, mu), landed: false));
 
             Assert.Equal(SilenceDeadlineBasis.OrbitalPeriod, result.Basis);
             Assert.Equal(expectedDuration, result.DurationSec, 3);
@@ -42,7 +45,7 @@ namespace Sitrep.Host.Tests
         {
             // A tiny/fast orbit whose 1.5x period is well under the floor.
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 600, ceilingSec: 86400, periodMultiplier: 1.5);
-            var result = policy.Evaluate(CircularOrbit(sma: 10_000.0, mu: 3.5316e12), landedOrSplashed: false);
+            var result = policy.Evaluate(Sample(CircularOrbit(sma: 10_000.0, mu: 3.5316e12), landed: false));
 
             Assert.Equal(SilenceDeadlineBasis.PolicyFloor, result.Basis);
             Assert.Equal(600, result.DurationSec);
@@ -53,7 +56,7 @@ namespace Sitrep.Host.Tests
         {
             // A huge, slow orbit whose 1.5x period blows past the ceiling.
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 600, ceilingSec: 86400, periodMultiplier: 1.5);
-            var result = policy.Evaluate(CircularOrbit(sma: 5.0e10, mu: 3.5316e12), landedOrSplashed: false);
+            var result = policy.Evaluate(Sample(CircularOrbit(sma: 5.0e10, mu: 3.5316e12), landed: false));
 
             Assert.Equal(SilenceDeadlineBasis.PolicyCeiling, result.Basis);
             Assert.Equal(86400, result.DurationSec);
@@ -63,7 +66,7 @@ namespace Sitrep.Host.Tests
         public void HyperbolicOrbitFallsToTheCeilingRegardlessOfSma()
         {
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 600, ceilingSec: 86400);
-            var result = policy.Evaluate(CircularOrbit(sma: 700_000.0, mu: 3.5316e12, ecc: 1.2), landedOrSplashed: false);
+            var result = policy.Evaluate(Sample(CircularOrbit(sma: 700_000.0, mu: 3.5316e12, ecc: 1.2), landed: false));
 
             Assert.Equal(SilenceDeadlineBasis.PolicyCeiling, result.Basis);
             Assert.Equal(86400, result.DurationSec);
@@ -73,7 +76,7 @@ namespace Sitrep.Host.Tests
         public void LandedOrSplashedFallsToTheCeilingEvenWithAValidOrbit()
         {
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 600, ceilingSec: 86400);
-            var result = policy.Evaluate(CircularOrbit(sma: 700_000.0, mu: 3.5316e12), landedOrSplashed: true);
+            var result = policy.Evaluate(Sample(CircularOrbit(sma: 700_000.0, mu: 3.5316e12), landed: true));
 
             Assert.Equal(SilenceDeadlineBasis.PolicyCeiling, result.Basis);
             Assert.Equal(86400, result.DurationSec);
@@ -87,7 +90,7 @@ namespace Sitrep.Host.Tests
         public void DegenerateSmaOrMuFallsToTheCeilingRatherThanThrowing(double sma, double mu)
         {
             var policy = new OrbitalPeriodSilenceDeadlinePolicy(floorSec: 600, ceilingSec: 86400);
-            var result = policy.Evaluate(CircularOrbit(sma, mu), landedOrSplashed: false);
+            var result = policy.Evaluate(Sample(CircularOrbit(sma, mu), landed: false));
 
             Assert.Equal(SilenceDeadlineBasis.PolicyCeiling, result.Basis);
             Assert.Equal(86400, result.DurationSec);

@@ -16,7 +16,7 @@ namespace Sitrep.Host.Tests
         private const string VesselB = "vessel-b";
 
         private static SilenceTracker NewTracker(double deadlineSec = 100.0, string basis = "policy-ceiling") =>
-            new SilenceTracker((orbit, landed) => new SilenceDeadline(deadlineSec, basis));
+            new SilenceTracker((sample, onsetUt) => new SilenceDeadline(deadlineSec, basis));
 
         private static IReadOnlyList<SilenceSample> One(string id, bool connected) =>
             new[] { new SilenceSample(id, connected, orbit: null, landedOrSplashed: false) };
@@ -167,7 +167,7 @@ namespace Sitrep.Host.Tests
         public void DestroyedNeverGoesThroughTheDeadlinePolicyAndDoesNotReincrementSeqOnRepeatedAbsence()
         {
             var callCount = 0;
-            var tracker = new SilenceTracker((orbit, landed) =>
+            var tracker = new SilenceTracker((sample, onsetUt) =>
             {
                 callCount++;
                 return new SilenceDeadline(100, "policy-ceiling");

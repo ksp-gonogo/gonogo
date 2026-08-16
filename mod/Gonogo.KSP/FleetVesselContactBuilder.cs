@@ -22,7 +22,8 @@ namespace Gonogo.KSP
             double? lastContactUt,
             double? silenceSinceUt,
             double? deadlineUt,
-            string? deadlineBasis) =>
+            string? deadlineBasis,
+            double? predictedReacquisitionUt) =>
             new Dictionary<string, object?>
             {
                 ["connected"] = connected,
@@ -31,6 +32,7 @@ namespace Gonogo.KSP
                 ["silenceSinceUt"] = silenceSinceUt,
                 ["deadlineUt"] = deadlineUt,
                 ["deadlineBasis"] = deadlineBasis,
+                ["predictedReacquisitionUt"] = predictedReacquisitionUt,
             };
     }
 }

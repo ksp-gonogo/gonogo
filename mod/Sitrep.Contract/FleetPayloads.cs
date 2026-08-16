@@ -81,9 +81,24 @@ public class FleetVesselContact
 
     /// <summary>
     /// One of <c>orbital-period</c> / <c>policy-floor</c> / <c>policy-ceiling</c> /
-    /// <c>no-orbit</c> / <c>destroyed</c> (<c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>).
-    /// Null while Nominal.
+    /// <c>no-orbit</c> / <c>destroyed</c> / <c>predicted-reacquisition</c> /
+    /// <c>no-occultation</c> / <c>no-emergence-in-window</c> / <c>warp-limited</c>
+    /// (<c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>). Null while Nominal.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public string? DeadlineBasis { get; set; }
+
+    /// <summary>
+    /// UT the radio path is predicted to re-open, when a visibility sweep
+    /// found one. This is what "should be back in ~16 min" is rendered from,
+    /// and what makes "it did not show up" expressible at all.
+    ///
+    /// <para>Null whenever no honest prediction exists — no geometry, no
+    /// occultation to emerge from, or a warp too coarse to resolve one — and
+    /// <c>deadlineBasis</c> says which. A null is a prediction WITHHELD, never
+    /// an emergence of "now": a client must render the absence as "no
+    /// prediction", not as an overdue vessel.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? PredictedReacquisitionUt { get; set; }
 }

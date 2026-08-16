@@ -5,7 +5,7 @@ using Xunit;
 public class SilenceTrackerPersistenceTests
 {
     private static SilenceTracker NewTracker() =>
-        new SilenceTracker((orbit, landed) => new SilenceDeadline(600, "policy-ceiling"));
+        new SilenceTracker((sample, onsetUt) => new SilenceDeadline(600, "policy-ceiling"));
 
     [Fact]
     public void SaveThenLoadRestoresEveryFieldIncludingTheBoolAndDoubleFieldsExactly()

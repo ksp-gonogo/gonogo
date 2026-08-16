@@ -386,6 +386,7 @@ export interface FleetVesselContact
 	silenceSinceUt?: Value<"s">;
 	deadlineUt?: Value<"s">;
 	deadlineBasis?: string;
+	predictedReacquisitionUt?: Value<"s">;
 }
 export enum FlightEndReason {
 	Recovered = 0,

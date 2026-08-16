@@ -45,17 +45,21 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Matches the <see cref="SilenceDeadlinePolicy"/> delegate shape;
         /// callers inject <c>new OrbitalPeriodSilenceDeadlinePolicy().Evaluate</c>
-        /// into <see cref="SilenceTracker"/>'s constructor.
+        /// into <see cref="SilenceTracker"/>'s constructor. Everything on the
+        /// sample beyond the orbit is ignored, as is the silence-onset
+        /// <c>ut</c>: this policy scales the period and needs no origin.
+        /// <see cref="PredictedReacquisitionSilenceDeadlinePolicy"/> is the
+        /// one that does.
         /// </summary>
-        public SilenceDeadline Evaluate(OrbitElements? orbit, bool landedOrSplashed)
+        public SilenceDeadline Evaluate(SilenceSample sample, double ut = 0.0)
         {
-            if (orbit == null)
+            if (sample.Orbit == null)
             {
                 return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.NoOrbit);
             }
 
-            var o = orbit.Value;
-            if (landedOrSplashed || o.Ecc >= 1.0 || !(o.Sma > 0.0) || !(o.Mu > 0.0))
+            var o = sample.Orbit.Value;
+            if (sample.LandedOrSplashed || o.Ecc >= 1.0 || !(o.Sma > 0.0) || !(o.Mu > 0.0))
             {
                 return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.PolicyCeiling);
             }

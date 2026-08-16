@@ -31,6 +31,47 @@ namespace Sitrep.Host.Comms
         public const string PolicyCeiling = "policy-ceiling";
         public const string NoOrbit = "no-orbit";
         public const string Destroyed = "destroyed";
+
+        /// <summary>
+        /// A visibility sweep found the path re-opening at a specific UT, so
+        /// the deadline is that emergence plus a grace rather than a multiple
+        /// of the orbital period. The only basis that carries a
+        /// <see cref="SilenceDeadline.PredictedReacquisitionUt"/>.
+        /// </summary>
+        public const string PredictedReacquisition = "predicted-reacquisition";
+
+        /// <summary>
+        /// The sweep ran and found the path clear for the whole window: no
+        /// body ever comes between the vessel and a station, so geometry
+        /// offers NO explanation for this silence and predicts no emergence.
+        ///
+        /// <para>This means "there is no countdown to show", and it must never
+        /// be read as "declare fast". The naive treatment — no occultation, so
+        /// nothing to wait for, fall to the floor — declares an LKO vessel lost
+        /// ten minutes after any blip, and under this save's relay ring an LKO
+        /// craft is geometrically blind 0.0% of the time, so that is EVERY LKO
+        /// vessel. The deadline falls through to the orbital-period policy
+        /// instead; only the prediction is withheld.</para>
+        /// </summary>
+        public const string NoOccultation = "no-occultation";
+
+        /// <summary>
+        /// The sweep ran and the path was blocked for the whole window: the
+        /// vessel is behind something and stays there for at least the
+        /// searched span. Distinct from <see cref="NoOccultation"/>, which is
+        /// the opposite finding, because "it is still behind the Mun" and
+        /// "nothing is in the way" are different things to tell an operator
+        /// even though both withhold a prediction.
+        /// </summary>
+        public const string NoEmergenceInWindow = "no-emergence-in-window";
+
+        /// <summary>
+        /// Time warp is fast enough that the sweep step needed to resolve an
+        /// occultation exceeds the occultation itself, so any emergence time
+        /// would be fabricated. Same treatment as
+        /// <see cref="NoOccultation"/>: orbital-period deadline, no prediction.
+        /// </summary>
+        public const string WarpLimited = "warp-limited";
     }
 
     /// <summary>One deadline-policy evaluation: how long to wait, and why.</summary>
@@ -42,10 +83,20 @@ namespace Sitrep.Host.Comms
         /// <summary>One of <see cref="SilenceDeadlineBasis"/>.</summary>
         public readonly string Basis;
 
-        public SilenceDeadline(double durationSec, string basis)
+        /// <summary>
+        /// Absolute UT at which the path is predicted to re-open, when a
+        /// visibility sweep found one. Null whenever no honest prediction
+        /// exists, which is most of the time: no geometry available, no
+        /// occultation found, or a warp too fast to resolve one. A null here
+        /// is a prediction WITHHELD, never a prediction of "now".
+        /// </summary>
+        public readonly double? PredictedReacquisitionUt;
+
+        public SilenceDeadline(double durationSec, string basis, double? predictedReacquisitionUt = null)
         {
             DurationSec = durationSec;
             Basis = basis;
+            PredictedReacquisitionUt = predictedReacquisitionUt;
         }
     }
 
@@ -58,8 +109,13 @@ namespace Sitrep.Host.Comms
     /// it becomes eligible to be declared Lost. Never called for a destroyed
     /// vessel: <see cref="SilenceTracker"/> decides that case itself, with no
     /// deadline at all.
+    ///
+    /// <para><paramref name="ut"/> is the moment the silence began, which a
+    /// geometry-based policy needs as the origin of its forward sweep. A
+    /// policy that only scales the orbital period ignores it, as it ignores
+    /// everything on the sample beyond the orbit.</para>
     /// </summary>
-    public delegate SilenceDeadline SilenceDeadlinePolicy(OrbitElements? orbit, bool landedOrSplashed);
+    public delegate SilenceDeadline SilenceDeadlinePolicy(SilenceSample sample, double ut);
 
     /// <summary>One vessel's live comms facts for a single capture tick.</summary>
     public readonly struct SilenceSample
@@ -72,12 +128,26 @@ namespace Sitrep.Host.Comms
 
         public readonly bool LandedOrSplashed;
 
-        public SilenceSample(string vesselId, bool connected, OrbitElements? orbit, bool landedOrSplashed)
+        /// <summary>
+        /// Index into <c>FlightGlobals.Bodies</c> of the body
+        /// <see cref="Orbit"/> is relative to, or null when unknown. The
+        /// elements alone do not say which body they orbit, and a predictor
+        /// cannot pick an occluder or a set of ground stations without that.
+        /// </summary>
+        public readonly int? ReferenceBodyIndex;
+
+        public SilenceSample(
+            string vesselId,
+            bool connected,
+            OrbitElements? orbit,
+            bool landedOrSplashed,
+            int? referenceBodyIndex = null)
         {
             VesselId = vesselId;
             Connected = connected;
             Orbit = orbit;
             LandedOrSplashed = landedOrSplashed;
+            ReferenceBodyIndex = referenceBodyIndex;
         }
     }
 
@@ -106,6 +176,13 @@ namespace Sitrep.Host.Comms
 
         /// <summary>One of <see cref="SilenceDeadlineBasis"/>. Null while Nominal.</summary>
         public string? DeadlineBasis;
+
+        /// <summary>
+        /// UT the path is predicted to re-open, when the policy found one.
+        /// Null while Nominal, and null during a silence the geometry cannot
+        /// explain: see <see cref="SilenceDeadlineBasis.NoOccultation"/>.
+        /// </summary>
+        public double? PredictedReacquisitionUt;
 
         /// <summary>UT this vessel was most recently declared Lost. Null if never declared.</summary>
         public double? DeclaredLostUt;
@@ -249,6 +326,7 @@ namespace Sitrep.Host.Comms
                 s.SilenceSinceUt = null;
                 s.DeadlineUt = null;
                 s.DeadlineBasis = null;
+                s.PredictedReacquisitionUt = null;
                 s.ConsecutiveSilentSamples = 0;
                 return s;
             }
@@ -264,9 +342,10 @@ namespace Sitrep.Host.Comms
                 // evolves underneath it.
                 s.State = SilenceState.Silent;
                 s.SilenceSinceUt = ut;
-                var deadline = _policy(sample.Orbit, sample.LandedOrSplashed);
+                var deadline = _policy(sample, ut);
                 s.DeadlineUt = ut + deadline.DurationSec;
                 s.DeadlineBasis = deadline.Basis;
+                s.PredictedReacquisitionUt = deadline.PredictedReacquisitionUt;
                 return s;
             }
 
@@ -302,6 +381,7 @@ namespace Sitrep.Host.Comms
             s.State = SilenceState.Lost;
             s.DeadlineUt = null;
             s.DeadlineBasis = SilenceDeadlineBasis.Destroyed;
+            s.PredictedReacquisitionUt = null;
             s.ConsecutiveSilentSamples = 0;
             return s;
         }

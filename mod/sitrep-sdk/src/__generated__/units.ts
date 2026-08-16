@@ -411,6 +411,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     deadlineBasis: "enum",
     deadlineUt: "s",
     lastContactUt: "s",
+    predictedReacquisitionUt: "s",
     silenceSinceUt: "s",
     state: "enum",
   },

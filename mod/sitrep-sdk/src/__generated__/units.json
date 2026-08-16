@@ -377,6 +377,7 @@
       "deadlineBasis": "enum",
       "deadlineUt": "s",
       "lastContactUt": "s",
+      "predictedReacquisitionUt": "s",
       "silenceSinceUt": "s",
       "state": "enum"
     },
