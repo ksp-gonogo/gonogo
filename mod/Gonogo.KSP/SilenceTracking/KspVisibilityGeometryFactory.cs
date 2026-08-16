@@ -85,22 +85,18 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
-            // The frame is centred on the STATION's body, so the vessel's
-            // parent is either that body (no intermediate link) or something
-            // orbiting it (one link). Anything deeper - a vessel at a moon of
-            // another planet, reaching a station on Kerbin - needs the full
-            // chain walk, and a two-link approximation of it would be wrong
-            // by whole planetary radii rather than gracefully imprecise.
-            OrbitElements? parentOrbit = null;
-            if (parentBody != stationBody)
+            // Walk the patched-conic chain between the station's body and the
+            // vessel's parent: up to their common ancestor, then down. A craft
+            // at a moon of another planet is several links from a Kerbin
+            // station, and describing it with one element set is wrong by whole
+            // planetary radii within minutes.
+            var occlusion = CommsElection.OcclusionModel(_kernel());
+            var links = BuildChain(parentBody, stationBody, occlusion);
+            if (links == null)
             {
-                if (parentBody.orbit == null || parentBody.orbit.referenceBody != stationBody)
-                {
-                    SilenceTrace.NoGeometry("chain deeper than one link: vessel at "
-                        + parentBody.bodyName + ", station at " + stationBody.bodyName);
-                    return null;
-                }
-                parentOrbit = ElementsOf(parentBody.orbit);
+                SilenceTrace.NoGeometry("no patched-conic chain between "
+                    + parentBody.bodyName + " and " + stationBody.bodyName);
+                return null;
             }
 
             var station = StationOn(stationBody, comm, ut);
@@ -110,13 +106,11 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
-            var occlusion = CommsElection.OcclusionModel(_kernel());
             var geometry = new OrbitToRemoteStationGeometry(
                 sample.Orbit.Value,
-                parentOrbit,
+                links,
                 station.Value,
-                OccludingRadiusOf(occlusion, stationBody),
-                OccludingRadiusOf(occlusion, parentBody));
+                OccludingRadiusOf(occlusion, stationBody));
 
             return ReconcilesWithTheLiveScene(geometry, sample, comm, ut) ? geometry : null;
         }
@@ -167,6 +161,109 @@ namespace Gonogo.KSP.SilenceTracking
 
             stationBody = fallbackBody;
             return fallback;
+        }
+
+        /// <summary>
+        /// The bodies between <paramref name="stationBody"/> and
+        /// <paramref name="parentBody"/>, ordered nearest-the-station first —
+        /// the order <see cref="OrbitToRemoteStationGeometry"/> sums them in.
+        ///
+        /// <para>Null when no chain exists: the two are in different systems,
+        /// or the walk hit a body with no orbit before reaching the station's.
+        /// The loop is bounded by the body count so a malformed hierarchy
+        /// cannot spin.</para>
+        /// </summary>
+        private static List<OrbitToRemoteStationGeometry.ChainLink> BuildChain(
+            CelestialBody parentBody,
+            CelestialBody stationBody,
+            ICommsOcclusionModel occlusion)
+        {
+            var links = new List<OrbitToRemoteStationGeometry.ChainLink>();
+            if (parentBody == stationBody)
+            {
+                return links;
+            }
+
+            var stationBranch = AncestorsOf(stationBody);
+            var vesselBranch = AncestorsOf(parentBody);
+            if (stationBranch == null || vesselBranch == null)
+            {
+                return null;
+            }
+
+            // The common ancestor is the first body on the station's way up
+            // that also appears on the vessel's. Kerbin and a solar-orbit craft
+            // meet at the Sun; Kerbin and a Minmus craft meet at Kerbin itself.
+            var meetAt = -1;
+            CelestialBody ancestor = null;
+            for (var i = 0; i < stationBranch.Count && ancestor == null; i++)
+            {
+                if (vesselBranch.Contains(stationBranch[i]))
+                {
+                    ancestor = stationBranch[i];
+                    meetAt = i;
+                }
+            }
+            if (ancestor == null)
+            {
+                return null;
+            }
+
+            // Climb from the station's body to the ancestor. An ascending link
+            // SUBTRACTS, because the frame sits on the far side of it, and it
+            // arrives at the body one step up.
+            for (var i = 0; i < meetAt; i++)
+            {
+                var body = stationBranch[i];
+                if (body.orbit == null || body.orbit.referenceBody == null)
+                {
+                    return null;
+                }
+                links.Add(new OrbitToRemoteStationGeometry.ChainLink(
+                    ElementsOf(body.orbit),
+                    OccludingRadiusOf(occlusion, body.orbit.referenceBody),
+                    descending: false));
+            }
+
+            // Then descend from the ancestor to the vessel's parent, nearest
+            // the ancestor first.
+            var descent = new List<CelestialBody>();
+            for (var i = 0; i < vesselBranch.Count && vesselBranch[i] != ancestor; i++)
+            {
+                descent.Add(vesselBranch[i]);
+            }
+            descent.Reverse();
+            foreach (var body in descent)
+            {
+                if (body.orbit == null)
+                {
+                    return null;
+                }
+                links.Add(new OrbitToRemoteStationGeometry.ChainLink(
+                    ElementsOf(body.orbit),
+                    OccludingRadiusOf(occlusion, body),
+                    descending: true));
+            }
+
+            return links;
+        }
+
+        /// <summary>
+        /// A body and every body it orbits, in order, up to the root. Null if
+        /// the hierarchy loops, which the body-count bound turns into a null
+        /// rather than a hang.
+        /// </summary>
+        private static List<CelestialBody> AncestorsOf(CelestialBody body)
+        {
+            var chain = new List<CelestialBody>();
+            var walker = body;
+            var guard = FlightGlobals.Bodies != null ? FlightGlobals.Bodies.Count + 1 : 64;
+            while (walker != null && guard-- > 0)
+            {
+                chain.Add(walker);
+                walker = walker.orbit != null ? walker.orbit.referenceBody : null;
+            }
+            return guard > 0 ? chain : null;
         }
 
         /// <summary>

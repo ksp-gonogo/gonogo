@@ -43,7 +43,12 @@ namespace Sitrep.Propagation.Tests.Visibility
             OrbitElements? parent,
             RotatingGroundStation station) =>
             new OrbitToRemoteStationGeometry(
-                vessel, parent, station, KerbinRadius, MinmusRadius);
+                vessel,
+                parent == null
+                    ? new OrbitToRemoteStationGeometry.ChainLink[0]
+                    : new[] { new OrbitToRemoteStationGeometry.ChainLink(parent.Value, MinmusRadius, descending: true) },
+                station,
+                KerbinRadius);
 
         /// <summary>
         /// The whole reason this class exists. With the vessel's parent left at
@@ -144,7 +149,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             var vessel = new OrbitElements(KerbinRadius + 100_000.0, 0, 0, 0, 0, 0, 0, KerbinMu);
             var station = KscLikeStation();
             var remote = new OrbitToRemoteStationGeometry(
-                vessel, null, station, KerbinRadius, 0.0);
+                vessel, new OrbitToRemoteStationGeometry.ChainLink[0], station, KerbinRadius);
             var sameBody = new OrbitToGroundStationGeometry(vessel, station, KerbinRadius);
 
             for (var ut = 0.0; ut < 3_600.0; ut += 137.0)
