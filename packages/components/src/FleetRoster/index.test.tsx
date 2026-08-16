@@ -420,6 +420,71 @@ describe("FleetRosterComponent", () => {
     ],
   };
 
+  /**
+   * The five operator states, and specifically the two that are easy to get
+   * wrong: a silent craft with NO prediction must read "no contact" and never
+   * "overdue" (nothing promised it would be back), and going overdue must not
+   * be the same thing as being declared lost.
+   */
+  async function renderWithContact(contact: Record<string, unknown>) {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+      pinnedUt: 2_000,
+    });
+    renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.vessels", ONE_PROBE);
+    });
+    await screen.findByRole("button", { name: /Explorer signal/i });
+    act(() => {
+      fixture.emit("fleet.v-probe.contact", contact);
+    });
+    return fixture;
+  }
+
+  const SILENT = {
+    connected: false,
+    state: "Silent",
+    silenceSinceUt: 1_000,
+    deadlineUt: 9_000,
+    deadlineBasis: "predicted-reacquisition",
+    predictedReacquisitionUt: 2_600,
+  };
+
+  it("counts down to a predicted reacquisition", async () => {
+    await renderWithContact(SILENT);
+
+    // pinned UT 2000, predicted 2600 => 10 minutes out
+    expect(await screen.findByText(/reacquire in/i)).toBeInTheDocument();
+  });
+
+  it("announces an overdue vessel politely, and does not call it lost", async () => {
+    await renderWithContact({ ...SILENT, predictedReacquisitionUt: 1_800 });
+
+    const overdue = await screen.findByText(/overdue by/i);
+    expect(overdue.closest("[role='status']")).not.toBeNull();
+    expect(screen.queryByText(/lost/i)).toBeNull();
+  });
+
+  it("announces a declared loss assertively", async () => {
+    await renderWithContact({ ...SILENT, state: "Lost" });
+
+    const lost = await screen.findByText(/lost/i);
+    expect(lost.closest("[role='alert']")).not.toBeNull();
+  });
+
+  it("shows no countdown for a silence geometry cannot explain", async () => {
+    await renderWithContact({
+      ...SILENT,
+      deadlineBasis: "no-occultation",
+      predictedReacquisitionUt: null,
+    });
+
+    expect(await screen.findByText(/no contact/i)).toBeInTheDocument();
+    expect(screen.queryByText(/overdue/i)).toBeNull();
+    expect(screen.queryByText(/reacquire/i)).toBeNull();
+  });
+
   it("shows a per-vessel signal disclosure with the round-trip delay", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["system.vessels", "system.bodies", "fleet."],

@@ -6,8 +6,12 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  contactPhase,
+  overdueSeconds,
+  useFleetVesselContact,
   useFleetVesselLink,
   useSelectedVantage,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
   RosterCommsControlSource,
@@ -20,6 +24,7 @@ import {
   Cluster,
   Disclosure,
   EmptyState,
+  formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -329,6 +334,71 @@ function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
 }
 
 /**
+ * A vessel's contact state: due back, late, or given up on.
+ *
+ * The state worth the widget is `overdue` — past the moment geometry said the
+ * craft should have re-appeared, but before the deadline that declares it lost.
+ * That is the "expected back, didn't show" moment, and it is deliberately not
+ * an early form of `lost`: there is still time for the craft to appear, and the
+ * operator is told it is late rather than gone.
+ *
+ * A silent craft with no prediction renders as "no contact" with no countdown,
+ * never as overdue. Nothing promised it would be back, so nothing can be late —
+ * see `contactPhase`, which is where that distinction lives so no renderer has
+ * to re-derive it.
+ *
+ * Announcements are scoped to what each state warrants: `role="status"`
+ * (polite) for going overdue, `role="alert"` (assertive) for a declared loss,
+ * and nothing at all for the states that change every tick, which would
+ * otherwise flood a screen reader with a running countdown.
+ */
+function FleetContactCell({
+  guid,
+  vesselName,
+}: {
+  guid: string;
+  vesselName: string;
+}) {
+  const contact = useFleetVesselContact(guid);
+  const nowUt = useViewUt();
+  const phase = contactPhase(contact, nowUt ?? 0);
+
+  if (!contact || nowUt == null || phase === "nominal" || phase === undefined) {
+    return null;
+  }
+
+  if (phase === "lost") {
+    return (
+      <Badge severity="critical" role="alert" aria-live="assertive">
+        <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
+        lost
+      </Badge>
+    );
+  }
+
+  if (phase === "overdue") {
+    const late = overdueSeconds(contact, nowUt);
+    return (
+      <Badge severity="warning" live>
+        overdue by {late == null ? "?" : formatDuration(late)}
+      </Badge>
+    );
+  }
+
+  if (phase === "expected") {
+    const due = (contact.predictedReacquisitionUt ?? nowUt) - nowUt;
+    return (
+      <Badge severity="info">
+        reacquire in ~{formatDuration(Math.max(0, due))}
+      </Badge>
+    );
+  }
+
+  // waiting: silent, with no prediction to count down to.
+  return <Badge severity="offline">no contact</Badge>;
+}
+
+/**
  * The per-row Link cell: the connectivity glyph is the trigger of an accessible
  * Disclosure whose panel shows this vessel's own signal delay + reachability,
  * read from `fleet.<guid>.delay` (Plan 2 / 2c). Focus/tap reachable, NOT
@@ -535,6 +605,7 @@ function FleetRosterComponent({
                     >
                       {v.name}
                     </Truncate>
+                    <FleetContactCell guid={v.id} vesselName={v.name} />
                   </Cluster>
                   {!compact && (
                     <Truncate
