@@ -126,6 +126,30 @@ namespace Gonogo.KSP.SilenceTracking
             // planetary radii within minutes.
             var occlusion = CommsElection.OcclusionModel(_kernel());
             var links = BuildChain(parentBody, stationBody, occlusion);
+            if (links != null)
+            {
+                // A link the propagator cannot solve makes the whole chain
+                // unusable, and it is not exotic: the Sun sits at the top of
+                // every cross-planet chain and its stored elements are not a
+                // real orbit (ecc = 1, sma = 0). Feeding that to KeplerProvider
+                // throws, the policy swallows the throw and falls back, and the
+                // predictor goes quiet for every interplanetary vessel with no
+                // trace at all.
+                //
+                // Declining here is not a loss of capability: the chain only
+                // reaches the root body when the two ends are in different
+                // systems, which is a case the sweep could not have answered
+                // anyway.
+                foreach (var link in links)
+                {
+                    if (link.Orbit.Ecc >= 1.0 || !(link.Orbit.Sma > 0.0) || !(link.Orbit.Mu > 0.0))
+                    {
+                        SilenceTrace.NoGeometry("chain contains a non-elliptical link (ecc="
+                            + link.Orbit.Ecc.ToString("F2") + "), cannot propagate");
+                        return null;
+                    }
+                }
+            }
             if (links == null)
             {
                 SilenceTrace.NoGeometry("no patched-conic chain between "
