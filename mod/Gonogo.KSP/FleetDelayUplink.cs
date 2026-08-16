@@ -156,6 +156,7 @@ namespace Gonogo.KSP
             var tracker = SilenceTrackerSink.Current;
             if (tracker == null)
             {
+                SilenceTrace.NoTracker();
                 return null;
             }
 
@@ -186,6 +187,7 @@ namespace Gonogo.KSP
             }
 
             SilenceCaptureBudget.Record(present.Count, ut);
+            SilenceTrace.Captured(present.Count, ut);
 
             var touched = tracker.Tick(present, ut);
             var snapshots = new List<SilenceContactSnapshot>(touched.Count);
@@ -219,8 +221,10 @@ namespace Gonogo.KSP
         {
             if (captured is not SilenceCapture cap || _orbitSource == null)
             {
+                SilenceTrace.NotPublished(captured, _orbitSource == null);
                 return;
             }
+            SilenceTrace.Publishing(cap.Vessels.Count);
             foreach (var v in cap.Vessels)
             {
                 _orbitSource.Publisher(v.VesselId + ChannelEngine.ContactMetaSuffix).Publish(
