@@ -111,7 +111,8 @@ public class FleetVesselSilence
     /// <summary>
     /// One of <c>orbital-period</c> / <c>policy-floor</c> / <c>policy-ceiling</c> /
     /// <c>no-orbit</c> / <c>destroyed</c> / <c>predicted-reacquisition</c> /
-    /// <c>no-occultation</c> / <c>no-emergence-in-window</c> / <c>warp-limited</c>
+    /// <c>no-occultation</c> / <c>no-emergence-in-window</c> / <c>warp-limited</c> /
+    /// <c>grace-exceeds-ceiling</c>
     /// (<c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>). Null while Nominal.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]

@@ -41,23 +41,26 @@ namespace Gonogo.KSP.SilenceTracking
         private static SilenceDeadlinePolicy BuildPolicy() =>
             new PredictedReacquisitionSilenceDeadlinePolicy(
                 new KspVisibilityGeometryFactory(() => SilenceGeometrySink.Kernel).Build,
-                warpStepFloorSeconds: WarpStepFloorSeconds).Evaluate;
+                observationQuantumSeconds: ObservationQuantumSeconds).Evaluate;
 
         /// <summary>
-        /// The finest UT step this warp can actually resolve: one physics frame
-        /// of game time. Above it the sweep would be sampling a curve it cannot
-        /// see, so the policy reports warp-limited instead of a number.
+        /// The UT gap between consecutive looks at a vessel's contact state.
+        ///
+        /// <para>Two gates stack. The capture tick lives in
+        /// <c>GonogoAddon.FixedUpdate</c> and admits one sample per UT second
+        /// (<c>SampleIntervalUt</c>), and a FixedUpdate itself covers
+        /// <c>TimeWarp.fixedDeltaTime</c> of UT, which already multiplies by the
+        /// warp rate on the high-warp path (0.02 s per tick becomes 20 s at
+        /// 1000x and 2000 s at 100000x). The coarser of the two is the interval
+        /// at which anyone is actually looking, so it both floors the sweep step
+        /// and sets the largest term in the declare-lost grace.</para>
+        ///
+        /// <para>Read off <c>fixedDeltaTime</c> rather than the frame rate: the
+        /// gate is a physics-tick gate, and wall-clock frames are neither what
+        /// advances UT nor steady under load.</para>
         /// </summary>
-        private static double WarpStepFloorSeconds()
-        {
-            var rate = TimeWarp.CurrentRate;
-            if (!(rate > 1.0f))
-            {
-                return 1.0;
-            }
-            var fps = Time.smoothDeltaTime > 0.0f ? 1.0 / Time.smoothDeltaTime : 60.0;
-            return Math.Max(1.0, rate / fps);
-        }
+        private static double ObservationQuantumSeconds() =>
+            Math.Max(1.0, TimeWarp.fixedDeltaTime);
 
         public override void OnLoad(ConfigNode node)
         {

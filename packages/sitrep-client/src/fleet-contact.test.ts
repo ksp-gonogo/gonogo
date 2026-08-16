@@ -51,6 +51,7 @@ describe("contactPhase", () => {
       "no-occultation",
       "no-emergence-in-window",
       "warp-limited",
+      "grace-exceeds-ceiling",
     ] as const) {
       const silence = silent({
         deadlineBasis: basis,

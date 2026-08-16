@@ -77,15 +77,59 @@ namespace Sitrep.Host.Comms
         public const double CoarsestUsefulStepsPerCycle = 72.0;
 
         /// <summary>
-        /// Grace between predicted emergence and the declare-lost deadline, as
-        /// a fraction of the period, floored by
-        /// <see cref="MinimumGraceSeconds"/>. A vessel that is one sweep step
-        /// late is not lost; a vessel a quarter of an orbit late is worth
-        /// declaring on.
+        /// Sweep steps of grace. The sweep resolves a crossing to within a step
+        /// (the refiner narrows the reported UT, but the crossing it refines
+        /// was found by a grid that could only bracket it to one step), and a
+        /// short run can hide between two samples entirely, so four steps
+        /// covers the search's own resolution with a factor of two over it.
         /// </summary>
-        public const double GracePeriodFraction = 0.25;
+        public const double GraceSweepSteps = 4.0;
 
-        public const double MinimumGraceSeconds = 300.0;
+        /// <summary>
+        /// Observation quanta of grace. A reappearance is only seen on the next
+        /// sample after it happens, so one quantum is the wait to observe it and
+        /// the second is the same wait on the sample that armed the deadline.
+        /// Below this the vessel is not late, it is merely unlooked-at.
+        /// </summary>
+        public const double GraceObservationQuanta = 2.0;
+
+        /// <summary>
+        /// Seconds allowed between the geometric path opening and CommNet
+        /// reporting the vessel connected again.
+        ///
+        /// <para>An ALLOWANCE, not a measurement. The predicted event and the
+        /// observed one are not the same event: the sweep predicts line of
+        /// sight to a ground station, while what ends the silence is the
+        /// backend's own verdict, which routes through relays and applies a
+        /// link budget at the shallowest, longest-ranged part of the pass. A
+        /// few minutes is the scale of a low-elevation acquisition; nothing
+        /// here has measured it, and if it is ever measured this constant is
+        /// the one to move.</para>
+        /// </summary>
+        public const double LinkClosureAllowanceSeconds = 300.0;
+
+        /// <summary>
+        /// The least grace worth arming, seconds. The terms above already clear
+        /// it at every warp, so it binds only if they are ever retuned
+        /// downward: it exists so that a future smaller allowance cannot
+        /// silently shrink the grace to a couple of sweep steps, which is
+        /// shorter than the operator loop of noticing a craft is late.
+        /// </summary>
+        public const double MinimumGraceSeconds = 120.0;
+
+        /// <summary>
+        /// The most grace that can still be called a deadline, seconds. Half an
+        /// hour of slack on an emergence prediction means the moment a craft
+        /// would be declared lost is far enough from the moment it was due that
+        /// the two are no longer the same event, and on a station-day cycle a
+        /// whole further occultation can begin inside it.
+        ///
+        /// <para>Exceeding it does NOT truncate to it: see
+        /// <see cref="SilenceDeadlineBasis.GraceExceedsCeiling"/>. In practice
+        /// it binds only at extreme warp against a slow cycle, which is exactly
+        /// where the prediction deserves the least trust.</para>
+        /// </summary>
+        public const double MaximumGraceSeconds = 1800.0;
 
         /// <summary>
         /// Hard cap on margin evaluations for a single call, so a pathological
@@ -97,23 +141,30 @@ namespace Sitrep.Host.Comms
 
         private readonly GeometryFactory _geometryFactory;
         private readonly OrbitalPeriodSilenceDeadlinePolicy _fallback;
-        private readonly Func<double> _warpStepFloorSeconds;
+        private readonly Func<double> _observationQuantumSeconds;
 
         /// <param name="geometryFactory">Builds the path geometry, or returns null when it cannot.</param>
         /// <param name="fallback">The deadline every path falls back to. Defaults to the standard clamp(600, 1.5T, 86400).</param>
-        /// <param name="warpStepFloorSeconds">
-        /// The finest UT step the current warp can actually resolve, i.e.
-        /// <c>max(1, warpRate / fps)</c>. Defaults to 1 s (no warp). Read as a
-        /// callback because warp changes between calls.
+        /// <param name="observationQuantumSeconds">
+        /// The UT gap between consecutive observations of a vessel's contact
+        /// state, i.e. <c>max(sampleIntervalUt, warpRate * fixedDeltaTime)</c>:
+        /// about 20 s at 1000x and 2000 s at 100000x. Defaults to 1 s (no
+        /// warp). Read as a callback because warp changes between calls.
+        ///
+        /// <para>One number doing two jobs, deliberately. It floors the sweep
+        /// step, because resolving a crossing finer than the samples that would
+        /// confirm it buys nothing, and it is a term in the grace, because a
+        /// vessel cannot be late by less than the interval at which anyone is
+        /// looking.</para>
         /// </param>
         public PredictedReacquisitionSilenceDeadlinePolicy(
             GeometryFactory geometryFactory,
             OrbitalPeriodSilenceDeadlinePolicy fallback = null,
-            Func<double> warpStepFloorSeconds = null)
+            Func<double> observationQuantumSeconds = null)
         {
             _geometryFactory = geometryFactory ?? throw new ArgumentNullException(nameof(geometryFactory));
             _fallback = fallback ?? new OrbitalPeriodSilenceDeadlinePolicy();
-            _warpStepFloorSeconds = warpStepFloorSeconds ?? (() => 1.0);
+            _observationQuantumSeconds = observationQuantumSeconds ?? (() => 1.0);
         }
 
         /// <summary>
@@ -168,7 +219,8 @@ namespace Sitrep.Host.Comms
             }
 
             var cycle = CycleOf(geometry, period);
-            var step = Math.Max(cycle / SweepStepsPerCycle, Math.Max(_warpStepFloorSeconds(), 0.0));
+            var quantum = Math.Max(_observationQuantumSeconds(), 0.0);
+            var step = Math.Max(cycle / SweepStepsPerCycle, quantum);
             if (step > cycle / CoarsestUsefulStepsPerCycle)
             {
                 return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
@@ -230,7 +282,31 @@ namespace Sitrep.Host.Comms
                         : SilenceDeadlineBasis.NoEmergenceInWindow);
             }
 
-            var grace = Math.Max(GracePeriodFraction * period, MinimumGraceSeconds);
+            // The grace is the sum of the errors that actually exist between
+            // "the path re-opens" and "this craft is reported connected again",
+            // and the vessel's orbital period is not one of them. A quarter of
+            // a period gave a Minmus relay 845.8 s of slack against a measured
+            // 3.3 s of prediction error, and gave a solar-orbit craft 29 days,
+            // for the same reason in both cases: it was scaling by a quantity
+            // no term in the error is proportional to.
+            var grace = (GraceSweepSteps * step)
+                + (GraceObservationQuanta * quantum)
+                + LinkClosureAllowanceSeconds;
+            if (grace < MinimumGraceSeconds)
+            {
+                grace = MinimumGraceSeconds;
+            }
+
+            if (grace > MaximumGraceSeconds)
+            {
+                // Withheld, not truncated. Clipping the budget to the ceiling
+                // and arming anyway would publish a deadline tighter than the
+                // error around the moment it is measured from, a number nothing
+                // in the sum supports, which is the fabrication the
+                // no-occultation and warp-limited paths exist to avoid.
+                return WithBasis(fallback, SilenceDeadlineBasis.GraceExceedsCeiling);
+            }
+
             var duration = (emergence.Value - ut) + grace;
 
             // Never shorter than the policy floor: a predicted emergence 30 s

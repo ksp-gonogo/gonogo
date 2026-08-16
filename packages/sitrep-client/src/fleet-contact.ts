@@ -52,7 +52,8 @@ export type SilenceDeadlineBasis =
   | "predicted-reacquisition"
   | "no-occultation"
   | "no-emergence-in-window"
-  | "warp-limited";
+  | "warp-limited"
+  | "grace-exceeds-ceiling";
 
 /**
  * What an operator is actually being told, which is not the same as the

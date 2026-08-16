@@ -70,6 +70,21 @@ namespace Sitrep.Host.Comms
         /// <see cref="NoOccultation"/>: orbital-period deadline, no prediction.
         /// </summary>
         public const string WarpLimited = "warp-limited";
+
+        /// <summary>
+        /// The sweep found an emergence, but the error budget around it (sweep
+        /// resolution, the gap between observations, the wait for a link to
+        /// close) came out wider than any deadline worth declaring a vessel
+        /// lost against. Truncating that budget to the ceiling and declaring
+        /// anyway would publish a number nothing in the sum supports, so the
+        /// prediction is withheld exactly as
+        /// <see cref="NoOccultation"/> and <see cref="WarpLimited"/> are.
+        ///
+        /// <para>Distinct from <see cref="WarpLimited"/>, which is the sweep
+        /// declining to look at all. Here the sweep ran and answered; it is the
+        /// answer's precision that is not good enough.</para>
+        /// </summary>
+        public const string GraceExceedsCeiling = "grace-exceeds-ceiling";
     }
 
     /// <summary>One deadline-policy evaluation: how long to wait, and why.</summary>
@@ -386,7 +401,7 @@ namespace Sitrep.Host.Comms
                 var upgraded = _policy(sample, origin);
 
                 // Spend the retry when the policy ANSWERED, not merely when it
-                // predicted. The four predictor bases are answers - including
+                // predicted. Every predictor basis is an answer - including
                 // the ones that decline to predict - and re-asking costs a full
                 // ~1400-sample sweep every tick, which at warp is the stutter
                 // the sliced-solver design exists to avoid.
@@ -463,7 +478,8 @@ namespace Sitrep.Host.Comms
             basis == SilenceDeadlineBasis.PredictedReacquisition
             || basis == SilenceDeadlineBasis.NoOccultation
             || basis == SilenceDeadlineBasis.NoEmergenceInWindow
-            || basis == SilenceDeadlineBasis.WarpLimited;
+            || basis == SilenceDeadlineBasis.WarpLimited
+            || basis == SilenceDeadlineBasis.GraceExceedsCeiling;
 
         private static VesselContactState MarkDestroyed(VesselContactState s, double ut)
         {

@@ -133,8 +133,103 @@ namespace Sitrep.Host.Tests
 
             var deadline = policy.Evaluate(Sample(orbit), ut: onset);
 
-            // grace = max(0.25 * 3600, 300) = 900
-            Assert.Equal(900.0 + 900.0, deadline.DurationSec, 1);
+            // grace = 4 * (3600/720) + 2 * 1 + 300 = 322
+            Assert.Equal(900.0 + 322.0, deadline.DurationSec, 1);
+        }
+
+        /// <summary>
+        /// The grace is an error budget, and the vessel's orbital period is not
+        /// one of the errors. A quarter of a period gave a Minmus relay 845.8 s
+        /// of slack against a measured prediction error of 3.3 s, and gave a
+        /// solar-orbit craft about 29 days. The terms that do exist are the
+        /// sweep's own resolution, the gap between the samples that would
+        /// observe a reappearance, and the wait for CommNet to close a link the
+        /// geometry has already opened.
+        /// </summary>
+        [Fact]
+        public void AMinmusRelayGetsMinutesOfGraceRatherThanAQuarterOfItsOrbit()
+        {
+            var orbit = Circular(3_383.0);
+            var onset = 1_000.0;
+            var emergence = onset + 600.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(emergence));
+
+            var grace = policy.Evaluate(Sample(orbit), ut: onset).DurationSec - 600.0;
+
+            // 4 * (3383/720) + 2 * 1 + 300 = 320.8, against 845.8 for a quarter period.
+            Assert.InRange(grace, 300.0, 400.0);
+        }
+
+        [Fact]
+        public void ASolarOrbitCraftIsNotGivenWeeksOfGrace()
+        {
+            var orbit = Circular(1.02e7);
+            var onset = 10_000.0;
+            var emergence = onset + 2_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new StationDayGeometry(emergence, KerbinSiderealDay));
+
+            var grace = policy.Evaluate(Sample(orbit), ut: onset).DurationSec - 2_000.0;
+
+            // 4 * (21549/720) + 2 * 1 + 300 = 421.7, against 0.25 * 1.02e7 = 29.5 days.
+            Assert.InRange(grace, 300.0, 600.0);
+        }
+
+        /// <summary>
+        /// Below the sampling quantum a Lost declaration is an artifact of when
+        /// the game was looked at rather than a fact about the vessel: at
+        /// 1000x the capture tick only sees the fleet every ~20 s of UT, and at
+        /// 100000x every ~2000 s. A grace derived from the orbit alone is
+        /// identical at every warp, which is the tell that it was never
+        /// measuring this.
+        /// </summary>
+        [Fact]
+        public void AGraceAtWarpCoversTheGapBetweenObservations()
+        {
+            var orbit = Circular(1.02e7);
+            var onset = 10_000.0;
+            var emergence = onset + 2_000.0;
+            const double quantum = 200.0;
+            PredictedReacquisitionSilenceDeadlinePolicy Policy(double observationQuantum) =>
+                new PredictedReacquisitionSilenceDeadlinePolicy(
+                    (sample, ut) => new StationDayGeometry(emergence, KerbinSiderealDay),
+                    observationQuantumSeconds: () => observationQuantum);
+
+            var atWarp = Policy(quantum).Evaluate(Sample(orbit), ut: onset).DurationSec - 2_000.0;
+            var atRest = Policy(1.0).Evaluate(Sample(orbit), ut: onset).DurationSec - 2_000.0;
+
+            Assert.True(atWarp >= quantum, $"a {quantum}s observation gap needs at least that much grace; got {atWarp}");
+            Assert.True(atWarp > atRest, $"warp must widen the grace: {atRest} at rest vs {atWarp} at warp");
+        }
+
+        /// <summary>
+        /// The discipline the withholding bases exist for, applied to the grace
+        /// itself: a computed grace past the ceiling is not truncated to the
+        /// ceiling and then declared on, because that publishes a deadline no
+        /// term in the sum supports. It withholds, exactly as
+        /// <see cref="SilenceDeadlineBasis.NoOccultation"/> and
+        /// <see cref="SilenceDeadlineBasis.WarpLimited"/> do.
+        /// </summary>
+        [Fact]
+        public void AGraceWiderThanTheCeilingWithholdsRatherThanTruncating()
+        {
+            var orbit = Circular(1.02e7);
+            var onset = 10_000.0;
+            var emergence = onset + 2_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new StationDayGeometry(emergence, KerbinSiderealDay),
+                observationQuantumSeconds: () => 290.0);
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            // 4 * 290 + 2 * 290 + 300 = 2040, past the 1800 s ceiling.
+            Assert.Equal(SilenceDeadlineBasis.GraceExceedsCeiling, deadline.Basis);
+            Assert.Null(deadline.PredictedReacquisitionUt);
+            Assert.Equal(
+                OrbitalPeriodSilenceDeadlinePolicy.DefaultCeilingSec,
+                deadline.DurationSec,
+                1);
         }
 
         /// <summary>
@@ -269,7 +364,7 @@ namespace Sitrep.Host.Tests
             // 3600/72 = 50 s is the coarsest step still called a resolution.
             var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
                 (sample, ut) => new OneCrossingGeometry(emergence),
-                warpStepFloorSeconds: () => 60.0);
+                observationQuantumSeconds: () => 60.0);
 
             var deadline = policy.Evaluate(Sample(orbit), ut: 1_000.0);
 
