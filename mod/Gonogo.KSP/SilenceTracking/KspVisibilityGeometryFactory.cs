@@ -63,6 +63,26 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         public IVisibilityGeometry Build(SilenceSample sample, double ut)
         {
+            // The policy catches whatever this throws and quietly falls back to
+            // the orbital-period deadline, so an exception here is completely
+            // invisible: no basis change, no log, nothing on the wire. That is
+            // the correct behaviour for the policy (a broken factory must not
+            // change when a vessel is declared lost) and a diagnostic black hole
+            // for everything else, since it makes "threw on line one" look
+            // exactly like "worked and found nothing".
+            try
+            {
+                return BuildCore(sample, ut);
+            }
+            catch (Exception ex)
+            {
+                SilenceTrace.NoGeometry("threw: " + ex.GetType().Name + ": " + ex.Message);
+                return null;
+            }
+        }
+
+        private IVisibilityGeometry BuildCore(SilenceSample sample, double ut)
+        {
             if (sample.Orbit == null || sample.ReferenceBodyIndex == null)
             {
                 SilenceTrace.NoGeometry("no orbit or no reference body index");
@@ -84,10 +104,13 @@ namespace Gonogo.KSP.SilenceTracking
             // transient (CommNet is not built on the opening tick); the second
             // is a real bug in body resolution. They must not look alike.
             CelestialBody stationBody;
-            var comm = NearestHomeNode(parentBody, bodies, out stationBody);
+            int unresolvedHomes;
+            var comm = NearestHomeNode(parentBody, bodies, out stationBody, out unresolvedHomes);
             if (comm == null)
             {
-                SilenceTrace.NoGeometry("no home node in the live CommNet");
+                SilenceTrace.NoGeometry(unresolvedHomes > 0
+                    ? "found " + unresolvedHomes + " home node(s) but could not resolve a body under any of them"
+                    : "no home node in the live CommNet");
                 return null;
             }
             if (stationBody == null)
@@ -156,7 +179,8 @@ namespace Gonogo.KSP.SilenceTracking
         private CommNode NearestHomeNode(
             CelestialBody parentBody,
             IList<CelestialBody> bodies,
-            out CelestialBody stationBody)
+            out CelestialBody stationBody,
+            out int unresolvedHomes)
         {
             stationBody = null;
             CommNode fallback = null;
@@ -165,12 +189,21 @@ namespace Gonogo.KSP.SilenceTracking
             int pathHomes, sceneHomes;
             var homes = HomeNodes(out pathHomes, out sceneHomes);
             SilenceTrace.HomeSearch(pathHomes, sceneHomes, homes.Count);
+            unresolvedHomes = 0;
 
             foreach (var node in homes)
             {
                 var body = BodyUnder(node.precisePosition, bodies);
                 if (body == null)
                 {
+                    // Counted, not just skipped: a node whose body cannot be
+                    // resolved leaves this method returning null, which used to
+                    // be indistinguishable from "there are no home nodes at
+                    // all" - the transient first-tick state. One message for two
+                    // causes, and the change-detector then suppressed the
+                    // permanent one behind the transient one for the rest of the
+                    // session.
+                    unresolvedHomes++;
                     continue;
                 }
                 if (body == parentBody)
