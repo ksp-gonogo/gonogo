@@ -161,6 +161,21 @@ namespace Gonogo.KSP.SilenceTracking
             Debug.Log(Prefix + line);
         }
 
+        private static string? _lastNetwork;
+
+        /// <summary>
+        /// How many ground stations the sweep is evaluating against. One means
+        /// the prediction inherits that station's horizon, which is not a
+        /// property of the network.
+        /// </summary>
+        public static void StationNetwork(string bodyName, int stationCount)
+        {
+            var line = "station network: " + stationCount + " station(s) on " + bodyName;
+            if (line == _lastNetwork) return;
+            _lastNetwork = line;
+            Debug.Log(Prefix + line);
+        }
+
         public static void NotPublished(object? captured, bool noSource)
         {
             if (_warnedNotPublished) return;

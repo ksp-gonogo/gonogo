@@ -105,7 +105,8 @@ namespace Gonogo.KSP.SilenceTracking
             // is a real bug in body resolution. They must not look alike.
             CelestialBody stationBody;
             int unresolvedHomes;
-            var comm = NearestHomeNode(parentBody, bodies, out stationBody, out unresolvedHomes);
+            List<CommNode> stationNodes;
+            var comm = NearestHomeNode(parentBody, bodies, out stationBody, out unresolvedHomes, out stationNodes);
             if (comm == null)
             {
                 SilenceTrace.NoGeometry(unresolvedHomes > 0
@@ -146,17 +147,29 @@ namespace Gonogo.KSP.SilenceTracking
                 }
             }
 
-            var station = StationOn(stationBody, comm, longitudeOffset);
-            if (station == null)
+            // Every station on the body, not one of them. A single ground
+            // station is below the horizon for a large fraction of the body's
+            // rotation, and treating that as a comms outage invents a blackout
+            // the real network never has: measured live as a 2104 s prediction
+            // against a 795 s truth, the excess being the wait for one station
+            // to come back around rather than for the moon to clear.
+            var stations = new List<RotatingGroundStation>();
+            foreach (var node in stationNodes)
+            {
+                var on = StationOn(stationBody, node, longitudeOffset);
+                if (on != null) stations.Add(on.Value);
+            }
+            if (stations.Count == 0)
             {
                 SilenceTrace.NoGeometry("station body has no radius or no spin");
                 return null;
             }
+            SilenceTrace.StationNetwork(stationBody.bodyName, stations.Count);
 
             var geometry = new OrbitToRemoteStationGeometry(
                 sample.Orbit.Value,
                 links,
-                station.Value,
+                stations,
                 OccludingRadiusOf(occlusion, stationBody));
 
             return ReconcilesWithTheLiveScene(geometry, sample, comm, ut) ? geometry : null;
@@ -182,16 +195,20 @@ namespace Gonogo.KSP.SilenceTracking
             CelestialBody parentBody,
             IList<CelestialBody> bodies,
             out CelestialBody stationBody,
-            out int unresolvedHomes)
+            out int unresolvedHomes,
+            out List<CommNode> nodesOnStationBody)
         {
             stationBody = null;
+            nodesOnStationBody = new List<CommNode>();
             CommNode fallback = null;
             CelestialBody fallbackBody = null;
+            var byBody = new Dictionary<CelestialBody, List<CommNode>>();
 
             int pathHomes, sceneHomes;
             var homes = HomeNodes(out pathHomes, out sceneHomes);
             SilenceTrace.HomeSearch(pathHomes, sceneHomes, homes.Count);
             unresolvedHomes = 0;
+            CommNode chosen = null;
 
             foreach (var node in homes)
             {
@@ -208,10 +225,19 @@ namespace Gonogo.KSP.SilenceTracking
                     unresolvedHomes++;
                     continue;
                 }
+                List<CommNode> onBody;
+                if (!byBody.TryGetValue(body, out onBody))
+                {
+                    onBody = new List<CommNode>();
+                    byBody[body] = onBody;
+                }
+                onBody.Add(node);
+
                 if (body == parentBody)
                 {
                     stationBody = body;
-                    return node;
+                    nodesOnStationBody = onBody;
+                    chosen = node;
                 }
                 if (fallback == null)
                 {
@@ -220,7 +246,17 @@ namespace Gonogo.KSP.SilenceTracking
                 }
             }
 
+            if (chosen != null)
+            {
+                return chosen;
+            }
+
             stationBody = fallbackBody;
+            if (fallbackBody != null)
+            {
+                byBody.TryGetValue(fallbackBody, out nodesOnStationBody);
+                nodesOnStationBody = nodesOnStationBody ?? new List<CommNode>();
+            }
             return fallback;
         }
 

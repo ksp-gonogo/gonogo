@@ -38,7 +38,7 @@ namespace Sitrep.Propagation.Visibility
 
         private readonly OrbitElements _vesselOrbit;
         private readonly ChainLink[] _chain;
-        private readonly RotatingGroundStation _station;
+        private readonly RotatingGroundStation[] _stations;
         private readonly double _stationBodyOccludingRadiusMeters;
         private readonly IPropagationProvider _propagator;
 
@@ -90,10 +90,15 @@ namespace Sitrep.Propagation.Visibility
         /// </param>
         /// <param name="station">The station, on the frame-centre body.</param>
         /// <param name="stationBodyOccludingRadiusMeters">Occluding radius of the station's body, from the elected comms backend's occlusion model.</param>
+        /// <param name="stations">
+        /// Every ground station on the frame-centre body, not one representative
+        /// of them. The craft is in contact when ANY of them can see it, so a
+        /// single station's horizon is not a constraint on the network.
+        /// </param>
         public OrbitToRemoteStationGeometry(
             OrbitElements vesselOrbit,
             IEnumerable<ChainLink> chain,
-            RotatingGroundStation station,
+            IEnumerable<RotatingGroundStation> stations,
             double stationBodyOccludingRadiusMeters,
             IPropagationProvider propagator = null)
         {
@@ -105,10 +110,30 @@ namespace Sitrep.Propagation.Visibility
                 RequireRadius(link.OccludingRadiusMeters, nameof(chain));
             }
 
+            _stations = stations == null
+                ? new RotatingGroundStation[0]
+                : new List<RotatingGroundStation>(stations).ToArray();
+            if (_stations.Length == 0)
+            {
+                throw new ArgumentException(
+                    "at least one ground station is required; an empty set would report the craft permanently unseen",
+                    nameof(stations));
+            }
+
             _vesselOrbit = vesselOrbit;
-            _station = station;
             _stationBodyOccludingRadiusMeters = stationBodyOccludingRadiusMeters;
             _propagator = propagator ?? new KeplerProvider();
+        }
+
+        /// <summary>Single-station convenience, for callers with exactly one endpoint.</summary>
+        public OrbitToRemoteStationGeometry(
+            OrbitElements vesselOrbit,
+            IEnumerable<ChainLink> chain,
+            RotatingGroundStation station,
+            double stationBodyOccludingRadiusMeters,
+            IPropagationProvider propagator = null)
+            : this(vesselOrbit, chain, new[] { station }, stationBodyOccludingRadiusMeters, propagator)
+        {
         }
 
         /// <summary>The VESSEL's orbital period, seconds: the scale a sweep step and window are chosen against, since it is the fast term.</summary>
@@ -125,23 +150,40 @@ namespace Sitrep.Propagation.Visibility
         {
             var chainPositions = new Vector3d[_chain.Length];
             var vessel = VesselAt(ut, chainPositions);
-            var station = _station.PositionAt(ut);
 
             // The worst occluder wins. Every body in the chain can come between
             // the craft and the station, and so can the station's own body when
             // the station has rotated onto its far side; taking only the
             // vessel's immediate parent would predict an emergence that one of
             // the others then blocks anyway.
-            var margin = ChordOcclusion.HorizonMargin(
-                vessel, station, Origin, _stationBodyOccludingRadiusMeters);
-
-            for (var i = 0; i < _chain.Length; i++)
+            // The BEST station wins: the craft is in contact if any one of them
+            // has it above the horizon. Taking a single representative station
+            // instead invents an outage lasting a large fraction of the body's
+            // rotation, which a distributed ground network never has - measured
+            // live as a 2104 s prediction against a 795 s truth.
+            var margin = double.NegativeInfinity;
+            foreach (var station in _stations)
             {
-                var linkMargin = ChordOcclusion.HorizonMargin(
-                    vessel, station, chainPositions[i], _chain[i].OccludingRadiusMeters);
-                if (linkMargin < margin)
+                var at = station.PositionAt(ut);
+                var reach = ChordOcclusion.HorizonMargin(
+                    vessel, at, Origin, _stationBodyOccludingRadiusMeters);
+
+                // Bodies along the chain block regardless of which station is
+                // looking, so they cut this station's own reach before it
+                // competes with the others.
+                for (var i = 0; i < _chain.Length; i++)
                 {
-                    margin = linkMargin;
+                    var linkMargin = ChordOcclusion.HorizonMargin(
+                        vessel, at, chainPositions[i], _chain[i].OccludingRadiusMeters);
+                    if (linkMargin < reach)
+                    {
+                        reach = linkMargin;
+                    }
+                }
+
+                if (reach > margin)
+                {
+                    margin = reach;
                 }
             }
 
@@ -151,7 +193,7 @@ namespace Sitrep.Propagation.Visibility
         public double SeparationAt(double ut)
         {
             var vessel = VesselAt(ut, new Vector3d[_chain.Length]);
-            return (vessel - _station.PositionAt(ut)).Magnitude();
+            return (vessel - _stations[0].PositionAt(ut)).Magnitude();
         }
 
         /// <summary>
