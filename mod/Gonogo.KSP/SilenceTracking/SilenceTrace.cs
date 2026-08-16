@@ -49,7 +49,7 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         private static string? _lastNoGeometryReason;
-        private static bool _warnedFrameCheck;
+        private static string? _lastFrameCheck;
 
         /// <summary>
         /// Which branch of the geometry factory declined to build. Every one of
@@ -73,11 +73,15 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         public static void FrameCheckFailed(double liveMeters, double predictedMeters, double residualMeters)
         {
-            if (_warnedFrameCheck) return;
-            _warnedFrameCheck = true;
-            Debug.Log(Prefix + "frame self-check failed: live=" + liveMeters.ToString("F0")
+            // Bucketed to the nearest km so an ordinary drifting residual does
+            // not spam, while a genuinely different failure still prints.
+            var line = "frame self-check failed: live=" + liveMeters.ToString("F0")
                 + "m predicted=" + predictedMeters.ToString("F0")
-                + "m residual=" + residualMeters.ToString("F0") + "m");
+                + "m residual=" + residualMeters.ToString("F0") + "m";
+            var key = ((long)(residualMeters / 1000.0)).ToString();
+            if (key == _lastFrameCheck) return;
+            _lastFrameCheck = key;
+            Debug.Log(Prefix + line);
         }
 
         private static string? _lastHomeSearch;
@@ -100,17 +104,23 @@ namespace Gonogo.KSP.SilenceTracking
             Debug.Log(Prefix + line);
         }
 
-        private static bool _calibrated;
+        private static string? _lastCalibration;
 
         /// <summary>
-        /// The outcome of solving this body's station-longitude offset. Once per
-        /// process: the solve is cached per body, so a repeat would only mean the
-        /// cache was not taking.
+        /// The outcome of solving this body's station-longitude offset.
+        ///
+        /// <para>On CHANGE, not once. A one-shot here was the third instance of
+        /// the same mistake in this subsystem: the FIRST call wins, and the
+        /// first call is invariably the uninteresting one from a tick before
+        /// the scene is ready, after which every later outcome - including the
+        /// success - is suppressed for the rest of the session. De-duplication
+        /// is right for a message that repeats every tick and wrong for one
+        /// whose whole value is that it changed.</para>
         /// </summary>
         public static void Calibration(string report)
         {
-            if (_calibrated) return;
-            _calibrated = true;
+            if (report == _lastCalibration) return;
+            _lastCalibration = report;
             Debug.Log(Prefix + "longitude calibration: " + report);
         }
 
