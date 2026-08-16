@@ -362,16 +362,46 @@ namespace Sitrep.Host.Tests
         /// every vessel the predictor cannot help, which at warp is the stutter
         /// the whole sliced-solver design exists to avoid.
         /// </summary>
+        /// <summary>
+        /// The retry must survive a geometry that is not ready yet. Spending it
+        /// unconditionally burned the single attempt on the tick right after a
+        /// save load - the one moment CommNet has not been built - so every
+        /// vessel kept an orbital-period deadline for its whole run.
+        /// </summary>
+        [Fact]
+        public void AnUpgradeThatCouldNotLookAtGeometryIsNotSpent()
+        {
+            var orbit = Circular(3_600.0);
+            var ready = false;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => ready ? new OneCrossingGeometry(2_500.0) : null);
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 1_000.0);
+            tracker.Tick(new[] { silent }, ut: 1_001.0);
+            tracker.Tick(new[] { silent }, ut: 1_002.0);
+
+            ready = true;
+            tracker.Tick(new[] { silent }, ut: 1_003.0);
+
+            Assert.Equal(
+                SilenceDeadlineBasis.PredictedReacquisition,
+                tracker.TryGetState("v")!.DeadlineBasis);
+        }
+
         [Fact]
         public void AFailedUpgradeIsStillSpent()
         {
             var orbit = Circular(3_600.0);
             var calls = 0;
+            // A geometry that IS available and simply finds no occultation:
+            // a real verdict, and the expensive one to re-ask.
             var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
                 (sample, ut) =>
                 {
                     calls++;
-                    return null;
+                    return new ConstantMarginGeometry(1.0);
                 });
             var tracker = new SilenceTracker(policy.Evaluate);
             var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);

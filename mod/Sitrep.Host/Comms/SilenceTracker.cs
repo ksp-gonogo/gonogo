@@ -384,15 +384,26 @@ namespace Sitrep.Host.Comms
             // is never revised.
             if (!s.DeadlineUpgraded && !HasPrediction(s.DeadlineBasis))
             {
-                // Spent whether or not it produced anything. Setting this only
-                // on success turned "one re-evaluation" into a full ~1400-sample
-                // sweep on EVERY silent tick for every vessel the predictor
-                // cannot help - which at warp is exactly the stutter the sliced
-                // solver exists to avoid.
-                s.DeadlineUpgraded = true;
-
                 var origin = s.SilenceSinceUt ?? ut;
                 var upgraded = _policy(sample, origin);
+
+                // Spend the retry when the policy ANSWERED, not merely when it
+                // predicted. The four predictor bases are answers - including
+                // the ones that decline to predict - and re-asking costs a full
+                // ~1400-sample sweep every tick, which at warp is the stutter
+                // the sliced-solver design exists to avoid.
+                //
+                // A fallback basis means the policy could not attempt at all
+                // (no geometry yet), which is transient and cheap: the factory
+                // returns before any sweep. Spending the one retry on it burned
+                // the attempt at the worst possible moment - the tick right
+                // after a save load, when CommNet has not been built - and left
+                // every vessel holding an orbital-period deadline for the rest
+                // of its run.
+                if (IsPredictorBasis(upgraded.Basis))
+                {
+                    s.DeadlineUpgraded = true;
+                }
                 if (upgraded.PredictedReacquisitionUt.HasValue)
                 {
                     // NEVER earlier. The upgrade is evaluated from the silence
@@ -431,6 +442,16 @@ namespace Sitrep.Host.Comms
 
         private static bool HasPrediction(string? basis) =>
             basis == SilenceDeadlineBasis.PredictedReacquisition;
+
+        /// <summary>
+        /// Whether the deadline policy actually reached a verdict about the
+        /// geometry, as opposed to falling back because it could not look.
+        /// </summary>
+        private static bool IsPredictorBasis(string? basis) =>
+            basis == SilenceDeadlineBasis.PredictedReacquisition
+            || basis == SilenceDeadlineBasis.NoOccultation
+            || basis == SilenceDeadlineBasis.NoEmergenceInWindow
+            || basis == SilenceDeadlineBasis.WarpLimited;
 
         private static VesselContactState MarkDestroyed(VesselContactState s, double ut)
         {
