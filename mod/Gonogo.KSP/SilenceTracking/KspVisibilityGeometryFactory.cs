@@ -327,11 +327,6 @@ namespace Gonogo.KSP.SilenceTracking
                 }
             }
 
-            SilenceTrace.HomeSearch(
-                active != null,
-                active != null && active.connection != null,
-                links, nodes, homes, firstNode);
-
             foreach (var home in _homes())
             {
                 var comm = home != null ? CommNetHomeAccess.Comm(home) : null;

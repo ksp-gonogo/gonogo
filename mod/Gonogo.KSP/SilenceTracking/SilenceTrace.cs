@@ -80,7 +80,7 @@ namespace Gonogo.KSP.SilenceTracking
                 + "m residual=" + residualMeters.ToString("F0") + "m");
         }
 
-        private static bool _describedHomeSearch;
+        private static string? _lastHomeSearch;
 
         /// <summary>
         /// What the home-node search actually saw, once. The search failing is
@@ -90,16 +90,22 @@ namespace Gonogo.KSP.SilenceTracking
         /// outside has already cost several rebuild cycles.
         /// </summary>
         public static void HomeSearch(
-            bool activeVessel, bool connection, int pathLinks, int nodesSeen, int homesSeen, string firstNodeName)
+            bool activeVessel, bool connection, int pathLinks, int nodesSeen, int homesSeen,
+            int sceneHomes, string firstNodeName)
         {
-            if (_describedHomeSearch) return;
-            _describedHomeSearch = true;
-            Debug.Log(Prefix + "home search: activeVessel=" + activeVessel
+            // Logs on CHANGE, not once: a one-shot showed only the first tick,
+            // which is the one tick where CommNet is guaranteed not to be built
+            // yet, and made a transient state look permanent.
+            var line = "home search: activeVessel=" + activeVessel
                 + " connection=" + connection
                 + " pathLinks=" + pathLinks
                 + " nodes=" + nodesSeen
                 + " isHome=" + homesSeen
-                + " firstNode=" + (firstNodeName ?? "<none>"));
+                + " sceneHomes=" + sceneHomes
+                + " firstNode=" + (firstNodeName ?? "<none>");
+            if (line == _lastHomeSearch) return;
+            _lastHomeSearch = line;
+            Debug.Log(Prefix + line);
         }
 
         private static bool _calibrated;
