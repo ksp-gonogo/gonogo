@@ -1,11 +1,32 @@
+import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
+
+// `useContributions("system-view.vessel-status")` needs both contexts
+// mounted, mirrors the app's real `WidgetContributions` wrapper
+// (`GridItemContent.tsx`) and ShipMap's own contribution test
+// (`ShipMap/contributions.test.tsx`): SystemViewComponent alone has no
+// contribution store at all, and `useContributions` silently returns empty,
+// same as a bare widget with no dashboard around it.
+const CONTRIBUTIONS_META = {
+  componentId: "system-view",
+  contributionSlots: ["system-view.vessel-status"] as const,
+};
+
+function WithContributions({ children }: { children: ReactNode }) {
+  return (
+    <WidgetMetaContext.Provider value={CONTRIBUTIONS_META}>
+      <ContributionsProvider>{children}</ContributionsProvider>
+    </WidgetMetaContext.Provider>
+  );
+}
 
 /**
  * SystemView reads entirely off the stream. The body table
@@ -112,6 +133,7 @@ describe("SystemViewComponent", () => {
         "vessel.target",
         "system.bodies",
         "fleet.",
+        "silence.",
       ],
       pinnedUt: 100,
     });
@@ -139,7 +161,6 @@ describe("SystemViewComponent", () => {
    */
   describe("contact state", () => {
     const SILENT = {
-      connected: false,
       state: "Silent",
       silenceSinceUt: 50,
       deadlineUt: 900,
@@ -147,19 +168,21 @@ describe("SystemViewComponent", () => {
       predictedReacquisitionUt: 400,
     };
 
-    async function renderWithContact(contact: Record<string, unknown>) {
+    async function renderWithContact(silence: Record<string, unknown>) {
       render(
         <fixture.Provider>
-          <SystemViewComponent config={{}} id="sv" />
+          <WithContributions>
+            <SystemViewComponent config={{}} id="sv" />
+          </WithContributions>
         </fixture.Provider>,
       );
       primeStream();
-      // The fleet.<guid>.contact subscription only exists once identity has
+      // The silence.<guid>.state subscription only exists once identity has
       // arrived and the component has re-rendered with a guid; the transport is
       // subscription-gated, so emitting before that delivers to nobody.
       await screen.findAllByText(/Kerbin/i);
       act(() => {
-        fixture.emit("fleet.v.contact", contact);
+        fixture.emit("silence.v.state", silence);
       });
     }
 

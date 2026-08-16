@@ -121,9 +121,12 @@ export {
   type ContactPhase,
   contactPhase,
   type FleetVesselContact,
+  type FleetVesselSilence,
+  getLatestFleetVesselSilence,
   overdueSeconds,
   type SilenceDeadlineBasis,
   useFleetVesselContact,
+  useFleetVesselSilence,
 } from "./fleet-contact";
 export {
   type FleetVesselLink,

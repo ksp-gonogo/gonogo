@@ -4,7 +4,7 @@
     "vessel": "Tester (Mk1 pod)",
     "body": "Kerbin",
     "situation": "Orbiting ~100km",
-    "notes": "Craft is behind Minmus with a live prediction: due back in 300 s. The node renders hollow and dashed because its position is dead-reckoned, not observed, and the caption counts down to the predicted reacquisition. Derived from kerbin-orbit-no-target.json by adding the fleet.<guid>.contact channel; geometry is identical so the renders differ only in contact treatment."
+    "notes": "Craft is behind Minmus with a live prediction: due back in 300 s. The node renders hollow and dashed because its position is dead-reckoned, not observed, and the caption counts down to the predicted reacquisition. Derived from kerbin-orbit-no-target.json by adding the silence.<guid>.state channel; geometry is identical so the renders differ only in contact treatment."
   },
   "_stream": {
     "carriedChannels": [
@@ -12,7 +12,8 @@
       "vessel.identity",
       "vessel.target",
       "system.bodies",
-      "fleet."
+      "fleet.",
+      "silence."
     ],
     "pinnedUt": 0,
     "emits": [
@@ -120,11 +121,9 @@
         }
       },
       {
-        "channel": "fleet.Tester.contact",
+        "channel": "silence.Tester.state",
         "value": {
-          "connected": false,
           "state": "Silent",
-          "lastContactUt": -480.0,
           "silenceSinceUt": -479.0,
           "deadlineUt": 1145.8,
           "deadlineBasis": "predicted-reacquisition",

@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   contactPhase,
-  type FleetVesselContact,
+  type FleetVesselSilence,
   overdueSeconds,
 } from "./fleet-contact";
 
 const silent = (
-  over: Partial<FleetVesselContact> = {},
-): FleetVesselContact => ({
-  connected: false,
+  over: Partial<FleetVesselSilence> = {},
+): FleetVesselSilence => ({
   state: "Silent",
   silenceSinceUt: 1_000,
   deadlineUt: 4_000,
@@ -19,9 +18,7 @@ const silent = (
 
 describe("contactPhase", () => {
   it("is nominal while the vessel is in contact", () => {
-    expect(contactPhase({ connected: true, state: "Nominal" }, 1_500)).toBe(
-      "nominal",
-    );
+    expect(contactPhase({ state: "Nominal" }, 1_500)).toBe("nominal");
   });
 
   it("is expected while a silent vessel is not yet due back", () => {
@@ -55,15 +52,15 @@ describe("contactPhase", () => {
       "no-emergence-in-window",
       "warp-limited",
     ] as const) {
-      const contact = silent({
+      const silence = silent({
         deadlineBasis: basis,
         predictedReacquisitionUt: null,
       });
-      expect(contactPhase(contact, 999_999)).toBe("waiting");
+      expect(contactPhase(silence, 999_999)).toBe("waiting");
     }
   });
 
-  it("is undefined before any contact frame has arrived", () => {
+  it("is undefined before any silence frame has arrived", () => {
     expect(contactPhase(undefined, 1_500)).toBeUndefined();
   });
 });
@@ -78,10 +75,10 @@ describe("overdueSeconds", () => {
   });
 
   it("has no duration to report when nothing was predicted", () => {
-    const contact = silent({
+    const silence = silent({
       deadlineBasis: "no-occultation",
       predictedReacquisitionUt: null,
     });
-    expect(overdueSeconds(contact, 999_999)).toBeUndefined();
+    expect(overdueSeconds(silence, 999_999)).toBeUndefined();
   });
 });

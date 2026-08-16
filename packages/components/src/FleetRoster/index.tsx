@@ -8,8 +8,8 @@ import {
 import {
   contactPhase,
   overdueSeconds,
-  useFleetVesselContact,
   useFleetVesselLink,
+  useFleetVesselSilence,
   useSelectedVantage,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
@@ -359,11 +359,11 @@ function FleetContactCell({
   guid: string;
   vesselName: string;
 }) {
-  const contact = useFleetVesselContact(guid);
+  const silence = useFleetVesselSilence(guid);
   const nowUt = useViewUt();
-  const phase = contactPhase(contact, nowUt ?? 0);
+  const phase = contactPhase(silence, nowUt ?? 0);
 
-  if (!contact || nowUt == null || phase === "nominal" || phase === undefined) {
+  if (!silence || nowUt == null || phase === "nominal" || phase === undefined) {
     return null;
   }
 
@@ -377,7 +377,7 @@ function FleetContactCell({
   }
 
   if (phase === "overdue") {
-    const late = overdueSeconds(contact, nowUt);
+    const late = overdueSeconds(silence, nowUt);
     return (
       <Badge severity="warning" live>
         overdue by {late == null ? "?" : formatDuration(late)}
@@ -386,7 +386,7 @@ function FleetContactCell({
   }
 
   if (phase === "expected") {
-    const due = (contact.predictedReacquisitionUt ?? nowUt) - nowUt;
+    const due = (silence.predictedReacquisitionUt ?? nowUt) - nowUt;
     return (
       <Badge severity="info">
         reacquire in ~{formatDuration(Math.max(0, due))}

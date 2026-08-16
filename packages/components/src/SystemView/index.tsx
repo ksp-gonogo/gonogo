@@ -7,14 +7,13 @@ import {
   AugmentSlot,
   registerComponent,
   resolveTargetName,
+  useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
-  contactPhase,
   type OrbitElements,
-  overdueSeconds,
   solveAnomalies,
-  useFleetVesselContact,
+  useFleetVesselSilence,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
@@ -28,16 +27,12 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import {
-  FramedDisplay,
-  formatDuration,
-  NULL_DISPLAY,
-} from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { AlmanacPanel } from "./AlmanacPanel";
-import { SystemDiagram, type VesselPlotState } from "./SystemDiagram";
+import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
 import {
   angleDelta,
   hohmannPhaseAngle,
@@ -46,6 +41,12 @@ import {
 } from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
+// Side-effect import: registers the `system-view.vessel-status` built-in
+// contribution (the comms-derived silence reckoning for the plotted
+// vessel), on equal footing with any third-party Uplink contribution to the
+// same slot.
+import "./vesselStatusContribution";
+import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
 
 interface SystemViewConfig {
   /**
@@ -111,6 +112,21 @@ declare module "@ksp-gonogo/core" {
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
     "system-view.badges": SystemBadgesContext;
+  }
+
+  /**
+   * `system-view.vessel-status`: the plotted vessel's node decoration, fed
+   * by the built-in comms-derived contribution
+   * (`./vesselStatusContribution.ts`) and open to any other Uplink
+   * contributing SEMANTIC status for the same vessel (severity/emphasis/
+   * label/tooltip, never a colour: the host owns the palette, see
+   * `SystemDiagram.vesselPlotStateFromStatus`).
+   */
+  interface ContributionRegistry {
+    "system-view.vessel-status": {
+      entry: SystemViewVesselStatusEntry;
+      topics: "vessel.identity";
+    };
   }
 }
 
@@ -231,59 +247,51 @@ function nextApsisOf(
 }
 
 /**
- * What the diagram is telling the operator about a craft it cannot see.
+ * What the diagram is telling the operator about a craft it cannot see,
+ * rendered straight from `system-view.vessel-status`'s contributed entry:
+ * SystemView never interprets silence state itself, it only decides the
+ * ANNOUNCEMENT POLICY (which severities interrupt) for whatever a
+ * contributor said.
  *
- * Announcement is scoped to what each state warrants. `overdue` is polite
- * (`role="status"`): the craft is late, there is still time for it, and
- * interrupting would overstate the case. `lost` is assertive (`role="alert"`):
- * the decision has been made and it should cut through. The expected-countdown
- * case is announced by NEITHER, because it changes every tick and a live region
- * would read a running clock aloud indefinitely.
- *
- * A silent craft with no prediction says "no contact" and shows no countdown.
- * Nothing promised it would be back, so nothing is late.
+ * Announcement is scoped to what each severity warrants. `critical` is
+ * assertive (`role="alert"`): the decision has been made and it should cut
+ * through. `warning` is polite (`role="status"`): the craft is late, there
+ * is still time for it, and interrupting would overstate the case. `info`
+ * (an expected-reacquisition countdown, or plain silence) is announced by
+ * NEITHER, because a countdown changes every tick and a live region would
+ * read it aloud indefinitely.
  */
 function ContactCaption({
-  phase,
-  contact,
-  nowUt,
+  status,
   vesselName,
 }: Readonly<{
-  phase: ReturnType<typeof contactPhase>;
-  contact: ReturnType<typeof useFleetVesselContact>;
-  nowUt: number | null | undefined;
+  status: SystemViewVesselStatusEntry | undefined;
   vesselName: string;
 }>) {
-  if (!phase || phase === "nominal" || nowUt == null) return null;
+  if (!status) return null;
 
-  if (phase === "lost") {
+  if (status.severity === "critical") {
     return (
       <div style={FRAME_CAPTION} role="alert" aria-live="assertive">
         <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
-        officially lost
+        {status.label.toLowerCase()}
       </div>
     );
   }
 
-  if (phase === "overdue") {
-    const late = overdueSeconds(contact, nowUt);
+  if (status.severity === "warning") {
     return (
       <div style={FRAME_CAPTION} role="status" aria-live="polite">
-        {vesselName} overdue by {late == null ? "?" : formatDuration(late)}
+        {vesselName} {status.label.toLowerCase()}
       </div>
     );
   }
 
-  if (phase === "expected") {
-    const due = (contact?.predictedReacquisitionUt ?? nowUt) - nowUt;
-    return (
-      <div style={FRAME_CAPTION}>
-        {vesselName} reacquire expected in ~{formatDuration(Math.max(0, due))}
-      </div>
-    );
-  }
-
-  return <div style={FRAME_CAPTION}>{vesselName} no contact</div>;
+  return (
+    <div style={FRAME_CAPTION}>
+      {vesselName} {status.label.toLowerCase()}
+    </div>
+  );
 }
 
 function SystemViewComponent({
@@ -302,25 +310,27 @@ function SystemViewComponent({
   const orbit = useTelemetry("vessel.orbit");
   const identity = useTelemetry("vessel.identity");
 
-  // Contact state for the plotted craft. `fleet.<guid>.contact` is
-  // freeze-EXEMPT in the engine precisely so it keeps reporting while the craft
-  // is dark, which is the only reason a diagram can say anything at all about a
-  // vessel it has lost.
+  // Contact state for the plotted craft. `connected` is core (this widget
+  // has no need of it directly); the reckoned states (predicted/overdue/
+  // lost) arrive as `system-view.vessel-status` contributions instead of a
+  // direct sitrep-client import, so the diagram never hard-codes the comms
+  // model. `useFleetVesselSilence` still has to run somewhere so the
+  // per-vessel `silence.<guid>.state` topic stays subscribed (a genuinely
+  // dynamic topic no contribution's static deps can name), and mirrors what
+  // it reads into the bridge `system-view-vessel-silence-status` reads from;
+  // SystemView keeps this ONE raw subscription, but never interprets the
+  // value itself. `fleet.<guid>.contact`/`silence.<guid>.state` are both
+  // freeze-EXEMPT in the engine precisely so they keep reporting while the
+  // craft is dark, which is the only reason a diagram can say anything at
+  // all about a vessel it has lost.
   const vesselGuid =
     typeof identity?.vesselId === "string" ? identity.vesselId : null;
-  const contact = useFleetVesselContact(vesselGuid ?? "");
-  const contactNowUt = useViewUt();
-  const phase = vesselGuid
-    ? contactPhase(contact, contactNowUt ?? 0)
+  useFleetVesselSilence(vesselGuid ?? "");
+  const vesselStatuses = useContributions("system-view.vessel-status");
+  const vesselStatus = vesselGuid
+    ? vesselStatuses.find((s) => s.target === vesselGuid)
     : undefined;
-  const vesselPlotState: VesselPlotState =
-    phase === "lost"
-      ? "lost"
-      : phase === "overdue"
-        ? "overdue"
-        : phase === "expected" || phase === "waiting"
-          ? "predicted"
-          : "observed";
+  const vesselPlotState = vesselPlotStateFromStatus(vesselStatus ?? null);
   const systemBodies = useTelemetry("system.bodies");
   const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
   // View-UT: the SDK view time the propagation already evaluates at
@@ -684,9 +694,7 @@ function SystemViewComponent({
               : `Frame: ${parentName}`}
       </div>
       <ContactCaption
-        phase={phase}
-        contact={contact}
-        nowUt={contactNowUt}
+        status={vesselStatus}
         vesselName={
           typeof identity?.name === "string" ? identity.name : "Vessel"
         }
@@ -904,6 +912,10 @@ registerComponent<SystemViewConfig>({
     "system-view.overlay",
     "system-view.badges",
   ],
+  // The plotted vessel's node decoration: fed by the built-in comms-derived
+  // contribution (`./vesselStatusContribution.ts`) and open to any other
+  // Uplink contributing SEMANTIC status for the same vessel.
+  contributionSlots: ["system-view.vessel-status"],
   // The body table + phase angles still fan out over the shared `b.*` hooks
   // (`useCelestialBodies`/`usePhaseAngles`): a separate, shared-hook migration.
   // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.

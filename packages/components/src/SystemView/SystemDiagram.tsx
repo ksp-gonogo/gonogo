@@ -693,6 +693,32 @@ function VesselOrbitPath({
 export type VesselPlotState = "observed" | "predicted" | "overdue" | "lost";
 
 /**
+ * The palette mapping from a contributor's SEMANTIC severity to this
+ * diagram's own `VesselPlotState`. A contributor (e.g. `system-view.vessel-
+ * status`) supplies severity/emphasis, never a colour or a plot state
+ * directly: SystemDiagram, the host, is the only thing that decides what
+ * "warning" looks like here. `emphasis: "observed"` (a directly-measured
+ * fact, not a model's reckoning) maps back to the plain `observed` marker;
+ * every reckoned severity maps onto the matching plot state one-for-one.
+ */
+export function vesselPlotStateFromStatus(
+  status: {
+    severity: "info" | "warning" | "critical";
+    emphasis: "observed" | "reckoned";
+  } | null,
+): VesselPlotState {
+  if (!status || status.emphasis === "observed") return "observed";
+  switch (status.severity) {
+    case "critical":
+      return "lost";
+    case "warning":
+      return "overdue";
+    default:
+      return "predicted";
+  }
+}
+
+/**
  * Stroke colour per plot state. Exported so a test can check each one is a
  * token that actually exists: `var()` on an undefined property paints nothing
  * and says nothing, which is how the lost marker went missing entirely.

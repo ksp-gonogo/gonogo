@@ -239,11 +239,17 @@ export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
   "scansat.height.",
   "scansat.biome.",
   "scansat.anomalies.",
-  // fleet.<guid>.orbit + fleet.<guid>.delay (Plan 2 per-vessel dynamic namespace,
-  // Plan 2c consumer): one prefix carries the whole per-vessel fleet namespace so
-  // the store timelines each vessel's delayed elements/link facts and useStream
-  // samples them (a dead-reckoned fleet position + FleetRoster per-row delay).
+  // fleet.<guid>.orbit + fleet.<guid>.delay + fleet.<guid>.contact (Plan 2
+  // per-vessel dynamic namespace, Plan 2c consumer): one prefix carries the
+  // whole per-vessel fleet namespace so the store timelines each vessel's
+  // delayed elements/link/core-contact facts and useStream samples them (a
+  // dead-reckoned fleet position + FleetRoster per-row delay).
   "fleet.",
+  // silence.<guid>.state: the comms-owned SilenceTracker reckoning for one
+  // vessel (own dynamic namespace, disjoint from fleet. above: the core
+  // fleet facts and the comms model's opinion of them are separately
+  // owned, see mod/Sitrep.Host/ChannelEngine.cs's SilenceEventPrefix).
+  "silence.",
   // currency.<guid>.science (+ .reputation): source-attributed currency events,
   // revealed at their source vessel's own light-time. One prefix carries the whole
   // per-vessel namespace, same as fleet. above.

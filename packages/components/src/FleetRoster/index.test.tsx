@@ -426,9 +426,14 @@ describe("FleetRosterComponent", () => {
    * "overdue" (nothing promised it would be back), and going overdue must not
    * be the same thing as being declared lost.
    */
-  async function renderWithContact(contact: Record<string, unknown>) {
+  async function renderWithContact(silence: Record<string, unknown>) {
     const fixture = setupStreamFixture({
-      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+      carriedChannels: [
+        "system.vessels",
+        "system.bodies",
+        "fleet.",
+        "silence.",
+      ],
       pinnedUt: 2_000,
     });
     renderRoster(fixture);
@@ -437,13 +442,12 @@ describe("FleetRosterComponent", () => {
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      fixture.emit("fleet.v-probe.contact", contact);
+      fixture.emit("silence.v-probe.state", silence);
     });
     return fixture;
   }
 
   const SILENT = {
-    connected: false,
     state: "Silent",
     silenceSinceUt: 1_000,
     deadlineUt: 9_000,

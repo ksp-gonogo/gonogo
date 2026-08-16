@@ -4,7 +4,7 @@
     "vessel": "Tester (Mk1 pod)",
     "body": "Kerbin",
     "situation": "Orbiting ~100km",
-    "notes": "Past the deadline with no contact: officially lost. Struck through and announced role=\"alert\". Lost means lost CONTACT - the craft is still plotted, because its position is still known by dead reckoning. Derived from kerbin-orbit-no-target.json by adding the fleet.<guid>.contact channel; geometry is identical so the renders differ only in contact treatment."
+    "notes": "Past the deadline with no contact: officially lost. Struck through and announced role=\"alert\". Lost means lost CONTACT - the craft is still plotted, because its position is still known by dead reckoning. Derived from kerbin-orbit-no-target.json by adding the silence.<guid>.state channel; geometry is identical so the renders differ only in contact treatment."
   },
   "_stream": {
     "carriedChannels": [
@@ -12,7 +12,8 @@
       "vessel.identity",
       "vessel.target",
       "system.bodies",
-      "fleet."
+      "fleet.",
+      "silence."
     ],
     "pinnedUt": 0,
     "emits": [
@@ -120,11 +121,9 @@
         }
       },
       {
-        "channel": "fleet.Tester.contact",
+        "channel": "silence.Tester.state",
         "value": {
-          "connected": false,
           "state": "Lost",
-          "lastContactUt": -4000.0,
           "silenceSinceUt": -3999.0,
           "deadlineUt": -600.0,
           "deadlineBasis": "predicted-reacquisition",
