@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "drag-visualisation-prototype-text",
     "synthetic": true,
-    "notes": "PROTOTYPE. Same mid-descent atmospheric scenario as LandingStatus/__render_atmospheric__/decelerating.json (Kerbin, 3 km, 200 m/s, terminal 105, projected touchdown 95) with a synthetic dragToWeight=1.6, rendered as the TEXT variant (small HUD readout, top-right corner). No wire field backs dragToWeight yet — for visual review only."
+    "notes": "PROTOTYPE. Same mid-descent atmospheric scenario as LandingStatus/__render_atmospheric__/decelerating.json (Kerbin, 3 km, 200 m/s, terminal 105, projected touchdown 95) with a synthetic dragToWeight=1.6, rendered as the TEXT variant (small HUD readout, top-right corner). No wire field backs dragToWeight yet, for visual review only."
   },
   "props": {
     "currentSpeed": 200,
