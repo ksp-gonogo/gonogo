@@ -756,6 +756,24 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // Deliberately not domainDebt: there is no coupling here to pay off, the
       // comparison is the point.
       "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
+      // -- the visibility geometry and the capture analyser built on the seam --
+      // Every one of these names RealAntennas for the same reason the occlusion
+      // contract above does: the two backends occlude at different radii, and
+      // that disagreement is the whole reason the code exists. The geometry's
+      // doc-comments cite it to explain why the occluding radius is a parameter
+      // rather than a constant, and why a station standing exactly on a
+      // bare-radius occluder forced the sign convention it has. The analyser's
+      // tests use "RealAntennas bare radius" as a candidate LABEL, which is a
+      // string a report prints so the reader can see which assumption produced a
+      // number. Prose and display strings only: no RA type, reference or
+      // coupling, same category as CommsElection.cs.
+      "mod/Sitrep.Propagation/Visibility/ChordOcclusion.cs",
+      "mod/Sitrep.Propagation/Visibility/OrbitToGroundStationGeometry.cs",
+      "mod/Sitrep.Propagation.Tests/Visibility/OrbitVisibilityTests.cs",
+      "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
+      "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
+      "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
+      "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
 
       // -- app-side: the sanctioned self-registration import, and its gate --
       // main.tsx takes a static side-effect import of this Uplink's client,
