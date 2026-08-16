@@ -249,13 +249,13 @@ public static class CaptureFacts
         // RADIANS (Sitrep.Contract's OrbitPatch says so field by field, matching
         // KSP's own Orbit). Mixing those two up silently rotates the orbit, which
         // is not the sort of error that announces itself downstream.
-        var elements = new OrbitElements(
+        var elements = OrbitElements.FromKspDegrees(
             sma: sma,
             ecc: ecc,
-            inc: incDeg * Math.PI / 180.0,
-            lan: lanDeg * Math.PI / 180.0,
-            argPe: argPeDeg * Math.PI / 180.0,
-            meanAnomalyAtEpoch: meanAnomaly,
+            incDegrees: incDeg,
+            lanDegrees: lanDeg,
+            argPeDegrees: argPeDeg,
+            meanAnomalyAtEpochRadians: meanAnomaly,
             epoch: epoch,
             mu: mu);
 

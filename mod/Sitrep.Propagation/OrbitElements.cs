@@ -59,5 +59,39 @@ namespace Sitrep.Propagation
             Epoch = epoch;
             Mu = mu;
         }
+
+        /// <summary>
+        /// Elements from KSP's own units: <c>Orbit.inclination</c>,
+        /// <c>Orbit.LAN</c> and <c>Orbit.argumentOfPeriapsis</c> are DEGREES,
+        /// while <c>Orbit.meanAnomalyAtEpoch</c> is already radians.
+        ///
+        /// <para>Every KSP-facing caller must come through here. Passing the
+        /// degree values to the normal constructor compiles and runs and yields
+        /// a rotated orbit — a plausible number in the wrong place, which is
+        /// the failure mode that survives review. It was written independently
+        /// at three call sites and got the conversion right at one of
+        /// them.</para>
+        /// </summary>
+        public static OrbitElements FromKspDegrees(
+            double sma,
+            double ecc,
+            double incDegrees,
+            double lanDegrees,
+            double argPeDegrees,
+            double meanAnomalyAtEpochRadians,
+            double epoch,
+            double mu)
+        {
+            const double ToRadians = System.Math.PI / 180.0;
+            return new OrbitElements(
+                sma,
+                ecc,
+                incDegrees * ToRadians,
+                lanDegrees * ToRadians,
+                argPeDegrees * ToRadians,
+                meanAnomalyAtEpochRadians,
+                epoch,
+                mu);
+        }
     }
 }

@@ -133,6 +133,8 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
+            SilenceTrace.Chain(parentBody.bodyName, stationBody.bodyName, links.Count);
+
             var stationBodyIndex = bodies.IndexOf(stationBody);
             double longitudeOffset;
             if (!StationLongitudeCalibration.TryGet(stationBodyIndex, out longitudeOffset))
@@ -464,6 +466,7 @@ namespace Gonogo.KSP.SilenceTracking
             var residual = Math.Abs(live - predicted);
             if (residual > FrameCheckToleranceMeters)
             {
+                DecomposeResidual(sample, vessel, now);
                 SilenceTrace.FrameCheckFailed(live, predicted, residual);
                 return false;
             }
@@ -670,14 +673,45 @@ namespace Gonogo.KSP.SilenceTracking
             return model.OccludingRadiusMeters(body.Radius, body.atmosphere);
         }
 
+        /// <summary>
+        /// Reports each propagated term beside the live value it should match,
+        /// so a wrong answer says WHICH element set is wrong rather than only
+        /// that the total does not reconcile.
+        /// </summary>
+        private static void DecomposeResidual(SilenceSample sample, Vessel vessel, double now)
+        {
+            try
+            {
+                var propagator = new KeplerProvider();
+                var liveVessel = vessel.orbitDriver.orbit.getRelativePositionAtUT(now).magnitude;
+                var predictedVessel = propagator.Solve(sample.Orbit.Value, now).Position.Magnitude();
+
+                var parent = vessel.orbitDriver.orbit.referenceBody;
+                var up = parent != null && parent.orbit != null && parent.orbit.referenceBody != null
+                    && parent.orbit.referenceBody != parent
+                    ? parent.orbit
+                    : null;
+                var liveLink = up != null ? up.getRelativePositionAtUT(now).magnitude : 0.0;
+                var predictedLink = up != null
+                    ? propagator.Solve(ElementsOf(up), now).Position.Magnitude()
+                    : 0.0;
+
+                SilenceTrace.Decompose(liveVessel, predictedVessel, liveLink, predictedLink);
+            }
+            catch (Exception ex)
+            {
+                SilenceTrace.NoGeometry("decompose threw: " + ex.Message);
+            }
+        }
+
         private static OrbitElements ElementsOf(Orbit orbit) =>
-            new OrbitElements(
+            OrbitElements.FromKspDegrees(
                 sma: orbit.semiMajorAxis,
                 ecc: orbit.eccentricity,
-                inc: orbit.inclination,
-                lan: orbit.LAN,
-                argPe: orbit.argumentOfPeriapsis,
-                meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
+                incDegrees: orbit.inclination,
+                lanDegrees: orbit.LAN,
+                argPeDegrees: orbit.argumentOfPeriapsis,
+                meanAnomalyAtEpochRadians: orbit.meanAnomalyAtEpoch,
                 epoch: orbit.epoch,
                 mu: orbit.referenceBody.gravParameter);
     }

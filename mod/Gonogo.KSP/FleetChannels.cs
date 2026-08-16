@@ -265,13 +265,13 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            return new OrbitElements(
+            return OrbitElements.FromKspDegrees(
                 sma: orbit.semiMajorAxis,
                 ecc: orbit.eccentricity,
-                inc: orbit.inclination,
-                lan: orbit.LAN,
-                argPe: orbit.argumentOfPeriapsis,
-                meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
+                incDegrees: orbit.inclination,
+                lanDegrees: orbit.LAN,
+                argPeDegrees: orbit.argumentOfPeriapsis,
+                meanAnomalyAtEpochRadians: orbit.meanAnomalyAtEpoch,
                 epoch: orbit.epoch,
                 mu: orbit.referenceBody.gravParameter);
         }

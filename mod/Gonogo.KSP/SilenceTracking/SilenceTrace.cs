@@ -124,6 +124,43 @@ namespace Gonogo.KSP.SilenceTracking
             Debug.Log(Prefix + "longitude calibration: " + report);
         }
 
+        private static string? _lastChain;
+
+        /// <summary>
+        /// The resolved chain for one vessel: which bodies were picked and how
+        /// many links joined them. The live residual said the geometry was
+        /// returning a SUN-relative position, i.e. behaving as though the chain
+        /// were empty, and nothing in the log could distinguish "built no links"
+        /// from "built links that were not applied".
+        /// </summary>
+        public static void Chain(string parentBody, string stationBody, int links)
+        {
+            var line = "chain: vessel at " + parentBody + " -> station at " + stationBody
+                + " via " + links + " link(s)";
+            if (line == _lastChain) return;
+            _lastChain = line;
+            Debug.Log(Prefix + line);
+        }
+
+        private static string? _lastDecomp;
+
+        /// <summary>
+        /// The frame residual, split into the two propagated terms that make it
+        /// up: the vessel about its own parent, and the chain's first link. The
+        /// summed residual alone cannot say which of the two is wrong, and its
+        /// magnitude was consistent with both a phase error on the link and a
+        /// bad vessel element set.
+        /// </summary>
+        public static void Decompose(
+            double liveVessel, double predictedVessel, double liveLink, double predictedLink)
+        {
+            var line = "decompose: vesselAboutParent live=" + (long)liveVessel + " pred=" + (long)predictedVessel
+                + " | link0 live=" + (long)liveLink + " pred=" + (long)predictedLink;
+            if (line == _lastDecomp) return;
+            _lastDecomp = line;
+            Debug.Log(Prefix + line);
+        }
+
         public static void NotPublished(object? captured, bool noSource)
         {
             if (_warnedNotPublished) return;
