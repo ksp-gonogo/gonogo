@@ -66,6 +66,12 @@ export interface SystemDiagramProps {
   /** If set and `parentName` matches, plot the vessel on its orbit. */
   vessel?: VesselOrbit | null;
   /**
+   * How the vessel's plotted position is KNOWN. Defaults to `observed`, which
+   * is the only honest default for a diagram that has not been told otherwise:
+   * a caller that omits it is drawing a live craft.
+   */
+  vesselPlotState?: VesselPlotState;
+  /**
    * Live phase angles (deg, to active vessel) keyed by body index. When
    * provided, each body gets a tiny numeric label rendered next to its
    * orbit dot. The vessel's own parent body (if any) should be excluded
@@ -106,6 +112,7 @@ export function SystemDiagram({
   highlightNames,
   targetName,
   vessel,
+  vesselPlotState = "observed",
   phaseAngles,
   transferStatuses,
   onFocusBodyChange,
@@ -538,7 +545,12 @@ export function SystemDiagram({
 
         {/* Vessel marker: drawn last so it's always on top. */}
         {showVessel && (
-          <VesselMarker vessel={vessel} plotScale={plotScale} zoom={zoom} />
+          <VesselMarker
+            vessel={vessel}
+            plotScale={plotScale}
+            zoom={zoom}
+            state={vesselPlotState}
+          />
         )}
       </svg>
 
@@ -667,14 +679,51 @@ function VesselOrbitPath({
   );
 }
 
+/**
+ * How a craft's position on the diagram is KNOWN, which is not the same as
+ * where it is.
+ *
+ * - `observed`: contact right now, so the marker is a measurement
+ * - `predicted`: out of contact, so the marker is dead reckoning — drawn hollow
+ *   and desaturated, because an operator must never read a propagated position
+ *   with the same confidence as a reported one
+ * - `overdue`: predicted, and past the moment it should have re-appeared
+ * - `lost`: given up on
+ */
+export type VesselPlotState = "observed" | "predicted" | "overdue" | "lost";
+
+function markerStyle(state: VesselPlotState) {
+  switch (state) {
+    case "overdue":
+      return {
+        colour: "var(--color-status-warning-fg)",
+        filled: false,
+        opacity: 0.95,
+      };
+    case "lost":
+      return {
+        colour: "var(--color-status-critical-fg)",
+        filled: false,
+        opacity: 0.6,
+      };
+    case "predicted":
+      // Desaturated and hollow: a reckoned position, not a reported one.
+      return { colour: "var(--color-text-muted)", filled: false, opacity: 0.7 };
+    default:
+      return { colour: "var(--color-accent-fg)", filled: true, opacity: 1 };
+  }
+}
+
 function VesselMarker({
   vessel,
   plotScale,
   zoom,
+  state = "observed",
 }: Readonly<{
   vessel: VesselOrbit;
   plotScale: number;
   zoom: number;
+  state?: VesselPlotState;
 }>) {
   const pos = bodyPosition(
     vessel.sma,
@@ -685,22 +734,26 @@ function VesselMarker({
     plotScale,
   );
   const r = 5 / zoom;
+  const { colour, filled, opacity } = markerStyle(state);
   return (
-    <g pointerEvents="none">
+    <g pointerEvents="none" opacity={opacity}>
       <circle
         cx={pos.x}
         cy={pos.y}
         r={r}
-        fill="var(--color-accent-fg)"
-        stroke="var(--color-text-inverse)"
-        strokeWidth={1 / zoom}
+        fill={filled ? colour : "none"}
+        stroke={filled ? "var(--color-text-inverse)" : colour}
+        strokeWidth={(filled ? 1 : 1.4) / zoom}
+        // Dashed ring for a reckoned position: the same visual language the
+        // upcoming-patch arcs already use for "computed, not observed".
+        strokeDasharray={filled ? undefined : `${3 / zoom} ${2.5 / zoom}`}
       />
       <circle
         cx={pos.x}
         cy={pos.y}
         r={r * 2.2}
         fill="none"
-        stroke="var(--color-accent-fg)"
+        stroke={colour}
         strokeWidth={0.6 / zoom}
         opacity={0.5}
       />

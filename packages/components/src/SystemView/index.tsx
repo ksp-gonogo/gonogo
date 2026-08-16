@@ -10,8 +10,11 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  contactPhase,
   type OrbitElements,
+  overdueSeconds,
   solveAnomalies,
+  useFleetVesselContact,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
@@ -25,12 +28,16 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import {
+  FramedDisplay,
+  formatDuration,
+  NULL_DISPLAY,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { AlmanacPanel } from "./AlmanacPanel";
-import { SystemDiagram } from "./SystemDiagram";
+import { SystemDiagram, type VesselPlotState } from "./SystemDiagram";
 import {
   angleDelta,
   hohmannPhaseAngle,
@@ -223,6 +230,62 @@ function nextApsisOf(
   return { nextApsisType: null, timeToNextApsis: null };
 }
 
+/**
+ * What the diagram is telling the operator about a craft it cannot see.
+ *
+ * Announcement is scoped to what each state warrants. `overdue` is polite
+ * (`role="status"`): the craft is late, there is still time for it, and
+ * interrupting would overstate the case. `lost` is assertive (`role="alert"`):
+ * the decision has been made and it should cut through. The expected-countdown
+ * case is announced by NEITHER, because it changes every tick and a live region
+ * would read a running clock aloud indefinitely.
+ *
+ * A silent craft with no prediction says "no contact" and shows no countdown.
+ * Nothing promised it would be back, so nothing is late.
+ */
+function ContactCaption({
+  phase,
+  contact,
+  nowUt,
+  vesselName,
+}: Readonly<{
+  phase: ReturnType<typeof contactPhase>;
+  contact: ReturnType<typeof useFleetVesselContact>;
+  nowUt: number | null | undefined;
+  vesselName: string;
+}>) {
+  if (!phase || phase === "nominal" || nowUt == null) return null;
+
+  if (phase === "lost") {
+    return (
+      <div style={FRAME_CAPTION} role="alert" aria-live="assertive">
+        <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
+        officially lost
+      </div>
+    );
+  }
+
+  if (phase === "overdue") {
+    const late = overdueSeconds(contact, nowUt);
+    return (
+      <div style={FRAME_CAPTION} role="status" aria-live="polite">
+        {vesselName} overdue by {late == null ? "?" : formatDuration(late)}
+      </div>
+    );
+  }
+
+  if (phase === "expected") {
+    const due = (contact?.predictedReacquisitionUt ?? nowUt) - nowUt;
+    return (
+      <div style={FRAME_CAPTION}>
+        {vesselName} reacquire expected in ~{formatDuration(Math.max(0, due))}
+      </div>
+    );
+  }
+
+  return <div style={FRAME_CAPTION}>{vesselName} no contact</div>;
+}
+
 function SystemViewComponent({
   config,
   w,
@@ -238,6 +301,26 @@ function SystemViewComponent({
   // view-UT.
   const orbit = useTelemetry("vessel.orbit");
   const identity = useTelemetry("vessel.identity");
+
+  // Contact state for the plotted craft. `fleet.<guid>.contact` is
+  // freeze-EXEMPT in the engine precisely so it keeps reporting while the craft
+  // is dark, which is the only reason a diagram can say anything at all about a
+  // vessel it has lost.
+  const vesselGuid =
+    typeof identity?.vesselId === "string" ? identity.vesselId : null;
+  const contact = useFleetVesselContact(vesselGuid ?? "");
+  const contactNowUt = useViewUt();
+  const phase = vesselGuid
+    ? contactPhase(contact, contactNowUt ?? 0)
+    : undefined;
+  const vesselPlotState: VesselPlotState =
+    phase === "lost"
+      ? "lost"
+      : phase === "overdue"
+        ? "overdue"
+        : phase === "expected" || phase === "waiting"
+          ? "predicted"
+          : "observed";
   const systemBodies = useTelemetry("system.bodies");
   const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
   // View-UT: the SDK view time the propagation already evaluates at
@@ -600,6 +683,14 @@ function SystemViewComponent({
                 }: ${encounterBody}`
               : `Frame: ${parentName}`}
       </div>
+      <ContactCaption
+        phase={phase}
+        contact={contact}
+        nowUt={contactNowUt}
+        vesselName={
+          typeof identity?.name === "string" ? identity.name : "Vessel"
+        }
+      />
       {showDiagram ? (
         <FramedDisplay style={DIAGRAM_FRAME}>
           <div ref={wrapRef} style={DIAGRAM_WRAP}>
@@ -610,6 +701,7 @@ function SystemViewComponent({
                 highlightNames={vesselBody ? [vesselBody] : []}
                 targetName={typeof targetName === "string" ? targetName : null}
                 vessel={vesselOrbit}
+                vesselPlotState={vesselPlotState}
                 phaseAngles={phaseAngles}
                 transferStatuses={transferStatuses}
                 onFocusBodyChange={setFocusedBody}

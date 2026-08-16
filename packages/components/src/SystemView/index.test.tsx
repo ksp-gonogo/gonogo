@@ -111,6 +111,7 @@ describe("SystemViewComponent", () => {
         "vessel.identity",
         "vessel.target",
         "system.bodies",
+        "fleet.",
       ],
       pinnedUt: 100,
     });
@@ -130,6 +131,76 @@ describe("SystemViewComponent", () => {
       if (orbit !== undefined) fixture.emit("vessel.orbit", orbit);
     });
   }
+
+  /**
+   * The four contact states the diagram has to express, and specifically what
+   * each is allowed to announce: a running countdown must NOT live in a live
+   * region, overdue is polite, lost is assertive.
+   */
+  describe("contact state", () => {
+    const SILENT = {
+      connected: false,
+      state: "Silent",
+      silenceSinceUt: 50,
+      deadlineUt: 900,
+      deadlineBasis: "predicted-reacquisition",
+      predictedReacquisitionUt: 400,
+    };
+
+    async function renderWithContact(contact: Record<string, unknown>) {
+      render(
+        <fixture.Provider>
+          <SystemViewComponent config={{}} id="sv" />
+        </fixture.Provider>,
+      );
+      primeStream();
+      // The fleet.<guid>.contact subscription only exists once identity has
+      // arrived and the component has re-rendered with a guid; the transport is
+      // subscription-gated, so emitting before that delivers to nobody.
+      await screen.findAllByText(/Kerbin/i);
+      act(() => {
+        fixture.emit("fleet.v.contact", contact);
+      });
+    }
+
+    it("counts down to a predicted reacquisition without announcing it", async () => {
+      await renderWithContact(SILENT);
+
+      // pinned UT 100, predicted 400 => 5 minutes out
+      const caption = await screen.findByText(/reacquire expected/i);
+      expect(caption).toBeInTheDocument();
+      // A per-tick clock inside a live region would be read aloud forever.
+      expect(caption.closest("[role='status']")).toBeNull();
+      expect(caption.closest("[role='alert']")).toBeNull();
+    });
+
+    it("announces overdue politely, and does not call it lost", async () => {
+      await renderWithContact({ ...SILENT, predictedReacquisitionUt: 60 });
+
+      const caption = await screen.findByText(/overdue by/i);
+      expect(caption.closest("[role='status']")).not.toBeNull();
+      expect(screen.queryByText(/officially lost/i)).toBeNull();
+    });
+
+    it("announces an official loss assertively", async () => {
+      await renderWithContact({ ...SILENT, state: "Lost" });
+
+      const caption = await screen.findByText(/officially lost/i);
+      expect(caption.closest("[role='alert']")).not.toBeNull();
+    });
+
+    it("shows no countdown for a silence geometry cannot explain", async () => {
+      await renderWithContact({
+        ...SILENT,
+        deadlineBasis: "no-occultation",
+        predictedReacquisitionUt: null,
+      });
+
+      expect(await screen.findByText(/no contact/i)).toBeInTheDocument();
+      expect(screen.queryByText(/reacquire expected/i)).toBeNull();
+      expect(screen.queryByText(/overdue/i)).toBeNull();
+    });
+  });
 
   it("waits for body data before rendering anything", () => {
     render(
