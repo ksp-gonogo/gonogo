@@ -488,7 +488,7 @@ namespace Gonogo.KSP.SilenceTracking
             // link's own propagation error leaking into the fit, which then
             // shifts the longitude to compensate - a good fit to the wrong
             // model. One unknown at a time.
-            var reference = FindLoadedVesselOrbiting(stationBody) ?? FindAnyLoadedVessel();
+            var reference = FindVesselOrbiting(stationBody) ?? FindAnyLoadedVessel();
             if (reference == null || reference.orbitDriver == null || reference.orbitDriver.orbit == null)
             {
                 return false;
@@ -564,13 +564,24 @@ namespace Gonogo.KSP.SilenceTracking
             return Math.Abs(live - geometry.SeparationAt(now));
         }
 
-        private static Vessel FindLoadedVesselOrbiting(CelestialBody body)
+        /// <summary>
+        /// Any vessel orbiting <paramref name="body"/>, loaded or not.
+        ///
+        /// <para>Being unloaded is no obstacle: <c>getPositionAtUT</c> is the
+        /// same propagation KSP itself uses for an on-rails craft, and the
+        /// world-space position it yields is exactly what the calibration
+        /// compares against. Requiring a LOADED reference found nothing at all
+        /// on a real save - only the active vessel is loaded, and it was at
+        /// Minmus - which sent the solve back to a one-link chain and the
+        /// polluted fit this preference exists to avoid.</para>
+        /// </summary>
+        private static Vessel FindVesselOrbiting(CelestialBody body)
         {
             var all = FlightGlobals.Vessels;
             if (all == null) return null;
             foreach (var v in all)
             {
-                if (v == null || !v.loaded || v.orbitDriver == null || v.orbitDriver.orbit == null) continue;
+                if (v == null || v.orbitDriver == null || v.orbitDriver.orbit == null) continue;
                 if (v.orbitDriver.orbit.referenceBody == body) return v;
             }
             return null;
