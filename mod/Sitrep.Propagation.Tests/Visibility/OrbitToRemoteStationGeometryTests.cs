@@ -181,6 +181,75 @@ namespace Sitrep.Propagation.Tests.Visibility
                 "the margin must not jump discontinuously between adjacent sweep samples");
         }
 
+        private const double SunMu = 1.1723328e18;
+        private const double KerbinSma = 13_599_840_256.0;
+
+        /// <summary>Kerbin about the Sun: the ascending link every interplanetary chain starts with.</summary>
+        private static OrbitElements KerbinAroundSun() =>
+            new OrbitElements(KerbinSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu);
+
+        /// <summary>
+        /// The interplanetary case, which the live run never reached until the
+        /// KeplerProvider throw was fixed and which then reported residuals in
+        /// the tens of millions of km.
+        ///
+        /// <para>Frame is centred on the STATION's body (Kerbin). A craft in
+        /// solar orbit is reached by climbing to the Sun — an ASCENDING link,
+        /// which subtracts, because the Sun sits on the far side of Kerbin's own
+        /// orbit — and then adding the vessel's Sun-relative position. So the
+        /// answer is exactly <c>vesselAboutSun - kerbinAboutSun</c>, computable
+        /// by hand.</para>
+        /// </summary>
+        [Fact]
+        public void AnAscendingLinkSubtractsSoASolarOrbitResolvesInTheStationFrame()
+        {
+            var propagator = new KeplerProvider();
+            // A craft in a solar orbit well outside Kerbin's.
+            var vesselAboutSun = new OrbitElements(KerbinSma * 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu);
+
+            var geometry = new OrbitToRemoteStationGeometry(
+                vesselAboutSun,
+                new[] { new OrbitToRemoteStationGeometry.ChainLink(KerbinAroundSun(), 261_600_000.0, descending: false) },
+                KscLikeStation(),
+                KerbinRadius);
+
+            var expected = (propagator.Solve(vesselAboutSun, 0.0).Position
+                - propagator.Solve(KerbinAroundSun(), 0.0).Position).Magnitude();
+
+            // Within one Kerbin radius: the station sits on the surface, not at
+            // the centre, and that is the only difference.
+            Assert.InRange(geometry.SeparationAt(0.0), expected - KerbinRadius * 2, expected + KerbinRadius * 2);
+        }
+
+        /// <summary>
+        /// The sign error this class is most likely to make: ADDING an ascending
+        /// link puts the craft on the wrong side of the Sun, which is a good
+        /// enough approximation to look plausible and is wrong by twice Kerbin's
+        /// orbital radius.
+        /// </summary>
+        [Fact]
+        public void AddingAnAscendingLinkWouldBeWrongByTwiceTheOrbitalRadius()
+        {
+            var propagator = new KeplerProvider();
+            var vesselAboutSun = new OrbitElements(KerbinSma * 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu);
+
+            var correct = new OrbitToRemoteStationGeometry(
+                vesselAboutSun,
+                new[] { new OrbitToRemoteStationGeometry.ChainLink(KerbinAroundSun(), 261_600_000.0, descending: false) },
+                KscLikeStation(),
+                KerbinRadius).SeparationAt(0.0);
+
+            var wrongSign = new OrbitToRemoteStationGeometry(
+                vesselAboutSun,
+                new[] { new OrbitToRemoteStationGeometry.ChainLink(KerbinAroundSun(), 261_600_000.0, descending: true) },
+                KscLikeStation(),
+                KerbinRadius).SeparationAt(0.0);
+
+            Assert.True(
+                Math.Abs(wrongSign - correct) > KerbinSma,
+                $"the two signs should differ by order Kerbin's orbital radius; got {correct} vs {wrongSign}");
+        }
+
         private static double Dot(Vector3d a, Vector3d b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
     }
 }
