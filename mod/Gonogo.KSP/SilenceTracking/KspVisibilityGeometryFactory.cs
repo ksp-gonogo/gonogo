@@ -77,11 +77,22 @@ namespace Gonogo.KSP.SilenceTracking
             }
 
             var parentBody = bodies[sample.ReferenceBodyIndex.Value];
+            // These two are DIFFERENT failures behind what used to be one
+            // message, and the trace de-dupes by message: "no homes exist" then
+            // masked "homes exist but none resolved to a body" for the rest of
+            // the session, because the second never printed. The first is
+            // transient (CommNet is not built on the opening tick); the second
+            // is a real bug in body resolution. They must not look alike.
             CelestialBody stationBody;
             var comm = NearestHomeNode(parentBody, bodies, out stationBody);
-            if (comm == null || stationBody == null)
+            if (comm == null)
             {
                 SilenceTrace.NoGeometry("no home node in the live CommNet");
+                return null;
+            }
+            if (stationBody == null)
+            {
+                SilenceTrace.NoGeometry("home node found but no body resolved under it");
                 return null;
             }
 
