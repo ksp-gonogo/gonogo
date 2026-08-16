@@ -162,7 +162,7 @@ namespace Gonogo.KSP.CurrencyDelay
             string originVesselId,
             KscDelay delay,
             double nowUt,
-            double silenceDeclarationSeconds)
+            Sitrep.Host.Comms.SignalDelayConfig config)
         {
             if (baseAmount == 0.0)
             {
@@ -179,7 +179,7 @@ namespace Gonogo.KSP.CurrencyDelay
             return new StockCurrencyCredit(
                 currency,
                 baseAmount,
-                delay.RevealUt(nowUt, silenceDeclarationSeconds),
+                KscDelayPolicy.RevealUt(delay, nowUt, config),
                 originVesselId ?? "",
                 description);
         }

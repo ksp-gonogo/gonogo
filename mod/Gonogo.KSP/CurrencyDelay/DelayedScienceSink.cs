@@ -66,10 +66,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 // the zero here was the hole this subsystem's whole rule exists
                 // to close.
                 var config = CommsCoreUplink.SignalDelayConfig;
-                var delay = ResolveLiveDelay(vesselId, config);
-                var lightTime = delay.IsUnroutable
-                    ? (config?.SilenceDeclarationSeconds ?? 86_400.0)
-                    : delay.Seconds;
+                var lightTime = KscDelayPolicy.DelaySeconds(ResolveLiveDelay(vesselId, config), config);
 
                 var chunk = aggregator.Accept(vesselId, amount, ut, lightTime);
                 if (chunk.HasValue)

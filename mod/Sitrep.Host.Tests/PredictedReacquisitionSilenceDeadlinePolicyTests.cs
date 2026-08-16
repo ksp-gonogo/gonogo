@@ -47,6 +47,28 @@ namespace Sitrep.Host.Tests
             public double SeparationAt(double ut) => 1_000_000.0;
         }
 
+        /// <summary>Clear except for one blocked window, so the sweep starts CLEAR and still finds a later opening.</summary>
+        private sealed class BlockedWindowGeometry : IVisibilityGeometry
+        {
+            private readonly double _from;
+            private readonly double _to;
+
+            public BlockedWindowGeometry(double from, double to)
+            {
+                _from = from;
+                _to = to;
+            }
+
+            public double MarginAt(double ut)
+            {
+                if (ut <= _from) return _from - ut + 1.0;
+                if (ut >= _to) return ut - _to + 1.0;
+                return -Math.Min(ut - _from, _to - ut) - 1.0;
+            }
+
+            public double SeparationAt(double ut) => 1_000_000.0;
+        }
+
         private sealed class ConstantMarginGeometry : IVisibilityGeometry
         {
             private readonly double _margin;
@@ -274,6 +296,116 @@ namespace Sitrep.Host.Tests
             tracker.Tick(new[] { silent }, ut: 1_005.0);
 
             Assert.Equal(first, tracker.TryGetState("v")!.PredictedReacquisitionUt);
+        }
+
+        /// <summary>
+        /// A late-arriving prediction must never move the deadline EARLIER. The
+        /// upgrade evaluates from the silence ORIGIN, so its duration is
+        /// measured from a UT hours in the past; writing that over the armed
+        /// deadline moved it backwards, and in the worst case behind the
+        /// current tick, declaring the vessel Lost in the same call that first
+        /// managed to predict its return.
+        /// </summary>
+        [Fact]
+        public void AnUpgradeNeverShortensTheArmedDeadline()
+        {
+            var orbit = Circular(7_200.0);
+            var ready = false;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => ready ? new OneCrossingGeometry(101_800.0) : null);
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 100_000.0);
+            var armed = tracker.TryGetState("v")!.DeadlineUt!.Value;
+
+            ready = true;
+            tracker.Tick(new[] { silent }, ut: 107_260.0);
+
+            var state = tracker.TryGetState("v")!;
+            Assert.True(
+                state.DeadlineUt!.Value >= armed,
+                $"deadline moved earlier: {armed} -> {state.DeadlineUt.Value}");
+        }
+
+        /// <summary>
+        /// And never into the past, which is the same bug seen from the other
+        /// side: a deadline behind the current tick is instantly overdue and
+        /// declares Lost with no amber window at all.
+        /// </summary>
+        [Fact]
+        public void AnUpgradeNeverLandsTheDeadlineInThePast()
+        {
+            var orbit = Circular(7_200.0);
+            var ready = false;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => ready ? new OneCrossingGeometry(101_800.0) : null);
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 100_000.0);
+            ready = true;
+            tracker.Tick(new[] { silent }, ut: 107_260.0);
+            tracker.Tick(new[] { silent }, ut: 107_261.0);
+
+            var state = tracker.TryGetState("v")!;
+            Assert.True(
+                state.DeadlineUt!.Value > 107_261.0,
+                $"deadline {state.DeadlineUt.Value} is already behind the tick");
+            Assert.NotEqual(SilenceState.Lost, state.State);
+        }
+
+        /// <summary>
+        /// The upgrade must be spent whether or not it produced a prediction.
+        /// Setting the flag only on success turned "one re-evaluation per
+        /// silence run" into a full ~1400-sample sweep on EVERY silent tick for
+        /// every vessel the predictor cannot help, which at warp is the stutter
+        /// the whole sliced-solver design exists to avoid.
+        /// </summary>
+        [Fact]
+        public void AFailedUpgradeIsStillSpent()
+        {
+            var orbit = Circular(3_600.0);
+            var calls = 0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) =>
+                {
+                    calls++;
+                    return null;
+                });
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 1_000.0);
+            var afterArming = calls;
+            for (var ut = 1_001.0; ut < 1_010.0; ut += 1.0)
+            {
+                tracker.Tick(new[] { silent }, ut);
+            }
+
+            Assert.True(
+                calls - afterArming <= 1,
+                $"policy re-evaluated {calls - afterArming} times across 9 silent ticks");
+        }
+
+        /// <summary>
+        /// A silence that geometry does not explain must not borrow a
+        /// geometric explanation. If the path was already CLEAR when contact
+        /// was lost, the craft did not go behind anything — it lost power, or
+        /// its antenna went out of range — and the next time the sweep happens
+        /// to open a path is not that craft's return.
+        /// </summary>
+        [Fact]
+        public void AnEmergenceIsNotPredictedWhenThePathWasAlreadyClearAtLoss()
+        {
+            var orbit = Circular(3_600.0);
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new BlockedWindowGeometry(1_600.0, 1_900.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: 1_000.0);
+
+            Assert.Null(deadline.PredictedReacquisitionUt);
+            Assert.NotEqual(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
         }
 
         [Fact]

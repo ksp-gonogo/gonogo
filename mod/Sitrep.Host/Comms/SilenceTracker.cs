@@ -384,11 +384,34 @@ namespace Sitrep.Host.Comms
             // is never revised.
             if (!s.DeadlineUpgraded && !HasPrediction(s.DeadlineBasis))
             {
-                var upgraded = _policy(sample, s.SilenceSinceUt ?? ut);
+                // Spent whether or not it produced anything. Setting this only
+                // on success turned "one re-evaluation" into a full ~1400-sample
+                // sweep on EVERY silent tick for every vessel the predictor
+                // cannot help - which at warp is exactly the stutter the sliced
+                // solver exists to avoid.
+                s.DeadlineUpgraded = true;
+
+                var origin = s.SilenceSinceUt ?? ut;
+                var upgraded = _policy(sample, origin);
                 if (upgraded.PredictedReacquisitionUt.HasValue)
                 {
-                    s.DeadlineUpgraded = true;
-                    s.DeadlineUt = (s.SilenceSinceUt ?? ut) + upgraded.DurationSec;
+                    // NEVER earlier. The upgrade is evaluated from the silence
+                    // ORIGIN, so its duration is measured from a UT that may be
+                    // hours in the past; writing that over the armed deadline
+                    // moved the deadline BACKWARDS, and in the worst case behind
+                    // the current tick, declaring the vessel Lost in the very
+                    // call that first managed to predict its return.
+                    //
+                    // A prediction is allowed to explain a silence and to push
+                    // the deadline out. It is never allowed to shorten a
+                    // vessel's remaining life.
+                    var candidate = origin + upgraded.DurationSec;
+                    if (s.DeadlineUt.HasValue && candidate < s.DeadlineUt.Value)
+                    {
+                        candidate = s.DeadlineUt.Value;
+                    }
+
+                    s.DeadlineUt = candidate;
                     s.DeadlineBasis = upgraded.Basis;
                     s.PredictedReacquisitionUt = upgraded.PredictedReacquisitionUt;
                 }

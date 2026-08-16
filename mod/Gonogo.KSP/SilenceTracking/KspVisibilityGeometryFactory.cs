@@ -99,7 +99,7 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
-            var station = StationOn(stationBody, comm, ut);
+            var station = StationOn(stationBody, comm);
             if (station == null)
             {
                 SilenceTrace.NoGeometry("station body has no radius or no spin");
@@ -343,7 +343,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// here that is easy to get wrong silently, which is what the
         /// separation self-check exists to catch.
         /// </summary>
-        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double ut)
+        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm)
         {
             if (!(body.Radius > 0.0) || !(Math.Abs(body.rotationPeriod) > 0.0))
             {
@@ -355,10 +355,21 @@ namespace Gonogo.KSP.SilenceTracking
             var altitude = body.GetAltitude(world);
             var inertialLongitude = body.GetLongitude(world) + body.rotationAngle;
 
+            // The reference UT is NOW, not the caller's ut.
+            //
+            // Both inputs are live quantities: precisePosition is where the
+            // station is at this instant, and rotationAngle is recomputed from
+            // Planetarium.GetUniversalTime() every frame. Stamping a now-phase
+            // with a past reference UT time-shifts the station's entire
+            // trajectory by (now - ut), and the sweep origin CAN be far in the
+            // past - a deadline upgrade evaluates from the silence onset, hours
+            // earlier. Every other input to this geometry is epoch-anchored
+            // (OrbitElements carries epoch + meanAnomalyAtEpoch), so the station
+            // was the only term that could drift, and it drifted silently.
             return RotatingGroundStation.FromLatitudeLongitude(
                 latitude,
                 inertialLongitude,
-                ut,
+                Planetarium.GetUniversalTime(),
                 body.rotationPeriod,
                 body.Radius,
                 altitude);

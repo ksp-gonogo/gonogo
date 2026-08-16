@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gonogo.KSP.CurrencyDelay;
+using Sitrep.Host.Comms;
 using Xunit;
 
 public class StockCurrencyDecisionTests
@@ -93,7 +94,7 @@ public class StockCurrencyDecisionTests
     {
         var credit = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Science, baseAmount: 12.5, shadowBalance: 100.0,
-            originVesselId: "vessel-1", delay: KscDelay.Routed(42.0), silenceDeclarationSeconds: 86_400.0, nowUt: 1000.0);
+            originVesselId: "vessel-1", delay: KscDelay.Routed(42.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 1000.0);
 
         Assert.NotNull(credit);
         Assert.Equal(1042.0, credit!.Value.RevealUt);
@@ -104,7 +105,7 @@ public class StockCurrencyDecisionTests
     {
         var credit = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Funds, baseAmount: 340.75, shadowBalance: 9999.0,
-            originVesselId: "vessel-1", delay: KscDelay.Routed(5.0), silenceDeclarationSeconds: 86_400.0, nowUt: 0.0);
+            originVesselId: "vessel-1", delay: KscDelay.Routed(5.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 0.0);
 
         Assert.Equal(340.75, credit!.Value.BaseAmount);
     }
@@ -122,10 +123,10 @@ public class StockCurrencyDecisionTests
         // shadowBalance across a wide range: the stored amount must not move.
         var atLowShadow = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Reputation, baseAmount: -10.0, shadowBalance: 0.0,
-            originVesselId: "vessel-1", delay: KscDelay.Routed(10.0), silenceDeclarationSeconds: 86_400.0, nowUt: 500.0);
+            originVesselId: "vessel-1", delay: KscDelay.Routed(10.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 500.0);
         var atHighShadow = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Reputation, baseAmount: -10.0, shadowBalance: 995.0,
-            originVesselId: "vessel-1", delay: KscDelay.Routed(10.0), silenceDeclarationSeconds: 86_400.0, nowUt: 500.0);
+            originVesselId: "vessel-1", delay: KscDelay.Routed(10.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 500.0);
 
         Assert.Equal(-10.0, atLowShadow!.Value.BaseAmount);
         Assert.Equal(-10.0, atHighShadow!.Value.BaseAmount);
@@ -137,7 +138,7 @@ public class StockCurrencyDecisionTests
     {
         var credit = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Science, baseAmount: 1.0, shadowBalance: 0.0,
-            originVesselId: "abc-123", delay: KscDelay.Routed(0.0), silenceDeclarationSeconds: 86_400.0, nowUt: 0.0);
+            originVesselId: "abc-123", delay: KscDelay.Routed(0.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 0.0);
 
         Assert.Equal("abc-123", credit!.Value.OriginVesselId);
     }
@@ -147,7 +148,7 @@ public class StockCurrencyDecisionTests
     {
         var credit = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Science, baseAmount: 1.0, shadowBalance: 0.0,
-            originVesselId: null!, delay: KscDelay.Routed(0.0), silenceDeclarationSeconds: 86_400.0, nowUt: 0.0);
+            originVesselId: null!, delay: KscDelay.Routed(0.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 0.0);
 
         Assert.Equal("", credit!.Value.OriginVesselId);
     }
@@ -157,7 +158,7 @@ public class StockCurrencyDecisionTests
     {
         var credit = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Funds, baseAmount: 0.0, shadowBalance: 500.0,
-            originVesselId: "vessel-1", delay: KscDelay.Routed(10.0), silenceDeclarationSeconds: 86_400.0, nowUt: 0.0);
+            originVesselId: "vessel-1", delay: KscDelay.Routed(10.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 0.0);
 
         Assert.Null(credit);
     }
@@ -170,7 +171,7 @@ public class StockCurrencyDecisionTests
         // for e.g. a recovery on the launchpad.
         var credit = StockCurrencyDecision.BuildCredit(
             CurrencyKind.Funds, baseAmount: 250.0, shadowBalance: 1000.0,
-            originVesselId: "vessel-1", delay: KscDelay.Routed(0.0), silenceDeclarationSeconds: 86_400.0, nowUt: 777.0);
+            originVesselId: "vessel-1", delay: KscDelay.Routed(0.0), config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 777.0);
 
         Assert.Equal(777.0, credit!.Value.RevealUt);
     }

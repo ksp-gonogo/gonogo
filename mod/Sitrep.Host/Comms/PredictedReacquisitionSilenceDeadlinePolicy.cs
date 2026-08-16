@@ -173,13 +173,27 @@ namespace Sitrep.Host.Comms
                 return fallback;
             }
 
+            // A silence geometry does not explain must not borrow a geometric
+            // explanation. If the path was already CLEAR when contact was lost,
+            // the craft did not go behind anything - it lost power, or its
+            // antenna went out of range, or a link budget failed in plain line
+            // of sight. The next time this sweep happens to open a path is some
+            // OTHER pass, not that craft's return, and quoting it would be a
+            // confident answer to a question the geometry was never asked.
+            //
+            // Roughly half of all non-geometric losses on a periodically-blocked
+            // orbit start clear, so this is the common case rather than a
+            // corner: exactly the silences the feature exists to report on.
             double? emergence = null;
-            foreach (var change in sweep.Changes)
+            if (!sweep.ClearAtStart)
             {
-                if (change.BecameClear && change.Ut > ut)
+                foreach (var change in sweep.Changes)
                 {
-                    emergence = change.Ut;
-                    break;
+                    if (change.BecameClear && change.Ut > ut)
+                    {
+                        emergence = change.Ut;
+                        break;
+                    }
                 }
             }
 

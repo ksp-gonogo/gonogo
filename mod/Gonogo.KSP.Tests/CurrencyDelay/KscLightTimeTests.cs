@@ -114,6 +114,42 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Assert.Equal(1_000.0, KscDelay.Instant.RevealUt(1_000.0, 86_400.0));
         }
 
+        /// <summary>
+        /// Turning the feature off must make currency instant everywhere, not
+        /// just on the one path that happens to consult the flag.
+        ///
+        /// <para>The gate lived inside <c>Resolve</c>, and every Unroutable
+        /// literal elsewhere skipped it — so with signal delay switched OFF,
+        /// ordinary science still revealed a Kerbin day late. The off switch has
+        /// to be checked where the delay is CONSUMED, not only where it is
+        /// computed.</para>
+        /// </summary>
+        [Fact]
+        public void With_delay_disabled_even_an_unroutable_event_is_instant()
+        {
+            var off = new SignalDelayConfig { Enabled = false, SilenceDeclarationSeconds = 86_400.0 };
+
+            var revealUt = KscDelayPolicy.RevealUt(KscDelay.Unroutable, eventUt: 1_000.0, config: off);
+
+            Assert.Equal(1_000.0, revealUt);
+        }
+
+        [Fact]
+        public void With_delay_enabled_an_unroutable_event_waits_the_policy_deadline()
+        {
+            var on = new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 };
+
+            Assert.Equal(87_400.0, KscDelayPolicy.RevealUt(KscDelay.Unroutable, 1_000.0, on));
+        }
+
+        [Fact]
+        public void With_delay_disabled_the_aggregator_offset_is_zero()
+        {
+            var off = new SignalDelayConfig { Enabled = false, SilenceDeclarationSeconds = 86_400.0 };
+
+            Assert.Equal(0.0, KscDelayPolicy.DelaySeconds(KscDelay.Unroutable, off));
+        }
+
         [Fact]
         public void A_routed_delay_rejects_a_nonsense_value_at_construction()
         {

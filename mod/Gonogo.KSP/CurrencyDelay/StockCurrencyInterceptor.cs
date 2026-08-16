@@ -330,12 +330,24 @@ namespace Gonogo.KSP.CurrencyDelay
             // deleted ForProtoVessel could only ever have measured a straight
             // line; an unloaded origin is unroutable until it loads and proves
             // otherwise.
-            var delay = liveOrigin != null ? KscLightTime.ForVessel(liveOrigin, config) : KscDelay.Unroutable;
+            //
+            // Recovery is the exception, and it is not a routing question at
+            // all: Vessel.IsRecoverable is LandedOrSplashed && isHomeWorld, so a
+            // recovered craft is in KSC's hands and its science is not in flight
+            // from anywhere. The funds and reputation arms of this same event
+            // already treat it that way; leaving science out meant one recovery
+            // settled three currencies on two different clocks, with the science
+            // arriving a Kerbin day after the craft was on the pad.
+            var recovered = protoOrigin != null
+                && _recoveryVesselsById.ContainsKey(vesselId ?? string.Empty);
+            var delay = recovered
+                ? KscDelay.Instant
+                : liveOrigin != null ? KscLightTime.ForVessel(liveOrigin, config) : KscDelay.Unroutable;
 
             NeutraliseScience(shadowToRestore);
 
             var chunk = _scienceAggregator.Accept(
-                vesselId, baseAmount, ut, DelaySecondsForAggregator(delay, config));
+                vesselId, baseAmount, ut, KscDelayPolicy.DelaySeconds(delay, config));
             if (!chunk.HasValue)
             {
                 return;
@@ -349,7 +361,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 CurrencyKind.Science, chunk.Value.Amount, shadowToRestore, vesselId,
                 // Already-resolved reveal UT: the aggregator applied the
                 // increment's own delay when it closed its window.
-                KscDelay.Instant, nowUt: chunk.Value.RevealUt, silenceDeclarationSeconds: 0.0);
+                KscDelay.Instant, nowUt: chunk.Value.RevealUt, config: CommsCoreUplink.SignalDelayConfig);
 
             EnqueueCredit(credit);
         }
@@ -398,7 +410,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 // hastily-rewritten assertions.
                 var credit = StockCurrencyDecision.BuildCredit(
                     CurrencyKind.Funds, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,
-                    KscDelay.Instant, ut, SilenceDeclarationSeconds());
+                    KscDelay.Instant, ut, CommsCoreUplink.SignalDelayConfig);
                 EnqueueCredit(credit);
             }
             catch (Exception ex)
@@ -478,24 +490,9 @@ namespace Gonogo.KSP.CurrencyDelay
 
             var credit = StockCurrencyDecision.BuildCredit(
                 CurrencyKind.Reputation, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,
-                delay, ut, SilenceDeclarationSeconds());
+                delay, ut, CommsCoreUplink.SignalDelayConfig);
             EnqueueCredit(credit);
         }
-
-        private static double SilenceDeclarationSeconds() =>
-            CommsCoreUplink.SignalDelayConfig?.SilenceDeclarationSeconds ?? 86_400.0;
-
-        /// <summary>
-        /// The aggregator still takes a plain seconds offset. An unroutable
-        /// increment contributes the policy deadline rather than zero, which is
-        /// the whole point: late, never instant. Carrying the Blocked flag
-        /// through the aggregator window (so a reacquisition can release it
-        /// early) is the remaining half of this change.
-        /// </summary>
-        private static double DelaySecondsForAggregator(KscDelay delay, Sitrep.Host.Comms.SignalDelayConfig config) =>
-            delay.IsUnroutable
-                ? (config?.SilenceDeclarationSeconds ?? 86_400.0)
-                : delay.Seconds;
 
         private void EnqueueCredit(StockCurrencyCredit? credit)
         {
