@@ -1,10 +1,6 @@
 using System.Collections.Generic;
-using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
 using Sitrep.Host;
-using Sitrep.Host.Comms;
-using Sitrep.Propagation;
-using UnityEngine;
 
 namespace Gonogo.KSP
 {
@@ -21,58 +17,63 @@ namespace Gonogo.KSP
     /// <c>FlightGlobals</c> on the main thread, so it is validated at runtime on
     /// KSP, not in the KSP-free integration test project).</para>
     ///
+    /// <para><b>Core, not comms-derived.</b> Everything here is ordinary KSP
+    /// network-presence fact: with CommNet disabled, <c>connected</c> is simply
+    /// always <c>true</c>. It registers unconditionally, independent of whether
+    /// any comms backend has been elected, so it is registered directly by
+    /// <see cref="GonogoAddon"/> alongside every other core Uplink rather than
+    /// through a hook installed by <see cref="CommsCoreUplink"/>. The
+    /// SilenceTracker's officially-lost RECKONING (state, deadlines,
+    /// predicted reacquisition) is a comms-owned model's opinion, not a fact
+    /// stock KSP hands you, and is registered separately by
+    /// <see cref="SilenceTracking.FleetSilenceChannels"/> from inside
+    /// <see cref="CommsCoreUplink.Register"/>. See
+    /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c> and
+    /// <see cref="Sitrep.Contract.FleetVesselContact"/>'s doc comment for the
+    /// full split.</para>
+    ///
     /// <para>Subscription-gated on the <c>fleet.</c> prefix: the whole fleet
     /// read is skipped when no client subscribes to any fleet topic. This is a
     /// DISPLAY delay applied by the ledger (not the reveal gate), so gating is
     /// correct: freeze stays global in Plan 2.</para>
     ///
-    /// <para><b>The officially-lost capture below is deliberately NOT gated
-    /// the same way.</b> <see cref="SilenceTracker"/>'s state machine has to
-    /// advance every tick regardless of whether any client is watching -
-    /// otherwise whether a vessel is declared lost would depend on which
-    /// browser tab happens to be open, exactly the flaw
-    /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c> and
-    /// <see cref="CurrencyEventUplink.ArmSourceNode"/>'s own doc comment both
-    /// warn about. See <see cref="CaptureSilenceOnMain"/>.</para>
-    ///
-    /// <para><b>Not an Uplink of its own, deliberately.</b> An Uplink owns a
-    /// Domain and earns an Availability by being separately installable;
-    /// <c>fleet</c> is neither. It is a SCOPE, the same comms and vessel
-    /// domains seen across every craft instead of the active one, and it
-    /// ships inside <c>Gonogo.dll</c> alongside
-    /// <see cref="CommsCoreUplink"/>, so "comms present, fleet absent" is not
-    /// a state a player can reach. It was an Uplink once, with an empty
-    /// Channels list and its own registration path, and the only thing that
-    /// separation ever did was fail: it carried no [SitrepUplink] attribute,
-    /// so discovery skipped it and the entire namespace was silently missing.
-    /// <see cref="CommsCoreUplink"/> now owns it, which is also where the
-    /// delay and connectivity authority these channels mirror already
-    /// lives.</para>
+    /// <para><b>Not an Uplink discovered by attribute scan, deliberately.</b>
+    /// It implements <see cref="ISitrepUplink"/> so <see cref="GonogoAddon"/>
+    /// can register it directly (mirroring
+    /// <c>CommandCentres.CommandCentreDelayUplink</c>), but carries no
+    /// <c>[SitrepUplink]</c> attribute: an Uplink earns an Availability by
+    /// being separately installable, and <c>fleet</c> is not, it is a SCOPE,
+    /// the same vessel domain seen across every craft instead of the active
+    /// one, and ships inside <c>Gonogo.dll</c> unconditionally.</para>
     /// </summary>
-    public sealed class FleetChannels
+    public sealed class FleetChannels : ISitrepUplink
     {
-        /// <summary>
-        /// Soft cap on the always-run silence capture, sized generously above
-        /// a realistic career-scale fleet (a few hundred vessels) sampled at
-        /// the ~1 UT-second cadence <c>GonogoAddon.SampleIntervalUt</c> uses
-        /// at 1x warp; see <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>'s
-        /// accepted risk #3 (no budget existed on this path before this work).
-        /// </summary>
-        private static readonly PerfBudget SilenceCaptureBudget = new PerfBudget(
-            "FleetDelayUplink silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");
-
         private IDynamicChannelSource? _orbitSource;
         private IUplinkHost? _host;
 
-        /// <summary>
-        /// Called from <see cref="CommsCoreUplink.Register"/>, on that uplink's
-        /// registration pass, so everything here is owned by the <c>comms</c>
-        /// uplink for availability and health purposes.
-        /// </summary>
-        public void RegisterInto(IUplinkHost host)
+        // Main-thread-only bookkeeping: the last UT each vessel was observed
+        // connected. Trivial derived state (no hysteresis, no model), so it
+        // lives here rather than needing anything like SilenceTracker. Read
+        // and mutated only from CaptureOnMain; the cross-thread snapshot each
+        // FleetVesselCapture carries is what HandleOnCourier (Courier thread)
+        // actually reads.
+        private readonly Dictionary<string, double> _lastContactUt = new Dictionary<string, double>();
+
+        public UplinkManifest Manifest { get; } = new UplinkManifest
+        {
+            Id = "fleet",
+            Version = "1.0.0",
+            // No static channels: every topic is materialized per vessel guid
+            // out of the dynamic namespace registered below.
+            Channels = new List<ChannelDeclaration>(),
+        };
+
+        /// <summary>Mandatory health self-report: a plain channel uplink is Healthy once registered without error.</summary>
+        public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        public void Register(IUplinkHost host)
         {
             _host = host;
-            SilenceTracking.SilenceGeometrySink.Bind(host.Kernel);
             _orbitSource = host.RegisterDynamicNamespace(ChannelEngine.FleetNodePrefix, new ChannelDeclaration
             {
                 Delivery = Delivery.LossyLatest,
@@ -80,13 +81,9 @@ namespace Gonogo.KSP
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             });
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, ChannelEngine.FleetNodePrefix);
-
-            // Ungated: no subscriptionTopicPrefixes argument, see this
-            // class's own doc comment above.
-            host.AddSampledSource(CaptureSilenceOnMain, HandleSilenceOnCourier);
         }
 
-        /// <summary>MAIN-THREAD capture: per vessel, its guid + routed delay + orbit-element dict.</summary>
+        /// <summary>MAIN-THREAD capture: per vessel, its guid + routed delay + orbit-element dict + last-contact bookkeeping.</summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             var all = FlightGlobals.Vessels;
@@ -95,6 +92,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            var ut = snapshot != null ? snapshot.Ut : 0.0;
             var config = CommsCoreUplink.SignalDelayConfig;
             var captures = new List<FleetVesselCapture>(all.Count);
             foreach (var vessel in all)
@@ -105,18 +103,24 @@ namespace Gonogo.KSP
                 }
                 var (oneWay, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
+                var id = vessel.id.ToString();
+                if (connected)
+                {
+                    _lastContactUt[id] = ut;
+                }
                 captures.Add(new FleetVesselCapture
                 {
-                    Id = vessel.id.ToString(),
+                    Id = id,
                     OneWaySeconds = oneWay,
                     Connected = connected,
                     Orbit = orbit,
+                    LastContactUt = _lastContactUt.TryGetValue(id, out var last) ? (double?)last : null,
                 });
             }
-            return new FleetCapture { Ut = snapshot != null ? snapshot.Ut : 0.0, Vessels = captures };
+            return new FleetCapture { Ut = ut, Vessels = captures };
         }
 
-        /// <summary>COURIER-THREAD handle: set each vessel's node delay + emit its orbit.</summary>
+        /// <summary>COURIER-THREAD handle: set each vessel's node delay + emit its orbit/delay/contact.</summary>
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not FleetCapture cap || _orbitSource == null)
@@ -140,158 +144,13 @@ namespace Gonogo.KSP
                 // Delayed namespace as .orbit, so it too arrives light-time-late).
                 _orbitSource.Publisher(v.Id + ".delay")
                     .Publish(FleetVesselLinkBuilder.Build(v.OneWaySeconds, v.Connected), cap.Ut);
+                // fleet.<guid>.contact: the core connected/lastContactUt facts.
+                // Freeze-exempt (ChannelEngine.ContactMetaSuffix), the disconnect
+                // edge must escape the reveal-gate freeze or it could never be
+                // reported at all.
+                _orbitSource.Publisher(v.Id + ChannelEngine.ContactMetaSuffix)
+                    .Publish(FleetVesselContactBuilder.Build(v.Connected, v.LastContactUt), cap.Ut);
             }
-        }
-
-        /// <summary>
-        /// MAIN-THREAD, UNGATED capture: reads every <c>FlightGlobals</c>
-        /// vessel's live connectivity/orbit/situation, advances
-        /// <see cref="SilenceTracker.Tick"/> (mutating the CURRENT save's
-        /// tracker via <see cref="SilenceTrackerSink"/>), and returns an
-        /// immutable snapshot of the touched vessels for the Courier thread
-        /// to publish.
-        ///
-        /// <para>Snapshots rather than handing out the tracker's own
-        /// <see cref="VesselContactState"/> instances: those are reused and
-        /// mutated again in place on the VERY NEXT main-thread tick, which
-        /// can run before the Courier thread has processed this one, so a
-        /// raw reference crossing the thread boundary here could be read
-        /// mid-mutation.</para>
-        ///
-        /// <para>No tracker bound (e.g. main menu, between scene loads)
-        /// simply produces nothing this tick - see
-        /// <see cref="SilenceTrackerSink"/>'s own doc comment for why a
-        /// quickload/revert cannot leave this pointing at stale state.</para>
-        /// </summary>
-        internal object? CaptureSilenceOnMain(KspSnapshot? snapshot)
-        {
-            var tracker = SilenceTrackerSink.Current;
-            if (tracker == null)
-            {
-                SilenceTrace.NoTracker();
-                return null;
-            }
-
-            var all = FlightGlobals.Vessels;
-            if (all == null)
-            {
-                return null;
-            }
-
-            var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();
-            var config = CommsCoreUplink.SignalDelayConfig;
-            var present = new List<SilenceSample>(all.Count);
-            foreach (var vessel in all)
-            {
-                if (vessel == null)
-                {
-                    continue;
-                }
-                var (_, connected) = FleetCommsReader.ReadVessel(vessel, config);
-                var orbit = BuildOrbitElements(vessel);
-                var landedOrSplashed = vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.SPLASHED;
-                present.Add(new SilenceSample(
-                    vessel.id.ToString(),
-                    connected,
-                    orbit,
-                    landedOrSplashed,
-                    ReferenceBodyIndexOf(vessel)));
-            }
-
-            SilenceCaptureBudget.Record(present.Count, ut);
-            SilenceTrace.Captured(present.Count, ut);
-
-            var touched = tracker.Tick(present, ut);
-            var snapshots = new List<SilenceContactSnapshot>(touched.Count);
-            foreach (var state in touched)
-            {
-                snapshots.Add(new SilenceContactSnapshot
-                {
-                    VesselId = state.VesselId,
-                    Connected = state.Connected,
-                    State = state.State,
-                    LastContactUt = state.LastContactUt,
-                    SilenceSinceUt = state.SilenceSinceUt,
-                    DeadlineUt = state.DeadlineUt,
-                    DeadlineBasis = state.DeadlineBasis,
-                    PredictedReacquisitionUt = state.PredictedReacquisitionUt,
-                });
-            }
-
-            return new SilenceCapture { Ut = ut, Vessels = snapshots };
-        }
-
-        /// <summary>
-        /// COURIER-THREAD handle: publish each touched vessel's
-        /// <c>fleet.&lt;guid&gt;.contact</c>. This channel shares the Delayed
-        /// fleet namespace but is FREEZE-EXEMPT in the engine (see
-        /// <see cref="ChannelEngine.ContactMetaSuffix"/>, which the suffix here
-        /// must match): everything it has to say is said while the vessel is
-        /// dark, so a lane frozen by that same silence would carry none of it.
-        /// </summary>
-        internal void HandleSilenceOnCourier(object? captured)
-        {
-            if (captured is not SilenceCapture cap || _orbitSource == null)
-            {
-                SilenceTrace.NotPublished(captured, _orbitSource == null);
-                return;
-            }
-            SilenceTrace.Publishing(cap.Vessels.Count);
-            foreach (var v in cap.Vessels)
-            {
-                _orbitSource.Publisher(v.VesselId + ChannelEngine.ContactMetaSuffix).Publish(
-                    FleetVesselContactBuilder.Build(v.Connected, v.State.ToString(), v.LastContactUt, v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt),
-                    cap.Ut);
-            }
-        }
-
-        /// <summary>
-        /// The FULL element set, matching <c>KspHost</c>'s <c>vessel.orbit</c>
-        /// extraction field for field.
-        ///
-        /// <para>These used to be sma/ecc/mu with the orientation and phase
-        /// zeroed, on the reasoning that the orbital-period deadline policy
-        /// read nothing else. That was true of that policy and false of the
-        /// predictor: zeroed inc/lan/argPe/meanAnomaly propagate an equatorial
-        /// orbit at an arbitrary phase, so every occultation it found would be
-        /// for a craft that is not where the game has it. A policy reading
-        /// fewer fields costs nothing; a policy reading fabricated ones is
-        /// worse than no policy.</para>
-        /// </summary>
-        private static OrbitElements? BuildOrbitElements(Vessel vessel)
-        {
-            var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
-            if (orbit == null || orbit.referenceBody == null)
-            {
-                return null;
-            }
-            return OrbitElements.FromKspDegrees(
-                sma: orbit.semiMajorAxis,
-                ecc: orbit.eccentricity,
-                incDegrees: orbit.inclination,
-                lanDegrees: orbit.LAN,
-                argPeDegrees: orbit.argumentOfPeriapsis,
-                meanAnomalyAtEpochRadians: orbit.meanAnomalyAtEpoch,
-                epoch: orbit.epoch,
-                mu: orbit.referenceBody.gravParameter);
-        }
-
-        /// <summary>
-        /// Index into <c>FlightGlobals.Bodies</c> of the body the vessel's
-        /// elements are relative to. The elements alone do not say, and a
-        /// predictor cannot choose an occluder without it.
-        /// </summary>
-        private static int? ReferenceBodyIndexOf(Vessel vessel)
-        {
-            var body = vessel.orbitDriver != null && vessel.orbitDriver.orbit != null
-                ? vessel.orbitDriver.orbit.referenceBody
-                : null;
-            if (body == null)
-            {
-                return null;
-            }
-            var index = FlightGlobals.Bodies.IndexOf(body);
-            return index >= 0 ? index : (int?)null;
         }
 
         private sealed class FleetCapture
@@ -306,30 +165,7 @@ namespace Gonogo.KSP
             public double? OneWaySeconds { get; set; }
             public bool Connected { get; set; }
             public object? Orbit { get; set; }
-        }
-
-        private sealed class SilenceCapture
-        {
-            public double Ut { get; set; }
-            public List<SilenceContactSnapshot> Vessels { get; set; } = new List<SilenceContactSnapshot>();
-        }
-
-        /// <summary>
-        /// Cross-thread-safe snapshot of one vessel's <see cref="SilenceTracker"/>
-        /// state for this tick; see <see cref="CaptureSilenceOnMain"/>'s doc
-        /// comment for why this is not the tracker's own
-        /// <see cref="VesselContactState"/>.
-        /// </summary>
-        private sealed class SilenceContactSnapshot
-        {
-            public string VesselId { get; set; } = string.Empty;
-            public bool Connected { get; set; }
-            public SilenceState State { get; set; }
             public double? LastContactUt { get; set; }
-            public double? SilenceSinceUt { get; set; }
-            public double? DeadlineUt { get; set; }
-            public string? DeadlineBasis { get; set; }
-            public double? PredictedReacquisitionUt { get; set; }
         }
     }
 }

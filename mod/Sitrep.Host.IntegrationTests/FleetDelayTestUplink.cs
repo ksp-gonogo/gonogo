@@ -19,6 +19,7 @@ namespace Sitrep.Host.IntegrationTests
         public const string Prefix = ChannelEngine.FleetNodePrefix;
 
         private IDynamicChannelSource? _orbitSource;
+        private IDynamicChannelSource? _silenceSource;
         private IUplinkHost? _host;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -32,6 +33,18 @@ namespace Sitrep.Host.IntegrationTests
         {
             _host = host;
             _orbitSource = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
+            {
+                Delivery = Delivery.LossyLatest,
+                Delay = DelayRole.Delayed,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            });
+            // Mirrors the production split (Gonogo.KSP.FleetChannels owns
+            // fleet.<id>.contact for core connected/lastContactUt; a
+            // comms-owned publisher owns silence.<id>.state for the
+            // SilenceTracker's reckoning): a DISJOINT prefix, same as
+            // ChannelEngine.CurrencyEventPrefix, that NodeForTopic still maps
+            // back onto this vessel's own fleet.<id> node.
+            _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
             {
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
@@ -88,7 +101,18 @@ namespace Sitrep.Host.IntegrationTests
                     new Dictionary<string, object?>
                     {
                         ["connected"] = connected,
-                        ["state"] = connected ? "InContact" : "Silent",
+                        ["lastContactUt"] = connected ? cap.Ut : (double?)null,
+                    },
+                    cap.Ut);
+                // The SilenceTracker's reckoning, comms-owned in production:
+                // published under the disjoint silence.<id> namespace so it can
+                // carry its own availability, but freeze-exempt for the same
+                // reason as fleet.<id>.contact above -- everything it says is
+                // said while the vessel is dark.
+                _silenceSource?.Publisher(id + ".state").Publish(
+                    new Dictionary<string, object?>
+                    {
+                        ["state"] = connected ? "Nominal" : "Silent",
                     },
                     cap.Ut);
                 // Plan 2c: mirror the production FleetVesselLinkBuilder.Build dict

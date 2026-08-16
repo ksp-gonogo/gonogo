@@ -381,8 +381,11 @@ export interface FleetVesselLink
 export interface FleetVesselContact
 {
 	connected: boolean;
-	state: string;
 	lastContactUt?: Value<"s">;
+}
+export interface FleetVesselSilence
+{
+	state: string;
 	silenceSinceUt?: Value<"s">;
 	deadlineUt?: Value<"s">;
 	deadlineBasis?: string;

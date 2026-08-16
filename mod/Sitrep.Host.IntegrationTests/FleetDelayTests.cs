@@ -27,6 +27,8 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("system.vessels", "system")]             // system topics unchanged
         [InlineData("comms.delay", "system")]
         [InlineData("fleet.abc-123", "system")]              // no field segment -> not a per-vessel topic
+        [InlineData("silence.abc-123.state", "fleet.abc-123")] // comms-owned reckoning shares the vessel's node
+        [InlineData("silence.abc-123", "system")]              // no field segment -> not a per-vessel topic
         public void NodeForTopicRoutesFleetTopicsToPerVesselNodes(string topic, string expectedNode)
         {
             Assert.Equal(expectedNode, ChannelEngine.NodeForTopic(topic));
@@ -241,8 +243,10 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 var contactTopic = "fleet.q" + ChannelEngine.ContactMetaSuffix;
+                var silenceTopic = "silence.q.state";
                 await SubscribeAsync(client, "fleet.q.orbit", Timeout);
                 await SubscribeAsync(client, contactTopic, Timeout);
+                await SubscribeAsync(client, silenceTopic, Timeout);
 
                 // q is 3 light-seconds out while its link is up.
                 engine.TickAndWait(0.0, ContactFixture(0.0, connected: true), Timeout);
@@ -261,6 +265,7 @@ namespace Sitrep.Host.IntegrationTests
                 // nothing from the blackout has surfaced. KSC cannot learn of the
                 // silence ahead of the light that carries the evidence for it.
                 Assert.DoesNotContain(duringOutage, f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0);
+                Assert.DoesNotContain(duringOutage, f => f.Topic == silenceTopic && f.Meta.ValidAt >= 2.0);
 
                 // Reconnect at UT 5: the point at which that subject's in-blackout
                 // backlog is dropped, and at which the UT-2 report's horizon is
@@ -275,6 +280,9 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Contains(
                     afterHorizon,
                     f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
+                Assert.Contains(
+                    afterHorizon,
+                    f => f.Topic == silenceTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
                 // Surgical, not blanket: the SAME vessel's ordinary telemetry over
                 // the SAME window is still frozen and dropped, in both phases.
                 Assert.DoesNotContain(

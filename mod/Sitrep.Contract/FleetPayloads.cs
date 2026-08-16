@@ -36,22 +36,22 @@ public class FleetVesselLink
 }
 
 /// <summary>
-/// The officially-lost determination on <c>fleet.&lt;guid&gt;.contact</c>:
-/// whether a vessel is currently in contact, and (when it isn't) how long
-/// its silence has run and when it becomes eligible to be declared lost. The
-/// core mechanism, decoupled from any currency concern, lives in the pure
-/// <c>Sitrep.Host.Comms.SilenceTracker</c>; this is its wire shape (see
-/// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>).
+/// The CORE per-vessel contact facts on <c>fleet.&lt;guid&gt;.contact</c>:
+/// whether the vessel is currently in contact, and when it was last heard
+/// from. With CommNet disabled this is trivially <c>Connected: true</c>
+/// always; with it enabled the value is the same live network-presence read
+/// <c>fleet.&lt;guid&gt;.delay</c> already carries. No modelling, no
+/// deadlines, no opinion about whether the vessel is "lost": that reckoning
+/// is a comms-derived judgement, not a fact stock KSP hands you, and lives
+/// on the separate <see cref="FleetVesselSilence"/> wire type instead (see
+/// its own doc comment for why the two are split).
 ///
 /// <para>Rides the same Delayed <c>fleet.</c> namespace as
 /// <see cref="FleetVesselLink"/>/<c>fleet.&lt;guid&gt;.orbit</c>, so the
 /// value itself arrives light-time-late, honest for the same reason those
-/// do.</para>
-///
-/// <para>Deliberately narrow for this pass: <c>declaredLostUt</c> and the
-/// monotonic <c>lostSeq</c> a future currency consumer needs for idempotent
-/// arming stay off the wire until that consumer exists, see the design
-/// doc's scope note. Nothing here is a control input.</para>
+/// do. Freeze-exempt (<c>ChannelEngine.ContactMetaSuffix</c>): the disconnect
+/// edge has to escape the reveal-gate freeze or "NO SIGNAL" could never
+/// fire, the same reasoning as <c>comms.link</c>.</para>
 /// </summary>
 [SitrepContract]
 #if NETSTANDARD2_0
@@ -63,13 +63,42 @@ public class FleetVesselContact
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
 
-    /// <summary>One of <c>Nominal</c> / <c>Silent</c> / <c>Lost</c> (<c>Sitrep.Host.Comms.SilenceState</c>).</summary>
-    [SitrepUnit(Units.Enumeration)]
-    public string State { get; set; } = "Nominal";
-
     /// <summary>UT of the last sample that observed contact. Null before the first-ever contact.</summary>
     [SitrepUnit(Units.Seconds)]
     public double? LastContactUt { get; set; }
+}
+
+/// <summary>
+/// The COMMS-OWNED officially-lost reckoning on <c>silence.&lt;guid&gt;.state</c>:
+/// how long a vessel's silence has run and when it becomes eligible to be
+/// declared lost. This is a MODEL's opinion, not a fact: it exists only
+/// because something (the pure <c>Sitrep.Host.Comms.SilenceTracker</c>) is
+/// watching occultation geometry and deciding a craft is overdue, which is
+/// why it is registered from the comms uplink rather than riding the
+/// always-on core <see cref="FleetVesselContact"/> (see
+/// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>).
+///
+/// <para>A disjoint dynamic namespace (<c>ChannelEngine.SilenceEventPrefix</c>)
+/// that maps back onto the same per-vessel <c>fleet.&lt;guid&gt;</c> Courier
+/// node <see cref="FleetVesselContact"/> uses, so the reveal/freeze/delay
+/// treatment for a vessel's telemetry and its silence reckoning stay
+/// identical, freeze-exempt for the same reason
+/// <see cref="FleetVesselContact"/> is.</para>
+///
+/// <para>Deliberately narrow for this pass: <c>declaredLostUt</c> and the
+/// monotonic <c>lostSeq</c> a future currency consumer needs for idempotent
+/// arming stay off the wire until that consumer exists, see the design
+/// doc's scope note. Nothing here is a control input.</para>
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class FleetVesselSilence
+{
+    /// <summary>One of <c>Nominal</c> / <c>Silent</c> / <c>Lost</c> (<c>Sitrep.Host.Comms.SilenceState</c>).</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string State { get; set; } = "Nominal";
 
     /// <summary>UT the current silence run began. Null while Nominal.</summary>
     [SitrepUnit(Units.Seconds)]

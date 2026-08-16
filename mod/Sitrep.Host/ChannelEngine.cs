@@ -110,19 +110,45 @@ namespace Sitrep.Host
         public const string CurrencyEventPrefix = "currency.";
 
         /// <summary>
+        /// Source-attributed comms-silence namespace: a "silence.&lt;guid&gt;.&lt;field&gt;"
+        /// topic records under the SAME per-vessel node "fleet.&lt;guid&gt;" that
+        /// vessel's telemetry uses, same mapping <see cref="CurrencyEventPrefix"/>
+        /// gets and for the same reason: the mod-side <c>SilenceTracker</c>'s
+        /// reckoning of a vessel (is it in contact, how long has it been dark, when
+        /// is it declared lost) is a COMMS-owned opinion about that vessel, not core
+        /// fleet telemetry, so it is registered from the comms uplink's own
+        /// <c>Register</c> rather than the always-on fleet dynamic namespace.
+        ///
+        /// <para>A DISJOINT prefix rather than publishing under
+        /// <see cref="FleetNodePrefix"/> directly, for the same reason
+        /// <see cref="CurrencyEventPrefix"/> is disjoint:
+        /// <see cref="RegisterDynamicNamespace"/> is last-registration-wins per
+        /// prefix, and re-registering "fleet." here would clobber the fleet
+        /// capture's own template/ownership. Same node, own namespace.</para>
+        /// </summary>
+        public const string SilenceEventPrefix = "silence.";
+
+        /// <summary>
         /// Resolves the Courier node a topic records/subscribes under. A
         /// per-vessel "fleet.&lt;guid&gt;.&lt;field&gt;" topic maps to its own node
         /// "fleet.&lt;guid&gt;", and a source-attributed
-        /// "currency.&lt;guid&gt;.&lt;currency&gt;" event maps to that same per-vessel
-        /// node (see <see cref="CurrencyEventPrefix"/>); everything else stays on the
-        /// single <see cref="NodeId"/>. This is the ONLY seam that makes the node axis
-        /// per-vessel (Plan 2) -- the Courier/Archive already key by opaque node.
+        /// "currency.&lt;guid&gt;.&lt;currency&gt;" or "silence.&lt;guid&gt;.&lt;field&gt;"
+        /// event maps to that same per-vessel node (see
+        /// <see cref="CurrencyEventPrefix"/>/<see cref="SilenceEventPrefix"/>);
+        /// everything else stays on the single <see cref="NodeId"/>. This is the
+        /// ONLY seam that makes the node axis per-vessel (Plan 2) -- the
+        /// Courier/Archive already key by opaque node.
         /// </summary>
         internal static string NodeForTopic(string topic)
         {
             if (topic.StartsWith(CurrencyEventPrefix, StringComparison.Ordinal))
             {
                 var guid = GuidSegment(topic, CurrencyEventPrefix.Length);
+                return guid == null ? NodeId : FleetNodePrefix + guid;
+            }
+            if (topic.StartsWith(SilenceEventPrefix, StringComparison.Ordinal))
+            {
+                var guid = GuidSegment(topic, SilenceEventPrefix.Length);
                 return guid == null ? NodeId : FleetNodePrefix + guid;
             }
             if (!topic.StartsWith(FleetNodePrefix, StringComparison.Ordinal))
@@ -236,25 +262,31 @@ namespace Sitrep.Host
         internal const string ConnectivityMetaTopic = "comms.link";
 
         // The per-vessel contact MetaTopic suffix: "fleet.<guid>.contact" carries
-        // the SilenceTracker's view of ONE vessel (link state, when it went
-        // quiet, its officially-lost deadline, whether it has been declared
-        // Lost). Public, like FleetNodePrefix and for the same reason: the
-        // publishing uplink composes the topic from it, so there is one literal
-        // rather than two that must agree.
+        // the core connected/lastContactUt facts for ONE vessel. Public, like
+        // FleetNodePrefix and for the same reason: the publishing uplink
+        // composes the topic from it, so there is one literal rather than two
+        // that must agree.
         public const string ContactMetaSuffix = ".contact";
+
+        // The comms-owned per-vessel silence-reckoning MetaTopic suffix:
+        // "silence.<guid>.state" carries the SilenceTracker's view of ONE
+        // vessel (link state, when it went quiet, its officially-lost
+        // deadline, whether it has been declared Lost). Same freeze-exempt
+        // treatment as ContactMetaSuffix and for the same reason.
+        public const string SilenceStateSuffix = ".state";
 
         /// <summary>
         /// Whether <paramref name="topic"/> escapes the freeze-on-disconnect
-        /// gate. Both exempt shapes REPORT the blackout, so neither can be
+        /// gate. All three exempt shapes REPORT the blackout, so none can be
         /// subject to it: <see cref="ConnectivityMetaTopic"/> for the active
-        /// vessel's link, and a per-vessel contact channel
-        /// (<see cref="ContactMetaSuffix"/>) for a fleet subject's. Publishing a
-        /// "gone quiet at UT, presumed lost by UT" report down a lane frozen by
-        /// the very silence it describes buries it: every in-blackout sample
-        /// takes an infinite reveal horizon and is then dropped by
-        /// <see cref="DropInBlackoutBacklog"/> on reconnect, so the operator is
-        /// told nothing at all about the craft that went dark, the exact
-        /// opposite of the feature's point.
+        /// vessel's link, and the per-vessel contact/silence channels
+        /// (<see cref="ContactMetaSuffix"/>/<see cref="SilenceStateSuffix"/>) for
+        /// a fleet subject's. Publishing a "gone quiet at UT, presumed lost by
+        /// UT" report down a lane frozen by the very silence it describes
+        /// buries it: every in-blackout sample takes an infinite reveal horizon
+        /// and is then dropped by <see cref="DropInBlackoutBacklog"/> on
+        /// reconnect, so the operator is told nothing at all about the craft
+        /// that went dark, the exact opposite of the feature's point.
         ///
         /// <para>Deliberately ONE field of a fleet subject, not the namespace:
         /// that vessel's ordinary telemetry (.orbit, .delay) must keep freezing
@@ -264,7 +296,8 @@ namespace Sitrep.Host
         /// </summary>
         private static bool IsFreezeExempt(string topic) =>
             topic == ConnectivityMetaTopic
-            || (topic.EndsWith(ContactMetaSuffix, StringComparison.Ordinal)
+            || ((topic.EndsWith(ContactMetaSuffix, StringComparison.Ordinal)
+                    || topic.EndsWith(SilenceStateSuffix, StringComparison.Ordinal))
                 && NodeForTopic(topic).StartsWith(FleetNodePrefix, StringComparison.Ordinal));
 
         // The built-in uplink-health-self-report channel (see

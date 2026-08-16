@@ -307,6 +307,7 @@ namespace Sitrep.Contract
         /// has been: a re-freeze from HEAD takes in whatever unrelated drift
         /// happens to be standing in the contract at the time, and the whole point
         /// of the ledger is that a Major cannot rewrite what it inherited.</para>
+        ///
         /// </remarks>
         public const int Major = 12;
 
@@ -859,7 +860,30 @@ namespace Sitrep.Contract
         /// vessel-to-KSC link distinguishable from a relay-mediated one, and a
         /// station-to-station handoff distinguishable from a single station at a
         /// changed range, off <c>comms.path</c> alone.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 12 -&gt; 13: comms/fleet contact
+        /// ownership split.</b> <see cref="FleetVesselContact"/> loses
+        /// <c>State</c>/<c>SilenceSinceUt</c>/<c>DeadlineUt</c>/<c>DeadlineBasis</c>/
+        /// <c>PredictedReacquisitionUt</c>, narrowing to <c>Connected</c>/
+        /// <c>LastContactUt</c>: ordinary KSP network-presence fact, unconditional
+        /// whether or not any comms backend is elected. Those five removed fields
+        /// are the SilenceTracker's officially-lost reckoning, a comms-derived
+        /// model's opinion rather than a fact stock KSP hands you; they move to a
+        /// brand-new <see cref="FleetVesselSilence"/> type on a brand-new
+        /// <c>silence.&lt;guid&gt;.state</c> dynamic-namespace topic, registered
+        /// from the comms uplink instead of the always-on core fleet
+        /// namespace.</para>
+        ///
+        /// <para>Deliberately NOT a Major bump, the same shape as the Major-12
+        /// line's "Bumped 8 -&gt; 9" pilot above: <see cref="Major"/>'s own frozen
+        /// ledger floor never included <see cref="FleetVesselContact"/> at all
+        /// (it was added afterward, purely additively, as the Minor 10-&gt;11
+        /// bump above), so narrowing it now removes nothing the floor ever
+        /// promised: the ledger's own <c>ComputeRemovals</c> against that floor
+        /// is empty, and <c>ContractShapeGateTests.EveryMajorBumpDeclaresExactlyWhatItBroke</c>
+        /// refuses a Major that breaks nothing, on purpose. See
+        /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>.</para>
         /// </remarks>
-        public const int Minor = 12;
+        public const int Minor = 13;
     }
 }

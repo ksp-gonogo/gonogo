@@ -164,6 +164,16 @@
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
     <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
     <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
+    <!-- FleetSilenceChannels.cs is CommsCoreUplink.Register's direct dependency
+         (comms registers the SilenceTracker's reckoning when elected, see that
+         call site), so it has to resolve here too. It walks FlightGlobals.Vessels
+         live, the same live-scene dependency as CommNetBackend.cs above, so it
+         gets the same gating. -->
+    <Compile Include="..\Gonogo.KSP\SilenceTracking\FleetSilenceChannels.cs" />
+    <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceGeometrySink.cs" />
+    <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrace.cs" />
+    <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrackerSink.cs" />
+    <Compile Include="..\Gonogo.KSP\FleetVesselSilenceBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\KspCommandCentre.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
     <Compile Include="CommandCentres\**\*.cs" />

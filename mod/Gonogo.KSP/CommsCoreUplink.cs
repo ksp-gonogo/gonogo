@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
 
@@ -171,13 +172,6 @@ namespace Gonogo.KSP
             CommsElection.RegisterCapability(kernel, _ => new CommNetBackend());
         }
 
-        /// <summary>
-        /// Installed by <c>GonogoAddon</c> before registration, invoked during
-        /// <see cref="Register"/> so the fleet namespace is owned by this
-        /// uplink. See the call site for why it is a hook.
-        /// </summary>
-        internal static Action<IUplinkHost>? FleetRegistration;
-
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
@@ -222,19 +216,13 @@ namespace Gonogo.KSP
             // IUplinkHost.SetConnectivitySource.
             host.SetConnectivitySource(ComputeConnectedOnMain);
 
-            // The fleet.<guid>.* namespace: the same delay and contact facts
-            // as the channels above, seen across every craft instead of the
-            // active one, plus the orbit they are dead-reckoned against.
-            // Registered HERE, on this uplink's pass, so the engine attributes
-            // those channels to comms rather than to an uplink of its own -
-            // see FleetChannels for why that separation was wrong.
-            //
-            // Reached through a hook rather than a direct reference because
-            // FleetChannels touches KspHost and the whole SilenceTracking
-            // folder, and Gonogo.KSP.Tests compiles THIS file (for the delay
-            // and connectivity computations below) while deliberately
-            // cherry-picking only KSP-free sources. GonogoAddon installs it.
-            FleetRegistration?.Invoke(host);
+            // The silence.<guid>.* namespace: the SilenceTracker's officially-
+            // lost reckoning for every fleet vessel. Registered HERE, on this
+            // uplink's pass, so the engine attributes those channels to comms:
+            // it is a comms-derived model's opinion, not core fleet telemetry
+            // (which registers unconditionally via Gonogo.KSP.FleetChannels,
+            // see that class's doc comment for the full split).
+            new FleetSilenceChannels().RegisterInto(host);
         }
 
         /// <summary>
