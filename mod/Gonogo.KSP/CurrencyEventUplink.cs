@@ -452,7 +452,7 @@ namespace Gonogo.KSP
         /// event is recorded, so the reveal delay is the source's own rather than the
         /// whole-network default.
         ///
-        /// <para><see cref="FleetDelayUplink"/> normally arms every vessel node each
+        /// <para><see cref="FleetChannels"/> normally arms every vessel node each
         /// capture tick, but that capture is subscription-gated on the <c>fleet.</c>
         /// prefix and can be idle when a client subscribes only a <c>currency.</c>
         /// topic. Arming it here makes the event self-contained.</para>

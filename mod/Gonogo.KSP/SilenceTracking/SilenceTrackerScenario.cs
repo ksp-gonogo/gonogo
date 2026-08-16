@@ -7,7 +7,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// <summary>
     /// Owns the one <see cref="SilenceTracker"/> for the current save,
     /// persists it through <c>OnSave</c>/<c>OnLoad</c>, and binds it onto
-    /// <see cref="SilenceTrackerSink"/> so <see cref="FleetDelayUplink"/>'s
+    /// <see cref="SilenceTrackerSink"/> so <see cref="FleetChannels"/>'s
     /// process-lifetime capture can reach the CURRENT save's instance
     /// without itself surviving a reload. Same shape as
     /// <c>CurrencyDelay.CurrencyDelayScenario</c>: a fresh tracker is built

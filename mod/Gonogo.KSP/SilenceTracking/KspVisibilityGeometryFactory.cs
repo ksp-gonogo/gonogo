@@ -65,26 +65,23 @@ namespace Gonogo.KSP.SilenceTracking
         {
             if (sample.Orbit == null || sample.ReferenceBodyIndex == null)
             {
+                SilenceTrace.NoGeometry("no orbit or no reference body index");
                 return null;
             }
 
             var bodies = FlightGlobals.Bodies;
             if (bodies == null || sample.ReferenceBodyIndex.Value < 0 || sample.ReferenceBodyIndex.Value >= bodies.Count)
             {
+                SilenceTrace.NoGeometry("reference body index out of range");
                 return null;
             }
 
             var parentBody = bodies[sample.ReferenceBodyIndex.Value];
-            var home = NearestHome(parentBody);
-            if (home == null)
+            CelestialBody stationBody;
+            var comm = NearestHomeNode(parentBody, bodies, out stationBody);
+            if (comm == null || stationBody == null)
             {
-                return null;
-            }
-
-            var stationBody = CommNetHomeAccess.Body(home);
-            var comm = CommNetHomeAccess.Comm(home);
-            if (stationBody == null || comm == null)
-            {
+                SilenceTrace.NoGeometry("no home node in the live CommNet");
                 return null;
             }
 
@@ -99,6 +96,8 @@ namespace Gonogo.KSP.SilenceTracking
             {
                 if (parentBody.orbit == null || parentBody.orbit.referenceBody != stationBody)
                 {
+                    SilenceTrace.NoGeometry("chain deeper than one link: vessel at "
+                        + parentBody.bodyName + ", station at " + stationBody.bodyName);
                     return null;
                 }
                 parentOrbit = ElementsOf(parentBody.orbit);
@@ -107,6 +106,7 @@ namespace Gonogo.KSP.SilenceTracking
             var station = StationOn(stationBody, comm, ut);
             if (station == null)
             {
+                SilenceTrace.NoGeometry("station body has no radius or no spin");
                 return null;
             }
 
@@ -122,36 +122,121 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         /// <summary>
-        /// The station whose body is closest to the vessel in the chain: one on
-        /// the vessel's own parent if there is one, otherwise any. Deliberately
-        /// not "the station the route actually uses" — that is the elected
-        /// backend's business and changes hop by hop, while an occultation
-        /// prediction only needs a representative endpoint on the right body.
+        /// A ground station to predict against: one on the vessel's own parent
+        /// body if there is one, otherwise any. Deliberately not "the station
+        /// the route actually uses" — that is the elected backend's business
+        /// and changes hop by hop, while an occultation prediction only needs a
+        /// representative endpoint on the right body.
+        ///
+        /// <para>Reads the LIVE CommNet graph rather than
+        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c>. Under RealAntennas
+        /// that scene search returns nothing at all — which is exactly how this
+        /// silently produced no prediction for every vessel — while the network
+        /// it actually routes over is full of home nodes; <c>comms.path</c> was
+        /// reporting hops to "Crater Rim Station" the whole time. Home nodes
+        /// carry their own <c>precisePosition</c>, so the CommNetHome
+        /// MonoBehaviour was never needed for this.</para>
         /// </summary>
-        private CommNetHome NearestHome(CelestialBody parentBody)
+        private CommNode NearestHomeNode(
+            CelestialBody parentBody,
+            IList<CelestialBody> bodies,
+            out CelestialBody stationBody)
         {
-            CommNetHome fallback = null;
-            foreach (var home in _homes())
+            stationBody = null;
+            CommNode fallback = null;
+            CelestialBody fallbackBody = null;
+
+            foreach (var node in HomeNodes())
             {
-                if (home == null || CommNetHomeAccess.Comm(home) == null)
-                {
-                    continue;
-                }
-                var body = CommNetHomeAccess.Body(home);
+                var body = BodyUnder(node.precisePosition, bodies);
                 if (body == null)
                 {
                     continue;
                 }
                 if (body == parentBody)
                 {
-                    return home;
+                    stationBody = body;
+                    return node;
                 }
-                if (fallback == null || home.isKSC)
+                if (fallback == null)
                 {
-                    fallback = home;
+                    fallback = node;
+                    fallbackBody = body;
                 }
             }
+
+            stationBody = fallbackBody;
             return fallback;
+        }
+
+        /// <summary>
+        /// Home nodes, from the LIVE routed control path first and the
+        /// <see cref="CommNetHome"/> scene objects second.
+        ///
+        /// <para>The scene search alone was the bug: under RealAntennas
+        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> returns nothing, so
+        /// every vessel silently got no prediction, while <c>comms.path</c>
+        /// was reporting hops to "Crater Rim Station" the whole time. The
+        /// control path is the read the comms backend already makes
+        /// successfully on this install, and its links carry home
+        /// <see cref="CommNode"/>s with their own <c>precisePosition</c>, which
+        /// is all the geometry needs.</para>
+        ///
+        /// <para>The path yields the stations the ACTIVE vessel routes
+        /// through, not every station in the game. For an occultation
+        /// prediction that is enough — a representative endpoint on the right
+        /// body is what the geometry wants — but it is a real limit: a silent
+        /// vessel at a body the active craft never talks to gets no
+        /// prediction, and falls back to the orbital-period deadline.</para>
+        /// </summary>
+        private IEnumerable<CommNode> HomeNodes()
+        {
+            var active = FlightGlobals.ActiveVessel;
+            var path = active != null && active.connection != null ? active.connection.ControlPath : null;
+            if (path != null)
+            {
+                foreach (var link in path)
+                {
+                    if (link == null) continue;
+                    if (link.a != null && link.a.isHome) yield return link.a;
+                    if (link.b != null && link.b.isHome) yield return link.b;
+                }
+            }
+
+            foreach (var home in _homes())
+            {
+                var comm = home != null ? CommNetHomeAccess.Comm(home) : null;
+                if (comm != null)
+                {
+                    yield return comm;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Which body a home node sits on, by smallest altitude above the
+        /// surface. A home node knows its world position but not its body, and
+        /// the answer is unambiguous: stations sit ON a surface, so the body
+        /// whose surface they are nearest is the one they are on.
+        /// </summary>
+        private static CelestialBody BodyUnder(Vector3d worldPosition, IList<CelestialBody> bodies)
+        {
+            CelestialBody best = null;
+            var bestAltitude = double.MaxValue;
+            foreach (var body in bodies)
+            {
+                if (body == null || !(body.Radius > 0.0))
+                {
+                    continue;
+                }
+                var altitude = Math.Abs((worldPosition - body.position).magnitude - body.Radius);
+                if (altitude < bestAltitude)
+                {
+                    bestAltitude = altitude;
+                    best = body;
+                }
+            }
+            return best;
         }
 
         /// <summary>
@@ -206,7 +291,13 @@ namespace Gonogo.KSP.SilenceTracking
 
             var live = (vessel.orbitDriver.orbit.getPositionAtUT(ut) - comm.precisePosition).magnitude;
             var predicted = geometry.SeparationAt(ut);
-            return Math.Abs(live - predicted) <= FrameCheckToleranceMeters;
+            var residual = Math.Abs(live - predicted);
+            if (residual > FrameCheckToleranceMeters)
+            {
+                SilenceTrace.FrameCheckFailed(live, predicted, residual);
+                return false;
+            }
+            return true;
         }
 
         private static Vessel FindVessel(string vesselId)

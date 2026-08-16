@@ -9,8 +9,8 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// Fleet delay uplink (Plan 2): registers the <c>fleet.&lt;guid&gt;.*</c>
-    /// dynamic namespace and, each fleet-capture tick, reads every
+    /// The <c>fleet.&lt;guid&gt;.*</c> dynamic namespace: each fleet-capture
+    /// tick, reads every
     /// <c>FlightGlobals.Vessels</c> vessel's OWN routed light-time
     /// (<see cref="FleetCommsReader"/>) + orbit, sets the per-vessel node delay
     /// via <see cref="IUplinkHost.SetVesselDelay"/>, and emits the orbit on
@@ -34,9 +34,22 @@ namespace Gonogo.KSP
     /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c> and
     /// <see cref="CurrencyEventUplink.ArmSourceNode"/>'s own doc comment both
     /// warn about. See <see cref="CaptureSilenceOnMain"/>.</para>
+    ///
+    /// <para><b>Not an Uplink of its own, deliberately.</b> An Uplink owns a
+    /// Domain and earns an Availability by being separately installable;
+    /// <c>fleet</c> is neither. It is a SCOPE — the same comms and vessel
+    /// domains seen across every craft instead of the active one — and it
+    /// ships inside <c>Gonogo.dll</c> alongside
+    /// <see cref="CommsCoreUplink"/>, so "comms present, fleet absent" is not
+    /// a state a player can reach. It was an Uplink once, with an empty
+    /// Channels list and its own registration path, and the only thing that
+    /// separation ever did was fail: it carried no [SitrepUplink] attribute,
+    /// so discovery skipped it and the entire namespace was silently missing.
+    /// <see cref="CommsCoreUplink"/> now owns it, which is also where the
+    /// delay and connectivity authority these channels mirror already
+    /// lives.</para>
     /// </summary>
-    [SitrepUplink("fleet-delay")]
-    public sealed class FleetDelayUplink : ISitrepUplink
+    public sealed class FleetChannels
     {
         /// <summary>
         /// Soft cap on the always-run silence capture, sized generously above
@@ -51,14 +64,12 @@ namespace Gonogo.KSP
         private IDynamicChannelSource? _orbitSource;
         private IUplinkHost? _host;
 
-        public UplinkManifest Manifest { get; } = new UplinkManifest
-        {
-            Id = "fleet-delay",
-            Version = "1.0.0",
-            Channels = new List<ChannelDeclaration>(),
-        };
-
-        public void Register(IUplinkHost host)
+        /// <summary>
+        /// Called from <see cref="CommsCoreUplink.Register"/>, on that uplink's
+        /// registration pass, so everything here is owned by the <c>comms</c>
+        /// uplink for availability and health purposes.
+        /// </summary>
+        public void RegisterInto(IUplinkHost host)
         {
             _host = host;
             SilenceTracking.SilenceGeometrySink.Bind(host.Kernel);
@@ -282,8 +293,6 @@ namespace Gonogo.KSP
             var index = FlightGlobals.Bodies.IndexOf(body);
             return index >= 0 ? index : (int?)null;
         }
-
-        public UplinkHealth Health() => UplinkHealth.Healthy;
 
         private sealed class FleetCapture
         {

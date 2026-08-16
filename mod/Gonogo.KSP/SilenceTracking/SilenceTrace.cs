@@ -48,6 +48,38 @@ namespace Gonogo.KSP.SilenceTracking
             Debug.Log(Prefix + "publishing contact for " + vesselCount + " vessel(s)");
         }
 
+        private static string? _lastNoGeometryReason;
+        private static bool _warnedFrameCheck;
+
+        /// <summary>
+        /// Which branch of the geometry factory declined to build. Every one of
+        /// them returns null and the policy then falls back, so from outside
+        /// they are indistinguishable - and the fallback basis is the same
+        /// orbital-period answer a working predictor gives when it finds
+        /// nothing.
+        /// </summary>
+        public static void NoGeometry(string reason)
+        {
+            if (reason == _lastNoGeometryReason) return;
+            _lastNoGeometryReason = reason;
+            Debug.Log(Prefix + "no geometry built: " + reason);
+        }
+
+        /// <summary>
+        /// The frame self-check refusing to reconcile is the interesting
+        /// failure: it means the elements, the patched-conic chain or the
+        /// station's rotation phase disagree with the live scene, and the
+        /// residual says by how much.
+        /// </summary>
+        public static void FrameCheckFailed(double liveMeters, double predictedMeters, double residualMeters)
+        {
+            if (_warnedFrameCheck) return;
+            _warnedFrameCheck = true;
+            Debug.Log(Prefix + "frame self-check failed: live=" + liveMeters.ToString("F0")
+                + "m predicted=" + predictedMeters.ToString("F0")
+                + "m residual=" + residualMeters.ToString("F0") + "m");
+        }
+
         public static void NotPublished(object? captured, bool noSource)
         {
             if (_warnedNotPublished) return;

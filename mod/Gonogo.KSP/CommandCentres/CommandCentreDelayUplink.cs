@@ -76,7 +76,7 @@ namespace Gonogo.KSP.CommandCentres
         /// spends. Riding it on a topic-prefix gate, as it used to, made every
         /// one of those numbers depend on whether some browser tab happened to
         /// be subscribed to a <c>fleet.*</c> topic, i.e. a career outcome
-        /// decided by an operator's dashboard layout. <see cref="FleetDelayUplink"/>'s
+        /// decided by an operator's dashboard layout. <see cref="FleetChannels"/>'s
         /// silence capture is ungated for exactly this reason.</para>
         ///
         /// <para>The cost is real and accepted: the routed solves counted by

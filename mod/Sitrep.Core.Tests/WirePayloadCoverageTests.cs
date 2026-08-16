@@ -71,7 +71,7 @@ namespace Sitrep.Core.Tests
             // only ever sees the dictionary, never the POCO.
             "PartActions", "PartActionEntry",
             // fleet.<guid>.delay: FleetVesselLinkBuilder.Build returns a
-            // Dictionary<string, object?> and FleetDelayUplink.HandleOnCourier
+            // Dictionary<string, object?> and FleetChannels.HandleOnCourier
             // publishes that, so JsonWriter only ever sees the flattened
             // dictionary; the POCO exists for the generated TS shape only.
             "FleetVesselLink",

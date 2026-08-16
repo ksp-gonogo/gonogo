@@ -131,6 +131,10 @@ namespace Gonogo.KSP
                 // absent config = ON at real light-speed (scale 1.0).
                 CommsCoreUplink.ConfigureSignalDelay(ReadSignalDelayConfig());
                 _recordingEnabled = ReadRecordingEnabled();
+                // The fleet.<guid>.* namespace registers as part of the comms
+                // uplink (see CommsCoreUplink.FleetRegistration). Installed
+                // before discovery so it is in place when comms registers.
+                CommsCoreUplink.FleetRegistration = new FleetChannels().RegisterInto;
                 _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
 
                 // Plan 3 command centres (agent-6): the stock home-node + crewed-

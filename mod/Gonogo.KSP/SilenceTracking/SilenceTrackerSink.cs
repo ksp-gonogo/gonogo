@@ -9,7 +9,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// cleared on <c>OnDestroy</c>. Same discipline as
     /// <c>CurrencyDelay.DelayedScienceSink</c>: the pointer is rebound, never
     /// the state itself, so a quickload/revert swaps in the freshly-loaded
-    /// tracker rather than letting <see cref="FleetDelayUplink"/> (which
+    /// tracker rather than letting <see cref="FleetChannels"/> (which
     /// registers ONCE per process, not per scene/save load) carry stale
     /// silence state across a reload.
     /// </summary>

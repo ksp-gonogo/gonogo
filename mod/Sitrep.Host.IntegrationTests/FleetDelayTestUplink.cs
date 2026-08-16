@@ -5,7 +5,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// KSP-free test vehicle for the fleet-delay feature (Plan 2), mirroring the
-    /// production <c>Gonogo.KSP.FleetDelayUplink</c> the same way
+    /// production <c>Gonogo.KSP.FleetChannels</c> the same way
     /// <see cref="FreezeGateTestUplink"/> mirrors the real comms uplink. It reads
     /// the roster from <c>snapshot.Values["vessels"]</c> (a list of per-vessel
     /// dictionaries carrying <c>id</c> + an <c>orbit</c> element dict) and emits
@@ -79,7 +79,7 @@ namespace Sitrep.Host.IntegrationTests
                 _host?.SetVesselConnectivity(id, connected);
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
                 // The SilenceTracker's per-vessel contact report (mirroring the
-                // production FleetDelayUplink publisher): the ONE field under a
+                // production FleetChannels publisher): the ONE field under a
                 // fleet subject that the engine treats as freeze-exempt, because
                 // it describes the blackout rather than being telemetry through
                 // it. Published on EVERY tick, including while the vessel is

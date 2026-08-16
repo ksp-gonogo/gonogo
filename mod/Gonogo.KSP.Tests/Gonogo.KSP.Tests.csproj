@@ -29,6 +29,7 @@
        KSP/Unity types at all, so it needs no KspManaged gating either -
        same reasoning as KscLightTimeMath.cs above. -->
   <ItemGroup>
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscLightTimeMath.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\VesselScienceAggregator.cs" />
     <!-- RoutedPathDelay.cs is the light-time arithmetic behind every routed

@@ -33,114 +33,40 @@ namespace Gonogo.KSP.CurrencyDelay
     public static class KscLightTime
     {
         /// <summary>
-        /// One-way seconds from a live vessel to KSC. Prefers the routed
-        /// (CommNet ControlPath) light-time; falls back to straight-line
-        /// from the vessel's world position when no routed path exists.
-        /// Zero when the delay feature is disabled or the vessel is at/near
-        /// KSC; null when neither a routed nor straight-line delay is
-        /// computable (no KSC home node yet, or LightSpeedScale &lt;= 0).
+        /// The routed one-way light-time from a live vessel to KSC, or
+        /// <see cref="KscDelay.Unroutable"/> when no control path reaches
+        /// home. <see cref="KscDelay.Instant"/> when the delay feature is off.
+        ///
+        /// <para>There is no proto-vessel counterpart any more. A ProtoVessel
+        /// has no live CommNet connection, so the only thing that function
+        /// could ever do was measure a straight line — the exact fallback this
+        /// subsystem now refuses. Its one real caller was vessel recovery,
+        /// which is not an away event at all: <c>Vessel.IsRecoverable</c> is
+        /// <c>LandedOrSplashed &amp;&amp; mainBody.isHomeWorld</c>, so a
+        /// recovered craft is physically in KSC's hands and its funds are not
+        /// in flight anywhere.</para>
         /// </summary>
-        public static double? ForVessel(Vessel vessel, SignalDelayConfig? config)
+        public static KscDelay ForVessel(Vessel vessel, SignalDelayConfig? config)
         {
             if (vessel == null)
             {
-                return null;
+                return KscDelay.Unroutable;
             }
 
             try
             {
                 var (routedOneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
-                var subject = ToDelayPosition(vessel.GetWorldPos3D());
-                var ksc = ReadKscPosition();
-                return KscLightTimeMath.Resolve(routedOneWay, subject, ksc, config);
+                return KscLightTimeMath.Resolve(routedOneWay, config);
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] KscLightTime.ForVessel failed (treating as no delay): " + ex.Message);
-                return null;
+                // Fail toward silence: a route read that threw is not evidence
+                // of a reachable craft, so the event blocks rather than
+                // revealing on a fabricated zero.
+                Debug.LogWarning("[Gonogo] KscLightTime.ForVessel failed (treating as unroutable): " + ex.Message);
+                return KscDelay.Unroutable;
             }
         }
 
-        /// <summary>
-        /// One-way seconds from a ProtoVessel's saved body/orbit (or landed
-        /// lat/lon/alt) to KSC. Used when the vessel is not live (unloaded /
-        /// off-rails, e.g. an aggregator flush or a reveal replay running
-        /// against saved state). Straight-line only - a proto has no live
-        /// CommNet connection to route through. Zero when the delay feature
-        /// is disabled or the proto is at/near KSC; null when the position
-        /// or KSC itself can't be resolved, or LightSpeedScale &lt;= 0.
-        /// </summary>
-        public static double? ForProtoVessel(ProtoVessel protoVessel, SignalDelayConfig? config)
-        {
-            if (protoVessel == null)
-            {
-                return null;
-            }
-
-            try
-            {
-                var subject = ResolveProtoPosition(protoVessel);
-                var ksc = ReadKscPosition();
-                return KscLightTimeMath.Resolve(null, subject, ksc, config);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] KscLightTime.ForProtoVessel failed (treating as no delay): " + ex.Message);
-                return null;
-            }
-        }
-
-        private static DelayPosition? ResolveProtoPosition(ProtoVessel protoVessel)
-        {
-            var bodyIndex = protoVessel.orbitSnapShot?.ReferenceBodyIndex;
-            if (!bodyIndex.HasValue || FlightGlobals.Bodies == null
-                || bodyIndex.Value < 0 || bodyIndex.Value >= FlightGlobals.Bodies.Count)
-            {
-                return null;
-            }
-
-            var body = FlightGlobals.Bodies[bodyIndex.Value];
-            if (body == null)
-            {
-                return null;
-            }
-
-            if (protoVessel.landed || protoVessel.splashed)
-            {
-                return ToDelayPosition(body.GetWorldSurfacePosition(
-                    protoVessel.latitude, protoVessel.longitude, protoVessel.altitude));
-            }
-
-            // getPositionAtUT already returns an absolute world position (not
-            // body-relative) - see KspHost.PredictImpact's identical usage,
-            // which feeds it straight into CelestialBody.GetAltitude/
-            // GetLatitude/GetLongitude, all of which expect world space.
-            var orbit = protoVessel.orbitSnapShot?.Load();
-            if (orbit == null)
-            {
-                return null;
-            }
-            return ToDelayPosition(orbit.getPositionAtUT(Planetarium.GetUniversalTime()));
-        }
-
-        /// <summary>
-        /// The KSC ground-station position, reusing StockHomeNodeSource (the
-        /// same enumerator CommandCentreDelayUplink's roster uses) rather
-        /// than re-deriving CommNetHome access. Null very early in a scene
-        /// load, before any home node exists.
-        /// </summary>
-        private static DelayPosition? ReadKscPosition()
-        {
-            foreach (var centre in new StockHomeNodeSource().Enumerate())
-            {
-                if (centre.Id == "ksc" && centre is KspCommandCentre ksp)
-                {
-                    return ToDelayPosition(ksp.Position);
-                }
-            }
-            return null;
-        }
-
-        private static DelayPosition ToDelayPosition(Vector3d v) => new DelayPosition(v.x, v.y, v.z);
     }
 }

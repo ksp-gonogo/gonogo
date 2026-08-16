@@ -1,157 +1,124 @@
+using System;
 using Gonogo.KSP.CurrencyDelay;
 using Sitrep.Host.Comms;
 using Xunit;
 
-public class KscLightTimeTests
+namespace Gonogo.KSP.Tests.CurrencyDelay
 {
-    private static SignalDelayConfig Config(double lightSpeedScale) =>
-        new SignalDelayConfig { Enabled = true, LightSpeedScale = lightSpeedScale };
-
-    [Fact]
-    public void DistanceMeters_computes_straight_line_euclidean_distance()
+    /// <summary>
+    /// The rule these pin: a currency event is delayed by exactly ONE number,
+    /// the one-way light-time of a live control path whose last hop is home
+    /// (<c>local_docs/design/2026-08-15-unroutable-currency-consensus.md</c>).
+    ///
+    /// <para>This file used to test the opposite. It had cases named
+    /// <c>Resolve_falls_back_to_straight_line_when_no_routed_delay_is_available</c>
+    /// and a family of <c>FromDistance</c> tests, all asserting that a chord
+    /// from the craft to KSC divided by <c>c</c> was an acceptable delay. It is
+    /// not one: a chord passes through whatever the craft is hiding behind, so
+    /// it quoted a confident, timed delay for a craft nothing could reach and
+    /// science from the far side of the system was credited as though it had
+    /// arrived. Those tests are gone with the code they protected.</para>
+    /// </summary>
+    public class KscLightTimeTests
     {
-        var a = new DelayPosition(0, 0, 0);
-        var b = new DelayPosition(3, 4, 0);
+        private static SignalDelayConfig On(double scale = 1.0) =>
+            new SignalDelayConfig { Enabled = true, LightSpeedScale = scale };
 
-        Assert.Equal(5.0, KscLightTimeMath.DistanceMeters(a, b));
-    }
+        [Fact]
+        public void A_routed_light_time_is_carried_through_unchanged()
+        {
+            var delay = KscLightTimeMath.Resolve(routedOneWaySeconds: 4.25, config: On());
 
-    [Fact]
-    public void FromDistance_at_real_light_speed_matches_known_earth_moon_distance()
-    {
-        // ~384,400 km, real light-speed one-way is ~1.28s - a familiar
-        // real-world sanity check for the c * LightSpeedScale arithmetic.
-        var distanceMeters = 384_400_000.0;
+            Assert.Equal(KscDelayKind.Routed, delay.Kind);
+            Assert.Equal(4.25, delay.Seconds, 6);
+        }
 
-        var seconds = KscLightTimeMath.FromDistance(distanceMeters, Config(1.0));
+        [Fact]
+        public void No_routed_path_is_unroutable_never_a_distance()
+        {
+            var delay = KscLightTimeMath.Resolve(routedOneWaySeconds: null, config: On());
 
-        Assert.NotNull(seconds);
-        Assert.Equal(1.2822, seconds!.Value, 3);
-    }
+            Assert.Equal(KscDelayKind.Unroutable, delay.Kind);
+            Assert.True(delay.IsUnroutable);
+        }
 
-    [Fact]
-    public void FromDistance_scales_inversely_with_LightSpeedScale()
-    {
-        var distanceMeters = SignalDelay.SpeedOfLightMetersPerSecond; // exactly 1 light-second at scale 1.0
+        [Fact]
+        public void Delay_disabled_is_a_genuine_zero_not_an_absence()
+        {
+            // The player asked for instant books. That is a real zero, and it
+            // must stay distinguishable from "no route", which is not.
+            var delay = KscLightTimeMath.Resolve(
+                routedOneWaySeconds: null,
+                config: new SignalDelayConfig { Enabled = false });
 
-        var atRealSpeed = KscLightTimeMath.FromDistance(distanceMeters, Config(1.0));
-        var atDoubleSpeed = KscLightTimeMath.FromDistance(distanceMeters, Config(2.0));
+            Assert.Equal(KscDelayKind.Instant, delay.Kind);
+            Assert.Equal(0.0, delay.Seconds);
+        }
 
-        Assert.Equal(1.0, atRealSpeed);
-        Assert.Equal(0.5, atDoubleSpeed);
-    }
+        [Fact]
+        public void A_nonpositive_light_speed_scale_is_unroutable()
+        {
+            Assert.True(KscLightTimeMath.Resolve(1.0, On(scale: 0.0)).IsUnroutable);
+            Assert.True(KscLightTimeMath.Resolve(1.0, On(scale: -1.0)).IsUnroutable);
+        }
 
-    [Fact]
-    public void FromDistance_of_zero_distance_is_zero()
-    {
-        Assert.Equal(0.0, KscLightTimeMath.FromDistance(0.0, Config(1.0)));
-    }
+        [Fact]
+        public void A_null_config_is_unroutable()
+        {
+            Assert.True(KscLightTimeMath.Resolve(1.0, config: null).IsUnroutable);
+        }
 
-    [Fact]
-    public void FromDistance_with_LightSpeedScale_zero_is_not_computable()
-    {
-        var seconds = KscLightTimeMath.FromDistance(1_000_000.0, Config(0.0));
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(-1.0)]
+        public void A_nonsense_routed_value_is_unroutable_rather_than_carried(double seconds)
+        {
+            // Better to block than to enqueue a row that reveals in the past or
+            // never matures at all.
+            Assert.True(KscLightTimeMath.Resolve(seconds, On()).IsUnroutable);
+        }
 
-        Assert.Null(seconds);
-    }
+        /// <summary>
+        /// The defect the type exists to prevent, asserted directly: reading
+        /// seconds off an unroutable delay must be impossible, not zero.
+        /// </summary>
+        [Fact]
+        public void Reading_seconds_off_an_unroutable_delay_throws_rather_than_yielding_zero()
+        {
+            var delay = KscDelay.Unroutable;
 
-    [Fact]
-    public void FromDistance_with_delay_disabled_is_a_genuine_zero_not_null()
-    {
-        // Enabled=false means the delay FEATURE is off (link still live), a
-        // real zero - distinct from LightSpeedScale<=0's "not computable"
-        // null above. CommsCoreUplink.SignalDelayConfig's own default is
-        // SignalDelayConfig.Off() = { Enabled = false, LightSpeedScale = 1.0 },
-        // so this is the literal out-of-the-box case.
-        var config = new SignalDelayConfig { Enabled = false, LightSpeedScale = 1.0 };
+            var ex = Assert.Throws<InvalidOperationException>(() => delay.Seconds);
+            Assert.Contains("Blocked", ex.Message);
+        }
 
-        var seconds = KscLightTimeMath.FromDistance(1_000_000.0, config);
+        [Fact]
+        public void An_unroutable_event_reveals_at_the_policy_deadline_not_immediately()
+        {
+            var revealUt = KscDelay.Unroutable.RevealUt(eventUt: 1_000.0, silenceDeclarationSeconds: 86_400.0);
 
-        Assert.Equal(0.0, seconds);
-    }
+            Assert.Equal(87_400.0, revealUt);
+        }
 
-    [Fact]
-    public void FromDistance_with_negative_LightSpeedScale_is_not_computable()
-    {
-        var seconds = KscLightTimeMath.FromDistance(1_000_000.0, Config(-1.0));
+        [Fact]
+        public void A_routed_event_reveals_at_its_own_light_time()
+        {
+            var revealUt = KscDelay.Routed(12.5).RevealUt(eventUt: 1_000.0, silenceDeclarationSeconds: 86_400.0);
 
-        Assert.Null(seconds);
-    }
+            Assert.Equal(1_012.5, revealUt);
+        }
 
-    [Fact]
-    public void FromDistance_with_null_config_is_not_computable()
-    {
-        Assert.Null(KscLightTimeMath.FromDistance(1_000_000.0, null));
-    }
+        [Fact]
+        public void An_instant_event_reveals_at_the_event()
+        {
+            Assert.Equal(1_000.0, KscDelay.Instant.RevealUt(1_000.0, 86_400.0));
+        }
 
-    [Fact]
-    public void Resolve_prefers_the_routed_delay_over_straight_line_when_both_are_available()
-    {
-        var subject = new DelayPosition(0, 0, 0);
-        var ksc = new DelayPosition(1_000_000_000, 0, 0); // a straight-line distance that would NOT equal the routed value
-
-        var result = KscLightTimeMath.Resolve(
-            routedOneWaySeconds: 42.0,
-            subjectPosition: subject,
-            kscPosition: ksc,
-            config: Config(1.0));
-
-        Assert.Equal(42.0, result);
-    }
-
-    [Fact]
-    public void Resolve_falls_back_to_straight_line_when_no_routed_delay_is_available()
-    {
-        var subject = new DelayPosition(0, 0, 0);
-        var ksc = new DelayPosition(SignalDelay.SpeedOfLightMetersPerSecond, 0, 0);
-
-        var result = KscLightTimeMath.Resolve(
-            routedOneWaySeconds: null,
-            subjectPosition: subject,
-            kscPosition: ksc,
-            config: Config(1.0));
-
-        Assert.Equal(1.0, result);
-    }
-
-    [Fact]
-    public void Resolve_at_ksc_position_is_zero()
-    {
-        var ksc = new DelayPosition(100, 200, 300);
-
-        var result = KscLightTimeMath.Resolve(
-            routedOneWaySeconds: null,
-            subjectPosition: ksc,
-            kscPosition: ksc,
-            config: Config(1.0));
-
-        Assert.Equal(0.0, result);
-    }
-
-    [Fact]
-    public void Resolve_with_no_routed_delay_and_a_missing_position_is_not_computable()
-    {
-        var result = KscLightTimeMath.Resolve(
-            routedOneWaySeconds: null,
-            subjectPosition: null,
-            kscPosition: new DelayPosition(0, 0, 0),
-            config: Config(1.0));
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void Resolve_with_LightSpeedScale_zero_and_no_routed_delay_is_not_computable()
-    {
-        var subject = new DelayPosition(0, 0, 0);
-        var ksc = new DelayPosition(1000, 0, 0);
-
-        var result = KscLightTimeMath.Resolve(
-            routedOneWaySeconds: null,
-            subjectPosition: subject,
-            kscPosition: ksc,
-            config: Config(0.0));
-
-        Assert.Null(result);
+        [Fact]
+        public void A_routed_delay_rejects_a_nonsense_value_at_construction()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => KscDelay.Routed(double.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() => KscDelay.Routed(-0.5));
+        }
     }
 }

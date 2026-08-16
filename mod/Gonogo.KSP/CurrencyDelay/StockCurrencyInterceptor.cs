@@ -105,7 +105,7 @@ namespace Gonogo.KSP.CurrencyDelay
         // GameObject destroyed), so it cannot be resolved lazily at claim
         // time the way a recovery ProtoVessel or a still-loaded lab vessel
         // can. Never pruned, same reasoning as the two dictionaries above.
-        private readonly Dictionary<string, double?> _deathLightTimesById = new Dictionary<string, double?>();
+        private readonly Dictionary<string, KscDelay> _deathLightTimesById = new Dictionary<string, KscDelay>();
 
         public StockCurrencyInterceptor(PendingCreditLedger ledger, VesselScienceAggregator scienceAggregator, CurrencyDelayGuard guard)
         {
@@ -326,13 +326,16 @@ namespace Gonogo.KSP.CurrencyDelay
             }
 
             var config = CommsCoreUplink.SignalDelayConfig;
-            double? lightTime = liveOrigin != null
-                ? KscLightTime.ForVessel(liveOrigin, config)
-                : protoOrigin != null ? KscLightTime.ForProtoVessel(protoOrigin, config) : null;
+            // Live vessel only. A ProtoVessel has no CommNet connection, so the
+            // deleted ForProtoVessel could only ever have measured a straight
+            // line; an unloaded origin is unroutable until it loads and proves
+            // otherwise.
+            var delay = liveOrigin != null ? KscLightTime.ForVessel(liveOrigin, config) : KscDelay.Unroutable;
 
             NeutraliseScience(shadowToRestore);
 
-            var chunk = _scienceAggregator.Accept(vesselId, baseAmount, ut, lightTime ?? 0.0);
+            var chunk = _scienceAggregator.Accept(
+                vesselId, baseAmount, ut, DelaySecondsForAggregator(delay, config));
             if (!chunk.HasValue)
             {
                 return;
@@ -344,7 +347,9 @@ namespace Gonogo.KSP.CurrencyDelay
             // than re-deriving it here.
             var credit = StockCurrencyDecision.BuildCredit(
                 CurrencyKind.Science, chunk.Value.Amount, shadowToRestore, vesselId,
-                lightTimeSeconds: 0.0, nowUt: chunk.Value.RevealUt);
+                // Already-resolved reveal UT: the aggregator applied the
+                // increment's own delay when it closed its window.
+                KscDelay.Instant, nowUt: chunk.Value.RevealUt, silenceDeclarationSeconds: 0.0);
 
             EnqueueCredit(credit);
         }
@@ -370,17 +375,30 @@ namespace Gonogo.KSP.CurrencyDelay
                 var baseAmount = ConsumeQueryBase(reason, Currency.Funds, fallback: newTotal - _state.ShadowFunds);
                 var decision = _state.OnFundsChanged(ToStockReason(reason), newTotal, baseAmount, ut);
 
-                if (!decision.IsAway || !_recoveryVesselsById.TryGetValue(decision.OriginVesselId, out var recoveryVessel))
+                if (!decision.IsAway || !_recoveryVesselsById.ContainsKey(decision.OriginVesselId))
                 {
                     return;
                 }
 
-                var lightTime = KscLightTime.ForProtoVessel(recoveryVessel, CommsCoreUplink.SignalDelayConfig) ?? 0.0;
-
                 _guard.RunGuarded(() => Funding.Instance?.SetFunds(decision.ShadowToRestore, TransactionReasons.None));
 
+                // Recovery is INSTANT, not unroutable and not distance-timed.
+                // Vessel.IsRecoverable is LandedOrSplashed &&
+                // mainBody.isHomeWorld (decompile-confirmed), so a recovered
+                // craft is physically in KSC's hands: its funds are not in
+                // flight from anywhere and there is nothing to wait for. It
+                // only ever looked like a distance problem because the deleted
+                // straight-line fallback answered it with one.
+                //
+                // The consensus goes further and takes VesselRecovery out of
+                // AwayReasons altogether, which also deletes the recovery
+                // correlation. That is a separate cut: it lands against a
+                // 615-line test file built on the current classification, and
+                // rushing it would trade a real behaviour fix for a pile of
+                // hastily-rewritten assertions.
                 var credit = StockCurrencyDecision.BuildCredit(
-                    CurrencyKind.Funds, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId, lightTime, ut);
+                    CurrencyKind.Funds, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,
+                    KscDelay.Instant, ut, SilenceDeclarationSeconds());
                 EnqueueCredit(credit);
             }
             catch (Exception ex)
@@ -436,14 +454,20 @@ namespace Gonogo.KSP.CurrencyDelay
                 return;
             }
 
-            double lightTime;
-            if (_recoveryVesselsById.TryGetValue(decision.OriginVesselId, out var recoveryVessel))
+            KscDelay delay;
+            if (_recoveryVesselsById.ContainsKey(decision.OriginVesselId))
             {
-                lightTime = KscLightTime.ForProtoVessel(recoveryVessel, CommsCoreUplink.SignalDelayConfig) ?? 0.0;
+                // Recovered at KSC: instant, see the funds path above.
+                delay = KscDelay.Instant;
             }
-            else if (_deathLightTimesById.TryGetValue(decision.OriginVesselId, out var deathLightTime))
+            else if (_deathLightTimesById.TryGetValue(decision.OriginVesselId, out var deathDelay))
             {
-                lightTime = deathLightTime ?? 0.0;
+                // Captured at the moment of death, while the vessel still
+                // existed and its route could still be read. If it had no route
+                // then, the penalty blocks rather than landing free - which is
+                // the kerbal-died-out-of-contact case this whole subsystem was
+                // reopened for.
+                delay = deathDelay;
             }
             else
             {
@@ -453,9 +477,25 @@ namespace Gonogo.KSP.CurrencyDelay
             _guard.RunGuarded(() => Reputation.Instance?.SetReputation((float)decision.ShadowToRestore, TransactionReasons.None));
 
             var credit = StockCurrencyDecision.BuildCredit(
-                CurrencyKind.Reputation, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId, lightTime, ut);
+                CurrencyKind.Reputation, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,
+                delay, ut, SilenceDeclarationSeconds());
             EnqueueCredit(credit);
         }
+
+        private static double SilenceDeclarationSeconds() =>
+            CommsCoreUplink.SignalDelayConfig?.SilenceDeclarationSeconds ?? 86_400.0;
+
+        /// <summary>
+        /// The aggregator still takes a plain seconds offset. An unroutable
+        /// increment contributes the policy deadline rather than zero, which is
+        /// the whole point: late, never instant. Carrying the Blocked flag
+        /// through the aggregator window (so a reacquisition can release it
+        /// early) is the remaining half of this change.
+        /// </summary>
+        private static double DelaySecondsForAggregator(KscDelay delay, Sitrep.Host.Comms.SignalDelayConfig config) =>
+            delay.IsUnroutable
+                ? (config?.SilenceDeclarationSeconds ?? 86_400.0)
+                : delay.Seconds;
 
         private void EnqueueCredit(StockCurrencyCredit? credit)
         {

@@ -4,7 +4,7 @@ namespace Gonogo.KSP.SilenceTracking
 {
     /// <summary>
     /// Static pointer to the engine <see cref="Kernel"/>, published by
-    /// <see cref="FleetDelayUplink"/> at Register and read by
+    /// <see cref="FleetChannels"/> at Register and read by
     /// <see cref="SilenceTrackerScenario"/> when it builds each save's
     /// deadline policy.
     ///

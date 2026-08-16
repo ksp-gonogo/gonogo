@@ -223,6 +223,59 @@ namespace Sitrep.Host.Tests
                 $"expected at least the {OrbitalPeriodSilenceDeadlinePolicy.DefaultFloorSec}s floor, got {deadline.DurationSec}");
         }
 
+        /// <summary>
+        /// The case that made every vessel in a real save look unpredicted:
+        /// silence begins on the first tick after a scene load, before CommNet
+        /// exists, so the geometry factory has nothing to work with. The
+        /// deadline is armed once on that edge, so without a re-evaluation the
+        /// vessel holds an orbital-period deadline for its whole run even after
+        /// the geometry becomes available a second later.
+        /// </summary>
+        [Fact]
+        public void ADeadlineArmedBeforeGeometryExistsIsUpgradedOnceItDoes()
+        {
+            var orbit = Circular(3600.0);
+            var emergence = 2_500.0;
+            var geometryReady = false;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => geometryReady ? new OneCrossingGeometry(emergence) : null);
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 1_000.0);
+            Assert.Equal(SilenceDeadlineBasis.OrbitalPeriod, tracker.TryGetState("v")!.DeadlineBasis);
+            Assert.Null(tracker.TryGetState("v")!.PredictedReacquisitionUt);
+
+            geometryReady = true;
+            tracker.Tick(new[] { silent }, ut: 1_005.0);
+
+            var state = tracker.TryGetState("v")!;
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, state.DeadlineBasis);
+            Assert.Equal(emergence, state.PredictedReacquisitionUt!.Value, 1);
+        }
+
+        /// <summary>
+        /// A prediction, once made, is never revised: the no-jitter property
+        /// the single-shot arming existed for in the first place.
+        /// </summary>
+        [Fact]
+        public void APredictionIsNeverRevisedOnceMade()
+        {
+            var orbit = Circular(3600.0);
+            var emergence = 1_900.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(emergence));
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 1_000.0);
+            var first = tracker.TryGetState("v")!.PredictedReacquisitionUt;
+            emergence = 9_999.0;
+            tracker.Tick(new[] { silent }, ut: 1_005.0);
+
+            Assert.Equal(first, tracker.TryGetState("v")!.PredictedReacquisitionUt);
+        }
+
         [Fact]
         public void APredictionReachesTheTrackerAndClearsOnReconnect()
         {

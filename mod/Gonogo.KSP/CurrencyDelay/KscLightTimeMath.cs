@@ -1,108 +1,53 @@
-using System;
 using Sitrep.Host.Comms;
 
 namespace Gonogo.KSP.CurrencyDelay
 {
     /// <summary>
-    /// A minimal 3D point in whatever coordinate frame the caller already
-    /// resolved (KSP world space, in practice), carrying no dependency on
-    /// that frame's own type. Kept separate from UnityEngine/KSP's Vector3d
-    /// so this file, and everything in it, compiles and is unit-tested with
-    /// no KspManaged reference DLLs at all; the KSP-glue half of this
-    /// subsystem (KscLightTime.cs) converts a live Vector3d into one of
-    /// these before calling in.
-    /// </summary>
-    internal readonly struct DelayPosition
-    {
-        public double X { get; }
-        public double Y { get; }
-        public double Z { get; }
-
-        public DelayPosition(double x, double y, double z)
-        {
-            X = x;
-            Y = y;
-            Z = z;
-        }
-    }
-
-    /// <summary>
-    /// Pure light-time math for KSC-anchored currency delay: the
-    /// distance/light-speed arithmetic and the routed-vs-straight-line
-    /// decision, given already-resolved geometry. No KSP/Unity types
-    /// anywhere in this file (only <see cref="SignalDelayConfig"/>, a plain
-    /// POCO from the KSP-free Sitrep.Host.Comms assembly), so it compiles
-    /// and is unit-tested unconditionally, unlike the KSP-glue half of this
-    /// subsystem in KscLightTime.cs, which reads a live Vessel/ProtoVessel/
-    /// CommNet position and is only verifiable at the full-sln fold.
+    /// The one and only way a currency event's delay is computed: the one-way
+    /// light-time of a live CommNet control path whose last hop is home.
+    ///
+    /// <para>There used to be a straight-line arm here — subject position to
+    /// KSC position, divided by c — used whenever no route existed. It was
+    /// wrong in a way that mattered: a chord through the planet a craft is
+    /// hiding behind is not a signal path, so it quoted a confident delay for
+    /// a craft nothing could reach, and science from the far side of the
+    /// system was credited as though it had arrived. There is no second way to
+    /// compute a delay. No route home is <see cref="KscDelay.Unroutable"/>,
+    /// which the caller must queue Blocked rather than treat as zero.</para>
     /// </summary>
     internal static class KscLightTimeMath
     {
-        internal static double DistanceMeters(DelayPosition a, DelayPosition b)
-        {
-            var dx = a.X - b.X;
-            var dy = a.Y - b.Y;
-            var dz = a.Z - b.Z;
-            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
-        }
-
         /// <summary>
-        /// One-way seconds for a straight-line distance under
-        /// <see cref="SignalDelayConfig"/>. Two distinct "not a real
-        /// light-time" outcomes, kept apart deliberately: <c>!Enabled</c>
-        /// means the delay feature is off but the link is live, a genuine
-        /// zero (0.0), matching SignalDelay.Compute's Disabled case;
-        /// <c>LightSpeedScale &lt;= 0</c> means the scale makes light-time
-        /// uncomputable, nothing honest to report (null), matching
-        /// SignalDelay.Compute's NoPath case. Zero distance (at KSC) falls
-        /// straight out of the division, no special case needed.
+        /// Wraps an already-routed one-way light-time, or reports the absence
+        /// of one. <paramref name="routedOneWaySeconds"/> is null exactly when
+        /// no control path reaches home.
         /// </summary>
-        internal static double? FromDistance(double distanceMeters, SignalDelayConfig? config)
+        internal static KscDelay Resolve(double? routedOneWaySeconds, SignalDelayConfig config)
         {
-            if (config == null)
+            if (config == null || !config.Enabled)
             {
-                return null;
-            }
-
-            if (!config.Enabled)
-            {
-                return 0.0;
+                // Delay switched off is a GENUINE zero, not an absence: the
+                // player asked for instant books.
+                return config == null ? KscDelay.Unroutable : KscDelay.Instant;
             }
 
             if (config.LightSpeedScale <= 0.0)
             {
-                return null;
+                return KscDelay.Unroutable;
             }
 
-            return distanceMeters / (SignalDelay.SpeedOfLightMetersPerSecond * config.LightSpeedScale);
-        }
-
-        /// <summary>
-        /// KSC-anchored one-way light-time given already-resolved geometry.
-        /// Prefers the ROUTED vessel&lt;-&gt;KSC light-time (computed by the
-        /// caller via FleetCommsReader.ReadVessel, which has no straight-line
-        /// equivalent to recompute here) when available; falls back to
-        /// straight-line from subjectPosition to kscPosition. Null when
-        /// neither a routed delay nor both positions are available - nothing
-        /// to compute.
-        /// </summary>
-        internal static double? Resolve(
-            double? routedOneWaySeconds,
-            DelayPosition? subjectPosition,
-            DelayPosition? kscPosition,
-            SignalDelayConfig? config)
-        {
-            if (routedOneWaySeconds.HasValue)
+            if (!routedOneWaySeconds.HasValue)
             {
-                return routedOneWaySeconds.Value;
+                return KscDelay.Unroutable;
             }
 
-            if (subjectPosition.HasValue && kscPosition.HasValue)
+            var seconds = routedOneWaySeconds.Value;
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0.0)
             {
-                return FromDistance(DistanceMeters(subjectPosition.Value, kscPosition.Value), config);
+                return KscDelay.Unroutable;
             }
 
-            return null;
+            return KscDelay.Routed(seconds);
         }
     }
 }

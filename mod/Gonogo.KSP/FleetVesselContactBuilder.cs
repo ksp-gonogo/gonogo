@@ -6,7 +6,7 @@ namespace Gonogo.KSP
     /// Builds the <c>fleet.&lt;guid&gt;.contact</c> wire dict. Takes plain
     /// primitives rather than a <c>Sitrep.Host.Comms.VesselContactState</c>
     /// directly: the caller hands across a cross-thread snapshot, not the
-    /// tracker's own mutable record (see <c>FleetDelayUplink.CaptureSilenceOnMain</c>'s
+    /// tracker's own mutable record (see <c>FleetChannels.CaptureSilenceOnMain</c>'s
     /// doc comment). Same self-flattening producer pattern as
     /// <see cref="FleetVesselLinkBuilder"/>: camelCase keys match
     /// <see cref="Sitrep.Contract.FleetVesselContact"/>, the TS codegen

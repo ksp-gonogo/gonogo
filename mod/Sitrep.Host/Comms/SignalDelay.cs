@@ -16,6 +16,18 @@ namespace Sitrep.Host.Comms
         public bool Enabled { get; set; }
         public double LightSpeedScale { get; set; } = 1.0;
 
+        /// <summary>
+        /// How long a currency event with NO route home waits before KSC stops
+        /// waiting and reconciles the books anyway. Default one Kerbin day.
+        ///
+        /// <para>Honestly a POLICY, not a pretend measurement: there is no
+        /// light-time to a craft nothing can reach. It exists so the
+        /// never-regains-contact case terminates at all, rather than leaving a
+        /// penalty pending forever. An event released early on reacquisition
+        /// takes <c>min(deadline, reacquisitionUt + lightTime)</c>.</para>
+        /// </summary>
+        public double SilenceDeclarationSeconds { get; set; } = 86_400.0;
+
         public static SignalDelayConfig Off() => new SignalDelayConfig { Enabled = false };
     }
 

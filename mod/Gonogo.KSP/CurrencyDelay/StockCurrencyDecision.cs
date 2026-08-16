@@ -160,8 +160,9 @@ namespace Gonogo.KSP.CurrencyDelay
             double baseAmount,
             double shadowBalance,
             string originVesselId,
-            double lightTimeSeconds,
-            double nowUt)
+            KscDelay delay,
+            double nowUt,
+            double silenceDeclarationSeconds)
         {
             if (baseAmount == 0.0)
             {
@@ -178,7 +179,7 @@ namespace Gonogo.KSP.CurrencyDelay
             return new StockCurrencyCredit(
                 currency,
                 baseAmount,
-                nowUt + lightTimeSeconds,
+                delay.RevealUt(nowUt, silenceDeclarationSeconds),
                 originVesselId ?? "",
                 description);
         }

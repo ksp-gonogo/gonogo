@@ -197,6 +197,14 @@ namespace Sitrep.Host.Comms
         public int LostSeq;
 
         /// <summary>
+        /// Whether this silence run has already spent its one deadline
+        /// re-evaluation. Deliberately not persisted: a reload grants one more
+        /// attempt, which biases toward eventually getting a prediction rather
+        /// than toward never trying again.
+        /// </summary>
+        internal bool DeadlineUpgraded;
+
+        /// <summary>
         /// Consecutive silent samples in the CURRENT run (warp hysteresis).
         /// Deliberately not part of what gets persisted: a reload always
         /// resumes at 0, requiring two fresh post-reload samples before an
@@ -346,6 +354,7 @@ namespace Sitrep.Host.Comms
                 s.DeadlineUt = ut + deadline.DurationSec;
                 s.DeadlineBasis = deadline.Basis;
                 s.PredictedReacquisitionUt = deadline.PredictedReacquisitionUt;
+                s.DeadlineUpgraded = false;
                 return s;
             }
 
@@ -355,6 +364,34 @@ namespace Sitrep.Host.Comms
                 // never reaches here disconnected - see MarkDestroyed).
                 // Sticky until a connected sample clears it above.
                 return s;
+            }
+
+            // ONE re-evaluation per silence run, and only while the current
+            // answer carries no prediction.
+            //
+            // The deadline is otherwise armed on the Nominal -> Silent edge and
+            // then held, so a countdown does not jitter as an unloaded vessel's
+            // orbit evolves underneath it. That is right for a craft that goes
+            // dark mid-flight, and wrong for the case that actually dominates:
+            // loading a save, where every already-silent vessel arms on the
+            // first tick, which is the one moment CommNet has not been built
+            // and no geometry can be had. Every vessel in a 24-craft save then
+            // holds an orbital-period deadline for its entire run, and the
+            // predictor looks broken when it was simply never asked again.
+            //
+            // Upgrading only from a non-predicting basis, and only once, keeps
+            // the no-jitter property where it matters: a prediction, once made,
+            // is never revised.
+            if (!s.DeadlineUpgraded && !HasPrediction(s.DeadlineBasis))
+            {
+                var upgraded = _policy(sample, s.SilenceSinceUt ?? ut);
+                if (upgraded.PredictedReacquisitionUt.HasValue)
+                {
+                    s.DeadlineUpgraded = true;
+                    s.DeadlineUt = (s.SilenceSinceUt ?? ut) + upgraded.DurationSec;
+                    s.DeadlineBasis = upgraded.Basis;
+                    s.PredictedReacquisitionUt = upgraded.PredictedReacquisitionUt;
+                }
             }
 
             // Silent, possibly resumed from a reload: declare only once BOTH
@@ -368,6 +405,9 @@ namespace Sitrep.Host.Comms
 
             return s;
         }
+
+        private static bool HasPrediction(string? basis) =>
+            basis == SilenceDeadlineBasis.PredictedReacquisition;
 
         private static VesselContactState MarkDestroyed(VesselContactState s, double ut)
         {
