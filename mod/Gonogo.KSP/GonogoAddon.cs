@@ -196,6 +196,7 @@ namespace Gonogo.KSP
 
                 Debug.Log("[Gonogo] Started - serving " + SystemViewProvider.Topic + " + " +
                     VesselViewProvider.Topics.Count + " vessel.* channels on " + BindUri);
+                LogBuildIdentity();
             }
             catch (Exception ex)
             {
@@ -211,6 +212,36 @@ namespace Gonogo.KSP
         /// (scale 1.0): the mod's realism default. A smaller scale lengthens
         /// delay (slower light); a larger scale shortens it. Never throws.
         /// </summary>
+        /// <summary>
+        /// Which binary is actually running, logged at startup.
+        ///
+        /// <para>Verifying a live fix means knowing the game loaded the DLL you
+        /// just built, and that is not safe to assume: a stale RealAntennas
+        /// uplink silently broke the whole comms capability for hours, and file
+        /// SIZE is no identity check - two different builds collided on the same
+        /// byte count twice in one day. The MVID is a fresh GUID per
+        /// compilation, so two builds cannot agree by accident.</para>
+        ///
+        /// <para>Cheap insurance against the most expensive kind of wasted
+        /// cycle: a conclusion drawn from a binary that was never deployed.</para>
+        /// </summary>
+        private static void LogBuildIdentity()
+        {
+            try
+            {
+                var assembly = typeof(GonogoAddon).Assembly;
+                var built = File.Exists(assembly.Location)
+                    ? File.GetLastWriteTimeUtc(assembly.Location).ToString("yyyy-MM-dd HH:mm:ss") + "Z"
+                    : "unknown";
+                Debug.Log("[Gonogo] build: mvid=" + assembly.ManifestModule.ModuleVersionId
+                    + " written=" + built);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] could not read build identity: " + ex.Message);
+            }
+        }
+
         private static Sitrep.Host.Comms.SignalDelayConfig ReadSignalDelayConfig()
         {
             var cfg = new Sitrep.Host.Comms.SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
