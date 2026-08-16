@@ -403,6 +403,20 @@ namespace Sitrep.Host.Comms
                 if (IsPredictorBasis(upgraded.Basis))
                 {
                     s.DeadlineUpgraded = true;
+
+                    // Record the VERDICT, not just a prediction. The three
+                    // non-predicting bases are answers - "nothing is in the way",
+                    // "still behind something", "too fast to resolve" - and
+                    // leaving them unwritten meant the wire kept reporting the
+                    // armed orbital-period basis forever, so a working sweep and
+                    // a sweep that never ran looked identical to every consumer.
+                    // That is precisely what made this feature look dead while
+                    // the geometry underneath it was fine.
+                    //
+                    // The DEADLINE is deliberately not touched here: those bases
+                    // carry the fallback duration unchanged, which is the whole
+                    // point of no-occultation not shortening anything.
+                    s.DeadlineBasis = upgraded.Basis;
                 }
                 if (upgraded.PredictedReacquisitionUt.HasValue)
                 {

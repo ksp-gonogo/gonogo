@@ -390,6 +390,33 @@ namespace Sitrep.Host.Tests
                 tracker.TryGetState("v")!.DeadlineBasis);
         }
 
+        /// <summary>
+        /// A verdict without a prediction must still reach the state. Leaving
+        /// no-occultation unwritten meant the wire reported the armed
+        /// orbital-period basis forever, so a working sweep was
+        /// indistinguishable from one that never ran.
+        /// </summary>
+        [Fact]
+        public void ANonPredictingVerdictIsStillRecorded()
+        {
+            var orbit = Circular(3_600.0);
+            var ready = false;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => ready ? new ConstantMarginGeometry(1.0) : null);
+            var tracker = new SilenceTracker(policy.Evaluate);
+            var silent = new SilenceSample("v", connected: false, orbit: orbit, landedOrSplashed: false);
+
+            tracker.Tick(new[] { silent }, ut: 1_000.0);
+            Assert.Equal(SilenceDeadlineBasis.OrbitalPeriod, tracker.TryGetState("v")!.DeadlineBasis);
+
+            ready = true;
+            tracker.Tick(new[] { silent }, ut: 1_001.0);
+
+            var state = tracker.TryGetState("v")!;
+            Assert.Equal(SilenceDeadlineBasis.NoOccultation, state.DeadlineBasis);
+            Assert.Null(state.PredictedReacquisitionUt);
+        }
+
         [Fact]
         public void AFailedUpgradeIsStillSpent()
         {
