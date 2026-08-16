@@ -80,6 +80,28 @@ namespace Gonogo.KSP.SilenceTracking
                 + "m residual=" + residualMeters.ToString("F0") + "m");
         }
 
+        private static bool _describedHomeSearch;
+
+        /// <summary>
+        /// What the home-node search actually saw, once. The search failing is
+        /// reported by <see cref="NoGeometry"/>, but that says only THAT it
+        /// failed; distinguishing "no active vessel" from "a control path with
+        /// no home flagged on it" needs the counts, and inferring them from
+        /// outside has already cost several rebuild cycles.
+        /// </summary>
+        public static void HomeSearch(
+            bool activeVessel, bool connection, int pathLinks, int nodesSeen, int homesSeen, string firstNodeName)
+        {
+            if (_describedHomeSearch) return;
+            _describedHomeSearch = true;
+            Debug.Log(Prefix + "home search: activeVessel=" + activeVessel
+                + " connection=" + connection
+                + " pathLinks=" + pathLinks
+                + " nodes=" + nodesSeen
+                + " isHome=" + homesSeen
+                + " firstNode=" + (firstNodeName ?? "<none>"));
+        }
+
         public static void NotPublished(object? captured, bool noSource)
         {
             if (_warnedNotPublished) return;

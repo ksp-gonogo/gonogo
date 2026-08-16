@@ -290,15 +290,36 @@ namespace Gonogo.KSP.SilenceTracking
         {
             var active = FlightGlobals.ActiveVessel;
             var path = active != null && active.connection != null ? active.connection.ControlPath : null;
+
+            var links = 0;
+            var nodes = 0;
+            var homes = 0;
+            string firstNode = null;
+
             if (path != null)
             {
                 foreach (var link in path)
                 {
                     if (link == null) continue;
-                    if (link.a != null && link.a.isHome) yield return link.a;
-                    if (link.b != null && link.b.isHome) yield return link.b;
+                    links++;
+                    foreach (var node in new[] { link.a, link.b })
+                    {
+                        if (node == null) continue;
+                        nodes++;
+                        if (firstNode == null) firstNode = node.displayName ?? node.name ?? "?";
+                        if (node.isHome)
+                        {
+                            homes++;
+                            yield return node;
+                        }
+                    }
                 }
             }
+
+            SilenceTrace.HomeSearch(
+                active != null,
+                active != null && active.connection != null,
+                links, nodes, homes, firstNode);
 
             foreach (var home in _homes())
             {
@@ -397,8 +418,21 @@ namespace Gonogo.KSP.SilenceTracking
                 return true;
             }
 
-            var live = (vessel.orbitDriver.orbit.getPositionAtUT(ut) - comm.precisePosition).magnitude;
-            var predicted = geometry.SeparationAt(ut);
+            // Compare at NOW, both sides. comm.precisePosition is a live
+            // reading and cannot be evaluated at any other time, so measuring
+            // the vessel at the sweep origin instead put the two endpoints at
+            // different instants and the check reported the vessel's own motion
+            // between them as frame error. On the upgrade path that origin is
+            // the silence ONSET, so the gap was unbounded, and a craft in a
+            // one-hour Minmus orbit accumulated hundreds of kilometres of
+            // "residual" while the geometry was in fact correct.
+            //
+            // This was the valve firing on its own inconsistency: predictions
+            // were being withheld by a bug in the check rather than by a bug in
+            // what it checks.
+            var now = Planetarium.GetUniversalTime();
+            var live = (vessel.orbitDriver.orbit.getPositionAtUT(now) - comm.precisePosition).magnitude;
+            var predicted = geometry.SeparationAt(now);
             var residual = Math.Abs(live - predicted);
             if (residual > FrameCheckToleranceMeters)
             {
