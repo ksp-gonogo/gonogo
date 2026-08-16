@@ -152,6 +152,13 @@ namespace Gonogo.KSP
                 // vessel-gated channel is still declared/registered here
                 // alongside the genuinely vessel-scoped ones.
                 Channel(VesselViewProvider.WarpTopic),
+                // time.calendar -- the game's own day/year lengths, registered
+                // by this uplink for the same reason time.warp is: it rides the
+                // vessel snapshot. It MUST be declared here, not just wired in
+                // Register: AddChannelSource throws for an undeclared topic, and
+                // that throw takes the WHOLE uplink Unavailable, which is how
+                // every vessel.* channel once went silent on one missing line.
+                Channel(VesselViewProvider.CalendarTopic),
                 // ---- M3 R3 capture-adds -- same cadence/deadband posture
                 // as every other structured vessel.* channel above.
                 // vessel.dock: legitimately null when a present, active
