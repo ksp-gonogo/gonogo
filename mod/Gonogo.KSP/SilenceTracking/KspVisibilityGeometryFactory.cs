@@ -126,30 +126,6 @@ namespace Gonogo.KSP.SilenceTracking
             // planetary radii within minutes.
             var occlusion = CommsElection.OcclusionModel(_kernel());
             var links = BuildChain(parentBody, stationBody, occlusion);
-            if (links != null)
-            {
-                // A link the propagator cannot solve makes the whole chain
-                // unusable, and it is not exotic: the Sun sits at the top of
-                // every cross-planet chain and its stored elements are not a
-                // real orbit (ecc = 1, sma = 0). Feeding that to KeplerProvider
-                // throws, the policy swallows the throw and falls back, and the
-                // predictor goes quiet for every interplanetary vessel with no
-                // trace at all.
-                //
-                // Declining here is not a loss of capability: the chain only
-                // reaches the root body when the two ends are in different
-                // systems, which is a case the sweep could not have answered
-                // anyway.
-                foreach (var link in links)
-                {
-                    if (link.Orbit.Ecc >= 1.0 || !(link.Orbit.Sma > 0.0) || !(link.Orbit.Mu > 0.0))
-                    {
-                        SilenceTrace.NoGeometry("chain contains a non-elliptical link (ecc="
-                            + link.Orbit.Ecc.ToString("F2") + "), cannot propagate");
-                        return null;
-                    }
-                }
-            }
             if (links == null)
             {
                 SilenceTrace.NoGeometry("no patched-conic chain between "
@@ -256,97 +232,47 @@ namespace Gonogo.KSP.SilenceTracking
         /// The loop is bounded by the body count so a malformed hierarchy
         /// cannot spin.</para>
         /// </summary>
+        /// <summary>
+        /// Adapts the live body hierarchy onto <see cref="PatchedConicChain"/>,
+        /// which owns the walk itself.
+        ///
+        /// <para>The walk used to live here, expressed against
+        /// <c>CelestialBody</c>, which meant the only way to ask it a question
+        /// was to launch the game. It is pure logic over a parent pointer and a
+        /// set of elements, so it belongs where it can be tested in
+        /// milliseconds; this method's whole job is the translation.</para>
+        /// </summary>
         private static List<OrbitToRemoteStationGeometry.ChainLink> BuildChain(
             CelestialBody parentBody,
             CelestialBody stationBody,
             ICommsOcclusionModel occlusion)
         {
-            var links = new List<OrbitToRemoteStationGeometry.ChainLink>();
-            if (parentBody == stationBody)
-            {
-                return links;
-            }
-
-            var stationBranch = AncestorsOf(stationBody);
-            var vesselBranch = AncestorsOf(parentBody);
-            if (stationBranch == null || vesselBranch == null)
+            var bodies = FlightGlobals.Bodies;
+            if (bodies == null)
             {
                 return null;
             }
 
-            // The common ancestor is the first body on the station's way up
-            // that also appears on the vessel's. Kerbin and a solar-orbit craft
-            // meet at the Sun; Kerbin and a Minmus craft meet at Kerbin itself.
-            var meetAt = -1;
-            CelestialBody ancestor = null;
-            for (var i = 0; i < stationBranch.Count && ancestor == null; i++)
+            var nodes = new List<ChainBody>(bodies.Count);
+            foreach (var body in bodies)
             {
-                if (vesselBranch.Contains(stationBranch[i]))
+                if (body == null)
                 {
-                    ancestor = stationBranch[i];
-                    meetAt = i;
+                    nodes.Add(new ChainBody(-1, null, 0.0));
+                    continue;
                 }
-            }
-            if (ancestor == null)
-            {
-                return null;
-            }
-
-            // Climb from the station's body to the ancestor. An ascending link
-            // SUBTRACTS, because the frame sits on the far side of it, and it
-            // arrives at the body one step up.
-            for (var i = 0; i < meetAt; i++)
-            {
-                var body = stationBranch[i];
-                if (body.orbit == null || body.orbit.referenceBody == null)
-                {
-                    return null;
-                }
-                links.Add(new OrbitToRemoteStationGeometry.ChainLink(
-                    ElementsOf(body.orbit),
-                    OccludingRadiusOf(occlusion, body.orbit.referenceBody),
-                    descending: false));
+                var parent = body.orbit != null ? body.orbit.referenceBody : null;
+                var parentIndex = parent != null ? bodies.IndexOf(parent) : -1;
+                nodes.Add(new ChainBody(
+                    parentIndex,
+                    body.orbit != null && parentIndex >= 0 ? ElementsOf(body.orbit) : (OrbitElements?)null,
+                    OccludingRadiusOf(occlusion, body)));
             }
 
-            // Then descend from the ancestor to the vessel's parent, nearest
-            // the ancestor first.
-            var descent = new List<CelestialBody>();
-            for (var i = 0; i < vesselBranch.Count && vesselBranch[i] != ancestor; i++)
-            {
-                descent.Add(vesselBranch[i]);
-            }
-            descent.Reverse();
-            foreach (var body in descent)
-            {
-                if (body.orbit == null)
-                {
-                    return null;
-                }
-                links.Add(new OrbitToRemoteStationGeometry.ChainLink(
-                    ElementsOf(body.orbit),
-                    OccludingRadiusOf(occlusion, body),
-                    descending: true));
-            }
+            var links = PatchedConicChain.Between(
+                bodies.IndexOf(stationBody), bodies.IndexOf(parentBody), nodes);
 
-            return links;
-        }
-
-        /// <summary>
-        /// A body and every body it orbits, in order, up to the root. Null if
-        /// the hierarchy loops, which the body-count bound turns into a null
-        /// rather than a hang.
-        /// </summary>
-        private static List<CelestialBody> AncestorsOf(CelestialBody body)
-        {
-            var chain = new List<CelestialBody>();
-            var walker = body;
-            var guard = FlightGlobals.Bodies != null ? FlightGlobals.Bodies.Count + 1 : 64;
-            while (walker != null && guard-- > 0)
-            {
-                chain.Add(walker);
-                walker = walker.orbit != null ? walker.orbit.referenceBody : null;
-            }
-            return guard > 0 ? chain : null;
+            return links != null && PatchedConicChain.IsPropagatable(links) ? links : null;
         }
 
         /// <summary>
