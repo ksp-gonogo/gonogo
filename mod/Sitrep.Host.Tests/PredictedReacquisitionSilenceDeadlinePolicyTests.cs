@@ -69,6 +69,32 @@ namespace Sitrep.Host.Tests
             public double SeparationAt(double ut) => 1_000_000.0;
         }
 
+        /// <summary>
+        /// A craft too slow for its own orbit to be the fast term: the path
+        /// opens and closes once per rotation of the station's body, with a
+        /// single continuous crossing at each edge. Stands in for a real
+        /// interplanetary geometry, whose cadence is the station's day for the
+        /// same reason.
+        /// </summary>
+        private sealed class StationDayGeometry : IVisibilityGeometry, IVisibilityCadence
+        {
+            private readonly double _firstEmergence;
+            private readonly double _rotationPeriod;
+
+            public StationDayGeometry(double firstEmergence, double rotationPeriod)
+            {
+                _firstEmergence = firstEmergence;
+                _rotationPeriod = rotationPeriod;
+            }
+
+            public double MarginAt(double ut) =>
+                Math.Sin(2.0 * Math.PI * (ut - _firstEmergence) / _rotationPeriod);
+
+            public double SeparationAt(double ut) => 1_000_000.0;
+
+            public double ShortestCycleSeconds => _rotationPeriod;
+        }
+
         private sealed class ConstantMarginGeometry : IVisibilityGeometry
         {
             private readonly double _margin;
@@ -109,6 +135,61 @@ namespace Sitrep.Host.Tests
 
             // grace = max(0.25 * 3600, 300) = 900
             Assert.Equal(900.0 + 900.0, deadline.DurationSec, 1);
+        }
+
+        /// <summary>
+        /// Kerbin's sidereal day, the cadence every prediction against a Kerbin
+        /// station actually has.
+        /// </summary>
+        private const double KerbinSiderealDay = 21_549.425;
+
+        /// <summary>
+        /// The sweep has to be stepped against the FASTEST term in the
+        /// geometry, and for anything slower than the station's day that is the
+        /// day. A solar-orbit craft (T = 1.02e7 s) stepped at T/720 gets 1.5
+        /// samples per visibility cycle, so the sweep walks past the first
+        /// emergence and reports the next one, a full Kerbin day late. The late
+        /// answer is a real emergence (bisection keeps its bracket), just not
+        /// the one the craft is due back on, which is what makes this look
+        /// perfectly healthy from the outside.
+        /// </summary>
+        [Fact]
+        public void ALongPeriodCraftIsSweptAtTheStationsDayRatherThanItsOwnPeriod()
+        {
+            // Only the period matters here; the fake geometry never reads the
+            // elements, and 1.02e7 s is the solar-orbit case measured in the save.
+            var orbit = Circular(1.02e7);
+            var onset = 10_000.0;
+            var emergence = onset + 2_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new StationDayGeometry(emergence, KerbinSiderealDay));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Equal(emergence, deadline.PredictedReacquisitionUt!.Value, 1);
+        }
+
+        /// <summary>
+        /// The fallback ceilings its answer at a day; the predicted branch used
+        /// to have no ceiling at all, so an emergence a week out armed a
+        /// deadline a week out. A craft silent for a full day is declared lost
+        /// whatever geometry says, and the prediction stays on the wire as the
+        /// reason it is worth still watching for.
+        /// </summary>
+        [Fact]
+        public void APredictedDeadlineIsCeilingedTheSameAsTheFallback()
+        {
+            var orbit = Circular(200_000.0);
+            var onset = 1_000.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(onset + 150_000.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Equal(onset + 150_000.0, deadline.PredictedReacquisitionUt!.Value, 1);
+            Assert.Equal(OrbitalPeriodSilenceDeadlinePolicy.DefaultCeilingSec, deadline.DurationSec, 1);
         }
 
         /// <summary>

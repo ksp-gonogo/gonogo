@@ -20,7 +20,7 @@ namespace Sitrep.Propagation.Visibility
     /// a parameter is what lets one capture be scored against both candidates
     /// side by side instead of one being assumed.</para>
     /// </summary>
-    public sealed class OrbitToGroundStationGeometry : IVisibilityGeometry
+    public sealed class OrbitToGroundStationGeometry : IVisibilityGeometry, IVisibilityCadence
     {
         private readonly OrbitElements _orbit;
         private readonly RotatingGroundStation _station;
@@ -49,10 +49,29 @@ namespace Sitrep.Propagation.Visibility
             _propagator = propagator ?? new KeplerProvider();
         }
 
-        /// <summary>The orbital period, seconds, implied by the elements. The natural scale for a sweep step and for a sweep window.</summary>
+        /// <summary>The orbital period, seconds, implied by the elements. One of the two terms a sweep step has to resolve; see <see cref="ShortestCycleSeconds"/> for the other.</summary>
         public double PeriodSeconds
         {
             get { return 2.0 * Math.PI * Math.Sqrt(_orbit.Sma * _orbit.Sma * _orbit.Sma / _orbit.Mu); }
+        }
+
+        /// <summary>
+        /// The faster of the orbit and the station's spin, seconds. A craft
+        /// above synchronous altitude is overtaken by the station beneath it,
+        /// so the day is what the path opens and closes with.
+        /// </summary>
+        public double ShortestCycleSeconds
+        {
+            get
+            {
+                var spin = Math.Abs(_station.RotationPeriodSeconds);
+                var period = PeriodSeconds;
+                if (!(spin > 0.0) || double.IsInfinity(spin))
+                {
+                    return period;
+                }
+                return spin < period ? spin : period;
+            }
         }
 
         /// <summary>The occluding radius this geometry was built with, metres. Echoed so a report can name the assumption it used.</summary>

@@ -43,6 +43,14 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// The longest deadline this policy will ever hand out, seconds. Read
+        /// by <see cref="PredictedReacquisitionSilenceDeadlinePolicy"/> so a
+        /// predicted deadline is ceilinged against the same number rather than
+        /// running to whatever the geometry happened to find.
+        /// </summary>
+        public double CeilingSec => _ceilingSec;
+
+        /// <summary>
         /// Matches the <see cref="SilenceDeadlinePolicy"/> delegate shape;
         /// callers inject <c>new OrbitalPeriodSilenceDeadlinePolicy().Evaluate</c>
         /// into <see cref="SilenceTracker"/>'s constructor. Everything on the

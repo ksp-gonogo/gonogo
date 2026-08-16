@@ -44,28 +44,37 @@ namespace Sitrep.Host.Comms
         public delegate IVisibilityGeometry GeometryFactory(SilenceSample sample, double ut);
 
         /// <summary>
-        /// Periods of forward search. One period would find an occultation
-        /// that recurs every orbit but could sit exactly inside a gap for one
-        /// that does not; two costs nothing extra worth counting and covers
-        /// the case where the vessel went dark just after an emergence.
+        /// Cycles of forward search, where a cycle is whatever the visibility
+        /// geometry repeats on (see <see cref="CycleOf"/>). One cycle would
+        /// find an occultation that recurs every time round but could sit
+        /// exactly inside a gap for one that does not; two costs nothing extra
+        /// worth counting and covers the case where the vessel went dark just
+        /// after an emergence.
+        ///
+        /// <para>Measured against the same cycle as the step, not against the
+        /// orbit, which is what keeps the sample count constant: two cycles at
+        /// <see cref="SweepStepsPerCycle"/> steps is ~1440 samples whether the
+        /// craft is in low orbit or in solar orbit. Sizing the window on a long
+        /// orbital period instead would need half a million samples to keep the
+        /// same resolution and would simply be refused.</para>
         /// </summary>
-        public const double SearchWindowPeriods = 2.0;
+        public const double SearchWindowCycles = 2.0;
 
         /// <summary>
-        /// Half a degree of orbital arc: the step the predictor spec settles
-        /// on, which puts every low orbit at 3-6 s and so resolves any
-        /// occultation worth naming.
+        /// Half a degree of the visibility cycle: the step the predictor spec
+        /// settles on, which puts every low orbit at 3-6 s and a Kerbin station
+        /// at 30 s, and so resolves any occultation worth naming.
         /// </summary>
-        public const double SweepStepsPerPeriod = 720.0;
+        public const double SweepStepsPerCycle = 720.0;
 
         /// <summary>
         /// The coarsest step still considered a resolution rather than a
-        /// guess: five degrees of arc. A warp that forces a step longer than
-        /// this cannot see an occultation shorter than a tenth of the orbit,
-        /// which at these altitudes is most of them, so the honest answer is
+        /// guess: five degrees of the cycle. A warp that forces a step longer
+        /// than this cannot see an occultation shorter than a tenth of a cycle,
+        /// which is most of them, so the honest answer is
         /// <see cref="SilenceDeadlineBasis.WarpLimited"/> and no number.
         /// </summary>
-        public const double CoarsestUsefulStepsPerPeriod = 72.0;
+        public const double CoarsestUsefulStepsPerCycle = 72.0;
 
         /// <summary>
         /// Grace between predicted emergence and the declare-lost deadline, as
@@ -81,7 +90,7 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Hard cap on margin evaluations for a single call, so a pathological
         /// orbit cannot turn one capture tick into an unbounded loop. Two
-        /// periods at half-degree steps is ~1440 samples, so this leaves an
+        /// cycles at half-degree steps is ~1440 samples, so this leaves an
         /// order of magnitude of headroom before it ever binds.
         /// </summary>
         public const int MaxSamplesPerEvaluation = 20_000;
@@ -134,18 +143,13 @@ namespace Sitrep.Host.Comms
                 return fallback;
             }
 
-            var step = Math.Max(period / SweepStepsPerPeriod, Math.Max(_warpStepFloorSeconds(), 0.0));
-            if (step > period / CoarsestUsefulStepsPerPeriod)
-            {
-                return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
-            }
-
-            var window = SearchWindowPeriods * period;
-            if (window / step > MaxSamplesPerEvaluation)
-            {
-                return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
-            }
-
+            // The geometry is built BEFORE the step is chosen, because only the
+            // geometry knows which term moves fastest: the sweep is stepped
+            // against the station's day for anything slower than it, and the
+            // vessel's period is no guide to that. The cost is that a
+            // warp-limited call now pays for a geometry it will not sweep,
+            // which is a fraction of the ~1440-sample sweep it replaces and is
+            // spent at most twice per silence run.
             IVisibilityGeometry geometry;
             try
             {
@@ -161,6 +165,19 @@ namespace Sitrep.Host.Comms
             if (geometry == null)
             {
                 return fallback;
+            }
+
+            var cycle = CycleOf(geometry, period);
+            var step = Math.Max(cycle / SweepStepsPerCycle, Math.Max(_warpStepFloorSeconds(), 0.0));
+            if (step > cycle / CoarsestUsefulStepsPerCycle)
+            {
+                return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
+            }
+
+            var window = SearchWindowCycles * cycle;
+            if (window / step > MaxSamplesPerEvaluation)
+            {
+                return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
             }
 
             VisibilitySweepResult sweep;
@@ -224,7 +241,42 @@ namespace Sitrep.Host.Comms
                 duration = fallback.DurationSec;
             }
 
+            // And never longer than the fallback would ever run. A craft silent
+            // for a day is declared lost whatever the geometry found, which is
+            // the fallback's own rule; without this the predicted branch was the
+            // one path that could arm a deadline a week out. The prediction
+            // itself stays on the wire: an emergence past the ceiling is still
+            // the reason to keep watching, it is just no longer the reason to
+            // keep the vessel off the lost list.
+            if (duration > _fallback.CeilingSec)
+            {
+                duration = _fallback.CeilingSec;
+            }
+
             return new SilenceDeadline(duration, SilenceDeadlineBasis.PredictedReacquisition, emergence);
+        }
+
+        /// <summary>
+        /// The cycle the sweep has to resolve: what the geometry says its own
+        /// motion repeats on, or the orbital period for a geometry that does
+        /// not declare a cadence at all.
+        ///
+        /// <para>Guarded rather than trusted. A cadence of zero or NaN would
+        /// divide the step to nothing, and one LONGER than the orbit would
+        /// coarsen a step that was already fine enough, so anything that is not
+        /// a usable value strictly shorter than the period leaves the period in
+        /// place. The step only ever gets finer than it was.</para>
+        /// </summary>
+        private static double CycleOf(IVisibilityGeometry geometry, double period)
+        {
+            var cadence = geometry as IVisibilityCadence;
+            if (cadence == null)
+            {
+                return period;
+            }
+
+            var cycle = cadence.ShortestCycleSeconds;
+            return IsUsable(cycle) && cycle < period ? cycle : period;
         }
 
         private static SilenceDeadline WithBasis(SilenceDeadline deadline, string basis) =>

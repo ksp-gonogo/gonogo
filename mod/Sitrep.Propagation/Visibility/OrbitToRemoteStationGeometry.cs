@@ -32,7 +32,7 @@ namespace Sitrep.Propagation.Visibility
     /// parent-body occluder collapses onto the station body, which the
     /// duplicate-occluder check below drops rather than double-counting.</para>
     /// </summary>
-    public sealed class OrbitToRemoteStationGeometry : IVisibilityGeometry
+    public sealed class OrbitToRemoteStationGeometry : IVisibilityGeometry, IVisibilityCadence
     {
         private static readonly Vector3d Origin = new Vector3d(0.0, 0.0, 0.0);
 
@@ -136,13 +136,56 @@ namespace Sitrep.Propagation.Visibility
         {
         }
 
-        /// <summary>The VESSEL's orbital period, seconds: the scale a sweep step and window are chosen against, since it is the fast term.</summary>
+        /// <summary>
+        /// The VESSEL's orbital period, seconds. One of the two terms a sweep
+        /// step has to resolve, and NOT reliably the faster of them: see
+        /// <see cref="ShortestCycleSeconds"/>, which is what a caller sizing a
+        /// step should ask for.
+        /// </summary>
         public double PeriodSeconds
         {
             get
             {
                 return 2.0 * Math.PI * Math.Sqrt(
                     _vesselOrbit.Sma * _vesselOrbit.Sma * _vesselOrbit.Sma / _vesselOrbit.Mu);
+            }
+        }
+
+        /// <summary>
+        /// The faster of the vessel's orbit and the stations' spin, seconds.
+        /// A station's day is the term that opens and closes the path for
+        /// anything slower than it, which every interplanetary craft is.
+        ///
+        /// <para>The stations are taken at their fastest rather than averaged:
+        /// they need not share a spin (nothing here says they sit on one body),
+        /// and a step that resolves the fastest of them resolves all of them.
+        /// A station with no usable spin rate is held fixed in the inertial
+        /// frame by <see cref="RotatingGroundStation"/>, so it contributes no
+        /// cycle rather than an infinitely fast one.</para>
+        ///
+        /// <para>The chain bodies are deliberately absent: a body's orbit about
+        /// its parent runs to days or years where the body it is measured
+        /// against spins in hours, so including them would only ever confirm
+        /// the answer already found here.</para>
+        /// </summary>
+        public double ShortestCycleSeconds
+        {
+            get
+            {
+                var shortest = PeriodSeconds;
+                foreach (var station in _stations)
+                {
+                    var spin = Math.Abs(station.RotationPeriodSeconds);
+                    if (!(spin > 0.0) || double.IsInfinity(spin))
+                    {
+                        continue;
+                    }
+                    if (spin < shortest)
+                    {
+                        shortest = spin;
+                    }
+                }
+                return shortest;
             }
         }
 
