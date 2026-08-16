@@ -60,6 +60,7 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _host = host;
+            SilenceTracking.SilenceGeometrySink.Bind(host.Kernel);
             _orbitSource = host.RegisterDynamicNamespace(ChannelEngine.FleetNodePrefix, new ChannelDeclaration
             {
                 Delivery = Delivery.LossyLatest,

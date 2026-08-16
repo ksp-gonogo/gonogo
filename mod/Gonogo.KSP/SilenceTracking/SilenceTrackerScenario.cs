@@ -21,14 +21,42 @@ namespace Gonogo.KSP.SilenceTracking
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
     public sealed class SilenceTrackerScenario : ScenarioModule
     {
-        private SilenceTracker _tracker = new SilenceTracker(new OrbitalPeriodSilenceDeadlinePolicy().Evaluate);
+        private SilenceTracker _tracker = new SilenceTracker(BuildPolicy());
 
         public override void OnAwake()
         {
             base.OnAwake();
 
-            _tracker = new SilenceTracker(new OrbitalPeriodSilenceDeadlinePolicy().Evaluate);
+            _tracker = new SilenceTracker(BuildPolicy());
             SilenceTrackerSink.Bind(_tracker);
+        }
+
+        /// <summary>
+        /// The geometry predictor, falling back to the orbital-period deadline
+        /// on every path it cannot resolve. Built per save rather than held
+        /// static because the elected comms backend (and so the occluding
+        /// radius it declares) is a property of the running game, not of the
+        /// process.
+        /// </summary>
+        private static SilenceDeadlinePolicy BuildPolicy() =>
+            new PredictedReacquisitionSilenceDeadlinePolicy(
+                new KspVisibilityGeometryFactory(() => SilenceGeometrySink.Kernel).Build,
+                warpStepFloorSeconds: WarpStepFloorSeconds).Evaluate;
+
+        /// <summary>
+        /// The finest UT step this warp can actually resolve: one physics frame
+        /// of game time. Above it the sweep would be sampling a curve it cannot
+        /// see, so the policy reports warp-limited instead of a number.
+        /// </summary>
+        private static double WarpStepFloorSeconds()
+        {
+            var rate = TimeWarp.CurrentRate;
+            if (!(rate > 1.0f))
+            {
+                return 1.0;
+            }
+            var fps = Time.smoothDeltaTime > 0.0f ? 1.0 / Time.smoothDeltaTime : 60.0;
+            return Math.Max(1.0, rate / fps);
         }
 
         public override void OnLoad(ConfigNode node)
