@@ -99,8 +99,10 @@ namespace Sitrep.Contract
     /// C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s
     /// <c>ResolutionNotice</c>. <see cref="Kind"/> is one of:
     /// "superseded" (exclusive-conflict resolution), "version-excluded"
-    /// (version gating), or "vanilla-fallback" (no provider survived
-    /// selection, used the capability's vanilla factory instead).
+    /// (version gating), "vanilla-fallback" (no provider survived
+    /// selection, used the capability's vanilla factory instead), or
+    /// "factory-failed" (a selected provider threw during activation and
+    /// contributes no instance).
     /// </summary>
     public sealed class ResolutionNotice
     {
@@ -433,6 +435,19 @@ namespace Sitrep.Contract
         /// <see cref="CapabilitySelection.Providers"/> (from either exclusive
         /// or shared selection) falls back to the capability's vanilla
         /// factory.
+        ///
+        /// <para>A factory that THROWS does not take the capability, or the
+        /// rest of the resolution, down with it. Winning an election is not
+        /// the same as being able to run: a provider compiled against an older
+        /// contract fails its vtable setup at instantiation, long after
+        /// selection has already declared it the winner. Letting that
+        /// propagate left the capability with no instance at all and aborted
+        /// every capability later in the topo order, which is the exact
+        /// opposite of what a vanilla fallback is for. So each factory runs in
+        /// isolation: a thrower is recorded as <c>factory-failed</c> and
+        /// contributes nothing, and an exclusive capability whose sole winner
+        /// failed falls through to vanilla exactly as if the provider had
+        /// never registered.</para>
         /// </summary>
         private static List<object?> ActivateSelection(
             CapabilitySelection selection,
@@ -443,13 +458,40 @@ namespace Sitrep.Contract
             {
                 return ActivateVanilla(selection.Descriptor, ctx, notices);
             }
-            return selection.Providers.Select(provider => provider.Factory(ctx)).ToList();
+
+            var instances = new List<object?>();
+            foreach (var provider in selection.Providers)
+            {
+                try
+                {
+                    instances.Add(provider.Factory(ctx));
+                }
+                catch (Exception error)
+                {
+                    notices.Add(new ResolutionNotice
+                    {
+                        Capability = selection.Descriptor.Id,
+                        Kind = "factory-failed",
+                        Detail =
+                            $"Provider \"{provider.Id}\" for capability \"{selection.Descriptor.Id}\" " +
+                            $"threw during activation: {error.Message}",
+                    });
+                }
+            }
+
+            if (instances.Count == 0)
+            {
+                return ActivateVanilla(
+                    selection.Descriptor, ctx, notices, "Every selected provider failed to activate");
+            }
+            return instances;
         }
 
         private static List<object?> ActivateVanilla(
             CapabilityDescriptor descriptor,
             ProviderContext ctx,
-            List<ResolutionNotice> notices)
+            List<ResolutionNotice> notices,
+            string reason = "No provider registered")
         {
             if (descriptor.Vanilla == null)
             {
@@ -459,7 +501,7 @@ namespace Sitrep.Contract
             {
                 Capability = descriptor.Id,
                 Kind = "vanilla-fallback",
-                Detail = $"No provider registered for capability \"{descriptor.Id}\"; activated vanilla fallback.",
+                Detail = $"{reason} for capability \"{descriptor.Id}\"; activated vanilla fallback.",
             });
             return new List<object?> { descriptor.Vanilla(ctx) };
         }

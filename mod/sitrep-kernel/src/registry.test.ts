@@ -54,6 +54,91 @@ describe("Kernel", () => {
     ).toBe(false);
   });
 
+  it("falls back to vanilla when the winning provider's factory throws", () => {
+    // The live shape of this: RealAntennas wins the exclusive "comms"
+    // election, then its backend type fails vtable setup because the
+    // deployed assembly predates a contract change. Selection had already
+    // named it the winner, so without this the capability activates nothing
+    // and CommNet, the whole point of a vanilla fallback, never runs.
+    const kernel = new Kernel();
+    kernel.registerCapability<Comms>({
+      id: "comms",
+      exclusive: true,
+      vanilla: () => ({ name: "vanilla" }),
+    });
+    kernel.registerProvider<Comms>({
+      capability: "comms",
+      id: "realantennas",
+      factory: () => {
+        throw new TypeError("VTable setup of type RaCommsBackend failed");
+      },
+    });
+
+    const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(kernel.query<Comms>("comms")).toEqual({ name: "vanilla" });
+    expect(notices).toContainEqual(
+      expect.objectContaining({ capability: "comms", kind: "factory-failed" }),
+    );
+    expect(notices).toContainEqual(
+      expect.objectContaining({
+        capability: "comms",
+        kind: "vanilla-fallback",
+      }),
+    );
+  });
+
+  it("keeps the surviving providers when one shared factory throws", () => {
+    const kernel = new Kernel();
+    kernel.registerCapability<Comms>({ id: "sensors", exclusive: false });
+    kernel.registerProvider<Comms>({
+      capability: "sensors",
+      id: "broken",
+      factory: () => {
+        throw new Error("nope");
+      },
+    });
+    kernel.registerProvider<Comms>({
+      capability: "sensors",
+      id: "working",
+      factory: () => ({ name: "working" }),
+    });
+
+    const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(kernel.active("sensors")).toEqual([{ name: "working" }]);
+    expect(notices).toContainEqual(
+      expect.objectContaining({
+        capability: "sensors",
+        kind: "factory-failed",
+      }),
+    );
+  });
+
+  it("resolves later capabilities after an earlier factory throws", () => {
+    // The blast radius that made this worth fixing: activation walks a topo
+    // order, so a propagating throw skipped every capability after it.
+    const kernel = new Kernel();
+    kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
+    kernel.registerProvider<Comms>({
+      capability: "comms",
+      id: "broken",
+      factory: () => {
+        throw new Error("nope");
+      },
+    });
+    kernel.registerCapability<Comms>({
+      id: "science",
+      exclusive: true,
+      vanilla: () => ({ name: "stock-science" }),
+    });
+
+    kernel.resolve({ kernelVersion: "1.0.0" });
+
+    expect(kernel.active("comms")).toEqual([]);
+    expect(kernel.query<Comms>("science")).toEqual({ name: "stock-science" });
+  });
+
   it("activates every provider for a non-exclusive capability", () => {
     const kernel = new Kernel();
     kernel.registerCapability<Comms>({ id: "sensors", exclusive: false });

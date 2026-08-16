@@ -24,8 +24,15 @@ export interface ResolutionNotice {
    * "version-excluded" -> Task 5 (version gating)
    * "vanilla-fallback" -> this task: no provider registered/survived, used
    *   the capability's vanilla factory instead.
+   * "factory-failed" -> a selected provider's factory threw during
+   *   activation; it contributes no instance and the capability recovers
+   *   (vanilla for exclusive, the surviving providers for shared).
    */
-  kind: "superseded" | "version-excluded" | "vanilla-fallback";
+  kind:
+    | "superseded"
+    | "version-excluded"
+    | "vanilla-fallback"
+    | "factory-failed";
   detail: string;
 }
 
@@ -340,6 +347,18 @@ export class Kernel {
    * capability's selection, in topo order relative to other capabilities.
    * Empty `providers` (from either exclusive or shared selection) falls
    * back to the capability's vanilla factory.
+   *
+   * A factory that THROWS does not take the capability, or the rest of the
+   * resolution, down with it. Winning an election is not the same as being
+   * able to run: a provider compiled against an older contract fails its
+   * vtable setup at instantiation, long after selection has already declared
+   * it the winner. Letting that propagate left the capability with no
+   * instance at all and aborted every capability later in the topo order,
+   * which is the exact opposite of what a vanilla fallback is for. So each
+   * factory is run in isolation: a thrower is recorded as `factory-failed`
+   * and contributes nothing, and an exclusive capability whose sole winner
+   * failed falls through to vanilla exactly as if the provider had never
+   * registered.
    */
   private activateSelection(
     selection: CapabilitySelection,
@@ -350,13 +369,38 @@ export class Kernel {
     if (providers.length === 0) {
       return this.activateVanilla(descriptor, ctx, notices);
     }
-    return providers.map((provider) => provider.factory(ctx));
+
+    const instances: unknown[] = [];
+    for (const provider of providers) {
+      try {
+        instances.push(provider.factory(ctx));
+      } catch (error) {
+        notices.push({
+          capability: descriptor.id,
+          kind: "factory-failed",
+          detail:
+            `Provider "${provider.id}" for capability "${descriptor.id}" ` +
+            `threw during activation: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
+    }
+
+    if (instances.length === 0) {
+      return this.activateVanilla(
+        descriptor,
+        ctx,
+        notices,
+        "Every selected provider failed to activate",
+      );
+    }
+    return instances;
   }
 
   private activateVanilla(
     descriptor: CapabilityDescriptor,
     ctx: ProviderContext,
     notices: ResolutionNotice[],
+    reason = "No provider registered",
   ): unknown[] {
     if (!descriptor.vanilla) {
       return [];
@@ -364,7 +408,7 @@ export class Kernel {
     notices.push({
       capability: descriptor.id,
       kind: "vanilla-fallback",
-      detail: `No provider registered for capability "${descriptor.id}"; activated vanilla fallback.`,
+      detail: `${reason} for capability "${descriptor.id}"; activated vanilla fallback.`,
     });
     return [descriptor.vanilla(ctx)];
   }
