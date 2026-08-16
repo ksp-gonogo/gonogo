@@ -190,6 +190,12 @@ namespace Sitrep.Propagation.Visibility
             return margin;
         }
 
+        /// <summary>
+        /// Distance from the vessel to the FIRST station, which callers doing a
+        /// frame reconciliation must therefore pass as the one they measured
+        /// against. Comparing against any other station reports the distance
+        /// between two points on the same planet as frame error.
+        /// </summary>
         public double SeparationAt(double ut)
         {
             var vessel = VesselAt(ut, new Vector3d[_chain.Length]);

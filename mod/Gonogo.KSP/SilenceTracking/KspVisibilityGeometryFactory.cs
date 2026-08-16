@@ -153,9 +153,17 @@ namespace Gonogo.KSP.SilenceTracking
             // the real network never has: measured live as a 2104 s prediction
             // against a 795 s truth, the excess being the wait for one station
             // to come back around rather than for the moon to clear.
+            // The chosen node goes FIRST, because the frame self-check measures
+            // against comm.precisePosition and compares that with the
+            // geometry's own first station. Any other order compares two
+            // different points on the planet and reports their separation - up
+            // to a body diameter - as frame error.
             var stations = new List<RotatingGroundStation>();
+            var chosenStation = StationOn(stationBody, comm, longitudeOffset);
+            if (chosenStation != null) stations.Add(chosenStation.Value);
             foreach (var node in stationNodes)
             {
+                if (ReferenceEquals(node, comm)) continue;
                 var on = StationOn(stationBody, node, longitudeOffset);
                 if (on != null) stations.Add(on.Value);
             }
