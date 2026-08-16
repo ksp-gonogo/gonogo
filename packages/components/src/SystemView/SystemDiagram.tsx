@@ -692,25 +692,34 @@ function VesselOrbitPath({
  */
 export type VesselPlotState = "observed" | "predicted" | "overdue" | "lost";
 
+/**
+ * Stroke colour per plot state. Exported so a test can check each one is a
+ * token that actually exists: `var()` on an undefined property paints nothing
+ * and says nothing, which is how the lost marker went missing entirely.
+ *
+ * <p>These are the ON-DARK variants. The `*-fg` tokens are foregrounds meant to
+ * sit on their matching `*-bg` fill, so `--color-status-warning-fg` is #1a1a1a
+ * and strokes as near-black against the panel.</p>
+ */
+export const MARKER_STATE_COLOURS: Record<VesselPlotState, string> = {
+  observed: "var(--color-accent-fg)",
+  predicted: "var(--color-text-muted)",
+  overdue: "var(--color-status-warning-fg-muted)",
+  lost: "var(--color-status-nogo-bg)",
+};
+
 function markerStyle(state: VesselPlotState) {
+  const colour = MARKER_STATE_COLOURS[state];
   switch (state) {
     case "overdue":
-      return {
-        colour: "var(--color-status-warning-fg)",
-        filled: false,
-        opacity: 0.95,
-      };
+      return { colour, filled: false, opacity: 0.95 };
     case "lost":
-      return {
-        colour: "var(--color-status-critical-fg)",
-        filled: false,
-        opacity: 0.6,
-      };
+      return { colour, filled: false, opacity: 0.85 };
     case "predicted":
       // Desaturated and hollow: a reckoned position, not a reported one.
-      return { colour: "var(--color-text-muted)", filled: false, opacity: 0.7 };
+      return { colour, filled: false, opacity: 0.7 };
     default:
-      return { colour: "var(--color-accent-fg)", filled: true, opacity: 1 };
+      return { colour, filled: true, opacity: 1 };
   }
 }
 
