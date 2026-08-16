@@ -118,6 +118,14 @@ export { EventTimeline } from "./event-timeline";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
 export {
+  type ContactPhase,
+  contactPhase,
+  type FleetVesselContact,
+  overdueSeconds,
+  type SilenceDeadlineBasis,
+  useFleetVesselContact,
+} from "./fleet-contact";
+export {
   type FleetVesselLink,
   useFleetVesselLink,
 } from "./fleet-link";
