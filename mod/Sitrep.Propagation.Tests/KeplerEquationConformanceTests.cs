@@ -194,6 +194,54 @@ namespace Sitrep.Propagation.Tests
             Assert.Empty(failures.GetRange(0, Math.Min(10, failures.Count)));
         }
 
+        /// <summary>
+        /// The externally-attributable half. The residual proves the vanilla solves the
+        /// equation as WE state it; these prove we state it the way an outside authority
+        /// does, at two eccentricities including 0.99.
+        ///
+        /// <para>Read <c>publishedTriplesProvenance</c> in the fixture before trusting the
+        /// digits. They arrive through a port lineage rather than from Meeus directly, and
+        /// what makes them usable is that each was verified to satisfy the equation to its
+        /// own printed precision rather than taken on faith.</para>
+        /// </summary>
+        [Fact]
+        public void TheVanillaReproducesEveryPublishedMeeusValue()
+        {
+            IPropagationProvider provider = new KeplerProvider();
+
+            foreach (var triple in TheGrid.PublishedTriples)
+            {
+                var meanAnomaly = ToRadians(triple.MeanAnomaly, triple.Units);
+                var expected = ToRadians(triple.EccentricAnomaly, triple.Units);
+
+                var actual = EccentricAnomalyFrom(provider, triple.Eccentricity, meanAnomaly);
+
+                Assert.True(
+                    Math.Abs(WrapPi(actual - expected)) < triple.ToleranceRadians,
+                    $"{triple.Id} ({triple.Source}): got {actual}, published {expected}");
+            }
+        }
+
+        [Fact]
+        public void EveryPublishedTripleIsAGenuineSolutionRatherThanAQuotedNumber()
+        {
+            // The guard on the published values themselves, so a mistranscribed digit
+            // fails here rather than becoming a false expectation for the solver.
+            foreach (var triple in TheGrid.PublishedTriples)
+            {
+                var meanAnomaly = ToRadians(triple.MeanAnomaly, triple.Units);
+                var eccentricAnomaly = ToRadians(triple.EccentricAnomaly, triple.Units);
+
+                Assert.True(
+                    Residual(eccentricAnomaly, triple.Eccentricity, meanAnomaly) < triple.ToleranceRadians,
+                    $"{triple.Id}: published E does not satisfy Kepler's equation");
+            }
+        }
+
+        /// <summary>Published values are stored in the units they were PRINTED in, so the fixture transcribes nothing.</summary>
+        private static double ToRadians(double value, string units) =>
+            units == "degrees" ? value * Math.PI / 180.0 : value;
+
         [Fact]
         public void TheAreaLawCheckRejectsAPlausibleWrongSolver()
         {
@@ -282,6 +330,34 @@ namespace Sitrep.Propagation.Tests
 
             [JsonPropertyName("areaLawSimpsonIntervals")]
             public int AreaLawSimpsonIntervals { get; set; }
+
+            [JsonPropertyName("publishedTriples")]
+            public PublishedTriple[] PublishedTriples { get; set; } = Array.Empty<PublishedTriple>();
+        }
+
+        internal sealed class PublishedTriple
+        {
+            [JsonPropertyName("id")]
+            public string Id { get; set; } = "";
+
+            [JsonPropertyName("source")]
+            public string Source { get; set; } = "";
+
+            /// <summary>"degrees" or "radians", whichever the value was printed in.</summary>
+            [JsonPropertyName("units")]
+            public string Units { get; set; } = "radians";
+
+            [JsonPropertyName("eccentricity")]
+            public double Eccentricity { get; set; }
+
+            [JsonPropertyName("meanAnomaly")]
+            public double MeanAnomaly { get; set; }
+
+            [JsonPropertyName("eccentricAnomaly")]
+            public double EccentricAnomaly { get; set; }
+
+            [JsonPropertyName("toleranceRadians")]
+            public double ToleranceRadians { get; set; }
         }
     }
 }

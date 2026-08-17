@@ -34,6 +34,16 @@ import { solveKepler as coreSolveKepler } from "./calc/trajectory";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..", "..");
 
+interface PublishedTriple {
+  id: string;
+  source: string;
+  units: "degrees" | "radians";
+  eccentricity: number;
+  meanAnomaly: number;
+  eccentricAnomaly: number;
+  toleranceRadians: number;
+}
+
 interface Grid {
   eccentricities: number[];
   meanAnomaliesNearZero: number[];
@@ -42,6 +52,12 @@ interface Grid {
   maxMeanAnomalyErrorForRoundTripRadians: number;
   areaLawRelativeTolerance: number;
   areaLawSimpsonIntervals: number;
+  publishedTriples: PublishedTriple[];
+}
+
+/** Published values are stored in the units they were PRINTED in, so no transcription happens in the fixture. */
+function toRadians(value: number, units: "degrees" | "radians"): number {
+  return units === "degrees" ? (value * Math.PI) / 180 : value;
 }
 
 const grid: Grid = JSON.parse(
@@ -247,6 +263,26 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
         expect(failures.slice(0, 10)).toEqual([]);
       });
 
+      it("reproduces every published Meeus value", () => {
+        // The externally-attributable half. The residual proves an implementation
+        // solves the equation as WE state it; these prove we state it the way an
+        // outside authority does, at two eccentricities including 0.99. Read
+        // `publishedTriplesProvenance` in the fixture before trusting the digits:
+        // they come through a port lineage, and what makes them usable is that each
+        // was verified to satisfy the equation rather than taken on faith.
+        for (const triple of grid.publishedTriples) {
+          const M = toRadians(triple.meanAnomaly, triple.units);
+          const expected = toRadians(triple.eccentricAnomaly, triple.units);
+
+          const actual = impl.solve(M, triple.eccentricity);
+
+          expect(
+            Math.abs(wrapPi(actual - expected)),
+            `${triple.id} (${triple.source}): got ${actual}, published ${expected}`,
+          ).toBeLessThan(triple.toleranceRadians);
+        }
+      });
+
       it("refuses an eccentricity the elliptic form does not describe", () => {
         // The contract, picked rather than left to whichever file a caller happened
         // to reach: at e >= 1 the elliptic form of Kepler's equation does not apply,
@@ -341,6 +377,23 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
         grid.areaLawSimpsonIntervals,
       );
       expect(Math.abs(atEccentric - 2.0 / (2 * Math.PI))).toBeGreaterThan(0.05);
+    });
+
+    it("every published triple is a genuine solution, not just a quoted number", () => {
+      // The guard on the published values themselves. They arrive through a port
+      // lineage rather than from the book, so they are checked against the equation
+      // before anything is asked to match them: a mistranscribed digit would make
+      // this fail here rather than turn into a false expectation for every
+      // implementation above.
+      for (const triple of grid.publishedTriples) {
+        const M = toRadians(triple.meanAnomaly, triple.units);
+        const E = toRadians(triple.eccentricAnomaly, triple.units);
+
+        expect(
+          residual(E, triple.eccentricity, M),
+          `${triple.id}: published E does not satisfy Kepler's equation`,
+        ).toBeLessThan(triple.toleranceRadians);
+      }
     });
 
     it("the residual check REJECTS both a naive answer and one half an orbit away", () => {

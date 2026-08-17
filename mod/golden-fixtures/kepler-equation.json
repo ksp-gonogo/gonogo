@@ -26,9 +26,42 @@
 
   "areaLawSimpsonIntervals": 2000,
 
-  "publishedTriples": [],
+  "publishedTriples": [
+    {
+      "id": "meeus-30a-p196",
+      "source": "Meeus, Astronomical Algorithms, Example 30.a, p. 196",
+      "units": "degrees",
+      "eccentricity": 0.1,
+      "meanAnomaly": 5,
+      "eccentricAnomaly": 5.554589,
+      "toleranceRadians": 1e-8,
+      "note": "Printed to 6 decimals of a degree, so it pins the convention rather than the digits."
+    },
+    {
+      "id": "meeus-30b-p199",
+      "source": "Meeus, Astronomical Algorithms, Example 30.b, p. 199",
+      "units": "degrees",
+      "eccentricity": 0.1,
+      "meanAnomaly": 5,
+      "eccentricAnomaly": 5.554589254,
+      "toleranceRadians": 1e-10,
+      "note": "The same case to 9 decimals of a degree."
+    },
+    {
+      "id": "meeus-p205-high-eccentricity",
+      "source": "Meeus, Astronomical Algorithms, worked data p. 205",
+      "units": "radians",
+      "eccentricity": 0.99,
+      "meanAnomaly": 0.2,
+      "eccentricAnomaly": 1.066997365282,
+      "toleranceRadians": 1e-11,
+      "note": "The valuable one. e = 0.99 to 12 decimals, which is the only externally-attributable value this subsystem has anywhere near the region where trajectory.ts breaks."
+    }
+  ],
 
-  "publishedTriplesNote": "EMPTY, deliberately, and this is a gap rather than an omission. The brief asked for two or three externally-published (e, M, E) triples as a cross-check of a different kind, verified against the source rather than a secondary account. I could not source any I am willing to stand behind: Vallado's Example 2-1 and Curtis's Chapter 3 examples are not reproduced with their printed digits anywhere I could fetch and read, Tatum's Celestial Mechanics section 9.5 sets e = 0.95, M = 245 deg as an EXERCISE and prints no answer, and the JPL-hosted copy of it returns 403. An unattributed 'known good' value is a fixture with extra confidence, so there are none here. The area-law check in both suites is the substitute: it closes the same gap (a shared misunderstanding of the equation) from an independent physical starting point, Kepler's second law plus the geometry of an ellipse, and needs no external number to be trusted.",
+  "publishedTriplesProvenance": "READ THIS BEFORE TRUSTING THE DIGITS. These were transcribed from the test suite of the npm package `astronomia` (MIT), whose `src/kepler.js` is a port of Meeus and keeps the chapter-and-page citations in the source. That is a SECONDARY account, and worse, it is one lineage rather than two: `astronomia` is itself a port of the Go package `github.com/soniakeys/meeus` (its source still carries Go type signatures in the comments), so the same value appearing in both is one transcription chain from the book, not independent corroboration. I have not read Meeus directly. What makes them usable anyway is that they were VERIFIED rather than trusted: each satisfies M = E - e sin(E) to a residual consistent with its own printed precision (3.99e-9, 2.01e-12 and 2.28e-13 respectively), and an independent binary search reproduces each to within the same. So they are demonstrably correct solutions whatever their transcription history. Note precisely what that verification does and does not buy: it confirms the CONVENTION, which is what these were wanted for, and it cannot confirm that these are the particular numbers Meeus printed. A faithfully-solved but wrongly-transcribed (e, M) pair would pass it too.",
+
+  "whyTheAreaLawCheckStillExists": "It was written when no published triple could be sourced at all, and it stays now that three can. The triples confirm the convention at two eccentricities; the area law derives the relationship from Kepler's SECOND law and the geometry of an ellipse, needing no external number and no transcription chain. They fail differently, which is the point of having both.",
 
   "existingExternalAnchor": "mod/golden-fixtures/propagation.json carries one published-reference case, 'vallado-coe2rv-earth-tilted'. It pins the full solve including conventions for the C# provider and for packages/sitrep-client/src/kepler.ts, and it is the only externally-sourced number in the subsystem. Note its eccentricity: 0.83285. It stops well short of the regime that broke, which is part of why the break went unnoticed, and it does not touch trajectory.ts or orbit-patches.ts at all."
 }
