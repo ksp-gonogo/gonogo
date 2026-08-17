@@ -1,173 +1,74 @@
+using System;
 using System.Collections.Generic;
 
 namespace Sitrep.Propagation.Visibility
 {
     /// <summary>
-    /// One body in the hierarchy, as the chain walk needs it: what it orbits,
-    /// on what elements, and how big it is to a radio wave.
-    /// </summary>
-    public readonly struct ChainBody
-    {
-        /// <param name="parentIndex">Index of the body this one orbits, or -1 for the root.</param>
-        /// <param name="orbit">This body's elements about its parent. Null for the root.</param>
-        public ChainBody(int parentIndex, OrbitElements? orbit, double occludingRadiusMeters)
-        {
-            ParentIndex = parentIndex;
-            Orbit = orbit;
-            OccludingRadiusMeters = occludingRadiusMeters;
-        }
-
-        public int ParentIndex { get; }
-
-        public OrbitElements? Orbit { get; }
-
-        public double OccludingRadiusMeters { get; }
-    }
-
-    /// <summary>
-    /// Walks the body hierarchy between a station's body and a vessel's parent,
-    /// producing the ordered links <see cref="OrbitToRemoteStationGeometry"/>
-    /// sums.
+    /// Which bodies lie between a station's body and a vessel's parent, and so which
+    /// ones can block the path.
     ///
-    /// <para>Lifted out of the KSP-facing factory deliberately. It was
-    /// previously expressed against <c>CelestialBody</c>, which meant the only
-    /// way to exercise it was to launch the game, a ten-minute cycle per
-    /// question, against logic whose failure mode is a plausible-looking wrong
-    /// number. Expressed against indices and elements it is pure, and a wrong
-    /// chain can be demonstrated in milliseconds.</para>
+    /// <para>The walk goes UP from the station's body to the common ancestor, then
+    /// DOWN to the vessel's parent, and every body it passes through is an occluder.
+    /// Both directions occur constantly: a craft at a moon of the station's planet
+    /// only descends, while anything interplanetary must first climb to the
+    /// star.</para>
     ///
-    /// <para>The walk goes UP from the station's body to the common ancestor,
-    /// then DOWN to the vessel's parent. Both directions occur constantly: a
-    /// craft at a moon of the station's planet only descends, while anything
-    /// interplanetary must first climb to the star.</para>
+    /// <para><b>This no longer says where any of them IS.</b> It used to hand the
+    /// geometry a conic per link, which is what left the two-body assumption sitting
+    /// in a caller. It now names the bodies and leaves their positions to whichever
+    /// propagation provider is elected, which is the only thing that can answer that
+    /// question for a physics other than two-body.</para>
     /// </summary>
     public static class PatchedConicChain
     {
         /// <summary>
-        /// The links from <paramref name="stationBodyIndex"/> to
-        /// <paramref name="vesselParentIndex"/>, nearest the station first, or
-        /// null when no chain exists (different systems, or a malformed
-        /// hierarchy). An empty list means the two are the same body.
+        /// The bodies that can come between <paramref name="stationBodyIndex"/> and
+        /// <paramref name="vesselParentIndex"/>, nearest the station first, or null
+        /// when no path exists (different systems, or a malformed hierarchy). An
+        /// empty list means the two are the same body.
         /// </summary>
-        public static List<OrbitToRemoteStationGeometry.ChainLink> Between(
+        /// <param name="occludingRadiusOf">
+        /// The occluding radius of a body by index, from the elected comms occlusion
+        /// model. Supplied by the caller rather than read off the body table,
+        /// because how big a body is to a radio wave is the model's answer and not
+        /// the body's: stock CommNet shrinks it and a network-replacing backend need not.
+        /// </param>
+        public static List<OccludingBody>? OccludersBetween(
             int stationBodyIndex,
             int vesselParentIndex,
-            IReadOnlyList<ChainBody> bodies)
+            IReadOnlyList<SystemBody>? bodies,
+            Func<int, double> occludingRadiusOf)
         {
-            var links = new List<OrbitToRemoteStationGeometry.ChainLink>();
-            if (bodies == null
-                || stationBodyIndex < 0 || stationBodyIndex >= bodies.Count
-                || vesselParentIndex < 0 || vesselParentIndex >= bodies.Count)
-            {
-                return null;
-            }
-            if (stationBodyIndex == vesselParentIndex)
-            {
-                return links;
-            }
+            if (occludingRadiusOf == null) throw new ArgumentNullException(nameof(occludingRadiusOf));
 
-            var stationBranch = AncestorsOf(stationBodyIndex, bodies);
-            var vesselBranch = AncestorsOf(vesselParentIndex, bodies);
-            if (stationBranch == null || vesselBranch == null)
+            List<int> climb, descend;
+            if (!BodyHierarchy.TryPathBetween(stationBodyIndex, vesselParentIndex, bodies, out climb, out descend))
             {
                 return null;
             }
 
-            var meetAt = -1;
-            var ancestor = -1;
-            for (var i = 0; i < stationBranch.Count && ancestor < 0; i++)
-            {
-                if (vesselBranch.Contains(stationBranch[i]))
-                {
-                    ancestor = stationBranch[i];
-                    meetAt = i;
-                }
-            }
-            if (ancestor < 0)
-            {
-                return null;
-            }
+            var occluders = new List<OccludingBody>(climb.Count + descend.Count);
 
-            // Climb. An ascending link SUBTRACTS: the frame sits on the far
-            // side of the body being climbed past, so its own orbit is walked
-            // backwards. The link arrives at the body one step up, which is the
-            // occluder that then sits at the accumulated position.
-            for (var i = 0; i < meetAt; i++)
+            // Climbing past a body arrives at the one ABOVE it, and that is the body
+            // then sitting between the two endpoints. The body being left behind is
+            // the frame's own centre, whose occlusion the geometry handles
+            // separately.
+            foreach (var index in climb)
             {
-                var body = bodies[stationBranch[i]];
-                if (body.Orbit == null || body.ParentIndex < 0)
+                var parent = bodies[index].ParentIndex;
+                if (parent < 0 || parent >= bodies.Count)
                 {
                     return null;
                 }
-                links.Add(new OrbitToRemoteStationGeometry.ChainLink(
-                    body.Orbit.Value,
-                    bodies[body.ParentIndex].OccludingRadiusMeters,
-                    descending: false));
+                occluders.Add(new OccludingBody(parent, occludingRadiusOf(parent)));
             }
 
-            // Descend, nearest the ancestor first.
-            var descent = new List<int>();
-            for (var i = 0; i < vesselBranch.Count && vesselBranch[i] != ancestor; i++)
+            foreach (var index in descend)
             {
-                descent.Add(vesselBranch[i]);
-            }
-            descent.Reverse();
-            foreach (var index in descent)
-            {
-                var body = bodies[index];
-                if (body.Orbit == null)
-                {
-                    return null;
-                }
-                links.Add(new OrbitToRemoteStationGeometry.ChainLink(
-                    body.Orbit.Value, body.OccludingRadiusMeters, descending: true));
+                occluders.Add(new OccludingBody(index, occludingRadiusOf(index)));
             }
 
-            return links;
-        }
-
-        /// <summary>
-        /// Whether the elected propagation capability will follow every link. The
-        /// root body's stored elements are typically not an orbit at all (KSP gives
-        /// the Sun <c>ecc = 1</c>, <c>sma = 0</c>), and feeding that to a solver
-        /// throws rather than degrading, deep inside the sweep where the policy
-        /// swallows it and the predictor goes silent with no trace.
-        ///
-        /// <para>The question is asked at a single UT rather than across a window,
-        /// because the chain is built before the sweep's step and window are chosen
-        /// (only the finished geometry knows which term moves fastest). So this
-        /// answers "can you follow these links at all", and a provider with a
-        /// prediction horizon is asked about the window later, at sweep time, by
-        /// the caller that knows it.</para>
-        /// </summary>
-        public static bool IsPropagatable(
-            IReadOnlyList<OrbitToRemoteStationGeometry.ChainLink> links,
-            IPropagationProvider propagator,
-            double ut = 0.0)
-        {
-            if (links == null || propagator == null) return false;
-            foreach (var link in links)
-            {
-                var target = PropagationTarget.RelativeToFrame(link.Orbit);
-                if (!propagator.CanPropagate(target, PropagationFrame.Unnamed, ut, ut))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private static List<int> AncestorsOf(int index, IReadOnlyList<ChainBody> bodies)
-        {
-            var chain = new List<int>();
-            var walker = index;
-            var guard = bodies.Count + 1;
-            while (walker >= 0 && guard-- > 0)
-            {
-                chain.Add(walker);
-                walker = bodies[walker].ParentIndex;
-            }
-            return guard > 0 ? chain : null;
+            return occluders;
         }
     }
 }

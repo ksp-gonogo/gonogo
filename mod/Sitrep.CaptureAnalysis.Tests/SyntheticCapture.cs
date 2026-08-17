@@ -23,6 +23,9 @@ public static class SyntheticCapture
     public const double FirstUt = 1_000.0;
     public const double CadenceSeconds = 1.02;
 
+    /// <summary>Kerbin, as an index the synthetic craft and its frame agree on; no body table is involved in a same-body case.</summary>
+    public const int KerbinIndex = 0;
+
     public static OrbitElements LowOrbit()
     {
         return new OrbitElements(
@@ -60,7 +63,8 @@ public static class SyntheticCapture
         bool declareOcclusion = false)
     {
         OrbitElements orbit = LowOrbit();
-        var geometry = new OrbitToGroundStationGeometry(orbit, Station(), truthRadiusMeters);
+        var geometry = new OrbitToGroundStationGeometry(
+            PropagationTarget.Vessel("synthetic-craft", KerbinIndex, orbit), Station(), truthRadiusMeters);
         double meanMotion = Math.Sqrt(orbit.Mu / (orbit.Sma * orbit.Sma * orbit.Sma));
 
         var lines = new List<string>();

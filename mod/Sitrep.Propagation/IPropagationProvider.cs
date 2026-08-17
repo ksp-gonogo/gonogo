@@ -87,11 +87,17 @@ namespace Sitrep.Propagation
         /// <para>Two independent reasons to refuse, and both matter. The target may
         /// be one this provider cannot describe at all (KSP gives the Sun
         /// <c>ecc = 1</c> and <c>sma = 0</c>, so the root body reaches this guard on
-        /// every chain walk that climbs to the star). Or the FRAME may be
+        /// every hierarchy walk that climbs to the star). Or the FRAME may be
         /// unreachable, or the window may run past a horizon beyond which the
         /// answer stops being trustworthy. An analytic two-body solver has no such
         /// horizon; anything that integrates does, and the window is a parameter so
         /// that it can say so.</para>
+        ///
+        /// <para>This is the ONLY question a caller should ask before reaching for a
+        /// frame centred on another body. It replaced a predicate the visibility
+        /// side kept over its own list of links, which was a second opinion about
+        /// the same walk and so free to disagree with the provider that performs
+        /// it.</para>
         /// </summary>
         bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt);
     }

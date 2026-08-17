@@ -217,30 +217,16 @@ namespace Sitrep.Propagation.Tests
         }
 
         [Fact]
-        public void ABodyTargetNamesItsIndexAndTheBodyItOrbits()
+        public void ABodyTargetNamesItsIndexAndNothingElse()
         {
-            var target = PropagationTarget.Body(Mun, Kerbin, LowOrbit());
+            // No elements and no parent, unlike a vessel. Which body a body orbits
+            // and on what conic is the provider's to know, and a caller that
+            // supplied its own copy would be handing over a second opinion.
+            var target = PropagationTarget.Body(Mun);
 
             Assert.Equal(PropagationTargetKind.Body, target.Kind);
             Assert.Equal(Mun, target.BodyIndex);
-            Assert.Equal(Kerbin, target.ParentBodyIndex);
-        }
-
-        [Fact]
-        public void SolvingInAFrameTheVanillaCannotReachIsRefusedRatherThanApproximated()
-        {
-            // The two-body vanilla can answer only about the body its target
-            // orbits. Asked for a Mun-relative position for a Kerbin-orbiting
-            // craft it would have to walk the body hierarchy, which it cannot do
-            // without an ephemeris. Refusing is the honest answer; returning the
-            // parent-relative vector anyway is the "plausible number in the wrong
-            // place" failure this codebase has already been bitten by once.
-            var provider = new KeplerProvider();
-            var target = Vessel(LowOrbit(), parent: Kerbin);
-
-            Assert.False(provider.CanPropagate(target, PropagationFrame.CentredOn(Mun), 0.0, 100.0));
-            Assert.Throws<NotSupportedException>(
-                () => provider.Solve(target, PropagationFrame.CentredOn(Mun), 0.0));
+            Assert.Null(target.Osculating);
         }
     }
 }

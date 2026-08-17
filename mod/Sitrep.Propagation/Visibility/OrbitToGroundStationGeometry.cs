@@ -22,7 +22,7 @@ namespace Sitrep.Propagation.Visibility
     /// </summary>
     public sealed class OrbitToGroundStationGeometry : IVisibilityGeometry, IVisibilityCadence
     {
-        private readonly OrbitElements _orbit;
+        private readonly PropagationTarget _vessel;
         private readonly RotatingGroundStation _station;
         private readonly double _occludingRadiusMeters;
         private readonly IPropagationProvider _propagator;
@@ -30,8 +30,14 @@ namespace Sitrep.Propagation.Visibility
         /// <summary>Both endpoints are already parent-relative, so the occluder never leaves the origin.</summary>
         private static readonly Vector3d BodyCentre = new Vector3d(0.0, 0.0, 0.0);
 
+        /// <param name="vessel">
+        /// The craft, asked for in its OWN parent frame, which is what "a station on
+        /// the body it orbits" means. There is deliberately no frame parameter: any
+        /// other frame would put the two endpoints in different places and the
+        /// occluder somewhere other than the origin, which is a different geometry.
+        /// </param>
         public OrbitToGroundStationGeometry(
-            OrbitElements orbit,
+            PropagationTarget vessel,
             RotatingGroundStation station,
             double occludingRadiusMeters,
             IPropagationProvider? propagator = null)
@@ -43,7 +49,7 @@ namespace Sitrep.Propagation.Visibility
                     "The occluding radius must be finite and non-negative; got " + occludingRadiusMeters);
             }
 
-            _orbit = orbit;
+            _vessel = vessel;
             _station = station;
             _occludingRadiusMeters = occludingRadiusMeters;
             _propagator = propagator ?? new KeplerProvider();
@@ -56,7 +62,7 @@ namespace Sitrep.Propagation.Visibility
         /// </summary>
         public double? PeriodSeconds
         {
-            get { return _propagator.CharacteristicCycleSeconds(PropagationTarget.RelativeToFrame(_orbit)); }
+            get { return _propagator.CharacteristicCycleSeconds(_vessel); }
         }
 
         /// <summary>
@@ -92,7 +98,7 @@ namespace Sitrep.Propagation.Visibility
 
         public double MarginAt(double ut)
         {
-            Vector3d vessel = _propagator.Solve(PropagationTarget.RelativeToFrame(_orbit), PropagationFrame.Unnamed, ut).Position;
+            Vector3d vessel = _propagator.Solve(_vessel, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return ChordOcclusion.HorizonMargin(vessel, station, BodyCentre, _occludingRadiusMeters);
         }
@@ -105,14 +111,14 @@ namespace Sitrep.Propagation.Visibility
         /// </summary>
         public double ChordClearanceMetersAt(double ut)
         {
-            Vector3d vessel = _propagator.Solve(PropagationTarget.RelativeToFrame(_orbit), PropagationFrame.Unnamed, ut).Position;
+            Vector3d vessel = _propagator.Solve(_vessel, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return ChordOcclusion.Clearance(vessel, station, BodyCentre, _occludingRadiusMeters);
         }
 
         public double SeparationAt(double ut)
         {
-            Vector3d vessel = _propagator.Solve(PropagationTarget.RelativeToFrame(_orbit), PropagationFrame.Unnamed, ut).Position;
+            Vector3d vessel = _propagator.Solve(_vessel, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return (vessel - station).Magnitude();
         }

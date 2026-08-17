@@ -39,14 +39,37 @@ public sealed class Cadence
 /// <summary>The orbital elements a capture carried, plus what follows from them alone.</summary>
 public sealed class CapturedOrbit
 {
-    public CapturedOrbit(OrbitElements elements, int referenceBodyIndex, string? referenceBodyName, double firstEpochUt, double lastEpochUt)
+    public CapturedOrbit(
+        OrbitElements elements,
+        int referenceBodyIndex,
+        string? referenceBodyName,
+        double firstEpochUt,
+        double lastEpochUt,
+        string? vesselName = null)
     {
         Elements = elements;
         ReferenceBodyIndex = referenceBodyIndex;
         ReferenceBodyName = referenceBodyName;
         FirstEpochUt = firstEpochUt;
         LastEpochUt = lastEpochUt;
+        VesselName = vesselName;
     }
+
+    /// <summary>Whatever identity the capture carried on <c>vessel.identity</c>, or null.</summary>
+    public string? VesselName { get; }
+
+    /// <summary>
+    /// The craft as a propagation provider takes it: named, along with the body it
+    /// orbits, with the elements as the payload the two-body vanilla needs.
+    ///
+    /// <para>A capture carries a NAME rather than a guid, which is the only
+    /// identity this tool has to offer. That is enough for the two-body vanilla,
+    /// which reads the elements; a provider that resolved craft against its own
+    /// model would need the capture to have carried a guid, and would rightly
+    /// decline until it does.</para>
+    /// </summary>
+    public PropagationTarget Target =>
+        PropagationTarget.Vessel(VesselName ?? "captured-vessel", ReferenceBodyIndex, Elements);
 
     /// <summary>Angles converted to radians, which is what <see cref="KeplerProvider"/> wants; the wire carries degrees for everything except the mean anomaly.</summary>
     public OrbitElements Elements { get; }
@@ -65,8 +88,7 @@ public sealed class CapturedOrbit
     /// reports the same number the mod would act on, including when the answer is
     /// that there is no period.
     /// </summary>
-    public double? PeriodSeconds =>
-        new KeplerProvider().CharacteristicCycleSeconds(PropagationTarget.RelativeToFrame(Elements));
+    public double? PeriodSeconds => new KeplerProvider().CharacteristicCycleSeconds(Target);
 
     public double ApoapsisRadiusMeters => Elements.Sma * (1.0 + Elements.Ecc);
 
@@ -265,7 +287,7 @@ public static class CaptureFacts
             epoch: epoch,
             mu: mu);
 
-        return new CapturedOrbit(elements, bodyIndex, bodyName, epoch, lastEpoch);
+        return new CapturedOrbit(elements, bodyIndex, bodyName, epoch, lastEpoch, ReadVesselName(capture));
     }
 
     public static string? ReadVesselName(Capture capture)

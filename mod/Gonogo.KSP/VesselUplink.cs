@@ -270,7 +270,7 @@ namespace Gonogo.KSP
         {
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
             TargetApproachElection.RegisterCapability(kernel, _ => new StockKeplerApproachSolver());
-            PropagationElection.RegisterCapability(kernel);
+            PropagationElection.RegisterCapability(kernel, SilenceTracking.KspSystemTable.Current);
         }
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain

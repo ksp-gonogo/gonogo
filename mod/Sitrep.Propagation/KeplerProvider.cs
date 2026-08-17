@@ -15,11 +15,47 @@ namespace Sitrep.Propagation
     /// elliptical orbits (0 &lt;= ecc &lt; 1) are supported -- this is the
     /// dead-reckoning foundation for bound orbits, not an escape-trajectory
     /// solver.
+    ///
+    /// <para><b>Reaching another body's frame is done here, by summing conics up and
+    /// down the body tree.</b> That sum used to be the visibility geometry's, which
+    /// left it outside the seam entirely: the caller held a list of conics and a
+    /// direction flag per link, so swapping the propagator swapped only part of the
+    /// arithmetic. Under a provider that already knows where everything is, the walk
+    /// is REDUNDANT rather than broken, which is why it belongs to the one
+    /// implementation that has no other way to get there.</para>
+    ///
+    /// <para>Constructed without a system table it can still answer in a target's
+    /// OWN parent frame, which is what the overwhelming majority of callers want and
+    /// what the elements alone describe. Asked for any other frame it refuses.</para>
     /// </summary>
     public class KeplerProvider : IPropagationProvider
     {
         private const int MaxNewtonIterations = 50;
         private const double NewtonTolerance = 1e-12;
+
+        private readonly Func<IReadOnlyList<SystemBody>>? _bodies;
+
+        /// <summary>A provider with no map of the system: parent frames only.</summary>
+        public KeplerProvider()
+            : this((Func<IReadOnlyList<SystemBody>>?)null)
+        {
+        }
+
+        /// <summary>A provider over a fixed body table.</summary>
+        public KeplerProvider(IReadOnlyList<SystemBody>? bodies)
+            : this(bodies == null ? (Func<IReadOnlyList<SystemBody>>?)null : () => bodies)
+        {
+        }
+
+        /// <param name="bodies">
+        /// The body table, read on demand. A callback rather than a list because the
+        /// provider is elected at bootstrap, before the game has a body list to hand
+        /// over; the source is free to build it on first ask and hold it after.
+        /// </param>
+        public KeplerProvider(Func<IReadOnlyList<SystemBody>>? bodies)
+        {
+            _bodies = bodies;
+        }
 
         public string ProviderId => "kepler";
 
@@ -28,13 +64,66 @@ namespace Sitrep.Propagation
             if (!CanPropagate(target, frame, ut, ut))
             {
                 throw new NotSupportedException(
-                    "KeplerProvider cannot propagate this target in the requested frame: it solves a "
-                    + "bound two-body conic about the body the target orbits (index "
-                    + target.ParentBodyIndex + "), and was asked for a frame centred on index "
-                    + frame.CentreBodyIndex + ".");
+                    "KeplerProvider cannot propagate this target in the requested frame: it solves "
+                    + "bound two-body conics, and reaching a frame centred on index "
+                    + frame.CentreBodyIndex + " from index "
+                    + (target.Kind == PropagationTargetKind.Body ? target.BodyIndex : target.ParentBodyIndex)
+                    + " needs a body table in which every link on the path is one.");
             }
 
-            return Solve(target.Osculating!.Value, ut);
+            var origin = target.Kind == PropagationTargetKind.Body
+                ? target.BodyIndex
+                : target.ParentBodyIndex;
+            var state = OffsetTo(frame.CentreBodyIndex, origin, ut);
+
+            if (target.Kind == PropagationTargetKind.Body)
+            {
+                return state;
+            }
+
+            var own = Solve(target.Osculating!.Value, ut);
+            return new StateVector(state.Position + own.Position, state.Velocity + own.Velocity);
+        }
+
+        /// <summary>
+        /// Where <paramref name="bodyIndex"/> is relative to
+        /// <paramref name="centreIndex"/>, by summing each body's own conic along
+        /// the path between them.
+        ///
+        /// <para>A climb SUBTRACTS: the frame sits on the far side of the body being
+        /// climbed past, so its orbit is walked backwards. Getting that sign wrong is
+        /// wrong by twice an orbital radius and still looks like a position.</para>
+        /// </summary>
+        private StateVector OffsetTo(int centreIndex, int bodyIndex, double ut)
+        {
+            var position = new Vector3d(0.0, 0.0, 0.0);
+            var velocity = new Vector3d(0.0, 0.0, 0.0);
+            if (centreIndex == bodyIndex)
+            {
+                return new StateVector(position, velocity);
+            }
+
+            // CanPropagate has already established that the table exists and that
+            // every link on the path is a bound conic, so the walk below does not
+            // re-check either.
+            var bodies = _bodies!();
+            List<int> climb, descend;
+            BodyHierarchy.TryPathBetween(centreIndex, bodyIndex, bodies, out climb, out descend);
+
+            foreach (var index in climb)
+            {
+                var step = Solve(bodies[index].Orbit!.Value, ut);
+                position = position - step.Position;
+                velocity = velocity - step.Velocity;
+            }
+            foreach (var index in descend)
+            {
+                var step = Solve(bodies[index].Orbit!.Value, ut);
+                position = position + step.Position;
+                velocity = velocity + step.Velocity;
+            }
+
+            return new StateVector(position, velocity);
         }
 
         public void SolveMany(
@@ -68,26 +157,70 @@ namespace Sitrep.Propagation
         /// </summary>
         public double? CharacteristicCycleSeconds(PropagationTarget target)
         {
-            if (!IsBoundConic(target.Osculating))
+            var elements = target.Kind == PropagationTargetKind.Body
+                ? OrbitOfBody(target.BodyIndex)
+                : target.Osculating;
+            if (!IsBoundConic(elements))
             {
                 return null;
             }
 
-            var orbit = target.Osculating!.Value;
+            var orbit = elements!.Value;
             return 2.0 * Math.PI * Math.Sqrt(orbit.Sma * orbit.Sma * orbit.Sma / orbit.Mu);
         }
 
         /// <summary>
         /// The analytic solution has no horizon, so the window is ignored: a
         /// two-body conic is as valid a year out as a second out. What this does
-        /// check is that the elements describe a bound orbit at all, and that the
-        /// requested frame is the one the target orbits, since reaching any other
-        /// body needs an ephemeris this provider does not have.
+        /// check is that the target can be described at all, and that the requested
+        /// frame can be reached from it, which for anything but the target's own
+        /// parent frame means walking the body table and finding a bound conic at
+        /// every link.
         /// </summary>
         public bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt)
         {
-            return IsBoundConic(target.Osculating)
-                && frame.CentreBodyIndex == target.ParentBodyIndex;
+            if (target.Kind == PropagationTargetKind.Vessel && !IsBoundConic(target.Osculating))
+            {
+                return false;
+            }
+
+            var origin = target.Kind == PropagationTargetKind.Body
+                ? target.BodyIndex
+                : target.ParentBodyIndex;
+            if (frame.CentreBodyIndex == origin)
+            {
+                // The elements already describe the answer, and a body sits on its
+                // own centre. Neither needs a map of the system, which is why a
+                // provider constructed with nothing still serves the common case.
+                return target.Kind == PropagationTargetKind.Vessel || _bodies != null;
+            }
+
+            var bodies = _bodies == null ? null : _bodies();
+            List<int> climb, descend;
+            if (!BodyHierarchy.TryPathBetween(frame.CentreBodyIndex, origin, bodies, out climb, out descend))
+            {
+                return false;
+            }
+
+            foreach (var index in climb)
+            {
+                if (!IsBoundConic(bodies[index].Orbit)) return false;
+            }
+            foreach (var index in descend)
+            {
+                if (!IsBoundConic(bodies[index].Orbit)) return false;
+            }
+            return true;
+        }
+
+        private OrbitElements? OrbitOfBody(int bodyIndex)
+        {
+            var bodies = _bodies == null ? null : _bodies();
+            if (bodies == null || bodyIndex < 0 || bodyIndex >= bodies.Count)
+            {
+                return null;
+            }
+            return bodies[bodyIndex].Orbit;
         }
 
         private static bool IsBoundConic(OrbitElements? elements)

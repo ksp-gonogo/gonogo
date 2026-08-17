@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Propagation;
 
@@ -55,7 +56,15 @@ namespace Sitrep.Host.Propagation
         /// propagation degrades the silence predictor and the visibility sweep, and
         /// the rest of the telemetry stream is still good without them.</para>
         /// </summary>
-        public static void RegisterCapability(Kernel kernel)
+        /// <param name="systemTable">
+        /// Where the vanilla reads the body hierarchy from, so it can answer in a
+        /// frame centred on something other than the body a target orbits. Read on
+        /// demand because the capability is declared at bootstrap, before the game
+        /// has a body list. Omitted, the vanilla still serves every parent-frame
+        /// question and declines the rest, which is what the headless tests want.
+        /// </param>
+        public static void RegisterCapability(
+            Kernel kernel, Func<IReadOnlyList<SystemBody>>? systemTable = null)
         {
             if (kernel == null) throw new ArgumentNullException(nameof(kernel));
             kernel.RegisterCapability(new CapabilityDescriptor
@@ -63,7 +72,7 @@ namespace Sitrep.Host.Propagation
                 Id = CapabilityId,
                 Exclusive = true,
                 SpineCritical = false,
-                Vanilla = _ => new KeplerProvider(),
+                Vanilla = _ => new KeplerProvider(systemTable),
             });
         }
 

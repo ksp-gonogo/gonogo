@@ -21,6 +21,8 @@ namespace Sitrep.Propagation.Tests.Visibility
         private const double KerbinRadius = 600_000.0;
         private const double KerbinRotationPeriod = 21_549.425;
 
+        private const int Kerbin = 0;
+
         /// <summary>
         /// The wrong method, written out so the test can execute it: read the
         /// boolean at both ends of the window, and if they differ, halve toward
@@ -53,7 +55,7 @@ namespace Sitrep.Propagation.Tests.Visibility
 
         private static OrbitToGroundStationGeometry LowKerbinOrbitOverAnEquatorialStation()
         {
-            var orbit = new OrbitElements(
+            var craft = PropagationTarget.Vessel("test-craft", Kerbin, new OrbitElements(
                 sma: KerbinRadius + 100_000.0,
                 ecc: 0.0,
                 inc: 0.0,
@@ -61,7 +63,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 argPe: 0.0,
                 meanAnomalyAtEpoch: 0.0,
                 epoch: 0.0,
-                mu: KerbinMu);
+                mu: KerbinMu));
 
             RotatingGroundStation station = RotatingGroundStation.FromLatitudeLongitude(
                 latitudeDeg: 0.0,
@@ -71,7 +73,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 bodyRadiusMeters: KerbinRadius,
                 altitudeMeters: 0.0);
 
-            return new OrbitToGroundStationGeometry(orbit, station, KerbinRadius);
+            return new OrbitToGroundStationGeometry(craft, station, KerbinRadius);
         }
 
         /// <summary>

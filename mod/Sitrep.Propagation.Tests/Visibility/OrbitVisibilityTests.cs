@@ -16,6 +16,8 @@ namespace Sitrep.Propagation.Tests.Visibility
         private const double KerbinRadius = 600_000.0;
         private const double KerbinRotationPeriod = 21_549.425;
 
+        private const int Kerbin = 0;
+
         /// <summary>RealAntennas tests against the bare radius.</summary>
         private const double BareOccluder = KerbinRadius;
 
@@ -44,9 +46,15 @@ namespace Sitrep.Propagation.Tests.Visibility
                 altitudeMeters: 0.0);
         }
 
-        private static OrbitElements CircularOrbit(double sma, double incDeg = 0.0)
+        /// <summary>
+        /// The craft as the geometry now takes it: named, along with the body it
+        /// orbits, rather than handed over as a bare conic. Kerbin is index 0 here
+        /// because these are all same-body cases, so no body table is involved and
+        /// the index only has to agree with itself.
+        /// </summary>
+        private static PropagationTarget CircularCraft(double sma, double incDeg = 0.0)
         {
-            return new OrbitElements(
+            return PropagationTarget.Vessel("test-craft", Kerbin, new OrbitElements(
                 sma: sma,
                 ecc: 0.0,
                 inc: incDeg * Math.PI / 180.0,
@@ -54,7 +62,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 argPe: 0.0,
                 meanAnomalyAtEpoch: 0.0,
                 epoch: 0.0,
-                mu: KerbinMu);
+                mu: KerbinMu));
         }
 
         [Fact]
@@ -67,7 +75,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 KerbinMu * KerbinRotationPeriod * KerbinRotationPeriod / (4.0 * Math.PI * Math.PI));
 
             var geometry = new OrbitToGroundStationGeometry(
-                CircularOrbit(keostationarySma), EquatorialStation(), BareOccluder);
+                CircularCraft(keostationarySma), EquatorialStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
                 geometry, 0.0, 3.0 * KerbinRotationPeriod, stepSeconds: 5.0);
@@ -84,7 +92,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             // orbit, comfortably inside a 600 km occluder, and the pole sits on
             // the spin axis so the body's rotation cannot help.
             var geometry = new OrbitToGroundStationGeometry(
-                CircularOrbit(KerbinRadius + 100_000.0), PolarStation(), BareOccluder);
+                CircularCraft(KerbinRadius + 100_000.0), PolarStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
                 geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, stepSeconds: 3.0);
@@ -97,7 +105,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ALowPassOpensAndClosesOnceEachTimeItComesRound()
         {
             var geometry = new OrbitToGroundStationGeometry(
-                CircularOrbit(KerbinRadius + 100_000.0), EquatorialStation(), BareOccluder);
+                CircularCraft(KerbinRadius + 100_000.0), EquatorialStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
                 geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, stepSeconds: 3.0);
@@ -119,11 +127,11 @@ namespace Sitrep.Propagation.Tests.Visibility
             // The reason the occluding radius has to be settled rather than
             // guessed: the same orbit, the same station, the same UT window, and
             // the two candidate radii disagree by minutes on every pass.
-            OrbitElements orbit = CircularOrbit(KerbinRadius + 100_000.0);
+            PropagationTarget craft = CircularCraft(KerbinRadius + 100_000.0);
             RotatingGroundStation station = EquatorialStation();
 
-            var bare = new OrbitToGroundStationGeometry(orbit, station, BareOccluder);
-            var stock = new OrbitToGroundStationGeometry(orbit, station, StockAtmosphereOccluder);
+            var bare = new OrbitToGroundStationGeometry(craft, station, BareOccluder);
+            var stock = new OrbitToGroundStationGeometry(craft, station, StockAtmosphereOccluder);
 
             double window = 2.0 * bare.PeriodSeconds!.Value;
             double bareBlackout = TotalBlockedSeconds(VisibilitySweep.Run(bare, 0.0, window, 1.0, 0.01), window);
@@ -143,8 +151,8 @@ namespace Sitrep.Propagation.Tests.Visibility
             RotatingGroundStation station = EquatorialStation();
             double sma = KerbinRadius + 100_000.0;
 
-            var prograde = new OrbitToGroundStationGeometry(CircularOrbit(sma, 0.0), station, BareOccluder);
-            var retrograde = new OrbitToGroundStationGeometry(CircularOrbit(sma, 180.0), station, BareOccluder);
+            var prograde = new OrbitToGroundStationGeometry(CircularCraft(sma, 0.0), station, BareOccluder);
+            var retrograde = new OrbitToGroundStationGeometry(CircularCraft(sma, 180.0), station, BareOccluder);
 
             double window = 6.0 * prograde.PeriodSeconds!.Value;
             int progradePasses = VisibilitySweep.Run(prograde, 0.0, window, 2.0)
@@ -161,7 +169,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void APolarOrbitIsSweptWithoutTheEquatorialPlaneBeingAssumed()
         {
             var geometry = new OrbitToGroundStationGeometry(
-                CircularOrbit(KerbinRadius + 100_000.0, incDeg: 90.0), EquatorialStation(), BareOccluder);
+                CircularCraft(KerbinRadius + 100_000.0, incDeg: 90.0), EquatorialStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
                 geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, stepSeconds: 3.0);

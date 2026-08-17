@@ -56,8 +56,9 @@ namespace Sitrep.Host.Tests
             // A 1 m occluding radius: the path is clear for the whole window,
             // which is exactly the documented NoOccultation case.
             var real = new OrbitToRemoteStationGeometry(
-                orbit,
-                new List<OrbitToRemoteStationGeometry.ChainLink>(),
+                PropagationTarget.Vessel("v1", 1, orbit),
+                PropagationFrame.CentredOn(1),
+                new List<OccludingBody>(),
                 station,
                 stationBodyOccludingRadiusMeters: 1.0);
 

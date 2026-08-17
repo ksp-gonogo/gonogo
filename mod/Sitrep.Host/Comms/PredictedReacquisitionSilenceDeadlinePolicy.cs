@@ -188,8 +188,8 @@ namespace Sitrep.Host.Comms
                 return fallback;
             }
 
-            var target = PropagationTarget.RelativeToFrame(sample.Orbit.Value);
-            if (!_propagator.CanPropagate(target, PropagationFrame.Unnamed, ut, ut))
+            var target = SilenceSampleTarget.Of(sample);
+            if (!_propagator.CanPropagate(target, ut, ut))
             {
                 // The fallback already ceilings these; predicting an emergence
                 // for a trajectory the propagator will not follow would be

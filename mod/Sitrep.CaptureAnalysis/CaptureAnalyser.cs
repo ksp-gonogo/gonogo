@@ -324,7 +324,7 @@ public static class CaptureAnalyser
 
         foreach (OcclusionCandidate candidate in candidates)
         {
-            var geometry = new OrbitToGroundStationGeometry(orbit.Elements, station.Value, candidate.RadiusMeters);
+            var geometry = new OrbitToGroundStationGeometry(orbit.Target, station.Value, candidate.RadiusMeters);
 
             foreach (DirectLinkEvent observed in report.DirectLinkEvents)
             {

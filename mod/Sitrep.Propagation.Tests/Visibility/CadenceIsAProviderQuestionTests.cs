@@ -32,6 +32,11 @@ namespace Sitrep.Propagation.Tests.Visibility
             epoch: 0.0,
             mu: KerbinMu);
 
+        private const int Kerbin = 0;
+
+        private static PropagationTarget LowCraft() =>
+            PropagationTarget.Vessel("test-craft", Kerbin, LowOrbit());
+
         private static RotatingGroundStation Station(double rotationPeriodSeconds = KerbinSiderealDay) =>
             new RotatingGroundStation(
                 surfaceNormalAtReferenceUt: new Vector3d(1.0, 0.0, 0.0),
@@ -66,10 +71,9 @@ namespace Sitrep.Propagation.Tests.Visibility
         [Fact]
         public void ADirectGeometryTakesItsPeriodFromTheProvider()
         {
-            var geometry = new OrbitToGroundStationGeometry(LowOrbit(), Station(), KerbinRadius);
+            var geometry = new OrbitToGroundStationGeometry(LowCraft(), Station(), KerbinRadius);
 
-            var expected = new KeplerProvider().CharacteristicCycleSeconds(
-                PropagationTarget.RelativeToFrame(LowOrbit()));
+            var expected = new KeplerProvider().CharacteristicCycleSeconds(LowCraft());
 
             Assert.NotNull(geometry.PeriodSeconds);
             Assert.Equal(expected!.Value, geometry.PeriodSeconds!.Value, 6);
@@ -79,7 +83,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ADirectGeometryHasNoPeriodWhenTheProviderDeclines()
         {
             var geometry = new OrbitToGroundStationGeometry(
-                LowOrbit(), Station(), KerbinRadius, new NoCycleProvider());
+                LowCraft(), Station(), KerbinRadius, new NoCycleProvider());
 
             Assert.Null(geometry.PeriodSeconds);
         }
@@ -91,7 +95,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             // orbital mechanics. So a geometry with no orbital period still has a
             // cycle worth sweeping at, and the sweep keeps its detection guarantee.
             var geometry = new OrbitToGroundStationGeometry(
-                LowOrbit(), Station(), KerbinRadius, new NoCycleProvider());
+                LowCraft(), Station(), KerbinRadius, new NoCycleProvider());
 
             Assert.Equal(KerbinSiderealDay, geometry.ShortestCycleSeconds!.Value, 3);
         }
@@ -103,7 +107,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             // nothing left to size a step against, and inventing one would publish a
             // detection guarantee the sweep cannot honour.
             var geometry = new OrbitToGroundStationGeometry(
-                LowOrbit(), Station(rotationPeriodSeconds: 0.0), KerbinRadius, new NoCycleProvider());
+                LowCraft(), Station(rotationPeriodSeconds: 0.0), KerbinRadius, new NoCycleProvider());
 
             Assert.Null(geometry.ShortestCycleSeconds);
         }
@@ -112,10 +116,13 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ARemoteGeometryTakesItsPeriodFromTheProvider()
         {
             var geometry = new OrbitToRemoteStationGeometry(
-                LowOrbit(), new OrbitToRemoteStationGeometry.ChainLink[0], Station(), KerbinRadius);
+                LowCraft(),
+                PropagationFrame.CentredOn(Kerbin),
+                new OccludingBody[0],
+                Station(),
+                KerbinRadius);
 
-            var expected = new KeplerProvider().CharacteristicCycleSeconds(
-                PropagationTarget.RelativeToFrame(LowOrbit()));
+            var expected = new KeplerProvider().CharacteristicCycleSeconds(LowCraft());
 
             Assert.NotNull(geometry.PeriodSeconds);
             Assert.Equal(expected!.Value, geometry.PeriodSeconds!.Value, 6);
@@ -125,8 +132,9 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ARemoteGeometryFallsBackToTheFastestStationSpinWhenThereIsNoPeriod()
         {
             var geometry = new OrbitToRemoteStationGeometry(
-                LowOrbit(),
-                new OrbitToRemoteStationGeometry.ChainLink[0],
+                LowCraft(),
+                PropagationFrame.CentredOn(Kerbin),
+                new OccludingBody[0],
                 new[] { Station(), Station(rotationPeriodSeconds: KerbinSiderealDay / 4.0) },
                 KerbinRadius,
                 new NoCycleProvider());
@@ -138,8 +146,9 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ARemoteGeometryHasNoCycleAtAllWhenNeitherTermExists()
         {
             var geometry = new OrbitToRemoteStationGeometry(
-                LowOrbit(),
-                new OrbitToRemoteStationGeometry.ChainLink[0],
+                LowCraft(),
+                PropagationFrame.CentredOn(Kerbin),
+                new OccludingBody[0],
                 Station(rotationPeriodSeconds: 0.0),
                 KerbinRadius,
                 new NoCycleProvider());

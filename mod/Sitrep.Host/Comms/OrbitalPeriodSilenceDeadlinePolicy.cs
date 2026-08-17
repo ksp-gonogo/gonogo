@@ -83,8 +83,7 @@ namespace Sitrep.Host.Comms
             // Null is the honest answer for a trajectory that does not repeat, and
             // it lands on the same ceiling the hyperbolic and degenerate cases
             // already used. The branch predates the provider; only its cause moved.
-            var period = _propagator.CharacteristicCycleSeconds(
-                PropagationTarget.RelativeToFrame(sample.Orbit.Value));
+            var period = _propagator.CharacteristicCycleSeconds(SilenceSampleTarget.Of(sample));
             if (period == null)
             {
                 return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.PolicyCeiling);

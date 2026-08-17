@@ -55,7 +55,8 @@ namespace Sitrep.Propagation
     }
 
     /// <summary>
-    /// Position + velocity, both parent-body-relative, at a single instant.
+    /// Position + velocity at a single instant, both expressed in whichever
+    /// <see cref="PropagationFrame"/> the solve was asked for.
     /// </summary>
     public struct StateVector
     {

@@ -14,10 +14,10 @@ namespace Sitrep.Propagation.Visibility
     ///
     /// <para><b>Frame: centred on the STATION's body</b>, Z-up inertial, the
     /// same convention <see cref="KeplerProvider"/> emits. The station is then
-    /// a rotating point near the origin, and the vessel is the sum of its
-    /// parent's orbit and its own, the patched-conic chain walked properly,
-    /// rather than one element set pretending to describe both. Getting this
-    /// wrong is worth hundreds of kilometres within minutes.</para>
+    /// a rotating point near the origin, and the vessel is asked for in that
+    /// frame directly rather than described by one element set pretending to
+    /// cover both. Getting this wrong is worth hundreds of kilometres within
+    /// minutes.</para>
     ///
     /// <para><b>Two occluders, and the margin is the worse of them.</b> The
     /// vessel can be hidden behind its own parent (the far side of Minmus) or
@@ -27,68 +27,28 @@ namespace Sitrep.Propagation.Visibility
     /// parent would predict an emergence that the station's own body then
     /// blocks anyway.</para>
     ///
-    /// <para>Set <paramref name="parentOrbit"/> to null for a vessel orbiting
-    /// the station's body directly; the chain then has one link and the
-    /// parent-body occluder collapses onto the station body, which the
-    /// duplicate-occluder check below drops rather than double-counting.</para>
+    /// <para>Pass no occluders for a vessel orbiting the station's body
+    /// directly; the station body is already the frame centre and is handled
+    /// as an occluder in its own right, so nothing is double-counted.</para>
     /// </summary>
     public sealed class OrbitToRemoteStationGeometry : IVisibilityGeometry, IVisibilityCadence
     {
         private static readonly Vector3d Origin = new Vector3d(0.0, 0.0, 0.0);
 
-        private readonly OrbitElements _vesselOrbit;
-        private readonly ChainLink[] _chain;
+        private readonly PropagationTarget _vessel;
+        private readonly PropagationFrame _frame;
+        private readonly OccludingBody[] _occluders;
         private readonly RotatingGroundStation[] _stations;
         private readonly double _stationBodyOccludingRadiusMeters;
         private readonly IPropagationProvider _propagator;
 
-        /// <summary>
-        /// One body between the station's body and the vessel's parent: its
-        /// orbit about the body BELOW it in the chain, and how big it is to a
-        /// radio wave.
-        /// </summary>
-        public readonly struct ChainLink
-        {
-            /// <param name="orbit">One body's elements about the body it orbits.</param>
-            /// <param name="occludingRadiusMeters">
-            /// The occluding radius of the body this link ARRIVES at, which is
-            /// the one that then sits at the accumulated position.
-            /// </param>
-            /// <param name="descending">
-            /// True when the link moves DOWN the hierarchy (a body about its
-            /// parent, added), false when it moves UP (the same orbit, but
-            /// subtracted, because the frame is on the far side of it).
-            ///
-            /// <para>Both directions are needed and neither is exotic. A craft
-            /// at Minmus reaching a Kerbin station only descends; a craft in
-            /// solar orbit reaching that same station has to climb from Kerbin
-            /// out to the Sun first, and a walk that could only descend simply
-            /// refused those vessels, which, in a real save, is most of
-            /// them.</para>
-            /// </param>
-            public ChainLink(OrbitElements orbit, double occludingRadiusMeters, bool descending)
-            {
-                Orbit = orbit;
-                OccludingRadiusMeters = occludingRadiusMeters;
-                Descending = descending;
-            }
-
-            public OrbitElements Orbit { get; }
-
-            public double OccludingRadiusMeters { get; }
-
-            public bool Descending { get; }
-        }
-
-        /// <param name="vesselOrbit">The vessel's elements, relative to its own parent body.</param>
-        /// <param name="chain">
-        /// The patched-conic chain from the STATION's body to the vessel's
-        /// parent, in walk order: up from the station's body to the common
-        /// ancestor (ascending links), then down to the vessel's parent
-        /// (descending links). Empty when the vessel already orbits the
-        /// station's body.
+        /// <param name="vessel">The craft, named along with the body it orbits.</param>
+        /// <param name="frame">Centred on the STATION's body. Reaching it from the vessel's parent is the provider's job, not this class's.</param>
+        /// <param name="occluders">
+        /// Every body that can come between the two endpoints, from
+        /// <see cref="PatchedConicChain.OccludersBetween"/>. Empty when the vessel
+        /// already orbits the station's body.
         /// </param>
-        /// <param name="station">The station, on the frame-centre body.</param>
         /// <param name="stationBodyOccludingRadiusMeters">Occluding radius of the station's body, from the elected comms backend's occlusion model.</param>
         /// <param name="stations">
         /// Every ground station on the frame-centre body, not one representative
@@ -96,18 +56,19 @@ namespace Sitrep.Propagation.Visibility
         /// single station's horizon is not a constraint on the network.
         /// </param>
         public OrbitToRemoteStationGeometry(
-            OrbitElements vesselOrbit,
-            IEnumerable<ChainLink> chain,
+            PropagationTarget vessel,
+            PropagationFrame frame,
+            IEnumerable<OccludingBody> occluders,
             IEnumerable<RotatingGroundStation> stations,
             double stationBodyOccludingRadiusMeters,
             IPropagationProvider propagator = null)
         {
             RequireRadius(stationBodyOccludingRadiusMeters, nameof(stationBodyOccludingRadiusMeters));
 
-            _chain = chain == null ? new ChainLink[0] : new List<ChainLink>(chain).ToArray();
-            foreach (var link in _chain)
+            _occluders = occluders == null ? new OccludingBody[0] : new List<OccludingBody>(occluders).ToArray();
+            foreach (var occluder in _occluders)
             {
-                RequireRadius(link.OccludingRadiusMeters, nameof(chain));
+                RequireRadius(occluder.OccludingRadiusMeters, nameof(occluders));
             }
 
             _stations = stations == null
@@ -120,19 +81,21 @@ namespace Sitrep.Propagation.Visibility
                     nameof(stations));
             }
 
-            _vesselOrbit = vesselOrbit;
+            _vessel = vessel;
+            _frame = frame;
             _stationBodyOccludingRadiusMeters = stationBodyOccludingRadiusMeters;
             _propagator = propagator ?? new KeplerProvider();
         }
 
         /// <summary>Single-station convenience, for callers with exactly one endpoint.</summary>
         public OrbitToRemoteStationGeometry(
-            OrbitElements vesselOrbit,
-            IEnumerable<ChainLink> chain,
+            PropagationTarget vessel,
+            PropagationFrame frame,
+            IEnumerable<OccludingBody> occluders,
             RotatingGroundStation station,
             double stationBodyOccludingRadiusMeters,
             IPropagationProvider propagator = null)
-            : this(vesselOrbit, chain, new[] { station }, stationBodyOccludingRadiusMeters, propagator)
+            : this(vessel, frame, occluders, new[] { station }, stationBodyOccludingRadiusMeters, propagator)
         {
         }
 
@@ -145,11 +108,7 @@ namespace Sitrep.Propagation.Visibility
         /// </summary>
         public double? PeriodSeconds
         {
-            get
-            {
-                return _propagator.CharacteristicCycleSeconds(
-                    PropagationTarget.RelativeToFrame(_vesselOrbit));
-            }
+            get { return _propagator.CharacteristicCycleSeconds(_vessel); }
         }
 
         /// <summary>
@@ -192,8 +151,8 @@ namespace Sitrep.Propagation.Visibility
 
         public double MarginAt(double ut)
         {
-            var chainPositions = new Vector3d[_chain.Length];
-            var vessel = VesselAt(ut, chainPositions);
+            var occluderPositions = new Vector3d[_occluders.Length];
+            var vessel = VesselAt(ut, occluderPositions);
 
             // The worst occluder wins. Every body in the chain can come between
             // the craft and the station, and so can the station's own body when
@@ -215,13 +174,13 @@ namespace Sitrep.Propagation.Visibility
                 // Bodies along the chain block regardless of which station is
                 // looking, so they cut this station's own reach before it
                 // competes with the others.
-                for (var i = 0; i < _chain.Length; i++)
+                for (var i = 0; i < _occluders.Length; i++)
                 {
-                    var linkMargin = ChordOcclusion.HorizonMargin(
-                        vessel, at, chainPositions[i], _chain[i].OccludingRadiusMeters);
-                    if (linkMargin < reach)
+                    var occluderMargin = ChordOcclusion.HorizonMargin(
+                        vessel, at, occluderPositions[i], _occluders[i].OccludingRadiusMeters);
+                    if (occluderMargin < reach)
                     {
-                        reach = linkMargin;
+                        reach = occluderMargin;
                     }
                 }
 
@@ -242,32 +201,27 @@ namespace Sitrep.Propagation.Visibility
         /// </summary>
         public double SeparationAt(double ut)
         {
-            var vessel = VesselAt(ut, new Vector3d[_chain.Length]);
+            var vessel = VesselAt(ut, new Vector3d[_occluders.Length]);
             return (vessel - _stations[0].PositionAt(ut)).Magnitude();
         }
 
         /// <summary>
-        /// The vessel's position in the station body's frame, by summing the
-        /// chain outward. Fills <paramref name="chainPositions"/> with each
-        /// intermediate body's position in the same frame, which the occlusion
-        /// pass then needs.
+        /// The vessel's position in the station body's frame, and each occluding
+        /// body's position in the same frame, all asked of the provider.
         ///
-        /// <para>Summing rather than using one element set is the whole point:
-        /// a craft at Minmus described by its Minmus-relative elements alone
-        /// sits 46,400 km from where it actually is.</para>
+        /// <para>Asking rather than summing is the whole point of the seam: a craft
+        /// at Minmus described by its Minmus-relative elements alone sits 46,400 km
+        /// from where it actually is, and which arithmetic closes that gap is a
+        /// question about the physics rather than about the geometry.</para>
         /// </summary>
-        private Vector3d VesselAt(double ut, Vector3d[] chainPositions)
+        private Vector3d VesselAt(double ut, Vector3d[] occluderPositions)
         {
-            var accumulated = Origin;
-            for (var i = 0; i < _chain.Length; i++)
+            for (var i = 0; i < _occluders.Length; i++)
             {
-                var step = _propagator.Solve(
-                    PropagationTarget.RelativeToFrame(_chain[i].Orbit), PropagationFrame.Unnamed, ut).Position;
-                accumulated = _chain[i].Descending ? accumulated + step : accumulated - step;
-                chainPositions[i] = accumulated;
+                occluderPositions[i] = _propagator
+                    .Solve(PropagationTarget.Body(_occluders[i].BodyIndex), _frame, ut).Position;
             }
-            return accumulated + _propagator.Solve(
-                PropagationTarget.RelativeToFrame(_vesselOrbit), PropagationFrame.Unnamed, ut).Position;
+            return _propagator.Solve(_vessel, _frame, ut).Position;
         }
 
         private static void RequireRadius(double radiusMeters, string name)

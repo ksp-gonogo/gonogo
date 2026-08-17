@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
 using Xunit;
@@ -33,15 +34,23 @@ namespace Sitrep.Propagation.Tests.Visibility
         private const double MinmusSma = 46_400_000.0;
         private const double KerbinMu = 3.5316e12;
 
-        /// <summary>The live case: circular, 20 km above Minmus.</summary>
-        private static OrbitElements Relay() =>
-            new OrbitElements(79_999.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, MinmusMu);
+        private const int Kerbin = 0, Minmus = 1;
 
-        private static OrbitToRemoteStationGeometry.ChainLink MinmusLink() =>
-            new OrbitToRemoteStationGeometry.ChainLink(
-                new OrbitElements(MinmusSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu),
-                MinmusRadius,
-                descending: true);
+        /// <summary>Kerbin at the root and Minmus about it, which is all the walk needs here.</summary>
+        private static IReadOnlyList<SystemBody> System() => new[]
+        {
+            new SystemBody(-1, null),
+            new SystemBody(Kerbin, new OrbitElements(MinmusSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu)),
+        };
+
+        private static KeplerProvider Propagator() => new KeplerProvider(System());
+
+        /// <summary>The live case: circular, 20 km above Minmus.</summary>
+        private static PropagationTarget Relay() =>
+            PropagationTarget.Vessel(
+                "relay", Minmus, new OrbitElements(79_999.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, MinmusMu));
+
+        private static OccludingBody[] MinmusInTheWay() => new[] { new OccludingBody(Minmus, MinmusRadius) };
 
         private static RotatingGroundStation StationAt(double longitudeDegrees) =>
             RotatingGroundStation.FromLatitudeLongitude(
@@ -80,7 +89,12 @@ namespace Sitrep.Propagation.Tests.Visibility
         {
             var stations = new[] { StationAt(0.0), StationAt(120.0), StationAt(240.0) };
             var geometry = new OrbitToRemoteStationGeometry(
-                Relay(), new[] { MinmusLink() }, stations, KerbinRadius);
+                Relay(),
+                PropagationFrame.CentredOn(Kerbin),
+                MinmusInTheWay(),
+                stations,
+                KerbinRadius,
+                Propagator());
 
             var blackout = BlackoutSeconds(geometry, geometry.PeriodSeconds!.Value);
 
@@ -97,7 +111,12 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ASingleStationInventsABlackoutTheNetworkNeverHas()
         {
             var geometry = new OrbitToRemoteStationGeometry(
-                Relay(), new[] { MinmusLink() }, new[] { StationAt(180.0) }, KerbinRadius);
+                Relay(),
+                PropagationFrame.CentredOn(Kerbin),
+                MinmusInTheWay(),
+                new[] { StationAt(180.0) },
+                KerbinRadius,
+                Propagator());
 
             var blackout = BlackoutSeconds(geometry, geometry.PeriodSeconds!.Value);
 
@@ -109,7 +128,12 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void AnEmptyStationSetIsRejectedRatherThanSilentlySeeingNothing()
         {
             Assert.Throws<ArgumentException>(() => new OrbitToRemoteStationGeometry(
-                Relay(), new[] { MinmusLink() }, new RotatingGroundStation[0], KerbinRadius));
+                Relay(),
+                PropagationFrame.CentredOn(Kerbin),
+                MinmusInTheWay(),
+                new RotatingGroundStation[0],
+                KerbinRadius,
+                Propagator()));
         }
     }
 }

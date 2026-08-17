@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
 using Xunit;
@@ -32,16 +33,26 @@ namespace Sitrep.Propagation.Tests.Visibility
                 bodyRadiusMeters: KerbinRadius,
                 altitudeMeters: 0.0);
 
+        private const int Sun = 0, Kerbin = 1;
+
+        private static IReadOnlyList<SystemBody> System() => new[]
+        {
+            new SystemBody(-1, null),
+            new SystemBody(Sun, new OrbitElements(KerbinSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu)),
+        };
+
+        private static KeplerProvider Propagator() => new KeplerProvider(System());
+
         /// <summary>A craft in solar orbit just outside Kerbin's, reached by climbing to the Sun.</summary>
         private static OrbitToRemoteStationGeometry SolarOrbitCraft(params RotatingGroundStation[] stations) =>
             new OrbitToRemoteStationGeometry(
-                new OrbitElements(KerbinSma * 1.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu),
-                new[] { new OrbitToRemoteStationGeometry.ChainLink(
-                    new OrbitElements(KerbinSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu),
-                    261_600_000.0,
-                    descending: false) },
+                PropagationTarget.Vessel(
+                    "solar-craft", Sun, new OrbitElements(KerbinSma * 1.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu)),
+                PropagationFrame.CentredOn(Kerbin),
+                new[] { new OccludingBody(Sun, 261_600_000.0) },
                 stations,
-                KerbinRadius);
+                KerbinRadius,
+                Propagator());
 
         [Fact]
         public void ACraftSlowerThanTheStationsDayCyclesWithTheDay()
@@ -58,10 +69,15 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void ACraftFasterThanTheStationsDayKeepsItsOwnPeriod()
         {
             var geometry = new OrbitToRemoteStationGeometry(
-                new OrbitElements(KerbinRadius + 100_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu),
-                new OrbitToRemoteStationGeometry.ChainLink[0],
+                PropagationTarget.Vessel(
+                    "low-craft",
+                    Kerbin,
+                    new OrbitElements(KerbinRadius + 100_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu)),
+                PropagationFrame.CentredOn(Kerbin),
+                new OccludingBody[0],
                 Station(),
-                KerbinRadius);
+                KerbinRadius,
+                Propagator());
 
             Assert.Equal(geometry.PeriodSeconds!.Value, geometry.ShortestCycleSeconds!.Value, 3);
         }
@@ -112,11 +128,15 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void TheSameBodyGeometryCyclesWithWhicheverOfOrbitAndDayIsFaster()
         {
             var lowOrbit = new OrbitToGroundStationGeometry(
-                new OrbitElements(KerbinRadius + 100_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu),
+                PropagationTarget.Vessel(
+                    "low-craft",
+                    Kerbin,
+                    new OrbitElements(KerbinRadius + 100_000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu)),
                 Station(),
                 KerbinRadius);
             var farOrbit = new OrbitToGroundStationGeometry(
-                new OrbitElements(KerbinSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu),
+                PropagationTarget.Vessel(
+                    "far-craft", Kerbin, new OrbitElements(KerbinSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu)),
                 Station(),
                 KerbinRadius);
 

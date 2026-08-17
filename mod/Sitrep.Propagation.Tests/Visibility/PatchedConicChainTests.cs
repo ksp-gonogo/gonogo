@@ -6,13 +6,18 @@ using Xunit;
 namespace Sitrep.Propagation.Tests.Visibility
 {
     /// <summary>
-    /// The chain walk, against a miniature Kerbol: Sun(0), Kerbin(1),
-    /// Mun(2), Minmus(3), Jool(4), Laythe(5).
+    /// Which bodies can block the path, against a miniature Kerbol: Sun(0),
+    /// Kerbin(1), Mun(2), Minmus(3), Jool(4), Laythe(5).
     ///
     /// <para>This logic used to live against <c>CelestialBody</c>, so the only
     /// way to ask it a question was to launch the game, ten minutes per
     /// question, against a function whose failure mode is a plausible-looking
     /// wrong number rather than a crash.</para>
+    ///
+    /// <para>It used to answer with a conic per link as well. Where each of these
+    /// bodies IS at a given UT is now the elected propagation provider's answer,
+    /// pinned in <c>ChainWalkIsTheProvidersJobTests</c>; what is left here is the
+    /// question the visibility side actually has, which is who is in the way.</para>
     /// </summary>
     public class PatchedConicChainTests
     {
@@ -22,123 +27,109 @@ namespace Sitrep.Propagation.Tests.Visibility
 
         private const int Sun = 0, Kerbin = 1, Mun = 2, Minmus = 3, Jool = 4, Laythe = 5;
 
+        private static readonly double[] Radii =
+        {
+            261_600_000.0, 600_000.0, 200_000.0, 60_000.0, 6_000_000.0, 500_000.0,
+        };
+
         private static OrbitElements Circular(double sma, double mu) =>
             new OrbitElements(sma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, mu);
 
-        private static IReadOnlyList<ChainBody> System() => new[]
+        private static IReadOnlyList<SystemBody> System() => new[]
         {
             // The root's stored elements are NOT an orbit, exactly as KSP has it.
-            new ChainBody(-1, new OrbitElements(0.0, 1.0, 0, 0, 0, 0, 0, 0.0), 261_600_000.0),
-            new ChainBody(Sun, Circular(13_599_840_256.0, SunMu), 600_000.0),
-            new ChainBody(Kerbin, Circular(12_000_000.0, KerbinMu), 200_000.0),
-            new ChainBody(Kerbin, Circular(46_400_000.0, KerbinMu), 60_000.0),
-            new ChainBody(Sun, Circular(68_773_560_320.0, SunMu), 6_000_000.0),
-            new ChainBody(Jool, Circular(27_184_000.0, JoolMu), 500_000.0),
+            new SystemBody(-1, new OrbitElements(0.0, 1.0, 0, 0, 0, 0, 0, 0.0)),
+            new SystemBody(Sun, Circular(13_599_840_256.0, SunMu)),
+            new SystemBody(Kerbin, Circular(12_000_000.0, KerbinMu)),
+            new SystemBody(Kerbin, Circular(46_400_000.0, KerbinMu)),
+            new SystemBody(Sun, Circular(68_773_560_320.0, SunMu)),
+            new SystemBody(Jool, Circular(27_184_000.0, JoolMu)),
         };
 
+        private static List<OccludingBody> Between(int stationBody, int vesselParent) =>
+            PatchedConicChain.OccludersBetween(stationBody, vesselParent, System(), i => Radii[i]);
+
         [Fact]
-        public void SameBodyNeedsNoLinks()
+        public void SameBodyHasNothingInTheWay()
         {
-            Assert.Empty(PatchedConicChain.Between(Kerbin, Kerbin, System()));
+            Assert.Empty(Between(Kerbin, Kerbin));
         }
 
         [Fact]
-        public void AMoonOfTheStationsPlanetIsOneDescendingLink()
+        public void AMoonOfTheStationsPlanetIsTheOneOccluder()
         {
-            var links = PatchedConicChain.Between(Kerbin, Minmus, System());
+            var occluders = Between(Kerbin, Minmus);
 
-            Assert.Single(links);
-            Assert.True(links[0].Descending);
-            Assert.Equal(46_400_000.0, links[0].Orbit.Sma);
-            Assert.Equal(60_000.0, links[0].OccludingRadiusMeters);
+            Assert.Single(occluders);
+            Assert.Equal(Minmus, occluders[0].BodyIndex);
+            Assert.Equal(60_000.0, occluders[0].OccludingRadiusMeters);
         }
 
         /// <summary>
-        /// The case that was silently broken live. Climbing to the star is an
-        /// ASCENDING link, and the occluder it arrives at is the star, not the
-        /// planet being left behind.
+        /// The case that was silently broken live. Climbing to the star puts the
+        /// STAR in the way, not the planet being left behind.
         /// </summary>
         [Fact]
-        public void ASolarOrbitIsOneAscendingLinkArrivingAtTheStar()
+        public void ASolarOrbitIsBlockedByTheStarRatherThanByThePlanetLeftBehind()
         {
-            var links = PatchedConicChain.Between(Kerbin, Sun, System());
+            var occluders = Between(Kerbin, Sun);
 
-            Assert.Single(links);
-            Assert.False(links[0].Descending);
-            Assert.Equal(13_599_840_256.0, links[0].Orbit.Sma);
-            Assert.Equal(261_600_000.0, links[0].OccludingRadiusMeters);
+            Assert.Single(occluders);
+            Assert.Equal(Sun, occluders[0].BodyIndex);
+            Assert.Equal(261_600_000.0, occluders[0].OccludingRadiusMeters);
         }
 
         [Fact]
         public void AMoonOfAnotherPlanetClimbsThenDescendsTwice()
         {
-            var links = PatchedConicChain.Between(Kerbin, Laythe, System());
+            var occluders = Between(Kerbin, Laythe);
 
-            Assert.Equal(3, links.Count);
-            Assert.False(links[0].Descending);
-            Assert.Equal(13_599_840_256.0, links[0].Orbit.Sma);
-            Assert.True(links[1].Descending);
-            Assert.Equal(68_773_560_320.0, links[1].Orbit.Sma);
-            Assert.True(links[2].Descending);
-            Assert.Equal(27_184_000.0, links[2].Orbit.Sma);
+            Assert.Equal(3, occluders.Count);
+            Assert.Equal(Sun, occluders[0].BodyIndex);
+            Assert.Equal(Jool, occluders[1].BodyIndex);
+            Assert.Equal(Laythe, occluders[2].BodyIndex);
         }
 
         [Fact]
         public void TheWalkIsNotSymmetricButBothDirectionsResolve()
         {
-            Assert.Equal(3, PatchedConicChain.Between(Kerbin, Laythe, System()).Count);
-            Assert.Equal(3, PatchedConicChain.Between(Laythe, Kerbin, System()).Count);
+            Assert.Equal(3, Between(Kerbin, Laythe).Count);
+            Assert.Equal(3, Between(Laythe, Kerbin).Count);
         }
 
         /// <summary>
-        /// Any chain through the root carries the root's non-orbit, which a
-        /// Kepler solver cannot take. Detecting that here is what stops it
-        /// throwing deep inside the sweep, where the policy swallows it and the
-        /// predictor goes silent with no trace.
+        /// The occluding radius comes from the caller's own lookup rather than
+        /// from the body table, because how big a body is to a radio wave is the
+        /// elected occlusion model's answer: stock CommNet shrinks it and a
+        /// network-replacing backend need not.
         /// </summary>
         [Fact]
-        public void AChainThroughTheRootIsNotPropagatable()
+        public void TheRadiusIsWhateverTheCallersOcclusionModelSays()
         {
-            var viaRoot = PatchedConicChain.Between(Kerbin, Laythe, System());
-            var withinOneSystem = PatchedConicChain.Between(Kerbin, Minmus, System());
+            var stock = PatchedConicChain.OccludersBetween(
+                Kerbin, Minmus, System(), i => Radii[i] * 0.9);
 
-            Assert.True(PatchedConicChain.IsPropagatable(withinOneSystem, new KeplerProvider()));
-            // Kerbin's and Jool's own orbits ARE elliptical, so a chain through
-            // the Sun is propagatable; the Sun's own non-orbit is never a LINK,
-            // only ever the body a link arrives at.
-            Assert.True(PatchedConicChain.IsPropagatable(viaRoot, new KeplerProvider()));
+            Assert.Equal(54_000.0, stock![0].OccludingRadiusMeters);
         }
 
         [Fact]
-        public void ANonElliptialLinkIsRejected()
+        public void AnOutOfRangeIndexYieldsNoPathRatherThanThrowing()
         {
-            var bad = new[]
-            {
-                new OrbitToRemoteStationGeometry.ChainLink(
-                    new OrbitElements(0.0, 1.0, 0, 0, 0, 0, 0, 0.0), 1.0, descending: true),
-            };
-
-            Assert.False(PatchedConicChain.IsPropagatable(bad, new KeplerProvider()));
+            Assert.Null(Between(-1, Kerbin));
+            Assert.Null(Between(Kerbin, 99));
+            Assert.Null(PatchedConicChain.OccludersBetween(Kerbin, Minmus, null, i => Radii[i]));
         }
 
         [Fact]
-        public void AnOutOfRangeIndexYieldsNoChainRatherThanThrowing()
-        {
-            Assert.Null(PatchedConicChain.Between(-1, Kerbin, System()));
-            Assert.Null(PatchedConicChain.Between(Kerbin, 99, System()));
-            Assert.Null(PatchedConicChain.Between(Kerbin, Minmus, null));
-        }
-
-        [Fact]
-        public void ALoopedHierarchyYieldsNoChainRatherThanHanging()
+        public void ALoopedHierarchyYieldsNoPathRatherThanHanging()
         {
             var looped = new[]
             {
-                new ChainBody(1, Circular(1.0, 1.0), 1.0),
-                new ChainBody(0, Circular(1.0, 1.0), 1.0),
+                new SystemBody(1, Circular(1.0, 1.0)),
+                new SystemBody(0, Circular(1.0, 1.0)),
             };
 
-            Assert.Null(PatchedConicChain.Between(0, 1, looped));
+            Assert.Null(PatchedConicChain.OccludersBetween(0, 1, looped, _ => 1.0));
         }
     }
 }

@@ -28,7 +28,7 @@ namespace Sitrep.Propagation
     {
         private PropagationTarget(
             PropagationTargetKind kind,
-            string id,
+            string? id,
             int bodyIndex,
             int parentBodyIndex,
             OrbitElements? osculating)
@@ -45,13 +45,16 @@ namespace Sitrep.Propagation
         /// <summary>The vessel's stable id, or null for a body (which is named by <see cref="BodyIndex"/>).</summary>
         public string? Id { get; }
 
-        /// <summary>Index into the body table for a <see cref="PropagationTargetKind.Body"/> target, or -1 for a vessel.</summary>
+        /// <summary>Index into the provider's body table for a <see cref="PropagationTargetKind.Body"/> target, or -1 for a vessel.</summary>
         public int BodyIndex { get; }
 
         /// <summary>
-        /// Index of the body this target orbits. A frame centred on anything else
-        /// requires walking the body hierarchy, which is why a provider must be
-        /// asked (<see cref="IPropagationProvider.CanPropagate(PropagationTarget, PropagationFrame, double, double)"/>)
+        /// Index of the body this target orbits, or -1 when the caller does not know
+        /// it (and, for a body, always, because which body a body orbits is the
+        /// provider's to know rather than the caller's to assert). A frame centred on
+        /// anything else requires walking the body hierarchy, which is why a provider
+        /// must be asked
+        /// (<see cref="IPropagationProvider.CanPropagate(PropagationTarget, PropagationFrame, double, double)"/>)
         /// rather than assumed capable.
         /// </summary>
         public int ParentBodyIndex { get; }
@@ -62,30 +65,27 @@ namespace Sitrep.Propagation
         /// </summary>
         public OrbitElements? Osculating { get; }
 
+        /// <summary>
+        /// A vessel, DESCRIBED. A vessel comes with its elements because no provider
+        /// has a registry to resolve a vessel id against: whatever physics a provider
+        /// runs, the craft it is asked about is one the caller is holding a sample
+        /// of. Contrast <see cref="Body"/>.
+        /// </summary>
         public static PropagationTarget Vessel(string id, int parentBodyIndex, OrbitElements? osculating) =>
             new PropagationTarget(PropagationTargetKind.Vessel, id, -1, parentBodyIndex, osculating);
 
-        public static PropagationTarget Body(int bodyIndex, int parentBodyIndex, OrbitElements? osculating) =>
-            new PropagationTarget(PropagationTargetKind.Body, null, bodyIndex, parentBodyIndex, osculating);
-
         /// <summary>
-        /// A target known only by its elements, relative to whichever body the
-        /// caller is already working against. Pairs with
-        /// <see cref="PropagationFrame.Unnamed"/>, and the two together assert
-        /// exactly the invariant such a caller already relies on: that the elements
-        /// and the frame share a centre.
+        /// A body, NAMED. No elements and no parent: a provider knows where the
+        /// bodies are, and a caller that supplied its own copy would be handing over
+        /// a second opinion the provider would then have to choose between.
         ///
-        /// <para>TRANSITIONAL. It exists for callers that hold elements but no body
-        /// table, which today means the visibility geometries. Those are the same
-        /// callers that will gain a real body index when the hierarchy walk moves
-        /// inside the provider; at that point this factory has no users left. It is
-        /// deliberately not a way to keep passing conics around: a target built this
-        /// way can only ever be solved in its own unnamed frame, so it buys nothing
-        /// except compilation for code that has not been converted yet.</para>
+        /// <para>This asymmetry with <see cref="Vessel"/> is the point. It is what
+        /// lets an occlusion pass ask where each occluding body is without holding a
+        /// conic for any of them, and so what lets the visibility geometries stop
+        /// composing conics themselves.</para>
         /// </summary>
-        public static PropagationTarget RelativeToFrame(OrbitElements osculating) =>
-            new PropagationTarget(
-                PropagationTargetKind.Body, null, -1, PropagationFrame.UnnamedCentre, osculating);
+        public static PropagationTarget Body(int bodyIndex) =>
+            new PropagationTarget(PropagationTargetKind.Body, null, bodyIndex, -1, null);
     }
 
     /// <summary>
@@ -106,21 +106,8 @@ namespace Sitrep.Propagation
             CentreBodyIndex = centreBodyIndex;
         }
 
-        /// <summary>
-        /// The centre index used by <see cref="PropagationTarget.RelativeToFrame"/>
-        /// and <see cref="Unnamed"/>: "whatever body these elements are measured
-        /// against". Negative so it can never collide with a real body index.
-        /// </summary>
-        public const int UnnamedCentre = -1;
-
         public int CentreBodyIndex { get; }
 
         public static PropagationFrame CentredOn(int bodyIndex) => new PropagationFrame(bodyIndex);
-
-        /// <summary>
-        /// The frame a <see cref="PropagationTarget.RelativeToFrame"/> target is
-        /// measured in. TRANSITIONAL, and see that factory for why.
-        /// </summary>
-        public static PropagationFrame Unnamed => new PropagationFrame(UnnamedCentre);
     }
 }
