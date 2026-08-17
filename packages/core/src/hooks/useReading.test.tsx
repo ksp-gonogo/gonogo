@@ -26,22 +26,25 @@ function Probe() {
   const reading = useReading("vessel.target");
   if (reading.state === "pending") return <div>pending</div>;
   if (reading.state === "absent") return <div>absent@{reading.atUt}</div>;
-  if (reading.state === "current") {
+  if (reading.state === "observed") {
     return (
       <div>
-        current:{String(reading.value.name)}@{reading.atUt}
+        observed:{String(reading.value.name)}@{reading.atUt}
       </div>
     );
   }
+  if (reading.state === "reckonable") {
+    return <div>reckonable:{reading.grade}</div>;
+  }
   return (
     <div>
-      stale:{reading.grade}:{String(reading.lastObserved.value.name)}
+      stale:{reading.grade}:{String(reading.value.name)}
     </div>
   );
 }
 
 describe("useReading", () => {
-  it("is pending before anything arrives, then current once it does", async () => {
+  it("is pending before anything arrives, then observed once it does", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
@@ -62,7 +65,9 @@ describe("useReading", () => {
 
     // The provider coalesces `beginFrame()` to the next animation frame, so the
     // read resolves a frame after the emit rather than synchronously.
-    await waitFor(() => expect(screen.getByText(/^current:Mun@/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(/^observed:Mun@/)).toBeTruthy(),
+    );
   });
 
   it("is pending, not stale, with no provider mounted", () => {
@@ -95,7 +100,9 @@ describe("useReading", () => {
         source: "vessel:1",
       });
     });
-    await waitFor(() => expect(screen.getByText(/^current:Mun@/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(/^observed:Mun@/)).toBeTruthy(),
+    );
 
     act(() => {
       store.setTransportConnected(false);

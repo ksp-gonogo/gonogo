@@ -5,6 +5,7 @@ import {
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
 import { type Reading, readingFrom } from "./reading";
+import { getReckoner } from "./reckoners";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import {
@@ -381,6 +382,22 @@ export class TimelineStore {
    * building their own per-frame cache.
    */
   private readonly frameCache = new WeakMap<FrameToken, Map<string, unknown>>();
+
+  /**
+   * Last `Reading` per topic, with the inputs it was built from, so a reading's
+   * identity tracks its DATA rather than the frame it was read in. Deliberately
+   * NOT the frame cache, which is keyed on a token that changes every ingest
+   * tick: see `sampleReading` for why that distinction is load-bearing.
+   */
+  private readonly readings = new Map<
+    string,
+    {
+      point: TimelinePoint<unknown> | undefined;
+      status: StreamStatusValue;
+      epoch: number;
+      reading: Reading<unknown>;
+    }
+  >();
 
   /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"`. */
   readonly heartbeats: HeartbeatTracker;
@@ -1056,12 +1073,24 @@ export class TimelineStore {
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
    *
-   * Memoized on the same per-`(token, key)` frame cache the other two use, and
-   * that is load-bearing rather than an optimisation: `useSyncExternalStore`
-   * compares snapshots by reference, so a hook whose `getSnapshot` rebuilt the
-   * union every call would loop forever rather than merely allocate. Sharing
-   * the cache also means the reading, the value and the status can never
-   * disagree about which frame or epoch they describe.
+   * **Identity tracks the DATA, not the frame**, and that is load-bearing
+   * rather than an optimisation. `useReading` hands the result straight to
+   * `useSyncExternalStore`, which compares snapshots with `Object.is`. The
+   * per-frame `memoize` cache alone is not enough here: `beginFrame()` mints a
+   * new `FrameToken` on every ingest tick, so a token-keyed entry is a fresh
+   * object per frame by construction, and every widget reading telemetry would
+   * re-render at frame cadence forever whether or not anything arrived. It
+   * would also hand a fresh `reckon` thunk identity to every consumer's
+   * dependency arrays on every frame.
+   *
+   * `sample()` and `sampleStatus()` do not need this because a payload's
+   * identity is its own and a status is a string; a union is a WRAPPER, so it
+   * has to be told. The last reading per topic is therefore kept and returned
+   * again while the sampled point's identity, the status and the epoch are all
+   * unchanged. Frame memoization still sits on top, so repeat reads within one
+   * frame never re-derive.
+   *
+   * `reading-identity.test.ts` is the guard.
    */
   sampleReading<T>(
     topic: string,
@@ -1075,11 +1104,27 @@ export class TimelineStore {
     return this.memoize(
       effectiveToken,
       `\0reading\0${topic}\0epoch\0${epoch}`,
-      () =>
-        readingFrom(
-          this.sample<T>(topic, effectiveToken),
-          this.sampleStatus(topic, effectiveToken),
-        ),
+      () => {
+        const point = this.sample<T>(topic, effectiveToken);
+        const status = this.sampleStatus(topic, effectiveToken);
+        const previous = this.readings.get(topic);
+        if (
+          previous !== undefined &&
+          previous.point === point &&
+          previous.status === status &&
+          previous.epoch === epoch
+        ) {
+          return previous.reading as Reading<T>;
+        }
+        const reading = readingFrom(point, status, getReckoner<T>(topic));
+        this.readings.set(topic, {
+          point,
+          status,
+          epoch,
+          reading: reading as Reading<unknown>,
+        });
+        return reading;
+      },
     );
   }
 

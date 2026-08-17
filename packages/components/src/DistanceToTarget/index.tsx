@@ -6,12 +6,7 @@ import {
   useReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  type Reading,
-  readingAge,
-  useProcessor,
-  useViewUt,
-} from "@ksp-gonogo/sitrep-client";
+import { type Reading, readingAge, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
@@ -50,7 +45,10 @@ import {
   vecMagnitude,
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
-import { targetReckoning } from "./targetReckoning";
+// Side-effect import: registers the `vessel.target` reckoner (stubbed, so it
+// declines and the widget renders no modelled figure) plus the frame-memoised
+// processor its arithmetic will run through.
+import "./targetReckoning";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
@@ -176,22 +174,31 @@ const APPROACH_EXIT_M = 5_500;
 type ViewMode = "tracking" | "approach" | "docking-hud";
 
 /**
- * The payload behind a reading, whatever its currency: the value if current,
- * the last real observation if stale, nothing otherwise.
+ * The last REAL observation behind a reading, whatever its currency, or nothing
+ * where there has not been one.
  *
  * Used only to derive the scalars the widget already computed client-side
- * (distance, closing rate, dock angles), so that arithmetic stays in one place
+ * (distance, closing rate, dock angles) so that arithmetic stays in one place
  * rather than being duplicated per arm. It deliberately does NOT decide how the
  * result is presented: every caller branches on `targetReading.state` for that,
- * and the stale branch is the one that renders the age. Passing this result
- * straight to a readout without checking the state would reintroduce exactly
- * the bug the union prevents, which is why it is a local helper and not
+ * and the non-observed branches are the ones that render the age. Passing this
+ * result straight to a readout without checking the state would reintroduce
+ * exactly the bug the union prevents, which is why it is a local helper and not
  * exported.
+ *
+ * It never returns a MODELLED value: a reckoning is pulled explicitly through
+ * `reckon()` in the branch that renders it, so a propagated number can never
+ * arrive at a readout by accident.
  */
 function observedPayload<T>(reading: Reading<T>): T | undefined {
-  if (reading.state === "current") return reading.value;
-  if (reading.state === "stale") return reading.lastObserved.value;
-  return undefined;
+  switch (reading.state) {
+    case "observed":
+    case "stale":
+    case "reckonable":
+      return reading.value;
+    default:
+      return undefined;
+  }
 }
 
 function DistanceToTargetComponent({
@@ -218,11 +225,6 @@ function DistanceToTargetComponent({
   const targetReading = useReading("vessel.target");
   const dock = useTelemetry("vessel.dock");
   const target = observedPayload(targetReading);
-  // Frame-memoised, ref-counted pull: a reckoning nobody reads costs nothing.
-  // Stubbed, so this is `undefined` and no reckoned row renders. See
-  // `targetReckoning.ts` for why a stub that returned a number would be worse
-  // than no stub.
-  const reckonedTarget = useProcessor(targetReckoning);
 
   const tarName = resolveTargetName(target?.name);
   const tarKind = target?.kind;
@@ -315,7 +317,7 @@ function DistanceToTargetComponent({
       !autoSwitch ||
       !dockable ||
       tarDistance === undefined ||
-      targetReading.state !== "current"
+      targetReading.state !== "observed"
     ) {
       if (mode !== "tracking") setMode("tracking");
       return;
@@ -356,26 +358,43 @@ function DistanceToTargetComponent({
     );
   }
 
-  if (targetReading.state === "absent") {
+  // Confirmed absence, by either of the two ways the wire can state one:
+  //
+  //  - a tombstone for the whole record (`absent`), which is what the mod sends
+  //    when the target is cleared (`absenceIsData: true` on TargetTopic)
+  //  - a record that arrived carrying KSP's own "No Target Selected." sentinel,
+  //    which `resolveTargetName` maps to undefined. A THIRD encoding of absence
+  //    alongside "no frame" and "tombstone", and one this widget used to lump in
+  //    with the other two. It is a confirmed fact, so it renders as one: the
+  //    reading is genuinely current (or genuinely stale), and its `atUt` is when
+  //    that fact was observed
+  //
+  // A confirmed absence can itself go old, which is what the age says: with the
+  // link down, "no target set" stops being a claim about now.
+  if (targetReading.state === "absent" || tarName === undefined) {
+    // "Confirmed" only while we are still hearing from the craft. Once we are
+    // not, the absence is itself an old observation and saying "confirmed"
+    // would overstate it.
+    const confirmedWord =
+      targetReading.state === "observed" || targetReading.state === "absent"
+        ? "confirmed"
+        : "last seen";
     return (
       <TargetPanel badgeContext={badgeContext}>
         <EmptyState>
-          No target set in KSP
-          {ageSec !== undefined && (
-            <ReadoutCaption>
-              confirmed {formatDuration(ageSec)} ago
-            </ReadoutCaption>
-          )}
+          {/* Stacked, not inline: `ReadoutCaption` is a span, so as a sibling
+              of the bare text it ran together into one accessible string
+              ("No target set in KSPconfirmed 0s ago"), which is how a screen
+              reader would have read it out. */}
+          <Stack gap="xs">
+            <span>No target set in KSP</span>
+            {ageSec !== undefined && (
+              <ReadoutCaption>
+                {confirmedWord} {formatDuration(ageSec)} ago
+              </ReadoutCaption>
+            )}
+          </Stack>
         </EmptyState>
-      </TargetPanel>
-    );
-  }
-
-  // Stale, but a name never arrived: nothing to show but the caveat itself.
-  if (tarName === undefined) {
-    return (
-      <TargetPanel badgeContext={badgeContext}>
-        <EmptyState>Waiting for target telemetry</EmptyState>
       </TargetPanel>
     );
   }
@@ -427,7 +446,26 @@ function DistanceToTargetComponent({
     rows >= 5 && relVel !== undefined && Number.isFinite(relVel);
   const showTargetName = rows >= 4 || cols >= 5;
 
-  const isStale = targetReading.state === "stale";
+  // Out of contact, either way. The two arms differ in what they let us DRAW,
+  // which is why they are arms; they agree that the headline number is an
+  // observation rather than a reading of now, which is why they share a tone.
+  const outOfContact =
+    targetReading.state === "stale" || targetReading.state === "reckonable";
+  // Pulled here, in the branch that renders it, so a modelled number can only
+  // reach the screen through code that says it is modelling. `withoutReckoning`
+  // is the alternative and would be wrong for this widget: range to a target is
+  // exactly the quantity an approach is flown on.
+  const reckoned =
+    targetReading.state === "reckonable" ? targetReading.reckon() : undefined;
+  // Derived exactly as the observed distance is, from the same Vec3 field, so a
+  // modelled range and an observed one are the same quantity computed the same
+  // way. A model that returns a payload with no relative position has nothing
+  // to say about range, and renders nothing rather than a zero.
+  const reckonedRelPos =
+    reckoned?.value.relativePosition && bare(reckoned.value.relativePosition);
+  const reckonedDistance = reckonedRelPos
+    ? vecMagnitude(reckonedRelPos)
+    : undefined;
 
   return (
     <TargetPanel badgeContext={badgeContext}>
@@ -444,7 +482,7 @@ function DistanceToTargetComponent({
           <DisplayDash />
         ) : (
           <Value
-            tone={isStale ? "muted" : "accent"}
+            tone={outOfContact ? "muted" : "accent"}
             style={DISPLAY_VALUE_STYLE}
           >
             <Unit value={value("m", tarDistance)} />
@@ -452,18 +490,18 @@ function DistanceToTargetComponent({
         )}
         {/* The caveat belongs on the value, not in the panel chrome: a header
             badge beside a confident readout is what the operator reads past.
-            Only rendered when stale, deliberately: under a light-time delay
+            Only rendered out of contact, deliberately: under a light-time delay
             every value is old, so a caveat on all of them would say nothing. */}
-        {isStale && (
+        {outOfContact && (
           <ReadoutCaption role="status">
             at last contact
             {ageSec !== undefined && `, ${formatDuration(ageSec)} ago`}
           </ReadoutCaption>
         )}
-        {isStale && reckonedTarget !== undefined && (
+        {reckoned !== undefined && reckonedDistance !== undefined && (
           <ReadoutCaption>
-            reckoned <Unit value={value("m", reckonedTarget.distanceM)} /> (
-            {reckonedTarget.basis})
+            reckoned <Unit value={value("m", reckonedDistance)} /> (
+            {reckoned.basis})
           </ReadoutCaption>
         )}
         {showSubReadout && (

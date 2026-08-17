@@ -45,7 +45,7 @@ describe("TimelineStore.sampleReading", () => {
     const second = s.sampleReading("vessel.target");
 
     expect(second).not.toBe(first);
-    expect(second).toEqual({ state: "current", value: 6, atUt: 11 });
+    expect(second).toEqual({ state: "observed", value: 6, atUt: 11 });
   });
 
   it("agrees with the value and status reads for the same frame", () => {
@@ -55,7 +55,7 @@ describe("TimelineStore.sampleReading", () => {
 
     const frame = s.currentFrame();
     expect(s.sampleReading("vessel.target", frame)).toEqual({
-      state: "current",
+      state: "observed",
       value: s.sample<number>("vessel.target", frame)?.payload,
       atUt: 10,
     });
@@ -73,7 +73,7 @@ describe("TimelineStore.sampleReading", () => {
     s.ingest("vessel.target", point(10, 5));
     s.beginFrame();
     expect(s.sampleReading("vessel.target")).toEqual({
-      state: "current",
+      state: "observed",
       value: 5,
       atUt: 10,
     });
@@ -83,7 +83,8 @@ describe("TimelineStore.sampleReading", () => {
     expect(s.sampleReading("vessel.target")).toEqual({
       state: "stale",
       grade: "disconnected",
-      lastObserved: { value: 5, atUt: 10 },
+      value: 5,
+      asOfUt: 10,
     });
   });
 

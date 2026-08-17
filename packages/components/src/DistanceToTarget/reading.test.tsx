@@ -1,4 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
+import { type TopicPayload, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -20,6 +22,9 @@ import { DistanceToTargetComponent } from "./index";
  */
 afterEach(() => {
   clearActionHandlers();
+  // The reckoner registry is module-level, so a test that registers one must
+  // clear it or the widget keeps a model in every later test in the file.
+  clearReckoners();
 });
 
 const TARGET = {
@@ -96,6 +101,38 @@ describe("DistanceToTarget: pending is no longer reported as a confirmed absence
   });
 });
 
+describe("DistanceToTarget: KSP's own no-target sentinel is a confirmed absence too", () => {
+  it("reports a current record carrying the sentinel as confirmed, not as pending", async () => {
+    // A THIRD encoding of absence, and the one the recorded-fixture e2e found
+    // while the unit tests were happy: the record genuinely arrived, so the
+    // reading is `current`, but its name is KSP's "No Target Selected."
+    // sentinel, which `resolveTargetName` maps to undefined. That is the wire
+    // stating a fact, not failing to state one, so it renders as a confirmed
+    // absence with the time it was observed.
+    const { fixture, legacyAux } = await mount("dtt-sentinel", 10);
+
+    act(() => {
+      legacyAux.source.emit("tar.type", "Vessel");
+      fixture.emit("vessel.target", {
+        name: "No Target Selected.",
+        kind: 0,
+        vesselId: null,
+        bodyIndex: null,
+        relativePosition: null,
+        relativeVelocity: null,
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("No target set in KSP")).toBeTruthy(),
+    );
+    expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
+    expect(visibleText()).toMatch(/confirmed/i);
+
+    teardownMockDataSource(legacyAux);
+  });
+});
+
 describe("DistanceToTarget: stale renders the last observation as an observation", () => {
   it("keeps the last distance but marks it at-last-contact once the link drops", async () => {
     const { fixture, legacyAux } = await mount("dtt-stale", 10);
@@ -146,6 +183,56 @@ describe("DistanceToTarget: stale renders the last observation as an observation
     // rendering. Presence of the row is the statement of trust, so a stub that
     // rendered one would be the exact dishonesty the type exists to prevent.
     expect(visibleText()).not.toMatch(/reckoned/i);
+
+    teardownMockDataSource(legacyAux);
+  });
+
+  it("renders the modelled range beside the observation once a model exists", async () => {
+    // The `reckonable` arm end to end. The shipped reckoner declines (nothing
+    // can honestly model this yet), so the test registers one: the point is that
+    // the widget renders BOTH figures, the observation with its age and the
+    // model with its basis, rather than substituting one for the other.
+    registerReckoner<TopicPayload<"vessel.target">>(
+      "vessel.target",
+      (p) => () => ({
+        // 12 km: visibly different from the observed 10 km, so a test that
+        // silently rendered the observation twice would fail. `value("m", n)`
+        // rather than bare numbers because a reckoner returns the SAME payload
+        // shape the decode produces, and the widget reads `.magnitude` off each
+        // component.
+        value: {
+          ...(p.payload as TopicPayload<"vessel.target">),
+          relativePosition: {
+            x: value("m", 7200),
+            y: value("m", 0),
+            z: value("m", 9600),
+          },
+        } as unknown as TopicPayload<"vessel.target">,
+        atUt: p.validAt + 30,
+        basis: "linear-dead-reckoning",
+      }),
+    );
+
+    const { fixture, legacyAux } = await mount("dtt-reckon", 10);
+    act(() => {
+      legacyAux.source.emit("tar.name", "Rendezvous Target");
+      legacyAux.source.emit("tar.type", "Vessel");
+      fixture.emit("vessel.target", TARGET);
+    });
+    await waitFor(() => expect(visibleText()).toContain("10.0 km"));
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() => expect(visibleText()).toMatch(/reckoned/i));
+    // Both, side by side. The observation is what we know; the model is what we
+    // infer, named so the operator can calibrate their trust in it.
+    expect(visibleText()).toContain("10.0 km");
+    expect(visibleText()).toContain("12.0 km");
+    expect(visibleText()).toContain("linear-dead-reckoning");
+    expect(visibleText()).toMatch(/last contact/i);
 
     teardownMockDataSource(legacyAux);
   });
