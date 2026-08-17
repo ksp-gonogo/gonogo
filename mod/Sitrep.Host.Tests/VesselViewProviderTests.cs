@@ -2369,6 +2369,46 @@ namespace Sitrep.Host.Tests
             }
         }
 
+        /// <summary>
+        /// The shape gate above only asks whether a key EXISTS, so it passes a
+        /// wire that carries pitch under "yaw". Each axis therefore gets a
+        /// value of its own here, and the assertion is that it arrives under
+        /// its own key: a transposed pair is a wrong readback in the operator's
+        /// ControlDelayStream rather than an absent one, which is worse.
+        /// </summary>
+        [Fact]
+        public void ToWireCarriesEachControlAxisUnderItsOwnKey()
+        {
+            var control = new VesselControl
+            {
+                Throttle = 0.5,
+                Pitch = 0.11,
+                Yaw = 0.22,
+                Roll = 0.33,
+                TranslationX = 0.44,
+                TranslationY = 0.55,
+                TranslationZ = 0.66,
+            };
+
+            var toWireMethod = typeof(VesselViewProvider).GetMethod(
+                "ToWire",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+                binder: null,
+                types: new[] { typeof(VesselControl) },
+                modifiers: null);
+            Assert.NotNull(toWireMethod);
+
+            var wire = toWireMethod!.Invoke(null, new object[] { control }) as IDictionary<string, object?>;
+            Assert.NotNull(wire);
+
+            Assert.Equal(0.11, wire!["pitch"]);
+            Assert.Equal(0.22, wire["yaw"]);
+            Assert.Equal(0.33, wire["roll"]);
+            Assert.Equal(0.44, wire["translationX"]);
+            Assert.Equal(0.55, wire["translationY"]);
+            Assert.Equal(0.66, wire["translationZ"]);
+        }
+
         // ----------------------------------------------------------------
         // Fix C: payload meta is slim -- source/quality only, never a
         // fabricated duplicate of the ENVELOPE meta's real

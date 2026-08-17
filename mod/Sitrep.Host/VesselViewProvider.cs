@@ -1393,6 +1393,16 @@ namespace Sitrep.Host
             ["abort"] = control.Abort,
             ["precisionControl"] = control.PrecisionControl,
             ["throttle"] = control.Throttle,
+            // The fly-by-wire axis ECHOES. They exist so the operator watches a
+            // delayed axis command ARRIVE, exactly as the throttle channel does,
+            // which cannot happen while they are read off the vessel and then
+            // dropped on the way to the wire.
+            ["pitch"] = control.Pitch,
+            ["yaw"] = control.Yaw,
+            ["roll"] = control.Roll,
+            ["translationX"] = control.TranslationX,
+            ["translationY"] = control.TranslationY,
+            ["translationZ"] = control.TranslationZ,
             ["actionGroups"] = control.ActionGroups?.Select(g => (object?)ToWire(g)).ToList(),
             ["meta"] = ToWire(control.Meta),
         };
