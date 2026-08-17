@@ -61,8 +61,10 @@
  * literal `null` payload (the mod's own "no target" wire convention,
  * mirrored by `vessel.dock`) rather than omitted, that still counts as "a
  * sample delivered" for the derived-channel gate while resolving every
- * `vessel.target.*` field read to `undefined`, matching the old fixture's
- * NO_TARGET_SENTINEL behaviour.
+ * `vessel.target.*` field read to `undefined`. A tombstone is what
+ * `absenceIsData` makes of a cleared target, so this is the real wire shape;
+ * the deleted NO_TARGET_SENTINEL this note used to cite was Telemachus's
+ * string for the same condition and was never producible here.
  */
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";

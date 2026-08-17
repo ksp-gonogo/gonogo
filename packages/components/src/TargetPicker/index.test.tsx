@@ -467,13 +467,18 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     expect(screen.getByText(/No target set in KSP/i)).toBeInTheDocument();
   });
 
-  it("treats the Telemachus no-target sentinel as no target in compact mode", () => {
+  it("treats a cleared target as no target in compact mode", () => {
+    // Replaces a test that emitted the string "No Target Selected." and asserted
+    // the widget hid it. That was Telemachus's sentinel for a null target, and no
+    // producer can generate it: `KspHost.BuildTarget` returns null before `name`
+    // is ever read, and `vessel.target` is declared `absenceIsData`, so a cleared
+    // target arrives as the tombstone below. The old test asserted behaviour
+    // against synthetic input, and the translator it was protecting is deleted.
     renderPicker(fixture, { w: 3, h: 4 });
     act(() => {
-      fixture.emit("vessel.target", { name: "No Target Selected." });
+      fixture.emit("vessel.target", null);
     });
     expect(screen.getByText(/No target set/i)).toBeInTheDocument();
-    expect(screen.queryByText(/No Target Selected\./)).not.toBeInTheDocument();
   });
 
   it("has no axe violations with a populated list and a current target", async () => {

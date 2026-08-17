@@ -6,7 +6,6 @@ import type {
 import {
   AugmentSlot,
   registerComponent,
-  resolveTargetName,
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -332,7 +331,7 @@ function SystemViewComponent({
     : undefined;
   const vesselPlotState = vesselPlotStateFromStatus(vesselStatus ?? null);
   const systemBodies = useTelemetry("system.bodies");
-  const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
+  const targetName = useTelemetry("vessel.target")?.name;
   // View-UT: the SDK view time the propagation already evaluates at
   // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
   const universalTime = useViewUt();

@@ -5,7 +5,6 @@ import {
   type CurrentOrbit,
   getBody,
   registerComponent,
-  resolveTargetName,
   useOrbitElements,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -135,7 +134,7 @@ function ManeuverPlannerComponent({
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
   const inclination =
     magnitudeOf(useTelemetry("vessel.orbit")?.inc) ?? undefined;
-  const targetName = resolveTargetName(useTelemetry("vessel.target")?.name);
+  const targetName = useTelemetry("vessel.target")?.name;
   const targetInclinationLive =
     magnitudeOf(useTelemetry("vessel.target")?.orbit?.inc) ?? undefined;
   const targetLanLive =

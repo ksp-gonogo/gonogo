@@ -4,9 +4,8 @@
     "vessel": "synthetic (Mk1 pod in LKO, no target)",
     "body": "Kerbin",
     "situation": "Orbiting ~87km, no target, no other vessels in range",
-    "notes": "SYNTHETIC, hand-generated. No-target state: tar.name carries the real Telemachus no-target sentinel \"No Target Selected.\" (confirmed in the fork NavigationHandlers.cs: VesselTarget==null -> \"No Target Selected.\"). The widget normalises this to no-target via resolveTargetName, so the Current tab + compact readout render the empty branch. tar.availableVessels empty (Vessels tab shows the no-targets-in-range hint); no encounter/apsis so OrbitalEventChips collapses. Body data copied from SystemView for the Bodies tab."
+    "notes": "SYNTHETIC, hand-generated. No-target state, depicted the way the wire actually reports it: vessel.target arrives as a TOMBSTONE (null payload), because KspHost.BuildTarget returns null when FlightGlobals.fetch.VesselTarget is null and the topic is declared absenceIsData. This fixture previously carried the string \"No Target Selected.\" in a name field, which was Telemachus's sentinel for the same condition and has been unproducible since Telemachus stopped being the data source in 806e7fe2; the client-side translator for it is deleted. tar.availableVessels empty (Vessels tab shows the no-targets-in-range hint); no encounter/apsis so OrbitalEventChips collapses. Body data copied from SystemView for the Bodies tab."
   },
-  "tar.name": "No Target Selected.",
   "o.encounterExists": 0,
   "o.encounterBody": "",
   "o.encounterTime": -1,
@@ -392,9 +391,7 @@
       },
       {
         "channel": "vessel.target",
-        "value": {
-          "name": "No Target Selected."
-        }
+        "value": null
       }
     ]
   }

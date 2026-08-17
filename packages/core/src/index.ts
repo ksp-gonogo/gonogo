@@ -66,7 +66,6 @@ export * from "./settings/SettingsService";
 export * from "./settings/store";
 export * from "./settingsTabs";
 export * from "./stock-bodies";
-export * from "./telemachus";
 export * from "./testing/installDomStubs";
 export * from "./testing/MockDataSource";
 export * from "./theme";

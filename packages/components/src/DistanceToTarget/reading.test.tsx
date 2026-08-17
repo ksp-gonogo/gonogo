@@ -101,38 +101,19 @@ describe("DistanceToTarget: pending is no longer reported as a confirmed absence
   });
 });
 
-describe("DistanceToTarget: KSP's own no-target sentinel is a confirmed absence too", () => {
-  it("reports a current record carrying the sentinel as confirmed, not as pending", async () => {
-    // A THIRD encoding of absence, and the one the recorded-fixture e2e found
-    // while the unit tests were happy: the record genuinely arrived, so the
-    // reading is `current`, but its name is KSP's "No Target Selected."
-    // sentinel, which `resolveTargetName` maps to undefined. That is the wire
-    // stating a fact, not failing to state one, so it renders as a confirmed
-    // absence with the time it was observed.
-    const { fixture, legacyAux } = await mount("dtt-sentinel", 10);
-
-    act(() => {
-      legacyAux.source.emit("tar.type", "Vessel");
-      fixture.emit("vessel.target", {
-        name: "No Target Selected.",
-        kind: 0,
-        vesselId: null,
-        bodyIndex: null,
-        relativePosition: null,
-        relativeVelocity: null,
-      });
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("No target set in KSP")).toBeTruthy(),
-    );
-    expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
-    expect(visibleText()).toMatch(/confirmed/i);
-
-    teardownMockDataSource(legacyAux);
-  });
-});
-
+// A describe block asserting that KSP's "No Target Selected." sentinel rendered
+// as a confirmed absence was DELETED here, and its premise was wrong rather than
+// merely obsolete. I wrote it yesterday off the recorded fixture, calling the
+// sentinel a third encoding of absence that the wire could produce. It cannot:
+// `KspHost.BuildTarget` returns null before `name` is read, and `vessel.target`
+// is declared `absenceIsData`, so the only thing a cleared target produces is the
+// tombstone the test above already covers. The string was Telemachus's, and
+// Telemachus stopped being the data source in 806e7fe2.
+//
+// So the fixture that taught me the "lesson" was itself preserving a dead
+// producer's vocabulary, which is the trap in miniature: a fixture is not
+// evidence that a shape exists on the wire, and I read one as current twice in
+// two days.
 describe("DistanceToTarget: stale renders the last observation as an observation", () => {
   it("keeps the last distance but marks it at-last-contact once the link drops", async () => {
     const { fixture, legacyAux } = await mount("dtt-stale", 10);

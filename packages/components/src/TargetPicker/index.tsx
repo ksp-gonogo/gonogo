@@ -6,7 +6,6 @@ import type {
 import {
   AugmentSlot,
   registerComponent,
-  resolveTargetName,
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -226,7 +225,7 @@ function TargetPickerComponent({
   // `packages/core/src/hooks/mapTopic.coverage.test.ts`).
   const available = useTelemetry("target.available");
   const target = useTelemetry("vessel.target");
-  const tarName = resolveTargetName(target?.name);
+  const tarName = target?.name;
   const tarType = targetKindLabel(target?.kind);
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =

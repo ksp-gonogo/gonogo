@@ -2,7 +2,6 @@ import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
-  resolveTargetName,
   useReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -226,7 +225,7 @@ function DistanceToTargetComponent({
   const dock = useTelemetry("vessel.dock");
   const target = observedPayload(targetReading);
 
-  const tarName = resolveTargetName(target?.name);
+  const tarName = target?.name;
   const tarKind = target?.kind;
   const tarType = targetKindLabel(tarKind);
   // Closest approach is now MOD-side (the elected ITargetApproachSolver),
@@ -358,16 +357,17 @@ function DistanceToTargetComponent({
     );
   }
 
-  // Confirmed absence, by either of the two ways the wire can state one:
+  // Confirmed absence. The wire states it as a tombstone for the whole record
+  // (`absent`), which is what the mod sends when the target is cleared:
+  // `KspHost.BuildTarget` returns null before `name` is read, and `TargetTopic`
+  // is declared `absenceIsData`.
   //
-  //  - a tombstone for the whole record (`absent`), which is what the mod sends
-  //    when the target is cleared (`absenceIsData: true` on TargetTopic)
-  //  - a record that arrived carrying KSP's own "No Target Selected." sentinel,
-  //    which `resolveTargetName` maps to undefined. A THIRD encoding of absence
-  //    alongside "no frame" and "tombstone", and one this widget used to lump in
-  //    with the other two. It is a confirmed fact, so it renders as one: the
-  //    reading is genuinely current (or genuinely stale), and its `atUt` is when
-  //    that fact was observed
+  // `tarName === undefined` is kept alongside it as a belt-and-braces guard for a
+  // record that somehow arrives without a name. It is not a second encoding of
+  // absence: an earlier version of this comment claimed KSP had one, a
+  // "No Target Selected." sentinel, and that was wrong. It was Telemachus's
+  // string, unproducible since Telemachus stopped being the data source, and the
+  // client-side translator for it has been deleted.
   //
   // A confirmed absence can itself go old, which is what the age says: with the
   // link down, "no target set" stops being a claim about now.
