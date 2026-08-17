@@ -71,7 +71,7 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void KeplerProviderMatchesEveryGoldenFixtureCase()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var fixtures = LoadFixtures();
 
             Assert.NotEmpty(fixtures.Cases);
@@ -88,7 +88,7 @@ namespace Sitrep.Propagation.Tests
                     epoch: testCase.Elements.Epoch,
                     mu: testCase.Elements.Mu);
 
-                StateVector state = provider.Solve(elements, testCase.Ut);
+                StateVector state = provider.SolveConic(elements, testCase.Ut);
 
                 AssertVectorRelativelyClose(
                     testCase.Expected.Position, state.Position, testCase.Tolerance, $"{testCase.Id}.position");

@@ -38,14 +38,19 @@ namespace Sitrep.Propagation.Tests
             PropagationTarget.Vessel("vessel-guid", parent, orbit);
 
         [Fact]
-        public void SolveInTheTargetsOwnParentFrameMatchesTheElementsKeyedSolve()
+        public void AConicIsAnsweredTheSameWhicheverBodyItIsSaidToOrbit()
         {
-            var provider = new KeplerProvider();
+            // The frame index is a LABEL when it matches the target's parent, not a
+            // transform: nothing about a two-body conic depends on which body the caller
+            // says it goes round, only on the two agreeing. This used to be phrased as
+            // "the target-keyed solve matches the element-keyed one", which stopped
+            // meaning anything when the element-keyed door was closed.
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = LowOrbit();
 
             foreach (var ut in new[] { 0.0, 137.0, 900.0, 1958.0, 5000.0 })
             {
-                var viaElements = provider.Solve(orbit, ut);
+                var viaElements = provider.SolveConic(orbit, ut);
                 var viaTarget = provider.Solve(Vessel(orbit), PropagationFrame.CentredOn(Kerbin), ut);
 
                 Assert.Equal(viaElements.Position.X, viaTarget.Position.X, 6);
@@ -123,7 +128,7 @@ namespace Sitrep.Propagation.Tests
             // year out as a second out. A provider that integrates would answer
             // differently here, which is the entire reason the window is a
             // parameter rather than assumed.
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
 
             Assert.True(provider.CanPropagate(Vessel(LowOrbit()), 0.0, 86_400.0));
             Assert.True(provider.CanPropagate(Vessel(LowOrbit()), 0.0, 3.15e7));
@@ -170,7 +175,7 @@ namespace Sitrep.Propagation.Tests
             // the equality below is trivial; for an integrating provider it is the
             // difference between one pass and 1440, which is why the sweep must ask
             // this way rather than in a loop of its own.
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var target = Vessel(LowOrbit());
             var frame = PropagationFrame.CentredOn(Kerbin);
             var uts = new List<double>();
@@ -197,7 +202,7 @@ namespace Sitrep.Propagation.Tests
         {
             // Silently filling part of a caller's buffer would leave stale samples
             // in the tail, which in a sweep reads as a plausible extra crossing.
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
 
             Assert.Throws<ArgumentException>(() => provider.SolveMany(
                 Vessel(LowOrbit()),

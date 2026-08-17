@@ -46,13 +46,13 @@ namespace Sitrep.Propagation.Tests
         [InlineData(0.9, 2.5, 1.1)]
         public void RotationPreservesPositionAndVelocityMagnitude(double inc, double lan, double argPe)
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = TiltedCircularOrbit(inc, lan, argPe);
             double expectedSpeed = Math.Sqrt(orbit.Mu / orbit.Sma);
 
             foreach (double ut in new[] { 0.0, 0.8, 2.1, Math.PI, 5.0 })
             {
-                StateVector state = provider.Solve(orbit, ut);
+                StateVector state = provider.SolveConic(orbit, ut);
 
                 Assert.Equal(orbit.Sma, state.Position.Magnitude(), 9);
                 Assert.Equal(expectedSpeed, state.Velocity.Magnitude(), 9);
@@ -66,10 +66,10 @@ namespace Sitrep.Propagation.Tests
         [InlineData(1.7, 5.5, 0.0)]
         public void OrbitNormalDirectionMatchesInclinationAndLan(double inc, double lan, double argPe)
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = TiltedCircularOrbit(inc, lan, argPe);
 
-            StateVector state = provider.Solve(orbit, 1.3);
+            StateVector state = provider.SolveConic(orbit, 1.3);
 
             Vector3d h = Cross(state.Position, state.Velocity);
             double hMagnitude = h.Magnitude();

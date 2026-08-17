@@ -237,7 +237,21 @@ namespace Sitrep.Propagation
                 && orbit.Mu > 0.0;
         }
 
-        public StateVector Solve(OrbitElements orbit, double ut)
+        /// <summary>
+        /// One conic, solved. PRIVATE, and that is the whole of what makes "orbits are
+        /// conics is assumed in exactly one place" literally true rather than nearly true.
+        ///
+        /// <para>While it was public it was a door beside the seam: a caller could take a
+        /// position straight out of the two-body solver without a target, a frame or an
+        /// election being involved, and sixteen tests across six files did. The class
+        /// holding the arithmetic is not the same thing as the arithmetic being reachable
+        /// only one way.</para>
+        ///
+        /// <para>The <see cref="ArgumentOutOfRangeException"/> below is now an internal
+        /// invariant rather than a contract: every path in reaches this through
+        /// <see cref="CanPropagate"/>, which declines an unbound orbit first.</para>
+        /// </summary>
+        private StateVector Solve(OrbitElements orbit, double ut)
         {
             if (orbit.Ecc < 0.0 || orbit.Ecc >= 1.0)
             {

@@ -43,7 +43,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             new SystemBody(Kerbin, new OrbitElements(MinmusSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu)),
         };
 
-        private static KeplerProvider Propagator() => new KeplerProvider(System());
+        private static IPropagationProvider Propagator() => new KeplerProvider(System());
 
         /// <summary>The live case: circular, 20 km above Minmus.</summary>
         private static PropagationTarget Relay() =>

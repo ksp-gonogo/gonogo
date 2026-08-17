@@ -40,7 +40,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             new SystemBody(Kerbin, MinmusAroundKerbin()),
         };
 
-        private static KeplerProvider Propagator() => new KeplerProvider(System());
+        private static IPropagationProvider Propagator() => new KeplerProvider(System());
 
         /// <summary>A vessel 60 km above Minmus, which is where the live test article sits.</summary>
         private static OrbitElements VesselAtMinmus(double lan = 0.0, double meanAnomaly = 0.0) =>
@@ -96,7 +96,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         {
             var station = KscLikeStation();
             var propagator = Propagator();
-            var minmus = propagator.Solve(MinmusAroundKerbin(), 0.0).Position;
+            var minmus = propagator.SolveConic(MinmusAroundKerbin(), 0.0).Position;
 
             // Directly behind Minmus as seen from Kerbin: the sign of the
             // vessel's position along the Kerbin-Minmus line decides this, so
@@ -105,7 +105,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             for (var m = 0.0; m < 2.0 * Math.PI; m += Math.PI / 180.0)
             {
                 var g = Geometry(VesselAtMinmus(meanAnomaly: m), viaMinmus: true, station);
-                var vesselRel = propagator.Solve(VesselAtMinmus(meanAnomaly: m), 0.0).Position;
+                var vesselRel = propagator.SolveConic(VesselAtMinmus(meanAnomaly: m), 0.0).Position;
                 var alongLine = Dot(vesselRel, minmus) / minmus.Magnitude();
                 if (alongLine > 55_000.0 && g.MarginAt(0.0) < 0.0)
                 {
@@ -122,12 +122,12 @@ namespace Sitrep.Propagation.Tests.Visibility
         {
             var station = KscLikeStation();
             var propagator = Propagator();
-            var minmus = propagator.Solve(MinmusAroundKerbin(), 0.0).Position;
+            var minmus = propagator.SolveConic(MinmusAroundKerbin(), 0.0).Position;
 
             var clearFound = false;
             for (var m = 0.0; m < 2.0 * Math.PI; m += Math.PI / 180.0)
             {
-                var vesselRel = propagator.Solve(VesselAtMinmus(meanAnomaly: m), 0.0).Position;
+                var vesselRel = propagator.SolveConic(VesselAtMinmus(meanAnomaly: m), 0.0).Position;
                 var alongLine = Dot(vesselRel, minmus) / minmus.Magnitude();
                 if (alongLine < -100_000.0)
                 {
@@ -228,8 +228,8 @@ namespace Sitrep.Propagation.Tests.Visibility
                 KerbinRadius,
                 propagator);
 
-            var expected = (propagator.Solve(vesselAboutSun, 0.0).Position
-                - propagator.Solve(System()[Kerbin].Orbit!.Value, 0.0).Position).Magnitude();
+            var expected = (propagator.SolveConic(vesselAboutSun, 0.0).Position
+                - propagator.SolveConic(System()[Kerbin].Orbit!.Value, 0.0).Position).Magnitude();
 
             // Within one Kerbin radius: the station sits on the surface, not at
             // the centre, and that is the only difference.

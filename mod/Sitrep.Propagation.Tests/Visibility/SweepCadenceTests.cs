@@ -41,7 +41,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             new SystemBody(Sun, new OrbitElements(KerbinSma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, SunMu)),
         };
 
-        private static KeplerProvider Propagator() => new KeplerProvider(System());
+        private static IPropagationProvider Propagator() => new KeplerProvider(System());
 
         /// <summary>A craft in solar orbit just outside Kerbin's, reached by climbing to the Sun.</summary>
         private static OrbitToRemoteStationGeometry SolarOrbitCraft(params RotatingGroundStation[] stations) =>

@@ -30,12 +30,12 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void RadiusAtPeriapsisEqualsSmaTimesOneMinusEcc()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = EccentricOrbit();
 
             // M(ut=0) = 0 => E = 0 (periapsis, by construction of
             // meanAnomalyAtEpoch = 0 at epoch = 0).
-            StateVector state = provider.Solve(orbit, 0.0);
+            StateVector state = provider.SolveConic(orbit, 0.0);
 
             double expectedRadius = orbit.Sma * (1.0 - orbit.Ecc); // 0.5
             Assert.Equal(expectedRadius, state.Position.Magnitude(), Tolerance);
@@ -44,13 +44,13 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void RadiusAtApoapsisEqualsSmaTimesOnePlusEcc()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = EccentricOrbit();
 
             // n = sqrt(mu/sma^3) = 1, so M = pi at ut = pi. For M = pi,
             // E = pi exactly regardless of e (sin(pi) = 0 satisfies
             // Kepler's equation trivially), which is the orbit's apoapsis.
-            StateVector state = provider.Solve(orbit, Math.PI);
+            StateVector state = provider.SolveConic(orbit, Math.PI);
 
             double expectedRadius = orbit.Sma * (1.0 + orbit.Ecc); // 1.5
             Assert.Equal(expectedRadius, state.Position.Magnitude(), Tolerance);
@@ -59,12 +59,12 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void VisVivaHoldsAtSeveralUts()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = EccentricOrbit();
 
             foreach (double ut in new[] { 0.0, 0.3, 1.0, 2.0, Math.PI, 4.0, 5.0, 6.2 })
             {
-                StateVector state = provider.Solve(orbit, ut);
+                StateVector state = provider.SolveConic(orbit, ut);
                 double r = state.Position.Magnitude();
                 double v = state.Velocity.Magnitude();
 
@@ -79,7 +79,7 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void ApoapsisAndPeriapsisRadiiAreOrbitExtremes()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = EccentricOrbit();
 
             double periapsis = orbit.Sma * (1.0 - orbit.Ecc);
@@ -89,7 +89,7 @@ namespace Sitrep.Propagation.Tests
             // n=1) and confirm no sampled radius escapes [periapsis, apoapsis].
             for (double ut = 0.0; ut < 2.0 * Math.PI; ut += 0.05)
             {
-                StateVector state = provider.Solve(orbit, ut);
+                StateVector state = provider.SolveConic(orbit, ut);
                 double r = state.Position.Magnitude();
 
                 Assert.True(r >= periapsis - 1e-9, $"radius {r} below periapsis at ut={ut}");

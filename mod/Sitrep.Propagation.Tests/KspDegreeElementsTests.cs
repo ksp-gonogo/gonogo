@@ -76,10 +76,10 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void TheRealAsteroidReconcilesWithWhatTheGameReported()
         {
-            var propagator = new KeplerProvider();
+            IPropagationProvider propagator = new KeplerProvider();
 
-            var asteroid = propagator.Solve(Asteroid(), SaveUt).Position;
-            var kerbin = propagator.Solve(Kerbin(), SaveUt).Position;
+            var asteroid = propagator.SolveConic(Asteroid(), SaveUt).Position;
+            var kerbin = propagator.SolveConic(Kerbin(), SaveUt).Position;
 
             var separation = (asteroid - kerbin).Magnitude();
 
@@ -91,7 +91,7 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void TakingTheDegreesAsRadiansIsWrongByBillionsOfMetres()
         {
-            var propagator = new KeplerProvider();
+            IPropagationProvider propagator = new KeplerProvider();
 
             var unconverted = new OrbitElements(
                 sma: 15_171_239_191.226875,
@@ -103,8 +103,8 @@ namespace Sitrep.Propagation.Tests
                 epoch: 3_839_682.2320472528,
                 mu: KerbolMu);
 
-            var wrong = (propagator.Solve(unconverted, SaveUt).Position
-                - propagator.Solve(Kerbin(), SaveUt).Position).Magnitude();
+            var wrong = (propagator.SolveConic(unconverted, SaveUt).Position
+                - propagator.SolveConic(Kerbin(), SaveUt).Position).Magnitude();
 
             Assert.True(wrong > 20_000_000_000.0,
                 "the unconverted form should be grossly wrong; got " + wrong);

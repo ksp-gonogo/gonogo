@@ -30,14 +30,14 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void PositionMagnitudeEqualsSemiMajorAxis()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = CircularOrbit();
 
             // Sample several UTs -- for a circular orbit |position| == sma
             // at every point on the orbit, not just at special anomalies.
             foreach (double ut in new[] { 0.0, 0.7, 1.5, 3.0, 4.4, 6.0 })
             {
-                StateVector state = provider.Solve(orbit, ut);
+                StateVector state = provider.SolveConic(orbit, ut);
                 Assert.Equal(orbit.Sma, state.Position.Magnitude(), 9);
             }
         }
@@ -45,13 +45,13 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void VelocityMagnitudeEqualsCircularSpeed()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = CircularOrbit();
             double expectedSpeed = Math.Sqrt(orbit.Mu / orbit.Sma); // = 1.0
 
             foreach (double ut in new[] { 0.0, 0.7, 1.5, 3.0, 4.4, 6.0 })
             {
-                StateVector state = provider.Solve(orbit, ut);
+                StateVector state = provider.SolveConic(orbit, ut);
                 Assert.Equal(expectedSpeed, state.Velocity.Magnitude(), 9);
             }
         }
@@ -59,11 +59,11 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void AtMeanAnomalyZero_PositionIsOnReferenceAxis()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = CircularOrbit();
 
             // n = 1, meanAnomalyAtEpoch = 0, epoch = 0 => M(ut=0) = 0.
-            StateVector state = provider.Solve(orbit, 0.0);
+            StateVector state = provider.SolveConic(orbit, 0.0);
 
             Assert.Equal(1.0, state.Position.X, Tolerance);
             Assert.Equal(0.0, state.Position.Y, Tolerance);
@@ -79,11 +79,11 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void AtMeanAnomalyPi_PositionIsDiametricallyOpposite()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = CircularOrbit();
 
             // n = 1 => M(ut) = ut. M = pi at ut = pi.
-            StateVector state = provider.Solve(orbit, Math.PI);
+            StateVector state = provider.SolveConic(orbit, Math.PI);
 
             Assert.Equal(-1.0, state.Position.X, Tolerance);
             Assert.Equal(0.0, state.Position.Y, Tolerance);
@@ -97,11 +97,11 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void AtMeanAnomalyHalfPi_PositionIsQuarterAroundOrbit()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = CircularOrbit();
 
             // M = pi/2 at ut = pi/2.
-            StateVector state = provider.Solve(orbit, Math.PI / 2.0);
+            StateVector state = provider.SolveConic(orbit, Math.PI / 2.0);
 
             Assert.Equal(0.0, state.Position.X, Tolerance);
             Assert.Equal(1.0, state.Position.Y, Tolerance);

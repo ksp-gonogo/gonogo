@@ -51,7 +51,7 @@ namespace Sitrep.Propagation.Tests
             new SystemBody(Jool, LaytheAboutJool()),
         };
 
-        private static KeplerProvider Provider() => new KeplerProvider(Kerbol());
+        private static IPropagationProvider Provider() => new KeplerProvider(Kerbol());
 
         private static PropagationTarget Vessel(OrbitElements orbit, int parent) =>
             PropagationTarget.Vessel("vessel-guid", parent, orbit);
@@ -72,8 +72,8 @@ namespace Sitrep.Propagation.Tests
 
             var actual = provider.Solve(Vessel(craft, Minmus), PropagationFrame.CentredOn(Kerbin), ut).Position;
 
-            var expected = provider.Solve(MinmusAboutKerbin(), ut).Position
-                + provider.Solve(craft, ut).Position;
+            var expected = provider.SolveConic(MinmusAboutKerbin(), ut).Position
+                + provider.SolveConic(craft, ut).Position;
             AssertSame(expected, actual);
         }
 
@@ -92,8 +92,8 @@ namespace Sitrep.Propagation.Tests
 
             var actual = provider.Solve(Vessel(craft, Sun), PropagationFrame.CentredOn(Kerbin), ut).Position;
 
-            var craftAboutSun = provider.Solve(craft, ut).Position;
-            var kerbinAboutSun = provider.Solve(KerbinAboutSun(), ut).Position;
+            var craftAboutSun = provider.SolveConic(craft, ut).Position;
+            var kerbinAboutSun = provider.SolveConic(KerbinAboutSun(), ut).Position;
             AssertSame(craftAboutSun - kerbinAboutSun, actual);
 
             var wrongSign = craftAboutSun + kerbinAboutSun;
@@ -111,10 +111,10 @@ namespace Sitrep.Propagation.Tests
 
             var actual = provider.Solve(Vessel(craft, Laythe), PropagationFrame.CentredOn(Kerbin), ut).Position;
 
-            var expected = provider.Solve(JoolAboutSun(), ut).Position
-                + provider.Solve(LaytheAboutJool(), ut).Position
-                + provider.Solve(craft, ut).Position
-                - provider.Solve(KerbinAboutSun(), ut).Position;
+            var expected = provider.SolveConic(JoolAboutSun(), ut).Position
+                + provider.SolveConic(LaytheAboutJool(), ut).Position
+                + provider.SolveConic(craft, ut).Position
+                - provider.SolveConic(KerbinAboutSun(), ut).Position;
             AssertSame(expected, actual);
         }
 
@@ -131,8 +131,8 @@ namespace Sitrep.Propagation.Tests
 
             var actual = provider.Solve(Vessel(craft, Minmus), PropagationFrame.CentredOn(Kerbin), ut).Velocity;
 
-            var expected = provider.Solve(MinmusAboutKerbin(), ut).Velocity
-                + provider.Solve(craft, ut).Velocity;
+            var expected = provider.SolveConic(MinmusAboutKerbin(), ut).Velocity
+                + provider.SolveConic(craft, ut).Velocity;
             AssertSame(expected, actual, 1e-6);
         }
 
@@ -150,8 +150,8 @@ namespace Sitrep.Propagation.Tests
             var sun = provider.Solve(
                 PropagationTarget.Body(Sun), PropagationFrame.CentredOn(Kerbin), ut).Position;
 
-            AssertSame(provider.Solve(MinmusAboutKerbin(), ut).Position, minmus);
-            AssertSame(new Vector3d(0, 0, 0) - provider.Solve(KerbinAboutSun(), ut).Position, sun);
+            AssertSame(provider.SolveConic(MinmusAboutKerbin(), ut).Position, minmus);
+            AssertSame(new Vector3d(0, 0, 0) - provider.SolveConic(KerbinAboutSun(), ut).Position, sun);
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace Sitrep.Propagation.Tests
             // another body's frame, and returning the parent-relative vector anyway
             // is the "plausible number in the wrong place" failure this subsystem
             // has been bitten by twice.
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var target = Vessel(Circular(700_000.0, KerbinMu), Kerbin);
 
             Assert.False(provider.CanPropagate(target, PropagationFrame.CentredOn(Mun), 0.0, 100.0));
@@ -182,7 +182,7 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void WithoutASystemTableABodyCannotBeResolvedAtAll()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
 
             Assert.False(provider.CanPropagate(
                 PropagationTarget.Body(Minmus), PropagationFrame.CentredOn(Kerbin), 0.0, 100.0));
@@ -194,7 +194,7 @@ namespace Sitrep.Propagation.Tests
             // The overwhelmingly common ask, and the one that must keep working for
             // a provider constructed with nothing: the elements already describe
             // the answer.
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var target = Vessel(Circular(700_000.0, KerbinMu), Kerbin);
 
             Assert.True(provider.CanPropagate(target, PropagationFrame.CentredOn(Kerbin), 0.0, 100.0));
@@ -213,7 +213,7 @@ namespace Sitrep.Propagation.Tests
                 new SystemBody(0, new OrbitElements(0.0, 1.0, 0, 0, 0, 0, 0, 0.0)),
                 new SystemBody(0, Circular(46_400_000.0, KerbinMu)),
             };
-            var provider = new KeplerProvider(broken);
+            IPropagationProvider provider = new KeplerProvider(broken);
 
             Assert.False(provider.CanPropagate(
                 PropagationTarget.Vessel("v", 2, Circular(120_000.0, 1.7658e9)),
@@ -243,7 +243,7 @@ namespace Sitrep.Propagation.Tests
                 new SystemBody(1, Circular(1.0, 1.0)),
                 new SystemBody(0, Circular(1.0, 1.0)),
             };
-            var provider = new KeplerProvider(looped);
+            IPropagationProvider provider = new KeplerProvider(looped);
 
             Assert.False(provider.CanPropagate(
                 PropagationTarget.Body(1), PropagationFrame.CentredOn(0), 0.0, 1.0));

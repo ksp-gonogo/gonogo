@@ -7,9 +7,16 @@ namespace Sitrep.Propagation.Tests
     /// <summary>
     /// <see cref="KeplerProvider"/> is documented (and coded) to only
     /// support elliptical orbits (0 &lt;= ecc &lt; 1); parabolic/hyperbolic
-    /// (ecc &gt;= 1) and negative eccentricities must throw rather than
-    /// silently return a nonsense state vector. No existing test in this
-    /// project pins that guard.
+    /// (ecc &gt;= 1) and negative eccentricities must be refused rather than
+    /// silently returning a nonsense state vector.
+    ///
+    /// <para>What that refusal LOOKS like changed when the element-keyed door was
+    /// closed. It used to be an <c>ArgumentOutOfRangeException</c> from deep in the
+    /// solver; it is now a <see cref="NotSupportedException"/> from the seam, because
+    /// <see cref="IPropagationProvider.CanPropagate"/> declines an unbound orbit before
+    /// the solver ever sees it. The refusal is the same answer every other caller gets,
+    /// and asking first is what a caller on a hot path is meant to do, so both halves
+    /// are pinned here.</para>
     /// </summary>
     public class InvalidEccentricityTests
     {
@@ -26,22 +33,27 @@ namespace Sitrep.Propagation.Tests
                 mu: 1.0);
         }
 
-        [Fact]
-        public void ParabolicEccentricityThrows()
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(1.4)]
+        [InlineData(-0.1)]
+        public void AnUnboundOrEccentricallyImpossibleOrbitIsDeclinedRatherThanSolved(double ecc)
         {
-            var provider = new KeplerProvider();
-            var orbit = OrbitWithEcc(1.0);
+            IPropagationProvider provider = new KeplerProvider();
+            var orbit = OrbitWithEcc(ecc);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => provider.Solve(orbit, 0.0));
+            Assert.False(provider.CanPropagate(ThroughTheSeam.Craft(orbit), 0.0, 0.0));
         }
 
-        [Fact]
-        public void NegativeEccentricityThrows()
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(-0.1)]
+        public void SolvingOneAnywayThrowsRatherThanReturningANonsenseVector(double ecc)
         {
-            var provider = new KeplerProvider();
-            var orbit = OrbitWithEcc(-0.1);
+            IPropagationProvider provider = new KeplerProvider();
+            var orbit = OrbitWithEcc(ecc);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => provider.Solve(orbit, 0.0));
+            Assert.Throws<NotSupportedException>(() => provider.SolveConic(orbit, 0.0));
         }
     }
 }

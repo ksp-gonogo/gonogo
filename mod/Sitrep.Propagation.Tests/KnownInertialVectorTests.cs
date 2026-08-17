@@ -101,14 +101,14 @@ namespace Sitrep.Propagation.Tests
         [Fact]
         public void InertialStateMatchesValladoCoe2RvReferenceCase()
         {
-            var provider = new KeplerProvider();
+            IPropagationProvider provider = new KeplerProvider();
             var orbit = ReferenceOrbit();
 
             // Evaluate exactly at epoch, so Solve only has to re-derive the
             // eccentric/true anomaly from the mean anomaly we set above and
             // apply the perifocal-to-inertial rotation -- i.e. this
             // exercises the whole Solve() pipeline end to end.
-            StateVector state = provider.Solve(orbit, orbit.Epoch);
+            StateVector state = provider.SolveConic(orbit, orbit.Epoch);
 
             AssertVectorRelativelyClose(ExpectedPosition, state.Position, RelativeTolerance, "position");
             AssertVectorRelativelyClose(ExpectedVelocity, state.Velocity, RelativeTolerance, "velocity");

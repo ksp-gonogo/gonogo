@@ -5,7 +5,7 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// A silence sample as something a propagation provider can be asked about.
     /// </summary>
-    internal static class SilenceSampleTarget
+    public static class SilenceSampleTarget
     {
         /// <summary>
         /// The craft the sample describes, named along with the body it orbits.
@@ -20,7 +20,7 @@ namespace Sitrep.Host.Comms
         /// wanted to reach a DIFFERENT body's frame would be refused, which is the
         /// correct answer for a craft whose parent nobody can name.</para>
         /// </summary>
-        internal static PropagationTarget Of(SilenceSample sample) =>
+        public static PropagationTarget Of(SilenceSample sample) =>
             PropagationTarget.Vessel(
                 sample.VesselId, sample.ReferenceBodyIndex ?? -1, sample.Orbit);
     }

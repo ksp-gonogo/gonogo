@@ -725,23 +725,35 @@ namespace Gonogo.KSP.SilenceTracking
         /// so a wrong answer says WHICH element set is wrong rather than only
         /// that the total does not reconcile.
         /// </summary>
-        private static void DecomposeResidual(SilenceSample sample, Vessel vessel, double now)
+        private void DecomposeResidual(SilenceSample sample, Vessel vessel, double now)
         {
             try
             {
-                var propagator = new KeplerProvider();
+                // The ELECTED provider, not a fresh vanilla. A diagnostic that reports
+                // what a different propagator would have said is a diagnostic about the
+                // wrong subsystem, and this one runs precisely when the numbers already
+                // disagree.
                 var liveVessel = vessel.orbitDriver.orbit.getRelativePositionAtUT(now).magnitude;
-                var predictedVessel = propagator.Solve(sample.Orbit.Value, now).Position.Magnitude();
+                var predictedVessel = _propagator
+                    .Solve(SilenceSampleTarget.Of(sample), now).Position.Magnitude();
 
+                var bodies = FlightGlobals.Bodies;
                 var parent = vessel.orbitDriver.orbit.referenceBody;
                 var up = parent != null && parent.orbit != null && parent.orbit.referenceBody != null
                     && parent.orbit.referenceBody != parent
                     ? parent.orbit
                     : null;
                 var liveLink = up != null ? up.getRelativePositionAtUT(now).magnitude : 0.0;
-                var predictedLink = up != null
-                    ? propagator.Solve(ElementsOf(up), now).Position.Magnitude()
-                    : 0.0;
+                var predictedLink = 0.0;
+                if (up != null && bodies != null)
+                {
+                    var parentIndex = bodies.IndexOf(parent);
+                    var grandParentIndex = bodies.IndexOf(up.referenceBody);
+                    predictedLink = _propagator.Solve(
+                        PropagationTarget.Body(parentIndex),
+                        PropagationFrame.CentredOn(grandParentIndex),
+                        now).Position.Magnitude();
+                }
 
                 SilenceTrace.Decompose(liveVessel, predictedVessel, liveLink, predictedLink);
             }
