@@ -9,13 +9,17 @@ import {
   registerComponent,
   useActionInput,
   useExecuteAction,
+  useReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import type { ControlStream } from "@ksp-gonogo/sitrep-client";
 import {
+  type Reading,
+  readingAge,
   useCommand,
   useControlStream,
   useStream,
+  useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -28,8 +32,10 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  formatDuration,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Select,
   StatusIndicator,
   Switch,
@@ -160,6 +166,87 @@ const navballActions = [
 
 type NavballActions = typeof navballActions;
 
+/**
+ * The last REAL observation behind a reading, or nothing where there has not
+ * been one. Never a modelled value; see `showDial`'s comment for why an attitude
+ * is not forward-modellable at all.
+ */
+function lastObserved<T>(reading: Reading<T>): T | undefined {
+  switch (reading.state) {
+    case "observed":
+    case "stale":
+    case "reckonable":
+      return reading.value;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Says why the dial is not there, under the numbers that replaced it.
+ *
+ * `dialSuppressed` distinguishes the two reasons the numeric readout can be on
+ * screen: the widget is too small for a dial (in which case the numbers are the
+ * normal rendering and need no explanation), or the attitude is not current (in
+ * which case the missing dial is the whole point and must be accounted for).
+ * Without that distinction a small widget would grow a permanent apology.
+ *
+ * **`useViewUt` is read HERE, not in the widget body, and that is not a style
+ * choice.** It is per-frame reactive by design (a live countdown needs that), so
+ * a widget body calling it re-renders at frame cadence for as long as it is
+ * mounted, whether or not anything is stale. Navball has the heaviest SVG in the
+ * set, and the same mistake repeated across the widgets about to grow age
+ * captions would re-render the whole dashboard at 60 Hz, the identical churn the
+ * reading's own identity memo was added to prevent, reintroduced one layer up.
+ *
+ * Reading it inside the component that renders the age means the subscription
+ * exists only while a caption is on screen, and a healthy widget pays nothing.
+ */
+function AttitudeCurrency({
+  reading,
+  dialSuppressed,
+}: {
+  reading: Reading<unknown>;
+  dialSuppressed: boolean;
+}) {
+  if (reading.state === "observed") return null;
+  if (reading.state === "pending") {
+    return <ReadoutCaption>Waiting for attitude telemetry</ReadoutCaption>;
+  }
+  if (reading.state === "absent") {
+    return <ReadoutCaption>No attitude reported</ReadoutCaption>;
+  }
+  return (
+    <StaleCaption
+      label={dialSuppressed ? "attitude at last contact" : "at last contact"}
+      reading={reading}
+    />
+  );
+}
+
+/**
+ * The dated half of the caption, split out purely so the per-frame `useViewUt`
+ * subscription lives behind the `observed`/`pending`/`absent` early returns
+ * above rather than in front of them: a hook cannot sit behind a conditional, so
+ * the conditional has to become a component boundary.
+ */
+function StaleCaption({
+  label,
+  reading,
+}: {
+  label: string;
+  reading: Reading<unknown>;
+}) {
+  const viewUt = useViewUt();
+  const ageSec = readingAge(reading, viewUt);
+  return (
+    <ReadoutCaption role="status">
+      {label}
+      {ageSec !== undefined && `, ${formatDuration(ageSec)} ago`}
+    </ReadoutCaption>
+  );
+}
+
 function NavballComponent({
   config,
   onConfigChange,
@@ -178,7 +265,18 @@ function NavballComponent({
   // true = CoM, default false = root part, both documented on
   // NavballConfig/the config-form copy below) read correctly against the
   // real frames.
-  const attitude = useTelemetry("vessel.attitude");
+  // Attitude reads as a `Reading`, because a dial is a claim about NOW.
+  //
+  // `AttitudeIndicator` drew `pitch ?? 0` / `roll ?? 0` / `heading ?? 0`
+  // unconditionally, so with nothing on the wire it painted a specific,
+  // plausible, wrong orientation: level, facing north. Its `ready` flag gated
+  // the numeric captions and `aria-hidden` but never the drawing. Of everything
+  // the absence-gate audit turned up this was the worst operationally, because
+  // an attitude is the reading an operator acts on most directly, and a wrong
+  // one is a wrong input to a control decision rather than a cosmetic defect.
+  const attitudeReading = useReading("vessel.attitude");
+  const attitude = lastObserved(attitudeReading);
+  const attitudeObserved = attitudeReading.state === "observed";
   const heading = numericOrNull(
     attitude?.[useCoM ? "heading" : "headingRootFrame"],
   );
@@ -589,7 +687,23 @@ function NavballComponent({
   // user keeps the deeper config selection without losing the readout.
   const cols = w ?? 8;
   const rows = h ?? 11;
-  const showDial = rows >= 6 && cols >= 4;
+  // The dial draws ONLY off an observed attitude.
+  //
+  // `DistanceToTarget` reached the same answer for its docking reticle and the
+  // ball is the same kind of object, more so: both are instruments whose whole
+  // meaning is "this is the situation NOW", and holding the last known value in
+  // one is indistinguishable from a live reading. There is no caption that fixes
+  // that, because the operator reads the picture, not the caption beside it. So
+  // when the attitude is not current the dial goes away and the numeric readout
+  // takes its place, dated. Refusing to draw is not refusing to tell.
+  //
+  // Deliberately NOT reckoned, and this is the honest reason rather than a gap:
+  // an attitude is not forward-modellable from a snapshot. What changes it is
+  // torque, from SAS or from a command we may ourselves have sent and which may
+  // still be in flight, so the last known angles plus elapsed time say nothing
+  // about the current ones. A craft tumbling and a craft holding are the same
+  // reading here. That is why no reckoner is registered for `vessel.attitude`.
+  const showDial = rows >= 6 && cols >= 4 && attitudeObserved;
   const showThrottleColumn = showDial && cols >= 5;
   const showModeBadges = cols >= 5;
   const showControlSurface = controlMode && rows >= 18 && cols >= 7;
@@ -685,6 +799,10 @@ function NavballComponent({
                 )}
               </span>
             </div>
+            <AttitudeCurrency
+              dialSuppressed={rows >= 6 && cols >= 4}
+              reading={attitudeReading}
+            />
           </div>
         )}
 
