@@ -634,7 +634,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // example command to gate during a blackout, comment-only.
       "mod/Gonogo.KSP/DevCommsOverride.cs",
       "mod/Gonogo.KSP/VesselUplink.cs",
-      "mod/GonogoTelemetry/src/TechTreeApi.cs",
       "mod/Sitrep.Contract/SitrepUplinkAttribute.cs",
       "mod/Sitrep.Contract/VesselControl.cs",
       "mod/Sitrep.Core.Tests/CommsWireTests.cs",
