@@ -116,37 +116,35 @@ namespace Sitrep.Host.IntegrationTests
 
             foreach (var (vesselId, amount) in cap.Credits)
             {
-                // Mirror the production CurrencyEventBuilder.BuildScienceCredit dict
-                // (this test project cannot reference Gonogo.KSP), so the
-                // currency.<guid>.science serialize path is exercised end-to-end.
+                // The PRODUCTION builder, compiled into this project (see the
+                // csproj): a copy of its dictionary would make this an assertion
+                // about the copy, and the currency.<guid>.science serialize path
+                // is only exercised end-to-end if the bytes come from the shape
+                // production actually publishes.
                 _events.Publisher(vesselId + "." + CurrencyEventTopics.ScienceField).Publish(
-                    new Dictionary<string, object?>
-                    {
-                        ["vesselId"] = vesselId,
-                        ["vesselName"] = "Probe " + vesselId,
-                        ["amount"] = amount,
-                        ["subjectId"] = "magScan@KerbinInSpaceHigh",
-                        ["subjectTitle"] = "Magnetometer Scan of Kerbin",
-                        ["ut"] = cap.Ut,
-                    },
+                    Gonogo.KSP.CurrencyEventBuilder.BuildScienceCredit(
+                        vesselId,
+                        "Probe " + vesselId,
+                        amount,
+                        "magScan@KerbinInSpaceHigh",
+                        "Magnetometer Scan of Kerbin",
+                        cap.Ut),
                     cap.Ut);
             }
 
             foreach (var (vesselId, delta) in cap.Losses)
             {
-                // Mirror the production CurrencyEventBuilder.BuildReputationLoss dict.
-                // Note there is no absolute reputation on this shape, by design: the
-                // gating total stays on career.status.economy.reputation.
+                // Production builder again. Note there is no absolute reputation
+                // on this shape, by design: the gating total stays on
+                // career.status.economy.reputation.
                 _events.Publisher(vesselId + "." + CurrencyEventTopics.ReputationField).Publish(
-                    new Dictionary<string, object?>
-                    {
-                        ["vesselId"] = vesselId,
-                        ["vesselName"] = "Probe " + vesselId,
-                        ["delta"] = delta,
-                        ["cause"] = "crew-loss",
-                        ["crewLost"] = new List<object?> { "Jebediah Kerman" },
-                        ["ut"] = cap.Ut,
-                    },
+                    Gonogo.KSP.CurrencyEventBuilder.BuildReputationLoss(
+                        vesselId,
+                        "Probe " + vesselId,
+                        delta,
+                        "crew-loss",
+                        new List<string> { "Jebediah Kerman" },
+                        cap.Ut),
                     cap.Ut);
             }
         }

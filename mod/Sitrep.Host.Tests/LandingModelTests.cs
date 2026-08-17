@@ -104,5 +104,57 @@ namespace Sitrep.Host.Tests
             Assert.Null(LandingModel.AtmosphericTimeToImpact(
                 10, 10, 50, 0.4, new[] { 100.0 }, new[] { 0.4 }));
         }
+
+        // ── The all-or-nothing field set ────────────────────────────────────
+
+        [Fact]
+        public void AtmosphericFieldsAreAbsentEntirelyWhenTheDragCouldNotBeRead()
+        {
+            // Null drag is "we could not read the parts", not "this craft has no
+            // drag". Every field below is derived from those same parts, so they
+            // are unknowable TOGETHER: publishing any of them from a zero yields
+            // a plausible terminal velocity, a plausible time to impact, a
+            // descent regime classified from a zero ratio and "no parachutes",
+            // in the one place a reader is deciding whether a landing survives.
+            Assert.Null(LandingModel.AtmosphericFields(
+                dragForce: null, parachuteState: null,
+                weight: 10, vNow: 50, rhoNow: 0.4, rhoGround: 0.4,
+                altitudes: new[] { 200.0, 100.0, 0.0 },
+                densities: new[] { 0.4, 0.4, 0.4 }));
+        }
+
+        [Fact]
+        public void AtmosphericFieldsCarryTheWholeSetWhenTheDragWasRead()
+        {
+            // The sibling of the assertion above: all-or-nothing means the
+            // present case has to be all, or "absent" would stop meaning
+            // anything.
+            var fields = LandingModel.AtmosphericFields(
+                dragForce: 10, parachuteState: "armed",
+                weight: 10, vNow: 50, rhoNow: 0.4, rhoGround: 0.4,
+                altitudes: new[] { 200.0, 100.0, 0.0 },
+                densities: new[] { 0.4, 0.4, 0.4 });
+
+            Assert.NotNull(fields);
+            Assert.Equal(50.0, (double)fields!["terminalVelocity"]!, 6);
+            Assert.Equal(50.0, (double)fields["projectedTouchdownSpeed"]!, 6);
+            Assert.Equal(4.0, (double)fields["atmosphericTimeToImpact"]!, 6);
+            Assert.Equal("at-terminal", fields["descentRegime"]);
+            Assert.Equal(1.0, (double)fields["dragToWeightRatio"]!, 6);
+            Assert.Equal("armed", fields["parachuteState"]);
+        }
+
+        [Fact]
+        public void AWeightlessCraftStillReportsItsRatioAsUnknownRatherThanZero()
+        {
+            var fields = LandingModel.AtmosphericFields(
+                dragForce: 10, parachuteState: "none",
+                weight: 0, vNow: 50, rhoNow: 0.4, rhoGround: 0.4,
+                altitudes: new[] { 200.0, 100.0, 0.0 },
+                densities: new[] { 0.4, 0.4, 0.4 });
+
+            Assert.NotNull(fields);
+            Assert.Null(fields!["dragToWeightRatio"]);
+        }
     }
 }

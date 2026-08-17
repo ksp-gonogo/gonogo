@@ -118,11 +118,8 @@ namespace Sitrep.Host.IntegrationTests
                 // it. Published on EVERY tick, including while the vessel is
                 // dark, which is precisely when it matters.
                 _orbitSource.Publisher(id + ChannelEngine.ContactMetaSuffix).Publish(
-                    new Dictionary<string, object?>
-                    {
-                        ["connected"] = connected,
-                        ["lastContactUt"] = connected ? cap.Ut : (double?)null,
-                    },
+                    Gonogo.KSP.FleetVesselContactBuilder.Build(
+                        connected, connected ? cap.Ut : (double?)null),
                     cap.Ut);
                 // The SilenceTracker's reckoning, comms-owned in production:
                 // published under the disjoint silence.<id> namespace so it can
@@ -141,15 +138,12 @@ namespace Sitrep.Host.IntegrationTests
                 _extensionSource?.Publisher(id + ".field").Publish(
                     new Dictionary<string, object?> { ["value"] = id },
                     cap.Ut);
-                // Plan 2c: mirror the production FleetVesselLinkBuilder.Build dict
-                // (this test project can't reference Gonogo.KSP), so the
-                // fleet.<id>.delay serialize path is exercised end-to-end.
+                // Plan 2c: the PRODUCTION FleetVesselLinkBuilder, compiled into
+                // this project (see the csproj), so the fleet.<id>.delay
+                // serialize path is exercised against the shape production
+                // publishes rather than against a copy of it.
                 _orbitSource.Publisher(id + ".delay").Publish(
-                    new Dictionary<string, object?>
-                    {
-                        ["oneWaySeconds"] = delay,
-                        ["connected"] = connected,
-                    },
+                    Gonogo.KSP.FleetVesselLinkBuilder.Build(delay, connected),
                     cap.Ut);
             }
         }

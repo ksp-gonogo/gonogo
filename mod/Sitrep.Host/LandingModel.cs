@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sitrep.Host
 {
@@ -120,6 +121,58 @@ namespace Sitrep.Host
                 total += dh / vt.Value;
             }
             return total > 0 ? total : (double?)null;
+        }
+
+        /// <summary>
+        /// The whole atmospheric field set for <c>vessel.landing</c>, or NULL
+        /// when it cannot be answered at all.
+        ///
+        /// <para>Every field here derives from the vessel's parts (the measured
+        /// drag force, and the parachute state read off the same walk), so a
+        /// <paramref name="dragForce"/> of null, meaning the parts could not be
+        /// read, makes ALL of them unknowable together. Publishing any of them
+        /// from a zero produces a plausible terminal velocity, a plausible time
+        /// to impact, a descent regime classified from a zero drag-to-weight
+        /// ratio, and "no parachutes", in the one place a reader is deciding
+        /// whether a landing survives. Null drag is not a craft that cannot slow
+        /// down, it is a craft we could not look at.</para>
+        ///
+        /// <para>This lives HERE, on the pure side, rather than as a guard in the
+        /// KSP capture, because it is a decision rather than a read: the capture
+        /// had every number crossing this seam already and kept only the
+        /// question of whether to publish them, which is the one that was wrong
+        /// (see the commit that added this). "How do I fake a Vessel" is
+        /// unanswerable; "what plain value is this decision about" is
+        /// <c>double? dragForce</c>.</para>
+        /// </summary>
+        public static Dictionary<string, object?>? AtmosphericFields(
+            double? dragForce,
+            string? parachuteState,
+            double weight,
+            double vNow,
+            double rhoNow,
+            double rhoGround,
+            double[] altitudes,
+            double[] densities)
+        {
+            if (!dragForce.HasValue)
+            {
+                return null;
+            }
+            var drag = dragForce.Value;
+            return new Dictionary<string, object?>
+            {
+                ["terminalVelocity"] = TerminalVelocityAt(drag, weight, vNow, rhoNow, rhoNow),
+                ["projectedTouchdownSpeed"] = TerminalVelocityAt(drag, weight, vNow, rhoNow, rhoGround),
+                ["atmosphericTimeToImpact"] =
+                    AtmosphericTimeToImpact(drag, weight, vNow, rhoNow, altitudes, densities),
+                ["descentRegime"] = ClassifyRegime(drag, weight),
+                // The numeric drag/weight balance behind descentRegime, from the
+                // same two forces. Null rather than zero for a weightless craft:
+                // the ratio is undefined there, not balanced.
+                ["dragToWeightRatio"] = weight > 0 ? drag / weight : (double?)null,
+                ["parachuteState"] = parachuteState,
+            };
         }
     }
 }

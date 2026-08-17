@@ -1873,22 +1873,26 @@ namespace Gonogo.KSP
 
             var result = new Dictionary<string, object?>();
 
-            // Every atmospheric field below is derived from the vessel's own
-            // parts, so unreadable parts make ALL of them unknowable together
-            // and the block is skipped rather than answered from a zero. A zero
-            // drag force is not a missing reading, it is a craft that cannot
-            // slow down: it produces a plausible terminal velocity, a plausible
-            // time to impact, a descent regime classified from a zero ratio and
-            // "no parachutes", in the one place a reader is deciding whether a
-            // landing survives.
+            // This method READS; whether the reading is publishable is
+            // LandingModel.AtmosphericFields' decision, on the pure side where it
+            // can carry a test. Null drag is "the parts could not be read", and
+            // every atmospheric field derives from those same parts, so they
+            // stand or fall together over there.
             var parts = vessel.parts;
-            if (body.atmosphere && parts != null)
+            if (body.atmosphere)
             {
                 // Aggregate current drag force (kN): a real measurement, no sim.
-                double dragForce = 0.0;
-                for (int i = 0; i < parts.Count; i++)
+                double? dragForce = null;
+                string? parachuteState = null;
+                if (parts != null)
                 {
-                    dragForce += parts[i].dragScalar;
+                    double drag = 0.0;
+                    for (int i = 0; i < parts.Count; i++)
+                    {
+                        drag += parts[i].dragScalar;
+                    }
+                    dragForce = drag;
+                    parachuteState = BuildParachuteState(parts);
                 }
 
                 double altAsl = vessel.altitude;
@@ -1915,17 +1919,15 @@ namespace Gonogo.KSP
                     rhos[i] = DensityAt(body, a);
                 }
 
-                result["terminalVelocity"] =
-                    LandingModel.TerminalVelocityAt(dragForce, weight, vNow, rhoNow, rhoNow);
-                result["projectedTouchdownSpeed"] =
-                    LandingModel.TerminalVelocityAt(dragForce, weight, vNow, rhoNow, rhoGround);
-                result["atmosphericTimeToImpact"] =
-                    LandingModel.AtmosphericTimeToImpact(dragForce, weight, vNow, rhoNow, alts, rhos);
-                result["descentRegime"] = LandingModel.ClassifyRegime(dragForce, weight);
-                // The numeric drag/weight balance behind descentRegime: the same
-                // dragForce and weight (both kN) the terminal-velocity model uses.
-                result["dragToWeightRatio"] = weight > 0 ? dragForce / weight : (double?)null;
-                result["parachuteState"] = BuildParachuteState(parts);
+                var atmospheric = LandingModel.AtmosphericFields(
+                    dragForce, parachuteState, weight, vNow, rhoNow, rhoGround, alts, rhos);
+                if (atmospheric != null)
+                {
+                    foreach (var field in atmospheric)
+                    {
+                        result[field.Key] = field.Value;
+                    }
+                }
             }
 
             // Terrain sampling: option 1 (mod-side predicted touchdown point)

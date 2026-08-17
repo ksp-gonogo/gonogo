@@ -27,4 +27,21 @@
     <ProjectReference Include="../Sitrep.Host/Sitrep.Host.csproj" />
     <ProjectReference Include="../Sitrep.Transport/Sitrep.Transport.csproj" />
   </ItemGroup>
+
+  <!-- The production wire builders the test uplinks publish through. They are
+       plain C# with no KSP or Unity type in them, so they compile here directly
+       (a ProjectReference on Gonogo.KSP would drag in the files that DO need a
+       live scene, the same selective-Compile pattern every other test project in
+       this solution uses).
+
+       They are here because the test uplinks used to hand-copy the dictionaries
+       these return, each with a comment saying this project cannot reference
+       Gonogo.KSP. That made every assertion about the wire shape an assertion
+       against the test's own copy: production could change its keys and the
+       tests would stay green, saying nothing. -->
+  <ItemGroup>
+    <Compile Include="..\Gonogo.KSP\FleetVesselLinkBuilder.cs" />
+    <Compile Include="..\Gonogo.KSP\FleetVesselContactBuilder.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
+  </ItemGroup>
 </Project>
