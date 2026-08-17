@@ -22,9 +22,19 @@ namespace Sitrep.Propagation.Visibility
     public interface IVisibilityCadence
     {
         /// <summary>
-        /// The shortest cycle in the geometry's motion, seconds. Always
-        /// positive: a retrograde spin cycles just as fast as a prograde one.
+        /// The shortest cycle in the geometry's motion, seconds, or null when its
+        /// motion has no repeat at all. Always positive when present: a retrograde
+        /// spin cycles just as fast as a prograde one.
+        ///
+        /// <para>Null is a real answer. The orbital half of this comes from the
+        /// elected propagation provider, and a provider whose trajectories are not
+        /// periodic declines to give one; the rotational half survives regardless,
+        /// because a body's spin is not orbital mechanics. So null means BOTH terms
+        /// were unavailable, which leaves nothing to size a step against. A caller
+        /// must then withhold rather than substitute, since a step chosen against a
+        /// number nobody supplied publishes a detection guarantee the sweep cannot
+        /// honour.</para>
         /// </summary>
-        double ShortestCycleSeconds { get; }
+        double? ShortestCycleSeconds { get; }
     }
 }

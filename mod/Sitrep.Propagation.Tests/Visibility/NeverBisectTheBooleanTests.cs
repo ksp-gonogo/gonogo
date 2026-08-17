@@ -80,7 +80,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         /// </summary>
         private static VisibilitySweepResult Reference(OrbitToGroundStationGeometry geometry)
         {
-            return VisibilitySweep.Run(geometry, 0.0, 3.0 * geometry.PeriodSeconds, 1.0, 0.01);
+            return VisibilitySweep.Run(geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, 1.0, 0.01);
         }
 
         [Fact]

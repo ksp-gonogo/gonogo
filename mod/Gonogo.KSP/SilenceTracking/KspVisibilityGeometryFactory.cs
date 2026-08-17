@@ -51,11 +51,20 @@ namespace Gonogo.KSP.SilenceTracking
 
         private readonly Func<Kernel> _kernel;
         private readonly Func<IEnumerable<CommNetHome>> _homes;
+        private readonly IPropagationProvider _propagator;
 
-        public KspVisibilityGeometryFactory(Func<Kernel> kernel, Func<IEnumerable<CommNetHome>> homes = null)
+        /// <param name="propagator">
+        /// The elected propagation capability, which decides whether a chain can be
+        /// followed at all. Defaults to the two-body vanilla.
+        /// </param>
+        public KspVisibilityGeometryFactory(
+            Func<Kernel> kernel,
+            Func<IEnumerable<CommNetHome>> homes = null,
+            IPropagationProvider propagator = null)
         {
             _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
             _homes = homes ?? (() => UnityEngine.Object.FindObjectsOfType<CommNetHome>());
+            _propagator = propagator ?? new KeplerProvider();
         }
 
         /// <summary>
@@ -126,7 +135,7 @@ namespace Gonogo.KSP.SilenceTracking
             // station, and describing it with one element set is wrong by whole
             // planetary radii within minutes.
             var occlusion = CommsElection.OcclusionModel(_kernel());
-            var links = BuildChain(parentBody, stationBody, occlusion);
+            var links = BuildChain(parentBody, stationBody, occlusion, ut);
             if (links == null)
             {
                 SilenceTrace.NoGeometry("no patched-conic chain between "
@@ -288,10 +297,11 @@ namespace Gonogo.KSP.SilenceTracking
         /// set of elements, so it belongs where it can be tested in
         /// milliseconds; this method's whole job is the translation.</para>
         /// </summary>
-        private static List<OrbitToRemoteStationGeometry.ChainLink> BuildChain(
+        private List<OrbitToRemoteStationGeometry.ChainLink> BuildChain(
             CelestialBody parentBody,
             CelestialBody stationBody,
-            ICommsOcclusionModel occlusion)
+            ICommsOcclusionModel occlusion,
+            double ut)
         {
             var bodies = FlightGlobals.Bodies;
             if (bodies == null)
@@ -318,7 +328,7 @@ namespace Gonogo.KSP.SilenceTracking
             var links = PatchedConicChain.Between(
                 bodies.IndexOf(stationBody), bodies.IndexOf(parentBody), nodes);
 
-            return links != null && PatchedConicChain.IsPropagatable(links) ? links : null;
+            return links != null && PatchedConicChain.IsPropagatable(links, _propagator, ut) ? links : null;
         }
 
         /// <summary>
@@ -564,7 +574,7 @@ namespace Gonogo.KSP.SilenceTracking
                 return false;
             }
 
-            var refChain = BuildChain(refBody, stationBody, occlusion);
+            var refChain = BuildChain(refBody, stationBody, occlusion, Planetarium.GetUniversalTime());
             if (refChain == null)
             {
                 SilenceTrace.Calibration("no chain from reference at " + refBody.bodyName

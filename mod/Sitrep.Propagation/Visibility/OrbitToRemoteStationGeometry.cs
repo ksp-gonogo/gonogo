@@ -137,17 +137,18 @@ namespace Sitrep.Propagation.Visibility
         }
 
         /// <summary>
-        /// The VESSEL's orbital period, seconds. One of the two terms a sweep
-        /// step has to resolve, and NOT reliably the faster of them: see
+        /// The VESSEL's orbital period, seconds, as the elected propagation
+        /// provider reports it, or null when it declines. One of the two terms a
+        /// sweep step has to resolve, and NOT reliably the faster of them: see
         /// <see cref="ShortestCycleSeconds"/>, which is what a caller sizing a
         /// step should ask for.
         /// </summary>
-        public double PeriodSeconds
+        public double? PeriodSeconds
         {
             get
             {
-                return 2.0 * Math.PI * Math.Sqrt(
-                    _vesselOrbit.Sma * _vesselOrbit.Sma * _vesselOrbit.Sma / _vesselOrbit.Mu);
+                return _propagator.CharacteristicCycleSeconds(
+                    PropagationTarget.RelativeToFrame(_vesselOrbit));
             }
         }
 
@@ -168,7 +169,7 @@ namespace Sitrep.Propagation.Visibility
         /// against spins in hours, so including them would only ever confirm
         /// the answer already found here.</para>
         /// </summary>
-        public double ShortestCycleSeconds
+        public double? ShortestCycleSeconds
         {
             get
             {
@@ -180,7 +181,7 @@ namespace Sitrep.Propagation.Visibility
                     {
                         continue;
                     }
-                    if (spin < shortest)
+                    if (shortest == null || spin < shortest.Value)
                     {
                         shortest = spin;
                     }

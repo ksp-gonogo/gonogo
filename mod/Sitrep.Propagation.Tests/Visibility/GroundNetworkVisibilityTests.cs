@@ -82,7 +82,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             var geometry = new OrbitToRemoteStationGeometry(
                 Relay(), new[] { MinmusLink() }, stations, KerbinRadius);
 
-            var blackout = BlackoutSeconds(geometry, geometry.PeriodSeconds);
+            var blackout = BlackoutSeconds(geometry, geometry.PeriodSeconds!.Value);
 
             // The moon's shadow and nothing else: 913 s is the widest chord, and
             // the live measurement was 795 s.
@@ -99,7 +99,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             var geometry = new OrbitToRemoteStationGeometry(
                 Relay(), new[] { MinmusLink() }, new[] { StationAt(180.0) }, KerbinRadius);
 
-            var blackout = BlackoutSeconds(geometry, geometry.PeriodSeconds);
+            var blackout = BlackoutSeconds(geometry, geometry.PeriodSeconds!.Value);
 
             Assert.True(blackout > 1500.0,
                 "one station should show the long phantom outage; got " + blackout);

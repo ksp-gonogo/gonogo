@@ -92,7 +92,7 @@ namespace Sitrep.Host.Tests
 
             public double SeparationAt(double ut) => 1_000_000.0;
 
-            public double ShortestCycleSeconds => _rotationPeriod;
+            public double? ShortestCycleSeconds => _rotationPeriod;
         }
 
         private sealed class ConstantMarginGeometry : IVisibilityGeometry

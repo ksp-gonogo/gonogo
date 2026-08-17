@@ -302,7 +302,15 @@ public static class CaptureAnalyser
             return;
         }
 
-        double period = orbit.PeriodSeconds;
+        if (orbit.PeriodSeconds == null)
+        {
+            // No repeating cycle means no scale to sweep at, and this tool exists
+            // to compare a prediction against an observation rather than to invent
+            // one. Skip the occlusion sweep rather than choose a step arbitrarily.
+            return;
+        }
+
+        double period = orbit.PeriodSeconds.Value;
 
         // Half a degree of relative arc by default, which the predictor spec puts
         // at 3-6 s for every low orbit. Tightened to the capture's own cadence

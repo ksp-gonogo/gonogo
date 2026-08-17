@@ -102,11 +102,11 @@ namespace Sitrep.Propagation.Tests.Visibility
             var viaRoot = PatchedConicChain.Between(Kerbin, Laythe, System());
             var withinOneSystem = PatchedConicChain.Between(Kerbin, Minmus, System());
 
-            Assert.True(PatchedConicChain.IsPropagatable(withinOneSystem));
+            Assert.True(PatchedConicChain.IsPropagatable(withinOneSystem, new KeplerProvider()));
             // Kerbin's and Jool's own orbits ARE elliptical, so a chain through
             // the Sun is propagatable; the Sun's own non-orbit is never a LINK,
             // only ever the body a link arrives at.
-            Assert.True(PatchedConicChain.IsPropagatable(viaRoot));
+            Assert.True(PatchedConicChain.IsPropagatable(viaRoot, new KeplerProvider()));
         }
 
         [Fact]
@@ -118,7 +118,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                     new OrbitElements(0.0, 1.0, 0, 0, 0, 0, 0, 0.0), 1.0, descending: true),
             };
 
-            Assert.False(PatchedConicChain.IsPropagatable(bad));
+            Assert.False(PatchedConicChain.IsPropagatable(bad, new KeplerProvider()));
         }
 
         [Fact]

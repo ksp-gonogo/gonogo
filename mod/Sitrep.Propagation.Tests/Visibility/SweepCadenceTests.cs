@@ -49,9 +49,9 @@ namespace Sitrep.Propagation.Tests.Visibility
             var geometry = SolarOrbitCraft(Station());
 
             Assert.True(
-                geometry.PeriodSeconds > 100.0 * KerbinSiderealDay,
-                $"expected a period far longer than the day; got {geometry.PeriodSeconds}");
-            Assert.Equal(KerbinSiderealDay, geometry.ShortestCycleSeconds, 3);
+                geometry.PeriodSeconds!.Value > 100.0 * KerbinSiderealDay,
+                $"expected a period far longer than the day; got {geometry.PeriodSeconds!.Value}");
+            Assert.Equal(KerbinSiderealDay, geometry.ShortestCycleSeconds!.Value, 3);
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 Station(),
                 KerbinRadius);
 
-            Assert.Equal(geometry.PeriodSeconds, geometry.ShortestCycleSeconds, 3);
+            Assert.Equal(geometry.PeriodSeconds!.Value, geometry.ShortestCycleSeconds!.Value, 3);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         {
             var geometry = SolarOrbitCraft(Station(rotationPeriodSeconds: -KerbinSiderealDay));
 
-            Assert.Equal(KerbinSiderealDay, geometry.ShortestCycleSeconds, 3);
+            Assert.Equal(KerbinSiderealDay, geometry.ShortestCycleSeconds!.Value, 3);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         {
             var geometry = SolarOrbitCraft(Station(rotationPeriodSeconds: 0.0));
 
-            Assert.Equal(geometry.PeriodSeconds, geometry.ShortestCycleSeconds, 3);
+            Assert.Equal(geometry.PeriodSeconds!.Value, geometry.ShortestCycleSeconds!.Value, 3);
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 Station(rotationPeriodSeconds: KerbinSiderealDay),
                 Station(longitudeDeg: 90.0, rotationPeriodSeconds: KerbinSiderealDay / 4.0));
 
-            Assert.Equal(KerbinSiderealDay / 4.0, geometry.ShortestCycleSeconds, 3);
+            Assert.Equal(KerbinSiderealDay / 4.0, geometry.ShortestCycleSeconds!.Value, 3);
         }
 
         [Fact]
@@ -120,8 +120,8 @@ namespace Sitrep.Propagation.Tests.Visibility
                 Station(),
                 KerbinRadius);
 
-            Assert.Equal(lowOrbit.PeriodSeconds, lowOrbit.ShortestCycleSeconds, 3);
-            Assert.Equal(KerbinSiderealDay, farOrbit.ShortestCycleSeconds, 3);
+            Assert.Equal(lowOrbit.PeriodSeconds!.Value, lowOrbit.ShortestCycleSeconds!.Value, 3);
+            Assert.Equal(KerbinSiderealDay, farOrbit.ShortestCycleSeconds!.Value, 3);
         }
 
         /// <summary>

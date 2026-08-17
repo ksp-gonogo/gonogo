@@ -59,8 +59,14 @@ public sealed class CapturedOrbit
 
     public double LastEpochUt { get; }
 
-    public double PeriodSeconds =>
-        2.0 * Math.PI * Math.Sqrt(Elements.Sma * Elements.Sma * Elements.Sma / Elements.Mu);
+    /// <summary>
+    /// The characteristic cycle of this orbit as the two-body provider reports it,
+    /// or null when it declines. Asked rather than computed so that this tool
+    /// reports the same number the mod would act on, including when the answer is
+    /// that there is no period.
+    /// </summary>
+    public double? PeriodSeconds =>
+        new KeplerProvider().CharacteristicCycleSeconds(PropagationTarget.RelativeToFrame(Elements));
 
     public double ApoapsisRadiusMeters => Elements.Sma * (1.0 + Elements.Ecc);
 

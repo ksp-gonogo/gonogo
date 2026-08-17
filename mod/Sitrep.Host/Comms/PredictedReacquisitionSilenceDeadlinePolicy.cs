@@ -142,6 +142,7 @@ namespace Sitrep.Host.Comms
         private readonly GeometryFactory _geometryFactory;
         private readonly OrbitalPeriodSilenceDeadlinePolicy _fallback;
         private readonly Func<double> _observationQuantumSeconds;
+        private readonly IPropagationProvider _propagator;
 
         /// <param name="geometryFactory">Builds the path geometry, or returns null when it cannot.</param>
         /// <param name="fallback">The deadline every path falls back to. Defaults to the standard clamp(600, 1.5T, 86400).</param>
@@ -157,14 +158,21 @@ namespace Sitrep.Host.Comms
         /// vessel cannot be late by less than the interval at which anyone is
         /// looking.</para>
         /// </param>
+        /// <param name="propagator">
+        /// The elected propagation capability, which owns both "can this be
+        /// propagated at all" and "what does its motion repeat on". Defaults to the
+        /// two-body vanilla.
+        /// </param>
         public PredictedReacquisitionSilenceDeadlinePolicy(
             GeometryFactory geometryFactory,
             OrbitalPeriodSilenceDeadlinePolicy fallback = null,
-            Func<double> observationQuantumSeconds = null)
+            Func<double> observationQuantumSeconds = null,
+            IPropagationProvider propagator = null)
         {
             _geometryFactory = geometryFactory ?? throw new ArgumentNullException(nameof(geometryFactory));
             _fallback = fallback ?? new OrbitalPeriodSilenceDeadlinePolicy();
             _observationQuantumSeconds = observationQuantumSeconds ?? (() => 1.0);
+            _propagator = propagator ?? new KeplerProvider();
         }
 
         /// <summary>
@@ -180,16 +188,17 @@ namespace Sitrep.Host.Comms
                 return fallback;
             }
 
-            var o = sample.Orbit.Value;
-            if (o.Ecc >= 1.0 || !(o.Sma > 0.0) || !(o.Mu > 0.0))
+            var target = PropagationTarget.RelativeToFrame(sample.Orbit.Value);
+            if (!_propagator.CanPropagate(target, PropagationFrame.Unnamed, ut, ut))
             {
                 // The fallback already ceilings these; predicting an emergence
-                // for an escape trajectory would be inventing one.
+                // for a trajectory the propagator will not follow would be
+                // inventing one.
                 return fallback;
             }
 
-            var period = 2.0 * Math.PI * Math.Sqrt(o.Sma * o.Sma * o.Sma / o.Mu);
-            if (!IsUsable(period) || !IsUsable(ut))
+            var period = _propagator.CharacteristicCycleSeconds(target);
+            if (!IsUsable(ut))
             {
                 return fallback;
             }
@@ -218,7 +227,18 @@ namespace Sitrep.Host.Comms
                 return fallback;
             }
 
-            var cycle = CycleOf(geometry, period);
+            var cycleOrNone = CycleOf(geometry, period);
+            if (cycleOrNone == null)
+            {
+                // Neither the trajectory nor any station in the geometry repeats on
+                // anything, so there is no scale to size a step against. Choosing
+                // one anyway would publish a detection guarantee the sweep cannot
+                // honour, and the sweep's guarantee is stated in steps. Withhold and
+                // let the fallback deadline stand, which is always a correct answer.
+                return fallback;
+            }
+
+            var cycle = cycleOrNone.Value;
             var quantum = Math.Max(_observationQuantumSeconds(), 0.0);
             var step = Math.Max(cycle / SweepStepsPerCycle, quantum);
             if (step > cycle / CoarsestUsefulStepsPerCycle)
@@ -335,7 +355,7 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// The cycle the sweep has to resolve: what the geometry says its own
         /// motion repeats on, or the orbital period for a geometry that does
-        /// not declare a cadence at all.
+        /// not declare a cadence at all, or null when neither exists.
         ///
         /// <para>Guarded rather than trusted. A cadence of zero or NaN would
         /// divide the step to nothing, and one LONGER than the orbit would
@@ -343,7 +363,7 @@ namespace Sitrep.Host.Comms
         /// a usable value strictly shorter than the period leaves the period in
         /// place. The step only ever gets finer than it was.</para>
         /// </summary>
-        private static double CycleOf(IVisibilityGeometry geometry, double period)
+        private static double? CycleOf(IVisibilityGeometry geometry, double? period)
         {
             var cadence = geometry as IVisibilityCadence;
             if (cadence == null)
@@ -352,7 +372,15 @@ namespace Sitrep.Host.Comms
             }
 
             var cycle = cadence.ShortestCycleSeconds;
-            return IsUsable(cycle) && cycle < period ? cycle : period;
+            if (cycle == null || !IsUsable(cycle.Value))
+            {
+                return period;
+            }
+            if (period == null || !IsUsable(period.Value))
+            {
+                return cycle;
+            }
+            return cycle.Value < period.Value ? cycle : period;
         }
 
         private static SilenceDeadline WithBasis(SilenceDeadline deadline, string basis) =>

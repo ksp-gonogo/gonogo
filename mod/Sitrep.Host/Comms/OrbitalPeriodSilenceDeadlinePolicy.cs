@@ -5,18 +5,19 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// The one <see cref="SilenceDeadlinePolicy"/> implementation this pass
-    /// ships: <c>clamp(floor, k * orbitalPeriod, ceiling)</c>, with
-    /// <c>T = 2*pi*sqrt(a^3/mu)</c> off <see cref="OrbitElements.Sma"/>/
-    /// <see cref="OrbitElements.Mu"/> (see
+    /// ships: <c>clamp(floor, k * cycle, ceiling)</c>, where the cycle is whatever
+    /// the elected propagation capability says the craft's motion repeats on. For
+    /// the two-body vanilla that is <c>T = 2*pi*sqrt(a^3/mu)</c> off
+    /// <see cref="OrbitElements.Sma"/>/<see cref="OrbitElements.Mu"/> (see
     /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>). A low
     /// orbit is declared lost in minutes; a high one gets proportionally
     /// longer. Deliberately simple: a better predictor is future work, this
     /// policy exists to prove the seam, not to be the last word on it.
     ///
-    /// <para>Never guesses a period it cannot honestly compute: a hyperbolic
-    /// orbit (<c>ecc &gt;= 1</c>), a landed/splashed vessel, or a degenerate
-    /// <c>Sma</c>/<c>Mu</c> all fall straight to the ceiling rather than
-    /// feeding <see cref="Math.Sqrt"/> something meaningless.</para>
+    /// <para>Never guesses a cycle it cannot honestly obtain: a landed or splashed
+    /// vessel, and any trajectory the provider declines to give a cycle for (a
+    /// hyperbolic orbit, degenerate elements, or motion that simply does not
+    /// repeat) all fall straight to the ceiling.</para>
     /// </summary>
     public sealed class OrbitalPeriodSilenceDeadlinePolicy
     {
@@ -27,11 +28,18 @@ namespace Sitrep.Host.Comms
         private readonly double _floorSec;
         private readonly double _ceilingSec;
         private readonly double _periodMultiplier;
+        private readonly IPropagationProvider _propagator;
 
+        /// <param name="propagator">
+        /// The elected propagation capability, asked for the characteristic cycle
+        /// this policy scales. Defaults to the two-body vanilla, whose answer is the
+        /// orbital period.
+        /// </param>
         public OrbitalPeriodSilenceDeadlinePolicy(
             double floorSec = DefaultFloorSec,
             double ceilingSec = DefaultCeilingSec,
-            double periodMultiplier = DefaultPeriodMultiplier)
+            double periodMultiplier = DefaultPeriodMultiplier,
+            IPropagationProvider propagator = null)
         {
             if (!(floorSec > 0)) throw new ArgumentOutOfRangeException(nameof(floorSec));
             if (ceilingSec < floorSec) throw new ArgumentOutOfRangeException(nameof(ceilingSec));
@@ -40,6 +48,7 @@ namespace Sitrep.Host.Comms
             _floorSec = floorSec;
             _ceilingSec = ceilingSec;
             _periodMultiplier = periodMultiplier;
+            _propagator = propagator ?? new KeplerProvider();
         }
 
         /// <summary>
@@ -66,14 +75,22 @@ namespace Sitrep.Host.Comms
                 return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.NoOrbit);
             }
 
-            var o = sample.Orbit.Value;
-            if (sample.LandedOrSplashed || o.Ecc >= 1.0 || !(o.Sma > 0.0) || !(o.Mu > 0.0))
+            if (sample.LandedOrSplashed)
             {
                 return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.PolicyCeiling);
             }
 
-            var period = 2.0 * Math.PI * Math.Sqrt(o.Sma * o.Sma * o.Sma / o.Mu);
-            var raw = _periodMultiplier * period;
+            // Null is the honest answer for a trajectory that does not repeat, and
+            // it lands on the same ceiling the hyperbolic and degenerate cases
+            // already used. The branch predates the provider; only its cause moved.
+            var period = _propagator.CharacteristicCycleSeconds(
+                PropagationTarget.RelativeToFrame(sample.Orbit.Value));
+            if (period == null)
+            {
+                return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.PolicyCeiling);
+            }
+
+            var raw = _periodMultiplier * period.Value;
 
             if (raw < _floorSec) return new SilenceDeadline(_floorSec, SilenceDeadlineBasis.PolicyFloor);
             if (raw > _ceilingSec) return new SilenceDeadline(_ceilingSec, SilenceDeadlineBasis.PolicyCeiling);

@@ -127,17 +127,29 @@ namespace Sitrep.Propagation.Visibility
         }
 
         /// <summary>
-        /// Whether every link can actually be propagated. The root body's
-        /// stored elements are typically not an orbit at all (KSP gives the Sun
-        /// <c>ecc = 1</c>, <c>sma = 0</c>), and feeding that to a Kepler solver
-        /// throws rather than degrading.
+        /// Whether the elected propagation capability will follow every link. The
+        /// root body's stored elements are typically not an orbit at all (KSP gives
+        /// the Sun <c>ecc = 1</c>, <c>sma = 0</c>), and feeding that to a solver
+        /// throws rather than degrading, deep inside the sweep where the policy
+        /// swallows it and the predictor goes silent with no trace.
+        ///
+        /// <para>The question is asked at a single UT rather than across a window,
+        /// because the chain is built before the sweep's step and window are chosen
+        /// (only the finished geometry knows which term moves fastest). So this
+        /// answers "can you follow these links at all", and a provider with a
+        /// prediction horizon is asked about the window later, at sweep time, by
+        /// the caller that knows it.</para>
         /// </summary>
-        public static bool IsPropagatable(IReadOnlyList<OrbitToRemoteStationGeometry.ChainLink> links)
+        public static bool IsPropagatable(
+            IReadOnlyList<OrbitToRemoteStationGeometry.ChainLink> links,
+            IPropagationProvider propagator,
+            double ut = 0.0)
         {
-            if (links == null) return false;
+            if (links == null || propagator == null) return false;
             foreach (var link in links)
             {
-                if (link.Orbit.Ecc >= 1.0 || !(link.Orbit.Sma > 0.0) || !(link.Orbit.Mu > 0.0))
+                var target = PropagationTarget.RelativeToFrame(link.Orbit);
+                if (!propagator.CanPropagate(target, PropagationFrame.Unnamed, ut, ut))
                 {
                     return false;
                 }

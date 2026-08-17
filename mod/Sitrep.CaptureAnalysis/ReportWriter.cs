@@ -72,7 +72,9 @@ public static class ReportWriter
             text.AppendLine($"  inc            {Degrees(orbit.Elements.Inc)}");
             text.AppendLine($"  lan / argPe    {Degrees(orbit.Elements.Lan)} / {Degrees(orbit.Elements.ArgPe)}");
             text.AppendLine($"  mu             {orbit.Elements.Mu.ToString("G6", CultureInfo.InvariantCulture)}");
-            text.AppendLine($"  period         {Seconds(orbit.PeriodSeconds)} (derived from sma and mu)");
+            text.AppendLine(orbit.PeriodSeconds == null
+                ? "  period         none (the propagator reports no repeating cycle)"
+                : $"  period         {Seconds(orbit.PeriodSeconds.Value)} (via the propagation provider)");
             text.AppendLine($"  radius pe/ap   {Metres(orbit.PeriapsisRadiusMeters)} / {Metres(orbit.ApoapsisRadiusMeters)}");
             text.AppendLine($"  epoch span     {Seconds(orbit.LastEpochUt - orbit.FirstEpochUt)} of elements");
         }

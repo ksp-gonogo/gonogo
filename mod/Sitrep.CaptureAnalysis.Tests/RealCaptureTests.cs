@@ -130,7 +130,7 @@ public class RealCaptureTests
         Assert.Equal("Kerbin", report.Orbit!.ReferenceBodyName);
         Assert.Equal(1, report.Orbit.ReferenceBodyIndex);
         Assert.Equal(686_749.2, report.Orbit.Elements.Sma, 1);
-        Assert.Equal(1902.79, report.Orbit.PeriodSeconds, 2);
+        Assert.Equal(1902.79, report.Orbit.PeriodSeconds!.Value, 2);
 
         // The wire carries lan/argPe in degrees; if that were read as radians the
         // orbit would be rotated by hundreds of degrees and nothing downstream

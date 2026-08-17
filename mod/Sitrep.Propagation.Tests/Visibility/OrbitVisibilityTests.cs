@@ -87,7 +87,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 CircularOrbit(KerbinRadius + 100_000.0), PolarStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
-                geometry, 0.0, 3.0 * geometry.PeriodSeconds, stepSeconds: 3.0);
+                geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, stepSeconds: 3.0);
 
             Assert.False(result.ClearAtStart);
             Assert.Empty(result.Changes);
@@ -100,7 +100,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 CircularOrbit(KerbinRadius + 100_000.0), EquatorialStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
-                geometry, 0.0, 3.0 * geometry.PeriodSeconds, stepSeconds: 3.0);
+                geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, stepSeconds: 3.0);
 
             // Overhead at UT 0, so: clear, then loss/acquisition alternating.
             Assert.True(result.ClearAtStart);
@@ -125,7 +125,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             var bare = new OrbitToGroundStationGeometry(orbit, station, BareOccluder);
             var stock = new OrbitToGroundStationGeometry(orbit, station, StockAtmosphereOccluder);
 
-            double window = 2.0 * bare.PeriodSeconds;
+            double window = 2.0 * bare.PeriodSeconds!.Value;
             double bareBlackout = TotalBlockedSeconds(VisibilitySweep.Run(bare, 0.0, window, 1.0, 0.01), window);
             double stockBlackout = TotalBlockedSeconds(VisibilitySweep.Run(stock, 0.0, window, 1.0, 0.01), window);
 
@@ -146,7 +146,7 @@ namespace Sitrep.Propagation.Tests.Visibility
             var prograde = new OrbitToGroundStationGeometry(CircularOrbit(sma, 0.0), station, BareOccluder);
             var retrograde = new OrbitToGroundStationGeometry(CircularOrbit(sma, 180.0), station, BareOccluder);
 
-            double window = 6.0 * prograde.PeriodSeconds;
+            double window = 6.0 * prograde.PeriodSeconds!.Value;
             int progradePasses = VisibilitySweep.Run(prograde, 0.0, window, 2.0)
                 .Changes.Count(c => c.BecameClear);
             int retrogradePasses = VisibilitySweep.Run(retrograde, 0.0, window, 2.0)
@@ -164,7 +164,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 CircularOrbit(KerbinRadius + 100_000.0, incDeg: 90.0), EquatorialStation(), BareOccluder);
 
             VisibilitySweepResult result = VisibilitySweep.Run(
-                geometry, 0.0, 3.0 * geometry.PeriodSeconds, stepSeconds: 3.0);
+                geometry, 0.0, 3.0 * geometry.PeriodSeconds!.Value, stepSeconds: 3.0);
 
             Assert.NotEmpty(result.Changes);
             foreach (VisibilityChange change in result.Changes)

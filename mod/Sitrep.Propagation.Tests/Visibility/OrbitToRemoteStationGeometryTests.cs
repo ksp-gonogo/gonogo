@@ -162,7 +162,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         public void TheMarginCrossesZeroRatherThanJumping()
         {
             var geometry = Geometry(VesselAtMinmus(), MinmusAroundKerbin(), KscLikeStation());
-            var period = geometry.PeriodSeconds;
+            var period = geometry.PeriodSeconds!.Value;
             var step = period / 720.0;
 
             var previous = geometry.MarginAt(0.0);

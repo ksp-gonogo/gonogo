@@ -49,10 +49,14 @@ namespace Sitrep.Propagation.Visibility
             _propagator = propagator ?? new KeplerProvider();
         }
 
-        /// <summary>The orbital period, seconds, implied by the elements. One of the two terms a sweep step has to resolve; see <see cref="ShortestCycleSeconds"/> for the other.</summary>
-        public double PeriodSeconds
+        /// <summary>
+        /// The orbital period, seconds, as the elected propagation provider reports
+        /// it, or null when it declines. One of the two terms a sweep step has to
+        /// resolve; see <see cref="ShortestCycleSeconds"/> for the other.
+        /// </summary>
+        public double? PeriodSeconds
         {
-            get { return 2.0 * Math.PI * Math.Sqrt(_orbit.Sma * _orbit.Sma * _orbit.Sma / _orbit.Mu); }
+            get { return _propagator.CharacteristicCycleSeconds(PropagationTarget.RelativeToFrame(_orbit)); }
         }
 
         /// <summary>
@@ -60,17 +64,23 @@ namespace Sitrep.Propagation.Visibility
         /// above synchronous altitude is overtaken by the station beneath it,
         /// so the day is what the path opens and closes with.
         /// </summary>
-        public double ShortestCycleSeconds
+        public double? ShortestCycleSeconds
         {
             get
             {
                 var spin = Math.Abs(_station.RotationPeriodSeconds);
+                var usableSpin = spin > 0.0 && !double.IsInfinity(spin);
                 var period = PeriodSeconds;
-                if (!(spin > 0.0) || double.IsInfinity(spin))
+
+                if (!usableSpin)
                 {
                     return period;
                 }
-                return spin < period ? spin : period;
+                if (period == null)
+                {
+                    return spin;
+                }
+                return spin < period.Value ? spin : period.Value;
             }
         }
 
