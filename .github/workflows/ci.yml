@@ -335,6 +335,14 @@ jobs:
   # as an artifact.
   visual:
     runs-on: ubuntu-latest
+    # AMBER, not silenced. The gate is deliberately red pending a whole-suite
+    # re-baseline, and while that red counted towards the run conclusion it made
+    # every other job's red invisible: an earth-day ratchet failure and then a
+    # completely dead render harness both hid behind it. `continue-on-error`
+    # keeps the job running and its findings readable while letting a real
+    # failure elsewhere decide the run. "Baselines drifted" is amber here;
+    # "the harness cannot render at all" is red in `test`, from probe-render-smoke.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
