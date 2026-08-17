@@ -793,7 +793,7 @@ registerComponent<AstronautComplexConfig>({
   dataRequirements: [
     "spaceCenter.astronautComplex",
     "spaceCenter.crewRoster",
-    "career.funds",
+    "career.status.economy.funds",
   ],
   defaultConfig: {},
   actions: astronautComplexActions,

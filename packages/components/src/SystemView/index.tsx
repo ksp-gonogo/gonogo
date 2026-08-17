@@ -918,7 +918,11 @@ registerComponent<SystemViewConfig>({
   // The body table + phase angles still fan out over the shared `b.*` hooks
   // (`useCelestialBodies`/`usePhaseAngles`): a separate, shared-hook migration.
   // Everything else reads the streamed `vessel.*`/`system.bodies` Topics below.
-  dataRequirements: ["b.number"],
+  // The widget walks the body ARRAY (`systemBodies?.bodies`) and never reads a
+  // count, so it declares the array. The old `b.number` mapped to the derived
+  // `system.state.bodyCount`, a value this widget does not render: keeping it
+  // would point body-count alarms here on the strength of a key nothing reads.
+  dataRequirements: ["system.bodies"],
   optionalChannels: [
     "vessel.orbit",
     "vessel.identity",

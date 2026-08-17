@@ -403,7 +403,7 @@ registerComponent<ObjectivesConfig>({
   // Exposes one typed-contract slot; the built-in source below binds into it,
   // and any future Uplink objective source can too.
   augmentSlots: ["objectives.sections"],
-  dataRequirements: ["contracts.active"],
+  dataRequirements: ["career.status.contracts.active"],
   defaultConfig: {},
   actions: [],
   pushable: true,
