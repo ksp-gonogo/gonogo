@@ -20,12 +20,12 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A namespace core has never heard of, standing in for an Uplink that
-        /// publishes its own per-vessel opinion (Kerbalism's life support for
-        /// every craft, say). It earns its per-vessel node routing by DECLARING
+        /// publishes its own per-vessel opinion (life support for every craft in
+        /// the save, say). It earns its per-vessel node routing by DECLARING
         /// <see cref="ChannelDeclaration.PerVesselNode"/> rather than by having
         /// its name written into the engine, which is what
-        /// <c>ChannelEngine.CurrentlyKnownPerVesselPrefixes</c> would otherwise
-        /// have to grow for every mod.
+        /// <see cref="ChannelEngine.NodeForTopic"/> would otherwise have to grow
+        /// a branch for per Uplink.
         /// </summary>
         public const string ExtensionPrefix = "extension.";
 
