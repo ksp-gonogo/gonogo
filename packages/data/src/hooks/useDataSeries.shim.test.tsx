@@ -264,6 +264,106 @@ describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series compu
   });
 });
 
+/**
+ * A plot key is not always a label a widget author wrote: `GraphView` resolves
+ * `GraphConfig.series[].key`/`xKey` through this hook, so a widget migrating
+ * off the Telemachus vocabulary has to be able to plot the modern path.
+ *
+ * `mapTopic` translates the OLD spelling. It has nothing to say about the new
+ * one, so a widget that switched to `vessel.orbit.sma` resolved to `undefined`,
+ * fell through to the legacy `"data"` `DataSource` that nothing registers in
+ * production any more, and drew an empty plot forever. Same shape as the alarm
+ * attribution bug: the new spelling accepted everywhere except where it counts.
+ */
+describe("useDataSeries: a MODERN path streams, so a migrated widget can plot it", () => {
+  it("streams a raw field path a widget declares directly", async () => {
+    const fixture = buildStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 100,
+    });
+    const legacySource = await buildLegacySource("vessel.orbit.sma");
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={300} />
+      </fixture.Provider>,
+    );
+
+    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
+
+    act(() => legacySource.emit("vessel.orbit.sma", 999_999));
+    expect(readProbe()).toBe("t:|v:");
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 10 });
+      fixture.transport.emit(
+        "vessel.orbit",
+        { sma: 680_000 },
+        { validAt: 100 },
+      );
+    });
+
+    await waitFor(() => expect(readProbe()).toBe("t:10,100|v:679400,680000"));
+    expect(readProbe()).not.toContain("999999");
+  });
+
+  it("streams a derived field path, replayed the same way the legacy key was", async () => {
+    // A derived channel is carried by carrying its raw INPUTS, so this is the
+    // same eight-topic set the legacy-key test above uses.
+    const fixture = buildStreamFixture({
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
+      pinnedUt: 100,
+    });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.state.altitudeAsl" windowSec={300} />
+      </fixture.Provider>,
+    );
+
+    // The derived channel resolves to its raw inputs, so those are what a
+    // subscription must land on.
+    expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
+
+    act(() => {
+      fixture.transport.emit(
+        "vessel.orbit",
+        { referenceBodyIndex: 1 },
+        { validAt: 0, quality: Quality.Loaded },
+      );
+      for (const [validAt, altitudeAsl] of [
+        [10, 100],
+        [50, 200],
+        [100, 300],
+      ]) {
+        fixture.transport.emit(
+          "vessel.flight",
+          {
+            altitudeAsl,
+            verticalSpeed: 0,
+            surfaceSpeed: 0,
+            orbitalSpeed: 0,
+          },
+          { validAt },
+        );
+      }
+    });
+
+    // The same replayed series the legacy `v.altitude` key produces above:
+    // the spelling changed, the values did not.
+    await waitFor(() => expect(readProbe()).toBe("t:10,50,100|v:100,200,300"));
+  });
+});
+
 describe("useDataSeries shim: unmapped/uncarried keys and no-provider behave exactly like the pre-shim hook", () => {
   it("an unmapped key ('career.funds': not in the migration table) ignores the stream and reads legacy", async () => {
     const fixture = buildStreamFixture({ carriedChannels: [] });

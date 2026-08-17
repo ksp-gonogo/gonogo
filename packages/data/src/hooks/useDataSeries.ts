@@ -177,21 +177,23 @@ export function useDataSeries(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  const topic = mapTopic(sourceId, key);
+  // `mapTopic` translates the OLD spelling of a key and has nothing to say
+  // about the new one, so an already-modern path (`vessel.orbit.sma`, what a
+  // migrated widget plots) resolved to `undefined` and fell through to the
+  // legacy `"data"` `DataSource` that nothing registers in production: an
+  // empty plot, forever, with nothing failing. Passing the key through
+  // unchanged lets `isTopicCarried` answer for both spellings; a key that is
+  // neither still resolves to nothing and still takes the legacy path below.
+  const topic = mapTopic(sourceId, key) ?? key;
   const carried =
     store !== undefined &&
-    topic !== undefined &&
     carriedChannels !== undefined &&
     isTopicCarried(store, carriedChannels, topic);
-  const routable =
-    client !== undefined &&
-    store !== undefined &&
-    topic !== undefined &&
-    carried;
+  const routable = client !== undefined && store !== undefined && carried;
 
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {
-      if (!client || !store || topic === undefined || !carried) {
+      if (!client || !store || !carried) {
         return () => {};
       }
       // `resolveSubscriptionTopics` already resolves a DERIVED topic to its
@@ -212,7 +214,7 @@ export function useDataSeries(
   );
 
   const getStreamSnapshot = useCallback((): SeriesRange => {
-    if (!store || topic === undefined || !carried) {
+    if (!store || !carried) {
       return EMPTY;
     }
     const toUt = store.currentFrame().viewUt;
