@@ -180,7 +180,7 @@ namespace Gonogo.KSP
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
                 // Same late-bound install for the closest-approach solver
-                // (stock Kepler vanilla, or Principia when elected) -- KspHost
+                // (stock Kepler vanilla, or an n-body provider when elected) -- KspHost
                 // samples it on the main thread and stamps vessel.target's
                 // closestApproach.
                 _host.SetApproachSolverSource(

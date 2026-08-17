@@ -42,7 +42,13 @@ namespace Sitrep.Host.Tests
             CommsElection.RegisterCapability(kernel, _ => new FakeBackend("commnet"));
             if (raPresent)
             {
-                CommsElection.RegisterRealAntennasProvider(kernel, _ => new FakeBackend("realantennas"));
+                kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = CommsElection.CapabilityId,
+                    Id = "realantennas",
+                    Priority = 100.0,
+                    Factory = _ => new FakeBackend("realantennas"),
+                });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
             return kernel;
@@ -74,8 +80,8 @@ namespace Sitrep.Host.Tests
                 host.Kernel.RegisterProvider(new ProviderRegistration
                 {
                     Capability = CommsElection.CapabilityId,
-                    Id = CommsElection.RealAntennasProviderId,
-                    Priority = CommsElection.RealAntennasPriority,
+                    Id = "realantennas",
+                    Priority = 100.0,
                     Factory = _ => new FakeBackend("realantennas"),
                 });
         }

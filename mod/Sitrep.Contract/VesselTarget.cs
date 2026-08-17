@@ -50,7 +50,7 @@ public enum TargetKind
 /// <summary>
 /// Next closest approach between the active vessel and its current target,
 /// computed MOD-side by the elected <c>ITargetApproachSolver</c> (stock
-/// two-body Kepler by default, a Principia n-body backend when elected over
+/// two-body Kepler by default, an n-body backend when elected over
 /// it). Replaces the SDK's former client-side <c>o.closestTgtApprUT</c>
 /// two-body solve: the authority moves into the mod so an n-body physics mod
 /// can supply the true encounter instead of a Kepler approximation that is

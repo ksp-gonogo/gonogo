@@ -11,7 +11,7 @@ namespace Sitrep.Core.Serialization
     /// A browser's <c>JSON.parse</c> rejects bare <c>NaN</c> / <c>Infinity</c>
     /// tokens (they aren't valid JSON), and KSP's own orbit math is a real
     /// source of these values on the wire (eccentric-anomaly / landing
-    /// telemetry can genuinely be NaN; see the fork's known Principia/NaN
+    /// telemetry can genuinely be NaN; see the fork's known n-body/NaN
     /// quirks). Rather than dropping the sample or crashing the writer, a
     /// non-finite <c>double</c> is encoded as one of three fixed JSON
     /// STRING tokens (<c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c>)

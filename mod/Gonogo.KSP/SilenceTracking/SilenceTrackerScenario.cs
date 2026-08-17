@@ -1,5 +1,6 @@
 using System;
 using Sitrep.Host.Comms;
+using Sitrep.Host.Propagation;
 using UnityEngine;
 
 namespace Gonogo.KSP.SilenceTracking
@@ -38,10 +39,21 @@ namespace Gonogo.KSP.SilenceTracking
         /// radius it declares) is a property of the running game, not of the
         /// process.
         /// </summary>
-        private static SilenceDeadlinePolicy BuildPolicy() =>
-            new PredictedReacquisitionSilenceDeadlinePolicy(
-                new KspVisibilityGeometryFactory(() => SilenceGeometrySink.Kernel).Build,
-                observationQuantumSeconds: ObservationQuantumSeconds).Evaluate;
+        private static SilenceDeadlinePolicy BuildPolicy()
+        {
+            // Resolved per save for the same reason the geometry factory is: which
+            // provider is elected is a property of the running game, not of the
+            // process. Read once here rather than per evaluation, because election
+            // happens at bootstrap and cannot change under a running save.
+            var propagator = PropagationElection.ElectedOrStock(SilenceGeometrySink.Kernel);
+
+            return new PredictedReacquisitionSilenceDeadlinePolicy(
+                new KspVisibilityGeometryFactory(
+                    () => SilenceGeometrySink.Kernel, propagator: propagator).Build,
+                fallback: new OrbitalPeriodSilenceDeadlinePolicy(propagator: propagator),
+                observationQuantumSeconds: ObservationQuantumSeconds,
+                propagator: propagator).Evaluate;
+        }
 
         /// <summary>
         /// The UT gap between consecutive looks at a vessel's contact state.

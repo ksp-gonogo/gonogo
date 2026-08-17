@@ -192,7 +192,7 @@ namespace Gonogo.KSP
                     if (activeVessel != null)
                     {
                         // Closest approach comes from the elected solver (stock
-                        // Kepler by default; Principia when loaded), sampled on
+                        // Kepler by default; an n-body backend when elected), sampled on
                         // this main thread at the current UT. Null when there's
                         // no target / no encounter -- stamped onto vessel.target
                         // below, replacing the old SDK-side two-body solve.

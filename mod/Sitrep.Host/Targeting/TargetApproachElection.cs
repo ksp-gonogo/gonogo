@@ -14,18 +14,18 @@ namespace Sitrep.Host.Targeting
     /// <item><b>The stock Kepler backend is the capability's <c>Vanilla</c>
     /// factory</b>: always present, so closest approach is never
     /// unsatisfiable on a stock install.</item>
-    /// <item><b>A future Principia uplink registers a provider</b>, but ONLY
-    /// when the Principia assembly is actually loaded (the same reflection-probe
+    /// <item><b>An n-body uplink registers a provider</b>, but ONLY
+    /// when the mod supplying it is actually loaded (the same reflection-probe
     /// gate the reflection-isolated comms provider uplink uses). Registering the
     /// provider IS the gate: an exclusive capability with one registered
-    /// provider selects it; with zero it falls back to Vanilla. Principia
-    /// present ⇒ Principia wins; Principia absent ⇒ stock Kepler.</item>
+    /// provider selects it; with zero it falls back to Vanilla. Such a provider
+    /// present ⇒ it wins; absent ⇒ stock Kepler.</item>
     /// </list>
     ///
     /// <para>The <c>vessel.target</c> channel is declared and sourced ONCE by
     /// the vessel uplink, which resolves the elected solver at capture time via
     /// <c>Kernel.Query&lt;ITargetApproachSolver&gt;("targetApproach")</c>. A
-    /// Principia uplink would declare NO channel of its own and ship NO client
+    /// Such an uplink would declare NO channel of its own and ship NO client
     /// code, exactly as the elected comms provider uplink ships none for
     /// <c>comms.*</c>.</para>
     /// </summary>
@@ -34,11 +34,7 @@ namespace Sitrep.Host.Targeting
         /// <summary>The exclusive capability id every closest-approach backend competes for.</summary>
         public const string CapabilityId = "targetApproach";
 
-        /// <summary>Provider id a future Principia (n-body) backend registers under.</summary>
-        public const string PrincipiaProviderId = "principia";
 
-        /// <summary>Default priority for the Principia provider (any positive value beats the vanilla fallback structurally; priority only matters if a second provider ever appears).</summary>
-        public const double PrincipiaPriority = 100.0;
 
         /// <summary>
         /// Registers the exclusive <c>"targetApproach"</c> capability with the
@@ -46,7 +42,7 @@ namespace Sitrep.Host.Targeting
         /// <see cref="CapabilityDescriptor.Vanilla"/> factory. Called from the
         /// vessel uplink's <c>DeclareCapabilities</c> (the pre-Register
         /// discovery pass), so the capability exists before ANY uplink's
-        /// <c>Register</c> runs, a future Principia uplink's provider
+        /// <c>Register</c> runs, a later uplink's provider
         /// registration can then never race ahead of this declaration
         /// regardless of assembly-scan order.
         ///
@@ -71,35 +67,11 @@ namespace Sitrep.Host.Targeting
             });
         }
 
-        /// <summary>
-        /// Registers a Principia n-body backend as a higher-priority provider.
-        /// Call this ONLY when a Principia reflection probe confirms Principia
-        /// is loaded, registering it is itself the election gate. Must be
-        /// called after <see cref="RegisterCapability"/> and before
-        /// <see cref="Kernel.Resolve"/>.
-        ///
-        /// <para>Nothing calls this yet: the Principia backend is a later,
-        /// out-of-scope phase (a separate reflection-isolated uplink assembly,
-        /// like the reflection-isolated comms provider uplink). It exists now so that phase is
-        /// a pure ADD (one uplink, one probe, one factory) with no change to
-        /// this file, the contract, the channel, or any client code.</para>
-        /// </summary>
-        public static void RegisterPrincipiaProvider(
-            Kernel kernel,
-            Func<ProviderContext, ITargetApproachSolver> principiaFactory,
-            double priority = PrincipiaPriority)
-        {
-            if (kernel == null) throw new ArgumentNullException(nameof(kernel));
-            if (principiaFactory == null) throw new ArgumentNullException(nameof(principiaFactory));
-
-            kernel.RegisterProvider(new ProviderRegistration
-            {
-                Capability = CapabilityId,
-                Id = PrincipiaProviderId,
-                Priority = priority,
-                Factory = ctx => principiaFactory(ctx),
-            });
-        }
+        // A provider registers itself through the kernel's generic
+        // RegisterProvider, naming its own id and priority. Core deliberately
+        // offers no per-mod registrar: a named one puts a specific third-party
+        // mod in core's API surface, and every caller that used the two removed
+        // here was a test.
 
         /// <summary>
         /// Resolve the elected solver after resolution has run. Returns null if

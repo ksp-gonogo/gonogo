@@ -33,11 +33,7 @@ namespace Sitrep.Host.ActionGroups
         /// <summary>The exclusive capability id every action-groups backend competes for.</summary>
         public const string CapabilityId = "actionGroups";
 
-        /// <summary>Provider id a future Action Groups Extended backend registers under.</summary>
-        public const string ActionGroupsExtendedProviderId = "actionGroupsExtended";
 
-        /// <summary>Default priority for the AGX provider (any positive value beats the vanilla fallback structurally; priority only matters if a second provider ever appears).</summary>
-        public const double ActionGroupsExtendedPriority = 100.0;
 
         /// <summary>
         /// Registers the exclusive <c>"actionGroups"</c> capability with the
@@ -70,33 +66,11 @@ namespace Sitrep.Host.ActionGroups
             });
         }
 
-        /// <summary>
-        /// Registers Action Groups Extended as a higher-priority provider. Call
-        /// this ONLY when an AGX reflection probe confirms AGX is loaded,
-        /// registering it is itself the election gate. Must be called after
-        /// <see cref="RegisterCapability"/> and before <see cref="Kernel.Resolve"/>.
-        ///
-        /// <para>Nothing calls this yet: the AGX backend is a later phase.
-        /// It exists now so that phase is a pure ADD (one uplink assembly, one
-        /// probe, one factory) with no change to this file, the contract, the
-        /// channel, or any client code.</para>
-        /// </summary>
-        public static void RegisterActionGroupsExtendedProvider(
-            Kernel kernel,
-            Func<ProviderContext, IActionGroupsBackend> agxFactory,
-            double priority = ActionGroupsExtendedPriority)
-        {
-            if (kernel == null) throw new ArgumentNullException(nameof(kernel));
-            if (agxFactory == null) throw new ArgumentNullException(nameof(agxFactory));
-
-            kernel.RegisterProvider(new ProviderRegistration
-            {
-                Capability = CapabilityId,
-                Id = ActionGroupsExtendedProviderId,
-                Priority = priority,
-                Factory = ctx => agxFactory(ctx),
-            });
-        }
+        // A provider registers itself through the kernel's generic
+        // RegisterProvider, naming its own id and priority. Core deliberately
+        // offers no per-mod registrar: a named one puts a specific third-party
+        // mod in core's API surface, and every caller that used the two removed
+        // here was a test.
 
         /// <summary>
         /// Resolve the elected backend after resolution has run. Returns null

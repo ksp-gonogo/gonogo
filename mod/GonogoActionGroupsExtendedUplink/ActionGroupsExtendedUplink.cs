@@ -31,6 +31,19 @@ namespace Gonogo.ActionGroupsExtendedUplink
     [SitrepUplink("actionGroupsExtended")]
     public sealed class ActionGroupsExtendedUplink : ISitrepUplink
     {
+
+        /// <summary>
+        /// The id and priority this uplink registers its action-groups backend
+        /// under. They live HERE rather than in core: core owns the capability and
+        /// its stock vanilla, and a provider owns its own identity. Any positive
+        /// priority beats the vanilla structurally; the value only matters if a
+        /// second provider for this capability ever appears.
+        /// </summary>
+        public const string ProviderId = "actionGroupsExtended";
+
+        /// <inheritdoc cref="ProviderId"/>
+        public const double ProviderPriority = 100.0;
+
         // Set at Register when AGX is absent (the uplink goes inert); read by
         // Health(). Null means available. AgxReflection.Probe() is only run at
         // Register, so Health() reads this cached result rather than re-probing.
@@ -76,8 +89,13 @@ namespace Gonogo.ActionGroupsExtendedUplink
             // anything else down.
             try
             {
-                ActionGroupsElection.RegisterActionGroupsExtendedProvider(
-                    host.Kernel, _ => new AgxActionGroupsBackend(agx));
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = ActionGroupsElection.CapabilityId,
+                    Id = ProviderId,
+                    Priority = ProviderPriority,
+                    Factory = _ => new AgxActionGroupsBackend(agx),
+                });
             }
             catch (Exception ex)
             {

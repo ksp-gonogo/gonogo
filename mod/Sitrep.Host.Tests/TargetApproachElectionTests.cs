@@ -9,9 +9,9 @@ namespace Sitrep.Host.Tests
     /// The closest-approach backend election: a mirror of
     /// <see cref="CommsElectionTests"/>/the AGX election, driving the REAL
     /// <see cref="Kernel"/> through the two cases that matter for this phase:
-    /// Principia absent ⇒ stock Kepler vanilla wins; Principia present ⇒ the
+    /// No n-body provider ⇒ stock Kepler vanilla wins; one registered ⇒ the
     /// registered provider wins; and the elected instance is queryable as an
-    /// <see cref="ITargetApproachSolver"/>. The Principia backend itself is
+    /// <see cref="ITargetApproachSolver"/>. Such a backend itself is
     /// out of scope: a fake stands in for it, exactly as
     /// <see cref="CommsElectionTests"/> fakes its mod provider.
     /// </summary>
@@ -24,22 +24,28 @@ namespace Sitrep.Host.Tests
             public ClosestApproach? Solve(double fromUt) => null;
         }
 
-        private static Kernel ResolvedKernel(bool principiaPresent)
+        private static Kernel ResolvedKernel(bool nbodyProviderPresent)
         {
             var kernel = new Kernel();
             TargetApproachElection.RegisterCapability(kernel, _ => new FakeSolver("stock-kepler"));
-            if (principiaPresent)
+            if (nbodyProviderPresent)
             {
-                TargetApproachElection.RegisterPrincipiaProvider(kernel, _ => new FakeSolver("principia"));
+                kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = TargetApproachElection.CapabilityId,
+                    Id = "an-nbody-provider",
+                    Priority = 100.0,
+                    Factory = _ => new FakeSolver("an-nbody-provider"),
+                });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
             return kernel;
         }
 
         [Fact]
-        public void PrincipiaAbsent_StockKeplerVanillaWins()
+        public void NoNbodyProvider_StockKeplerVanillaWins()
         {
-            var kernel = ResolvedKernel(principiaPresent: false);
+            var kernel = ResolvedKernel(nbodyProviderPresent: false);
 
             var elected = TargetApproachElection.Elected(kernel);
 
@@ -48,20 +54,20 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void PrincipiaPresent_PrincipiaWins()
+        public void NbodyProviderPresent_ItWins()
         {
-            var kernel = ResolvedKernel(principiaPresent: true);
+            var kernel = ResolvedKernel(nbodyProviderPresent: true);
 
             var elected = TargetApproachElection.Elected(kernel);
 
             Assert.NotNull(elected);
-            Assert.Equal("principia", elected!.BackendId);
+            Assert.Equal("an-nbody-provider", elected!.BackendId);
         }
 
         [Fact]
         public void ExactlyOneSolverIsElected()
         {
-            var kernel = ResolvedKernel(principiaPresent: true);
+            var kernel = ResolvedKernel(nbodyProviderPresent: true);
 
             // Query throws unless the exclusive capability resolves to exactly
             // one instance -- so a successful Query IS the "exactly one" assertion.

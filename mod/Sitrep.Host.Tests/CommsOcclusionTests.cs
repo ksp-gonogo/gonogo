@@ -177,9 +177,13 @@ namespace Sitrep.Host.Tests
                 _ => new StubBackend(CommNetBackendId, () => CommNetOcclusion.StockDefaults()));
             if (raPresent)
             {
-                CommsElection.RegisterRealAntennasProvider(
-                    kernel,
-                    _ => new StubBackend(CommsElection.RealAntennasProviderId, () => RaOcclusion.Model));
+                kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = CommsElection.CapabilityId,
+                    Id = "realantennas",
+                    Priority = 100.0,
+                    Factory = _ => new StubBackend("realantennas", () => RaOcclusion.Model),
+                });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
             return kernel;

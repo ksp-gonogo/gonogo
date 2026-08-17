@@ -227,6 +227,31 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   //   telemachus : legacy system being deleted, not an Uplink; tracked
   //                 as separate migration debt in the audit doc, §5.
   //   commnet    : stock KSP networking, not a third-party mod.
+  testflight: {
+    // "testflight" is distinctive: no unrelated word in this codebase contains
+    // it. The mod models per-engine reliability and registers generically into
+    // the "reliability" capability, so core should never name it in code.
+    patterns: [/testflight/i],
+    ownedDirs: [
+      "mod/GonogoTestFlightUplink",
+      "mod/GonogoTestFlightUplink.Tests",
+    ],
+  },
+  principia: {
+    // NO ownedDirs, and that is the point. There is no Principia Uplink, so
+    // every mention anywhere is a violation that must be justified explicitly
+    // rather than silently permitted by an owning directory.
+    //
+    // This token exists because its absence was a blind spot with teeth. A
+    // ratchet keyed on "mods we already integrate" cannot see coupling
+    // introduced in ANTICIPATION of one we do not, and anticipating is exactly
+    // when core is most tempted to name a mod: TargetApproachElection carried a
+    // public RegisterPrincipiaProvider, PrincipiaProviderId and
+    // PrincipiaPriority for a year without ever being flagged, because no token
+    // looked for the string.
+    patterns: [/principia/i],
+    ownedDirs: [],
+  },
 };
 
 const SCAN_EXTENSIONS = /\.(tsx?|cs)$/;

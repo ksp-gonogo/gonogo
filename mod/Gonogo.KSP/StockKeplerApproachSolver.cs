@@ -9,8 +9,8 @@ namespace Gonogo.KSP
     /// <see cref="TargetApproachElection"/>). Reads the live active vessel + its
     /// current target and uses KSP's OWN Kepler solver
     /// (<c>Orbit.NextCloseApproachTime</c>) so the value matches exactly what
-    /// the stock map view draws. A Principia backend, elected over this when
-    /// Principia is loaded, replaces the Kepler solve with an n-body one; this
+    /// the stock map view draws. An n-body backend, elected over this when the
+    /// physics mod supplying it is loaded, replaces the Kepler solve; this
     /// backend is what runs on every stock install.
     ///
     /// <para>Main-thread only (reads live KSP); see

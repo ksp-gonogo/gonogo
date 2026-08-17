@@ -35,11 +35,7 @@ namespace Sitrep.Host.Comms
         /// <summary>The exclusive capability id both backends compete for.</summary>
         public const string CapabilityId = "comms";
 
-        /// <summary>Provider id RealAntennas registers under.</summary>
-        public const string RealAntennasProviderId = "realantennas";
 
-        /// <summary>Default priority for the RA provider (any positive value beats the vanilla fallback structurally; priority only matters if a second provider ever appears).</summary>
-        public const double RealAntennasPriority = 100.0;
 
         /// <summary>
         /// Registers the exclusive <c>"comms"</c> capability with CommNet as
@@ -65,29 +61,11 @@ namespace Sitrep.Host.Comms
             });
         }
 
-        /// <summary>
-        /// Registers RealAntennas as a higher-priority <c>"comms"</c> provider.
-        /// Call this ONLY when the RA reflection probe confirmed RA is loaded
-        /// (§4.2): registering it is itself the election gate. Must be called
-        /// after <see cref="RegisterCapability"/> and before
-        /// <see cref="Kernel.Resolve"/>.
-        /// </summary>
-        public static void RegisterRealAntennasProvider(
-            Kernel kernel,
-            Func<ProviderContext, ICommsBackend> realAntennasFactory,
-            double priority = RealAntennasPriority)
-        {
-            if (kernel == null) throw new ArgumentNullException(nameof(kernel));
-            if (realAntennasFactory == null) throw new ArgumentNullException(nameof(realAntennasFactory));
-
-            kernel.RegisterProvider(new ProviderRegistration
-            {
-                Capability = CapabilityId,
-                Id = RealAntennasProviderId,
-                Priority = priority,
-                Factory = ctx => realAntennasFactory(ctx),
-            });
-        }
+        // A provider registers itself through the kernel's generic
+        // RegisterProvider, naming its own id and priority. Core deliberately
+        // offers no per-mod registrar: a named one puts a specific third-party
+        // mod in core's API surface, and every caller that used the two removed
+        // here was a test.
 
         /// <summary>
         /// Resolve the elected backend after resolution has run. Returns null

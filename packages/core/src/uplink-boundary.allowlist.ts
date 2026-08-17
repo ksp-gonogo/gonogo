@@ -43,7 +43,9 @@ export type ModToken =
   | "agx"
   | "mechjeb"
   | "avionics"
-  | "kerbalism";
+  | "kerbalism"
+  | "testflight"
+  | "principia";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -853,11 +855,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       // -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
-      // The provider-registration seam itself: constant/method names
-      // (ActionGroupsExtendedProviderId, RegisterActionGroupsExtendedProvider)
-      // and prose explaining this file IS where a future AGX uplink plugs in,
-      // the whole point of §1's "the seam Phase 1 left ready".
-      "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
+      // NOTE: mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs used to sit
+      // here, justified as "constant/method names ... and prose". Naming the API
+      // symbols in the justification should have been the tell: a public
+      // RegisterActionGroupsExtendedProvider plus two constants is code coupling,
+      // which is domainDebt, not the permanent bucket this file put it in. The
+      // triple has been deleted and the provider id and priority now live on the
+      // uplink that owns them, so the entry is gone rather than reclassified.
       // Doc-comment explaining why the capability's Groups() list is
       // named/arbitrary-length rather than a positional bool[]: cites
       // "Action Groups Extended (AGX)" as the reason, no AGX coupling.
@@ -1287,6 +1291,87 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // after where it was seen (a death-clock badge reading "~4M" for four
       // minutes). Provenance for a general unit-symbol rule.
       "packages/ui-kit/src/unit-symbol-collision.test.ts",
+    ],
+  },
+  // === testflight: owning dir mod/GonogoTestFlightUplink/. Had an owning
+  // Uplink and no token at all until now, so nothing was checking it. Its
+  // provider registers generically into the "reliability" capability, so core
+  // never names it.
+  testflight: {
+    domainDebt: [],
+    permanent: [
+      // Every entry is a doc-mention naming TestFlight as the OTHER backend that
+      // competes for the shared "reliability" capability, which is how the
+      // election and the wire shape are explained. None imports, references or
+      // derives from anything in the owning dir.
+      //
+      // Kerbalism's half of that shared capability: its backend, its map, its
+      // uplink registration and its contract extension all name TestFlight to
+      // say which fields the OTHER provider fills and which it leaves null.
+      "mod/GonogoKerbalismUplink/KerbalismReliabilityBackend.cs",
+      "mod/GonogoKerbalismUplink/KerbalismReliabilityMap.cs",
+      "mod/GonogoKerbalismUplink/KerbalismUplink.cs",
+      "mod/GonogoKerbalismUplink.Contract/KerbalismReliabilityExt.cs",
+      "mod/GonogoKerbalismUplink.Tests/KerbalismCaptureTests.cs",
+      "mod/GonogoKerbalismUplink.Tests/ReliabilityExtensionWireTests.cs",
+      // The core uplink that declares the reliability channels names both
+      // backends in the same breath, for the same reason.
+      "mod/Gonogo.KSP/ReliabilityCoreUplink.cs",
+      // Dev-only Kerbalism dump tool, doc-mention.
+      "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
+      // The reliability wire contract and its election, which name both
+      // competing backends to explain the shape and the precedence. Contract
+      // and election layer, doc-mention only.
+      "mod/Sitrep.Contract/Reliability.cs",
+      "mod/Sitrep.Contract/SitrepUnitAttribute.cs",
+      "mod/Sitrep.Host/Reliability/ReliabilityElection.cs",
+      "mod/Sitrep.Host/Reliability/NoneReliabilityBackend.cs",
+      "mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs",
+      // Widgets that render the reliability domain and name TestFlight in prose
+      // to explain which source a field came from.
+      "packages/components/src/FleetReliability/index.tsx",
+      "packages/components/src/FleetReliability/index.test.tsx",
+      "packages/components/src/FleetReliability/composition.test.tsx",
+      "packages/components/src/FleetRoster/index.tsx",
+    ],
+  },
+
+  // === principia: NO owning dir, deliberately. There is no Principia Uplink,
+  // and a token without an owning directory makes ANY mention of the mod in
+  // this repo a hard failure. That is the correct default for a mod we do not
+  // integrate: the pattern this ratchet exists to stop is core naming a
+  // specific mod, and the moment that is most likely is when someone leaves a
+  // seam "ready" for a mod that has no Uplink yet. A token keyed on mods we
+  // already integrate cannot see that case, which is exactly how
+  // TargetApproachElection acquired a public RegisterPrincipiaProvider and
+  // PrincipiaProviderId without ever being flagged.
+  principia: {
+    domainDebt: [],
+    permanent: [
+      // Everything below is a HISTORICAL RECORD of a decision that removed
+      // Principia awareness from core, or documentation of an external format
+      // that named it. You cannot record "we deliberately deleted detection of
+      // this mod" without naming the mod, and rewriting a ledger to hide the
+      // subject would defeat the ledger. Every FORWARD-LOOKING mention ("a
+      // future Principia provider will...") has been de-named instead: those
+      // were the anticipation pattern this token exists to catch, and the
+      // interfaces now say "an n-body backend", which is the same point without
+      // committing core to a specific mod.
+      //
+      // ContractVersion's Major 2 -> 3 entry records the revert that removed
+      // VesselPhysicsMode.IsPrincipiaActive, and the file's own contract is that
+      // a Major "cannot rewrite what it inherited".
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      // The three client-side records of that same revert: they exist to explain
+      // why a.physicsMode is neither mapped nor gapped, which is unanswerable
+      // without naming what was removed.
+      "packages/sitrep-client/src/map-topic.ts",
+      "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
+      "packages/app/src/telemetry/SitrepTelemetryProvider.mappedAndCarried.test.ts",
+      // Documentation of the LEGACY TELEMACHUS wire key's literal values, which
+      // were "patched_conics" and "n_body" with Principia as the stated cause.
+      // Describing a third party's format is not coupling to it.
+      "packages/core/src/schemas/telemachus.ts",
     ],
   },
 };

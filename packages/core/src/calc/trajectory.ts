@@ -3,7 +3,7 @@
  *
  * The Keplerian elements in each `OrbitPatch` let us analytically propagate
  * the vessel's state forward in time within a single SOI. We don't attempt
- * N-body integration; Principia users need the `a.physicsMode === "n_body"`
+ * N-body integration; under an n-body physics mod a consumer needs a
  * guard in the consumer.
  *
  * KSP stock bodies all spin about the global +z inertial axis, so inertial

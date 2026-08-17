@@ -71,8 +71,13 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
                     host.SetAvailability(Availability.Unavailable("Action Groups Extended assembly not loaded"));
                     return;
                 }
-                ActionGroupsElection.RegisterActionGroupsExtendedProvider(
-                    host.Kernel, _ => new AgxActionGroupsBackend(_agx));
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = ActionGroupsElection.CapabilityId,
+                    Id = ActionGroupsExtendedUplink.ProviderId,
+                    Priority = ActionGroupsExtendedUplink.ProviderPriority,
+                    Factory = _ => new AgxActionGroupsBackend(_agx),
+                });
             }
         }
 
@@ -82,8 +87,13 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
             ActionGroupsElection.RegisterCapability(kernel, _ => new FakeActionGroupsBackend("stock"));
             if (agxPresent)
             {
-                ActionGroupsElection.RegisterActionGroupsExtendedProvider(
-                    kernel, _ => new AgxActionGroupsBackend(new FakeAgxApi(isAvailable: true)));
+                kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = ActionGroupsElection.CapabilityId,
+                    Id = ActionGroupsExtendedUplink.ProviderId,
+                    Priority = ActionGroupsExtendedUplink.ProviderPriority,
+                    Factory = _ => new AgxActionGroupsBackend(new FakeAgxApi(isAvailable: true)),
+                });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
             return kernel;

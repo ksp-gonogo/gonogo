@@ -8,9 +8,9 @@
  *   - the coplanar Hohmann model (phase angle, synodic window timing, ejection
  *     Δv/angle): the MVP readout, and
  *   - `ITransferSolver` / `keplerTransferSolver`: the swappable seam. The
- *     default is this stock two-body Kepler solver; a Principia (n-body)
+ *     default is this stock two-body Kepler solver; an n-body
  *     backend can register over it later, the same electable pattern as
- *     `ITargetApproachSolver`/`StockKeplerApproachSolver`. (The Principia
+ *     `ITargetApproachSolver`/`StockKeplerApproachSolver`. (The n-body
  *     backend is deliberately NOT built now.)
  *
  * The porkchop/Lambert layer (departure×arrival Δv surface, inclination-aware)
@@ -246,7 +246,7 @@ export interface TransferSolution {
 
 /**
  * The swappable transfer-solution seam. The default `keplerTransferSolver`
- * uses the coplanar two-body model above; a Principia-aware backend can be
+ * uses the coplanar two-body model above; an n-body backend can be
  * elected over it later (deferred: same pattern as the target-approach
  * solver). `id` names the backend for diagnostics/UI, mirroring
  * `ITargetApproachSolver.BackendId`.

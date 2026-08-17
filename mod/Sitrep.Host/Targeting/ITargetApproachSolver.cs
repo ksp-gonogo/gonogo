@@ -10,13 +10,13 @@ namespace Sitrep.Host.Targeting
     ///
     /// <para><b>Why a seam here.</b> KSP's own closest-approach maths
     /// (<c>Orbit.SolveClosestApproach</c>/<c>NextCloseApproachTime</c>) is a
-    /// two-body Kepler solve. Under an n-body physics mod (Principia) that
-    /// solve is simply WRONG, the real encounter comes from Principia's
-    /// trajectory prediction, not osculating Kepler elements. So the approach
+    /// two-body Kepler solve. Under an n-body physics mod that solve is simply
+    /// WRONG: the real encounter comes from the actual integrated trajectory, not
+    /// from osculating Kepler elements. So the approach
     /// solve, and ONLY the approach solve, sits behind this seam: core
     /// registers a stock Kepler backend as the always-present vanilla, and a
-    /// future reflection-isolated Principia uplink registers a higher-priority
-    /// provider that is elected only when Principia is actually loaded (see
+    /// reflection-isolated uplink for such a mod registers a higher-priority
+    /// provider that is elected only when that mod is actually loaded (see
     /// <see cref="TargetApproachElection"/>). Everything else about a target,
     /// the available list, names, current distance, relative velocity; stays
     /// stock and is NOT behind this seam (the boundary Jon fixed: approach
@@ -28,7 +28,7 @@ namespace Sitrep.Host.Targeting
     /// only the contract <see cref="ClosestApproach"/> shape. That is what lets
     /// this interface live in <c>Sitrep.Host</c> (which never references
     /// Assembly-CSharp) while its implementations live in <c>Gonogo.KSP</c> (the
-    /// stock Kepler backend) and a separate Principia uplink assembly.</para>
+    /// stock Kepler backend) and a separate uplink assembly.</para>
     ///
     /// <para><b>Threading: read before adding a backend.</b> An implementation
     /// reads LIVE KSP (the active vessel + its current target), so it is only
