@@ -66,6 +66,33 @@ const PROBE_ENTRY = join(PROBE_DIR, "probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "probe.html");
 const SCREEN_ENTRY = join(PROBE_DIR, "screen-entry.tsx");
 const SCREEN_HTML_TEMPLATE = join(PROBE_DIR, "screen-probe.html");
+/**
+ * The probe pages this harness builds, and the `window` global each one's
+ * bundle installs at module load.
+ *
+ * Declared here, and consumed by both `renderWidgets`/`renderScreens` below
+ * and by `probe-render-smoke.ts`, so the smoke check can never be exercising a
+ * different entry, template or esbuild config from the one the real renders
+ * use. A copy of the pairing in the smoke script would be free to drift green
+ * while the harness broke, which is the failure mode it exists to close.
+ */
+export const PROBE_PAGES = {
+  widget: {
+    entry: PROBE_ENTRY,
+    htmlTemplate: PROBE_HTML_TEMPLATE,
+    scriptSrcPlaceholder:
+      '<script type="module" src="./probe-entry.bundle.js"></script>',
+    installs: "__renderProbe",
+  },
+  screen: {
+    entry: SCREEN_ENTRY,
+    htmlTemplate: SCREEN_HTML_TEMPLATE,
+    scriptSrcPlaceholder:
+      '<script type="module" src="./screen-entry.bundle.js"></script>',
+    installs: "__renderScreen",
+  },
+} as const;
+
 const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 // The design tokens themselves: `packages/app/src/styles/global.css` used to
@@ -239,10 +266,7 @@ export async function renderWidgets(
   const slug =
     configs.length === 1 ? (configs[0].slug ?? configs[0].widgetId) : "all";
   const probeHtmlOut = await prepareProbePage({
-    entry: PROBE_ENTRY,
-    htmlTemplate: PROBE_HTML_TEMPLATE,
-    scriptSrcPlaceholder:
-      '<script type="module" src="./probe-entry.bundle.js"></script>',
+    ...PROBE_PAGES.widget,
     slug,
   });
 
@@ -333,10 +357,7 @@ export async function renderScreens(
   }
 
   const probeHtmlOut = await prepareProbePage({
-    entry: SCREEN_ENTRY,
-    htmlTemplate: SCREEN_HTML_TEMPLATE,
-    scriptSrcPlaceholder:
-      '<script type="module" src="./screen-entry.bundle.js"></script>',
+    ...PROBE_PAGES.screen,
     slug: configs.length === 1 ? configs[0].screenId : "screens",
   });
   const probeUrl = pathToFileURL(probeHtmlOut).toString();
@@ -625,7 +646,7 @@ document.head.appendChild(__style);`,
  *  write to tmpdir. Shared by the widget and screen render paths, they
  *  differ only in entry point + HTML template. Returns the generated HTML
  *  path. */
-async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
+export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   console.log(`Bundling ${opts.entry} with esbuild…`);
   const bundleResult = await build({
     entryPoints: [opts.entry],

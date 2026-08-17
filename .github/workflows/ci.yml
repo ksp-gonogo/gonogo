@@ -79,6 +79,23 @@ jobs:
 
       - run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
+      # Probe-harness smoke check: opens each probe page in Chromium and asserts
+      # the bundle installs the global its driver calls. Chromium only, since the
+      # question is "does the bundle evaluate", which is engine-independent.
+      #
+      # In the `test` job for the same reason as the un-fed gate above, and the
+      # reason is now load-bearing rather than tidy: a module-scope
+      # `process.env` read reached staging in 8bd2b4e8 and the probe bundle threw
+      # before installing `window.__renderProbe`, so all 42 widgets and 1442
+      # baselines silently stopped being compared. `visual` was the only job that
+      # could see it, and `visual` is red on purpose, so it showed the colour it
+      # always shows for a day. This step asks a question `visual` cannot:
+      # not "did the pixels drift" but "did the harness render anything at all".
+      - name: Install Playwright browser (probe smoke)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
+
   # C# Sitrep mod: unit/integration tests + the contract shape-gate.
   # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
   #
