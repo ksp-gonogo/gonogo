@@ -698,6 +698,18 @@ public class KerbalismCrewEntry
     ///
     /// <para>It inherits <see cref="AsOfUt"/>: a deadline derived from a reading
     /// taken N ticks ago was true N ticks ago, and is NOT restamped to now.</para>
+    ///
+    /// <para><b>Telling "nothing is closing in" from "this install cannot
+    /// compute deadlines at all".</b> Both are null here, and they are not the
+    /// same news: the second is a missing capability wearing the first's
+    /// reassuring blank. The distinguishing fact is on <c>kerbalism.profile</c>,
+    /// which carries the loaded profile's rules: if NO rule has
+    /// <c>degeneration &gt; 0</c> with <c>breakdown</c> false, no fatal rule
+    /// exists and no deadline can ever be computed on this install, whatever the
+    /// craft is doing. A profile that defines processes and no life-support rules
+    /// is a real configuration, not a broken one (KerbalismModularScience is
+    /// exactly that), so a consumer that means to show a deadline should read
+    /// that list once and say "not modelled" rather than "stable".</para>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? DeathClockSec { get; set; }
