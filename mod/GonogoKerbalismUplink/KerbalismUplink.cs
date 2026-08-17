@@ -403,17 +403,22 @@ namespace Gonogo.KerbalismUplink
 
             var sinceEval = _k.SecondsSinceLastEvaluation(v);
 
+            var crew = new List<KerbalRulesRaw>(_k.CrewRules(v));
+            _k.FillRuleVarianceFactors(v, profile.Rules, crew);
+
             return new KerbalismCaptured
             {
                 Ut = ut,
                 Snapshot = s,
                 Processes = processes,
-                Crew = new List<KerbalRulesRaw>(_k.CrewRules(v)),
+                Crew = crew,
                 RuleConstants = _k.RuleConstants(),
                 Solar = _k.Solar(v),
                 StormEjectionSpeed = _k.StormEjectionSpeed(),
                 RuleEnvModifiers = RuleEnvModifiers(profile, v, modifierCtx),
                 AsOfUt = sinceEval.HasValue ? ut - sinceEval.Value : (double?)null,
+                Rules = profile.Rules,
+                RuleInputAmounts = RuleInputAmounts(profile, R),
             };
         }
 
@@ -476,6 +481,25 @@ namespace Gonogo.KerbalismUplink
         /// is the channel's documented "no rate reported" case, distinct from a
         /// present zero.
         /// </summary>
+        /// <summary>
+        /// The amount held of each resource a RULE consumes, which is what the
+        /// death clock's first stage needs (how long until degeneration starts)
+        /// and the only reason amounts are read at all: the life-support channel
+        /// deliberately carries rates only, because <c>vessel.resources</c>
+        /// already carries amounts for the active craft. Rule inputs rather than
+        /// every profile resource, so the read stays a handful of lookups.
+        /// </summary>
+        private static Dictionary<string, double> RuleInputAmounts(ProfileRaw profile, Func<string, double> amount)
+        {
+            var map = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var rule in profile.Rules)
+            {
+                if (rule == null || rule.Input.Length == 0 || map.ContainsKey(rule.Input)) continue;
+                map[rule.Input] = amount(rule.Input);
+            }
+            return map;
+        }
+
         private Dictionary<string, double> RatesFor(Func<string, double> rate)
         {
             var names = KerbalismCapture.ResourceNames(Profile());
@@ -500,7 +524,8 @@ namespace Gonogo.KerbalismUplink
             _lifeSupport?.Publish(
                 KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers, c.AsOfUt),
                 c.Ut);
-            _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants, c.AsOfUt), c.Ut);
+            _crew?.Publish(
+                KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants, c.AsOfUt, c.DeathClocks()), c.Ut);
         }
 
         public UplinkHealth Health() =>
@@ -524,6 +549,30 @@ namespace Gonogo.KerbalismUplink
 
             /// <summary>When Kerbalism last recomputed this, null when unreadable, never the read time standing in.</summary>
             public double? AsOfUt;
+
+            /// <summary>The loaded profile's rule definitions, carried so the deadline can be derived off-thread.</summary>
+            public List<RuleDefRaw> Rules = new();
+
+            /// <summary>Units held of each rule INPUT resource: the death clock's first stage.</summary>
+            public IReadOnlyDictionary<string, double> RuleInputAmounts = new Dictionary<string, double>();
+
+            /// <summary>
+            /// Kerbal name -> soonest fatal deadline in seconds, null where not
+            /// derivable. Derived rather than read, so it is computed once on the
+            /// Courier thread by <see cref="DeathClocks"/> and shared by every
+            /// publisher of this bundle.
+            /// </summary>
+            public IReadOnlyDictionary<string, double?> DeathClocks()
+            {
+                var map = new Dictionary<string, double?>(Crew.Count, StringComparer.Ordinal);
+                foreach (var k in Crew)
+                {
+                    if (k == null || string.IsNullOrEmpty(k.Name)) continue;
+                    map[k.Name] = KerbalismDeathClock.SoonestFatalSeconds(
+                        k, Rules, RuleEnvModifiers, RuleInputAmounts, Snapshot.Rates);
+                }
+                return map;
+            }
         }
     }
 }

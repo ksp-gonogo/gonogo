@@ -676,7 +676,29 @@ public class KerbalismCrewEntry
     [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
     public List<KerbalismCrewRule>? Rules { get; set; }
-    /// <summary>Optional mod-computed soonest-fatal countdown (s). Null when not derivable. [fixture-confirm]</summary>
+    /// <summary>
+    /// Seconds until the soonest FATAL rule kills this kerbal, in two stages:
+    /// how long the rule's input resource lasts at its current net rate, since a
+    /// rule only degenerates once its input is gone, then how long the
+    /// accumulator takes to climb from where it is to the fatal threshold.
+    ///
+    /// <para>Computed mod-side because stage one needs resource AMOUNTS, which
+    /// only <c>vessel.resources</c> carries and only for the active craft: a
+    /// client holding a background craft's crew channel has the degeneration
+    /// rate and no way to know when degeneration starts. Breakdown rules
+    /// (stress) are excluded, because Kerbalism resets their accumulator at the
+    /// threshold rather than killing anyone.</para>
+    ///
+    /// <para>NULL means not derivable, and is deliberately not a large number: a
+    /// craft whose deadline cannot be computed and a craft with years of
+    /// supplies must not render the same, and a sentinel is indistinguishable
+    /// from a real answer to anything doing arithmetic on it. Null is also the
+    /// answer when nothing is closing in at all, a craft in balance on its
+    /// consumables has no deadline rather than an enormous one.</para>
+    ///
+    /// <para>It inherits <see cref="AsOfUt"/>: a deadline derived from a reading
+    /// taken N ticks ago was true N ticks ago, and is NOT restamped to now.</para>
+    /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? DeathClockSec { get; set; }
 

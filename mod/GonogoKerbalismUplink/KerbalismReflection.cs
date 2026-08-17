@@ -28,6 +28,8 @@ namespace Gonogo.KerbalismUplink
         private readonly Type? _modifiersType;
         private readonly Type? _prefsRadiationType;
         private readonly Type? _resourceCacheType;
+        private readonly Type? _ruleType;
+        private readonly MethodInfo? _ruleVariance;
         private readonly MethodInfo? _dbKerbal;
         private readonly MethodInfo? _buildReliabilityList;
         private readonly MethodInfo? _dbStorm;
@@ -70,6 +72,15 @@ namespace Gonogo.KerbalismUplink
             _modifiersType = FindType("KERBALISM.Modifiers") ?? FindType("Kerbalism.Modifiers");
             _prefsRadiationType = FindType("KERBALISM.PreferencesRadiation") ?? FindType("Kerbalism.PreferencesRadiation");
             _resourceCacheType = FindType("KERBALISM.ResourceCache") ?? FindType("Kerbalism.ResourceCache");
+            _ruleType = FindType("KERBALISM.Rule") ?? FindType("Kerbalism.Rule");
+            // Rule.Variance(name, crewMember, variance) is private static. Asked
+            // rather than reimplemented because it hashes a string built from the
+            // kerbal's courage and stupidity FORMATTED, so a reimplementation
+            // would have to match Kerbalism's number formatting to land on the
+            // same multiplier, and would silently disagree if it did not.
+            _ruleVariance = _ruleType?.GetMethod(
+                "Variance", BindingFlags.NonPublic | BindingFlags.Static, null,
+                new[] { typeof(string), typeof(ProtoCrewMember), typeof(double) }, null);
 
             _dbKerbal = _dbType?.GetMethod("Kerbal", BindingFlags.Public | BindingFlags.Static);
             _buildReliabilityList = _reliabilityInfoType?.GetMethod("BuildList", BindingFlags.Public | BindingFlags.Static);
@@ -342,6 +353,7 @@ namespace Gonogo.KerbalismUplink
                     Degeneration = FieldDouble(rule, t, "degeneration"),
                     FatalThreshold = FieldDouble(rule, t, "fatal_threshold"),
                     Breakdown = Field<bool?>(rule, t, "breakdown") ?? false,
+                    Variance = FieldDouble(rule, t, "variance"),
                     Modifiers = StringList(rule, t, "modifiers"),
                 });
             }
@@ -624,6 +636,50 @@ namespace Gonogo.KerbalismUplink
         {
             internal object? Vd;
             internal object? Resources;
+        }
+
+        /// <summary>
+        /// Fills each crew entry's <see cref="KerbalRulesRaw.RuleVarianceFactors"/>
+        /// for the rules that HAVE a variance, from Kerbalism's own
+        /// <c>Rule.Variance</c>. A rule with no variance is skipped: its factor
+        /// is exactly 1 for every kerbal, so asking would be waste.
+        ///
+        /// <para>An entry is left ABSENT when the read fails rather than being
+        /// filled with 1.0, because 1.0 is a real answer and the difference
+        /// decides whether the death clock reports a number or admits it cannot
+        /// (see <see cref="KerbalismDeathClock"/>).</para>
+        /// </summary>
+        public void FillRuleVarianceFactors(Vessel v, IEnumerable<RuleDefRaw> rules, List<KerbalRulesRaw> crew)
+        {
+            if (v == null || rules == null || crew == null || crew.Count == 0 || _ruleVariance == null) return;
+
+            var varying = new List<RuleDefRaw>();
+            foreach (var rule in rules)
+            {
+                if (rule != null && rule.Variance > 1e-10) varying.Add(rule);
+            }
+            if (varying.Count == 0) return;
+
+            var members = v.GetVesselCrew();
+            if (members == null) return;
+
+            var byName = new Dictionary<string, KerbalRulesRaw>(StringComparer.Ordinal);
+            foreach (var k in crew)
+            {
+                if (k != null && !string.IsNullOrEmpty(k.Name)) byName[k.Name] = k;
+            }
+
+            foreach (var member in members)
+            {
+                if (member == null || !byName.TryGetValue(member.name, out var entry)) continue;
+                foreach (var rule in varying)
+                {
+                    object? factor;
+                    try { factor = _ruleVariance.Invoke(null, new object[] { rule.Name, member, rule.Variance }); }
+                    catch { continue; }
+                    if (AsDouble(factor) is double d) entry.RuleVarianceFactors[rule.Name] = d;
+                }
+            }
         }
 
         /// <summary>

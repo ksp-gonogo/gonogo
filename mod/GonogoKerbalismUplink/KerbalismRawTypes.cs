@@ -13,6 +13,17 @@ namespace Gonogo.KerbalismUplink
         public string Name = "";
         public string Trait = "";
         public Dictionary<string, double> Rules = new();   // rule name -> accumulator value
+
+        /// <summary>
+        /// Rule name -> this kerbal's own degeneration multiplier, read from
+        /// Kerbalism's own <c>Rule.Variance</c> rather than recomputed. Only
+        /// filled for rules that HAVE a variance (most have none, where the
+        /// factor is exactly 1 and asking would be waste), and an entry missing
+        /// for a rule that has one means the read failed, which
+        /// <see cref="KerbalismDeathClock"/> treats as not knowing rather than
+        /// as 1.
+        /// </summary>
+        public Dictionary<string, double> RuleVarianceFactors = new();
     }
 
     public struct RuleConstants
@@ -90,6 +101,13 @@ namespace Gonogo.KerbalismUplink
         public double Degeneration;
         public double FatalThreshold;
         public bool Breakdown;
+
+        /// <summary>
+        /// Per-kerbal randomisation of the degeneration rate, +/- this fraction
+        /// (<c>Rule.variance</c>, 0 on most rules). Non-zero means no single
+        /// number is the deadline for a crew, each kerbal has their own.
+        /// </summary>
+        public double Variance;
         public List<string> Modifiers = new();
     }
 

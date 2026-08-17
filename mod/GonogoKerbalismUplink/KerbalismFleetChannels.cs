@@ -127,7 +127,7 @@ namespace Gonogo.KerbalismUplink
                         c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers, c.AsOfUt),
                     cap.Ut);
                 _source.Publisher(KerbalismFleetScope.CrewSubTopic(v.Id)).Publish(
-                    KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants, c.AsOfUt),
+                    KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants, c.AsOfUt, c.DeathClocks()),
                     cap.Ut);
             }
         }

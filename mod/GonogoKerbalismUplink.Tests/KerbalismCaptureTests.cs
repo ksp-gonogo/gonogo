@@ -324,6 +324,30 @@ public class KerbalismCaptureTests
     }
 
     [Fact]
+    public void BuildCrew_carries_the_deadline_per_kerbal_and_null_where_there_is_none()
+    {
+        var crew = new[]
+        {
+            new KerbalRulesRaw { Name = "Jebediah Kerman", Trait = "Pilot" },
+            new KerbalRulesRaw { Name = "Bill Kerman", Trait = "Engineer" },
+        };
+        var deadlines = new Dictionary<string, double?>
+        {
+            ["Jebediah Kerman"] = 3_600.0,
+            // Bill's is not derivable, and must arrive as null rather than as a
+            // large number: "cannot tell you" and "years of supplies" have to
+            // render differently.
+            ["Bill Kerman"] = null,
+        };
+
+        var built = KerbalismCapture.BuildCrew(
+            crew, new Dictionary<string, RuleConstants>(), deathClockSecByKerbal: deadlines);
+
+        Assert.Equal(3_600.0, (double)((Dictionary<string, object?>)built[0])["deathClockSec"]!, 6);
+        Assert.Null(((Dictionary<string, object?>)built[1])["deathClockSec"]);
+    }
+
+    [Fact]
     public void BuildCrew_stamps_each_kerbal_with_the_ut_their_rules_last_advanced_at()
     {
         var crew = new[]

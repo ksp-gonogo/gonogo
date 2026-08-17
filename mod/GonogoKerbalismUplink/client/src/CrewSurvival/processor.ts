@@ -31,9 +31,10 @@ import { KERBALISM } from "../uplink";
 // Ship Systems' own domain now (`summarise`/`timeToEmptySeconds` in
 // `../ecosystem`), and duplicating it here would be a second derivation of
 // the same fact. `deathClockSec` below is read straight off the wire's own
-// `KerbalismCrewEntry.deathClockSec` (currently always `null`, the mod does
-// not yet resolve a rule's linked resource; see that field's own contract
-// doc), leaving room for the mod to fill it in later with zero client change.
+// `KerbalismCrewEntry.deathClockSec`, which the mod now fills in: it is the
+// soonest FATAL rule, and only the mod can compute it because its first stage
+// needs resource amounts that no per-craft channel carries. Null still means
+// not derivable and must keep rendering differently from a long deadline.
 // ---------------------------------------------------------------------------
 
 /** One rule's current 0..1-toward-fatal fraction. */

@@ -252,7 +252,8 @@ namespace Gonogo.KerbalismUplink
         public static List<object> BuildCrew(
             IEnumerable<KerbalRulesRaw> crew,
             IReadOnlyDictionary<string, RuleConstants> constants,
-            double? asOfUt = null)
+            double? asOfUt = null,
+            IReadOnlyDictionary<string, double?>? deathClockSecByKerbal = null)
         {
             var list = new List<object>();
             foreach (var k in crew)
@@ -269,15 +270,23 @@ namespace Gonogo.KerbalismUplink
                         ["fatalThreshold"] = c.FatalThreshold,
                     });
                 }
+                double? deathClockSec = null;
+                if (deathClockSecByKerbal != null
+                    && deathClockSecByKerbal.TryGetValue(k.Name, out var derived))
+                {
+                    deathClockSec = derived;
+                }
                 list.Add(new Dictionary<string, object?>
                 {
                     ["name"] = k.Name,
                     ["trait"] = k.Trait,
                     ["rules"] = rules,
-                    // deathClockSec: null until rule->resource linkage is confirmed; the client
-                    // derives stage-1 (resource time-to-empty from kerbalism.lifesupport) +
-                    // stage-2 (this rule's (fatalThreshold - value)/degenPerSec).
-                    ["deathClockSec"] = null,
+                    // The soonest FATAL rule, computed mod-side by
+                    // KerbalismDeathClock because stage one needs resource
+                    // amounts and no per-craft channel carries those. Null means
+                    // not derivable, and stays null: see that type's doc comment
+                    // for why a sentinel would be worse than nothing.
+                    ["deathClockSec"] = deathClockSec,
                     ["asOfUt"] = asOfUt,
                 });
             }
