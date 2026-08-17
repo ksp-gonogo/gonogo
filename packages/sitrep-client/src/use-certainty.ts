@@ -10,6 +10,14 @@ import type { Certainty } from "./view-clock";
  * pattern: value, staleness/absence, and certainty are three independent
  * channels a widget composes, never nested inside one another).
  *
+ * `Reading<T>` folded the value and staleness channels together, for the
+ * reasons recorded in `stream-status.ts`. **Certainty stays out, and must.**
+ * It is a property of the FRAME's `viewUt`, not of any one topic, so every
+ * topic read in one frame shares it. Nesting it into a per-topic union would
+ * duplicate one fact across every read in a frame and admit the possibility of
+ * two of them disagreeing, which is precisely what the single-view-time
+ * invariant and `FrameToken` exist to prevent.
+ *
  * Certainty is a property of the FRAME's `viewUt`, not of any one topic (the
  * single-view-time invariant): every topic read in the same
  * frame shares the same certainty. `topic` is accepted anyway (rather than a

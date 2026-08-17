@@ -1,8 +1,17 @@
 /**
  * The staleness/absence surface: the status a topic (raw or derived) is
  * in, from the operator's point of view.
- * Rides alongside the value, never inside it (the `useKosScriptStatus`
- * pattern): see `use-stream-status.ts`.
+ *
+ * Rides alongside the value in this form (the `useKosScriptStatus` pattern):
+ * see `use-stream-status.ts`. **`Reading<T>` is the one recorded exception to
+ * that rule**, and it exists because the beside-the-value form did not work in
+ * practice: this type, `useStreamStatus`, ui-kit's `StreamStatusBadge`, and the
+ * dashboard's per-widget `useWidgetStreamStatus` derivation were all built end
+ * to end, and were then read by zero of the thirty-nine widgets that consume
+ * telemetry. A badge beside a body is chrome, and nothing forces the body to
+ * consult it. So `Reading<T>` nests the value inside the staleness for the
+ * value/staleness pair specifically, and this type remains the vocabulary it
+ * grades itself with. `Certainty` does NOT fold in: see `use-certainty.ts`.
  *
  * - `"live"`: fresh, a confirmed, current value.
  * - `"held-stale"`: the value may have changed but we currently cannot

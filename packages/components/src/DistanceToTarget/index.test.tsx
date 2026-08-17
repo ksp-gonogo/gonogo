@@ -75,10 +75,15 @@ describe("DistanceToTargetComponent", () => {
     clearAugments();
   });
 
-  it("shows a 'no target set' hint until vessel.target is reported", () => {
+  it("says it is waiting, not that no target is set, until vessel.target is reported", () => {
+    // This assertion used to expect "No target set in KSP" here, which was the
+    // widget asserting a fact about game state from the absence of a frame. The
+    // two are now separate branches of the reading: nothing has arrived, so
+    // nothing about the game is being claimed. See `reading.test.tsx`.
     fixture = setupStreamFixture({ carriedChannels: ["vessel.target"] });
     const { container } = renderWidget(fixture);
-    expect(visibleText(container)).toContain("No target set in KSP");
+    expect(visibleText(container)).toContain("Waiting for target telemetry");
+    expect(visibleText(container)).not.toContain("No target set in KSP");
   });
 
   it("renders compact-mode distance once target name + distance arrive", async () => {
@@ -345,7 +350,9 @@ describe("DistanceToTarget: augment slots (spec §4)", () => {
       carriedChannels: ["vessel.target"],
     });
     const first = renderWidget(firstFixture);
-    expect(first.container.textContent).toContain("No target set in KSP");
+    expect(first.container.textContent).toContain(
+      "Waiting for target telemetry",
+    );
     expect(screen.queryByTestId("badge")).toBeNull();
     first.unmount();
 

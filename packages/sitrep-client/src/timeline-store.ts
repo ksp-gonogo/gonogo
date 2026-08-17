@@ -4,6 +4,7 @@ import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
+import { type Reading, readingFrom } from "./reading";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import {
@@ -1047,6 +1048,38 @@ export class TimelineStore {
         if (timeline.epoch < epoch) return undefined;
         return interpolatedRead(timeline, effectiveToken.viewUt);
       },
+    );
+  }
+
+  /**
+   * The topic's value AND its currency as one `Reading<T>`, at a frame token's
+   * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
+   * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
+   *
+   * Memoized on the same per-`(token, key)` frame cache the other two use, and
+   * that is load-bearing rather than an optimisation: `useSyncExternalStore`
+   * compares snapshots by reference, so a hook whose `getSnapshot` rebuilt the
+   * union every call would loop forever rather than merely allocate. Sharing
+   * the cache also means the reading, the value and the status can never
+   * disagree about which frame or epoch they describe.
+   */
+  sampleReading<T>(
+    topic: string,
+    token: FrameToken = this.currentToken,
+  ): Reading<T> {
+    const effectiveToken =
+      token.generation === this.generation ? token : this.currentToken;
+    // Epoch-folded like every sibling read: a reading memoized before a
+    // mid-frame epoch bump (quickload rewind) must not survive it.
+    const epoch = this.clock.getEpoch();
+    return this.memoize(
+      effectiveToken,
+      `\0reading\0${topic}\0epoch\0${epoch}`,
+      () =>
+        readingFrom(
+          this.sample<T>(topic, effectiveToken),
+          this.sampleStatus(topic, effectiveToken),
+        ),
     );
   }
 

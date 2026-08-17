@@ -220,9 +220,16 @@ describe("CurrentOrbitComponent", () => {
 // DistanceToTarget
 // ---------------------------------------------------------------------------
 describe("DistanceToTargetComponent", () => {
-  it('shows "No target set in KSP" when tar.name is not yet received', () => {
+  it("waits for telemetry rather than claiming no target is set, before anything is received", () => {
+    // The old assertion (and this test's own old title) had it backwards: "not
+    // yet received" is pending, and "No target set in KSP" is a claim about the
+    // GAME that only a tombstone can support. `Reading<T>` splits the two, and
+    // no provider is mounted here at all, so this is the pending branch.
     render(<DistanceToTargetComponent config={{}} id="tar" />);
-    expect(screen.getByText("No target set in KSP")).toBeInTheDocument();
+    expect(
+      screen.getByText("Waiting for target telemetry"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No target set in KSP")).toBeNull();
   });
 
   it("shows target name and distance when telemetry arrives", async () => {

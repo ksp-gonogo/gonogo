@@ -238,6 +238,8 @@ export {
   rvToElements,
   STANDARD_GRAVITY,
 } from "./propagation";
+export type { Reading } from "./reading";
+export { readingAge, readingFrom } from "./reading";
 export type { StreamRecorderOptions } from "./replay-recorder";
 export { StreamRecorder } from "./replay-recorder";
 export type { ReplayFixture, ReplayTransportOptions } from "./replay-transport";

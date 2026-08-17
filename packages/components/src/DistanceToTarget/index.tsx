@@ -3,9 +3,15 @@ import {
   AugmentSlot,
   registerComponent,
   resolveTargetName,
+  useReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  readingAge,
+  useProcessor,
+  useViewUt,
+} from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
@@ -16,6 +22,12 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  // The game-time ladder, which is right here because the age is UT
+  // (`viewUt - atUt`), not desk time. `formatIrlDuration`'s doc names "how long
+  // ago a reading was seen" as a wall-clock case, and that holds only for an age
+  // measured off a wall clock; the wall-clock ratchet requires this one be
+  // measured off the frame, so it is game seconds and takes the game ladder.
+  formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -38,6 +50,7 @@ import {
   vecMagnitude,
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
+import { targetReckoning } from "./targetReckoning";
 
 type DockingHudMode = "hud" | "hud-with-camera";
 
@@ -162,6 +175,25 @@ const APPROACH_EXIT_M = 5_500;
 
 type ViewMode = "tracking" | "approach" | "docking-hud";
 
+/**
+ * The payload behind a reading, whatever its currency: the value if current,
+ * the last real observation if stale, nothing otherwise.
+ *
+ * Used only to derive the scalars the widget already computed client-side
+ * (distance, closing rate, dock angles), so that arithmetic stays in one place
+ * rather than being duplicated per arm. It deliberately does NOT decide how the
+ * result is presented: every caller branches on `targetReading.state` for that,
+ * and the stale branch is the one that renders the age. Passing this result
+ * straight to a readout without checking the state would reintroduce exactly
+ * the bug the union prevents, which is why it is a local helper and not
+ * exported.
+ */
+function observedPayload<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "current") return reading.value;
+  if (reading.state === "stale") return reading.lastObserved.value;
+  return undefined;
+}
+
 function DistanceToTargetComponent({
   config,
   w,
@@ -170,11 +202,27 @@ function DistanceToTargetComponent({
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
-  // Canonical native reads: the whole `vessel.target`/`vessel.dock` Topics,
-  // off the shim (Target API). Every scalar/angle is derived client-side from
-  // the Vec3 fields (`vecMagnitude`/`radialSpeed`/`deriveDockAngles`).
-  const target = useTelemetry("vessel.target");
+  // `vessel.target` reads as a `Reading`, not a bare payload: this widget used
+  // to render "No target set in KSP" whenever `tar.name` was undefined, which
+  // is a positive claim about game state made from the absence of a frame. A
+  // dropped link said "no target set". The union is what makes that
+  // unrepresentable, because reaching a value at all now requires branching on
+  // how current it is. `vessel.target` is declared `absenceIsData: true`
+  // mod-side, so the confirmed-absence arm is a real wire state here, not a
+  // theoretical one.
+  //
+  // `vessel.dock` stays a plain read: it is undefined whenever the target is
+  // not a docking port with a free port on our side, which is a legitimate
+  // "not a docking scenario" rather than a currency question, and the HUD it
+  // feeds is gated on the TARGET reading being current anyway (see `mode`).
+  const targetReading = useReading("vessel.target");
   const dock = useTelemetry("vessel.dock");
+  const target = observedPayload(targetReading);
+  // Frame-memoised, ref-counted pull: a reckoning nobody reads costs nothing.
+  // Stubbed, so this is `undefined` and no reckoned row renders. See
+  // `targetReckoning.ts` for why a stub that returned a number would be worse
+  // than no stub.
+  const reckonedTarget = useProcessor(targetReckoning);
 
   const tarName = resolveTargetName(target?.name);
   const tarKind = target?.kind;
@@ -259,7 +307,16 @@ function DistanceToTargetComponent({
   const dockingAvailable = dockRelPos !== undefined;
 
   useEffect(() => {
-    if (!autoSwitch || !dockable || tarDistance === undefined) {
+    // The specialised views assert something about NOW: a closing rate to act
+    // on, an alignment reticle to fly. Both are only honest off a current
+    // reading, so anything else falls back to the tracking panel, which is the
+    // one rendering that can state its own age.
+    if (
+      !autoSwitch ||
+      !dockable ||
+      tarDistance === undefined ||
+      targetReading.state !== "current"
+    ) {
       if (mode !== "tracking") setMode("tracking");
       return;
     }
@@ -276,18 +333,50 @@ function DistanceToTargetComponent({
       // backed out of HUD range: fall back to the approach view.
       if (!dockingAvailable || tarDistance > HUD_EXIT_M) setMode("approach");
     }
-  }, [autoSwitch, dockable, dockingAvailable, tarDistance, mode]);
+  }, [
+    autoSwitch,
+    dockable,
+    dockingAvailable,
+    tarDistance,
+    mode,
+    targetReading.state,
+  ]);
 
+  // Age of the observation behind this reading, measured against the FRAME's
+  // view time and nothing else. `Date.now()` is the available wrong answer: it
+  // lets two reads within one frame disagree about how old the same sample is,
+  // which is the bug class `FrameToken` exists to prevent.
+  const ageSec = readingAge(targetReading, universalTime);
+
+  if (targetReading.state === "pending") {
+    return (
+      <TargetPanel badgeContext={badgeContext}>
+        <EmptyState>Waiting for target telemetry</EmptyState>
+      </TargetPanel>
+    );
+  }
+
+  if (targetReading.state === "absent") {
+    return (
+      <TargetPanel badgeContext={badgeContext}>
+        <EmptyState>
+          No target set in KSP
+          {ageSec !== undefined && (
+            <ReadoutCaption>
+              confirmed {formatDuration(ageSec)} ago
+            </ReadoutCaption>
+          )}
+        </EmptyState>
+      </TargetPanel>
+    );
+  }
+
+  // Stale, but a name never arrived: nothing to show but the caveat itself.
   if (tarName === undefined) {
     return (
-      <Panel
-        panelTitle="TARGET"
-        panelAside={
-          <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
-        }
-      >
-        <EmptyState>No target set in KSP</EmptyState>
-      </Panel>
+      <TargetPanel badgeContext={badgeContext}>
+        <EmptyState>Waiting for target telemetry</EmptyState>
+      </TargetPanel>
     );
   }
 
@@ -338,13 +427,10 @@ function DistanceToTargetComponent({
     rows >= 5 && relVel !== undefined && Number.isFinite(relVel);
   const showTargetName = rows >= 4 || cols >= 5;
 
+  const isStale = targetReading.state === "stale";
+
   return (
-    <Panel
-      panelTitle="TARGET"
-      panelAside={
-        <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
-      }
-    >
+    <TargetPanel badgeContext={badgeContext}>
       <Stack
         gap="sm"
         style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
@@ -357,9 +443,28 @@ function DistanceToTargetComponent({
         {tarDistance === undefined ? (
           <DisplayDash />
         ) : (
-          <Value tone="accent" style={DISPLAY_VALUE_STYLE}>
+          <Value
+            tone={isStale ? "muted" : "accent"}
+            style={DISPLAY_VALUE_STYLE}
+          >
             <Unit value={value("m", tarDistance)} />
           </Value>
+        )}
+        {/* The caveat belongs on the value, not in the panel chrome: a header
+            badge beside a confident readout is what the operator reads past.
+            Only rendered when stale, deliberately: under a light-time delay
+            every value is old, so a caveat on all of them would say nothing. */}
+        {isStale && (
+          <ReadoutCaption role="status">
+            at last contact
+            {ageSec !== undefined && `, ${formatDuration(ageSec)} ago`}
+          </ReadoutCaption>
+        )}
+        {isStale && reckonedTarget !== undefined && (
+          <ReadoutCaption>
+            reckoned <Unit value={value("m", reckonedTarget.distanceM)} /> (
+            {reckonedTarget.basis})
+          </ReadoutCaption>
         )}
         {showSubReadout && (
           <Value
@@ -371,6 +476,32 @@ function DistanceToTargetComponent({
           </Value>
         )}
       </Stack>
+    </TargetPanel>
+  );
+}
+
+/**
+ * The widget's own panel chrome, shared by every branch so the badges slot and
+ * the title cannot drift between them. Extracted when the single absence branch
+ * became four: three of them are absence-or-caveat renderings and one is the
+ * ordinary body, and duplicating the header four times was how the copy would
+ * have gone out of step.
+ */
+function TargetPanel({
+  badgeContext,
+  children,
+}: {
+  badgeContext: DistanceToTargetBadgeContext;
+  children: ReactNode;
+}) {
+  return (
+    <Panel
+      panelTitle="TARGET"
+      panelAside={
+        <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
+      }
+    >
+      {children}
     </Panel>
   );
 }

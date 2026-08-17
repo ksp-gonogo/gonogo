@@ -52,7 +52,8 @@ describe("DistanceToTarget: genuinely runs off the stream (M3 vessel-gap batch)"
       </fixture.Provider>,
     );
 
-    expect(screen.getByText("No target set in KSP")).toBeTruthy();
+    // Pending, not a confirmed absence: nothing has arrived on the topic yet.
+    expect(screen.getByText("Waiting for target telemetry")).toBeTruthy();
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
 
     act(() => {

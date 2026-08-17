@@ -126,17 +126,24 @@ describe("DistanceToTarget DOM snapshots", () => {
         // stream-status badge clearing. The badge is the panel's now, derived
         // by the host, so it never renders under this bare harness and a
         // "SYNCING has gone" wait would pass on the very first paint, i.e.
-        // before the emitted target reaches the widget: every fixture would
-        // snapshot the "No target set in KSP" placeholder. The name is
-        // rendered by all three views (tracking, approach, docking HUD), so
-        // it is the honest signal that the emit has landed.
+        // before the emitted target reaches the widget. The name is rendered by
+        // all three views (tracking, approach, docking HUD), so it is the
+        // honest signal that the emit has landed.
+        //
+        // The no-target fixture has no name to wait on, and its old check
+        // (`text.includes("No target set in KSP")`) could not fail: that string
+        // was ALSO the pre-emit placeholder, so it settled on the first paint
+        // and the snapshot captured the un-emitted state for as long as it
+        // existed. It waits on the placeholder being GONE instead, which is a
+        // signal that cannot exist before the emit lands whatever the branch
+        // then renders.
         const targetName = fixture["tar.name"];
         await waitFor(() => {
           const text = container.textContent ?? "";
           const settled =
             typeof targetName === "string" && targetName.length > 0
               ? text.includes(targetName)
-              : text.includes("No target set in KSP");
+              : !text.includes("Waiting for target telemetry");
           if (!settled) {
             throw new Error(
               "the emitted target has not reached the widget yet",
