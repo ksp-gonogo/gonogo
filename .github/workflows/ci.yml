@@ -63,6 +63,22 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
+      # Un-fed snapshot gate: re-runs the DOM snapshot specs with every stream
+      # emit suppressed and fails on any that still pass, because such a test is
+      # capturing a render containing none of its fixture's data.
+      #
+      # In the `test` job rather than `visual` deliberately: `visual` is red on
+      # purpose until the end-of-run re-baseline, so a finding placed there would
+      # be invisible.
+      #
+      # GREEN on landing, and it must stay that way. The 96 renders already un-fed
+      # when it landed are recorded in `unfed-snapshot-debt.ts`, which is shrink-only
+      # and enforced from both sides. Keeping this step green is the point: a step
+      # that is permanently red hides the next unrelated failure behind it, which is
+      # what happened to `visual`.
+
+      - run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
+
   # C# Sitrep mod: unit/integration tests + the contract shape-gate.
   # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
   #

@@ -124,7 +124,31 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     store,
     wall,
     Provider,
-    emit: (topic, payload, metaOverrides) =>
-      transport.emit(topic, payload, metaOverrides),
+    emit: (topic, payload, metaOverrides) => {
+      if (EMITS_MUTED) return;
+      transport.emit(topic, payload, metaOverrides);
+    },
   };
 }
+
+/**
+ * Suppress every fixture emit, so a test runs against a widget that was fed
+ * nothing at all.
+ *
+ * This is the mechanism behind `unfed-snapshot-gate.ts`, not a debugging knob.
+ * A snapshot test that still PASSES with this on is, by definition, capturing an
+ * un-fed render: its committed baseline is the widget's empty state, whatever the
+ * scenario is named. That check is exact rather than heuristic, which is what
+ * makes it worth a gate.
+ *
+ * It exists because `AtmosphereProfile` had six scenarios named after six
+ * different atmospheres and all 48 committed renders were the string
+ * "ATMOSPHERE PROFILE Waiting for body telemetry...", and `SpaceCenterStatus` had
+ * 48 more whose every facility level was an em dash. Textual detectors missed the
+ * second one entirely, because its empty state is punctuation rather than a
+ * sentence. Only suppressing the data found it.
+ *
+ * Read once at module load: the gate sets it for a whole run, and a test that
+ * flipped it mid-suite would make its own neighbours' results depend on order.
+ */
+const EMITS_MUTED = process.env.GONOGO_MUTE_FIXTURE_EMITS === "1";
