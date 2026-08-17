@@ -1,3 +1,4 @@
+using Sitrep.Core;
 using Sitrep.Host.Comms;
 
 namespace Gonogo.KSP.CurrencyDelay
@@ -22,7 +23,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// </summary>
     internal static class KscDelayPolicy
     {
-        internal const double DefaultSilenceDeclarationSeconds = 86_400.0;
+        internal const double DefaultSilenceDeclarationSeconds =
+            GameDayDefaults.StockDaySeconds;
 
         /// <summary>
         /// Whether delay applies at all. A null config is the pre-configure

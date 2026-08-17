@@ -16,10 +16,24 @@
       // client + sdk src trees are keyed too: they were missed originally, so
       // an em-dash / raw z-index in mod/*/client/src replayed a stale core#test
       // pass until an unrelated packages/*/src change happened to bust the key.
+      //
+      // The key is the SCAN, not the source layout. Those guards run
+      // `git grep -- packages mod`, so their subject is every TRACKED file
+      // under either root, whatever its extension or path shape. Keying on
+      // `**/src/**` said "TypeScript laid out the way TypeScript is laid out"
+      // and so could not see C#: no `src/` segment exists in a C# project
+      // path, and three Earth-day constants in mod/*.cs replayed a cached pass
+      // locally while CI ran cold and failed. That is the same hole a third
+      // time, so match the scan's own shape instead of guessing at it, and
+      // exclude only build output (gitignored, so `git grep` never reads it).
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/packages/*/src/**",
-        "$TURBO_ROOT$/mod/**/src/**"
+        "$TURBO_ROOT$/mod/**",
+        "!$TURBO_ROOT$/mod/**/bin/**",
+        "!$TURBO_ROOT$/mod/**/obj/**",
+        "!$TURBO_ROOT$/mod/**/dist/**",
+        "!$TURBO_ROOT$/mod/**/node_modules/**"
       ]
     }
   }

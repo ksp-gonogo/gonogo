@@ -1,4 +1,5 @@
 using System;
+using Sitrep.Core;
 using Sitrep.Propagation;
 
 namespace Sitrep.Host.Comms
@@ -22,7 +23,7 @@ namespace Sitrep.Host.Comms
     public sealed class OrbitalPeriodSilenceDeadlinePolicy
     {
         public const double DefaultFloorSec = 600.0;
-        public const double DefaultCeilingSec = 86400.0;
+        public const double DefaultCeilingSec = GameDayDefaults.StockDaySeconds;
         public const double DefaultPeriodMultiplier = 1.5;
 
         private readonly double _floorSec;

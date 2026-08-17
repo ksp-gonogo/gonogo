@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Core;
 
 namespace Sitrep.Host.Comms
 {
@@ -26,7 +27,8 @@ namespace Sitrep.Host.Comms
         /// penalty pending forever. An event released early on reacquisition
         /// takes <c>min(deadline, reacquisitionUt + lightTime)</c>.</para>
         /// </summary>
-        public double SilenceDeclarationSeconds { get; set; } = 86_400.0;
+        public double SilenceDeclarationSeconds { get; set; } =
+            GameDayDefaults.StockDaySeconds;
 
         public static SignalDelayConfig Off() => new SignalDelayConfig { Enabled = false };
     }

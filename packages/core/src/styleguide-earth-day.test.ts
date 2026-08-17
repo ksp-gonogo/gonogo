@@ -69,8 +69,21 @@ import { describe, expect, it } from "vitest";
  * rather than a list so a new spelling has to be deliberate.
  */
 const EARTH_DAY = /\b(?:86_?400(?:_?000)?|21_?600)\b/;
-/** The `git grep -E` form of the above; POSIX ERE has no non-capturing group. */
-const EARTH_DAY_GREP = "\\b(86_?400(_?000)?|21_?600)\\b";
+/**
+ * The `git grep -E` form of the above; POSIX ERE has no non-capturing group.
+ *
+ * Deliberately WITHOUT word boundaries, and it must stay that way. `git grep -E`
+ * hands the pattern to the platform's regex engine, and `\b` is a GNU extension:
+ * on macOS it matches nothing at all, so this guard found zero candidate files
+ * and passed vacuously on every developer machine while CI on Linux failed with
+ * three real offenders. A ratchet that cannot fail on the machine it is run on
+ * before pushing is worse than no ratchet, because it is trusted.
+ *
+ * Losing the boundaries here costs nothing: this grep only narrows which files
+ * get read. `EARTH_DAY` above is applied per line afterwards and does the real
+ * matching, with JavaScript's own regex engine, identically everywhere.
+ */
+const EARTH_DAY_GREP = "(86_?400(_?000)?|21_?600)";
 
 /**
  * Files whose 24-hour day is CORRECT because the thing being measured is real
@@ -97,6 +110,17 @@ const EARTH_DAY_GREP = "\\b(86_?400(_?000)?|21_?600)\\b";
  * one is whether the value could carry `irl:s` instead.
  */
 const WALL_CLOCK_EXEMPT: Array<{ file: string; why: string }> = [
+  {
+    file: "mod/Sitrep.Core/GameDayDefaults.cs",
+    why:
+      "THE definition site for C#, the counterpart to the sdk calendar below. " +
+      "It exists because there was no C# home for the number, so three policy " +
+      "defaults each wrote 86,400 and each meant four Kerbin days while their " +
+      "doc comments said one. This guard is what found them, and it could only " +
+      "do so on Linux: the grep pattern used `\\b`, which POSIX ERE does not " +
+      "have, so it matched nothing on macOS and passed vacuously on every " +
+      "developer machine.",
+  },
   {
     file: "mod/sitrep-sdk/src/unit-system/calendar.ts",
     why:
@@ -261,6 +285,33 @@ function earthDayOffenders(root: string): string[] {
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
 describe("design-system: the KSP day", () => {
+  /**
+   * The guard on the guard. Every other assertion here is satisfied by an empty
+   * candidate list, so a prefilter that silently matches nothing reports a clean
+   * repo, which is exactly what happened: `\b` in the grep pattern is a GNU
+   * extension, macOS matched nothing, and the ratchet passed locally for as long
+   * as it has existed while CI failed on three real offenders.
+   *
+   * The exempt files are guaranteed to contain the number: they are the
+   * definition sites, listed precisely because they say 21,600 out loud. If the
+   * prefilter cannot find THEM, it is broken rather than the repo being clean,
+   * and this is the only assertion here able to tell those two apart.
+   */
+  it("the file prefilter actually finds files, so a clean result means clean", () => {
+    const candidates = candidateFiles(root);
+    expect(
+      candidates.length,
+      "git grep matched no files at all. The pattern is not working on this " +
+        "platform (POSIX ERE has no \\b), so every other assertion in this " +
+        "file is passing vacuously.",
+    ).toBeGreaterThan(0);
+    expect(
+      candidates.filter((f) => isExempt(f)).length,
+      "the prefilter found files but none of the known definition sites, so " +
+        "it is matching something other than what this guard is about",
+    ).toBeGreaterThan(0);
+  });
+
   it("no shipped source divides or multiplies by an Earth day", () => {
     const offenders = earthDayOffenders(root);
     if (offenders.length > 0) {
