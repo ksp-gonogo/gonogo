@@ -1455,7 +1455,10 @@ namespace Gonogo.KSP
                     var proto = vessel.protoVessel;
                     if (proto != null)
                     {
-                        crewCount = proto.GetVesselCrew()?.Count ?? 0;
+                        // Left null when the crew list is unreadable: a null
+                        // list is "could not read", not "nobody aboard", and
+                        // every other field here is careful to say so.
+                        crewCount = proto.GetVesselCrew()?.Count;
 
                         var capacity = 0;
                         var protoParts = proto.protoPartSnapshots;
@@ -1870,17 +1873,22 @@ namespace Gonogo.KSP
 
             var result = new Dictionary<string, object?>();
 
-            if (body.atmosphere)
+            // Every atmospheric field below is derived from the vessel's own
+            // parts, so unreadable parts make ALL of them unknowable together
+            // and the block is skipped rather than answered from a zero. A zero
+            // drag force is not a missing reading, it is a craft that cannot
+            // slow down: it produces a plausible terminal velocity, a plausible
+            // time to impact, a descent regime classified from a zero ratio and
+            // "no parachutes", in the one place a reader is deciding whether a
+            // landing survives.
+            var parts = vessel.parts;
+            if (body.atmosphere && parts != null)
             {
                 // Aggregate current drag force (kN): a real measurement, no sim.
                 double dragForce = 0.0;
-                var parts = vessel.parts;
-                if (parts != null)
+                for (int i = 0; i < parts.Count; i++)
                 {
-                    for (int i = 0; i < parts.Count; i++)
-                    {
-                        dragForce += parts[i].dragScalar;
-                    }
+                    dragForce += parts[i].dragScalar;
                 }
 
                 double altAsl = vessel.altitude;
@@ -1917,16 +1925,20 @@ namespace Gonogo.KSP
                 // The numeric drag/weight balance behind descentRegime: the same
                 // dragForce and weight (both kN) the terminal-velocity model uses.
                 result["dragToWeightRatio"] = weight > 0 ? dragForce / weight : (double?)null;
-                result["parachuteState"] = BuildParachuteState(vessel);
+                result["parachuteState"] = BuildParachuteState(parts);
             }
 
             // Terrain sampling: option 1 (mod-side predicted touchdown point)
             // with a sub-vessel fallback, behind an injectable sample-source.
             SampleTerrain(result, vessel, orbit, body);
 
-            // Outcome: atmosphere headlines when present; else terrain-assessed
-            // once we have a slope reading; else the bare vacuum case.
-            result["outcome"] = body.atmosphere
+            // Outcome: atmosphere headlines when it was actually SOLVED, else
+            // terrain-assessed once we have a slope reading, else the bare
+            // vacuum case. Keyed on the solved field rather than on
+            // body.atmosphere, because an atmospheric body whose drag we could
+            // not read reaches here with none of the atmospheric fields set,
+            // and "atmospheric-aware" would then be a headline over nothing.
+            result["outcome"] = result.ContainsKey("terminalVelocity")
                 ? "atmospheric-aware"
                 : result.ContainsKey("predictedSlopeAngle")
                     ? "terrain-assessed"
@@ -2090,14 +2102,13 @@ namespace Gonogo.KSP
         /// estimate self-corrects), "armed" (a future step change the instant
         /// model cannot see: flag it), or "none".
         /// </summary>
-        private static string BuildParachuteState(Vessel vessel)
+        private static string BuildParachuteState(List<Part> parts)
         {
-            var parts = vessel.parts;
-            if (parts == null)
-            {
-                return "none";
-            }
-
+            // Takes the parts rather than the vessel so there is no unreadable
+            // case to answer: "none" is a statement that the craft has no
+            // parachutes, and a craft whose parts we cannot see has not made
+            // that statement. The caller skips the whole atmospheric block
+            // instead.
             bool armed = false;
             for (int i = 0; i < parts.Count; i++)
             {
@@ -4778,6 +4789,11 @@ namespace Gonogo.KSP
                 // null, never a fabricated sub-zero-Kelvin reading.
                 ["skinMaxTemp"] = part.skinMaxTemp > 0 ? part.skinMaxTemp : (double?)null,
                 ["currentTemp"] = part.temperature >= 0 ? part.temperature : (double?)null,
+                // skinTemp needs no such guard and the asymmetry is deliberate:
+                // Part declares `skinMaxTemp = -1.0` but leaves skinTemperature
+                // at 0, so -1 is never its value. Its uninitialised reading is
+                // 0 K, which PASSES the >= 0 guard used above, so a 0 here is an
+                // unsimulated part rather than a cold one.
                 ["skinTemp"] = part.skinTemperature,
                 ["category"] = part.partInfo != null ? part.partInfo.category.ToString() : null,
                 ["modules"] = modules,
