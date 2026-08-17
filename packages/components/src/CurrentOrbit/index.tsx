@@ -325,21 +325,27 @@ registerComponent<CurrentOrbitConfig>({
   defaultSize: { w: 9, h: 18 },
   minSize: { w: 3, h: 4 },
   component: CurrentOrbitComponent,
+  // One entry per value the component body actually reads, in the two groups
+  // its own comment describes: raw elements off `vessel.orbit`, everything
+  // else off the derived `vessel.state` (six of them through
+  // `useOrbitElements`). Declared per field rather than as the two channels so
+  // an alarm lands on the widget that draws THAT value, which is what the
+  // legacy keys used to buy.
   dataRequirements: [
-    "o.ApA",
-    "o.PeA",
-    "o.ApR",
-    "o.PeR",
-    "o.sma",
-    "o.eccentricity",
-    "o.trueAnomaly",
-    "o.argumentOfPeriapsis",
-    "o.inclination",
-    "o.period",
-    "o.timeToAp",
-    "o.timeToPe",
-    "o.referenceBody",
-    "v.body",
+    "vessel.orbit.sma",
+    "vessel.orbit.ecc",
+    "vessel.orbit.inc",
+    "vessel.orbit.argPe",
+    "vessel.state.apoapsisAlt",
+    "vessel.state.periapsisAlt",
+    "vessel.state.apoapsisRadius",
+    "vessel.state.periapsisRadius",
+    "vessel.state.timeToAp",
+    "vessel.state.timeToPe",
+    "vessel.state.trueAnomaly",
+    "vessel.state.period",
+    "vessel.state.referenceBodyName",
+    "vessel.state.parentBodyName",
   ],
   defaultConfig: { showDiagram: true },
   actions: currentOrbitActions,

@@ -427,16 +427,18 @@ registerComponent<OrbitViewConfig>({
   // pending); the reads themselves are stream-native (`vessel.orbit` + the
   // `vessel.state` derived channel).
   dataRequirements: [
-    "o.sma",
-    "o.eccentricity",
-    "o.trueAnomaly",
-    "o.ApR",
-    "o.PeR",
-    "o.ApA",
-    "o.PeA",
-    "o.argumentOfPeriapsis",
-    "v.body",
-    "b.number",
+    // The diagram is drawn from apsis RADII, never the altitudes: `o.ApA` and
+    // `o.PeA` appeared only in this list and nowhere in the component, as did
+    // `b.number` (the pole marker and body geometry come from `getBody`'s
+    // static table, not from a streamed body count). Declaring them again
+    // would keep pointing their alarms at a widget that does not draw them.
+    "vessel.orbit.sma",
+    "vessel.orbit.ecc",
+    "vessel.orbit.argPe",
+    "vessel.state.apoapsisRadius",
+    "vessel.state.periapsisRadius",
+    "vessel.state.trueAnomaly",
+    "vessel.state.parentBodyName",
   ],
   defaultConfig: { showMarkers: true },
   actions: orbitViewActions,

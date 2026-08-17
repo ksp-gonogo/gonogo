@@ -57,6 +57,52 @@ const MIGRATED: readonly MigratedWidget[] = [
       },
     ],
   },
+  {
+    id: "current-orbit",
+    legacyKeys: [
+      { key: "o.sma", expectMatch: true },
+      { key: "o.eccentricity", expectMatch: true },
+      { key: "o.inclination", expectMatch: true },
+      { key: "o.argumentOfPeriapsis", expectMatch: true },
+      { key: "o.ApA", expectMatch: true },
+      { key: "o.PeA", expectMatch: true },
+      { key: "o.ApR", expectMatch: true },
+      { key: "o.PeR", expectMatch: true },
+      { key: "o.timeToAp", expectMatch: true },
+      { key: "o.timeToPe", expectMatch: true },
+      { key: "o.trueAnomaly", expectMatch: true },
+      { key: "o.period", expectMatch: true },
+      { key: "o.referenceBody", expectMatch: true },
+      { key: "v.body", expectMatch: true },
+    ],
+  },
+  {
+    id: "orbit-view",
+    legacyKeys: [
+      { key: "o.sma", expectMatch: true },
+      { key: "o.eccentricity", expectMatch: true },
+      { key: "o.argumentOfPeriapsis", expectMatch: true },
+      { key: "o.ApR", expectMatch: true },
+      { key: "o.PeR", expectMatch: true },
+      { key: "o.trueAnomaly", expectMatch: true },
+      { key: "v.body", expectMatch: true },
+      {
+        key: "o.ApA",
+        expectMatch: false,
+        why: "the diagram is drawn from apsis radii; the altitude appeared only in the requirements list",
+      },
+      {
+        key: "o.PeA",
+        expectMatch: false,
+        why: "same as o.ApA, radii are what the component reads",
+      },
+      {
+        key: "b.number",
+        expectMatch: false,
+        why: "body geometry comes from getBody's static table, not a streamed count",
+      },
+    ],
+  },
 ];
 
 function thresholdAlarm(dataKey: string): Alarm {
