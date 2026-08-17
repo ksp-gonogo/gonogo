@@ -37,6 +37,8 @@ namespace Sitrep.Host.Tests
 
             public double? CharacteristicCycleSeconds(PropagationTarget target) => null;
 
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
+
             public bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) =>
                 false;
         }

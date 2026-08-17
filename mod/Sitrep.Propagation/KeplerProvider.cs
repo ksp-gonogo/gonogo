@@ -213,6 +213,28 @@ namespace Sitrep.Propagation
             return true;
         }
 
+        /// <summary>
+        /// Periapsis and apoapsis, which for a bound conic are exactly
+        /// <c>sma * (1 -/+ ecc)</c>. Answered in closed form rather than by flying the
+        /// orbit and taking extremes, because a sampled answer would put a resolution
+        /// error into a number a report prints as a fact.
+        /// </summary>
+        public RadiusExtremes? RadiusExtremesOf(PropagationTarget target)
+        {
+            var elements = target.Kind == PropagationTargetKind.Body
+                ? OrbitOfBody(target.BodyIndex)
+                : target.Osculating;
+            if (!IsBoundConic(elements))
+            {
+                return null;
+            }
+
+            var orbit = elements!.Value;
+            return new RadiusExtremes(
+                orbit.Sma * (1.0 - orbit.Ecc),
+                orbit.Sma * (1.0 + orbit.Ecc));
+        }
+
         private OrbitElements? OrbitOfBody(int bodyIndex)
         {
             var bodies = _bodies == null ? null : _bodies();

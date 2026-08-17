@@ -26,6 +26,18 @@ namespace Sitrep.Propagation.Tests
     /// and passed while the door was still wide open: <c>Solve(OrbitElements, double)</c>
     /// shares its name with the seam's own <c>Solve</c>, so a name check called it a member
     /// of the interface. An overload is exactly how a second door gets added.</para>
+    ///
+    /// <para><b>There are deliberately TWO checks here and they must not be consolidated
+    /// into one tidier one.</b> The first pins the SURFACE (nothing public that the
+    /// interface does not declare) and the second pins the SHAPE (nothing public that takes
+    /// a bare <see cref="OrbitElements"/>, whatever it is called). A door RENAMED onto the
+    /// interface defeats the first and not the second; a door added under a new name
+    /// defeats the second and not the first. Neither is redundant.</para>
+    ///
+    /// <para>The second exists because the first passed on the very thing it was written
+    /// to catch, and that is the point worth keeping: a better name check would still have
+    /// been a name check. The remedy for an instrument that cannot represent a failure is
+    /// a check of a different KIND, not a more careful version of the same one.</para>
     /// </summary>
     public class TheVanillaHasNoDoorBesideTheSeamTests
     {

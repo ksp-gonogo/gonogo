@@ -88,11 +88,27 @@ public sealed class CapturedOrbit
     /// reports the same number the mod would act on, including when the answer is
     /// that there is no period.
     /// </summary>
-    public double? PeriodSeconds => new KeplerProvider().CharacteristicCycleSeconds(Target);
+    public double? PeriodSeconds => Propagator.CharacteristicCycleSeconds(Target);
 
-    public double ApoapsisRadiusMeters => Elements.Sma * (1.0 + Elements.Ecc);
+    /// <summary>
+    /// How close in and how far out this craft gets, as the propagator reports it, or
+    /// null when it declines.
+    ///
+    /// <para>Asked for the same reason <see cref="PeriodSeconds"/> is, and it used to
+    /// be the counterexample sitting next to it: these were <c>sma * (1 +/- ecc)</c>
+    /// written out here, so this class reported one number the mod would act on and one
+    /// it had derived for itself under an assumption the mod no longer makes anywhere
+    /// else.</para>
+    /// </summary>
+    public RadiusExtremes? RadiusExtremes => Propagator.RadiusExtremesOf(Target);
 
-    public double PeriapsisRadiusMeters => Elements.Sma * (1.0 - Elements.Ecc);
+    /// <summary>
+    /// The two-body vanilla, constructed directly and correctly so: this is an offline
+    /// tool over a recorded stream, with no <c>Kernel</c> and no running game, so there
+    /// is no election to consult. It reaches the solver through the same interface
+    /// everything else does.
+    /// </summary>
+    private static IPropagationProvider Propagator => new KeplerProvider();
 }
 
 /// <summary>The shape of a comms path at one instant, reduced to what distinguishes one state from the next.</summary>

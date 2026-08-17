@@ -75,7 +75,10 @@ public static class ReportWriter
             text.AppendLine(orbit.PeriodSeconds == null
                 ? "  period         none (the propagator reports no repeating cycle)"
                 : $"  period         {Seconds(orbit.PeriodSeconds.Value)} (via the propagation provider)");
-            text.AppendLine($"  radius pe/ap   {Metres(orbit.PeriapsisRadiusMeters)} / {Metres(orbit.ApoapsisRadiusMeters)}");
+            text.AppendLine(orbit.RadiusExtremes == null
+                ? "  radius range   none (the propagator reports no bound on this trajectory)"
+                : $"  radius range   {Metres(orbit.RadiusExtremes.Value.ClosestMeters)}"
+                    + $" to {Metres(orbit.RadiusExtremes.Value.FurthestMeters)} (via the propagation provider)");
             text.AppendLine($"  epoch span     {Seconds(orbit.LastEpochUt - orbit.FirstEpochUt)} of elements");
         }
         else

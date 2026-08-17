@@ -80,6 +80,23 @@ namespace Sitrep.Propagation
         double? CharacteristicCycleSeconds(PropagationTarget target);
 
         /// <summary>
+        /// How close in and how far out the target gets from the body it orbits,
+        /// metres, or null when its motion has no such bound.
+        ///
+        /// <para>For a two-body ellipse these are periapsis and apoapsis. They are
+        /// NOT named that here, deliberately: the conic words would carry the conic
+        /// back into this interface's vocabulary, which is the thing the whole
+        /// exercise exists to undo. Any craft under any physics has a closest and a
+        /// furthest approach; only a two-body one has them at fixed apsides that
+        /// <c>sma * (1 +/- ecc)</c> can be written out for.</para>
+        ///
+        /// <para>Null is a real answer, on the same terms as
+        /// <see cref="CharacteristicCycleSeconds"/>: a hyperbolic trajectory recedes
+        /// forever and has no furthest point.</para>
+        /// </summary>
+        RadiusExtremes? RadiusExtremesOf(PropagationTarget target);
+
+        /// <summary>
         /// Whether this provider will answer honestly for <paramref name="target"/>
         /// in <paramref name="frame"/> across the window
         /// [<paramref name="fromUt"/>, <paramref name="toUt"/>].
