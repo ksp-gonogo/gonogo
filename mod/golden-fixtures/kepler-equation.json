@@ -1,0 +1,34 @@
+{
+  "$schema": "cross-language conformance grid for Kepler's equation M = E - e sin(E). Shared by mod/Sitrep.Propagation.Tests/KeplerEquationConformanceTests.cs and packages/core/src/kepler-conformance.test.ts so both languages hold every implementation to the SAME contract on the SAME points.",
+
+  "why": "This is a PROPERTY grid, not a set of expected answers, and the difference is the point. A golden-fixture file can be satisfied by capturing a wrong implementation's output; a residual cannot. The one thing a residual cannot catch is a shared misunderstanding of the equation itself, which is what the area-law check in both suites is for.",
+
+  "howThisGridWasChosen": "A uniform sweep over e in [0, 1) MISSES the defect that prompted this file, and a coarse sweep MISREPORTS it. packages/core/src/calc/trajectory.ts returns non-solutions from e = 0.994 upward, off by up to pi radians, and is clean to 1e-15 below that. The break is invisible unless the grid is dense in the last hundredth of the eccentricity range AND dense at mean anomalies near zero, where the solution turns nearly discontinuous (dE/dM = 1/(1 - e cos E), which is 1e5 at e = 0.99999 near periapsis) and a starter of M + e sin(M) diverges. Density matters twice over: a 4,000-point uniform sweep put the onset at e ~= 0.997, and a 200,000-point sweep biased toward small M found it at 0.994.",
+
+  "theFailureIsSporadicRatherThanAThreshold": "Above the onset this implementation does not fail everywhere. It fails on a small and growing fraction of mean anomalies, all clustered just after periapsis: 736 of 200,000 sampled M at e = 0.994, 3,326 at e = 0.996, 5,251 at e = 0.999. So there is no eccentricity above which it is uniformly wrong, and none below which it is provably right, only one below which 200,000 samples found nothing. Anyone tempted to bound the blast radius with 'we do not fly orbits that eccentric' should read that sentence twice.",
+
+  "eccentricities": [
+    0.0, 0.1, 0.5, 0.79, 0.8, 0.9, 0.95, 0.99, 0.992, 0.993, 0.994, 0.995,
+    0.996, 0.997, 0.998, 0.999, 0.9995, 0.9999, 0.99999
+  ],
+
+  "meanAnomaliesNearZero": [
+    1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 0.05, 0.1, 0.3
+  ],
+
+  "meanAnomalySweepCount": 257,
+
+  "maxAbsoluteResidualRadians": 1e-12,
+
+  "maxMeanAnomalyErrorForRoundTripRadians": 1e-12,
+
+  "areaLawRelativeTolerance": 1e-9,
+
+  "areaLawSimpsonIntervals": 2000,
+
+  "publishedTriples": [],
+
+  "publishedTriplesNote": "EMPTY, deliberately, and this is a gap rather than an omission. The brief asked for two or three externally-published (e, M, E) triples as a cross-check of a different kind, verified against the source rather than a secondary account. I could not source any I am willing to stand behind: Vallado's Example 2-1 and Curtis's Chapter 3 examples are not reproduced with their printed digits anywhere I could fetch and read, Tatum's Celestial Mechanics section 9.5 sets e = 0.95, M = 245 deg as an EXERCISE and prints no answer, and the JPL-hosted copy of it returns 403. An unattributed 'known good' value is a fixture with extra confidence, so there are none here. The area-law check in both suites is the substitute: it closes the same gap (a shared misunderstanding of the equation) from an independent physical starting point, Kepler's second law plus the geometry of an ellipse, and needs no external number to be trusted.",
+
+  "existingExternalAnchor": "mod/golden-fixtures/propagation.json carries one published-reference case, 'vallado-coe2rv-earth-tilted'. It pins the full solve including conventions for the C# provider and for packages/sitrep-client/src/kepler.ts, and it is the only externally-sourced number in the subsystem. Note its eccentricity: 0.83285. It stops well short of the regime that broke, which is part of why the break went unnoticed, and it does not touch trajectory.ts or orbit-patches.ts at all."
+}
