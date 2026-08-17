@@ -306,8 +306,16 @@ export function computeBurnTrueAnomaly(
       ? i.burnAtUT
       : i.currentUT + Math.max(0, i.burnInSeconds);
   if (burnUT <= i.currentUT) return null;
-  return stateAtUT(i.currentOrbit, i.trueAnomaly, i.mu, i.currentUT, burnUT)
-    .trueAnomalyDeg;
+  // Null for an unbound trajectory, which joins the several "cannot answer" exits
+  // above rather than becoming a new kind of nothing.
+  const state = stateAtUT(
+    i.currentOrbit,
+    i.trueAnomaly,
+    i.mu,
+    i.currentUT,
+    burnUT,
+  );
+  return state ? state.trueAnomalyDeg : null;
 }
 
 /**

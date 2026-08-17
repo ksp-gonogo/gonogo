@@ -190,9 +190,19 @@ export function stateAtUT(
   speed: number;
   flightPathAngle: number;
   trueAnomalyDeg: number;
-} {
+} | null {
   const a = current.sma;
   const e = current.eccentricity;
+
+  // An unbound trajectory has no answer here, and null is that answer. The
+  // elliptical form this function propagates does not describe it, so every
+  // alternative is worse: the number this used to return was a confident
+  // fiction, and throwing would take the whole panel down over one unplannable
+  // burn. `ProjectedRows` already renders a null projection as
+  // "escape / invalid", which is exactly what this is.
+  if (!(e >= 0) || e >= 1) {
+    return null;
+  }
 
   // Current true anomaly → eccentric anomaly.
   const nu0 = degToRad(currentTrueAnomalyDeg);
@@ -343,21 +353,25 @@ export function customAtUT(
       projected: null,
     };
   }
-  const { r, speed, flightPathAngle } = stateAtUT(
+  const state = stateAtUT(
     current,
     currentTrueAnomalyDeg,
     mu,
     currentUT,
     burnUT,
   );
-  const projected = projectBurn(
-    r,
-    speed,
-    flightPathAngle,
-    mu,
-    prograde,
-    radial,
-  );
+  // Unbound: there is no point on this trajectory to plan a burn from, which is
+  // the same "no projection" the past-burn branch above already returns.
+  const projected = state
+    ? projectBurn(
+        state.r,
+        state.speed,
+        state.flightPathAngle,
+        mu,
+        prograde,
+        radial,
+      )
+    : null;
   return {
     ut: burnUT,
     prograde,
@@ -443,7 +457,7 @@ export function matchInclination(
   mu: number,
   currentUT: number,
   targetInclinationDeg: number,
-): ManeuverPlan {
+): ManeuverPlan | null {
   const nodes = nodeAnomalies(currentArgumentOfPeriapsisDeg);
   const dtAN = timeToTrueAnomaly(current, currentTrueAnomalyDeg, nodes.an, mu);
   const dtDN = timeToTrueAnomaly(current, currentTrueAnomalyDeg, nodes.dn, mu);
@@ -463,6 +477,14 @@ export function matchInclination(
     currentUT,
     burnUT,
   );
+
+  // Unbound: `stateAtUT` has no answer, so neither has this. Returning a plan with a
+  // fabricated normal component would be the same confident fiction the elliptical
+  // solver used to hand back, one layer up. The UI wrappers in
+  // `ManeuverPlanner/planning.ts` already return `ManeuverPlan | null`.
+  if (!state) {
+    return null;
+  }
 
   // Cheap plane-change formula: normal ΔV magnitude is 2·v_h·sin(Δi/2),
   // where v_h is the velocity component in the plane perpendicular to
@@ -516,7 +538,7 @@ export function matchTargetPlane(
   targetLanDeg: number,
   mu: number,
   currentUT: number,
-): ManeuverPlan {
+): ManeuverPlan | null {
   const i1 = degToRad(currentInclinationDeg);
   const i2 = degToRad(targetInclinationDeg);
   const dOmega = degToRad(targetLanDeg - currentLanDeg);
@@ -554,6 +576,14 @@ export function matchTargetPlane(
     currentUT,
     burnUT,
   );
+
+  // Unbound: `stateAtUT` has no answer, so neither has this. Returning a plan with a
+  // fabricated normal component would be the same confident fiction the elliptical
+  // solver used to hand back, one layer up. The UI wrappers in
+  // `ManeuverPlanner/planning.ts` already return `ManeuverPlan | null`.
+  if (!state) {
+    return null;
+  }
 
   const vHorizontal = state.speed * Math.cos(state.flightPathAngle);
   const magnitude = 2 * vHorizontal * Math.sin(relIncRad / 2);
@@ -758,6 +788,10 @@ export function hohmannRendezvous(
       mu,
       currentUT,
     );
+    // Null means the vessel is unbound, and a rendezvous plan for a craft on an
+    // escape trajectory is not a partial answer to give: it is no answer. This
+    // function already returns null for every other input it cannot plan from.
+    if (!planeMatch) return null;
     burns.push(planeMatch);
     if (planeMatch.ut > effectiveStartUT) effectiveStartUT = planeMatch.ut;
   }

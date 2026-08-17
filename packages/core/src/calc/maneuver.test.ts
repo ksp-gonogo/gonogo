@@ -160,6 +160,37 @@ describe("customAtApsis", () => {
   });
 });
 
+describe("an unbound trajectory has no plan, and says so with null", () => {
+  // The elliptical solver these presets propagate with does not describe an escape
+  // trajectory. It used to be handed one anyway and returned a confident wrong
+  // number; the shared kernel now refuses, and refusing has to surface as an ANSWER
+  // rather than as a thrown error, because a throw reaching the widget takes the
+  // whole panel down over one unplannable burn. `ProjectedRows` already renders a
+  // null projection as "escape / invalid".
+  const ESCAPING: CurrentOrbit = { ...KERBIN_ELLIPTIC, eccentricity: 1.4 };
+
+  it("stateAtUT returns null rather than a fabricated state", () => {
+    expect(stateAtUT(ESCAPING, 30, KERBIN_MU, 0, 600)).toBeNull();
+  });
+
+  it("stateAtUT still answers for a bound orbit", () => {
+    expect(stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, 600)).not.toBeNull();
+  });
+
+  it("customAtUT yields a plan with no projection rather than throwing", () => {
+    const plan = customAtUT(ESCAPING, 30, KERBIN_MU, 0, 600, 100, 0, 0);
+
+    expect(plan.projected).toBeNull();
+    // The requested burn is still echoed back: what is unknowable is the SHAPE it
+    // would produce, not what the operator asked for.
+    expect(plan.requiredDeltaV).toBeCloseTo(100, 6);
+  });
+
+  it("plane-change presets return null rather than a fabricated normal burn", () => {
+    expect(matchInclination(ESCAPING, 30, 0, 0, KERBIN_MU, 0, 30)).toBeNull();
+  });
+});
+
 describe("stateAtUT", () => {
   it("recovers the current state when dt = 0", () => {
     // True anomaly 0 = at periapsis on the elliptic orbit.
