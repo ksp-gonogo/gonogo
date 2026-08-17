@@ -45,7 +45,8 @@ export type ModToken =
   | "avionics"
   | "kerbalism"
   | "testflight"
-  | "principia";
+  | "principia"
+  | "telemachus";
 
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
@@ -1371,6 +1372,83 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // were "patched_conics" and "n_body" with Principia as the stated cause.
       // Describing a third party's format is not coupling to it.
       "packages/core/src/schemas/telemachus.ts",
+    ],
+  },
+  telemachus: {
+    // A RETIRED dependency rather than an Uplink: see this token's entry in
+    // uplink-boundary.test.ts for why it is gated at all, and
+    // local_docs/design/2026-08-17-telemachus-residue-inventory.md for the
+    // full inventory. Scanned with comments stripped, so every line below is
+    // real code or a real string, and every one names WHO references it: a
+    // Telemachus-named file is not evidence of anything, which is the mistake
+    // that put fakeTelemachus.ts in the "dead" bucket of the very inventory
+    // written to catch it.
+    permanent: [
+      // Files whose only mention RECORDS that the coupling is gone, or
+      // describes a third party's bug. Naming it is the file's job.
+      "packages/components/src/OrbitView/stream.test.tsx",
+      "packages/core/src/hooks/useGameContext.test.tsx",
+      "mod/Sitrep.Host.IntegrationTests/MilestoneReplayEndToEndTests.cs",
+      "mod/Sitrep.Host.Tests/SystemViewProviderTests.cs",
+    ],
+    domainDebt: [
+      // --- The mapTopic shim: TELEMACHUS_CLEAN_HOMES, 204 entries, called by
+      // context.tsx on every useTelemetry read, with 76 old-style keys still
+      // declared across 23 widget files. The largest item by far, and a
+      // 76-key migration rather than a rename. ---
+      "packages/sitrep-client/src/map-topic.ts",
+      "packages/sitrep-client/src/map-topic.test.ts",
+      "packages/sitrep-client/src/map-topic.rawFieldResolution.fixture.test.ts",
+      "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
+      "packages/sitrep-client/src/vessel-state-mapping.coverage.test.ts",
+      "packages/sitrep-client/src/map-command.ts",
+      "packages/sitrep-client/src/index.ts",
+      "packages/core/src/hooks/mapTopic.coverage.test.ts",
+      "packages/app/src/telemetry/SitrepTelemetryProvider.mappedAndCarried.test.ts",
+      // orbit-patches renames wire fields onto the legacy OrbitPatch shape,
+      // and its test says so in a test name. Retires when that shape does.
+      "packages/sitrep-client/src/orbit-patches.test.ts",
+      // core's barrel re-exports schemas/telemachus.ts. The schema file itself
+      // is invisible to this token: its type is spelled TelemaachusSchema, with
+      // a typo, so only the import path matches. Retires with the shim.
+      "packages/core/src/index.ts",
+
+      // --- The legacy data catalog: TELEMACHUS_META / legacyDataCatalog,
+      // reached through BufferedDataSource and useDataSchema.
+      // packages/app/src/dataSources/missionHistory.ts already records that
+      // "data"/BufferedDataSource are slated for wholesale deletion. ---
+      "packages/data/src/schema/telemachusMeta.ts",
+      "packages/data/src/schema/legacyDataCatalog.ts",
+      "packages/data/src/BufferedDataSource.ts",
+      "packages/data/src/BufferedDataSource.test.ts",
+      "packages/data/src/FlightsManager/MissionHistorySource.ts",
+      "packages/data/src/FlightsManager/MissionHistorySource.test.ts",
+      "packages/data/src/index.ts",
+      // imports TELEMACHUS_META for its friendly labels.
+      "packages/app/src/notes/TagAutocomplete.tsx",
+
+      // --- Test scaffolding for the legacy useTelemetry("data", key) branch.
+      // fakeTelemachus stands in for the DataSource; the peer tests use
+      // "telemachus" as a source id. All retire with the shim above and not
+      // before: that fixture has two live importers. ---
+      "packages/app/src/__tests__/fixtures/fakeTelemachus.ts",
+      "packages/app/src/__tests__/action-group.test.tsx",
+      "packages/app/src/__tests__/peer-roundtrip.test.ts",
+      "packages/app/src/__tests__/peer-client-service.test.ts",
+      "packages/app/src/__tests__/peer-client-data-source.test.ts",
+      "packages/app/src/__tests__/peer-data-sources.test.ts",
+      "packages/components/src/DataSourceStatus/index.test.tsx",
+
+      // --- USER-FACING COPY naming a data source the app no longer has.
+      // These are strings an operator reads on screen, which makes them the
+      // most misleading entries here and the cheapest to fix. ---
+      "packages/app/src/alarms/AlarmsModal.tsx",
+      "packages/components/src/ShipMap/ShipDiagramSvg.tsx",
+      "packages/components/src/ShipMap/index.tsx",
+      "packages/components/src/SpaceCenterStatus/index.tsx",
+      "packages/components/src/LaunchDirector/index.tsx",
+      "packages/components/src/Navball/index.tsx",
+      "packages/components/src/CrewStatus/index.tsx",
     ],
   },
 };

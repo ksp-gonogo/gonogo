@@ -63,7 +63,13 @@ interface ModOwnership {
   patterns: RegExp[];
   // Directories (relative to repo root) that own this mod's integration.
   // Any match inside one of these is not a boundary violation.
+  // EMPTY means the mod owns nothing here any more: see `telemachus`.
   ownedDirs: string[];
+  // Search code only, with comments stripped out. Off by default, because
+  // for a mod that is still installed a comment naming it is a real
+  // reference worth allowlisting. On for a RETIRED mod, where prose about
+  // what it used to do is history rather than coupling: see `telemachus`.
+  codeOnly?: boolean;
 }
 
 const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
@@ -252,7 +258,155 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     patterns: [/principia/i],
     ownedDirs: [],
   },
+  telemachus: {
+    // A RETIRED dependency, not an Uplink. Telemachus stopped being the app's
+    // data source in 806e7fe2 and its fork's source is deleted; it survives
+    // only as an optional manual debug probe (the `tele` CLI in
+    // scripts/gonogo_claude_tools.sh, which this scan never reaches). So
+    // ownedDirs is empty for a different reason than principia's: not "no
+    // integration directory yet" but "nothing here is its any more".
+    //
+    // Why this matters enough to gate: the residue is not inert. A dead
+    // "No Target Selected." sentinel, which no producer has been able to emit
+    // since the fork went, kept a translator alive in core, kept two fixtures
+    // encoding its vocabulary, and kept a test asserting behaviour against
+    // input nothing can generate. A later widget audit then read those
+    // fixtures as current. See
+    // local_docs/design/2026-08-17-telemachus-residue-inventory.md.
+    //
+    // codeOnly, and the tradeoff is deliberate: scanned with comments this
+    // token flags 218 files, 159 of which only mention it in prose. A
+    // 218-entry allowlist is a directory listing rather than a gate, and it
+    // would be tuned into uselessness. So this governs code, and prose is a
+    // one-time sweep plus a rule (a Telemachus mention in a comment is past
+    // tense and names what replaced it). No regex separates "the Telemachus
+    // fork used to do X" from "Telemachus provides X"; only a reader does,
+    // and saying so beats pretending a tool can.
+    patterns: [/telemachus/i],
+    ownedDirs: [],
+    codeOnly: true,
+  },
 };
+
+/**
+ * Source with comments removed and STRING LITERALS KEPT.
+ *
+ * Strings must survive: a module specifier is one, so
+ * `export * from "./schemas/telemachus"` is exactly the coupling this exists to
+ * catch, and so is user-facing JSX copy that names a retired mod to the
+ * operator. (The sibling stripper in `styleguide-earth-day.test.ts` blanks
+ * strings as well, correctly for ITS question: a number inside a string is not
+ * arithmetic.)
+ *
+ * TS/TSX goes through esbuild, which is already a dependency of this file,
+ * rather than through the hand-rolled fallback below. A character-state machine
+ * cannot tell an apostrophe in JSX text (`don't`) from an opening quote, so it
+ * desynchronises and then either preserves comments it should have dropped or,
+ * worse, blanks the code after them: a gate that silently stops looking. That
+ * was not hypothetical, it mis-scanned FuelStatus/index.tsx when this was
+ * hand-rolled. A parser has no such failure mode.
+ */
+function stripCommentsKeepingStrings(source: string, path: string): string {
+  if (/\.tsx?$/.test(path)) {
+    try {
+      const js = transformSync(source, {
+        loader: path.endsWith(".tsx") ? "tsx" : "ts",
+        format: "esm",
+        // Without this, esbuild ELIDES an import whose binding is unused, and
+        // an elided import is an invisible one: `import x from
+        // "./schemas/telemachus"` would vanish before the pattern ever saw it.
+        // Found by a self-test below that was written to check something else.
+        tsconfigRaw: { compilerOptions: { verbatimModuleSyntax: true } },
+      }).code;
+      // esbuild makes no promise about dropping every comment and does keep
+      // some. Finish with a LINE-BASED pass rather than the character walk
+      // below: esbuild turns JSX text into string literals, apostrophes and
+      // all, and a state machine desynchronises on them exactly as it did on
+      // the source. Dropping whole comment lines cannot desynchronise, and its
+      // error direction is right: a trailing `// ...` after code survives, so
+      // the worst case is a file flagged and allowlisted, never one silently
+      // skipped.
+      return js
+        .split("\n")
+        .filter((line) => !/^\s*(\/\/|\/\*|\*)/.test(line))
+        .join("\n");
+    } catch {
+      // Unparseable (a fixture, a deliberate syntax-error case): fall through
+      // to the approximate stripper rather than skipping the file entirely,
+      // because skipping is how a gate goes quiet.
+    }
+  }
+  return stripCommentsApproximately(source);
+}
+
+/**
+ * The fallback for C# and for anything esbuild will not parse. Same shape as
+ * the earth-day stripper, minus the string blanking, and with the same caveat:
+ * not a parser, and it can desynchronise on an apostrophe in a comment. Good
+ * enough for the C# it actually handles, where an apostrophe only appears in a
+ * char literal.
+ */
+function stripCommentsApproximately(source: string): string {
+  let out = "";
+  let i = 0;
+  let state: "code" | "line" | "block" | "'" | '"' | "`" = "code";
+  while (i < source.length) {
+    const char = source[i];
+    const next = source[i + 1];
+    if (state === "code") {
+      if (char === "/" && next === "/") {
+        state = "line";
+        out += "  ";
+        i += 2;
+        continue;
+      }
+      if (char === "/" && next === "*") {
+        state = "block";
+        out += "  ";
+        i += 2;
+        continue;
+      }
+      if (char === "'" || char === '"' || char === "`") {
+        state = char;
+      }
+      out += char;
+      i += 1;
+      continue;
+    }
+    if (state === "line") {
+      if (char === "\n") {
+        state = "code";
+        out += char;
+      } else {
+        out += " ";
+      }
+      i += 1;
+      continue;
+    }
+    if (state === "block") {
+      if (char === "*" && next === "/") {
+        state = "code";
+        out += "  ";
+        i += 2;
+      } else {
+        out += char === "\n" ? char : " ";
+        i += 1;
+      }
+      continue;
+    }
+    // Inside a string literal: kept verbatim, closing on its own quote and
+    // stepping over an escape so a \" does not end it early.
+    if (char === "\\") {
+      out += source.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (char === state) state = "code";
+    out += char;
+    i += 1;
+  }
+  return out;
+}
 
 const SCAN_EXTENSIONS = /\.(tsx?|cs)$/;
 const SKIP_DIRS = new Set([
@@ -319,7 +473,14 @@ function findViolations(root: string, token: ModToken): string[] {
       const rel = relative(root, file);
       if (SELF_PATHS.has(rel)) continue;
       if (isUnderOwnedDir(rel, ownedDirs)) continue;
-      const content = readFileSync(file, "utf8");
+      const raw = readFileSync(file, "utf8");
+      if (!patterns.some((re) => re.test(raw))) continue;
+      // Only files that mention the token at all are worth parsing, which keeps
+      // the esbuild pass to a couple of hundred files rather than every file in
+      // the repo.
+      const content = MOD_OWNERSHIP[token].codeOnly
+        ? stripCommentsKeepingStrings(raw, rel)
+        : raw;
       if (patterns.some((re) => re.test(content))) hits.push(rel);
     }
   }
@@ -413,6 +574,62 @@ describe("scansat token: pattern coverage for the schema-identifier blind spot",
         false,
       );
     }
+  });
+});
+
+describe("telemachus token: the code-only scan can still see", () => {
+  // An allowlist-shaped assertion is SATISFIED BY FINDING NOTHING, so a
+  // scanner that has quietly stopped looking passes it perfectly. That is not
+  // hypothetical: the earth-day ratchet's grep used `\b`, which POSIX ERE does
+  // not have, so on macOS it matched nothing and reported success for however
+  // long nobody checked. These assertions are the difference between "no
+  // violations" and "no vision".
+
+  const codeOnly = (source: string, path = "probe.ts") =>
+    stripCommentsKeepingStrings(source, path);
+
+  it("drops a mention in a comment", () => {
+    expect(
+      codeOnly("// the Telemachus fork used to serve this\nconst a = 1;\n"),
+    ).not.toMatch(/telemachus/i);
+    expect(
+      codeOnly("/** Telemachus, historically. */\nconst a = 1;\n"),
+    ).not.toMatch(/telemachus/i);
+  });
+
+  it("KEEPS a mention in a string, because a module specifier is one", () => {
+    // The single most important thing this token catches: core's barrel
+    // re-exports the legacy schema, and the only occurrence is inside quotes.
+    expect(codeOnly('export * from "./schemas/telemachus";\n')).toMatch(
+      /telemachus/i,
+    );
+    // And user-facing copy, which an operator actually reads on screen.
+    expect(
+      codeOnly(
+        "const hint = <FieldHint>Any Telemachus key that returns a number</FieldHint>;\n",
+        "probe.tsx",
+      ),
+    ).toMatch(/telemachus/i);
+  });
+
+  it("survives an apostrophe in JSX text, and keeps an unused import", () => {
+    // Two failures in one line, both of which this test found rather than
+    // confirmed. A hand-rolled character walk reads the ' in "won't" as an
+    // opening quote, desynchronises, and blanks the code after it: the gate
+    // stops looking mid-file and says nothing. And esbuild ELIDES an import
+    // whose binding is unused unless verbatimModuleSyntax is set, which would
+    // have made the one reference shape this token most needs to catch
+    // invisible.
+    const source =
+      'const a = <p>KSP won\'t save here</p>;\nimport x from "./schemas/telemachus";\n';
+    expect(codeOnly(source, "probe.tsx")).toMatch(/telemachus/i);
+  });
+
+  it("still finds real references in the repo, so a blind scan cannot pass", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    // Not a specific file: naming one would fail the day its debt is paid,
+    // which would punish the migration this gate exists to encourage.
+    expect(findViolations(root, "telemachus").length).toBeGreaterThan(0);
   });
 });
 
