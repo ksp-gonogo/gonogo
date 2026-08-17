@@ -52,6 +52,10 @@ namespace Gonogo.KSP.SilenceTracking
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                // silence.<guid>.<field> is this vessel's own reckoning, so it
+                // records on that craft's node. Declared here rather than known
+                // to the engine.
+                PerVesselNode = true,
             });
 
             // Ungated: no subscriptionTopicPrefixes argument, see this

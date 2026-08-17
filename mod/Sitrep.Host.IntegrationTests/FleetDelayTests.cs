@@ -29,9 +29,17 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("fleet.abc-123", "system")]              // no field segment -> not a per-vessel topic
         [InlineData("silence.abc-123.state", "fleet.abc-123")] // comms-owned reckoning shares the vessel's node
         [InlineData("silence.abc-123", "system")]              // no field segment -> not a per-vessel topic
+        [InlineData("extension.abc-123.field", "fleet.abc-123")] // an Uplink's own declared namespace, same node
         public void NodeForTopicRoutesFleetTopicsToPerVesselNodes(string topic, string expectedNode)
         {
-            Assert.Equal(expectedNode, ChannelEngine.NodeForTopic(topic));
+            // Through a REGISTERED engine: every namespace except core's own
+            // "fleet." earns the per-vessel node by declaring PerVesselNode, so
+            // the routing is only answerable once the uplink has registered.
+            // Not started: registration is all the routing question needs, and
+            // Stop() would join a thread that never ran.
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            Assert.Equal(expectedNode, engine.NodeFor(topic));
         }
 
         [Fact]
@@ -137,6 +145,44 @@ namespace Sitrep.Host.IntegrationTests
                 var farArrival = far.Min(f => f.Meta.DeliveredAt);
                 Assert.True(nearArrival < farArrival,
                     $"near arrived at {nearArrival}, far at {farArrival} -- expected near strictly earlier");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task ADeclaredPerVesselNamespaceIsDelayedByEachVesselsOwnLightTime()
+        {
+            // The leak this closes is silent: a per-vessel topic under a
+            // namespace core does not recognise records on the single default
+            // node, so a Munar base's payload arrives at the ACTIVE craft's
+            // light-time. The value still turns up, just early, with someone
+            // else's delay on it, which no assertion about presence can see.
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FleetDelayTestUplink.ExtensionPrefix + "near.field", Timeout);
+                await SubscribeAsync(client, FleetDelayTestUplink.ExtensionPrefix + "far.field", Timeout);
+
+                for (var ut = 0.0; ut <= 6.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FleetFixture(ut, ("near", 2.0), ("far", 6.0)), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var near = frames.Where(f => f.Topic == FleetDelayTestUplink.ExtensionPrefix + "near.field").ToList();
+                var far = frames.Where(f => f.Topic == FleetDelayTestUplink.ExtensionPrefix + "far.field").ToList();
+                Assert.NotEmpty(near);
+                Assert.NotEmpty(far);
+                var nearArrival = near.Min(f => f.Meta.DeliveredAt);
+                var farArrival = far.Min(f => f.Meta.DeliveredAt);
+                Assert.True(nearArrival < farArrival,
+                    $"near arrived at {nearArrival}, far at {farArrival} -- an Uplink-owned per-vessel namespace is riding one shared delay");
             }
             finally
             {

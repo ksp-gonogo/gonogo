@@ -105,7 +105,9 @@ namespace Sitrep.Host
         /// <see cref="RegisterDynamicNamespace"/> is last-registration-wins per
         /// prefix: a second uplink registering "fleet." would overwrite the fleet
         /// capture's LossyLatest template (and its channel ownership) with the
-        /// event lane's ReliableOrdered one. Same node, own namespace.</para>
+        /// event lane's ReliableOrdered one. Same node, own namespace, earned by
+        /// declaring <see cref="ChannelDeclaration.PerVesselNode"/> at the
+        /// registration rather than by being named here.</para>
         /// </summary>
         public const string CurrencyEventPrefix = "currency.";
 
@@ -124,39 +126,59 @@ namespace Sitrep.Host
         /// <see cref="CurrencyEventPrefix"/> is disjoint:
         /// <see cref="RegisterDynamicNamespace"/> is last-registration-wins per
         /// prefix, and re-registering "fleet." here would clobber the fleet
-        /// capture's own template/ownership. Same node, own namespace.</para>
+        /// capture's own template/ownership. Same node, own namespace, earned by
+        /// declaring <see cref="ChannelDeclaration.PerVesselNode"/> at the
+        /// registration rather than by being named here.</para>
         /// </summary>
         public const string SilenceEventPrefix = "silence.";
 
         /// <summary>
-        /// Resolves the Courier node a topic records/subscribes under. A
-        /// per-vessel "fleet.&lt;guid&gt;.&lt;field&gt;" topic maps to its own node
-        /// "fleet.&lt;guid&gt;", and a source-attributed
-        /// "currency.&lt;guid&gt;.&lt;currency&gt;" or "silence.&lt;guid&gt;.&lt;field&gt;"
-        /// event maps to that same per-vessel node (see
-        /// <see cref="CurrencyEventPrefix"/>/<see cref="SilenceEventPrefix"/>);
-        /// everything else stays on the single <see cref="NodeId"/>. This is the
-        /// ONLY seam that makes the node axis per-vessel (Plan 2) -- the
+        /// Resolves the Courier node a topic records/subscribes under, for the
+        /// namespaces core owns itself: a per-vessel
+        /// "fleet.&lt;guid&gt;.&lt;field&gt;" topic maps to its own node
+        /// "fleet.&lt;guid&gt;", everything else to the single
+        /// <see cref="NodeId"/>. An Uplink's OWN per-vessel namespace routes
+        /// through <see cref="NodeFor"/> instead, which consults what each
+        /// namespace declared; this is the fallback beneath it. Together they
+        /// are the ONLY seam that makes the node axis per-vessel (Plan 2), the
         /// Courier/Archive already key by opaque node.
         /// </summary>
         internal static string NodeForTopic(string topic)
         {
-            if (topic.StartsWith(CurrencyEventPrefix, StringComparison.Ordinal))
-            {
-                var guid = GuidSegment(topic, CurrencyEventPrefix.Length);
-                return guid == null ? NodeId : FleetNodePrefix + guid;
-            }
-            if (topic.StartsWith(SilenceEventPrefix, StringComparison.Ordinal))
-            {
-                var guid = GuidSegment(topic, SilenceEventPrefix.Length);
-                return guid == null ? NodeId : FleetNodePrefix + guid;
-            }
             if (!topic.StartsWith(FleetNodePrefix, StringComparison.Ordinal))
             {
                 return NodeId;
             }
             var dot = topic.IndexOf('.', FleetNodePrefix.Length);
             return dot < 0 ? NodeId : topic.Substring(0, dot);
+        }
+
+        /// <summary>
+        /// The node a topic records/subscribes under, honouring every dynamic
+        /// namespace registered with <see cref="ChannelDeclaration.PerVesselNode"/>:
+        /// a "&lt;prefix&gt;&lt;guid&gt;.&lt;field&gt;" topic under one of those
+        /// records on that craft's own "fleet.&lt;guid&gt;" node, so it reveals
+        /// at that craft's light-time rather than the active vessel's. Falls
+        /// back to <see cref="NodeForTopic"/> for core's own namespaces.
+        ///
+        /// <para>Every per-vessel namespace is a DECLARATION rather than a name
+        /// written in here, including the two that were once hardcoded
+        /// (<see cref="CurrencyEventPrefix"/>, <see cref="SilenceEventPrefix"/>):
+        /// the routing an Uplink needs cannot be conditional on core having
+        /// heard of that Uplink.</para>
+        /// </summary>
+        internal string NodeFor(string topic)
+        {
+            foreach (var prefix in _perVesselNamespacePrefixes)
+            {
+                if (!topic.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                var guid = GuidSegment(topic, prefix.Length);
+                return guid == null ? NodeId : FleetNodePrefix + guid;
+            }
+            return NodeForTopic(topic);
         }
 
         /// <summary>
@@ -294,11 +316,11 @@ namespace Sitrep.Host
         /// node test (rather than a bare prefix match) keeps the exemption to
         /// genuine per-vessel topics.</para>
         /// </summary>
-        private static bool IsFreezeExempt(string topic) =>
+        private bool IsFreezeExempt(string topic) =>
             topic == ConnectivityMetaTopic
             || ((topic.EndsWith(ContactMetaSuffix, StringComparison.Ordinal)
                     || topic.EndsWith(SilenceStateSuffix, StringComparison.Ordinal))
-                && NodeForTopic(topic).StartsWith(FleetNodePrefix, StringComparison.Ordinal));
+                && NodeFor(topic).StartsWith(FleetNodePrefix, StringComparison.Ordinal));
 
         // The built-in uplink-health-self-report channel (see
         // BuildSystemUplinksPayload's doc comment). Unlike every other
@@ -463,7 +485,7 @@ namespace Sitrep.Host
         // lookup before the first real transition fails soft to CONNECTED.
         // Per-subject connectivity-interval history (Plan 2b): node ->
         // UT-ascending transition list. FlushReveal's per-entry gate consults
-        // ConnectivityAt(NodeForTopic(topic), entry.Ut) to decide whether a
+        // ConnectivityAt(NodeFor(topic), entry.Ut) to decide whether a
         // buffered Delayed sample was captured while THAT subject's link was up
         // (reveal, the pre-outage tail) or during its blackout (withhold,
         // frozen). A stateless per-subject bool cannot do this: the decision is
@@ -507,6 +529,13 @@ namespace Sitrep.Host
         // set of dynamic namespaces this exists for today.
         private readonly Dictionary<string, ChannelDeclaration> _dynamicNamespaces = new Dictionary<string, ChannelDeclaration>();
         private readonly Dictionary<string, string> _dynamicNamespaceOwner = new Dictionary<string, string>();
+
+        // Prefixes of the dynamic namespaces that declared
+        // ChannelDeclaration.PerVesselNode: NodeFor routes a topic under one of
+        // them onto that craft's own fleet.<guid> node. Written during
+        // Register() (before Start()), same single-writer-before-start
+        // discipline as _dynamicNamespaces above, then only read.
+        private readonly List<string> _perVesselNamespacePrefixes = new List<string>();
 
         // Per-prefix listeners registered via IDynamicChannelSource.OnSubscribed
         // (Gap A of the terminal-integrity adversarial review), invoked from
@@ -1338,6 +1367,10 @@ namespace Sitrep.Host
         {
             _dynamicNamespaces[prefix] = template;
             _dynamicNamespaceOwner[prefix] = _currentRegisteringUplinkId ?? "";
+            if (template.PerVesselNode && !_perVesselNamespacePrefixes.Contains(prefix))
+            {
+                _perVesselNamespacePrefixes.Add(prefix);
+            }
             return new DynamicChannelSource(this, prefix);
         }
 
@@ -1785,7 +1818,7 @@ namespace Sitrep.Host
             _born.Clear();
             foreach (var topic in _channelDeclarations.Keys)
             {
-                if (_courier.HasAnyArchiveTail(NodeForTopic(topic), topic))
+                if (_courier.HasAnyArchiveTail(NodeFor(topic), topic))
                 {
                     _born.Add(topic);
                 }
@@ -2534,7 +2567,7 @@ namespace Sitrep.Host
             var delay = RevealDelayFor(topic);
             if (delay <= 0.0)
             {
-                _courier.Record(NodeForTopic(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value));
+                _courier.Record(NodeFor(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value));
                 return;
             }
 
@@ -2654,7 +2687,7 @@ namespace Sitrep.Host
             // instantly, ahead of the light that carries the evidence for it.
             if (IsFreezeExempt(topic))
             {
-                var contactDelay = _subjectLastConnectedDelay.TryGetValue(NodeForTopic(topic), out var c) ? c : 0.0;
+                var contactDelay = _subjectLastConnectedDelay.TryGetValue(NodeFor(topic), out var c) ? c : 0.0;
                 if (double.IsNaN(contactDelay) || double.IsInfinity(contactDelay) || contactDelay <= 0.0)
                 {
                     return 0.0;
@@ -2674,7 +2707,7 @@ namespace Sitrep.Host
             // Per-subject freeze (Plan 2b): a fleet.<guid> topic freezes on ITS
             // OWN vessel's link; every non-fleet topic + the active vessel key
             // by "system" (byte-identical to the old single global bool).
-            if (!SubjectConnected(NodeForTopic(topic)))
+            if (!SubjectConnected(NodeFor(topic)))
             {
                 return double.PositiveInfinity;
             }
@@ -2877,7 +2910,7 @@ namespace Sitrep.Host
         /// </summary>
         private void CleanUpSubjectIfGone(string topic)
         {
-            var node = NodeForTopic(topic);
+            var node = NodeFor(topic);
             if (node == NodeId)
             {
                 return; // "system" is permanent.
@@ -2979,7 +3012,7 @@ namespace Sitrep.Host
         {
             foreach (var topic in new List<string>(_revealBuffer.Keys))
             {
-                if (IsFreezeExempt(topic) || NodeForTopic(topic) != node)
+                if (IsFreezeExempt(topic) || NodeFor(topic) != node)
                 {
                     continue;
                 }
@@ -3024,7 +3057,7 @@ namespace Sitrep.Host
             var oldestBufferedUt = double.PositiveInfinity;
             foreach (var kv in _revealBuffer)
             {
-                if (NodeForTopic(kv.Key) != node)
+                if (NodeFor(kv.Key) != node)
                 {
                     continue;
                 }
@@ -3125,9 +3158,9 @@ namespace Sitrep.Host
                     // true for it: this gate's real work is letting the exempt
                     // topics through (whose blackout samples are precisely the
                     // ones reporting connected:false / Silent / Lost).
-                    if (horizonReached && (freezeExempt || ConnectivityAt(NodeForTopic(topic), entry.Ut)))
+                    if (horizonReached && (freezeExempt || ConnectivityAt(NodeFor(topic), entry.Ut)))
                     {
-                        _courier.Record(NodeForTopic(topic), topic, entry.Value, entry.Ut, DeliveryFor(topic), IsKeyframeFor(topic, entry.Value));
+                        _courier.Record(NodeFor(topic), topic, entry.Value, entry.Ut, DeliveryFor(topic), IsKeyframeFor(topic, entry.Value));
                     }
                     else
                     {
@@ -3636,14 +3669,14 @@ namespace Sitrep.Host
                 // routed onto the meta vantage, is what stops an exempt channel
                 // being delayed once by its own gate horizon and then a second
                 // time by the ledger.
-                _network.SetDelay(MetaVantage, NodeForTopic(topic), 0.0);
+                _network.SetDelay(MetaVantage, NodeFor(topic), 0.0);
             }
             var delivery = _channelDeclarations[topic].Delivery;
 
             Action unsubscribe;
             try
             {
-                unsubscribe = _courier.SubscribeStream(NodeForTopic(topic), topic, vantage, streamData =>
+                unsubscribe = _courier.SubscribeStream(NodeFor(topic), topic, vantage, streamData =>
                 {
                     // C2-2(b): streamData.Payload is uplink-authored --
                     // some CLR shapes JsonWriter can never serialize (an

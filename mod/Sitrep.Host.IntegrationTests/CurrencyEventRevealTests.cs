@@ -49,7 +49,15 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("career.status", "system")]
         public void NodeForTopicRoutesCurrencyEventsToTheirSourceVesselsNode(string topic, string expectedNode)
         {
-            Assert.Equal(expectedNode, ChannelEngine.NodeForTopic(topic));
+            // Through a REGISTERED engine: the currency namespace earns the
+            // per-vessel node by declaring PerVesselNode, so asking the engine
+            // is the only question that means anything. A static call would
+            // pass on a namespace nobody registered.
+            // Not started: registration is all the routing question needs, and
+            // Stop() would join a thread that never ran.
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CurrencyEventTestUplink());
+            Assert.Equal(expectedNode, engine.NodeFor(topic));
         }
 
         [Fact]
@@ -288,14 +296,15 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public async Task ScienceAndReputationFromTheSameVesselShareOneClock()
         {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CurrencyEventTestUplink());
+
             // Both currencies route to the same per-vessel node, so a vessel has ONE
             // light-time and not one per currency.
             Assert.Equal(
-                ChannelEngine.NodeForTopic(CurrencyEventTopics.Science("probe")),
-                ChannelEngine.NodeForTopic(CurrencyEventTopics.Reputation("probe")));
+                engine.NodeFor(CurrencyEventTopics.Science("probe")),
+                engine.NodeFor(CurrencyEventTopics.Reputation("probe")));
 
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new CurrencyEventTestUplink());
             engine.Start();
             try
             {

@@ -104,6 +104,10 @@ namespace Gonogo.KSP
                 // Coarse keyframe interval: an event is discrete, so the change-gate
                 // plus the reliable lane carry each new value on their own.
                 Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                // currency.<guid>.<currency> is keyed by the vessel the delta came
+                // FROM, so it records on that craft's node and reveals at its
+                // light-time. Declared here rather than known to the engine.
+                PerVesselNode = true,
             });
 
             // UNGATED per-tick drain (no subscription prefix), the same discipline

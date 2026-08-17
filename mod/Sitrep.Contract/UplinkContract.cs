@@ -110,6 +110,29 @@ namespace Sitrep.Contract
         /// channel's catch-up behavior byte-for-byte unchanged.
         /// </summary>
         public Func<object?, bool>? IsKeyframe { get; set; }
+
+        /// <summary>
+        /// Declares that topics under this DYNAMIC NAMESPACE are keyed by
+        /// vessel: <c>&lt;prefix&gt;&lt;guid&gt;.&lt;field&gt;</c>, recorded
+        /// under that craft's own Courier node, so each one reveals at its OWN
+        /// light-time. Any namespace that is per-vessel MUST set it.
+        ///
+        /// <para>The default routes to the single main node, which carries the
+        /// ACTIVE vessel's light-time, and for anything keyed by vessel that is
+        /// wrong in the direction that leaks: a Munar base's payload arrives at
+        /// the delay of whatever craft the player happens to be flying, which is
+        /// usually shorter. Nothing goes missing and nothing goes red, the value
+        /// simply turns up early wearing someone else's delay, so no test that
+        /// asserts a payload arrived can see it.</para>
+        ///
+        /// <para>It is the declared form of the routing that
+        /// <c>fleet.</c>-prefixed telemetry gets built in: an Uplink earns the
+        /// per-vessel node by SAYING its namespace is per-vessel, rather than by
+        /// having its name added to core's routing, so a third-party Uplink can
+        /// have it too. Ignored on a static channel declaration, whose one topic
+        /// is not keyed by anything.</para>
+        /// </summary>
+        public bool PerVesselNode { get; set; } = false;
     }
 
     /// <summary>

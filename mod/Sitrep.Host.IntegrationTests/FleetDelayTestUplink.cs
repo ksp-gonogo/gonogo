@@ -18,8 +18,20 @@ namespace Sitrep.Host.IntegrationTests
     {
         public const string Prefix = ChannelEngine.FleetNodePrefix;
 
+        /// <summary>
+        /// A namespace core has never heard of, standing in for an Uplink that
+        /// publishes its own per-vessel opinion (Kerbalism's life support for
+        /// every craft, say). It earns its per-vessel node routing by DECLARING
+        /// <see cref="ChannelDeclaration.PerVesselNode"/> rather than by having
+        /// its name written into the engine, which is what
+        /// <c>ChannelEngine.CurrentlyKnownPerVesselPrefixes</c> would otherwise
+        /// have to grow for every mod.
+        /// </summary>
+        public const string ExtensionPrefix = "extension.";
+
         private IDynamicChannelSource? _orbitSource;
         private IDynamicChannelSource? _silenceSource;
+        private IDynamicChannelSource? _extensionSource;
         private IUplinkHost? _host;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -42,20 +54,28 @@ namespace Sitrep.Host.IntegrationTests
             // fleet.<id>.contact for core connected/lastContactUt; a
             // comms-owned publisher owns silence.<id>.state for the
             // SilenceTracker's reckoning): a DISJOINT prefix, same as
-            // ChannelEngine.CurrencyEventPrefix, that NodeForTopic still maps
+            // ChannelEngine.CurrencyEventPrefix, that PerVesselNode still maps
             // back onto this vessel's own fleet.<id> node.
             _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
             {
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                PerVesselNode = true,
+            });
+            _extensionSource = host.RegisterDynamicNamespace(ExtensionPrefix, new ChannelDeclaration
+            {
+                Delivery = Delivery.LossyLatest,
+                Delay = DelayRole.Delayed,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                PerVesselNode = true,
             });
             // Per-subject freeze (Plan 2b): each roster entry carries its own
             // "connected" flag (default true), set via SetVesselConnectivity in
             // the gated capture -- so each fleet vessel freezes on ITS OWN link.
             // The active vessel ("system") is not driven here (stays connected).
             // Subscription-gated: skip the whole fleet capture when no fleet.* topic is subscribed.
-            host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix);
+            host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix, ExtensionPrefix);
         }
 
         internal object? CaptureOnMain(KspSnapshot? snapshot)
@@ -114,6 +134,12 @@ namespace Sitrep.Host.IntegrationTests
                     {
                         ["state"] = connected ? "Nominal" : "Silent",
                     },
+                    cap.Ut);
+                // The Uplink-owned per-vessel opinion: same vessel, a namespace
+                // core knows nothing about, so the ONLY thing that can route it
+                // onto this craft's own node is the declaration.
+                _extensionSource?.Publisher(id + ".field").Publish(
+                    new Dictionary<string, object?> { ["value"] = id },
                     cap.Ut);
                 // Plan 2c: mirror the production FleetVesselLinkBuilder.Build dict
                 // (this test project can't reference Gonogo.KSP), so the

@@ -42,6 +42,7 @@ namespace Sitrep.Host.IntegrationTests
                 Delivery = Delivery.ReliableOrdered,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                PerVesselNode = true,
             });
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix);
         }
