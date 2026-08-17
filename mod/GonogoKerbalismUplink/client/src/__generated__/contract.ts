@@ -144,6 +144,7 @@ export interface KerbalismLifeSupport
 	processes?: KerbalismProcessEntry[];
 	ruleEnvModifiers?: { [key: string]: Value<"1"> };
 	greenhouses?: KerbalismGreenhouseEntry[];
+	asOfUt?: Value<"s">;
 }
 export interface KerbalismCrewRule
 {
@@ -158,6 +159,7 @@ export interface KerbalismCrewEntry
 	trait?: string;
 	rules?: KerbalismCrewRule[];
 	deathClockSec?: Value<"s">;
+	asOfUt?: Value<"s">;
 }
 export interface KerbalismFeatures
 {

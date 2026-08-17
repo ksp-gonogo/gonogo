@@ -49,6 +49,7 @@
   ],
   "types": {
     "KerbalismCrewEntry": {
+      "asOfUt": "s",
       "deathClockSec": "s",
       "name": "text",
       "trait": "text"
@@ -111,6 +112,7 @@
       "sourceMassThreshold": "t"
     },
     "KerbalismLifeSupport": {
+      "asOfUt": "s",
       "rates": "units/s",
       "ruleEnvModifiers": "1"
     },
@@ -239,6 +241,7 @@
   },
   "topics": {
     "kerbalism.crew": {
+      "asOfUt": "s",
       "deathClockSec": "s",
       "name": "text",
       "trait": "text"
@@ -259,6 +262,7 @@
       "supplies": "flag"
     },
     "kerbalism.lifesupport": {
+      "asOfUt": "s",
       "rates": "units/s",
       "ruleEnvModifiers": "1"
     },

@@ -626,6 +626,43 @@ namespace Gonogo.KerbalismUplink
             internal object? Resources;
         }
 
+        /// <summary>
+        /// How long ago, in seconds of sim time, Kerbalism last recomputed this
+        /// vessel's environment and status (<c>VesselData.secSinceLastEval</c>,
+        /// which it accumulates between evaluations and resets to zero at each
+        /// one). Subtract it from the read UT for the UT the values were true
+        /// at.
+        ///
+        /// <para>Worth reading because it is not small for a background craft:
+        /// Kerbalism steps ONE unloaded vessel per tick, so a value from a fleet
+        /// of thirty probes can be thirty ticks old. Null when it cannot be
+        /// read, which the caller must carry as ignorance rather than substitute
+        /// the read time for.</para>
+        /// </summary>
+        public double? SecondsSinceLastEvaluation(Vessel v)
+        {
+            if (v == null || _dbKerbalismData == null) return null;
+            object? vd;
+            try { vd = _dbKerbalismData.Invoke(null, new object[] { v }); } catch { return null; }
+            return vd == null ? null : AsDouble(HiddenMember(vd, "secSinceLastEval"));
+        }
+
+        /// <summary>
+        /// Whether Kerbalism simulates this vessel at all
+        /// (<c>VesselData.IsSimulated</c>: false for debris, a rescue-contract
+        /// craft and a dead EVA kerbal). A vessel it does not simulate has
+        /// resource and habitat values that nothing is maintaining, so reading
+        /// them would report a frozen state as a live one. Null when the read
+        /// fails.
+        /// </summary>
+        public bool? IsSimulated(Vessel v)
+        {
+            if (v == null || _dbKerbalismData == null) return null;
+            object? vd;
+            try { vd = _dbKerbalismData.Invoke(null, new object[] { v }); } catch { return null; }
+            return vd == null ? null : MemberBool(vd, "IsSimulated");
+        }
+
         public ModifierContext? BeginModifierContext(Vessel v)
         {
             if (v == null || _dbKerbalismData == null || _resourceCacheGet == null) return null;

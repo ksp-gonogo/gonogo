@@ -22,6 +22,10 @@
   <ItemGroup>
     <Compile Include="..\GonogoKerbalismUplink\KerbalismRawTypes.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismCapture.cs" />
+    <!-- The per-craft subscription gate for the kerbalism.vessel.<guid> fleet
+         namespace: KSP-free on purpose, because reading every craft in the save
+         looks exactly like reading the watched one from the outside. -->
+    <Compile Include="..\GonogoKerbalismUplink\KerbalismFleetScope.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismReliabilityMap.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismScienceMap.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismIsruMap.cs" />

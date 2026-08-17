@@ -180,25 +180,38 @@ namespace Gonogo.KerbalismUplink
             return outMap;
         }
 
+        /// <summary>
+        /// <paramref name="processes"/> is nullable and the difference matters:
+        /// an empty list says the craft was read and runs no processes, null
+        /// says the list could not be read at all (a background craft, whose
+        /// parts KSP has discarded), and it rides through to the wire as null
+        /// rather than being flattened into an empty array. See
+        /// <c>KerbalismLifeSupport.Processes</c>.
+        /// </summary>
         public static Dictionary<string, object?> BuildLifeSupport(
             KerbalismSnapshot s,
-            List<ProcessRaw> processes,
+            List<ProcessRaw>? processes,
             IReadOnlyDictionary<string, double>? rates = null,
-            IReadOnlyDictionary<string, double>? ruleEnvModifiers = null)
+            IReadOnlyDictionary<string, double>? ruleEnvModifiers = null,
+            double? asOfUt = null)
         {
-            var procs = new List<object>();
-            foreach (var p in processes)
-                procs.Add(new Dictionary<string, object?>
-                {
-                    ["resource"] = p.Resource,
-                    ["title"] = p.Title,
-                    ["capacity"] = p.Capacity,
-                    ["running"] = p.Running,
-                    ["broken"] = p.Broken,
-                    ["flightId"] = p.FlightId,
-                    ["valveIndex"] = p.ValveIndex,
-                    ["envModifier"] = p.EnvModifier,
-                });
+            List<object>? procs = null;
+            if (processes != null)
+            {
+                procs = new List<object>();
+                foreach (var p in processes)
+                    procs.Add(new Dictionary<string, object?>
+                    {
+                        ["resource"] = p.Resource,
+                        ["title"] = p.Title,
+                        ["capacity"] = p.Capacity,
+                        ["running"] = p.Running,
+                        ["broken"] = p.Broken,
+                        ["flightId"] = p.FlightId,
+                        ["valveIndex"] = p.ValveIndex,
+                        ["envModifier"] = p.EnvModifier,
+                    });
+            }
 
             // Full map every emission, never a delta: a key disappearing is then
             // itself a real statement (vessel.resources' own convention).
@@ -225,12 +238,21 @@ namespace Gonogo.KerbalismUplink
                 },
                 ["processes"] = procs,
                 ["ruleEnvModifiers"] = ruleModifierMap,
+                ["asOfUt"] = asOfUt,
             };
         }
 
+        /// <summary>
+        /// <paramref name="asOfUt"/> stamps every entry with the UT Kerbalism
+        /// last advanced these accumulators at (see
+        /// <c>KerbalismCrewEntry.AsOfUt</c>): null stays null rather than
+        /// standing in the read time, which would claim a freshness nobody
+        /// measured.
+        /// </summary>
         public static List<object> BuildCrew(
             IEnumerable<KerbalRulesRaw> crew,
-            IReadOnlyDictionary<string, RuleConstants> constants)
+            IReadOnlyDictionary<string, RuleConstants> constants,
+            double? asOfUt = null)
         {
             var list = new List<object>();
             foreach (var k in crew)
@@ -256,6 +278,7 @@ namespace Gonogo.KerbalismUplink
                     // derives stage-1 (resource time-to-empty from kerbalism.lifesupport) +
                     // stage-2 (this rule's (fatalThreshold - value)/degenPerSec).
                     ["deathClockSec"] = null,
+                    ["asOfUt"] = asOfUt,
                 });
             }
             return list;

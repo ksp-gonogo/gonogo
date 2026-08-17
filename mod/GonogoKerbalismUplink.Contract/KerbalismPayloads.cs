@@ -559,6 +559,22 @@ public class KerbalismLifeSupport
     [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public Dictionary<string, double>? Rates { get; set; }
     public KerbalismHabitat? Habitat { get; set; }
+
+    /// <summary>
+    /// The per-part process list, with a THREE-WAY absence that a consumer must
+    /// respect: a populated list is what is running, an EMPTY list means the
+    /// craft was read and carries no processes, and NULL means the list could
+    /// not be read at all for this craft this tick.
+    ///
+    /// <para>Null happens for a background craft: KSP discards a vessel's
+    /// <c>Part</c> objects when it unloads, and every process fact here (which
+    /// part, its title, whether it is broken, its dump valve) lives on the part
+    /// module. Kerbalism keeps simulating the craft's processes from a
+    /// pseudo-resource, so the SUPPLIES and rates alongside this field are real
+    /// while the per-part detail is simply unavailable. Rendering null as "no
+    /// processes running" would turn a gap in our reading into a false
+    /// statement about the craft, which is why it is not an empty list.</para>
+    /// </summary>
     public List<KerbalismProcessEntry>? Processes { get; set; }
     /// <summary>
     /// Live modifier product k per rule name, keyed to join against
@@ -592,6 +608,25 @@ public class KerbalismLifeSupport
     /// fixture-tested against it now.
     /// </summary>
     public List<KerbalismGreenhouseEntry>? Greenhouses { get; set; }
+
+    /// <summary>
+    /// The UT these values were last RECOMPUTED at by Kerbalism, which is not
+    /// the UT they were read at and can be a long way behind it.
+    ///
+    /// <para>Kerbalism steps exactly ONE unloaded vessel per physics tick, the
+    /// one that has waited longest, catching it up with the whole interval it
+    /// waited. So a background craft's life support is integrated correctly and
+    /// refreshed rarely: with N unloaded craft, every N ticks. That staleness is
+    /// independent of comms delay and invisible without this stamp, a fleet
+    /// readout would otherwise show a value from several ticks ago as though it
+    /// were current.</para>
+    ///
+    /// <para>Null when Kerbalism's own last-evaluation marker could not be read,
+    /// which is a statement of ignorance and never a substituted capture time:
+    /// stamping the read time would claim a freshness we did not measure.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? AsOfUt { get; set; }
 }
 
 /// <summary>
@@ -644,6 +679,18 @@ public class KerbalismCrewEntry
     /// <summary>Optional mod-computed soonest-fatal countdown (s). Null when not derivable. [fixture-confirm]</summary>
     [SitrepUnit(Units.Seconds)]
     public double? DeathClockSec { get; set; }
+
+    /// <summary>
+    /// The UT this kerbal's rule accumulators were last ADVANCED at, which for
+    /// a kerbal aboard a background craft can be well behind the read time: the
+    /// accumulators move on their vessel's Kerbalism turn, and unloaded craft
+    /// take those turns one per tick, in rotation. Same meaning and same
+    /// null-is-ignorance rule as <see cref="KerbalismLifeSupport.AsOfUt"/>, on
+    /// each entry rather than on the list because two kerbals can be on
+    /// different craft with different turns.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? AsOfUt { get; set; }
 }
 
 /// <summary>

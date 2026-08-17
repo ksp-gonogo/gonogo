@@ -297,6 +297,47 @@ public class KerbalismCaptureTests
         var stress = (Dictionary<string, object?>)rules[1];
         Assert.Equal(0.0, (double)stress["degenPerSec"]!, 12);
     }
+
+    [Fact]
+    public void BuildLifeSupport_omits_the_process_list_rather_than_emitting_an_empty_one()
+    {
+        // A background craft's parts are gone, so the per-part process detail
+        // cannot be read while the supplies alongside it are real. An empty
+        // list would say "nothing is running", which is a claim about the
+        // craft rather than about our reading of it.
+        var ls = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), processes: null);
+        Assert.Null(ls["processes"]);
+        Assert.True(ls.ContainsKey("processes"));
+    }
+
+    [Fact]
+    public void BuildLifeSupport_stamps_the_ut_the_values_were_last_recomputed_at()
+    {
+        var ls = KerbalismCapture.BuildLifeSupport(
+            new KerbalismSnapshot(), new List<ProcessRaw>(), asOfUt: 12_340.5);
+        Assert.Equal(12_340.5, (double)ls["asOfUt"]!, 6);
+
+        // Unknown stays unknown: never the read time standing in for a
+        // freshness nobody measured.
+        var unstamped = KerbalismCapture.BuildLifeSupport(new KerbalismSnapshot(), new List<ProcessRaw>());
+        Assert.Null(unstamped["asOfUt"]);
+    }
+
+    [Fact]
+    public void BuildCrew_stamps_each_kerbal_with_the_ut_their_rules_last_advanced_at()
+    {
+        var crew = new[]
+        {
+            new KerbalRulesRaw { Name = "Bob Kerman", Trait = "Engineer", Rules = new() { ["radiation"] = 0.5 } },
+        };
+        var built = KerbalismCapture.BuildCrew(crew, new Dictionary<string, RuleConstants>(), asOfUt: 8_800.25);
+        var kerbal = (Dictionary<string, object?>)built[0];
+        Assert.Equal(8_800.25, (double)kerbal["asOfUt"]!, 6);
+
+        var unstamped = (Dictionary<string, object?>)KerbalismCapture.BuildCrew(
+            crew, new Dictionary<string, RuleConstants>())[0];
+        Assert.Null(unstamped["asOfUt"]);
+    }
 }
 
 public class KerbalismReliabilityMapTests

@@ -48,6 +48,9 @@ namespace Gonogo.KerbalismUplink
         /// </summary>
         private readonly KerbalismScienceHook _scienceHook = new();
 
+        /// <summary>The same reads, for every OTHER craft: see <see cref="KerbalismFleetChannels"/>.</summary>
+        private readonly KerbalismFleetChannels _fleet;
+
         private IChannelPublisher? _spaceWeather;
         private IChannelPublisher? _lifeSupport;
         private IChannelPublisher? _crew;
@@ -60,6 +63,7 @@ namespace Gonogo.KerbalismUplink
         public KerbalismUplink()
         {
             _fileActuator = new KerbalismFileActuator(_k);
+            _fleet = new KerbalismFleetChannels(_k, CaptureVessel);
 
             Manifest = new UplinkManifest
             {
@@ -154,6 +158,12 @@ namespace Gonogo.KerbalismUplink
             _spaceWeather = host.Publisher(SpaceWeatherTopic);
             _lifeSupport = host.Publisher(LifeSupportTopic);
             _crew = host.Publisher(CrewTopic);
+
+            // The rest of the fleet on the same reads, one namespace per craft
+            // and gated per craft (see KerbalismFleetChannels). Registered
+            // unconditionally alongside the active-vessel channels: its capture
+            // does nothing at all until a client subscribes to a specific craft.
+            _fleet.RegisterInto(host);
 
             // Vessel telemetry: capture live Kerbalism on the main thread, publish off it.
             host.AddSampledSource(
@@ -327,9 +337,27 @@ namespace Gonogo.KerbalismUplink
         }
 
         /// <summary>MAIN-THREAD capture: read live Kerbalism into a plain bundle (no KSP handles cross threads).</summary>
-        private object? CaptureOnMain(KspSnapshot? snapshot)
+        private object? CaptureOnMain(KspSnapshot? snapshot) =>
+            CaptureVessel(FlightGlobals.ActiveVessel, snapshot?.Ut ?? 0.0);
+
+        /// <summary>
+        /// MAIN-THREAD capture of ONE craft, active or not. Every read here
+        /// answers for an unloaded vessel as well as a loaded one: Kerbalism's
+        /// resource cache walks proto part snapshots when the parts are gone,
+        /// its habitat info has an unloaded mode of its own, and the per-kerbal
+        /// rule accumulators are advanced by the vessel's own background turn.
+        ///
+        /// <para>The one exception is the process list, which lives on the part
+        /// modules KSP discards on unload, so it is left NULL rather than empty
+        /// for a background craft: see <c>KerbalismLifeSupport.Processes</c> for
+        /// why the difference is load-bearing.</para>
+        ///
+        /// <para><see cref="KerbalismCaptured.AsOfUt"/> carries when Kerbalism
+        /// last recomputed all this, which for a background craft is not now:
+        /// unloaded vessels take their turns one per tick, in rotation.</para>
+        /// </summary>
+        internal KerbalismCaptured? CaptureVessel(Vessel v, double ut)
         {
-            var v = FlightGlobals.ActiveVessel;
             if (v == null || !_k.IsAvailable) return null;
 
             double R(string res) => _k.ApiResource("ResourceAmount", v, res) ?? 0;
@@ -365,13 +393,19 @@ namespace Gonogo.KerbalismUplink
             };
 
             var profile = Profile();
-            var processes = new List<ProcessRaw>(_k.Processes(v));
             var modifierCtx = _k.BeginModifierContext(v);
-            ApplyProcessEnvModifiers(_k, processes, profile, v, modifierCtx);
+            List<ProcessRaw>? processes = null;
+            if (v.loaded)
+            {
+                processes = new List<ProcessRaw>(_k.Processes(v));
+                ApplyProcessEnvModifiers(_k, processes, profile, v, modifierCtx);
+            }
+
+            var sinceEval = _k.SecondsSinceLastEvaluation(v);
 
             return new KerbalismCaptured
             {
-                Ut = snapshot?.Ut ?? 0.0,
+                Ut = ut,
                 Snapshot = s,
                 Processes = processes,
                 Crew = new List<KerbalRulesRaw>(_k.CrewRules(v)),
@@ -379,6 +413,7 @@ namespace Gonogo.KerbalismUplink
                 Solar = _k.Solar(v),
                 StormEjectionSpeed = _k.StormEjectionSpeed(),
                 RuleEnvModifiers = RuleEnvModifiers(profile, v, modifierCtx),
+                AsOfUt = sinceEval.HasValue ? ut - sinceEval.Value : (double?)null,
             };
         }
 
@@ -463,8 +498,9 @@ namespace Gonogo.KerbalismUplink
             _spaceWeather?.Publish(
                 KerbalismCapture.BuildSpaceWeather(c.Snapshot, c.Solar.Stars, c.Solar.Storms, c.StormEjectionSpeed), c.Ut);
             _lifeSupport?.Publish(
-                KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers), c.Ut);
-            _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants), c.Ut);
+                KerbalismCapture.BuildLifeSupport(c.Snapshot, c.Processes, c.Snapshot.Rates, c.RuleEnvModifiers, c.AsOfUt),
+                c.Ut);
+            _crew?.Publish(KerbalismCapture.BuildCrew(c.Crew, c.RuleConstants, c.AsOfUt), c.Ut);
         }
 
         public UplinkHealth Health() =>
@@ -473,16 +509,21 @@ namespace Gonogo.KerbalismUplink
                 : new UplinkHealth(UplinkHealthState.Unavailable, "Kerbalism assembly not loaded");
 
         /// <summary>Plain cross-thread bundle: no live KSP references.</summary>
-        private sealed class KerbalismCaptured
+        internal sealed class KerbalismCaptured
         {
             public double Ut;
             public KerbalismSnapshot Snapshot;
-            public List<ProcessRaw> Processes = new();
+
+            /// <summary>Null for a background craft, whose part modules KSP has discarded: absent, not empty.</summary>
+            public List<ProcessRaw>? Processes;
             public List<KerbalRulesRaw> Crew = new();
             public IReadOnlyDictionary<string, RuleConstants> RuleConstants = new Dictionary<string, RuleConstants>();
             public SolarRaw Solar = new();
             public double? StormEjectionSpeed;
             public IReadOnlyDictionary<string, double> RuleEnvModifiers = new Dictionary<string, double>();
+
+            /// <summary>When Kerbalism last recomputed this, null when unreadable, never the read time standing in.</summary>
+            public double? AsOfUt;
         }
     }
 }
