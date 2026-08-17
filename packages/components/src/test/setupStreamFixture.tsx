@@ -125,11 +125,13 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     wall,
     Provider,
     emit: (topic, payload, metaOverrides) => {
-      if (EMITS_MUTED) return;
+      if (emitsMuted) return;
       transport.emit(topic, payload, metaOverrides);
     },
   };
 }
+
+let emitsMuted = false;
 
 /**
  * Suppress every fixture emit, so a test runs against a widget that was fed
@@ -148,7 +150,15 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
  * second one entirely, because its empty state is punctuation rather than a
  * sentence. Only suppressing the data found it.
  *
- * Read once at module load: the gate sets it for a whole run, and a test that
- * flipped it mid-suite would make its own neighbours' results depend on order.
+ * CALL THIS FROM `src/test/setup.ts` AND NOWHERE ELSE. The gate mutes a whole
+ * vitest run via `GONOGO_MUTE_FIXTURE_EMITS=1`, and that env var is read there,
+ * in the one place that only ever runs under node. This module is also bundled
+ * for the BROWSER (the probe entry imports it for stream-driven widget renders),
+ * where reading `process` at module scope threw `process is not defined` and took
+ * the whole render harness down for a day, see `probe-render-smoke.ts`. There is
+ * deliberately no un-mute: a test that flipped this mid-suite would make its own
+ * neighbours' results depend on order.
  */
-const EMITS_MUTED = process.env.GONOGO_MUTE_FIXTURE_EMITS === "1";
+export function muteFixtureEmits(): void {
+  emitsMuted = true;
+}
