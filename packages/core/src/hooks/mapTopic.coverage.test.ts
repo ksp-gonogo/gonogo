@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { isKnownTelemachusGap, mapTopic } from "@ksp-gonogo/sitrep-client";
 import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { classifyRequirement } from "../declarations";
 
 /**
  * Coverage gate for the M3 `mapTopic` migration table (M2 Task 7): every
@@ -141,13 +142,21 @@ function collectWidgetTelemachusKeys(): Set<string> {
 describe("mapTopic coverage: every widget Telemachus key is mapped or a declared gap", () => {
   // A `dataRequirements` entry can now ALSO be a native SDK topic id read
   // canonically (`useTelemetry(topicId)`, bypassing `mapTopic` entirely:
-  // `ShipMap`/`PowerSystems`'s `"vessel.parts"`, the `useTopology` un-gap).
+  // `ShipMap`/`PowerSystems`'s `"vessel.parts"`, the `useTopology` un-gap),
+  // or a DERIVED channel a widget reads wholesale (`useStream("vessel.state")`,
+  // which is not an `isTopicId` because nothing on the wire publishes it).
   // Those aren't old Telemachus keys at all, so this scan, built to police
   // the legacy-key migration table specifically: excludes them rather than
   // asking `mapTopic`/`isKnownTelemachusGap` to account for a key that was
-  // never theirs to route.
+  // never theirs to route. `classifyRequirement` owns the full set of legal
+  // declaration forms; this test only cares which of them are legacy keys.
   const widgetKeys = new Set(
-    [...collectWidgetTelemachusKeys()].filter((key) => !isTopicId(key)),
+    [...collectWidgetTelemachusKeys()].filter(
+      (key) =>
+        !isTopicId(key) &&
+        classifyRequirement(key) !== "derived-channel" &&
+        classifyRequirement(key) !== "field-path",
+    ),
   );
 
   it("found a non-trivial number of widget keys (scan sanity check)", () => {

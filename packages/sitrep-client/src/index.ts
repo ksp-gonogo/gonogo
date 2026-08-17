@@ -169,6 +169,7 @@ export {
   mapCommand,
 } from "./map-command";
 export {
+  isKnownFieldPath,
   isKnownTelemachusGap,
   mapTopic,
   redirectKinematicSubtopic,

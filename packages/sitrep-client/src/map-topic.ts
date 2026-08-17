@@ -1206,3 +1206,28 @@ export function isKnownTelemachusGap(
   // dv.currentStageResource(Max) derived channels (see mapTopic above).
   return BODY_INDEXED_GAP.test(key);
 }
+
+const KNOWN_FIELD_PATHS: ReadonlySet<string> = new Set(
+  Object.values(TELEMACHUS_CLEAN_HOMES),
+);
+
+/**
+ * Whether `path` is a field path inside a channel that this module already
+ * resolves: precisely the set of targets the migration table points at.
+ *
+ * Exists so a caller can validate a field path WITHOUT importing the table
+ * itself, which keeps the retiring vocabulary's name in this file rather than
+ * spreading it to every module that needs to ask the question. The membership
+ * test is meaningful because every target here is independently proved to
+ * resolve: `vessel-state-mapping.coverage.test.ts` invokes the real
+ * `deriveVesselState` for the derived ones, `map-topic.rawFieldRoots.coverage
+ * .test.ts` checks the wire root of the raw ones.
+ *
+ * When the table retires, this must be re-sourced from the contract's
+ * generated field metadata plus each derived channel's produced field set,
+ * NOT deleted: its callers are validating declarations, which outlive the
+ * vocabulary.
+ */
+export function isKnownFieldPath(path: string): boolean {
+  return KNOWN_FIELD_PATHS.has(path);
+}

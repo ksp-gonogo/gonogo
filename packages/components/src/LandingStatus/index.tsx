@@ -1109,9 +1109,14 @@ registerComponent<LandingStatusConfig>({
   minSize: { w: 4, h: 6 },
   component: LandingStatusComponent,
   dataRequirements: [
-    // `vessel.state` (parentBodyName + targetDistance) is a DERIVED channel
-    // read via useStream; the orchestrator carries it by carrying its inputs,
-    // so list those SDK topics rather than the derived channel itself.
+    // `vessel.state` is a DERIVED channel read wholesale via useStream. Its
+    // raw inputs are listed below because carrying them is what carries it,
+    // but the channel itself has to be named too: alarm attribution matches an
+    // alarm's subject field against what the widget declares, and every
+    // descent alarm (`land.timeToImpact` and friends) resolves to a
+    // `vessel.state.*` field that none of those inputs contains. Without this
+    // line no alarm could reach this widget at all.
+    "vessel.state",
     "vessel.orbit",
     "vessel.identity",
     "system.bodies",

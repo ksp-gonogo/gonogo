@@ -98,6 +98,100 @@ describe("alarmSubjectKey / alarmMatchesWidget", () => {
   });
 });
 
+/**
+ * The properties a widget's `dataRequirements` migration off the Telemachus
+ * vocabulary has to preserve. Attribution used to be three string equalities
+ * against a legacy key, so it survived only while the widget kept declaring
+ * that key: swapping in the modern topic the widget actually reads silently
+ * detached every alarm from it. Probing the supposedly-finished exemplar is
+ * what surfaced that; reading it did not.
+ */
+describe("alarm attribution survives the vocabulary migration", () => {
+  const funds = makeAlarm("f", "FUNDS", "firing", threshold("career.funds"));
+  const bodies = makeAlarm("b", "BODIES", "firing", threshold("b.number"));
+  const apoapsis = makeAlarm("o", "AP", "firing", threshold("o.ApA"));
+
+  it("matches a widget declaring the field subtopic the key maps to", () => {
+    expect(alarmMatchesWidget(funds, ["career.status.economy.funds"])).toBe(
+      true,
+    );
+    expect(alarmMatchesWidget(bodies, ["system.state.bodyCount"])).toBe(true);
+    expect(alarmMatchesWidget(apoapsis, ["vessel.state.apoapsisAlt"])).toBe(
+      true,
+    );
+  });
+
+  it("matches a widget declaring the whole channel that field belongs to", () => {
+    // A widget reading an entire payload (`useTelemetry("career.status")`,
+    // `useStream("vessel.state")`) draws the field, so an alarm on it is
+    // about that widget. Containment walks DOWN from the declaration to its
+    // fields, never up from a derived field to its inputs: the latter would
+    // light every widget declaring `vessel.comms` for an apoapsis alarm.
+    expect(alarmMatchesWidget(funds, ["career.status"])).toBe(true);
+    expect(alarmMatchesWidget(apoapsis, ["vessel.state"])).toBe(true);
+    expect(alarmMatchesWidget(bodies, ["system.state"])).toBe(true);
+  });
+
+  it("does not match a sibling channel or a partial segment", () => {
+    expect(alarmMatchesWidget(funds, ["career.statusboard"])).toBe(false);
+    expect(alarmMatchesWidget(funds, ["career.status.contracts"])).toBe(false);
+    expect(alarmMatchesWidget(apoapsis, ["vessel.comms"])).toBe(false);
+  });
+
+  it("keeps matching a widget that has not migrated yet", () => {
+    expect(alarmMatchesWidget(funds, ["career.funds"])).toBe(true);
+    expect(alarmMatchesWidget(bodies, ["b.number"])).toBe(true);
+  });
+
+  it("attributes a contract-parameter alarm without a legacy key", () => {
+    const contract = makeAlarm("c", "CONTRACT", "firing", {
+      kind: "contract-parameter",
+      contractId: 1,
+      parameterTitle: "Reach orbit",
+      targetState: "Complete",
+      sustainSeconds: 0,
+    });
+    // The subject is the app's own hardcoded string, not something an
+    // operator ever picked, so it has no business being a Telemachus key.
+    expect(alarmSubjectKey(contract)).toBe("career.status.contracts.active");
+    expect(
+      alarmMatchesWidget(contract, ["career.status.contracts.active"]),
+    ).toBe(true);
+    expect(alarmMatchesWidget(contract, ["career.status"])).toBe(true);
+    // and the widgets that have not migrated off the legacy key yet
+    expect(alarmMatchesWidget(contract, ["contracts.active"])).toBe(true);
+  });
+
+  it("attributes an alarm to LandingStatus, which no alarm could reach", () => {
+    // LandingStatus's real declarations, the pattern every migrated widget
+    // was going to copy. It reads `vessel.state` wholesale via `useStream`
+    // and declared only that channel's raw INPUTS, so its own descent alarms
+    // matched nothing at all.
+    const landingStatus = [
+      "vessel.orbit",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.target",
+      "vessel.flight",
+      "vessel.surface",
+      "vessel.propulsion",
+      "vessel.landing",
+      "dv.summary",
+      "dv.stages",
+      "vessel.structure",
+      "comms.delay",
+      "vessel.state",
+    ];
+    const impact = makeAlarm(
+      "i",
+      "IMPACT",
+      "firing",
+      threshold("land.timeToImpact"),
+    );
+    expect(alarmMatchesWidget(impact, landingStatus)).toBe(true);
+  });
+});
+
 describe("AlarmStatusBridge", () => {
   it("lights the widget summary with the alarm name when a firing alarm matches", () => {
     render(

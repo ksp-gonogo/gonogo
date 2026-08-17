@@ -26,6 +26,7 @@ export {
   useContributions,
   useContributionsBySlotId,
 } from "./contributionsRuntime";
+export * from "./declarations";
 export * from "./fog";
 export * from "./fogReveal";
 export * from "./hooks/defineTopicManifest";

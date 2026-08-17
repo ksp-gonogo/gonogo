@@ -7,7 +7,6 @@ import {
   useTelemetryStoreOptional,
   worstStatus,
 } from "@ksp-gonogo/sitrep-client";
-import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 /**
@@ -53,17 +52,27 @@ export function useWidgetStreamStatus(
     const out: string[] = [];
     for (const requirement of key.length > 0 ? key.split("\u0000") : []) {
       // `mapTopic` translates a LEGACY DataSource key ("v.altitude") into a
-      // topic. A widget may instead declare the topic itself
-      // ("vessel.surface"), which maps to nothing, because there is nothing to
-      // translate. Skipping those silently is how this hook returned `null` for
-      // every native-topic widget and quietly withheld the badge it exists to
-      // show: LandingStatus declares ten requirements, all native, and resolved
-      // to zero topics, so its panel could never badge no matter how stale the
-      // stream got.
-      const topic =
-        mapTopic(dataSourceId, requirement) ??
-        (isTopicId(requirement) ? requirement : undefined);
-      if (topic === undefined) continue;
+      // topic. A widget may instead declare what it actually reads, which
+      // maps to nothing because there is nothing to translate. Skipping those
+      // silently is how this hook returned `null` for every native-topic
+      // widget and quietly withheld the badge it exists to show: LandingStatus
+      // declares ten requirements, all native, and resolved to zero topics, so
+      // its panel could never badge no matter how stale the stream got.
+      //
+      // A declaration is not limited to a two-segment `TopicId`. The modern
+      // spelling of `career.funds` is the field subtopic
+      // `career.status.economy.funds`, and a widget reading a derived channel
+      // wholesale names `vessel.state`; neither is an `isTopicId`, and both
+      // are things `isTopicCarried` resolves perfectly well. So an unmapped
+      // requirement is passed through and `isTopicCarried` below decides.
+      //
+      // That check is deliberately permissive: it resolves a PATH, it does not
+      // verify the leaf names a real field, so `career.status.economy.notAField`
+      // survives it. Proving a declared path resolves against a real payload is
+      // `widgetDeclarations.test.ts`'s job in this package, not this hook's:
+      // a render-time guess here would be the same silent-`undefined` failure
+      // the whole migration exists to remove.
+      const topic = mapTopic(dataSourceId, requirement) ?? requirement;
       if (!isTopicCarried(store, carriedChannels, topic)) continue;
       out.push(topic);
     }

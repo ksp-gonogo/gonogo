@@ -28,9 +28,14 @@ export function severityFromAlarmState(state: AlarmState): Severity | null {
  * The data subject an alarm is about, as a key that can be matched against a
  * widget's `dataRequirements`, or `null` when it has no per-widget subject. A
  * threshold alarm names its `dataKey`, an event alarm its `topic`, a
- * contract-parameter alarm belongs to whatever widget reads `contracts.active`,
- * and a time alarm has no data subject at all (it is a mission-wide countdown,
- * so it lights no single widget).
+ * contract-parameter alarm belongs to whatever widget reads the active
+ * contracts, and a time alarm has no data subject at all (it is a mission-wide
+ * countdown, so it lights no single widget).
+ *
+ * The contract-parameter subject is the app's own string rather than anything
+ * an operator picked, so it names the wire field directly. It used to name the
+ * legacy `contracts.active` key, which made a widget's attribution depend on
+ * that widget still declaring Telemachus vocabulary.
  */
 export function alarmSubjectKey(alarm: Alarm): string | null {
   switch (alarm.trigger.kind) {
@@ -39,19 +44,31 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
     case "event":
       return alarm.trigger.topic;
     case "contract-parameter":
-      return "contracts.active";
+      return "career.status.contracts.active";
     case "time":
       return null;
   }
 }
 
 /**
- * Whether an alarm's subject is one of the widget's declared requirements. The
- * match is topic-resolved the same way `useWidgetStreamStatus` resolves stream
- * staleness: a requirement matches if it equals the subject, if the requirement
- * maps to the subject topic, or if the subject maps to the requirement topic.
- * That covers a widget declaring a legacy DataSource key while the alarm names a
- * topic, and vice versa.
+ * Whether an alarm's subject is one of the widget's declared requirements.
+ *
+ * Both sides are resolved to a topic first (`mapTopic`, identity when the
+ * string is already one), so a widget declaring a legacy key and an alarm
+ * naming a modern field still meet, in either direction. That much was always
+ * here.
+ *
+ * The containment clause is what lets a widget declare what it actually reads.
+ * A widget consuming a whole payload (`useTelemetry("career.status")`,
+ * `useStream("vessel.state")`) declares the channel, while an alarm's subject
+ * resolves to one field inside it, and two strings that differ by a suffix are
+ * never equal. So a declaration also matches every field BENEATH it.
+ *
+ * The direction matters and is the whole design. Containment walks DOWN from
+ * the declaration into its fields; it must never walk UP from a derived field
+ * to that channel's inputs. `vessel.state.apoapsisAlt` resolves to eight input
+ * topics including `vessel.comms`, so an upward walk would light the comms
+ * widget for an apoapsis alarm: a loud false positive traded for a silent miss.
  */
 export function alarmMatchesWidget(
   alarm: Alarm,
@@ -59,10 +76,12 @@ export function alarmMatchesWidget(
 ): boolean {
   const subject = alarmSubjectKey(alarm);
   if (subject === null) return false;
+  const subjectTopic = mapTopic("data", subject) ?? subject;
   for (const requirement of dataRequirements ?? []) {
     if (requirement === subject) return true;
-    if (mapTopic("data", requirement) === subject) return true;
-    if (mapTopic("data", subject) === requirement) return true;
+    const requirementTopic = mapTopic("data", requirement) ?? requirement;
+    if (requirementTopic === subjectTopic) return true;
+    if (subjectTopic.startsWith(`${requirement}.`)) return true;
   }
   return false;
 }
