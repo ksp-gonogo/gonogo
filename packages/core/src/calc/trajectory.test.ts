@@ -62,8 +62,18 @@ describe("solveKepler", () => {
   });
 
   it("handles negative M (orbit in retrograde time)", () => {
+    // Asserted MODULO a revolution, which is the honest form of the identity and is
+    // what the shared kernel now satisfies. This file used to carry its own solver
+    // returning E in (-pi, pi]; the kernel returns it in [0, 2pi), so at negative M
+    // the two differ by exactly one revolution and mean the same orbital position.
+    // Nothing downstream can see it: every consumer uses E through cos(E) or through
+    // eccentricToTrueAnomaly, both of which are periodic, and `stateAtUT` normalises
+    // its reported true anomaly into [0, 360) anyway.
     const E = solveKepler(-1.0, 0.3);
-    expect(E - 0.3 * Math.sin(E)).toBeCloseTo(-1.0, 8);
+    const residual = E - 0.3 * Math.sin(E) - -1.0;
+    const wrapped =
+      residual - 2 * Math.PI * Math.round(residual / (2 * Math.PI));
+    expect(wrapped).toBeCloseTo(0, 8);
   });
 });
 

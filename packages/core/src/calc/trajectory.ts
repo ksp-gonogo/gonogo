@@ -12,44 +12,33 @@
  * `v.lat` / `v.long` / `t.universalTime` (the `PredictionRef`) so the drawn
  * prediction line connects to the ship icon exactly.
  */
+import { solveEccentricAnomaly } from "@ksp-gonogo/sitrep-client";
 import { PerfBudget } from "../perf/PerfBudget";
 import type { OrbitPatch } from "../schemas/orbit";
 import { degToRad, radToDeg } from "../utils/math";
 
 /**
  * Solve Kepler's equation `E - e·sin E = M` for the eccentric anomaly E.
- * Newton iteration; converges in <10 iterations for e < 0.95. Returns the
- * best value even if the tolerance isn't met (rare for stock KSP orbits).
+ *
+ * A re-export. This file used to carry its own Newton iteration, starting at
+ * `M + e·sin(M)` with no high-eccentricity branch, and from `e = 0.994` upward it
+ * failed to converge on a minority of mean anomalies just after periapsis and
+ * returned its last iterate: wrong by up to pi radians, silently, on a live path
+ * through `maneuver.ts`. Its own doc comment said it "returns the best value even if
+ * the tolerance isn't met (rare for stock KSP orbits)", which was true and was not a
+ * warning anybody could act on.
+ *
+ * Kept under this name because it has callers, and re-exported rather than
+ * reimplemented because the point of the fix is that there is now exactly one Newton
+ * iteration on this equation in the repo.
+ *
+ * <b>It now REFUSES `ecc >= 1`</b> where it used to return a confident number. Both
+ * patch-based callers already filter unbound trajectories; `maneuver.ts`'s
+ * `stateAtUT` does not.
  *
  * All angles in radians.
  */
-export function solveKepler(
-  meanAnomaly: number,
-  eccentricity: number,
-  tolerance = 1e-10,
-  maxIterations = 50,
-): number {
-  const M = normalisePi(meanAnomaly);
-  // Good initial guess for elliptical orbits: E0 = M + e·sin(M)
-  let E = M + eccentricity * Math.sin(M);
-  for (let i = 0; i < maxIterations; i++) {
-    const f = E - eccentricity * Math.sin(E) - M;
-    const fp = 1 - eccentricity * Math.cos(E);
-    const dE = f / fp;
-    E -= dE;
-    if (Math.abs(dE) < tolerance) return E;
-  }
-  return E;
-}
-
-/** Wrap an angle into (-π, π]. Helps Kepler converge cleanly. */
-function normalisePi(rad: number): number {
-  const twoPi = 2 * Math.PI;
-  let x = rad % twoPi;
-  if (x > Math.PI) x -= twoPi;
-  if (x <= -Math.PI) x += twoPi;
-  return x;
-}
+export const solveKepler = solveEccentricAnomaly;
 
 /** Wrap a degree value to (-180, 180]. */
 export function wrap180(deg: number): number {

@@ -148,7 +148,7 @@ export type {
   StateVector,
   Vector3,
 } from "./kepler";
-export { solve, solveAnomalies } from "./kepler";
+export { solve, solveAnomalies, solveEccentricAnomaly } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export type {
   LegacyManeuverNode,

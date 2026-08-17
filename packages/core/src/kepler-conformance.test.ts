@@ -1,8 +1,11 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { solveAnomalies } from "../../sitrep-client/src/kepler";
+import {
+  solveAnomalies,
+  solveEccentricAnomaly,
+} from "../../sitrep-client/src/kepler";
 import { solveKepler as coreSolveKepler } from "./calc/trajectory";
 
 /**
@@ -144,16 +147,19 @@ function sweptAreaFraction(E: number, e: number, intervals: number): number {
 /**
  * The implementations this suite can actually reach, and the ones it cannot.
  *
- * The brief said "all five". There are not five. `packages/sitrep-client/src/propagation.ts`
- * has no solver of its own and imports `solve` from `kepler.ts`, so it is a consumer
- * rather than an implementation; and `orbit-patches.ts`'s `solveKepler` is
- * module-private, so nothing outside that file can call it. Both facts are pinned
- * below rather than asserted in prose, because both would stop being true silently.
+ * There is now ONE Newton iteration on this equation in the repo, in
+ * `sitrep-client/src/kepler.ts`. The entries below are the public names that reach
+ * it; each is pinned separately so that giving any of them an implementation of its
+ * own again is caught here rather than discovered later.
  */
 const CONFORMANT: ReadonlyArray<{
   name: string;
   solve: (M: number, e: number) => number;
 }> = [
+  {
+    name: "packages/sitrep-client/src/kepler.ts (solveEccentricAnomaly)",
+    solve: (M, e) => solveEccentricAnomaly(M, e),
+  },
   {
     name: "packages/sitrep-client/src/kepler.ts (solveAnomalies)",
     solve: (M, e) =>
@@ -171,33 +177,15 @@ const CONFORMANT: ReadonlyArray<{
         0,
       ).eccentricAnomaly,
   },
+  {
+    // The same function as the first entry now, reached through the name its own
+    // callers use. Kept as a separate entry rather than folded in, because what is
+    // being pinned is that this exported NAME satisfies the contract: if anyone ever
+    // gives it an implementation of its own again, the suite is what notices.
+    name: "packages/core/src/calc/trajectory.ts (solveKepler)",
+    solve: (M, e) => coreSolveKepler(M, e),
+  },
 ];
-
-/**
- * Held to the contract and known to fail it.
- *
- * Landing this suite red would block every agent's pre-push on a shared branch, so
- * the failure is pinned as an assertion of the CURRENT behaviour instead of left to
- * fail. The number stays visible either way, and this has a property a skip does not:
- * it fails the moment someone fixes the file, which is exactly when it should be
- * deleted.
- *
- * WHEN THIS BLOCK FAILS: the implementation has been fixed. Delete the block and move
- * the entry into CONFORMANT above. Do not weaken it.
- *
- * <b>Note what is NOT claimed.</b> There is no threshold here, because the defect is
- * not one. Above the onset the solver fails on a small fraction of mean anomalies,
- * all just after periapsis, and passes on the rest: at e = 0.994 it is 736 points in
- * 200,000, at e = 0.999 it is 5,251. So `noFailureObservedAtOrBelow` is a statement
- * about a 200,000-sample sweep and not a safety guarantee, and it is named that way
- * on purpose. An earlier, coarser sweep put the onset at 0.997; density moved it.
- */
-const KNOWN_BROKEN = {
-  name: "packages/core/src/calc/trajectory.ts (solveKepler)",
-  solve: coreSolveKepler,
-  noFailureObservedAtOrBelow: 0.993,
-  failsSporadicallyAtOrAbove: 0.994,
-};
 
 describe("Kepler's equation: the contract every solver must satisfy", () => {
   for (const impl of CONFORMANT) {
@@ -294,67 +282,6 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
     });
   }
 
-  describe(`${KNOWN_BROKEN.name} [KNOWN BROKEN, do not fix here]`, () => {
-    it(`has no observed failure at or below e = ${KNOWN_BROKEN.noFailureObservedAtOrBelow}`, () => {
-      const failures: string[] = [];
-      for (const e of grid.eccentricities.filter(
-        (x) => x <= KNOWN_BROKEN.noFailureObservedAtOrBelow,
-      )) {
-        for (const M of meanAnomalies()) {
-          const r = residual(KNOWN_BROKEN.solve(M, e), e, M);
-          if (!(r <= grid.maxAbsoluteResidualRadians)) {
-            failures.push(`e=${e} M=${M} residual=${r.toExponential(3)}`);
-          }
-        }
-      }
-      expect(failures.slice(0, 10)).toEqual([]);
-    });
-
-    it(`returns NON-SOLUTIONS at and above e = ${KNOWN_BROKEN.failsSporadicallyAtOrAbove}, off by up to pi`, () => {
-      // Pinned, not skipped, and pinned as the failure rather than as an absence.
-      // The cause is one missing branch: kepler.ts and the C# provider start Newton
-      // at E = pi once e >= 0.8, which is the guard that keeps it converging near
-      // periapsis of a very eccentric orbit, and this implementation always starts
-      // at M + e sin(M). It then returns its last iterate whether or not the
-      // tolerance was met, and says nothing.
-      let worstResidual = 0;
-      let worstAt = "";
-      let failing = 0;
-      let total = 0;
-      for (const e of grid.eccentricities.filter(
-        (x) => x >= KNOWN_BROKEN.failsSporadicallyAtOrAbove,
-      )) {
-        for (const M of meanAnomalies()) {
-          total++;
-          const r = residual(KNOWN_BROKEN.solve(M, e), e, M);
-          if (r > 1e-9) failing++;
-          if (r > worstResidual) {
-            worstResidual = r;
-            worstAt = `e=${e} M=${M}`;
-          }
-        }
-      }
-
-      // Off by of order pi, i.e. the answer is on the far side of the orbit, and on
-      // a MINORITY of points, which is why no threshold is claimed anywhere here.
-      expect(worstResidual).toBeGreaterThan(1.0);
-      expect(failing).toBeGreaterThan(0);
-      expect(failing).toBeLessThan(total);
-      // Recorded so the numbers survive in the run log rather than only in a report.
-      expect(
-        `worst residual ${worstResidual.toFixed(2)} rad at ${worstAt}`,
-      ).toContain("rad at e=");
-    });
-
-    it("returns a confident number for an eccentricity the elliptic form does not describe", () => {
-      // The other half of the same defect, and the reason the boundary contract is
-      // asserted above rather than left implicit: same input, one refusal from
-      // kepler.ts and one meaningless number from here.
-      expect(() => KNOWN_BROKEN.solve(1.0, 1.4)).not.toThrow();
-      expect(Number.isFinite(KNOWN_BROKEN.solve(1.0, 1.4))).toBe(true);
-    });
-  });
-
   describe("the guards on the guards", () => {
     it("the area-law check REJECTS a plausible wrong solver", () => {
       // Without this, the area-law check is an instrument with no demonstrated
@@ -412,31 +339,122 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
     });
   });
 
-  describe("what this suite cannot reach, pinned so it cannot change silently", () => {
-    it("orbit-patches.ts carries a private copy of the trajectory.ts solver, so the verdict transfers", () => {
-      // It cannot be called from outside its module, so it cannot be swept directly,
-      // and exporting it would mean editing a file this task is not allowed to touch.
-      // What CAN be checked is that it is still the same algorithm: same starter,
-      // same tolerance, same iteration cap, same silent return of the last iterate.
-      const source = readFileSync(
-        join(repoRoot, "packages", "sitrep-client", "src", "orbit-patches.ts"),
-        "utf8",
-      );
+  describe("ONE solver, and the ratchet that keeps it that way", () => {
+    /**
+     * The Newton residual line, `E - e*sin(E) - M`, as all three implementations
+     * wrote it. It is the most distinctive line in a Newton solve of this equation
+     * and the one every copy had.
+     */
+    const NEWTON_RESIDUAL = /Math\.sin\([A-Za-z0-9_]+\) - [A-Za-z0-9_.]+;?$/m;
 
-      expect(source).toContain("let E = M + eccentricity * Math.sin(M)");
-      expect(source).toContain("if (Math.abs(dE) < 1e-10) return E;");
-      expect(source).not.toContain("Math.PI :");
-      expect(source).not.toMatch(/export function solveKepler/);
+    /** Every TypeScript source in the repo, excluding build output and this file. */
+    function sourcesToScan(): string[] {
+      const out: string[] = [];
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const full = join(dir, entry.name);
+          if (entry.isDirectory()) {
+            if (
+              ["node_modules", "dist", ".turbo", "test-results"].includes(
+                entry.name,
+              )
+            ) {
+              continue;
+            }
+            walk(full);
+          } else if (
+            entry.name.endsWith(".ts") ||
+            entry.name.endsWith(".tsx")
+          ) {
+            out.push(full);
+          }
+        }
+      };
+      walk(join(repoRoot, "packages"));
+      return out;
+    }
+
+    it("exactly one file in the repo iterates Newton on Kepler's equation", () => {
+      // The invariant the fix bought. There were THREE: kepler.ts, trajectory.ts, and
+      // a hand-copy of trajectory.ts inside orbit-patches.ts whose own comment
+      // advertised itself as "same tolerance/cap". Two of them shared a defect
+      // precisely because one was copied from the other, and the copy is why fixing
+      // the original would not have been enough.
+      const kernel = join(
+        repoRoot,
+        "packages",
+        "sitrep-client",
+        "src",
+        "kepler.ts",
+      );
+      const offenders = sourcesToScan()
+        .filter(
+          (file) =>
+            file !== kernel && !file.endsWith("kepler-conformance.test.ts"),
+        )
+        .filter((file) => NEWTON_RESIDUAL.test(readFileSync(file, "utf8")));
+
+      expect(offenders.map((f) => f.slice(repoRoot.length + 1))).toEqual([]);
     });
 
-    it("propagation.ts has no solver of its own, so it is a consumer rather than a fifth implementation", () => {
-      const source = readFileSync(
-        join(repoRoot, "packages", "sitrep-client", "src", "propagation.ts"),
+    it("the detector fires on both implementations that were deleted", () => {
+      // The guard on the guard, and this one is not hypothetical: the two bodies
+      // below are the deleted solvers verbatim. A detector for a shape nobody can
+      // demonstrate it catching is the failure mode this whole subsystem keeps
+      // producing, so it is demonstrated here against the real thing.
+      const deletedFromTrajectory = `
+        const M = normalisePi(meanAnomaly);
+        let E = M + eccentricity * Math.sin(M);
+        for (let i = 0; i < maxIterations; i++) {
+          const f = E - eccentricity * Math.sin(E) - M;
+          const fp = 1 - eccentricity * Math.cos(E);
+          const dE = f / fp;
+          E -= dE;
+          if (Math.abs(dE) < tolerance) return E;
+        }
+        return E;`;
+      const deletedFromOrbitPatches = `
+        const M = normalisePi(meanAnomaly);
+        let E = M + eccentricity * Math.sin(M);
+        for (let i = 0; i < 50; i++) {
+          const f = E - eccentricity * Math.sin(E) - M;
+          const fp = 1 - eccentricity * Math.cos(E);
+          const dE = f / fp;
+          E -= dE;
+          if (Math.abs(dE) < 1e-10) return E;
+        }
+        return E;`;
+
+      expect(NEWTON_RESIDUAL.test(deletedFromTrajectory)).toBe(true);
+      expect(NEWTON_RESIDUAL.test(deletedFromOrbitPatches)).toBe(true);
+      expect(NEWTON_RESIDUAL.test("const r = a * (1 - e * Math.cos(E));")).toBe(
+        false,
+      );
+    });
+
+    it("the kernel itself is what the detector finds, so the scan is looking in the right place", () => {
+      const kernel = readFileSync(
+        join(repoRoot, "packages", "sitrep-client", "src", "kepler.ts"),
         "utf8",
       );
 
-      expect(source).toContain('import { solve } from "./kepler"');
-      expect(source).not.toMatch(/function\s+solve(Kepler|EccentricAnomaly)/);
+      expect(NEWTON_RESIDUAL.test(kernel)).toBe(true);
+    });
+
+    it("propagation.ts and orbit-patches.ts consume the kernel rather than carrying one", () => {
+      for (const file of ["propagation.ts", "orbit-patches.ts"]) {
+        const source = readFileSync(
+          join(repoRoot, "packages", "sitrep-client", "src", file),
+          "utf8",
+        );
+
+        expect(source, `${file} should import from the kernel`).toMatch(
+          /import \{[^}]*solve[^}]*\} from "\.\/kepler"/,
+        );
+        expect(source, `${file} should define no solver`).not.toMatch(
+          /function\s+solve(Kepler|EccentricAnomaly)/,
+        );
+      }
     });
   });
 });

@@ -14,6 +14,7 @@
  * in `vessel-state.ts`: not (yet) generated into this package.
  */
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { solveEccentricAnomaly } from "./kepler";
 
 export interface OrbitPatchWirePayload {
   sma: Value<"m">;
@@ -132,7 +133,18 @@ export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
 // depend on `@ksp-gonogo/core` (see `LegacyOrbitPatch`'s doc comment above),
 // a real cost, flagged here rather than hidden; a future refactor could
 // relocate the shared math to a layer both packages can reach without a
-// circular dependency. This copy is intentionally NARROWER than
+// circular dependency.
+//
+// The KEPLER SOLVE is no longer part of the duplication. This file used to carry
+// its own Newton iteration, hand-copied from `trajectory.ts` and advertising
+// itself as "same tolerance/cap", and it inherited that copy's defect: from
+// e = 0.994 upward both returned non-solutions just after periapsis, wrong by up
+// to pi radians and silent about it. There is now one solver, `kepler.ts`'s
+// `solveEccentricAnomaly`, and `kepler-conformance.test.ts` fails if a second
+// appears anywhere in the repo. What remains duplicated here is the patch WALK
+// and the perifocal rotation, not the equation.
+//
+// This copy is intentionally NARROWER than
 // `predictGroundTrack`: it returns only the LAST pre-surface sample (the
 // impact point), not a renderable polyline, so it skips the longitude-wrap
 // segmentation and the per-call `PerfBudget` `predictGroundTrack` needs for
@@ -140,28 +152,6 @@ export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
 // horizon-bounded `deriveLanding` evaluation (see that function's doc
 // comment for the bound), never per-frame unbounded.
 // ---------------------------------------------------------------------------
-
-function normalisePi(rad: number): number {
-  const twoPi = 2 * Math.PI;
-  let x = rad % twoPi;
-  if (x > Math.PI) x -= twoPi;
-  if (x <= -Math.PI) x += twoPi;
-  return x;
-}
-
-/** Solve Kepler's equation `E - e·sin E = M` for the eccentric anomaly E. Newton iteration, same tolerance/cap as `trajectory.ts`'s `solveKepler`. */
-function solveKepler(meanAnomaly: number, eccentricity: number): number {
-  const M = normalisePi(meanAnomaly);
-  let E = M + eccentricity * Math.sin(M);
-  for (let i = 0; i < 50; i++) {
-    const f = E - eccentricity * Math.sin(E) - M;
-    const fp = 1 - eccentricity * Math.cos(E);
-    const dE = f / fp;
-    E -= dE;
-    if (Math.abs(dE) < 1e-10) return E;
-  }
-  return E;
-}
 
 function eccentricToTrueAnomaly(E: number, e: number): number {
   const y = Math.sqrt(1 + e) * Math.sin(E / 2);
@@ -196,7 +186,7 @@ function patchStateAt(patch: LegacyOrbitPatch, ut: number): InertialState {
   const dt = ut - patch.epoch;
   const n = (2 * Math.PI) / patch.period;
   const M = patch.maae + n * dt;
-  const E = solveKepler(M, patch.eccentricity);
+  const E = solveEccentricAnomaly(M, patch.eccentricity);
   const nu = eccentricToTrueAnomaly(E, patch.eccentricity);
   const r = patch.sma * (1 - patch.eccentricity * Math.cos(E));
 

@@ -165,12 +165,49 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
 }
 
 /**
- * Newton-Raphson solve of Kepler's equation M = E - e*sin(E) for E.
+ * Newton-Raphson solve of Kepler's equation `M = E - e*sin(E)` for E.
  * Converges in ~5 iterations for typical (e < 0.9) orbits; the iteration
  * cap and tolerance below are a guard against pathological inputs near
  * e -> 1, not the expected case. Mirrors `SolveEccentricAnomaly`.
+ *
+ * **THE ONE Newton iteration on Kepler's equation in this repo.** There were three:
+ * this one, `core/src/calc/trajectory.ts`'s `solveKepler`, and a hand-copy of that in
+ * `orbit-patches.ts`. The other two started Newton at `M + e sin(M)` with no
+ * high-eccentricity branch, so from `e = 0.994` upward they failed to converge on a
+ * minority of mean anomalies just after periapsis and returned their last iterate,
+ * wrong by up to pi radians and saying nothing. `kepler-conformance.test.ts` is what
+ * caught it and is what keeps this the only one.
+ *
+ * <b>Exported as ARITHMETIC, not as propagation.</b> It takes a mean anomaly and an
+ * eccentricity and returns an angle: no elements, no frame, no time, so it cannot
+ * answer "where is this craft" and is not a way around the propagation seam. That
+ * question goes through a provider, and on the C# side the equivalent element-keyed
+ * door is deliberately private.
+ *
+ * Accepts any real mean anomaly and wraps it, because its callers propagate `M`
+ * linearly in time and hand over values well outside one revolution.
  */
-function solveEccentricAnomaly(meanAnomaly: number, ecc: number): number {
+export function solveEccentricAnomaly(
+  meanAnomaly: number,
+  ecc: number,
+): number {
+  if (ecc < 0.0 || ecc >= 1.0) {
+    // The same refusal `solveAnomalies` and `solve` give, for the same reason: the
+    // elliptic form of Kepler's equation does not describe an unbound trajectory, so
+    // there is no answer to return. Returning one anyway is precisely the defect this
+    // function exists to have exactly one copy of.
+    throw new RangeError(
+      `Kepler's equation is solved here only for elliptical orbits (0 <= ecc < 1); got ecc=${ecc}`,
+    );
+  }
+
+  return solveWrappedEccentricAnomaly(wrapTwoPi(meanAnomaly), ecc);
+}
+
+function solveWrappedEccentricAnomaly(
+  meanAnomaly: number,
+  ecc: number,
+): number {
   if (ecc < 1e-12) {
     // Circular orbit: E = M exactly, and the Newton step below would
     // converge to this immediately anyway -- short-circuit to avoid doing
