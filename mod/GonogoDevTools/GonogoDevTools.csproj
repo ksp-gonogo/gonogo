@@ -24,16 +24,16 @@
          output; KSP's own GameData/../KSP_Data/Managed copies satisfy the
          load at runtime). Same portable copies Gonogo.KSP.csproj consumes. -->
     <Reference Include="UnityEngine" Private="false">
-      <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.dll</HintPath>
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule" Private="false">
-      <HintPath>..\..\local_docs\telemachus-fork\references\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp" Private="false">
-      <HintPath>..\..\local_docs\telemachus-fork\references\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass" Private="false">
-      <HintPath>..\..\local_docs\telemachus-fork\references\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(KspManaged)\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
   </ItemGroup>
 

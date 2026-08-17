@@ -58,7 +58,6 @@
        assembly repo instead (see kerbcam's Plugin.csproj for the precedent
        this mirrors). -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
     <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
   </PropertyGroup>
 

@@ -35,7 +35,6 @@
        no /p: overrides keeps working unchanged; CI passes /p:KspManaged=...
        pointing at a checked-out ksp-managed reference-assembly repo instead. -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
   <!-- KSP / Unity reference assemblies: same portable copy + Private="false"

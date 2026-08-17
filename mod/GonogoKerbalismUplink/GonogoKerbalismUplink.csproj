@@ -26,7 +26,6 @@
        /p: overrides keeps working; CI passes /p:KspManaged=... instead. Same
        pattern as GonogoRealAntennasUplink. -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
     <!-- KspGameData: root of an installed GameData tree, for 0Harmony.dll below (that reference
          DLL lives in an installed mod's own GameData folder, not the portable KspManaged set) -
          same property GonogoKosUplink.csproj / Gonogo.KSP.csproj already use for the identical

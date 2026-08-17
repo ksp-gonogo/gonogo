@@ -21,7 +21,6 @@
        pointing at a checked-out ksp-managed reference-assembly repo instead
        (see kerbcam's Plugin.csproj for the precedent this mirrors). -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
   <!-- Gonogo.KSP is the ONLY assembly in the mod that touches KSP/Unity types
@@ -34,7 +33,7 @@
     <!-- KSP / Unity reference assemblies (Private="false" - never copied to
          output; KSP's own GameData/../KSP_Data/Managed copies satisfy the
          load at runtime). The repo keeps a portable copy of the ones this
-         project needs in local_docs/telemachus-fork/references/ - see
+         project needs in the KSP reference-assembly directory (see mod/Directory.Build.props) - see
          mod/GonogoTelemetry/GonogoTelemetry.csproj for the precedent. -->
     <Reference Include="UnityEngine" Private="false">
       <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>

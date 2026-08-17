@@ -29,7 +29,6 @@
        pointing at a checked-out ksp-managed reference-assembly repo instead
        (see kerbcam's Plugin.csproj for the precedent this mirrors). -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
   <!-- KSP / Unity reference assemblies: same portable copy + Private="false"

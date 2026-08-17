@@ -23,9 +23,8 @@
   <!-- KspManaged: root for the portable KSP/Unity reference DLLs. Defaults to
        the repo's local dev copy so a plain `dotnet build` with no /p: override
        keeps working; a fresh worktree (gitignored local_docs absent) passes
-       /p:KspManaged=<main-tree>/local_docs/telemachus-fork/references. -->
+       /p:KspManaged=<the KSP reference-assembly directory>. -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
   <!-- KSP / Unity reference assemblies - same portable copy + Private="false"

@@ -27,7 +27,6 @@
        Defaults to the repo's local dev copy so a plain `dotnet build` with no
        /p: overrides keeps working; CI passes /p:KspManaged=... instead. -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
   </PropertyGroup>
 
   <!-- KSP / Unity reference assemblies: Private="false" (reference-only, never

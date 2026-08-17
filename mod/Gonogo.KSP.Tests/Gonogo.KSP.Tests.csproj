@@ -90,7 +90,6 @@
        with no synced KSP install / local_docs), this suite is dropped with a
        build warning instead of failing the build. -->
   <PropertyGroup>
-    <KspManaged Condition="'$(KspManaged)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\telemachus-fork\references</KspManaged>
     <AssemblyCSharpDll>$(KspManaged)\Assembly-CSharp.dll</AssemblyCSharpDll>
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
   </PropertyGroup>
