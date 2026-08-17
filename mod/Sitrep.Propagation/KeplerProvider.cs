@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sitrep.Propagation
 {
@@ -19,6 +20,89 @@ namespace Sitrep.Propagation
     {
         private const int MaxNewtonIterations = 50;
         private const double NewtonTolerance = 1e-12;
+
+        public string ProviderId => "kepler";
+
+        public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut)
+        {
+            if (!CanPropagate(target, frame, ut, ut))
+            {
+                throw new NotSupportedException(
+                    "KeplerProvider cannot propagate this target in the requested frame: it solves a "
+                    + "bound two-body conic about the body the target orbits (index "
+                    + target.ParentBodyIndex + "), and was asked for a frame centred on index "
+                    + frame.CentreBodyIndex + ".");
+            }
+
+            return Solve(target.Osculating!.Value, ut);
+        }
+
+        public void SolveMany(
+            PropagationTarget target,
+            PropagationFrame frame,
+            IReadOnlyList<double> uts,
+            StateVector[] into)
+        {
+            if (uts == null) throw new ArgumentNullException(nameof(uts));
+            if (into == null) throw new ArgumentNullException(nameof(into));
+            if (into.Length < uts.Count)
+            {
+                // Filling only part of the caller's buffer would leave stale samples
+                // in the tail, which a sweep reads as extra crossings rather than as
+                // an error.
+                throw new ArgumentException(
+                    "The destination holds " + into.Length + " slots for " + uts.Count + " sample times.",
+                    nameof(into));
+            }
+
+            for (var i = 0; i < uts.Count; i++)
+            {
+                into[i] = Solve(target, frame, uts[i]);
+            }
+        }
+
+        /// <summary>
+        /// The orbital period implied by the elements, or null when they do not
+        /// imply one. Every inline <c>2*pi*sqrt(a^3/mu)</c> in this codebase is a
+        /// call to this.
+        /// </summary>
+        public double? CharacteristicCycleSeconds(PropagationTarget target)
+        {
+            if (!IsBoundConic(target.Osculating))
+            {
+                return null;
+            }
+
+            var orbit = target.Osculating!.Value;
+            return 2.0 * Math.PI * Math.Sqrt(orbit.Sma * orbit.Sma * orbit.Sma / orbit.Mu);
+        }
+
+        /// <summary>
+        /// The analytic solution has no horizon, so the window is ignored: a
+        /// two-body conic is as valid a year out as a second out. What this does
+        /// check is that the elements describe a bound orbit at all, and that the
+        /// requested frame is the one the target orbits, since reaching any other
+        /// body needs an ephemeris this provider does not have.
+        /// </summary>
+        public bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt)
+        {
+            return IsBoundConic(target.Osculating)
+                && frame.CentreBodyIndex == target.ParentBodyIndex;
+        }
+
+        private static bool IsBoundConic(OrbitElements? elements)
+        {
+            if (elements == null)
+            {
+                return false;
+            }
+
+            var orbit = elements.Value;
+            return orbit.Ecc >= 0.0
+                && orbit.Ecc < 1.0
+                && orbit.Sma > 0.0
+                && orbit.Mu > 0.0;
+        }
 
         public StateVector Solve(OrbitElements orbit, double ut)
         {

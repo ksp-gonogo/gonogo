@@ -82,7 +82,7 @@ namespace Sitrep.Propagation.Visibility
 
         public double MarginAt(double ut)
         {
-            Vector3d vessel = _propagator.Solve(_orbit, ut).Position;
+            Vector3d vessel = _propagator.Solve(PropagationTarget.RelativeToFrame(_orbit), PropagationFrame.Unnamed, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return ChordOcclusion.HorizonMargin(vessel, station, BodyCentre, _occludingRadiusMeters);
         }
@@ -95,14 +95,14 @@ namespace Sitrep.Propagation.Visibility
         /// </summary>
         public double ChordClearanceMetersAt(double ut)
         {
-            Vector3d vessel = _propagator.Solve(_orbit, ut).Position;
+            Vector3d vessel = _propagator.Solve(PropagationTarget.RelativeToFrame(_orbit), PropagationFrame.Unnamed, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return ChordOcclusion.Clearance(vessel, station, BodyCentre, _occludingRadiusMeters);
         }
 
         public double SeparationAt(double ut)
         {
-            Vector3d vessel = _propagator.Solve(_orbit, ut).Position;
+            Vector3d vessel = _propagator.Solve(PropagationTarget.RelativeToFrame(_orbit), PropagationFrame.Unnamed, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return (vessel - station).Magnitude();
         }

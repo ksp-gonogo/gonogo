@@ -260,11 +260,13 @@ namespace Sitrep.Propagation.Visibility
             var accumulated = Origin;
             for (var i = 0; i < _chain.Length; i++)
             {
-                var step = _propagator.Solve(_chain[i].Orbit, ut).Position;
+                var step = _propagator.Solve(
+                    PropagationTarget.RelativeToFrame(_chain[i].Orbit), PropagationFrame.Unnamed, ut).Position;
                 accumulated = _chain[i].Descending ? accumulated + step : accumulated - step;
                 chainPositions[i] = accumulated;
             }
-            return accumulated + _propagator.Solve(_vesselOrbit, ut).Position;
+            return accumulated + _propagator.Solve(
+                PropagationTarget.RelativeToFrame(_vesselOrbit), PropagationFrame.Unnamed, ut).Position;
         }
 
         private static void RequireRadius(double radiusMeters, string name)
