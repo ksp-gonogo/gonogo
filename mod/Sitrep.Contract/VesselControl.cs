@@ -103,24 +103,32 @@ public class ActionGroupState
 [SitrepTopic("vessel.control")]
 public class VesselControl
 {
+    /// <summary>SAS master switch. Its control channel pairs it with <c>setSas</c> so a client can read the confirmed state and dispatch a change through ONE handle.</summary>
+    [SitrepControlChannel("vessel.control.sas", "vessel.control.setSas", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Sas { get; set; }
 
+    [SitrepControlChannel("vessel.control.sasMode", "vessel.control.setSasMode", typeof(SetSasModeArgs), nameof(SetSasModeArgs.Mode))]
     [SitrepUnit(Units.Enumeration)]
     public SasMode? SasMode { get; set; }
 
+    [SitrepControlChannel("vessel.control.rcs", "vessel.control.setRcs", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Rcs { get; set; }
 
+    [SitrepControlChannel("vessel.control.gear", "vessel.control.setGear", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Gear { get; set; }
 
+    [SitrepControlChannel("vessel.control.brakes", "vessel.control.setBrakes", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Brakes { get; set; }
 
+    [SitrepControlChannel("vessel.control.lights", "vessel.control.setLights", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Lights { get; set; }
 
+    [SitrepControlChannel("vessel.control.abort", "vessel.control.setAbort", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Abort { get; set; }
 

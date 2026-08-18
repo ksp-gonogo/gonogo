@@ -38,8 +38,16 @@ export interface ControlChannelHandle {
   readonly readField: string;
   /** The command a value is dispatched on (the delayed uplink). */
   readonly writeCommand: string;
-  /** Wrap a scalar value into the write command's wire args. */
-  toArgs(value: number): Record<string, number>;
+  /**
+   * Wrap a value into the write command's wire args.
+   *
+   * `boolean` alongside `number` because half the declared channels are
+   * discrete: SAS, RCS, gear, brakes, lights and abort are switches, and an
+   * enum mode is an ordinal. Numeric-only was a fact about which channels
+   * happened to be declared first (the throttle and the six fly-by-wire axes),
+   * never about what a control channel is.
+   */
+  toArgs(value: number | boolean): Record<string, number | boolean>;
 }
 
 const BY_ID: ReadonlyMap<string, GeneratedControlChannel> = new Map(
@@ -65,7 +73,7 @@ export function getControlChannel(
     readTopic,
     readField,
     writeCommand,
-    toArgs: (value: number) => ({ [valueField]: value }),
+    toArgs: (value: number | boolean) => ({ [valueField]: value }),
   };
 }
 

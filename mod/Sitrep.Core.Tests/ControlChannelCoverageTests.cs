@@ -166,8 +166,25 @@ namespace Sitrep.Core.Tests
             }
         }
 
+        /// <summary>
+        /// A channel's value field must be a SCALAR: one number, one switch, or
+        /// one enum member that the SDK handle can wrap into wire args on its
+        /// own.
+        ///
+        /// <para>This demanded a NUMBER while the only declared channels were
+        /// the throttle and the six fly-by-wire axes, which was a fact about
+        /// what had been declared rather than about what a control channel is.
+        /// Half the controls an operator actually watches during a blackout are
+        /// switches (SAS, RCS, gear, brakes, lights, abort) and one is a mode,
+        /// and refusing those left the largest class of delayed command with no
+        /// declared read-anchor at all.</para>
+        ///
+        /// <para>A string or a record still fails, and should: the handle wraps
+        /// ONE value into ONE args field, so anything needing structure is a
+        /// command a caller builds args for itself, not a channel.</para>
+        /// </summary>
         [Fact]
-        public void EveryWriteHalfHasANumericValueField()
+        public void EveryWriteHalfHasAScalarValueField()
         {
             foreach (var (type, prop, attr, _) in DeclaredChannels())
             {
@@ -178,8 +195,9 @@ namespace Sitrep.Core.Tests
 
                 var t = Nullable.GetUnderlyingType(valueProp!.PropertyType) ?? valueProp.PropertyType;
                 Assert.True(
-                    t == typeof(double) || t == typeof(float) || t == typeof(int) || t == typeof(long),
-                    $"[SitrepControlChannel] value field {attr.Args.Name}.{attr.ValueField} must be numeric, was {valueProp.PropertyType.Name}.");
+                    t == typeof(double) || t == typeof(float) || t == typeof(int)
+                        || t == typeof(long) || t == typeof(bool) || t.IsEnum,
+                    $"[SitrepControlChannel] value field {attr.Args.Name}.{attr.ValueField} must be a scalar (number, bool or enum), was {valueProp.PropertyType.Name}.");
             }
         }
 

@@ -20,8 +20,15 @@ export interface GeneratedControlChannel {
 }
 
 export const GENERATED_CONTROL_CHANNELS = [
+  { id: "vessel.control.abort", readTopic: "vessel.control", readField: "abort", writeCommand: "vessel.control.setAbort", argsType: "SetEnabledArgs", valueField: "enabled" },
+  { id: "vessel.control.brakes", readTopic: "vessel.control", readField: "brakes", writeCommand: "vessel.control.setBrakes", argsType: "SetEnabledArgs", valueField: "enabled" },
+  { id: "vessel.control.gear", readTopic: "vessel.control", readField: "gear", writeCommand: "vessel.control.setGear", argsType: "SetEnabledArgs", valueField: "enabled" },
+  { id: "vessel.control.lights", readTopic: "vessel.control", readField: "lights", writeCommand: "vessel.control.setLights", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.pitch", readTopic: "vessel.control", readField: "pitch", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "pitch" },
+  { id: "vessel.control.rcs", readTopic: "vessel.control", readField: "rcs", writeCommand: "vessel.control.setRcs", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.roll", readTopic: "vessel.control", readField: "roll", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "roll" },
+  { id: "vessel.control.sas", readTopic: "vessel.control", readField: "sas", writeCommand: "vessel.control.setSas", argsType: "SetEnabledArgs", valueField: "enabled" },
+  { id: "vessel.control.sasMode", readTopic: "vessel.control", readField: "sasMode", writeCommand: "vessel.control.setSasMode", argsType: "SetSasModeArgs", valueField: "mode" },
   { id: "vessel.control.throttle", readTopic: "vessel.control", readField: "throttle", writeCommand: "vessel.control.setThrottle", argsType: "SetThrottleArgs", valueField: "value" },
   { id: "vessel.control.translationX", readTopic: "vessel.control", readField: "translationX", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "x" },
   { id: "vessel.control.translationY", readTopic: "vessel.control", readField: "translationY", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "y" },
