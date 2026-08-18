@@ -458,7 +458,11 @@ registerComponent<ExperimentsConfig>({
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
   component: ExperimentsComponent,
-  dataRequirements: ["sci.instruments", "sci.experiments", "science.lab"],
+  dataRequirements: [
+    "science.instruments",
+    "science.experiments",
+    "science.lab",
+  ],
   defaultConfig: {},
   actions: [],
   augmentSlots: ["science-officer.sections", "science-officer.badges"],

@@ -85,21 +85,23 @@ export function useDataStreamStatus(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  const topic = mapTopic(dataSourceId, key);
+  // `mapTopic` translates the OLD spelling of a key and says nothing about the
+  // new one, so a migrated caller passing `time.warp.warpRate` resolved to
+  // `undefined` and fell back to the legacy `"data"` `DataSource` that nothing
+  // registers in production: no status, forever, with nothing failing. Pass an
+  // untranslated key through and let `isTopicCarried` answer for both
+  // spellings; a key that is neither still takes the legacy path below. Third
+  // hook of this shape, after `useWidgetStreamStatus` and `useDataSeries`.
+  const topic = mapTopic(dataSourceId, key) ?? key;
   const carried =
     store !== undefined &&
-    topic !== undefined &&
     carriedChannels !== undefined &&
     isTopicCarried(store, carriedChannels, topic);
-  const routable =
-    client !== undefined &&
-    store !== undefined &&
-    topic !== undefined &&
-    carried;
+  const routable = client !== undefined && store !== undefined && carried;
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      if (!client || !store || topic === undefined || !routable) {
+      if (!client || !store || !routable) {
         return () => {};
       }
       // Mirrors `useDataValue`'s `subscribeStream` (and, underneath it,
@@ -122,7 +124,7 @@ export function useDataStreamStatus(
     [client, store, topic, routable],
   );
   const getSnapshot = useCallback(() => {
-    if (!store || topic === undefined || !routable) return legacyStreamStatus;
+    if (!store || !routable) return legacyStreamStatus;
     return store.sampleStatus(topic, store.currentFrame());
   }, [store, topic, routable, legacyStreamStatus]);
 

@@ -193,6 +193,31 @@ const MIGRATED: readonly MigratedWidget[] = [
     ],
   },
   {
+    id: "experiments",
+    legacyKeys: [
+      { key: "sci.instruments", expectMatch: true },
+      { key: "sci.experiments", expectMatch: true },
+    ],
+  },
+  {
+    id: "science-data",
+    legacyKeys: [
+      { key: "v.body", expectMatch: true },
+      { key: "v.situationString", expectMatch: true },
+      { key: "v.landedAt", expectMatch: true },
+      { key: "v.biome", expectMatch: true },
+      { key: "sci.experiments", expectMatch: true },
+      { key: "sci.experimentBreakdown", expectMatch: true },
+      { key: "sci.archive", expectMatch: true },
+      { key: "career.science", expectMatch: true },
+      {
+        key: "career.mode",
+        expectMatch: false,
+        why: "it appeared only in the requirements list; the widget branches on game signal and flight state, never on career mode",
+      },
+    ],
+  },
+  {
     id: "navball",
     legacyKeys: [
       { key: "n.heading", expectMatch: true },

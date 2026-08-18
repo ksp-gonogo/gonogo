@@ -116,6 +116,48 @@ describe("useDataStreamStatus: mapped + carried key reads the real stream status
   });
 });
 
+/**
+ * The third hook with this shape, after `useWidgetStreamStatus` and
+ * `useDataSeries`. Each was written to TRANSLATE the old vocabulary, and none
+ * was written to accept the new one, so each rejected a modern path and fell
+ * back to the legacy `"data"` `DataSource` that nothing registers in
+ * production. A widget migrating its key would silently lose its status.
+ */
+describe("useDataStreamStatus: a MODERN topic reads the real stream status", () => {
+  it("reads the same status the legacy key does, for the key it replaces", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const legacySource = makeLegacySource();
+    registerDataSource(legacySource);
+
+    function Status() {
+      const status = useDataStreamStatus("data", "time.warp.warpRate");
+      return <div>status:{status}</div>;
+    }
+
+    render(
+      <TelemetryProvider client={client} carriedChannels={["time.warp"]}>
+        <Status />
+      </TelemetryProvider>,
+    );
+
+    expect(screen.getByText("status:resyncing")).toBeTruthy();
+
+    act(() => {
+      transport.emit("time.warp", {
+        warpRate: 1,
+        warpRateIndex: 0,
+        warpMode: 0,
+        paused: false,
+      });
+    });
+    await waitFor(() => expect(screen.getByText("status:live")).toBeTruthy());
+
+    act(() => legacySource.setStatus("disconnected"));
+    expect(screen.getByText("status:live")).toBeTruthy();
+  });
+});
+
 describe("useDataStreamStatus: mapped but NOT carried falls back to legacy status", () => {
   it("reads the legacy status when the provider hasn't carried the topic yet", () => {
     const transport = new StubTransport();

@@ -52,7 +52,7 @@ function ScienceDataComponent({
   const archiveRaw = useTelemetry("science.archive");
   const breakdownStreamStatus = useDataStreamStatus(
     "data",
-    "sci.experimentBreakdown",
+    "science.experimentBreakdown",
   );
 
   const experiments = parseExperiments(experimentsRaw);
@@ -176,16 +176,18 @@ registerComponent<ScienceDataConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: ScienceDataComponent,
+  // `career.mode` is gone rather than translated: it appeared only in this
+  // list, never in the component. The widget branches on `hasGameSignal` /
+  // `inFlight`, not on the career mode.
   dataRequirements: [
-    "v.body",
-    "v.situationString",
-    "v.landedAt",
-    "v.biome",
-    "sci.experiments",
-    "sci.experimentBreakdown",
-    "sci.archive",
-    "career.mode",
-    "career.science",
+    "vessel.state.parentBodyName",
+    "vessel.state.situationName",
+    "vessel.surface.landedAt",
+    "vessel.surface.biome",
+    "science.experiments",
+    "science.experimentBreakdown",
+    "science.archive",
+    "career.status.economy.science",
   ],
   defaultConfig: {},
   // Both tabs are read-only on the base widget itself, no dispatchable
