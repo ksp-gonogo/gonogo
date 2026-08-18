@@ -70,17 +70,22 @@ namespace GonogoKosUplink.Tests
         /// The one field in this whole slice that a formatter could get WRONG, as
         /// opposed to merely print bare, pinned by name. Everything else here is
         /// an identifier or a flag, where an absent unit costs nothing;
-        /// <see cref="KosComputeStatus.LastGoodAt"/> is a UT in seconds, and a
-        /// client that does not know that renders a mission-elapsed timestamp as a
-        /// raw five-digit number.
+        /// <see cref="KosComputeStatus.LastGoodAt"/> is an INSTANT on the
+        /// universal-time clock, and a client that does not know that renders a
+        /// timestamp as a raw five-digit number, or worse counts down to it.
+        ///
+        /// <para><c>UniversalTime</c> rather than <c>Seconds</c>, and the
+        /// difference is the point: this is when the last good result came back,
+        /// never how long ago. The two shared a token until an absolute UT
+        /// reached a countdown in two shipped widgets.</para>
         /// </summary>
         [Fact]
-        public void TheOneRealQuantityDeclaresSeconds()
+        public void TheOneRealQuantityDeclaresAnInstant()
         {
             var lastGoodAt = typeof(KosComputeStatus).GetProperty(nameof(KosComputeStatus.LastGoodAt))!;
 
             Assert.True(UnitCoverageAssertion.RequiresUnit(lastGoodAt));
-            Assert.Equal(Units.Seconds, lastGoodAt.GetCustomAttribute<SitrepUnitAttribute>()!.Unit);
+            Assert.Equal(Units.UniversalTime, lastGoodAt.GetCustomAttribute<SitrepUnitAttribute>()!.Unit);
         }
 
         /// <summary>

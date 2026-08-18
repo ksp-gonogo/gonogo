@@ -141,7 +141,8 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
         agent: "Kerbin Space Agency",
         fundsAdvance: value("funds", 1000),
         fundsCompletion: value("funds", 5000),
-        deadline: value("s", 12345),
+        // An INSTANT the contract expires at, not a countdown.
+        deadline: value("ut", 12345),
       },
     });
   });

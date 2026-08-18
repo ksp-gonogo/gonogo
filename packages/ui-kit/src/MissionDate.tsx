@@ -6,8 +6,8 @@ import { formatKspDate } from "./formatKspDate";
  *
  * ## Why this is not `<Unit>`
  *
- * Both take a `Value<"s">` and both are the only way their presentation
- * leaves this package, but they are showing different things. A duration is a
+ * Both are the only way their presentation leaves this package, but they are
+ * showing different things. A duration is a
  * LENGTH of time and scales: 90 seconds is a minute and a half, and `<Unit>`
  * climbs the time ladder to say so. A UT is an INSTANT, an offset from the
  * game's epoch, and 9,201,600 of them is not "106 days", it is Year 2 Day 1.
@@ -17,7 +17,9 @@ import { formatKspDate } from "./formatKspDate";
  * Splitting them at the component rather than behind a prop on `<Unit>` keeps
  * `format` meaning one thing (a unit of the same kind, checked against the
  * model) instead of also meaning a notation, and it makes the call site say
- * which of the two it meant.
+ * which of the two it meant. The wire now says which it meant too: an instant
+ * carries `"ut"` and a duration carries `"s"`, so `<Countdown>` can refuse one
+ * outright rather than rendering it as forty-six days.
  *
  * ## The calendar is whichever one the game is running
  *

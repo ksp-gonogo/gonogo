@@ -99,6 +99,13 @@ export type KnownQuantityKind =
   | "pressure"
   | "temperature"
   | "time"
+  // An INSTANT on the game's clock rather than a length of it. Same dimension
+  // as `time` and a separate kind for the reason `<MissionDate>` gives in full:
+  // 9,201,600 of these is not "106 days", it is Year 2 Day 1, so climbing the
+  // time ladder renders a true statement about the wrong quantity. `<Unit>` is
+  // not the component for it; `<MissionDate>` is, or subtract the frame's view
+  // time and render the duration that leaves.
+  | "universalTime"
   // Time measured by a clock on the desk rather than by the game: how long
   // ago a reading arrived, how long a recorder ran. A day is 24 hours here
   // and 6 hours in `time`, which is why they are two kinds and not one.
