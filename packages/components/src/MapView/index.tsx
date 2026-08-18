@@ -1338,7 +1338,7 @@ registerComponent<MapViewConfig>({
     "o.orbitPatches",
     "o.encounterExists",
     "o.encounterBody",
-    "o.encounterTime",
+    "o.UTsoi",
     "o.nextApsisType",
     "o.timeToNextApsis",
   ],

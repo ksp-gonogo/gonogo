@@ -1,10 +1,14 @@
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  useStream,
+  useViewUt,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 
 /**
  * Vessel-wide orbital event chips: an SOI encounter / escape and the next
- * apsis. Reads `o.encounterExists / encounterBody / encounterTime` and
+ * apsis. Reads `o.encounterExists / encounterBody / UTsoi` and
  * `o.nextApsisType / timeToNextApsis`. Renders nothing when neither has data.
  *
  * `o.encounterExists` is the gate: -1 = escape (leaving current SOI),
@@ -12,12 +16,22 @@ import type { ReactNode } from "react";
  * fields only carry meaningful values when this is non-zero.
  *
  * `o.nextApsisType`: -1 = Pe, 1 = Ap, 0 = N/A (hyperbolic past Pe).
+ *
+ * `encounterTime` is an ABSOLUTE UT (`vessel.orbit.encounter.transitionUt`,
+ * carried through unchanged), so the countdown is the frame's view time
+ * subtracted from it, never the field itself. Rendering it raw put a Mun
+ * encounter twenty minutes away on screen as "46d 2h", and the old
+ * `encounterTime > 0` gate held the chip up forever because every UT passes
+ * it. `timeToNextApsis` beside it really is a remaining duration, hence the
+ * two being treated differently three lines apart: `Units.Seconds` is the
+ * same token on both and cannot tell them apart.
  */
 export function OrbitalEventChips() {
   const vesselState = useStream<VesselState>("vessel.state");
   const enc = vesselState?.encounterExists;
   const encBody = vesselState?.encounterBody;
-  const encTime = vesselState?.encounterTime;
+  const encUt = vesselState?.encounterUt;
+  const viewUt = useViewUt();
   const apsisType = vesselState?.nextApsisType;
   const timeToApsis = vesselState?.timeToNextApsis;
 
@@ -27,13 +41,16 @@ export function OrbitalEventChips() {
       : typeof enc === "number" && enc === -1
         ? "escape"
         : null;
+  const encIn =
+    typeof encUt === "number" && Number.isFinite(encUt) && viewUt !== undefined
+      ? encUt - viewUt
+      : undefined;
   const hasEncounter =
     encounterKind !== null &&
     typeof encBody === "string" &&
     encBody.length > 0 &&
-    typeof encTime === "number" &&
-    Number.isFinite(encTime) &&
-    encTime > 0;
+    encIn !== undefined &&
+    encIn > 0;
 
   const hasApsis =
     typeof apsisType === "number" &&
@@ -50,7 +67,7 @@ export function OrbitalEventChips() {
         <Chip variant={encounterKind === "escape" ? "warn" : "go"}>
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>
           <ChipValue>
-            {encBody as string} · <Countdown value={encTime as number} />
+            {encBody as string} · <Countdown value={encIn as number} />
           </ChipValue>
         </Chip>
       )}

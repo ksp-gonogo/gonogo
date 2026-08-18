@@ -70,8 +70,8 @@ export interface VesselOrbitPayload {
   /**
    * The next upcoming SOI transition, or `null` when there is none (the
    * common case): the source of `vessel.state.encounterExists`/
-   * `encounterBody`/`encounterTime` (old Telemachus `o.encounterExists`/
-   * `o.encounterBody`/`o.encounterTime`). Optional here because it's an
+   * `encounterBody`/`encounterUt` (old Telemachus `o.encounterExists`/
+   * `o.encounterBody`/`o.UTsoi`). Optional here because it's an
    * additive field the reference wire fixture / older recordings may not
    * carry yet: treated identically to `null` (no encounter).
    */
@@ -377,12 +377,20 @@ export interface VesselState {
    */
   encounterBody: string | null | undefined;
   /**
-   * Encounter time: `vessel.orbit.encounter.transitionUt` (UT seconds), the
-   * old Telemachus `o.encounterTime`. `undefined` when there is no encounter
-   * or the value is non-finite. The widget only shows the chip when this is a
-   * finite number > 0.
+   * The ABSOLUTE UT of the SOI transition: `vessel.orbit.encounter.transitionUt`
+   * carried through unchanged. `undefined` when there is no encounter or the
+   * value is non-finite.
+   *
+   * Named `encounterUt` and not `encounterTime` because the old name was a lie
+   * this repo had already told itself. Telemachus carried BOTH `o.encounterTime`
+   * ("seconds until the SOI transition", see `schemas/telemachus.ts`) and
+   * `o.UTsoi` (the absolute instant); the migration kept the duration's name and
+   * put the instant behind it. `OrbitalEventChips`, written against the old
+   * meaning, then rendered a Mun encounter twenty minutes away as "46d 2h" in
+   * two shipped widgets, and its `> 0` guard held the chip up forever because
+   * every UT passes it. A consumer wants `encounterUt - viewUt`.
    */
-  encounterTime: number | null | undefined;
+  encounterUt: number | null | undefined;
   /**
    * Signed target closing/opening rate, m/s: the range-rate
    * `dot(relativePosition, relativeVelocity) / |relativePosition|` derived from
@@ -892,7 +900,7 @@ const TRANSITION_TYPE_ESCAPE = 3;
 
 /**
  * Resolve `vessel.orbit.encounter` to OrbitalEventChips' three legacy scalars
- * (`o.encounterExists`/`o.encounterBody`/`o.encounterTime`). `orbit` is always
+ * (`o.encounterExists`/`o.encounterBody`/`o.UTsoi`). `orbit` is always
  * present here (its channel gates the whole `vessel.state` record), so a
  * missing/`null` encounter is a DEFINED "no encounter", `encounterExists` 0,
  * body/time `undefined`: never the whole-record `undefined`/`null`. The body
@@ -905,14 +913,14 @@ function deriveEncounter(
 ): {
   encounterExists: number | null | undefined;
   encounterBody: string | null | undefined;
-  encounterTime: number | null | undefined;
+  encounterUt: number | null | undefined;
 } {
   const encounter = orbit.encounter;
   if (encounter == null) {
     return {
       encounterExists: 0,
       encounterBody: undefined,
-      encounterTime: undefined,
+      encounterUt: undefined,
     };
   }
   const encounterExists =
@@ -924,7 +932,7 @@ function deriveEncounter(
   return {
     encounterExists,
     encounterBody: resolveBodyName(get, encounter.bodyIndex),
-    encounterTime: Number.isFinite(mag(encounter.transitionUt))
+    encounterUt: Number.isFinite(mag(encounter.transitionUt))
       ? mag(encounter.transitionUt)
       : undefined,
   };

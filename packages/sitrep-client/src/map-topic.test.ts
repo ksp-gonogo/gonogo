@@ -158,9 +158,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "o.encounterBody")).toBe(
       "vessel.state.encounterBody",
     );
-    expect(mapTopic("data", "o.encounterTime")).toBe(
-      "vessel.state.encounterTime",
-    );
+    expect(mapTopic("data", "o.UTsoi")).toBe("vessel.state.encounterUt");
     expect(mapTopic("data", "tar.o.relativeVelocity")).toBe(
       "vessel.state.targetRelativeSpeed",
     );
@@ -171,7 +169,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     for (const key of [
       "o.encounterExists",
       "o.encounterBody",
-      "o.encounterTime",
+      "o.UTsoi",
       "tar.o.relativeVelocity",
       "dock.x",
       "dock.y",

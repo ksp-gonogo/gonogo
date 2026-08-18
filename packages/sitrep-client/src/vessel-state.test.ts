@@ -358,7 +358,7 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
   });
 });
 
-describe("encounter display maps: encounterExists/encounterBody/encounterTime (batch-2: o.encounterExists/Body/Time off vessel.orbit.encounter)", () => {
+describe("encounter display maps: encounterExists/encounterBody/encounterUt (batch-2: o.encounterExists/Body/UTsoi off vessel.orbit.encounter)", () => {
   function orbitWithEncounter(
     encounter: VesselOrbitPayload["encounter"],
     quality = Quality.OnRails,
@@ -378,7 +378,7 @@ describe("encounter display maps: encounterExists/encounterBody/encounterTime (b
     const state = deriveVesselState(get, 0);
     expect(state?.encounterExists).toBe(1);
     expect(state?.encounterBody).toBe("Kerbin");
-    expect(state?.encounterTime).toBe(12_345);
+    expect(state?.encounterUt).toBe(12_345);
   });
 
   it("ESCAPE (transitionType 3) → -1", () => {
@@ -393,7 +393,7 @@ describe("encounter display maps: encounterExists/encounterBody/encounterTime (b
     const state = deriveVesselState(get, 0);
     expect(state?.encounterExists).toBe(-1);
     expect(state?.encounterBody).toBe("Kerbol");
-    expect(state?.encounterTime).toBe(999);
+    expect(state?.encounterUt).toBe(999);
   });
 
   it("a non-surfaced transition type (Initial 0) → 0 exists (no chip), body/time still resolved", () => {
@@ -416,7 +416,7 @@ describe("encounter display maps: encounterExists/encounterBody/encounterTime (b
     const state = deriveVesselState(get, 0);
     expect(state?.encounterExists).toBe(0);
     expect(state?.encounterBody).toBeUndefined();
-    expect(state?.encounterTime).toBeUndefined();
+    expect(state?.encounterUt).toBeUndefined();
   });
 
   it("encounterBody undefined (resyncing) when system.bodies hasn't arrived; null on a tombstone", () => {
@@ -454,7 +454,7 @@ describe("encounter display maps: encounterExists/encounterBody/encounterTime (b
     expect(state?.basis).toBe("measured");
     expect(state?.encounterExists).toBe(1);
     expect(state?.encounterBody).toBe("Kerbin");
-    expect(state?.encounterTime).toBe(7);
+    expect(state?.encounterUt).toBe(7);
   });
 });
 

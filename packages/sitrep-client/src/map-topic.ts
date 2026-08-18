@@ -181,7 +181,7 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // --- vessel.state (derived, client-side shape-mismatch fixes): three more
   // display maps + one range-rate derivation off already-served channels,
   // same pattern as the enum maps above.
-  //  - encounterExists/encounterBody/encounterTime  <- vessel.orbit.encounter
+  //  - encounterExists/encounterBody/encounterUt  <- vessel.orbit.encounter
   //    (nullable OrbitEncounter record). exists = signed -1/0/1 keyed off
   //    TransitionType (Encounter→1, Escape→-1, else 0: the sign carries the
   //    escape-vs-encounter distinction OrbitalEventChips branches on); body =
@@ -192,7 +192,13 @@ export const TELEMACHUS_CLEAN_HOMES: Readonly<Record<string, string>> = {
   // ---
   "o.encounterExists": "vessel.state.encounterExists",
   "o.encounterBody": "vessel.state.encounterBody",
-  "o.encounterTime": "vessel.state.encounterTime",
+  // `o.UTsoi`, not `o.encounterTime`: Telemachus carried both, the first the
+  // absolute instant of the transition and the second the seconds remaining
+  // until it, and `vessel.orbit.encounter.transitionUt` is the instant. Mapping
+  // the duration's key onto it is what put "46d 2h" in the encounter chip.
+  // There is no source for the remaining-seconds key, so it maps to nothing and
+  // a consumer subtracts the view time itself.
+  "o.UTsoi": "vessel.state.encounterUt",
   "tar.o.relativeVelocity": "vessel.state.targetRelativeSpeed",
 
   // --- vessel.state (derived client-side): the "derived quantities with no
@@ -759,7 +765,7 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // reads is now derived on the SYSTEM-scoped `system.state.bodyCount`
   // channel (system-state.ts, `bodies.length`): see TELEMACHUS_CLEAN_HOMES.
 
-  // o.encounterExists/o.encounterBody/o.encounterTime are mapped on the
+  // o.encounterExists/o.encounterBody/o.UTsoi are mapped on the
   // wire: the single nullable `vessel.orbit.encounter` record now feeds
   // three derived `vessel.state.*` fields shaped exactly as OrbitalEventChips
   // reads them, signed -1/0/1 exists (keyed off TransitionType), the body
