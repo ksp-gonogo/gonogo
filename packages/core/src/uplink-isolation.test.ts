@@ -171,14 +171,32 @@ describe("uplink isolation", () => {
       | undefined;
     if (!baseDebt) return;
 
+    /**
+     * Compare only packages forbidden at BOTH ends. When `FORBIDDEN_PACKAGES`
+     * itself changes, entries for a newly-forbidden package are a reseed rather
+     * than new debt, and grading them as growth would make it impossible to
+     * widen the rule without disabling its own ratchet. Debt for a package
+     * forbidden at both ends is still strictly shrink-only, which is the part
+     * that has to hold.
+     */
+    const baseForbidden = new Set(
+      (module_.exports.FORBIDDEN_PACKAGES as readonly string[] | undefined) ??
+        FORBIDDEN_PACKAGES,
+    );
+    const graded = new Set(
+      FORBIDDEN_PACKAGES.filter((pkg) => baseForbidden.has(pkg)),
+    );
+
     const added: string[] = [];
     for (const [file, pkgs] of Object.entries(INTERNAL_IMPORT_DEBT)) {
+      const relevant = pkgs.filter((pkg) => graded.has(pkg));
+      if (relevant.length === 0) continue;
       const before = baseDebt[file];
       if (!before) {
-        added.push(`${file} (whole entry)`);
+        added.push(`${file} (whole entry: ${relevant.join(", ")})`);
         continue;
       }
-      for (const pkg of pkgs) {
+      for (const pkg of relevant) {
         if (!before.includes(pkg)) added.push(`${file} -> ${pkg}`);
       }
     }

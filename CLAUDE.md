@@ -370,20 +370,24 @@ Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in a s
 
 ---
 
-## Uplink isolation: an Uplink imports only the published packages
+## Uplink isolation: an Uplink imports only the PUBLISHED packages
 
 `mod/Gonogo*Uplink/client/**` may import **`@ksp-gonogo/sitrep-sdk`** and
-**`@ksp-gonogo/ui-kit`**, and nothing else from this repo. Never
-`@ksp-gonogo/core`, `components`, `data`, `ui` or `logger`: those are
-app-internal, a third-party Uplink author cannot install them, and an Uplink that
-reaches into one cannot be built outside this repo. Note `ui` and `ui-kit` are
-different packages; only `ui-kit` is published.
+**`@ksp-gonogo/ui-kit`** (plus `react`, `styled-components`, third-party), and
+nothing else from this repo. `core`, `ui`, `components`, `data`, `logger` and
+`sitrep-client` are private and unpublished: an outside author cannot install or
+build against them. Note `ui` and `ui-kit` are different packages.
 
-If an Uplink needs something that lives app-side, **move the export into
-`sitrep-sdk` or `ui-kit`**, don't import across the boundary. Almost every case
-on record is a sensible export in the wrong package rather than a design problem.
-Never put a repo-wide gate inside an Uplink: a check that needs `core` to run is
-one a third-party author cannot run.
+The app's baked import map (`packages/app/src/uplinks/externals/`) resolves twelve
+specifiers at runtime, `core` included. **That is not a licence to import them**,
+it fixes runtime resolution only and does nothing for building.
+
+The seam already exists: every stateful member of `sitrep-sdk` (each `registerX`,
+every hook) is a shim delegating to the app-injected host, importing no registry,
+so a packed Uplink cannot carry a second one. Use those. If something you need is
+missing, **move the export into `sitrep-sdk` or `ui-kit`**, don't import across the
+boundary. Never put a repo-wide gate inside an Uplink: a check needing an
+app-internal package is one a third-party author cannot run.
 
 Enforced by `packages/core/src/uplink-isolation.test.ts` (shrink-only debt list,
 seeded 2026-08-18). Full rules and the reasoning: `docs/uplink-isolation.md`.

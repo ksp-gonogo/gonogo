@@ -8,17 +8,40 @@ depends on surfaces they actually have.
 
 An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 
-- **`@ksp-gonogo/sitrep-sdk`**, the devkit: `useTelemetry`, `useCommand`,
-  `defineUplinkClient`, the generated contract, `Value`, the testing entry point
+- **`@ksp-gonogo/sitrep-sdk`**, the devkit
 - **`@ksp-gonogo/ui-kit`**, the published design system
-- third-party packages, and its own files
+- `react`, `styled-components`, and third-party packages
 
-It may **not** import `@ksp-gonogo/core`, `components`, `data`, `ui` or
-`logger`. Those are app-internal. A third-party author cannot install them, so an
-Uplink that reaches into one cannot be built outside this repo.
+Nothing else from this repo. `core`, `ui`, `components`, `data`, `logger` and
+`sitrep-client` are all `private: true` and unpublished, so an author outside this
+tree cannot install them, typecheck against them, or build.
 
 `@ksp-gonogo/ui` and `@ksp-gonogo/ui-kit` are different packages. `ui` is private
-and app-side; `ui-kit` is the published one. Only `ui-kit` is available to you.
+and app-side; only `ui-kit` is published.
+
+### The import map is not a licence
+
+`packages/app/src/uplinks/externals/` bakes an import map that resolves twelve
+specifiers, `core` and `sitrep-client` among them, to the app's singleton chunks at
+runtime. That mechanism is real and load-bearing: it is what makes a loaded
+widget's `registerComponent` write into the registry the dashboard reads.
+
+It fixes RUNTIME resolution only. It says nothing about how an author builds in the
+first place, and a package you cannot install is not available to you just because
+the browser could have found it.
+
+### Use the seam instead
+
+`mod/sitrep-sdk/src/api/index.ts` already carries a fail-loud shim for every
+stateful member: each `registerX`, every hook. They delegate to the host the app
+injects, and import no registry, so a packed Uplink cannot bundle a second one.
+That is the supported path and it needs no app-internal import.
+
+The SDK's own header notes that first-party in-tree code bypasses these shims and
+reaches for `core` directly. That shortcut is why the built-in Uplinks stopped
+being reference implementations of what we ask outside authors to write, and
+working through the debt list below is how they become reference implementations
+again.
 
 ## If you need something that lives in an app-internal package
 
