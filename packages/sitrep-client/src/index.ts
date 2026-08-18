@@ -69,6 +69,13 @@ export {
   getContributedDerivedChannels,
 } from "./contributed-channels";
 export type {
+  ControlExpectation,
+  DeriveExpectationsArgs,
+  ExpectationPhase,
+  FieldObservation,
+} from "./control-expectation";
+export { deriveExpectations } from "./control-expectation";
+export type {
   ControlRange,
   ControlSample,
   DerivedStrip,

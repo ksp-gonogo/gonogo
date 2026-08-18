@@ -854,10 +854,25 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.PendingUplink"/> entry to
         /// the wire object <c>{ id, command, label, topic, vantage,
-        /// dispatchedAt, oneWaySeconds }</c>: the SAME seven fields
+        /// dispatchedAt, oneWaySeconds, commandedValue? }</c>: the SAME fields
         /// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> ratchets on
         /// <see cref="Sitrep.Contract.PendingUplink"/> itself (prediction-only:
         /// dispatch-time facts only, never an execution/result field).
+        ///
+        /// <para>Hand-enumerated, so a field added to the POCO is invisible on
+        /// the wire until it is added HERE too. That is how
+        /// <c>commandedValue</c> first went missing: the contract carried it,
+        /// codegen emitted it, the shape ratchet passed, and the wire simply did
+        /// not have it. An integration test that reads the delivered frame is
+        /// the only thing that catches that, which is why the commanded-value
+        /// cases in <c>UplinkPendingQueueTests</c> assert on the frame rather
+        /// than on the POCO.</para>
+        ///
+        /// <para><c>commandedValue</c> is OMITTED when null rather than written
+        /// as JSON null, matching how every other optional field crosses this
+        /// wire and how <c>JSON.stringify</c> treats <c>undefined</c>. It also
+        /// matters here specifically: a zero throttle and an unknown value must
+        /// never arrive looking the same.</para>
         /// </summary>
         private static void AppendPendingUplink(StringBuilder sb, Sitrep.Contract.PendingUplink entry)
         {
@@ -895,6 +910,14 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "oneWaySeconds");
             sb.Append(':');
             AppendNumber(sb, entry.OneWaySeconds);
+
+            if (entry.CommandedValue.HasValue)
+            {
+                sb.Append(',');
+                AppendString(sb, "commandedValue");
+                sb.Append(':');
+                AppendNumber(sb, entry.CommandedValue.Value);
+            }
 
             sb.Append('}');
         }

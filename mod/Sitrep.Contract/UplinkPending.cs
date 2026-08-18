@@ -65,6 +65,45 @@ public class PendingUplink
     /// <summary>One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay changes.</summary>
     [SitrepUnit(Units.Seconds)]
     public double OneWaySeconds { get; set; }
+
+    /// <summary>
+    /// The scalar this command asked for, when its command is one half of a
+    /// declared <see cref="SitrepControlChannelAttribute"/> channel: a throttle
+    /// setting, a switch as 1 or 0, an SAS mode as its ordinal. Null for every
+    /// other command, and for a channel command whose args did not carry the
+    /// value key.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// <para><b>Inside the prediction-only invariant, not an exception to
+    /// it.</b> The invariant on this class forbids an execution/result/
+    /// vessel-derived field: whether the craft received or ran the command, any
+    /// onboard state. A commanded value is none of those. It is the most
+    /// on-point example of "what the centre sent", which is what the invariant
+    /// says this type carries, and the system already knows it because it
+    /// dispatched it: carrying it is not new information and not an inference
+    /// about the craft.</para>
+    ///
+    /// <para><b>Why it is needed.</b> Without it the queue says a SAS command is
+    /// in flight and cannot say which mode it asked for, so a renderer can show
+    /// that something is happening and not what. An optimistic expectation, and
+    /// the render it exists for (one control in a group marked out from its
+    /// siblings), both need the value. It is also the only path a SECOND command
+    /// centre or a station screen has to it: own-dispatch memory is per-client
+    /// by construction.</para>
+    ///
+    /// <para>ONE numeric field rather than a variant because the channel's own
+    /// declared args type already says how to read the number back, and because
+    /// the coverage gate requires a channel's value field to be a scalar. See
+    /// <see cref="ControlChannelDescriptor"/> for the reflected lookup.</para>
+    ///
+    /// <para><c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> pins the field set
+    /// and was deliberately written with no additive carve-out. This addition
+    /// was asked for explicitly rather than slipped past it; the test carries
+    /// the same reasoning.</para>
+    /// </remarks>
+    [SitrepUnit(Units.NotApplicable)]
+    public double? CommandedValue { get; set; }
 }
 
 /// <summary>Wire wrapper for <c>system.uplink.pending</c>: the whole queue, resampled every emission.</summary>

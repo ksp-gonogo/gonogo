@@ -3572,6 +3572,12 @@ namespace Sitrep.Host
                     Vantage = job.Vantage,
                     DispatchedAt = _clock.Now(),
                     OneWaySeconds = uplinkDelay,
+                    // What the command asked for, when it is a declared control
+                    // channel's write half. Still a dispatch-time fact (see
+                    // PendingUplink.CommandedValue): the engine is reading the
+                    // args it was handed, never the craft. Null for every other
+                    // command, which is most of them.
+                    CommandedValue = CommandedScalar(job),
                 });
             }
 
@@ -3584,6 +3590,26 @@ namespace Sitrep.Host
                 job.Done?.Set();
             });
         }
+
+        /// <summary>
+        /// The scalar a control-channel write carried, or null.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// The command-to-value-key map is reflected ONCE and cached: it is a
+        /// fact about the contract assembly's attributes, so it cannot change
+        /// while the mod is loaded, and reflecting per dispatch would put a
+        /// type walk on the command path.
+        /// </remarks>
+        private double? CommandedScalar(DispatchCommandJob job)
+        {
+            _controlChannelValueKeys ??= ControlChannelDescriptor.ValueKeyByCommand();
+            return _controlChannelValueKeys.TryGetValue(job.Command, out var key)
+                ? ControlChannelDescriptor.ScalarFrom(job.Args, key)
+                : null;
+        }
+
+        private IReadOnlyDictionary<string, string> _controlChannelValueKeys;
 
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
 

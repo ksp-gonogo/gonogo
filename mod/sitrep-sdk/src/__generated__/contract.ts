@@ -999,6 +999,7 @@ export interface PendingUplink
 	vantage: string;
 	dispatchedAt: Value<"ut">;
 	oneWaySeconds: Value<"s">;
+	commandedValue?: number;
 }
 export interface PendingUplinkQueue
 {

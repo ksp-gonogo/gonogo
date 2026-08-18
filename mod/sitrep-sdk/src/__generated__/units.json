@@ -584,6 +584,7 @@
     },
     "PendingUplink": {
       "command": "id",
+      "commandedValue": "n/a",
       "dispatchedAt": "ut",
       "id": "id",
       "label": "text",

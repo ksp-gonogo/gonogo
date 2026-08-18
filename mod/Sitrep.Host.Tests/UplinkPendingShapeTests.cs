@@ -36,6 +36,17 @@ namespace Sitrep.Host.Tests
                 "Vantage:System.String",
                 "DispatchedAt:System.Double",
                 "OneWaySeconds:System.Double",
+                // Added deliberately and on request, not by drift. The
+                // invariant this test guards forbids an execution/result/
+                // vessel-derived field; a commanded value is none of those, it
+                // is the clearest instance of "what the centre sent", and the
+                // engine already knows it because it dispatched it. Without it
+                // the queue can say a SAS command is in flight and not which
+                // mode it asked for, which is the difference between a
+                // renderable expectation and a spinner. Still NO general
+                // carve-out: the next addition needs the same argument made
+                // again, here.
+                "CommandedValue:System.Nullable`1[System.Double]",
             };
 
             var actual = typeof(PendingUplink)

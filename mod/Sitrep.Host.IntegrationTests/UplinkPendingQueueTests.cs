@@ -203,6 +203,163 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A control-channel write carries the scalar it asked for onto the
+        /// queue entry. Without it a renderer can say a SAS command is in
+        /// flight and not which mode, which is the difference between an
+        /// expectation it can draw and a spinner.
+        ///
+        /// <para>Still a dispatch-time fact: the engine reads the args it was
+        /// handed and never the craft. It is also the only path a SECOND command
+        /// centre or a station screen has to the value, since own-dispatch
+        /// memory is per-client by construction.</para>
+        /// </summary>
+        [Fact]
+        public async Task DelayedControlChannelDispatchCarriesTheCommandedValue()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                // vessel.control.setThrottle is a declared control channel whose
+                // value field is SetThrottleArgs.Value, so the args key is
+                // "value". The args bag is what the envelope decoder produces.
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.ThrottleCommand,
+                    new Dictionary<string, object> { ["value"] = 0.65 },
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300));
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(frame.Payload);
+                var pending = Assert.IsType<List<object?>>(payload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.Equal("vessel.control.setThrottle", entry["command"]);
+                Assert.Equal(0.65, Assert.IsType<double>(entry["commandedValue"]));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A switch dispatches as 1 or 0, which is what it already is on the
+        /// wire: the channel's own declared args type says how to read it back,
+        /// so one numeric field describes every channel without a variant.
+        /// </summary>
+        [Fact]
+        public async Task ADiscreteControlChannelDispatchCarriesItsSwitchAsAScalar()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.GearCommand,
+                    new Dictionary<string, object> { ["enabled"] = true },
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300));
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(frame.Payload);
+                var pending = Assert.IsType<List<object?>>(payload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.Equal(1.0, Assert.IsType<double>(entry["commandedValue"]));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A command that is not a declared control channel carries no value,
+        /// and the field is omitted rather than sent as a zero: a zero throttle
+        /// and an unknown value must never render the same.
+        /// </summary>
+        [Fact]
+        public async Task ANonChannelCommandCarriesNoCommandedValue()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.Command,
+                    "x",
+                    "KSC",
+                    _ => { },
+                    TimeSpan.FromMilliseconds(300));
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(frame.Payload);
+                var pending = Assert.IsType<List<object?>>(payload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.False(entry.ContainsKey("commandedValue"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task DelayedCommandDispatchWithNoTopicStillEnqueues()
         {
@@ -263,6 +420,18 @@ namespace Sitrep.Host.IntegrationTests
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
             public const string Command = "pending-queue-test.dispatch";
+
+            /// <summary>
+            /// Two real declared control-channel commands, handled here so a
+            /// dispatch of one actually enqueues: ProcessDispatchCommand only
+            /// enqueues a command some uplink handles. Their NAMES are what
+            /// matter, since the commanded-value lookup is keyed on the command
+            /// and reflected off the contract's own [SitrepControlChannel]
+            /// declarations, not off anything this double says.
+            /// </summary>
+            public const string ThrottleCommand = "vessel.control.setThrottle";
+            public const string GearCommand = "vessel.control.setGear";
+
             private int _handled;
 
             public int HandledCount => Volatile.Read(ref _handled);
@@ -274,6 +443,8 @@ namespace Sitrep.Host.IntegrationTests
                 Commands = new List<CommandDeclaration>
                 {
                     new CommandDeclaration { Command = Command, Delayed = true },
+                    new CommandDeclaration { Command = ThrottleCommand, Delayed = true },
+                    new CommandDeclaration { Command = GearCommand, Delayed = true },
                 },
             };
 
@@ -284,6 +455,12 @@ namespace Sitrep.Host.IntegrationTests
                     Interlocked.Increment(ref _handled);
                     return "pong:" + args;
                 });
+                host.AddCommandHandler<Dictionary<string, object>, string>(
+                    ThrottleCommand,
+                    _ => "ok");
+                host.AddCommandHandler<Dictionary<string, object>, string>(
+                    GearCommand,
+                    _ => "ok");
                 host.SetConnectivitySource(ComputeConnected);
                 host.SetSignalDelaySource(ComputeDelay);
             }

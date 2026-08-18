@@ -618,6 +618,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "PendingUplink": {
     command: "id",
+    commandedValue: "n/a",
     dispatchedAt: "ut",
     id: "id",
     label: "text",
