@@ -1,61 +1,16 @@
 /**
- * The staleness/absence surface: the status a topic (raw or derived) is
- * in, from the operator's point of view.
+ * `StreamStatusValue` is now taken from `@ksp-gonogo/sitrep-sdk` rather than declared
+ * here twice.
  *
- * Rides alongside the value in this form (the `useKosScriptStatus` pattern):
- * see `use-stream-status.ts`. **`Reading<T>` is the one recorded exception to
- * that rule**, and it exists because the beside-the-value form did not work in
- * practice: this type, `useStreamStatus`, ui-kit's `StreamStatusBadge`, and the
- * dashboard's per-widget `useWidgetStreamStatus` derivation were all built end
- * to end, and were then read by zero of the thirty-nine widgets that consume
- * telemetry. A badge beside a body is chrome, and nothing forces the body to
- * consult it. So `Reading<T>` nests the value inside the staleness for the
- * value/staleness pair specifically, and this type remains the vocabulary it
- * grades itself with. `Certainty` does NOT fold in: see `use-certainty.ts`.
- *
- * - `"live"`: fresh, a confirmed, current value.
- * - `"held-stale"`: the value may have changed but we currently cannot
- *   know: either client-inferred from missed heartbeat keyframes
- *   (`HeartbeatTracker`, NEVER from `validAt` age: see that file's doc), or
- *   server-stamped (`meta.staleness === HeldStale`) on catch-up.
- * - `"disconnected"`: the whole TRANSPORT (WS) is down (the
- *   "transport-down short-circuit"): rather than letting
- *   every topic independently drift into `"held-stale"` on its own
- *   heartbeat margin, a `TimelineStore.setTransportConnected(false)` call
- *   marks every topic with confirmed data `"disconnected"` immediately.
- *   Distinct from `"held-stale"` (a per-topic inference about ONE channel's
- *   silence): this is a link-wide fact, not a per-topic one. See
- *   `TimelineStore.sampleRawStatus` for the full precedence against
- *   server-stamped staleness and `"absent"`.
- * - `"last-before-blackout"`: server-stamped only, this is the newest
- *   sample that got out before a blackout the Courier already knew about
- *   when it served this point.
- * - `"absent"`: a tombstone (`payload: null`): the subject confidently says
- *   "there is no value". Distinct from `"held-stale"`, the two things an
- *   operator most needs to tell apart. Also distinct from `"disconnected"`:
- *   absence is a confirmed fact about the SUBJECT, link-down is a fact about
- *   the TRANSPORT: orthogonal axes. A tombstoned topic reads `"absent"`
- *   even while the transport is down; link-down never masks a confirmed
- *   subject-absence.
- * - `"resyncing"`: no point at-or-before the current `viewUt` yet in this
- *   epoch: cold start, or resynchronizing after a rewind until the first
- *   post-reset keyframe lands. Mirrors `useTimelineStream`'s `undefined`.
- *   Also what a topic that has NEVER received a point reads as even while
- *   the transport is down, `"disconnected"` only short-circuits a topic we
- *   HAVE heard from before (mirrors `HeartbeatTracker.isOverdue`'s own
- *   "no recorded arrival is not overdue, that's resyncing" precedent).
- *
- * The declaration order above is presentation order, not severity order,
- * see `worstStatus` for the ranking used to combine a derived channel's
- * inputs.
+ * The SDK already mirrored it (`api/types.ts`) because it cannot depend on this
+ * package without forming a build cycle, and a conformance test in core kept the two
+ * copies honest. An Uplink writing a derived channel has to name the type, so the
+ * SDK's copy is the one an author can reach and this package defers to it. One
+ * declaration, no conformance needed.
  */
-export type StreamStatusValue =
-  | "live"
-  | "held-stale"
-  | "disconnected"
-  | "last-before-blackout"
-  | "absent"
-  | "resyncing";
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
+
+export type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * Severity ranking, best to worst. `resyncing` outranks `absent` because it

@@ -683,7 +683,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
       // another Uplink at all: stale twice over, so it ratcheted off.
       "packages/relay/src/bootstrapConfig.ts",
-      "packages/sitrep-client/src/stream-status.ts",
       "packages/sitrep-client/src/timeline-store.ts",
       "packages/sitrep-client/src/use-certainty.ts",
       "packages/sitrep-client/src/use-stream-status.ts",

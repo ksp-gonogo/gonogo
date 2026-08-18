@@ -24,6 +24,7 @@ export {
  * the union and its accessors ship on the devkit surface rather than app-side.
  */
 export * from "./reading";
+export * from "./timeline";
 export {
   getAllKnownTopicIds,
   isTopicId,

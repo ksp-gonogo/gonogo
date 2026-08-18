@@ -1,25 +1,13 @@
-import type { Meta } from "@ksp-gonogo/sitrep-sdk";
-
 /**
- * One point on a topic's `ClientTimeline`.
- *
- * `payload: null` is a tombstone (absence-as-data), a
- * confirmed "there is no value", distinct from `undefined` (never received).
- * `meta` is kept whole (not just the payload) because quality-picking,
- * subject-provenance guarding (`sameSubject`, later task), and staleness all
- * need fields beyond the value itself.
- *
- * `epoch` is the client-side timeline-reset generation this point was
- * ingested under (mirrors `meta.timelineEpoch`, copied in verbatim by
- * whoever constructs the point: `ClientTimeline.append` trusts it, it does
- * not re-derive it from `meta`).
+ * `TimelinePoint` moved to `@ksp-gonogo/sitrep-sdk`: an Uplink writing a derived
+ * channel has to name one, and it cannot import this package. Re-exported so
+ * app-side imports read the same.
  */
-export interface TimelinePoint<T = unknown> {
-  validAt: number;
-  payload: T | null;
-  meta: Meta;
-  epoch: number;
-}
+import type { TimelinePoint } from "@ksp-gonogo/sitrep-sdk";
+
+export type { TimelinePoint } from "@ksp-gonogo/sitrep-sdk";
+
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 
 export interface ClientTimelineOptions {
   /**

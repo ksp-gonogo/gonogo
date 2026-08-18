@@ -1,3 +1,5 @@
+import type { TimelinePoint } from "./timeline";
+
 /**
  * What a telemetry read answers with, and how a widget may use it.
  *
@@ -491,3 +493,26 @@ export function dateable<T>(reading: Reading<T>): {
   }
   return { value: undefined, needsDating: false };
 }
+
+/**
+ * A provider of forward models, consulted once per reading. Returning
+ * `undefined` is the honest majority answer and produces a `stale` reading;
+ * returning a model produces `reckonable`.
+ *
+ * `TopicModel.reckon` is what makes the reckoning a pull. This function itself
+ * must stay cheap: it is asked whether a model EXISTS and what it covers,
+ * which are questions about the basis, not requests to run it.
+ *
+ * `viewUt` is the third argument because declining is the ONLY way a model has
+ * to express a horizon, and a horizon is a statement about how far a value is
+ * being carried. Given the point and the grade alone, a reckoner knows when
+ * the observation was made and not what it is being asked to reach, so it
+ * could not decline at the one moment declining matters. Everything
+ * `Reading`'s doc says about the arm's presence being the statement of trust
+ * rests on this argument existing.
+ */
+export type ReckonerFor<T> = (
+  point: TimelinePoint<T>,
+  grade: StaleGrade,
+  viewUt: number,
+) => TopicModel<T> | undefined;
