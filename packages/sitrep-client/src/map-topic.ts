@@ -755,6 +755,17 @@ export const TELEMACHUS_KNOWN_GAPS: ReadonlySet<string> = new Set([
   // fires until the real fix (a derived display-map/field subtopic, or a
   // server-side field the contract doesn't have yet) lands.
 
+  // o.encounterTime is the duration half of the pair whose instant half is
+  // `o.UTsoi` (see that entry above for the whole story). It is listed here
+  // rather than left merely unmentioned because "maps to nothing" and "is a
+  // known gap" are different claims to every consumer that asks: an
+  // unmentioned key is an unaccounted one, which is the silent third case
+  // `mapTopic.coverage.test.ts` exists to forbid, while a gap entry says the
+  // absence was decided. The seconds remaining ARE recoverable (encounterUt
+  // minus the view time) but deliberately have no field of their own: one
+  // event, one representation, and the subtraction happens where it is read.
+  "o.encounterTime",
+
   // v.body / o.referenceBody are mapped on the wire: the
   // index→name display-map subtopic now exists, deriveVesselState resolves
   // vessel.identity.parentBodyIndex / vessel.orbit.referenceBodyIndex against
