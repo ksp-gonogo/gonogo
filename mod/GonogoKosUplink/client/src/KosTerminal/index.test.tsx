@@ -1,4 +1,3 @@
-import { clearRegistry } from "@ksp-gonogo/core";
 import type { PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
@@ -7,13 +6,13 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { clearRegistry, setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { KosProcessorInfo } from "../__generated__/contract";
 import { kosSource } from "../dataSource/kos";
 import { axe } from "../test/axe";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KosTerminalComponent } from "./index";
 
 // xterm.js needs a canvas-capable DOM jsdom doesn't provide. Mock it at the

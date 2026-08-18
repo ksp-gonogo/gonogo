@@ -1,8 +1,10 @@
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  clearProcessorRuntime,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load registerAugment(...).
 import { CrewSurvivalAugment, CrewSurvivalBadgeAugment } from "./index";
 

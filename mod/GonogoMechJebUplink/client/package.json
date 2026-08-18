@@ -20,12 +20,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ksp-gonogo/core": "workspace:*",
-    "@ksp-gonogo/sitrep-client": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*"
   },
   "devDependencies": {
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/sitrep-testing": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

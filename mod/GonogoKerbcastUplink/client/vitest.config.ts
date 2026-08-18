@@ -1,19 +1,12 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-// Resolve @ksp-gonogo/* workspace deps to their `src` (not built `dist`) so the
-// suite runs hermetically without a prior build, the same shape the sibling
-// Uplink clients' configs use. The `../../../packages` hop is what moving out
-// of `packages/kerbcast` into this Uplink's client half costs.
-const pkgs = path.resolve(import.meta.dirname, "../../../packages");
+// No `@ksp-gonogo/*` aliases. This client imports only published packages, so
+// everything resolves from its own node_modules the way it would for an author
+// outside this repo. The aliases that used to be here pointed the private
+// packages at their `src`, which is part of what let the harness reach into them.
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@ksp-gonogo/core/test": path.resolve(pkgs, "core/src/test/helpers.ts"),
-      "@ksp-gonogo/logger": path.resolve(pkgs, "logger/src/index.ts"),
-    },
-  },
   test: {
     pool: "threads", // forks EPERM on macOS+Node24; matches packages/components config
     name: "kerbcast",

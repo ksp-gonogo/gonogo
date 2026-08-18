@@ -1,8 +1,8 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load registerComponent(...) once.
 import { AvionicsGoNoGoComponent } from "./index";
 

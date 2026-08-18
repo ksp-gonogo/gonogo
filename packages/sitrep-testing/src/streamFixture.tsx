@@ -1,0 +1,118 @@
+import {
+  createFakeWallClock,
+  dvCurrentStageResourceChannel,
+  dvCurrentStageResourceMaxChannel,
+  type FakeWallClock,
+  StubTransport,
+  spaceCenterStateChannel,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+  vesselStateChannel,
+} from "@ksp-gonogo/sitrep-client";
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
+import type { JSX, ReactNode } from "react";
+
+/**
+ * A widget test that genuinely runs OFF THE STREAM: a real `TelemetryProvider`
+ * over a real `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored
+ * per-test emissions.
+ *
+ * This is the REAL spine, not a stand-in. That is the point of publishing it: a
+ * third-party Uplink author should be running the same pipeline the app runs, and
+ * an in-memory reimplementation of it would leave their tests passing while
+ * testing the reimplementation. It is also why this package sits above
+ * `sitrep-client` rather than inside the sdk, which is the leaf everything else
+ * depends on and so cannot reach the spine at all.
+ *
+ * It replaces nine copies of itself. Every Uplink carried its own
+ * `src/test/setupStreamFixture.tsx`, five byte-identical and the other four
+ * varying only in the derived channels they registered. This is the superset, so
+ * every caller gets every channel rather than discovering which one their widget
+ * needed.
+ *
+ * - **`StubTransport`** (not `ReplayTransport`): subscription-gated exactly like
+ *   production, `emit` only delivers once something has actually subscribed, so a
+ *   test that renders a widget and sees the value proves the widget's own
+ *   `useStream`/shim ref-count genuinely subscribed. A test that wants to replay a
+ *   whole recording should build a `ReplayTransport` directly.
+ * - **`carriedChannels`** is required, not defaulted: a caller states which topics
+ *   (read AND command) this fixture carries and nothing is silently promoted,
+ *   mirroring the production allowlist's explicit-promotion contract. A
+ *   `.`-terminated entry is a DYNAMIC whole-topic namespace, so a 3+-segment topic
+ *   (`fleet.<guid>.delay`) is sampled whole rather than mis-split into a
+ *   `<parent>.<field>` the wire never publishes.
+ * - **`delaySeconds`**: the one knob the whole streaming pipeline exists for. A
+ *   caller passing a nonzero value MUST leave `pinnedUt` unset, because
+ *   `ViewClock.viewUt()`'s `scrubTo` target wins outright over the
+ *   confirmed-edge/delay computation, which makes a pinned clock silently turn
+ *   `delaySeconds` into a no-op. Drive time with `fixture.wall.advanceBy(seconds)`
+ *   plus `fixture.store.beginFrame()` instead: nothing else triggers a frame
+ *   between ingests.
+ */
+export interface StreamFixtureOptions {
+  /** Topics (read AND command) to promote into the carried-channels allowlist. */
+  carriedChannels: Iterable<string>;
+  /** UT to pin the view clock at, via `clock.scrubTo`. Omit to leave the clock live (required for `delaySeconds` to have any effect; see this file's doc comment). */
+  pinnedUt?: number;
+  /** Fixed network/display delay in seconds (`ViewClock`'s delay authority). Defaults to 0. */
+  delaySeconds?: number;
+}
+
+export interface StreamFixture {
+  transport: StubTransport;
+  client: TelemetryClient;
+  store: TimelineStore;
+  wall: FakeWallClock;
+  /** Wraps `children` in the `TelemetryProvider` this fixture built. */
+  Provider: (props: { children: ReactNode }) => JSX.Element;
+  /** `transport.emit`, forwarded for convenience: subscription-gated, same as calling it directly. */
+  emit: (
+    topic: string,
+    payload: unknown,
+    metaOverrides?: Partial<Meta>,
+  ) => void;
+}
+
+export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
+  const wall = createFakeWallClock();
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const clock = new ViewClock({
+    nowWall: wall.now,
+    warpRate: () => 1,
+    delaySeconds: () => opts.delaySeconds ?? 0,
+  });
+  const carriedChannels = Array.from(opts.carriedChannels);
+  const store = new TimelineStore(clock, {
+    dynamicWholeTopicPrefixes: carriedChannels.filter((t) => t.endsWith(".")),
+  });
+  store.registerDerivedChannel(vesselStateChannel);
+  store.registerDerivedChannel(spaceCenterStateChannel);
+  store.registerDerivedChannel(dvCurrentStageResourceChannel);
+  store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
+  if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
+
+  function Provider({ children }: { children: ReactNode }) {
+    return (
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={carriedChannels}
+      >
+        {children}
+      </TelemetryProvider>
+    );
+  }
+
+  return {
+    transport,
+    client,
+    store,
+    wall,
+    Provider,
+    emit: (topic, payload, metaOverrides) =>
+      transport.emit(topic, payload, metaOverrides),
+  };
+}

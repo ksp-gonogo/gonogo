@@ -40,12 +40,12 @@
  *     should return directly for an implicit/runtime error.
  */
 
+import type { CommandResult } from "@ksp-gonogo/sitrep-sdk";
 import {
   StubTransport,
   setActiveTelemetryClientForTests,
   TelemetryClient,
-} from "@ksp-gonogo/sitrep-client";
-import type { CommandResult } from "@ksp-gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-testing";
 import type {
   KosProcessorInfo,
   KosRunResult,

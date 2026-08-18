@@ -1,16 +1,9 @@
 import "@testing-library/jest-dom";
 import {
-  AugmentSlot,
-  defineUplinkClient,
   installDomStubs,
+  installRealTestHost,
   PerfBudget,
-  registerAugment,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
-import { useCommand, useProcessor, useUtNow } from "@ksp-gonogo/sitrep-client";
-import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
-import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+} from "@ksp-gonogo/sitrep-testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 
 installDomStubs();
@@ -19,37 +12,12 @@ installDomStubs();
 // its threshold fails. See PerfBudget.installTestGate for opt-out.
 PerfBudget.installTestGate();
 
-// Bridge the sitrep-sdk facade's fail-loud shims to the SAME real core /
-// sitrep-client singletons this suite exercises: mirrors buildGonogoHost()
-// member-for-member, scoped to the subset this client's widget actually
-// calls (defineUplinkClient + registerComponent + registerAugment at module
-// load, the rest at render: useProcessor + AugmentSlot for the
-// Processor-backed augments, useTelemetry for a direct `kerbalism.
-// spaceweather` Topic read (crew-status.summary, ShipSystems' Radiation
-// section), useUtNow for that same Radiation section's rolling-buffer x-axis,
-// useCommand for the ScienceFileManager augment's five File Manager
-// dispatches. Without this, the facade shims throw "the gonogo host has not
-// been installed" the moment a sealed file renders.
-installTestHost({
-  AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
-  defineUplinkClient,
-  registerAugment: registerAugment as GonogoHost["registerAugment"],
-  registerComponent,
-  useCommand: (command) =>
-    useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
-  useProcessor: useProcessor as GonogoHost["useProcessor"],
-  useUtNow: useUtNow as GonogoHost["useUtNow"],
-  // Overloaded on the sdk side (canonical one-arg Topic read, and the
-  // retired useDataValue's legacy two-arg DataSourceRegistry read carried
-  // over onto this same name), mirrors the app's own `buildGonogoHost()`
-  // wiring (packages/app/src/uplinks/host.ts) and the render harness's
-  // `probe-install-host.ts` member-for-member.
-  useTelemetry: ((dataSourceIdOrTopic: string, key?: string) =>
-    (useTelemetry as (a: string, b?: string) => unknown)(
-      dataSourceIdOrTopic,
-      key,
-    )) as GonogoHost["useTelemetry"],
-});
+// Bridge the sitrep-sdk facade's fail-loud shims to the real singletons this
+// suite exercises. Every member, not the subset this client happens to call
+// today: a test gains nothing from the host lacking members, and a partial host
+// fails as `getHost().<member> is not a function` the first time a widget is
+// re-pointed at the facade.
+installRealTestHost();
 
 // This package's Topic registrations, including the unit/shape maps that make a
 // decoded kerbalism.* payload's quantities arrive as `Value`s rather than bare
@@ -66,6 +34,6 @@ installTestHost({
 import "../topics";
 
 // Pin the locale every quantity is written in. It defaults to the READER's
-// locale, which is right for an operator and wrong for a snapshot: a render
-// on a French machine has to match one on an American CI runner.
+// locale, which is right for an operator and wrong for a snapshot: a render on
+// a French machine has to match one on an American CI runner.
 setQuantityLocale("en-GB");

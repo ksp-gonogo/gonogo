@@ -7,6 +7,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import {
   ISRU_CONVERTERS_TOPIC,
@@ -15,7 +16,6 @@ import {
   readKerbalismIsruConverterExt,
   readKerbalismIsruDrillExt,
 } from "./isru";
-import { setupStreamFixture } from "./test/setupStreamFixture";
 
 // src -> client -> GonogoKerbalismUplink -> mod
 const MOD_ROOT = join(

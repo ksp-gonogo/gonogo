@@ -420,7 +420,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // copies. Doc-comment-only, no scansat import or coupling.
       "mod/GonogoMechJebUplink/MechJebUplink.Ksp.cs",
       "mod/GonogoMechJebUplink/MechJebVersionGuard.cs",
-      "mod/GonogoMechJebUplink/client/src/test/setup.ts",
       "mod/GonogoMechJebUplink.Tests/MechJebVersionGuardFakes.cs",
       // Breaking Ground uplink extraction (2026-08-08): the new bundled
       // uplink's doc comments and its client package's scaffolding name
@@ -430,7 +429,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // scansat Uplink.
       "mod/Gonogo.KSP/BreakingGroundUplink.cs",
       "mod/GonogoBreakingGroundUplink/client/scripts/widgets.ts",
-      "mod/GonogoBreakingGroundUplink/client/vitest.config.ts",
     ],
   },
 
@@ -468,10 +466,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
-      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
-      // debt list is keyed by file path, so it necessarily names every Uplink
-      // directory. Ratchet-inventory file, the case this bucket documents.
-      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
@@ -701,7 +695,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoMechJebUplink/MechJebUplink.Ksp.cs",
       "mod/GonogoMechJebUplink/MechJebUplink.cs",
       "mod/GonogoMechJebUplink/MechJebVersionGuard.cs",
-      "mod/GonogoMechJebUplink/client/src/test/setup.ts",
       "mod/GonogoMechJebUplink.Tests/MechJebUplinkRunOnMainThreadTests.cs",
       "mod/GonogoMechJebUplink.Tests/MechJebVersionGuardFakes.cs",
     ],

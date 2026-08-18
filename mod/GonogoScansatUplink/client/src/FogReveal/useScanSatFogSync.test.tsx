@@ -1,20 +1,19 @@
 import "fake-indexeddb/auto";
-import {
-  clearFogRevealSources,
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
-import type { FogMaskCache } from "@ksp-gonogo/data";
-import { FogMaskCacheProvider, FogMaskStore } from "@ksp-gonogo/data";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
 import type { BodyDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { useFogMaskCache } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import type { FogMaskCache } from "@ksp-gonogo/sitrep-testing";
+import {
+  clearFogRevealSources,
+  clearRegistry,
+  FogMaskCacheProvider,
+  FogMaskStore,
+  MockDataSource,
+  registerDataSource,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-testing";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SCAN_TYPE, type SCANCoverageBitmap } from "../schema";

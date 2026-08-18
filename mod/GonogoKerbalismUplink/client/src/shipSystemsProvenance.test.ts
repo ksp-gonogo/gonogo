@@ -1,3 +1,4 @@
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import {
   activateProcessor,
   clearProcessorRuntime,
@@ -5,8 +6,7 @@ import {
   setActiveTimelineStore,
   TimelineStore,
   ViewClock,
-} from "@ksp-gonogo/sitrep-client";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SHIP_SYSTEMS, type ShipSystems } from "./processor";
 

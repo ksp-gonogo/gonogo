@@ -17,7 +17,6 @@ export default defineConfig({
         "src/testing/index.ts",
       ),
       "@ksp-gonogo/sitrep-sdk": path.resolve(sdkPkgs, "src/index.ts"),
-      "@ksp-gonogo/core": path.resolve(corePkgs, "core/src/index.ts"),
     },
   },
   test: {

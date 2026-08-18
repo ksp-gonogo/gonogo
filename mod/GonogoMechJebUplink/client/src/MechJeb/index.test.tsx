@@ -1,16 +1,19 @@
-import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import {
   act,
   render as rtlRender,
   screen,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  clearActionHandlers,
+  DashboardItemContext,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-testing";
 import { DelayRailProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MechJebComponent } from "./index";
 
 /**

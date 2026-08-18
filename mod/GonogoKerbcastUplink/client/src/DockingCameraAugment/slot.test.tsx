@@ -1,9 +1,3 @@
-import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
@@ -12,6 +6,13 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  clearRegistry,
+  clearUplinkHandles,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-testing";
 import {
   DomainAvailabilityProvider,
   useDomainAvailabilityStore,

@@ -1,22 +1,21 @@
 import {
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-  registerStockBodies,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
-import {
   AugmentSlot,
   type DataKey,
   Quality,
   type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  BufferedDataSource,
+  clearRegistry,
+  MemoryStore,
+  MockDataSource,
+  registerDataSource,
+  registerStockBodies,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SCANBiomeGrid } from "../schema";

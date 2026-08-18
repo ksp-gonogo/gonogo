@@ -190,6 +190,44 @@ describe("uplink isolation", () => {
     ).toEqual([]);
   });
 
+  /**
+   * `@ksp-gonogo/sitrep-testing` is published, so every check above is happy with
+   * it, and a widget importing it would ship a test harness (and through it the
+   * whole spine, which that package inlines) inside a runtime bundle.
+   *
+   * This is not hypothetical either. Moving the harness there, a bulk re-point
+   * moved `DerivedChannelDefinition` into `resourceProjection.ts`, a production
+   * file, because the script sorted by symbol and not by who was importing. The
+   * types went back to where they came from and out of the harness's barrel;
+   * declaring a derived channel is a widget's job and needs a home on the sdk,
+   * which is an open gap rather than something to paper over from here.
+   */
+  it("no PRODUCTION Uplink file imports the test harness", () => {
+    const isTest = (f: string) =>
+      /\.test\.|\.test-d\.|\/test\/|__fixtures__|\/scripts\//.test(f);
+    const offenders = uplinkSourceFiles()
+      .map((f) => relative(REPO_ROOT, f).split("\\").join("/"))
+      .filter((f) => !isTest(f))
+      .filter((f) =>
+        /from\s*["']@ksp-gonogo\/sitrep-testing["']/.test(
+          readFileSync(join(REPO_ROOT, f), "utf8"),
+        ),
+      );
+    expect(
+      offenders,
+      [
+        "A production Uplink file imported @ksp-gonogo/sitrep-testing.",
+        "",
+        "That package is published, so the isolation checks above allow it, but it",
+        "is a TEST harness and it inlines core + sitrep-client. Importing it from a",
+        "widget puts the whole spine in a runtime bundle.",
+        "",
+        "If a widget needs the symbol at runtime, it belongs on @ksp-gonogo/",
+        "sitrep-sdk or @ksp-gonogo/ui-kit, not here.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
   it("does not re-introduce a blocked strategy", () => {
     const offenders = uplinkSourceFiles()
       .map((f) => relative(REPO_ROOT, f).split("\\").join("/"))
@@ -415,6 +453,41 @@ describe("uplink isolation", () => {
           "",
           "If an Uplink no longer imports it, delete the DEBT ENTRIES and leave",
           "the package here so the next one is caught.",
+        ].join("\n"),
+      ).toEqual([]);
+    });
+
+    /**
+     * `BLOCKED_FILENAMES` has the same property as `FORBIDDEN_PACKAGES` and needs
+     * the same counterpart. Deleting an entry passes everything: the blocked-
+     * strategy check then finds no offenders because it is no longer looking for
+     * any, which is indistinguishable from the strategy not having come back.
+     *
+     * It is worse here than for the package list, because a blocked filename is a
+     * strategy someone already arrived at twice by careful reasoning from a wrong
+     * premise. It is the entry MOST likely to be removed by someone who has just
+     * re-derived it and believes they are correcting an oversight.
+     */
+    it("BLOCKED_FILENAMES never shrinks", () => {
+      const base = baseAllowlist();
+      if (!base) return;
+      const baseBlocked = base.BLOCKED_FILENAMES as
+        | readonly string[]
+        | undefined;
+      if (!baseBlocked) return;
+      const now = new Set<string>(BLOCKED_FILENAMES);
+      expect(
+        baseBlocked.filter((name) => !now.has(name)),
+        [
+          `A name was REMOVED from BLOCKED_FILENAMES vs ${BASE_REF}.`,
+          "",
+          "These are strategies removed rather than allowlisted, each with its own",
+          "story in the allowlist. Deleting the entry does not unblock the",
+          "strategy, it only stops the guard looking for it, and the suite then",
+          "goes green for the wrong reason.",
+          "",
+          "If you believe one no longer applies, say so in the allowlist and leave",
+          "the name in place.",
         ].join("\n"),
       ).toEqual([]);
     });

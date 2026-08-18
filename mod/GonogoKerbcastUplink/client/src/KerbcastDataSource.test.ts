@@ -1,7 +1,7 @@
-import { resetSettingsForTests, setSetting } from "@ksp-gonogo/core";
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { GAME_HOST_KEY, getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import { act } from "@ksp-gonogo/sitrep-sdk/testing";
+import { resetSettingsForTests, setSetting } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource, kerbcastSource } from "./KerbcastDataSource";
 import {

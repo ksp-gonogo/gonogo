@@ -9,7 +9,7 @@
     "play": "sh scripts/play.sh",
     "prepare": "git config core.hooksPath .githooks || true",
     "build": "turbo build",
-    "codegen": "bash mod/codegen.sh && node scripts/gen-unit-kinds.mjs",
+    "codegen": "bash mod/codegen.sh && node scripts/gen-unit-kinds.mjs && node scripts/gen-test-theme.mjs",
     "codegen:check": "bash scripts/codegen-check.sh",
     "test": "turbo test",
     "test:playwright": "playwright test",

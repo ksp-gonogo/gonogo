@@ -1,9 +1,10 @@
-import { DashboardItemContext } from "@ksp-gonogo/core";
-
 import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  DashboardItemContext,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import servos from "./__fixtures__/servos.json";
 import unavailable from "./__fixtures__/unavailable.json";

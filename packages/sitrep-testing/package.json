@@ -1,0 +1,50 @@
+{
+  "name": "@ksp-gonogo/sitrep-testing",
+  "description": "Test harness for Gonogo (Sitrep) KSP Uplinks: the real telemetry spine, registry helpers and stream fixture an Uplink's own tests run against",
+  "license": "MIT",
+  "version": "0.1.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ksp-gonogo/gonogo.git",
+    "directory": "packages/sitrep-testing"
+  },
+  "homepage": "https://github.com/ksp-gonogo/gonogo/tree/main/packages/sitrep-testing#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/data": "workspace:*",
+    "@ksp-gonogo/logger": "workspace:*",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^18.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@ksp-gonogo/ui-kit": "^0.2.0",
+    "@testing-library/react": "^16.0.0",
+    "react": "^18.0.0",
+    "styled-components": "^6.0.0"
+  }
+}
