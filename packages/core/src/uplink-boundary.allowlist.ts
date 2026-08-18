@@ -1132,6 +1132,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- ratchet inventory --
+      // The rate-integration candidate scan reads EVERY generated unit
+      // descriptor, core's and each Uplink's, because a rate-bearing field
+      // landing in an Uplink is exactly the case it exists to catch. It names
+      // Kerbalism twice, both in prose: once because Kerbalism's science-data
+      // units are the ones core's registry cannot resolve and the scan is
+      // therefore blind to, and once in a verdict explaining why its
+      // resource amount/rate pairing is real but cross-topic. No Kerbalism
+      // type, import, topic or field is referenced, and the verdict data
+      // itself lives in a sibling .json this scan never reads.
+      "packages/core/src/reckoning-candidates.test.ts",
       // -- contract/SDK layer --
       // ContractVersion.cs and RtConfig.cs carry the relocation's PROVENANCE
       // prose (the Major 9 -> 10 entry, the Minor-history entry recording the

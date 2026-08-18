@@ -1,0 +1,407 @@
+{
+  "CareerStrategy.dateActivated": {
+    "rates": ["factor", "factorSliderDefault"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "CrashFlightStats.groundDistance": {
+    "rates": ["highestSpeed", "highestSpeedOverLand"],
+    "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
+    "verdict": "coincidence"
+  },
+  "CrashFlightStats.highestAltitude": {
+    "rates": ["highestSpeed", "highestSpeedOverLand"],
+    "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
+    "verdict": "coincidence"
+  },
+  "CrashFlightStats.highestSpeed": {
+    "rates": ["highestGee"],
+    "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
+    "verdict": "coincidence"
+  },
+  "CrashFlightStats.highestSpeedOverLand": {
+    "rates": ["highestGee"],
+    "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
+    "verdict": "coincidence"
+  },
+  "CrashFlightStats.totalDistance": {
+    "rates": ["highestSpeed", "highestSpeedOverLand"],
+    "reason": "An immutable accident report. Every field is a recorded peak or total from a flight that has ended, so there is nothing left to integrate, and a peak speed is not the rate of a peak altitude in any case.",
+    "verdict": "coincidence"
+  },
+  "DockAlignment.distance": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "A magnitude, `|relativePosition|`, so no single velocity COMPONENT is its rate. The honest derivative is the range rate, which the contract already carries separately.",
+    "verdict": "coincidence"
+  },
+  "DockAlignment.relativePosition.x": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "DockAlignment.relativePosition.y": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "DockAlignment.relativePosition.z": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "KerbalismCrewRule.fatalThreshold": {
+    "rates": ["degenPerSec"],
+    "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
+    "verdict": "coincidence"
+  },
+  "KerbalismCrewRule.value": {
+    "rates": ["degenPerSec"],
+    "reason": "No model claims it.",
+    "verdict": "coincidence"
+  },
+  "KerbalismLifeSupport.asOfUt": {
+    "rates": ["ruleEnvModifiers"],
+    "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
+    "verdict": "coincidence"
+  },
+  "KerbalismResource.amount": {
+    "rates": ["rate"],
+    "reason": "`rate` is the rate of `amount`. The integrand and the rate are on ONE type here, but the topic that publishes amounts (`vessel.resources`) is not the topic that publishes Kerbalism's rates, so a model for the live pair is cross-topic and belongs in a derived channel, not a per-topic reckoner.",
+    "verdict": "real-but-unmodelled"
+  },
+  "KerbalismResource.capacity": {
+    "rates": ["rate"],
+    "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
+    "verdict": "coincidence"
+  },
+  "KerbalismRuleDef.fatalThreshold": {
+    "rates": ["degeneration", "ratePerSecond"],
+    "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
+    "verdict": "coincidence"
+  },
+  "KerbalismRuleDef.rate": {
+    "rates": ["degeneration", "ratePerSecond"],
+    "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
+    "verdict": "coincidence"
+  },
+  "LabEntry.storedScience": {
+    "rates": ["scienceRate"],
+    "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
+    "verdict": "real-but-unmodelled"
+  },
+  "OrbitEntry.epoch": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "OrbitPatch.endUt": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "OrbitPatch.epoch": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "OrbitPatch.period": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "OrbitPatch.startUt": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "PartResourceFlow.amount": {
+    "rates": ["flow", "nominalFlow"],
+    "reason": "`flow` is the rate of `amount`, so this is the one shape the rule was invented for. A model still has to clamp at zero and at the capacity beside it, which the unit table cannot supply.",
+    "verdict": "real-but-unmodelled"
+  },
+  "PartResourceFlow.maxAmount": {
+    "rates": ["flow", "nominalFlow"],
+    "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
+    "verdict": "coincidence"
+  },
+  "ReliabilityPartEntry.mtbfHours": {
+    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
+    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+    "verdict": "coincidence"
+  },
+  "ReliabilityPartEntry.remainingRatedBurn": {
+    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
+    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+    "verdict": "coincidence"
+  },
+  "ServoEntry.currentAngle": {
+    "rates": ["currentRPM", "rpmLimit"],
+    "reason": "An RPM is an angular rate and this angle is what it turns, so the pairing is real. It is also a COMMANDED quantity: a servo travels toward `targetAngle` and stops, so integrating `currentAngle` past its target invents motion that ended.",
+    "verdict": "real-but-unmodelled"
+  },
+  "ServoEntry.targetAngle": {
+    "rates": ["currentRPM", "rpmLimit"],
+    "reason": "The COMMANDED angle, which changes only when a command is issued. A servo's RPM moves the current angle toward this one; it does not move this one.",
+    "verdict": "coincidence"
+  },
+  "StageDeltaVEntry.burnTime": {
+    "rates": ["twrActual", "twrAsl", "twrVac"],
+    "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
+    "verdict": "coincidence"
+  },
+  "VesselFlight.altitudeAsl": {
+    "rates": ["orbitalSpeed", "surfaceSpeed", "verticalSpeed"],
+    "reason": "Ambiguous where it matters: only `verticalSpeed` bears on an altitude, and the rule offers the two horizontal speeds beside it with no way to choose. Integrating an altitude by a speed is also first-order on a curved path, which an orbit always is.",
+    "verdict": "coincidence"
+  },
+  "VesselFlight.altitudeTerrain": {
+    "rates": ["orbitalSpeed", "surfaceSpeed", "verticalSpeed"],
+    "reason": "Ambiguous where it matters: only `verticalSpeed` bears on an altitude, and the rule offers the two horizontal speeds beside it with no way to choose. Integrating an altitude by a speed is also first-order on a curved path, which an orbit always is.",
+    "verdict": "coincidence"
+  },
+  "VesselFlight.orbitalSpeed": {
+    "rates": ["gForce"],
+    "reason": "`gForce` is a load factor in gees, not this speed's acceleration, and it is unsigned. The dimensions line up because a gee is an acceleration; nothing else does.",
+    "verdict": "coincidence"
+  },
+  "VesselFlight.surfaceSpeed": {
+    "rates": ["gForce"],
+    "reason": "`gForce` is a load factor in gees, not this speed's acceleration, and it is unsigned. The dimensions line up because a gee is an acceleration; nothing else does.",
+    "verdict": "coincidence"
+  },
+  "VesselFlight.verticalSpeed": {
+    "rates": ["gForce"],
+    "reason": "`gForce` is a load factor in gees, not this speed's acceleration, and it is unsigned. The dimensions line up because a gee is an acceleration; nothing else does.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.atmosphericTimeToImpact": {
+    "rates": ["dragToWeightRatio"],
+    "reason": "A model OUTPUT that the mod re-integrates each tick, not a quantity a client should advance; `dragToWeightRatio` is a ratio and not its rate. Advancing it client-side would double-count the elapsed time against the mod's own integration.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.predictedRoughness": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.predictedTerrainElevation": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.roughnessFootprintMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.slopeSampleRadiusMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.terrainElevationUnderVessel": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.terrainPatch": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselLanding.terrainPatchExtentMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "VesselOrbit.epoch": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "VesselOrbitTruth.position.x": {
+    "rates": ["velocity.x", "velocity.y", "velocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "VesselOrbitTruth.position.y": {
+    "rates": ["velocity.x", "velocity.y", "velocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "VesselOrbitTruth.position.z": {
+    "rates": ["velocity.x", "velocity.y", "velocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "VesselTarget.relativePosition.x": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "VesselTarget.relativePosition.y": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "VesselTarget.relativePosition.z": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "dv.stages.burnTime": {
+    "rates": ["twrActual", "twrAsl", "twrVac"],
+    "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
+    "verdict": "coincidence"
+  },
+  "kerbalism.lifesupport.asOfUt": {
+    "rates": ["ruleEnvModifiers"],
+    "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
+    "verdict": "coincidence"
+  },
+  "reliability.parts.mtbfHours": {
+    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
+    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+    "verdict": "coincidence"
+  },
+  "reliability.parts.remainingRatedBurn": {
+    "rates": ["durationConsumed", "ignitionsConsumed", "reliabilityFraction"],
+    "reason": "A deliberate source-agnostic SUPERSET read as if it were a record: `remainingRatedBurn` is null for one provider and `durationConsumed`/`ignitionsConsumed` are null for the other, an invariant a shape test already pins, so the integrand and its supposed rate are never both present.",
+    "verdict": "coincidence"
+  },
+  "robotics.servos.currentAngle": {
+    "rates": ["currentRPM", "rpmLimit"],
+    "reason": "An RPM is an angular rate and this angle is what it turns, so the pairing is real. It is also a COMMANDED quantity: a servo travels toward `targetAngle` and stops, so integrating `currentAngle` past its target invents motion that ended.",
+    "verdict": "real-but-unmodelled"
+  },
+  "robotics.servos.targetAngle": {
+    "rates": ["currentRPM", "rpmLimit"],
+    "reason": "The COMMANDED angle, which changes only when a command is issued. A servo's RPM moves the current angle toward this one; it does not move this one.",
+    "verdict": "coincidence"
+  },
+  "science.lab.storedScience": {
+    "rates": ["scienceRate"],
+    "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.dock.distance": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "A magnitude, `|relativePosition|`, so no single velocity COMPONENT is its rate. The honest derivative is the range rate, which the contract already carries separately.",
+    "verdict": "coincidence"
+  },
+  "vessel.dock.relativePosition.x": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.dock.relativePosition.y": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.dock.relativePosition.z": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.flight.altitudeAsl": {
+    "rates": ["orbitalSpeed", "surfaceSpeed", "verticalSpeed"],
+    "reason": "Ambiguous where it matters: only `verticalSpeed` bears on an altitude, and the rule offers the two horizontal speeds beside it with no way to choose. Integrating an altitude by a speed is also first-order on a curved path, which an orbit always is.",
+    "verdict": "coincidence"
+  },
+  "vessel.flight.altitudeTerrain": {
+    "rates": ["orbitalSpeed", "surfaceSpeed", "verticalSpeed"],
+    "reason": "Ambiguous where it matters: only `verticalSpeed` bears on an altitude, and the rule offers the two horizontal speeds beside it with no way to choose. Integrating an altitude by a speed is also first-order on a curved path, which an orbit always is.",
+    "verdict": "coincidence"
+  },
+  "vessel.flight.orbitalSpeed": {
+    "rates": ["gForce"],
+    "reason": "`gForce` is a load factor in gees, not this speed's acceleration, and it is unsigned. The dimensions line up because a gee is an acceleration; nothing else does.",
+    "verdict": "coincidence"
+  },
+  "vessel.flight.surfaceSpeed": {
+    "rates": ["gForce"],
+    "reason": "`gForce` is a load factor in gees, not this speed's acceleration, and it is unsigned. The dimensions line up because a gee is an acceleration; nothing else does.",
+    "verdict": "coincidence"
+  },
+  "vessel.flight.verticalSpeed": {
+    "rates": ["gForce"],
+    "reason": "`gForce` is a load factor in gees, not this speed's acceleration, and it is unsigned. The dimensions line up because a gee is an acceleration; nothing else does.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.atmosphericTimeToImpact": {
+    "rates": ["dragToWeightRatio"],
+    "reason": "A model OUTPUT that the mod re-integrates each tick, not a quantity a client should advance; `dragToWeightRatio` is a ratio and not its rate. Advancing it client-side would double-count the elapsed time against the mod's own integration.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.predictedRoughness": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.predictedTerrainElevation": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.roughnessFootprintMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.slopeSampleRadiusMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.terrainElevationUnderVessel": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.terrainPatch": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.terrainPatchExtentMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.orbit.epoch": {
+    "rates": ["ecc"],
+    "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
+    "verdict": "coincidence"
+  },
+  "vessel.orbit.truth.position.x": {
+    "rates": ["velocity.x", "velocity.y", "velocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.orbit.truth.position.y": {
+    "rates": ["velocity.x", "velocity.y", "velocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.orbit.truth.position.z": {
+    "rates": ["velocity.x", "velocity.y", "velocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.target.relativePosition.x": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.target.relativePosition.y": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.target.relativePosition.z": {
+    "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
+    "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  }
+}
