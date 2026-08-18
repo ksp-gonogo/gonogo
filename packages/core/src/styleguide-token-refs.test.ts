@@ -187,7 +187,16 @@ function collectDangling(declared: Set<string>): DanglingReference[] {
 }
 
 describe("design-system: every token reference resolves", () => {
-  it("has no var(--token) that was never declared", () => {
+  // This walks every source file in the workspace twice, once to collect the
+  // declared tokens and once to find references. That is ~1.5s alone and well
+  // past vitest's 5s default under `turbo test`, where a dozen packages compete
+  // for the same cores: it timed out at 30s on a machine running other work,
+  // on staging as well as on a branch, which reads as a design-system
+  // regression and is only ever contention. The scan's job is to be exhaustive,
+  // not fast, so it gets room rather than a narrower walk.
+  it("has no var(--token) that was never declared", {
+    timeout: 120_000,
+  }, () => {
     const declared = collectDeclared();
     const dangling = collectDangling(declared);
 
