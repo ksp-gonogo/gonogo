@@ -2,7 +2,7 @@ import type { Product, Quotient } from "./algebra";
 import { calendarRatio } from "./calendar";
 import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
-import { declaredUnitFor, lookupUnit } from "./registry";
+import { affineVectorUnitFor, declaredUnitFor, lookupUnit } from "./registry";
 
 /**
  * Two units are interchangeable for `plus` when their dimensions match.
@@ -93,6 +93,96 @@ export type SameDimensionAs<U> = {
  * everything, including itself, the same way TypeScript's own `unknown`
  * blocks `x + x`.
  */
+/**
+ * The affine layer: point-like units and the vector units they pair with.
+ *
+ * All four types read the `affineVector` declaration off `UNIT_DEFINITIONS`, so the
+ * rules are general and the data stays one entry. A kind with no `affineVector` is
+ * untouched by every rule below, which is what keeps `energy`/`torque` and
+ * `percent`/`ratio` behaving exactly as they did.
+ */
+
+/** Units whose kind names an INSTANT rather than an amount. */
+type PointUnit = {
+  [K in KnownUnit]: (typeof UNIT_DEFINITIONS)[K] extends {
+    affineVector: string;
+  }
+    ? K
+    : never;
+}[KnownUnit];
+
+/** The kind a difference of two `U`s produces, for a point-like `U`. */
+type VectorKindOf<U> = U extends KnownUnit
+  ? (typeof UNIT_DEFINITIONS)[U] extends { affineVector: infer V }
+    ? V
+    : never
+  : never;
+
+/**
+ * The units a point-like `U` may be offset BY: same dimension, and of the
+ * companion vector kind. For `ut` that is every duration (`s`, `min`, `h`, `d`) and
+ * never another `ut`.
+ */
+type VectorFor<U> = {
+  [K in SameDimensionAs<U>]: (typeof UNIT_DEFINITIONS)[K &
+    KnownUnit]["kind"] extends VectorKindOf<U>
+    ? K
+    : never;
+}[SameDimensionAs<U>];
+
+/**
+ * What may be ADDED to a `U`, and what a `minus` of the same shape returns.
+ *
+ * A point takes only its vectors: `ut + s` is a ut, `ut + ut` is meaningless. A
+ * vector takes anything of its dimension EXCEPT a point, so `s + ut` is refused from
+ * the other side too. A unit in neither camp is unrestricted, as before.
+ */
+type Addend<U extends string> = [PointUnit] extends [never]
+  ? CombinableWith<U>
+  : U extends PointUnit
+    ? VectorFor<U>
+    : Exclude<CombinableWith<U>, PointUnit>;
+
+/**
+ * The point a point may be subtracted FROM, yielding a vector. `never` for anything
+ * that is not point-like, which makes the point-minus-point overload unselectable
+ * there rather than merely unused.
+ */
+type PointCounterpart<U extends string> = U extends PointUnit ? U : never;
+
+/** The unit a point-minus-point lands in: the companion vector, base rung. */
+type VectorResult<U extends string> = U extends PointUnit
+  ? Extract<VectorFor<U>, KnownUnit> extends never
+    ? string
+    : BaseVectorFor<U>
+  : never;
+
+/**
+ * The base rung of a point's vector family, so `ut.minus(ut)` is `Value<"s">` rather
+ * than a union of every duration spelling. Ratio 1 is the base by construction.
+ */
+type BaseVectorFor<U> = {
+  [K in VectorFor<U> &
+    KnownUnit]: (typeof UNIT_DEFINITIONS)[K]["ratio"] extends 1 ? K : never;
+}[VectorFor<U> & KnownUnit];
+
+/**
+ * What `U` may be ORDERED against. A point compares to points and a vector to
+ * vectors: "is this instant before that duration" has no answer, and
+ * `value("ut", 100).greaterThan(value("s", 76))` was quietly true.
+ */
+type Comparand<U extends string> = [PointUnit] extends [never]
+  ? CombinableWith<U>
+  : U extends PointUnit
+    ? PointCounterpart<U>
+    : Exclude<CombinableWith<U>, PointUnit>;
+
+/**
+ * A scalar multiplier, or `never` for a point. Scaling an instant is meaningless:
+ * twice-the-epoch is not a time.
+ */
+type ScalarFor<U extends string> = U extends PointUnit ? never : number;
+
 type CombinableWith<U extends string> = [U] extends [UnknownUnit]
   ? never
   : [SameDimensionAs<U>] extends [never]
@@ -140,8 +230,17 @@ export interface Value<U extends string = string> {
    * carries the LEFT operand's unit: it reads as "a, but more", the type needs
    * no base lookup, and display re-picks the rung anyway.
    */
-  plus(other: Value<CombinableWith<U>>): Value<U>;
-  minus(other: Value<CombinableWith<U>>): Value<U>;
+  plus(other: Value<Addend<U>>): Value<U>;
+  /**
+   * Two shapes, and the order matters: the point-minus-point arm is first so a
+   * `ut.minus(ut)` resolves there and lands in the companion vector.
+   *
+   * `PointCounterpart<U>` is `never` for anything not point-like, which makes the
+   * first arm unselectable rather than merely unused, so every other unit in the
+   * catalogue keeps exactly the one signature it had.
+   */
+  minus(other: Value<PointCounterpart<U>>): Value<VectorResult<U>>;
+  minus(other: Value<Addend<U>>): Value<U>;
 
   /**
    * Total. Any dimension over any dimension; `rep/f` is coherent.
@@ -163,18 +262,18 @@ export interface Value<U extends string = string> {
    * A dimension the catalogue cannot name comes back as `Value<string>`. See
    * `algebra.ts` for why that gap is where it is.
    */
-  times(other: number): Value<U>;
+  times(other: ScalarFor<U>): Value<U>;
   times<W extends string>(other: Value<W>): Value<Product<U, W>>;
-  times(other: Value | number): Value;
+  times(other: Value | ScalarFor<U>): Value;
 
-  dividedBy(other: number): Value<U>;
+  dividedBy(other: ScalarFor<U>): Value<U>;
   dividedBy<W extends string>(other: Value<W>): Value<Quotient<U, W>>;
-  dividedBy(other: Value | number): Value;
+  dividedBy(other: Value | ScalarFor<U>): Value;
 
   /** `dividedBy`, spelled for the reading `distance.per(time)`. */
-  per(other: number): Value<U>;
+  per(other: ScalarFor<U>): Value<U>;
   per<W extends string>(other: Value<W>): Value<Quotient<U, W>>;
-  per(other: Value | number): Value;
+  per(other: Value | ScalarFor<U>): Value;
 
   /** Scales the magnitude, leaving the unit alone. */
   scaled(factor: number): Value<U>;
@@ -197,10 +296,10 @@ export interface Value<U extends string = string> {
    * 120 s and is thirty times the duration. It is the one hole the object type
    * does not close on its own.
    */
-  lessThan(other: Value<CombinableWith<U>>): boolean;
-  lessThanOrEqual(other: Value<CombinableWith<U>>): boolean;
-  greaterThan(other: Value<CombinableWith<U>>): boolean;
-  greaterThanOrEqual(other: Value<CombinableWith<U>>): boolean;
+  lessThan(other: Value<Comparand<U>>): boolean;
+  lessThanOrEqual(other: Value<Comparand<U>>): boolean;
+  greaterThan(other: Value<Comparand<U>>): boolean;
+  greaterThanOrEqual(other: Value<Comparand<U>>): boolean;
 
   /**
    * Negative, zero or positive. For `Array.prototype.sort`, which wants that
@@ -319,10 +418,17 @@ const prototype = {
   },
   minus(this: Value, other: Value): Value {
     requireSameDimension(this, other, "subtract");
-    return value(
-      this.unit,
-      (baseMagnitude(this) - baseMagnitude(other)) / ratioOf(this.unit),
-    );
+    const difference = baseMagnitude(this) - baseMagnitude(other);
+    // Point minus point is a VECTOR, and the runtime has to agree with the type
+    // that says so. Returning `this.unit` here would tag the gap between two
+    // instants as an instant, which is the defect the affine rules exist to stop,
+    // and it would be worse for being invisible: the type would read `s` and the
+    // rendered token would read `ut`.
+    const vector = affineVectorUnitFor(this.unit);
+    if (vector !== undefined && affineVectorUnitFor(other.unit) !== undefined) {
+      return value(vector, difference / ratioOf(vector));
+    }
+    return value(this.unit, difference / ratioOf(this.unit));
   },
 
   times(this: Value, other: Value | number): Value {
