@@ -207,7 +207,10 @@ function BurnAxisBar({
             marginTop: "calc(var(--space-6) / -2)",
             marginInlineStart: "calc(var(--space-6) / -2)",
             background: KIND_COLOUR[mark.kind],
-            borderRadius: KIND_MARK[mark.kind] === "round" ? "50%" : 0,
+            // --radius-circle, never a hand-computed 50%: the token exists so a
+            // circle stays a circle if the mark size ever changes.
+            borderRadius:
+              KIND_MARK[mark.kind] === "round" ? "var(--radius-circle)" : 0,
             transform:
               KIND_MARK[mark.kind] === "diamond" ? "rotate(45deg)" : undefined,
             left: `${mark.fraction * 100}%`,
