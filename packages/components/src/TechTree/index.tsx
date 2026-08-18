@@ -331,9 +331,12 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // tech.unlock[...] (the spend command) still has no command home
   // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically, only the
   // reads migrate here.
-  const nodesRaw = useTelemetry("career.status")?.tech?.nodes;
+  // One read of the record, two fields off it: the tech list and the science
+  // balance are the same payload and cannot differ in how current they are.
+  const career = useTelemetry("career.status");
+  const nodesRaw = career?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
-  const careerScience = useTelemetry("career.status")?.economy?.science;
+  const careerScience = career?.economy?.science;
   // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
   // so it dispatches at the meta-vantage (instant). The handle is contributed to
   // the panel delay rail by usePanelDelay (draws nothing at meta-vantage).

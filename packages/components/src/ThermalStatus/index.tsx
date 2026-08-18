@@ -136,20 +136,25 @@ function ThermalStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
-  const rawHottestName = useTelemetry("vessel.thermal")?.hottestPart?.name;
-  const rawHottestTempK = useTelemetry("vessel.thermal")?.hottestPart?.skinTemp;
-  const rawHottestMaxK =
-    useTelemetry("vessel.thermal")?.hottestPart?.skinMaxTemp;
-  const rawHottestRatio = useTelemetry("vessel.thermal")?.maxInternalTempRatio;
+  // ONE read of the record, then fields off it. This was ten separate
+  // `useTelemetry("vessel.thermal")` calls, one per field, which is ten
+  // subscriptions and ten reads of the same memoized record for one payload,
+  // and would shortly have been ten branches on the same currency. A record is
+  // read once and destructured; nothing about these ten fields can disagree
+  // about how current it is, so nothing should ask ten times.
+  const thermal = useTelemetry("vessel.thermal");
+  const rawHottestName = thermal?.hottestPart?.name;
+  const rawHottestTempK = thermal?.hottestPart?.skinTemp;
+  const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;
+  const rawHottestRatio = thermal?.maxInternalTempRatio;
 
-  const rawEngineTempK = useTelemetry("vessel.thermal")?.hottestEngineTemp;
-  const rawEngineMaxK = useTelemetry("vessel.thermal")?.hottestEngineMaxTemp;
-  const rawEngineRatio = useTelemetry("vessel.thermal")?.hottestEngineTempRatio;
-  const rawEngineOverheat =
-    useTelemetry("vessel.thermal")?.anyEnginesOverheating;
+  const rawEngineTempK = thermal?.hottestEngineTemp;
+  const rawEngineMaxK = thermal?.hottestEngineMaxTemp;
+  const rawEngineRatio = thermal?.hottestEngineTempRatio;
+  const rawEngineOverheat = thermal?.anyEnginesOverheating;
 
-  const rawShieldTempK = useTelemetry("vessel.thermal")?.heatShieldTemp;
-  const rawShieldFluxKw = useTelemetry("vessel.thermal")?.heatShieldFlux;
+  const rawShieldTempK = thermal?.heatShieldTemp;
+  const rawShieldFluxKw = thermal?.heatShieldFlux;
 
   // Connectivity indicator (mirroring the WarpControl pilot).
   // `therm.hottestPartTemp` is the widget's one representative MAPPED key

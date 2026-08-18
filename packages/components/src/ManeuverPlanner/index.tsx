@@ -136,15 +136,24 @@ function ManeuverPlannerComponent({
   // Live orbit state: everything we need for the preset math + preview.
   // Magnitudes, because all of it feeds the solver and the finite-number
   // readiness checks below, both of which take plain numbers.
-  const sma = magnitudeOf(useTelemetry("vessel.orbit")?.sma) ?? undefined;
-  const ecc = magnitudeOf(useTelemetry("vessel.orbit")?.ecc) ?? undefined;
+  //
+  // ONE read per record, then fields off it. This was five separate
+  // `useTelemetry("vessel.orbit")` calls and five `useTelemetry("vessel.target")`
+  // calls, scattered down the body between unrelated `vessel.state` reads: ten
+  // reads of two memoized records, and shortly ten branches on two currencies
+  // that cannot possibly differ within a frame. Read once, destructure, and the
+  // orbital elements visibly arrive together, which is what they are.
+  const orbit = useTelemetry("vessel.orbit");
+  const target = useTelemetry("vessel.target");
+  const sma = magnitudeOf(orbit?.sma) ?? undefined;
+  const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
   const {
     apoapsisRadius: ApR,
     periapsisRadius: PeR,
     timeToApoapsis: timeToAp,
     timeToPeriapsis: timeToPe,
   } = useOrbitElements();
-  const argPe = magnitudeOf(useTelemetry("vessel.orbit")?.argPe) ?? undefined;
+  const argPe = magnitudeOf(orbit?.argPe) ?? undefined;
   const trueAnomaly =
     useStream<VesselState>("vessel.state")?.trueAnomaly ?? undefined;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
@@ -156,22 +165,19 @@ function ManeuverPlannerComponent({
     useStream<VesselState>("vessel.state")?.orbitalRadius ?? undefined;
   const refBody = useStream<VesselState>("vessel.state")?.referenceBodyName;
   const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
-  const inclination =
-    magnitudeOf(useTelemetry("vessel.orbit")?.inc) ?? undefined;
-  const targetName = useTelemetry("vessel.target")?.name;
-  const targetInclinationLive =
-    magnitudeOf(useTelemetry("vessel.target")?.orbit?.inc) ?? undefined;
-  const targetLanLive =
-    magnitudeOf(useTelemetry("vessel.target")?.orbit?.lan) ?? undefined;
-  const targetSma = useTelemetry("vessel.target")?.orbit?.sma;
+  const inclination = magnitudeOf(orbit?.inc) ?? undefined;
+  const targetName = target?.name;
+  const targetInclinationLive = magnitudeOf(target?.orbit?.inc) ?? undefined;
+  const targetLanLive = magnitudeOf(target?.orbit?.lan) ?? undefined;
+  const targetSma = target?.orbit?.sma;
   const targetPeA =
     useStream<VesselState>("vessel.state")?.targetPeriapsisAlt ?? undefined;
-  const targetArgPe = useTelemetry("vessel.target")?.orbit?.argPe;
+  const targetArgPe = target?.orbit?.argPe;
   const targetTrueAnomaly =
     useStream<VesselState>("vessel.state")?.targetTrueAnomaly ?? undefined;
   const targetPeriod =
     useStream<VesselState>("vessel.state")?.targetPeriod ?? undefined;
-  const lan = useTelemetry("vessel.orbit")?.lan;
+  const lan = orbit?.lan;
 
   const period = useStream<VesselState>("vessel.state")?.period ?? undefined;
 

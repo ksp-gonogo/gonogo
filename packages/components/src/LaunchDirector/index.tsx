@@ -233,9 +233,10 @@ function LaunchDirectorComponent({
     ?.padOccupied as boolean | undefined;
   const padVesselTitle = useStream<SpaceCenterState>("spaceCenter.state")
     ?.padVesselTitle as string | undefined;
-  const launchSite = useTelemetry("spaceCenter.scene")?.launchSite as
-    | string
-    | undefined;
+  // One read of the record; `launchSite` here and `scene` below are two fields
+  // of the same payload, so nothing about them can differ in how current it is.
+  const sceneRecord = useTelemetry("spaceCenter.scene");
+  const launchSite = sceneRecord?.launchSite as string | undefined;
   const launchSitesRaw = useTelemetry("spaceCenter.launchSites");
   // Magnitude: compared against each craft's cost to decide what is
   // launchable, and shown as this widget's balance readout.
@@ -329,7 +330,7 @@ function LaunchDirectorComponent({
   // or a 10s safety timeout elapses), suppress the launch button so an
   // impatient double-click doesn't fire two `ksp.launch` actions.
   const [launching, setLaunching] = useState(false);
-  const scene = useTelemetry("spaceCenter.scene")?.scene;
+  const scene = sceneRecord?.scene;
 
   // Auto-disarm so a forgotten arm doesn't sit live indefinitely.
   useEffect(() => {
