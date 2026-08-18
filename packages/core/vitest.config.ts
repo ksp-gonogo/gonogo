@@ -19,6 +19,15 @@ export default defineConfig({
     // CPU contention can starve them past vitest's 5s default and fail the
     // push spuriously. Give the whole core suite generous headroom; correct
     // fast tests finish in milliseconds and are unaffected.
-    testTimeout: 30_000,
+    // 90s. This package hosts TEN ratchets that walk or git-grep every tracked
+    // file (the styleguide-* family, uplink-boundary, uplink-isolation,
+    // kepler-conformance). Each was written assuming it had the machine, and
+    // under a parallel `turbo test` they contend: the first scan to run pays for
+    // a cold git object cache and the rest run warm. Measured on one run,
+    // uplink-boundary went 40.4s for its first token down to 4.5s for its last.
+    // At 30s that surfaces as "kerbcast has a boundary violation" or "there are
+    // two Kepler solvers", which is a scan that ran out of time wearing the
+    // costume of the defect it looks for.
+    testTimeout: 90_000,
   },
 });
