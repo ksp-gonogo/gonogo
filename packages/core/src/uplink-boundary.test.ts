@@ -489,47 +489,58 @@ function findViolations(root: string, token: ModToken): string[] {
 
 describe("uplink boundary: mod references stay inside their owning Uplink", () => {
   for (const token of Object.keys(MOD_OWNERSHIP) as ModToken[]) {
-    it(`${token}: matches the seeded allowlist exactly`, () => {
-      const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-      const found = new Set(findViolations(root, token));
-      const allowed = new Set([
-        ...ALLOWLIST[token].permanent,
-        ...ALLOWLIST[token].domainDebt,
-      ]);
+    // 90s, not the package's 30s. Each token re-walks every tracked file, so
+    // the FIRST token pays for a cold git object cache and the rest run warm:
+    // measured 40.4s for kerbcast down to 4.5s for telemachus on the same run,
+    // a clean warm-up curve rather than one slow token. At 30s the first token
+    // alone failed, which reads as "kerbcast has a boundary violation" and is
+    // nothing of the kind.
+    it(
+      `${token}: matches the seeded allowlist exactly`,
+      { timeout: 90_000 },
+      () => {
+        const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+        const found = new Set(findViolations(root, token));
+        const allowed = new Set([
+          ...ALLOWLIST[token].permanent,
+          ...ALLOWLIST[token].domainDebt,
+        ]);
 
-      const newViolations = [...found].filter((f) => !allowed.has(f));
-      const staleEntries = [...allowed].filter((f) => !found.has(f));
+        const newViolations = [...found].filter((f) => !allowed.has(f));
+        const staleEntries = [...allowed].filter((f) => !found.has(f));
 
-      if (newViolations.length > 0) {
-        throw new Error(
-          `New "${token}" reference(s) found outside ${MOD_OWNERSHIP[token].ownedDirs.join(", ")}:\n` +
-            newViolations.map((f) => `  ${f}`).join("\n") +
-            `\n\nEither move this code into the owning Uplink dir, or if it's an ` +
-            `intentional, reviewed exception (contract/SDK layer, a new test, a ` +
-            `sanctioned self-registration import), add it to ALLOWLIST.${token} in ` +
-            `packages/core/src/uplink-boundary.allowlist.ts with a comment explaining why. ` +
-            `Wire/contract/generated/ratchet-inventory files and text-only doc mentions go in ` +
-            `.permanent (unconstrained); real code coupling goes in .domainDebt (shrink-only, ` +
-            `see the "domain-debt allowlist entries only ever shrink" test below). ` +
-            `See docs/superpowers/specs/2026-07-13-uplink-boundary-audit.md.`,
-        );
-      }
+        if (newViolations.length > 0) {
+          throw new Error(
+            `New "${token}" reference(s) found outside ${MOD_OWNERSHIP[token].ownedDirs.join(", ")}:\n` +
+              newViolations.map((f) => `  ${f}`).join("\n") +
+              `\n\nEither move this code into the owning Uplink dir, or if it's an ` +
+              `intentional, reviewed exception (contract/SDK layer, a new test, a ` +
+              `sanctioned self-registration import), add it to ALLOWLIST.${token} in ` +
+              `packages/core/src/uplink-boundary.allowlist.ts with a comment explaining why. ` +
+              `Wire/contract/generated/ratchet-inventory files and text-only doc mentions go in ` +
+              `.permanent (unconstrained); real code coupling goes in .domainDebt (shrink-only, ` +
+              `see the "domain-debt allowlist entries only ever shrink" test below). ` +
+              `See docs/superpowers/specs/2026-07-13-uplink-boundary-audit.md.`,
+          );
+        }
 
-      if (staleEntries.length > 0) {
-        throw new Error(
-          `Stale "${token}" allowlist entries: these no longer contain a matching ` +
-            `reference (the violation was fixed, or the file moved/was deleted). ` +
-            `Delete the line(s) from ALLOWLIST.${token}.permanent or .domainDebt in ` +
-            `packages/core/src/uplink-boundary.allowlist.ts to ratchet the gate down:\n` +
-            staleEntries.map((f) => `  ${f}`).join("\n"),
-        );
-      }
+        if (staleEntries.length > 0) {
+          throw new Error(
+            `Stale "${token}" allowlist entries: these no longer contain a matching ` +
+              `reference (the violation was fixed, or the file moved/was deleted). ` +
+              `Delete the line(s) from ALLOWLIST.${token}.permanent or .domainDebt in ` +
+              `packages/core/src/uplink-boundary.allowlist.ts to ratchet the gate down:\n` +
+              staleEntries.map((f) => `  ${f}`).join("\n"),
+          );
+        }
 
-      expect(newViolations).toEqual([]);
-      expect(staleEntries).toEqual([]);
-      // Walks packages/*/src + mod/ once per token; under concurrent
-      // core-suite load a single walk can exceed vitest's 5s default.
-    }, 30_000);
+        expect(newViolations).toEqual([]);
+        expect(staleEntries).toEqual([]);
+        // Walks packages/*/src + mod/ once per token; under concurrent
+        // core-suite load a single walk can exceed vitest's 5s default.
+      },
+      30_000,
+    );
   }
 });
 

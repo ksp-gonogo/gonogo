@@ -8,9 +8,9 @@ depends on surfaces they actually have.
 
 An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 
-- **`@ksp-gonogo/sitrep-sdk`** — the devkit: `useTelemetry`, `useCommand`,
+- **`@ksp-gonogo/sitrep-sdk`**, the devkit: `useTelemetry`, `useCommand`,
   `defineUplinkClient`, the generated contract, `Value`, the testing entry point
-- **`@ksp-gonogo/ui-kit`** — the published design system
+- **`@ksp-gonogo/ui-kit`**, the published design system
 - third-party packages, and its own files
 
 It may **not** import `@ksp-gonogo/core`, `components`, `data`, `ui` or
@@ -45,7 +45,7 @@ you think it is. It also makes the built-in Uplinks less like third-party ones,
 which is backwards: they are the reference implementations.
 
 This is recorded as a blocked strategy rather than a rule of thumb, because it
-was arrived at twice by careful reasoning from the wrong premise — that the
+was arrived at twice by careful reasoning from the wrong premise: that the
 Uplink clients are part of this repo's test surface. They are not. They are
 examples of what an outside author writes.
 
