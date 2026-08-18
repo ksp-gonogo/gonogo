@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   getAllKnownTopicIds,
   isTopicId,
+  judgeable,
   unitsForTopic,
   unitsForType,
   useTelemetry,
@@ -76,9 +77,12 @@ describe("registerTopicUnits: hydration at decode time", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [COMMS_LINK_MARGIN_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(COMMS_LINK_MARGIN_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(COMMS_LINK_MARGIN_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(COMMS_LINK_MARGIN_TOPIC, {
       decibelMargin: 3.5,
@@ -105,9 +109,12 @@ describe("registerTopicUnits: hydration at decode time", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [COMMS_DATA_RATE_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(COMMS_DATA_RATE_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(COMMS_DATA_RATE_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(COMMS_DATA_RATE_TOPIC, {
       upBitsPerSec: 1000,
@@ -134,7 +141,7 @@ describe("registerTopicUnits: hydration at decode time", () => {
       carriedChannels: [COMMS_LINK_QUALITY_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(COMMS_LINK_QUALITY_TOPIC),
+      () => judgeable(useTelemetry(COMMS_LINK_QUALITY_TOPIC)),
       { wrapper: fixture.Provider },
     );
 

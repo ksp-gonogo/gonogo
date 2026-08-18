@@ -32,6 +32,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { judgeable, notCurrent } from "../shared/currency";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
@@ -334,15 +335,36 @@ function LandingStatusComponent({
   const body = bodyName ? getBody(bodyName) : undefined;
   const atmospheric = body?.hasAtmosphere ?? false;
 
-  const flight = useTelemetry("vessel.flight");
-  const surface = useTelemetry("vessel.surface");
-  const propulsion = useTelemetry("vessel.propulsion");
-  const orbit = useTelemetry("vessel.orbit");
-  const summary = useTelemetry("dv.summary");
-  const dvStages = useTelemetry("dv.stages");
-  const structure = useTelemetry("vessel.structure");
-  const commsDelay = useTelemetry("comms.delay");
-  const landing = useTelemetry("vessel.landing");
+  const flightReading = useTelemetry("vessel.flight");
+  const surfaceReading = useTelemetry("vessel.surface");
+  const propulsionReading = useTelemetry("vessel.propulsion");
+  const orbitReading = useTelemetry("vessel.orbit");
+  const landingReading = useTelemetry("vessel.landing");
+
+  const flight = judgeable(flightReading);
+  const surface = judgeable(surfaceReading);
+  const propulsion = judgeable(propulsionReading);
+  const orbit = judgeable(orbitReading);
+  const landing = judgeable(landingReading);
+  const summary = judgeable(useTelemetry("dv.summary"));
+  const dvStages = judgeable(useTelemetry("dv.stages"));
+  const structure = judgeable(useTelemetry("vessel.structure"));
+  const commsDelay = judgeable(useTelemetry("comms.delay"));
+
+  /**
+   * The board is suspended, not empty. Every reading below feeds the burn solve or
+   * the impact point, so one of them going stale invalidates the whole descent
+   * picture rather than one row of it. Without this the widget would fall back to
+   * "No landing in progress", which is a different and reassuring statement.
+   */
+  const staleSolveInputs = [
+    notCurrent(flightReading) ? "flight" : null,
+    notCurrent(surfaceReading) ? "surface" : null,
+    notCurrent(propulsionReading) ? "propulsion" : null,
+    notCurrent(orbitReading) ? "orbit" : null,
+    notCurrent(landingReading) ? "landing" : null,
+  ].filter((name): name is string => name !== null);
+  const descentSolveSuspended = staleSolveInputs.length > 0;
 
   // ve + burnout mass of the ACTIVE engine(s), see `deriveActiveBurnParams`.
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
@@ -987,7 +1009,11 @@ function LandingStatusComponent({
           {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
         </Value>
       )}
-      {board === "not-descending" && !landed ? (
+      {descentSolveSuspended ? (
+        <EmptyState>
+          {`Descent solve suspended: ${staleSolveInputs.join(", ")} no longer current`}
+        </EmptyState>
+      ) : board === "not-descending" && !landed ? (
         <EmptyState>No landing in progress</EmptyState>
       ) : (
         // The rail beside the content, both inside the panel's own body. This

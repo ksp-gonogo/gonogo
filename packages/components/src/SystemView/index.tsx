@@ -307,8 +307,25 @@ function SystemViewComponent({
   // Telemachus's derived `o.*` keys (trueAnomaly / next-apsis / encounter) are
   // reconstructed client-side below from `vessel.orbit`'s elements + the SDK
   // view-UT.
-  const orbit = useTelemetry("vessel.orbit");
-  const identity = useTelemetry("vessel.identity");
+  // The vessel's dot and its drawn orbit are MARKERS: positive claims about
+  // where the craft is now. So the elements come from a CURRENT reading, or from
+  // a model if one is on offer, and otherwise from nothing at all, and the
+  // "just don't draw it" contract this diagram's own marker already follows
+  // takes over. Same decision as MapView and FleetComms, for the same reason.
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbit =
+    orbitReading.state === "observed"
+      ? orbitReading.value
+      : orbitReading.state === "reckonable"
+        ? orbitReading.reckoned.value
+        : undefined;
+  // An identity does not decay: a stale SOI index is still which body this craft
+  // is around, and it only decides which FRAME the dot belongs in.
+  const identityReading = useTelemetry("vessel.identity");
+  const identity =
+    identityReading.state === "observed" || identityReading.state === "stale"
+      ? identityReading.value
+      : undefined;
 
   // Contact state for the plotted craft. `connected` is core (this widget
   // has no need of it directly); the reckoned states (predicted/overdue/
@@ -331,8 +348,17 @@ function SystemViewComponent({
     ? vesselStatuses.find((s) => s.target === vesselGuid)
     : undefined;
   const vesselPlotState = vesselPlotStateFromStatus(vesselStatus ?? null);
-  const systemBodies = useTelemetry("system.bodies");
-  const targetName = useTelemetry("vessel.target")?.name;
+  // A catalogue and a name, neither of which decays.
+  const bodiesReading = useTelemetry("system.bodies");
+  const systemBodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : undefined;
+  const targetReading = useTelemetry("vessel.target");
+  const targetName =
+    targetReading.state === "observed" || targetReading.state === "stale"
+      ? targetReading.value.name
+      : undefined;
   // View-UT: the SDK view time the propagation already evaluates at
   // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
   const universalTime = useViewUt();

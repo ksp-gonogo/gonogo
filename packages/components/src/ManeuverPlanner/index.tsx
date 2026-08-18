@@ -22,6 +22,7 @@ import {
 import {
   EmptyState,
   Panel,
+  ReadoutCaption,
   ScrollArea,
   SectionTitle,
   Stack,
@@ -29,6 +30,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { dateable, stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
@@ -113,6 +115,9 @@ function nodeIdAtPosition(
   return typeof real === "string" && real.length > 0 ? real : String(index);
 }
 
+/** A confirmed-no-nodes tombstone: a plan, and it is empty. */
+const EMPTY_MANEUVER = { nodes: [] as { id: string }[] };
+
 function ManeuverPlannerComponent({
   config,
 }: Readonly<ComponentProps<ManeuverPlannerConfig>>) {
@@ -146,29 +151,46 @@ function ManeuverPlannerComponent({
   // reads of two memoized records, and shortly ten branches on two currencies
   // that cannot possibly differ within a frame. Read once, destructure, and the
   // orbital elements visibly arrive together, which is what they are.
-  // OWED: a caption naming how old these elements are.
-  //
-  // The ruling is that the planner plans with whatever it has and the commit
-  // control stays enabled, because too little delta-v at execution time is
-  // operator error and not something a widget should pre-empt. What is forbidden
-  // is planning from stale elements SILENTLY, which is what happens here today.
-  //
-  // Deliberately not implemented yet, and deliberately not implemented privately:
-  // `readingAge(reading, viewUt)` in `@ksp-gonogo/sitrep-client` already answers
-  // it from a stale reading's `asOfUt`, and this widget reading through that shape
-  // is the reckoning-model sweep's job. A local age read would be a second
-  // mechanism deleted a week later.
-  //
-  // Do NOT compute it as `viewUt - orbit.epoch`. `epoch` is the mean-anomaly
-  // REFERENCE epoch, not an observation time, so that difference looks like an
-  // age and is not one. The `ut` token does not catch the mistake: `epoch` and a
-  // view clock are both correctly `Value<"ut">` and subtracting them is
-  // type-legal and meaningless.
-  const orbit = useTelemetry("vessel.orbit");
-  const target = useTelemetry("vessel.target");
-  // The thrust latch, for conformance. Undefined until the propulsion channel
-  // arrives, which is NOT "engines off": see ThrustLatchReading.
-  const propulsion = useTelemetry("vessel.propulsion");
+  /**
+   * A maneuver plan is not an instruction for right now. Unlike a suicide-burn
+   * countdown, whose number IS the instruction and which `LandingStatus` therefore
+   * refuses, a node sits minutes or hours out and the operator reviews it before
+   * committing. A plan computed from elements a few seconds old is still a good
+   * plan, so this widget dates its inputs rather than withholding them.
+   *
+   * `dateable` prefers the modelled value where a reckoner exists, and an orbit is
+   * propagatable, so in the common case the elements are current rather than dated
+   * and `needsDating` is false. The caption only appears when nothing could model
+   * them forward.
+   *
+   * This answers the caption that was OWED here. Note the warning that came with
+   * it, which still stands: do NOT compute the age as `viewUt - orbit.epoch`.
+   * `epoch` is the mean-anomaly REFERENCE epoch, not an observation time, so that
+   * difference looks like an age and is not one, and the `ut` token cannot catch it
+   * because both operands are correctly instants. The age comes off the reading's
+   * own `asOfUt`, which is the only thing that knows when the sample was taken.
+   */
+  const orbitReading = useTelemetry("vessel.orbit");
+  const targetReading = useTelemetry("vessel.target");
+  const { value: orbit, needsDating: orbitNeedsDating } =
+    dateable(orbitReading);
+  const { value: target, needsDating: targetNeedsDating } =
+    dateable(targetReading);
+  const elementsNeedDating = orbitNeedsDating || targetNeedsDating;
+  /**
+   * The thrust latch, for conformance. Undefined until the propulsion channel
+   * arrives, which is NOT "engines off": see ThrustLatchReading.
+   *
+   * `stillTrue`, because the latch is a FACT and was built to be one: the start
+   * instant is nulled on cessation and set on ignition precisely so it survives a
+   * dropped frame the way an instantaneous thrust reading does not. Withholding it
+   * when the reading goes stale would undo the thing the latch exists for.
+   *
+   * A confirmed absence reads as no latch, same as never having arrived. That is a
+   * decision rather than a default: a vessel whose propulsion channel says there is
+   * nothing has no burn to latch, and the two are the same statement here.
+   */
+  const propulsion = stillTrue(useTelemetry("vessel.propulsion"), undefined);
   const thrustLatch = propulsion
     ? {
         // Latched, not `currentThrust > 0`: the start instant is nulled on
@@ -248,7 +270,14 @@ function ManeuverPlannerComponent({
   // reads of what is ultimately the same underlying KSP maneuver-node list,
   // correlated by ARRAY POSITION (both server-side lists reflect the same
   // ordering): `resolveNodeId` below is the correlation point.
-  const streamNodeIds = useTelemetry("vessel.maneuver")?.nodes;
+  // A planned node is a fact: it exists on the craft until something changes it,
+  // and a link that is not delivering cannot have changed it. A confirmed-no-nodes
+  // tombstone is an empty plan, which is what the widget shows when there is
+  // nothing planned, so it is named here rather than read as a wait.
+  const streamNodeIds = stillTrue(
+    useTelemetry("vessel.maneuver"),
+    EMPTY_MANEUVER,
+  )?.nodes;
 
   /**
    * Resolves the command-string id for the node at legacy array position
@@ -665,6 +694,14 @@ function ManeuverPlannerComponent({
     return (
       <PaddedSection>
         <SectionTitle as="h4">New maneuver</SectionTitle>
+        {/* The plan still renders, because a node is reviewed before it is
+            committed and elements a few seconds old still make a good plan. What
+            the operator must not do is read the resulting Δv as measured now. */}
+        {elementsNeedDating && (
+          <ReadoutCaption>
+            Planned from the last known orbit, which is no longer current
+          </ReadoutCaption>
+        )}
         <PresetInput
           api={inputsApi}
           telemetry={{

@@ -1,6 +1,9 @@
 import {
   isTopicCarried,
   mapTopic,
+  type NeverReckonable,
+  type Reading,
+  type UnmodelledReading,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -109,10 +112,39 @@ import { useDataSourceSubscription } from "./useDataSourceSubscription";
  * chosen by whether a topic resolved and a provider is mounted. Deleted at M4
  * per the shim's own retirement plan.
  */
-// Canonical overload: keyed by TopicId → returns the Topic's payload type
+/**
+ * One shared `pending` for the canonical no-provider path. A fresh object per
+ * call would fail `useSyncExternalStore`'s reference comparison and loop.
+ */
+const CANONICAL_PENDING: Reading<never> = { state: "pending" };
+
+/**
+ * Canonical overload: keyed by TopicId, returns the Topic's `Reading`.
+ *
+ * ## Why the reading and not the payload
+ *
+ * This returned a bare payload, and a second hook returned the reading. The
+ * numbers settled it: 218 call sites on this one, 2 on the other. `Reading`'s
+ * whole justification is that "reaching a value at all requires branching on how
+ * current it is", and that was only true for the sites that opted in.
+ *
+ * Which is the SAME failure the reading was built to fix, one layer up.
+ * `StreamStatusValue` was built end to end and read by zero of the thirty-nine
+ * widgets that stream telemetry, because a badge beside a body is chrome and
+ * nothing makes the body consult it. A beside-the-value HOOK is chrome too. So
+ * there is one hook, and the compile break is the migration: there is no way to
+ * reach a value without confronting its currency, because the only hook that
+ * hands one over makes you write the discriminant first.
+ *
+ * For a topic in `NEVER_RECKONABLE` the `reckonable` arm is dropped from the
+ * return type, so a caller cannot write a branch for a case that can never
+ * occur. `stale` remains and remains the judgement.
+ */
 export function useTelemetry<T extends TopicId>(
   topic: T,
-): TopicPayload<T> | undefined;
+): T extends NeverReckonable
+  ? UnmodelledReading<TopicPayload<T>>
+  : Reading<TopicPayload<T>>;
 
 // Implementation (not part of the public API surface)
 export function useTelemetry(dataSourceId: string, key?: string): unknown {
@@ -231,13 +263,25 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
   );
   const getStreamSnapshot = useCallback(() => {
     if (!store || topic === undefined || !carried) return undefined;
+    // The canonical form hands over the whole `Reading`; the legacy two-arg form
+    // keeps its historical bare value. `sampleReading` rather than composing
+    // sample + sampleStatus here: it memoizes the union on the store's per-frame
+    // cache, and `useSyncExternalStore` compares snapshots by reference, so a
+    // fresh object per call would loop forever rather than merely allocate.
+    if (canonical) return store.sampleReading(topic, store.currentFrame());
     const point = store.sample(topic, store.currentFrame());
     return point ? point.payload : undefined;
-  }, [store, topic, carried]);
+  }, [store, topic, carried, canonical]);
   const streamedValue = useSyncExternalStore(
     subscribeStream,
     getStreamSnapshot,
   );
+
+  // A canonical read with no provider mounted is `pending`, never `undefined`: a
+  // widget on a disconnected dashboard has observed nothing, so it has no
+  // last-observed value, and any other arm would promise one it cannot supply.
+  // Shared object, because `useSyncExternalStore` compares by reference.
+  if (canonical && !routable) return CANONICAL_PENDING;
 
   if (routable) {
     if (streamedValue !== undefined) return streamedValue;

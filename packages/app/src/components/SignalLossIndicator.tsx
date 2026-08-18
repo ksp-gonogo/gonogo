@@ -39,17 +39,33 @@ import { useEffect, useRef, useState } from "react";
 const NO_SIGNAL_STRENGTH_EPSILON = value("ratio", 1e-6);
 
 export function SignalLossIndicator() {
-  const link = useTelemetry("comms.link");
-  const comms = useTelemetry("vessel.comms");
-  const connected = link?.connected;
-  const signalStrength = comms?.signalStrength;
-  // `comms == null` catches BOTH warmup (`undefined`) AND a disconnected-vessel
-  // TOMBSTONE (`null`): `vessel.comms` goes null the moment a vessel is
-  // comms-dark, and reading `.controlState` off it crashed the whole app
-  // (error-boundary) during a NORMAL signal-loss state. Control state is simply
-  // unknown then; the loss itself is driven by `connected`/`signalStrength`.
+  const linkReading = useTelemetry("comms.link");
+  const commsReading = useTelemetry("vessel.comms");
+  // FAIL-OPEN FIX, not merely a migration. An indicator whose loss gate stops
+  // gating either never shows loss or always does, and both are worse than what
+  // it did before.
+  //
+  // A LINK is the one thing silence is evidence about, so a stale one reads as
+  // unknown rather than as its last value: painting "connected" from a
+  // last-known true asserts the fact the silence contradicts. `undefined` is
+  // already this component's not-yet-known state, and the confirmed-true gate
+  // below still governs whether a false counts as a blackout.
+  const connected =
+    linkReading.state === "observed" ? linkReading.value.connected : undefined;
+  const signalStrength =
+    commsReading.state === "observed"
+      ? commsReading.value.signalStrength
+      : undefined;
+  // Warmup and a disconnected-vessel TOMBSTONE are now two named arms rather
+  // than one `== null`, which is the distinction that mattered here all along:
+  // `vessel.comms` goes absent the moment a vessel is comms-dark, and reading
+  // `.controlState` off it crashed the whole app during a NORMAL signal-loss
+  // state. Control state is simply unknown in both cases; the loss itself is
+  // driven by `connected`/`signalStrength` above.
   const controlState =
-    comms == null ? undefined : collapseControlStateLevel(comms.controlState);
+    commsReading.state === "observed"
+      ? collapseControlStateLevel(commsReading.value.controlState)
+      : undefined;
 
   // Mirror `BufferedDataSource`'s gate: only trust a `false` as a blackout
   // AFTER we've observed a confirmed `true`. Cold-start false (no vessel,

@@ -14,6 +14,7 @@
 //   - an undeclared Topic that becomes an accepted argument fails a membership
 //     `Expect<...>`.
 
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type {
   CommsDelay,
   VesselOrbit,
@@ -48,12 +49,28 @@ type _AcOptional = ReturnType<
   typeof asConstManifest.useTelemetry<"comms.delay">
 >;
 
-// Required Topics resolve NON-NULL (strict `Equal`: a `| undefined` here would fail).
-export type _AcRequiredNonNull = Expect<Equal<_AcRequired, VesselResources>>;
-export type _AcRequired2NonNull = Expect<Equal<_AcRequired2, VesselOrbit>>;
-// Optional Topics resolve to `payload | undefined`.
-export type _AcOptionalUndefined = Expect<
-  Equal<_AcOptional, CommsDelay | undefined>
+/*
+ * Every declared Topic resolves to a `Reading` of its payload, required and optional
+ * alike.
+ *
+ * These used to assert that a REQUIRED Topic resolved to its payload non-null while
+ * an optional one resolved to `payload | undefined`. That distinction is what the
+ * `Reading` union now carries in its own arms, and the old shape had become a lie:
+ * the bound hook is built with `as unknown as`, so nothing checked it against the
+ * `useTelemetry` it wraps. No widget had adopted a manifest yet, which is the only
+ * reason it cost nothing.
+ *
+ * `Required` still constrains WHICH Topics may be read, which is the mechanism's real
+ * value and is asserted at the bottom of this file.
+ */
+export type _AcRequiredIsReading = Expect<
+  Equal<_AcRequired, Reading<VesselResources>>
+>;
+export type _AcRequired2IsReading = Expect<
+  Equal<_AcRequired2, Reading<VesselOrbit>>
+>;
+export type _AcOptionalIsReading = Expect<
+  Equal<_AcOptional, Reading<CommsDelay>>
 >;
 
 // ── The same, WITHOUT `as const`: `const` type params make the annotation optional ─
@@ -69,19 +86,18 @@ type _PlainOptional = ReturnType<
   typeof plainManifest.useTelemetry<"comms.delay">
 >;
 
-export type _PlainRequiredNonNull = Expect<
-  Equal<_PlainRequired, VesselResources>
+export type _PlainRequiredIsReading = Expect<
+  Equal<_PlainRequired, Reading<VesselResources>>
 >;
-export type _PlainOptionalUndefined = Expect<
-  Equal<_PlainOptional, CommsDelay | undefined>
+export type _PlainOptionalIsReading = Expect<
+  Equal<_PlainOptional, Reading<CommsDelay>>
 >;
 
-// Proof the required branch is genuinely NOT `| undefined`: the inner `Equal` is
-// FALSE, so the outer `Expect<...>` only compiles because the required read is
-// non-nullable (were it nullable, the inner `Equal` would be `true`, the negation
-// `false`, and the assert would fail).
-export type _RequiredIsNotNullable = Expect<
-  Equal<Equal<_PlainRequired, VesselResources | undefined>, false>
+// Proof the read is genuinely NOT the bare payload: the inner `Equal` is FALSE, so
+// this only compiles because a manifest read hands back a `Reading`. Were the old
+// shape still in force the inner `Equal` would be `true` and the assert would fail.
+export type _RequiredIsNotBarePayload = Expect<
+  Equal<Equal<_PlainRequired, VesselResources>, false>
 >;
 
 // ── Optionality with no optionalChannels at all (defaults to `readonly []`) ─────────
@@ -89,7 +105,9 @@ const requiredOnly = defineTopicManifest({ channels: ["vessel.resources"] });
 type _RoRequired = ReturnType<
   typeof requiredOnly.useTelemetry<"vessel.resources">
 >;
-export type _RoRequiredNonNull = Expect<Equal<_RoRequired, VesselResources>>;
+export type _RoRequiredIsReading = Expect<
+  Equal<_RoRequired, Reading<VesselResources>>
+>;
 
 // ── Reading an UNDECLARED Topic is a compile error ──────────────────────────────────
 // The hook only accepts the union of the two declared arrays. `vessel.orbit` is a

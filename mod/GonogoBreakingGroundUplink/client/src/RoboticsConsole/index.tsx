@@ -1,6 +1,8 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
+  judgeable,
   registerComponent,
+  stillTrue,
   useActionInput,
   useCommand,
   useTelemetry,
@@ -183,8 +185,13 @@ export type RoboticsConsoleActions = typeof roboticsActions;
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
-  const roboticsRaw = useTelemetry("robotics.servos");
-  const available = useTelemetry("robotics.available")?.available;
+  // Servo angles move continuously and this console commands against them, so a
+  // held position would aim a command at a hinge that has since travelled.
+  const roboticsRaw = judgeable(useTelemetry("robotics.servos"));
+  const available = stillTrue(
+    useTelemetry("robotics.available"),
+    undefined,
+  )?.available;
 
   // Delayed vessel commands (Breaking Ground robotics-audit-migration): the
   // servo motor/lock/target are actuated on the craft, subject to the same

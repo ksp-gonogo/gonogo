@@ -1,7 +1,9 @@
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
+  judgeable,
   value as quantity,
   registerComponent,
+  stillTrue,
   useActionInput,
   useCommand,
   useTelemetry,
@@ -145,8 +147,12 @@ export type RotorTachometerActions = typeof rotorActions;
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
-  const roboticsRaw = useTelemetry("robotics.servos");
-  const available = useTelemetry("robotics.available")?.available;
+  // An RPM gauge is read as the situation now, so it is withheld rather than held.
+  const roboticsRaw = judgeable(useTelemetry("robotics.servos"));
+  const available = stillTrue(
+    useTelemetry("robotics.available"),
+    undefined,
+  )?.available;
 
   // Delayed vessel commands (Breaking Ground robotics-audit-migration): rotor
   // RPM/torque/brake/motor/lock/direction are actuated on the craft, subject

@@ -272,7 +272,20 @@ export type {
   ReckoningBasis,
   StaleGrade,
 } from "./reading";
-export { readingAge, readingFrom, withoutReckoning } from "./reading";
+/**
+ * Re-exported from `./reading`, which re-exports them from `@ksp-gonogo/sitrep-sdk`.
+ * They ended up on the devkit surface because every consumer of `useTelemetry` needs
+ * them and an Uplink client cannot import this package.
+ */
+export {
+  dateable,
+  judgeable,
+  notCurrent,
+  readingAge,
+  readingFrom,
+  stillTrue,
+  withoutReckoning,
+} from "./reading";
 export type { ReckonerConflict } from "./reckoners";
 export {
   clearReckoners,

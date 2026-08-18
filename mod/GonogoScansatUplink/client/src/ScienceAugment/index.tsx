@@ -15,7 +15,11 @@
 // never mounts it: zero impact on Experiments for non-SCANsat users.
 
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerAugment,
+  stillTrue,
+  useTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   ScienceExperimentRow,
@@ -80,7 +84,8 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
  * flagged for live review, not built here.
  */
 function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
-  const raw = useTelemetry("scansat.science");
+  // Accumulated science is a fact: it changes when a scan completes.
+  const raw = stillTrue(useTelemetry("scansat.science"), undefined);
   const experiments = parseScanScience(raw);
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();

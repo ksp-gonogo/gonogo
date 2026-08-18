@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   getAllKnownTopicIds,
   isTopicId,
+  judgeable,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -82,7 +83,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       carriedChannels: [KERBALISM_SPACEWEATHER_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(KERBALISM_SPACEWEATHER_TOPIC),
+      () => judgeable(useTelemetry(KERBALISM_SPACEWEATHER_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -145,9 +146,12 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     const fixture = setupStreamFixture({
       carriedChannels: [KERBALISM_CREW_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(KERBALISM_CREW_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(KERBALISM_CREW_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(KERBALISM_CREW_TOPIC, [
       {
@@ -205,7 +209,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       carriedChannels: [KERBALISM_SPACEWEATHER_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(KERBALISM_SPACEWEATHER_TOPIC),
+      () => judgeable(useTelemetry(KERBALISM_SPACEWEATHER_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -264,7 +268,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       carriedChannels: [KERBALISM_LIFESUPPORT_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(KERBALISM_LIFESUPPORT_TOPIC),
+      () => judgeable(useTelemetry(KERBALISM_LIFESUPPORT_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -330,7 +334,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       carriedChannels: [KERBALISM_LIFESUPPORT_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(KERBALISM_LIFESUPPORT_TOPIC),
+      () => judgeable(useTelemetry(KERBALISM_LIFESUPPORT_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -366,9 +370,12 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     const fixture = setupStreamFixture({
       carriedChannels: [KERBALISM_PROFILE_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(KERBALISM_PROFILE_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(KERBALISM_PROFILE_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(KERBALISM_PROFILE_TOPIC, {
       name: "Default",
@@ -445,7 +452,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       carriedChannels: [KERBALISM_FEATURES_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(KERBALISM_FEATURES_TOPIC),
+      () => judgeable(useTelemetry(KERBALISM_FEATURES_TOPIC)),
       {
         wrapper: fixture.Provider,
       },

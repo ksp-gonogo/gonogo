@@ -123,10 +123,27 @@ export function useGameContext(): GameContext {
   // resolveCareerMode below maps to a display string), both plain one-arg
   // Topic reads; kc.padOccupied -> the DERIVED spaceCenter.state channel
   // (space-center-state.ts, off spaceCenter.launchSites), read via useStream.
-  const sceneRaw = useTelemetry("spaceCenter.scene")?.scene;
+  // Both are DISCRETE game states that change by event, and both are declared
+  // unmodellable, so there is no `reckonable` arm and the only question is what
+  // a stale one means. The answer is: it is still true. The game does not leave
+  // the Flight scene or stop being a career because a telemetry frame went
+  // missing, and every widget downstream uses this to decide whether to DIM
+  // itself, so treating a stale scene as unknown would blank half the dashboard
+  // on one dropped frame. Nothing-ever-arrived stays `undefined` and falls
+  // through to "Unknown", which is the honest answer to not knowing yet.
+  const sceneReading = useTelemetry("spaceCenter.scene");
+  const sceneRaw =
+    sceneReading.state === "observed" || sceneReading.state === "stale"
+      ? sceneReading.value.scene
+      : undefined;
   const padOccupiedRaw =
     useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied;
-  const careerModeRaw = useTelemetry("career.mode")?.mode;
+  const careerModeReading = useTelemetry("career.mode");
+  const careerModeRaw =
+    careerModeReading.state === "observed" ||
+    careerModeReading.state === "stale"
+      ? careerModeReading.value.mode
+      : undefined;
 
   const scene: GameScene =
     typeof sceneRaw === "string" && KNOWN_SCENES.has(sceneRaw as GameScene)

@@ -1,5 +1,6 @@
 import type { StageInfo } from "@ksp-gonogo/core";
 import { useTelemetry } from "@ksp-gonogo/core";
+import { judgeable } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 
 export interface VesselDeltaV {
@@ -87,7 +88,10 @@ function normalizeStage(raw: unknown): StageInfo | null {
  * what the maneuver planner's feasibility check needs out of the box.
  */
 export function useVesselDeltaV(): VesselDeltaV {
-  const raw = useTelemetry("dv.stages");
+  // A stage ΔV budget measures remaining propellant as capability, and every
+  // consumer reads it as "what is left to burn", so it is withheld once it stops
+  // being current rather than held. Matches FuelStatus' treatment of the same wire.
+  const raw = judgeable(useTelemetry("dv.stages"));
   return useMemo(() => {
     if (!Array.isArray(raw) || raw.length === 0) return EMPTY;
     const stages = raw

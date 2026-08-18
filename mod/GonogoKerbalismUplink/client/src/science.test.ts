@@ -7,7 +7,7 @@ import type {
   InstrumentEntry,
   LabEntry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { judgeable, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
@@ -57,12 +57,16 @@ function serverFrame<T>(name: string): { topic: string; payload: T } {
 /** Drive one frame through the real client pipeline and hand back what a widget would see. */
 async function decoded<T>(topic: string, payload: unknown): Promise<T> {
   const fixture = setupStreamFixture({ carriedChannels: [topic] });
-  const { result } = renderHook(() => useTelemetry(topic), {
+  const { result } = renderHook(() => judgeable(useTelemetry(topic)), {
     wrapper: fixture.Provider,
   });
 
   fixture.emit(topic, payload);
 
+  // The hook read above is wrapped in `judgeable`, so `result.current` is the
+  // PAYLOAD, as it was before `useTelemetry` began answering with a `Reading`.
+  // Without that wrap this wait passes on the first tick, because a `Reading` is
+  // always defined, and every hydration assertion reads `undefined` off the wrapper.
   await waitFor(() => {
     expect(result.current).toBeDefined();
   });

@@ -5,6 +5,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 import {
   detectContractsCompleted,
@@ -54,25 +55,63 @@ interface EdgePrev {
 export function useMissionEvents(): MissionEvent[] {
   const ut = useViewUt() ?? 0;
 
+  /**
+   * Every read below goes through `stillTrue`, and none through `judgeable`,
+   * because a log is a record of what HAPPENED rather than a verdict about now.
+   *
+   * Two reasons, one per half of the read set. A Tier-A record is an immutable
+   * account of a past occurrence carrying its own `ut`, so a held one is not an
+   * aged guess at the present, it is the same true sentence it was when it
+   * arrived, and withholding it would delete a crash from the log because the
+   * link went quiet after the crash. The Tier-B fields are all discrete states
+   * the vessel changes by EVENT (a stage count, a reference body, a docking
+   * port, a vessel type, a completed-contract list, a science total), so none of
+   * them drifts on its own between samples, which is the test `stillTrue` sets.
+   *
+   * On the Tier-B half `judgeable` would be actively wrong rather than merely
+   * cautious. `vessel.orbit` and `career.status` can both reach `reckonable`, so
+   * it would feed a MODELLED reference body or a rate-integrated science total
+   * into the edge detectors, and an edge between one real sample and one
+   * propagated value logs an SOI change or a science gain nobody observed. A
+   * model may say where the craft will be; it may not write the mission log.
+   */
   // Tier A: discrete topics.
-  const flightStarted = useTelemetry("flight.started");
-  const flightEnded = useTelemetry("flight.ended");
-  const vesselChanged = useTelemetry("flight.vesselChanged");
-  const crash = useTelemetry("crash.lastCrash");
-  const recovery = useTelemetry("recovery.lastSummary");
+  const flightStarted = stillTrue(useTelemetry("flight.started"), undefined);
+  const flightEnded = stillTrue(useTelemetry("flight.ended"), undefined);
+  const vesselChanged = stillTrue(
+    useTelemetry("flight.vesselChanged"),
+    undefined,
+  );
+  const crash = stillTrue(useTelemetry("crash.lastCrash"), undefined);
+  const recovery = stillTrue(useTelemetry("recovery.lastSummary"), undefined);
 
   // Tier B: value topics we edge-detect.
-  const structure = useTelemetry("vessel.structure");
-  const orbit = useTelemetry("vessel.orbit");
-  const dock = useTelemetry("vessel.dock");
-  const identity = useTelemetry("vessel.identity");
-  const career = useTelemetry("career.status");
+  const structure = stillTrue(useTelemetry("vessel.structure"), undefined);
+  const orbit = stillTrue(useTelemetry("vessel.orbit"), undefined);
+  /**
+   * The dock read keeps its whole reading, because this is the one topic here
+   * whose ABSENCE is the value: a null payload is how "not docking" reaches us,
+   * and `vessel.dock` declares `AbsenceIsData`, so a real session tombstones it
+   * on the first tick the craft is not docking.
+   *
+   * That makes `pending` a different sentence from `absent` and worth a branch.
+   * "Nothing has arrived yet" is not evidence of an undocked craft, and reading
+   * it as one is what logged a Docked row for a vessel that was already docked
+   * when the dashboard opened.
+   */
+  const dockReading = useTelemetry("vessel.dock");
+  const dock = stillTrue(dockReading, undefined);
+  const dockKnown = dockReading.state !== "pending";
+  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const career = stillTrue(useTelemetry("career.status"), undefined);
 
   // Source-attributed reputation losses: one delayed per-vessel topic each, so the
   // subscription set is the roster PLUS every guid seen earlier. A destroyed vessel
   // leaves the roster while its own event is still crossing its light-time, and a
   // live-roster-only set would have dropped that guid before the news arrived.
-  const roster = useTelemetry("system.vessels");
+  // A roster is a fact and is held while the link is quiet: vessels do not stop
+  // existing, and the sticky set below only ever grows anyway.
+  const roster = stillTrue(useTelemetry("system.vessels"), undefined);
   const rosterGuids = useMemo(
     () =>
       (roster?.vessels ?? [])
@@ -135,7 +174,11 @@ export function useMissionEvents(): MissionEvent[] {
       typeof orbit?.referenceBodyIndex === "number"
         ? orbit.referenceBodyIndex
         : undefined;
-    const docked = dock != null;
+    // `undefined` until the channel has said something either way, so the first
+    // real sample is compared against a state we actually know rather than
+    // against an assumed undocked one. `detectDocking` declines on an unknown
+    // side, which is how staging, SOI and science already read "no sample yet".
+    const docked = dockKnown ? dock != null : undefined;
     const vType = isEvaType(identity?.vesselType);
     const contracts = career?.contracts?.completedRecent;
     // The magnitude: this is an edge DETECTOR, comparing one frame's science
@@ -157,7 +200,7 @@ export function useMissionEvents(): MissionEvent[] {
 
     prev.current = { stage, body, docked, vType, contracts, science };
     if (changed) flush();
-  }, [structure, orbit, dock, identity, career, ut]);
+  }, [structure, orbit, dock, dockKnown, identity, career, ut]);
 
   function flush(): void {
     setEvents(

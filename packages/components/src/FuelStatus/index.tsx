@@ -33,6 +33,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { Fragment, useMemo, useState } from "react";
+import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -125,7 +126,13 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
   // (`dv-stage-resources.ts`): the active stage's slice of `dv.stages`, keyed
   // by resource name. All three reads happen unconditionally (Rules of Hooks)
   // regardless of which scope this resource ultimately uses.
-  const vesselResources = useTelemetry("vessel.resources")?.resources;
+  /**
+   * Propellant only falls while an engine burns, and every readout here is a gauge
+   * the operator reads as "what is left". A held figure overstates the remaining
+   * fuel, which is the direction that strands a craft.
+   */
+  const resourcesReading = useTelemetry("vessel.resources");
+  const vesselResources = judgeable(resourcesReading)?.resources;
   const stageCurrent = useStream<ResourceAmountMap>("dv.currentStageResource");
   const stageMaxMap = useStream<ResourceAmountMap>(
     "dv.currentStageResourceMax",
@@ -470,9 +477,20 @@ function FuelStatusComponent({
   h,
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
-  const currentStage = useTelemetry("vessel.structure")?.currentStage;
-  // Connectivity indicator, mirroring the WarpControl pilot.
-  const summary = useTelemetry("dv.summary");
+  // The staging structure is a fact: staging is an event, so the last reported
+  // stage is still the stage.
+  const currentStage = stillTrue(
+    useTelemetry("vessel.structure"),
+    undefined,
+  )?.currentStage;
+  /**
+   * The delta-v budget is a measurement of remaining propellant expressed as
+   * capability, so it goes the way the propellant does: withheld rather than held.
+   * A stale budget is the number an operator commits a burn against.
+   */
+  const summaryReading = useTelemetry("dv.summary");
+  const summary = judgeable(summaryReading);
+  const budgetNotCurrent = notCurrent(summaryReading);
   const stageCount = summary?.stageCount;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
   const totalDVVac = magnitudeOf(summary?.totalDvVac) ?? undefined;
@@ -502,7 +520,7 @@ function FuelStatusComponent({
   // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
   // stage 0 last) matching the stack-top-down render order. `parseStages`
   // reconciles either wire's field names into the `StageInfo` shape below.
-  const stagesRaw = useTelemetry("dv.stages");
+  const stagesRaw = judgeable(useTelemetry("dv.stages"));
   const stages = parseStages(stagesRaw);
   // Filter to finite values before Math.max: a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of

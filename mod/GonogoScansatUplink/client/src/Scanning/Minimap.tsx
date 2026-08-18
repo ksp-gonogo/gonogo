@@ -1,5 +1,6 @@
 import {
   type BodyDefinition,
+  judgeable,
   useTelemetry,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -216,7 +217,7 @@ export function Minimap({
 export function MinimapForActiveVessel({
   body,
 }: Readonly<{ body: BodyDefinition }>) {
-  const flight = useTelemetry("vessel.flight");
+  const flight = judgeable(useTelemetry("vessel.flight"));
   return (
     <Minimap
       body={body}

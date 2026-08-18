@@ -40,8 +40,18 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
  * side-by-side with the banner (the connectivity MetaTopic's edge escaping).
  */
 function CommsProbe() {
-  const comms = useTelemetry("vessel.comms");
-  const link = useTelemetry("comms.link");
+  // A probe, so it reads whatever arrived on ANY arm that carries a value: this
+  // file is about what the stream delivers, not about how a widget presents it.
+  const commsReading = useTelemetry("vessel.comms");
+  const linkReading = useTelemetry("comms.link");
+  const comms =
+    commsReading.state === "observed" || commsReading.state === "stale"
+      ? commsReading.value
+      : undefined;
+  const link =
+    linkReading.state === "observed" || linkReading.state === "stale"
+      ? linkReading.value
+      : undefined;
   return (
     <div data-testid="probe">
       <span data-testid="probe-strength">

@@ -26,7 +26,13 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
-import { kspCalendar, NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  kspCalendar,
+  NULL_DISPLAY,
+  Panel,
+  ReadoutCaption,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import {
@@ -398,10 +404,32 @@ function MapViewComponent({
   // body label, the reshaped orbit-patch chain, the encounter sign, and the
   // ballistic impact point. `vessel.maneuver.legacy` carries the post-burn
   // node trajectories reshaped into the legacy `o.maneuverNodes` shape.
-  const flight = useTelemetry("vessel.flight");
+  const flightReading = useTelemetry("vessel.flight");
   const vesselState = useStream<VesselState>("vessel.state");
-  const lat = flight?.latitude;
-  const lon = flight?.longitude;
+  // The HUD readouts (q, mach, speeds) show the last observed numbers with the
+  // caption below saying how old they are: a number beside a label can be
+  // dated honestly.
+  const flight =
+    flightReading.state === "observed" ||
+    flightReading.state === "stale" ||
+    flightReading.state === "reckonable"
+      ? flightReading.value
+      : undefined;
+  // The MARKER cannot. A dot on a map is a positive claim about where the craft
+  // is NOW, and `reading.ts` names it as the sharpest form of the failure this
+  // type exists to prevent: such a widget either propagates or stops drawing.
+  // So the position comes from a CURRENT reading, or from a model if one is on
+  // offer, and otherwise from nothing at all: the `NoSignal` overlay below says
+  // which, so the suppression is visible rather than an empty map.
+  const positioned =
+    flightReading.state === "observed"
+      ? flightReading.value
+      : flightReading.state === "reckonable"
+        ? flightReading.reckoned.value
+        : undefined;
+  const positionStale = flightReading.state === "stale";
+  const lat = positioned?.latitude;
+  const lon = positioned?.longitude;
   const altSea = vesselState?.altitudeAsl ?? undefined;
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const q = flight?.dynamicPressureKPa;
@@ -1196,6 +1224,18 @@ function MapViewComponent({
               </CompactValue>
             </CompactRow>
           )}
+          {/* The compact branch needs the same statement the full map makes.
+              Without it a withheld position is a bare em dash, which is exactly
+              "renders nothing and is indistinguishable from broken": the
+              operator cannot tell a craft that never reported from one whose
+              coordinates we have stopped vouching for. */}
+          {positionStale && (
+            <CompactRow>
+              <ReadoutCaption>
+                Position not current: marker withheld
+              </ReadoutCaption>
+            </CompactRow>
+          )}
         </CompactReadout>
       </Panel>
     );
@@ -1274,9 +1314,11 @@ function MapViewComponent({
               <DataCanvas ref={dataRef} />
               {(lat === undefined || lon === undefined) && (
                 <NoSignal>
-                  {targetBodyId === undefined
-                    ? "Waiting for telemetry..."
-                    : "No position data"}
+                  {positionStale
+                    ? "Position not current: marker withheld"
+                    : targetBodyId === undefined
+                      ? "Waiting for telemetry..."
+                      : "No position data"}
                 </NoSignal>
               )}
               {baseLayerContext && (

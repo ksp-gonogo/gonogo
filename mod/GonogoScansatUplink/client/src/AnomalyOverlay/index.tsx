@@ -22,6 +22,7 @@
 import type { MapPoi } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerMapPoiProvider,
+  stillTrue,
   TargetKind,
   useCommand,
   useTelemetry,
@@ -38,7 +39,8 @@ import { useScanAnomalies } from "../FogReveal/useScanLayers";
  * wants the stable index.
  */
 function useBodyIndexByName(): Map<string, number> {
-  const systemBodies = useTelemetry("system.bodies");
+  // The solar system is the least volatile fact on the wire.
+  const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);
   return useMemo(() => {
     const map = new Map<string, number>();
     for (const body of systemBodies?.bodies ?? []) {

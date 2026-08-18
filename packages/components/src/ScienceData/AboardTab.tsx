@@ -17,6 +17,9 @@ export interface AboardTabProps {
   body: string | undefined;
   situation: string | undefined;
   situationLocale: string;
+  /** Whether the locale was withheld because `vessel.surface` stopped being
+   *  current, as opposed to never having carried a biome at all. */
+  localeNotCurrent: boolean;
   breakdown: ExperimentBreakdownEntry[] | null;
   experiments: ParsedExperiment[] | null;
   sciCount: number | undefined;
@@ -108,6 +111,7 @@ export function AboardTab({
   body,
   situation,
   situationLocale,
+  localeNotCurrent,
   breakdown,
   experiments,
   sciCount,
@@ -127,6 +131,17 @@ export function AboardTab({
   const shownExperiments = (experiments ?? []).filter((e) =>
     filter.matches(e.title),
   );
+  /**
+   * A vessel that never reported a biome and a vessel whose biome we can no
+   * longer vouch for both leave the locale off the line, and the two say
+   * opposite things about the science below it, so the withheld case names
+   * itself here instead of quietly shortening the line.
+   */
+  const localeSuffix = situationLocale
+    ? ` · ${situationLocale}`
+    : localeNotCurrent
+      ? " · locale no longer current"
+      : "";
   const hasBreakdown = breakdown !== null && breakdown.length > 0;
   const hasExperiments = experiments !== null && experiments.length > 0;
 
@@ -140,7 +155,7 @@ export function AboardTab({
         aria-label="Current situation for science"
       >
         {body && situation
-          ? `${body} · ${situation}${situationLocale ? ` · ${situationLocale}` : ""}`
+          ? `${body} · ${situation}${localeSuffix}`
           : "Awaiting situation telemetry"}
       </Value>
       {!compact && typeof sciCount === "number" && (

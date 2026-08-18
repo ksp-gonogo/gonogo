@@ -192,7 +192,13 @@ function mapBody(
  * sample lands.
  */
 export function useCelestialBodies(): CelestialBody[] {
-  const systemBodies = useTelemetry("system.bodies");
+  // A body catalogue: declared unmodellable, changes when the game changes, so a
+  // stale one is the catalogue.
+  const bodiesReading = useTelemetry("system.bodies");
+  const systemBodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : undefined;
   const ut = useViewUt();
 
   return useMemo(() => {

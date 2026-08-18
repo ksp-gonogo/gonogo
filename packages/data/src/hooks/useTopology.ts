@@ -17,7 +17,15 @@ import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
  * whole payload only re-emits when the structure actually changes.
  */
 export function useTopology(): VesselTopology | undefined {
-  const wire = useTelemetry("vessel.parts");
+  const reading = useTelemetry("vessel.parts");
+  // Structure, not a quantity: exact between events and unpredictable across
+  // one, which is why `vessel.parts` is declared unmodellable. A stale topology
+  // is the topology, so it is derived from the last observed record; only a
+  // never-arrived one yields undefined.
+  const wire =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : undefined;
   return useMemo(
     () => (wire ? deriveTopologyFromVesselParts(wire) : undefined),
     [wire],

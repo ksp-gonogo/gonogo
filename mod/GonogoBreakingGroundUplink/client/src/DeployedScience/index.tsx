@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   registerComponent,
+  stillTrue,
   useTelemetry,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -304,8 +305,12 @@ const XS2_STYLE = { fontSize: "var(--font-size-2xs)" } as const;
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
-  const basesRaw = useTelemetry("deployed.bases");
-  const available = useTelemetry("game.dlc")?.breakingGround;
+  // A deployed-base roster is a fact: bases are planted by an event.
+  const basesRaw = stillTrue(useTelemetry("deployed.bases"), undefined);
+  const available = stillTrue(
+    useTelemetry("game.dlc"),
+    undefined,
+  )?.breakingGround;
 
   const bases = parseBases(basesRaw) ?? [];
 

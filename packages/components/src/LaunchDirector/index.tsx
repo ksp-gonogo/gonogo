@@ -30,6 +30,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -228,22 +229,60 @@ function LaunchDirectorComponent({
   h,
   w,
 }: Readonly<ComponentProps<LaunchDirectorConfig>>) {
-  const savedShipsRaw = useTelemetry("spaceCenter.savedShips");
-  const crewRosterRaw = useTelemetry("spaceCenter.crewRoster");
+  /**
+   * The pad's paperwork. A .craft file on disk, a kerbal's place on the roster
+   * and an unlocked launch site are not measurements: each changes when an event
+   * changes it, and no such event can reach us down a link that is not
+   * delivering, so the last set received is still the answer. Withholding them
+   * would be worse than useless here, because this widget reads a missing craft
+   * list as "nothing has arrived" and replaces its entire body with a wait
+   * message, funds and crew included.
+   */
+  const savedShipsRaw = stillTrue(
+    useTelemetry("spaceCenter.savedShips"),
+    undefined,
+  );
+  const crewRosterRaw = stillTrue(
+    useTelemetry("spaceCenter.crewRoster"),
+    undefined,
+  );
   const padOccupied = useStream<SpaceCenterState>("spaceCenter.state")
     ?.padOccupied as boolean | undefined;
   const padVesselTitle = useStream<SpaceCenterState>("spaceCenter.state")
     ?.padVesselTitle as string | undefined;
-  // One read of the record; `launchSite` here and `scene` below are two fields
-  // of the same payload, so nothing about them can differ in how current it is.
-  const sceneRecord = useTelemetry("spaceCenter.scene");
+  /**
+   * One read of the record; `launchSite` here and `scene` below are two fields of
+   * the same payload, so nothing about them can differ in how current it is.
+   *
+   * The scene is a fact of the same kind, and the one this widget can least
+   * afford to drop: it picks which panel renders. A withheld scene reads as
+   * "not in flight", which would swap the recover / revert controls of a live
+   * flight for the pre-launch craft picker, offering a launch while a vessel is
+   * up.
+   */
+  const sceneRecord = stillTrue(useTelemetry("spaceCenter.scene"), undefined);
   const launchSite = sceneRecord?.launchSite as string | undefined;
-  const launchSitesRaw = useTelemetry("spaceCenter.launchSites");
-  // Magnitude: compared against each craft's cost to decide what is
-  // launchable, and shown as this widget's balance readout.
-  const careerFunds = magnitudeOf(
-    useTelemetry("career.status")?.economy?.funds,
+  const launchSitesRaw = stillTrue(
+    useTelemetry("spaceCenter.launchSites"),
+    undefined,
   );
+  /**
+   * The balance is the one judgement input on the pre-launch side: it decides
+   * which craft this widget calls launchable and which it tags unaffordable, and
+   * that verdict is spent, not read. Funds move while nobody is looking (a
+   * contract pays out, a facility bills for repairs), so a held balance is not
+   * evidence of what the save can afford now, and the affordability gate below
+   * already treats an unknown balance as no balance.
+   */
+  const careerReading = useTelemetry("career.status");
+  const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
+  /**
+   * Which of the reasons for a missing balance applies. A never-arrived balance
+   * and a balance that has stopped being current blank the same readout and block
+   * the same priced craft, so the caption has to separate them: otherwise the
+   * widget accuses the link of dropping on every cold start.
+   */
+  const fundsNotCurrent = notCurrent(careerReading);
   const { chargesFunds } = useGameContext();
   // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
@@ -256,10 +295,27 @@ function LaunchDirectorComponent({
   // vessel-provider gaps with no wire home yet. The vessel-switcher below
   // reads `target.available` directly (a canonical topic, no shim).
   // In-flight context: populated when scene === "Flight".
-  const vesselName = useTelemetry("vessel.identity")?.name;
+  // The craft's name is set in the editor and changes nowhere else, so the last
+  // one received still names the vessel that is flying.
+  const vesselName = stillTrue(
+    useTelemetry("vessel.identity"),
+    undefined,
+  )?.name;
   const missionTime = useStream<VesselState>("vessel.state")?.met;
   const altitudeMeters = useStream<VesselState>("vessel.state")?.altitudeAsl;
-  const revertAvailability = useTelemetry("ksp.revertAvailability");
+  /**
+   * Whether the save still holds a revert point is a capability the game grants
+   * and withdraws on events (entering flight, then saving over it), never
+   * something that decays on its own. Withholding it would grey both controls out
+   * and label them "(n/a)", which states that the save cannot revert when it
+   * demonstrably still can, and each control is armed then confirmed anyway, so a
+   * revert the game has since disallowed fails at the desk rather than costing
+   * the flight.
+   */
+  const revertAvailability = stillTrue(
+    useTelemetry("ksp.revertAvailability"),
+    undefined,
+  );
   const canRevertToLaunch = revertAvailability?.canRevertToLaunch;
   const canRevertToEditor = revertAvailability?.canRevertToEditor;
   // crash.hasRecent is a real wire boolean (CrashUplink, ReliableOrdered)
@@ -273,7 +329,13 @@ function LaunchDirectorComponent({
   // would block recovery of a successfully landed craft. Pull the most
   // recent crash snapshot too so we can scope the gate to the active
   // vessel only. User reported this twice on 2026-05-17 (21:15, 23:12 BST).
-  const lastCrash = useTelemetry("crash.lastCrash");
+  //
+  // A crash report records something that already happened, so it stays true
+  // until the next crash replaces it or a revert undoes the timeline (which the
+  // ut comparison below catches). Withholding it would strip the gate of the
+  // per-vessel scoping it exists for and hand the session-wide flag back the
+  // false block on a successful landing that this snapshot was added to fix.
+  const lastCrash = stillTrue(useTelemetry("crash.lastCrash"), undefined);
   // For the revert-staleness guard below: a revert rewinds universal time
   // below the crash snapshot's capture ut. t.universalTime is dropped as a
   // data key (it was never a stream; it IS the SDK view-UT), so read that
@@ -283,7 +345,14 @@ function LaunchDirectorComponent({
   // (TargetProvider) already excludes the active vessel itself, so no extra
   // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
   // parts aren't "switch active vessel" targets.
-  const targetAvailable = useTelemetry("target.available");
+  //
+  // The roster is a fact, exactly as it is in the TargetPicker: other craft do
+  // not stop existing because the link dropped, and a switcher with no rows is
+  // useless, so the last roster stands.
+  const targetAvailable = stillTrue(
+    useTelemetry("target.available"),
+    undefined,
+  );
   const availableVessels = targetAvailable?.entries?.filter(
     (e) => e.kind === TargetKind.Vessel,
   );
@@ -466,10 +535,19 @@ function LaunchDirectorComponent({
             )}
             {/* The balance is required beside a spend control, and an absent
                 balance is the state that rule exists for: it is exactly when
-                the affordability gate above has nothing to judge against. */}
+                the affordability gate above has nothing to judge against. The
+                two ways of having no balance say so differently, because every
+                priced craft is blocked either way and the operator has to know
+                whether that is a cold start or a link that stopped. */}
             {careerFunds === null && chargesFunds && (
-              <FundsReadout title="No funds balance has arrived">
-                · funds unknown
+              <FundsReadout
+                title={
+                  fundsNotCurrent
+                    ? "The last funds balance is no longer current, so affordability is not being judged"
+                    : "No funds balance has arrived"
+                }
+              >
+                · {fundsNotCurrent ? "funds not current" : "funds unknown"}
               </FundsReadout>
             )}
           </div>

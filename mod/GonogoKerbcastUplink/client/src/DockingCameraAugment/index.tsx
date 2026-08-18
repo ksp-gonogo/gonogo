@@ -28,6 +28,7 @@ import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   getUplinkHandle,
   registerAugment,
+  stillTrue,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef } from "react";
@@ -45,7 +46,8 @@ import { selectDockingCamera } from "./selectDockingCamera";
 export function DockingCameraAugment({
   cameraFlightId,
 }: SlotProps<"distance-to-target.camera">) {
-  const cameras = useTelemetry("kerbcast.cameras");
+  // A camera roster is a fact: cameras are fitted by an event, not by a frame.
+  const cameras = stillTrue(useTelemetry("kerbcast.cameras"), undefined);
   const flightId = selectDockingCamera(cameras, cameraFlightId);
   const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
   const client = ds?.getClient();

@@ -1,5 +1,9 @@
 import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import {
+  judgeable,
+  registerComponent,
+  useTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   Cluster,
@@ -43,7 +47,19 @@ function Tons({ t }: { t?: Value<"t"> }) {
 export function AvionicsGoNoGoComponent(
   _props: ComponentProps<AvionicsConfig>,
 ) {
-  const s = useTelemetry("avionics.status") as AvionicsStatus | undefined;
+  /**
+   * The `as AvionicsStatus | undefined` cast that used to be here hid the whole
+   * migration: `useTelemetry` began answering with a `Reading` and the assertion
+   * silenced it, so `s?.avionicsActive` was permanently undefined and the widget
+   * read "NO AVIONICS" forever. A cast is a stronger blind spot than `unknown`,
+   * because someone chose it.
+   *
+   * A GO/NO-GO is the definition of a judgement, so it is withheld rather than held:
+   * a stale GO is the single worst thing this widget could draw.
+   */
+  const s = judgeable(useTelemetry("avionics.status")) as
+    | AvionicsStatus
+    | undefined;
   const noAvionics = !(s?.avionicsActive ?? false);
   const controllable = s?.controllable ?? false;
   const label = noAvionics ? "NO AVIONICS" : controllable ? "GO" : "NO-GO";

@@ -17,6 +17,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { judgeable, notCurrent } from "../shared/currency";
 import { magnitudeOr } from "../shared/magnitude";
 
 // Empty config: room to add a "hide heat shield" toggle later.
@@ -160,7 +161,18 @@ function ThermalStatusComponent({
   // and would shortly have been ten branches on the same currency. A record is
   // read once and destructured; nothing about these ten fields can disagree
   // about how current it is, so nothing should ask ten times.
-  const thermal = useTelemetry("vessel.thermal");
+  /**
+   * Every readout in this widget is a judgement: four band tags and a summary
+   * pill, each converting a temperature ratio into "nominal" or "critical". None
+   * of them can be dated, because the operator reads a band as the situation now.
+   *
+   * So a stale record is withheld, which lands on the `unknown` band rather than
+   * on a green one, and `thermalNotCurrent` lets the widget say which of the two
+   * reasons it is unknown for.
+   */
+  const thermalReading = useTelemetry("vessel.thermal");
+  const thermal = judgeable(thermalReading);
+  const thermalNotCurrent = notCurrent(thermalReading);
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
   const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;
@@ -264,7 +276,13 @@ function ThermalStatusComponent({
          registers, so the unfilled slot leaves the header untouched. */
       panelAside={<AugmentSlot name="thermal-status.badges" props={{}} />}
     >
-      {noData ? (
+      {thermalNotCurrent ? (
+        // Distinct from "No thermal data", which says the vessel reports none.
+        // This says the vessel reported some and we can no longer vouch for it,
+        // and the difference decides whether the operator distrusts the craft or
+        // the link.
+        <EmptyState>Thermal readings no longer current</EmptyState>
+      ) : noData ? (
         <EmptyState>No thermal data</EmptyState>
       ) : (
         <Body>

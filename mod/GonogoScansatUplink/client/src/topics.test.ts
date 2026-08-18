@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   getAllKnownTopicIds,
   isTopicId,
+  judgeable,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -75,7 +76,7 @@ describe("scansat structured Topics (relocated out of Sitrep.Contract)", () => {
       carriedChannels: [SCANSAT_SCANNING_VESSELS_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC),
+      () => judgeable(useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -126,7 +127,7 @@ describe("scansat structured Topics (relocated out of Sitrep.Contract)", () => {
       carriedChannels: [SCANSAT_SCANNING_VESSELS_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC),
+      () => judgeable(useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -170,9 +171,12 @@ describe("scansat structured Topics (relocated out of Sitrep.Contract)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [SCANSAT_SCIENCE_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(SCANSAT_SCIENCE_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(SCANSAT_SCIENCE_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(SCANSAT_SCIENCE_TOPIC, [
       {

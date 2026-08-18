@@ -10,6 +10,7 @@ import {
   ActionButton,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   ScrollArea,
   speakQuantity,
   type TabDescriptor,
@@ -19,6 +20,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 import { type KerbalStatFields, KerbalStats } from "../shared/KerbalStats";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
@@ -35,6 +37,14 @@ type AstronautComplexConfig = Record<string, never>;
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
 const ARM_TIMEOUT_MS = 4000;
+
+/**
+ * Said on screen whenever the balance is withheld for going stale, so the blank
+ * beside "Funds" is legible as a refusal to quote rather than as a balance
+ * nobody has sent yet. Hiring stays available: the game arbitrates the purchase,
+ * and refusing locally on a balance we cannot see would block a legal hire.
+ */
+const FUNDS_STALE_NOTE = "Funds no longer current";
 
 /**
  * Firing is a per-row action against an arbitrary-length Available list, the
@@ -105,16 +115,49 @@ function applicantStats(a: Applicant): KerbalStatFields {
 function AstronautComplexComponent(
   _props: Readonly<ComponentProps<AstronautComplexConfig>>,
 ) {
-  // The applicant pool, roster cap and active-crew count ride the
-  // spaceCenter.astronautComplex Topic; funds comes off
-  // career.status.economy.funds (the same read SpaceCenterStatus uses). Both
-  // degrade to null outside career, so the widget shows an empty state rather
-  // than erroring.
-  const complex = useTelemetry("spaceCenter.astronautComplex");
-  const careerFunds = magnitudeOf(
-    useTelemetry("career.status")?.economy?.funds,
+  /**
+   * The applicant pool, roster cap and active-crew count ride the
+   * spaceCenter.astronautComplex Topic; funds comes off
+   * career.status.economy.funds (the same read SpaceCenterStatus uses). Both
+   * degrade to nothing outside career, so the widget shows an empty state
+   * rather than erroring.
+   *
+   * All four fields on the complex record are facts, which is why the record
+   * takes `stillTrue` whole: the applicant pool changes when the game refreshes
+   * it or somebody is hired, the active-crew count when somebody is hired or
+   * fired, the cap when the facility is upgraded, and the next-hire price is a
+   * quote the game derives from the roster size. None of them can move while
+   * nobody is looking, and a blanked pool would report a Complex with no
+   * candidates for a save that has four waiting.
+   */
+  const complexReading = useTelemetry("spaceCenter.astronautComplex");
+  const complex = stillTrue(complexReading, undefined);
+  /**
+   * Off career there is no Astronaut Complex and the producer says so, which is
+   * `absent` and is the case the "career mode only" wording was written for.
+   * `pending` is a cold start, and it gets its own sentence so a first paint
+   * stops reading as a save with no space programme.
+   */
+  const complexConfirmedEmpty = complexReading.state === "absent";
+  /**
+   * Funds is the one judgement in this widget. The figure sits beside a spend
+   * control, the operator reads it as the balance they are about to spend from,
+   * and it decides `affordable`. A recovery or a purchase moves it while the
+   * link is down, so a held balance is a claim about money that may already be
+   * spent; withheld instead, with `fundsNotCurrent` saying which of the two
+   * reasons the figure is missing for.
+   */
+  const fundsReading = useTelemetry("career.status");
+  const careerFunds = magnitudeOf(judgeable(fundsReading)?.economy?.funds);
+  const fundsNotCurrent = notCurrent(fundsReading);
+  /**
+   * The hired-crew roster is the textbook fact: a kerbal is on the books until
+   * an event takes them off, so the last roster received is still the roster.
+   */
+  const crewRosterRaw = stillTrue(
+    useTelemetry("spaceCenter.crewRoster"),
+    undefined,
   );
-  const crewRosterRaw = useTelemetry("spaceCenter.crewRoster");
   const crewRoster = useMemo(
     () => readCrewRoster(crewRosterRaw),
     [crewRosterRaw],
@@ -194,7 +237,14 @@ function AstronautComplexComponent(
               <FundsValue>{NULL_DISPLAY}</FundsValue>
             )}
           </FundsLine>
-          <Empty>No applicant data (career mode only)</Empty>
+          {fundsNotCurrent && (
+            <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
+          )}
+          <Empty>
+            {complexConfirmedEmpty
+              ? "No applicant data (career mode only)"
+              : "No applicant data yet (waiting for telemetry)"}
+          </Empty>
         </Body>
       </Panel>
     );
@@ -222,6 +272,9 @@ function AstronautComplexComponent(
               </StatValue>
             ) : (
               <StatValue>{NULL_DISPLAY}</StatValue>
+            )}
+            {fundsNotCurrent && (
+              <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
             )}
           </StatBox>
           <StatBox>

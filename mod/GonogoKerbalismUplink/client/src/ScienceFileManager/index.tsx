@@ -1,6 +1,7 @@
 import type { ExperimentEntry, SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
+  stillTrue,
   useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -157,8 +158,12 @@ function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
 function ScienceDataAboardRowAugment({
   subjectId,
 }: SlotProps<"science-data.aboard-row">) {
-  const experiments = useTelemetry("science.experiments");
-  const labs = useTelemetry("science.lab");
+  // A drive's file list is a fact: it changes when an experiment runs or a file is
+  // moved, and a quiet link cannot have moved one. Before this the raw `Reading`
+  // reached `findDriveEntries` and threw "experiments is not iterable", which `tsc`
+  // could not see because that helper takes `unknown`.
+  const experiments = stillTrue(useTelemetry("science.experiments"), undefined);
+  const labs = stillTrue(useTelemetry("science.lab"), undefined);
 
   // Every command is dispatched from this row regardless of which verbs it
   // ends up rendering, so all five hooks (and their panel-delay handles)

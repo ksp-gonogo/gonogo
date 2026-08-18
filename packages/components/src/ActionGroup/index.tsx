@@ -42,6 +42,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
+import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 
 type ActionGroupConfig = {
   actionGroupId: ActionGroupId;
@@ -243,17 +244,41 @@ export function buildToggleArgs(
 function ActionGroupComponent(
   props: Readonly<ComponentProps<ActionGroupConfig>>,
 ) {
-  const control = useTelemetry("vessel.control");
-  const group = useActionGroupFrom(control, props.config?.actionGroupId);
+  const controlReading = useTelemetry("vessel.control");
+  /**
+   * Two currencies off ONE read, because this record carries both kinds of
+   * field.
+   *
+   * WHICH action groups the vessel has is a fact. The named list changes when
+   * the vessel does, and a link that has stopped delivering cannot have carried
+   * that event, so the last list received is still the answer. Withholding it
+   * would retire a control the operator is plainly still looking at, and worse:
+   * an AGX group resolved from nothing degrades to a read-only pill under its
+   * configured name, so blanking the registry would quietly take the toggle
+   * away rather than mark it uncertain.
+   */
+  const group = useActionGroupFrom(
+    stillTrue(controlReading, undefined),
+    props.config?.actionGroupId,
+  );
 
   if (group?.name === "Stage") {
     return <StageActionGroup {...props} group={group} />;
   }
+  /**
+   * Whether that group is ON is a judgement, so it goes the other way. The pill
+   * is a two-state verdict about the vessel now (an operator reads "ON" as the
+   * gear being down, not as the gear having been down), and the same value is
+   * inverted to build the toggle's absolute-set args, which this file already
+   * refuses to do off an unresolved read. A held boolean would both misstate the
+   * craft and command the wrong way.
+   */
   return (
     <ActionGroupView
       {...props}
       group={group}
-      value={resolveGroupValue(group, control)}
+      value={resolveGroupValue(group, judgeable(controlReading))}
+      valueNotCurrent={notCurrent(controlReading)}
     />
   );
 }
@@ -264,8 +289,21 @@ function StageActionGroup({
   ...props
 }: Readonly<ComponentProps<ActionGroupConfig>> & { group: ActionGroup }) {
   const structure = useTelemetry("vessel.structure");
+  /**
+   * The current stage is a fact, unlike every other group's state. It moves only
+   * when something stages, so it cannot drift while nobody is looking, and the
+   * stage command is unconditional (`buildToggleArgs` returns `null` for Stage
+   * and never inverts), so no command rides on this number being current.
+   * Blanking a stage index that has not changed would cost the operator a
+   * readout and buy nothing.
+   */
   return (
-    <ActionGroupView {...props} group={group} value={structure?.currentStage} />
+    <ActionGroupView
+      {...props}
+      group={group}
+      value={stillTrue(structure, undefined)?.currentStage}
+      valueNotCurrent={false}
+    />
   );
 }
 
@@ -276,9 +314,12 @@ function ActionGroupView({
   h,
   group,
   value,
+  valueNotCurrent,
 }: Readonly<ComponentProps<ActionGroupConfig>> & {
   group: ActionGroup | undefined;
   value: unknown;
+  /** The state was withheld because it went stale, not because it never came. */
+  valueNotCurrent: boolean;
 }) {
   const currentLabel = config?.label ?? group?.name ?? "";
 
@@ -294,8 +335,17 @@ function ActionGroupView({
   // These two reads have clean canonical homes of their own:
   //  - `t.isPaused`     -> `time.warp.paused`
   //  - `comm.connected` -> `comms.link.connected`
-  const isPaused = useTelemetry("time.warp")?.paused;
-  const commConnected = useTelemetry("comms.link")?.connected;
+  /**
+   * Both are inputs to one computed verdict, "would this fire if you pressed it
+   * now", so both go through `judgeable`. Neither may be answered from a held
+   * value: telling the operator the game is paused, or that there is no signal,
+   * on the strength of a reading we can no longer vouch for puts a confident
+   * reason on the screen for a state that may well have ended. A withheld one
+   * lands on the same "nothing to warn about" the never-arrived case already
+   * produced, which is the honest silence, the widget claims nothing either way.
+   */
+  const isPaused = judgeable(useTelemetry("time.warp"))?.paused;
+  const commConnected = judgeable(useTelemetry("comms.link"))?.connected;
   const openAlarms = useAlarmsLauncher();
 
   // The toggle command name depends on which group this instance is
@@ -367,8 +417,16 @@ function ActionGroupView({
   // (paused / no power / antenna off / antenna missing), codes 0 and 5 are
   // covered upstream (0 = OK, 5 = handled by `requires: ["flight"]`).
   let unavailableReason: string | null = null;
-  if (isPaused === true) unavailableReason = "Paused";
+  // First, because it is the reason the pill above reads NULL_DISPLAY. Without
+  // it a withheld state is indistinguishable from one that never arrived, and
+  // from a broken widget: the operator sees an empty pill on a dashboard that
+  // was showing ON a moment ago and has nothing to read the difference off.
+  if (valueNotCurrent) unavailableReason = "State not current";
+  else if (isPaused === true) unavailableReason = "Paused";
   else if (commConnected === false) unavailableReason = "No signal";
+  const unavailableTitle = valueNotCurrent
+    ? "The last known state is too old to invert, so the toggle is held"
+    : "The action group can't fire right now";
 
   // Selective rendering: drop the secondary "official name" line when the
   // widget is narrow. The state pill is itself the toggle control, so it is
@@ -376,8 +434,11 @@ function ActionGroupView({
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
   // Precision Control has no toggle key, the pill stays a read-only indicator
-  // there (disabled button) rather than a no-op clickable.
-  const canToggle = Boolean(group.toggle);
+  // there (disabled button) rather than a no-op clickable. A withheld state
+  // disables it for the same reason: `buildToggleArgs` refuses a non-boolean, so
+  // the press is provably inert, and an inert-looking control beside a stated
+  // reason is honest where a live-looking one that swallows the click is not.
+  const canToggle = Boolean(group.toggle) && !valueNotCurrent;
   // Bell is reachable from the alarms menu, at tiny size it just crowds the
   // pill and the size-locked button style breaks the layout.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
@@ -512,7 +573,7 @@ function ActionGroupView({
           size="sm"
           role="status"
           aria-live="polite"
-          title="The action group can't fire right now"
+          title={unavailableTitle}
         >
           {unavailableReason}
         </Badge>

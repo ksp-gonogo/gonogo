@@ -9,6 +9,7 @@ import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { StreamStatusBadge, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Inline, Panel, Value } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
+import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
@@ -38,7 +39,18 @@ function ScienceDataComponent({
   const vesselState = useStream<VesselState>("vessel.state");
   const body = vesselState?.parentBodyName ?? undefined;
   const situation = vesselState?.situationName ?? undefined;
-  const surface = useTelemetry("vessel.surface");
+  /**
+   * The locale is the one reading here that drifts on its own. It names the
+   * biome a sample would be taken from, and a vessel that is flying moves
+   * between biomes with nobody touching anything, so a held locale states the
+   * wrong provenance for the science on the line beside it. Withheld when it
+   * stops being current, with `surfaceNotCurrent` carrying the reason through
+   * to the situation line: an omitted locale is what a vessel with no biome
+   * reading also shows, and the two must not read alike.
+   */
+  const surfaceReading = useTelemetry("vessel.surface");
+  const surface = judgeable(surfaceReading);
+  const surfaceNotCurrent = notCurrent(surfaceReading);
   const landedAt = surface?.landedAt;
   // Live biome from `ScienceUtil.GetExperimentBiome`, works in flight +
   // space scenes (e.g. "FlyingHigh", "Splashed - OceanWater"), unlike
@@ -47,9 +59,23 @@ function ScienceDataComponent({
   const liveBiome = surface?.biome;
   const situationLocale = liveBiome ?? landedAt ?? "";
 
-  const experimentsRaw = useTelemetry("science.experiments");
-  const breakdownRaw = useTelemetry("science.experimentBreakdown");
-  const archiveRaw = useTelemetry("science.archive");
+  /**
+   * All three ledgers are facts. A record aboard appears when a crew runs an
+   * experiment and leaves when they transmit or discard it, and the R&D archive
+   * moves on recovery: events, every one, and no event reaches us down a link
+   * that is not delivering. So the last ledger received is still the ledger,
+   * and blanking it would report an empty vessel and a Sandbox save on a career
+   * that is demonstrably carrying science.
+   */
+  const experimentsRaw = stillTrue(
+    useTelemetry("science.experiments"),
+    undefined,
+  );
+  const breakdownRaw = stillTrue(
+    useTelemetry("science.experimentBreakdown"),
+    undefined,
+  );
+  const archiveRaw = stillTrue(useTelemetry("science.archive"), undefined);
   const breakdownStreamStatus = useDataStreamStatus(
     "data",
     "science.experimentBreakdown",
@@ -71,8 +97,15 @@ function ScienceDataComponent({
     ? collected.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
     : undefined;
 
+  // Banked science is a balance, not a measurement: it moves when science is
+  // transmitted, recovered or spent, and it cannot drift between those. This
+  // widget only reports it, it arms nothing that spends it (TechTree does, and
+  // reads the same field through `judgeable` for that reason), so the last
+  // balance received is still the balance and the panel's stream badge beside
+  // it already tells the operator how fresh the panel is.
   const careerScience = magnitudeOf(
-    useTelemetry("career.status")?.economy?.science as Quantityish,
+    stillTrue(useTelemetry("career.status"), undefined)?.economy
+      ?.science as Quantityish,
   );
 
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];
@@ -94,6 +127,7 @@ function ScienceDataComponent({
           body={body}
           situation={situation}
           situationLocale={situationLocale}
+          localeNotCurrent={surfaceNotCurrent}
           breakdown={breakdown}
           experiments={experiments}
           sciCount={sciCount}

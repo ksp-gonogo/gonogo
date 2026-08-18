@@ -1,7 +1,4 @@
 export * from "./__generated__/contract";
-// The curated author-facing barrel (registration + hook shims + author types).
-// PROPOSAL surface pending operator sign-off (design D-D) before first external
-// publish. See ./api for why these are host-injected shims, not core re-exports.
 export * from "./api";
 export { parseServerMessage } from "./client";
 export {
@@ -19,6 +16,14 @@ export {
   type ProviderExtension,
   type ProviderExtensions,
 } from "./extensions";
+// The curated author-facing barrel (registration + hook shims + author types).
+// PROPOSAL surface pending operator sign-off (design D-D) before first external
+// publish. See ./api for why these are host-injected shims, not core re-exports.
+/**
+ * The read contract. An Uplink widget's `useTelemetry` answers with a `Reading`, so
+ * the union and its accessors ship on the devkit surface rather than app-side.
+ */
+export * from "./reading";
 export {
   getAllKnownTopicIds,
   isTopicId,

@@ -11,6 +11,7 @@ import {
   Stack,
   Truncate,
 } from "@ksp-gonogo/ui-kit";
+import { stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 import type { MissionEvent, MissionEventKind } from "./events";
 import { useMissionEvents } from "./useMissionEvents";
@@ -94,13 +95,22 @@ function MissionEventLogComponent(
   _props: Readonly<ComponentProps<MissionEventLogConfig>>,
 ) {
   const events = useMissionEvents();
-  // The magnitude, not the cast that was here: `launchUt` is declared in
-  // seconds and arrives as a `Value<"s">`, so casting it to `number` was an
-  // assertion the compiler could not check and the `typeof` guard below
-  // rejected every real frame, stamping each row with a raw UT where the MET
-  // belonged.
+  /**
+   * The launch instant is a fact, so it is held rather than withheld: a vessel
+   * that left the pad at UT 900 did not leave at some other UT because the link
+   * later went quiet, and dropping the read would silently reformat every row of
+   * a mission's history from a mission-elapsed clock to a raw UT, mid-mission,
+   * on nothing but a stream hiccup.
+   *
+   * The magnitude, not the cast that was here: `launchUt` is declared in seconds
+   * and arrives as a `Value<"s">`, so casting it to `number` was an assertion
+   * the compiler could not check and the `typeof` guard in `Stamp` rejected
+   * every real frame, stamping each row with a raw UT where the MET belonged.
+   */
   const launchUt =
-    magnitudeOf(useTelemetry("vessel.identity")?.launchUt) ?? undefined;
+    magnitudeOf(
+      stillTrue(useTelemetry("vessel.identity"), undefined)?.launchUt,
+    ) ?? undefined;
 
   if (events.length === 0) {
     return (

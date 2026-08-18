@@ -51,7 +51,15 @@ function resolveHomeCentreId(
  * option to land on.
  */
 export function VantageControl() {
-  const roster = useTelemetry("commandCentre.roster");
+  // FAIL-OPEN FIX as well as a migration: `(roster ?? [])` never took its
+  // fallback once the read became a Reading, so the filter below ran against a
+  // Reading rather than a list. Ground-side and declared unmodellable, so a
+  // stale roster is still the roster and only never-arrived is empty.
+  const rosterReading = useTelemetry("commandCentre.roster");
+  const roster =
+    rosterReading.state === "observed" || rosterReading.state === "stale"
+      ? rosterReading.value
+      : undefined;
   const selected = useSelectedVantage();
   const client = useTelemetryClientOptional();
 

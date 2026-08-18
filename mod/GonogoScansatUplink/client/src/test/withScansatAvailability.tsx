@@ -14,10 +14,14 @@ import { type ReactNode, useEffect } from "react";
 // sibling Uplink's docking-camera slot test uses.
 function ScansatAvailabilityFeeder() {
   const store = useDomainAvailabilityStore();
-  const value = useTelemetry("scansat.available" as TopicId);
+  const reading = useTelemetry("scansat.available" as TopicId);
   useEffect(() => {
-    store?.setAvailable("scansat", value !== undefined);
-  }, [store, value]);
+    // A presence gate asks "has the domain ever reported?", which is now the
+    // `pending` arm rather than `undefined`: a `Reading` is never undefined, so the
+    // old test announced the domain as available before anything had arrived and
+    // the "does not mount until announced" cases could not fail.
+    store?.setAvailable("scansat", reading.state !== "pending");
+  }, [store, reading]);
   return null;
 }
 

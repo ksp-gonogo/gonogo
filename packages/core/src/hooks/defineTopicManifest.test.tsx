@@ -1,4 +1,5 @@
 import {
+  judgeable,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
@@ -53,7 +54,11 @@ describe("defineTopicManifest", () => {
     });
 
     function Orbit() {
-      const orbit = useTelemetry("vessel.orbit");
+      // The bound hook answers with a `Reading` too, so a manifest read confronts
+      // currency exactly as a direct one does. That was the point of correcting
+      // `WidgetTopicValue`: it promised a payload while the hook it wraps returned a
+      // `Reading`, and the `as unknown as` cast in the factory meant nothing checked.
+      const orbit = judgeable(useTelemetry("vessel.orbit"));
       // `.magnitude`: `sma` is a declared length, so the decode hands the
       // widget a `Value`. The probe prints the number to keep the assertion
       // about the read path rather than about rendering.
@@ -85,6 +90,8 @@ describe("defineTopicManifest", () => {
       optionalChannels: ["comms.delay"],
     });
     const { result } = renderHook(() => useTelemetry("comms.delay"));
-    expect(result.current).toBeUndefined();
+    // `pending`, not `undefined`: the bound hook answers with a `Reading` like every
+    // other read, and "no provider" is the same statement as "nothing has arrived".
+    expect(result.current).toEqual({ state: "pending" });
   });
 });

@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  judgeable,
   registerComponent,
   useProcessor,
   useTelemetry,
@@ -242,7 +243,10 @@ function ShipSystemsComponent(
   // `kerbalism.spaceweather`, so a second Processor dependant is not worth
   // adding for one section. Read unconditionally, ahead of both early
   // returns below, to keep hook order stable.
-  const weather = useTelemetry("kerbalism.spaceweather");
+  // Radiation and storm state are judgements: the operator reads them as the
+  // situation now, so a held figure would understate an exposure that has since
+  // risen.
+  const weather = judgeable(useTelemetry("kerbalism.spaceweather"));
   const utNow = useUtNow();
 
   if (!ship) {

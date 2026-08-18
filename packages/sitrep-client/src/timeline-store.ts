@@ -1211,7 +1211,7 @@ export class TimelineStore {
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
    *
    * **Identity tracks the DATA, not the frame**, and that is load-bearing
-   * rather than an optimisation. `useReading` hands the result straight to
+   * rather than an optimisation. `useTelemetry` hands the result straight to
    * `useSyncExternalStore`, which compares snapshots with `Object.is`. The
    * per-frame `memoize` cache alone is not enough here: `beginFrame()` mints a
    * new `FrameToken` on every ingest tick, so a token-keyed entry is a fresh

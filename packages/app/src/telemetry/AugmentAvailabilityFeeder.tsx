@@ -56,11 +56,23 @@ function DomainAvailabilityWatch({
   domain: string;
   store: DomainAvailabilityStore;
 }): null {
-  const value = useTelemetry(`${domain}.available` as TopicId);
+  const availability = useTelemetry(`${domain}.available` as TopicId);
+  /**
+   * Whether the domain has EVER reported, which is what a presence gate asks.
+   *
+   * `pending` is the only answer that means "no Uplink here". Everything else is the
+   * producer speaking: `observed` obviously, `stale` because a domain that reported
+   * and went quiet is still installed, and `absent` because a producer saying "there
+   * is no value" is still a producer. That last one is why the pre-migration
+   * `value !== undefined` accidentally got the tombstone case RIGHT while getting
+   * everything else wrong, and it is the rule the Uplink-side availability feeders
+   * use too.
+   */
+  const reported = availability.state !== "pending";
   useEffect(() => {
-    store.setAvailable(domain, value !== undefined);
+    store.setAvailable(domain, reported);
     return () => store.setAvailable(domain, false);
-  }, [domain, value, store]);
+  }, [domain, reported, store]);
   return null;
 }
 

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   getAllKnownTopicIds,
   isTopicId,
+  judgeable,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -68,9 +69,12 @@ describe("kerbcast.cameras Topic (relocated out of Sitrep.Contract)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [KERBCAST_CAMERAS_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(KERBCAST_CAMERAS_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(KERBCAST_CAMERAS_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(KERBCAST_CAMERAS_TOPIC, [
       { cameraId: 7, fieldOfView: 45, panYaw: 12.5 },

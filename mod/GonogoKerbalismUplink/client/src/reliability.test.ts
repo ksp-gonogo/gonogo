@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ReliabilitySummary } from "@ksp-gonogo/sitrep-sdk";
-import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { judgeable, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
@@ -111,7 +111,7 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
       carriedChannels: [RELIABILITY_SUMMARY_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(RELIABILITY_SUMMARY_TOPIC),
+      () => judgeable(useTelemetry(RELIABILITY_SUMMARY_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -138,7 +138,7 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
       carriedChannels: [RELIABILITY_SUMMARY_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(RELIABILITY_SUMMARY_TOPIC),
+      () => judgeable(useTelemetry(RELIABILITY_SUMMARY_TOPIC)),
       { wrapper: fixture.Provider },
     );
 

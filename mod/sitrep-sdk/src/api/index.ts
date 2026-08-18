@@ -25,6 +25,7 @@
 import type { Logger } from "@ksp-gonogo/logger";
 import type { ReactElement } from "react";
 import { createElement } from "react";
+import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import { getHost } from "./host";
 // Side-effect only: carries the `SlotRegistry` declaration-merge for every
@@ -178,10 +179,24 @@ export function useExecuteAction(
   return getHost().useExecuteAction(dataSourceId);
 }
 
-// Canonical overload: keyed by TopicId → returns the Topic's payload type.
+/**
+ * Canonical overload: keyed by TopicId, answers with a `Reading` of the Topic's
+ * payload.
+ *
+ * This used to declare `TopicPayload<T> | undefined` while forwarding to the host's
+ * implementation, which returns a `Reading`. Every Uplink client therefore
+ * typechecked clean and broke at runtime, and the lie was invisible to `tsc` in both
+ * directions: the clients compiled, and a sweep of the clients reported zero errors.
+ * It surfaced as "experiments is not iterable" deep inside a parser typed
+ * `(raw: unknown)`, in the one bundled Uplink whose imports go only through this
+ * surface.
+ *
+ * An Uplink drawing a radiation dose has to confront currency for the same reasons a
+ * built-in widget does, so the honest signature is the one that makes it.
+ */
 export function useTelemetry<T extends TopicId>(
   topic: T,
-): TopicPayload<T> | undefined;
+): Reading<TopicPayload<T>>;
 // Legacy two-arg overload: the retired useDataValue shim's shape, carried
 // over onto useTelemetry itself. See GonogoHost.useTelemetry's doc.
 export function useTelemetry<T = unknown>(

@@ -15,6 +15,7 @@ import type {
 import {
   AugmentSlot,
   getUplinkHandle,
+  judgeable,
   logger,
   useActionInput,
   useLatestValue,
@@ -293,14 +294,14 @@ export function CameraFeed({
   // `comm.connected`/`comm.signalDelay` two-arg shim; the field paths below
   // are exactly what that shim used to map to, per
   // `@ksp-gonogo/sitrep-client`'s `map-topic.ts`).
-  const vesselComms = useTelemetry("vessel.comms");
+  const vesselComms = judgeable(useTelemetry("vessel.comms"));
   const signalStrength = vesselComms?.signalStrength;
   // `comms.link` (NOT `vessel.comms.connected`): a dedicated, freeze-EXEMPT
   // MetaTopic. `vessel.comms` is a Delayed struct subject to the reveal-gate
   // freeze, so its own `.connected` field would stick at last-known through
   // a blackout instead of firing "NO SIGNAL". `comms.link` escapes that
   // freeze, so it's the edge that actually reflects a live disconnect.
-  const commConnected = useTelemetry("comms.link")?.connected;
+  const commConnected = judgeable(useTelemetry("comms.link"))?.connected;
   // One-way light-time delay for THIS downlink (the footage left the craft
   // this long ago): NOT round-trip. Round-trip doubling only applies to
   // interactive command/response paths (e.g. the kOS terminal), which this

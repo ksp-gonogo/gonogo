@@ -240,7 +240,22 @@ function PoiProviderGate({
   ) as TopicId;
   const available = useTelemetry(availabilityTopic);
 
-  if (provider.requires && available === undefined) {
+  // Whether the domain has EVER reported. A `.available` topic is a presence
+  // gate, not a quantity: a domain that reported and then went quiet is still
+  // installed, so `stale` counts as available and only a never-arrived reading
+  // hides the provider.
+  //
+  // This was `available === undefined`, which is why it needed changing rather
+  // than merely compiling: a `Reading` is never undefined, so the gate would
+  // have failed OPEN and rendered every gated provider unconditionally. The
+  // comparison stayed legal, so the types said nothing; `MapPoiLayer.test.tsx`
+  // is what caught it.
+  // `absent` counts too: a producer answering "there is no value" is still a
+  // producer, so the Uplink is installed. `pending` is the only answer that means
+  // nothing is there, which is why this reads as a single negative test.
+  const domainReported = available.state !== "pending";
+
+  if (provider.requires && !domainReported) {
     return null;
   }
 

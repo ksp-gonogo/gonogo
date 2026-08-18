@@ -11,7 +11,7 @@ import type { PathConnectedDuring, PendingEntry } from "./command-delay";
  * in `Reading<T>`, and three things about that type say so structurally rather
  * than as a matter of taste:
  *
- * - `useReading` returns the WHOLE topic payload, so reckoning a commanded
+ * - `useTelemetry` returns the WHOLE topic payload, so reckoning a commanded
  *   `sasMode` would mean constructing a whole `VesselControl` and handing the
  *   caller fifteen other stale facts to express one expectation
  * - `readingFrom` returns `observed` BEFORE it consults a reckoner, so a

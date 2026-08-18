@@ -18,6 +18,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 
 /**
@@ -110,7 +111,22 @@ function WarpControlComponent({
   // stream: no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
   // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,
   // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
-  const warp = useTelemetry("time.warp");
+  //
+  // Every field on this record is a FACT, so all four go through `stillTrue`.
+  // Warp rate, warp index, warp mode and pause are discrete simulation MODES:
+  // they change when something sets them and cannot drift on their own between
+  // updates, exactly like the game scene. Nothing about warp decays while the
+  // link is quiet, so the last state received is still the state the simulation
+  // is in, and the panel's own stream-status badge already tells the operator
+  // how fresh that is.
+  //
+  // Withholding them would be actively worse than dating them. `currentIndex ??
+  // 0` feeds the stepper, so a withheld index does not render as "unknown": it
+  // renders as 1x pressed and warp-down disabled, which is a positive claim that
+  // the simulation is at realtime. Refusing to answer would make the widget
+  // assert something it had stopped knowing.
+  const warpReading = useTelemetry("time.warp");
+  const warp = stillTrue(warpReading, undefined);
   const rate = warp?.warpRate;
   const indexRaw = warp?.warpRateIndex;
   const mode = normalizeWarpMode(warp?.warpMode);

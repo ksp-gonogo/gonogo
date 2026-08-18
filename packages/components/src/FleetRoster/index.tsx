@@ -44,6 +44,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 
 type FleetRosterConfig = Record<string, never>;
@@ -160,8 +161,27 @@ function rosterCommsLink(
  * `fleet.vessels` key.
  */
 function useFleet(): { known: boolean; vessels: FleetVessel[] } {
-  const system = useTelemetry("system.vessels");
-  const bodies = useTelemetry("system.bodies");
+  // FAIL-OPEN FIX, not merely a migration. `known` was `system !== undefined`,
+  // and a `Reading` is never undefined, so the roster would have reported itself
+  // KNOWN before a single frame arrived: an empty fleet presented as a confirmed
+  // empty fleet, on a GO/NO-GO-adjacent surface. `known` now means what its name
+  // says, that the fleet list has actually reported.
+  //
+  // A stale roster counts as known: a vessel does not cease to exist because a
+  // frame went missing, and the per-vessel comms state inside it is rendered from
+  // its own field rather than inferred from this list's currency.
+  /**
+   * A tombstone here is a CONFIRMED empty fleet, and the pre-migration gate said so
+   * (`system !== undefined` was false only for never-arrived). Collapsing it into
+   * `pending` would show "waiting for the fleet" to an operator whose save genuinely
+   * has no other vessels, which is a wait that never ends.
+   */
+  const systemReading = useTelemetry("system.vessels");
+  const system = stillTrue(systemReading, EMPTY_FLEET);
+  // The body catalogue is a fact, and a tombstone for it would mean a save with no
+  // celestial bodies, which cannot happen; `undefined` is the honest answer there.
+  const bodiesReading = useTelemetry("system.bodies");
+  const bodies = stillTrue(bodiesReading, undefined);
 
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
@@ -515,6 +535,9 @@ function UpdatesRow({ children }: { children: ReactNode }) {
 // Widget
 // ---------------------------------------------------------------------------
 
+/** A confirmed-no-other-vessels tombstone: a fleet, and it is empty. */
+const EMPTY_FLEET = { vessels: [] as never[] };
+
 function FleetRosterComponent({
   w,
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
@@ -524,7 +547,14 @@ function FleetRosterComponent({
   // command centre (Plan 3). Resolved to its display name via the roster,
   // falling back to the raw id (e.g. the default "ksc" before the roster lands).
   const vantage = useSelectedVantage();
-  const centres = useTelemetry("commandCentre.roster");
+  // A command-centre roster is ground-side and declared unmodellable: centres do
+  // not move and a stale list is still the list. Falls back to the raw id before
+  // anything has landed, which is what the comment above already described.
+  const centresReading = useTelemetry("commandCentre.roster");
+  const centres =
+    centresReading.state === "observed" || centresReading.state === "stale"
+      ? centresReading.value
+      : undefined;
   const vantageName =
     centres?.find((c) => c.id === vantage)?.displayName ?? vantage;
   const cols = w ?? 8;

@@ -1,0 +1,201 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+/**
+ * Two guards over the shape of a telemetry read, and both exist because `tsc` is
+ * blind to the way this migration actually broke things.
+ *
+ * `useTelemetry` answers with a `Reading`. Every field access had to change, and the
+ * compiler found all of those. What it could not find was a read handed to something
+ * that accepts anything:
+ *
+ *     const instrumentsRaw = useTelemetry("science.instruments");   // a Reading
+ *     const instruments = parseInstruments(instrumentsRaw);          // (raw: unknown)
+ *
+ * `parseInstruments` took the `Reading`, failed its own shape checks, returned
+ * `null`, and the widget rendered "no instruments aboard" for a vessel full of them.
+ * No type error anywhere, because `unknown` is a type that cannot express being given
+ * the wrong thing. The same shape hid in `packages/app` and in the Uplink devkit,
+ * where an `as` cast silenced it even harder: someone had asserted the old type.
+ *
+ * So this scans for the shape rather than trusting the types. It is deliberately a
+ * DIFFERENT KIND of check from the compiler and from
+ * `styleguide-reading-gates.test.ts` (which watches for a `Reading` used as a
+ * truthiness gate): three instruments, three failure modes, and the day these were
+ * written each of them caught something the other two could not see.
+ */
+
+function repoRoot(startDir: string): string {
+  return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd: startDir,
+    encoding: "utf8",
+  }).trim();
+}
+
+const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
+
+function trackedSourceFiles(): string[] {
+  const out = execFileSync(
+    "git",
+    ["ls-files", "packages", "mod", "--", "*.ts", "*.tsx"],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  return (
+    out
+      .split("\n")
+      .filter(Boolean)
+      .filter((f) => !f.includes("/__generated__/"))
+      .filter((f) => !f.includes("/dist/"))
+      // `git ls-files` reads the INDEX, so a file deleted but not yet staged is
+      // still listed. Every ratchet in this repo that forgot that has reported the
+      // committed past rather than the working tree; a developer running this before
+      // committing wants the tree in front of them.
+      .filter((f) => existsSync(join(root, f)))
+  );
+}
+
+/**
+ * A read whose result is passed on as a bare identifier rather than having a field
+ * taken off it, and which never goes through one of the reading accessors.
+ *
+ * The accessors are the sanctioned narrowings (`judgeable`, `stillTrue`, `dateable`,
+ * `withoutReckoning`, `readingAge`, `notCurrent`), plus an explicit `.state` branch,
+ * which is what a widget with its own rule writes.
+ */
+const ACCESSORS =
+  /judgeable|stillTrue|dateable|withoutReckoning|readingAge|notCurrent/;
+
+/**
+ * The one sanctioned exception, with its reason.
+ *
+ * The probe render harness feeds widgets from recorded fixtures and reads
+ * `<domain>.available` generically, by template-built topic id, for whatever domain a
+ * fixture happens to carry. It is a dev-only harness, it is currently broken on
+ * `staging` for an unrelated reason, and it is the one place where the read is
+ * genuinely untyped by construction. Listed rather than silently skipped so that
+ * "the harness is exempt" stays a decision someone made.
+ */
+const ALLOWED = new Set(["packages/components/scripts/probe/probe-entry.tsx"]);
+
+interface Suspect {
+  at: string;
+  variable: string;
+}
+
+function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
+  const found: Suspect[] = [];
+  for (const [file, text] of sources) {
+    if (/\.test\.tsx?$|\.test-d\.tsx?$/.test(file)) continue;
+    if (ALLOWED.has(file)) continue;
+    if (!text.includes("useTelemetry(")) continue;
+    const lines = text.split("\n");
+    for (const [index, line] of lines.entries()) {
+      const assigned = /const (\w+)\s*=\s*useTelemetry\([^)]*\)\s*;\s*$/.exec(
+        line,
+      );
+      if (!assigned) continue;
+      const variable = assigned[1];
+      if (variable === undefined) continue;
+      const rest = lines.slice(index + 1).join("\n");
+      // Passed on whole: `f(x)`, `[x]`, `{ x }`, `return x`. A field access
+      // (`x.foo` / `x?.foo`) would have been a type error, so it is not a risk.
+      const bare = new RegExp(`[(,{}\\[\\s]${variable}(?![\\w.?])`).test(rest);
+      if (!bare) continue;
+      const narrowed = new RegExp(
+        `(?:${ACCESSORS.source})\\(\\s*${variable}|${variable}\\.state`,
+      ).test(rest);
+      if (narrowed) continue;
+      found.push({ at: `${file}:${index + 1}`, variable });
+    }
+  }
+  return found;
+}
+
+const files = trackedSourceFiles();
+
+/**
+ * Read once, shared by both guards below.
+ *
+ * Each of them wants the whole tree, and reading ~2000 files per test lost the 30s
+ * limit under `turbo`'s concurrency while passing comfortably on its own. Halving the
+ * I/O is the honest fix; raising the timeout would have hidden the duplication.
+ */
+const sources: ReadonlyMap<string, string> = new Map(
+  files.map((f) => [f, readFileSync(join(root, f), "utf8")] as const),
+);
+
+describe("styleguide: a Reading is never handed on whole", () => {
+  it("passes no raw reading into something that accepts anything", () => {
+    const suspects = bareReadings(sources);
+    const detail = suspects.map((s) => `  ${s.at}  (${s.variable})`).join("\n");
+    expect(
+      suspects,
+      suspects.length === 0
+        ? ""
+        : `A telemetry read is passed on whole, without going through a reading ` +
+            `accessor or an explicit \`.state\` branch. If the receiver is typed ` +
+            `\`unknown\` or takes a cast, it will accept the Reading, fail its own ` +
+            `shape checks, and the widget will render as though the vessel reported ` +
+            `nothing. That is invisible to \`tsc\`:\n${detail}\n\n` +
+            `Narrow it at the read: \`judgeable\` for a verdict, \`stillTrue\` for a ` +
+            `standing fact, \`dateable\` for a value you can caption with its age.`,
+    ).toEqual([]);
+  });
+
+  /**
+   * Guard on the guard. A scan that matches nothing reports success identically to a
+   * scan whose regex has rotted, which is the exact failure this file exists to
+   * catch, so it has to prove it can still see.
+   */
+  it("still recognises the shape it is looking for", () => {
+    const probe = [
+      "const somethingRaw = useTelemetry('vessel.orbit');",
+      "const parsed = parseThing(somethingRaw);",
+    ].join("\n");
+    const lines = probe.split("\n");
+    const assigned = /const (\w+)\s*=\s*useTelemetry\([^)]*\)\s*;\s*$/.exec(
+      lines[0] ?? "",
+    );
+    expect(assigned?.[1]).toBe("somethingRaw");
+    expect(/[(,{}[\s]somethingRaw(?![\w.?])/.test(lines[1] ?? "")).toBe(true);
+  });
+
+  it("scans a non-trivial number of files, so a broken file list cannot pass", () => {
+    // The scan is only worth its green if it actually read the tree. A `git
+    // ls-files` that returned nothing would satisfy every assertion above.
+    expect(files.length).toBeGreaterThan(500);
+    expect(files.some((f) => f.includes("useTelemetry"))).toBe(true);
+  });
+});
+
+describe("styleguide: useReading is gone", () => {
+  /**
+   * `useReading` was the transitional hook that returned a `Reading` while
+   * `useTelemetry` still returned a payload. Keeping both would have left every
+   * widget a choice about whether to confront currency, which is the thing the
+   * migration removes, so it was deleted rather than migrated to.
+   *
+   * Asserted as BOTH "no references" and "no file", because either alone can pass
+   * for the wrong reason: a deleted file with a lingering import is a broken build,
+   * and a referenced-nowhere file is dead code waiting to be rediscovered.
+   */
+  it("has no references anywhere in the tree", () => {
+    // This file is excluded from its own scan: it names the hook in the doc above
+    // and in the needle below, so it would report itself forever. Same reason
+    // `styleguide-emdash.test.ts` never spells its character literally. Excluding
+    // exactly one path, by name, keeps the doc able to explain what it is guarding.
+    const OWN_PATH = "packages/core/src/styleguide-reading-shape.test.ts";
+    const referencing = [...sources]
+      .filter(([file]) => file !== OWN_PATH)
+      .filter(([, text]) => text.includes("useReading"))
+      .map(([file]) => file);
+    expect(referencing).toEqual([]);
+  });
+
+  it("does not exist as a module", () => {
+    expect(files).not.toContain("packages/core/src/hooks/useReading.ts");
+  });
+});

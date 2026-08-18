@@ -798,7 +798,20 @@ interface AgBinding {
  * falls back to the plain "(f.ag1)" label.
  */
 function useActionGroupBindings(): AgBinding[] | null {
-  const parts = useTelemetry("vessel.parts");
+  const partsReading = useTelemetry("vessel.parts");
+  // FAIL-OPEN FIX, not merely a migration. This was `if (!parts?.parts)` on a
+  // bare payload; a `Reading` is an object and always truthy, so the guard
+  // stopped guarding and the loop below ran against a payload it had not
+  // checked for. An alarm surface is the worst place for a gate that renders
+  // more than it should.
+  //
+  // Action-group BINDINGS are structure, not a quantity: they change when a
+  // craft is built or docked, so a stale set is still the set, and a label is
+  // better than a bare "(f.ag1)" fallback even on an old frame.
+  const parts =
+    partsReading.state === "observed" || partsReading.state === "stale"
+      ? partsReading.value
+      : undefined;
   return useMemo(() => {
     if (!parts?.parts) return null;
     const out: AgBinding[] = [];

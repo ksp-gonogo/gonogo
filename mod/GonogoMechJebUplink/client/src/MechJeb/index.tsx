@@ -129,7 +129,9 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   usePanelDelay(executeNode);
   usePanelDelay(land);
 
-  const commsDelay = useTelemetry("comms.delay");
+  // The delay sets how long a command takes to arrive, so it is a judgement: a
+  // held value would time an uplink against a link that has since changed.
+  const commsDelay = judgeable(useTelemetry("comms.delay"));
   const oneWay =
     commsDelay &&
     typeof commsDelay === "object" &&

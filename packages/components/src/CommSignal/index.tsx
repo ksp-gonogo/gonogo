@@ -20,6 +20,7 @@ import {
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { judgeable, notCurrent } from "../shared/currency";
 
 type CommSignalConfig = Record<string, never>;
 
@@ -91,15 +92,25 @@ function CommSignalComponent({
   //    same ordinal resolved to its enum NAME string)
   //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
   //    SignalDelay authority, live via CommsCoreUplink)
-  const connected = useTelemetry("comms.link")?.connected;
-  const strength = useTelemetry("vessel.comms")?.signalStrength;
+  /**
+   * A link indicator is the one instrument where withholding is not merely honest
+   * but informative: silence IS evidence about a link. A held "connected: true"
+   * from before the gap is the single most misleading thing this widget could
+   * draw, because the operator uses it to decide whether the vessel is hearing
+   * them at all.
+   */
+  const linkReading = useTelemetry("comms.link");
+  const commsReading = useTelemetry("vessel.comms");
+  const connected = judgeable(linkReading)?.connected;
+  const strength = judgeable(commsReading)?.signalStrength;
+  const linkNotCurrent = notCurrent(linkReading) || notCurrent(commsReading);
   const vesselState = useStream<VesselState>("vessel.state");
   // Collapse the derived channel's `null` (comms unknown this tick) to
   // `undefined` so the empty-state + `describeControl` semantics match the
   // old single-value legacy read exactly.
   const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
   const controlStateName = vesselState?.commsControlStateName ?? undefined;
-  const delay = useTelemetry("comms.delay")?.oneWaySeconds;
+  const delay = judgeable(useTelemetry("comms.delay"))?.oneWaySeconds;
 
   const hasData =
     connected !== undefined ||
@@ -112,7 +123,9 @@ function CommSignalComponent({
         panelTitle="COMMNET"
         panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
       >
-        <EmptyState>No signal data</EmptyState>
+        <EmptyState>
+          {linkNotCurrent ? "Link state no longer current" : "No signal data"}
+        </EmptyState>
       </Panel>
     );
   }

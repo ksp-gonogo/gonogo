@@ -2,7 +2,9 @@ import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   getBody,
+  judgeable,
   registerComponent,
+  stillTrue,
   useTelemetry,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -121,8 +123,9 @@ const DISPLAY_SCAN_TYPES: SCANType[] = [
  * a full index->name table).
  */
 function useActiveVesselBodyName(): string | undefined {
-  const identity = useTelemetry("vessel.identity");
-  const systemBodies = useTelemetry("system.bodies");
+  // Both facts: a vessel's parent body and the body catalogue change by event.
+  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);
   return useMemo(() => {
     const index = identity?.parentBodyIndex;
     if (index == null) return undefined;
@@ -135,9 +138,13 @@ function ScanningComponent({
 }: Readonly<ComponentProps<ScanningConfig>>) {
   const activeBody = useActiveVesselBodyName();
   const bodyName = config?.bodyName ?? activeBody;
-  const surface = useTelemetry("vessel.surface");
+  // The biome under the craft is a judgement: it changes as the craft moves, and a
+  // held one would label a scan with the wrong terrain.
+  const surface = judgeable(useTelemetry("vessel.surface"));
   const biome = surface?.biome;
-  const scanAvailable = useTelemetry("scansat.available");
+  // A presence gate, so a fact: a domain that reported and went quiet is still
+  // installed.
+  const scanAvailable = stillTrue(useTelemetry("scansat.available"), undefined);
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
 

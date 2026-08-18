@@ -45,6 +45,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import styled from "styled-components";
+import { stillTrue } from "../shared/currency";
 import {
   bare,
   radialSpeed,
@@ -212,6 +213,9 @@ function useStreamStatusOptional(topic: string): StreamStatusValue {
   return useSyncExternalStore(subscribe, getSnapshot);
 }
 
+/** What a confirmed-no-targets tombstone means: a roster, and it is empty. */
+const EMPTY_ROSTER = { entries: [] as TargetListEntry[] };
+
 function TargetPickerComponent({
   w,
   h,
@@ -223,8 +227,26 @@ function TargetPickerComponent({
   // (which isn't a wire Topic and so can't be declared in
   // `dataRequirements`: see the ratchet test in
   // `packages/core/src/hooks/mapTopic.coverage.test.ts`).
-  const available = useTelemetry("target.available");
-  const target = useTelemetry("vessel.target");
+  /**
+   * The roster is a fact: bodies and vessels do not stop existing because the link
+   * dropped, and a picker with no rows is useless. So the last roster stands.
+   *
+   * The current target is also a fact, but a fact about the CRAFT rather than the
+   * solar system, and the operator uses it to decide whether to send a change. A
+   * held target is the right answer there too (it is what we last told it and what
+   * it last confirmed), which is why both take `stillTrue` and neither is withheld.
+   */
+  const availableReading = useTelemetry("target.available");
+  /**
+   * "The producer says there are no targets" and "no roster has reached us" are
+   * different sentences and this widget already said them differently, by accident
+   * of its gate being spelled `=== undefined` against a `null` payload. The
+   * tombstone argument makes it deliberate: a confirmed empty sky IS an empty
+   * roster, so it renders the empty-list wording, and only `pending` renders the
+   * wait.
+   */
+  const available = stillTrue(availableReading, EMPTY_ROSTER);
+  const target = stillTrue(useTelemetry("vessel.target"), undefined);
   const tarName = target?.name;
   const tarType = targetKindLabel(target?.kind);
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
@@ -285,7 +307,10 @@ function TargetPickerComponent({
     const id = entryId(entry);
     const label = `Target ${entry.name}`;
     if (entry.kind === TargetKind.Body) {
-      if (entry.bodyIndex === undefined) return;
+      // `=== undefined` let `bodyIndex: null` through, and a null index is a real
+      // dispatched `vessel.target.set` built from an absence. Any non-number is a
+      // refusal now, because the alternative is commanding the craft on a guess.
+      if (typeof entry.bodyIndex !== "number") return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
       void setTargetCmd.send(
         { kind: TargetKind.Body, bodyIndex: entry.bodyIndex },

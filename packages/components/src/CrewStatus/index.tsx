@@ -19,8 +19,10 @@ import {
   Truncate,
   Unit,
   useElementSize,
+  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 // Side-effect import: the widget's own `crew-status.badges` panel-badge
 // self-contribution (the info-tone "N/M aboard" header chip) registers on
@@ -148,10 +150,25 @@ function suitResourceTone(fraction: number): MeterTone {
 function EvaSuitReadout({
   oxygen,
   electricCharge,
+  notCurrent: readingsNotCurrent,
 }: Readonly<{
   oxygen: SuitResourceReadout | undefined;
   electricCharge: SuitResourceReadout | undefined;
+  /** The suit figures went stale rather than never arriving. */
+  notCurrent: boolean;
 }>) {
+  // Said out loud rather than rendered as an absent meter. A kerbal outside the
+  // craft with no consumption figures is a different situation from one whose
+  // suit reports nothing, and only the first means "get them back inside".
+  if (readingsNotCurrent) {
+    return (
+      <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
+        <Value tone="warn" size="xs">
+          Suit resources no longer current
+        </Value>
+      </Cluster>
+    );
+  }
   if (!oxygen && !electricCharge) return null;
   return (
     <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
@@ -325,7 +342,13 @@ function CrewStatusComponent({
 }: Readonly<ComponentProps<CrewStatusConfig>>) {
   // Roster, count, and capacity all ride the single `vessel.crew` Topic,
   // read it once and pick the three fields off it.
-  const crew = useTelemetry("vessel.crew");
+  /**
+   * The roster is a fact, not a measurement: nobody leaves the capsule because the
+   * link dropped, so a held roster is still the crew. The suit resources further
+   * down the same record are the opposite and go through `judgeable`.
+   */
+  const crewReading = useTelemetry("vessel.crew");
+  const crew = stillTrue(crewReading, undefined);
   const crewRaw = crew?.crew;
   const crewCount = crew?.count;
   const crewCapacity = crew?.capacity;
@@ -341,7 +364,14 @@ function CrewStatusComponent({
   // an EVA kerbal (see the EvaSuitReadout block comment above). Read
   // unconditionally (stable hook order); undefined whenever no Uplink
   // publishes `vessel.resources` or the active vessel isn't an EVA kerbal.
-  const resources = useTelemetry("vessel.resources");
+  /**
+   * Suit oxygen and charge only fall, and they are read as "what is left right
+   * now". A held figure would overstate both, on the two numbers that decide
+   * whether a kerbal outside the craft has time to get back in.
+   */
+  const resourcesReading = useTelemetry("vessel.resources");
+  const resources = judgeable(resourcesReading);
+  const suitReadingsNotCurrent = notCurrent(resourcesReading);
   const suitOxygen = isEVA
     ? toSuitResourceReadout(resources?.resources?.Oxygen)
     : undefined;
@@ -406,7 +436,11 @@ function CrewStatusComponent({
           per-kerbal one. Renders nothing until an Uplink binds it. */}
       <AugmentSlot name="crew-status.summary" props={{}} />
       {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
-      <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
+      <EvaSuitReadout
+        oxygen={suitOxygen}
+        electricCharge={suitElectricCharge}
+        notCurrent={isEVA === true && suitReadingsNotCurrent}
+      />
       <div ref={rosterWidthRef}>
         {renderBody({
           known,

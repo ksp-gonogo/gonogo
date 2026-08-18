@@ -72,7 +72,19 @@ function CurrentOrbitComponent({
   //     view-UT, referenceBodyName/parentBodyName resolved index → name against
   //     `system.bodies`). `vessel.state` isn't a wire `TopicId`, so it reads
   //     through `useStream`.
-  const orbit = useTelemetry("vessel.orbit");
+  // This widget DRAWS the orbit and the craft's place on it, which is a marker:
+  // a positive claim about where it is now. So the elements come from a CURRENT
+  // reading, or from a model where one is on offer, and otherwise from nothing,
+  // and the diagram's own absent-value rendering takes over. Same decision as
+  // MapView, SystemView and FleetComms.
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbit =
+    orbitReading.state === "observed"
+      ? orbitReading.value
+      : orbitReading.state === "reckonable"
+        ? orbitReading.reckoned.value
+        : undefined;
+  const orbitStale = orbitReading.state === "stale";
   const vesselState = useStream<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;

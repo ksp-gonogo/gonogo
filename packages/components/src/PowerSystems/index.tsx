@@ -40,6 +40,7 @@ import { useEffect, useMemo, useState } from "react";
 // re-render per mouse-move to a potentially long list). Both documented.
 // biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector + passive row :hover, no inline/primitive equivalent (see above)
 import styled from "styled-components";
+import { judgeable } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 
 /**
@@ -159,7 +160,13 @@ function PowerSystemsComponent({
   // measurement meaningfully DISAGREES with that total, it's surfaced
   // separately as an explicitly-labeled "MEASURED" reading (see the
   // `Totals` cells) instead of being silently dropped OR silently winning.
-  const streamPower = useTelemetry("parts.power");
+  /**
+   * The MEASURED cell exists to disagree with the itemised total, so a held figure
+   * would manufacture a disagreement out of two readings taken at different times
+   * and report it as an instrument fault. Withheld once it stops being current,
+   * which is the same thing this cell already does when it never arrives.
+   */
+  const streamPower = judgeable(useTelemetry("parts.power"));
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);

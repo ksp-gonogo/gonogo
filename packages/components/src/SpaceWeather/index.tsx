@@ -21,9 +21,16 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 // deletion in the same commit.
 import type {} from "@ksp-gonogo/gonogo-kerbalism-uplink";
 import { Meter } from "@ksp-gonogo/ui";
-import { Badge, Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  EmptyState,
+  Panel,
+  ReadoutCaption,
+  Section,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { magnitudeOr } from "../shared/magnitude";
+import { judgeable, notCurrent } from "../shared/currency";
+import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 type SpaceWeatherConfig = Record<string, never>;
 
@@ -49,17 +56,70 @@ interface SpaceWeatherData {
   blackout: boolean;
   shieldingValue: number;
   shieldingCapacity: number;
-  altitudeKm: number;
+  /** null when the vessel's altitude is not current: the rings then draw no "you are here" dot */
+  altitudeKm: number | null;
   seed: number;
 }
 
-function useSpaceWeather(): SpaceWeatherData {
-  const t = useTelemetry("kerbalism.spaceweather");
-  const flight = useTelemetry("vessel.flight");
+/** Why the board is not being drawn, in the operator's terms. */
+type WeatherAbsence = "not-current" | "confirmed-none" | "awaiting";
 
-  const stormState: StormState = t?.stormInProgress
+const ABSENCE_TEXT: Record<WeatherAbsence, string> = {
+  // Three different sentences on purpose. "The link dropped" and "this is the
+  // first paint" are not the same accusation, and a vessel whose subject
+  // confirms it has no space-weather record (no Kerbalism, or nothing loaded)
+  // is not waiting for anything.
+  "not-current": "Space weather no longer current",
+  "confirmed-none": "No space-weather data reported",
+  awaiting: "Awaiting space weather",
+};
+
+type SpaceWeatherRead =
+  | { readable: true; data: SpaceWeatherData }
+  | { readable: false; absence: WeatherAbsence };
+
+/**
+ * Every field on this record is a judgement, so the record is judged as one.
+ *
+ * The dose rate picks a tone band, the storm bools pick a headline, the three
+ * environment bools light the belt rings and drive the header verdict, and the
+ * shielding pair becomes a toned meter. Not one of them is a fact that holds
+ * until an event changes it: they are all functions of where the craft currently
+ * sits in a magnetic field and a storm timeline, and every one of them can drift
+ * while nobody is looking.
+ *
+ * `shieldingCapacity` is the one plausible fact (fitted hardware), and it still
+ * goes through `judgeable`, because it is only ever drawn as the denominator of a
+ * ratio whose numerator is withheld. "0.0 / 3.3" with a red bar is a verdict
+ * about a habitat, assembled from one number we have and one we do not.
+ *
+ * Withholding the record therefore withholds the whole board, which is the
+ * honest outcome: the alternative is the pre-migration behaviour, where an
+ * absent record coerced to a confident "Sheltered, no storm activity, 0.000
+ * rad/h" board built from nothing at all.
+ */
+function useSpaceWeather(): SpaceWeatherRead {
+  const weatherReading = useTelemetry("kerbalism.spaceweather");
+  // Positional, so also a judgement: this only places the "you are here" dot on
+  // the belt diagram, and a dot drawn from an altitude taken some seconds ago
+  // states the craft is in a band it may have left.
+  const flight = judgeable(useTelemetry("vessel.flight"));
+  const t = judgeable(weatherReading);
+
+  if (t === undefined) {
+    return {
+      readable: false,
+      absence: notCurrent(weatherReading)
+        ? "not-current"
+        : weatherReading.state === "absent"
+          ? "confirmed-none"
+          : "awaiting",
+    };
+  }
+
+  const stormState: StormState = t.stormInProgress
     ? "inprogress"
-    : t?.stormIncoming
+    : t.stormIncoming
       ? "incoming"
       : "none";
   // FUTURE: storm-ETA countdown. The mod emits storm PRESENCE only
@@ -68,30 +128,39 @@ function useSpaceWeather(): SpaceWeatherData {
   // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
   // timing internally / reflectable) surfaced on the Topic; the UI was designed
   // for it, the data isn't wired. Tracked in local_docs/feature_log/.
-  const radiationRadPerHour = magnitudeOr(t?.radiationRadPerSecond, 0) * 3600; // API is rad/s
-  const innerBelt = t?.innerBelt ?? false;
-  const outerBelt = t?.outerBelt ?? false;
-  const magnetosphere = t?.magnetosphere ?? false;
+  const radiationRadPerHour = magnitudeOr(t.radiationRadPerSecond, 0) * 3600; // API is rad/s
+  const innerBelt = t.innerBelt ?? false;
+  const outerBelt = t.outerBelt ?? false;
+  const magnetosphere = t.magnetosphere ?? false;
+
+  const altitudeM = magnitudeOf(flight?.altitudeAsl);
 
   return {
-    radiationRadPerHour,
-    stormState,
-    innerBelt,
-    outerBelt,
-    magnetosphere,
-    blackout: t?.blackout ?? false,
-    shieldingValue: magnitudeOr(t?.shieldingAmount, 0),
-    // (stormTimeSec removed: see the FUTURE note above.)
-    shieldingCapacity: magnitudeOr(t?.shieldingCapacity, 1),
-    altitudeKm: magnitudeOr(flight?.altitudeAsl, 0) / 1000,
-    // Deterministic noise seed derived from the weather state itself (stable
-    // across renders for snapshots; no Math.random, no clock/provider needed).
-    seed:
-      Math.round(radiationRadPerHour * 1000) +
-      (magnetosphere ? 7 : 0) +
-      (innerBelt ? 13 : 0) +
-      (outerBelt ? 29 : 0) +
-      (stormState === "inprogress" ? 101 : stormState === "incoming" ? 53 : 0),
+    readable: true,
+    data: {
+      radiationRadPerHour,
+      stormState,
+      innerBelt,
+      outerBelt,
+      magnetosphere,
+      blackout: t.blackout ?? false,
+      shieldingValue: magnitudeOr(t.shieldingAmount, 0),
+      // (stormTimeSec removed: see the FUTURE note above.)
+      shieldingCapacity: magnitudeOr(t.shieldingCapacity, 1),
+      altitudeKm: altitudeM === null ? null : altitudeM / 1000,
+      // Deterministic noise seed derived from the weather state itself (stable
+      // across renders for snapshots; no Math.random, no clock/provider needed).
+      seed:
+        Math.round(radiationRadPerHour * 1000) +
+        (magnetosphere ? 7 : 0) +
+        (innerBelt ? 13 : 0) +
+        (outerBelt ? 29 : 0) +
+        (stormState === "inprogress"
+          ? 101
+          : stormState === "incoming"
+            ? 53
+            : 0),
+    },
   };
 }
 
@@ -222,7 +291,7 @@ function BeltRings({
   inner: boolean;
   outer: boolean;
   magnetosphere: boolean;
-  altitudeKm: number;
+  altitudeKm: number | null;
 }) {
   // Kerbin R=600km; magnetopause ~7590km altitude. Draw rings scaled into a
   // 100-unit box (radius units): body 12, inner belt 26, outer belt 40, pause 48.
@@ -244,11 +313,18 @@ function BeltRings({
   // bands, not an altitude scale). Outside any belt, fall back to the altitude
   // map (0..8000km across body(12)..pause(48)): correct for the low-orbit /
   // between-bands case.
-  const vr = inner
-    ? 26
-    : outer
-      ? 40
-      : 12 + Math.min(1, Math.max(0, altitudeKm / 8000)) * 36;
+  //
+  // `null` when neither a belt nor a current altitude places it, and then no dot
+  // is drawn at all. It used to coerce an absent altitude to 0 km, which put the
+  // craft on the body's surface: a landed vessel, drawn from nothing.
+  const vr =
+    inner || outer
+      ? inner
+        ? 26
+        : 40
+      : altitudeKm === null
+        ? null
+        : 12 + Math.min(1, Math.max(0, altitudeKm / 8000)) * 36;
   const vesselTone: Tone = inner
     ? "nogo"
     : outer
@@ -268,7 +344,11 @@ function BeltRings({
         height: "100%",
       }}
       role="img"
-      aria-label="Radiation belt position"
+      aria-label={
+        vr === null
+          ? "Radiation belts, vessel position unknown"
+          : "Radiation belt position"
+      }
     >
       {rings.map((ring) => (
         <circle
@@ -298,15 +378,17 @@ function BeltRings({
         fill="var(--color-accent-fg)"
         opacity={0.85}
       />
-      {/* vessel */}
-      <circle
-        cx={cx + vr}
-        cy={cy}
-        r={3}
-        fill={TONE_HEX[vesselTone]}
-        stroke="var(--color-text-primary)"
-        strokeWidth={0.6}
-      />
+      {/* vessel, only where it can honestly be placed */}
+      {vr !== null && (
+        <circle
+          cx={cx + vr}
+          cy={cy}
+          r={3}
+          fill={TONE_HEX[vesselTone]}
+          stroke="var(--color-text-primary)"
+          strokeWidth={0.6}
+        />
+      )}
     </svg>
   );
 }
@@ -362,8 +444,25 @@ function SpaceWeatherComponent({
   w,
   h,
 }: Readonly<ComponentProps<SpaceWeatherConfig>>) {
-  const d = useSpaceWeather();
+  const read = useSpaceWeather();
+  if (!read.readable) {
+    // No verdict badge in the header either: "Sheltered" is a claim about a
+    // habitat, and the whole point of getting here is that there is nothing to
+    // make it from.
+    return (
+      <Panel panelTitle="Space Weather">
+        <EmptyState layout="fill" role="status" aria-live="polite">
+          {ABSENCE_TEXT[read.absence]}
+        </EmptyState>
+      </Panel>
+    );
+  }
+
+  const d = read.data;
   const status = statusFor(d);
+  // The rings can place the dot from a belt bool alone, so the altitude only
+  // goes missing from the diagram when neither belt claims the craft.
+  const positionUnknown = d.altitudeKm === null && !d.innerBelt && !d.outerBelt;
   const cols = w ?? 8;
   const rows = h ?? 8;
   // The full board needs both width (rings + dose side by side, dose value on
@@ -404,6 +503,11 @@ function SpaceWeatherComponent({
             magnetosphere={d.magnetosphere}
             altitudeKm={d.altitudeKm}
           />
+          {positionUnknown && (
+            // Says WHY the dot is gone. A diagram missing its "you are here"
+            // marker otherwise reads as a widget that failed to draw one.
+            <span style={POSITION_UNKNOWN_TAG}>Position unknown</span>
+          )}
           {d.blackout && <span style={BLACKOUT_TAG}>Comms blackout</span>}
         </div>
         <div style={DOSE_SLOT}>
@@ -537,6 +641,24 @@ const BLACKOUT_TAG: CSSProperties = {
   // the 4.5:1 AA floor. -on-bg is the token for exactly this case.
   color: "var(--color-status-nogo-on-bg)",
   background: "var(--color-status-nogo-bg)",
+  borderRadius: "var(--radius-sm)",
+  padding: "var(--space-hair) var(--space-6)",
+  whiteSpace: "nowrap",
+};
+
+// Same corner treatment as the blackout tag, pinned to the top of the diagram so
+// the two can show together, and muted rather than toned: it reports a gap in
+// what we know, not a hazard.
+const POSITION_UNKNOWN_TAG: CSSProperties = {
+  position: "absolute",
+  top: "2px",
+  left: "50%",
+  transform: "translateX(-50%)",
+  fontSize: "var(--font-size-2xs)",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "var(--color-text-muted)",
+  border: "1px solid var(--color-border-subtle)",
   borderRadius: "var(--radius-sm)",
   padding: "var(--space-hair) var(--space-6)",
   whiteSpace: "nowrap",

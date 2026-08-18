@@ -14,6 +14,7 @@ import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { Box, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { judgeable, notCurrent } from "../shared/currency";
 // Side-effect import: the built-in half of the `ship-map.part-meters`
 // self-contribution self-registers on module load, same contract as every
 // other built-in registration. See that file's own header for why the five
@@ -129,17 +130,46 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // channel engine is itself change-gated, so no separate seq-driven
   // refetch is needed to keep steady-state wire bytes down.
   const topology = useTopology();
-  const hottestPartName = useTelemetry("vessel.thermal")?.hottestPart?.name;
+  /**
+   * "Which part is the hottest" is a verdict, not a fact: heat moves between
+   * parts while nobody is looking, and the widget spends the answer on a ring
+   * drawn around one specific part of the diagram. A held name rings the part
+   * that was hottest at last contact and says nothing about the one glowing
+   * now, so the verdict is withheld and the header tag says why: the ring
+   * disappearing on its own would read as a craft that cooled down.
+   */
+  const thermalReading = useTelemetry("vessel.thermal");
+  const hottestPartName = judgeable(thermalReading)?.hottestPart?.name;
+  const hottestNotCurrent = notCurrent(thermalReading);
   // Ambient skin temperature: drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top. Read straight off `vessel.flight` (the same channel
   // AtmosphereProfile's skin-temp read rides).
+  // A temperature TINT, not a position: a number that can be dated, and the
+  // widget's own currency chrome is what says how old it is. Last observed on
+  // every arm that has one.
+  const flightReading = useTelemetry("vessel.flight");
   const externalTemperature =
-    useTelemetry("vessel.flight")?.externalTemperature;
+    flightReading.state === "observed" ||
+    flightReading.state === "stale" ||
+    flightReading.state === "reckonable"
+      ? flightReading.value.externalTemperature
+      : undefined;
   // Current throttle: gates the engine-flame overlay so a staged-but-
   // idle engine doesn't render thrust. Forwarded through ShipDiagram
   // to ShipDiagramSvg.
-  const throttleRaw = useTelemetry("vessel.control")?.throttle;
+  // The throttle gates an engine-flame overlay, so a stale one would draw
+  // thrust the craft may not be producing. `vessel.control` is a commanded
+  // state and declared unmodellable, and the last CONFIRMED throttle is what
+  // the craft was doing at last contact; the flame is a depiction of that
+  // reading rather than an assertion about now, and the widget's currency
+  // chrome dates it. Zero on a cold start, which is what the guard below
+  // already did.
+  const controlReading = useTelemetry("vessel.control");
+  const throttleRaw =
+    controlReading.state === "observed" || controlReading.state === "stale"
+      ? controlReading.value.throttle
+      : undefined;
   const throttle =
     typeof throttleRaw === "number" && Number.isFinite(throttleRaw)
       ? throttleRaw
@@ -283,6 +313,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         topology,
         parts,
         highlight,
+        hottestNotCurrent,
         size,
         setWrapEl,
         ambientTint,
@@ -357,6 +388,7 @@ function renderBody(
   topology: VesselTopology | undefined,
   parts: ShipMapPart[],
   highlight: string | null,
+  hottestNotCurrent: boolean,
   size: { w: number; h: number },
   setWrapEl: (el: HTMLDivElement | null) => void,
   ambientTint: string | null,
@@ -389,6 +421,12 @@ function renderBody(
         {parts.length} part{parts.length === 1 ? "" : "s"}
         <span style={META_TAG}>· seq {topology.topologySeq}</span>
         {highlight && <span style={META_TAG}>· hot: {highlight}</span>}
+        {/* Only ever one of the two: `judgeable` has already blanked the name
+            on the stale arm. Keeps the tag's slot occupied so the missing ring
+            reads as withheld rather than as a craft that cooled off. */}
+        {hottestNotCurrent && (
+          <span style={META_TAG}>· hot: no longer current</span>
+        )}
         <AugmentSlot name="ship-map.badges" props={badgesContext} />
       </div>
       <div ref={setWrapEl} style={DIAGRAM_WRAP}>

@@ -1,5 +1,9 @@
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import {
+  judgeable,
+  registerAugment,
+  useTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
@@ -71,7 +75,9 @@ function radiationSummaryFor(
  * pieces visually joined when it isn't.
  */
 function CrewRadiationSummaryAugment(_props: SlotProps<"crew-status.summary">) {
-  const weather = useTelemetry("kerbalism.spaceweather");
+  // Same judgement as ShipSystems': a survival summary must not report a dose rate
+  // it cannot vouch for.
+  const weather = judgeable(useTelemetry("kerbalism.spaceweather"));
   const summary = radiationSummaryFor(weather);
   if (!summary) return null;
   const doseValue =
