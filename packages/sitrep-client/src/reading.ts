@@ -38,6 +38,55 @@ export interface Reckoning<T> {
   value: T;
   atUt: number;
   basis: ReckoningBasis;
+  /**
+   * Which paths inside `value` the model actually MOVED, dotted from the
+   * payload root. Everything not named here is a verbatim copy of the last
+   * observation, carried along because `value` is the whole payload.
+   *
+   * It exists because a payload is not one reckoning class. `vessel.target`
+   * flattens to forty-seven field paths: relative geometry that propagates,
+   * identity fields only a command changes, two absolute UTs, and metadata.
+   * A model that dead-reckons the relative position and copies the rest would
+   * otherwise stamp `basis: "linear-dead-reckoning"` on the vessel's NAME,
+   * which is a modelled label over a stale observation: the failure this type
+   * exists to prevent, committed by the mechanism meant to prevent it.
+   *
+   * `basis` above stays, and is the basis of the entry covering the root. A
+   * whole-topic read only reaches `reckonable` when the model covers the root
+   * (see `TopicModel`), so it is always well defined on a reckoning a caller
+   * can hold.
+   */
+  modelled: readonly ModelledField[];
+}
+
+/** One path a model moved, and what moved it. See {@link Reckoning.modelled}. */
+export interface ModelledField {
+  /** Dotted from the payload root. `""` is the whole payload. */
+  readonly path: string;
+  readonly basis: ReckoningBasis;
+}
+
+/**
+ * What a reckoner offers: the coverage it claims, and the pull that produces
+ * the modelled payload.
+ *
+ * Coverage sits OUTSIDE the thunk because the store has to know what a model
+ * answers for before deciding which arm to build, and running the model to
+ * find out would defeat the pull. A model that does not cover the payload root
+ * cannot answer for a whole-topic read, so that read stays `stale`.
+ */
+export interface TopicModel<T> {
+  /** Paths this model moves. Empty claims nothing and is never offered. */
+  readonly modelled: readonly ModelledField[];
+  /** Run the model for `viewUt`. Pure: same inputs, same answer. */
+  reckon(viewUt: number): T;
+}
+
+/** The entry in `modelled` covering the whole payload, if the model claims it. */
+function rootCoverage(model: {
+  modelled: readonly ModelledField[];
+}): ModelledField | undefined {
+  return model.modelled.find((field) => field.path === "");
 }
 
 /**
@@ -164,10 +213,20 @@ export type Reading<T> =
        * consumers. Route the model through `defineProcessor` and the cost is
        * once per frame per topic actually read, and zero otherwise.
        *
-       * Frame-stable: the whole reading keeps its identity while its inputs are
-       * unchanged (see `readingFrom`'s caller), so this function's identity is
-       * stable too and is safe in a dependency array. A fresh identity per
-       * frame would have defeated memoisation in every consumer.
+       * Takes no arguments: the frame's view time is bound when the arm is
+       * built, so a caller cannot hand the model a clock the rest of the frame
+       * disagrees with. That is the same reason `readingAge` takes `viewUt`
+       * as a parameter, applied at the other end: there, the point is that
+       * substituting wall clock has to be VISIBLE at the call site; here, that
+       * there is nothing to substitute.
+       *
+       * Frame-stable WITHIN a frame, and deliberately not across one. A
+       * reckoning is a function of the view time, so an arm that kept its
+       * identity while `viewUt` advanced would answer for a moment that had
+       * passed, and a model could never withdraw at its horizon. The store
+       * re-derives this arm (and only this arm) when the frame's view time
+       * moves; `stale` keeps the frozen identity that stops every widget
+       * re-rendering at frame cadence. See `TimelineStore.sampleReading`.
        */
       reckon: () => Reckoning<T>;
     };
@@ -197,16 +256,25 @@ export type StaleGrade = "held-stale" | "disconnected" | "last-before-blackout";
 /**
  * A provider of forward models, consulted once per reading. Returning
  * `undefined` is the honest majority answer and produces a `stale` reading;
- * returning a thunk produces `reckonable`.
+ * returning a model produces `reckonable`.
  *
- * The thunk is what makes the reckoning a pull. This function itself must stay
- * cheap: it is asked whether a model EXISTS, which is a question about the
- * basis, not a request to run the model.
+ * `TopicModel.reckon` is what makes the reckoning a pull. This function itself
+ * must stay cheap: it is asked whether a model EXISTS and what it covers,
+ * which are questions about the basis, not requests to run it.
+ *
+ * `viewUt` is the third argument because declining is the ONLY way a model has
+ * to express a horizon, and a horizon is a statement about how far a value is
+ * being carried. Given the point and the grade alone, a reckoner knows when
+ * the observation was made and not what it is being asked to reach, so it
+ * could not decline at the one moment declining matters. Everything
+ * `Reading`'s doc says about the arm's presence being the statement of trust
+ * rests on this argument existing.
  */
 export type ReckonerFor<T> = (
   point: TimelinePoint<T>,
   grade: StaleGrade,
-) => (() => Reckoning<T>) | undefined;
+  viewUt: number,
+) => TopicModel<T> | undefined;
 
 /**
  * Build a reading from what the store already knows: the sampled point (or its
@@ -214,13 +282,21 @@ export type ReckonerFor<T> = (
  * and optionally a reckoner to ask for a forward model. Pure, so the hook stays
  * thin and this is what gets tested.
  *
- * With no reckoner, or one that declines, a missed-update reading is `stale`.
- * That is deliberately the default: absence of a model is a real statement
- * ("nothing trustworthy can be said"), so nothing here invents one.
+ * With no reckoner, one that declines, or one whose coverage does not reach the
+ * payload root, a missed-update reading is `stale`. That is deliberately the
+ * default: absence of a model is a real statement ("nothing trustworthy can be
+ * said"), so nothing here invents one, and a model that moves one field of
+ * forty-seven has not modelled the payload a whole-topic read asks for.
+ *
+ * `viewUt` is the frame's frozen view time and is required rather than
+ * optional: every reckoning is a function of it, and a default would let a
+ * caller build a reading whose modelled value silently answered for the wrong
+ * moment.
  */
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
+  viewUt: number,
   reckoner?: ReckonerFor<T>,
 ): Reading<T> {
   if (!point || status === "resyncing") return { state: "pending" };
@@ -234,14 +310,21 @@ export function readingFrom<T>(
   if (status === "live") {
     return { state: "observed", value: point.payload, atUt: point.validAt };
   }
-  const reckon = reckoner?.(point, status);
-  if (reckon) {
+  const model = reckoner?.(point, status, viewUt);
+  const root = model && rootCoverage(model);
+  if (model && root) {
+    const observed = point.payload;
     return {
       state: "reckonable",
-      value: point.payload,
+      value: observed,
       asOfUt: point.validAt,
       grade: status,
-      reckon,
+      reckon: () => ({
+        value: model.reckon(viewUt),
+        atUt: viewUt,
+        basis: root.basis,
+        modelled: model.modelled,
+      }),
     };
   }
   return {

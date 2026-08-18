@@ -18,23 +18,31 @@ function point(validAt: number, payload: number | null): TimelinePoint<number> {
   };
 }
 
-/** A model that always has an answer, so the `reckonable` arm is reachable. */
-const alwaysReckons: ReckonerFor<number> = (p) => () => ({
-  value: (p.payload ?? 0) + 1,
-  atUt: p.validAt + 5,
-  basis: "linear-dead-reckoning",
+/**
+ * A model that always has an answer, so the `reckonable` arm is reachable. It
+ * covers the payload ROOT, which is what a whole-topic read needs: a model
+ * naming only a sub-path has nothing to say about the payload as a whole.
+ */
+const alwaysReckons: ReckonerFor<number> = (p) => ({
+  modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+  reckon: () => (p.payload ?? 0) + 1,
 });
+
+/** The frame view time every case here reads at, five seconds past the sample. */
+const VIEW_UT = 15;
 
 describe("readingFrom", () => {
   it("has no point yet, so the reading is pending", () => {
-    expect(readingFrom(undefined, "resyncing")).toEqual({ state: "pending" });
+    expect(readingFrom(undefined, "resyncing", VIEW_UT)).toEqual({
+      state: "pending",
+    });
   });
 
   it("stays pending when the status is resyncing even though a point exists", () => {
     // A rewind past a topic's first frame: there IS buffered data, just none
     // at-or-before this view time. Reporting the value would show the operator
     // a sample from the future of what they are looking at.
-    expect(readingFrom(point(10, 5), "resyncing")).toEqual({
+    expect(readingFrom(point(10, 5), "resyncing", VIEW_UT)).toEqual({
       state: "pending",
     });
   });
@@ -42,14 +50,14 @@ describe("readingFrom", () => {
   it("carries the observation time on a confirmed absence", () => {
     // "Confirmed nothing, as of when": what lets a widget say "no target set
     // (confirmed 3 s ago)" rather than asserting it for the rest of the mission.
-    expect(readingFrom(point(10, null), "absent")).toEqual({
+    expect(readingFrom(point(10, null), "absent", VIEW_UT)).toEqual({
       state: "absent",
       atUt: 10,
     });
   });
 
   it("reports a live point as observed, with its observation time", () => {
-    expect(readingFrom(point(10, 5), "live")).toEqual({
+    expect(readingFrom(point(10, 5), "live", VIEW_UT)).toEqual({
       state: "observed",
       value: 5,
       atUt: 10,
@@ -61,7 +69,7 @@ describe("readingFrom", () => {
     "disconnected",
     "last-before-blackout",
   ] as const)("reports %s as stale with no reckoner, keeping the last real value", (status) => {
-    expect(readingFrom(point(10, 5), status)).toEqual({
+    expect(readingFrom(point(10, 5), status, VIEW_UT)).toEqual({
       state: "stale",
       grade: status,
       value: 5,
@@ -74,7 +82,7 @@ describe("readingFrom", () => {
     // no reckoner at all must be indistinguishable to a widget, so that
     // "nothing trustworthy can be said" has exactly one rendering.
     const declines: ReckonerFor<number> = () => undefined;
-    expect(readingFrom(point(10, 5), "held-stale", declines)).toEqual({
+    expect(readingFrom(point(10, 5), "held-stale", VIEW_UT, declines)).toEqual({
       state: "stale",
       grade: "held-stale",
       value: 5,
@@ -86,6 +94,7 @@ describe("readingFrom", () => {
     const reading = readingFrom(
       point(10, 5),
       "last-before-blackout",
+      VIEW_UT,
       alwaysReckons,
     );
     expect(reading.state).toBe("reckonable");
@@ -103,16 +112,15 @@ describe("readingFrom", () => {
     // would propagate every topic with a basis on every frame regardless of
     // consumers, which is the whole reason this is a thunk.
     let runs = 0;
-    const counting: ReckonerFor<number> = (p) => () => {
-      runs += 1;
-      return {
-        value: p.payload ?? 0,
-        atUt: p.validAt,
-        basis: "rate-integration",
-      };
-    };
+    const counting: ReckonerFor<number> = (p) => ({
+      modelled: [{ path: "", basis: "rate-integration" }],
+      reckon: () => {
+        runs += 1;
+        return p.payload ?? 0;
+      },
+    });
 
-    const reading = readingFrom(point(10, 5), "held-stale", counting);
+    const reading = readingFrom(point(10, 5), "held-stale", VIEW_UT, counting);
     expect(runs).toBe(0);
 
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
@@ -121,13 +129,19 @@ describe("readingFrom", () => {
   });
 
   it("reckons a value FOR a later UT than the observation it came from", () => {
-    const reading = readingFrom(point(10, 5), "held-stale", alwaysReckons);
+    const reading = readingFrom(
+      point(10, 5),
+      "held-stale",
+      VIEW_UT,
+      alwaysReckons,
+    );
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
     const reckoned = reading.reckon();
     expect(reckoned).toEqual({
       value: 6,
-      atUt: 15,
+      atUt: VIEW_UT,
       basis: "linear-dead-reckoning",
+      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
     });
     // The two UTs are different questions: when we last saw it, and what moment
     // the model is claiming about.
@@ -139,7 +153,9 @@ describe("readingFrom", () => {
     // there is no observed VALUE to carry, so neither stale arm can represent
     // it: `sampleRawStatus` already ranks `absent` above every staleness grade
     // for the same reason.
-    expect(readingFrom(point(10, null), "held-stale", alwaysReckons)).toEqual({
+    expect(
+      readingFrom(point(10, null), "held-stale", VIEW_UT, alwaysReckons),
+    ).toEqual({
       state: "absent",
       atUt: 10,
     });
@@ -148,7 +164,12 @@ describe("readingFrom", () => {
 
 describe("withoutReckoning", () => {
   it("collapses reckonable to stale, keeping the observation intact", () => {
-    const reading = readingFrom(point(10, 5), "held-stale", alwaysReckons);
+    const reading = readingFrom(
+      point(10, 5),
+      "held-stale",
+      VIEW_UT,
+      alwaysReckons,
+    );
     expect(withoutReckoning(reading)).toEqual({
       state: "stale",
       grade: "held-stale",
@@ -159,10 +180,10 @@ describe("withoutReckoning", () => {
 
   it("leaves every other arm exactly as it was", () => {
     for (const reading of [
-      readingFrom(undefined, "resyncing"),
-      readingFrom(point(10, null), "absent"),
-      readingFrom(point(10, 5), "live"),
-      readingFrom(point(10, 5), "held-stale"),
+      readingFrom(undefined, "resyncing", VIEW_UT),
+      readingFrom(point(10, null), "absent", VIEW_UT),
+      readingFrom(point(10, 5), "live", VIEW_UT),
+      readingFrom(point(10, 5), "held-stale", VIEW_UT),
     ]) {
       // Same object, not merely an equal one: a widget calling this on a live
       // reading must not pay a new identity for it.
@@ -211,7 +232,12 @@ describe("readingAge", () => {
   it("measures a reckonable reading by its OBSERVATION, not its model", () => {
     // Next to a propagated figure, the number an operator wants is how long ago
     // real contact was, which is what the model is being asked to bridge.
-    const reading = readingFrom(point(10, 5), "held-stale", alwaysReckons);
+    const reading = readingFrom(
+      point(10, 5),
+      "held-stale",
+      VIEW_UT,
+      alwaysReckons,
+    );
     expect(readingAge(reading, 34)).toBe(24);
   });
 

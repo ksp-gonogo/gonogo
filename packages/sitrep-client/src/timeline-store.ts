@@ -395,6 +395,8 @@ export class TimelineStore {
       point: TimelinePoint<unknown> | undefined;
       status: StreamStatusValue;
       epoch: number;
+      /** The frame view time the reading was built for. Only a reckoning depends on it. */
+      viewUt: number;
       reading: Reading<unknown>;
     }
   >();
@@ -1107,20 +1109,31 @@ export class TimelineStore {
       () => {
         const point = this.sample<T>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
+        const viewUt = effectiveToken.viewUt;
+        const reckoner = getReckoner<T>(topic);
         const previous = this.readings.get(topic);
         if (
           previous !== undefined &&
           previous.point === point &&
           previous.status === status &&
-          previous.epoch === epoch
+          previous.epoch === epoch &&
+          // A reading depends on the frame's view time ONLY through a
+          // reckoning, so a topic nobody models keeps its identity across a
+          // frame exactly as before. Where a model exists, an advancing view
+          // time is a real input change: the modelled value is for a different
+          // moment, and the model may have reached its horizon and withdrawn.
+          // Freezing here is what made `Reading`'s "it withdraws by not being
+          // offered on the next frame" untrue.
+          (reckoner === undefined || previous.viewUt === viewUt)
         ) {
           return previous.reading as Reading<T>;
         }
-        const reading = readingFrom(point, status, getReckoner<T>(topic));
+        const reading = readingFrom(point, status, viewUt, reckoner);
         this.readings.set(topic, {
           point,
           status,
           epoch,
+          viewUt,
           reading: reading as Reading<unknown>,
         });
         return reading;

@@ -26,12 +26,13 @@ type VesselTarget = TopicPayload<"vessel.target">;
  * VALUE channel alone, so a processor can see neither a topic's status nor its
  * `validAt`.
  *
- * The reckoner below has all three, because it is handed the point and the
- * grade. So the shape this wants is the processor doing the arithmetic and the
- * reckoner supplying the inputs, which is why both exist rather than one. The
- * remaining gap is a dep form that resolves to a `Reading<T>`, or a
- * processor-visible frame view time; flagged rather than worked around, because
- * working around it here would put a second clock in a widget.
+ * The reckoner below has all three, because it is handed the point, the grade
+ * and the frame's view time. So the shape this wants is the processor doing the
+ * arithmetic and the reckoner supplying the inputs, which is why both exist
+ * rather than one. The remaining gap is a dep form that resolves to a
+ * `Reading<T>`, or a processor-visible frame view time; flagged rather than
+ * worked around, because working around it here would put a second clock in a
+ * widget.
  */
 export const targetReckoning = defineProcessor({
   id: "target-reckoning",
@@ -54,12 +55,13 @@ export const targetReckoning = defineProcessor({
  *
  * Relative motion between an orbiting pair is curved, so advancing a relative
  * position by its last observed velocity is honest for seconds, not minutes.
- * This function's job is therefore to stop RETURNING a thunk past its own
- * horizon rather than to return one with a caveat attached. The arm is rebuilt
- * every frame, so withdrawing is all it takes: the topic presents as `stale`
- * from that frame on, and no caller can be holding a model that has gone bad.
- * That is why `Reading` carries no horizon field and `reckon()` has no failure
- * return.
+ * This function's job is therefore to stop RETURNING a model past its own
+ * horizon rather than to return one with a caveat attached, which is what the
+ * `viewUt` argument is for: the elapsed window is `viewUt - point.validAt`. The
+ * arm is rebuilt whenever the view time moves, so withdrawing is all it takes:
+ * the topic presents as `stale` from that frame on, and no caller can be
+ * holding a model that has gone bad. That is why `Reading` carries no horizon
+ * field and `reckon()` has no failure return.
  *
  * The other half of the horizon is a burn. A dead-reckoned position assumes
  * nothing has thrusted, and a craft out of contact is exactly a craft we cannot

@@ -149,12 +149,10 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const seen: number[] = [];
     const reckoner: ReckonerFor<number> = (point, _grade, viewUt) => {
       seen.push(viewUt);
-      return () => ({
-        value: point.payload,
-        atUt: viewUt,
-        basis: "rate-integration",
+      return {
         modelled: [{ path: "", basis: "rate-integration" }],
-      });
+        reckon: () => point.payload,
+      };
     };
     registerReckoner("temperature", reckoner);
 
@@ -171,11 +169,9 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", (point, _grade, viewUt) => () => ({
-      value: point.payload + (viewUt - point.validAt),
-      atUt: viewUt,
-      basis: "rate-integration",
+    registerReckoner<number>("temperature", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
+      reckon: (at: number) => point.payload + (at - point.validAt),
     }));
 
     store.ingest("temperature", numberPoint(100, 5));
@@ -204,12 +200,10 @@ describe("a reckonable arm withdraws when its model stops being offered", () => 
     const HORIZON_SECONDS = 120;
     registerReckoner<number>("temperature", (point, _grade, viewUt) => {
       if (viewUt - point.validAt > HORIZON_SECONDS) return undefined;
-      return () => ({
-        value: point.payload,
-        atUt: viewUt,
-        basis: "rate-integration",
+      return {
         modelled: [{ path: "", basis: "rate-integration" }],
-      });
+        reckon: () => point.payload,
+      };
     });
 
     store.ingest("temperature", numberPoint(100, 5));
@@ -261,17 +255,12 @@ describe("a reckoning says which fields it actually modelled", () => {
     const { store } = predictedStore(wall);
 
     type Target = { relativePosition: number; name: string };
-    registerReckoner<Target>(
-      "vessel.target",
-      (point, _grade, viewUt) => () => ({
-        value: { ...point.payload, relativePosition: 42 },
-        atUt: viewUt,
-        basis: "linear-dead-reckoning",
-        modelled: [
-          { path: "relativePosition", basis: "linear-dead-reckoning" },
-        ],
-      }),
-    );
+    registerReckoner<Target>("vessel.target", (point) => ({
+      // Covers ONE field, never the root: the model has nothing to say about
+      // the whole payload a topic-level read asks for.
+      modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
+      reckon: () => ({ ...point.payload, relativePosition: 42 }),
+    }));
 
     store.ingest("vessel.target", {
       validAt: 100,
