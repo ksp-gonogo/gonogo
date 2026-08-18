@@ -173,26 +173,27 @@ describe("DistanceToTarget: stale renders the last observation as an observation
     // can honestly model this yet), so the test registers one: the point is that
     // the widget renders BOTH figures, the observation with its age and the
     // model with its basis, rather than substituting one for the other.
-    registerReckoner<TopicPayload<"vessel.target">>(
-      "vessel.target",
-      (p) => () => ({
-        // 12 km: visibly different from the observed 10 km, so a test that
-        // silently rendered the observation twice would fail. `value("m", n)`
-        // rather than bare numbers because a reckoner returns the SAME payload
-        // shape the decode produces, and the widget reads `.magnitude` off each
-        // component.
-        value: {
+    registerReckoner<TopicPayload<"vessel.target">>("vessel.target", (p) => ({
+      // Covers the payload ROOT, which is what a whole-topic read needs. A
+      // real relative-position model would name just that path and this read
+      // would stay stale, which is the point of the coverage declaration; a
+      // widget wanting the field alone reads the field subtopic.
+      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      // 12 km: visibly different from the observed 10 km, so a test that
+      // silently rendered the observation twice would fail. `value("m", n)`
+      // rather than bare numbers because a reckoner returns the SAME payload
+      // shape the decode produces, and the widget reads `.magnitude` off each
+      // component.
+      reckon: () =>
+        ({
           ...(p.payload as TopicPayload<"vessel.target">),
           relativePosition: {
             x: value("m", 7200),
             y: value("m", 0),
             z: value("m", 9600),
           },
-        } as unknown as TopicPayload<"vessel.target">,
-        atUt: p.validAt + 30,
-        basis: "linear-dead-reckoning",
-      }),
-    );
+        }) as unknown as TopicPayload<"vessel.target">,
+    }));
 
     const { fixture, legacyAux } = await mount("dtt-reckon", 10);
     act(() => {
