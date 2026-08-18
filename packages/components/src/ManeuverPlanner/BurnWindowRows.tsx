@@ -72,6 +72,32 @@ const KIND_CHIP: CSSProperties = {
   textTransform: "uppercase",
 };
 
+/**
+ * Half the widest mark's on-screen extent.
+ *
+ * The cutoff mark is a square turned 45 degrees, so its bounding box is sqrt(2)
+ * times its width and it reaches about 21% further than the round marks. Sizing
+ * the track inset for the widest mark costs the circles a fraction of a pixel
+ * and cannot come back at a smaller scale, which halving the plain width did:
+ * the cutoff mark sat centred on the right-hand end with half its body outside
+ * and read on screen as a left-pointing triangle.
+ */
+const MARK_HALF_EXTENT = "calc(var(--space-6) * 0.7072)";
+
+/**
+ * Where a mark's CENTRE sits, as a CSS length, inset from both ends by
+ * {@link MARK_HALF_EXTENT}.
+ *
+ * Padding on the track cannot do this, which is the trap that made the first fix
+ * a no-op: an absolutely-positioned child's containing block is its positioned
+ * ancestor's PADDING BOX, so a percentage resolves against a width that already
+ * includes that padding and `left: 100%` lands at the same place either way. The
+ * inset has to be in the position arithmetic, not around it.
+ */
+function trackPosition(fraction: number): string {
+  return `calc(${MARK_HALF_EXTENT} + ${fraction} * (100% - 2 * ${MARK_HALF_EXTENT}))`;
+}
+
 function relativeToNow(atUt: number, nowUt: number): string {
   const delta = atUt - nowUt;
   if (delta < 0) return `${formatDuration(-delta)} ago`;
@@ -161,18 +187,15 @@ function BurnAxisBar({
         position: "relative",
         height: "var(--space-12)",
         marginInlineStart: "var(--space-8)",
-        // Half a mark of padding at each end. An absolutely-positioned child's
-        // percentage resolves against the padding box, so this is what stops
-        // the first and last marks (which sit at exactly 0% and 100% now the
-        // span IS the burn) being sliced in half by the widget edge.
-        paddingInline: "calc(var(--space-6) / 2)",
+        // No padding here on purpose: see MARK_HALF_EXTENT for why padding
+        // cannot do this job.
       }}
     >
       <span
         aria-hidden="true"
         style={{
           position: "absolute",
-          insetInline: "calc(var(--space-6) / 2)",
+          insetInline: MARK_HALF_EXTENT,
           top: "50%",
           height: 1,
           background: "var(--color-border-subtle)",
@@ -191,7 +214,7 @@ function BurnAxisBar({
             bottom: 0,
             width: 1,
             background: "var(--color-text-muted)",
-            left: `${axis.nowFraction * 100}%`,
+            left: trackPosition(axis.nowFraction),
           }}
         />
       )}
@@ -204,16 +227,18 @@ function BurnAxisBar({
             top: "50%",
             width: "var(--space-6)",
             height: "var(--space-6)",
-            marginTop: "calc(var(--space-6) / -2)",
-            marginInlineStart: "calc(var(--space-6) / -2)",
             background: KIND_COLOUR[mark.kind],
             // --radius-circle, never a hand-computed 50%: the token exists so a
             // circle stays a circle if the mark size ever changes.
             borderRadius:
               KIND_MARK[mark.kind] === "round" ? "var(--radius-circle)" : 0,
+            // Centred on its own position, so the inset arithmetic below is
+            // about the TRACK and never about which shape is being drawn.
             transform:
-              KIND_MARK[mark.kind] === "diamond" ? "rotate(45deg)" : undefined,
-            left: `${mark.fraction * 100}%`,
+              KIND_MARK[mark.kind] === "diamond"
+                ? "translate(-50%, -50%) rotate(45deg)"
+                : "translate(-50%, -50%)",
+            left: trackPosition(mark.fraction),
           }}
         />
       ))}
