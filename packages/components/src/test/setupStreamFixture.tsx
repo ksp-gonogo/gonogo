@@ -1,15 +1,12 @@
 import {
   createFakeWallClock,
-  dvCurrentStageResourceChannel,
-  dvCurrentStageResourceMaxChannel,
   type FakeWallClock,
+  PRODUCTION_DERIVED_CHANNELS,
   StubTransport,
-  spaceCenterStateChannel,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { JSX, ReactNode } from "react";
@@ -92,16 +89,21 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   const store = new TimelineStore(clock, {
     dynamicWholeTopicPrefixes: carriedList.filter((t) => t.endsWith(".")),
   });
-  store.registerDerivedChannel(vesselStateChannel);
-  store.registerDerivedChannel(spaceCenterStateChannel);
-  // FuelStatus's stage-scoped resource bars (`dv.currentStageResource(Max)`,
-  // dv-stage-resources.ts) need these registered too, same story as
-  // vesselStateChannel/spaceCenterStateChannel above: every caller of this
-  // shared helper (including the probe/visual-gate render harness) gets them
-  // for free instead of each widget's own test file registering them by
-  // hand (FuelStatus/index.test.tsx used to be the only place that did).
-  store.registerDerivedChannel(dvCurrentStageResourceChannel);
-  store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
+  // The PRODUCTION list, not a hand-curated echo of it.
+  //
+  // This used to register a subset by name, and the subset had drifted:
+  // `vesselManeuverLegacyChannel` was missing, so every caller of this helper
+  // (including the probe and the visual gate) saw an EMPTY maneuver node list
+  // while `vessel.maneuver` itself carried nodes. The ManeuverPlanner baselines
+  // recorded "No maneuver nodes planned" for a craft that had one, and a burn
+  // window rendered beside a list denying the burn existed. Two lists describing
+  // one truth, and the fixture one was quietly wrong.
+  //
+  // Registering the production list means a channel added there is available
+  // here by construction, so this cannot drift again.
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    store.registerDerivedChannel(channel);
+  }
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
   const carriedChannels = carriedList;

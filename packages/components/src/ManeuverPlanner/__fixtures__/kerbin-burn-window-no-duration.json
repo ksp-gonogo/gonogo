@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
-    "notes": "The same queued burn with NO burn-time model (an unloaded craft, or stock delta-v not ready). Ignition and cutoff report absent rather than collapsing onto the node."
+    "notes": "The same single queued burn with NO burn-time model. Ignition and cutoff report absent rather than collapsing onto the node; every other section is unchanged."
   },
   "o.argumentOfPeriapsis": 185.804298723466,
   "o.trueAnomaly": 178.272189124686,
@@ -129,7 +129,7 @@
   "o.orbitalSpeed": 761.5,
   "v.body": "Kerbin",
   "_stream": {
-    "carriedChannels": ["vessel.maneuver"],
+    "carriedChannels": ["vessel.maneuver", "vessel.orbit", "vessel.state"],
     "pinnedUt": 43274.2794794121,
     "emits": [
       {
@@ -139,19 +139,19 @@
             {
               "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
               "ut": {
-                "magnitude": 43514.2794794121,
+                "magnitude": 43301.21875,
                 "unit": "ut"
               },
               "dvRadial": {
-                "magnitude": 0.0,
+                "magnitude": 0,
                 "unit": "m/s"
               },
               "dvNormal": {
-                "magnitude": 0.0,
+                "magnitude": 0,
                 "unit": "m/s"
               },
               "dvPrograde": {
-                "magnitude": 300.0,
+                "magnitude": 300,
                 "unit": "m/s"
               },
               "dvTotal": {
@@ -163,6 +163,56 @@
             }
           ],
           "planner": "stock-patched-conic"
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": {
+            "magnitude": 342639.122959941,
+            "unit": "m"
+          },
+          "ecc": {
+            "magnitude": 0.901337673352758,
+            "unit": "1"
+          },
+          "inc": {
+            "magnitude": 7.48670482007197,
+            "unit": "\u00b0"
+          },
+          "lan": {
+            "magnitude": 18.1448066391876,
+            "unit": "\u00b0"
+          },
+          "argPe": {
+            "magnitude": 185.804298723466,
+            "unit": "\u00b0"
+          },
+          "mu": {
+            "magnitude": 3531600000000.0,
+            "unit": "m\u00b3/s\u00b2"
+          },
+          "meanAnomalyAtEpoch": {
+            "magnitude": 0.0,
+            "unit": "rad"
+          },
+          "epoch": {
+            "magnitude": 43274.2794794121,
+            "unit": "ut"
+          },
+          "patches": []
+        }
+      },
+      {
+        "channel": "vessel.state",
+        "value": {
+          "trueAnomaly": 178.272189124686,
+          "orbitalSpeed": 2296.0,
+          "orbitalRadius": 648777.935284754,
+          "period": 725.7,
+          "referenceBodyName": "Kerbin",
+          "parentBodyName": "Kerbin"
         }
       }
     ]

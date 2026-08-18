@@ -557,33 +557,36 @@ function ManeuverPlannerComponent({
   }
 
   /**
-   * The three instants of each queued burn. Read off `vessel.maneuver` rather
-   * than the legacy parsed list, because the instants are new contract fields
-   * and the legacy reshape predates them; correlated by array position, which
-   * is the same correlation `resolveNodeId` above already relies on and
-   * documents.
+   * The three instants of each queued burn, off `nodes`: THE SAME LIST the
+   * node-list section above renders.
    *
-   * Rendered as its own section rather than inside each node row: three rows
-   * plus an axis per burn is more than a row can hold at the sizes this widget
-   * is used at, and the whole reason the instants are separate is that they
-   * must not be squeezed back into one line.
+   * It first read `vessel.maneuver` directly, because the instants were new
+   * contract fields the legacy reshape predated. That is what let a render show
+   * a burn window for a node the list beside it said did not exist: two reads of
+   * one truth, free to disagree, and a fixture that fed only one of them made
+   * them. The instants now travel on the parsed node itself, so the two sections
+   * are structurally incapable of disagreeing rather than merely tested for it.
+   *
+   * Its own section rather than inside each node row: three rows plus an axis
+   * per burn is more than a row can hold at the sizes this widget is used at,
+   * and the whole reason the instants are separate is that they must not be
+   * squeezed back onto one line.
    */
   function renderBurnWindowsSection() {
-    const burns = streamNodeIds ?? [];
-    if (burns.length === 0) return null;
+    if (nodes.length === 0) return null;
     return (
       <PaddedSection>
         <SectionTitle as="h4">Burn windows</SectionTitle>
         <Stack gap="sm">
-          {burns.map((burn, index) => (
+          {nodes.map((burn) => (
             <BurnWindowRows
-              // Position, matching how this list is correlated with the legacy
-              // one everywhere else in this widget.
-              key={burn.id || String(index)}
+              // UT, the same key the burn tracker uses: stable across KSP
+              // renumbering the list on a removal, which an index is not.
+              key={burn.UT}
               burn={{
-                ut: magnitudeOf(burn.ut) ?? 0,
-                ignitionUt: magnitudeOf(burn.ignitionUt),
-                cutoffUt: magnitudeOf(burn.cutoffUt),
+                ut: burn.UT,
+                ignitionUt: burn.ignitionUt,
+                cutoffUt: burn.cutoffUt,
               }}
               nowUt={currentUT ?? 0}
             />

@@ -109,5 +109,13 @@ export interface ManeuverNode {
   maae: number;
   referenceBody: string;
   closestEncounterBody: string | null;
+  /**
+   * Engine light and cutoff for a FINITE burn, or null when nothing models a
+   * duration. Carried on THIS shape, not read separately off `vessel.maneuver`,
+   * so a surface showing a burn window and a surface showing the node list
+   * cannot disagree about which nodes exist: they are the same nodes.
+   */
+  ignitionUt: number | null;
+  cutoffUt: number | null;
   orbitPatches: OrbitPatch[];
 }

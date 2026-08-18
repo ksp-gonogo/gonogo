@@ -123,3 +123,51 @@ describe("burnAxis", () => {
     expect(axis!.nowFraction).toBeLessThan(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The invariant that a fixture broke, expressed against the SHAPE rather than
+// checked after the fact.
+//
+// A render once showed a burn window for a node the list beside it said did not
+// exist. The cause was two reads of one truth: the window came off
+// `vessel.maneuver` and the list off the derived legacy channel, and a fixture
+// that fed only the first made them disagree. The fix moved the instants onto
+// the parsed node, so both surfaces now iterate the same array.
+//
+// These pin the property that makes that fix load-bearing: a burn window is
+// derived from a node and cannot exist without one, and every node yields
+// exactly one window whether or not it has a duration. If a later change
+// reintroduces a second source, the first of these stops compiling and the
+// second starts failing.
+// ---------------------------------------------------------------------------
+describe("a burn window and its node are the same node", () => {
+  interface NodeLike {
+    UT: number;
+    ignitionUt: number | null;
+    cutoffUt: number | null;
+  }
+
+  const nodes: NodeLike[] = [
+    { UT: 1000, ignitionUt: 976, cutoffUt: 1021 },
+    { UT: 5000, ignitionUt: null, cutoffUt: null },
+  ];
+
+  it("yields exactly one window per node, duration or not", () => {
+    const windows = nodes.map((n) =>
+      burnInstantRows({
+        ut: n.UT,
+        ignitionUt: n.ignitionUt,
+        cutoffUt: n.cutoffUt,
+      }),
+    );
+
+    expect(windows).toHaveLength(nodes.length);
+    // Every window's reference instant IS its node's UT, which is what makes a
+    // window traceable to the node it describes.
+    expect(windows.map((w) => w[1].atUt)).toEqual(nodes.map((n) => n.UT));
+  });
+
+  it("has no window at all when there are no nodes", () => {
+    expect([].map(() => burnInstantRows({ ut: 0 }))).toHaveLength(0);
+  });
+});
