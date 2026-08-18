@@ -30,6 +30,55 @@ namespace Gonogo.KSP
         public string ProviderId => "stock-patched-conic";
 
         /// <summary>
+        /// Stock's own vacuum stage simulation, or an empty list when it has
+        /// nothing to say. Vacuum figures because a queued burn is an orbital
+        /// one; <c>startMass</c>/<c>endMass</c> come along because BurnTiming
+        /// needs the stage's own mass ratio, and taking it from the same
+        /// <c>DeltaVStageInfo</c> the delta-v came from is what stops the two
+        /// disagreeing.
+        ///
+        /// <para>Empty when the sim is dormant or the craft is unloaded, which
+        /// is not an error: <c>VesselDeltaV.CheckDirtyAndRun</c> early-returns
+        /// on an unloaded vessel, so an unloaded craft's burns honestly have no
+        /// duration. Unlike the stage-delta-v capture, this does NOT wake the
+        /// sim: that capture already asks, and asking twice per tick from two
+        /// places is how one of them ends up fighting the other.</para>
+        /// </summary>
+        private static List<BurnTiming.StageBudget> StageBudgets()
+        {
+            var budgets = new List<BurnTiming.StageBudget>();
+            var vessel = FlightGlobals.ActiveVessel;
+            var dv = vessel != null ? vessel.VesselDeltaV : null;
+            if (dv == null || !dv.IsReady)
+            {
+                return budgets;
+            }
+
+            var stages = dv.OperatingStageInfo;
+            if (stages == null)
+            {
+                return budgets;
+            }
+
+            foreach (var stage in stages)
+            {
+                if (stage == null)
+                {
+                    continue;
+                }
+                budgets.Add(new BurnTiming.StageBudget
+                {
+                    DeltaV = stage.deltaVinVac,
+                    BurnTime = stage.stageBurnTime,
+                    StartMass = stage.startMass,
+                    EndMass = stage.endMass,
+                });
+            }
+
+            return budgets;
+        }
+
+        /// <summary>
         /// Null when there is no solver, which is a real state stock reaches on
         /// its own: an un-upgraded Tracking Station leaves
         /// <c>patchedConicSolver</c> null, so the craft cannot hold a plan
@@ -45,15 +94,31 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var plan = new List<Sitrep.Contract.ManeuverNode>(solver.maneuverNodes.Count);
+            var live = new List<global::ManeuverNode>();
             foreach (var node in solver.maneuverNodes)
             {
-                if (node == null)
+                if (node != null)
                 {
-                    continue;
+                    live.Add(node);
                 }
+            }
 
+            // The burns in the order they will be flown, so each one's duration
+            // reflects what the ones before it spent. Null windows throughout
+            // when the craft has no stage data, which is the unloaded case.
+            var deltaVs = new List<double>(live.Count);
+            foreach (var node in live)
+            {
+                deltaVs.Add(node.DeltaV.magnitude);
+            }
+            var windows = BurnTiming.WindowsFor(StageBudgets(), deltaVs);
+
+            var plan = new List<Sitrep.Contract.ManeuverNode>(live.Count);
+            for (var i = 0; i < live.Count; i++)
+            {
+                var node = live[i];
                 var dv = node.DeltaV;
+                var window = i < windows.Count ? windows[i] : null;
                 plan.Add(new Sitrep.Contract.ManeuverNode
                 {
                     Id = _ids.GetOrAssign(node),
@@ -64,10 +129,14 @@ namespace Gonogo.KSP
                     DvTotal = dv.magnitude,
                     // Stock's own node basis, stated rather than assumed.
                     Frame = ManeuverFrame.RadialNormalPrograde,
-                    // IgnitionUt/CutoffUt deliberately absent: stock supplies no
-                    // per-node burn duration, and substituting one from Ut would
-                    // assert a convention rather than report a fact. See
-                    // ManeuverNode.IgnitionUt.
+                    // Absent together whenever there is no burn-duration model,
+                    // never substituted from Ut. Ut is the HALF-delta-v instant,
+                    // so ignition sits a lead ahead of it rather than half a
+                    // duration: see BurnTiming for why those differ.
+                    IgnitionUt = window == null ? (double?)null : node.UT - window.LeadToHalfSeconds,
+                    CutoffUt = window == null
+                        ? (double?)null
+                        : node.UT - window.LeadToHalfSeconds + window.TotalSeconds,
                 });
             }
 
