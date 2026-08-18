@@ -56,7 +56,7 @@ export interface KerbalismStormEntry
 {
 	star?: string;
 	stormState?: Value<"count">;
-	stormTime?: Value<"s">;
+	stormTime?: Value<"ut">;
 	stormDuration?: Value<"s">;
 	dist?: Value<"m">;
 }
@@ -144,7 +144,7 @@ export interface KerbalismLifeSupport
 	processes?: KerbalismProcessEntry[];
 	ruleEnvModifiers?: { [key: string]: Value<"1"> };
 	greenhouses?: KerbalismGreenhouseEntry[];
-	asOfUt?: Value<"s">;
+	asOfUt?: Value<"ut">;
 }
 export interface KerbalismCrewRule
 {
@@ -159,7 +159,7 @@ export interface KerbalismCrewEntry
 	trait?: string;
 	rules?: KerbalismCrewRule[];
 	deathClockSec?: Value<"s">;
-	asOfUt?: Value<"s">;
+	asOfUt?: Value<"ut">;
 }
 export interface KerbalismFeatures
 {

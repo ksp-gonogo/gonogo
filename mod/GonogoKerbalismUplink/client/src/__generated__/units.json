@@ -45,11 +45,12 @@
     "text",
     "units",
     "units/s",
+    "ut",
     "°"
   ],
   "types": {
     "KerbalismCrewEntry": {
-      "asOfUt": "s",
+      "asOfUt": "ut",
       "deathClockSec": "s",
       "name": "text",
       "trait": "text"
@@ -112,7 +113,7 @@
       "sourceMassThreshold": "t"
     },
     "KerbalismLifeSupport": {
-      "asOfUt": "s",
+      "asOfUt": "ut",
       "rates": "units/s",
       "ruleEnvModifiers": "1"
     },
@@ -229,7 +230,7 @@
       "star": "text",
       "stormDuration": "s",
       "stormState": "count",
-      "stormTime": "s"
+      "stormTime": "ut"
     },
     "KerbalismSubjectActionArgs": {
       "subjectId": "id"
@@ -241,7 +242,7 @@
   },
   "topics": {
     "kerbalism.crew": {
-      "asOfUt": "s",
+      "asOfUt": "ut",
       "deathClockSec": "s",
       "name": "text",
       "trait": "text"
@@ -262,7 +263,7 @@
       "supplies": "flag"
     },
     "kerbalism.lifesupport": {
-      "asOfUt": "s",
+      "asOfUt": "ut",
       "rates": "units/s",
       "ruleEnvModifiers": "1"
     },

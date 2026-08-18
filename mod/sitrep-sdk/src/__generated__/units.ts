@@ -49,6 +49,7 @@ export type KnownSitrepUnit =
   | "text"
   | "units"
   | "units/s"
+  | "ut"
   | "°"
 ;
 
@@ -93,7 +94,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     normal: "m/s",
     prograde: "m/s",
     radialOut: "m/s",
-    ut: "s",
+    ut: "ut",
   },
   "AlternatorEntry": {
     outputRate: "units/s",
@@ -143,9 +144,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerContract": {
     agent: "text",
-    dateAccepted: "s",
-    dateDeadline: "s",
-    dateExpire: "s",
+    dateAccepted: "ut",
+    dateDeadline: "ut",
+    dateExpire: "ut",
     fundsAdvance: "funds",
     fundsCompletion: "funds",
     fundsFailure: "funds",
@@ -180,7 +181,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     activateBlockedReason: "text",
     canActivate: "flag",
     canDeactivate: "flag",
-    dateActivated: "s",
+    dateActivated: "ut",
     deactivateBlockedReason: "text",
     department: "text",
     description: "text",
@@ -210,7 +211,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "ClosestApproach": {
     distance: "m",
-    time: "s",
+    time: "ut",
   },
   "CommandCentreEntry": {
     active: "flag",
@@ -308,7 +309,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     longitude: "°",
     msg: "text",
     situation: "text",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
     vesselType: "id",
@@ -408,7 +409,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "FleetVesselContact": {
     connected: "flag",
-    lastContactUt: "s",
+    lastContactUt: "ut",
   },
   "FleetVesselLink": {
     connected: "flag",
@@ -416,9 +417,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "FleetVesselSilence": {
     deadlineBasis: "enum",
-    deadlineUt: "s",
-    predictedReacquisitionUt: "s",
-    silenceSinceUt: "s",
+    deadlineUt: "ut",
+    predictedReacquisitionUt: "ut",
+    silenceSinceUt: "ut",
     state: "enum",
   },
   "FlightCurrent": {
@@ -430,20 +431,20 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "FlightEnded": {
     flightId: "id",
     reason: "enum",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
   "FlightStarted": {
     flightId: "id",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
   "FlightVesselChanged": {
     flightId: "id",
     previousVesselId: "id",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
@@ -528,28 +529,28 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dvRadial: "m/s",
     dvTotal: "m/s",
     id: "id",
-    ut: "s",
+    ut: "ut",
   },
   "Meta": {
     active: "flag",
-    deliveredAt: "s",
+    deliveredAt: "ut",
     quality: "enum",
     seq: "id",
     source: "id",
     staleness: "enum",
     timelineEpoch: "id",
-    validAt: "s",
+    validAt: "ut",
     vantage: "id",
   },
   "OrbitEncounter": {
     bodyIndex: "id",
     transitionType: "enum",
-    transitionUt: "s",
+    transitionUt: "ut",
   },
   "OrbitEntry": {
     argPe: "°",
     ecc: "1",
-    epoch: "s",
+    epoch: "ut",
     inc: "°",
     lan: "°",
     meanAnomalyAtEpoch: "rad",
@@ -560,8 +561,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     argPe: "°",
     closestEncounterBody: "text",
     ecc: "1",
-    endUt: "s",
-    epoch: "s",
+    endUt: "ut",
+    epoch: "ut",
     inc: "°",
     lan: "°",
     meanAnomalyAtEpoch: "rad",
@@ -573,7 +574,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     semiLatusRectum: "m",
     semiMinorAxis: "m",
     sma: "m",
-    startUt: "s",
+    startUt: "ut",
   },
   "PartActionEntry": {
     active: "flag",
@@ -617,7 +618,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "PendingUplink": {
     command: "id",
-    dispatchedAt: "s",
+    dispatchedAt: "ut",
     id: "id",
     label: "text",
     oneWaySeconds: "s",
@@ -641,7 +642,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalValue: "funds",
   },
   "RecoveryReport": {
-    capturedAtUT: "s",
+    capturedAtUT: "ut",
     displayReputation: "flag",
     fundsEarned: "funds",
     recoveryFactor: "text",
@@ -692,7 +693,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     cause: "enum",
     crewLost: "text",
     delta: "rep",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
@@ -730,7 +731,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     amount: "science",
     subjectId: "id",
     subjectTitle: "text",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
@@ -829,7 +830,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SpaceCenterPoiEntry": {
     bodyIndex: "id",
     contractAgent: "text",
-    contractDateDeadline: "s",
+    contractDateDeadline: "ut",
     contractFundsAdvance: "funds",
     contractFundsCompletion: "funds",
     id: "id",
@@ -911,7 +912,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     normal: "m/s",
     prograde: "m/s",
     radialOut: "m/s",
-    ut: "s",
+    ut: "ut",
   },
   "UpgradeFacilityArgs": {
     facilityId: "id",
@@ -971,7 +972,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     verticalSpeed: "m/s",
   },
   "VesselIdentity": {
-    launchUt: "s",
+    launchUt: "ut",
     name: "text",
     parentBodyIndex: "id",
     situation: "enum",
@@ -1005,7 +1006,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "VesselOrbit": {
     argPe: "°",
     ecc: "1",
-    epoch: "s",
+    epoch: "ut",
     inc: "°",
     lan: "°",
     meanAnomalyAtEpoch: "rad",
@@ -1158,7 +1159,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     longitude: "°",
     msg: "text",
     situation: "text",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
     vesselType: "id",
@@ -1212,20 +1213,20 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "flight.ended": {
     flightId: "id",
     reason: "enum",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
   "flight.started": {
     flightId: "id",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
   "flight.vesselChanged": {
     flightId: "id",
     previousVesselId: "id",
-    ut: "s",
+    ut: "ut",
     vesselId: "id",
     vesselName: "text",
   },
@@ -1255,7 +1256,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalProductionEc: "units/s",
   },
   "recovery.lastSummary": {
-    capturedAtUT: "s",
+    capturedAtUT: "ut",
     displayReputation: "flag",
     fundsEarned: "funds",
     recoveryFactor: "text",
@@ -1415,7 +1416,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "spaceCenter.pois": {
     bodyIndex: "id",
     contractAgent: "text",
-    contractDateDeadline: "s",
+    contractDateDeadline: "ut",
     contractFundsAdvance: "funds",
     contractFundsCompletion: "funds",
     id: "id",
@@ -1510,7 +1511,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     verticalSpeed: "m/s",
   },
   "vessel.identity": {
-    launchUt: "s",
+    launchUt: "ut",
     name: "text",
     parentBodyIndex: "id",
     situation: "enum",
@@ -1544,7 +1545,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.orbit": {
     argPe: "°",
     ecc: "1",
-    epoch: "s",
+    epoch: "ut",
     inc: "°",
     lan: "°",
     meanAnomalyAtEpoch: "rad",

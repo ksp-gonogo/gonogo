@@ -24,11 +24,11 @@ public class Meta
 {
     [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double ValidAt { get; set; }
     [SitrepUnit(Units.Id)]
     public long Seq { get; set; }
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double DeliveredAt { get; set; }
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";

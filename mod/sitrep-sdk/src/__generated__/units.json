@@ -39,6 +39,7 @@
     "text",
     "units",
     "units/s",
+    "ut",
     "°"
   ],
   "types": {
@@ -59,7 +60,7 @@
       "normal": "m/s",
       "prograde": "m/s",
       "radialOut": "m/s",
-      "ut": "s"
+      "ut": "ut"
     },
     "AlternatorEntry": {
       "outputRate": "units/s",
@@ -109,9 +110,9 @@
     },
     "CareerContract": {
       "agent": "text",
-      "dateAccepted": "s",
-      "dateDeadline": "s",
-      "dateExpire": "s",
+      "dateAccepted": "ut",
+      "dateDeadline": "ut",
+      "dateExpire": "ut",
       "fundsAdvance": "funds",
       "fundsCompletion": "funds",
       "fundsFailure": "funds",
@@ -146,7 +147,7 @@
       "activateBlockedReason": "text",
       "canActivate": "flag",
       "canDeactivate": "flag",
-      "dateActivated": "s",
+      "dateActivated": "ut",
       "deactivateBlockedReason": "text",
       "department": "text",
       "description": "text",
@@ -176,7 +177,7 @@
     },
     "ClosestApproach": {
       "distance": "m",
-      "time": "s"
+      "time": "ut"
     },
     "CommandCentreEntry": {
       "active": "flag",
@@ -274,7 +275,7 @@
       "longitude": "°",
       "msg": "text",
       "situation": "text",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text",
       "vesselType": "id",
@@ -374,7 +375,7 @@
     },
     "FleetVesselContact": {
       "connected": "flag",
-      "lastContactUt": "s"
+      "lastContactUt": "ut"
     },
     "FleetVesselLink": {
       "connected": "flag",
@@ -382,9 +383,9 @@
     },
     "FleetVesselSilence": {
       "deadlineBasis": "enum",
-      "deadlineUt": "s",
-      "predictedReacquisitionUt": "s",
-      "silenceSinceUt": "s",
+      "deadlineUt": "ut",
+      "predictedReacquisitionUt": "ut",
+      "silenceSinceUt": "ut",
       "state": "enum"
     },
     "FlightCurrent": {
@@ -396,20 +397,20 @@
     "FlightEnded": {
       "flightId": "id",
       "reason": "enum",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
     "FlightStarted": {
       "flightId": "id",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
     "FlightVesselChanged": {
       "flightId": "id",
       "previousVesselId": "id",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
@@ -494,28 +495,28 @@
       "dvRadial": "m/s",
       "dvTotal": "m/s",
       "id": "id",
-      "ut": "s"
+      "ut": "ut"
     },
     "Meta": {
       "active": "flag",
-      "deliveredAt": "s",
+      "deliveredAt": "ut",
       "quality": "enum",
       "seq": "id",
       "source": "id",
       "staleness": "enum",
       "timelineEpoch": "id",
-      "validAt": "s",
+      "validAt": "ut",
       "vantage": "id"
     },
     "OrbitEncounter": {
       "bodyIndex": "id",
       "transitionType": "enum",
-      "transitionUt": "s"
+      "transitionUt": "ut"
     },
     "OrbitEntry": {
       "argPe": "°",
       "ecc": "1",
-      "epoch": "s",
+      "epoch": "ut",
       "inc": "°",
       "lan": "°",
       "meanAnomalyAtEpoch": "rad",
@@ -526,8 +527,8 @@
       "argPe": "°",
       "closestEncounterBody": "text",
       "ecc": "1",
-      "endUt": "s",
-      "epoch": "s",
+      "endUt": "ut",
+      "epoch": "ut",
       "inc": "°",
       "lan": "°",
       "meanAnomalyAtEpoch": "rad",
@@ -539,7 +540,7 @@
       "semiLatusRectum": "m",
       "semiMinorAxis": "m",
       "sma": "m",
-      "startUt": "s"
+      "startUt": "ut"
     },
     "PartActionEntry": {
       "active": "flag",
@@ -583,7 +584,7 @@
     },
     "PendingUplink": {
       "command": "id",
-      "dispatchedAt": "s",
+      "dispatchedAt": "ut",
       "id": "id",
       "label": "text",
       "oneWaySeconds": "s",
@@ -607,7 +608,7 @@
       "totalValue": "funds"
     },
     "RecoveryReport": {
-      "capturedAtUT": "s",
+      "capturedAtUT": "ut",
       "displayReputation": "flag",
       "fundsEarned": "funds",
       "recoveryFactor": "text",
@@ -658,7 +659,7 @@
       "cause": "enum",
       "crewLost": "text",
       "delta": "rep",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
@@ -696,7 +697,7 @@
       "amount": "science",
       "subjectId": "id",
       "subjectTitle": "text",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
@@ -795,7 +796,7 @@
     "SpaceCenterPoiEntry": {
       "bodyIndex": "id",
       "contractAgent": "text",
-      "contractDateDeadline": "s",
+      "contractDateDeadline": "ut",
       "contractFundsAdvance": "funds",
       "contractFundsCompletion": "funds",
       "id": "id",
@@ -877,7 +878,7 @@
       "normal": "m/s",
       "prograde": "m/s",
       "radialOut": "m/s",
-      "ut": "s"
+      "ut": "ut"
     },
     "UpgradeFacilityArgs": {
       "facilityId": "id"
@@ -937,7 +938,7 @@
       "verticalSpeed": "m/s"
     },
     "VesselIdentity": {
-      "launchUt": "s",
+      "launchUt": "ut",
       "name": "text",
       "parentBodyIndex": "id",
       "situation": "enum",
@@ -971,7 +972,7 @@
     "VesselOrbit": {
       "argPe": "°",
       "ecc": "1",
-      "epoch": "s",
+      "epoch": "ut",
       "inc": "°",
       "lan": "°",
       "meanAnomalyAtEpoch": "rad",
@@ -1119,7 +1120,7 @@
       "longitude": "°",
       "msg": "text",
       "situation": "text",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text",
       "vesselType": "id",
@@ -1173,20 +1174,20 @@
     "flight.ended": {
       "flightId": "id",
       "reason": "enum",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
     "flight.started": {
       "flightId": "id",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
     "flight.vesselChanged": {
       "flightId": "id",
       "previousVesselId": "id",
-      "ut": "s",
+      "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
     },
@@ -1216,7 +1217,7 @@
       "totalProductionEc": "units/s"
     },
     "recovery.lastSummary": {
-      "capturedAtUT": "s",
+      "capturedAtUT": "ut",
       "displayReputation": "flag",
       "fundsEarned": "funds",
       "recoveryFactor": "text",
@@ -1376,7 +1377,7 @@
     "spaceCenter.pois": {
       "bodyIndex": "id",
       "contractAgent": "text",
-      "contractDateDeadline": "s",
+      "contractDateDeadline": "ut",
       "contractFundsAdvance": "funds",
       "contractFundsCompletion": "funds",
       "id": "id",
@@ -1471,7 +1472,7 @@
       "verticalSpeed": "m/s"
     },
     "vessel.identity": {
-      "launchUt": "s",
+      "launchUt": "ut",
       "name": "text",
       "parentBodyIndex": "id",
       "situation": "enum",
@@ -1505,7 +1506,7 @@
     "vessel.orbit": {
       "argPe": "°",
       "ecc": "1",
-      "epoch": "s",
+      "epoch": "ut",
       "inc": "°",
       "lan": "°",
       "meanAnomalyAtEpoch": "rad",

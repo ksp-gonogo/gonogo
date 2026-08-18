@@ -58,7 +58,7 @@ public class VesselOrbit
     public double MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every other UT-typed field on this record (matches KSP's own <c>Orbit.epoch</c> units).</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Epoch { get; set; }
 
     /// <summary>Parent body's standard gravitational parameter (GM): self-sufficient propagation, no separate body lookup required.</summary>
@@ -93,7 +93,7 @@ public class OrbitEncounter
     [SitrepUnit(Units.Enumeration)]
     public TransitionType TransitionType { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double TransitionUt { get; set; }
 
     /// <summary>Index into <c>system.bodies</c> of the body being transitioned INTO; null if that body couldn't be resolved.</summary>

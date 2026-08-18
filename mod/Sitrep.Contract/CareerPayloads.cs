@@ -152,13 +152,13 @@ public class CareerContract
     [SitrepUnit(Units.Reputation)]
     public double? ReputationFailure { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? DateAccepted { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? DateDeadline { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? DateExpire { get; set; }
 
     public List<CareerContractParameter> Parameters { get; set; } = new();
@@ -222,7 +222,7 @@ public class CareerStrategy
     [SitrepUnit(Units.Ratio)]
     public double? Factor { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? DateActivated { get; set; }
 
     [SitrepUnit(Units.Reputation)]

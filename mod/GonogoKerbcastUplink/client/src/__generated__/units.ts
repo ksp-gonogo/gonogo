@@ -49,6 +49,7 @@ export type KnownSitrepUnit =
   | "text"
   | "units"
   | "units/s"
+  | "ut"
   | "°"
 ;
 

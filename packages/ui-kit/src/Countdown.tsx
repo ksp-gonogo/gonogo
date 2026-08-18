@@ -22,7 +22,26 @@ import { NULL_DISPLAY } from "./NullValue";
  * assembling one out of a string and a hand-written suffix.
  */
 export interface CountdownProps {
-  /** Seconds. A duration, so a bare number is as valid as a `Value<"s">`. */
+  /**
+   * A DURATION in seconds: how long until, or how long since. A bare number is
+   * as valid as a `Value<"s">` because plenty of durations are computed
+   * client-side and carry no declared unit.
+   *
+   * Deliberately NOT `Value<"ut">`. An instant on the universal-time clock is
+   * a different thing and this renders it as nonsense: `OrbitEncounter`'s
+   * absolute `transitionUt` reached here through `vessel.state` and put a Mun
+   * encounter twenty minutes away on screen as "46d 2h", in two shipped
+   * widgets, while a third subtracted the view time correctly. `"s"` was the
+   * same token on both meanings, so nothing could tell them apart; now `"ut"`
+   * is its own token and handing one to this is a type error. Subtract the
+   * frame's view time first (`useViewUt`), which is the operation that turns
+   * an instant into the duration this wants.
+   *
+   * A bare number is still the escape hatch, and it has to be: it is how every
+   * client-computed countdown reaches here. It is not a loophole worth
+   * closing, because the mistake this prevents is passing a WIRE field
+   * straight through, and a wire field always arrives as a `Value`.
+   */
   value: Value<"s"> | number | null | undefined;
   /**
    * Prefix the launch-clock sign: `T−` counting down to the event, `T+` once

@@ -44,11 +44,11 @@ describe("useStreamEvent", () => {
     // transport wraps on the way out, same as the wire decode.
     expect(onCrash).toHaveBeenNthCalledWith(1, {
       vesselName: "Kerbal X",
-      ut: value("s", 100),
+      ut: value("ut", 100),
     });
     expect(onCrash).toHaveBeenNthCalledWith(2, {
       vesselName: "Kerbal Y",
-      ut: value("s", 200),
+      ut: value("ut", 200),
     });
   });
 
@@ -85,7 +85,7 @@ describe("useStreamEvent", () => {
     expect(second).toHaveBeenCalledTimes(1);
     expect(second).toHaveBeenCalledWith({
       vesselName: "Kerbal B",
-      ut: value("s", 2),
+      ut: value("ut", 2),
     });
     expect(first).toHaveBeenCalledTimes(2);
   });

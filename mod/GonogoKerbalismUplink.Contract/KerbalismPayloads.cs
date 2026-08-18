@@ -175,7 +175,7 @@ public class KerbalismStormEntry
     [SitrepUnit(Units.Count)]
     public int? StormState { get; set; }
     /// <summary>Arrival UT, <c>StormData.storm_time</c>. Null when <see cref="StormState"/> is 0.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? StormTime { get; set; }
     /// <summary>Storm duration once it hits, <c>StormData.storm_duration</c>. Null when <see cref="StormState"/> is 0.</summary>
     [SitrepUnit(Units.Seconds)]
@@ -625,7 +625,7 @@ public class KerbalismLifeSupport
     /// which is a statement of ignorance and never a substituted capture time:
     /// stamping the read time would claim a freshness we did not measure.</para>
     /// </summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? AsOfUt { get; set; }
 }
 
@@ -723,7 +723,7 @@ public class KerbalismCrewEntry
     /// each entry rather than on the list because two kerbals can be on
     /// different craft with different turns.
     /// </summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? AsOfUt { get; set; }
 }
 

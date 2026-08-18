@@ -244,9 +244,13 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     expect(star?.direction?.z).toMatchObject({ magnitude: 0, unit: "1" });
 
     const storm = result.current?.storms?.[0];
+    // Two time fields on one entry, carrying different time units: the arrival
+    // is an INSTANT on the universal-time clock, the duration is an interval.
+    // Reading `stormTime` as seconds-until is the mistake the split exists to
+    // stop, and `<Countdown>` now refuses it outright.
     expect(storm?.stormTime).toMatchObject({
       magnitude: 12_345_678,
-      unit: "s",
+      unit: "ut",
     });
     expect(storm?.stormDuration).toMatchObject({ magnitude: 7_200, unit: "s" });
     expect(storm?.dist).toMatchObject({ magnitude: 13_599_840_256, unit: "m" });

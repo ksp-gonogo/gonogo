@@ -40,8 +40,14 @@ export interface MissionDateProps {
    * usually renders is the app's own: `useViewUt` interpolates a UT every
    * frame from the last wire edge, so it is computed client-side and has no
    * declared unit to carry. There is exactly one unit a UT can be in.
+   *
+   * `Value<"s">` is still accepted alongside `Value<"ut">`: a mission date is
+   * a rendering choice a caller is entitled to make about a number, and unlike
+   * `Countdown` there is no wrong answer to guard against here. Passing a
+   * duration renders a date measured from the epoch, which is what it asked
+   * for.
    */
-  value: Value<"s"> | number | null | undefined;
+  value: Value<"ut"> | Value<"s"> | number | null | undefined;
 }
 
 export function MissionDate({ value }: MissionDateProps) {

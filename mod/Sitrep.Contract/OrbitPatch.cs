@@ -57,17 +57,17 @@ public class OrbitPatch
     [SitrepUnit(Units.Radians)]
     public double MeanAnomalyAtEpoch { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Epoch { get; set; }
 
     /// <summary>Orbital period, seconds. Non-finite (hyperbolic/parabolic patches) is carried as-is, the client's `isPatchElliptical` guard is what filters those, not this field.</summary>
     [SitrepUnit(Units.Seconds)]
     public double Period { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double StartUt { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double EndUt { get; set; }
 
     [SitrepUnit(Units.Enumeration)]

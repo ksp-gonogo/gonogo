@@ -75,8 +75,12 @@ describe("the alias flag", () => {
     }
 
     // Pinned, so that a NEW collision added to the catalogue shows up here as a
-    // failure rather than as a silently degraded type somewhere else.
-    expect(contested).toHaveLength(3);
+    // failure rather than as a silently degraded type somewhere else. Four
+    // since `ut` joined `s` on `{s:1}`: an instant on the universal-time clock
+    // and a duration share a dimension deliberately, because a UT plus a
+    // duration is a UT, and `s` stays the winner because a COMPUTED `{s:1}` is
+    // always a duration.
+    expect(contested).toHaveLength(4);
   });
 
   it("leaves every uncontested ratio-1 unit unflagged", () => {

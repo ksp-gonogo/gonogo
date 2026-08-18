@@ -72,6 +72,22 @@ export const UNIT_DEFINITIONS = {
   // A KSP day is 21600s (Kerbin), not 86400. Four widgets divided by the Earth
   // figure before a guard caught it; `d` exists so nobody has to write either.
   s: { dim: { s: 1 }, ratio: 1, kind: "time" },
+  // An INSTANT, not an interval. Same dimension as `s` on purpose, so a UT
+  // plus a duration is still a UT and the algebra keeps working; the `kind`
+  // is what separates them, and `kind` never gates arithmetic (see this
+  // field's own doc in `UnitDefinition`). It is what lets `<Countdown>` refuse
+  // a UT while `<MissionDate>` demands one.
+  // `alias` because `s` was registered first: a COMPUTED `{s:1}` renders as a
+  // duration, which is right, since the only arithmetic that lands there is
+  // one duration plus another, or one instant minus another. `ut` is a thing
+  // the contract DECLARES a field to be, never something a calculation
+  // produces.
+  ut: {
+    dim: { s: 1 },
+    ratio: 1,
+    kind: "universalTime",
+    alias: true,
+  },
   min: { dim: { s: 1 }, ratio: 60, kind: "time" },
   h: { dim: { s: 1 }, ratio: 3_600, kind: "time" },
   d: { dim: { s: 1 }, ratio: 21_600, kind: "time" },

@@ -36,7 +36,7 @@ public class ManeuverNode
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 
     /// <summary>

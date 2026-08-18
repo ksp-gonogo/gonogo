@@ -28,7 +28,7 @@ namespace Sitrep.Contract;
 public class RecoveryReport
 {
     /// <summary>Universal time of the recovery capture.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double CapturedAtUT { get; set; }
 
     [SitrepUnit(Units.Text)]

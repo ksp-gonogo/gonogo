@@ -87,7 +87,7 @@ public class SetActionGroupArgs
 #endif
 public class AddManeuverNodeArgs
 {
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 
     [SitrepUnit(Units.MetresPerSecond)]
@@ -117,7 +117,7 @@ public class UpdateManeuverNodeArgs
     [SitrepUnit(Units.Id)]
     public string NodeId { get; set; } = "";
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 
     [SitrepUnit(Units.MetresPerSecond)]

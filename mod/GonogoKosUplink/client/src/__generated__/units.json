@@ -39,11 +39,12 @@
     "text",
     "units",
     "units/s",
+    "ut",
     "°"
   ],
   "types": {
     "KosComputeStatus": {
-      "lastGoodAt": "s",
+      "lastGoodAt": "ut",
       "parseError": "text",
       "paused": "flag",
       "running": "flag",

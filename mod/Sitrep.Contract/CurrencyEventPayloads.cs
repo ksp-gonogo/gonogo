@@ -79,7 +79,7 @@ public class ScienceCreditEvent
     public string SubjectTitle { get; set; } = string.Empty;
 
     /// <summary>Universal Time the credit happened at, the UT its reveal delay is measured from.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
 
@@ -149,6 +149,6 @@ public class ReputationLossEvent
     public string[] CrewLost { get; set; } = new string[0];
 
     /// <summary>Universal Time the loss happened at, the UT its reveal delay is measured from.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }

@@ -93,7 +93,7 @@ public class FlightStarted
     public string VesselName { get; set; } = "";
 
     /// <summary>Universal time this flight began: the UUT the sampler first observed the vessel active (or the revert-target UT, for a flight started as a revert's counterpart).</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
 
@@ -126,7 +126,7 @@ public class FlightEnded
     public FlightEndReason Reason { get; set; }
 
     /// <summary>Universal time the flight ended. For <see cref="FlightEndReason.Reverted"/> this is the revert-TARGET UT (see <c>FlightLifecycleSampler</c>'s revert-epoch-consistency doc), not the wall-clock moment the player hit revert.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
 
@@ -158,6 +158,6 @@ public class FlightVesselChanged
     [SitrepUnit(Units.Id)]
     public string? PreviousVesselId { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }

@@ -80,7 +80,7 @@ public class KosComputeStatus
     public bool Running { get; set; }
 
     /// <summary>UT of the last successful <c>[KOSDATA]</c> parse, null until the first good parse.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? LastGoodAt { get; set; }
 
     /// <summary>Last script-author fault (runtime exception / <c>[KOSERROR]</c>), null when none.</summary>

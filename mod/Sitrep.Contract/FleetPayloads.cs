@@ -64,7 +64,7 @@ public class FleetVesselContact
     public bool Connected { get; set; }
 
     /// <summary>UT of the last sample that observed contact. Null before the first-ever contact.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? LastContactUt { get; set; }
 }
 
@@ -101,11 +101,11 @@ public class FleetVesselSilence
     public string State { get; set; } = "Nominal";
 
     /// <summary>UT the current silence run began. Null while Nominal.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? SilenceSinceUt { get; set; }
 
     /// <summary>UT at which this silence run becomes eligible to be declared Lost. Null while Nominal, or for a destroyed vessel.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? DeadlineUt { get; set; }
 
     /// <summary>
@@ -129,6 +129,6 @@ public class FleetVesselSilence
     /// an emergence of "now": a client must render the absence as "no
     /// prediction", not as an overdue vessel.</para>
     /// </summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? PredictedReacquisitionUt { get; set; }
 }

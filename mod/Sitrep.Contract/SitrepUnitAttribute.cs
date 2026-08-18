@@ -65,7 +65,38 @@ namespace Sitrep.Contract
         public const string Radians = "rad";
 
         // --- Time ---
+        /// <summary>
+        /// A DURATION in seconds. How long something takes, how long is left.
+        /// See <see cref="UniversalTime"/> for the other thing seconds measure.
+        /// </summary>
         public const string Seconds = "s";
+
+        /// <summary>
+        /// An INSTANT on the universal-time clock, past or future. Seconds
+        /// since the game's epoch, never an interval.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <para>Same dimension as <see cref="Seconds"/> and deliberately so: a
+        /// UT plus a duration is a UT, and the unit system's arithmetic should
+        /// keep working. What differs is the KIND, which never gates arithmetic
+        /// and only drives display, and that is exactly the distinction wanted.
+        /// A consumer renders a UT as a date, or subtracts the frame's view
+        /// time from it to get a countdown; it never renders it as one.</para>
+        ///
+        /// <para>This exists because the repo already shipped the bug it
+        /// prevents. <c>OrbitEncounter.TransitionUt</c> reached
+        /// <c>&lt;Countdown&gt;</c> through <c>vessel.state</c> in two widgets,
+        /// so a Mun encounter twenty minutes away rendered as "46d 2h", and the
+        /// gate in front of it (<c>&gt; 0</c>) passes for every UT there has
+        /// ever been. A third widget reading the same field subtracted the view
+        /// time correctly, with a comment explaining why: one author knew and
+        /// the others could not, because <c>"s"</c> is the same token on both
+        /// meanings and the boundary that exists to catch this had nothing to
+        /// say. Telemachus, for what it is worth, carried two separate keys for
+        /// this one event and the migration collapsed them.</para>
+        /// </remarks>
+        public const string UniversalTime = "ut";
 
         /// <summary>
         /// Hours. The ONE non-second duration on this wire, and it exists only

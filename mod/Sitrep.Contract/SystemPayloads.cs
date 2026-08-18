@@ -176,7 +176,7 @@ public class OrbitEntry
     public double? MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>Epoch UT, seconds.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? Epoch { get; set; }
 }
 

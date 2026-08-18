@@ -88,7 +88,7 @@ public class CrashReport
     public double Altitude { get; set; }
 
     /// <summary>Universal time of the crash capture.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
 

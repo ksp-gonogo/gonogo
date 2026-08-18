@@ -137,7 +137,8 @@ describe("registerTypeUnits: the type-keyed half", () => {
   // true while the type lived in core. The lookup is what the relocation broke
   // and what this restores.
   it("restores unitsForType for the slice's one real quantity", () => {
-    expect(unitsForType("KosComputeStatus").lastGoodAt).toBe("s");
+    // An INSTANT: when the last good result came back, not how long ago.
+    expect(unitsForType("KosComputeStatus").lastGoodAt).toBe("ut");
     expect(lookupUnit("s")).toBeDefined();
   });
 

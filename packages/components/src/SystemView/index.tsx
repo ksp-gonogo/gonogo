@@ -184,7 +184,8 @@ interface WireOrbit {
   lan?: Value<"°">;
   argPe?: Value<"°">;
   meanAnomalyAtEpoch: Value<"rad">;
-  epoch: Value<"s">;
+  /** An INSTANT the elements are stated at, not a duration. */
+  epoch: Value<"ut">;
   mu: Value<"m³/s²">;
 }
 

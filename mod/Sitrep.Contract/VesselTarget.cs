@@ -64,7 +64,7 @@ public enum TargetKind
 public class ClosestApproach
 {
     /// <summary>Universal Time (seconds) of the minimum separation at or after the sample's UT.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double Time { get; set; }
 
     /// <summary>Separation (metres) at <see cref="Time"/>.</summary>

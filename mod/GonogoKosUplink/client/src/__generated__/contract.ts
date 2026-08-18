@@ -16,7 +16,7 @@ export interface KosProcessorInfo
 export interface KosComputeStatus
 {
 	running: boolean;
-	lastGoodAt?: Value<"s">;
+	lastGoodAt?: Value<"ut">;
 	scriptError?: string;
 	parseError?: string;
 	paused: boolean;

@@ -82,9 +82,9 @@ export interface CareerContract
 	scienceCompletion?: Value<"science">;
 	reputationCompletion?: Value<"rep">;
 	reputationFailure?: Value<"rep">;
-	dateAccepted?: Value<"s">;
-	dateDeadline?: Value<"s">;
-	dateExpire?: Value<"s">;
+	dateAccepted?: Value<"ut">;
+	dateDeadline?: Value<"ut">;
+	dateExpire?: Value<"ut">;
 	parameters: CareerContractParameter[];
 }
 export interface CareerContractParameter
@@ -106,7 +106,7 @@ export interface CareerStrategy
 	department?: string;
 	isActive?: boolean;
 	factor?: Value<"ratio">;
-	dateActivated?: Value<"s">;
+	dateActivated?: Value<"ut">;
 	requiredReputation?: Value<"rep">;
 	initialCostFunds?: Value<"funds">;
 	initialCostScience?: Value<"science">;
@@ -276,7 +276,7 @@ export interface CrashReport
 	situation: string;
 	crewAboard: string[];
 	altitude: Value<"m">;
-	ut: Value<"s">;
+	ut: Value<"ut">;
 }
 export interface CrashPartLost
 {
@@ -307,7 +307,7 @@ export interface ScienceCreditEvent
 	amount: Value<"science">;
 	subjectId: string;
 	subjectTitle: string;
-	ut: Value<"s">;
+	ut: Value<"ut">;
 }
 export interface ReputationLossEvent
 {
@@ -316,7 +316,7 @@ export interface ReputationLossEvent
 	delta: Value<"rep">;
 	cause: string;
 	crewLost: string[];
-	ut: Value<"s">;
+	ut: Value<"ut">;
 }
 export interface StreamData<T>
 {
@@ -381,15 +381,15 @@ export interface FleetVesselLink
 export interface FleetVesselContact
 {
 	connected: boolean;
-	lastContactUt?: Value<"s">;
+	lastContactUt?: Value<"ut">;
 }
 export interface FleetVesselSilence
 {
 	state: string;
-	silenceSinceUt?: Value<"s">;
-	deadlineUt?: Value<"s">;
+	silenceSinceUt?: Value<"ut">;
+	deadlineUt?: Value<"ut">;
 	deadlineBasis?: string;
-	predictedReacquisitionUt?: Value<"s">;
+	predictedReacquisitionUt?: Value<"ut">;
 }
 export enum FlightEndReason {
 	Recovered = 0,
@@ -409,7 +409,7 @@ export interface FlightStarted
 	flightId: string;
 	vesselId: string;
 	vesselName: string;
-	ut: Value<"s">;
+	ut: Value<"ut">;
 }
 export interface FlightEnded
 {
@@ -417,7 +417,7 @@ export interface FlightEnded
 	vesselId: string;
 	vesselName: string;
 	reason: FlightEndReason;
-	ut: Value<"s">;
+	ut: Value<"ut">;
 }
 export interface FlightVesselChanged
 {
@@ -425,7 +425,7 @@ export interface FlightVesselChanged
 	vesselId: string;
 	vesselName: string;
 	previousVesselId?: string;
-	ut: Value<"s">;
+	ut: Value<"ut">;
 }
 export interface RevertToEditorArgs
 {
@@ -522,10 +522,10 @@ export interface OrbitPatch
 	lan: Value<"°">;
 	argPe: Value<"°">;
 	meanAnomalyAtEpoch: Value<"rad">;
-	epoch: Value<"s">;
+	epoch: Value<"ut">;
 	period: Value<"s">;
-	startUt: Value<"s">;
-	endUt: Value<"s">;
+	startUt: Value<"ut">;
+	endUt: Value<"ut">;
 	patchStartTransition: TransitionType;
 	patchEndTransition: TransitionType;
 	peA: Value<"m">;
@@ -622,7 +622,7 @@ export interface RoboticsAvailability
 }
 export interface RecoveryReport
 {
-	capturedAtUT: Value<"s">;
+	capturedAtUT: Value<"ut">;
 	vesselName: string;
 	recoveryLocation: string;
 	recoveryFactor: string;
@@ -880,7 +880,7 @@ export interface SpaceCenterPoiEntry
 	contractAgent?: string;
 	contractFundsAdvance?: Value<"funds">;
 	contractFundsCompletion?: Value<"funds">;
-	contractDateDeadline?: Value<"s">;
+	contractDateDeadline?: Value<"ut">;
 }
 export interface StageDeltaVEntry
 {
@@ -942,7 +942,7 @@ export interface OrbitEntry
 	lan?: Value<"°">;
 	argPe?: Value<"°">;
 	meanAnomalyAtEpoch?: Value<"rad">;
-	epoch?: Value<"s">;
+	epoch?: Value<"ut">;
 }
 export interface SystemVessels
 {
@@ -997,7 +997,7 @@ export interface PendingUplink
 	label: string;
 	topic: string;
 	vantage: string;
-	dispatchedAt: Value<"s">;
+	dispatchedAt: Value<"ut">;
 	oneWaySeconds: Value<"s">;
 }
 export interface PendingUplinkQueue
@@ -1217,7 +1217,7 @@ export interface VesselIdentity
 	vesselType: VesselType;
 	situation: Situation;
 	parentBodyIndex?: number;
-	launchUt?: Value<"s">;
+	launchUt?: Value<"ut">;
 	meta: PayloadMeta;
 }
 export interface VesselLanding
@@ -1249,7 +1249,7 @@ export interface VesselLanding
 export interface ManeuverNode
 {
 	id: string;
-	ut: Value<"s">;
+	ut: Value<"ut">;
 	dvRadial?: Value<"m/s">;
 	dvNormal?: Value<"m/s">;
 	dvPrograde?: Value<"m/s">;
@@ -1270,7 +1270,7 @@ export interface VesselOrbit
 	lan?: Value<"°">;
 	argPe?: Value<"°">;
 	meanAnomalyAtEpoch: Value<"rad">;
-	epoch: Value<"s">;
+	epoch: Value<"ut">;
 	mu: Value<"m³/s²">;
 	encounter?: OrbitEncounter;
 	patches: OrbitPatch[];
@@ -1279,7 +1279,7 @@ export interface VesselOrbit
 export interface OrbitEncounter
 {
 	transitionType: TransitionType;
-	transitionUt: Value<"s">;
+	transitionUt: Value<"ut">;
 	bodyIndex?: number;
 }
 export interface VesselOrbitTruth
@@ -1395,7 +1395,7 @@ export enum TargetKind {
 }
 export interface ClosestApproach
 {
-	time: Value<"s">;
+	time: Value<"ut">;
 	distance: Value<"m">;
 }
 export interface VesselTarget

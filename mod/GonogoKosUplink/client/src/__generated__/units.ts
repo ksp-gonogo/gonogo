@@ -49,6 +49,7 @@ export type KnownSitrepUnit =
   | "text"
   | "units"
   | "units/s"
+  | "ut"
   | "°"
 ;
 
@@ -77,7 +78,7 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "KosComputeStatus": {
-    lastGoodAt: "s",
+    lastGoodAt: "ut",
     parseError: "text",
     paused: "flag",
     running: "flag",

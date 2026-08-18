@@ -378,6 +378,6 @@ public class SpaceCenterPoiEntry
     [SitrepUnit(Units.Funds)]
     public double? ContractFundsCompletion { get; set; }
 
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double? ContractDateDeadline { get; set; }
 }

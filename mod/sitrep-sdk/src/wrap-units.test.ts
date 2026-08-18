@@ -232,7 +232,10 @@ describe("a hand-declared Topic whose payload is a reflected contract type", () 
       ],
     };
     wrapTopicPayload("system.uplink.pending", payload);
-    expect(payload.pending[0].dispatchedAt).toEqual(value("s", 100));
+    // The two time fields on one entry carry DIFFERENT time units, which is
+    // the whole point of the split: `dispatchedAt` is the instant the command
+    // left, `oneWaySeconds` is how long the trip takes.
+    expect(payload.pending[0].dispatchedAt).toEqual(value("ut", 100));
     expect(payload.pending[0].oneWaySeconds).toEqual(value("s", 4));
     // Not a quantity, and not touched.
     expect(payload.pending[0].command).toBe("vessel.control.setThrottle");

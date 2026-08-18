@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 //
 // NOT vacuous, but only just, and the honest accounting is the point of this
 // file rather than a caveat to it: EXACTLY ONE property in the whole eleven-type
-// slice retypes, KosComputeStatus.lastGoodAt -> Value<"s">. Every other declared
+// slice retypes, KosComputeStatus.lastGoodAt -> Value<"ut">. Every other declared
 // unit here is a non-quantity token (id / text / flag / count) or sits on an
 // inbound-only "...Args" type that ApplyUnitValueTypes deliberately skips, so
 // one property is the entire retyped surface. A regression that dropped the
@@ -44,7 +44,7 @@ describe("generated contract.ts: Value usage resolves to core", () => {
   // vacuous. If this slice ever gains a second quantity, this is where it is
   // recorded.
   it("keeps the slice's one declared quantity typed as a Value", () => {
-    expect(source()).toMatch(/lastGoodAt\?:\s*Value<"s">;/);
+    expect(source()).toMatch(/lastGoodAt\?:\s*Value<"ut">;/);
   });
 
   // The other side of the accounting, asserted rather than left as prose,

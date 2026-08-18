@@ -59,7 +59,7 @@ public class PendingUplink
     public string Vantage { get; set; } = "";
 
     /// <summary>UT the engine dispatched the command.</summary>
-    [SitrepUnit(Units.Seconds)]
+    [SitrepUnit(Units.UniversalTime)]
     public double DispatchedAt { get; set; }
 
     /// <summary>One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay changes.</summary>
