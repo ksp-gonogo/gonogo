@@ -745,6 +745,16 @@ namespace Gonogo.KSP
                 ["semiMinorAxis"] = patch.semiMinorAxis,
                 ["referenceBody"] = body!.bodyName,
                 ["closestEncounterBody"] = closestEncounterBody != null ? closestEncounterBody.bodyName : null,
+                // Index is the identity and the name is the display string;
+                // see OrbitPatch.ReferenceBodyIndex for why both are carried.
+                ["referenceBodyIndex"] = body.flightGlobalsIndex,
+                ["closestEncounterBodyIndex"] = closestEncounterBody != null
+                    ? (int?)closestEncounterBody.flightGlobalsIndex
+                    : null,
+                // Read off the same body the elements above are relative to, so
+                // a patch propagates from what it carries with no system.bodies
+                // join. Matches BuildOrbit's own mu read.
+                ["mu"] = body.gravParameter,
             };
         }
 

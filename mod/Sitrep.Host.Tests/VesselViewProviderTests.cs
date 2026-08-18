@@ -1225,6 +1225,94 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Kerbin", patch.ReferenceBody);
         }
 
+        /// <summary>
+        /// A patch must be propagable from what it carries. `Mu` and the body
+        /// index are what make it so: without them a consumer had to resolve
+        /// `ReferenceBody` through `system.bodies` before it could use a patch
+        /// at all, which a vessel's own orbit has never needed.
+        /// </summary>
+        [Fact]
+        public void BuildManeuverCarriesEachPatchesOwnMuAndBodyIndexSoItNeedsNoBodyLookup()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["ut"] = 12345.0,
+                        ["patches"] = new List<object?> { PatchRaw(mu: 3.5316e12, bodyIndex: 1, encounterIndex: 2) },
+                    },
+                });
+
+            var patch = Assert.Single(Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes).Patches);
+            Assert.Equal(3.5316e12, patch.Mu);
+            Assert.Equal(1, patch.ReferenceBodyIndex);
+            Assert.Equal(2, patch.ClosestEncounterBodyIndex);
+        }
+
+        /// <summary>
+        /// A patch off a recording captured before those three fields existed
+        /// still maps, and reports them absent rather than defaulted. 0 is a
+        /// real body index (the star), so a defaulted index would read as a
+        /// confident wrong answer.
+        /// </summary>
+        [Fact]
+        public void BuildManeuverLeavesMuAndBodyIndexNullOnAPatchRecordedBeforeTheyExisted()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["ut"] = 12345.0,
+                        ["patches"] = new List<object?> { PatchRaw(mu: null, bodyIndex: null, encounterIndex: null) },
+                    },
+                });
+
+            var patch = Assert.Single(Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes).Patches);
+            Assert.Null(patch.Mu);
+            Assert.Null(patch.ReferenceBodyIndex);
+            Assert.Null(patch.ClosestEncounterBodyIndex);
+            // Everything that predates them still maps, so an old recording
+            // loses nothing by not carrying them.
+            Assert.Equal(800_000.0, patch.Sma);
+            Assert.Equal("Kerbin", patch.ReferenceBody);
+        }
+
+        /// <summary>A minimal raw patch carrying every field the mapper requires.</summary>
+        private static Dictionary<string, object?> PatchRaw(double? mu, int? bodyIndex, int? encounterIndex)
+        {
+            var patch = new Dictionary<string, object?>
+            {
+                ["sma"] = 800_000.0,
+                ["ecc"] = 0.02,
+                ["inc"] = 5.0,
+                ["lan"] = 10.0,
+                ["argPe"] = 20.0,
+                ["meanAnomalyAtEpoch"] = 0.0,
+                ["epoch"] = 12345.0,
+                ["period"] = 3000.0,
+                ["startUt"] = 12345.0,
+                ["endUt"] = 15345.0,
+                ["patchStartTransition"] = "MANEUVER",
+                ["patchEndTransition"] = "FINAL",
+                ["peA"] = 100_000.0,
+                ["apA"] = 260_000.0,
+                ["semiLatusRectum"] = 790_000.0,
+                ["semiMinorAxis"] = 795_000.0,
+                ["referenceBody"] = "Kerbin",
+                ["closestEncounterBody"] = encounterIndex == null ? null : "Mun",
+            };
+            // Omitted entirely rather than set to null, which is the shape a
+            // pre-existing recording actually has.
+            if (mu != null) patch["mu"] = mu.Value;
+            if (bodyIndex != null) patch["referenceBodyIndex"] = bodyIndex.Value;
+            if (encounterIndex != null) patch["closestEncounterBodyIndex"] = encounterIndex.Value;
+            return patch;
+        }
+
         [Fact]
         public void BuildManeuverDefaultsANodesPatchesToAnEmptyListWhenTheSolverHasntResolvedThemYet()
         {

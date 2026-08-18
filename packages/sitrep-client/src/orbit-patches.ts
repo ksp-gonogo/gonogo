@@ -36,6 +36,16 @@ export interface OrbitPatchWirePayload {
   semiMinorAxis: Value<"m">;
   referenceBody: string;
   closestEncounterBody?: string | null;
+  /**
+   * Parent body's GM, so a patch propagates from what it carries with no
+   * `system.bodies` join. Absent only on a recording captured before the field
+   * existed; see `OrbitPatch.cs`.
+   */
+  mu?: Value<"m³/s²"> | null;
+  /** Body identity, where `referenceBody` is the display name. Absent on a pre-existing recording. */
+  referenceBodyIndex?: number | null;
+  /** `closestEncounterBody`'s index. Absent when there is no encounter, and on a pre-existing recording. */
+  closestEncounterBodyIndex?: number | null;
 }
 
 /**
@@ -101,6 +111,10 @@ function transitionName(ordinal: number): string {
  * passthrough, no lookup needed: `referenceBody`/`closestEncounterBody` are
  * already body NAME strings on the wire (see `OrbitPatch.cs`'s doc comment
  * for why), unlike most of this codebase's index-based body references.
+ *
+ * `mu` and the body indexes are deliberately NOT carried through. This is the
+ * legacy Telemachus-era shape and those fields never existed in it; a consumer
+ * that wants them reads the wire payload, which is where they live.
  */
 export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
   return {

@@ -534,6 +534,9 @@ export interface OrbitPatch
 	semiMinorAxis: Value<"m">;
 	referenceBody: string;
 	closestEncounterBody?: string;
+	mu?: Value<"m³/s²">;
+	referenceBodyIndex?: number;
+	closestEncounterBodyIndex?: number;
 }
 export interface InvokePartActionArgs
 {

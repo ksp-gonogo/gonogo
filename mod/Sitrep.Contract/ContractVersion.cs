@@ -883,7 +883,34 @@ namespace Sitrep.Contract
         /// is empty, and <c>ContractShapeGateTests.EveryMajorBumpDeclaresExactlyWhatItBroke</c>
         /// refuses a Major that breaks nothing, on purpose. See
         /// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>.</para>
+        ///
+        /// <para><b>Major-12 line, Bumped 13 -&gt; 14: a patch can be propagated
+        /// from what it carries.</b> <see cref="OrbitPatch"/> gains <c>Mu</c>,
+        /// <c>ReferenceBodyIndex</c> and <c>ClosestEncounterBodyIndex</c>, all
+        /// nullable, all additive, nothing removed or narrowed.
+        ///
+        /// <para>It was the only orbit on the wire that could not be propagated
+        /// from its own fields: <see cref="VesselOrbit"/> carries <c>Mu</c> for
+        /// exactly this reason ("self-sufficient propagation, no separate body
+        /// lookup required") and a patch carried none of it, so a consumer had
+        /// to resolve <see cref="OrbitPatch.ReferenceBody"/> through
+        /// <c>system.bodies</c> to find the number. Measured against
+        /// <c>local_docs/deck-fixtures/maneuver/2026-08-18-same-burn-two-starting-orbits.json</c>,
+        /// where the same burn applied to two starting orbits is the validation
+        /// case for any propagator: one arm's starting orbit is a patch and the
+        /// other's is a vessel orbit, so the pair measured the lookup as well as
+        /// the arithmetic.</para>
+        ///
+        /// <para>The index joins the convention every other body reference in
+        /// this contract already uses, and is carried ALONGSIDE the name rather
+        /// than replacing it: the name is load-bearing in
+        /// <c>orbit-patches.ts</c>'s SOI-change detection and in
+        /// <c>trajectory.ts</c>, which predates this Topic, so dropping it is a
+        /// client migration and not a contract edit. Nullable rather than
+        /// defaulted because 0 is a real body index, so a defaulted value would
+        /// read as a confident wrong answer rather than an absent one.</para>
+        /// </para>
         /// </remarks>
-        public const int Minor = 13;
+        public const int Minor = 14;
     }
 }

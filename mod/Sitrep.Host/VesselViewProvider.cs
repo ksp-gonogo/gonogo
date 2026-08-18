@@ -326,6 +326,12 @@ namespace Sitrep.Host
                     SemiMinorAxis = semiMinorAxis.Value,
                     ReferenceBody = referenceBody,
                     ClosestEncounterBody = GetString(patch, "closestEncounterBody"),
+                    // Not in the required-field gate above: absent on a
+                    // recording captured before these existed, and the patch is
+                    // still fully usable by every consumer that predates them.
+                    Mu = GetDouble(patch, "mu"),
+                    ReferenceBodyIndex = GetInt(patch, "referenceBodyIndex"),
+                    ClosestEncounterBodyIndex = GetInt(patch, "closestEncounterBodyIndex"),
                 });
             }
 
@@ -1300,6 +1306,9 @@ namespace Sitrep.Host
             ["semiMinorAxis"] = patch.SemiMinorAxis,
             ["referenceBody"] = patch.ReferenceBody,
             ["closestEncounterBody"] = patch.ClosestEncounterBody,
+            ["mu"] = patch.Mu,
+            ["referenceBodyIndex"] = patch.ReferenceBodyIndex,
+            ["closestEncounterBodyIndex"] = patch.ClosestEncounterBodyIndex,
         };
 
         private static Dictionary<string, object?> ToWire(VesselOrbitTruth truth) => new Dictionary<string, object?>

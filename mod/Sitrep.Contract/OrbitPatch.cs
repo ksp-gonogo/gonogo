@@ -14,11 +14,21 @@ namespace Sitrep.Contract;
 /// (<see cref="PeA"/>/<see cref="ApA"/>/<see cref="SemiLatusRectum"/>/
 /// <see cref="SemiMinorAxis"/>) rather than forcing the client to re-derive
 /// them per patch. <see cref="ReferenceBody"/>/<see cref="ClosestEncounterBody"/>
-/// are body NAME strings (not indexes), the one deliberate departure from
-/// <see cref="VesselOrbit.ReferenceBodyIndex"/>'s convention, so the client's
-/// existing patch-consuming math (<c>packages/core/src/calc/trajectory.ts</c>,
-/// which predates this Topic and already expects body names) needs zero
-/// reshaping to use these fields directly.
+/// are body NAME strings, because the client's existing patch-consuming math
+/// (<c>packages/core/src/calc/trajectory.ts</c>, which predates this Topic and
+/// already expects body names) needs zero reshaping to use them directly.
+///
+/// <see cref="ReferenceBodyIndex"/>/<see cref="ClosestEncounterBodyIndex"/> sit
+/// beside them and are the IDENTITY, matching
+/// <see cref="VesselOrbit.ReferenceBodyIndex"/> and every other body reference
+/// in this contract. Both are carried on purpose: the names were once described
+/// here as "the one deliberate departure" from the index convention, which held
+/// only while nothing needed to resolve a patch's body to anything. Propagating
+/// a patch does, and a display name is the wrong key for that.
+///
+/// <see cref="Mu"/> completes the same thought: a patch now carries everything
+/// needed to propagate it, so it is no longer the only orbit on the wire that
+/// requires a <c>system.bodies</c> join before it can be used.
 ///
 /// <see cref="Lan"/>/<see cref="ArgPe"/> are plain (non-nullable) doubles here,
 /// UNLIKE <see cref="VesselOrbit.Lan"/>/<see cref="VesselOrbit.ArgPe"/>: a
@@ -97,4 +107,56 @@ public class OrbitPatch
     /// <summary>Body this patch's trajectory most closely encounters, if any, null when there is none. Same "name, not index" convention as <see cref="ReferenceBody"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string? ClosestEncounterBody { get; set; }
+
+    /// <summary>
+    /// Parent body's standard gravitational parameter (GM), so a patch is
+    /// self-sufficient to propagate exactly as <see cref="VesselOrbit.Mu"/>
+    /// makes a vessel's own orbit self-sufficient.
+    ///
+    /// <para>Without it a patch was the only orbit on the wire that could not
+    /// be propagated from what it carries: a consumer had to resolve
+    /// <see cref="ReferenceBody"/> through <c>system.bodies</c> to find the
+    /// number. That asymmetry made an A/B between a vessel's own orbit and a
+    /// maneuver patch measure the lookup as well as the arithmetic.</para>
+    ///
+    /// <para>Null only on a patch read off a recording captured BEFORE this
+    /// field existed, on the same terms as <see cref="ManeuverNode.Id"/>.
+    /// Nullable rather than 0 because a zero GM is not a body, and every
+    /// consumer of it divides.</para>
+    /// </summary>
+    [SitrepUnit(Units.CubicMetresPerSecondSquared)]
+    public double? Mu { get; set; }
+
+    /// <summary>
+    /// Body this patch orbits, as its <c>system.bodies</c> INDEX. The
+    /// identity, where <see cref="ReferenceBody"/> is the display name: index
+    /// is what every other body reference in this contract is keyed on
+    /// (<see cref="VesselOrbit.ReferenceBodyIndex"/>, <c>VesselTarget</c>,
+    /// <c>TargetAvailable</c>, <c>VesselIdentity.ParentBodyIndex</c>) and what
+    /// <c>Sitrep.Propagation</c>'s <c>PropagationTarget</c> and
+    /// <c>PropagationFrame</c> name a body by.
+    ///
+    /// <para>Carried ALONGSIDE the name rather than replacing it: the name is
+    /// load-bearing in <c>orbit-patches.ts</c>'s SOI-change detection and in
+    /// <c>trajectory.ts</c>, which predates this Topic (see the class doc), so
+    /// dropping it is a client migration and not a contract edit.</para>
+    ///
+    /// <para>Null only on a pre-existing recording, per <see cref="Mu"/>.
+    /// Nullable rather than 0 specifically because 0 is a REAL body index (the
+    /// star), so a defaulted value here would read as a confident wrong answer
+    /// rather than as an absent one.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int? ReferenceBodyIndex { get; set; }
+
+    /// <summary>
+    /// <see cref="ClosestEncounterBody"/>'s <c>system.bodies</c> index, on the
+    /// same index-is-identity terms as <see cref="ReferenceBodyIndex"/>. Null
+    /// when there is no encounter at all, and also null on a pre-existing
+    /// recording: the two are indistinguishable here, which is acceptable only
+    /// because <see cref="ClosestEncounterBody"/> already carries the
+    /// distinction.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int? ClosestEncounterBodyIndex { get; set; }
 }
