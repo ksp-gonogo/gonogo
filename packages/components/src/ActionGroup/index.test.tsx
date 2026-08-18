@@ -190,7 +190,11 @@ describe("ActionGroupComponent", () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
     emitControl({ sas: false });
     const pill = await screen.findByRole("button", { name: /toggle sas/i });
-    expect(pill).toHaveTextContent("OFF");
+    // Wait for the CONTENT, not the button. The pill renders before any value
+    // arrives (as the null token), so awaiting the button alone resolves on the
+    // first tick and pumps no frame: the text assertion then races the sample
+    // and reads the placeholder under parallel load.
+    await waitFor(() => expect(pill).toHaveTextContent("OFF"));
     expect(pill).not.toBeDisabled();
   });
 
