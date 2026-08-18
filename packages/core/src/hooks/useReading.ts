@@ -1,5 +1,7 @@
 import {
+  type NeverReckonable,
   type Reading,
+  type UnmodelledReading,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -43,10 +45,21 @@ const PENDING: Reading<never> = { state: "pending" };
  *
  * To render an age, pair this with `useViewUt()` and `readingAge`. Never
  * `Date.now()`: see `readingAge`'s doc.
+ *
+ * ## The `reckonable` arm is dropped where it can never occur
+ *
+ * For a topic in `NEVER_RECKONABLE` the return type has no `reckonable` arm at
+ * all, so writing a branch for it is a type error rather than dead code a
+ * reader has to reason about. `stale` is still there and still has to be
+ * handled: the narrowing removes an impossible case, not the judgement. See
+ * `never-reckonable.ts` for why declaring the NEGATIVE is sound when declaring
+ * the positive would not be.
  */
 export function useReading<T extends TopicId>(
   topic: T,
-): Reading<TopicPayload<T>> {
+): T extends NeverReckonable
+  ? UnmodelledReading<TopicPayload<T>>
+  : Reading<TopicPayload<T>> {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
 
@@ -78,5 +91,16 @@ export function useReading<T extends TopicId>(
     return store.sampleReading<TopicPayload<T>>(topic, store.currentFrame());
   }, [store, topic]);
 
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  // The cast is the conditional return type's cost, and it is contained here
+  // rather than pushed onto callers: the store cannot know at runtime which of
+  // the two shapes a given topic resolves to, and it does not need to, because
+  // a topic in `NEVER_RECKONABLE` provably never gets the arm offered (nothing
+  // registers a reckoner for it, and `never-reckonable.test.ts` asserts the
+  // contradiction cannot exist). So the narrowing removes an unreachable arm
+  // rather than hiding a reachable one.
+  return useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+  ) as ReturnType<typeof useReading<T>>;
 }

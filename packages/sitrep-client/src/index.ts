@@ -195,6 +195,11 @@ export {
 // `./media/index.ts` for why it lives beside the clock and not in a camera package.
 export * from "./media";
 export type {
+  NeverReckonable,
+  UnmodelledReading,
+} from "./never-reckonable";
+export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
+export type {
   ImpactPoint,
   LegacyOrbitPatch,
   OrbitPatchWirePayload,
