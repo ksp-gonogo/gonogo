@@ -133,7 +133,7 @@ function rootCoverage(model: {
  *   `value` is the last REAL observation, always reachable, and `asOfUt` says
  *   when it was made. This is the honest majority: most data can only be AGED
  * - `reckonable`: we have missed updates, AND a model exists. Carries the last
- *   observation exactly as `stale` does, plus `reckon()`
+ *   observation exactly as `stale` does, plus `reckoned`
  *
  * ## Why `reckonable` is an arm and `grade` is a field
  *
@@ -159,14 +159,14 @@ function rootCoverage(model: {
  *
  * ## No horizon field, and no way to over-extrapolate
  *
- * Nothing here says how far a reckoning may be trusted, and `reckon()` never
+ * Nothing here says how far a reckoning may be trusted, and `reckoned` never
  * declines. Both fall out of the arm being rebuilt every frame: once the
  * provider's horizon is exceeded it stops offering a model, and the topic
  * simply presents as `stale` from that frame on. So the presence of the arm IS
  * the statement of trust, structurally rather than by convention, and there is
  * no horizon for a caller to compare against and reckon anyway.
  *
- * **Do not add a "reckoning unavailable" return to `reckon()`.** The absence of
+ * **Do not make `reckoned` able to answer "unavailable".** The absence of
  * the `reckonable` arm already says it, at the only moment it can be said
  * honestly. A failure return would mean a caller could hold a capability that
  * has since gone bad and discover it at call time, which puts an error path in
@@ -207,18 +207,37 @@ export type Reading<T> =
       asOfUt: number;
       grade: StaleGrade;
       /**
-       * Pull the forward-modelled value. A PULL rather than a field because a
-       * reckoning nobody reads must cost nothing: eagerly computing one would
-       * propagate every topic with a basis on every frame regardless of
-       * consumers. Route the model through `defineProcessor` and the cost is
-       * once per frame per topic actually read, and zero otherwise.
+       * The forward-modelled value for this frame's view time.
        *
-       * Takes no arguments: the frame's view time is bound when the arm is
+       * **A getter that does real work: LAZY and CACHED.** That is not what a
+       * property access usually implies, so it is said here rather than left to
+       * be discovered. The first read runs the model, which for class A is a
+       * Kepler solve; a second read in the same frame costs nothing and returns
+       * the SAME object.
+       *
+       * Lazy because a reckoning nobody reads must cost nothing: a plain field
+       * would propagate every topic with a model on every frame regardless of
+       * consumers. Cached because a call site wanting both the number and its
+       * provenance naturally touches it twice, and two object identities for one
+       * frame's answer is the identity trap already fixed in `sampleReading` and
+       * in the processor evaluator. The hazard is not the cost; it is one
+       * question asked twice inside a frame being able to give two answers.
+       *
+       * A getter rather than a `reckon()` call because the ARM is the signal: a
+       * caller is only here by having branched into `reckonable` deliberately,
+       * and the name says the value is modelled. Parentheses on top would be
+       * ceremony over a decision already made explicitly.
+       *
+       * It takes no view time because the frame's is bound when the arm is
        * built, so a caller cannot hand the model a clock the rest of the frame
-       * disagrees with. That is the same reason `readingAge` takes `viewUt`
-       * as a parameter, applied at the other end: there, the point is that
-       * substituting wall clock has to be VISIBLE at the call site; here, that
-       * there is nothing to substitute.
+       * disagrees with. Same reason `readingAge` takes `viewUt` as a parameter,
+       * applied at the other end: there, substituting wall clock has to be
+       * VISIBLE at the call site; here, there is nothing to substitute.
+       *
+       * Being a getter it is lost by a spread or a shallow clone, and lost
+       * SILENTLY, as `undefined` rather than a throw. Nothing in the store
+       * copies a reading (`sampleReading` caches the object itself), and
+       * `reading.test.ts` pins that a reading off the normal path still has it.
        *
        * Frame-stable WITHIN a frame, and deliberately not across one. A
        * reckoning is a function of the view time, so an arm that kept its
@@ -228,7 +247,7 @@ export type Reading<T> =
        * moves; `stale` keeps the frozen identity that stops every widget
        * re-rendering at frame cadence. See `TimelineStore.sampleReading`.
        */
-      reckon: () => Reckoning<T>;
+      get reckoned(): Reckoning<T>;
     };
 
 /**
@@ -314,17 +333,38 @@ export function readingFrom<T>(
   const root = model && rootCoverage(model);
   if (model && root) {
     const observed = point.payload;
+    // Memoised for the life of this arm, which is the life of this frame's view
+    // time: the arm is rebuilt whenever `viewUt` moves, so the cache expires
+    // with it and needs no invalidation of its own. The same reasoning that
+    // makes rebuilding the arm correct makes caching inside it correct.
+    //
+    // It matters because a call site wanting both the number and its provenance
+    // naturally writes `reckon().value` in one place and `reckon().basis` in
+    // another. Uncached that is two model runs (for class A, two Kepler solves)
+    // and, worse, TWO OBJECT IDENTITIES for one frame's answer: the identity
+    // trap already fixed in `sampleReading` and in the processor evaluator,
+    // reappearing one layer in. The hazard is not the cost, it is one question
+    // asked twice inside a frame being able to give two answers.
+    //
+    // Still lazy: a getter, so nothing runs until someone reads it, and a
+    // reckoning nobody reads still costs nothing. The visibility a `reckon()`
+    // call used to give comes from the ARM instead, which a caller is only
+    // inside by having branched there deliberately.
+    let cached: Reckoning<T> | undefined;
     return {
       state: "reckonable",
       value: observed,
       asOfUt: point.validAt,
       grade: status,
-      reckon: () => ({
-        value: model.reckon(viewUt),
-        atUt: viewUt,
-        basis: root.basis,
-        modelled: model.modelled,
-      }),
+      get reckoned(): Reckoning<T> {
+        cached ??= {
+          value: model.reckon(viewUt),
+          atUt: viewUt,
+          basis: root.basis,
+          modelled: model.modelled,
+        };
+        return cached;
+      },
     };
   }
   return {

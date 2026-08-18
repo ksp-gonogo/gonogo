@@ -99,7 +99,7 @@ describe("a per-topic model, expressed per field", () => {
     );
     expect(position.state).toBe("reckonable");
     if (position.state !== "reckonable") return;
-    const reckoning = position.reckon();
+    const reckoning = position.reckoned;
     expect(reckoning.value).toEqual({ x: 1600 });
     expect(reckoning.atUt).toBe(160);
     expect(reckoning.basis).toBe("linear-dead-reckoning");
@@ -162,7 +162,7 @@ describe("a per-topic model, expressed per field", () => {
     const x = store.sampleReading<number>("vessel.target.relativePosition.x");
     expect(x.state).toBe("reckonable");
     if (x.state !== "reckonable") return;
-    expect(x.reckon().value).toBe(1600);
+    expect(x.reckoned.value).toBe(1600);
   });
 
   it("does not treat a covered path as a prefix of an unrelated sibling", () => {
@@ -237,5 +237,49 @@ describe("a topic two owners both model is served with neither", () => {
 
     expect(getReckonerConflicts()).toEqual([]);
     expect(getReckoner("vessel.target")).toBe(declines);
+  });
+});
+
+describe("every path to a reckoning shares the one cache", () => {
+  beforeEach(clearReckoners);
+
+  it("memoises a FIELD-scoped reckoning, not just a whole-topic one", () => {
+    // `fieldScopedReckoner` and `derivedReckoner` build `TopicModel`s, and
+    // `readingFrom` is the single place that wraps one into a `Reckoning`. So
+    // both inherit the cache rather than needing their own, and this asserts
+    // that rather than assuming it: a partial fix here would be
+    // indistinguishable from a complete one at every call site.
+    const wall = fakeWall();
+    const store = predictedStore(wall);
+
+    let runs = 0;
+    registerReckoner<Target>(
+      "vessel.target",
+      "test",
+      (point, _grade, viewUt) => ({
+        modelled: [
+          { path: "relativePosition", basis: "linear-dead-reckoning" },
+        ],
+        reckon: () => {
+          runs += 1;
+          return {
+            ...point.payload,
+            relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
+          };
+        },
+      }),
+    );
+
+    store.ingest("vessel.target", targetPoint(100));
+    wall.advanceBy(60);
+    store.setTransportConnected(false);
+    store.beginFrame();
+
+    const position = store.sampleReading<{ x: number }>(
+      "vessel.target.relativePosition",
+    );
+    if (position.state !== "reckonable") throw new Error("expected reckonable");
+    expect(position.reckoned).toBe(position.reckoned);
+    expect(runs).toBe(1);
   });
 });

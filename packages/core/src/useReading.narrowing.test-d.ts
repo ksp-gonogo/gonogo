@@ -35,11 +35,11 @@ function useNeverReckonableProbe() {
 
 function useModellableProbe() {
   // `vessel.orbit` is the flagship propagatable topic, so the arm must be there
-  // and `reckon()` must resolve through it.
+  // and `reckoned` must resolve through it.
   const orbit = useReading("vessel.orbit");
   if (orbit.state === "reckonable") {
-    void orbit.reckon().basis;
-    void orbit.reckon().value.sma;
+    void orbit.reckoned.basis;
+    void orbit.reckoned.value.sma;
   }
 }
 

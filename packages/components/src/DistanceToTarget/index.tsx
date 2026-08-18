@@ -456,7 +456,7 @@ function DistanceToTargetComponent({
   // is the alternative and would be wrong for this widget: range to a target is
   // exactly the quantity an approach is flown on.
   const reckoned =
-    targetReading.state === "reckonable" ? targetReading.reckon() : undefined;
+    targetReading.state === "reckonable" ? targetReading.reckoned : undefined;
   // Derived exactly as the observed distance is, from the same Vec3 field, so a
   // modelled range and an observed one are the same quantity computed the same
   // way. A model that returns a payload with no relative position has nothing

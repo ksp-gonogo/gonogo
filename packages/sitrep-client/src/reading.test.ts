@@ -101,7 +101,7 @@ describe("readingFrom", () => {
     if (reading.state !== "reckonable") return;
     // The last REAL value, not the modelled one. A widget that wants "10% at
     // last contact" reads this; a widget that wants the propagated figure calls
-    // reckon(). Neither is a substitute for the other.
+    // `reckoned`. Neither is a substitute for the other.
     expect(reading.value).toBe(5);
     expect(reading.asOfUt).toBe(10);
     expect(reading.grade).toBe("last-before-blackout");
@@ -124,7 +124,7 @@ describe("readingFrom", () => {
     expect(runs).toBe(0);
 
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
-    reading.reckon();
+    reading.reckoned;
     expect(runs).toBe(1);
   });
 
@@ -136,7 +136,7 @@ describe("readingFrom", () => {
       alwaysReckons,
     );
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
-    const reckoned = reading.reckon();
+    const reckoned = reading.reckoned;
     expect(reckoned).toEqual({
       value: 6,
       atUt: VIEW_UT,

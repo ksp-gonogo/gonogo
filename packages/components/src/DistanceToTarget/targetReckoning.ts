@@ -61,7 +61,7 @@ export const targetReckoning = defineProcessor({
  * arm is rebuilt whenever the view time moves, so withdrawing is all it takes:
  * the topic presents as `stale` from that frame on, and no caller can be
  * holding a model that has gone bad. That is why `Reading` carries no horizon
- * field and `reckon()` has no failure return.
+ * field and `reckoned` has no failure return.
  *
  * The other half of the horizon is a burn. A dead-reckoned position assumes
  * nothing has thrusted, and a craft out of contact is exactly a craft we cannot
