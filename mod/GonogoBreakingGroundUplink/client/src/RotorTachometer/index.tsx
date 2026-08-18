@@ -433,7 +433,7 @@ registerComponent<RotorTachometerConfig>({
   defaultSize: { w: 6, h: 10 },
   minSize: { w: 4, h: 4 },
   component: RotorTachometerComponent,
-  dataRequirements: ["robotics.servos", "robotics.available"],
+  dataRequirements: ["robotics.servos", "robotics.available.available"],
   defaultConfig: {},
   actions: rotorActions,
   pushable: true,

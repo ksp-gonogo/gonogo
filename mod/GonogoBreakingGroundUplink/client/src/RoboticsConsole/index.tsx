@@ -400,7 +400,7 @@ registerComponent<RoboticsConsoleConfig>({
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },
   component: RoboticsConsoleComponent,
-  dataRequirements: ["robotics.servos", "robotics.available"],
+  dataRequirements: ["robotics.servos", "robotics.available.available"],
   defaultConfig: {},
   actions: roboticsActions,
   pushable: true,

@@ -479,7 +479,7 @@ registerComponent<DeployedScienceConfig>({
   defaultSize: { w: 5, h: 9 },
   minSize: { w: 4, h: 4 },
   component: DeployedScienceComponent,
-  dataRequirements: ["deployed.bases", "deployed.available"],
+  dataRequirements: ["deployed.bases", "game.dlc.breakingGround"],
   defaultConfig: {},
   actions: [],
   augmentSlots: ["deployed-science.sections", "deployed-science.badges"],
