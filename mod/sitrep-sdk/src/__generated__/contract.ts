@@ -1197,6 +1197,11 @@ export enum TransitionType {
 	Collision = 5,
 	Unknown = 6
 }
+export enum ManeuverFrame {
+	RadialNormalPrograde = 0,
+	TangentNormalBinormal = 1,
+	Unknown = 2
+}
 export interface VesselFlight
 {
 	latitude: Value<"°">;
@@ -1254,6 +1259,9 @@ export interface ManeuverNode
 {
 	id: string;
 	ut: Value<"ut">;
+	ignitionUt?: Value<"ut">;
+	cutoffUt?: Value<"ut">;
+	frame?: ManeuverFrame;
 	dvRadial?: Value<"m/s">;
 	dvNormal?: Value<"m/s">;
 	dvPrograde?: Value<"m/s">;

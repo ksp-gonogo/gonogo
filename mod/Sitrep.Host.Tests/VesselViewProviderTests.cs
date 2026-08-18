@@ -1281,6 +1281,78 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Kerbin", patch.ReferenceBody);
         }
 
+        /// <summary>
+        /// A finite burn's two instants survive the mapper. Both nullable, and
+        /// both absent rather than substituted whenever nothing supplies a
+        /// burn-duration model.
+        /// </summary>
+        [Fact]
+        public void BuildManeuverCarriesTheIgnitionAndCutoffInstantsOfAFiniteBurn()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["ut"] = 12345.0,
+                        ["ignitionUt"] = 12325.0,
+                        ["cutoffUt"] = 12368.0,
+                        ["frame"] = "RadialNormalPrograde",
+                    },
+                });
+
+            var node = Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes);
+            Assert.Equal(12325.0, node.IgnitionUt);
+            Assert.Equal(12368.0, node.CutoffUt);
+            Assert.Equal(ManeuverFrame.RadialNormalPrograde, node.Frame);
+            // Not the midpoint of the other two, and deliberately so: the
+            // symmetry holds only while mass is constant.
+            Assert.Equal(12345.0, node.Ut);
+        }
+
+        /// <summary>
+        /// An unmodelled duration reports ABSENT, never a zero-length burn at
+        /// <c>Ut</c>. Collapsing them would make "we do not know when to light
+        /// the engines" indistinguishable from "this burn is instantaneous".
+        /// </summary>
+        [Fact]
+        public void BuildManeuverLeavesTheBurnInstantsNullWhenNothingModelsADuration()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["ut"] = 12345.0, ["dvPrograde"] = 100.0 },
+                });
+
+            var node = Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes);
+            Assert.Null(node.IgnitionUt);
+            Assert.Null(node.CutoffUt);
+            Assert.NotEqual(node.Ut, node.IgnitionUt);
+        }
+
+        /// <summary>
+        /// Absent and unrecognised are different facts about the frame, and
+        /// only the second is a reason to distrust the delta-v components.
+        /// </summary>
+        [Theory]
+        [InlineData(null, null)]
+        [InlineData("TangentNormalBinormal", ManeuverFrame.TangentNormalBinormal)]
+        [InlineData("something-a-later-provider-invented", ManeuverFrame.Unknown)]
+        public void BuildManeuverDistinguishesAnAbsentFrameFromAnUnrecognisedOne(
+            string? raw, ManeuverFrame? expected)
+        {
+            var rawNode = new Dictionary<string, object?> { ["ut"] = 12345.0 };
+            if (raw != null) rawNode["frame"] = raw;
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?> { rawNode });
+
+            var node = Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes);
+            Assert.Equal(expected, node.Frame);
+        }
+
         /// <summary>A minimal raw patch carrying every field the mapper requires.</summary>
         private static Dictionary<string, object?> PatchRaw(double? mu, int? bodyIndex, int? encounterIndex)
         {

@@ -1376,6 +1376,10 @@ namespace Gonogo.KSP
                     ["dvNormal"] = dv.y,
                     ["dvPrograde"] = dv.z,
                     ["dvTotal"] = dv.magnitude,
+                    // Stock's own node basis, stated rather than assumed. The
+                    // three components above are interpretable ONLY against it,
+                    // and until now that lived in a doc comment.
+                    ["frame"] = ManeuverFrame.RadialNormalPrograde.ToString(),
                     // Post-burn patch chain, started from the node's OWN
                     // nextPatch (not the vessel's current orbit) -- see
                     // BuildOrbitPatchChain's doc comment.

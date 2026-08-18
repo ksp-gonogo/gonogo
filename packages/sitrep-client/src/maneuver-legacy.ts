@@ -34,6 +34,18 @@ export interface ManeuverNodeWirePayload {
   dvNormal?: Value<"m/s"> | null;
   dvPrograde?: Value<"m/s"> | null;
   dvTotal?: Value<"m/s"> | null;
+  /**
+   * Engine light and cutoff for a FINITE burn. Both absent when nothing models
+   * a duration, which is the common case and an honest one; never substituted
+   * from `ut`, so absence stays distinguishable from an instantaneous burn.
+   */
+  ignitionUt?: Value<"s"> | null;
+  cutoffUt?: Value<"s"> | null;
+  /**
+   * The basis `dvRadial`/`dvNormal`/`dvPrograde` are expressed in, as the
+   * `ManeuverFrame` ordinal. Absent only on a recording that predates the field.
+   */
+  frame?: number | null;
   patches: OrbitPatchWirePayload[];
 }
 

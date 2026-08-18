@@ -82,3 +82,33 @@ public enum TransitionType
     Collision,
     Unknown,
 }
+
+/// <summary>
+/// The basis a planned burn's delta-v components are expressed in. On the wire
+/// because the two in use are similar enough to be mistaken for each other and
+/// different enough to be wrong, and the distinction previously lived only in
+/// <c>ManeuverNode</c>'s prose.
+/// </summary>
+#if NETSTANDARD2_0
+[TsEnum]
+#endif
+[SitrepContract]
+public enum ManeuverFrame
+{
+    /// <summary>
+    /// KSP's own maneuver-node basis: radial-out, normal, prograde, taken
+    /// against the patch the node sits on at its own UT.
+    /// </summary>
+    RadialNormalPrograde,
+
+    /// <summary>
+    /// The Frenet trihedron of the trajectory at the burn point: tangent,
+    /// normal, binormal. Not a renaming of
+    /// <see cref="RadialNormalPrograde"/>: the axes differ, and for an
+    /// eccentric orbit they differ by an amount that matters.
+    /// </summary>
+    TangentNormalBinormal,
+
+    /// <summary>Graceful fallback, same role as <see cref="TransitionType.Unknown"/>.</summary>
+    Unknown,
+}

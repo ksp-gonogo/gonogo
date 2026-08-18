@@ -910,7 +910,46 @@ namespace Sitrep.Contract
         /// defaulted because 0 is a real body index, so a defaulted value would
         /// read as a confident wrong answer rather than an absent one.</para>
         /// </para>
+        ///
+        /// <para><b>Major-12 line, Bumped 14 -&gt; 15: a maneuver node becomes a
+        /// BURN.</b> <see cref="ManeuverNode"/> gains <c>IgnitionUt</c>,
+        /// <c>CutoffUt</c> and <c>Frame</c>, all nullable, all additive.
+        ///
+        /// <para>A stock node is an instantaneous impulse and real burns are
+        /// not. Stock KSP concedes this itself by computing
+        /// <c>DeltaVStageInfo.stageBurnTime</c> and carrying a burn-time
+        /// readout on its own navball, and every serious maneuver mod in the
+        /// ecosystem then reimplements the same "start at UT minus half the
+        /// burn time" correction independently, because the stock type has
+        /// nowhere to put it. These two instants are that nowhere, filled in.
+        /// <see cref="ManeuverNode.Ut"/> is unchanged and is now documented as
+        /// the impulsive-equivalent instant it always was.</para>
+        ///
+        /// <para><b>Absent duration, never zero duration.</b> A zero-duration
+        /// burn carrying a thrust implies infinite acceleration, so a consumer
+        /// computing thrust times duration over mass gets nonsense rather than
+        /// an impulse. Absence is the true statement and it is what an unloaded
+        /// craft will always report, since <c>VesselDeltaV.CheckDirtyAndRun</c>
+        /// early-returns on <c>!loaded</c>.</para>
+        ///
+        /// <para><c>Frame</c> moves the delta-v basis out of prose and onto the
+        /// wire. That was safe only while one basis existed; radial/normal/
+        /// prograde and a Frenet tangent/normal/binormal are similar enough to
+        /// be mistaken for each other and different enough to be wrong.
+        /// Nullable because <c>RadialNormalPrograde</c> is index 0, so a
+        /// defaulted value would assert the stock basis for components that
+        /// might be in another. Null means nobody said (a pre-existing
+        /// recording); <c>Unknown</c> means somebody said something we do not
+        /// model, and only the second is a reason to distrust the
+        /// components.</para>
+        ///
+        /// <para>No ordinal or predecessor field: <c>VesselManeuver.Nodes</c> is
+        /// ordered by execution and that ordering already IS the plan. See
+        /// <see cref="ManeuverNode.Patches"/> for the measured rule linking a
+        /// burn to its input trajectory, which is documented rather than
+        /// duplicated onto the wire.</para>
+        /// </para>
         /// </remarks>
-        public const int Minor = 14;
+        public const int Minor = 15;
     }
 }

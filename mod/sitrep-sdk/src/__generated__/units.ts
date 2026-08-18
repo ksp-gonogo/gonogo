@@ -524,11 +524,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     padVesselTitle: "text",
   },
   "ManeuverNode": {
+    cutoffUt: "ut",
     dvNormal: "m/s",
     dvPrograde: "m/s",
     dvRadial: "m/s",
     dvTotal: "m/s",
+    frame: "enum",
     id: "id",
+    ignitionUt: "ut",
     ut: "ut",
   },
   "Meta": {

@@ -803,6 +803,12 @@ namespace Sitrep.Host
                         DvNormal = GetDouble(node, "dvNormal"),
                         DvPrograde = GetDouble(node, "dvPrograde"),
                         DvTotal = GetDouble(node, "dvTotal"),
+                        // Absent whenever nothing supplies a burn-duration
+                        // model, which is the common case and an honest one:
+                        // never substituted from Ut. See IgnitionUt's doc.
+                        IgnitionUt = GetDouble(node, "ignitionUt"),
+                        CutoffUt = GetDouble(node, "cutoffUt"),
+                        Frame = ParseManeuverFrame(GetString(node, "frame")),
                         Patches = MapOrbitPatches(node.TryGetValue("patches", out var rawNodePatches) ? rawNodePatches : null),
                     });
                 }
@@ -1460,6 +1466,9 @@ namespace Sitrep.Host
             ["dvNormal"] = node.DvNormal,
             ["dvPrograde"] = node.DvPrograde,
             ["dvTotal"] = node.DvTotal,
+            ["ignitionUt"] = node.IgnitionUt,
+            ["cutoffUt"] = node.CutoffUt,
+            ["frame"] = node.Frame == null ? null : (object)(int)node.Frame.Value,
             ["patches"] = node.Patches.Select(p => (object?)ToWire(p)).ToList(),
         };
 
@@ -1695,6 +1704,28 @@ namespace Sitrep.Host
                 "maneuver" => TransitionType.Maneuver,
                 "collision" => TransitionType.Collision,
                 _ => TransitionType.Unknown,
+            };
+        }
+
+        /// <summary>
+        /// Null for an ABSENT frame, which is a node off a recording captured
+        /// before the field existed, and <see cref="ManeuverFrame.Unknown"/>
+        /// for a present but unrecognised one. Those are different facts:
+        /// absent means nobody said, unknown means somebody said something we
+        /// do not model, and only the second is a reason to distrust the
+        /// components.
+        /// </summary>
+        private static ManeuverFrame? ParseManeuverFrame(string? raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+            return raw.ToLowerInvariant() switch
+            {
+                "radialnormalprograde" => ManeuverFrame.RadialNormalPrograde,
+                "tangentnormalbinormal" => ManeuverFrame.TangentNormalBinormal,
+                _ => ManeuverFrame.Unknown,
             };
         }
 
