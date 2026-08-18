@@ -759,12 +759,18 @@ namespace Sitrep.Host
                 return null;
             }
 
+            // The two thrust latches are individually nullable and legitimately
+            // absent (a craft that has never lit an engine has neither), so
+            // unlike the four figures above they never gate the record.
+
             return new VesselPropulsion
             {
                 TotalMass = totalMass.Value,
                 DryMass = dryMass.Value,
                 CurrentThrust = currentThrust.Value,
                 AvailableThrust = availableThrust.Value,
+                ThrustStartedUt = GetDouble(propulsion, "thrustStartedUt"),
+                LastThrustEndUt = GetDouble(propulsion, "lastThrustEndUt"),
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -1464,6 +1470,7 @@ namespace Sitrep.Host
             ["dryMass"] = propulsion.DryMass,
             ["currentThrust"] = propulsion.CurrentThrust,
             ["availableThrust"] = propulsion.AvailableThrust,
+            ["thrustCeasedUt"] = propulsion.ThrustCeasedUt,
             ["meta"] = ToWire(propulsion.Meta),
         };
 
