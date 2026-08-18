@@ -44,12 +44,29 @@ fi
 if [ "$SKIP_E2E" = "1" ]; then
   echo "pre-push: SKIP_E2E=1 set, skipping Playwright e2e (CI will still run it)."
 else
-  # Base = the merge target (squash-to-main model): e2e validates the specs that
-  # differ from main, deterministically: not whatever the branch upstream
-  # happens to be. On a direct main push this is just that push's delta.
-  BASE="origin/main"
+  # Base = the branch's MERGE TARGET, which is `staging` for everything except a
+  # direct push to main. It was `origin/main` unconditionally, from when branches
+  # targeted main: staging is now ~1100 commits ahead of it with 33 spec files
+  # different, so every push from every branch selected all 33 and the gate that
+  # calls itself "deliberately LIGHT" had degenerated into a near-full run for
+  # everybody. That is also a contention source: concurrent runs share one set of
+  # webServers (`reuseExistingServer: !CI`), so whichever finishes first tears
+  # them down under the other, and the loser fails with connection errors on
+  # specs it never touched.
+  if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
+    BASE="origin/main"
+  else
+    BASE="origin/staging"
+  fi
+  # Diff against the MERGE BASE, not the tip: a branch that is merely BEHIND its
+  # target would otherwise count the target's own spec changes as its own.
   if ! git rev-parse --verify --quiet "$BASE" >/dev/null; then
     echo "pre-push: no base ref ($BASE) to diff e2e against, skipping e2e (CI runs the full matrix)."
+  else
+    BASE="$(git merge-base HEAD "$BASE" 2>/dev/null || git rev-parse "$BASE")"
+  fi
+  if ! git rev-parse --verify --quiet "$BASE" >/dev/null; then
+    : # already reported above
   elif git diff --quiet "$BASE" HEAD -- tests/playwright; then
     echo "pre-push: no e2e spec changes vs $BASE, skipping e2e (CI runs the full matrix)."
   else
