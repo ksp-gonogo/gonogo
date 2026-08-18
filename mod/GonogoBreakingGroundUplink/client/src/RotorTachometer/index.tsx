@@ -6,11 +6,11 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Gauge } from "@ksp-gonogo/ui";
 import {
   ActionButton,
   Cluster,
   EmptyState,
+  Gauge,
   Inline,
   magnitudeOr,
   Panel,

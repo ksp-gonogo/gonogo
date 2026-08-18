@@ -61,7 +61,6 @@ export const FORBIDDEN_PACKAGES = [
   "core",
   "components",
   "data",
-  "ui",
   "logger",
   "sitrep-client",
   "test-utils",
@@ -120,7 +119,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
       ["core", "test-utils"],
     "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": [
       "sitrep-client",
-      "ui",
     ],
     "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/snapshots.test.tsx":
       ["core", "test-utils"],
@@ -197,14 +195,11 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoKerbcastUplink/client/src/CrewAvatarGate/index.test.tsx": [
       "core",
       "test-utils",
-      "ui",
     ],
-    "mod/GonogoKerbcastUplink/client/src/CrewAvatarGate/index.tsx": ["ui"],
     "mod/GonogoKerbcastUplink/client/src/CrewAvatarGate/slot.test.tsx": [
       "core",
       "sitrep-client",
       "test-utils",
-      "ui",
     ],
     "mod/GonogoKerbcastUplink/client/src/DockingCameraAugment/slot.test.tsx": [
       "core",
@@ -395,7 +390,6 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
     "core",
     "sitrep-client",
     "test-utils",
-    "ui",
   ],
   "mod/GonogoKerbalismUplink/client/package.json": [
     "core",
@@ -407,7 +401,6 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
     "logger",
     "sitrep-client",
     "test-utils",
-    "ui",
   ],
   "mod/GonogoKosUplink/client/package.json": [
     "core",

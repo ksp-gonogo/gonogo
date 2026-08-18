@@ -18,7 +18,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { AugmentSlot, Quality, type SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
-import { ModalProvider } from "@ksp-gonogo/ui";
+import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 // Importing the real module runs its module-load `registerAugment(...)` once,
 // the same way the app picks this augment up via the package's bare

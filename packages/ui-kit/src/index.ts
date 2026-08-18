@@ -224,6 +224,7 @@ export {
 // NOT a general escape from `<Countdown>`: if a node fits, use one.
 export { type FormatDurationOptions, formatDuration } from "./formatDuration";
 // ── Formatters ───────────────────────────────────────────────────────────────
+export { Gauge, type GaugeProps, type GaugeZone } from "./Gauge";
 export {
   GraphNotice,
   type GraphNoticePlacement,
@@ -296,6 +297,7 @@ export {
   type MeterTone,
 } from "./Meter";
 export { MissionDate, type MissionDateProps } from "./MissionDate";
+export { ModalProvider, useModal } from "./Modal";
 export {
   ModalChromeContext,
   type ModalChromeValue,

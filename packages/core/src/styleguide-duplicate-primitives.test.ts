@@ -29,9 +29,14 @@ import { describe, expect, it } from "vitest";
  * The fix in both cases is the same and is cheap: `packages/ui/src/X.tsx`
  * becomes a re-export from ui-kit. Thirteen of ui's files already are.
  *
- * What this does NOT forbid: a genuinely app-only primitive in ui (Modal,
- * Gauge, LineChart and the rest are fine, they have no ui-kit twin), or ui
- * re-exporting a ui-kit name. Only a second IMPLEMENTATION.
+ * What this does NOT forbid: a genuinely app-only primitive in ui (LineChart
+ * and the rest are fine, they have no ui-kit twin), or ui re-exporting a
+ * ui-kit name. Only a second IMPLEMENTATION.
+ *
+ * `Gauge` was on that app-only list until 2026-08-18 and should not have been:
+ * it imports nothing but React, and an Uplink was reaching into this private
+ * package for it. Being app-only is a claim about what a primitive DEPENDS on,
+ * not about who happens to render it today.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));

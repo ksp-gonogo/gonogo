@@ -1,6 +1,6 @@
-import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Gauge } from "./Gauge";
+import { render } from "./testing-react";
 
 describe("Gauge", () => {
   it("renders the value as the centre label by default", () => {

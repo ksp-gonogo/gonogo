@@ -143,9 +143,6 @@ importers:
       '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -265,9 +262,6 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit

@@ -1,8 +1,9 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { ModalProvider, useModal, useModalSaveBar } from "./Modal";
+import { ModalProvider, useModal } from "./Modal";
+import { useModalSaveBar } from "./ModalSaveBar";
+import { render, screen } from "./testing-react";
 
 function Opener({ onOpen }: { onOpen: (id: string) => void }) {
   const { open } = useModal();
