@@ -13,13 +13,13 @@
 // Testing Library and styled-components are OPTIONAL peers and this is a separate
 // entry from the root barrel, so a runtime consumer never resolves any of it.
 //
-// PROPOSAL surface (design D-D): the concrete stateless test helpers the design
-// lists for this subpath (installDomStubs, StubTransport, MockDataSource,
-// createFakeWallClock) will be published REAL here once extracted from
-// core/sitrep-client into a leaf-safe home. The stream fixture cannot follow them:
-// it needs the real `TelemetryClient`/`TimelineStore`, which live ABOVE this leaf,
-// and reimplementing them here would leave every stream test passing while
-// testing the reimplementation.
+// The spine helpers and the registry helpers are NOT here and will not be: they
+// need `core` / `sitrep-client`, which are above this leaf, so they live in
+// `@ksp-gonogo/sitrep-testing` instead. An earlier revision of this comment listed
+// them by name as a future proposal for this subpath, and that cost more than it
+// was worth: greps of the sdk for those symbols hit the prose and read as though
+// the subpath already exported them. The rule, with no names to mis-grep: if a
+// helper needs anything above this package, it belongs in `sitrep-testing`.
 // ---------------------------------------------------------------------------
 
 import { __setGonogoHost, type GonogoHost } from "../api/host";
