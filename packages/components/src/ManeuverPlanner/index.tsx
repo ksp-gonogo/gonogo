@@ -144,6 +144,24 @@ function ManeuverPlannerComponent({
   // reads of two memoized records, and shortly ten branches on two currencies
   // that cannot possibly differ within a frame. Read once, destructure, and the
   // orbital elements visibly arrive together, which is what they are.
+  // OWED: a caption naming how old these elements are.
+  //
+  // The ruling is that the planner plans with whatever it has and the commit
+  // control stays enabled, because too little delta-v at execution time is
+  // operator error and not something a widget should pre-empt. What is forbidden
+  // is planning from stale elements SILENTLY, which is what happens here today.
+  //
+  // Deliberately not implemented yet, and deliberately not implemented privately:
+  // `readingAge(reading, viewUt)` in `@ksp-gonogo/sitrep-client` already answers
+  // it from a stale reading's `asOfUt`, and this widget reading through that shape
+  // is the reckoning-model sweep's job. A local age read would be a second
+  // mechanism deleted a week later.
+  //
+  // Do NOT compute it as `viewUt - orbit.epoch`. `epoch` is the mean-anomaly
+  // REFERENCE epoch, not an observation time, so that difference looks like an
+  // age and is not one. The `ut` token does not catch the mistake: `epoch` and a
+  // view clock are both correctly `Value<"ut">` and subtracting them is
+  // type-legal and meaningless.
   const orbit = useTelemetry("vessel.orbit");
   const target = useTelemetry("vessel.target");
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
