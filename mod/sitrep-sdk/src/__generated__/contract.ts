@@ -1372,6 +1372,8 @@ export interface VesselPropulsion
 	dryMass: Value<"t">;
 	currentThrust: Value<"kN">;
 	availableThrust: Value<"kN">;
+	thrustStartedUt?: Value<"ut">;
+	lastThrustEndUt?: Value<"ut">;
 	meta: PayloadMeta;
 }
 export interface ResourceAmount

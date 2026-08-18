@@ -38,35 +38,6 @@ public class VesselPropulsion
     public double AvailableThrust { get; set; }
 
     /// <summary>
-    /// The UT at which <see cref="CurrentThrust"/> last fell to zero HAVING BEEN
-    /// non-zero. Null while the craft is burning, when it has never burned, and
-    /// after a quickload that rewound past the instant.
-    ///
-    /// <para><b>Which instant this is, stated because the type cannot say
-    /// it.</b> This is an OBSERVATION instant: when something was true. It is not
-    /// a reference epoch (unlike <c>OrbitPatch.Epoch</c>, which is the
-    /// mean-anomaly reference and reads like an age if you subtract it from a
-    /// clock) and it is not a deadline. <b>Never compute a duration from it
-    /// except against the frame's own view clock.</b> The <c>ut</c> token does
-    /// not separate these: every one of them is correctly
-    /// <c>Value&lt;"ut"&gt;</c> and subtracting any two is type-legal and usually
-    /// meaningless.</para>
-    ///
-    /// <para><b>Latched, not an edge, and that is the point.</b> A consumer
-    /// watching for the transition only learns anything if it sees both the
-    /// burning frame and the stopped one, and the transport may drop a frame. A
-    /// standing instant survives the gap, the same reason the delay work
-    /// publishes deadlines rather than countdowns.</para>
-    ///
-    /// <para>Derived from MEASURED thrust, never from
-    /// <c>VesselControl.Throttle</c>. The throttle is a commanded lever: it stays
-    /// where the pilot left it through a flameout, a dry tank or an unlit stage,
-    /// so it cannot move when the thing it would describe happens.</para>
-    /// </summary>
-    [SitrepUnit(Units.UniversalTime)]
-    public double? ThrustCeasedUt { get; set; }
-
-    /// <summary>
     /// UT the craft's CURRENT continuous period of thrust began, or null when
     /// it is not under thrust as of the last measurable reading.
     ///

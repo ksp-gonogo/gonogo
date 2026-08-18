@@ -1063,6 +1063,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     availableThrust: "kN",
     currentThrust: "kN",
     dryMass: "t",
+    lastThrustEndUt: "ut",
+    thrustStartedUt: "ut",
     totalMass: "t",
   },
   "VesselRosterEntry": {
@@ -1582,6 +1584,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     availableThrust: "kN",
     currentThrust: "kN",
     dryMass: "t",
+    lastThrustEndUt: "ut",
+    thrustStartedUt: "ut",
     totalMass: "t",
   },
   "vessel.structure": {

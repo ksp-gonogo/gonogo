@@ -1470,7 +1470,12 @@ namespace Sitrep.Host
             ["dryMass"] = propulsion.DryMass,
             ["currentThrust"] = propulsion.CurrentThrust,
             ["availableThrust"] = propulsion.AvailableThrust,
-            ["thrustCeasedUt"] = propulsion.ThrustCeasedUt,
+            // Both latches. BuildPropulsion set them and this dropped them, so
+            // they were mapped, serialised away, and read as undefined forever
+            // on the client. Caught by the every-property-reaches-the-wire
+            // ratchet, which is exactly the defect it exists for.
+            ["thrustStartedUt"] = propulsion.ThrustStartedUt,
+            ["lastThrustEndUt"] = propulsion.LastThrustEndUt,
             ["meta"] = ToWire(propulsion.Meta),
         };
 

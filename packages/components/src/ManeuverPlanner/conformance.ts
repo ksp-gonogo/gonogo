@@ -37,21 +37,54 @@ export interface BurnConformance {
 }
 
 /**
- * Where the burn is, in the only terms the delta-v channel can support.
+ * Where the burn is, given the delta-v channel and, for `stopped-short`, the
+ * thrust latch on `vessel.propulsion`.
  *
- * There is no `under-burned` member, and its absence is deliberate. Telling a
- * shortfall from a burn still in progress needs to know the ENGINES STOPPED,
- * and nothing on the maneuver channel says that: a burn paused halfway and a
- * burn abandoned halfway are the same reading here. `vessel.control.throttle`
- * returning to zero after being non-zero is the signal that would separate
- * them, and until that is wired in, claiming a shortfall would be inventing the
- * distinction rather than reporting it.
+ * There is still no `under-burned` member, and the reason has changed. It used
+ * to be that nothing said the engines had stopped; `lastThrustEndUt` now does.
+ * What no reading can say is WHY they stopped: a burn paused to be re-planned
+ * and a burn abandoned produce the same instant, because the difference between
+ * them is whether the operator comes back, which has not happened yet at the
+ * moment of the reading. "Under-burned" asserts a shortfall, so it would put
+ * exactly that unavailable judgement into the label.
+ *
+ * `stopped-short` is what is actually known: thrust has ceased and this burn
+ * still owes delta-v. It is true either way, and it reads correctly when the
+ * truth is a deliberate pause.
  */
 export type BurnConformancePhase =
   | "unknown"
   | "not-started"
   | "in-progress"
+  | "stopped-short"
   | "delivered";
+
+/**
+ * What the propulsion channel's thrust latch says as of the latest reading, or
+ * null when nothing has been heard from it.
+ *
+ * Null is not "no thrust": it is "no observation", and the two must never
+ * collapse. A craft whose propulsion channel has not arrived reads as a craft
+ * whose engines are off if they do, and every burn on the plan would be
+ * announced as stopped short of its target.
+ */
+export interface ThrustObservation {
+  /** Whether the craft is under thrust as of the latest measurable reading. */
+  thrusting: boolean;
+  /**
+   * UT thrust last ceased, or null when no period of thrust has been observed
+   * to end for this craft.
+   *
+   * An OBSERVATION INSTANT: it says when something was seen to be true. It is
+   * carried here only to distinguish "the engines ran and stopped" from "the
+   * engines have never run", which a bare `thrusting: false` cannot do. It is
+   * deliberately not surfaced on `BurnConformance` and deliberately never
+   * subtracted from a planned instant: that subtraction is type-legal and
+   * meaningless, and it is the shape of three separate defects already found on
+   * this branch.
+   */
+  lastThrustEndUt: number | null;
+}
 
 /**
  * Below this much remaining delta-v a burn counts as delivered, m/s. The same
@@ -73,6 +106,7 @@ import { COMPLETED_THRESHOLD_DV } from "./BurnCompletionTracker";
 export function burnConformance(
   remainingDv: number,
   maxDvSeen: number | null,
+  thrust?: ThrustObservation | null,
   threshold: number = COMPLETED_THRESHOLD_DV,
 ): BurnConformance {
   const planned =
@@ -86,7 +120,7 @@ export function burnConformance(
     deliveredDv: delivered,
     deliveredFraction:
       planned == null || planned <= 0 ? null : (delivered as number) / planned,
-    phase: phaseOf(remainingDv, planned, delivered, threshold),
+    phase: phaseOf(remainingDv, planned, delivered, thrust, threshold),
   };
 }
 
@@ -94,12 +128,28 @@ function phaseOf(
   remainingDv: number,
   planned: number | null,
   delivered: number | null,
+  thrust: ThrustObservation | null | undefined,
   threshold: number,
 ): BurnConformancePhase {
   // Without a planned figure the remaining number alone says nothing about
   // progress, so it reports unknown rather than guessing "not started".
   if (planned == null || delivered == null) return "unknown";
+  // Delivered first: a burn that met its target was not stopped short of it,
+  // however the engines came to be off afterwards.
   if (remainingDv < threshold) return "delivered";
+  // Then never-started: a burn nothing has gone into cannot have been stopped
+  // short of anything, even if the craft's engines ceased for another burn.
   if (delivered < threshold) return "not-started";
+  // Both halves are required, and `thrusting` is the one easy to forget:
+  // ThrustObserver does NOT clear `lastThrustEndUt` when the engines relight,
+  // so a check on that field alone reports a burn stopped while the craft is
+  // actively flying it.
+  //
+  // Absent is NO OBSERVATION, never "engines off". Collapsing the two would
+  // announce every burn on a craft whose propulsion channel has not arrived as
+  // stopped short of its target.
+  if (thrust != null && !thrust.thrusting && thrust.lastThrustEndUt != null) {
+    return "stopped-short";
+  }
   return "in-progress";
 }

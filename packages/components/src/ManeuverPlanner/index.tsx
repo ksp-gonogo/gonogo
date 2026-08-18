@@ -166,6 +166,18 @@ function ManeuverPlannerComponent({
   // type-legal and meaningless.
   const orbit = useTelemetry("vessel.orbit");
   const target = useTelemetry("vessel.target");
+  // The thrust latch, for conformance. Undefined until the propulsion channel
+  // arrives, which is NOT "engines off": see ThrustLatchReading.
+  const propulsion = useTelemetry("vessel.propulsion");
+  const thrustLatch = propulsion
+    ? {
+        // Latched, not `currentThrust > 0`: the start instant is nulled on
+        // cessation and set on ignition, so it survives a dropped frame the way
+        // an instantaneous thrust reading does not.
+        thrusting: magnitudeOf(propulsion.thrustStartedUt) != null,
+        lastThrustEndUt: magnitudeOf(propulsion.lastThrustEndUt),
+      }
+    : undefined;
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
   const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
   const {
@@ -640,6 +652,7 @@ function ManeuverPlannerComponent({
               conformance={burnConformance(
                 node.deltaVMagnitude,
                 maxDvByUt.get(node.UT) ?? null,
+                thrustLatch,
               )}
             />
           ))}

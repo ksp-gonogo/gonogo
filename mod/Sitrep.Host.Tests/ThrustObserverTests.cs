@@ -137,5 +137,48 @@ namespace Sitrep.Host.Tests
             Assert.Null(observer.ThrustStartedUt);
             Assert.Equal(140, observer.LastThrustEndUt);
         }
+
+        /// <summary>
+        /// A quickload moves UT backwards. A latched instant then sits in the
+        /// craft's own future, which reads as a burn that ended before it
+        /// happened and would let conformance announce a burn stopped short of
+        /// a target it has not reached yet.
+        ///
+        /// <para>Merged from a second implementation of this class written
+        /// independently against the same brief. It was the one case that one
+        /// covered and this one did not.</para>
+        /// </summary>
+        [Fact]
+        public void AnInstantLeftInTheFutureByARewindIsDropped()
+        {
+            var observer = new ThrustObserver();
+            observer.Observe("v-1", 100, 60, measurable: true);
+            observer.Observe("v-1", 145, 0, measurable: true);
+            Assert.Equal(145, observer.LastThrustEndUt);
+
+            observer.Observe("v-1", 120, 0, measurable: true);
+
+            Assert.Null(observer.LastThrustEndUt);
+        }
+
+        /// <summary>
+        /// Rewinding past a START instant re-establishes it at the tick actually
+        /// being observed rather than leaving the old one in the future. The
+        /// craft IS thrusting at the rewound tick, so "began at 80" is the true
+        /// answer and "began at 100" is a claim about a moment that has not
+        /// happened again yet.
+        /// </summary>
+        [Fact]
+        public void ARewindPastAStartInstantReanchorsItToTheRewoundTick()
+        {
+            var observer = new ThrustObserver();
+            observer.Observe("v-1", 100, 60, measurable: true);
+            Assert.Equal(100, observer.ThrustStartedUt);
+
+            observer.Observe("v-1", 80, 60, measurable: true);
+
+            Assert.Equal(80, observer.ThrustStartedUt);
+        }
+
     }
 }

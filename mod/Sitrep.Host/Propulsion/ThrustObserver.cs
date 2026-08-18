@@ -29,6 +29,12 @@ namespace Sitrep.Host.Propulsion
     /// through that would latch a cessation the moment a burning craft was
     /// switched away from, so an unmeasurable tick HOLDS both latches instead
     /// of moving them.</para>
+    ///
+    /// <para><b>A quickload can move UT backwards.</b> A latched instant then
+    /// sits in the craft's own future, which reads as a burn that ended before
+    /// it happened and would let a conformance surface announce a burn stopped
+    /// short of a target it has not reached yet. An instant later than the tick
+    /// being observed is dropped rather than published.</para>
     /// </summary>
     public sealed class ThrustObserver
     {
@@ -92,6 +98,19 @@ namespace Sitrep.Host.Propulsion
             if (!measurable || double.IsNaN(thrustKn) || double.IsInfinity(thrustKn))
             {
                 return;
+            }
+
+            // Rewound past a latched instant (a quickload). Keeping one would
+            // put it in the craft's future; see the class doc.
+            if (ThrustStartedUt.HasValue && ThrustStartedUt.Value > ut)
+            {
+                ThrustStartedUt = null;
+                _underThrust = false;
+            }
+            if (LastThrustEndUt.HasValue && LastThrustEndUt.Value > ut)
+            {
+                LastThrustEndUt = null;
+                _underThrust = false;
             }
 
             var thrusting = thrustKn > ThrustEpsilonKn;

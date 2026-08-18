@@ -34,6 +34,12 @@ const PHASE: Record<BurnConformancePhase, { label: string; colour: string }> = {
   unknown: { label: "Not observed", colour: "var(--color-text-muted)" },
   "not-started": { label: "Not started", colour: "var(--color-data-1)" },
   "in-progress": { label: "Burning", colour: "var(--color-data-3)" },
+  // "Thrust ceased", not "Stopped short", and the difference is the point. The
+  // phase NAME is about the burn; the LABEL has to be about the observation,
+  // because a burn paused to be re-planned and a burn abandoned produce the
+  // same reading. "Stopped short" would put a shortfall in front of an operator
+  // who may simply be about to carry on.
+  "stopped-short": { label: "Thrust ceased", colour: "var(--color-data-2)" },
   delivered: { label: "Delivered", colour: "var(--color-data-5)" },
 };
 
