@@ -1,4 +1,3 @@
-import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // No `@ksp-gonogo/*` aliases. This client imports only published packages, so
