@@ -43,6 +43,21 @@ export type ResolvedDeps<Deps extends readonly Dep[]> = {
   [K in keyof Deps]: Deps[K] extends Dep ? ResolvedDep<Deps[K]> : never;
 };
 
+/**
+ * What a `compute` is told about the frame it is running for, beyond its deps.
+ *
+ * Only the view time, and deliberately only that: a processor that needs to
+ * know WHEN it is deriving for is common (anything turning an instant on the
+ * wire into a remaining duration), and a processor that reaches for a wall
+ * clock instead is the bug `readingAge` and the wall-clock ratchet exist to
+ * stop. Handing it the frame's own frozen view time means there is nothing to
+ * reach for.
+ */
+export interface ProcessorFrame {
+  /** The frame's frozen view time. Every read in this frame shares it. */
+  viewUt: number;
+}
+
 export interface ProcessorDefinition<
   Deps extends readonly Dep[] = readonly Dep[],
   R = unknown,
@@ -50,7 +65,7 @@ export interface ProcessorDefinition<
   id: string;
   owner: string;
   deps: Deps;
-  compute: (values: ResolvedDeps<Deps>) => R;
+  compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
 }
 
 export type AnyProcessorDefinition = ProcessorDefinition<
@@ -71,7 +86,7 @@ export function defineProcessor<const Deps extends readonly Dep[], R>(def: {
   id: string;
   owner: string;
   deps: Deps;
-  compute: (values: ResolvedDeps<Deps>) => R;
+  compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
 }): ProcessorHandle<R> {
   const stampedId = `${def.owner}:${def.id}`;
   const existing = processors.get(stampedId);
@@ -79,7 +94,10 @@ export function defineProcessor<const Deps extends readonly Dep[], R>(def: {
     id: stampedId,
     owner: def.owner,
     deps: def.deps,
-    compute: def.compute as (values: ResolvedDeps<readonly Dep[]>) => unknown,
+    compute: def.compute as (
+      values: ResolvedDeps<readonly Dep[]>,
+      frame: ProcessorFrame,
+    ) => unknown,
   };
   if (existing !== undefined) {
     if (existing.compute === stamped.compute) return { id: stampedId };

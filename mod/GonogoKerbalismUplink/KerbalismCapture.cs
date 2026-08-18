@@ -286,7 +286,18 @@ namespace Gonogo.KerbalismUplink
                     // amounts and no per-craft channel carries those. Null means
                     // not derivable, and stays null: see that type's doc comment
                     // for why a sentinel would be worse than nothing.
-                    ["deathClockSec"] = deathClockSec,
+                    //
+                    // Published as the INSTANT it lands on rather than the
+                    // seconds remaining: the remaining figure is only true
+                    // measured from asOfUt, which for a background craft is N
+                    // ticks behind the read time, and a "s" duration says
+                    // nothing about what it was measured from. Anchoring it here
+                    // makes it a Value<"ut">, which <Countdown> refuses, so a
+                    // consumer cannot skip subtracting the view time. Null when
+                    // either half is unknown, since an instant needs both.
+                    ["deathClockUt"] = deathClockSec.HasValue && asOfUt.HasValue
+                        ? asOfUt.Value + deathClockSec.Value
+                        : (double?)null,
                     ["asOfUt"] = asOfUt,
                 });
             }

@@ -234,6 +234,7 @@ export {
   getAllProcessors,
   getProcessor,
   type ProcessorDefinition,
+  type ProcessorFrame,
   type ProcessorHandle,
   type ResolvedDeps,
 } from "./processors";

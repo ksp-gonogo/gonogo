@@ -677,7 +677,8 @@ public class KerbalismCrewEntry
     public string? Trait { get; set; }
     public List<KerbalismCrewRule>? Rules { get; set; }
     /// <summary>
-    /// Seconds until the soonest FATAL rule kills this kerbal, in two stages:
+    /// The UT at which the soonest FATAL rule kills this kerbal, derived in two
+    /// stages:
     /// how long the rule's input resource lasts at its current net rate, since a
     /// rule only degenerates once its input is gone, then how long the
     /// accumulator takes to climb from where it is to the fatal threshold.
@@ -696,8 +697,22 @@ public class KerbalismCrewEntry
     /// answer when nothing is closing in at all, a craft in balance on its
     /// consumables has no deadline rather than an enormous one.</para>
     ///
-    /// <para>It inherits <see cref="AsOfUt"/>: a deadline derived from a reading
-    /// taken N ticks ago was true N ticks ago, and is NOT restamped to now.</para>
+    /// <para><b>An INSTANT, not a remaining duration, and that is the whole
+    /// reason for the name.</b> The deadline is derived from a reading taken at
+    /// <see cref="AsOfUt"/>, which for a background craft can be N ticks behind
+    /// the read time, so a "seconds remaining" figure is only true measured from
+    /// that stamp and a consumer rendering it raw is off by however long ago the
+    /// stamp was. That is the same defect as an absolute UT reaching a countdown,
+    /// and it had the same cause: <c>"s"</c> said nothing about what the duration
+    /// was measured FROM.</para>
+    ///
+    /// <para>Emitting <c>AsOfUt + remaining</c> instead loses nothing (the same
+    /// information, and <see cref="AsOfUt"/> is still published beside it as
+    /// provenance) and makes the arithmetic unskippable: the field is a
+    /// <c>Value&lt;"ut"&gt;</c>, <c>&lt;Countdown&gt;</c> refuses one outright,
+    /// and a consumer has to subtract the frame's view time. It is NOT restamped
+    /// to now: nothing is advanced, the instant is exactly the one the
+    /// stamped-at reading implied.</para>
     ///
     /// <para><b>Telling "nothing is closing in" from "this install cannot
     /// compute deadlines at all".</b> Both are null here, and they are not the
@@ -711,8 +726,8 @@ public class KerbalismCrewEntry
     /// exactly that), so a consumer that means to show a deadline should read
     /// that list once and say "not modelled" rather than "stable".</para>
     /// </summary>
-    [SitrepUnit(Units.Seconds)]
-    public double? DeathClockSec { get; set; }
+    [SitrepUnit(Units.UniversalTime)]
+    public double? DeathClockUt { get; set; }
 
     /// <summary>
     /// The UT this kerbal's rule accumulators were last ADVANCED at, which for

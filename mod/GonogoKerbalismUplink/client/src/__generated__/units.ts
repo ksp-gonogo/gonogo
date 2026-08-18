@@ -85,7 +85,7 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "KerbalismCrewEntry": {
     asOfUt: "ut",
-    deathClockSec: "s",
+    deathClockUt: "ut",
     name: "text",
     trait: "text",
   },
@@ -282,7 +282,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "kerbalism.crew": {
     asOfUt: "ut",
-    deathClockSec: "s",
+    deathClockUt: "ut",
     name: "text",
     trait: "text",
   },

@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 import { deriveCrewSurvival, toneFor } from "./processor";
 
 const units = (n: number) => value("units", n);
-const seconds = (n: number) => value("s", n);
+/**
+ * The frame's view time every case reads at. The wire carries the death clock
+ * as an INSTANT, so a deadline N seconds out is stamped `VIEW_UT + N`: that is
+ * the whole point of the change, and writing the fixtures this way is what
+ * makes a forgotten subtraction fail rather than pass.
+ */
+const VIEW_UT = 1_000_000;
+const deadlineIn = (n: number) => value("ut", VIEW_UT + n);
 
 describe("deriveCrewSurvival", () => {
   it("joins vessel.crew's roster against kerbalism.crew by name", () => {
@@ -30,6 +37,7 @@ describe("deriveCrewSurvival", () => {
           ],
         },
       ],
+      VIEW_UT,
     );
 
     expect(result.kerbals).toHaveLength(2);
@@ -63,6 +71,7 @@ describe("deriveCrewSurvival", () => {
           ],
         },
       ],
+      VIEW_UT,
     );
     // Worst (radiation, 0.9) first, regardless of wire order.
     expect(result.kerbals[0].rules).toEqual([
@@ -90,6 +99,7 @@ describe("deriveCrewSurvival", () => {
           ],
         },
       ],
+      VIEW_UT,
     );
     expect(result.kerbals[0].worstRule?.fraction).toBeCloseTo(0.9);
   });
@@ -117,6 +127,7 @@ describe("deriveCrewSurvival", () => {
           ],
         },
       ],
+      VIEW_UT,
     );
     expect(result.kerbals[0].worstRule).toEqual({
       name: "some-custom-rule",
@@ -132,6 +143,7 @@ describe("deriveCrewSurvival", () => {
         crew: [{ name: "Bob" }],
       },
       [],
+      VIEW_UT,
     );
     expect(result.kerbals).toHaveLength(1);
     expect(result.kerbals[0].worstRule).toBeUndefined();
@@ -148,20 +160,22 @@ describe("deriveCrewSurvival", () => {
         crew: [{ name: "Bob" }],
       },
       undefined,
+      VIEW_UT,
     );
     expect(result.kerbals).toHaveLength(1);
     expect(result.kerbals[0].tone).toBe("go");
     expect(result.soonestDeathClockSec).toBeNull();
   });
 
-  it("reads deathClockSec straight off the wire and forces nogo when soon", () => {
+  it("turns the wire's death-clock INSTANT into time remaining, and forces nogo when soon", () => {
     const result = deriveCrewSurvival(
       {
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Val" }],
       },
-      [{ name: "Val", deathClockSec: seconds(120) }],
+      [{ name: "Val", deathClockUt: deadlineIn(120) }],
+      VIEW_UT,
     );
     expect(result.kerbals[0].deathClockSec).toBe(120);
     expect(result.kerbals[0].tone).toBe("nogo");
@@ -176,22 +190,27 @@ describe("deriveCrewSurvival", () => {
         crew: [{ name: "Val" }, { name: "Bob" }],
       },
       [
-        { name: "Val", deathClockSec: seconds(9000) },
-        { name: "Bob", deathClockSec: seconds(300) },
+        { name: "Val", deathClockUt: deadlineIn(9000) },
+        { name: "Bob", deathClockUt: deadlineIn(300) },
       ],
+      VIEW_UT,
     );
     expect(result.soonestDeathClockSec).toBe(300);
   });
 
   it("renders no crew when vessel.crew is undefined", () => {
-    const result = deriveCrewSurvival(undefined, [
-      {
-        name: "Val",
-        rules: [
-          { name: "stress", value: units(0.9), fatalThreshold: units(1) },
-        ],
-      },
-    ]);
+    const result = deriveCrewSurvival(
+      undefined,
+      [
+        {
+          name: "Val",
+          rules: [
+            { name: "stress", value: units(0.9), fatalThreshold: units(1) },
+          ],
+        },
+      ],
+      VIEW_UT,
+    );
     expect(result.kerbals).toEqual([]);
     expect(result.soonestDeathClockSec).toBeNull();
   });

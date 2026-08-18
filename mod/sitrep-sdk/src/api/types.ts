@@ -260,9 +260,15 @@ export interface UplinkClientHandle {
   >(def: {
     id: string;
     deps: Deps;
-    /** Intentionally loose: the leaf cannot name `ResolvedDeps<Deps>`. */
+    /**
+     * Intentionally loose: the leaf cannot name `ResolvedDeps<Deps>`. The
+     * second parameter is the frame the derivation is running for, carrying its
+     * frozen `viewUt`, which is what a processor turning an instant on the wire
+     * into a remaining duration needs; it is optional so a derivation that does
+     * not care about time keeps a one-argument compute.
+     */
     // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
-    compute: (values: any) => R;
+    compute: (values: any, frame: { viewUt: number }) => R;
   }): { readonly id: string; readonly __resultType?: R };
   /**
    * Register this client's forward model for a Topic, auto-namespaced to it.

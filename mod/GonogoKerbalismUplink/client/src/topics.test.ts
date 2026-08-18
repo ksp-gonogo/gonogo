@@ -153,7 +153,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       {
         name: "Jebediah Kerman",
         trait: "Pilot",
-        deathClockSec: 3_600,
+        deathClockUt: 3_600,
         rules: [
           {
             name: "radiation",
@@ -171,9 +171,12 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
     });
 
     // The Topic's own field: covered by the TOPIC registry.
-    expect(result.current?.[0]?.deathClockSec).toMatchObject({
+    // "ut", not "s": the death clock is the INSTANT the deadline lands on, not
+    // the seconds remaining, so a consumer has to subtract the frame's view time
+    // and <Countdown> refuses it until they do.
+    expect(result.current?.[0]?.deathClockUt).toMatchObject({
       magnitude: 3_600,
-      unit: "s",
+      unit: "ut",
     });
     // The nested rule's fields: reachable ONLY through the TYPE registry, since
     // KerbalismCrewRule is not a Topic and the SDK's generated type map does not

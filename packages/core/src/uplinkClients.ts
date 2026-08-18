@@ -25,6 +25,7 @@ import {
   type Dep,
   type DerivedChannelDefinition,
   defineProcessor,
+  type ProcessorFrame,
   type ProcessorHandle,
   type ReckonerFor,
   type ResolvedDeps,
@@ -63,7 +64,7 @@ export interface UplinkClientHandle {
   registerProcessor<const Deps extends readonly Dep[], R>(def: {
     id: string;
     deps: Deps;
-    compute: (values: ResolvedDeps<Deps>) => R;
+    compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
   }): ProcessorHandle<R>;
   /**
    * Register this client's forward model for a Topic (same bridge shape as
@@ -132,7 +133,7 @@ export function defineUplinkClient(cfg: {
     registerProcessor<const Deps extends readonly Dep[], R>(def: {
       id: string;
       deps: Deps;
-      compute: (values: ResolvedDeps<Deps>) => R;
+      compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
     }): ProcessorHandle<R> {
       return defineProcessor({ ...def, owner: cfg.id });
     },

@@ -58,7 +58,18 @@ export interface KerbalSurvival {
    *  Kept alongside `rules` since the death-clock badge only ever needs the
    *  worst one, not the full list. */
   worstRule: KerbalRuleState | undefined;
-  /** Seconds until this kerbal dies, straight off the wire; null while not resolved. */
+  /**
+   * Seconds until this kerbal dies, measured from the FRAME's view time.
+   *
+   * The wire carries `deathClockUt`, the instant itself, so this is a
+   * subtraction the processor does once with the frame's own clock rather than
+   * a duration each consumer re-anchors (or forgets to). The wire used to carry
+   * the remaining seconds directly, which was only true measured from the
+   * payload's `asOfUt` and read as current wherever anyone rendered it raw.
+   * Null while not resolved, and null is never a large number: a kerbal whose
+   * deadline cannot be computed and one with years of supplies must not render
+   * the same.
+   */
   deathClockSec: number | null;
   tone: SurvivalTone;
 }
@@ -123,6 +134,7 @@ function toKerbalSurvival(
   name: string,
   trait: string | undefined,
   entry: KerbalismCrewEntry | undefined,
+  viewUt: number,
 ): KerbalSurvival {
   const rules: KerbalRuleState[] = [];
   for (const rule of entry?.rules ?? []) {
@@ -133,8 +145,13 @@ function toKerbalSurvival(
   // alarming rule first when it has to collapse the rest behind a disclosure.
   rules.sort((a, b) => b.fraction - a.fraction);
   const worstRule = rules[0];
-  const rawDeathClock = mag(entry?.deathClockSec, Number.NaN);
-  const deathClockSec = Number.isFinite(rawDeathClock) ? rawDeathClock : null;
+  // An INSTANT on the wire, so the remaining time is it minus the frame's view
+  // time. Clamped at zero: a deadline already behind us is "now", never a
+  // negative countdown.
+  const deathClockUt = mag(entry?.deathClockUt, Number.NaN);
+  const deathClockSec = Number.isFinite(deathClockUt)
+    ? Math.max(0, deathClockUt - viewUt)
+    : null;
   return {
     name,
     trait,
@@ -155,6 +172,7 @@ function toKerbalSurvival(
 export function deriveCrewSurvival(
   crew: VesselCrew | undefined,
   kerbals: KerbalismCrewEntry[] | undefined,
+  viewUt: number,
 ): CrewSurvival {
   const byName = new Map<string, KerbalismCrewEntry>();
   for (const entry of kerbals ?? []) {
@@ -162,7 +180,7 @@ export function deriveCrewSurvival(
   }
   const kerbalsOut = (crew?.crew ?? []).map((member) => {
     const name = member.name ?? "Unknown";
-    return toKerbalSurvival(name, member.trait, byName.get(name));
+    return toKerbalSurvival(name, member.trait, byName.get(name), viewUt);
   });
   const clocks = kerbalsOut
     .map((k) => k.deathClockSec)
@@ -186,8 +204,14 @@ export const CREW_SURVIVAL = KERBALISM.registerProcessor({
   // receiver does not contextually type a chained `.map()`/`.filter()`
   // callback's own parameters, which trips `noImplicitAny` on every one of
   // them the moment more than plain property access is needed.
-  compute: ([crew, kerbals]: readonly [
-    VesselCrew | undefined,
-    KerbalismCrewEntry[] | undefined,
-  ]): CrewSurvival => deriveCrewSurvival(crew, kerbals),
+  compute: (
+    [crew, kerbals]: readonly [
+      VesselCrew | undefined,
+      KerbalismCrewEntry[] | undefined,
+    ],
+    // The frame's frozen view time, which is what turns the wire's death-clock
+    // INSTANT into a remaining duration. Reaching for a wall clock here would
+    // let two readouts in one frame disagree about the same deadline.
+    frame: { viewUt: number },
+  ): CrewSurvival => deriveCrewSurvival(crew, kerbals, frame.viewUt),
 });

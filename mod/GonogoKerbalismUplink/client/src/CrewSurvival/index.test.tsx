@@ -316,7 +316,7 @@ describe("CrewSurvivalBadgeAugment", () => {
   it("flags an imminent death clock as a countdown to fatal", async () => {
     const fixture = newFixture();
     renderBadgeAugment(fixture, "Jebediah Kerman", 0);
-    emit(fixture, CREW, [{ name: "Jebediah Kerman", deathClockSec: 120 }]);
+    emit(fixture, CREW, [{ name: "Jebediah Kerman", deathClockUt: 130 }]);
     expect(await screen.findByText(/to fatal/i)).toBeInTheDocument();
   });
 

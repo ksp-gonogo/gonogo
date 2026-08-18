@@ -340,11 +340,40 @@ public class KerbalismCaptureTests
             ["Bill Kerman"] = null,
         };
 
+        const double asOfUt = 500_000.0;
         var built = KerbalismCapture.BuildCrew(
-            crew, new Dictionary<string, RuleConstants>(), deathClockSecByKerbal: deadlines);
+            crew, new Dictionary<string, RuleConstants>(), asOfUt, deadlines);
 
-        Assert.Equal(3_600.0, (double)((Dictionary<string, object?>)built[0])["deathClockSec"]!, 6);
-        Assert.Null(((Dictionary<string, object?>)built[1])["deathClockSec"]);
+        // Published as the INSTANT the deadline lands on, so the anchor is part
+        // of the value rather than something a consumer has to remember to
+        // subtract: asOfUt + remaining.
+        Assert.Equal(asOfUt + 3_600.0, (double)((Dictionary<string, object?>)built[0])["deathClockUt"]!, 6);
+        Assert.Null(((Dictionary<string, object?>)built[1])["deathClockUt"]);
+    }
+
+    /// <summary>
+    /// An instant needs an anchor, so a derivable remaining-time with NO
+    /// <c>asOfUt</c> publishes nothing rather than an unanchored figure.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// This is stricter than the old remaining-seconds field, deliberately.
+    /// That field was published unanchored whenever Kerbalism's own
+    /// last-evaluation marker could not be read, and every consumer rendered it
+    /// as though it were measured from now, which is the bug the instant exists
+    /// to make unrepresentable. Losing the readout in that case is the honest
+    /// outcome: a duration whose origin is unknown cannot become a countdown.
+    /// </remarks>
+    [Fact]
+    public void BuildCrew_publishes_no_deadline_when_it_has_no_anchor_to_hang_it_on()
+    {
+        var crew = new[] { new KerbalRulesRaw { Name = "Val Kerman", Trait = "Pilot" } };
+        var deadlines = new Dictionary<string, double?> { ["Val Kerman"] = 120.0 };
+
+        var built = KerbalismCapture.BuildCrew(
+            crew, new Dictionary<string, RuleConstants>(), asOfUt: null, deadlines);
+
+        Assert.Null(((Dictionary<string, object?>)built[0])["deathClockUt"]);
     }
 
     [Fact]

@@ -51,7 +51,7 @@
   "types": {
     "KerbalismCrewEntry": {
       "asOfUt": "ut",
-      "deathClockSec": "s",
+      "deathClockUt": "ut",
       "name": "text",
       "trait": "text"
     },
@@ -243,7 +243,7 @@
   "topics": {
     "kerbalism.crew": {
       "asOfUt": "ut",
-      "deathClockSec": "s",
+      "deathClockUt": "ut",
       "name": "text",
       "trait": "text"
     },

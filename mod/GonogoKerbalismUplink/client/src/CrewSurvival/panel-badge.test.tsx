@@ -126,7 +126,7 @@ describe("CrewStatus panel badge (crew-survival-badge contribution)", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman", trait: "Pilot" }],
       },
-      [{ name: "Jebediah Kerman", deathClockSec: 120 }],
+      [{ name: "Jebediah Kerman", deathClockUt: 130 }],
     );
     expect(await screen.findByText("Crew critical")).toBeInTheDocument();
     expect(screen.queryByText(/Jebediah/)).not.toBeInTheDocument();
@@ -147,8 +147,8 @@ describe("CrewStatus panel badge (crew-survival-badge contribution)", () => {
         ],
       },
       [
-        { name: "Jebediah Kerman", deathClockSec: 120 },
-        { name: "Bill Kerman", deathClockSec: 90 },
+        { name: "Jebediah Kerman", deathClockUt: 130 },
+        { name: "Bill Kerman", deathClockUt: 100 },
       ],
     );
     expect(await screen.findByText("2 crew critical")).toBeInTheDocument();

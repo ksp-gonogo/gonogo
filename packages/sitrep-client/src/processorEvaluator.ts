@@ -231,7 +231,13 @@ function evaluate(id: string, token: { generation: number }): void {
   const def = getProcessor(id);
   if (!def) return;
   const values = def.deps.map((dep) => resolveDep(dep, token));
-  const next = def.compute(values as never);
+  // The frame's own frozen view time, so a processor deriving a remaining
+  // duration from an instant on the wire has a clock without reaching for a
+  // wall clock. `activeStore` is non-null here: `evaluateAllActive` returns
+  // early without one and is the only caller.
+  const next = def.compute(values as never, {
+    viewUt: activeStore?.currentFrame().viewUt ?? 0,
+  });
   recordEvaluation();
   entry.lastFrameGeneration = token.generation;
   if (!Object.is(entry.value, next)) {

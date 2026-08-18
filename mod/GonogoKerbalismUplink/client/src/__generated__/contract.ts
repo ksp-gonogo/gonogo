@@ -158,7 +158,7 @@ export interface KerbalismCrewEntry
 	name?: string;
 	trait?: string;
 	rules?: KerbalismCrewRule[];
-	deathClockSec?: Value<"s">;
+	deathClockUt?: Value<"ut">;
 	asOfUt?: Value<"ut">;
 }
 export interface KerbalismFeatures
