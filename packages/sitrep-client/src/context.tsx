@@ -16,6 +16,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { TelemetryClient } from "./client";
+import { getContributedDerivedChannels } from "./contributed-channels";
 import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import { DelayAuthority } from "./delay-authority";
 import { dvLegacyScalarsChannel } from "./dv-legacy-scalars";
@@ -207,6 +208,13 @@ export function TelemetryProvider({
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       built.registerDerivedChannel(channel);
     }
+    // Uplink-contributed channels register AFTER the first-party ones, so a
+    // topic core already owns cannot be taken over by an Uplink importing
+    // itself later. Contributions are per (topic, owner) and a contested topic
+    // arrives from nobody: see `contributed-channels.ts`.
+    for (const channel of getContributedDerivedChannels()) {
+      built.registerDerivedChannel(channel);
+    }
     return { store: built, delayAuthority: authority };
   }, [providedStore, client]);
 
@@ -356,10 +364,16 @@ export function TelemetryProvider({
 }
 
 /**
- * Derived channels every `TelemetryProvider`-built default store registers.
- * A caller that needs a channel NOT in this list yet (or wants to omit one)
- * supplies its own pre-built `store` prop instead of relying on the
+ * FIRST-PARTY derived channels every `TelemetryProvider`-built default store
+ * registers. A caller that needs a channel NOT in this list yet (or wants to
+ * omit one) supplies its own pre-built `store` prop instead of relying on the
  * default.
+ *
+ * An Uplink does NOT belong here and cannot edit it: it calls
+ * `defineUplinkClient(...).registerDerivedChannel` and its contribution is
+ * drained alongside this list when the store is built. A derived channel is
+ * the only mechanism that can join two Topics, and a model that needs two
+ * Topics is exactly the kind core must not own.
  */
 export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
   [

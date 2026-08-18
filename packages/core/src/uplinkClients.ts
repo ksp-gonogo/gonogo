@@ -21,7 +21,9 @@
  */
 
 import {
+  contributeDerivedChannel,
   type Dep,
+  type DerivedChannelDefinition,
   defineProcessor,
   type ProcessorHandle,
   type ReckonerFor,
@@ -75,6 +77,21 @@ export interface UplinkClientHandle {
    * ratchet and a health surface can read, instead of a hand-typed string.
    */
   registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void;
+  /**
+   * Contribute a derived channel owned by this client.
+   *
+   * A derived channel is the only mechanism that can join two Topics, so it is
+   * what a model needs whenever its inputs are split across them: projecting a
+   * consumable wants an amount and a capacity from the generic resource Topic
+   * and a rate from whichever Uplink models the consumption, a split the
+   * contract makes deliberately. A per-Topic reckoner is handed one point and
+   * cannot see across it.
+   *
+   * Registered after core's own, so an Uplink cannot take over a Topic core
+   * already derives, and per (topic, owner), so two Uplinks claiming one Topic
+   * yields neither.
+   */
+  registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void;
 }
 
 const clients = new Map<string, UplinkClientHandle>();
@@ -121,6 +138,9 @@ export function defineUplinkClient(cfg: {
     },
     registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void {
       registerReckoner(topic, cfg.id, reckoner);
+    },
+    registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void {
+      contributeDerivedChannel(def, cfg.id);
     },
   });
   clients.set(handle.id, handle);

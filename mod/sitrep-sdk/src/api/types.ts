@@ -277,6 +277,17 @@ export interface UplinkClientHandle {
    */
   // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
   registerReckoner<T>(topic: string, reckoner: any): void;
+  /**
+   * Contribute a derived channel owned by this client: the only mechanism that
+   * can join two Topics, and therefore what a model needs whenever the
+   * contract splits its inputs across them.
+   *
+   * Same leaf constraint as the three above: `DerivedChannelDefinition` and
+   * `DerivedGet` live in sitrep-client and are not part of the frozen
+   * author-facing surface, so this is a name+arity probe.
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
+  registerDerivedChannel<T>(def: any): void;
 }
 
 // --- Fog reveal sources ------------------------------------------------------

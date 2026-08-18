@@ -61,6 +61,13 @@ export {
   useViewUt,
   type ViewClockView,
 } from "./context";
+export type { ContributedChannelConflict } from "./contributed-channels";
+export {
+  clearContributedDerivedChannels,
+  contributeDerivedChannel,
+  getContributedChannelConflicts,
+  getContributedDerivedChannels,
+} from "./contributed-channels";
 export type {
   ControlRange,
   ControlSample,

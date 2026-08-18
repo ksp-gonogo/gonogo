@@ -183,3 +183,16 @@ export {
 // The Ship Systems Processor handle + its result type, the single per-frame
 // derivation the widget and its badge both consume.
 export { SHIP_SYSTEMS, type ShipSystems } from "./processor";
+// The consumable projection channel, re-exported rather than imported for side
+// effect alone for the same reason `./topics` is: a bare side-effect import is
+// elided from the emitted declaration and bundlers tree-shake the registration
+// with it. Registering here is what puts `kerbalism.resourceProjection` on any
+// store a TelemetryProvider builds.
+export {
+  deriveResourceProjectionReckoning,
+  deriveResourceProjections,
+  KERBALISM_RESOURCE_PROJECTION_TOPIC,
+  type KerbalismResourceProjection,
+  type KerbalismResourceProjections,
+  kerbalismResourceProjectionChannel,
+} from "./resourceProjection";
