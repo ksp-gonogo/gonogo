@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
@@ -28,6 +28,35 @@ function expandBox(): HTMLDetailsElement {
 function statusDots(): NodeListOf<Element> {
   return header().querySelectorAll("[data-panel-status-dot]");
 }
+
+/**
+ * Give `useHeaderAsideFit` real widths to measure under jsdom, which otherwise
+ * reports 0 for everything: a 0 is the hook's "unmeasured" signal and HOLDS the
+ * current state, which is why every other test here sees the wide default and
+ * why a test that wants to widen again has to feed a fit rather than simply
+ * un-stub.
+ *
+ * `row` is the header row's own width (the room available); `part` is what the
+ * title and the aside each report, and the hook sums them. So `part * 2 > row`
+ * collapses, and re-expanding additionally needs the hook's hysteresis margin.
+ */
+const pristineRect = Element.prototype.getBoundingClientRect;
+afterEach(() => {
+  Element.prototype.getBoundingClientRect = pristineRect;
+});
+
+function withHeaderMeasurements(row: number, part: number): void {
+  Element.prototype.getBoundingClientRect = function measured(this: Element) {
+    const isRow =
+      this instanceof HTMLElement && this.hasAttribute("data-panel-header");
+    return { ...pristineRect.call(this), width: isRow ? row : part } as DOMRect;
+  };
+}
+
+/** Widths that do not fit: the aside collapses behind the summary. */
+const TOO_NARROW = [200, 200] as const;
+/** Widths with room to spare, clear of the re-expand hysteresis margin. */
+const ROOMY = [800, 200] as const;
 
 describe("Panel header aside expand box", () => {
   it("routes the full aside (badges AND controls) into the <details> box", () => {
@@ -92,7 +121,23 @@ describe("Panel header aside expand box", () => {
     expect(header().querySelector("[data-panel-aside-chevron]")).not.toBeNull();
   });
 
-  it("toggles the expand box open and closed", () => {
+  it("is an OPEN details while the aside is inline, so nothing claims on-screen content is collapsed", () => {
+    render(
+      <Panel panelTitle="MAP" panelAside={<span>WIDE</span>}>
+        body
+      </Panel>,
+    );
+    // The inline state has no summary to click (it is display: none) and the
+    // full aside renders regardless of [open], so a CLOSED details would tell
+    // the accessibility tree that visible badges are behind a disclosure with
+    // no trigger. Playwright's webkit visibility check reads exactly that
+    // structural claim rather than the CSS, which is how a green chromium run
+    // and a red webkit run described the same rendered pixels.
+    expect(expandBox().open).toBe(true);
+  });
+
+  it("toggles the expand box open and closed once the aside is collapsed", () => {
+    withHeaderMeasurements(...TOO_NARROW);
     render(
       <Panel panelTitle="MAP" panelAside={<button type="button">Ctl</button>}>
         body
@@ -100,11 +145,35 @@ describe("Panel header aside expand box", () => {
     );
     const box = expandBox();
     const summary = box.querySelector("summary") as HTMLElement;
+    // Collapsed is the one state where the details is a real disclosure: the
+    // content genuinely sits behind the summary, so it starts closed.
     expect(box.open).toBe(false);
     fireEvent.click(summary);
     expect(box.open).toBe(true);
     fireEvent.click(summary);
     expect(box.open).toBe(false);
+  });
+
+  it("drops an operator-opened collapsed box when the aside goes back inline", () => {
+    const panel = (body: string) => (
+      <Panel panelTitle="MAP" panelAside={<button type="button">Ctl</button>}>
+        {body}
+      </Panel>
+    );
+    withHeaderMeasurements(...TOO_NARROW);
+    const { rerender } = render(panel("body"));
+    fireEvent.click(expandBox().querySelector("summary") as HTMLElement);
+    expect(expandBox().open).toBe(true);
+
+    // Widening to a fit forces open (the inline state), and must not keep the
+    // operator's choice around to re-open the box the next time it narrows.
+    withHeaderMeasurements(...ROOMY);
+    rerender(panel("body wider"));
+    expect(expandBox().open).toBe(true);
+
+    withHeaderMeasurements(...TOO_NARROW);
+    rerender(panel("body narrow again"));
+    expect(expandBox().open).toBe(false);
   });
 
   it("has no aside box at all when the widget passes no aside", () => {

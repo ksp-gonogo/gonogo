@@ -480,6 +480,28 @@ export function PanelHeader({
     aside,
   );
 
+  /**
+   * The `<details>` below is a disclosure only while the aside is COLLAPSED:
+   * that is the one state with a summary to click and content genuinely behind
+   * it. Inline, the summary is `display: none` and the full aside renders
+   * whatever `[open]` says, so a closed `<details>` would claim that badges
+   * sitting on screen are collapsed behind a trigger that does not exist. A
+   * screen reader believes that claim, and so does Playwright's webkit
+   * visibility check, which reads the `[open]` structure rather than the CSS
+   * (that disagreement is why `e2e (webkit)` called a rendered header badge
+   * hidden while chromium and firefox, which consult `checkVisibility()`,
+   * called it visible).
+   *
+   * So `open` is forced while inline and owned by the operator while
+   * collapsed. Leaving the collapsed state drops whatever they had popped
+   * open, so a panel that narrows again starts closed rather than springing
+   * its box back over the body.
+   */
+  const [openWhileCollapsed, setOpenWhileCollapsed] = useState(false);
+  useEffect(() => {
+    if (!collapsed) setOpenWhileCollapsed(false);
+  }, [collapsed]);
+
   return (
     /* `data-panel-header` is a stable targeting hook, the same contract as
        ScrollArea's `data-scroll-area-inner`. The row splits titles and aside
@@ -504,7 +526,17 @@ export function PanelHeader({
           {/* A native `<details>`: it carries an implicit `role="group"`, so a
               widget aside that itself uses `getByRole("group")` must scope that
               query to its own subtree (this box is the panel-level group). */}
-          <PanelAsideExpand data-panel-aside-expand="" $collapsed={collapsed}>
+          <PanelAsideExpand
+            data-panel-aside-expand=""
+            $collapsed={collapsed}
+            open={collapsed ? openWhileCollapsed : true}
+            onToggle={(e) => {
+              // Guarded on `collapsed` so the forced-open inline state does not
+              // record itself as an operator choice and reopen the box on the
+              // next collapse.
+              if (collapsed) setOpenWhileCollapsed(e.currentTarget.open);
+            }}
+          >
             <summary aria-label="Panel status and controls">
               {breakdown.map((e) => (
                 <PanelStatusDot
