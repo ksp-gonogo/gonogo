@@ -30,18 +30,14 @@ It fixes RUNTIME resolution only. It says nothing about how an author builds in 
 first place, and a package you cannot install is not available to you just because
 the browser could have found it.
 
-### Use the seam instead
+### There is no first-party exemption
 
-`mod/sitrep-sdk/src/api/index.ts` already carries a fail-loud shim for every
-stateful member: each `registerX`, every hook. They delegate to the host the app
-injects, and import no registry, so a packed Uplink cannot bundle a second one.
-That is the supported path and it needs no app-internal import.
+Some Uplinks ship bundled with the mod. That changes how an Uplink is distributed,
+not what it may import. An Uplink that reaches for `core` or `sitrep-client`
+because it happens to live in this repository stops being a working example of what
+an outside author can build, and every one of them is meant to be exactly that.
 
-The SDK's own header notes that first-party in-tree code bypasses these shims and
-reaches for `core` directly. That shortcut is why the built-in Uplinks stopped
-being reference implementations of what we ask outside authors to write, and
-working through the debt list below is how they become reference implementations
-again.
+The debt list below is what remains of an earlier exemption for in-tree code.
 
 ## If you need something that lives in an app-internal package
 

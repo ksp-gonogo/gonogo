@@ -25,16 +25,12 @@
  * import them: it fixes RUNTIME resolution only, and says nothing about how an
  * author outside this repo builds in the first place.
  *
- * The supported seam already exists. `mod/sitrep-sdk/src/api/index.ts` carries
- * fail-loud shims for every stateful member (each `registerX`, the hooks) that
- * delegate to the app-injected host and import no core, so a packed Uplink never
- * bundles a second registry. Import those instead. Its own header notes that
- * first-party in-tree code bypasses them and reaches for core directly, which is
- * exactly why the built-in Uplinks stopped being reference implementations of
- * what we ask outside authors to write.
- *
- * `docs/creating-an-uplink.md` still tells authors to declare `@ksp-gonogo/core`
- * as a dependency. That instruction cannot be followed and is being corrected.
+ * There is NO first-party exemption. Some Uplinks ship bundled with the mod,
+ * which changes how they are distributed and not what they may import. Every
+ * Uplink here is meant to be a working example of what an outside author can
+ * build. An earlier revision of the SDK barrel's header exempted in-tree code,
+ * and that exemption is both where this debt came from and what taught
+ * `docs/creating-an-uplink.md` to tell authors to depend on `core`.
  *
  * Every entry here is DEBT and the list is SHRINK-ONLY. Fix one by re-pointing the
  * import at `sitrep-sdk` or `ui-kit`, or by moving the export there, then delete

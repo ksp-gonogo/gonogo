@@ -14,8 +14,12 @@
 // external Uplink is published. It is NOT frozen. The api-shape gate
 // (./api-shape.gate.test.ts) records it so any change is deliberate.
 //
-// First-party in-tree code is UNAFFECTED: it imports @ksp-gonogo/core /
-// sitrep-client directly (same singletons), never these shims.
+// EVERY Uplink goes through this barrel, including the ones bundled with the
+// mod. There is no first-party path: bundling changes how an Uplink ships, not
+// what it may import, and an Uplink that reaches for core or sitrep-client
+// directly stops modelling what an outside author can actually build. An
+// earlier revision of this header exempted in-tree code, and that exemption is
+// what taught docs/creating-an-uplink.md to tell authors to depend on core.
 // ---------------------------------------------------------------------------
 
 import type { Logger } from "@ksp-gonogo/logger";

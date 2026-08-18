@@ -223,15 +223,14 @@ exact bundle it expects.
 
 ## The externals rule (do not skip this)
 
-**Import everything from `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit`.** They
-are the two published packages, so they are the two you can install, typecheck
-against and build with. Nothing else in the gonogo tree is published: `core`,
-`ui`, `components`, `data`, `logger` and `sitrep-client` are all private, and no
-amount of runtime wiring changes the fact that you cannot obtain them.
+Import from **`@ksp-gonogo/sitrep-sdk`** and **`@ksp-gonogo/ui-kit`**. They are the
+two packages gonogo publishes, and between them they carry the whole authoring
+surface: the hooks, every `registerX`, the generated contract, the unit system and
+the design system.
 
-Your client bundle MUST still be built **external-expecting**. Declare `react`,
-`styled-components`, `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` as
-externals/peer dependencies and do NOT bundle your own copies.
+Build your client bundle **external-expecting**. Declare `react`,
+`styled-components` and the two gonogo packages as externals/peer dependencies,
+and do NOT bundle your own copies.
 
 ```jsonc
 // client/package.json (shape)
@@ -243,22 +242,11 @@ externals/peer dependencies and do NOT bundle your own copies.
 }
 ```
 
-Why this is not optional: the loader runs `import(bundleUrl)`, and the browser
-resolves your bundle's bare imports through the app's baked **import map** to the
-app's own singletons. Inline a second copy of React and you get two Reacts and
-hooks break.
-
-The registry has the same hazard, and the SDK is how you avoid it. Every stateful
-member the SDK exports (each `registerX`, every hook) is a thin shim that delegates
-to the host the app injects at load. The SDK imports no registry of its own, so a
-packed Uplink cannot carry a second one: your `registerComponent` call writes into
-the same registry the dashboard reads. That is the seam, and using it is the whole
-reason you do not need `@ksp-gonogo/core`.
-
-> Earlier revisions of this page told you to depend on `@ksp-gonogo/core` directly.
-> That was wrong: it is unpublished, so the instruction could not be followed from
-> outside this repository. If you have an Uplink built that way, re-point those
-> imports at `@ksp-gonogo/sitrep-sdk`; the symbols are the same.
+Why this is not optional: the loader runs `import(bundleUrl)` and the host resolves
+your bare imports to its own singletons. Bundle a second copy of React and you get
+two Reacts, so hooks break. Bundle a second copy of the SDK and your
+`registerComponent` calls land somewhere the dashboard never reads, so your widgets
+never appear.
 
 ---
 

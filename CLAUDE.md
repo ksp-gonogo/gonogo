@@ -378,16 +378,19 @@ nothing else from this repo. `core`, `ui`, `components`, `data`, `logger` and
 `sitrep-client` are private and unpublished: an outside author cannot install or
 build against them. Note `ui` and `ui-kit` are different packages.
 
+**There is no first-party exemption.** Some Uplinks ship bundled with the mod;
+that changes how they are distributed, not what they may import. Every Uplink in
+this repo is meant to be a working example of what an outside author can build,
+and one that reaches into the app is not.
+
 The app's baked import map (`packages/app/src/uplinks/externals/`) resolves twelve
 specifiers at runtime, `core` included. **That is not a licence to import them**,
 it fixes runtime resolution only and does nothing for building.
 
-The seam already exists: every stateful member of `sitrep-sdk` (each `registerX`,
-every hook) is a shim delegating to the app-injected host, importing no registry,
-so a packed Uplink cannot carry a second one. Use those. If something you need is
-missing, **move the export into `sitrep-sdk` or `ui-kit`**, don't import across the
-boundary. Never put a repo-wide gate inside an Uplink: a check needing an
-app-internal package is one a third-party author cannot run.
+If something you need is missing from the SDK, **move the export into
+`sitrep-sdk` or `ui-kit`**, don't import across the boundary. Never put a
+repo-wide gate inside an Uplink: a check needing an app-internal package is one a
+third-party author cannot run.
 
 Enforced by `packages/core/src/uplink-isolation.test.ts` (shrink-only debt list,
 seeded 2026-08-18). Full rules and the reasoning: `docs/uplink-isolation.md`.

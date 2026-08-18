@@ -15,9 +15,9 @@ import * as barrel from "./index";
  * Uplink clients turned out to still need it (facade-sealing plan §2.1), and
  * a final removal (2026-07-19) once both were migrated onto non-SPI
  * substitutes: see mod/sitrep-sdk/src/api/types.ts's DataSource type-mirror
- * comment for the full history. First-party code that still authors a
- * `DataSource` imports @ksp-gonogo/core's registerDataSource/getDataSource
- * directly; there is nothing left on this facade to gate.
+ * comment for the full history. Any Uplink authoring a `DataSource` goes
+ * through the barrel like everything else; there is nothing left on this
+ * facade to gate.
  */
 describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
   afterEach(() => {
