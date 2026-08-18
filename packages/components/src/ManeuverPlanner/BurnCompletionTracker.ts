@@ -58,17 +58,25 @@ interface UseBurnCompletionTrackerResult {
 /**
  * Tracks which maneuver nodes have crossed below the completion threshold
  * (`computeCompletionUpdate`) and schedules an auto-removal of each one
- * after `COMPLETED_HOLD_MS` of wall-clock time. The auto-removal calls
- * `removeNode(<id>)` (the caller's `vessel.maneuver.remove` dispatch, via
- * `useCommand`) with the *latest* node id, since KSP re-numbers the list on
- * every removal. Fire-and-forget by design here (an auto-cleanup, not an
- * operator action with somewhere to surface an error): the caller owns
- * catching its own `.send(...)` rejection, same as the legacy `execute(...)`
- * call this replaces already swallowed it.
+ * after `COMPLETED_HOLD_MS` of wall-clock time.
+ *
+ * The auto-removal calls `removeNode(<position>)` with the node's position in
+ * the *latest* list, re-looked-up at fire time because KSP re-numbers on every
+ * removal. A POSITION, not an id: this hook only ever sees the legacy parsed
+ * list, whose `id` is the array index, so resolving that to the stream guid the
+ * `vessel.maneuver.remove` command needs is the caller's job and the caller is
+ * the only one who can do it. Passing the index through as though it were an id
+ * is what made this path silently dead.
+ *
+ * Fire-and-forget by design (an auto-cleanup, not an operator action with
+ * somewhere to surface an error): the caller owns catching its own `.send(...)`
+ * rejection, same as the legacy `execute(...)` call this replaces already
+ * swallowed it. That is also why the defect survived: the command answered
+ * NotFound every time and nothing was listening.
  */
 export function useBurnCompletionTracker(
   nodes: readonly ParsedManeuverNode[],
-  removeNode: (nodeId: string) => void,
+  removeNode: (nodePosition: number) => void,
 ): UseBurnCompletionTrackerResult {
   const [completedNodes, setCompletedNodes] = useState<
     ReadonlyMap<number, CompletedEntry>
@@ -99,11 +107,10 @@ export function useBurnCompletionTracker(
         setTimeout(() => {
           const live = nodesRef.current.find((n) => n.UT === ut);
           if (live) {
-            // `live.id` is the plain positional array index (`ParsedManeuverNode`'s
-            // own shape), not the real stream guid `resolveNodeId` resolves for
-            // the manual Delete/Edit buttons: unchanged from the legacy
-            // `execute` call this replaces, which sent the identical value.
-            removeNode(String(live.id));
+            // `live.id` is the positional array index (`ParsedManeuverNode`'s
+            // own shape), re-read here rather than captured, because an earlier
+            // removal shifts every later node down one.
+            removeNode(live.id);
           }
           setCompletedNodes((current) => {
             if (!current.has(ut)) return current;

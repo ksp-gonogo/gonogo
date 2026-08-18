@@ -27,7 +27,7 @@ import {
   Stack,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
@@ -85,6 +85,30 @@ declare module "@ksp-gonogo/core" {
 
 // Stable empty reference so slot re-renders don't churn mounted augments.
 const EMPTY_SLOT_PROPS: Record<string, never> = {};
+
+/**
+ * The command-string id for the node at legacy array position `index`: the
+ * real stream guid when the id-carrying read has delivered a node at that
+ * position, else the plain positional index as a string.
+ *
+ * The fallback is only correct while the stream has not answered yet.
+ * `KspVesselActuator.RemoveManeuverNode` resolves a node exclusively through
+ * `ReferenceIdRegistry.TryResolve`, an exact string match against a GUID, so a
+ * positional index never resolves and comes back NotFound. See map-command.ts's
+ * `o.updateManeuverNode`/`o.removeManeuverNode` doc comment for the
+ * accepted-risk note on it when reads and commands are carried unevenly.
+ *
+ * Module scope so both the operator-driven edit/delete path and the
+ * auto-removal timeout resolve identically. They did not, and the auto-removal
+ * was the one that was wrong.
+ */
+function nodeIdAtPosition(
+  streamNodes: readonly { id?: string }[] | undefined,
+  index: number,
+): string {
+  const real = streamNodes?.[index]?.id;
+  return typeof real === "string" && real.length > 0 ? real : String(index);
+}
 
 function ManeuverPlannerComponent({
   config,
@@ -199,18 +223,30 @@ function ManeuverPlannerComponent({
    * unevenly.
    */
   function resolveNodeId(index: number): string {
-    const real = streamNodeIds?.[index]?.id;
-    return typeof real === "string" && real.length > 0 ? real : String(index);
+    return nodeIdAtPosition(streamNodeIds, index);
   }
 
-  // Stable across renders (deps only on the sitrep-client hook's own stable
-  // `send`): passed to a `useEffect` dependency array inside
-  // `useBurnCompletionTracker`, a fresh closure every render would tear down
-  // and reschedule its auto-removal timers on every unrelated re-render.
+  // The auto-removal resolves through a ref rather than through
+  // `resolveNodeId` directly, and the ref is the whole point rather than an
+  // optimisation: `removeNode` must stay referentially stable because
+  // `useBurnCompletionTracker` puts it in a `useEffect` dependency array that
+  // schedules the 10 s hold. `vessel.maneuver` re-emits on every 1 UT sample,
+  // so closing over `streamNodeIds` would rebuild the callback several times a
+  // second, tear the timers down each time, and the hold would never elapse.
+  const streamNodeIdsRef = useRef(streamNodeIds);
+  useEffect(() => {
+    streamNodeIdsRef.current = streamNodeIds;
+  }, [streamNodeIds]);
+
+  // Takes the node's POSITION and resolves the id here, because the tracker
+  // knows positions in the list it was handed and knows nothing about stream
+  // guids. It used to be handed a string and passed the positional index
+  // straight through as one, which `KspVesselActuator.RemoveManeuverNode`
+  // could only ever answer NotFound to.
   const removeNode = useCallback(
-    (nodeId: string) => {
+    (nodeIndex: number) => {
       void removeNodeCmd.send(
-        { nodeId },
+        { nodeId: nodeIdAtPosition(streamNodeIdsRef.current, nodeIndex) },
         { label: "Auto-remove completed node" },
       );
     },

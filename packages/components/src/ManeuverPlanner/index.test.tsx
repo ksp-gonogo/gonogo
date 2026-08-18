@@ -572,6 +572,14 @@ describe("ManeuverPlannerComponent", () => {
     // via `useCommand` against the real stream: no carried-gate, no legacy
     // fallback, so it's captured off `utFixture`'s command handler, same
     // pattern the trigger-fire tests above use.
+    //
+    // The stream id is deliberately NOT "0". The stream guid and the legacy
+    // positional index are two different things, and this test cannot tell a
+    // correct guid dispatch apart from a raw-index one unless they disagree:
+    // with `emitManeuverNode`'s default id (String(index)) both produce the
+    // identical assertion.
+    const NODE_GUID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
+
     const calls: string[] = [];
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.remove") {
@@ -597,7 +605,7 @@ describe("ManeuverPlannerComponent", () => {
       // fake `requestAnimationFrame` too, so it needs an explicit advance,
       // not just a microtask flush.
       act(() => {
-        emitManeuverNode([{ ut: 1_000_120, dvPrograde: 30 }]);
+        emitManeuverNode([{ id: NODE_GUID, ut: 1_000_120, dvPrograde: 30 }]);
       });
       await act(async () => {
         await vi.advanceTimersByTimeAsync(20);
@@ -609,7 +617,7 @@ describe("ManeuverPlannerComponent", () => {
 
       // Burn completes: remaining ΔV drops below threshold.
       act(() => {
-        emitManeuverNode([{ ut: 1_000_120, dvPrograde: 0.1 }]);
+        emitManeuverNode([{ id: NODE_GUID, ut: 1_000_120, dvPrograde: 0.1 }]);
       });
       await act(async () => {
         await vi.advanceTimersByTimeAsync(20);
@@ -624,7 +632,7 @@ describe("ManeuverPlannerComponent", () => {
         await vi.advanceTimersByTimeAsync(10_000);
       });
 
-      expect(calls).toEqual(["o.removeManeuverNode[0]"]);
+      expect(calls).toEqual([`o.removeManeuverNode[${NODE_GUID}]`]);
     } finally {
       vi.useRealTimers();
     }
