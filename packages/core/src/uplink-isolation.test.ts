@@ -295,6 +295,57 @@ describe("uplink isolation", () => {
    * Derived from the two scans rather than from a list of its own, so it has no
    * upkeep and cannot itself go stale.
    */
+  /**
+   * The debt lists are checked for GROWTH everywhere else in this file. Nothing
+   * checked whether an entry's violation was still there, so a fix somewhere else
+   * left the entry behind, silently, and the list could never reach zero by
+   * attrition: someone had to notice each dead line by hand. Publishing the render
+   * harness fixed a dozen files at a stroke and left a dozen stale entries nobody
+   * would have looked for.
+   *
+   * With this, every fix anywhere is an automatic reduction, and the list is
+   * self-cleaning rather than merely non-growing. It is the counterpart to
+   * `FORBIDDEN_PACKAGES never shrinks`: that one stops the SUBJECT narrowing, this
+   * one stops the LIST outliving its subject.
+   */
+  it("lists no debt that is already fixed", () => {
+    const found = scan();
+    const stale: string[] = [];
+    for (const [file, pkgs] of Object.entries(INTERNAL_IMPORT_DEBT)) {
+      const actual = found.get(file);
+      if (!actual) {
+        stale.push(`${file} (whole entry: imports none of ${pkgs.join(", ")})`);
+        continue;
+      }
+      for (const pkg of pkgs) {
+        if (!actual.has(pkg)) stale.push(`${file} -> ${pkg}`);
+      }
+    }
+    const declared = scanDeclaredDependencies();
+    for (const [manifest, pkgs] of Object.entries(DECLARED_DEPENDENCY_DEBT)) {
+      const actual = declared.get(manifest);
+      if (!actual) {
+        stale.push(
+          `${manifest} (whole entry: declares none of ${pkgs.join(", ")})`,
+        );
+        continue;
+      }
+      for (const pkg of pkgs) {
+        if (!actual.has(pkg)) stale.push(`${manifest} -> ${pkg}`);
+      }
+    }
+    expect(
+      stale,
+      [
+        "The debt list names a violation that no longer exists.",
+        "",
+        "Good news: something fixed it. Delete the line(s) above so the list keeps",
+        "telling the truth about what is left. A debt list that outlives its debt",
+        "reads as work remaining and hides how close to zero this is.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
   it("declares nothing it no longer imports", () => {
     const imported = new Map<string, Set<ForbiddenPackage>>();
     for (const [file, pkgs] of scan()) {
