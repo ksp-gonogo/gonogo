@@ -12,7 +12,7 @@ import {
   render,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

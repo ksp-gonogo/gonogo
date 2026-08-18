@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { render, screen } from "../testing-react";
 import {
   PanelStatusStoreProvider,
   type StatusContribution,

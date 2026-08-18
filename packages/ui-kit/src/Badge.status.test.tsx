@@ -1,9 +1,9 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { useStatusSummary } from "./status/useStatusSummary";
 import { axe } from "./test/axe";
-import { render, screen } from "./testing-react";
 
 function SummaryProbe() {
   const summary = useStatusSummary();

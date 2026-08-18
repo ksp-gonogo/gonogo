@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
-import { render, screen } from "./testing-react";
 
 /**
  * The panel's stream badge comes from the host, not from the widget. These

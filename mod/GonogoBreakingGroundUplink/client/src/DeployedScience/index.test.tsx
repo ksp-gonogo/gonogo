@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { clearAugments } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";

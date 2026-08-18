@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ReliabilitySummary } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import {
   KERBALISM_RELIABILITY_PROVIDER_ID,

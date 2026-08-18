@@ -14,7 +14,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { BodyDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { useFogMaskCache } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SCAN_TYPE, type SCANCoverageBitmap } from "../schema";

@@ -1,3 +1,4 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -6,7 +7,6 @@ import {
   type ModalChromeValue,
   useModalSaveBar,
 } from "./ModalSaveBar";
-import { render, screen } from "./testing-react";
 
 const SAVED_VALUE = { label: "saved" };
 

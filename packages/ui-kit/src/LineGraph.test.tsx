@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { LineGraph } from "./LineGraph";
-import { render, screen } from "./testing-react";
 
 const AMBIENT = {
   id: "ambient",

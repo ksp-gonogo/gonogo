@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Fill } from "./Fill";
-import { render, screen } from "./testing-react";
 
 describe("Fill", () => {
   it("renders its children", () => {

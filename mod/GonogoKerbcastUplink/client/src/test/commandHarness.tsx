@@ -16,7 +16,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
-import { render } from "@ksp-gonogo/test-utils";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactElement } from "react";
 
 export interface CommandClientHarness {

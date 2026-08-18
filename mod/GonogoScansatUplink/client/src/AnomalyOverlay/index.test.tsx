@@ -10,7 +10,7 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
-import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { act, renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 // Importing the real module (not a throwaway test double) runs its

@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 
-import { act, render } from "@ksp-gonogo/test-utils";
+import { act, render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { setupStreamFixture } from "../test/setupStreamFixture";

@@ -1,5 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

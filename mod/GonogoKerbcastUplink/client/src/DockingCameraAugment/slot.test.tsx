@@ -11,7 +11,7 @@ import {
   registerUplinkHandle,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   DomainAvailabilityProvider,
   useDomainAvailabilityStore,

@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";

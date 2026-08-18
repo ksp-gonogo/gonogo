@@ -1,4 +1,4 @@
-import { cleanup, renderHook } from "@ksp-gonogo/test-utils";
+import { cleanup, renderHook } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { kerbcastSource } from "../KerbcastDataSource";
 import { useKerbcastMainConnect } from "./useKerbcastMainConnect";

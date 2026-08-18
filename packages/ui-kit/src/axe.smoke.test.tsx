@@ -1,3 +1,4 @@
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
@@ -16,7 +17,6 @@ import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { Tabs } from "./Tabs";
 import { Tape } from "./Tape";
 import { axe } from "./test/axe";
-import { render } from "./testing-react";
 import { WidgetHeader } from "./WidgetHeader";
 
 describe("a11y smoke (jest-axe)", () => {

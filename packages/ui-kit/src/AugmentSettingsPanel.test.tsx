@@ -1,7 +1,7 @@
+import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import type { NamespacedAugmentSettings } from "./AugmentSettingsPanel";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
-import { fireEvent, render, screen } from "./testing-react";
 
 // Generic fixture ids: never a real mod name (uplink-boundary ratchet scans
 // shared-package fixtures for literal mod tokens, see feedback_telemachus_artifact_vs_uplink_domain).

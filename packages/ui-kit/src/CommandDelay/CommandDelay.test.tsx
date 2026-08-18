@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { render, screen } from "../testing-react";
 import { CommandDelay, type CommandDelayHandle } from "./CommandDelay";
 import type { ControlStreamDatum } from "./ControlDelayStream";
 import type { InFlightCommandLike } from "./toInFlightListItems";

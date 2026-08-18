@@ -15,7 +15,7 @@
  */
 
 import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { render, waitFor } from "@ksp-gonogo/test-utils";
+import { render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { CpuRegistryService } from "../shared/CpuRegistryService";
 import { FakeKosUplink } from "./__fixtures__/FakeKosUplink";

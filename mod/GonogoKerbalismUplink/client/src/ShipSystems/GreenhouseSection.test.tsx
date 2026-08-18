@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { Badge } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

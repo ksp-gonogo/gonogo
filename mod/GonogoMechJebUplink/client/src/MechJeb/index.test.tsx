@@ -4,7 +4,7 @@ import {
   render as rtlRender,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { DelayRailProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";

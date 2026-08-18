@@ -1,5 +1,5 @@
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { render } from "../testing-react";
 import { createPanelStore } from "./createPanelStore";
 import { createStore } from "./createStore";
 

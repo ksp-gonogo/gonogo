@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";

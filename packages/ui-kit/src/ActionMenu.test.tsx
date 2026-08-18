@@ -1,7 +1,7 @@
+import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
-import { render, screen, waitFor } from "./testing-react";
 
 const ITEMS: ActionMenuItem[] = [
   { key: "a", label: "Alpha" },

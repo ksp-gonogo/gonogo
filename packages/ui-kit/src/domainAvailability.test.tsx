@@ -1,10 +1,10 @@
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import {
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
   useDomainAvailable,
 } from "./domainAvailability";
-import { act, render, screen } from "./testing-react";
 
 describe("createDomainAvailabilityStore", () => {
   it("defaults an unknown Domain to unavailable and reflects set values", () => {

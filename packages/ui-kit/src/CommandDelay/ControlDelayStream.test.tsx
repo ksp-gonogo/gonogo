@@ -1,6 +1,6 @@
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { render } from "../testing-react";
 import {
   ControlDelayStream,
   type ControlStreamDatum,

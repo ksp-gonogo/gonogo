@@ -14,7 +14,7 @@ import {
 } from "@ksp-gonogo/data";
 import type { BodyDefinition, DataKey } from "@ksp-gonogo/sitrep-sdk";
 import { registerFogRevealSource } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SCANBiomeGrid } from "../schema";

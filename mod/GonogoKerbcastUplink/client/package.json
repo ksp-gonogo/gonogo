@@ -32,7 +32,6 @@
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
-    "@ksp-gonogo/test-utils": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@types/jest-axe": "^3.5.9",
     "@types/react": "^18.3.28",

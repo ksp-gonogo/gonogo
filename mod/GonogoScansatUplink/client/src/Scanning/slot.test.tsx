@@ -11,7 +11,7 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { type DataKey, registerAugment } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";

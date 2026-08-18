@@ -11,7 +11,7 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

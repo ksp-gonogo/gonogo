@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Divider } from "./Divider";
-import { render, screen } from "./testing-react";
 
 describe("Divider", () => {
   it("renders an hr with the implicit separator role", () => {

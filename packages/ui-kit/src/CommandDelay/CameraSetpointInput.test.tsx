@@ -1,6 +1,6 @@
+import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
-import { fireEvent, render, screen } from "../testing-react";
 import { CameraSetpointInput } from "./CameraSetpointInput";
 
 const bounds = {

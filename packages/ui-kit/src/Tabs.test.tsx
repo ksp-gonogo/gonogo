@@ -1,9 +1,9 @@
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shouldExpandTabs, TABS_PANEL_MIN_WIDTH, Tabs } from "./Tabs";
 import { axe } from "./test/axe";
-import { act, render, screen } from "./testing-react";
 
 const TABS = [
   { id: "one", label: "One", content: <span>panel-one</span> },

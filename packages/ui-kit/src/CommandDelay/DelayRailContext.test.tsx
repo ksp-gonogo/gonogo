@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "../testing-react";
 import {
   type CommandHandle,
   createDelayRailStore,

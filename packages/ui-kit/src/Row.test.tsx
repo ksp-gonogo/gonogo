@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Row, RowName } from "./Row";
-import { render, screen } from "./testing-react";
 
 describe("Row", () => {
   it("renders as an li by default", () => {

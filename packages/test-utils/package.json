@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ksp-gonogo/ui-kit": "workspace:*"
+    "@ksp-gonogo/sitrep-sdk": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0",

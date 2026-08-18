@@ -4,7 +4,7 @@ import {
   render as rtlRender,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";

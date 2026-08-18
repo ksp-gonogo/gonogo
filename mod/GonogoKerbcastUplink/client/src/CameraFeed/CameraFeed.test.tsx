@@ -46,7 +46,7 @@ import {
   render,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";

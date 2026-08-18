@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Grid } from "./Grid";
-import { render, screen } from "./testing-react";
 
 describe("Grid", () => {
   it("renders its children", () => {

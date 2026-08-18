@@ -6,7 +6,7 @@ import {
   isTopicId,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "./test/setupStreamFixture";
 // Side-effect import: registers `scansat.available`/`scansat.scanningVessels`/

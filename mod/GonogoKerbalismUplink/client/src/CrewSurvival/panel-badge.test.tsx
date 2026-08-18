@@ -1,6 +1,6 @@
 import { ContributionsProvider, useWidgetBadges } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   Panel,
   PanelBadgesProvider,

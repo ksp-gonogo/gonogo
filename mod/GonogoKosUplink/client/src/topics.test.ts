@@ -9,7 +9,7 @@ import {
   unitsForType,
   useStream,
 } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import type { KosProcessorInfo } from "./__generated__/contract";
 import { setupStreamFixture } from "./test/setupStreamFixture";

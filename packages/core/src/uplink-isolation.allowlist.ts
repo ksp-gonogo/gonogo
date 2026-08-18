@@ -61,6 +61,7 @@ export const FORBIDDEN_PACKAGES = [
   "core",
   "components",
   "data",
+  "ui",
   "logger",
   "sitrep-client",
   "test-utils",
@@ -91,9 +92,6 @@ export const BLOCKED_FILENAMES = ["widgetDeclarations.test.ts"] as const;
 /** file path -> the forbidden packages it imports. SHRINK-ONLY. */
 export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
   {
-    "mod/GonogoAvionicsUplink/client/src/AvionicsGoNoGo/index.test.tsx": [
-      "test-utils",
-    ],
     "mod/GonogoAvionicsUplink/client/src/test/setup.ts": ["core"],
     "mod/GonogoAvionicsUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
@@ -132,33 +130,19 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     ],
     "mod/GonogoKerbalismUplink/client/src/CrewSurvival/index.test.tsx": [
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoKerbalismUplink/client/src/CrewSurvival/panel-badge.test.tsx": [
       "core",
       "sitrep-client",
-      "test-utils",
     ],
-    "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.test.tsx": [
-      "test-utils",
-    ],
-    "mod/GonogoKerbalismUplink/client/src/isru.test.ts": ["test-utils"],
-    "mod/GonogoKerbalismUplink/client/src/reliability.test.ts": ["test-utils"],
     "mod/GonogoKerbalismUplink/client/src/resourceProjection.test.ts": [
       "sitrep-client",
     ],
     "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": [
       "sitrep-client",
     ],
-    "mod/GonogoKerbalismUplink/client/src/science.test.ts": ["test-utils"],
-    "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.test.tsx": [
-      "test-utils",
-    ],
     "mod/GonogoKerbalismUplink/client/src/ShipSystems/GreenhouseSection.test.tsx":
       ["test-utils"],
-    "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.test.tsx": [
-      "test-utils",
-    ],
     "mod/GonogoKerbalismUplink/client/src/ShipSystems/RadiationSection.test.tsx":
       ["test-utils"],
     "mod/GonogoKerbalismUplink/client/src/ShipSystems/resourceColorMap.test.ts":
@@ -173,11 +157,9 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoKerbalismUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
     ],
-    "mod/GonogoKerbalismUplink/client/src/topics.test.ts": ["test-utils"],
     "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx": [
       "core",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": [
       "sitrep-client",
@@ -194,21 +176,17 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
       ["test-utils"],
     "mod/GonogoKerbcastUplink/client/src/CrewAvatarGate/index.test.tsx": [
       "core",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/CrewAvatarGate/slot.test.tsx": [
       "core",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/DockingCameraAugment/slot.test.tsx": [
       "core",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastCameras.test.ts": [
       "core",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastMainConnect.test.ts":
       ["test-utils"],
@@ -218,15 +196,11 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
       ["core", "test-utils"],
     "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastStream.test.tsx": [
       "core",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastStream.ts": [
       "sitrep-client",
     ],
-    "mod/GonogoKerbcastUplink/client/src/KerbcastDataSource.test.ts": [
-      "core",
-      "test-utils",
-    ],
+    "mod/GonogoKerbcastUplink/client/src/KerbcastDataSource.test.ts": ["core"],
     "mod/GonogoKerbcastUplink/client/src/KerbcastDataSource.ts": [
       "sitrep-client",
     ],
@@ -235,7 +209,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     ],
     "mod/GonogoKerbcastUplink/client/src/test/commandHarness.tsx": [
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoKerbcastUplink/client/src/test/setup.ts": [
       "core",
@@ -245,13 +218,11 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoKerbcastUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
     ],
-    "mod/GonogoKerbcastUplink/client/src/topics.test.ts": ["test-utils"],
     "mod/GonogoKosUplink/client/src/dataSource/__fixtures__/FakeKosUplink.ts": [
       "sitrep-client",
     ],
     "mod/GonogoKosUplink/client/src/dataSource/kos-cpu-discovery.test.tsx": [
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoKosUplink/client/src/dataSource/kos-execute-uplink.test.ts": [
       "sitrep-client",
@@ -259,13 +230,9 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.test.ts": [
       "sitrep-client",
     ],
-    "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": [
-      "core",
-      "test-utils",
-    ],
+    "mod/GonogoKosUplink/client/src/KosTerminal/index.test.tsx": ["core"],
     "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": [
       "core",
-      "test-utils",
     ],
     "mod/GonogoKosUplink/client/src/test/setup.ts": [
       "core",
@@ -276,11 +243,7 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoKosUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
     ],
-    "mod/GonogoKosUplink/client/src/topics.test.ts": ["test-utils"],
-    "mod/GonogoMechJebUplink/client/src/MechJeb/index.test.tsx": [
-      "core",
-      "test-utils",
-    ],
+    "mod/GonogoMechJebUplink/client/src/MechJeb/index.test.tsx": ["core"],
     "mod/GonogoMechJebUplink/client/src/test/setup.ts": [
       "core",
       "sitrep-client",
@@ -292,46 +255,38 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoRealAntennasUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
     ],
-    "mod/GonogoRealAntennasUplink/client/src/topics.test.ts": ["test-utils"],
     "mod/GonogoScansatUplink/client/src/AnomalyOverlay/index.test.tsx": [
       "core",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/CoveragePanel/index.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/FogReveal/useScanSatFogSync.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/FootprintOverlay/index.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/Scanning/index.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/Scanning/Minimap.test.tsx": [
       "core",
       "data",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/Scanning/slot.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/scansat-wire-contract.test.ts": [
       "sitrep-client",
@@ -339,19 +294,16 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoScansatUplink/client/src/ScienceAugment/slot.test.tsx": [
       "core",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/TerrainBase/AltimetryBase.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/TerrainBase/BiomeBase.test.tsx": [
       "core",
       "data",
       "sitrep-client",
-      "test-utils",
     ],
     "mod/GonogoScansatUplink/client/src/test/setup.ts": [
       "core",
@@ -361,7 +313,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoScansatUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
     ],
-    "mod/GonogoScansatUplink/client/src/topics.test.ts": ["test-utils"],
   };
 
 /**
@@ -381,48 +332,28 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
   string,
   readonly ForbiddenPackage[]
 > = {
-  "mod/GonogoAvionicsUplink/client/package.json": [
-    "core",
-    "sitrep-client",
-    "test-utils",
-  ],
+  "mod/GonogoAvionicsUplink/client/package.json": ["core", "sitrep-client"],
   "mod/GonogoBreakingGroundUplink/client/package.json": [
     "core",
     "sitrep-client",
-    "test-utils",
   ],
-  "mod/GonogoKerbalismUplink/client/package.json": [
-    "core",
-    "sitrep-client",
-    "test-utils",
-  ],
+  "mod/GonogoKerbalismUplink/client/package.json": ["core", "sitrep-client"],
   "mod/GonogoKerbcastUplink/client/package.json": [
     "core",
     "logger",
     "sitrep-client",
-    "test-utils",
   ],
   "mod/GonogoKosUplink/client/package.json": [
     "core",
     "data",
     "logger",
     "sitrep-client",
-    "test-utils",
   ],
-  "mod/GonogoMechJebUplink/client/package.json": [
-    "core",
-    "sitrep-client",
-    "test-utils",
-  ],
-  "mod/GonogoRealAntennasUplink/client/package.json": [
-    "core",
-    "sitrep-client",
-    "test-utils",
-  ],
+  "mod/GonogoMechJebUplink/client/package.json": ["core", "sitrep-client"],
+  "mod/GonogoRealAntennasUplink/client/package.json": ["core", "sitrep-client"],
   "mod/GonogoScansatUplink/client/package.json": [
     "core",
     "data",
     "sitrep-client",
-    "test-utils",
   ],
 };

@@ -23,7 +23,7 @@
 import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
 import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
 import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
-import { render, waitFor } from "@ksp-gonogo/test-utils";
+import { render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type DelayedPlayoutResult,

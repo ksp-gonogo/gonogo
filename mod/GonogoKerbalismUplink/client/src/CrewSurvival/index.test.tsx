@@ -1,5 +1,5 @@
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
-import { act, render, screen, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";

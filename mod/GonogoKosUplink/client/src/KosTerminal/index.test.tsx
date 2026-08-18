@@ -6,7 +6,7 @@ import {
   render,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

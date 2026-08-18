@@ -1,7 +1,7 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Card } from "./Card";
 import { resourceColor } from "./resourceColor";
-import { render, screen } from "./testing-react";
 
 describe("Card", () => {
   it("renders its children", () => {

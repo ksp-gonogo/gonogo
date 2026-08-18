@@ -381,5 +381,42 @@ describe("uplink isolation", () => {
         `Declared-dependency debt may only be REMOVED, never added, vs ${BASE_REF}. See docs/uplink-isolation.md.`,
       ).toEqual([]);
     });
+
+    /**
+     * The debt lists shrink; the list of what counts as debt does the OPPOSITE.
+     * Dropping a name from `FORBIDDEN_PACKAGES` looks exactly like progress from
+     * every other angle in this file: the scan stops finding that package, its
+     * entries can be deleted as "cleared", and the shrink checks grade only
+     * packages forbidden at BOTH ends, so they stop grading it too. The suite
+     * goes green by no longer asking the question.
+     *
+     * That is not hypothetical. Clearing `ui` and `test-utils` from the debt
+     * list on 2026-08-18 was done with a regex over this file, which matched the
+     * entries AND the `FORBIDDEN_PACKAGES` members, and the full suite passed
+     * with `ui` silently unguarded, because by then nothing imported it. A build
+     * error over an unrelated union type is the only reason anyone looked.
+     */
+    it("FORBIDDEN_PACKAGES never shrinks", () => {
+      const base = baseAllowlist();
+      if (!base) return;
+      const baseForbidden = base.FORBIDDEN_PACKAGES as
+        | readonly string[]
+        | undefined;
+      if (!baseForbidden) return;
+      const now = new Set<string>(FORBIDDEN_PACKAGES);
+      expect(
+        baseForbidden.filter((pkg) => !now.has(pkg)),
+        [
+          `A package was REMOVED from FORBIDDEN_PACKAGES vs ${BASE_REF}.`,
+          "",
+          "The rule may widen, never narrow. An Uplink importing a private",
+          "package is unbuildable by an outside author whether or not this list",
+          "still mentions it, and removing the name only stops the guard asking.",
+          "",
+          "If an Uplink no longer imports it, delete the DEBT ENTRIES and leave",
+          "the package here so the next one is caught.",
+        ].join("\n"),
+      ).toEqual([]);
+    });
   });
 });

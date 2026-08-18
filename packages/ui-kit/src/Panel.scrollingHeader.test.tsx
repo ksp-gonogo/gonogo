@@ -1,6 +1,6 @@
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
-import { render, screen } from "./testing-react";
 
 /**
  * The sticky header (Task 6): the standard header is the first in-flow child

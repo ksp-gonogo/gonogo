@@ -1,7 +1,7 @@
+import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import { JogWheel } from "./JogWheel";
 import { axe } from "./test/axe";
-import { fireEvent, render, screen } from "./testing-react";
 
 describe("JogWheel", () => {
   it("exposes slider semantics with current/bounds/valuetext", () => {

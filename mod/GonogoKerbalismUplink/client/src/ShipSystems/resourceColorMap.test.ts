@@ -1,4 +1,4 @@
-import { renderHook } from "@ksp-gonogo/test-utils";
+import { renderHook } from "@ksp-gonogo/sitrep-sdk/testing";
 import { resourceColor } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { useResourceColorMap } from "./resourceColorMap";
