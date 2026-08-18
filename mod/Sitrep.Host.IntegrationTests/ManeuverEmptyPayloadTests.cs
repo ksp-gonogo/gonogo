@@ -101,6 +101,109 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A throwing channel mapper takes its owner's OTHER channels off the
+        /// air with it, which is what rules out "the maneuver mapper threw" as
+        /// an explanation for a capture where <c>vessel.maneuver</c> was silent
+        /// while <c>vessel.orbit</c> kept delivering. Both belong to the same
+        /// <c>vessel</c> uplink, so a throw in one could not have spared the
+        /// other.
+        ///
+        /// <para>Asserted on emit counters rather than on received frames: two
+        /// topics reaching the wire have no guaranteed relative order, so
+        /// counting deliveries would be racing the outbox pump rather than
+        /// testing the property.</para>
+        /// </summary>
+        [Fact]
+        public async Task OneChannelsMapperThrowingSilencesItsSiblingChannelToo()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new SiblingChannelUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                // Both, because ProcessTick only maps a channel that has a
+                // subscriber: without one the poisoned mapper never runs at all.
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, SiblingChannelUplink.ThrowingTopic, Timeout);
+                await SubscribeAsync(client, SiblingChannelUplink.SiblingTopic, Timeout);
+
+                engine.TickAndWait(0.0, SiblingChannelUplink.Snapshot(poison: false), Timeout);
+
+                var healthyEmits = engine.ChannelCounters(SiblingChannelUplink.SiblingTopic).Emitted;
+                Assert.True(healthyEmits > 0, "the sibling channel should emit while its owner is healthy");
+                Assert.True(engine.AvailabilityOf(SiblingChannelUplink.UplinkId).IsAvailable);
+
+                engine.TickAndWait(1.0, SiblingChannelUplink.Snapshot(poison: true), Timeout);
+                engine.TickAndWait(2.0, SiblingChannelUplink.Snapshot(poison: false), Timeout);
+
+                Assert.False(
+                    engine.AvailabilityOf(SiblingChannelUplink.UplinkId).IsAvailable,
+                    "a throwing channel mapper must mark its owning uplink Unavailable");
+                Assert.Equal(
+                    healthyEmits,
+                    engine.ChannelCounters(SiblingChannelUplink.SiblingTopic).Emitted);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Two channels under one owner, one of whose mappers throws on demand.
+        /// </summary>
+        private sealed class SiblingChannelUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-sibling-channels";
+            public const string ThrowingTopic = "sibling.throws";
+            public const string SiblingTopic = "sibling.healthy";
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    Channel(ThrowingTopic),
+                    Channel(SiblingTopic),
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddChannelSource(ThrowingTopic, s =>
+                {
+                    if (s != null && s.Values.ContainsKey("poison"))
+                    {
+                        throw new InvalidOperationException("mapper poisoned");
+                    }
+                    return 1.0;
+                });
+                host.AddChannelSource(SiblingTopic, s => s?.Values.Count);
+            }
+
+            public static KspSnapshot Snapshot(bool poison)
+            {
+                var values = new Dictionary<string, object?> { ["ok"] = 1.0 };
+                if (poison)
+                {
+                    values["poison"] = true;
+                }
+                return new KspSnapshot { Values = values };
+            }
+
+            private static ChannelDeclaration Channel(string topic) => new ChannelDeclaration
+            {
+                Topic = topic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+            };
+        }
+
+        /// <summary>
         /// A vessel group carrying a subject id and, optionally, a raw
         /// maneuver-node list. <paramref name="nodes"/> null reproduces the
         /// no-nodes-queued shape <c>KspHost.BuildManeuverNodes</c> produces,
