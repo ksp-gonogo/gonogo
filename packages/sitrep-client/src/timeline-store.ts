@@ -4,7 +4,12 @@ import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
-import { type Reading, readingFrom } from "./reading";
+import {
+  type Reading,
+  type ReckonerFor,
+  type ReckoningBasis,
+  readingFrom,
+} from "./reading";
 import { getReckoner } from "./reckoners";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
@@ -149,6 +154,33 @@ export interface DerivedChannelDefinition<T> {
     get: DerivedGet,
     viewUt: number,
   ) => StreamStatusValue;
+  /**
+   * Whether this record is FORWARD-MODELLED for `viewUt` rather than merely
+   * carried from the last observation, and on what basis. Returning a basis
+   * promotes a missed-update reading from `stale` to `reckonable`; returning
+   * `undefined` leaves it `stale`.
+   *
+   * A derived channel is where class-A propagation actually lives, and it got
+   * there before `Reading` existed: `deriveVesselState` calls
+   * `trySolve(elements, viewUt)` with no staleness gate, so `vessel.state`
+   * under `Quality.OnRails` has always served a position solved for the
+   * frame's view time. `Reading` then labelled it `stale`, whose own doc says
+   * its value is "the last REAL observation, never a modelled value". This is
+   * the label that was missing, not a second model.
+   *
+   * Note what a class-A reckoning does NOT do: arithmetic. Kepler elements are
+   * constant under two-body motion, `epoch` is epoch-referenced, and the
+   * contract carries elements rather than position for exactly that reason. So
+   * propagating them is the identity, the position derivation already ran
+   * inside `derive`, and all that was ever missing was the statement that it
+   * had. The horizon is real all the same: a conic holds until a burn or an
+   * unmodelled SOI change, and declining is how a channel says so.
+   */
+  deriveReckoning?: (
+    get: DerivedGet,
+    viewUt: number,
+    getStatus: (topic: string) => StreamStatusValue,
+  ) => ReckoningBasis | undefined;
 }
 
 /** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (derived channels ultimately should propagate the worst input staleness) is not yet implemented, this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
@@ -1071,6 +1103,40 @@ export class TimelineStore {
   }
 
   /**
+   * A derived channel's `deriveReckoning` as a `ReckonerFor`, so a channel that
+   * forward-models its record says so through the same arm a registered
+   * reckoner does.
+   *
+   * The model here is the IDENTITY, and that is the correct answer rather than
+   * a shortcut: `derive` already ran for this frame's view time, so the value
+   * on the point IS the reckoning. What was missing was never arithmetic, only
+   * the statement that arithmetic had happened. Consulted only when no
+   * reckoner is registered for the topic, so a channel's own label never
+   * silently overrides one an Uplink registered.
+   */
+  private derivedReckoner<T>(
+    topic: string,
+    token: FrameToken,
+  ): ReckonerFor<T> | undefined {
+    const resolved = this.resolveDerivedTopic(topic);
+    const deriveReckoning = resolved?.def.deriveReckoning;
+    if (!deriveReckoning) return undefined;
+    return (point, _grade, viewUt) => {
+      // A tombstoned record never reaches the reckonable arm (`readingFrom`
+      // ranks `absent` above every staleness grade), so this only narrows the
+      // payload type; there is no modelled value for a confirmed absence.
+      const modelledValue = point.payload;
+      if (modelledValue === null) return undefined;
+      const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
+      const basis = deriveReckoning(get, viewUt, (inputTopic) =>
+        this.sampleStatus(inputTopic, token),
+      );
+      if (!basis) return undefined;
+      return { modelled: [{ path: "", basis }], reckon: () => modelledValue };
+    };
+  }
+
+  /**
    * The topic's value AND its currency as one `Reading<T>`, at a frame token's
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
@@ -1110,7 +1176,9 @@ export class TimelineStore {
         const point = this.sample<T>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
         const viewUt = effectiveToken.viewUt;
-        const reckoner = getReckoner<T>(topic);
+        const reckoner =
+          getReckoner<T>(topic) ??
+          this.derivedReckoner<T>(topic, effectiveToken);
         const previous = this.readings.get(topic);
         if (
           previous !== undefined &&
@@ -1445,14 +1513,42 @@ export class TimelineStore {
     // calls `derive`, so it's the one that must recompute on a mid-frame
     // epoch bump; the outer memoize in `sample()` only needs a matching key
     // so it doesn't short-circuit before ever reaching this one.
-    const value = this.memoize(
+    const { value, observedAt } = this.memoize(
       token,
       `\0derived\0${def.topic}\0epoch\0${epoch}`,
       () => {
-        const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
+        // The oldest input this record actually CONSUMED, which is how current
+        // it really is. Stamping `token.viewUt` made every derived read report
+        // an age of zero, so `vessel.state` twenty minutes into a blackout
+        // looked exactly as fresh as one reporting now. Tracked here rather
+        // than declared per channel because `get`/`getInterpolated` are the
+        // only way in and the store owns them: a channel cannot forget to say
+        // what it read, and quality-picking channels that consult a subset of
+        // their declared `inputs` come out right without special-casing.
+        //
+        // A hold-last `get` pulls this back to the input's own `validAt`; an
+        // interpolated read is genuinely a value FOR the view time and carries
+        // `validAt: viewUt`, so it never pulls it back. That is the honest
+        // difference between the two, and the min is what expresses it.
+        let oldest = Number.POSITIVE_INFINITY;
+        const note = <V>(
+          point: TimelinePoint<V> | undefined,
+        ): TimelinePoint<V> | undefined => {
+          if (point) oldest = Math.min(oldest, point.validAt);
+          return point;
+        };
+        const get: DerivedGet = (inputTopic) =>
+          note(this.sample(inputTopic, token));
         const getInterpolated: DerivedGet = (inputTopic) =>
-          this.sampleInterpolated(inputTopic, token);
-        return def.derive(get, token.viewUt, getInterpolated);
+          note(this.sampleInterpolated(inputTopic, token));
+        return {
+          value: def.derive(get, token.viewUt, getInterpolated),
+          // Nothing read (a channel deriving from constants) is as current as
+          // the frame; nothing can be older than the moment being asked about.
+          observedAt: Number.isFinite(oldest)
+            ? Math.min(oldest, token.viewUt)
+            : token.viewUt,
+        };
       },
     );
 
@@ -1470,9 +1566,9 @@ export class TimelineStore {
       // itself returned null): a real point, per the tombstone model:
       // `payload: null`.
       return {
-        validAt: token.viewUt,
+        validAt: observedAt,
         payload: null as T,
-        meta: derivedMeta(token.viewUt, epoch),
+        meta: derivedMeta(observedAt, epoch),
         epoch,
       };
     }
@@ -1484,9 +1580,9 @@ export class TimelineStore {
       : (value as T);
 
     return {
-      validAt: token.viewUt,
+      validAt: observedAt,
       payload,
-      meta: derivedMeta(token.viewUt, epoch),
+      meta: derivedMeta(observedAt, epoch),
       epoch,
     };
   }

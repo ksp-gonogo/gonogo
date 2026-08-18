@@ -10,6 +10,7 @@ import {
   ROTATION_PERIOD_SECONDS,
 } from "./orbit-patches";
 import { STANDARD_GRAVITY } from "./propagation";
+import type { ReckoningBasis } from "./reading";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
@@ -1918,6 +1919,42 @@ export function deriveVesselStateStatus(
 }
 
 /**
+ * Whether this record is forward-modelled, and on what.
+ *
+ * The OnRails basis solves position, velocity, anomalies and both time-to-apsis
+ * figures from the orbital elements at the frame's view time
+ * (`trySolve(elements, viewUt)`), and does so whether or not anything has
+ * arrived recently, because the elements are a CAUSE valid until superseded.
+ * That is the right derivation and always was; what it lacked was a way to say
+ * it. Without this, a craft twenty minutes dark served a propagated position on
+ * the `stale` arm, whose own doc promises "the last REAL observation, never a
+ * modelled value".
+ *
+ * The Loaded/measured basis returns nothing: those fields come off
+ * `vessel.flight` by interpolation between two real samples, which is a
+ * statement about the interval between them and not a model of what happened
+ * after the last one. Once contact is lost there is nothing left to
+ * interpolate, so the reading is honestly stale.
+ *
+ * No horizon is imposed here, and that is a gap rather than a decision.
+ * `KeplerProvider`'s doc says the analytic solution has no horizon, so the
+ * window is ignored, and there is no client-side `CanPropagate` to consult
+ * yet. The conic stops being true at a burn or an unmodelled SOI change, and
+ * neither is knowable from inside this function: a craft out of contact is
+ * exactly one whose burns we cannot see. When the client gains the gated
+ * solver, declining past its window belongs here.
+ */
+export function deriveVesselStateReckoning(
+  get: DerivedGet,
+  _viewUt: number,
+): ReckoningBasis | undefined {
+  const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
+  if (orbitPoint?.payload == null) return undefined;
+  if (orbitPoint.meta.quality !== Quality.OnRails) return undefined;
+  return "kepler-propagation";
+}
+
+/**
  * Ready-to-register definition: `store.registerDerivedChannel(vesselStateChannel)`.
  * `fields: true` exposes `vessel.state.<field>` subtopics (e.g.
  * `vessel.state.altitudeAsl`) reading off this one memoized record, per
@@ -1981,5 +2018,6 @@ export const vesselStateChannel: DerivedChannelDefinition<VesselState> = {
   ],
   derive: deriveVesselState,
   deriveStatus: deriveVesselStateStatus,
+  deriveReckoning: deriveVesselStateReckoning,
   fields: true,
 };
