@@ -28,6 +28,30 @@ export interface ShipSystems {
   profile: KerbalismProfile | undefined;
   lifeSupport: KerbalismLifeSupport | undefined;
   crew: number;
+  /**
+   * How current the RESOURCE LEVELS this summary was derived from actually are.
+   *
+   * Its own provenance rather than a nested `Reading`, for the reason the dep
+   * form's doc gives: a `Reading` is one Topic's currency, and a summary that
+   * reasons across resources is not one Topic's anything.
+   *
+   * It exists because every figure in `summary` is a function of the levels,
+   * and a time-to-empty derived from levels observed twenty minutes ago is not
+   * a time-to-empty. Before this the derivation read `point.payload` and could
+   * not tell, so the widget presented a last-contact projection as current with
+   * nothing anywhere saying so.
+   */
+  levels: LevelsProvenance;
+}
+
+/** Where the resource levels behind a summary came from, and when. */
+export interface LevelsProvenance {
+  /** The reading arm the levels arrived on. */
+  state: "pending" | "absent" | "observed" | "stale" | "reckonable";
+  /** UT the levels were observed at; undefined when nothing has been observed. */
+  asOfUt: number | undefined;
+  /** Seconds between that observation and the frame this was derived for. */
+  ageSec: number | undefined;
 }
 
 /**
@@ -40,12 +64,38 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
   deps: [
     "kerbalism.profile",
     "kerbalism.lifesupport",
-    "vessel.resources",
+    // A READING, not the payload. Every figure this derivation produces is a
+    // function of the resource levels, so whether those levels are current is
+    // part of the answer rather than a detail a consumer can look up
+    // separately. It also carries the observation's own UT, which is what
+    // makes the age below honest.
+    { reading: "vessel.resources" },
     "vessel.crew",
   ] as const,
-  compute: ([profile, lifeSupport, resources, crew]): ShipSystems => {
+  compute: (
+    [profile, lifeSupport, resourcesReading, crew],
+    frame,
+  ): ShipSystems => {
     // `stored`/`capacity` were never Kerbalism-specific: they come off the
     // generic `vessel.resources` levels, keyed by KSP resource name.
+    //
+    // The LAST OBSERVED levels on every arm that has a value, never a modelled
+    // figure: this derivation does not forward-model, it reports what it was
+    // working from and how old that is, and `levels` below is what says so.
+    const resources =
+      resourcesReading.state === "observed" ||
+      resourcesReading.state === "stale" ||
+      resourcesReading.state === "reckonable"
+        ? resourcesReading.value
+        : undefined;
+    const observedAtUt =
+      resourcesReading.state === "observed" ||
+      resourcesReading.state === "absent"
+        ? resourcesReading.atUt
+        : resourcesReading.state === "stale" ||
+            resourcesReading.state === "reckonable"
+          ? resourcesReading.asOfUt
+          : undefined;
     const stored: Record<string, number> = {};
     const capacity: Record<string, number> = {};
     const levels: Record<string, ResourceAmount> = resources?.resources ?? {};
@@ -65,6 +115,16 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
       profile,
       lifeSupport,
       crew: crewCount,
+      levels: {
+        state: resourcesReading.state,
+        asOfUt: observedAtUt,
+        // Never negative: a sample can sit marginally ahead of the frame's view
+        // time, and a negative age is not a thing to render.
+        ageSec:
+          observedAtUt === undefined
+            ? undefined
+            : Math.max(0, frame.viewUt - observedAtUt),
+      },
     };
   },
 });

@@ -224,6 +224,11 @@ export {
   clearProcessorRuntime,
   evaluateActiveProcessors,
   getProcessorValue,
+  // Exported for the same reason `clearProcessorRuntime` above is: an Uplink's
+  // own Processor test needs to point the evaluator at a store it built, and
+  // reaching across the workspace boundary into this package's internals to do
+  // it is worse than naming the seam.
+  setActiveTimelineStore,
   setProcessorEvaluationRecorder,
 } from "./processorEvaluator";
 export {
