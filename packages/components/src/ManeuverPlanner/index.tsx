@@ -32,6 +32,7 @@ import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
+import { BurnWindowRows } from "./BurnWindowRows";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
@@ -555,6 +556,43 @@ function ManeuverPlannerComponent({
     );
   }
 
+  /**
+   * The three instants of each queued burn. Read off `vessel.maneuver` rather
+   * than the legacy parsed list, because the instants are new contract fields
+   * and the legacy reshape predates them; correlated by array position, which
+   * is the same correlation `resolveNodeId` above already relies on and
+   * documents.
+   *
+   * Rendered as its own section rather than inside each node row: three rows
+   * plus an axis per burn is more than a row can hold at the sizes this widget
+   * is used at, and the whole reason the instants are separate is that they
+   * must not be squeezed back into one line.
+   */
+  function renderBurnWindowsSection() {
+    const burns = streamNodeIds ?? [];
+    if (burns.length === 0) return null;
+    return (
+      <PaddedSection>
+        <SectionTitle as="h4">Burn windows</SectionTitle>
+        <Stack gap="sm">
+          {burns.map((burn, index) => (
+            <BurnWindowRows
+              // Position, matching how this list is correlated with the legacy
+              // one everywhere else in this widget.
+              key={burn.id || String(index)}
+              burn={{
+                ut: magnitudeOf(burn.ut) ?? 0,
+                ignitionUt: magnitudeOf(burn.ignitionUt),
+                cutoffUt: magnitudeOf(burn.cutoffUt),
+              }}
+              nowUt={currentUT ?? 0}
+            />
+          ))}
+        </Stack>
+      </PaddedSection>
+    );
+  }
+
   function renderNewManeuverSection() {
     return (
       <PaddedSection>
@@ -619,6 +657,7 @@ function ManeuverPlannerComponent({
       <ScrollBody>
         {refBody !== undefined && <RefBodyCaption>{refBody}</RefBodyCaption>}
         {renderNodesSection()}
+        {renderBurnWindowsSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
         {waiting ? (

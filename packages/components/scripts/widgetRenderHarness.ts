@@ -168,6 +168,22 @@ export interface WidgetRenderConfig {
    * widget so nothing is cropped below the fold. For composed instruments whose
    * content scrolls in a real cell (LandingStatus) but must be reviewed whole. */
   fullContent?: boolean;
+  /**
+   * Fail the render when any element matching `selector` is cut off by the
+   * panel's own bottom edge.
+   *
+   * For a widget whose content is a COMPARISON, a row that renders below the
+   * fold is not merely cropped: it is missing from the thing the widget exists
+   * to show, while every DOM assertion still passes on it. jsdom computes no
+   * boxes, so a unit test is structurally incapable of expressing this and
+   * putting it there would be a second blind instrument.
+   *
+   * `mayScroll` names the modes where the property is deliberately given up: at
+   * a tile too small to hold the content, scrolling IS the accepted
+   * degradation. Everything not listed is checked, so a mode added later is
+   * covered by default and an exemption has to be written down as one.
+   */
+  mustBeVisible?: { selector: string; mayScroll?: readonly string[] };
 }
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
@@ -575,6 +591,41 @@ async function renderOneWidget(
               requestAnimationFrame(() => requestAnimationFrame(() => res()));
             }),
         );
+      }
+      if (
+        config.mustBeVisible &&
+        !fullContent &&
+        !(config.mustBeVisible.mayScroll ?? []).includes(mode.name)
+      ) {
+        // Measured in the page, after layout, because that is the only place
+        // this property exists at all.
+        const clipped = await page.evaluate((selector) => {
+          const host = document.getElementById("root");
+          if (!host) return [] as string[];
+          const limit = host.getBoundingClientRect().bottom;
+          const out: string[] = [];
+          for (const el of Array.from(document.querySelectorAll(selector))) {
+            const box = el.getBoundingClientRect();
+            // A hidden element has no box and is not a clipping failure; a
+            // visible one must END above the panel's own bottom edge.
+            if (box.height === 0) continue;
+            if (box.bottom > limit + 0.5) {
+              out.push((el.textContent ?? "").trim().slice(0, 60));
+            }
+          }
+          return out;
+        }, config.mustBeVisible.selector);
+        if (clipped.length > 0) {
+          throw new Error(
+            `${config.widgetId} @ ${mode.name} (${fixture.name}): ` +
+              `${clipped.length} element(s) matching "${config.mustBeVisible.selector}" ` +
+              "are cut off by the panel edge, so they render but cannot be read:\n  " +
+              clipped.join("\n  ") +
+              "\n(This widget declares mustBeVisible because a DOM assertion " +
+              "cannot see the fold. If this mode is genuinely too small to hold " +
+              "the content, add it to mustBeVisible.mayScroll.)",
+          );
+        }
       }
       const root = await page.$("#root");
       if (!root) throw new Error("Probe: #root missing after render");
