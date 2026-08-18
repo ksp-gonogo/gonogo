@@ -370,6 +370,26 @@ Basic, reusable UI elements (toggles, inputs, buttons, tags, etc.) belong in a s
 
 ---
 
+## Uplink isolation: an Uplink imports only the published packages
+
+`mod/Gonogo*Uplink/client/**` may import **`@ksp-gonogo/sitrep-sdk`** and
+**`@ksp-gonogo/ui-kit`**, and nothing else from this repo. Never
+`@ksp-gonogo/core`, `components`, `data`, `ui` or `logger`: those are
+app-internal, a third-party Uplink author cannot install them, and an Uplink that
+reaches into one cannot be built outside this repo. Note `ui` and `ui-kit` are
+different packages; only `ui-kit` is published.
+
+If an Uplink needs something that lives app-side, **move the export into
+`sitrep-sdk` or `ui-kit`**, don't import across the boundary. Almost every case
+on record is a sensible export in the wrong package rather than a design problem.
+Never put a repo-wide gate inside an Uplink: a check that needs `core` to run is
+one a third-party author cannot run.
+
+Enforced by `packages/core/src/uplink-isolation.test.ts` (shrink-only debt list,
+seeded 2026-08-18). Full rules and the reasoning: `docs/uplink-isolation.md`.
+
+---
+
 ## Spending funds: always show the balance
 
 Any widget that exposes an action which spends career funds (launch a craft, upgrade a facility, accept an advance, unlock a tech) **must display the current funds balance somewhere visible in the same widget**. Subscribe to `career.funds` and surface it next to the spend control, a small "Funds: 289,848f" readout in the header is enough. The operator should never be forced to look at another widget to find out whether they can afford the thing they're about to confirm.

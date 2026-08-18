@@ -80,6 +80,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
@@ -239,6 +243,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Kerbalism's own SCANsat bridge --
       // Kerbalism ships a `KerbalismScansat` PartModule and a config patch that
       // DELETES the part's `SCANexperiment` module to make room for it. So with
@@ -460,6 +468,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
@@ -701,6 +713,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   realantennas: {
     domainDebt: [],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Judgment calls, all resolved clean (audit §4) --
       "mod/Gonogo.KSP/CommNetBackend.cs",
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
@@ -903,6 +919,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Uplink loader: the sanctioned self-registration import, same
       // pattern as kerbcast/kos/scansat's main.tsx entries above.
       "packages/app/src/main.tsx",
@@ -993,6 +1013,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- Uplink loader: the sanctioned self-registration import, same
       // pattern as kerbcast/kos/scansat/mechjeb's main.tsx entries above.
       "packages/app/src/main.tsx",
@@ -1132,6 +1156,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
+      // debt list is keyed by file path, so it necessarily names every Uplink
+      // directory. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/uplink-isolation.allowlist.ts",
       // -- ratchet inventory --
       // The rate-integration candidate scan reads EVERY generated unit
       // descriptor, core's and each Uplink's, because a rate-bearing field
