@@ -247,7 +247,13 @@ export type {
   StaleGrade,
 } from "./reading";
 export { readingAge, readingFrom, withoutReckoning } from "./reading";
-export { clearReckoners, getReckoner, registerReckoner } from "./reckoners";
+export type { ReckonerConflict } from "./reckoners";
+export {
+  clearReckoners,
+  getReckoner,
+  getReckonerConflicts,
+  registerReckoner,
+} from "./reckoners";
 export type { StreamRecorderOptions } from "./replay-recorder";
 export { StreamRecorder } from "./replay-recorder";
 export type { ReplayFixture, ReplayTransportOptions } from "./replay-transport";

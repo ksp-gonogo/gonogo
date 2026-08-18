@@ -70,4 +70,4 @@ export const targetReckoning = defineProcessor({
  */
 const reckonTarget: ReckonerFor<VesselTarget> = () => undefined;
 
-registerReckoner("vessel.target", reckonTarget);
+registerReckoner("vessel.target", "distance-to-target", reckonTarget);

@@ -154,7 +154,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
         reckon: () => point.payload,
       };
     };
-    registerReckoner("temperature", reckoner);
+    registerReckoner("temperature", "test", reckoner);
 
     store.ingest("temperature", numberPoint(100, 5));
     wall.advanceBy(60);
@@ -169,7 +169,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", (point) => ({
+    registerReckoner<number>("temperature", "test", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
       reckon: (at: number) => point.payload + (at - point.validAt),
     }));
@@ -198,7 +198,7 @@ describe("a reckonable arm withdraws when its model stops being offered", () => 
     const { store } = predictedStore(wall);
 
     const HORIZON_SECONDS = 120;
-    registerReckoner<number>("temperature", (point, _grade, viewUt) => {
+    registerReckoner<number>("temperature", "test", (point, _grade, viewUt) => {
       if (viewUt - point.validAt > HORIZON_SECONDS) return undefined;
       return {
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -255,7 +255,7 @@ describe("a reckoning says which fields it actually modelled", () => {
     const { store } = predictedStore(wall);
 
     type Target = { relativePosition: number; name: string };
-    registerReckoner<Target>("vessel.target", (point) => ({
+    registerReckoner<Target>("vessel.target", "test", (point) => ({
       // Covers ONE field, never the root: the model has nothing to say about
       // the whole payload a topic-level read asks for.
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],

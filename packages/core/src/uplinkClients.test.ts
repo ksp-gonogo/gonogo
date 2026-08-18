@@ -23,7 +23,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
     expect(getUplinkClients()).toContainEqual(handle);
   });
 
-  it("returns a frozen handle carrying exactly the declared fields plus bound registerContribution/registerProcessor", () => {
+  it("returns a frozen handle carrying exactly the declared fields plus its bound registrars", () => {
     const handle = defineUplinkClient({
       id: "mod-beta",
       version: "1.2.3",
@@ -37,6 +37,7 @@ describe("defineUplinkClient / getUplinkClients / clearUplinkClients", () => {
       name: "Mod Beta",
       registerContribution: expect.any(Function),
       registerProcessor: expect.any(Function),
+      registerReckoner: expect.any(Function),
     });
   });
 

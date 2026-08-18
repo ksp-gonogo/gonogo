@@ -264,6 +264,19 @@ export interface UplinkClientHandle {
     // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
     compute: (values: any) => R;
   }): { readonly id: string; readonly __resultType?: R };
+  /**
+   * Register this client's forward model for a Topic, auto-namespaced to it.
+   * Only the Uplink owning a Topic knows the physics behind it, and a Topic two
+   * clients both claim is served with NO model rather than whichever loaded
+   * last, so the owner has to be a stamped field rather than a convention.
+   *
+   * Same leaf constraint as the two above: `ReckonerFor`/`TimelinePoint`/
+   * `Reading` live in sitrep-client and are not part of the frozen
+   * author-facing surface, so this is a name+arity probe and an author gets the
+   * precise signature from `registerReckoner` itself.
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
+  registerReckoner<T>(topic: string, reckoner: any): void;
 }
 
 // --- Fog reveal sources ------------------------------------------------------

@@ -24,7 +24,9 @@ import {
   type Dep,
   defineProcessor,
   type ProcessorHandle,
+  type ReckonerFor,
   type ResolvedDeps,
+  registerReckoner,
 } from "@ksp-gonogo/sitrep-client";
 import {
   type ContributionDefinition,
@@ -61,6 +63,18 @@ export interface UplinkClientHandle {
     deps: Deps;
     compute: (values: ResolvedDeps<Deps>) => R;
   }): ProcessorHandle<R>;
+  /**
+   * Register this client's forward model for a Topic (same bridge shape as
+   * registerProcessor: sitrep-client cannot import this package's handle type
+   * without a cycle, so the owner is passed as a plain id).
+   *
+   * Which client owns a model is not a matter of style: only the Uplink that
+   * owns a Topic knows the physics behind it, and a topic two clients both
+   * claim is served with NO model rather than whichever loaded last. Going
+   * through the handle is what makes the owner a stamped field the boundary
+   * ratchet and a health surface can read, instead of a hand-typed string.
+   */
+  registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void;
 }
 
 const clients = new Map<string, UplinkClientHandle>();
@@ -104,6 +118,9 @@ export function defineUplinkClient(cfg: {
       compute: (values: ResolvedDeps<Deps>) => R;
     }): ProcessorHandle<R> {
       return defineProcessor({ ...def, owner: cfg.id });
+    },
+    registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void {
+      registerReckoner(topic, cfg.id, reckoner);
     },
   });
   clients.set(handle.id, handle);

@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearReckoners, registerReckoner } from "./reckoners";
+import {
+  clearReckoners,
+  getReckoner,
+  getReckonerConflicts,
+  registerReckoner,
+} from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
@@ -63,13 +68,17 @@ function predictedStore(wall: { now: () => number }) {
 
 /** Dead-reckons the relative position only; every other field is a copy. */
 function registerPositionOnlyModel() {
-  registerReckoner<Target>("vessel.target", (point, _grade, viewUt) => ({
-    modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
-    reckon: () => ({
-      ...point.payload,
-      relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
+  registerReckoner<Target>(
+    "vessel.target",
+    "test",
+    (point, _grade, viewUt) => ({
+      modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
+      reckon: () => ({
+        ...point.payload,
+        relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
+      }),
     }),
-  }));
+  );
 }
 
 beforeEach(clearReckoners);
@@ -165,7 +174,7 @@ describe("a per-topic model, expressed per field", () => {
     registerReckoner<{
       relativePosition: number;
       relativePositionError: number;
-    }>("vessel.dock", (point) => ({
+    }>("vessel.dock", "test", (point) => ({
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
       reckon: () => point.payload,
     }));
@@ -183,5 +192,50 @@ describe("a per-topic model, expressed per field", () => {
     expect(
       store.sampleReading<number>("vessel.dock.relativePositionError").state,
     ).toBe("stale");
+  });
+});
+
+describe("a topic two owners both model is served with neither", () => {
+  const declines = () => undefined;
+
+  beforeEach(clearReckoners);
+
+  it("answers with no model, so the reading is honestly stale", () => {
+    // Last-write-wins would have picked by module import order, which is a
+    // fact about the bundler and not a judgement about the physics. A reading
+    // with no model says "nothing trustworthy can be said", which is true; one
+    // carrying whichever model loaded second is a confident picture assembled
+    // by accident, and a wrong reckoner is worse than none.
+    registerReckoner<Target>("vessel.target", "two-body-model", () => ({
+      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      reckon: () => OBSERVED,
+    }));
+    registerReckoner<Target>("vessel.target", "n-body-model", () => ({
+      modelled: [{ path: "", basis: "kepler-propagation" }],
+      reckon: () => OBSERVED,
+    }));
+
+    const wall = fakeWall();
+    const store = predictedStore(wall);
+    store.ingest("vessel.target", targetPoint(100));
+    wall.advanceBy(60);
+    store.setTransportConnected(false);
+    store.beginFrame();
+
+    expect(store.sampleReading<Target>("vessel.target").state).toBe("stale");
+    expect(getReckonerConflicts()).toEqual([
+      { topic: "vessel.target", owners: ["n-body-model", "two-body-model"] },
+    ]);
+  });
+
+  it("reports no conflict when one owner re-registers", () => {
+    // A module re-evaluating under HMR, or a test re-importing after
+    // resetModules, is a benign single-owner case and must not look like two
+    // Uplinks disagreeing.
+    registerReckoner<Target>("vessel.target", "two-body-model", declines);
+    registerReckoner<Target>("vessel.target", "two-body-model", declines);
+
+    expect(getReckonerConflicts()).toEqual([]);
+    expect(getReckoner("vessel.target")).toBe(declines);
   });
 });
