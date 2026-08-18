@@ -171,8 +171,7 @@ namespace Gonogo.KSP
         /// Loads a saved craft onto a launch site via
         /// <c>FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest)</c>
         /// (decompile-confirmed signature), the same call KSP's own launch path
-        /// makes. Unlike the Telemachus-era original this runs directly on the
-        /// main thread: <see cref="ChannelEngine"/>'s
+        /// makes. Runs directly on the main thread: <see cref="ChannelEngine"/>'s
         /// <c>executeCommandsOnMainThread: true</c> drains this handler in
         /// <c>GonogoAddon.FixedUpdate</c>: so no <c>Defer</c> wrapper is needed
         /// (KSP's scene loader is not re-entrant off the main thread).
@@ -267,7 +266,8 @@ namespace Gonogo.KSP
         /// order: probing each part manifest's seats and skipping occupied
         /// ones. Kerbals that aren't in the roster or aren't
         /// <c>RosterStatus.Available</c> are skipped rather than blocking the
-        /// launch. Ported verbatim from the Telemachus-era implementation.
+        /// launch: a crew list that names someone unavailable seats the rest
+        /// instead of failing the whole launch.
         /// </summary>
         private static void AssignCrew(VesselCrewManifest manifest, IReadOnlyList<string> crewNames)
         {

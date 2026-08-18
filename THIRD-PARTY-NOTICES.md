@@ -26,8 +26,8 @@ case) link directly against their assemblies.
   see `.superpowers/sdd/uplink-packaging-pattern.md`) references
   `SCANsat.dll`/`SCANsat.Unity.dll` at compile time (reference-only,
   `Private="false"`; not bundled) and calls SCANsat's public API in-process
-  to stream `scansat.*` channels, replacing the earlier Telemachus-fork
-  `scan.*` keys that gonogo's MapView / Scanning widgets consumed. It also
+  to stream `scansat.*` channels, which gonogo's MapView / Scanning widgets
+  consume. It also
   replicates small public-input formulas from SCANsat's source (`getFOV`,
   `getElevation`/`getBiomeIndex` sampling conventions: see
   `local_docs/telemetry-mod/scansat-migration-spec.md` §0D/§0E).
