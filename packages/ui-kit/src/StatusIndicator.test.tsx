@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { StatusIndicator } from "./StatusIndicator";
+import { render, screen } from "./testing-react";
 
 describe("StatusIndicator", () => {
   it("renders its label text", () => {

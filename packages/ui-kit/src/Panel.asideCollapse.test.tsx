@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { axe } from "./test/axe";
+import { fireEvent, render, screen, within } from "./testing-react";
 import { usePanelAsideSize } from "./usePanelAsideSize";
 
 /**

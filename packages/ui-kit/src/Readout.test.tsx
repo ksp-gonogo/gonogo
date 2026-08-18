@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { BigReadout, Readout, ReadoutCaption, StatusPill } from "./Readout";
+import { render, screen } from "./testing-react";
 
 describe("Readout family", () => {
   it("BigReadout renders its value", () => {

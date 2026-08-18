@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Disclosure } from "./Disclosure";
 import { axe } from "./test/axe";
+import { fireEvent, render, screen } from "./testing-react";
 
 describe("Disclosure", () => {
   it("is collapsed by default and toggles the panel on click", () => {

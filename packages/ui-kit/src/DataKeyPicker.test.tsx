@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import type { KeyOption } from "./DataKeyPicker";
 import { DataKeyPicker } from "./DataKeyPicker";
+import { fireEvent, render, screen } from "./testing-react";
 
 const KEYS: KeyOption[] = [
   { key: "v.altitude", label: "Altitude", unit: "m", group: "Position" },

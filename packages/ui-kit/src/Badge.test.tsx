@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
+import { render, screen } from "./testing-react";
 
 describe("Badge", () => {
   it("renders its children", () => {

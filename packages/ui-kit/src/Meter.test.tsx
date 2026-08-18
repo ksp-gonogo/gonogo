@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
+import { render, screen } from "./testing-react";
 
 describe("Meter", () => {
   it("renders the accessible meter role with the given label and value", () => {

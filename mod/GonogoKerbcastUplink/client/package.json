@@ -22,7 +22,6 @@
     "render-camera": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-camera.ts"
   },
   "dependencies": {
-    "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",

@@ -19,8 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ksp-gonogo/theme": "workspace:*",
-    "@testing-library/react": "^16.3.2"
+    "@ksp-gonogo/ui-kit": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0",

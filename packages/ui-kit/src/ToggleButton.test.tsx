@@ -1,7 +1,7 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ToggleButton } from "./ToggleButton";
 import { axe } from "./test/axe";
+import { render, screen } from "./testing-react";
 
 describe("ToggleButton", () => {
   it("reflects active into aria-pressed", () => {

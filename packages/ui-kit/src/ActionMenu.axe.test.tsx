@@ -1,7 +1,7 @@
-import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { ActionMenu } from "./ActionMenu";
 import { axe } from "./test/axe";
+import { render } from "./testing-react";
 
 describe("ActionMenu a11y", () => {
   it("has no axe violations with grouped, partly-disabled items", async () => {

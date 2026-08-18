@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { AutoEmptyState } from "./AutoEmptyState";
+import { render, screen } from "./testing-react";
 
 describe("AutoEmptyState", () => {
   it("shows the fallback when the content area renders nothing", () => {

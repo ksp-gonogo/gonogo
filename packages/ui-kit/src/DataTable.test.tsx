@@ -1,7 +1,7 @@
-import { render, screen, within } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { DataTable } from "./DataTable";
 import { axe } from "./test/axe";
+import { render, screen, within } from "./testing-react";
 
 interface Sample {
   id: string;

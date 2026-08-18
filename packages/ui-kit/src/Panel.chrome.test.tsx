@@ -1,7 +1,7 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 import { PanelBadgesProvider } from "./PanelBadges";
+import { render, screen } from "./testing-react";
 
 /**
  * The two header shapes that exist for widgets whose chrome does not fit one

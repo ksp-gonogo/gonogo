@@ -1,4 +1,3 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AugmentSlot, useAugmentAvailable } from "./AugmentSlot";
 import {
@@ -11,6 +10,7 @@ import {
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
 } from "./domainAvailability";
+import { act, render, screen, waitFor } from "./testing-react";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
 beforeEach(() => clearAugments());

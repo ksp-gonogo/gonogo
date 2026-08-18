@@ -20,10 +20,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",
-    "@ksp-gonogo/ui": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
     "styled-components": "^6.0.0"
   },

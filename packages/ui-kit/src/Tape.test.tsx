@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { Tape } from "./Tape";
+import { render, screen } from "./testing-react";
 
 describe("Tape", () => {
   it("exposes meter semantics with the current value and range", () => {

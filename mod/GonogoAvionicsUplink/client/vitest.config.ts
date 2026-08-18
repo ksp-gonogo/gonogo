@@ -15,7 +15,6 @@ export default defineConfig({
       "@ksp-gonogo/core": path.resolve(pkgs, "core/src/index.ts"),
       "@ksp-gonogo/data": path.resolve(pkgs, "data/src/index.ts"),
       "@ksp-gonogo/logger": path.resolve(pkgs, "logger/src/index.ts"),
-      "@ksp-gonogo/ui": path.resolve(pkgs, "ui/src/index.ts"),
     },
   },
   test: {

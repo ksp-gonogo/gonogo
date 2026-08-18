@@ -1,8 +1,8 @@
-import { act, render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { act, render, screen } from "../testing-react";
 import {
   type CommandHandle,
   createDelayRailStore,

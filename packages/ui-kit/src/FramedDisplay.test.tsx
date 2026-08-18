@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { FramedDisplay } from "./FramedDisplay";
+import { render, screen } from "./testing-react";
 
 describe("FramedDisplay", () => {
   it("renders its visual content", () => {

@@ -7,10 +7,9 @@ import "./styledComponentsTheme";
 // ── Theme ────────────────────────────────────────────────────────────────────
 // Re-exported wholesale from `@ksp-gonogo/theme`, an internal `private: true`
 // package that is never published, the build inlines it into `dist` (JS and
-// `.d.ts` alike), so this is the theme's only public surface. The split exists
-// so packages needing only a theme (`@ksp-gonogo/test-utils`) don't pull in the
-// whole kit; it must stay a devDependency so it can't leak into the published
-// manifest. See `tsup.config.ts`.
+// `.d.ts` alike), so this is the theme's only public surface. It must stay a
+// devDependency so it can't leak into the published manifest. See
+// `tsup.config.ts`.
 //
 // Token convention for everything in this package: `@ksp-gonogo/ui-kit/tokens.css`
 // is the one way a host mounts the tokens, and it is a build-time copy of the

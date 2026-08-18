@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { DivergingBar } from "./DivergingBar";
+import { render, screen } from "./testing-react";
 
 describe("DivergingBar", () => {
   it("is decorative: aria-hidden, no accessible role", () => {

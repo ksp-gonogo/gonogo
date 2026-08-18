@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { render, screen } from "../testing-react";
 import { InFlightList, type InFlightListItem } from "./InFlightList";
 
 const ITEMS: InFlightListItem[] = [

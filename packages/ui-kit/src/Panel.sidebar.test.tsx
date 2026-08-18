@@ -1,6 +1,6 @@
-import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
+import { act, render, screen } from "./testing-react";
 
 /**
  * `panelSidebar`: a second region beside or below the body, with its own

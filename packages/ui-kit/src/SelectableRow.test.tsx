@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { SelectableRow } from "./SelectableRow";
+import { fireEvent, render, screen } from "./testing-react";
 
 describe("SelectableRow", () => {
   it("renders a real button carrying its children", () => {

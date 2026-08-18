@@ -1,6 +1,6 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY, NullValue } from "./NullValue";
+import { render, screen } from "./testing-react";
 
 describe("NULL_DISPLAY", () => {
   it("is a single em dash (U+2014)", () => {

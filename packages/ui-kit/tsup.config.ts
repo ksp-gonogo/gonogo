@@ -23,12 +23,19 @@ import { defineConfig } from "tsup";
  * components that silently don't share a ThemeProvider with the host app's.
  */
 export default defineConfig({
-  // `./testing` and `./guards` are SEPARATE entries, not part of the root
-  // barrel: a runtime bundle must never pull testing code in, and an Uplink
-  // author needs the readout helpers without them. `./guards` is split from
-  // `./testing` in turn because it reads the filesystem, which would break a
-  // browser-based test runner that only wanted the DOM helpers.
-  entry: ["src/index.ts", "src/testing.ts", "src/guards.ts"],
+  // `./testing`, `./testing-react` and `./guards` are SEPARATE entries, not
+  // part of the root barrel: a runtime bundle must never pull testing code in,
+  // and an Uplink author needs the readout helpers without them. `./guards` is
+  // split from `./testing` in turn because it reads the filesystem, which would
+  // break a browser-based test runner that only wanted the DOM helpers, and
+  // `./testing-react` is split off because it is the only one that needs React
+  // and Testing Library.
+  entry: [
+    "src/index.ts",
+    "src/testing.ts",
+    "src/testing-react.tsx",
+    "src/guards.ts",
+  ],
   format: ["esm"],
   outDir: "dist",
   target: "es2022",
@@ -37,7 +44,17 @@ export default defineConfig({
   // Inline the internal, never-published theme package + lucide-react (icons).
   noExternal: ["@ksp-gonogo/theme", "lucide-react"],
   // Peers: resolved from the consumer's tree, never bundled.
-  external: ["react", "react-dom", "react/jsx-runtime", "styled-components"],
+  // `@testing-library/react` is an OPTIONAL peer reached only by
+  // `./testing-react`; bundling it would put a second copy of RTL's auto-cleanup
+  // registry in a consumer's test run, and would drag it into the dts pass that
+  // `dts.resolve` below turns on.
+  external: [
+    "@testing-library/react",
+    "react",
+    "react-dom",
+    "react/jsx-runtime",
+    "styled-components",
+  ],
   dts: {
     // `true`, not `["@ksp-gonogo/theme"]`. Naming the package only inlines its
     // entry `.d.ts`; the relative re-exports *inside* it (`./theme`,

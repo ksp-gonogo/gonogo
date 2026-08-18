@@ -26,6 +26,10 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     },
+    "./testing-react": {
+      "types": "./dist/testing-react.d.ts",
+      "import": "./dist/testing-react.js"
+    },
     "./guards": {
       "types": "./dist/guards.d.ts",
       "import": "./dist/guards.js"
@@ -44,7 +48,6 @@
   },
   "devDependencies": {
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
-    "@ksp-gonogo/test-utils": "workspace:*",
     "@ksp-gonogo/theme": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -59,7 +62,13 @@
     "vitest": "^4.1.4"
   },
   "peerDependencies": {
+    "@testing-library/react": "^16.0.0",
     "react": "^18.0.0",
     "styled-components": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@testing-library/react": {
+      "optional": true
+    }
   }
 }

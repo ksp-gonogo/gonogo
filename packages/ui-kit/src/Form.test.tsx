@@ -1,7 +1,7 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Input } from "./Form";
+import { render, screen } from "./testing-react";
 
 describe("Form.Input", () => {
   it("is reachable by keyboard Tab", async () => {

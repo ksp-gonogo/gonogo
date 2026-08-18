@@ -1,4 +1,3 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import type { CommandDelayHandle } from "./CommandDelay/CommandDelay";
 import {
@@ -8,6 +7,7 @@ import {
 import type { InFlightCommandLike } from "./CommandDelay/toInFlightListItems";
 import { usePanelDelay } from "./CommandDelay/usePanelDelay";
 import { Panel, PanelProviders } from "./Panel";
+import { render, screen } from "./testing-react";
 
 const IN_FLIGHT: InFlightCommandLike[] = [
   {

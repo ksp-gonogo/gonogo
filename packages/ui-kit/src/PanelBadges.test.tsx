@@ -1,6 +1,6 @@
-import { renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { PanelBadgesProvider, usePanelBadgesContext } from "./PanelBadges";
+import { renderHook } from "./testing-react";
 
 describe("usePanelBadgesContext", () => {
   it("returns null outside a PanelBadgesProvider", () => {

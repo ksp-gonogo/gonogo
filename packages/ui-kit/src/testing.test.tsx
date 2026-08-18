@@ -1,7 +1,7 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { unitMatchers, visibleText } from "./testing";
+import { render } from "./testing-react";
 import { Unit } from "./Unit";
 
 expect.extend(unitMatchers);

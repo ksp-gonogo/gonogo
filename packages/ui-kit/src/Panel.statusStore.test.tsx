@@ -1,10 +1,10 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { axe } from "./test/axe";
+import { render, screen } from "./testing-react";
 
 /**
  * The panel header now summarises its OWN worst state out of the per-item
