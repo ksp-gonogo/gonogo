@@ -1640,7 +1640,11 @@ registerComponent<TechTreeConfig>({
   defaultSize: { w: 6, h: 9 },
   minSize: { w: 2, h: 2 },
   component: TechTreeComponent,
-  dataRequirements: ["tech.nodes", "career.science", "kc.scene"],
+  dataRequirements: [
+    "career.status.tech.nodes",
+    "career.status.economy.science",
+    "spaceCenter.scene.scene",
+  ],
   defaultConfig: {},
   actions: [],
   augmentSlots: ["tech-tree.badges"],

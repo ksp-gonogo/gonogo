@@ -1020,13 +1020,13 @@ registerComponent<ContractManagerConfig>({
   minSize: { w: 4, h: 5 },
   component: ContractManagerComponent,
   dataRequirements: [
-    "contracts.active",
-    "contracts.offered",
-    "contracts.completedRecent",
+    "career.status.contracts.active",
+    "career.status.contracts.offered",
+    "career.status.contracts.completedRecent",
     // Consumed by AltitudeProgress on altitude-bounded contract
     // parameters. Without listing it here the orchestrator never
     // subscribes and the bar stays empty in production.
-    "v.altitude",
+    "vessel.state.altitudeAsl",
   ],
   defaultConfig: {},
   actions: [],

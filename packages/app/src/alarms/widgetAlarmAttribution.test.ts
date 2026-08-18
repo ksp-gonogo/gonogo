@@ -103,6 +103,44 @@ const MIGRATED: readonly MigratedWidget[] = [
       },
     ],
   },
+  {
+    id: "strategies",
+    legacyKeys: [
+      { key: "strategies.all", expectMatch: true },
+      { key: "career.funds", expectMatch: true },
+      { key: "career.reputation", expectMatch: true },
+      { key: "career.science", expectMatch: true },
+    ],
+  },
+  {
+    id: "tech-tree",
+    legacyKeys: [
+      { key: "tech.nodes", expectMatch: true },
+      { key: "career.science", expectMatch: true },
+      { key: "kc.scene", expectMatch: true },
+    ],
+  },
+  {
+    id: "contract-manager",
+    legacyKeys: [
+      { key: "contracts.active", expectMatch: true },
+      { key: "contracts.offered", expectMatch: true },
+      { key: "contracts.completedRecent", expectMatch: true },
+      { key: "v.altitude", expectMatch: true },
+    ],
+  },
+  {
+    id: "space-center-status",
+    legacyKeys: [
+      { key: "kc.facilityLevels", expectMatch: true },
+      { key: "kc.partsAvailable", expectMatch: true },
+      { key: "kc.launchSite", expectMatch: true },
+      { key: "kc.padOccupied", expectMatch: true },
+      { key: "kc.padVesselTitle", expectMatch: true },
+      { key: "kc.scene", expectMatch: true },
+      { key: "career.funds", expectMatch: true },
+    ],
+  },
 ];
 
 function thresholdAlarm(dataKey: string): Alarm {
