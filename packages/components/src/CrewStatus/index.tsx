@@ -652,7 +652,12 @@ registerComponent<CrewStatusConfig>({
     "crew-status.survival",
     "crew-status.summary",
   ],
-  dataRequirements: ["v.crew", "v.crewCount", "v.crewCapacity", "v.isEVA"],
+  dataRequirements: [
+    "vessel.crew.crew",
+    "vessel.crew.count",
+    "vessel.crew.capacity",
+    "vessel.state.isEVA",
+  ],
   // `vessel.resources` is the (already-existing, already-consumed-by-
   // FuelStatus) generic per-vessel resource Topic; here it feeds the EVA
   // suit O2/EC readout, only relevant while the active vessel is an EVA

@@ -403,12 +403,16 @@ registerComponent<CommSignalConfig>({
   // importing backend-aware code (locked map: comm-signal). See the
   // `SlotRegistry` declaration-merge above for the slot props contracts.
   augmentSlots: ["comm-signal.sections", "comm-signal.badges"],
+  // Four Topics, not one: connectivity is the freeze-exempt `comms.link`,
+  // the observation is the frozen `vessel.comms` struct, the two control-state
+  // shapes are derived off `vessel.state`, and the delay is gonogo's own
+  // authority. The `comm.` prefix made them look like one source.
   dataRequirements: [
-    "comm.connected",
-    "comm.signalStrength",
-    "comm.controlState",
-    "comm.controlStateName",
-    "comm.signalDelay",
+    "comms.link.connected",
+    "vessel.comms.signalStrength",
+    "vessel.state.commsControlStateOrdinal",
+    "vessel.state.commsControlStateName",
+    "comms.delay.oneWaySeconds",
   ],
   defaultConfig: {},
   actions: [],

@@ -150,8 +150,9 @@ describe("mapTopic coverage: every widget Telemachus key is mapped or a declared
   // asking `mapTopic`/`isKnownTelemachusGap` to account for a key that was
   // never theirs to route. `classifyRequirement` owns the full set of legal
   // declaration forms; this test only cares which of them are legacy keys.
+  const scanned = collectWidgetTelemachusKeys();
   const widgetKeys = new Set(
-    [...collectWidgetTelemachusKeys()].filter(
+    [...scanned].filter(
       (key) =>
         !isTopicId(key) &&
         classifyRequirement(key) !== "derived-channel" &&
@@ -163,7 +164,13 @@ describe("mapTopic coverage: every widget Telemachus key is mapped or a declared
     // Guards against the scan silently finding nothing (e.g. a moved
     // packages/components/src) and the coverage assertion below vacuously
     // passing over an empty set.
-    expect(widgetKeys.size).toBeGreaterThan(100);
+    //
+    // Counts EVERYTHING the scan found, not the legacy subset. The subset
+    // shrinks with every slice of the vocabulary migration and is meant to
+    // reach zero, so a floor under it would fail on success and say nothing
+    // about whether the scan worked. What this needs to know is that the scan
+    // is still reading a real directory full of declarations.
+    expect(scanned.size).toBeGreaterThan(100);
   });
 
   it("maps or explicitly gaps every widget-declared Telemachus key, no silent misses", () => {

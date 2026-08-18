@@ -441,7 +441,12 @@ registerComponent<WarpControlConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 4, h: 4 },
   component: WarpControlComponent,
-  dataRequirements: ["t.currentRate", "t.timeWarp", "t.warpMode", "t.isPaused"],
+  dataRequirements: [
+    "time.warp.warpRate",
+    "time.warp.warpRateIndex",
+    "time.warp.warpMode",
+    "time.warp.paused",
+  ],
   defaultConfig: {},
   actions: warpActions,
   augmentSlots: ["warp-control.actions", "warp-control.badges"],

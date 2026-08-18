@@ -141,6 +141,75 @@ const MIGRATED: readonly MigratedWidget[] = [
       { key: "career.funds", expectMatch: true },
     ],
   },
+  {
+    id: "thermal-status",
+    legacyKeys: [
+      { key: "therm.hottestPartName", expectMatch: true },
+      { key: "therm.hottestPartTemp", expectMatch: true },
+      { key: "therm.hottestPartMaxTemp", expectMatch: true },
+      { key: "therm.hottestPartTempRatio", expectMatch: true },
+      { key: "therm.hottestEngineTemp", expectMatch: true },
+      { key: "therm.hottestEngineMaxTemp", expectMatch: true },
+      { key: "therm.hottestEngineTempRatio", expectMatch: true },
+      { key: "therm.anyEnginesOverheating", expectMatch: true },
+      { key: "therm.heatShieldTemp", expectMatch: true },
+      { key: "therm.heatShieldFlux", expectMatch: true },
+    ],
+  },
+  {
+    id: "crew-status",
+    legacyKeys: [
+      { key: "v.crew", expectMatch: true },
+      { key: "v.crewCount", expectMatch: true },
+      { key: "v.crewCapacity", expectMatch: true },
+      { key: "v.isEVA", expectMatch: true },
+    ],
+  },
+  {
+    id: "warp-control",
+    legacyKeys: [
+      { key: "t.currentRate", expectMatch: true },
+      { key: "t.timeWarp", expectMatch: true },
+      { key: "t.warpMode", expectMatch: true },
+      { key: "t.isPaused", expectMatch: true },
+    ],
+  },
+  {
+    id: "comm-signal",
+    legacyKeys: [
+      { key: "comm.connected", expectMatch: true },
+      { key: "comm.signalStrength", expectMatch: true },
+      { key: "comm.controlState", expectMatch: true },
+      { key: "comm.controlStateName", expectMatch: true },
+      { key: "comm.signalDelay", expectMatch: true },
+    ],
+  },
+  {
+    id: "ship-map",
+    legacyKeys: [
+      { key: "therm.hottestPartName", expectMatch: true },
+      { key: "v.externalTemperature", expectMatch: true },
+      { key: "f.throttle", expectMatch: true },
+    ],
+  },
+  {
+    id: "navball",
+    legacyKeys: [
+      { key: "n.heading", expectMatch: true },
+      { key: "n.pitch", expectMatch: true },
+      { key: "n.roll", expectMatch: true },
+      { key: "n.heading2", expectMatch: true },
+      { key: "n.pitch2", expectMatch: true },
+      { key: "n.roll2", expectMatch: true },
+      { key: "f.sasMode", expectMatch: true },
+      { key: "f.sasEnabled", expectMatch: true },
+      { key: "f.precisionControl", expectMatch: true },
+      { key: "v.rcsValue", expectMatch: true },
+      { key: "f.throttle", expectMatch: true },
+      { key: "v.isControllable", expectMatch: true },
+      { key: "comm.signalDelay", expectMatch: true },
+    ],
+  },
 ];
 
 function thresholdAlarm(dataKey: string): Alarm {

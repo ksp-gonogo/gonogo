@@ -525,14 +525,11 @@ registerComponent<ShipMapConfig>({
   // the mapTopic shim, same as useVesselDeltaV's stream-native reads); the
   // per-part thermal/resources/module-state joins in usePartsLive all ride
   // the same payload: no per-flightId subscriptions.
-  // therm.hottestPartName/v.externalTemperature are mapped on the wire,
-  // same declared keys, now routed through the stream by mapTopic with a
-  // zero call-site change (see the reads above).
   dataRequirements: [
     "vessel.parts",
-    "therm.hottestPartName",
-    "v.externalTemperature",
-    "f.throttle",
+    "vessel.thermal.hottestPart.name",
+    "vessel.flight.externalTemperature",
+    "vessel.control.throttle",
   ],
   defaultConfig: {},
   actions: [],

@@ -1338,26 +1338,24 @@ registerComponent<NavballConfig>({
   minSize: { w: 3, h: 4 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
-  // n.heading2/n.pitch2/n.roll2 (root-part frame) are mapped on
-  // the wire now: VesselAttitude carries a genuinely distinct second frame,
-  // see map-topic.ts's TELEMACHUS_CLEAN_HOMES. v.angleToPrograde stays
-  // dropped from this declared list: a permanent gap on the new mod wire
-  // with no planned replacement (map-topic.ts's TELEMACHUS_KNOWN_GAPS):
-  // it was never actually read by this widget anyway.
+  // Both attitude frames are declared because the widget reads whichever the
+  // `useCoMFrame` config selects: `heading`/`pitch`/`roll` are CoM-referenced,
+  // the `*RootFrame` trio is the genuinely distinct root-part frame
+  // `VesselAttitude` carries alongside it.
   dataRequirements: [
-    "n.heading",
-    "n.pitch",
-    "n.roll",
-    "n.heading2",
-    "n.pitch2",
-    "n.roll2",
-    "f.sasMode",
-    "f.sasEnabled",
-    "f.precisionControl",
-    "v.rcsValue",
-    "f.throttle",
-    "v.isControllable",
-    "comm.signalDelay",
+    "vessel.attitude.heading",
+    "vessel.attitude.pitch",
+    "vessel.attitude.roll",
+    "vessel.attitude.headingRootFrame",
+    "vessel.attitude.pitchRootFrame",
+    "vessel.attitude.rollRootFrame",
+    "vessel.state.sasModeName",
+    "vessel.control.sas",
+    "vessel.control.precisionControl",
+    "vessel.control.rcs",
+    "vessel.control.throttle",
+    "vessel.state.isControllable",
+    "comms.delay.oneWaySeconds",
   ],
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,
