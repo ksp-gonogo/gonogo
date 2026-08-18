@@ -103,24 +103,37 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     expect(visibleText()).toContain(`Parts unlocked${NULL_DISPLAY}`);
   });
 
-  it("asserts 'No vehicle on pad' from no pad telemetry at all", async () => {
+  /**
+   * Recorded prior behaviour: "asserts 'No vehicle on pad' from no pad telemetry
+   * at all". Both arms of the padLine ternary fell through to a confident
+   * negative claim, and this line is announced through `role="status"
+   * aria-live="polite"`, so a screen reader was read a fact nobody established.
+   */
+  it("says the pad state is unknown, rather than claiming the pad is clear, from no pad telemetry", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
     });
     mount(fixture, "scs-pad-cold", 6, 7);
 
-    // `padOccupied` is undefined (falsy) and `launchSite` is undefined, so both
-    // arms of the padLine ternary fall through to the confident negative claim.
-    // Nothing distinguishes this from a genuinely clear pad.
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain(
-        "No vehicle on pad",
+        "Pad state unknown",
       ),
+    );
+    // A genuinely clear pad still says so, so the two are now distinguishable.
+    expect(screen.getByRole("status").textContent).not.toContain(
+      "No vehicle on pad",
     );
   });
 
-  it("still asserts 'No vehicle on pad' when the scene record arrived without a launchSite", async () => {
+  /**
+   * Recorded prior behaviour: "still asserts 'No vehicle on pad' when the scene
+   * record arrived without a launchSite". A missing field inside a present record
+   * landed on the same string as a missing record. The scene is not the pad, so
+   * arriving without a launchSite still says nothing about pad occupancy.
+   */
+  it("still says the pad state is unknown when only the scene record arrived", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
@@ -132,11 +145,9 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
     });
 
-    // A missing field inside a present record lands on the same string as a
-    // missing record, so "Last site: ..." is unreachable without launchSite.
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain(
-        "No vehicle on pad",
+        "Pad state unknown",
       ),
     );
   });
@@ -284,20 +295,26 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     );
   });
 
-  it("reports the pad CLEAR in the tiny bucket when nothing has arrived", async () => {
+  /**
+   * Recorded prior behaviour: "reports the pad CLEAR in the tiny bucket when
+   * nothing has arrived". `padOccupied === true` was the tiny bucket's whole
+   * test, so undefined read as an affirmative all-clear. Same claim as the pad
+   * line, in two words, and the badge is exposed to assistive tech as an image
+   * with that label.
+   */
+  it("reports the pad state as unknown in the tiny bucket when nothing has arrived", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
     });
     mount(fixture, "scs-tiny-cold", 2, 3);
 
-    // `padOccupied === true` is the tiny bucket's whole test, so undefined
-    // reads as an affirmative all-clear rather than as "not known".
     await waitFor(() =>
-      expect(screen.getByLabelText("No vehicle on pad").textContent).toBe(
-        "PAD CLEAR",
+      expect(screen.getByLabelText("Pad state unknown").textContent).toBe(
+        "PAD UNKNOWN",
       ),
     );
+    expect(screen.queryByLabelText("No vehicle on pad")).toBeNull();
     // Funds is the one read the tiny bucket DOES admit ignorance about.
     expect(visibleText()).toContain(NULL_DISPLAY);
     expect(screen.queryByTitle(/funds/)).toBeNull();

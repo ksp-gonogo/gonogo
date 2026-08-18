@@ -122,15 +122,33 @@ async function snapshotSpaceCenterFixture(
    * same empty render, and the funds readout the old comment claimed to be
    * waiting for appeared in none of them.
    *
-   * So wait on content the fixture actually supplies. Every fixture carries a
-   * launchPad tier, so "the tier is no longer unknown" cannot pass vacuously the
-   * way a badge that is never rendered could.
+   * So wait on content the fixture actually supplies. Both legs have to be
+   * waited for separately, and neither marker exists in every size bucket: the
+   * tiny and compact buckets render no facility grid, so a wait on the tier alone
+   * was still vacuous for 12 of the 48 renders.
+   *
+   * The positive assertion afterwards is the part that makes this trustworthy.
+   * Waiting for a marker to DISAPPEAR is the same shape of check that failed
+   * before, so the wait is followed by a demand that the resolved content is
+   * actually present. A bucket that renders neither marker fails loudly here
+   * instead of quietly snapshotting an empty widget.
    */
+  const PAD_RESOLVED =
+    /PAD ACTIVE|PAD CLEAR|On pad:|Vehicle on pad|Last site:|No vehicle on pad/;
   await waitFor(() => {
-    if (container.innerHTML.includes("Launch Pad tier unknown")) {
+    const html = container.innerHTML;
+    if (html.includes("Launch Pad tier unknown")) {
       throw new Error("career.status has not reached the widget yet");
     }
+    if (html.includes("Pad state unknown") || html.includes("PAD UNKNOWN")) {
+      throw new Error("spaceCenter.state has not reached the widget yet");
+    }
   });
+  if (!PAD_RESOLVED.test(container.innerHTML)) {
+    throw new Error(
+      `${mode.name} renders no pad state at all, so the wait above proves nothing`,
+    );
+  }
 
   return stripVolatile(container.innerHTML);
 }

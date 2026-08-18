@@ -466,7 +466,12 @@ function LandingStatusComponent({
     atmospheric,
   };
 
-  const live = clocks.regime === "live" || clocks.regime === "no-path";
+  // `no-path` is deliberately NOT folded in here. `classifyRegime` goes out of
+  // its way to refuse to call an unknown link live, and this used to throw that
+  // away one line later: with no comms telemetry at all the hero read
+  // "SUICIDE BURN", which is a claim that the loop is closed. CommitLayer has
+  // its own arm for a link it cannot vouch for.
+  const live = clocks.regime === "live";
   const width = w ?? 8;
   // The flight instruments (velocity vector + TWR) and the full-height altitude
   // rail come in together at a comfortable width; below that, plain readouts.

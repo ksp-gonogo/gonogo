@@ -52,7 +52,10 @@ export const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
 export interface CommitLayerProps {
   regime: LandingRegime;
   roundTripSeconds: number | null;
-  /** True when the loop is effectively real-time (live or no-path). */
+  /**
+   * True when the loop is real-time. A `no-path` regime is NOT live: an unknown
+   * link takes its own hero arm below rather than borrowing this one.
+   */
   live: boolean;
   suicideBurnCountdown: number | null;
   commitInSeconds: number | null;
@@ -114,6 +117,14 @@ export function CommitLayer({
     heroValue = "NO LANDING VECTOR";
     heroCaption = "";
     heroTone = "alert";
+  } else if (regime === "no-path") {
+    // Neither hero is answerable without a link. The ignition countdown assumes
+    // a closed real-time loop and the burn-GO clock assumes a known delay, so
+    // picking either one states something about the link that nothing has told
+    // us. This used to fall into the live arm and read "SUICIDE BURN".
+    heroValue = NULL_DISPLAY;
+    heroCaption = "BURN TIMING NEEDS A LINK";
+    heroTone = "default";
   } else if (live) {
     heroCaption = "SUICIDE BURN";
     if (countdown == null) {

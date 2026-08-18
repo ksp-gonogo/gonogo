@@ -258,13 +258,22 @@ function SpaceCenterStatusComponent({
   const compactGrid = cols < 6;
   const sizeBucket = getSizeBucket(w, h);
 
-  const padLine = padOccupied
-    ? padVesselTitle
-      ? `On pad: ${padVesselTitle}`
-      : "Vehicle on pad"
-    : launchSite
-      ? `Last site: ${launchSite}`
-      : "No vehicle on pad";
+  /**
+   * "No vehicle on pad" is a claim about the pad, and this line is announced
+   * through `aria-live="polite"`, so it used to read that claim out from two
+   * absences: no `padOccupied` and no `launchSite`. A screen reader was told
+   * something nobody had established.
+   */
+  const padKnown = padOccupied !== undefined && padOccupied !== null;
+  const padLine = !padKnown
+    ? "Pad state unknown"
+    : padOccupied
+      ? padVesselTitle
+        ? `On pad: ${padVesselTitle}`
+        : "Vehicle on pad"
+      : launchSite
+        ? `Last site: ${launchSite}`
+        : "No vehicle on pad";
 
   if (sizeBucket === "tiny") {
     return (
@@ -288,7 +297,12 @@ function SpaceCenterStatusComponent({
             role="img"
             aria-label={padLine}
           >
-            {padOccupied === true ? "PAD ACTIVE" : "PAD CLEAR"}
+            {/* "PAD CLEAR" is the same claim as the line above, in two words. */}
+            {padOccupied === true
+              ? "PAD ACTIVE"
+              : padKnown
+                ? "PAD CLEAR"
+                : "PAD UNKNOWN"}
           </TinyPad>
         </TinyBody>
       </Panel>

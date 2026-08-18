@@ -61,10 +61,16 @@ const isSentinelK = (k: number | undefined): boolean =>
  * - hot       90–97%
  * - critical  ≥ 97% (overheat imminent)
  */
-type Band = "nominal" | "warm" | "hot" | "critical";
+type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
 
+/**
+ * `unknown` exists because this used to answer "nominal" for a ratio that had
+ * not arrived. A green NOMINAL pill is a positive claim that nothing is
+ * overheating, and an absent ratio is not evidence of that: it read identically
+ * to a part measured at 40% of its maximum.
+ */
 function bandFromRatio(ratio: number | undefined): Band {
-  if (ratio === undefined || !Number.isFinite(ratio)) return "nominal";
+  if (ratio === undefined || !Number.isFinite(ratio)) return "unknown";
   if (ratio >= 0.97) return "critical";
   if (ratio >= 0.9) return "hot";
   if (ratio >= 0.75) return "warm";
@@ -76,6 +82,7 @@ function bandFromRatio(ratio: number | undefined): Band {
 // colour as 80% and couldn't tell they were approaching critical. The
 // distinct yellow/orange split gives a visible step at the 90% gate.
 const BAND_COLOR: Record<Band, string> = {
+  unknown: "var(--color-text-faint)",
   nominal: "var(--color-accent-fg)",
   warm: "var(--color-tag-yellow-fg)",
   hot: "var(--color-status-warning-bg)",
@@ -83,6 +90,7 @@ const BAND_COLOR: Record<Band, string> = {
 };
 
 const BAND_LABEL: Record<Band, string> = {
+  unknown: "unknown",
   nominal: "nominal",
   warm: "warm",
   hot: "hot",
@@ -90,6 +98,9 @@ const BAND_LABEL: Record<Band, string> = {
 };
 
 const BAND_TONE: Record<Band, ReadoutTone> = {
+  // Neutral, not `go`: a green pill would be the very claim this band exists to
+  // stop the widget making.
+  unknown: "default",
   nominal: "go",
   // `warm` keeps `warning` tone for the StatusPill / inline alert layer
   // even though its bar colour is yellow, the alert taxonomy stays
@@ -99,7 +110,14 @@ const BAND_TONE: Record<Band, ReadoutTone> = {
   critical: "alert",
 };
 
+/**
+ * Used only to pick the worst of two bands for the summary pill. `unknown` sits
+ * below `nominal` so any real measurement wins the pill: reporting a known warm
+ * part matters more than reporting that a second reading is missing, and the
+ * per-row band tags say which one is unknown.
+ */
 const BAND_RANK: Record<Band, number> = {
+  unknown: -1,
   nominal: 0,
   warm: 1,
   hot: 2,
@@ -202,11 +220,24 @@ function ThermalStatusComponent({
     BAND_RANK[engineBand] > BAND_RANK[hottestBand] ? engineBand : hottestBand;
   const anyCritical = worstBand === "critical";
 
+  /**
+   * "No thermal data" replaces the whole body, so it has to mean that nothing at
+   * all is known, not that the four named fields are missing.
+   *
+   * It used to check only the names and temperatures, so a payload carrying a
+   * `maxInternalTempRatio` of 0.99 and nothing else rendered "No thermal data":
+   * a part at 99% of its maximum, present on the wire, suppressed by the absence
+   * of readings around it. The ratios and the overheat flag are readings too.
+   */
   const noData =
     hottestName === undefined &&
     hottestTempK === undefined &&
+    hottestRatio === undefined &&
     engineTempK === undefined &&
-    shieldTempK === undefined;
+    engineRatio === undefined &&
+    engineOverheat === undefined &&
+    shieldTempK === undefined &&
+    shieldFluxKw === undefined;
 
   // Selective rendering: pill is always shown; rows drop from the bottom
   // (heat shield first, then engine, then hottest-part) as height shrinks.

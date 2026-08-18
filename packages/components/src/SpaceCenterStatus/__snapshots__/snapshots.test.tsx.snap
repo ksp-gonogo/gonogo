@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="12,500 funds">13k<span>f</span></div><span title="Last site: LaunchPad" role="img" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ default-6x7 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· <span>12,500<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 1 of 3
@@ -452,7 +452,7 @@ NEXT
 * Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="12,500 funds">13k<span>f</span></div><span title="Last site: LaunchPad" role="img" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > early-game-t1 @ wide-9x10 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· <span>12,500<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 1 of 3
@@ -546,7 +546,7 @@ NEXT
 * Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="500,000 funds">500k<span>f</span></div><span title="On pad: Kerbal X" role="img" aria-label="On pad: Kerbal X">PAD ACTIVE</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ default-6x7 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">On pad: Kerbal X<span title="Available funds">· <span>500,000<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 2 of 3
@@ -998,7 +998,7 @@ NEXT
 * Max crew: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 12</pre></div><div><span>Next</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>183</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="500,000 funds">500k<span>f</span></div><span title="On pad: Kerbal X" role="img" aria-label="On pad: Kerbal X">PAD ACTIVE</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > flight-scene-upgrades-disabled @ wide-9x10 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">On pad: Kerbal X<span title="Available funds">· <span>500,000<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 2 of 3
@@ -1092,7 +1092,7 @@ NEXT
 * Max crew: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 12</pre></div><div><span>Next</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>183</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="1,289,848 funds">1M<span>f</span></div><span title="Last site: LaunchPad" role="img" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ default-6x7 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· <span>1,289,848<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 3 of 3
@@ -1294,7 +1294,7 @@ NOW
 * Max crew: Unlimited"><span>Astronaut</span><span role="img" aria-label="Astronaut tier 3 of 3"><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>489</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="1,289,848 funds">1M<span>f</span></div><span title="Last site: LaunchPad" role="img" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > fully-upgraded-t3 @ wide-9x10 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· <span>1,289,848<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 3 of 3
@@ -1337,7 +1337,7 @@ NOW
 * Max crew: Unlimited"><span>Astronaut</span><span role="img" aria-label="Astronaut tier 3 of 3"><span>3</span><span>/</span><span>3</span></span><span>MAX</span><div><div><span>Now</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>489</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="22,000 funds">22k<span>f</span></div><span title="Last site: LaunchPad" role="img" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ default-6x7 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· <span>22,000<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 1 of 3
@@ -1789,7 +1789,7 @@ NEXT
 * Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="22,000 funds">22k<span>f</span></div><span title="Last site: LaunchPad" role="img" aria-label="Last site: LaunchPad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > low-funds-expensive-upgrade @ wide-9x10 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">Last site: LaunchPad<span title="Available funds">· <span>22,000<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 1 of 3
@@ -1883,7 +1883,7 @@ NEXT
 * Max crew: 12">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 1</pre></div><div><span>Next</span><pre>* Max crew: 12</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>30</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ compact-4x7 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="78,400 funds">78k<span>f</span></div><span title="On pad: Mun Shot III" role="img" aria-label="On pad: Mun Shot III">PAD ACTIVE</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ default-6x7 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">On pad: Mun Shot III<span title="Available funds">· <span>78,400<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 2 of 3
@@ -2281,7 +2281,7 @@ NEXT
 * Max crew: Unlimited">Upgrade</button></div><div><div><span>Now</span><pre>* Max crew: 12</pre></div><div><span>Next</span><pre>* Max crew: Unlimited</pre></div></div></div></div><div><div title="Parts unlocked by current R&amp;D tier"><span>Parts unlocked</span><span>183</span></div></div></div><div></div><div></div></div></div><div></div><div></div></div></div>"
 `;
 
-exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div>—</div><span title="No vehicle on pad" role="img" aria-label="No vehicle on pad">PAD CLEAR</span></div></div><div></div><div></div></div></div>"`;
+exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ tiny-2x3 1`] = `"<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>KSC</h3></div></div><div><div title="78,400 funds">78k<span>f</span></div><span title="On pad: Mun Shot III" role="img" aria-label="On pad: Mun Shot III">PAD ACTIVE</span></div></div><div></div><div></div></div></div>"`;
 
 exports[`SpaceCenterStatus DOM snapshots > mid-career-mixed @ wide-9x10 1`] = `
 "<div><div><div data-panel-body=""><div data-panel-header=""><div><h3>SPACE CENTER</h3></div><div><details data-panel-aside-expand="" open=""><summary aria-label="Panel status and controls"><span data-panel-aside-chevron="" aria-hidden="true"></span></summary><div data-panel-aside-full=""></div></details></div></div><div><div><span role="status" aria-live="polite">On pad: Mun Shot III<span title="Available funds">· <span>78,400<span data-unit="f" title="funds"><span aria-hidden="true">f</span><span data-unit-word=""> funds</span></span></span></span></span><div><div title="Launch Pad: tier 2 of 3

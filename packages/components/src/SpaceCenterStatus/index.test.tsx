@@ -62,10 +62,13 @@ describe("SpaceCenterStatusComponent", () => {
     );
   }
 
-  it("renders the panel title and an empty pad line before any telemetry", () => {
+  it("renders the panel title and an unknown pad line before any telemetry", () => {
     renderWidget();
     expect(screen.getByText(/SPACE CENTER/i)).toBeInTheDocument();
-    expect(screen.getByText(/No vehicle on pad/i)).toBeInTheDocument();
+    // Not "No vehicle on pad": that is a claim about the pad, and this line is
+    // announced through aria-live. Nothing has said anything about the pad yet.
+    expect(screen.getByText(/Pad state unknown/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No vehicle on pad/i)).toBeNull();
   });
 
   it("shows facility tiers when telemetry arrives", async () => {

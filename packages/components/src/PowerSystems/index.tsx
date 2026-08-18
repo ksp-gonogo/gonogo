@@ -72,7 +72,14 @@ type PowerSystemsActions = typeof powerSystemsActions;
 interface Contribution {
   flightId: number;
   partTitle: string;
+  /** Zero when nothing was reported; read `flowKnown` before believing it. */
   flow: number;
+  /**
+   * Whether `flow` is a measurement. A part can be listed on the strength of its
+   * `nominalFlow` alone, and coercing its absent flow to zero made a panel
+   * nobody has measured read exactly like a panel measured in shadow.
+   */
+  flowKnown: boolean;
   nominalFlow?: number;
 }
 
@@ -245,6 +252,7 @@ function PowerSystemsComponent({
         flightId: part.flightId,
         partTitle: part.title ?? part.name,
         flow: row.flow ?? 0,
+        flowKnown: typeof row.flow === "number",
         nominalFlow: row.nominalFlow,
       });
     }
@@ -582,14 +590,16 @@ function PowerSystemsComponent({
 }
 
 function ContributionRow({ contribution }: { contribution: Contribution }) {
-  const { partTitle, flow, nominalFlow } = contribution;
+  const { partTitle, flow, flowKnown, nominalFlow } = contribution;
   // Three-way sign: a shadowed solar panel produces nothing but is
   // not consuming either; rendering its `+0.00` in green misreads as
   // "actively producing". Neutral colour communicates "idle" honestly.
   const sign: "pos" | "neg" | "zero" =
     Math.abs(flow) < 1e-9 ? "zero" : flow > 0 ? "pos" : "neg";
+  // No efficiency without a measurement: "0% of nominal" computed from a flow
+  // that never arrived states a fraction nobody measured.
   const eff =
-    typeof nominalFlow === "number" && Math.abs(nominalFlow) > 1e-9
+    flowKnown && typeof nominalFlow === "number" && Math.abs(nominalFlow) > 1e-9
       ? Math.abs(flow / nominalFlow)
       : null;
   return (
@@ -603,9 +613,13 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
           <Unit value={value("%", eff * 100)} decimals={0} />
         </span>
       )}
-      <Value tone={sign === "pos" ? "go" : sign === "neg" ? "warn" : "faint"}>
-        {sign === "pos" ? "+" : ""}
-        {flow.toFixed(2)}
+      <Value
+        tone={sign === "pos" ? "go" : sign === "neg" ? "warn" : "faint"}
+        title={flowKnown ? undefined : "No flow reading for this part"}
+      >
+        {flowKnown
+          ? `${sign === "pos" ? "+" : ""}${flow.toFixed(2)}`
+          : NULL_DISPLAY}
       </Value>
     </PowerRow>
   );
