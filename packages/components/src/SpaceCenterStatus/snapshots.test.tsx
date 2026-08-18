@@ -110,13 +110,25 @@ async function snapshotSpaceCenterFixture(
     emitLegacyFixture(stream, fixture);
   });
 
-  // The stream frame lands one microtask late (TelemetryProvider's
-  // scheduleFrame, no rAF in jsdom); wait for career.status to go live,
-  // the OFFLINE/SYNCING stream-status badge disappears once it does, so
-  // every facility cell + the funds readout mount once before snapshotting.
+  /*
+   * The stream frame lands one microtask late (TelemetryProvider's
+   * scheduleFrame, no rAF in jsdom), so the fixture has to be waited for.
+   *
+   * This wait used to be "the OFFLINE/SYNCING badge has gone", which this widget
+   * never renders: it passes no `panelStatus`, so the regex never matched, the
+   * wait returned on the first tick, and every committed snapshot captured a
+   * widget that had received nothing. Six fixtures named early-game /
+   * mid-career / fully-upgraded / low-funds / sandbox / flight all pinned the
+   * same empty render, and the funds readout the old comment claimed to be
+   * waiting for appeared in none of them.
+   *
+   * So wait on content the fixture actually supplies. Every fixture carries a
+   * launchPad tier, so "the tier is no longer unknown" cannot pass vacuously the
+   * way a badge that is never rendered could.
+   */
   await waitFor(() => {
-    if (/OFFLINE|SYNCING/.test(container.textContent ?? "")) {
-      throw new Error("stream leg has not gone live yet");
+    if (container.innerHTML.includes("Launch Pad tier unknown")) {
+      throw new Error("career.status has not reached the widget yet");
     }
   });
 
