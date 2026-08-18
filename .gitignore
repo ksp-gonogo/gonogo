@@ -34,3 +34,6 @@ obj/
 
 # Playwright output in any package (root /test-results/ is root-anchored)
 **/test-results/
+
+# Feature log: working history, not repo record. Kept on disk, untracked.
+feature_log/
