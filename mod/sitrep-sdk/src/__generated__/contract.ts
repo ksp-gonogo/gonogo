@@ -1271,6 +1271,7 @@ export interface ManeuverNode
 export interface VesselManeuver
 {
 	nodes: ManeuverNode[];
+	planner?: string;
 	meta: PayloadMeta;
 }
 export interface VesselOrbit

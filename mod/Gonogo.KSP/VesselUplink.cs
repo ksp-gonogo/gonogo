@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
+using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Propagation;
 using Sitrep.Host.Targeting;
@@ -271,6 +272,12 @@ namespace Gonogo.KSP
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
             TargetApproachElection.RegisterCapability(kernel, _ => new StockKeplerApproachSolver());
             PropagationElection.RegisterCapability(kernel, SilenceTracking.KspSystemTable.Current);
+            // The SAME registry KspVesselActuator resolves update/remove's
+            // nodeId against, so a burn's id round-trips into a command whether
+            // the burn was authored through vessel.maneuver.add or placed by
+            // hand in the map view.
+            ManeuverPlanElection.RegisterCapability(
+                kernel, _ => new StockManeuverPlanBackend(GonogoAddon.SharedManeuverNodeIdRegistry));
         }
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain

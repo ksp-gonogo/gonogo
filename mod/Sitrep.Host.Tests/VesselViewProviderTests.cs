@@ -1353,6 +1353,32 @@ namespace Sitrep.Host.Tests
             Assert.Equal(expected, node.Frame);
         }
 
+        /// <summary>
+        /// "No planner" and "a planner with nothing queued" both arrive as an
+        /// empty node list and must stay tellable apart, because stock reaches
+        /// the first on its own: an un-upgraded Tracking Station leaves
+        /// <c>patchedConicSolver</c> null. The planner id is what carries it.
+        /// </summary>
+        [Fact]
+        public void BuildManeuverTellsNoPlannerApartFromAPlannerWithNothingQueued()
+        {
+            var noPlanner = VesselViewProvider.BuildManeuver(
+                SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }));
+
+            Assert.NotNull(noPlanner);
+            Assert.Empty(noPlanner!.Nodes);
+            Assert.Null(noPlanner.Planner);
+
+            var emptyPlan = VesselViewProvider.BuildManeuver(
+                SnapshotWith(
+                    identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                    maneuverPlanner: "stock-patched-conic"));
+
+            Assert.NotNull(emptyPlan);
+            Assert.Empty(emptyPlan!.Nodes);
+            Assert.Equal("stock-patched-conic", emptyPlan.Planner);
+        }
+
         /// <summary>A minimal raw patch carrying every field the mapper requires.</summary>
         private static Dictionary<string, object?> PatchRaw(double? mu, int? bodyIndex, int? encounterIndex)
         {
@@ -2653,6 +2679,7 @@ namespace Sitrep.Host.Tests
             Dictionary<string, object?>? target = null,
             List<object?>? maneuverNodes = null,
             bool maneuverNodesKeyPresent = false,
+            string? maneuverPlanner = null,
             Dictionary<string, object?>? time = null,
             Dictionary<string, object?>? dock = null,
             Dictionary<string, object?>? surface = null,
@@ -2707,6 +2734,10 @@ namespace Sitrep.Host.Tests
             if (target != null)
             {
                 vessel["target"] = target;
+            }
+            if (maneuverPlanner != null)
+            {
+                vessel["maneuverPlanner"] = maneuverPlanner;
             }
             if (maneuverNodes != null || maneuverNodesKeyPresent)
             {

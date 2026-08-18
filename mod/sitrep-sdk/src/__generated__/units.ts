@@ -1010,6 +1010,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     terrainPatchExtentMeters: "m",
     terrainPatchSize: "count",
   },
+  "VesselManeuver": {
+    planner: "id",
+  },
   "VesselOrbit": {
     argPe: "°",
     ecc: "1",
@@ -1548,6 +1551,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     terrainPatch: "m",
     terrainPatchExtentMeters: "m",
     terrainPatchSize: "count",
+  },
+  "vessel.maneuver": {
+    planner: "id",
   },
   "vessel.orbit": {
     argPe: "°",

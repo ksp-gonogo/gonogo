@@ -949,7 +949,25 @@ namespace Sitrep.Contract
         /// burn to its input trajectory, which is documented rather than
         /// duplicated onto the wire.</para>
         /// </para>
+        ///
+        /// <para><b>Major-12 line, Bumped 15 -&gt; 16: the maneuver plan becomes
+        /// an elected capability.</b> <see cref="VesselManeuver"/> gains
+        /// <c>Planner</c>, nullable, additive.
+        ///
+        /// <para>It carries the elected provider's id, and its ABSENCE is the
+        /// point: null means there is no planner at all, which is not the same
+        /// fact as an empty plan and which stock reaches on its own, since an
+        /// un-upgraded Tracking Station leaves <c>patchedConicSolver</c> null.
+        /// Both previously arrived as <c>Nodes: []</c>, telling an operator
+        /// their plan was empty when the truth was that they could not make
+        /// one.</para>
+        ///
+        /// <para>Nothing outside the election may branch on the VALUE. A
+        /// provider says what it is so a readout can name it and a diagnostic
+        /// can record it, never so a consumer can special-case one;
+        /// present-versus-null is the only part anything should test.</para>
+        /// </para>
         /// </remarks>
-        public const int Minor = 15;
+        public const int Minor = 16;
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Sitrep.Host;
+using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Targeting;
 using UnityEngine;
@@ -178,6 +179,12 @@ namespace Gonogo.KSP
                 var engine = _engine;
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
+
+                // Same late-bound install for the maneuver plan: whatever wins
+                // the election answers vessel.maneuver, and the capture never
+                // touches patchedConicSolver itself.
+                _host.SetManeuverPlanSource(
+                    () => ManeuverPlanElection.Elected(engine.Kernel));
 
                 // Same late-bound install for the closest-approach solver
                 // (stock Kepler vanilla, or an n-body provider when elected) -- KspHost

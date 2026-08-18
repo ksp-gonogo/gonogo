@@ -273,69 +273,81 @@ namespace Sitrep.Host
 
             foreach (var rawPatch in list)
             {
-                if (rawPatch is not IDictionary<string, object?> patch)
+                if (rawPatch is IDictionary<string, object?> patch && MapOrbitPatch(patch) is { } mapped)
                 {
-                    continue;
+                    result.Add(mapped);
                 }
-
-                var sma = GetDouble(patch, "sma");
-                var ecc = GetDouble(patch, "ecc");
-                var inc = GetDouble(patch, "inc");
-                var lan = GetDouble(patch, "lan");
-                var argPe = GetDouble(patch, "argPe");
-                var maae = GetDouble(patch, "meanAnomalyAtEpoch");
-                var epoch = GetDouble(patch, "epoch");
-                var period = GetDouble(patch, "period");
-                var startUt = GetDouble(patch, "startUt");
-                var endUt = GetDouble(patch, "endUt");
-                var peA = GetDouble(patch, "peA");
-                var apA = GetDouble(patch, "apA");
-                var semiLatusRectum = GetDouble(patch, "semiLatusRectum");
-                var semiMinorAxis = GetDouble(patch, "semiMinorAxis");
-                var referenceBody = GetString(patch, "referenceBody");
-
-                if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !epoch.HasValue ||
-                    !period.HasValue || !startUt.HasValue || !endUt.HasValue ||
-                    !peA.HasValue || !apA.HasValue || !semiLatusRectum.HasValue ||
-                    !semiMinorAxis.HasValue || referenceBody == null)
-                {
-                    continue;
-                }
-
-                result.Add(new OrbitPatch
-                {
-                    Sma = sma.Value,
-                    Ecc = ecc.Value,
-                    Inc = inc.Value,
-                    // lan/argPe: see OrbitPatch.cs's doc comment -- non-nullable
-                    // by design, 0 substituted for the routine near-circular/
-                    // near-equatorial NaN case (GetDouble already maps that to
-                    // null via R1/F-1).
-                    Lan = lan ?? 0,
-                    ArgPe = argPe ?? 0,
-                    MeanAnomalyAtEpoch = maae ?? 0,
-                    Epoch = epoch.Value,
-                    Period = period.Value,
-                    StartUt = startUt.Value,
-                    EndUt = endUt.Value,
-                    PatchStartTransition = ParseTransitionType(GetString(patch, "patchStartTransition")),
-                    PatchEndTransition = ParseTransitionType(GetString(patch, "patchEndTransition")),
-                    PeA = peA.Value,
-                    ApA = apA.Value,
-                    SemiLatusRectum = semiLatusRectum.Value,
-                    SemiMinorAxis = semiMinorAxis.Value,
-                    ReferenceBody = referenceBody,
-                    ClosestEncounterBody = GetString(patch, "closestEncounterBody"),
-                    // Not in the required-field gate above: absent on a
-                    // recording captured before these existed, and the patch is
-                    // still fully usable by every consumer that predates them.
-                    Mu = GetDouble(patch, "mu"),
-                    ReferenceBodyIndex = GetInt(patch, "referenceBodyIndex"),
-                    ClosestEncounterBodyIndex = GetInt(patch, "closestEncounterBodyIndex"),
-                });
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// One raw patch to its contract form, or null when it is missing a
+        /// field the shape cannot do without.
+        ///
+        /// <para>Public because a maneuver-plan provider capturing in
+        /// <c>Gonogo.KSP</c> answers in contract types and needs the same
+        /// mapping, and a second implementation of it there would be free to
+        /// disagree with this one.</para>
+        /// </summary>
+        public static OrbitPatch? MapOrbitPatch(IDictionary<string, object?> patch)
+        {
+            var sma = GetDouble(patch, "sma");
+            var ecc = GetDouble(patch, "ecc");
+            var inc = GetDouble(patch, "inc");
+            var lan = GetDouble(patch, "lan");
+            var argPe = GetDouble(patch, "argPe");
+            var maae = GetDouble(patch, "meanAnomalyAtEpoch");
+            var epoch = GetDouble(patch, "epoch");
+            var period = GetDouble(patch, "period");
+            var startUt = GetDouble(patch, "startUt");
+            var endUt = GetDouble(patch, "endUt");
+            var peA = GetDouble(patch, "peA");
+            var apA = GetDouble(patch, "apA");
+            var semiLatusRectum = GetDouble(patch, "semiLatusRectum");
+            var semiMinorAxis = GetDouble(patch, "semiMinorAxis");
+            var referenceBody = GetString(patch, "referenceBody");
+
+            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !epoch.HasValue ||
+                !period.HasValue || !startUt.HasValue || !endUt.HasValue ||
+                !peA.HasValue || !apA.HasValue || !semiLatusRectum.HasValue ||
+                !semiMinorAxis.HasValue || referenceBody == null)
+            {
+                return null;
+            }
+
+            return new OrbitPatch
+            {
+                Sma = sma.Value,
+                Ecc = ecc.Value,
+                Inc = inc.Value,
+                // lan/argPe: see OrbitPatch.cs's doc comment -- non-nullable
+                // by design, 0 substituted for the routine near-circular/
+                // near-equatorial NaN case (GetDouble already maps that to
+                // null via R1/F-1).
+                Lan = lan ?? 0,
+                ArgPe = argPe ?? 0,
+                MeanAnomalyAtEpoch = maae ?? 0,
+                Epoch = epoch.Value,
+                Period = period.Value,
+                StartUt = startUt.Value,
+                EndUt = endUt.Value,
+                PatchStartTransition = ParseTransitionType(GetString(patch, "patchStartTransition")),
+                PatchEndTransition = ParseTransitionType(GetString(patch, "patchEndTransition")),
+                PeA = peA.Value,
+                ApA = apA.Value,
+                SemiLatusRectum = semiLatusRectum.Value,
+                SemiMinorAxis = semiMinorAxis.Value,
+                ReferenceBody = referenceBody,
+                ClosestEncounterBody = GetString(patch, "closestEncounterBody"),
+                // Not in the required-field gate above: absent on a
+                // recording captured before these existed, and the patch is
+                // still fully usable by every consumer that predates them.
+                Mu = GetDouble(patch, "mu"),
+                ReferenceBodyIndex = GetInt(patch, "referenceBodyIndex"),
+                ClosestEncounterBodyIndex = GetInt(patch, "closestEncounterBodyIndex"),
+            };
         }
 
         public static VesselOrbitTruth? BuildOrbitTruth(KspSnapshot? snapshot)
@@ -821,6 +833,9 @@ namespace Sitrep.Host
             return new VesselManeuver
             {
                 Nodes = nodes,
+                // Absent means no planner exists for this craft, which the
+                // empty Nodes list above cannot say on its own.
+                Planner = GetString(vessel, "maneuverPlanner"),
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -1455,6 +1470,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(VesselManeuver maneuver) => new Dictionary<string, object?>
         {
             ["nodes"] = maneuver.Nodes.Select(n => (object?)ToWire(n)).ToList(),
+            ["planner"] = maneuver.Planner,
             ["meta"] = ToWire(maneuver.Meta),
         };
 

@@ -8,6 +8,7 @@ using Expansions.Serenity;
 using KSP.UI.Screens;
 using ModuleWheels;
 using Sitrep.Host;
+using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Targeting;
 using Strategies;
@@ -62,6 +63,21 @@ namespace Gonogo.KSP
         // vessel.maneuver.update/.remove command, not just a cosmetic
         // read-only label.
         private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
+
+        /// <summary>
+        /// Resolves the elected <see cref="IManeuverPlanSource"/> (stock's
+        /// patched-conic solver, or a provider elected over it) at CAPTURE
+        /// time, on the main thread. Same late-bound install shape and same
+        /// reason as <see cref="_actionGroupsBackend"/>: the engine, and so the
+        /// Kernel, does not exist when this host is constructed.
+        /// </summary>
+        private Func<IManeuverPlanSource?>? _maneuverPlanSource;
+
+        /// <summary>Installs the resolver described on <see cref="_maneuverPlanSource"/>.</summary>
+        public void SetManeuverPlanSource(Func<IManeuverPlanSource?> resolver)
+        {
+            _maneuverPlanSource = resolver;
+        }
 
         /// <summary>
         /// Resolves the elected <see cref="IActionGroupsBackend"/> (stock, or
@@ -197,7 +213,7 @@ namespace Gonogo.KSP
                         // no target / no encounter -- stamped onto vessel.target
                         // below, replacing the old SDK-side two-body solve.
                         var closestApproach = _approachSolver != null ? _approachSolver.Invoke()?.Solve(ut) : null;
-                        values["vessel"] = BuildVesselEntry(activeVessel, _maneuverNodeIdRegistry, _actionGroupsBackend?.Invoke(), closestApproach);
+                        values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach);
 
                         // Science + parts/power/robotics capture-adds (this
                         // session) - both require an active vessel to have
@@ -441,7 +457,7 @@ namespace Gonogo.KSP
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry, IActionGroupsBackend? actionGroupsBackend, ClosestApproach? closestApproach)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -462,7 +478,18 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
             TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel));
-            TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(vessel, maneuverNodeIdRegistry));
+            // ONE Plan() call per capture: it reads live KSP, so asking twice
+            // is both wasted work and an invitation for the two answers to
+            // disagree within a single tick.
+            var plan = maneuverPlanSource?.Plan();
+            TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(plan));
+            if (plan != null)
+            {
+                // Names the planner that answered, and its ABSENCE is how
+                // "there is no planner" reaches the wire at all: an empty node
+                // list cannot say it. See VesselManeuver.Planner.
+                entry["maneuverPlanner"] = maneuverPlanSource!.ProviderId;
+            }
             TryBuildGroup(entry, "target", () => BuildTarget(vessel, closestApproach));
             // ---- M3 R3 capture-adds ----
             TryBuildGroup(entry, "dock", () => BuildDock(vessel));
@@ -685,6 +712,67 @@ namespace Gonogo.KSP
         /// "COLLISION", so it is translated here rather than teaching the
         /// parser a second synonym.
         /// </summary>
+        /// <summary>
+        /// The same walk as <see cref="BuildOrbitPatchChain"/>, answering in
+        /// CONTRACT types rather than raw dictionaries, for a maneuver-plan
+        /// provider that hands back finished <c>Sitrep.Contract.ManeuverNode</c>s.
+        ///
+        /// <para>Both forms are needed and neither is redundant: the snapshot
+        /// is dictionaries because it must round-trip through recorded JSON
+        /// (see the replay tests), while a capability's return value is typed
+        /// because an interface that traffics in loose dictionaries is not a
+        /// seam. Both share <see cref="BuildOrbitPatchEntry"/>, so KSP's
+        /// <c>Orbit</c> is still read in exactly one place.</para>
+        /// </summary>
+        internal static List<Sitrep.Contract.OrbitPatch> BuildOrbitPatchChainTyped(Orbit? start)
+        {
+            var raw = BuildOrbitPatchChain(start);
+            var result = new List<Sitrep.Contract.OrbitPatch>();
+            if (raw == null)
+            {
+                return result;
+            }
+            foreach (var entry in raw)
+            {
+                if (entry is IDictionary<string, object?> dict)
+                {
+                    result.Add(VesselViewProvider.MapOrbitPatch(dict));
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// A contract patch back to the raw dictionary form the snapshot
+        /// carries. Needed because a maneuver-plan provider answers in contract
+        /// types while the snapshot must stay serialisable for recording and
+        /// replay; see <see cref="BuildOrbitPatchChainTyped"/>.
+        /// </summary>
+        private static object? PatchToRaw(Sitrep.Contract.OrbitPatch patch) => new Dictionary<string, object?>
+        {
+            ["sma"] = patch.Sma,
+            ["ecc"] = patch.Ecc,
+            ["inc"] = patch.Inc,
+            ["lan"] = patch.Lan,
+            ["argPe"] = patch.ArgPe,
+            ["meanAnomalyAtEpoch"] = patch.MeanAnomalyAtEpoch,
+            ["epoch"] = patch.Epoch,
+            ["period"] = patch.Period,
+            ["startUt"] = patch.StartUt,
+            ["endUt"] = patch.EndUt,
+            ["patchStartTransition"] = patch.PatchStartTransition.ToString().ToUpperInvariant(),
+            ["patchEndTransition"] = patch.PatchEndTransition.ToString().ToUpperInvariant(),
+            ["peA"] = patch.PeA,
+            ["apA"] = patch.ApA,
+            ["semiLatusRectum"] = patch.SemiLatusRectum,
+            ["semiMinorAxis"] = patch.SemiMinorAxis,
+            ["referenceBody"] = patch.ReferenceBody,
+            ["closestEncounterBody"] = patch.ClosestEncounterBody,
+            ["mu"] = patch.Mu,
+            ["referenceBodyIndex"] = patch.ReferenceBodyIndex,
+            ["closestEncounterBodyIndex"] = patch.ClosestEncounterBodyIndex,
+        };
+
         private static List<object?>? BuildOrbitPatchChain(Orbit? start)
         {
             if (start == null || start.referenceBody == null)
@@ -1342,52 +1430,46 @@ namespace Gonogo.KSP
         /// ordered by <c>UT</c> (the order the player queued them / the
         /// order they'll execute).
         /// </summary>
-        private static List<object?>? BuildManeuverNodes(Vessel vessel, ReferenceIdRegistry<ManeuverNode> maneuverNodeIdRegistry)
+        private static List<object?>? BuildManeuverNodes(IList<Sitrep.Contract.ManeuverNode>? plan)
         {
-            var solver = vessel.patchedConicSolver;
-            var nodes = solver != null ? solver.maneuverNodes : null;
-            if (nodes == null || nodes.Count == 0)
+            // Whatever the ELECTED provider answered, never patchedConicSolver
+            // directly. Stock's own solver reaches here through
+            // StockManeuverPlanBackend, the capability's vanilla, so nothing in
+            // this file knows or cares which planner answered.
+            if (plan == null)
             {
+                // No planner at all, which is not the same fact as no burns and
+                // is a state stock reaches on its own (an un-upgraded Tracking
+                // Station leaves patchedConicSolver null). Omitting the group
+                // is how that travels; the planner id below is what lets the
+                // mapper tell it apart from an empty plan.
                 return null;
             }
 
-            var list = new List<object?>(nodes.Count);
-            foreach (var node in nodes)
+            var list = new List<object?>(plan.Count);
+            foreach (var node in plan)
             {
                 if (node == null)
                 {
                     continue;
                 }
 
-                var dv = node.DeltaV;
                 list.Add(new Dictionary<string, object?>
                 {
-                    // M3 R3: a stable id per LIVE node object, assigned by
-                    // the SAME registry KspVesselActuator resolves
-                    // update/remove's nodeId argument against -- see
-                    // ReferenceIdRegistry's doc comment. This is what makes
-                    // a node's id usable in a command, not just a read-only
-                    // label: a node placed by hand in the map view gets an
-                    // id the very first time it's sampled here, and that id
-                    // is what update/remove will find later.
-                    ["id"] = maneuverNodeIdRegistry.GetOrAssign(node),
-                    ["ut"] = node.UT,
-                    ["dvRadial"] = dv.x,
-                    ["dvNormal"] = dv.y,
-                    ["dvPrograde"] = dv.z,
-                    ["dvTotal"] = dv.magnitude,
-                    // Stock's own node basis, stated rather than assumed. The
-                    // three components above are interpretable ONLY against it,
-                    // and until now that lived in a doc comment.
-                    ["frame"] = ManeuverFrame.RadialNormalPrograde.ToString(),
-                    // Post-burn patch chain, started from the node's OWN
-                    // nextPatch (not the vessel's current orbit) -- see
-                    // BuildOrbitPatchChain's doc comment.
-                    ["patches"] = BuildOrbitPatchChain(node.nextPatch),
+                    ["id"] = node.Id,
+                    ["ut"] = node.Ut,
+                    ["dvRadial"] = node.DvRadial,
+                    ["dvNormal"] = node.DvNormal,
+                    ["dvPrograde"] = node.DvPrograde,
+                    ["dvTotal"] = node.DvTotal,
+                    ["ignitionUt"] = node.IgnitionUt,
+                    ["cutoffUt"] = node.CutoffUt,
+                    ["frame"] = node.Frame == null ? null : node.Frame.Value.ToString(),
+                    ["patches"] = node.Patches.ConvertAll(PatchToRaw),
                 });
             }
 
-            return list.Count > 0 ? list : null;
+            return list;
         }
 
         /// <summary>

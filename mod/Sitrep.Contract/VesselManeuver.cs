@@ -202,5 +202,24 @@ public class VesselManeuver
 {
     public List<ManeuverNode> Nodes { get; set; } = new();
 
+    /// <summary>
+    /// The elected maneuver-plan provider's id, or null when THERE IS NO
+    /// PLANNER AT ALL.
+    ///
+    /// <para>That is not the same fact as an empty plan, and stock reaches it
+    /// on its own: an un-upgraded Tracking Station leaves
+    /// <c>Vessel.patchedConicSolver</c> null, so an early-career craft cannot
+    /// hold a plan rather than merely not holding one. Without this field both
+    /// arrive as <c>Nodes: []</c> and an operator is told their plan is empty
+    /// when the truth is that they cannot make one.</para>
+    ///
+    /// <para>Nothing outside the election may branch on the VALUE: a provider
+    /// says what it is so a readout can name it and a diagnostic can record it,
+    /// never so a consumer can special-case one. Present-versus-null is the
+    /// only part anything should test.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Planner { get; set; }
+
     public PayloadMeta Meta { get; set; } = new();
 }
