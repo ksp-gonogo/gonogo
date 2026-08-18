@@ -183,6 +183,30 @@ export interface DerivedChannelDefinition<T> {
   ) => ReckoningBasis | undefined;
 }
 
+/**
+ * Whether a model claiming `covered` has answered for a read of `fieldPath`.
+ *
+ * Segment-wise, never a string prefix: `relativePosition` must not answer for
+ * `relativePositionError`, which is a different field that happens to start
+ * with the same characters. `""` covers everything, being the payload root.
+ */
+function coversPath(covered: string, fieldPath: readonly string[]): boolean {
+  if (covered === "") return true;
+  const segments = covered.split(".");
+  if (segments.length > fieldPath.length) return false;
+  return segments.every((segment, i) => segment === fieldPath[i]);
+}
+
+/** Walk a dotted path into a modelled payload, the read half of `coversPath`. */
+function walkFieldPath(value: unknown, fieldPath: readonly string[]): unknown {
+  let cursor = value;
+  for (const segment of fieldPath) {
+    if (cursor === null || typeof cursor !== "object") return undefined;
+    cursor = (cursor as Record<string, unknown>)[segment];
+  }
+  return cursor;
+}
+
 /** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (derived channels ultimately should propagate the worst input staleness) is not yet implemented, this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
 function derivedMeta(viewUt: number, epoch: number): Meta {
   return {
@@ -1103,6 +1127,51 @@ export class TimelineStore {
   }
 
   /**
+   * The parent record's model, scoped to one field subtopic.
+   *
+   * A model is per TOPIC because physics needs siblings (Kepler wants eight
+   * elements at once, dead reckoning a position AND a velocity), and its
+   * expression is per FIELD because a payload is not one reckoning class:
+   * `vessel.target` carries relative geometry that propagates beside identity
+   * fields only a command changes beside metadata. Registration is therefore
+   * keyed on the record, and a field read borrows the record's model and asks
+   * whether it covers that path, which is the same parent-delegation
+   * `sample()` and `sampleStatus()` already do for value and status.
+   *
+   * The model is handed the PARENT's point, not the narrowed field point: a
+   * dead-reckoner given `{x, y, z}` alone cannot see the velocity it needs.
+   * Only the result is narrowed.
+   */
+  private fieldScopedReckoner<T>(
+    topic: string,
+    token: FrameToken,
+  ): ReckonerFor<T> | undefined {
+    const parsed = this.resolveRawFieldSubtopic(topic);
+    if (!parsed) return undefined;
+    const parentReckoner = getReckoner<unknown>(parsed.rawTopic);
+    if (!parentReckoner) return undefined;
+    return (_point, grade, viewUt) => {
+      const parentPoint = this.sample<unknown>(parsed.rawTopic, token);
+      if (!parentPoint || parentPoint.payload === null) return undefined;
+      const model = parentReckoner(
+        parentPoint as TimelinePoint<unknown>,
+        grade,
+        viewUt,
+      );
+      const covering = model?.modelled.find((entry) =>
+        coversPath(entry.path, parsed.fieldPath),
+      );
+      if (!model || !covering) return undefined;
+      return {
+        // From this read's point of view the whole (narrowed) value is
+        // modelled, so the root is what it claims.
+        modelled: [{ path: "", basis: covering.basis }],
+        reckon: (at) => walkFieldPath(model.reckon(at), parsed.fieldPath) as T,
+      };
+    };
+  }
+
+  /**
    * A derived channel's `deriveReckoning` as a `ReckonerFor`, so a channel that
    * forward-models its record says so through the same arm a registered
    * reckoner does.
@@ -1178,7 +1247,8 @@ export class TimelineStore {
         const viewUt = effectiveToken.viewUt;
         const reckoner =
           getReckoner<T>(topic) ??
-          this.derivedReckoner<T>(topic, effectiveToken);
+          this.derivedReckoner<T>(topic, effectiveToken) ??
+          this.fieldScopedReckoner<T>(topic, effectiveToken);
         const previous = this.readings.get(topic);
         if (
           previous !== undefined &&
