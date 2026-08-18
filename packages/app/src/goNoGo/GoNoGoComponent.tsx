@@ -797,7 +797,7 @@ registerComponent<GoNoGoWidgetConfig>({
   minSize: { w: 3, h: 3 },
   component: GoNoGoComponent,
   configComponent: GoNoGoConfigComponent,
-  dataRequirements: ["v.missionTime"],
+  dataRequirements: ["vessel.state.met"],
   behaviors: ["gonogo-participant"],
   defaultConfig: {
     countdownSeconds: DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,

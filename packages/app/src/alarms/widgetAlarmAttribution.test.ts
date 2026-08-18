@@ -1,6 +1,9 @@
 import { getComponent } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import "@ksp-gonogo/components";
+// The app registers a widget of its own, which importing the component library
+// does not pull in.
+import "../goNoGo/GoNoGoComponent";
 import { alarmMatchesWidget } from "./AlarmStatusBridge";
 import type { Alarm } from "./types";
 
@@ -191,6 +194,12 @@ const MIGRATED: readonly MigratedWidget[] = [
       { key: "v.externalTemperature", expectMatch: true },
       { key: "f.throttle", expectMatch: true },
     ],
+  },
+  {
+    // Registered by the app rather than the component library, so the
+    // library's own declaration gate cannot see it: covered here instead.
+    id: "gonogo",
+    legacyKeys: [{ key: "v.missionTime", expectMatch: true }],
   },
   {
     id: "maneuver-planner",
