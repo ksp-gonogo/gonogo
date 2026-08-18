@@ -236,6 +236,7 @@ export {
   type ProcessorDefinition,
   type ProcessorFrame,
   type ProcessorHandle,
+  type ReadingDep,
   type ResolvedDeps,
 } from "./processors";
 export type {

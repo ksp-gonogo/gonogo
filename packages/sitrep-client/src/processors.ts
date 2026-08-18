@@ -1,4 +1,5 @@
 import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading } from "./reading";
 
 // ---------------------------------------------------------------------------
 // The Processor primitive (contribution-slots-spec.md 13.3, 14): a declared
@@ -23,20 +24,63 @@ export interface ProcessorHandle<R> {
   readonly __resultType?: R;
 }
 
-/** A processor dependency: either a raw Topic id or another processor's handle. */
-export type Dep = TopicId | ProcessorHandle<unknown>;
+/**
+ * A dep asking for a Topic's `Reading` rather than its bare payload.
+ *
+ * The wrapper exists because a Topic id is a plain string, so there is nothing
+ * to distinguish "give me the value" from "give me the value and its currency"
+ * without one. `{ reading: "vessel.resources" }` reads at the call site as the
+ * request it is.
+ *
+ * ## Why a processor needs this at all
+ *
+ * A processor resolved a Topic dep to `point.payload`: the VALUE channel alone,
+ * with no staleness, no `validAt` and no model. So a derivation that reasons
+ * ACROSS topics could not tell whether its inputs were current, and during a
+ * blackout it computed on last-contact values and its consumers presented the
+ * result as though it were now. `ShipSystems` does exactly that today: a
+ * time-to-empty derived from levels observed twenty minutes ago, rendered with
+ * nothing anywhere saying so. That is the failure this whole type exists to
+ * prevent, in the widget where it matters most.
+ *
+ * ## Why it composes
+ *
+ * `evaluate` skips a processor whose `lastFrameGeneration` matches the frame,
+ * so it is memoised WITHIN a frame and re-evaluated ACROSS frames.
+ * `sampleReading` re-derives a `reckonable` arm whenever the frame's view time
+ * moves. Both are keyed on the same thing, the frame, so a processor sees a
+ * reading built for the moment it is deriving for without any new invalidation
+ * machinery.
+ *
+ * ## What a processor should NOT do with it
+ *
+ * Return it. A `Reading` is one Topic's currency; a cross-resource conclusion
+ * ("four hours of oxygen, but not if the batteries go first") is not one
+ * Topic's anything. A processor whose output is modelled carries its own
+ * provenance instead, the way a projection channel's payload does with
+ * `observed` / `projected` / `lower` / `upper` / `elapsed`.
+ */
+export interface ReadingDep<T extends TopicId = TopicId> {
+  readonly reading: T;
+}
+
+/** A processor dependency: a raw Topic id, a Topic's reading, or another processor's handle. */
+export type Dep = TopicId | ReadingDep | ProcessorHandle<unknown>;
 
 /**
  * The resolved value for one dependency: a nested processor resolves to its
- * result type R; a Topic id resolves to its payload (or undefined when that
- * Topic has produced no frame yet).
+ * result type R; a reading dep resolves to the Topic's `Reading`; a Topic id
+ * resolves to its payload (or undefined when that Topic has produced no frame
+ * yet).
  */
 type ResolvedDep<D extends Dep> =
   D extends ProcessorHandle<infer R>
     ? R
-    : D extends TopicId
-      ? TopicPayload<D> | undefined
-      : never;
+    : D extends ReadingDep<infer T>
+      ? Reading<TopicPayload<T>>
+      : D extends TopicId
+        ? TopicPayload<D> | undefined
+        : never;
 
 /** Positionally-mapped tuple of resolved dependency values, in deps order. */
 export type ResolvedDeps<Deps extends readonly Dep[]> = {

@@ -233,3 +233,119 @@ describe("processorEvaluator store swap", () => {
     deactivate();
   });
 });
+
+/**
+ * A processor can ask for a Topic's `Reading` rather than its bare payload.
+ *
+ * A Topic dep resolved to `point.payload`, the value channel alone, so a
+ * derivation reasoning across topics could not tell a current input from a
+ * carried one and computed on last-contact values during a blackout while its
+ * consumers rendered the result as current. `ShipSystems` does that today.
+ */
+describe("a reading-shaped dep", () => {
+  function fakeWall(start = 0) {
+    let now = start;
+    return {
+      now: () => now,
+      advanceBy: (s: number) => {
+        now += s;
+      },
+    };
+  }
+
+  function predictedStore(wall: { now: () => number }): TimelineStore {
+    const clock = new ViewClock({
+      nowWall: wall.now,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    });
+    clock.setMode("predicted");
+    return new TimelineStore(clock);
+  }
+
+  function point(validAt: number, payload: number): TimelinePoint<number> {
+    return {
+      validAt,
+      payload,
+      meta: makeMeta({ validAt, deliveredAt: validAt }),
+      epoch: 0,
+    };
+  }
+
+  it("hands over the whole Reading, so a derivation can see how current its input is", () => {
+    const wall = fakeWall();
+    const store = predictedStore(wall);
+    setActiveTimelineStore(store);
+
+    const seen: string[] = [];
+    const proc = defineProcessor({
+      id: "reads-currency",
+      owner: "core",
+      deps: [{ reading: "temperature" }] as never,
+      compute: ([reading]: readonly [{ state: string }]) => {
+        seen.push(reading.state);
+        return reading.state;
+      },
+    });
+    const deactivate = activateProcessor(proc.id);
+
+    store.ingest("temperature", point(100, 5));
+    store.beginFrame();
+    expect(getProcessorValue(proc.id)).toBe("observed");
+
+    // The link drops. A payload-only dep would still hand over 5 and the
+    // derivation would go on presenting it as current.
+    wall.advanceBy(60);
+    store.setTransportConnected(false);
+    store.beginFrame();
+    expect(getProcessorValue(proc.id)).toBe("stale");
+
+    expect(seen).toContain("observed");
+    expect(seen).toContain("stale");
+    deactivate();
+  });
+
+  it("subscribes the same wire topic a bare id would", () => {
+    // Missing this would add the dep OBJECT as a topic and silently starve the
+    // subscription, which is the failure `StubTransport`'s subscribed-only
+    // delivery exists to surface.
+    const store = makeStore();
+    setActiveTimelineStore(store);
+    const subscribed: string[] = [];
+    setProcessorTopicSubscriber((topic) => {
+      subscribed.push(topic);
+      return () => {};
+    });
+
+    const proc = defineProcessor({
+      id: "subscribes-its-reading",
+      owner: "core",
+      deps: [{ reading: "temperature" }] as never,
+      compute: () => 1,
+    });
+    const deactivate = activateProcessor(proc.id);
+
+    expect(subscribed).toContain("temperature");
+    deactivate();
+    setProcessorTopicSubscriber(undefined);
+  });
+
+  it("is pending rather than undefined with no store wired", () => {
+    // A processor must never see a bare `undefined` where a Reading is
+    // declared: `pending` is the arm that means "nothing has arrived", and a
+    // consumer branching on `state` would crash on undefined.
+    setActiveTimelineStore(undefined);
+    const proc = defineProcessor({
+      id: "no-store",
+      owner: "core",
+      deps: [{ reading: "temperature" }] as never,
+      compute: ([reading]: readonly [{ state: string }]) => reading.state,
+    });
+    const store = makeStore();
+    const deactivate = activateProcessor(proc.id);
+    setActiveTimelineStore(store);
+    store.beginFrame();
+    expect(getProcessorValue(proc.id)).toBe("pending");
+    deactivate();
+  });
+});

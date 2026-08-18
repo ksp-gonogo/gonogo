@@ -153,6 +153,9 @@ function SlotAggregator({
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") topics.add(d as TopicId);
+        // A reading dep names the same wire topic a bare id does; only what the
+        // consumer is HANDED differs, so it subscribes exactly the same way.
+        else if ("reading" in d) topics.add(d.reading as TopicId);
         else processors.set(d.id, d);
       }
       if (c.requires) topics.add(`${c.requires}.available` as TopicId);

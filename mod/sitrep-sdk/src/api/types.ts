@@ -232,6 +232,10 @@ export interface UplinkClientHandle {
      *  sitrep-client's `ProcessorHandle`. */
     deps?: readonly (
       | TopicId
+      // A Topic's `Reading` rather than its bare payload: the consumer is
+      // handed the value AND how current it is. Same wire topic, same
+      // subscription.
+      | { readonly reading: TopicId }
       | { readonly id: string; readonly __resultType?: unknown }
     )[];
     /** Intentionally loose: this mirror is a name+arity probe (see file
@@ -254,6 +258,7 @@ export interface UplinkClientHandle {
   registerProcessor<
     const Deps extends readonly (
       | TopicId
+      | { readonly reading: TopicId }
       | { readonly id: string; readonly __resultType?: unknown }
     )[],
     R,

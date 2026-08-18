@@ -2,6 +2,7 @@ import {
   type AnyProcessorDefinition,
   type Dep,
   getProcessor,
+  type ReadingDep,
 } from "./processors";
 import type { TimelineStore } from "./timeline-store";
 
@@ -157,7 +158,13 @@ function collectRawTopicDeps(id: string): string[] {
     const def = getProcessor(procId);
     if (!def) continue;
     for (const dep of def.deps) {
-      if (!isHandle(dep)) topics.add(dep);
+      // A reading dep names the same wire topic a bare id does; only what the
+      // processor is HANDED differs. Missing this would add the dep object
+      // itself as a topic and silently starve the subscription, which is the
+      // failure mode `stub-transport`'s subscribed-only delivery exists to
+      // surface.
+      if (isReadingDep(dep)) topics.add(dep.reading);
+      else if (!isHandle(dep)) topics.add(dep);
     }
   }
   return [...topics];
@@ -220,9 +227,21 @@ function resolveDep(dep: Dep, token: { generation: number }): unknown {
     evaluate(dep.id, token);
     return entryFor(dep.id).value;
   }
+  if (isReadingDep(dep)) {
+    // The whole `Reading`, so a derivation can tell a current input from a
+    // carried one. Without this a processor saw `point.payload` and nothing
+    // else, and computed on last-contact values during a blackout while its
+    // consumers rendered the result as current.
+    if (!activeStore) return { state: "pending" };
+    return activeStore.sampleReading(dep.reading, activeStore.currentFrame());
+  }
   if (!activeStore) return undefined;
   const point = activeStore.sample(dep, activeStore.currentFrame());
   return point ? point.payload : undefined;
+}
+
+function isReadingDep(dep: Dep): dep is ReadingDep {
+  return typeof dep === "object" && dep !== null && "reading" in dep;
 }
 
 function evaluate(id: string, token: { generation: number }): void {
