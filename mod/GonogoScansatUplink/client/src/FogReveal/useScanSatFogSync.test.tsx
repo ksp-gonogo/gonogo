@@ -6,17 +6,14 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import type { FogMaskCache } from "@ksp-gonogo/data";
-import {
-  FogMaskCacheProvider,
-  FogMaskStore,
-  useFogMaskCache,
-} from "@ksp-gonogo/data";
+import { FogMaskCacheProvider, FogMaskStore } from "@ksp-gonogo/data";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import type { BodyDefinition } from "@ksp-gonogo/sitrep-sdk";
+import { useFogMaskCache } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

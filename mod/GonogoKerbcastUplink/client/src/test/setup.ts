@@ -16,6 +16,7 @@ import {
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
+  useCommand,
   useLatestValue,
   useViewClockOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -55,6 +56,7 @@ installTestHost({
   >[0]["registerUplinkHandle"],
   subscribeSetting,
   useActionInput,
+  useCommand: useCommand as Parameters<typeof installTestHost>[0]["useCommand"],
   useLatestValue,
   useSetting,
   useTelemetry,

@@ -1,11 +1,11 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
+import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
   useActionInput,
+  useCommand,
   useTelemetry,
-} from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,

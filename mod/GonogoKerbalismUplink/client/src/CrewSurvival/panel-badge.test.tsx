@@ -1,11 +1,11 @@
-import {
-  ContributionsProvider,
-  useWidgetBadges,
-  WidgetMetaContext,
-} from "@ksp-gonogo/core";
+import { ContributionsProvider, useWidgetBadges } from "@ksp-gonogo/core";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { Panel, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
+import {
+  Panel,
+  PanelBadgesProvider,
+  WidgetMetaContext,
+} from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load

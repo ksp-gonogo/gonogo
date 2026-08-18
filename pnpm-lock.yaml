@@ -85,9 +85,6 @@ importers:
       '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -250,9 +247,6 @@ importers:
 
   mod/GonogoKerbcastUplink/client:
     dependencies:
-      '@ksp-gonogo/components':
-        specifier: workspace:*
-        version: link:../../../packages/components
       '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../../../packages/core
@@ -335,9 +329,6 @@ importers:
       '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -506,18 +497,12 @@ importers:
 
   mod/GonogoScansatUplink/client:
     dependencies:
-      '@ksp-gonogo/components':
-        specifier: workspace:*
-        version: link:../../../packages/components
       '@ksp-gonogo/core':
         specifier: workspace:*
         version: link:../../../packages/core
       '@ksp-gonogo/data':
         specifier: workspace:*
         version: link:../../../packages/data
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit

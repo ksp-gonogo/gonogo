@@ -13,8 +13,8 @@ import {
   registerAugment,
   useSetting,
 } from "@ksp-gonogo/sitrep-sdk";
-import { TextButton, useModal } from "@ksp-gonogo/ui";
-import { Badge } from "@ksp-gonogo/ui-kit";
+import { useModal } from "@ksp-gonogo/ui";
+import { Badge, TextButton } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo } from "react";
 import { useKerbcastCameras } from "../hooks/useKerbcastCameras";

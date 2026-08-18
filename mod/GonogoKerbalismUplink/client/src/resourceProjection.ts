@@ -2,9 +2,12 @@ import type {
   DerivedChannelDefinition,
   DerivedGet,
   ReckoningBasis,
-  StreamStatusValue,
 } from "@ksp-gonogo/sitrep-client";
-import type { TopicPayload, Value } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  StreamStatusValue,
+  TopicPayload,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { KERBALISM_LIFESUPPORT_TOPIC } from "./topics";
 import { KERBALISM } from "./uplink";

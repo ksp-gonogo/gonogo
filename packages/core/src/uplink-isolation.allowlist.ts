@@ -192,8 +192,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
       ["test-utils"],
     "mod/GonogoKerbcastUplink/client/src/CameraSetpoint/CameraSetpointSurface.test.tsx":
       ["test-utils"],
-    "mod/GonogoKerbcastUplink/client/src/CameraSetpoint/CameraSetpointSurface.tsx":
-      ["sitrep-client"],
     "mod/GonogoKerbcastUplink/client/src/CameraSetpoint/FramingPreview.test.tsx":
       ["test-utils"],
     "mod/GonogoKerbcastUplink/client/src/CrewAvatarGate/index.test.tsx": [
@@ -288,10 +286,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
       "core",
       "test-utils",
     ],
-    "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx": [
-      "core",
-      "sitrep-client",
-    ],
     "mod/GonogoMechJebUplink/client/src/test/setup.ts": [
       "core",
       "sitrep-client",
@@ -371,9 +365,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     ],
     "mod/GonogoScansatUplink/client/src/test/setupStreamFixture.tsx": [
       "sitrep-client",
-    ],
-    "mod/GonogoScansatUplink/client/src/test/withScansatAvailability.tsx": [
-      "core",
     ],
     "mod/GonogoScansatUplink/client/src/topics.test.ts": ["test-utils"],
   };

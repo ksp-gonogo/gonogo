@@ -1,8 +1,4 @@
-import {
-  clearRegistry,
-  clearUplinkHandles,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
@@ -13,6 +9,7 @@ import {
   AugmentSlot,
   Quality,
   registerUplinkHandle,
+  useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import {

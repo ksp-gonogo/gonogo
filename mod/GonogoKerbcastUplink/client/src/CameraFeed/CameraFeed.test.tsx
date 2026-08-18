@@ -21,12 +21,10 @@
 
 import {
   clearActionHandlers,
-  clearAugments,
   clearRegistry,
   clearUplinkHandles,
   DashboardItemContext,
   dispatchAction,
-  getAugmentsForSlot,
 } from "@ksp-gonogo/core";
 import type {
   CameraKind,
@@ -49,6 +47,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
