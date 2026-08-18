@@ -643,14 +643,23 @@ describe("telemachus token: the code-only scan can still see", () => {
  *
  * UPLINK_ALLOWLIST_BASE_REF is not yet wired into ci.yml; see the design
  * doc §2.8. Until that lands, this check soft-passes in CI (the
- * origin/main / main fallbacks resolve there too, but against whatever
- * commit CI happened to fetch, not a meaningful "previous push" ref) and
- * only truly enforces on a local machine with a real origin/main.
+ * origin/staging / origin/main / main fallbacks resolve there too, but
+ * against whatever commit CI happened to fetch, not a meaningful "previous
+ * push" ref) and only truly enforces on a local machine with a real remote.
+ *
+ * `origin/staging` comes before `origin/main` because branches are cut from
+ * staging and land there first, so main trails it by however long a release
+ * takes. Resolving to main meant every branch diffed its allowlist against a
+ * ref where a recently-added allowlist FILE does not exist yet, which
+ * `loadAllowlistAt` reports as the bootstrap case and the caller soft-passes
+ * on. A ratchet is at its most load-bearing in the weeks after it lands, and
+ * that was exactly the window in which it could not run.
  */
 function resolveBaseRef(): string | null {
   const candidates = [
     process.env.UPLINK_ALLOWLIST_BASE_REF,
     process.env.GITHUB_BASE_REF && `origin/${process.env.GITHUB_BASE_REF}`,
+    "origin/staging",
     "origin/main",
     "main",
   ].filter((v): v is string => Boolean(v));
@@ -800,7 +809,22 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
       ),
     );
     const previous = await loadAllowlistAt(baseRef, relPath);
-    if (!previous) return; // allowlist didn't exist at base ref, bootstrap case
+    if (!previous) {
+      // Two different situations reach here and only one of them is benign,
+      // so say which. "No ref at all" (fresh clone, detached HEAD) is handled
+      // above by `resolveBaseRef` returning null. This branch means a ref DID
+      // resolve and the allowlist is simply absent at it, which is genuine on
+      // a first land and suspicious afterwards: the check is not running, and
+      // it looked identical to passing until this line existed.
+      console.warn(
+        `[uplink-boundary] shrink-only check SKIPPED: ${relPath} does not ` +
+          `exist at ${baseRef}, so there is nothing to diff against. Expected ` +
+          `on the commit that first adds the allowlist; otherwise the base ref ` +
+          `is wrong and no growth is being detected. Set ` +
+          `UPLINK_ALLOWLIST_BASE_REF to a ref that has the file.`,
+      );
+      return;
+    }
 
     const growth = findDomainDebtGrowth(previous, ALLOWLIST);
     if (growth.length > 0) {
