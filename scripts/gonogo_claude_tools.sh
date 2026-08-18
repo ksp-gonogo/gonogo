@@ -47,11 +47,6 @@
 #       `dump` instead. Detects the matching close-brace by indent
 #       level (ilspycmd output is consistently formatted).
 #
-#   build telemachus
-#       Build the Telemachus fork at local_docs/telemachus-fork/Telemachus/
-#       and copy the resulting Telemachus.dll into the synced
-#       kspdata GameData/Telemachus/Plugins/ directory.
-#
 #   build ocisly [--baseline]
 #       Build the OCISLY fork at ~/personal/OfCourseIStillLoveYou/
 #       and copy OfCourseIStillLoveYou.dll into the synced
@@ -74,22 +69,6 @@
 #       and copy Gonogo.dll + the net472-flavored Sitrep.*.dll deps into the
 #       synced kspdata GameData/Gonogo/Plugins/ directory.
 #
-#   tele read <key1> [<key2>...]
-#       GET /telemachus/datalink with each key as a `?k=k` pair against
-#       the running KSP install. Pretty-prints JSON when possible. The
-#       host is hard-coded, script can't pivot to a different target.
-#
-#   tele action <key[args]>
-#       GET /telemachus/datalink with a single bracketed action key,
-#       URL-encodes the brackets so curl doesn't choke. Used for write
-#       paths like alarm.add[Test,5475,KillWarp,Yes] or tech.unlock[start].
-#
-#   tele subscribe <key1> [<key2>...]
-#       Open a WebSocket to /datalink and subscribe to the given keys.
-#       Streams each frame with a timestamp prefix so you can see value
-#       transitions in real time. Default rate 1000ms. Requires websocat
-#       (brew install websocat). Ctrl-C to stop.
-#
 #   help
 #       Print this comment block.
 
@@ -108,7 +87,6 @@ fi
 ILSPYCMD="$HOME/.dotnet/tools/ilspycmd"
 DECOMPILE_TIMEOUT_S=60
 BUILD_TIMEOUT_S=300
-TELE_HOST="http://192.168.86.33:8085"
 TELE_TIMEOUT_S=15
 
 # Internal: resolve a type name to its full ilspycmd dump using a
@@ -664,37 +642,6 @@ fetch_kerbcast_sidecar() {
   rm -rf "$tmpdir"
 }
 
-build_telemachus() {
-  local fork="$ROOT/local_docs/telemachus-fork/Telemachus"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/Telemachus/Plugins"
-  if [ ! -d "$fork" ]; then
-    echo "Telemachus fork not found at $fork"
-    return 3
-  fi
-  if [ ! -d "$install_dir" ]; then
-    echo "kspdata GameData/Telemachus/Plugins not found at $install_dir"
-    return 3
-  fi
-  echo "=== building Telemachus fork ==="
-  (
-    cd "$fork"
-    perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
-      dotnet build -c Release --nologo -v minimal
-  )
-  # Output may be under bin/Release/<tfm>/ depending on csproj,
-  # search for a Telemachus.dll modified in the last 5 minutes under
-  # any Release/ path inside the fork.
-  local out_dll
-  out_dll="$(find "$fork/bin" -type f -name Telemachus.dll -path '*/Release/*' -mmin -5 2>/dev/null | head -1)"
-  if [ -z "$out_dll" ] || [ ! -f "$out_dll" ]; then
-    echo "Telemachus.dll not produced (no fresh match under $fork/bin/)"
-    return 4
-  fi
-  cp "$out_dll" "$install_dir/Telemachus.dll"
-  echo "=== installed ==="
-  ls -la "$install_dir/Telemachus.dll"
-}
-
 build_gonogo() {
   local proj="$ROOT/mod/Gonogo.KSP/Gonogo.KSP.csproj"
   local out_dir="$ROOT/mod/Gonogo.KSP/bin/Release"
@@ -1080,134 +1027,6 @@ build_devtools() {
   ls -la "$install_dir"
 }
 
-tele_read() {
-  if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh tele read <key1> [<key2>...]"
-    return 2
-  fi
-  # URL-encode brackets so parameterized keys like r.resourceFor[123] and
-  # therm.part[456] survive the query-string round-trip. Telemachus parses
-  # the bracket args itself after URL-decoding.
-  local q=""
-  for k in "$@"; do
-    local enc="${k//\[/%5B}"
-    enc="${enc//\]/%5D}"
-    q="${q:+$q&}${enc}=${enc}"
-  done
-  local url="${TELE_HOST}/telemachus/datalink?${q}"
-  # Tempfile pattern: keeps curl/jq non-zero exits from tripping set -e
-  # before the no-response branch can print.
-  local tmp
-  tmp="$(mktemp)"
-  perl -e 'alarm shift; exec @ARGV' "$TELE_TIMEOUT_S" \
-    curl -s "$url" > "$tmp" 2>/dev/null || true
-  local body
-  body="$(cat "$tmp")"
-  rm -f "$tmp"
-  if [ -z "$body" ]; then
-    echo "(no response: KSP / Telemachus not running?)"
-    return 4
-  fi
-  # Pretty-print if jq or python json is available; else raw.
-  if command -v jq >/dev/null 2>&1; then
-    echo "$body" | jq .
-  elif command -v python3 >/dev/null 2>&1; then
-    echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
-  else
-    echo "$body"
-  fi
-}
-
-tele_action() {
-  if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh tele action <key[args]>"
-    return 2
-  fi
-  local raw="$1"
-  # URL-encode square brackets and spaces: Telemachus parses commas
-  # inside the brackets itself, so commas stay raw. Spaces appear in
-  # arg values like "Auto-Saved Ship" and curl rejects raw-space URLs.
-  local enc="${raw//\[/%5B}"
-  enc="${enc//\]/%5D}"
-  enc="${enc// /%20}"
-  local url="${TELE_HOST}/telemachus/datalink?${enc}=${enc}"
-  # Use a temp file so curl/jq exit codes don't propagate to set -e
-  # before the no-response branch can print. Curl sees no response on
-  # connection failure → empty file → handled below.
-  local tmp
-  tmp="$(mktemp)"
-  perl -e 'alarm shift; exec @ARGV' "$TELE_TIMEOUT_S" \
-    curl -s "$url" > "$tmp" 2>/dev/null || true
-  local body
-  body="$(cat "$tmp")"
-  rm -f "$tmp"
-  if [ -z "$body" ]; then
-    echo "(no response: KSP / Telemachus not running?)"
-    return 4
-  fi
-  if command -v jq >/dev/null 2>&1; then
-    echo "$body" | jq .
-  elif command -v python3 >/dev/null 2>&1; then
-    echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
-  else
-    echo "$body"
-  fi
-}
-
-tele_subscribe() {
-  if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh tele subscribe <key1> [<key2>...]"
-    return 2
-  fi
-  if ! command -v websocat >/dev/null 2>&1; then
-    echo "websocat not installed: brew install websocat"
-    return 5
-  fi
-  local rate_ms=1000
-  # Build the JSON array of keys: ["k1","k2",...]
-  local keys_json="["
-  local first=1
-  for k in "$@"; do
-    if [ $first -eq 0 ]; then keys_json="${keys_json},"; fi
-    keys_json="${keys_json}\"${k}\""
-    first=0
-  done
-  keys_json="${keys_json}]"
-  # `+` adds to persistent subscriptions (streams every tick at the
-  # configured rate). `run` is a one-shot, fires once and gets cleared,
-  # which is NOT what `tele subscribe` wants. The difference matters:
-  # with `run` the initial frame populates and every subsequent tick
-  # is an empty diff because nothing is actually subscribed.
-  local payload="{\"+\":${keys_json},\"rate\":${rate_ms}}"
-  # http://host:port → ws://host:port  (and https → wss in the future)
-  local ws_url="${TELE_HOST/http:/ws:}/datalink"
-  echo "ws_url:  $ws_url"
-  echo "payload: $payload"
-  echo "---"
-  # Prepend the subscribe payload to stdin, then keep stdin open. websocat's
-  # -n flag prevents it from closing on stdin EOF, we just want a one-way
-  # subscribe and a continuous stream back. Each frame is one line; the
-  # python tail timestamps + compact-prints each frame, which gives us
-  # cross-platform millisecond timestamps (BSD `date` lacks `%N`) and one
-  # frame per line for grep/tail/awk-friendly downstream piping.
-  printf '%s\n' "$payload" \
-    | websocat -n -t "$ws_url" \
-    | python3 -u -c '
-import json, sys, time
-for line in sys.stdin:
-    line = line.rstrip()
-    if not line:
-        continue
-    try:
-        compact = json.dumps(json.loads(line), separators=(",", ":"))
-    except Exception:
-        compact = line
-    t = time.time()
-    ts = time.strftime("%H:%M:%S", time.localtime(t)) + f".{int(t*1000)%1000:03d}"
-    print(f"{ts} {compact}", flush=True)
-'
-}
-
 print_help() {
   grep -E '^#' "$0" | sed 's/^# \?//'
 }
@@ -1236,7 +1055,6 @@ case "${1:-help}" in
   build)
     shift
     case "${1:-}" in
-      telemachus) build_telemachus ;;
       ocisly)
         shift
         build_ocisly "$@"
@@ -1253,28 +1071,7 @@ case "${1:-help}" in
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: telemachus, ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, devtools"
-        exit 2
-        ;;
-    esac
-    ;;
-  tele)
-    shift
-    case "${1:-}" in
-      read)
-        shift
-        tele_read "$@"
-        ;;
-      action)
-        shift
-        tele_action "$@"
-        ;;
-      subscribe)
-        shift
-        tele_subscribe "$@"
-        ;;
-      *)
-        echo "usage: gonogo_claude_tools.sh tele {read|action|subscribe} ..."
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbcastuplink, gonogokerbalismuplink, devtools"
         exit 2
         ;;
     esac
