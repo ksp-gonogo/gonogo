@@ -781,41 +781,22 @@ registerComponent<FuelStatusConfig>({
   minSize: { w: 3, h: 3 },
   component: FuelStatusComponent,
   configComponent: FuelStatusConfigComponent,
-  // dv.stageCount/dv.totalDVVac/dv.totalDVASL/dv.totalDVActual/
-  // dv.totalBurnTime/dv.stages are all UN-GAPPED,
-  // same declared keys, routed through the stream by `mapTopic`
-  // (map-topic.ts's TELEMACHUS_CLEAN_HOMES) with a zero call-site rename;
-  // `dv.stages`'s wire shape changed underneath it though, see
-  // `parseStages` above. The r.resourceCurrent(Max)[X] stage-scoped splits
-  // stay GAPPED (no wire home) and remain legacy-only.
+  // The three resource CHANNELS rather than twenty per-resource paths: the
+  // component reads each map whole and indexes it by resource name (see
+  // `useResourceReading`), so naming the cells would claim a precision it does
+  // not have. Alarms on a single resource still land here, because every
+  // `r.resource[X]`-family target is a path INSIDE one of these three.
   dataRequirements: [
-    "v.currentStage",
-    "dv.stageCount",
-    "dv.totalDVVac",
-    "dv.totalDVASL",
-    "dv.totalDVActual",
-    "dv.totalBurnTime",
-    "r.resource[LiquidFuel]",
-    "r.resourceMax[LiquidFuel]",
-    "r.resourceCurrent[LiquidFuel]",
-    "r.resourceCurrentMax[LiquidFuel]",
-    "r.resource[Oxidizer]",
-    "r.resourceMax[Oxidizer]",
-    "r.resourceCurrent[Oxidizer]",
-    "r.resourceCurrentMax[Oxidizer]",
-    "r.resource[MonoPropellant]",
-    "r.resourceMax[MonoPropellant]",
-    "r.resourceCurrent[MonoPropellant]",
-    "r.resourceCurrentMax[MonoPropellant]",
-    "r.resource[XenonGas]",
-    "r.resourceMax[XenonGas]",
-    "r.resourceCurrent[XenonGas]",
-    "r.resourceCurrentMax[XenonGas]",
-    "r.resource[ElectricCharge]",
-    "r.resourceMax[ElectricCharge]",
-    "r.resourceCurrent[ElectricCharge]",
-    "r.resourceCurrentMax[ElectricCharge]",
+    "vessel.structure.currentStage",
+    "dv.summary.stageCount",
+    "dv.summary.totalDvVac",
+    "dv.summary.totalDvAsl",
+    "dv.summary.totalDvActual",
+    "dv.summary.totalBurnTime",
     "dv.stages",
+    "vessel.resources",
+    "dv.currentStageResource",
+    "dv.currentStageResourceMax",
   ],
   defaultConfig: { deltaVMode: "actual" },
   actions: [],
