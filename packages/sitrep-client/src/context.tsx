@@ -346,8 +346,23 @@ export function TelemetryProvider({
     };
 
     const unsubscribe = client.subscribeStore(scheduleBeginFrame);
+    // A frame also has to arrive when NOTHING does. Ingest alone was the frame
+    // source, and a quiet link mints no frames, so every quantity that is a
+    // function of the frame's view time froze exactly when it mattered: a
+    // reckoning stopped advancing at the instant the last packet landed while
+    // the age rendered beside it kept climbing off `useViewUt`'s own rAF tick,
+    // and a model's horizon could never fire because withdrawing needs a frame
+    // to withdraw on.
+    //
+    // `onFrame` is the animation-frame tick, which is the cadence
+    // `beginFrame`'s own doc asks for; coalescing to ingest was an optimisation
+    // that happened to be wrong for silence. It routes through the SAME
+    // `scheduled` gate, so an ingest and a tick in one animation frame still
+    // mint one frame between them, and the ingest path is untouched.
+    const unsubscribeClock = store.clock.onFrame(scheduleBeginFrame);
     return () => {
       unsubscribe();
+      unsubscribeClock();
       cancelScheduled?.();
     };
   }, [client, store]);

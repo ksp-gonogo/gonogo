@@ -88,6 +88,11 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
     // Establish a wire subscription so StubTransport.emit actually delivers.
     const unsubscribe = client.subscribe("v.raw", () => {});
     beginFrameSpy.mockClear();
+    // The provider also keeps a self-re-registering clock tick queued, so a
+    // quiet link still mints frames (see the frame-source note in context.tsx).
+    // Measuring the DELTA rather than the absolute count keeps this assertion
+    // about coalescing rather than about how many other things want a frame.
+    const idlePending = raf.pendingCount();
 
     act(() => {
       for (let i = 0; i < 5; i++) {
@@ -99,7 +104,7 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
     // pre-fix behavior), beginFrameSpy would already read 5 here.
     expect(beginFrameSpy).toHaveBeenCalledTimes(0);
     // And only ONE frame got scheduled for the whole 5-message burst, not 5.
-    expect(raf.pendingCount()).toBe(1);
+    expect(raf.pendingCount() - idlePending).toBe(1);
 
     act(() => raf.flush());
 
@@ -122,19 +127,21 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
 
     const unsubscribe = client.subscribe("v.raw", () => {});
     beginFrameSpy.mockClear();
+    const idlePending = raf.pendingCount();
 
     act(() => {
       transport.emit("v.raw", 1);
     });
-    expect(raf.pendingCount()).toBe(1);
+    expect(raf.pendingCount() - idlePending).toBe(1);
 
     unmount();
     unsubscribe();
 
-    // Unmount cancelled the scheduled frame: nothing left to flush, and
-    // flushing whatever's left must not call beginFrame() on the now-gone
-    // provider's store.
-    expect(raf.pendingCount()).toBe(0);
+    // Unmount cancelled the scheduled frame AND stopped the clock tick, so
+    // flushing whatever is left must not call beginFrame() on the now-gone
+    // provider's store. The clock tick is the reason this matters more than it
+    // used to: a ticker that outlived its provider would drive frames on a
+    // detached store forever.
     raf.flush();
     expect(beginFrameSpy).not.toHaveBeenCalled();
   });

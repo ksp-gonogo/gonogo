@@ -275,3 +275,44 @@ describe("a reckoning says which fields it actually modelled", () => {
     expect(store.sampleReading<Target>("vessel.target").state).toBe("stale");
   });
 });
+
+describe("a reckoning advances with the clock, not only with the post", () => {
+  it("re-reckons on a frame in which nothing arrived", () => {
+    // Every other case in this file calls beginFrame() by hand, so none of them
+    // exercises the one scenario the machinery exists for: nothing arriving at
+    // all. `TelemetryProvider` drives beginFrame from `client.subscribeStore`,
+    // i.e. from INGEST, while `useViewUt` advances off requestAnimationFrame.
+    // So during a total loss of contact the age a widget renders keeps climbing
+    // while the modelled value beside it is the one computed at second zero:
+    // "stale for twenty minutes" next to a projection for second one.
+    //
+    // The store cannot fix that alone, but it must not be the thing standing in
+    // the way: a frame minted with no ingest has to produce a reckoning for
+    // THAT frame's view time.
+    const wall = fakeWall();
+    const { store } = predictedStore(wall);
+
+    registerReckoner<number>("temperature", "test", (point) => ({
+      modelled: [{ path: "", basis: "rate-integration" }],
+      reckon: (at: number) => point.payload + (at - point.validAt),
+    }));
+
+    store.ingest("temperature", numberPoint(100, 0));
+    wall.advanceBy(10);
+    store.setTransportConnected(false);
+    store.beginFrame();
+
+    const first = store.sampleReading<number>("temperature");
+    if (first.state !== "reckonable") throw new Error("expected reckonable");
+    expect(first.reckon().value).toBe(10);
+
+    // Ten more seconds of silence. Nothing ingests; only the clock moves.
+    wall.advanceBy(10);
+    store.beginFrame();
+
+    const second = store.sampleReading<number>("temperature");
+    if (second.state !== "reckonable") throw new Error("expected reckonable");
+    expect(second.reckon().value).toBe(20);
+    expect(second.reckon().atUt).toBe(120);
+  });
+});
