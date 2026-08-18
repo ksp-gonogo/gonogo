@@ -1330,17 +1330,25 @@ registerComponent<MapViewConfig>({
   minSize: { w: 3, h: 4 },
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
+  // The last four are read by `OrbitalEventChips`, rendered inside this
+  // widget rather than by the component body itself: declared here because
+  // the panel that badges and the panel an alarm lights is this one.
   dataRequirements: [
-    "v.lat",
-    "v.long",
-    "v.altitude",
-    "v.body",
-    "o.orbitPatches",
-    "o.encounterExists",
-    "o.encounterBody",
-    "o.UTsoi",
-    "o.nextApsisType",
-    "o.timeToNextApsis",
+    "vessel.flight.latitude",
+    "vessel.flight.longitude",
+    "vessel.state.altitudeAsl",
+    "vessel.state.parentBodyName",
+    "vessel.state.orbitPatches",
+    "vessel.state.encounterExists",
+    "vessel.state.encounterBody",
+    // `encounterUt`, an absolute instant, NOT the duration `o.encounterTime`
+    // named. Those were two Telemachus keys for one event and the field holds
+    // the instant, which is why `o.encounterTime` maps to nothing at all now:
+    // see map-topic.ts. An alarm saved against that key cannot reach this
+    // widget any more, recorded in widgetAlarmAttribution.test.ts.
+    "vessel.state.encounterUt",
+    "vessel.state.nextApsisType",
+    "vessel.state.timeToNextApsis",
   ],
   defaultConfig: {
     trajectoryLength: 2000,
