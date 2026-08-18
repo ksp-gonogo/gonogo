@@ -317,13 +317,13 @@ describe("a reckoning advances with the clock, not only with the post", () => {
   });
 });
 
-describe("a reckoning is computed once per frame, not once per call", () => {
-  it("hands back one identity however many times it is pulled", () => {
-    // A call site that wants both the number and its provenance naturally
-    // writes `r.reckoned.value` in one place and `r.reckoned.basis` in another.
-    // Without a cache that is two model runs and TWO OBJECT IDENTITIES for one
-    // frame's answer, which is the identity trap already fixed twice, in
-    // `sampleReading` and in the processor evaluator, reappearing one layer in.
+describe("a reckoning is computed once per arm, not once per read", () => {
+  it("gives one identity however many times the field is read", () => {
+    // A call site wanting both the number and its provenance touches this
+    // twice, once for `.value` and once for `.basis`. One frame's answer must be
+    // ONE object: two identities is the trap already fixed in `sampleReading`
+    // and in the processor evaluator. A plain field gives this for free, which
+    // is one of the reasons it is a plain field.
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
@@ -342,10 +342,10 @@ describe("a reckoning is computed once per frame, not once per call", () => {
     expect(reading.reckoned).toBe(reading.reckoned);
   });
 
-  it("runs the model once, however many times it is pulled", () => {
-    // For class A a repeat call is a second Kepler solve. The hazard is not the
-    // cost though: it is that one question asked twice inside a frame must not
-    // be able to produce two answers.
+  it("runs the model once per frame, however many times the field is read", () => {
+    // For class A a second run is a second Kepler solve. Eager does not mean
+    // repeated: the model runs when the arm is built and the field is then just
+    // a field.
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
@@ -365,19 +365,17 @@ describe("a reckoning is computed once per frame, not once per call", () => {
 
     const reading = store.sampleReading<number>("temperature");
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
-    // Still a PULL: nothing has run until someone asks.
-    expect(runs).toBe(0);
-    reading.reckoned;
-    reading.reckoned;
-    reading.reckoned;
+    expect(runs).toBe(1);
+    void reading.reckoned;
+    void reading.reckoned;
+    void reading.reckoned;
     expect(runs).toBe(1);
   });
 
-  it("recomputes once the view time moves, so the cache cannot outlive its answer", () => {
-    // The cache is correct by construction rather than by invalidation: the arm
-    // is rebuilt whenever the frame's view time moves, so a per-arm cache
-    // expires with the arm. A cache that survived a frame would be the
-    // freeze bug this file already pins, one layer in.
+  it("recomputes once the view time moves, so an answer cannot outlive its moment", () => {
+    // The arm is rebuilt whenever the frame's view time moves, so the reckoning
+    // is fresh per frame by construction. An answer that survived a frame would
+    // be the freeze bug this file already pins, one layer in.
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
@@ -392,26 +390,21 @@ describe("a reckoning is computed once per frame, not once per call", () => {
     store.beginFrame();
     const first = store.sampleReading<number>("temperature");
     if (first.state !== "reckonable") throw new Error("expected reckonable");
-    const firstReckoning = first.reckoned;
-    expect(firstReckoning.value).toBe(10);
+    expect(first.reckoned.value).toBe(10);
 
     wall.advanceBy(10);
     store.beginFrame();
     const second = store.sampleReading<number>("temperature");
     if (second.state !== "reckonable") throw new Error("expected reckonable");
-    const secondReckoning = second.reckoned;
-    expect(secondReckoning).not.toBe(firstReckoning);
-    expect(secondReckoning.value).toBe(20);
+    expect(second.reckoned).not.toBe(first.reckoned);
+    expect(second.reckoned.value).toBe(20);
   });
-});
 
-describe("the getter survives the path a reading actually takes", () => {
-  it("still works on a reading read back out of the store", () => {
-    // A getter is lost by a spread or a shallow clone, and lost SILENTLY: the
-    // field reads `undefined` rather than throwing, so a copy somewhere in the
-    // store or a test helper would look like "no model offered" at every call
-    // site. `sampleReading` caches the object itself rather than copying it,
-    // and this is what says so.
+  it("survives a copy, which is the point of it not being a getter", () => {
+    // A getter here was lost by a spread, and lost SILENTLY: the spread
+    // evaluated it and froze that frame's answer as a permanent plain value. A
+    // field has no such failure mode, and this is what says the hazard is gone
+    // rather than merely avoided.
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
@@ -427,45 +420,8 @@ describe("the getter survives the path a reading actually takes", () => {
 
     const reading = store.sampleReading<number>("temperature");
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
-    expect(
-      Object.getOwnPropertyDescriptor(reading, "reckoned")?.get,
-    ).toBeTypeOf("function");
-    expect(reading.reckoned.value).toBe(65);
-
-    // And the identity-cached read on a LATER frame is a different object
-    // carrying a working getter, not a stale descriptor.
-    wall.advanceBy(10);
-    store.beginFrame();
-    const later = store.sampleReading<number>("temperature");
-    if (later.state !== "reckonable") throw new Error("expected reckonable");
-    expect(later.reckoned.value).toBe(75);
-  });
-
-  it("is undefined on a SPREAD copy, which is why nothing may copy a reading", () => {
-    // Pinning the hazard rather than only avoiding it: if someone later adds a
-    // spread anywhere on this path, the failure is silent at every call site,
-    // so the shape of that silence is worth having written down.
-    const wall = fakeWall();
-    const { store } = predictedStore(wall);
-
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: () => point.payload,
-    }));
-
-    store.ingest("temperature", numberPoint(100, 5));
-    wall.advanceBy(60);
-    store.setTransportConnected(false);
-    store.beginFrame();
-
-    const reading = store.sampleReading<number>("temperature");
-    if (reading.state !== "reckonable") throw new Error("expected reckonable");
-    // A spread EVALUATES the getter and stores its result, so the copy has a
-    // plain field rather than a getter. That is the trap: the value is right
-    // once and never updates again, and the descriptor is gone.
     const copied = { ...reading };
-    expect(
-      Object.getOwnPropertyDescriptor(copied, "reckoned")?.get,
-    ).toBeUndefined();
+    expect(copied.reckoned).toBe(reading.reckoned);
+    expect(copied.reckoned.value).toBe(65);
   });
 });

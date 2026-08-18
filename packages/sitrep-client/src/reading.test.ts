@@ -107,10 +107,11 @@ describe("readingFrom", () => {
     expect(reading.grade).toBe("last-before-blackout");
   });
 
-  it("does not run the model until someone pulls it", () => {
-    // A reckoning nobody reads must cost nothing. An eagerly-computed field
-    // would propagate every topic with a basis on every frame regardless of
-    // consumers, which is the whole reason this is a thunk.
+  it("runs the model once per arm build, not once per read", () => {
+    // Eager now: the model runs when the arm is built, which is once per frame
+    // per topic actually read. What still matters is that READING the field is
+    // free and gives one answer, so a widget wanting the number and the basis
+    // and the age does not pay three times or risk three answers.
     let runs = 0;
     const counting: ReckonerFor<number> = (p) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
@@ -121,10 +122,10 @@ describe("readingFrom", () => {
     });
 
     const reading = readingFrom(point(10, 5), "held-stale", VIEW_UT, counting);
-    expect(runs).toBe(0);
-
     if (reading.state !== "reckonable") throw new Error("expected reckonable");
-    reading.reckoned;
+    expect(runs).toBe(1);
+    void reading.reckoned;
+    void reading.reckoned;
     expect(runs).toBe(1);
   });
 

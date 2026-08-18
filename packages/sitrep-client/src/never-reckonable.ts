@@ -1,8 +1,15 @@
 import type { Reading } from "./reading";
 
 /**
- * Topics that can never carry a forward model, declared so the type system can
- * drop the `reckonable` arm for them.
+ * Topics that do not carry a forward model, declared so the type system can drop
+ * the `reckonable` arm for them.
+ *
+ * **Two different reasons live in this one list, and they are kept in separate
+ * named groups because they want opposite responses later.** "No model can
+ * exist" is permanent and closed. "A model could exist and we are not paying for
+ * it every frame" is an engineering decision and an invitation: make the model
+ * cheaper and it moves out. Conflating them would lose that difference, and the
+ * second group would rot into looking like the first.
  *
  * ## Why declaring this is sound when declaring the positive is not
  *
@@ -46,6 +53,8 @@ import type { Reading } from "./reading";
  * to write.
  */
 export const NEVER_RECKONABLE = [
+  // ── Unmodellable: no model can exist, permanently ──────────────────────────
+
   // -- Attitude, and anything an autopilot moves on its own. `Navball` reached
   // this independently and is right: for an alignment reticle the honest
   // response to a non-observed reading is to draw something else.
@@ -110,6 +119,21 @@ export const NEVER_RECKONABLE = [
   "science.experimentBreakdown",
   "science.instruments",
   "science.sensors",
+
+  // ── Too expensive to model every frame ─────────────────────────────────────
+  //
+  // A model COULD exist for these and we have decided not to pay for it on the
+  // frame path. This is the answer to cost, and it is a better one than making
+  // the reckoning lazy: it is a declared, reviewable decision sitting beside
+  // every other classification rather than a mechanism hidden in the type that
+  // nobody reads. An Uplink that cannot pay declares its topic here and says
+  // why, and making the model cheaper is what moves it back out.
+  //
+  // Deliberately EMPTY. Provider-supplied compute on the frame path is what this
+  // whole pipeline already is (a mapper runs every tick, a derived channel and a
+  // processor every frame), so a reckoning is not special and nothing here has
+  // earned an exemption yet. An entry needs evidence of a real per-frame cost,
+  // named in its comment.
 ] as const satisfies readonly string[];
 
 /** A topic declared unmodellable. */

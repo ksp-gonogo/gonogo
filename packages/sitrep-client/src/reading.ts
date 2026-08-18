@@ -146,12 +146,18 @@ function rootCoverage(model: {
  * widgets. Field.
  *
  * A reckoning DOES change what you draw: a propagated position is a different
- * marker in a different place from a last-known position. An optional
- * `reckoned` field was the first shape tried here and it was wrong, because an
- * optional field is one a destructuring consumer ignores by default and
- * ignoring it compiles. A reckoning that EXISTS could be silently dropped while
- * the widget still looked right, which is precisely the failure this type is
- * built to prevent. Arm.
+ * marker in a different place from a last-known position. An OPTIONAL `reckoned`
+ * field on the stale arm was the first shape tried here and it was wrong,
+ * because an optional field is one a destructuring consumer ignores by default
+ * and ignoring it compiles. A reckoning that EXISTS could be silently dropped
+ * while the widget still looked right, which is precisely the failure this type
+ * is built to prevent. Arm.
+ *
+ * `reckoned` IS a plain field today, and that is not the shape that was
+ * rejected: it is REQUIRED, and it sits on an arm a caller can only be inside by
+ * having branched there. What was rejected was an optional field on an arm that
+ * did not need it, where ignoring it was the default. Reaching this one still
+ * means writing the discriminant.
  *
  * A widget may still legitimately decline to propagate (a scalar readout may
  * only want a number and a staleness caption). That has to be a WRITTEN choice:
@@ -159,8 +165,8 @@ function rootCoverage(model: {
  *
  * ## No horizon field, and no way to over-extrapolate
  *
- * Nothing here says how far a reckoning may be trusted, and `reckoned` never
- * declines. Both fall out of the arm being rebuilt every frame: once the
+ * Nothing here says how far a reckoning may be trusted, and `reckoned` is never
+ * absent on an arm that carries it. Both fall out of the arm being rebuilt every frame: once the
  * provider's horizon is exceeded it stops offering a model, and the topic
  * simply presents as `stale` from that frame on. So the presence of the arm IS
  * the statement of trust, structurally rather than by convention, and there is
@@ -207,39 +213,33 @@ export type Reading<T> =
       asOfUt: number;
       grade: StaleGrade;
       /**
-       * The forward-modelled value for this frame's view time.
+       * The forward-modelled value for this frame's view time, computed when the
+       * arm is built.
        *
-       * **A getter that does real work: LAZY and CACHED.** That is not what a
-       * property access usually implies, so it is said here rather than left to
-       * be discovered. The first read runs the model, which for class A is a
-       * Kepler solve; a second read in the same frame costs nothing and returns
-       * the SAME object.
+       * A PLAIN FIELD, and the reasoning is worth keeping because it went the
+       * other way twice first. Laziness was justified as "a reckoner is
+       * provider-supplied, so its cost is not ours to assume". The same is true
+       * of everything else in this system: an Uplink's mapper runs every tick,
+       * its derived channel's `derive` runs every frame, its processor's
+       * `compute` runs every frame, and class B's projection IS a derived
+       * channel. Provider-supplied compute on the frame path is what this whole
+       * pipeline is, so reckoning being the single exception was an
+       * inconsistency rather than a principle. A mechanism that defends against
+       * its own providers is one that expects to be rare, and this one is meant
+       * to be universal.
        *
-       * Lazy because a reckoning nobody reads must cost nothing: a plain field
-       * would propagate every topic with a model on every frame regardless of
-       * consumers. Cached because a call site wanting both the number and its
-       * provenance naturally touches it twice, and two object identities for one
-       * frame's answer is the identity trap already fixed in `sampleReading` and
-       * in the processor evaluator. The hazard is not the cost; it is one
-       * question asked twice inside a frame being able to give two answers.
+       * Cost is answered by DECLARATION instead: a topic whose model is too
+       * expensive to run per frame goes in `NEVER_RECKONABLE`'s
+       * too-expensive group, which is a reviewable engineering decision in the
+       * same list as every other classification rather than a mechanism hidden
+       * in the type.
        *
-       * A getter rather than a `reckon()` call because the ARM is the signal: a
-       * caller is only here by having branched into `reckonable` deliberately,
-       * and the name says the value is modelled. Parentheses on top would be
-       * ceremony over a decision already made explicitly.
+       * Being a field rather than a getter also removes a whole failure mode
+       * instead of defending against it: a getter is lost by a spread, and lost
+       * SILENTLY, because the spread evaluates it and freezes one frame's answer
+       * as a permanent plain value. A field survives a copy.
        *
-       * It takes no view time because the frame's is bound when the arm is
-       * built, so a caller cannot hand the model a clock the rest of the frame
-       * disagrees with. Same reason `readingAge` takes `viewUt` as a parameter,
-       * applied at the other end: there, substituting wall clock has to be
-       * VISIBLE at the call site; here, there is nothing to substitute.
-       *
-       * Being a getter it is lost by a spread or a shallow clone, and lost
-       * SILENTLY, as `undefined` rather than a throw. Nothing in the store
-       * copies a reading (`sampleReading` caches the object itself), and
-       * `reading.test.ts` pins that a reading off the normal path still has it.
-       *
-       * Frame-stable WITHIN a frame, and deliberately not across one. A
+       * Fresh per frame either way, which is what the identity contract needs: a
        * reckoning is a function of the view time, so an arm that kept its
        * identity while `viewUt` advanced would answer for a moment that had
        * passed, and a model could never withdraw at its horizon. The store
@@ -247,7 +247,7 @@ export type Reading<T> =
        * moves; `stale` keeps the frozen identity that stops every widget
        * re-rendering at frame cadence. See `TimelineStore.sampleReading`.
        */
-      get reckoned(): Reckoning<T>;
+      reckoned: Reckoning<T>;
     };
 
 /**
@@ -346,24 +346,21 @@ export function readingFrom<T>(
     // reappearing one layer in. The hazard is not the cost, it is one question
     // asked twice inside a frame being able to give two answers.
     //
-    // Still lazy: a getter, so nothing runs until someone reads it, and a
-    // reckoning nobody reads still costs nothing. The visibility a `reckon()`
-    // call used to give comes from the ARM instead, which a caller is only
-    // inside by having branched there deliberately.
-    let cached: Reckoning<T> | undefined;
+    // The model runs HERE, once per arm build, which is once per frame per topic
+    // actually read. Eager rather than pulled: provider-supplied compute on the
+    // frame path is what this whole pipeline already is, and cost is answered by
+    // declaring a topic too expensive rather than by a mechanism in the type.
+    // See the arm's own doc.
     return {
       state: "reckonable",
       value: observed,
       asOfUt: point.validAt,
       grade: status,
-      get reckoned(): Reckoning<T> {
-        cached ??= {
-          value: model.reckon(viewUt),
-          atUt: viewUt,
-          basis: root.basis,
-          modelled: model.modelled,
-        };
-        return cached;
+      reckoned: {
+        value: model.reckon(viewUt),
+        atUt: viewUt,
+        basis: root.basis,
+        modelled: model.modelled,
       },
     };
   }
@@ -378,6 +375,12 @@ export function readingFrom<T>(
 /**
  * Collapse `reckonable` down to `stale`: the written, greppable way for a
  * widget to decline to propagate.
+ *
+ * Note it no longer avoids the model's COST: `reckoned` is computed when the arm
+ * is built, so by the time a widget collapses the arm the model has already run.
+ * This is about what gets DRAWN, not about saving work; a topic whose model is
+ * too expensive to run per frame belongs in `NEVER_RECKONABLE`'s too-expensive
+ * group instead.
  *
  * Legitimate for a scalar readout that wants the last observed number with a
  * staleness caption and no modelled figure. It exists as a named helper so the
