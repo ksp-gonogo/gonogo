@@ -1,0 +1,305 @@
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { afterEach, describe, expect, it } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
+import { SpaceCenterStatusComponent } from "./index";
+
+/**
+ * Characterisation, not specification: what this widget DOES today when its
+ * telemetry reads come back `undefined`.
+ *
+ * Every read here is a canonical whole-topic read (`career.status`,
+ * `spaceCenter.scene`, `spaceCenter.partsAvailable`) or a derived-channel read
+ * (`spaceCenter.state`, off `spaceCenter.launchSites`). All four are carried by
+ * the fixture, so an un-emitted topic reaches the widget as `undefined` through
+ * exactly the production route rather than through a missing legacy source.
+ *
+ * `undefined` means four different things across this file, and none of them is
+ * written down anywhere in the widget:
+ *  - facilities absent: every tier reads "unknown", no upgrade affordance
+ *  - funds absent: every upgrade reads as AFFORDABLE (`careerFunds === null ||
+ *    careerFunds >= f.upgradeFunds`)
+ *  - scene absent: upgrades are ENABLED (`scene === undefined || scene ===
+ *    "SpaceCenter"`)
+ *  - pad occupancy absent: the widget asserts "No vehicle on pad"
+ * The last three are fail-open, and they fail open because a `Reading` is always
+ * truthy and `undefined` is not.
+ */
+const renderedTrees: Array<() => void> = [];
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearActionHandlers();
+});
+
+const ALL_READS = [
+  "career.status",
+  "spaceCenter.scene",
+  "spaceCenter.partsAvailable",
+  "spaceCenter.launchSites",
+];
+
+function mount(
+  fixture: ReturnType<typeof setupStreamFixture>,
+  instanceId: string,
+  w: number,
+  h: number,
+) {
+  const { unmount } = render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId }}>
+        <SpaceCenterStatusComponent id={instanceId} w={w} h={h} />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+  renderedTrees.push(unmount);
+}
+
+describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
+  it("renders the full facility grid with every tier unknown when nothing has arrived", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-cold", 6, 7);
+
+    // Nothing is emitted. The widget does not render a loading state: it
+    // renders its whole chrome with the data holes filled by placeholders, so
+    // the un-fed render is indistinguishable from a career with nine
+    // never-upgraded facilities apart from the em dashes.
+    await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
+
+    // `f` is undefined for every key, so the tier value collapses to
+    // NULL_DISPLAY and the accessible name says "unknown" rather than a tier.
+    for (const label of [
+      "Launch Pad",
+      "Runway",
+      "VAB",
+      "SPH",
+      "Mission Control",
+      "Tracking",
+      "Admin",
+      "R&D",
+      "Astronaut",
+    ]) {
+      expect(screen.getByLabelText(`${label} tier unknown`)).toBeTruthy();
+    }
+
+    // No upgrade affordance at all: the row is gated on `f && f.upgradeFunds >
+    // 0`, so absent facilities hide the button rather than disabling it.
+    expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(
+      0,
+    );
+    expect(screen.queryByText("MAX")).toBeNull();
+
+    // `careerFunds === null` hides the balance readout entirely, so a widget
+    // that spends funds shows no balance while its telemetry is cold.
+    expect(screen.queryByTitle("Available funds")).toBeNull();
+
+    // `partsAvailable ?? NULL_DISPLAY`.
+    expect(visibleText()).toContain(`Parts unlocked${NULL_DISPLAY}`);
+  });
+
+  it("asserts 'No vehicle on pad' from no pad telemetry at all", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-pad-cold", 6, 7);
+
+    // `padOccupied` is undefined (falsy) and `launchSite` is undefined, so both
+    // arms of the padLine ternary fall through to the confident negative claim.
+    // Nothing distinguishes this from a genuinely clear pad.
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "No vehicle on pad",
+      ),
+    );
+  });
+
+  it("still asserts 'No vehicle on pad' when the scene record arrived without a launchSite", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-partial-scene", 6, 7);
+
+    act(() => {
+      // Partial payload: the record IS here, the field within it is not.
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+    });
+
+    // A missing field inside a present record lands on the same string as a
+    // missing record, so "Last site: ..." is unreachable without launchSite.
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "No vehicle on pad",
+      ),
+    );
+  });
+
+  /**
+   * Recorded prior behaviour: "enables the upgrade button because the scene is
+   * unknown". `upgradesEnabled = scene === undefined || scene === "SpaceCenter"`
+   * was a deliberate, commented decision to show the affordance during telemetry
+   * warmup, but it granted permission to spend career funds from not knowing
+   * where the player was, and it read identically on a dropped frame mid-session.
+   */
+  it("withholds the upgrade button while the scene is unknown, and offers it once SpaceCenter arrives", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-scene-gate", 6, 7);
+
+    act(() => {
+      fixture.emit("career.status", {
+        economy: { funds: 500000, reputation: 0, science: 0 },
+        facilities: {
+          LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
+        },
+        contracts: null,
+        strategies: null,
+        tech: null,
+      });
+    });
+
+    // No scene: the affordance is visible but inert. The operator cannot arm a
+    // facility upgrade before the widget knows which scene KSP is in.
+    const button = await waitFor(() =>
+      screen.getByRole("button", { name: "Upgrade" }),
+    );
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+
+    // The scene arriving is what grants permission, and it has to be the right
+    // scene: Flight leaves it disabled for the same reason absence does.
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+    });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false),
+    );
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "Flight" });
+    });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true),
+    );
+  });
+
+  /**
+   * Recorded prior behaviour: "treats an absent funds field as affordable".
+   * `careerFunds === null || careerFunds >= f.upgradeFunds` read an unknown
+   * balance as a sufficient one, and the balance readout hid at the same moment,
+   * so the operator was offered a 150,000f spend with no number beside it.
+   */
+  it("treats an absent funds field as unaffordable, and says the balance is unknown", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-funds-gate", 6, 7);
+
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      // Partial payload: facilities present, `economy` null, so
+      // `careerStatus?.economy?.funds` is undefined and careerFunds is null.
+      fixture.emit("career.status", {
+        economy: null,
+        facilities: {
+          LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
+        },
+        contracts: null,
+        strategies: null,
+        tech: null,
+      });
+    });
+
+    // An unknown balance cannot satisfy a 150,000f cost, so the button is inert.
+    const button = await waitFor(() =>
+      screen.getByRole("button", { name: "Upgrade" }),
+    );
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    // And the refusal is explained rather than silent: the readout stays,
+    // reporting the balance as the thing that is missing.
+    expect(screen.queryByTitle("Available funds")).toBeNull();
+    expect(screen.getByTitle("No funds balance has arrived")).toBeTruthy();
+
+    // Contrast: a real balance below the cost reads the same way, which is the
+    // point. Absence and a short balance are both "cannot afford this".
+    act(() => {
+      fixture.emit("career.status", {
+        economy: { funds: 100, reputation: 0, science: 0 },
+        facilities: {
+          LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
+        },
+        contracts: null,
+        strategies: null,
+        tech: null,
+      });
+    });
+    // Wait on the readout, not on the disabled state: the button is already
+    // disabled, so waiting for that would return before the emit landed.
+    await waitFor(() =>
+      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+    );
+    expect(
+      (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
+  });
+
+  it("renders a confirmed career.status tombstone exactly as it renders a never-arrived one", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-tombstone", 6, 7);
+
+    act(() => {
+      // A tombstone: the subject says there IS no career status (sandbox, say).
+      // `useTelemetry` hands back `null` here, not `undefined`.
+      fixture.emit("career.status", null);
+    });
+
+    // The widget does not distinguish the two. `careerStatus?.facilities` is
+    // undefined either way, `parseFacilityLevels` returns {} either way, and
+    // there is nothing on screen that would change if one became the other.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Launch Pad tier unknown")).toBeTruthy(),
+    );
+    expect(screen.queryByTitle("Available funds")).toBeNull();
+    expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(
+      0,
+    );
+  });
+
+  it("reports the pad CLEAR in the tiny bucket when nothing has arrived", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ALL_READS,
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-tiny-cold", 2, 3);
+
+    // `padOccupied === true` is the tiny bucket's whole test, so undefined
+    // reads as an affirmative all-clear rather than as "not known".
+    await waitFor(() =>
+      expect(screen.getByLabelText("No vehicle on pad").textContent).toBe(
+        "PAD CLEAR",
+      ),
+    );
+    // Funds is the one read the tiny bucket DOES admit ignorance about.
+    expect(visibleText()).toContain(NULL_DISPLAY);
+    expect(screen.queryByTitle(/funds/)).toBeNull();
+  });
+});

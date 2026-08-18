@@ -4,6 +4,7 @@ import {
   formatCompactCurrency,
   getSizeBucket,
   registerComponent,
+  useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -211,6 +212,7 @@ function SpaceCenterStatusComponent({
   // Magnitude: compared against an upgrade cost and rendered through this
   // widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(careerStatus?.economy?.funds);
+  const { chargesFunds } = useGameContext();
   const partsAvailable = magnitudeOf(
     useTelemetry("spaceCenter.partsAvailable")?.count,
   );
@@ -230,11 +232,17 @@ function SpaceCenterStatusComponent({
 
   const facilities = parseFacilityLevels(facilitiesRaw);
 
-  // Upgrades work in the Space Center scene only, KSP's upgrade
-  // pipeline isn't safe to drive from elsewhere. Show the buttons
-  // anyway when scene is unknown (telemetry warmup) so the operator
-  // sees the affordance immediately when they walk back to SC.
-  const upgradesEnabled = scene === undefined || scene === "SpaceCenter";
+  /**
+   * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
+   * safe to drive from elsewhere.
+   *
+   * An unknown scene used to enable them anyway, on the reasoning that it meant
+   * telemetry warmup and the operator should see the affordance immediately.
+   * That granted permission to spend from not knowing where the player was, and
+   * it read the same on a dropped frame mid-session as it did on first paint.
+   * No scene means no permission.
+   */
+  const upgradesEnabled = scene === "SpaceCenter";
 
   const cols = w ?? 6;
   const rows = h ?? 8;
@@ -299,10 +307,20 @@ function SpaceCenterStatusComponent({
         {showSubtitle && (
           <PadStatusLine role="status" aria-live="polite">
             {padLine}
-            {careerFunds !== null && (
+            {careerFunds !== null ? (
               <FundsReadout title="Available funds">
                 · <Unit value={value("funds", careerFunds)} />
               </FundsReadout>
+            ) : (
+              /* The balance is required beside a spend control, and an absent
+                 balance is the state that rule exists for: it is exactly when
+                 the affordability check below has nothing to judge against.
+                 Sandbox charges nothing, so there is no balance to be missing. */
+              chargesFunds && (
+                <FundsReadout title="No funds balance has arrived">
+                  · funds unknown
+                </FundsReadout>
+              )
             )}
           </PadStatusLine>
         )}
@@ -319,10 +337,14 @@ function SpaceCenterStatusComponent({
             const atMax = !!f && f.max > 0 && f.level >= f.max;
             const displayLevel = f ? f.level + 1 : 0;
             const displayMax = f && f.max > 0 ? f.max + 1 : 0;
+            // An absent balance used to satisfy this check. It guards a button
+            // that spends career funds, so it now refuses: not knowing the
+            // balance is not the same as knowing the upgrade is affordable.
             const canAfford =
               !!f &&
               f.upgradeFunds > 0 &&
-              (careerFunds === null || careerFunds >= f.upgradeFunds);
+              careerFunds !== null &&
+              careerFunds >= f.upgradeFunds;
             const canUpgrade =
               upgradesEnabled &&
               !!f &&

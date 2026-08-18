@@ -35,6 +35,19 @@ export interface GameContext {
   /** True when careerMode is `"CAREER"` or `"SCIENCE"`, i.e. funds and/or science meaningful. */
   isCareerLike: boolean;
   /**
+   * Whether spending career funds actually costs anything in this mode. Only
+   * CAREER charges funds; SANDBOX and SCIENCE do not.
+   *
+   * An unknown mode counts as charging. A widget guarding a spend has to decide
+   * what to do before the mode arrives, and permitting the spend is the wrong
+   * direction to be wrong in: a craft's cost is a property of the craft and
+   * arrives in every mode, so the alternative is an affordability check with
+   * nothing to check against.
+   */
+  chargesFunds: boolean;
+  /** As `chargesFunds`, for science points: CAREER and SCIENCE both charge them. */
+  chargesScience: boolean;
+  /**
    * True when we have telemetry but no live game context (no flight,
    * no save). Used by widgets to decide whether to dim, distinguishes
    * "data sources connected but nothing happening" from "data sources
@@ -125,6 +138,8 @@ export function useGameContext(): GameContext {
   const inFlight = scene === "Flight";
   const padOccupied = padOccupiedRaw === true;
   const isCareerLike = careerMode === "CAREER" || careerMode === "SCIENCE";
+  const chargesFunds = careerMode === "CAREER" || careerMode === "Unknown";
+  const chargesScience = careerMode !== "SANDBOX";
   const hasGameSignal = scene !== "Unknown" || careerMode !== "Unknown";
 
   return {
@@ -133,6 +148,8 @@ export function useGameContext(): GameContext {
     padOccupied,
     careerMode,
     isCareerLike,
+    chargesFunds,
+    chargesScience,
     hasGameSignal,
   };
 }

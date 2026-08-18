@@ -3,6 +3,7 @@ import {
   AugmentSlot,
   registerComponent,
   useExecuteAction,
+  useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -243,6 +244,7 @@ function LaunchDirectorComponent({
   const careerFunds = magnitudeOf(
     useTelemetry("career.status")?.economy?.funds,
   );
+  const { chargesFunds } = useGameContext();
   // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
   // the balance" rule). kc.savedShips/kc.crewRoster resolve to their own
@@ -356,7 +358,13 @@ function LaunchDirectorComponent({
     [ships, selectedShip],
   );
 
-  const fundsAvailable = careerFunds ?? Number.POSITIVE_INFINITY;
+  // Absent funds are insufficient funds: this gate guards a control that spends
+  // career funds, and "no balance ever arrived" is not evidence that the
+  // operator can afford anything. Sandbox and science charge nothing, so there
+  // is no affordability question to answer there.
+  const fundsAvailable = chargesFunds
+    ? (careerFunds ?? 0)
+    : Number.POSITIVE_INFINITY;
   const launchableShips =
     ships?.filter(
       (s) => s.missingParts.length === 0 && s.requiresFunds <= fundsAvailable,
@@ -454,6 +462,14 @@ function LaunchDirectorComponent({
             {typeof careerFunds === "number" && (
               <FundsReadout title="Available funds">
                 · <Unit value={value("funds", careerFunds)} />
+              </FundsReadout>
+            )}
+            {/* The balance is required beside a spend control, and an absent
+                balance is the state that rule exists for: it is exactly when
+                the affordability gate above has nothing to judge against. */}
+            {careerFunds === null && chargesFunds && (
+              <FundsReadout title="No funds balance has arrived">
+                · funds unknown
               </FundsReadout>
             )}
           </div>

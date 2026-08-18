@@ -3,6 +3,7 @@ import {
   AugmentSlot,
   getSizeBucket,
   registerComponent,
+  useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
@@ -336,6 +337,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const career = useTelemetry("career.status");
   const nodesRaw = career?.tech?.nodes;
   const scene = useTelemetry("spaceCenter.scene")?.scene;
+  const { chargesScience } = useGameContext();
   const careerScience = career?.economy?.science;
   // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
   // so it dispatches at the meta-vantage (instant). The handle is contributed to
@@ -428,11 +430,18 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     );
   }
 
-  const upgradesEnabled = scene === undefined || scene === "SpaceCenter";
+  // Unlocking is a Space Center action and it spends science. An unknown scene
+  // used to enable the button; it now withholds it, because not knowing where
+  // the player is standing is not permission to spend on their behalf.
+  const upgradesEnabled = scene === "SpaceCenter";
 
   const unlockHandlersFor = (n: TechNode) => {
     const isResearchable = researchable.has(n.id);
-    const canAfford = sciAvailable === null || sciAvailable >= n.scienceCost;
+    // Absent science reads as insufficient science, which is what the comment
+    // above `sciAvailable` already claimed this did. Sandbox charges nothing.
+    const canAfford = chargesScience
+      ? sciAvailable !== null && sciAvailable >= n.scienceCost
+      : true;
     const canUnlock = isResearchable && canAfford && upgradesEnabled;
     return {
       isResearchable,
@@ -440,7 +449,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       canUnlock,
       isPending: pendingUnlock === n.id,
       affordTooltip: !canAfford
-        ? `Need ${writeQuantity(value("science", n.scienceCost))} (have ${sciAvailable})`
+        ? sciAvailable === null
+          ? `Need ${writeQuantity(value("science", n.scienceCost))} (no science balance has arrived)`
+          : `Need ${writeQuantity(value("science", n.scienceCost))} (have ${sciAvailable})`
         : !upgradesEnabled
           ? "Unlock from the Space Center scene"
           : undefined,
@@ -456,12 +467,20 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const subtitle = showSubtitle ? (
     <span role="status" aria-live="polite">
       {counts.unlocked}/{allNodes.length} unlocked · {counts.researchable}{" "}
-      researchable
-      {sciAvailable !== null && (
+      researchable{" "}
+      {sciAvailable !== null ? (
         <SciReadout title="Available science">
           · {Math.round(sciAvailable)}
           <Unit>science</Unit>
         </SciReadout>
+      ) : (
+        /* The balance the Unlock buttons are judged against has to stay on
+           screen when it is missing, since that is when they refuse. */
+        chargesScience && (
+          <SciReadout title="No science balance has arrived">
+            · science unknown
+          </SciReadout>
+        )
       )}
     </span>
   ) : undefined;

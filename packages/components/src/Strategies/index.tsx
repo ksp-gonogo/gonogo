@@ -287,10 +287,17 @@ function StrategiesComponent({
             fix: the balance wrapped clean off the bottom of a 3x3 box).
             Compact k/M formatting plus nowrap+ellipsis keeps this to one
             line that always fits. */}
-        {funds != null && (
+        {funds != null ? (
           <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
             {formatCompactNumber(funds.magnitude, 0)}
             <Unit>funds</Unit>
+          </TinyFundsRow>
+        ) : (
+          /* An absent balance is the state that rule exists for: it is when the
+             activate buttons refuse, so the row has to say so rather than
+             vanish and leave the refusal unexplained. */
+          <TinyFundsRow title="No funds balance has arrived">
+            funds unknown
           </TinyFundsRow>
         )}
       </Panel>
@@ -505,10 +512,17 @@ function AvailableRow({
   const scaledScience = s.initialCostScience * factorScale;
   const scaledRep = s.effectiveCostReputation * factorScale;
 
-  // Treat a non-finite scaled cost as unaffordable, a NaN comparison is
-  // always false, which would otherwise let a broken cost bypass the gate.
+  /**
+   * Treat a non-finite scaled cost as unaffordable, a NaN comparison is always
+   * false, which would otherwise let a broken cost bypass the gate.
+   *
+   * An absent balance is unaffordable for the same reason: activating a strategy
+   * spends career funds, science and reputation, and a balance that never
+   * arrived says nothing about whether the operator has it. The old
+   * `?? POSITIVE_INFINITY` read absence as an unlimited balance.
+   */
   const overBudget = (cost: number, balance: number | null) =>
-    !Number.isFinite(cost) || (balance ?? Number.POSITIVE_INFINITY) < cost;
+    !Number.isFinite(cost) || balance === null || balance < cost;
 
   const cantAfford =
     (s.initialCostFunds > 0 && overBudget(scaledFunds, funds)) ||
