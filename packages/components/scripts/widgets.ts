@@ -1127,6 +1127,19 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "maneuver-planner",
     fixturesPath: "ManeuverPlanner/__fixtures__",
     outPath: "renders/maneuver-planner-widget",
+    // Scoped to the INSTANT rows, and deliberately NOT the conformance rows,
+    // which do clip at 6x9 now that four sections stack above them.
+    //
+    // The two differ in how cropping harms them, and that is the whole
+    // criterion. Three instants share one axis, so losing the third changes what
+    // the other two MEAN: a reader sees a two-instant burn and is not told
+    // otherwise. A conformance row is self-contained ("180 of 300, 60%"), so
+    // below the fold it is hidden and scrollable, not distorted.
+    //
+    // Recording the temptation because it was real: widening the selector and
+    // then exempting 6x9 would have made the check pass and would have quietly
+    // given up the one mode the instants are still checked at.
+    //
     // A burn's three instants are a COMPARISON: "burn in 4min" is true of
     // whichever of them it came from and wrong about the other two, so a row
     // rendered below the panel edge is missing from the thing the section

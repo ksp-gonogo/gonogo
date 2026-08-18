@@ -32,7 +32,9 @@ import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
+import { BurnConformanceRow } from "./BurnConformanceRow";
 import { BurnWindowRows } from "./BurnWindowRows";
+import { burnConformance } from "./conformance";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
@@ -277,7 +279,10 @@ function ManeuverPlannerComponent({
     },
     [removeNodeCmd.send],
   );
-  const { completedNodes } = useBurnCompletionTracker(nodes, removeNode);
+  const { completedNodes, maxDvByUt } = useBurnCompletionTracker(
+    nodes,
+    removeNode,
+  );
 
   // Armed conditional triggers come from a service, host service on the
   // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
@@ -614,6 +619,35 @@ function ManeuverPlannerComponent({
     );
   }
 
+  /**
+   * Tier-1 conformance: what each burn was planned with against what it has
+   * delivered. Model-agnostic, so it reads the same whoever planned the burn.
+   *
+   * Reads `maxDvByUt` off the completion tracker rather than watching the burns
+   * itself, because a single sample cannot tell a 300 m/s burn with 300 to go
+   * from a 1000 m/s burn with 300 to go, and two independent watchers of that
+   * one quantity could disagree about whether the same burn finished.
+   */
+  function renderConformanceSection() {
+    if (nodes.length === 0) return null;
+    return (
+      <PaddedSection>
+        <SectionTitle as="h4">Conformance</SectionTitle>
+        <Stack gap="xs">
+          {nodes.map((node) => (
+            <BurnConformanceRow
+              key={node.UT}
+              conformance={burnConformance(
+                node.deltaVMagnitude,
+                maxDvByUt.get(node.UT) ?? null,
+              )}
+            />
+          ))}
+        </Stack>
+      </PaddedSection>
+    );
+  }
+
   function renderNewManeuverSection() {
     return (
       <PaddedSection>
@@ -679,6 +713,7 @@ function ManeuverPlannerComponent({
         {refBody !== undefined && <RefBodyCaption>{refBody}</RefBodyCaption>}
         {renderNodesSection()}
         {renderBurnWindowsSection()}
+        {renderConformanceSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
         {waiting ? (

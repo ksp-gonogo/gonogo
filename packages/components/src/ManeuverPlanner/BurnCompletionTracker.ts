@@ -53,6 +53,16 @@ export function computeCompletionUpdate(
 interface UseBurnCompletionTrackerResult {
   /** Map keyed by UT: entries here render with the green-flash banner. */
   completedNodes: ReadonlyMap<number, CompletedEntry>;
+  /**
+   * The largest delta-v magnitude seen for each burn, keyed by UT: what the plan
+   * asked for before any of it was spent.
+   *
+   * Exposed because conformance needs the same observation this hook already
+   * makes, and a second watcher of one quantity is a second thing that can
+   * disagree about whether the same burn finished. Read-only: the tracker owns
+   * the accumulation.
+   */
+  maxDvByUt: ReadonlyMap<number, number>;
 }
 
 /**
@@ -127,5 +137,5 @@ export function useBurnCompletionTracker(
     };
   }, [completedNodes, removeNode]);
 
-  return { completedNodes };
+  return { completedNodes, maxDvByUt: maxDvByUt.current };
 }
