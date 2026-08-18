@@ -61,9 +61,10 @@ sensible export sitting in the wrong package, not a design problem:
   from React or the DOM, and a runtime bundle must never pull React test code in
 - a test helper that needs the real spine (`clearRegistry`, `MockDataSource`,
   `installDomStubs`, `clearUplinkHandles`, `clearActionHandlers`,
-  `setupStreamFixture`) → `@ksp-gonogo/sitrep-testing`, a published package that
-  sits ABOVE `core` and `sitrep-client` and re-exports the REAL
-  `TelemetryClient` / `TimelineStore` / `StubTransport`
+  `setupStreamFixture`, and `installRealTestHost` itself) →
+  `@ksp-gonogo/sitrep-testing`, a published package that sits ABOVE `core` and
+  `sitrep-client` and hands over the REAL `TelemetryClient` / `TimelineStore` /
+  `StubTransport`. It exists, so an Uplink's tests should need nothing else
 
   It deliberately does NOT go in `@ksp-gonogo/sitrep-sdk/testing`. The SDK is the
   leaf everything else depends on, so it cannot re-export from `core` or
