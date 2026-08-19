@@ -75,7 +75,7 @@ function getSharedWorker(): Worker | null {
     return null;
   }
   try {
-    const worker = new Worker(new URL("./delay-worker.ts", import.meta.url), {
+    const worker = new Worker(new URL("./delay-worker.js", import.meta.url), {
       type: "module",
     });
     worker.postMessage({

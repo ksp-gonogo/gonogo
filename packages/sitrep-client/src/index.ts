@@ -1,13 +1,25 @@
 // Re-exported from the SDK, which now owns the event lane: an Uplink producing
 // an event topic could not reach the spine copy. Kept here so spine-side callers
 // keep their existing import site.
+// Re-exported from the SDK, which now owns the clock formula: the delayed-media
+// worker evaluates the same formula off-thread and could not reach a spine copy.
 export type {
+  ClockFormulaInputs,
+  ClockFormulaSnapshot,
   ConnectivityAt,
   EventOccurrence,
   EventRevealOptions,
   EventTimelineOptions,
 } from "@ksp-gonogo/sitrep-sdk";
-export { EventTimeline } from "@ksp-gonogo/sitrep-sdk";
+export {
+  computeConfirmedEdgeUt,
+  computeUtNowEstimate,
+  EventTimeline,
+} from "@ksp-gonogo/sitrep-sdk";
+// Generic delayed-media infrastructure (buffer, per-frame pipeline, per-camera
+// sharing). Now published as `@ksp-gonogo/sitrep-sdk/media`; re-exported here so
+// spine-side call sites keep their import site.
+export * from "@ksp-gonogo/sitrep-sdk/media";
 export {
   type AutoCommandOptions,
   type AutoCommandStatus,
@@ -193,10 +205,6 @@ export {
   TELEMACHUS_CLEAN_HOMES,
   TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
-// Generic delayed-media infrastructure (buffer, per-frame pipeline, per-camera
-// sharing): media + time, riding the one `ViewClock` delay authority. See
-// `./media/index.ts` for why it lives beside the clock and not in a camera package.
-export * from "./media";
 export type {
   NeverReckonable,
   UnmodelledReading,
@@ -376,14 +384,6 @@ export type {
   ViewClockOptions,
 } from "./view-clock";
 export { ViewClock } from "./view-clock";
-export type {
-  ClockFormulaInputs,
-  ClockFormulaSnapshot,
-} from "./view-clock-formula";
-export {
-  computeConfirmedEdgeUt,
-  computeUtNowEstimate,
-} from "./view-clock-formula";
 export type {
   StreamFrameInfo,
   WebSocketCtor,

@@ -114,7 +114,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mirror it exactly instead of forking it; see ViewClock.snapshot().
       // Comment/doc mentions only; neither file imports anything
       // kerbcast-specific, and sitrep-client stays mod-agnostic.
-      "packages/sitrep-client/src/view-clock-formula.ts",
+      "mod/sitrep-sdk/src/view-clock-formula.ts",
       "packages/sitrep-client/src/view-clock.ts",
 
       // -- the kerbcast Uplink's provenance record in core --

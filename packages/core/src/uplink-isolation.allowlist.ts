@@ -95,11 +95,6 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
     "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": [
       "sitrep-client",
     ],
-    "mod/GonogoKerbcastUplink/client/src/CameraFeed/useDelayedKerbcastStream.ts":
-      ["sitrep-client"],
-    "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastStream.ts": [
-      "sitrep-client",
-    ],
   };
 
 /**

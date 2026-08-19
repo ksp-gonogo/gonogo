@@ -3,12 +3,12 @@ import {
   type ClockFormulaSnapshot,
   computeConfirmedEdgeUt,
   computeUtNowEstimate,
-} from "./view-clock-formula";
+} from "@ksp-gonogo/sitrep-sdk";
 
 export type {
   ClockFormulaInputs,
   ClockFormulaSnapshot,
-} from "./view-clock-formula";
+} from "@ksp-gonogo/sitrep-sdk";
 
 /** Which regime `viewUt()` is currently drawn from, set via `ViewClock.setMode`. */
 export type ViewClockMode = "confirmed" | "predicted";

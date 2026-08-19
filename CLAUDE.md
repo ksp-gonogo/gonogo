@@ -380,7 +380,7 @@ that changes how they are distributed, not what they may import. Every Uplink in
 this repo is meant to be a working example of what an outside author can build,
 and one that reaches into the app is not.
 
-The app's baked import map (`packages/app/src/uplinks/externals/`) resolves twelve
+The app's baked import map (`packages/app/src/uplinks/externals/`) resolves thirteen
 specifiers at runtime, `core` included. **That is not a licence to import them**,
 it fixes runtime resolution only and does nothing for building.
 

@@ -102,6 +102,17 @@ export {
 } from "./units";
 export type { Vec3Of } from "./value";
 export { SDK_VERSION } from "./version.generated";
+// The pure view-clock formula. Shared by the spine's `ViewClock` and by the
+// delayed-media worker, which evaluates it off-thread against a serialisable
+// snapshot: one implementation, never a fork.
+export type {
+  ClockFormulaInputs,
+  ClockFormulaSnapshot,
+} from "./view-clock-formula";
+export {
+  computeConfirmedEdgeUt,
+  computeUtNowEstimate,
+} from "./view-clock-formula";
 export {
   hydratePayload,
   wrapTopicPayload,

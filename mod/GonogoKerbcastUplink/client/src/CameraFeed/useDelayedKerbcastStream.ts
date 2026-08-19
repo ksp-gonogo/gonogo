@@ -1,10 +1,10 @@
 import { useKerbcastClock } from "@ksp-gonogo/kerbcast-react";
+import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
+import { logger, useViewClockOptional } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CaptureClockSample,
   interpolateCaptureUt,
-} from "@ksp-gonogo/sitrep-client";
-import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
-import { logger, useViewClockOptional } from "@ksp-gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-sdk/media";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   type DelayedPlayoutResult,
@@ -13,11 +13,10 @@ import {
 } from "../hooks/useKerbcastStream";
 
 // Re-exported for backward compat: `interpolateCaptureUt`/`CaptureClockSample`
-// are the generic capture-clock helpers, now in `@ksp-gonogo/sitrep-client`'s
-// media layer (2026-07-17 move out of the kerbcast client) so any camera
-// Uplink's worker-hosted backend shares the exact same interpolation.
-export type { CaptureClockSample } from "@ksp-gonogo/sitrep-client";
-export { interpolateCaptureUt } from "@ksp-gonogo/sitrep-client";
+// are the generic capture-clock helpers, published as `@ksp-gonogo/sitrep-sdk/media`
+// so any camera Uplink's worker-hosted backend shares the exact same interpolation.
+export type { CaptureClockSample } from "@ksp-gonogo/sitrep-sdk/media";
+export { interpolateCaptureUt } from "@ksp-gonogo/sitrep-sdk/media";
 
 // ---------------------------------------------------------------------------
 // Delayed-playout STATUS side channel (cross-browser kerbcast video-delay
@@ -153,7 +152,7 @@ export function useDelayedKerbcastStream(
 ): MediaStream | null {
   const raw = useKerbcastStream(flightId);
   // The facade's `useViewClockOptional` is typed `unknown` (opaque; see its
-  // own doc: the concrete ViewClock stays sitrep-client-internal). Narrow to
+  // own doc: the concrete ViewClock stays app-internal). Narrow to
   // the structural `DelayClockLike` contract this module actually drives,
   // the real `ViewClock` satisfies it (see that class's own doc).
   const view = useViewClockOptional() as DelayClockLike | undefined;

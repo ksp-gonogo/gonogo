@@ -60,7 +60,7 @@ export interface KerbcastEdgeSource {
 /**
  * Synthesises the reveal-gated `event` primitive from kerbcast's existing
  * discrete edges. This is the FIRST producer of the `event` stream primitive
- * (`EventTimeline` in `@ksp-gonogo/sitrep-client`); it owns the reveal/delay
+ * (`EventTimeline` in `@ksp-gonogo/sitrep-sdk`); it owns the reveal/delay
  * semantics the kerbcast SDK deliberately doesn't carry.
  *
  * Occurrence timing: each edge is stamped with `client.clock.captureUt`, the

@@ -1,4 +1,9 @@
 import {
+  type DelayClockLike,
+  getUplinkHandle,
+  logger,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
   attachEncodedWorkerFrameDelay,
   type BuiltDelayedStream,
   type CaptureClockSample,
@@ -8,12 +13,7 @@ import {
   isFrameDelaySupported,
   SharedDelayedStreams,
   type SnapshottableDelayClock,
-} from "@ksp-gonogo/sitrep-client";
-import {
-  type DelayClockLike,
-  getUplinkHandle,
-  logger,
-} from "@ksp-gonogo/sitrep-sdk";
+} from "@ksp-gonogo/sitrep-sdk/media";
 import { useEffect, useRef, useState } from "react";
 import type { KerbcastDataSource } from "../KerbcastDataSource";
 
@@ -117,10 +117,10 @@ export function useKerbcastStream(flightId: number | null): MediaStream | null {
  */
 export interface KerbcastStreamDelayOptions {
   /** THE delay clock: pass the SAME instance telemetry reads
-   *  (`ViewClock` from `@ksp-gonogo/sitrep-client`, or an equivalent). Kept as
-   *  a structural type here so this file never imports the concrete
-   *  `ViewClock` class: `DelayClockLike` comes from the `sitrep-sdk` facade
-   *  mirror, not from the sanctioned `sitrep-client` media import above. */
+   *  (the app's `ViewClock`, or an equivalent). Kept as a structural type
+   *  here so this file never imports the concrete `ViewClock` class, which
+   *  stays app-internal: `DelayClockLike` comes from the SDK root, the rest of
+   *  the pipeline from `@ksp-gonogo/sitrep-sdk/media`. */
   view: DelayClockLike;
   /** Capture-UT to stamp EACH captured video frame with, called once per
    *  frame the pipeline reads off the track, not once per stream
