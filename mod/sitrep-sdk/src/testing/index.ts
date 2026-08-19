@@ -46,4 +46,13 @@ export function resetTestHost(): void {
 // `render`/`renderHook` resolve to the themed versions.
 export * from "@testing-library/react";
 export { probeText, render, renderHook } from "./render";
+// The transport double. It named nothing above this leaf (wire messages, `Meta`,
+// `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`
+// was the only reason an Uplink's `sentCommands`/`isSubscribed` assertions needed a
+// package an outside author cannot install.
+export {
+  makeMeta,
+  type SentCommand,
+  StubTransport,
+} from "./stub-transport";
 export { harnessTheme } from "./theme";
