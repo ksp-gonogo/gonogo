@@ -383,10 +383,11 @@ function LaunchDirectorComponent({
   // below the crash snapshot's capture ut. t.universalTime is dropped as a
   // data key (it was never a stream; it IS the SDK view-UT), so read that
   // directly.
-  // `.magnitude` at the read: the guard below tests this with `typeof === "number"`,
-  // which answers NO for a wrapped value. Left as an instant it would silently stop
-  // recognising a post-dated crash snapshot, and the type layer would say nothing.
-  const universalTime = useViewUt()?.magnitude;
+  // Stays an instant: its only use is the ordering below, and comparing two
+  // instants is something the algebra does. It was unwrapped here because the
+  // guard tested it with `typeof === "number"`, which answers NO for a wrapped
+  // value and would have silently stopped recognising a post-dated snapshot.
+  const viewUt = useViewUt();
   // `target.available` ships the switcher's real roster: the producer
   // (TargetProvider) already excludes the active vessel itself, so no extra
   // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
@@ -536,10 +537,9 @@ function LaunchDirectorComponent({
   // this on 2026-06-12: post-revert, the chip blocked recovery forever
   // because the reverted vessel shares the crashed vessel's name.
   const crashStale =
-    lastCrash != null &&
-    magnitudeOf(lastCrash.ut) !== null &&
-    typeof universalTime === "number" &&
-    magnitudeOr(lastCrash.ut, 0) > universalTime;
+    lastCrash?.ut != null &&
+    viewUt !== undefined &&
+    lastCrash.ut.greaterThan(viewUt);
   const crashBlocked =
     !crashStale &&
     crashHasRecent === true &&
