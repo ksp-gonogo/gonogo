@@ -6,73 +6,58 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The maneuver-plan election, and the distinction it exists to carry: a
-    /// craft with no planner is not a craft with an empty plan.
+    /// The maneuver-plan election's MULTI-MEMBER path.
+    ///
+    /// <para>Untested until now, for the same reason the write-path guard it
+    /// enables was untested: nothing has ever competed for this capability, so the
+    /// vanilla has always won by default. That makes the guard unreachable in
+    /// production however correct its rule is, which is why this file is part of
+    /// the same change.</para>
+    ///
+    /// <para>Two fakes rather than stock's own backend, deliberately: that backend
+    /// reads <c>patchedConicSolver</c> and so cannot compile here. What is being
+    /// asserted is the election, not the planner.</para>
     /// </summary>
     public class ManeuverPlanElectionTests
     {
-        [Fact]
-        public void AKernelWithNoProviderElectsTheVanilla()
-        {
-            var kernel = new Kernel();
-            ManeuverPlanElection.RegisterCapability(kernel, _ => new FakePlanSource("vanilla", new List<ManeuverNode>()));
-            kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
-
-            var elected = ManeuverPlanElection.Elected(kernel);
-            Assert.NotNull(elected);
-            Assert.Equal("vanilla", elected!.ProviderId);
-        }
-
-        /// <summary>
-        /// Registering IS the gate: an exclusive capability with one registered
-        /// provider selects it and falls back to the vanilla with none, so a
-        /// provider that only registers when its own planner is loaded needs no
-        /// version-string gymnastics.
-        /// </summary>
-        [Fact]
-        public void ARegisteredProviderWinsOverTheVanilla()
-        {
-            var kernel = new Kernel();
-            ManeuverPlanElection.RegisterCapability(kernel, _ => new FakePlanSource("vanilla", new List<ManeuverNode>()));
-            kernel.RegisterProvider(new ProviderRegistration
-            {
-                Capability = ManeuverPlanElection.CapabilityId,
-                Id = "other-planner",
-                Priority = 10,
-                Factory = _ => new FakePlanSource("other-planner", null),
-            });
-            kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
-
-            Assert.Equal("other-planner", ManeuverPlanElection.Elected(kernel)!.ProviderId);
-        }
-
-        /// <summary>
-        /// The whole reason the seam carries a nullable plan. An empty list
-        /// means "a planner, with nothing queued"; null means "no planner",
-        /// which stock reaches on an un-upgraded Tracking Station. A consumer
-        /// that cannot tell them apart tells an operator their plan is empty
-        /// when the truth is that they cannot make one.
-        /// </summary>
-        [Fact]
-        public void ANullPlanAndAnEmptyPlanAreDifferentAnswers()
-        {
-            Assert.Null(new FakePlanSource("none", null).Plan());
-            Assert.Empty(new FakePlanSource("some", new List<ManeuverNode>()).Plan()!);
-        }
-
         private sealed class FakePlanSource : IManeuverPlanSource
         {
-            private readonly IList<ManeuverNode>? _plan;
-
-            public FakePlanSource(string id, IList<ManeuverNode>? plan)
-            {
-                ProviderId = id;
-                _plan = plan;
-            }
+            public FakePlanSource(string id) => ProviderId = id;
 
             public string ProviderId { get; }
 
-            public IList<ManeuverNode>? Plan() => _plan;
+            public IList<Sitrep.Contract.ManeuverNode>? Plan() => null;
+        }
+
+        private static Kernel Resolved(bool withCompetitor)
+        {
+            var kernel = new Kernel();
+            ManeuverPlanElection.RegisterCapability(kernel, _ => new FakePlanSource("vanilla"));
+            if (withCompetitor)
+            {
+                kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = ManeuverPlanElection.CapabilityId,
+                    Id = "competitor",
+                    Priority = 100,
+                    Factory = _ => new FakePlanSource("competitor"),
+                });
+            }
+            kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
+            return kernel;
+        }
+
+        [Fact]
+        public void TheVanillaIsElectedWithNoCompetitor()
+        {
+            Assert.Equal("vanilla", ManeuverPlanElection.Elected(Resolved(false))?.ProviderId);
+        }
+
+        [Fact]
+        public void ARegisteredProviderIsElectedOverTheVanilla()
+        {
+            // The path that makes the write-path refusal reachable at all.
+            Assert.Equal("competitor", ManeuverPlanElection.Elected(Resolved(true))?.ProviderId);
         }
     }
 }

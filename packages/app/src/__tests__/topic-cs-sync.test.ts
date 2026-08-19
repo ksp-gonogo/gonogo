@@ -74,9 +74,20 @@ function extractDeclaredTopics(): Set<string> {
 }
 
 describe("C#-declared Topics stay in exact sync with the full runtime registry", () => {
-  // This walks the whole `mod/` tree with synchronous fs reads. Alone it is well
-  // under a second; run concurrently with the repo-scanning ratchets in `core` it
-  // has been measured past the 5s default, so it carries its own scan budget.
+  /**
+   * The timeout is raised because this test's cost grows with the C# tree, not
+   * with anything it asserts. It walks every `.cs` file in `mod/` and was
+   * sitting at ~4.0s against vitest's 5s default, so roughly one second of
+   * headroom for a repo that gains C# files most days: adding three unrelated
+   * ones tipped it over, which is a scheduling accident rather than a
+   * regression in what it checks.
+   *
+   * Raised rather than narrowed on purpose. The scan being exhaustive is the
+   * whole point of the gate (a Topic declared in C# and unknown to the registry
+   * is exactly what it catches), so trading coverage for speed would be paying
+   * in the wrong currency. If it approaches this bound too, cache the file walk
+   * rather than scoping it down.
+   */
   it("every C# Topic is known, and every known Topic is declared in C#", () => {
     const declared = extractDeclaredTopics();
     const known = new Set<string>(getAllKnownTopicIds());

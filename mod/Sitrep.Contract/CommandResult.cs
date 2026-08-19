@@ -51,6 +51,24 @@ public enum CommandErrorCode
     /// any uplink handler. Additive (Major 2, Minor 0 -&gt; 1).
     /// </summary>
     Timeout = 6,
+
+    /// <summary>
+    /// The elected maneuver-plan provider is not the one that reads stock's
+    /// <c>patchedConicSolver</c>, so a write there would never be seen.
+    ///
+    /// <para>Refused rather than attempted, because attempting it produces a
+    /// GHOST NODE: we mutate stock's solver, the owning planner never reads it
+    /// (an n-body backend clears that list every frame and writes its own
+    /// guidance node into it), and the operator sees a maneuver node on the
+    /// board that does precisely nothing. A silent wrong answer with a
+    /// confident presentation.</para>
+    ///
+    /// <para>The code says WHY. It deliberately does not say WHO: this enum is
+    /// typed precisely so a client never string-matches, and the owner is
+    /// already on the wire as <c>VesselManeuver.Planner</c> for a readout to
+    /// name. Additive (Major 5).</para>
+    /// </summary>
+    PlanNotOwned = 7,
 }
 
 /// <summary>
