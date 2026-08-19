@@ -164,3 +164,55 @@ export const _unknownPlusMetres = unknownA.plus(metres);
 // `<Unit value={v} />` actually accepts, and UnknownUnit is still a string.
 function acceptsAnyValue(_v: Value): void {}
 acceptsAnyValue(unknownA);
+
+// ── A BARE operand, always in base units ────────────────────────────────────
+// One rule: the number is in the dimension's base unit, never the receiver's.
+// So these all compile, and `metres.lessThan(1000)` is a thousand METRES.
+
+export const _eccLessThanBare = value("1", 0.7).lessThan(1);
+export const _eccGreaterThanEqualBare = value("1", 1).greaterThanOrEqual(1);
+export const _ratioGreaterThanBare = value("ratio", 0.5).greaterThan(0.25);
+export const _metresLessThanBare = metres.lessThan(1000);
+export const _secondsGreaterThanBare = seconds.greaterThan(90);
+export const _percentLessThanBare = value("%", 50).lessThan(50);
+export const _compareAgainstBare = metres.compare(1000);
+
+// Arithmetic keeps the receiver's unit rather than shedding it to a number,
+// which is what stops the overload reopening the unitless-arithmetic hatch.
+const metresMinusBare = metres.minus(3);
+const hoursPlusBare = hours.plus(60);
+export const _metresMinusBareKeepsUnit: Expect<
+  typeof metresMinusBare,
+  Value<"m">
+> = "OK";
+export const _hoursPlusBareKeepsUnit: Expect<
+  typeof hoursPlusBare,
+  Value<"h">
+> = "OK";
+
+// A count is its own base dimension, so a bare number is admitted here too. The
+// separate `_countPlusRatio` case above still rejects the RATIO, unchanged: the
+// bare overload widens what a number may mean, not what a dimension may absorb.
+export const _countPlusBare = value("count", 3).plus(1);
+
+// ── A point takes no bare operand ───────────────────────────────────────────
+// A bare number cannot say whether it means an instant or a duration, and
+// telling those apart is the whole job of the affine rules.
+
+// @ts-expect-error: an instant minus a bare number would have to guess.
+export const _utMinusBare = value("ut", 100).minus(3);
+
+// @ts-expect-error: nor can an instant be ordered against a bare number.
+export const _utLessThanBare = value("ut", 100).lessThan(100);
+
+// @ts-expect-error: and an instant still cannot be scaled, unchanged from before.
+export const _utScaled = value("ut", 100).times(2);
+
+// ── Validity needs no operand, like sign ────────────────────────────────────
+export const _isFiniteTakesNothing: Expect<
+  ReturnType<typeof metres.isFinite>,
+  boolean
+> = "OK";
+
+// @ts-expect-error: validity is a property of the magnitude, not a comparison.
+export const _isFiniteRejectsOperand = metres.isFinite(1);

@@ -224,12 +224,11 @@ function ScienceDataAboardRowAugment({
                 <Unit value={file.dataSizeMB} />
               </Text>
             )}
-            {file.transmitRateMBps !== undefined &&
-              file.transmitRateMBps.magnitude > 0 && (
-                <Text size="xs" tone="muted">
-                  <Unit value={file.transmitRateMBps} />
-                </Text>
-              )}
+            {file.transmitRateMBps?.isPositive() && (
+              <Text size="xs" tone="muted">
+                <Unit value={file.transmitRateMBps} />
+              </Text>
+            )}
             {file.transmitting && (
               <Badge
                 severity="nominal"

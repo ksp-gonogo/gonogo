@@ -190,7 +190,11 @@ export function deriveResourceProjectionReckoning(
   const lifeSupportPoint = get<LifeSupport>(KERBALISM_LIFESUPPORT_TOPIC);
   const asOfUt = lifeSupportPoint?.payload?.asOfUt;
   if (asOfUt == null) return undefined;
-  return viewUt > asOfUt.magnitude ? "rate-integration" : undefined;
+  // Wrapped rather than unwrapped: `ut` is an INSTANT, so it takes no bare
+  // operand, and comparing two instants is the one thing the affine rules check.
+  return value("ut", viewUt).greaterThan(asOfUt)
+    ? "rate-integration"
+    : undefined;
 }
 
 export const kerbalismResourceProjectionChannel: DerivedChannelDefinition<KerbalismResourceProjections> =

@@ -398,7 +398,7 @@ function SystemViewComponent({
     // trueAnomaly/period/apsis as plain wire scalars that never threw). Guard
     // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
     // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
-    if (!(orbit.ecc.magnitude >= 0 && orbit.ecc.magnitude < 1)) {
+    if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) {
       return null;
     }
     const elements = buildElements(orbit);
@@ -434,7 +434,7 @@ function SystemViewComponent({
       ? (nameByIndex.get(encounter.bodyIndex) ?? null)
       : null;
   const encounterTimeUt =
-    encounter && Number.isFinite(encounter.transitionUt.magnitude)
+    encounter && encounter.transitionUt.isFinite()
       ? encounter.transitionUt.magnitude
       : null;
 
@@ -442,7 +442,7 @@ function SystemViewComponent({
   // matches its parent body.
   const vSma = orbit?.sma?.magnitude;
   const vesselOrbit =
-    vesselBody != null && orbit && Number.isFinite(orbit.sma.magnitude)
+    vesselBody != null && orbit && orbit.sma.isFinite()
       ? {
           parentName: vesselBody,
           sma: orbit.sma.magnitude,
@@ -476,7 +476,7 @@ function SystemViewComponent({
     if (!orbit || vesselBody == null || utBucket == null) return [];
     const period = derived?.period;
     if (period == null || period <= 0) return [];
-    if (!(orbit.ecc.magnitude < 1)) return []; // hyperbolic, elliptical only
+    if (!orbit.ecc.lessThan(1)) return []; // hyperbolic, elliptical only
     const hasEncounter =
       encounterExists !== 0 &&
       encounterTimeUt != null &&

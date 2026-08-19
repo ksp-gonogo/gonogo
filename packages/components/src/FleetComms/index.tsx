@@ -210,17 +210,13 @@ function FleetCommsOverlay({
       : null;
 
   const trueAnomalyDeg = useMemo(() => {
-    if (
-      !orbit ||
-      universalTime == null ||
-      !Number.isFinite(universalTime.magnitude)
-    ) {
+    if (!orbit || universalTime == null || !universalTime.isFinite()) {
       return null;
     }
     // Hyperbolic/parabolic guard: `solveAnomalies` throws outside `[0, 1)`
     // eccentricity (an escape/flyby trajectory, routine mid-transfer). Mirrors
     // `SystemView/index.tsx`'s identical guard on the same solver.
-    if (!(orbit.ecc.magnitude >= 0 && orbit.ecc.magnitude < 1)) return null;
+    if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) return null;
     const anomalies = solveAnomalies(
       buildElements(orbit),
       universalTime.magnitude,

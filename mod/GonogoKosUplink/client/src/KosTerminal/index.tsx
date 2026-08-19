@@ -1199,7 +1199,7 @@ function KosTerminalScreen({
                 is noise and the ladder takes over. */}
             <Unit
               value={roundTrip}
-              {...(roundTrip.magnitude < 60
+              {...(roundTrip.lessThan(60)
                 ? { scale: "never" as const, decimals: 1 }
                 : {})}
             />

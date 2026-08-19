@@ -184,6 +184,33 @@ type Comparand<U extends string> = [PointUnit] extends [never]
 type ScalarFor<U extends string> = U extends PointUnit ? never : number;
 
 /**
+ * A bare operand, which is ALWAYS IN BASE UNITS. One rule, no inference.
+ *
+ * So `value("km", 5).minus(3)` is 3 METRES, and comes back `Value<"km">` of
+ * 4.997. The reading never depends on the receiver: metres for any length,
+ * seconds for any duration, whatever `dim` names as its base.
+ *
+ * This exists because the alternative in the codebase was worse on exactly the
+ * axis that makes a bare number look dangerous. `x.magnitude - 3` reads as the
+ * value's OWN unit, so the same `3` silently meant kilometres on one line and
+ * metres on the next, AND the result shed its type on the way out. Base
+ * normalisation is one stated rule; `.magnitude` was an unstated one that
+ * changed per call site.
+ *
+ * Not offered for a POINT unit, matching {@link ScalarFor}. A bare number
+ * cannot say whether it means an instant or a duration, and telling those apart
+ * is the entire job of the affine rules: `ut.minus(3)` would have to guess
+ * between "three seconds earlier" and "the gap to epoch+3".
+ *
+ * NOTE the deliberate difference from `times`/`dividedBy`/`per`/`scaled`, whose
+ * bare number is a dimensionless FACTOR rather than a quantity. That is not a
+ * second convention for the same thing, it is a different operation: scaling
+ * cannot take a quantity without changing the dimension, so a bare operand
+ * there could never have meant "3 of the base unit".
+ */
+type BareOperand<U extends string> = U extends PointUnit ? never : number;
+
+/**
  * The coincidental layer: units that share a dimension while measuring
  * unrelated quantities.
  *
@@ -267,8 +294,10 @@ export interface Value<U extends string = string> {
    * seconds and hours add correctly with no manual conversion, and the result
    * carries the LEFT operand's unit: it reads as "a, but more", the type needs
    * no base lookup, and display re-picks the rung anyway.
+   *
+   * A bare number is accepted and is IN BASE UNITS. See {@link BareOperand}.
    */
-  plus(other: Value<Addend<U>>): Value<U>;
+  plus(other: Value<Addend<U>> | BareOperand<U>): Value<U>;
   /**
    * Two shapes, and the order matters: the point-minus-point arm is first so a
    * `ut.minus(ut)` resolves there and lands in the companion vector.
@@ -278,7 +307,7 @@ export interface Value<U extends string = string> {
    * catalogue keeps exactly the one signature it had.
    */
   minus(other: Value<PointCounterpart<U>>): Value<VectorResult<U>>;
-  minus(other: Value<Addend<U>>): Value<U>;
+  minus(other: Value<Addend<U>> | BareOperand<U>): Value<U>;
 
   /**
    * Total. Any dimension over any dimension; `rep/f` is coherent.
@@ -318,6 +347,12 @@ export interface Value<U extends string = string> {
   /** Re-expressed in another unit of the same dimension. */
   in<T extends CombinableWith<U>>(unit: T): Value<T>;
 
+  /**
+   * Equality across units, and a bare number is IN BASE UNITS like every other
+   * bare operand: `value("kW", 3).equals(3)` is false, because 3 kW is not 3 W.
+   * It read the receiver's own magnitude until 2026-08-19, which made it the one
+   * method where a bare `3` meant something different from `3` everywhere else.
+   */
   equals(other: Value | number): boolean;
 
   /**
@@ -333,17 +368,21 @@ export interface Value<U extends string = string> {
    * compiles, and it is wrong across units: 2 h has a smaller magnitude than
    * 120 s and is thirty times the duration. It is the one hole the object type
    * does not close on its own.
+   *
+   * A bare number is accepted and is IN BASE UNITS, so `ecc.lessThan(1)` reads
+   * as written and `altitude.lessThan(1000)` is a thousand METRES whatever rung
+   * `altitude` happens to be on. See {@link BareOperand}.
    */
-  lessThan(other: Value<Comparand<U>>): boolean;
-  lessThanOrEqual(other: Value<Comparand<U>>): boolean;
-  greaterThan(other: Value<Comparand<U>>): boolean;
-  greaterThanOrEqual(other: Value<Comparand<U>>): boolean;
+  lessThan(other: Value<Comparand<U>> | BareOperand<U>): boolean;
+  lessThanOrEqual(other: Value<Comparand<U>> | BareOperand<U>): boolean;
+  greaterThan(other: Value<Comparand<U>> | BareOperand<U>): boolean;
+  greaterThanOrEqual(other: Value<Comparand<U>> | BareOperand<U>): boolean;
 
   /**
    * Negative, zero or positive. For `Array.prototype.sort`, which wants that
    * shape; for a yes-or-no question use the predicates above.
    */
-  compare(other: Value<CombinableWith<U>>): number;
+  compare(other: Value<CombinableWith<U>> | BareOperand<U>): number;
 
   /**
    * Sign, which needs no operand.
@@ -359,6 +398,23 @@ export interface Value<U extends string = string> {
   isZero(): boolean;
   isPositive(): boolean;
   isNegative(): boolean;
+
+  /**
+   * Whether this is a real quantity at all: not a NaN, not an infinity.
+   *
+   * Needs no operand and no unit for the same reason the sign predicates do
+   * not. Conversion multiplies by a ratio, and NaN times anything is NaN while
+   * Infinity times anything is Infinity, so validity is the one property no
+   * choice of unit can change.
+   *
+   * It exists because a quantity arriving over the wire is not always one: a
+   * hyperbolic orbit has no semi-major axis, a vessel with no atmosphere around
+   * it has no density, and the mod sends what KSP computed rather than
+   * inventing a substitute. Before this, every such check had to unwrap to
+   * `Number.isFinite(x.magnitude)`, which is the one `.magnitude` escape the
+   * algebra genuinely had no answer for.
+   */
+  isFinite(): boolean;
 
   /** Magnitude without its sign, unit unchanged. */
   abs(): Value<U>;
@@ -412,6 +468,29 @@ function ratioOf(unit: string): number {
 /** In the dimension's base unit. The only form two values are combined in. */
 function baseMagnitude(value: Value): number {
   return value.magnitude * ratioOf(value.unit);
+}
+
+/**
+ * The right-hand operand's magnitude in base units, whichever form it arrived in.
+ *
+ * A bare number is ALREADY a base magnitude by the rule in {@link BareOperand},
+ * so it passes through untouched and skips the dimension check: there is no unit
+ * on it to disagree with, and it adopts this value's dimension by construction.
+ * A `Value` is checked and converted exactly as before.
+ *
+ * Returning a number rather than a coerced `Value` avoids having to name the
+ * base unit's SYMBOL, which is not always a registered unit: a derived dimension
+ * with no declared name formats as `kg·m²/s³`, and `value()` on that would look
+ * up a definition that does not exist.
+ */
+function baseOperandOf(
+  self: Value,
+  other: Value | number,
+  operation: string,
+): number {
+  if (typeof other === "number") return other;
+  requireSameDimension(self, other, operation);
+  return baseMagnitude(other);
 }
 
 /** The kind a unit declares itself merely coincident with, if any. */
@@ -479,16 +558,21 @@ const prototype = {
     return `${this.magnitude} ${this.unit}`.trimEnd();
   },
 
-  plus(this: Value, other: Value): Value {
-    requireSameDimension(this, other, "add");
+  plus(this: Value, other: Value | number): Value {
     return value(
       this.unit,
-      (baseMagnitude(this) + baseMagnitude(other)) / ratioOf(this.unit),
+      (baseMagnitude(this) + baseOperandOf(this, other, "add")) /
+        ratioOf(this.unit),
     );
   },
-  minus(this: Value, other: Value): Value {
-    requireSameDimension(this, other, "subtract");
-    const difference = baseMagnitude(this) - baseMagnitude(other);
+  minus(this: Value, other: Value | number): Value {
+    const difference =
+      baseMagnitude(this) - baseOperandOf(this, other, "subtract");
+    // A bare operand is a plain amount, so it can never be the point-minus-point
+    // case below: only the affine pair of two INSTANTS lands in the vector.
+    if (typeof other === "number") {
+      return value(this.unit, difference / ratioOf(this.unit));
+    }
     // Point minus point is a VECTOR, and the runtime has to agree with the type
     // that says so. Returning `this.unit` here would tag the gap between two
     // instants as an instant, which is the defect the affine rules exist to stop,
@@ -540,40 +624,46 @@ const prototype = {
   },
 
   equals(this: Value, other: Value | number): boolean {
-    if (typeof other === "number") {
-      return this.magnitude === other;
+    if (typeof other !== "number") {
+      if (!Dim.equal(dimensionOf(this.unit), dimensionOf(other.unit))) {
+        // A question, not an operation: the answer to "is 5 m the same as 5 s"
+        // is no, so this is false where the arithmetic would throw.
+        return false;
+      }
+      // Same reasoning one step in: a coincidental pair answers `false` rather
+      // than throwing the way the additive operators do. One joule is not one
+      // newton metre, and before this it said it was.
+      if (areCoincidental(this.unit, other.unit)) {
+        return false;
+      }
     }
-    if (!Dim.equal(dimensionOf(this.unit), dimensionOf(other.unit))) {
-      return false;
-    }
-    // A total predicate, so a coincidental pair answers `false` rather than
-    // throwing the way the additive operators do. One joule is not one newton
-    // metre, and before this it said it was.
-    if (areCoincidental(this.unit, other.unit)) {
-      return false;
-    }
-    return baseMagnitude(this) === baseMagnitude(other);
+    // A BARE operand raises neither question. It carries no unit to disagree
+    // about, and it adopts this value's dimension by construction, so there is
+    // nothing for it to merely coincide with.
+    return baseMagnitude(this) === baseOperandOf(this, other, "compare");
   },
-  compare(this: Value, other: Value): number {
-    requireSameDimension(this, other, "compare");
+  compare(this: Value, other: Value | number): number {
     const left = baseMagnitude(this);
-    const right = baseMagnitude(other);
+    const right = baseOperandOf(this, other, "compare");
     return left < right ? -1 : left > right ? 1 : 0;
   },
-  lessThan(this: Value, other: Value): boolean {
+  lessThan(this: Value, other: Value | number): boolean {
     return this.compare(other) < 0;
   },
-  lessThanOrEqual(this: Value, other: Value): boolean {
+  lessThanOrEqual(this: Value, other: Value | number): boolean {
     return this.compare(other) <= 0;
   },
-  greaterThan(this: Value, other: Value): boolean {
+  greaterThan(this: Value, other: Value | number): boolean {
     return this.compare(other) > 0;
   },
-  greaterThanOrEqual(this: Value, other: Value): boolean {
+  greaterThanOrEqual(this: Value, other: Value | number): boolean {
     return this.compare(other) >= 0;
   },
   isZero(this: Value): boolean {
     return this.magnitude === 0;
+  },
+  isFinite(this: Value): boolean {
+    return Number.isFinite(this.magnitude);
   },
   isPositive(this: Value): boolean {
     return this.magnitude > 0;

@@ -142,8 +142,10 @@ describe("comparison", () => {
     expect(value("m", 5).equals(value("s", 5))).toBe(false);
   });
 
-  it("compares against a bare number by magnitude", () => {
-    expect(value("kW", 3).equals(3)).toBe(true);
+  it("compares against a bare number in BASE units", () => {
+    // Not the receiver's magnitude: 3 kW is 3000 W, and 3 bare is 3 W.
+    expect(value("kW", 3).equals(3)).toBe(false);
+    expect(value("W", 3).equals(3)).toBe(true);
   });
 });
 
@@ -282,6 +284,87 @@ describe("sign", () => {
     expect(value("h", 0).isZero()).toBe(true);
     expect(value("s", 0).isZero()).toBe(true);
     expect(value("km", 0).isZero()).toBe(true);
+  });
+});
+
+describe("validity", () => {
+  it("accepts an ordinary quantity whatever its sign", () => {
+    expect(value("m", 5).isFinite()).toBe(true);
+    expect(value("m", 0).isFinite()).toBe(true);
+    expect(value("m", -5).isFinite()).toBe(true);
+  });
+
+  it("rejects a NaN or an infinity", () => {
+    expect(value("m", Number.NaN).isFinite()).toBe(false);
+    expect(value("m", Number.POSITIVE_INFINITY).isFinite()).toBe(false);
+    expect(value("m", Number.NEGATIVE_INFINITY).isFinite()).toBe(false);
+  });
+
+  it("judges the magnitude, so no unit's scale can rescue an infinity", () => {
+    // A conversion would multiply, and Infinity * 1000 is still Infinity.
+    expect(value("km", Number.POSITIVE_INFINITY).isFinite()).toBe(false);
+    expect(value("ut", Number.NaN).isFinite()).toBe(false);
+  });
+});
+
+describe("a bare operand is in base units", () => {
+  it("reads the same number the same way whatever rung the receiver is on", () => {
+    // THE rule, and the reason it is a rule: `.magnitude - 3` used to mean km on
+    // a km value and metres on a metre value, silently. One kilometre and one
+    // thousand metres are the same length, so 500 has to answer identically.
+    expect(value("km", 1).greaterThan(500)).toBe(true);
+    expect(value("m", 1_000).greaterThan(500)).toBe(true);
+    expect(value("km", 0.25).greaterThan(500)).toBe(false);
+    expect(value("m", 250).greaterThan(500)).toBe(false);
+  });
+
+  it("subtracts base units, not the receiver's", () => {
+    // 3 METRES off five kilometres, and the result stays in kilometres.
+    const shortened = value("km", 5).minus(3);
+    expect(shortened.unit).toBe("km");
+    expect(shortened.magnitude).toBeCloseTo(4.997, 10);
+  });
+
+  it("adds base units and keeps the left operand's unit", () => {
+    const later = value("h", 1).plus(60);
+    expect(later.unit).toBe("h");
+    // 60 SECONDS, so an hour and a minute, not two hours.
+    expect(later.magnitude).toBeCloseTo(1 + 1 / 60, 10);
+  });
+
+  it("agrees with the same operand written out in full", () => {
+    const ecc = value("1", 0.7);
+    expect(ecc.lessThan(1)).toBe(ecc.lessThan(value("1", 1)));
+    const altitude = value("km", 5);
+    expect(altitude.lessThan(3)).toBe(altitude.lessThan(value("m", 3)));
+    expect(altitude.minus(3).magnitude).toBeCloseTo(
+      altitude.minus(value("m", 3)).magnitude,
+      10,
+    );
+  });
+
+  it("reads eccentricity as written, because dimensionless IS base", () => {
+    expect(value("1", 0.4).lessThan(1)).toBe(true);
+    expect(value("1", 1.4).lessThan(1)).toBe(false);
+    expect(value("1", 1).greaterThanOrEqual(1)).toBe(true);
+    expect(value("ratio", 0.5).greaterThan(0.25)).toBe(true);
+  });
+
+  it("reads a bare number against a PERCENT as a ratio, which is the sharp edge", () => {
+    // Pinned because it is the one place the rule is likely to surprise, not
+    // because it is convenient. `%` has ratio 0.01, so its base is the ratio: a
+    // bare 50 is 5000%, and 50% is comfortably below it.
+    expect(value("%", 50).lessThan(50)).toBe(true);
+    // Written out, it means what a reader expects, and this is the form to use.
+    expect(value("%", 50).lessThan(value("%", 50))).toBe(false);
+    // The bare form that DOES read naturally against a percent is the ratio one.
+    expect(value("%", 50).equals(0.5)).toBe(true);
+  });
+
+  it("judges equality in base units too, so 3 kW is not 3 W", () => {
+    expect(value("kW", 3).equals(3)).toBe(false);
+    expect(value("W", 3).equals(3)).toBe(true);
+    expect(value("kW", 0.003).equals(3)).toBe(true);
   });
 });
 
