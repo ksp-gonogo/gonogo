@@ -45,6 +45,13 @@ export function resetTestHost(): void {
 // drop-in for the import source. The named exports above take precedence, so
 // `render`/`renderHook` resolve to the themed versions.
 export * from "@testing-library/react";
+// The registry-observation half. `getAugmentsForSlot` is on the root barrel next to
+// `registerAugment`, since reading a slot's augments is something a widget does too;
+// `clearAugments` is test-only and so lives here rather than on the author surface.
+// Both resolve through the host, which is the point: a test observes the same
+// registry the shim wrote to, instead of reaching for ui-kit's copy and relying on
+// the two happening to be the same object.
+export { clearAugments, getAugmentsForSlot } from "../api/index";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,
 // `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`
 // was the only reason an Uplink's `sentCommands`/`isSubscribed` assertions needed a

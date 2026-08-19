@@ -1,13 +1,14 @@
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
+  clearAugments,
   type StreamFixture,
   screen,
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget } from "@ksp-gonogo/sitrep-testing";
-import { clearAugments } from "@ksp-gonogo/ui-kit";
+
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { type DeployedExperimentContext, parseBases } from "./index";

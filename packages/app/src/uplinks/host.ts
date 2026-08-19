@@ -16,9 +16,11 @@
 import {
   AugmentSlot,
   ContributionsProvider,
+  clearAugments,
   clearContributions,
   clearMapPoiProviders,
   defineUplinkClient,
+  getAugmentsForSlot,
   getBody,
   getContributionsForSlot,
   getFogRevealSources,
@@ -158,6 +160,11 @@ export function buildGonogoHost(): GonogoHost {
     },
 
     getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
+    getAugmentsForSlot: (slot) =>
+      getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,
+    clearAugments: () => {
+      clearAugments();
+    },
     getFogRevealSources: () => getFogRevealSources(),
     onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
     getMapPoiProviders: () =>

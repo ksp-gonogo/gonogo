@@ -1,3 +1,7 @@
+import {
+  clearAugments,
+  getAugmentsForSlot,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 /**
  * Tests for the `CameraFeed` component.
  *
@@ -47,7 +51,7 @@ import {
   renderWidget,
   WidgetHost,
 } from "@ksp-gonogo/sitrep-testing";
-import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
+
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

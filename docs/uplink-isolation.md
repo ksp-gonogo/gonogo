@@ -130,3 +130,37 @@ Its sibling `uplink-boundary.test.ts` guards the opposite direction: the app mus
 not name a mod. Neither implies the other. The inward direction went unguarded
 from the first day of the Uplink architecture (2026-07-12) until 2026-08-18,
 because the name `uplink-boundary` read as though it covered both.
+
+## Two published packages export the same names, and only one of them works
+
+Importing the wrong one of two same-named exports makes your augments silently
+not appear. No error, no warning, nothing in the console: the slot just renders
+without them.
+
+`@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` are both published, so both of
+these compile and neither looks wrong:
+
+```ts
+import { registerAugment } from "@ksp-gonogo/sitrep-sdk";   // correct
+import { registerAugment } from "@ksp-gonogo/ui-kit";       // silently broken
+```
+
+They are not the same function. The sdk's is a shim onto the host the app injects
+at boot, so it reaches the app's single registry. ui-kit's IS the registry, and
+your bundle contains its own copy of it, so registering there writes to a map
+nothing ever reads.
+
+**Take the whole augment surface off `@ksp-gonogo/sitrep-sdk`:**
+`registerAugment`, `AugmentSlot`, `getAugmentsForSlot`, and (in tests)
+`clearAugments` from `@ksp-gonogo/sitrep-sdk/testing`. That includes reading, not
+just registering: a test that registers through the sdk and then reads back
+through ui-kit is relying on the two being the same object, which is true today
+by accident of how the host resolves and is not a contract.
+
+The same reasoning applies to anything else the sdk exposes as a host shim. If a
+name exists on both packages, the sdk's is the one that reaches the app.
+
+`packages/core/src/uplink-augment-route.test.ts` fails on the wrong import, and
+`styleguide-shared-published-surface.test.ts` stops a new same-named pair being
+introduced without a decision. Neither can tell you *why* while you are writing
+the import, which is what this section is for.
