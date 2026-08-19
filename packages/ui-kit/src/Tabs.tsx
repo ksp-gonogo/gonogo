@@ -306,6 +306,10 @@ export function Tabs({
                 $active={isActive}
                 onClick={() => select(tab.id)}
                 onKeyDown={handleKeyDown}
+                /* The label survives being shortened: a tab narrowed to an
+                   ellipsis still has to say which tab it is. The accessible
+                   name is unaffected, being the button's own text. */
+                title={tab.label}
               >
                 {tab.label}
                 {tab.indicator && <Tabs__Dot aria-hidden="true" />}
@@ -436,7 +440,13 @@ const Tabs__Button = styled.button<{ $active: boolean }>`
   border: none;
   /* Lifts the label over the blob by DOM order, no z-index involved. */
   position: relative;
-  /* Keep every tab on one line and let the bar scroll rather than wrap. */
+  /* Keep every tab on one line and let the bar scroll rather than wrap.
+
+     Shrinking them instead was tried and reverted: with two tabs in 158px there
+     is no room for both labels, so proportional shrink took the deficit out of
+     BOTH and rendered the active tab as "P...". A short label losing its word to
+     make room for a long one is worse than the long one continuing offscreen,
+     which the overflow glow already announces. */
   flex: 0 0 auto;
   white-space: nowrap;
   /* On the green blob the label has to invert: accent-bg is a bright green and
