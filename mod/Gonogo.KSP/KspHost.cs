@@ -729,46 +729,20 @@ namespace Gonogo.KSP
         /// the STRING name <see cref="Sitrep.Host.VesselViewProvider"/>'s
         /// <c>ParseTransitionType</c> already recognises -- KSP's own enum
         /// spells the impact case "IMPACT"; that parser's vocabulary is
-        /// "COLLISION", so it is translated here rather than teaching the
-        /// parser a second synonym.
+        /// "COLLISION", so <see cref="MapTransition"/> translates it rather
+        /// than teaching the parser a second synonym.
         /// </summary>
-        /// <summary>
-        /// The same walk as <see cref="BuildOrbitPatchChain"/>, answering in
-        /// CONTRACT types rather than raw dictionaries, for a maneuver-plan
-        /// provider that hands back finished <c>Sitrep.Contract.ManeuverNode</c>s.
-        ///
-        /// <para>Both forms are needed and neither is redundant: the snapshot
-        /// is dictionaries because it must round-trip through recorded JSON
-        /// (see the replay tests), while a capability's return value is typed
-        /// because an interface that traffics in loose dictionaries is not a
-        /// seam. Both share <see cref="BuildOrbitPatchEntry"/>, so KSP's
-        /// <c>Orbit</c> is still read in exactly one place.</para>
-        /// </summary>
-        internal static List<Sitrep.Contract.OrbitPatch> BuildOrbitPatchChainTyped(Orbit? start)
-        {
-            var raw = BuildOrbitPatchChain(start);
-            var result = new List<Sitrep.Contract.OrbitPatch>();
-            if (raw == null)
-            {
-                return result;
-            }
-            foreach (var entry in raw)
-            {
-                if (entry is IDictionary<string, object?> dict)
-                {
-                    result.Add(VesselViewProvider.MapOrbitPatch(dict));
-                }
-            }
-            return result;
-        }
 
         /// <summary>
-        /// A contract patch back to the raw dictionary form the snapshot
-        /// carries. Needed because a maneuver-plan provider answers in contract
-        /// types while the snapshot must stay serialisable for recording and
-        /// replay; see <see cref="BuildOrbitPatchChainTyped"/>.
+        /// A contract patch as the raw dictionary form the snapshot carries.
+        /// The single wire encoding for a patch: the live-Orbit path reaches it
+        /// through <see cref="OrbitToPatch"/>, and a maneuver-plan provider's
+        /// already-typed patches come straight in. The snapshot stays
+        /// dictionaries because it must round-trip through recorded JSON (see
+        /// the replay tests) while a capability's return value is typed,
+        /// because an interface trafficking in loose dictionaries is not a seam.
         /// </summary>
-        private static object? PatchToRaw(Sitrep.Contract.OrbitPatch patch) => new Dictionary<string, object?>
+        private static Dictionary<string, object?> PatchToRaw(Sitrep.Contract.OrbitPatch patch) => new Dictionary<string, object?>
         {
             ["sma"] = patch.Sma,
             ["ecc"] = patch.Ecc,
@@ -795,17 +769,117 @@ namespace Gonogo.KSP
 
         private static List<object?>? BuildOrbitPatchChain(Orbit? start)
         {
+            // Absent (null) and empty are different facts here and the
+            // distinction predates this walk: null means there was no orbit to
+            // chain from at all, so it stays a null return rather than [].
             if (start == null || start.referenceBody == null)
             {
                 return null;
             }
 
-            var result = new List<object?>();
+            return WalkPatchChain(start).ConvertAll(p => (object?)PatchToRaw(p));
+        }
+
+        /// <summary>
+        /// A live KSP <c>Orbit</c> as the contract's patch POCO. The ONE place
+        /// orbit fields are read off KSP, so the vessel-orbit chain and a
+        /// maneuver node's post-burn chain cannot drift apart: both build this
+        /// and the wire encoding happens once, in <see cref="PatchToRaw"/>.
+        ///
+        /// It used to be two encoders, this one straight to a dictionary and
+        /// PatchToRaw from the POCO, which had to agree key-for-key with
+        /// nothing checking that they did. Going through the POCO also puts the
+        /// every-public-property wire ratchet across this path, which only
+        /// covered the POCO encoder before.
+        /// </summary>
+        internal static Sitrep.Contract.OrbitPatch OrbitToPatch(Orbit patch)
+        {
+            var body = patch.referenceBody;
+            var closestEncounterBody = patch.closestEncounterBody;
+
+            return new Sitrep.Contract.OrbitPatch
+            {
+                Sma = patch.semiMajorAxis,
+                Ecc = patch.eccentricity,
+                Inc = patch.inclination,
+                Lan = patch.LAN,
+                ArgPe = patch.argumentOfPeriapsis,
+                MeanAnomalyAtEpoch = patch.meanAnomalyAtEpoch,
+                Epoch = patch.epoch,
+                Period = patch.period,
+                StartUt = patch.StartUT,
+                EndUt = patch.EndUT,
+                PatchStartTransition = MapTransition(patch.patchStartTransition),
+                PatchEndTransition = MapTransition(patch.patchEndTransition),
+                // PeA/ApA/semiLatusRectum all dereference referenceBody
+                // internally -- safe here since the caller already gated on
+                // body != null.
+                PeA = patch.PeA,
+                ApA = patch.ApA,
+                SemiLatusRectum = patch.semiLatusRectum,
+                SemiMinorAxis = patch.semiMinorAxis,
+                ReferenceBody = body!.bodyName,
+                ClosestEncounterBody = closestEncounterBody != null ? closestEncounterBody.bodyName : null,
+                // Index is the identity and the name is the display string;
+                // see OrbitPatch.ReferenceBodyIndex for why both are carried.
+                ReferenceBodyIndex = body.flightGlobalsIndex,
+                ClosestEncounterBodyIndex = closestEncounterBody != null
+                    ? (int?)closestEncounterBody.flightGlobalsIndex
+                    : null,
+                // Read off the same body the elements above are relative to, so
+                // a patch propagates from what it carries with no system.bodies
+                // join. Matches BuildOrbit's own mu read.
+                Mu = body.gravParameter,
+            };
+        }
+
+        /// <summary>
+        /// KSP's transition enum onto the contract's. IMPACT is the one that is
+        /// not a rename: the contract calls it Collision because "impact" reads
+        /// as an atmospheric entry and it also covers hitting an airless body.
+        /// An unrecognised value maps to Unknown rather than throwing, since a
+        /// KSP update adding a transition type must not take the uplink down.
+        /// </summary>
+        private static Sitrep.Contract.TransitionType MapTransition(Orbit.PatchTransitionType t)
+        {
+            switch (t)
+            {
+                case Orbit.PatchTransitionType.INITIAL:
+                    return Sitrep.Contract.TransitionType.Initial;
+                case Orbit.PatchTransitionType.FINAL:
+                    return Sitrep.Contract.TransitionType.Final;
+                case Orbit.PatchTransitionType.ENCOUNTER:
+                    return Sitrep.Contract.TransitionType.Encounter;
+                case Orbit.PatchTransitionType.ESCAPE:
+                    return Sitrep.Contract.TransitionType.Escape;
+                case Orbit.PatchTransitionType.MANEUVER:
+                    return Sitrep.Contract.TransitionType.Maneuver;
+                case Orbit.PatchTransitionType.IMPACT:
+                    return Sitrep.Contract.TransitionType.Collision;
+                default:
+                    return Sitrep.Contract.TransitionType.Unknown;
+            }
+        }
+
+        /// <summary>
+        /// Walk a patch chain from <paramref name="start"/> as POCOs. Shared by
+        /// the vessel-orbit capture and the stock plan backend's per-node
+        /// post-burn chain, which is the same walk over a different starting
+        /// orbit.
+        /// </summary>
+        internal static List<Sitrep.Contract.OrbitPatch> WalkPatchChain(Orbit? start)
+        {
+            var result = new List<Sitrep.Contract.OrbitPatch>();
+            if (start == null || start.referenceBody == null)
+            {
+                return result;
+            }
+
             var current = start;
             var guard = 0;
             while (current != null && current.referenceBody != null && guard < MaxOrbitPatches)
             {
-                result.Add(BuildOrbitPatchEntry(current));
+                result.Add(OrbitToPatch(current));
                 guard++;
 
                 var next = current.nextPatch;
@@ -817,53 +891,6 @@ namespace Gonogo.KSP
             }
 
             return result;
-        }
-
-        private static Dictionary<string, object?> BuildOrbitPatchEntry(Orbit patch)
-        {
-            var body = patch.referenceBody;
-            var transitionStart = patch.patchStartTransition == Orbit.PatchTransitionType.IMPACT
-                ? "COLLISION"
-                : patch.patchStartTransition.ToString();
-            var transitionEnd = patch.patchEndTransition == Orbit.PatchTransitionType.IMPACT
-                ? "COLLISION"
-                : patch.patchEndTransition.ToString();
-            var closestEncounterBody = patch.closestEncounterBody;
-
-            return new Dictionary<string, object?>
-            {
-                ["sma"] = patch.semiMajorAxis,
-                ["ecc"] = patch.eccentricity,
-                ["inc"] = patch.inclination,
-                ["lan"] = patch.LAN,
-                ["argPe"] = patch.argumentOfPeriapsis,
-                ["meanAnomalyAtEpoch"] = patch.meanAnomalyAtEpoch,
-                ["epoch"] = patch.epoch,
-                ["period"] = patch.period,
-                ["startUt"] = patch.StartUT,
-                ["endUt"] = patch.EndUT,
-                ["patchStartTransition"] = transitionStart,
-                ["patchEndTransition"] = transitionEnd,
-                // PeA/ApA/semiLatusRectum all dereference referenceBody
-                // internally -- safe here since the caller already gated on
-                // body != null.
-                ["peA"] = patch.PeA,
-                ["apA"] = patch.ApA,
-                ["semiLatusRectum"] = patch.semiLatusRectum,
-                ["semiMinorAxis"] = patch.semiMinorAxis,
-                ["referenceBody"] = body!.bodyName,
-                ["closestEncounterBody"] = closestEncounterBody != null ? closestEncounterBody.bodyName : null,
-                // Index is the identity and the name is the display string;
-                // see OrbitPatch.ReferenceBodyIndex for why both are carried.
-                ["referenceBodyIndex"] = body.flightGlobalsIndex,
-                ["closestEncounterBodyIndex"] = closestEncounterBody != null
-                    ? (int?)closestEncounterBody.flightGlobalsIndex
-                    : null,
-                // Read off the same body the elements above are relative to, so
-                // a patch propagates from what it carries with no system.bodies
-                // join. Matches BuildOrbit's own mu read.
-                ["mu"] = body.gravParameter,
-            };
         }
 
         private static Dictionary<string, object?> BuildFlight(Vessel vessel)
