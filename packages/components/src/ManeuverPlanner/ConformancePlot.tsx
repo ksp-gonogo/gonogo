@@ -124,16 +124,13 @@ export function ConformancePlot({
   const attributable = devianceIsAttributable(residual);
   return (
     <Stack gap="xs" data-conformance-plot="">
-      <Cluster
-        justify="between"
-        align="baseline"
-        style={{ gap: "var(--space-6)" }}
-      >
-        <span style={{ ...REGIME_CHIP, color: r.colour }}>{r.chip}</span>
-        <Truncate style={CAPTION} title={r.gap}>
-          {r.gap}
-        </Truncate>
-      </Cluster>
+      {/* The chip alone, with what the gap means carried as its title rather
+          than as a second line. PLANNED / BURNING / FLOWN / MISSED already say
+          which reading applies, and the sentence spelling it out was the widest
+          thing in the section at the sizes this is used at. */}
+      <span style={{ ...REGIME_CHIP, color: r.colour }} title={r.gap}>
+        {r.chip}
+      </span>
       {current ? (
         <div
           // Dimmed, not hidden, when the current orbit is a description rather
