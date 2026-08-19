@@ -1,3 +1,13 @@
+// Re-exported from the SDK, which now owns the event lane: an Uplink producing
+// an event topic could not reach the spine copy. Kept here so spine-side callers
+// keep their existing import site.
+export type {
+  ConnectivityAt,
+  EventOccurrence,
+  EventRevealOptions,
+  EventTimelineOptions,
+} from "@ksp-gonogo/sitrep-sdk";
+export { EventTimeline } from "@ksp-gonogo/sitrep-sdk";
 export {
   type AutoCommandOptions,
   type AutoCommandStatus,
@@ -122,13 +132,6 @@ export {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
-export type {
-  ConnectivityAt,
-  EventOccurrence,
-  EventRevealOptions,
-  EventTimelineOptions,
-} from "./event-timeline";
-export { EventTimeline } from "./event-timeline";
 export type { FakeWallClock } from "./fake-wall-clock";
 export { createFakeWallClock } from "./fake-wall-clock";
 export {

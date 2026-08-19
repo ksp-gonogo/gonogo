@@ -5,7 +5,7 @@ import {
   type KerbcastClientEvents,
   type KerbcastConnectionState,
 } from "@ksp-gonogo/kerbcast";
-import { type EventOccurrence, EventTimeline } from "@ksp-gonogo/sitrep-client";
+import { type EventOccurrence, EventTimeline } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The synthetic event-stream topic id the kerbcast Uplink publishes its

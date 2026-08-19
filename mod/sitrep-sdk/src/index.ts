@@ -8,6 +8,17 @@ export {
   getControlChannel,
 } from "./control-channels";
 export * from "./envelope";
+// The discrete-occurrence timeline. It lives here rather than in the spine
+// because an Uplink that PRODUCES an event topic needs the same primitive the
+// spine consumes it with, and the spine is unpublished. Imports nothing, so it
+// carries no spine weight into the SDK.
+export type {
+  ConnectivityAt,
+  EventOccurrence,
+  EventRevealOptions,
+  EventTimelineOptions,
+} from "./event-timeline";
+export { EventTimeline } from "./event-timeline";
 // The provider extension bag: the opaque core half of how a provider extends a
 // Kernel-elected payload without a core change. The TYPED half is always in the
 // provider's own package (see ./extensions.ts).

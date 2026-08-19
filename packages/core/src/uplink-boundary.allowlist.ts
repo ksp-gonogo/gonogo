@@ -214,7 +214,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // doc-comment mention ("see the kerbcast-Uplink") in a mod-agnostic
       // sitrep-client primitive. Words only, nothing kerbcast-specific is
       // imported: permanent, same class as the other doc-mention citations.
-      "packages/sitrep-client/src/event-timeline.ts",
+      "mod/sitrep-sdk/src/event-timeline.ts",
       // AlarmHostService.ts (event alarm wiring, 2026-07-22): a text-only
       // doc-comment mention ("the kerbcast Uplink's producer"): the service
       // is mod-agnostic and takes an externally-wired producer; nothing
@@ -1233,7 +1233,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/contributionsRuntime.tsx",
       // map-topic.ts / event-timeline.ts: a section header for the kerbalism
       // Topic block, and a design-doc citation respectively.
-      "packages/sitrep-client/src/event-timeline.ts",
+      "mod/sitrep-sdk/src/event-timeline.ts",
       "packages/sitrep-client/src/map-topic.ts",
 
       // -- base-library widgets: SLOT DOCUMENTATION, not coupling --
