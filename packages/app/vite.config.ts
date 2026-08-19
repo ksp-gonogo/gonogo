@@ -184,6 +184,7 @@ const UPLINK_EXTERNALS: {
     ["@ksp-gonogo/ui-kit", "ext-ui-kit"],
     ["@ksp-gonogo/sitrep-client", "ext-sitrep-client"],
     ["@ksp-gonogo/sitrep-sdk", "ext-sitrep-sdk"],
+    ["@ksp-gonogo/sitrep-sdk/media", "ext-sitrep-sdk-media"],
     ["@ksp-gonogo/logger", "ext-logger"],
   ] as const
 ).map(([specifier, entryName]) => ({

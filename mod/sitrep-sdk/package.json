@@ -7,6 +7,7 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./media": "./src/media/index.ts",
     "./testing": "./src/testing/index.ts",
     "./biome": "./biome.shared.json"
   },
@@ -29,6 +30,10 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
       },
+      "./media": {
+        "types": "./dist/media/index.d.ts",
+        "import": "./dist/media/index.js"
+      },
       "./testing": {
         "types": "./dist/testing/index.d.ts",
         "import": "./dist/testing/index.js"
@@ -36,7 +41,7 @@
     }
   },
   "scripts": {
-    "build": "node ../../scripts/gen-version.mjs SDK_VERSION && tsc -p tsconfig.json",
+    "build": "node ../../scripts/gen-version.mjs SDK_VERSION && tsc -p tsconfig.json && node scripts/bundle-delay-worker.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test-d.json"
   },
@@ -58,6 +63,7 @@
   },
   "devDependencies": {
     "@ksp-gonogo/logger": "workspace:*",
+    "esbuild": "^0.28.0",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.28",
     "react": "^18.0.0",

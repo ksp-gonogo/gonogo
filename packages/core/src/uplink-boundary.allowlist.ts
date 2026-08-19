@@ -114,7 +114,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mirror it exactly instead of forking it; see ViewClock.snapshot().
       // Comment/doc mentions only; neither file imports anything
       // kerbcast-specific, and sitrep-client stays mod-agnostic.
-      "packages/sitrep-client/src/view-clock-formula.ts",
+      "mod/sitrep-sdk/src/view-clock-formula.ts",
       "packages/sitrep-client/src/view-clock.ts",
 
       // -- the kerbcast Uplink's provenance record in core --
@@ -137,7 +137,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // is a literal-string set and so must name every Uplink's topics,
       // it already names scansat.*, kos.*, recovery.* and comms.* the same
       // way. String literals only; nothing kerbcast-specific is imported.
-      "packages/sitrep-client/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/default-carried-topics.ts",
 
       // WirePayloadCoverageTests.cs: the wire-coverage ratchet. Its
       // FlattenedByProducer set is a literal-string allowlist over every
@@ -214,7 +214,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // doc-comment mention ("see the kerbcast-Uplink") in a mod-agnostic
       // sitrep-client primitive. Words only, nothing kerbcast-specific is
       // imported: permanent, same class as the other doc-mention citations.
-      "packages/sitrep-client/src/event-timeline.ts",
+      "mod/sitrep-sdk/src/event-timeline.ts",
       // AlarmHostService.ts (event alarm wiring, 2026-07-22): a text-only
       // doc-comment mention ("the kerbcast Uplink's producer"): the service
       // is mod-agnostic and takes an externally-wired producer; nothing
@@ -336,7 +336,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // file's mirroring approach exists to avoid). Comment-only; nothing
       // scansat-specific is imported or re-exported.
       "mod/sitrep-sdk/src/api/slots.ts",
-      "packages/sitrep-client/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-topic.ts",
 
       // -- TEST-only --
@@ -533,8 +533,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // strings (same class as PeerTransport.test.ts's sample strings
       // below): the delayed-command primitives themselves are mod-
       // agnostic and import nothing kOS-specific.
-      "packages/sitrep-client/src/command-delay.ts",
-      "packages/sitrep-client/src/command-delay.test.ts",
+      "mod/sitrep-sdk/src/command-delay.ts",
+      "mod/sitrep-sdk/src/command-delay.test.ts",
       // use-route-commands.ts's doc-comment cites the kOS terminal's
       // original hand-rolled strip as the precedent it generalizes; its
       // test fixture uses "kos/7"/"kos.run" as sample topic/command
@@ -567,7 +567,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
-      "packages/sitrep-client/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-command.test.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
       "packages/sitrep-client/src/map-topic.ts",
@@ -1233,7 +1233,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/contributionsRuntime.tsx",
       // map-topic.ts / event-timeline.ts: a section header for the kerbalism
       // Topic block, and a design-doc citation respectively.
-      "packages/sitrep-client/src/event-timeline.ts",
+      "mod/sitrep-sdk/src/event-timeline.ts",
       "packages/sitrep-client/src/map-topic.ts",
 
       // -- base-library widgets: SLOT DOCUMENTATION, not coupling --

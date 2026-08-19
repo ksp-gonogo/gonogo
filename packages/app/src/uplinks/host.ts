@@ -15,12 +15,19 @@
 
 import {
   AugmentSlot,
+  ContributionsProvider,
+  clearContributions,
+  clearMapPoiProviders,
   defineUplinkClient,
   getBody,
+  getContributionsForSlot,
   getFogRevealSources,
   getGameHost,
+  getMapPoiProviders,
   getUplinkHandle,
+  onContributionsChange,
   onFogRevealSourcesChange,
+  onMapPoiProvidersChange,
   PerfBudget,
   registerAugment,
   registerComponent,
@@ -30,6 +37,7 @@ import {
   registerSettingsTab,
   registerTheme,
   registerUplinkHandle,
+  setSetting,
   subscribeSetting,
   useActionInput,
   useDataSources,
@@ -145,10 +153,29 @@ export function buildGonogoHost(): GonogoHost {
 
     getGameHost: () => getGameHost(),
     subscribeSetting: (key, cb) => subscribeSetting(key, cb),
+    setSetting: (key, value) => {
+      setSetting(key, value);
+    },
 
     getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getFogRevealSources: () => getFogRevealSources(),
     onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
+    getMapPoiProviders: () =>
+      getMapPoiProviders() as ReturnType<GonogoHost["getMapPoiProviders"]>,
+    onMapPoiProvidersChange: (cb) => onMapPoiProvidersChange(cb),
+    clearMapPoiProviders: () => {
+      clearMapPoiProviders();
+    },
+    getContributionsForSlot: (slot) =>
+      getContributionsForSlot(slot) as ReturnType<
+        GonogoHost["getContributionsForSlot"]
+      >,
+    onContributionsChange: (cb) => onContributionsChange(cb),
+    clearContributions: () => {
+      clearContributions();
+    },
+    ContributionsProvider:
+      ContributionsProvider as GonogoHost["ContributionsProvider"],
     useFogMaskCache: () =>
       useFogMaskCache() as ReturnType<GonogoHost["useFogMaskCache"]>,
 

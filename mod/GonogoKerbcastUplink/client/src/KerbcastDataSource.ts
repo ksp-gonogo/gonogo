@@ -7,8 +7,7 @@ import {
   type KerbcastPeer,
   type KerbcastTransport,
 } from "@ksp-gonogo/kerbcast";
-import type { EventOccurrence } from "@ksp-gonogo/sitrep-client";
-import type { DataSourceStatus } from "@ksp-gonogo/sitrep-sdk";
+import type { DataSourceStatus, EventOccurrence } from "@ksp-gonogo/sitrep-sdk";
 import {
   createPerfBudget,
   GAME_HOST_KEY,

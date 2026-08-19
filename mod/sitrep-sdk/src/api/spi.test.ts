@@ -148,6 +148,93 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(barrel.getFogRevealSources()).toBe(sources);
     });
 
+    it("setSetting fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => {
+        barrel.setSetting("gameHost", "10.0.0.5");
+      }).toThrow(named);
+
+      const setSetting = vi.fn();
+      installTestHost({ setSetting });
+      barrel.setSetting("gameHost", "10.0.0.5");
+      expect(setSetting).toHaveBeenCalledWith("gameHost", "10.0.0.5");
+    });
+
+    it("getContributionsForSlot fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() =>
+        barrel.getContributionsForSlot("ship-map.part-meters"),
+      ).toThrow(named);
+
+      const contributions = [{ id: "example-uplink:coolant" }] as never;
+      const getContributionsForSlot = vi.fn().mockReturnValue(contributions);
+      installTestHost({ getContributionsForSlot });
+      expect(barrel.getContributionsForSlot("ship-map.part-meters")).toBe(
+        contributions,
+      );
+      expect(getContributionsForSlot).toHaveBeenCalledWith(
+        "ship-map.part-meters",
+      );
+    });
+
+    it("onContributionsChange fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const cb = vi.fn();
+      expect(() => barrel.onContributionsChange(cb)).toThrow(named);
+
+      const unsubscribe = vi.fn();
+      const onContributionsChange = vi.fn().mockReturnValue(unsubscribe);
+      installTestHost({ onContributionsChange });
+      expect(barrel.onContributionsChange(cb)).toBe(unsubscribe);
+      expect(onContributionsChange).toHaveBeenCalledWith(cb);
+    });
+
+    it("clearContributions fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => {
+        barrel.clearContributions();
+      }).toThrow(named);
+
+      const clearContributions = vi.fn();
+      installTestHost({ clearContributions });
+      barrel.clearContributions();
+      expect(clearContributions).toHaveBeenCalledTimes(1);
+    });
+
+    it("getMapPoiProviders fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.getMapPoiProviders()).toThrow(named);
+
+      const providers = [{ id: "example-uplink:anomalies" }] as never;
+      const getMapPoiProviders = vi.fn().mockReturnValue(providers);
+      installTestHost({ getMapPoiProviders });
+      expect(barrel.getMapPoiProviders()).toBe(providers);
+    });
+
+    it("onMapPoiProvidersChange fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const cb = vi.fn();
+      expect(() => barrel.onMapPoiProvidersChange(cb)).toThrow(named);
+
+      const unsubscribe = vi.fn();
+      const onMapPoiProvidersChange = vi.fn().mockReturnValue(unsubscribe);
+      installTestHost({ onMapPoiProvidersChange });
+      expect(barrel.onMapPoiProvidersChange(cb)).toBe(unsubscribe);
+      expect(onMapPoiProvidersChange).toHaveBeenCalledWith(cb);
+    });
+
+    it("clearMapPoiProviders fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => {
+        barrel.clearMapPoiProviders();
+      }).toThrow(named);
+
+      const clearMapPoiProviders = vi.fn();
+      installTestHost({ clearMapPoiProviders });
+      barrel.clearMapPoiProviders();
+      expect(clearMapPoiProviders).toHaveBeenCalledTimes(1);
+    });
+
     it("onFogRevealSourcesChange fails LOUD with no host, resolves once installed", () => {
       resetTestHost();
       const cb = vi.fn();

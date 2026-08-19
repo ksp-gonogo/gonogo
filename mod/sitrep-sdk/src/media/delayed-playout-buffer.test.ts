@@ -7,18 +7,15 @@
  * see `CameraFeed.test.tsx`'s docstring), drive a manually-controlled
  * clock, assert release timing.
  *
- * Scenario 2 (the headline video↔telemetry sync test) drives the real
- * `@ksp-gonogo/sitrep-client` `ViewClock`: the actual production delay
- * authority: rather than a fake, to prove the buffer and a simulated
- * telemetry-confirmation read genuinely share one clock object. Every
- * other scenario uses a lightweight manual clock double (mirrors
- * `view-clock.test.ts`'s `fakeWall` / `courier-transport.integration.test`'s
- * `ManualClock.advanceTo` pattern) since they don't need the real
- * UT-estimator fit, just direct control over `confirmedEdgeUt()`.
+ * Every scenario here uses a lightweight manual clock double (mirrors
+ * `courier-transport.integration.test`'s `ManualClock.advanceTo` pattern):
+ * none of them needs a real UT-estimator fit, just direct control over
+ * `confirmedEdgeUt()`. The headline video↔telemetry sync scenario drives the
+ * REAL `ViewClock` instead, so it lives beside that clock in the app's
+ * `delayed-playout-buffer.viewclock.integration.test.ts`.
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { ViewClock } from "../view-clock";
 import {
   type DelayClockLike,
   DelayedPlayoutBuffer,
@@ -44,18 +41,6 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
       listeners.forEach((cb) => {
         cb(v);
       });
-    },
-  };
-}
-
-/** A wall clock a test can advance explicitly, instead of racing real time,
- *  mirrors `view-clock.test.ts`'s `fakeWall`. */
-function fakeWall(start = 0) {
-  let now = start;
-  return {
-    now: () => now,
-    advanceBy: (seconds: number) => {
-      now += seconds;
     },
   };
 }
@@ -87,57 +72,6 @@ describe("DelayedPlayoutBuffer", () => {
       keyframe: true,
       data: "frame@100",
     });
-  });
-
-  // -- Scenario 2: THE headline video<->telemetry sync test ----------------
-  it("releases a media frame at the same wall-time a same-UT telemetry sample would confirm, driven by one shared confirmedEdgeUt clock", () => {
-    const wall = fakeWall();
-    // The real production delay authority: not a fake. Both "video" and
-    // "telemetry" in this test read confirmedEdgeUt() off this one instance.
-    const clock = new ViewClock({
-      nowWall: wall.now,
-      warpRate: () => 1,
-      delaySeconds: () => 30,
-    });
-    // Wrap rather than pass the ViewClock instance directly so the test
-    // doesn't schedule a real rAF/setTimeout tick via its onFrame, release
-    // timing is driven explicitly via pump() for determinism.
-    const clockView: DelayClockLike = {
-      confirmedEdgeUt: () => clock.confirmedEdgeUt(),
-      onFrame: () => () => {},
-    };
-
-    const released: StampedFrame[] = [];
-    const buffer = new DelayedPlayoutBuffer({
-      view: clockView,
-      onRelease: (f) => released.push(f),
-      maxBufferedBytes: 10_000,
-    });
-
-    const SAME_UT = 500;
-    buffer.push({ ut: SAME_UT, keyframe: true, data: "frame@500" });
-
-    // A telemetry sample stamped the identical UT is observed by the same
-    // clock instance (deliveredAt = SAME_UT: the observation lands with no
-    // extra network transit modelled here: delaySeconds is the display-lag
-    // policy under test, not courier network delay).
-    clock.observeSample(SAME_UT, SAME_UT);
-    const telemetryConfirmed = () => clock.confirmedEdgeUt() >= SAME_UT;
-
-    // Before the delay elapses: neither the frame nor the telemetry sample
-    // has crossed the confirmed edge.
-    wall.advanceBy(29);
-    buffer.pump();
-    expect(released).toHaveLength(0);
-    expect(telemetryConfirmed()).toBe(false);
-
-    // At exactly delaySeconds elapsed, BOTH cross in the same wall-time
-    // step: the one shared clock makes them common-mode.
-    wall.advanceBy(1);
-    buffer.pump();
-    expect(released).toHaveLength(1);
-    expect(released[0]?.ut).toBe(SAME_UT);
-    expect(telemetryConfirmed()).toBe(true);
   });
 
   // -- Scenario 3: delay-value change ---------------------------------------

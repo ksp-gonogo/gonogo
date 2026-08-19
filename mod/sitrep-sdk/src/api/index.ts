@@ -23,7 +23,7 @@
 // ---------------------------------------------------------------------------
 
 import type { Logger } from "@ksp-gonogo/logger";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { createElement } from "react";
 import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
@@ -42,6 +42,7 @@ import "./contribution-slots";
 import type {
   ActionDefinition,
   ActionHandlers,
+  AnyContribution,
   AugmentDefinition,
   BodyDefinition,
   ComponentDefinition,
@@ -69,6 +70,7 @@ export type {
   ActionHandlers,
   ActionInputKind,
   ActionInputPayload,
+  AnyContribution,
   AugmentDefinition,
   AugmentSettingField,
   BodyDefinition,
@@ -82,6 +84,8 @@ export type {
   ComponentRequirement,
   ConfigComponentProps,
   ConfigField,
+  ContributionDefinition,
+  ContributionDep,
   ContributionEntry,
   ContributionRegistry,
   DataKey,
@@ -94,6 +98,8 @@ export type {
   InFlightCommand,
   LateTelemetrySubscribe,
   MapPoi,
+  MapPoiAction,
+  MapPoiProviderContext,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -112,6 +118,7 @@ export type {
   ThemeDefinition,
   UplinkClientHandle,
   UseCommandResult,
+  UseMapPois,
   UseRouteCommandsResult,
 } from "./types";
 
@@ -372,6 +379,17 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
   return getHost().subscribeSetting(key, cb);
 }
 
+/**
+ * Persist a user-chosen value for one settings key. The write half of the
+ * trio an Uplink already had: `registerSetting` declares one, `useSetting`
+ * and `subscribeSetting` read it, and until now nothing could set it, so an
+ * Uplink offering its own control over its own setting had no way to save
+ * what the operator chose.
+ */
+export function setSetting(key: string, value: string): void {
+  getHost().setSetting(key, value);
+}
+
 // --- Registry accessor shims (stateful → injected host) ---------------------
 
 /**
@@ -390,6 +408,47 @@ export function getFogRevealSources(): FogRevealSourceDefinition[] {
 /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
 export function onFogRevealSourcesChange(cb: () => void): () => void {
   return getHost().onFogRevealSourcesChange(cb);
+}
+
+// The read half of the POI provider registry, so an Uplink can HOST a mapping
+// surface and not only contribute points to someone else's. Its fog-reveal
+// sibling above has carried both halves from the start; POI providers shipped
+// with only `registerMapPoiProvider`, which is the asymmetry these close.
+
+/** Every registered map POI provider, in registration order. */
+export function getMapPoiProviders(): MapPoiProviderDefinition[] {
+  return getHost().getMapPoiProviders();
+}
+
+/** Subscribe to any change (register/unregister) in the POI provider registry. */
+export function onMapPoiProvidersChange(cb: () => void): () => void {
+  return getHost().onMapPoiProvidersChange(cb);
+}
+
+/** Empty the POI provider registry. For tests; a running app never calls it. */
+export function clearMapPoiProviders(): void {
+  getHost().clearMapPoiProviders();
+}
+
+// The read half of the contribution registry. The WRITE half stays on
+// `defineUplinkClient`'s handle rather than appearing here: the handle stamps
+// `${clientId}:` onto every id, and a bare `registerContribution` on this
+// barrel would be a way to opt out of the namespacing that stops two Uplinks
+// colliding.
+
+/** Every contribution registered for a slot, in priority then registration order. */
+export function getContributionsForSlot(slot: string): AnyContribution[] {
+  return getHost().getContributionsForSlot(slot);
+}
+
+/** Subscribe to any change (register/unregister) in the contribution registry. */
+export function onContributionsChange(cb: () => void): () => void {
+  return getHost().onContributionsChange(cb);
+}
+
+/** Empty the contribution registry. For tests; a running app never calls it. */
+export function clearContributions(): void {
+  getHost().clearContributions();
 }
 
 /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
@@ -458,6 +517,19 @@ export function AugmentSlot<S extends string>(props: {
     getHost().AugmentSlot,
     props as unknown as { name: string; props?: Record<string, unknown> },
   );
+}
+
+/**
+ * The aggregation host for contribution slots. A widget reading contributions
+ * (`useContributions` from `@ksp-gonogo/ui-kit`) sees an empty list unless one
+ * of these is mounted above it, so an Uplink that HOSTS a slot needs it, not
+ * just the app. Resolves to the host's own provider, so contributions land in
+ * the app's single registry rather than a bundled copy.
+ */
+export function ContributionsProvider(props: {
+  children?: ReactNode;
+}): ReactElement {
+  return createElement(getHost().ContributionsProvider, props);
 }
 
 /**

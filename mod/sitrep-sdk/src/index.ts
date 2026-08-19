@@ -1,13 +1,53 @@
 export * from "./__generated__/contract";
 export * from "./api";
+// Carried-topic POLICY: which topics the stream carries, and whether a given
+// topic resolves entirely to carried inputs. Published because it decides where
+// an Uplink's data actually routes, which is runtime behaviour rather than a
+// test concern; it reached authors through the test harness until 2026-08-19.
+export {
+  isTopicCarried,
+  type SubscriptionTopicResolver,
+} from "./carried-channels";
 export { parseServerMessage } from "./client";
+// Pure delayed-command derivations. Published because delay is ambient: an
+// Uplink rendering its own command surface needs the same mode/phase vocabulary
+// the app's rail uses, and there is nothing app-specific in deriving it.
+export type {
+  CommsDelayLike,
+  DelayMode,
+  InFlightCommand,
+  PathConnectedDuring,
+  PendingEntry,
+  PredictedPhase,
+} from "./command-delay";
+export {
+  classifyRetained,
+  currentMode,
+  deriveInFlight,
+  latchForward,
+} from "./command-delay";
 export {
   type ControlChannelHandle,
   type ControlChannelId,
   controlChannelIds,
   getControlChannel,
 } from "./control-channels";
+export {
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  DYNAMIC_CARRIED_TOPIC_PREFIXES,
+} from "./default-carried-topics";
 export * from "./envelope";
+// The discrete-occurrence timeline. It lives here rather than in the spine
+// because an Uplink that PRODUCES an event topic needs the same primitive the
+// spine consumes it with, and the spine is unpublished. Imports nothing, so it
+// carries no spine weight into the SDK.
+export type {
+  ConnectivityAt,
+  EventOccurrence,
+  EventRevealOptions,
+  EventTimelineOptions,
+} from "./event-timeline";
+export { EventTimeline } from "./event-timeline";
 // The provider extension bag: the opaque core half of how a provider extends a
 // Kernel-elected payload without a core change. The TYPED half is always in the
 // provider's own package (see ./extensions.ts).
@@ -91,6 +131,17 @@ export {
 } from "./units";
 export type { Vec3Of } from "./value";
 export { SDK_VERSION } from "./version.generated";
+// The pure view-clock formula. Shared by the spine's `ViewClock` and by the
+// delayed-media worker, which evaluates it off-thread against a serialisable
+// snapshot: one implementation, never a fork.
+export type {
+  ClockFormulaInputs,
+  ClockFormulaSnapshot,
+} from "./view-clock-formula";
+export {
+  computeConfirmedEdgeUt,
+  computeUtNowEstimate,
+} from "./view-clock-formula";
 export {
   hydratePayload,
   wrapTopicPayload,

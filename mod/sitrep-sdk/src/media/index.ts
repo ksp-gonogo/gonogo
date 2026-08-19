@@ -1,19 +1,15 @@
 // Generic delayed-media infrastructure: media + time, riding the same
-// `ViewClock` delay authority telemetry reads. Moved here from a camera
-// Uplink client (2026-07-17) because none of it is mod-specific: a
-// `DelayedPlayoutBuffer` consumes the clock STRUCTURALLY via `DelayClockLike`
-// (zero imports), and every future camera Uplink needs the same buffer /
-// per-frame pipeline / per-camera sharing. It stays decoupled from any camera
-// SDK: the caller injects the clock, the raw `MediaStream`, and (for the
-// shared cache) the build function.
+// `ViewClock` delay authority telemetry reads. None of it is mod-specific: a
+// `DelayedPlayoutBuffer` consumes the clock STRUCTURALLY via `DelayClockLike`,
+// and every camera Uplink needs the same buffer / per-frame pipeline /
+// per-camera sharing. It stays decoupled from any camera SDK: the caller
+// injects the clock, the raw `MediaStream`, and (for the shared cache) the
+// build function.
 //
-// SANCTIONED CLIENT IMPORT: this generic delayed-media infra (decoupled via
-// `DelayClockLike`) is a documented exception to the two-package facade rule
-// (an Uplink client is otherwise sealed onto `@ksp-gonogo/sitrep-sdk` +
-// `@ksp-gonogo/ui-kit` only). It is re-exported from the package root
-// (`@ksp-gonogo/sitrep-client`), the app's import-map only bakes exact
-// specifiers so a runtime-loaded Uplink couldn't resolve a bare subpath
-// import at all; camera Uplinks import it from there.
+// A SUBPATH (`@ksp-gonogo/sitrep-sdk/media`) rather than part of the root
+// barrel, because it pulls WebCodecs/Worker machinery no telemetry-only Uplink
+// wants. A consumer that never imports the subpath never loads any of it, which
+// does not depend on tree-shaking to hold.
 
 export type { CaptureClockSample } from "./capture-clock";
 export { interpolateCaptureUt } from "./capture-clock";

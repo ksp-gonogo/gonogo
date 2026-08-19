@@ -172,6 +172,48 @@ export type ContributionEntry<S extends string> =
       : Record<string, unknown>
     : Record<string, unknown>;
 
+/**
+ * One contribution's dependency: a Topic id, a Topic's `Reading` (the value
+ * AND how current it is), or a Processor handle. Mirrors core's `Dep`
+ * structurally, since the leaf cannot name sitrep-client's `ProcessorHandle`.
+ */
+export type ContributionDep =
+  | TopicId
+  | { readonly reading: TopicId }
+  | { readonly id: string; readonly __resultType?: unknown };
+
+/**
+ * Registration descriptor for a contribution: the data a client feeds into
+ * another widget's slot. Mirrors `packages/core/src/contributions.ts`'s
+ * `ContributionDefinition`.
+ *
+ * `compute`'s RETURN is typed precisely, against the same declaration-merged
+ * `ContributionEntry<S>` a slot owner declares in `./contribution-slots.ts`.
+ * Its `topics` parameter stays loose, because resolving `deps` to their values
+ * needs core's `ContributionTopics<S>`, which this leaf cannot see; an author
+ * gets that half from the slot's own documentation.
+ */
+export interface ContributionDefinition<S extends string = string> {
+  /** Stable id, unique globally. Auto-namespaced when registered via the handle. */
+  id: string;
+  /** The slot this contribution feeds. */
+  contributes: S;
+  deps?: readonly ContributionDep[];
+  /** Pure, and referentially stable when its inputs are unchanged. */
+  // biome-ignore lint/suspicious/noExplicitAny: `topics` is the loose half, see above
+  compute: (topics: any) => readonly ContributionEntry<S>[] | null | undefined;
+  /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
+  requires?: string;
+  /** Ascending, ties in registration order. */
+  priority?: number;
+  settings?: readonly AugmentSettingField[];
+  /** Stamped by `defineUplinkClient(...).registerContribution`, never set by hand. */
+  owner?: UplinkClientHandle;
+}
+
+/** Any contribution, whatever slot it feeds. */
+export type AnyContribution = ContributionDefinition<string>;
+
 export interface AugmentSettingField {
   key: string;
   type: "boolean" | "text" | "number";
@@ -217,31 +259,23 @@ export interface UplinkClientHandle {
   /**
    * Register a contribution auto-namespaced to this client: `def.id` is
    * stamped `${this.id}:${def.id}` before it reaches the contribution
-   * registry, so two Uplinks can never collide on a local id. Mirrors
-   * `packages/core/src/uplinkClients.ts`'s bound method; the contribution
-   * primitive itself (`ContributionDefinition` et al., core's
-   * `packages/core/src/contributions.ts`) is not yet part of the frozen
-   * author-facing surface, so its shape is inlined here rather than named.
+   * registry, so two Uplinks can never collide on a local id. This is the
+   * ONLY write path an Uplink gets; the bare `registerContribution` stays
+   * app-side precisely so the namespacing cannot be bypassed.
+   *
+   * `owner` is omitted because the handle stamps itself.
    */
   registerContribution<S extends string>(def: {
     id: string;
     contributes: S;
-    /** A Topic id OR a Processor handle (the branded shape `registerProcessor`
-     *  returns), mirroring core's `Dep`. The processor-handle case is the same
-     *  structural mirror used above, since the leaf cannot name
-     *  sitrep-client's `ProcessorHandle`. */
-    deps?: readonly (
-      | TopicId
-      // A Topic's `Reading` rather than its bare payload: the consumer is
-      // handed the value AND how current it is. Same wire topic, same
-      // subscription.
-      | { readonly reading: TopicId }
-      | { readonly id: string; readonly __resultType?: unknown }
-    )[];
-    /** Intentionally loose: this mirror is a name+arity probe (see file
-     *  header); the real signature's `topics`/return shapes are derived from
-     *  `ContributionRegistry` declaration merging, which this leaf cannot see. */
-    // biome-ignore lint/suspicious/noExplicitAny: see comment above
+    deps?: readonly ContributionDep[];
+    /** Deliberately looser than `ContributionDefinition`'s: this mirror is a
+     *  name+arity probe (see file header), and the precise entry type differs
+     *  between this leaf's `ContributionRegistry` and the design floor's, so
+     *  pinning it here would make the two handles structurally incompatible.
+     *  Build the def as a `ContributionDefinition<S>` to get the precise
+     *  return checked, then pass it here. */
+    // biome-ignore lint/suspicious/noExplicitAny: name+arity probe, see above
     compute: (topics: any) => readonly any[] | null | undefined;
     requires?: string;
     priority?: number;
@@ -319,12 +353,23 @@ export interface FogRevealSourceDefinition {
 // --- Map POI providers -------------------------------------------------------
 
 /**
+ * One action button on a `MapPoi`. Mirrors `packages/core/src/mapPoi.ts`'s
+ * `MapPoiAction`: same leaf constraint as every other type in this file (see
+ * module header). Named rather than inlined into `MapPoi`, so a provider can
+ * build its actions in a helper and give that helper a return type.
+ */
+export interface MapPoiAction {
+  id: string;
+  label: string;
+  run: () => void | Promise<void>;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+/**
  * One point-of-interest record a `MapPoiProviderDefinition` contributes.
  * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi`: same leaf constraint as
- * every other type in this file (see module header). The action-button
- * shape (`MapPoiAction` in core) is inlined here rather than named
- * separately: nothing in the author-facing surface needs to reference it by
- * name on its own.
+ * every other type in this file (see module header).
  */
 export interface MapPoi {
   /** Unique within the OWNING PROVIDER's namespace. */
@@ -339,14 +384,19 @@ export interface MapPoi {
   detail?: string;
   status?: "active" | "available" | "info";
   meta?: Record<string, unknown>;
-  actions?: readonly {
-    id: string;
-    label: string;
-    run: () => void | Promise<void>;
-    disabled?: boolean;
-    disabledReason?: string;
-  }[];
+  actions?: readonly MapPoiAction[];
 }
+
+/** What a POI provider's hook is told about the surface asking for points. */
+export interface MapPoiProviderContext {
+  /** The currently-mapped body. */
+  bodyId: string | undefined;
+}
+
+/** A POI provider's hook: called per render of the mapping surface. */
+export type UseMapPois = (
+  ctx: MapPoiProviderContext,
+) => readonly MapPoi[] | null | undefined;
 
 /**
  * Registration descriptor for a map point-of-interest provider, a data
@@ -360,7 +410,7 @@ export interface MapPoiProviderDefinition {
   id: string;
   /** Domain presence gate, same semantics as AugmentDefinition.requires. */
   requires?: string;
-  usePois: (ctx: { bodyId: string | undefined }) => unknown;
+  usePois: UseMapPois;
 }
 
 // --- Celestial bodies ---------------------------------------------------------

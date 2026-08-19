@@ -20,12 +20,12 @@
  * correctness: see `DelayedPlayoutBuffer`'s `pump` doc).
  */
 
-import { describe, expect, it } from "vitest";
-import { ViewClock } from "../view-clock";
 import {
   DelayedPlayoutBuffer,
   type StampedFrame,
-} from "./delayed-playout-buffer";
+} from "@ksp-gonogo/sitrep-sdk/media";
+import { describe, expect, it } from "vitest";
+import { ViewClock } from "../view-clock";
 
 /** A media frame carrying an opaque token (a real `MediaStream` reference in
  *  production: see the camera Uplink's delayed-stream test docstring on why jsdom
@@ -162,5 +162,67 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority
     clock.observeSample(90, 90, 1);
     buffer.pump();
     expect(released.map((f) => f.data)).toEqual(["pre-reset"]);
+  });
+
+  /** A wall clock a test can advance explicitly, instead of racing real time,
+   *  mirrors `view-clock.test.ts`'s `fakeWall`. */
+  function fakeWall(start = 0) {
+    let now = start;
+    return {
+      now: () => now,
+      advanceBy: (seconds: number) => {
+        now += seconds;
+      },
+    };
+  }
+
+  it("releases a media frame at the same wall-time a same-UT telemetry sample would confirm, driven by one shared confirmedEdgeUt clock", () => {
+    const wall = fakeWall();
+    // The real production delay authority: not a fake. Both "video" and
+    // "telemetry" in this test read confirmedEdgeUt() off this one instance.
+    const clock = new ViewClock({
+      nowWall: wall.now,
+      warpRate: () => 1,
+      delaySeconds: () => 30,
+    });
+    // Wrap rather than pass the ViewClock instance directly so the test
+    // doesn't schedule a real rAF/setTimeout tick via its onFrame, release
+    // timing is driven explicitly via pump() for determinism.
+    const clockView: DelayClockLike = {
+      confirmedEdgeUt: () => clock.confirmedEdgeUt(),
+      onFrame: () => () => {},
+    };
+
+    const released: StampedFrame[] = [];
+    const buffer = new DelayedPlayoutBuffer({
+      view: clockView,
+      onRelease: (f) => released.push(f),
+      maxBufferedBytes: 10_000,
+    });
+
+    const SAME_UT = 500;
+    buffer.push({ ut: SAME_UT, keyframe: true, data: "frame@500" });
+
+    // A telemetry sample stamped the identical UT is observed by the same
+    // clock instance (deliveredAt = SAME_UT: the observation lands with no
+    // extra network transit modelled here: delaySeconds is the display-lag
+    // policy under test, not courier network delay).
+    clock.observeSample(SAME_UT, SAME_UT);
+    const telemetryConfirmed = () => clock.confirmedEdgeUt() >= SAME_UT;
+
+    // Before the delay elapses: neither the frame nor the telemetry sample
+    // has crossed the confirmed edge.
+    wall.advanceBy(29);
+    buffer.pump();
+    expect(released).toHaveLength(0);
+    expect(telemetryConfirmed()).toBe(false);
+
+    // At exactly delaySeconds elapsed, BOTH cross in the same wall-time
+    // step: the one shared clock makes them common-mode.
+    wall.advanceBy(1);
+    buffer.pump();
+    expect(released).toHaveLength(1);
+    expect(released[0]?.ut).toBe(SAME_UT);
+    expect(telemetryConfirmed()).toBe(true);
   });
 });

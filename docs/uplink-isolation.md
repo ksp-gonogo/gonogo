@@ -8,7 +8,9 @@ depends on surfaces they actually have.
 
 An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 
-- **`@ksp-gonogo/sitrep-sdk`**, the devkit
+- **`@ksp-gonogo/sitrep-sdk`**, the devkit, and its subpaths:
+  - `@ksp-gonogo/sitrep-sdk/media`, the delayed-media layer a camera Uplink needs
+  - `@ksp-gonogo/sitrep-sdk/testing`, the test harness
 - **`@ksp-gonogo/ui-kit`**, the published design system
 - `react`, `styled-components`, and third-party packages
 
@@ -28,7 +30,7 @@ live and is published. Import that.
 
 ### The import map is not a licence
 
-`packages/app/src/uplinks/externals/` bakes an import map that resolves twelve
+`packages/app/src/uplinks/externals/` bakes an import map that resolves thirteen
 specifiers, `core` and `sitrep-client` among them, to the app's singleton chunks at
 runtime. That mechanism is real and load-bearing: it is what makes a loaded
 widget's `registerComponent` write into the registry the dashboard reads.

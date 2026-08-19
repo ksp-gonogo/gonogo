@@ -89,24 +89,16 @@ export type ForbiddenPackage = (typeof FORBIDDEN_PACKAGES)[number];
  */
 export const BLOCKED_FILENAMES = ["widgetDeclarations.test.ts"] as const;
 
-/** file path -> the forbidden packages it imports. SHRINK-ONLY. */
+/**
+ * file path -> the forbidden packages it imports. SHRINK-ONLY.
+ *
+ * EMPTY as of 2026-08-19, down from 71. Every Uplink in this repo builds against
+ * the published packages alone. An empty list is the point of the exercise, not
+ * the end of it: the scan still runs, and the first import that reaches back
+ * into the app fails the build rather than joining a list.
+ */
 export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
-  {
-    "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": [
-      "sitrep-client",
-    ],
-    "mod/GonogoKerbcastUplink/client/src/CameraFeed/useDelayedKerbcastStream.ts":
-      ["sitrep-client"],
-    "mod/GonogoKerbcastUplink/client/src/KerbcastDataSource.ts": [
-      "sitrep-client",
-    ],
-    "mod/GonogoKerbcastUplink/client/src/KerbcastEventProducer.ts": [
-      "sitrep-client",
-    ],
-    "mod/GonogoKerbcastUplink/client/src/hooks/useKerbcastStream.ts": [
-      "sitrep-client",
-    ],
-  };
+  {};
 
 /**
  * A dependency that resolves through pnpm workspace hoisting is not a
@@ -120,10 +112,10 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
  * declares what" section that nothing enforced, which is how two Uplinks kept a
  * declared dependency on `components` for weeks after the last import of it
  * died.
+ *
+ * Also EMPTY as of 2026-08-19.
  */
 export const DECLARED_DEPENDENCY_DEBT: Record<
   string,
   readonly ForbiddenPackage[]
-> = {
-  "mod/GonogoKerbcastUplink/client/package.json": ["sitrep-client"],
-};
+> = {};

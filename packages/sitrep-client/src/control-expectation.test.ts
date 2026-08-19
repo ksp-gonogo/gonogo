@@ -1,6 +1,6 @@
+import type { PendingEntry } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import type { PendingEntry } from "./command-delay";
 import { deriveExpectations } from "./control-expectation";
 
 /**

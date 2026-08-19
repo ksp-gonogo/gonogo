@@ -1,3 +1,4 @@
+import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { render, renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
@@ -6,7 +7,6 @@ import {
   useCarriedChannels,
   useCarriedChannelsOptional,
 } from "./context";
-import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import { StubTransport } from "./stub-transport";
 import type { Transport, TransportStatus } from "./transport";
 

@@ -1,4 +1,4 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Value } from "./value";
 /**
  * Pure delayed-command derivations. Delay is ambient and universal, every
  * command the mod accepts is already gated by the reveal/uplink machinery,

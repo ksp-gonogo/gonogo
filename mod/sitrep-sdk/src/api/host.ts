@@ -16,11 +16,12 @@
 // ---------------------------------------------------------------------------
 
 import type { Logger } from "@ksp-gonogo/logger";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { TopicId, TopicPayload } from "../topics";
 import type {
   ActionDefinition,
   ActionHandlers,
+  AnyContribution,
   AugmentDefinition,
   BodyDefinition,
   ComponentDefinition,
@@ -150,8 +151,18 @@ export interface GonogoHost {
   getGameHost(): string;
   /** Subscribe to any change (saved OR seeded) for one shared settings key. */
   subscribeSetting(key: string, cb: () => void): () => void;
+  /** Persist a user-chosen value for one settings key (the "saved" layer). */
+  setSetting(key: string, value: string): void;
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
+  /**
+   * The aggregation host for contribution slots: mounts the per-widget store
+   * and runs every registered contribution's `compute`. A widget that READS
+   * contributions (`useContributions`) sees nothing without one mounted above
+   * it, which is why an Uplink hosting its own slot needs it and not just the
+   * app.
+   */
+  ContributionsProvider: ComponentType<{ children?: ReactNode }>;
   createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle;
 
   /**
@@ -174,6 +185,18 @@ export interface GonogoHost {
   getFogRevealSources(): FogRevealSourceDefinition[];
   /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
   onFogRevealSourcesChange(cb: () => void): () => void;
+  /** Every registered map POI provider, in registration order. */
+  getMapPoiProviders(): MapPoiProviderDefinition[];
+  /** Subscribe to any change (register/unregister) in the POI provider registry. */
+  onMapPoiProvidersChange(cb: () => void): () => void;
+  /** Empty the POI provider registry. For tests; a running app never calls it. */
+  clearMapPoiProviders(): void;
+  /** Every contribution registered for a slot, in priority then registration order. */
+  getContributionsForSlot(slot: string): AnyContribution[];
+  /** Subscribe to any change (register/unregister) in the contribution registry. */
+  onContributionsChange(cb: () => void): () => void;
+  /** Empty the contribution registry. For tests; a running app never calls it. */
+  clearContributions(): void;
   /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
   useFogMaskCache(): FogMaskCacheHandle | null;
 

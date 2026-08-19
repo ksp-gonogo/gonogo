@@ -61,6 +61,10 @@ const FUNCTIONS = [
   "setSetting",
   "render",
   "renderHook",
+  "renderWidget",
+  "registerComponent",
+  "getComponent",
+  "useDashboardItemId",
   "probeText",
 ] as const;
 

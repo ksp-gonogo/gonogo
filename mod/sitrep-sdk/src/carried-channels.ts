@@ -1,5 +1,3 @@
-import type { TimelineStore } from "./timeline-store";
-
 /**
  * The carried-channels allowlist gate (see `m3-migration-plan.md`): the
  * safety mechanism that prevents the "big-bang blank-out": mounting a
@@ -39,8 +37,18 @@ import type { TimelineStore } from "./timeline-store";
  * to") rather than re-implementing derived-input resolution here, one
  * seam, not two that can drift apart.
  */
+/**
+ * The one thing `isTopicCarried` needs off a timeline store. Structural rather
+ * than a `Pick<TimelineStore, ...>`: the store is spine-side and this module is
+ * published, so naming the class here would drag the spine across the boundary
+ * for a single method.
+ */
+export interface SubscriptionTopicResolver {
+  resolveSubscriptionTopics(topic: string): readonly string[];
+}
+
 export function isTopicCarried(
-  store: Pick<TimelineStore, "resolveSubscriptionTopics">,
+  store: SubscriptionTopicResolver,
   carriedChannels: ReadonlySet<string>,
   topic: string,
 ): boolean {

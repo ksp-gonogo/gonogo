@@ -1,17 +1,17 @@
 import {
+  type CommsDelayLike,
+  classifyRetained,
+  type InFlightCommand,
+  type PathConnectedDuring,
+  type PendingEntry,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
   useCallback,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import {
-  type CommsDelayLike,
-  classifyRetained,
-  type InFlightCommand,
-  type PathConnectedDuring,
-  type PendingEntry,
-} from "./command-delay";
 import {
   type CommsLinkLike,
   ConnectivityHistory,

@@ -231,6 +231,15 @@ system and the design system.
 There is a third, **`@ksp-gonogo/sitrep-testing`**, and it is a devDependency: your
 tests import it, your widgets never do. See "Testing your Uplink" below.
 
+A camera Uplink also gets **`@ksp-gonogo/sitrep-sdk/media`**, a subpath of the same
+package: the delayed-playout buffer, the per-frame pipeline and the shared
+per-camera stream cache, all riding the one delay authority telemetry reads. It is
+a subpath rather than part of the root barrel because it pulls WebCodecs and Worker
+machinery a telemetry-only Uplink has no use for, so importing the root never
+loads it. Externalise it as its own specifier: the app's import map is keyed on
+exact strings, and externalising `@ksp-gonogo/sitrep-sdk` does not cover a subpath
+of it.
+
 Build your client bundle **external-expecting**. Declare `react`,
 `styled-components` and the two gonogo packages as externals/peer dependencies,
 and do NOT bundle your own copies.
