@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
-import type { ComponentSlotSegment } from "./contributions";
 import { EmptyState } from "./EmptyState";
 import { Stack } from "./Stack";
-import { useRowFilter } from "./useRowFilter";
+import { type TermSegment, useRowFilter } from "./useRowFilter";
 
 // ---------------------------------------------------------------------------
 // A widget-agnostic filterable list (component-extension-slots design §4).
@@ -44,8 +43,9 @@ export interface FilterRow {
 export interface FilterListProps {
   rows: readonly FilterRow[];
   /** The contribution SEGMENT to pull toggle terms from. Defaults to the
-   *  framework-universal `filters`; override only for a novel declared segment. */
-  segment?: ComponentSlotSegment;
+   *  framework-universal `filters`; override only for a novel declared segment
+   *  whose entries are search terms. */
+  segment?: TermSegment;
   /** Shown when a filter is active but matches nothing. */
   emptyLabel?: ReactNode;
 }

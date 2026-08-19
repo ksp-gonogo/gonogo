@@ -17,6 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type { TopicId, TopicPayload } from "../topics";
 
 /** A dashboard component's declared data dependency, e.g. `"vessel.altitude"`. */
@@ -189,6 +190,26 @@ export type ContributionSlotId = keyof ContributionRegistry;
  * host-invariant segment declares its one line co-located with its own
  * module-load self-registrations.
  */
+/**
+ * One badge on a widget's panel header.
+ *
+ * Declared here rather than in `@ksp-gonogo/ui-kit` beside the `Badge` that draws
+ * it, because it is the ENTRY TYPE of the framework-universal `badges` segment
+ * below: contribution data, which an Uplink writes and the contract has to name.
+ * The component stays in ui-kit and re-exports this.
+ *
+ * `tone` is inlined rather than referring to ui-kit's `BadgeTone`, and not only
+ * because the leaf cannot name it: `BadgeTone` is deprecated there, folding into
+ * `severity` under the styleguide ratchet. Publishing it from here would give a
+ * name that is on its way out a second, undeprecated home. A contribution's tone
+ * outlives that migration because it is data, not a prop.
+ */
+export interface BadgeEntry {
+  id: string;
+  label: string;
+  tone?: "neutral" | "go" | "nogo" | "warn" | "info";
+}
+
 export interface ComponentSlotRegistry {
   /**
    * The framework-universal filter segment: a contribution is a pre-filled
@@ -196,6 +217,19 @@ export interface ComponentSlotRegistry {
    * string means the same thing in any widget.
    */
   filters: string;
+  /**
+   * The framework-universal badge segment (contribution-slots-spec §13.2), the
+   * original auto-slot. Declared here for the same reason `filters` is: the
+   * aggregation completes `${componentId}.badges` for EVERY widget, so the
+   * segment is host-invariant and its entry shape belongs to the framework.
+   *
+   * It was missing while `UplinkClientHandle.registerContribution` took a loose
+   * `compute: (topics: any) => readonly any[]` probe, so every badge contribution
+   * an Uplink wrote was unchecked and resolved to the undeclared-slot fallback
+   * (`Record<string, unknown>`). Collapsing that mirror to the real handle is what
+   * surfaced it, in three Uplink badge files at once.
+   */
+  badges: BadgeEntry;
 }
 
 /** Every segment declared as a host-invariant component slot. */
@@ -234,6 +268,44 @@ export type ContributionEntry<S extends string> =
         : ComponentSlotRegistry[SegmentOf<S>]
       : Record<string, unknown>;
 
+/** Which slot ids a declared contribution slot names as its topics. */
+type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
+  ? ContributionRegistry[S] extends { topics: infer T extends string }
+    ? T
+    : never
+  : never;
+
+/**
+ * The typed argument a slot's contributions receive: current values of every
+ * declared topic, keyed by topic id. The `& Record<string, unknown>` tail keeps
+ * a Processor dep readable by its stamped id (`topics[processor.id]`, typed
+ * `unknown`) while the mapped head preserves each declared Topic's precise
+ * payload type (intersection: a declared topic key keeps `TopicPayload<K>`,
+ * since `X & unknown = X`).
+ */
+export type ContributionTopics<S extends string> = {
+  readonly [K in DeclaredTopicUnion<S> & TopicId]: TopicPayload<K> | undefined;
+} & Record<string, unknown>;
+
+/**
+ * The identity an aggregated entry is stamped with, for keys and for blame.
+ *
+ * The narrow half of an `UplinkClientHandle`: the handle carries `Dep`-shaped
+ * registration methods and lives with the registry, and a full handle is
+ * structurally one of these, so the aggregation stamps one straight in.
+ */
+export interface UplinkClientIdentity {
+  id: string;
+  version: string;
+  name: string;
+}
+
+/** One rendered entry, tagged with provenance for keys and blame. */
+export type Contributed<E> = E & {
+  readonly contributionId: string;
+  readonly owner?: UplinkClientIdentity;
+};
+
 /**
  * One contribution's dependency: a Topic id, a Topic's `Reading` (the value
  * AND how current it is), or a Processor handle. Mirrors core's `Dep`
@@ -246,14 +318,15 @@ export type ContributionDep =
 
 /**
  * Registration descriptor for a contribution: the data a client feeds into
- * another widget's slot. Mirrors `packages/core/src/contributions.ts`'s
- * `ContributionDefinition`.
+ * another widget's slot. No longer a mirror of anything: `spine/contributions.ts`
+ * is the registry, and this is the type it registers.
  *
- * `compute`'s RETURN is typed precisely, against the same declaration-merged
- * `ContributionEntry<S>` a slot owner declares in `./contribution-slots.ts`.
- * Its `topics` parameter stays loose, because resolving `deps` to their values
- * needs core's `ContributionTopics<S>`, which this leaf cannot see; an author
- * gets that half from the slot's own documentation.
+ * Both halves of `compute` are typed precisely, against the same
+ * declaration-merged `ContributionEntry<S>` a slot owner declares in
+ * `./contribution-slots.ts` and the same `ContributionTopics<S>` the aggregation
+ * hands in. `topics` used to be `any` because resolving `deps` to their values
+ * needed a type this leaf could not see; `ContributionTopics` is declared above
+ * now, so it can.
  */
 export interface ContributionDefinition<S extends string = string> {
   /** Stable id, unique globally. Auto-namespaced when registered via the handle. */
@@ -262,8 +335,9 @@ export interface ContributionDefinition<S extends string = string> {
   contributes: S;
   deps?: readonly ContributionDep[];
   /** Pure, and referentially stable when its inputs are unchanged. */
-  // biome-ignore lint/suspicious/noExplicitAny: `topics` is the loose half, see above
-  compute: (topics: any) => readonly ContributionEntry<S>[] | null | undefined;
+  compute: (
+    topics: ContributionTopics<S>,
+  ) => readonly ContributionEntry<S>[] | null | undefined;
   /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
   requires?: string;
   /** Ascending, ties in registration order. */
@@ -325,95 +399,17 @@ export interface AugmentDefinition<S extends string = string> {
 // --- Uplink client identity (Uplink Client Contract design §3.1) -----------
 
 /**
- * Mirrors `packages/core/src/uplinkClients.ts`'s `UplinkClientHandle`: same
- * leaf constraint as every other type in this file. One declaration per
- * client bundle (`defineUplinkClient`); widgets/augments stamp it as `owner`.
+ * Re-exported rather than declared: the ONE declaration lives in
+ * `../spine/uplink-clients.ts`, beside `defineUplinkClient` which returns it.
+ *
+ * This file used to carry a second, deliberately loose copy whose four
+ * registration methods were typed `any` "name+arity probes", because the leaf
+ * could not name `ResolvedDeps`, `ReckonerFor`, `DerivedChannelDefinition` or
+ * `ProcessorHandle`. All four are sdk-side now, so there is nothing left to
+ * apologise for and no reason to keep a second declaration of a handle that was
+ * unchecked on one side.
  */
-export interface UplinkClientHandle {
-  /** MUST match the mod's `[SitrepUplink("<id>")]` id and its gonogo-uplink.json id. */
-  id: string;
-  /** The Uplink's one version line (mod + client). */
-  version: string;
-  /** Human label for management/health surfaces. */
-  name: string;
-  /**
-   * Register a contribution auto-namespaced to this client: `def.id` is
-   * stamped `${this.id}:${def.id}` before it reaches the contribution
-   * registry, so two Uplinks can never collide on a local id. This is the
-   * ONLY write path an Uplink gets; the bare `registerContribution` stays
-   * app-side precisely so the namespacing cannot be bypassed.
-   *
-   * `owner` is omitted because the handle stamps itself.
-   */
-  registerContribution<S extends string>(def: {
-    id: string;
-    contributes: S;
-    deps?: readonly ContributionDep[];
-    /** Deliberately looser than `ContributionDefinition`'s: this mirror is a
-     *  name+arity probe (see file header), and the precise entry type differs
-     *  between this leaf's `ContributionRegistry` and the design floor's, so
-     *  pinning it here would make the two handles structurally incompatible.
-     *  Build the def as a `ContributionDefinition<S>` to get the precise
-     *  return checked, then pass it here. */
-    // biome-ignore lint/suspicious/noExplicitAny: name+arity probe, see above
-    compute: (topics: any) => readonly any[] | null | undefined;
-    requires?: string;
-    priority?: number;
-    settings?: readonly AugmentSettingField[];
-  }): void;
-  /**
-   * Register a Processor auto-namespaced to this client (mirrors
-   * `registerContribution`'s owner-stamping). Same leaf constraint as the rest
-   * of this file: the shared derived-logic primitive (`ProcessorHandle`, `Dep`,
-   * `ResolvedDeps`, sitrep-client's `processors.ts`) is not part of the frozen
-   * author-facing surface, so its shape is inlined loosely here (a name+arity
-   * probe, like `registerContribution`) rather than named.
-   */
-  registerProcessor<
-    const Deps extends readonly (
-      | TopicId
-      | { readonly reading: TopicId }
-      | { readonly id: string; readonly __resultType?: unknown }
-    )[],
-    R,
-  >(def: {
-    id: string;
-    deps: Deps;
-    /**
-     * Intentionally loose: the leaf cannot name `ResolvedDeps<Deps>`. The
-     * second parameter is the frame the derivation is running for, carrying its
-     * frozen `viewUt`, which is what a processor turning an instant on the wire
-     * into a remaining duration needs; it is optional so a derivation that does
-     * not care about time keeps a one-argument compute.
-     */
-    // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
-    compute: (values: any, frame: { viewUt: number }) => R;
-  }): { readonly id: string; readonly __resultType?: R };
-  /**
-   * Register this client's forward model for a Topic, auto-namespaced to it.
-   * Only the Uplink owning a Topic knows the physics behind it, and a Topic two
-   * clients both claim is served with NO model rather than whichever loaded
-   * last, so the owner has to be a stamped field rather than a convention.
-   *
-   * Same leaf constraint as the two above: `ReckonerFor`/`TimelinePoint`/
-   * `Reading` live in sitrep-client and are not part of the frozen
-   * author-facing surface, so this is a name+arity probe and an author gets the
-   * precise signature from `registerReckoner` itself.
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
-  registerReckoner<T>(topic: string, reckoner: any): void;
-  /**
-   * Contribute a derived channel owned by this client: the only mechanism that
-   * can join two Topics, and therefore what a model needs whenever the
-   * contract splits its inputs across them.
-   *
-   * Same leaf constraint as the three above: `DerivedChannelDefinition` and
-   * `DerivedGet` live in sitrep-client and are not part of the frozen
-   * author-facing surface, so this is a name+arity probe.
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: name+arity probe (see above)
-  registerDerivedChannel<T>(def: any): void;
-}
+export type { UplinkClientHandle } from "../spine/uplink-clients";
 
 // --- Fog reveal sources ------------------------------------------------------
 

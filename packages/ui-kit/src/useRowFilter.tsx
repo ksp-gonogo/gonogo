@@ -1,6 +1,9 @@
 import { type ReactNode, useId, useState } from "react";
 import { Cluster } from "./Cluster";
-import type { ComponentSlotSegment } from "./contributions";
+import type {
+  ComponentSlotRegistry,
+  ComponentSlotSegment,
+} from "./contributions";
 import { useContributions } from "./contributionsRead";
 import { FilterChip } from "./FilterChip";
 import { Field, FieldLabel, Input } from "./Form";
@@ -18,12 +21,27 @@ export interface RowFilter {
   active: boolean;
 }
 
+/**
+ * A declared segment whose contributions are plain search terms.
+ *
+ * Not every segment is: `badges` contributes a `BadgeEntry`, and a badge object
+ * is not something this hook can lowercase and substring-match. Constraining the
+ * option is what keeps `useContributions(segment)` returning `string` here
+ * instead of a union that every line below would have to narrow.
+ */
+export type TermSegment = {
+  [K in ComponentSlotSegment]: ComponentSlotRegistry[K] extends string
+    ? K
+    : never;
+}[ComponentSlotSegment];
+
 export interface UseRowFilterOptions {
   /**
    * The contribution SEGMENT to pull toggle terms from. Defaults to the
-   * framework-universal `filters`; override only for a novel declared segment.
+   * framework-universal `filters`; override only for a novel declared segment
+   * whose entries are search terms.
    */
-  segment?: ComponentSlotSegment;
+  segment?: TermSegment;
   /** Accessible name for the search box. Defaults to "Search". */
   label?: string;
   placeholder?: string;

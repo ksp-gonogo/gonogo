@@ -44,19 +44,6 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "crew-status-aboard-badge",
   contributes: "crew-status.badges",
   deps: ["vessel.crew"],
-  // The automatic `${componentId}.badges` slot (unlike `ship-map.part-meters`,
-  // a widget-authored slot with a real `ContributionRegistry` merge) is a
-  // RUNTIME string, never a member of that declaration-merged registry (see
-  // `useWidgetBadges`'s own doc comment), so `registerContribution`'s strict
-  // internal typing (`packages/core/src/contributions.ts`) can only see the
-  // generic `Record<string, unknown>` fallback here, not the concrete
-  // `BadgeEntry` shape. The cast bridges that gap; every OTHER first-party
-  // producer of this same badge (the Kerbalism Uplink's `badge.ts` files)
-  // sidesteps it by going through the SDK's deliberately loose, `any`-typed
-  // `registerContribution` mirror instead (`mod/sitrep-sdk/src/api/types.ts`),
-  // not available to a built-in (non-Uplink) contribution like this one.
   compute: (topics) =>
-    crewAboardBadge(topics["vessel.crew"] as VesselCrew | undefined) as
-      | readonly Record<string, unknown>[]
-      | null,
+    crewAboardBadge(topics["vessel.crew"] as VesselCrew | undefined),
 });

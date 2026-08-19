@@ -75,7 +75,12 @@ const SANCTIONED_WIDGET_CALLERS = [
 ];
 
 const PLUMBING = [
-  // The hook's own (deprecated) definition site.
+  // The hook's own (deprecated) definition site. In the sdk since the host
+  // implementations moved there: an Uplink's test builds a whole `GonogoHost` and
+  // could not reach a definition inside `@ksp-gonogo/core`. Moving the hatch did
+  // not widen it, and `packages/core/src/hooks/useExecuteAction.ts` is now a
+  // one-line facade over this.
+  "mod/sitrep-sdk/src/spine/use-execute-action.ts",
   "packages/core/src/hooks/useExecuteAction.ts",
   // App-side host wiring: forwards the core hook into the sitrep-sdk facade.
   "packages/app/src/uplinks/host.ts",
