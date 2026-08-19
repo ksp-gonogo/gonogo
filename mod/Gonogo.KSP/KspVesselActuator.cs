@@ -3,6 +3,7 @@ using KSP.UI.Screens;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Sitrep.Host.ActionGroups;
+using Sitrep.Host.Maneuver;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -72,6 +73,52 @@ namespace Gonogo.KSP
         {
             _actionGroupsBackend = resolver;
         }
+
+        /// <summary>
+        /// Resolves the elected <see cref="IManeuverPlanSource"/> so the three
+        /// maneuver WRITE commands respect the same election the read side
+        /// already does. Late-bound for the same reason as
+        /// <see cref="_actionGroupsBackend"/> above.
+        ///
+        /// <para>The read path has known this since it was written
+        /// (<c>KspHost.BuildManeuverNodes</c>: "Whatever the ELECTED provider
+        /// answered, never <c>patchedConicSolver</c> directly"). The write path
+        /// did not check at all, which is the asymmetry this resolver closes.</para>
+        /// </summary>
+        private Func<PlanOwner>? _planOwner;
+
+        /// <summary>Installs the plan-ownership resolver; see <see cref="_planOwner"/>.</summary>
+        public void SetPlanOwnerSource(Func<PlanOwner> resolver)
+        {
+            _planOwner = resolver;
+        }
+
+        /// <summary>
+        /// The refusal for a write into stock's solver, or <c>null</c> when the
+        /// write may proceed.
+        ///
+        /// <para>Checked BEFORE the vessel/solver guards on purpose. Not owning
+        /// the plan is a fact about authority that holds whether or not there is
+        /// an active vessel, so it is the more fundamental answer; ordering it
+        /// first also makes it reachable without live KSP state, which is what
+        /// lets <c>ManeuverPlanOwnershipTests</c> exercise it.</para>
+        ///
+        /// <para>A null elected source means there is no planner AT ALL (an
+        /// un-upgraded Tracking Station leaves <c>patchedConicSolver</c> null),
+        /// which is a different fact with its own existing answer: it falls
+        /// through to the solver-null guard rather than being reported as a
+        /// foreign plan.</para>
+        ///
+        /// <para>LIVE-INERT TODAY: the maneuver-plan election has exactly one
+        /// member, so this never refuses on a stock install. It is tested rather
+        /// than merely commented, because a branch nothing has executed is a
+        /// claim with no evidence: see
+        /// <c>Gonogo.KSP.Tests/ManeuverPlanOwnershipTests.cs</c>, which elects a
+        /// second provider and asserts all three commands refuse, and asserts
+        /// they do NOT refuse with only the stock backend elected.</para>
+        /// </summary>
+        private CommandErrorCode? PlanWriteRefusal() =>
+            ManeuverPlanWriteRule.RefusalFor(_planOwner?.Invoke() ?? PlanOwner.None);
 
         // ---- persistent fly-by-wire override (main-thread-only, no lock) ------
         // Command handlers and Vessel.OnFlyByWire both run on the Unity main
@@ -397,6 +444,12 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut)
         {
+            var refusal = PlanWriteRefusal();
+            if (refusal != null)
+            {
+                return CommandResult<string>.Fail(refusal.Value);
+            }
+
             var solver = FlightGlobals.ActiveVessel?.patchedConicSolver;
             if (solver == null)
             {
@@ -413,6 +466,12 @@ namespace Gonogo.KSP
 
         public CommandResult UpdateManeuverNode(string nodeId, double ut, double prograde, double normal, double radialOut)
         {
+            var refusal = PlanWriteRefusal();
+            if (refusal != null)
+            {
+                return CommandResult.Fail(refusal.Value);
+            }
+
             if (!TryResolveNode(nodeId, out var node) || node?.solver == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
@@ -426,6 +485,12 @@ namespace Gonogo.KSP
 
         public CommandResult RemoveManeuverNode(string nodeId)
         {
+            var refusal = PlanWriteRefusal();
+            if (refusal != null)
+            {
+                return CommandResult.Fail(refusal.Value);
+            }
+
             if (!TryResolveNode(nodeId, out var node))
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);

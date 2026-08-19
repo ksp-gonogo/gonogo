@@ -152,7 +152,8 @@ export enum CommandErrorCode {
 	ModeUnavailable = 3,
 	Range = 4,
 	NotFound = 5,
-	Timeout = 6
+	Timeout = 6,
+	PlanNotOwned = 7
 }
 export interface CommandResult
 {

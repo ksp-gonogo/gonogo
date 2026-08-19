@@ -306,6 +306,20 @@ namespace Gonogo.KSP
             _kspActuator?.SetActionGroupsBackendSource(
                 () => _kernel != null ? ActionGroupsElection.Elected(_kernel) : null);
 
+            // Same shape, for the maneuver WRITE path. The read side already
+            // routes through the election; without this the three write commands
+            // mutate stock's solver whoever owns the plan, which under a foreign
+            // owner leaves a node nothing reads (see `PlanWriteRefusal`).
+            _kspActuator?.SetPlanOwnerSource(() =>
+            {
+                var elected = _kernel != null ? ManeuverPlanElection.Elected(_kernel) : null;
+                if (elected == null) return PlanOwner.None;
+                // The type check lives HERE because this is the site that
+                // registered stock's backend as the capability's vanilla, so it is
+                // the only place entitled to recognise it.
+                return elected is StockManeuverPlanBackend ? PlanOwner.Stock : PlanOwner.Foreign;
+            });
+
             host.AddChannelSource(VesselViewProvider.IdentityTopic, VesselViewProvider.BuildIdentityWire);
             host.AddChannelSource(VesselViewProvider.OrbitTopic, VesselViewProvider.BuildOrbitWire);
             host.AddChannelSource(VesselViewProvider.OrbitTruthTopic, VesselViewProvider.BuildOrbitTruthWire);

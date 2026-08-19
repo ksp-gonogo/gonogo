@@ -45,6 +45,12 @@
          under the KspManaged gate below, calls into it, so it has to be here
          unconditionally rather than beside it. -->
     <Compile Include="..\Gonogo.KSP\CommNetOcclusion.cs" />
+    <!-- The maneuver WRITE-path ownership RULE, carved out of KspVesselActuator
+         so it carries no KSP dependency - same discipline as CommNetOcclusion
+         above, and for a sharper reason: the actuator's command bodies reference
+         Unity assemblies the reference set does not ship, so a headless test
+         cannot enter them at all. -->
+    <Compile Include="..\Gonogo.KSP\PlanOwner.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
@@ -183,6 +189,9 @@
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
+    <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
+         plan backend, so the refusal can be exercised against a real election.
+         Gated because both touch KSP types. -->
     <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
   </ItemGroup>
 
