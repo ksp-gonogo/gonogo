@@ -80,7 +80,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/SystemView/useCelestialBodies.ts": 2,
   "packages/components/src/SystemView/usePhaseAngles.ts": 7,
   "packages/components/src/ThermalStatus/index.tsx": 13,
-  "packages/components/src/TransferWindow/index.tsx": 2,
+  // +1 for the Δv budget the reach list compares against. `calc/transfer.ts` and
+  // the porkchop are deliberately plain-SI ("no React, no side effects", see their
+  // own docs), so a `Value<"m/s">` off the wire has to shed its unit exactly once
+  // to be compared against a solver's cost. Doing it in the algebra instead would
+  // mean wrapping every figure the coplanar model returns.
+  "packages/components/src/TransferWindow/index.tsx": 3,
   "packages/data/src/hooks/useDataSeries.ts": 1,
   "packages/data/src/hooks/useVesselDeltaV.ts": 1,
   "packages/data/src/hooks/vesselPartsAdapter.ts": 20,

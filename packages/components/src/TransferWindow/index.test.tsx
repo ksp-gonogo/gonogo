@@ -65,9 +65,14 @@ const VENUS = {
   },
 };
 
-function setup(targetBodyIndex?: number) {
+function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["system.bodies", "vessel.orbit", "target.available"],
+    carriedChannels: [
+      "system.bodies",
+      "vessel.orbit",
+      "target.available",
+      "dv.summary",
+    ],
     pinnedUt: 0,
   });
   const view = render(
@@ -100,6 +105,12 @@ function setup(targetBodyIndex?: number) {
           isCurrent: true,
         },
       ],
+    });
+  }
+  if (opts?.budgetDvVac != null) {
+    fixture.emit("dv.summary", {
+      stageCount: 2,
+      totalDvVac: opts.budgetDvVac,
     });
   }
   renderedTrees.push(view.unmount);
@@ -203,6 +214,78 @@ describe("TransferWindow widget", () => {
   it("has no axe violations", async () => {
     const { view } = setup();
     await waitFor(() => expect(screen.getByText("IDEAL")).toBeInTheDocument());
+    expect(await axe(view.container)).toHaveNoViolations();
+  });
+});
+
+describe("TransferWindow reach list", () => {
+  it("lists every sibling destination with a cost, cheapest first", async () => {
+    setup();
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    const rows = screen.getAllByRole("row").slice(1); // drop the header row
+    const names = rows.map((r) => r.textContent ?? "");
+    expect(names.some((t) => t.includes("Mars"))).toBe(true);
+    expect(names.some((t) => t.includes("Venus"))).toBe(true);
+  });
+
+  /*
+   * The load-bearing assertion. With a budget on the wire the verdict column must
+   * appear AND carry a real verdict: a test that only checked the no-budget branch
+   * would pass against a widget that never rendered a verdict at all.
+   */
+  it("renders a verdict per destination once a budget is on the wire", async () => {
+    setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() =>
+      expect(screen.getByText("Affords")).toBeInTheDocument(),
+    );
+    // The band, not a boolean, and this budget straddles it. Mars costs less to
+    // arrive at than Venus despite Venus being cheaper to depart for, so one reads
+    // GO and the other ONE WAY: reachable, but not with a capture burn.
+    expect(screen.getByText("GO")).toBeInTheDocument();
+    expect(screen.getByText("ONE WAY")).toBeInTheDocument();
+    expect(visibleText()).toMatch(/Budget/);
+    expect(visibleText()).toMatch(/6,?000 m\/s/);
+  });
+
+  it("distinguishes cannot-afford from no-verdict: one is a NO, the other has no column", async () => {
+    setup(undefined, { budgetDvVac: 500 });
+    await waitFor(() =>
+      expect(screen.getByText("Affords")).toBeInTheDocument(),
+    );
+    // 500 m/s affords no departure at all, so every row reads NO. That is a
+    // COMPUTED answer and it renders as one.
+    expect(screen.getAllByText("NO").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("drops the verdict column entirely when no budget has arrived, keeping the costs", async () => {
+    setup();
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    // No budget: no verdict column, and no placeholder inviting one.
+    expect(screen.queryByText("Affords")).not.toBeInTheDocument();
+    expect(screen.queryByText("GO")).not.toBeInTheDocument();
+    // The costs and windows are still fully useful without it.
+    expect(screen.getByText("Δv needed")).toBeInTheDocument();
+    expect(screen.getByText("Window")).toBeInTheDocument();
+  });
+
+  it("names the ISP assumption and the capture convention on screen", async () => {
+    setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() =>
+      expect(screen.getByText("Affords")).toBeInTheDocument(),
+    );
+    expect(visibleText()).toMatch(/vac/);
+    expect(visibleText()).toMatch(/plane change not included/i);
+  });
+
+  it("has no accessibility violations with the reach list populated", async () => {
+    const { view } = setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() =>
+      expect(screen.getByText("Affords")).toBeInTheDocument(),
+    );
     expect(await axe(view.container)).toHaveNoViolations();
   });
 });

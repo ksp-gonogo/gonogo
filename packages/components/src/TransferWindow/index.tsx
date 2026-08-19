@@ -6,7 +6,7 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
@@ -30,6 +30,10 @@ import { useAlarmCreator } from "../shared/AlarmsLauncher";
 import {
   buildTransferPorkchop,
   computeTransfer,
+  type ReachEntry,
+  type ReachVerdict,
+  reachEntries,
+  reachVerdict,
   type TransferWindowEntry,
   transferDestinations,
   upcomingWindows,
@@ -52,11 +56,44 @@ import {
 
 const WINDOW_COUNT = 5;
 
+/**
+ * UT seconds the reach list's phase solve is quantised to. A minute of game time
+ * moves an interplanetary phase angle by nothing an operator can read, and the
+ * alternative is re-solving every destination on every frame the clock advances.
+ */
+const REACH_RECOMPUTE_UT = 60;
+
+const VERDICT_LABEL: Record<ReachVerdict, string> = {
+  go: "GO",
+  "one-way": "ONE WAY",
+  marginal: "MARGINAL",
+  no: "NO",
+};
+
+/**
+ * `one-way` is deliberately a WARNING and not a failure: a flyby or an impactor is
+ * a real mission, and colouring it as a refusal would tell the operator the wrong
+ * thing about what their craft can do. `marginal` is the coplanar model declining
+ * to commit, which is the same shape of statement.
+ */
+const VERDICT_SEVERITY: Record<ReachVerdict, Severity | undefined> = {
+  go: "nominal",
+  "one-way": "warning",
+  marginal: "warning",
+  no: "critical",
+};
+
 interface TransferWindowConfig {
   /** Show the porkchop plot. Default: true. */
   showPorkchop?: boolean;
   /** Alarm lead time in hours (warp steps down this far before the window). Default: 6. */
   leadHours?: number;
+  /**
+   * Δv held back from the reach verdicts (m/s). Default 0, so out of the box the
+   * verdict is plain arithmetic on the whole vehicle figure and nobody inherits a
+   * fudge factor they did not choose. Set it to reserve a lander's descent budget.
+   */
+  reserveDeltaV?: number;
 }
 
 /** Local mirror of the app's TimeTrigger shape (components can't import app). */
@@ -134,6 +171,7 @@ function TransferWindowComponent({
 }: ComponentProps<TransferWindowConfig>) {
   const showPorkchop = config?.showPorkchop ?? true;
   const leadSeconds = (config?.leadHours ?? 6) * 3600;
+  const reserveDeltaV = config?.reserveDeltaV ?? 0;
 
   /**
    * The parking orbit, and what of it survives the link going quiet.
@@ -167,7 +205,43 @@ function TransferWindowComponent({
   const bodies = useCelestialBodies();
   // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
   // and the instant type earns nothing threaded through it. Unwrapped once, here.
-  const nowUt = useViewUt()?.magnitude ?? 0;
+  const viewUt = useViewUt();
+  const nowUt = viewUt?.magnitude ?? 0;
+
+  /**
+   * The vehicle's Δv, and the third provenance on this panel.
+   *
+   * A DESCRIPTION in `LandingStatus`'s sense, and that doc names this exact
+   * quantity: "how much delta-v there was" renders from a last-known value,
+   * labelled. The operator's standing position settles the rest: we plan with what
+   * we have, and running dry at execution is operator error. So a dated budget is
+   * captioned, never withheld.
+   *
+   * It is dated more carefully than the parking orbit above, because the two decay
+   * differently. Elements do not drift; only a burn or an SOI change moves them,
+   * and both are events. A budget only ever falls, by burning, and rises solely by
+   * staging or docking. So an old budget systematically OVER-states what is
+   * reachable, and every error it makes promises a body the craft cannot get to.
+   * Hence `budgetNotCurrent` hollows the verdict pips rather than only adding a
+   * line of text: "GO, six minutes ago" must not read as "GO".
+   *
+   * No `withoutReckoning`. Nothing registers a reckoner for `dv.summary` today, so
+   * this presents as `stale`, but the topic is deliberately absent from
+   * `NEVER_RECKONABLE`: Δv against a burn rate is a real rate-integrable pairing,
+   * and a list that had declined the model in advance would be the wrong default
+   * the day someone writes it.
+   */
+  const budgetReading = useTelemetry("dv.summary");
+  const budgetDeltaV =
+    stillTrue(budgetReading, null)?.totalDvVac?.magnitude ?? null;
+  const budgetNotCurrent = notCurrent(budgetReading);
+  /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
+  const budgetConfirmedAbsent = budgetReading.state === "absent";
+  const budgetAsOf = observedAt(budgetReading);
+  // Stays in the algebra: an instant minus an instant is a duration, and `Unit`
+  // renders it. Unwrapping here would type a unit symbol beside a number, which is
+  // what `Unit` exists to prevent.
+  const budgetAge = viewUt && budgetAsOf ? viewUt.minus(budgetAsOf) : null;
   const createAlarm = useAlarmCreator<TimeTrigger>();
 
   const origin = useMemo(
@@ -273,6 +347,28 @@ function TransferWindowComponent({
   const selected = windows[selIdx] ?? null;
 
   // Focus the porkchop on the selected window: window 0 is the base chart;
+  /**
+   * The reach list: every sibling, what it costs, and whether this craft affords it.
+   *
+   * Keyed on a COARSE view time rather than `nowUt`. `useViewUt` notifies at frame
+   * rate whenever the clock moves, and the phase angle does not change meaningfully
+   * inside a minute, so quantising here keeps a list of closed-form solves off the
+   * per-frame path. The window countdowns it produces are quoted in whole days.
+   */
+  const reachUtBucket = Math.floor(nowUt / REACH_RECOMPUTE_UT);
+  const reach = useMemo(
+    () =>
+      origin && parkingRadius != null && Number.isFinite(parkingRadius)
+        ? reachEntries({
+            origin,
+            bodies,
+            parkingRadius,
+            nowUt: reachUtBucket * REACH_RECOMPUTE_UT,
+          })
+        : [],
+    [origin, bodies, parkingRadius, reachUtBucket],
+  );
+
   // later windows rebuild centred on their own departure so their Δv surface
   // shows (each is a synodic period later, same bowl shape).
   const focusedPorkchop = useMemo(() => {
@@ -315,6 +411,24 @@ function TransferWindowComponent({
       panelTitle="Transfer Window"
       panelAside={
         <FieldRow>
+          {/*
+           * The budget sits with the verdicts it produced, on the same reasoning as
+           * the funds readout on any widget that spends money: an operator reading
+           * "NO" should not have to find another panel to learn what number said so.
+           * `vac` is on screen because the ISP assumption is part of the figure.
+           */}
+          {budgetDeltaV != null && (
+            <BudgetReadout>
+              <FieldLabel as="span">Budget</FieldLabel>
+              <Unit value={value("m/s", budgetDeltaV)} decimals={0} /> vac
+              {reserveDeltaV > 0 && (
+                <Muted>
+                  {" reserve "}
+                  <Unit value={value("m/s", reserveDeltaV)} decimals={0} />
+                </Muted>
+              )}
+            </BudgetReadout>
+          )}
           <FieldLabel htmlFor="transfer-dest">
             {origin.name ?? "Origin"} to
           </FieldLabel>
@@ -341,6 +455,26 @@ function TransferWindowComponent({
           <Text tone="warn" size="xs" role="status" aria-live="polite">
             Parking orbit no longer current: Δv is from the last known elements.
             Phase and window times stay live.
+          </Text>
+        )}
+        {/*
+         * The budget, beside the verdicts it produced. Three different sentences,
+         * and the widget must not collapse them: a dated figure still plans, a
+         * confirmed-absent one says the stock sim has nothing for this craft, and
+         * silence says we have not heard. Only the first renders a number.
+         */}
+        {budgetNotCurrent && budgetDeltaV != null && (
+          <Text tone="warn" size="xs" role="status" aria-live="polite">
+            Budget last heard{" "}
+            {budgetAge ? <Unit value={budgetAge} decimals={0} /> : "some time"}{" "}
+            ago. Δv only falls as you burn, so reach here can only be
+            optimistic.
+          </Text>
+        )}
+        {budgetConfirmedAbsent && (
+          <Text tone="warn" size="xs" role="status" aria-live="polite">
+            No Δv figure for this craft: the stock simulation reports none, so
+            costs are shown without a verdict.
           </Text>
         )}
         {solution ? (
@@ -391,6 +525,14 @@ function TransferWindowComponent({
                         })
                     : null
                 }
+              />
+
+              <ReachList
+                entries={reach}
+                originName={origin.name ?? "here"}
+                budgetDeltaV={budgetDeltaV}
+                reserveDeltaV={reserveDeltaV}
+                budgetNotCurrent={budgetNotCurrent}
               />
             </LeftCol>
 
@@ -486,6 +628,106 @@ function WindowsList({
           );
         })}
       </List>
+    </ListWrap>
+  );
+}
+
+/**
+ * The reach list: which destinations this craft can get to on its current budget,
+ * and roughly when.
+ *
+ * A table because it is genuinely tabular, sorted cheapest-first so the top row
+ * answers "the nearest thing I can reach". The verdict column is DROPPED ENTIRELY
+ * when there is no budget rather than filled with placeholders: an empty column
+ * invites the reader to supply a verdict, and no verdict is available.
+ */
+function ReachList({
+  entries,
+  originName,
+  budgetDeltaV,
+  reserveDeltaV,
+  budgetNotCurrent,
+}: {
+  entries: ReachEntry[];
+  originName: string;
+  budgetDeltaV: number | null;
+  reserveDeltaV: number;
+  budgetNotCurrent: boolean;
+}) {
+  if (entries.length === 0) return null;
+  const haveBudget = budgetDeltaV != null;
+
+  return (
+    <ListWrap>
+      <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
+      <ReachTable aria-describedby="reach-caption">
+        <thead>
+          <tr>
+            <ReachTh scope="col">Destination</ReachTh>
+            <ReachTh scope="col">Δv needed</ReachTh>
+            {haveBudget && <ReachTh scope="col">Affords</ReachTh>}
+            <ReachTh scope="col">Window</ReachTh>
+            <ReachTh scope="col">Transit</ReachTh>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => {
+            const verdict = reachVerdict(entry, budgetDeltaV, reserveDeltaV);
+            return (
+              <tr key={entry.body.index}>
+                <ReachTd>
+                  {entry.body.name ?? `Body ${entry.body.index}`}
+                </ReachTd>
+                <ReachTdNum>
+                  {entry.totalDeltaV != null ? (
+                    <Unit
+                      value={value("m/s", entry.totalDeltaV)}
+                      decimals={0}
+                    />
+                  ) : (
+                    NULL_DISPLAY
+                  )}
+                </ReachTdNum>
+                {haveBudget && (
+                  <ReachTd>
+                    {verdict ? (
+                      // Dated verdicts read as advisory rather than live. A stale
+                      // budget can only over-state reach (Δv falls by burning), so
+                      // "GO as of some minutes ago" must not wear the live GO
+                      // colour.
+                      <Badge
+                        severity={
+                          budgetNotCurrent
+                            ? undefined
+                            : VERDICT_SEVERITY[verdict]
+                        }
+                      >
+                        {VERDICT_LABEL[verdict]}
+                      </Badge>
+                    ) : (
+                      NULL_DISPLAY
+                    )}
+                  </ReachTd>
+                )}
+                <ReachTdNum>
+                  {entry.waitSeconds != null
+                    ? fmtCountdown(entry.waitSeconds)
+                    : NULL_DISPLAY}
+                </ReachTdNum>
+                <ReachTdNum>
+                  {entry.transferTimeSec != null
+                    ? fmtDays(entry.transferTimeSec)
+                    : NULL_DISPLAY}
+                </ReachTdNum>
+              </tr>
+            );
+          })}
+        </tbody>
+      </ReachTable>
+      <ReachFooter>
+        Coplanar circular model, plane change not included. Capture circularises
+        10 km above the destination's atmosphere.
+      </ReachFooter>
     </ListWrap>
   );
 }
@@ -793,8 +1035,13 @@ registerComponent<TransferWindowConfig>({
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },
   component: TransferWindowComponent,
-  dataRequirements: ["system.bodies", "vessel.orbit", "target.available"],
-  defaultConfig: { showPorkchop: true, leadHours: 6 },
+  dataRequirements: [
+    "system.bodies",
+    "vessel.orbit",
+    "target.available",
+    "dv.summary",
+  ],
+  defaultConfig: { showPorkchop: true, leadHours: 6, reserveDeltaV: 0 },
   actions: transferWindowActions,
   pushable: true,
   requires: ["flight"],
@@ -924,6 +1171,51 @@ const ListTitle = styled.div`
   font-size: var(--font-size-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+`;
+
+const BudgetReadout = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+`;
+
+const ReachTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+`;
+
+const ReachTh = styled.th`
+  text-align: left;
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-muted);
+  font-weight: normal;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--color-border-subtle);
+
+  &:not(:first-child) {
+    text-align: right;
+  }
+`;
+
+const ReachTd = styled.td`
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+`;
+
+const ReachTdNum = styled(ReachTd)`
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+`;
+
+const ReachFooter = styled.div`
+  color: var(--color-text-dim);
+  font-size: var(--font-size-xs);
 `;
 
 const List = styled.ul`
