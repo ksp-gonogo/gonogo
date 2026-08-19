@@ -28,7 +28,6 @@ import type {
   FogMaskCacheHandle,
   FogRevealSourceDefinition,
   LateTelemetrySubscribe,
-  MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SettingDefinition,
@@ -53,7 +52,6 @@ export interface GonogoHost {
   registerTheme(def: ThemeDefinition): void;
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
   registerFogRevealSource(def: FogRevealSourceDefinition): void;
-  registerMapPoiProvider(def: MapPoiProviderDefinition): void;
 
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
   /**
@@ -185,12 +183,6 @@ export interface GonogoHost {
   getFogRevealSources(): FogRevealSourceDefinition[];
   /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
   onFogRevealSourcesChange(cb: () => void): () => void;
-  /** Every registered map POI provider, in registration order. */
-  getMapPoiProviders(): MapPoiProviderDefinition[];
-  /** Subscribe to any change (register/unregister) in the POI provider registry. */
-  onMapPoiProvidersChange(cb: () => void): () => void;
-  /** Empty the POI provider registry. For tests; a running app never calls it. */
-  clearMapPoiProviders(): void;
   /**
    * Every augment bound into `slot`, ascending `priority`, ties in registration
    * order: the READ half of `registerAugment`.
@@ -215,16 +207,6 @@ export interface GonogoHost {
   clearContributions(): void;
   /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
   useFogMaskCache(): FogMaskCacheHandle | null;
-
-  /**
-   * Register a singleton handle for an Uplink, keyed by its id, the shared
-   * substrate for anything that needs to register a singleton object and
-   * have it looked up elsewhere without coupling the lookup site to the
-   * Uplink's own module (e.g. a relay-capable object, a WebRTC client).
-   */
-  registerUplinkHandle<T>(uplinkId: string, handle: T): void;
-  /** Look up a previously registered handle by Uplink id. `undefined` if none. */
-  getUplinkHandle<T = unknown>(uplinkId: string): T | undefined;
 
   /**
    * Declare an Uplink client's identity (Uplink Client Contract design

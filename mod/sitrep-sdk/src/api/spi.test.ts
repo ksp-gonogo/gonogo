@@ -201,38 +201,40 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(clearContributions).toHaveBeenCalledTimes(1);
     });
 
-    it("getMapPoiProviders fails LOUD with no host, resolves once installed", () => {
+    // The POI provider registry is NOT a shim any more: it moved into this
+    // package on 2026-08-19, so there is no host to fail loud against. These
+    // three used to assert the throw; asserting the OPPOSITE is what keeps the
+    // move honest, because a silent regression to the host path would otherwise
+    // look identical to a passing suite.
+    it("the POI provider registry needs no host, in either direction", () => {
       resetTestHost();
-      expect(() => barrel.getMapPoiProviders()).toThrow(named);
+      const changed = vi.fn();
+      const unsubscribe = barrel.onMapPoiProvidersChange(changed);
 
-      const providers = [{ id: "example-uplink:anomalies" }] as never;
-      const getMapPoiProviders = vi.fn().mockReturnValue(providers);
-      installTestHost({ getMapPoiProviders });
-      expect(barrel.getMapPoiProviders()).toBe(providers);
-    });
+      const provider = { id: "example-uplink:anomalies", usePois: () => [] };
+      barrel.registerMapPoiProvider(provider);
+      expect(changed).toHaveBeenCalledTimes(1);
+      expect(barrel.getMapPoiProviders()).toEqual([provider]);
 
-    it("onMapPoiProvidersChange fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      const cb = vi.fn();
-      expect(() => barrel.onMapPoiProvidersChange(cb)).toThrow(named);
-
-      const unsubscribe = vi.fn();
-      const onMapPoiProvidersChange = vi.fn().mockReturnValue(unsubscribe);
-      installTestHost({ onMapPoiProvidersChange });
-      expect(barrel.onMapPoiProvidersChange(cb)).toBe(unsubscribe);
-      expect(onMapPoiProvidersChange).toHaveBeenCalledWith(cb);
-    });
-
-    it("clearMapPoiProviders fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      expect(() => {
-        barrel.clearMapPoiProviders();
-      }).toThrow(named);
-
-      const clearMapPoiProviders = vi.fn();
-      installTestHost({ clearMapPoiProviders });
+      unsubscribe();
       barrel.clearMapPoiProviders();
-      expect(clearMapPoiProviders).toHaveBeenCalledTimes(1);
+      expect(barrel.getMapPoiProviders()).toEqual([]);
+      // Unsubscribed before the clear, so the count has not moved.
+      expect(changed).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps POI providers in registration order, not insertion-lucky order", () => {
+      resetTestHost();
+      barrel.clearMapPoiProviders();
+      const first = { id: "b:second-alphabetically", usePois: () => [] };
+      const second = { id: "a:first-alphabetically", usePois: () => [] };
+      barrel.registerMapPoiProvider(first);
+      barrel.registerMapPoiProvider(second);
+      expect(barrel.getMapPoiProviders().map((p) => p.id)).toEqual([
+        first.id,
+        second.id,
+      ]);
+      barrel.clearMapPoiProviders();
     });
 
     it("onFogRevealSourcesChange fails LOUD with no host, resolves once installed", () => {
@@ -258,32 +260,33 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
     });
   });
 
-  describe("Uplink-handle SPI", () => {
-    it("registerUplinkHandle fails LOUD with no host, resolves once installed", () => {
+  // Also no longer a shim: the handle registry moved into this package with the
+  // POI one, for the same reason (it named nothing above this leaf) and to close
+  // the same gap (an Uplink could write to it and had no published read).
+  describe("Uplink-handle registry, which needs no host", () => {
+    it("round-trips a handle and hands back the same object", () => {
       resetTestHost();
       const handle = { foo: "bar" };
-      expect(() =>
-        barrel.registerUplinkHandle("example-uplink", handle),
-      ).toThrow(named);
-
-      const registerUplinkHandle = vi.fn();
-      installTestHost({ registerUplinkHandle });
       barrel.registerUplinkHandle("example-uplink", handle);
-      expect(registerUplinkHandle).toHaveBeenCalledWith(
-        "example-uplink",
-        handle,
-      );
+      // `toBe`, not `toEqual`: a handle is a SINGLETON, and a registry that
+      // cloned it would satisfy structural equality while breaking every caller
+      // that relies on identity (a live WebRTC client, a relay object).
+      expect(barrel.getUplinkHandle("example-uplink")).toBe(handle);
+      barrel.clearUplinkHandles();
     });
 
-    it("getUplinkHandle fails LOUD with no host, resolves once installed", () => {
+    it("last write wins, and unregister removes just the one id", () => {
       resetTestHost();
-      expect(() => barrel.getUplinkHandle("example-uplink")).toThrow(named);
+      barrel.clearUplinkHandles();
+      barrel.registerUplinkHandle("a", { v: 1 });
+      barrel.registerUplinkHandle("a", { v: 2 });
+      barrel.registerUplinkHandle("b", { v: 3 });
+      expect(barrel.getUplinkHandle("a")).toEqual({ v: 2 });
 
-      const handle = { foo: "bar" };
-      const getUplinkHandle = vi.fn().mockReturnValue(handle);
-      installTestHost({ getUplinkHandle });
-      expect(barrel.getUplinkHandle("example-uplink")).toBe(handle);
-      expect(getUplinkHandle).toHaveBeenCalledWith("example-uplink");
+      barrel.unregisterUplinkHandle("a");
+      expect(barrel.getUplinkHandle("a")).toBeUndefined();
+      expect(barrel.getUplinkHandle("b")).toEqual({ v: 3 });
+      barrel.clearUplinkHandles();
     });
   });
 

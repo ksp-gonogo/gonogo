@@ -41,8 +41,6 @@ import type {
   DelayClockLike as SdkDelayClockLike,
   InFlightCommand as SdkInFlightCommand,
   LateTelemetrySubscribe as SdkLateTelemetrySubscribe,
-  MapPoi as SdkMapPoi,
-  MapPoiProviderDefinition as SdkMapPoiProviderDefinition,
   PerfBudgetOptions as SdkPerfBudgetOptions,
   Screen as SdkScreen,
   SettingsTabDefinition as SdkSettingsTabDefinition,
@@ -56,10 +54,6 @@ import type {
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
 import type { BodyDefinition as CoreBodyDefinition } from "./bodies";
 import type { Screen as CoreScreen } from "./contexts/ScreenContext";
-import type {
-  MapPoi as CoreMapPoi,
-  MapPoiProviderDefinition as CoreMapPoiProviderDefinition,
-} from "./mapPoi";
 import type { PerfBudgetOptions as CorePerfBudgetOptions } from "./perf/PerfBudget";
 import type { SettingsTabDefinition as CoreSettingsTabDefinition } from "./settingsTabs";
 import type * as Core from "./types";
@@ -123,22 +117,17 @@ type _ConfigFieldBack = Expect<Assignable<Core.ConfigField, SdkConfigField>>;
 type _DataKey = Expect<Assignable<SdkDataKey, Core.DataKey>>;
 type _DataKeyBack = Expect<Assignable<Core.DataKey, SdkDataKey>>;
 
-// Map/fog SPI (facade-sealing, 2026-07-19): BodyDefinition and MapPoi are
-// owned by core (bodies.ts / mapPoi.ts), not this file's ./types, checked
-// both directions same as every other core-owned mirror above.
+// Map SPI (facade-sealing, 2026-07-19): BodyDefinition is owned by core
+// (bodies.ts), not this file's ./types, checked both directions same as every
+// other core-owned mirror above.
+//
+// `MapPoi` and `MapPoiProviderDefinition` USED to be checked here, and no longer
+// need to be: the registry and its types moved into the sdk on 2026-08-19 and
+// core re-exports them, so the two sides are now one declaration and a mirror
+// test on them would compare a type to itself. That is the direction this whole
+// gate is meant to retire in, one type at a time.
 type _Body = Expect<Assignable<SdkBodyDefinition, CoreBodyDefinition>>;
 type _BodyBack = Expect<Assignable<CoreBodyDefinition, SdkBodyDefinition>>;
-type _MapPoi = Expect<Assignable<SdkMapPoi, CoreMapPoi>>;
-type _MapPoiBack = Expect<Assignable<CoreMapPoi, SdkMapPoi>>;
-// The PROVIDER descriptor was unchecked until 2026-08-19, and drifted: the
-// mirror's `usePois` had degraded to `() => unknown`, so a third-party author
-// registering a provider got no checking on what they returned.
-type _MapPoiProvider = Expect<
-  Assignable<SdkMapPoiProviderDefinition, CoreMapPoiProviderDefinition>
->;
-type _MapPoiProviderBack = Expect<
-  Assignable<CoreMapPoiProviderDefinition, SdkMapPoiProviderDefinition>
->;
 
 // Screen identity (facade-sealing, 2026-07-19): owned by
 // contexts/ScreenContext.tsx.
@@ -275,10 +264,6 @@ export type _SdkFacadeConformance = [
   _DataKeyBack,
   _Body,
   _BodyBack,
-  _MapPoi,
-  _MapPoiBack,
-  _MapPoiProvider,
-  _MapPoiProviderBack,
   _Screen,
   _ScreenBack,
   _SettingsTab,

@@ -26,6 +26,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "clearAugments",
   "clearContributions",
   "clearMapPoiProviders",
+  "clearUplinkHandles",
   "createPerfBudget",
   "defineUplinkClient",
   "getActiveTelemetryClient",
@@ -52,6 +53,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "safeRandomUuid",
   "setSetting",
   "subscribeSetting",
+  "unregisterUplinkHandle",
   "useActionInput",
   "useCommand",
   "useDataSchema",
@@ -102,7 +104,6 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     expect(() => barrel.registerTheme({} as never)).toThrow(named);
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
     expect(() => barrel.registerFogRevealSource({} as never)).toThrow(named);
-    expect(() => barrel.registerMapPoiProvider({} as never)).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
     expect(() => barrel.registerSetting({} as never)).toThrow(named);
     expect(() => barrel.useSetting("x", false)).toThrow(named);
@@ -113,6 +114,26 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     expect(() =>
       barrel.defineUplinkClient({ id: "x", version: "0.0.0", name: "X" }),
     ).toThrow(named);
+  });
+
+  it("the two OWNED registries work with no host at all", () => {
+    // The counterpart to the test above, and it has to be here rather than only
+    // in map-poi.test.ts / uplink-handles.test.ts: those import the registry
+    // module directly, so they would still pass if the BARREL went back to
+    // resolving these through the host. This asserts the barrel's own export is
+    // the real function, which is the property that changed.
+    resetTestHost();
+    const provider = { id: "gate:pois", usePois: () => [] };
+    expect(() => barrel.registerMapPoiProvider(provider)).not.toThrow();
+    expect(barrel.getMapPoiProviders()).toEqual([provider]);
+    barrel.clearMapPoiProviders();
+
+    expect(() =>
+      barrel.registerUplinkHandle("gate", { live: true }),
+    ).not.toThrow();
+    expect(barrel.getUplinkHandle("gate")).toEqual({ live: true });
+    barrel.clearUplinkHandles();
+    expect(barrel.getUplinkHandle("gate")).toBeUndefined();
   });
 
   it("hasHost reflects installation and never throws", () => {

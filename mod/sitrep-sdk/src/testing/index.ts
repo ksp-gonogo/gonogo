@@ -13,13 +13,16 @@
 // Testing Library and styled-components are OPTIONAL peers and this is a separate
 // entry from the root barrel, so a runtime consumer never resolves any of it.
 //
-// The spine helpers and the registry helpers are NOT here and will not be: they
-// need `core` / `sitrep-client`, which are above this leaf, so they live in
-// `@ksp-gonogo/sitrep-testing` instead. An earlier revision of this comment listed
-// them by name as a future proposal for this subpath, and that cost more than it
-// was worth: greps of the sdk for those symbols hit the prose and read as though
-// the subpath already exported them. The rule, with no names to mis-grep: if a
-// helper needs anything above this package, it belongs in `sitrep-testing`.
+// The rule for what belongs here, with no names to mis-grep: a helper lives in
+// this subpath once it needs nothing above this package, and in
+// `@ksp-gonogo/sitrep-testing` until then. That boundary MOVES as registries come
+// down into the leaf, and the spine and two registries below crossed it rather
+// than being reimplemented, so the direction of travel is that this subpath
+// eventually holds all of it and `sitrep-testing` retires.
+//
+// An earlier revision of this comment named the not-yet-here helpers as a future
+// proposal, and that cost more than it was worth: greps of the sdk for those
+// symbols hit the prose and read as though the subpath already exported them.
 // ---------------------------------------------------------------------------
 
 import { __setGonogoHost, type GonogoHost } from "../api/host";
@@ -52,6 +55,11 @@ export * from "@testing-library/react";
 // registry the shim wrote to, instead of reaching for ui-kit's copy and relying on
 // the two happening to be the same object.
 export { clearAugments, getAugmentsForSlot } from "../api/index";
+// The two registries this package OWNS outright rather than shimming, forwarded
+// here as well as from the root barrel. A test wants them from one import site,
+// and a test is the only caller of the `clear` half.
+export { clearMapPoiProviders } from "../api/map-poi";
+export { clearUplinkHandles } from "../api/uplink-handles";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,
 // `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`
 // was the only reason an Uplink's `sentCommands`/`isSubscribed` assertions needed a

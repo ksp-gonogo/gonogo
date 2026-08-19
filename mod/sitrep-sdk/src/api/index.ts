@@ -48,7 +48,6 @@ import type {
   ComponentDefinition,
   FogRevealSourceDefinition,
   LateTelemetrySubscribe,
-  MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SettingDefinition,
@@ -166,11 +165,24 @@ export const registerAugment = <S extends string>(
 export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
   getHost().registerFogRevealSource(def);
 
-export const registerMapPoiProvider = (def: MapPoiProviderDefinition): void =>
-  getHost().registerMapPoiProvider(def);
-
-export const registerUplinkHandle = <T>(uplinkId: string, handle: T): void =>
-  getHost().registerUplinkHandle(uplinkId, handle);
+// Two registries that are NOT shims: they live in this package. Neither named
+// anything above this leaf (one holds provider definitions, the other holds
+// opaque handles), so the host indirection bought nothing and cost an Uplink the
+// read half: it could register a POI provider or a handle and then had no
+// published way to assert it had. See `./map-poi.ts` and `./uplink-handles.ts`
+// for why their state sits in a `globalThis` slot rather than a module static.
+export {
+  clearMapPoiProviders,
+  getMapPoiProviders,
+  onMapPoiProvidersChange,
+  registerMapPoiProvider,
+} from "./map-poi";
+export {
+  clearUplinkHandles,
+  getUplinkHandle,
+  registerUplinkHandle,
+  unregisterUplinkHandle,
+} from "./uplink-handles";
 
 /**
  * Declare an Uplink client's identity (Uplink Client Contract design §3.1).
@@ -428,26 +440,6 @@ export function onFogRevealSourcesChange(cb: () => void): () => void {
   return getHost().onFogRevealSourcesChange(cb);
 }
 
-// The read half of the POI provider registry, so an Uplink can HOST a mapping
-// surface and not only contribute points to someone else's. Its fog-reveal
-// sibling above has carried both halves from the start; POI providers shipped
-// with only `registerMapPoiProvider`, which is the asymmetry these close.
-
-/** Every registered map POI provider, in registration order. */
-export function getMapPoiProviders(): MapPoiProviderDefinition[] {
-  return getHost().getMapPoiProviders();
-}
-
-/** Subscribe to any change (register/unregister) in the POI provider registry. */
-export function onMapPoiProvidersChange(cb: () => void): () => void {
-  return getHost().onMapPoiProvidersChange(cb);
-}
-
-/** Empty the POI provider registry. For tests; a running app never calls it. */
-export function clearMapPoiProviders(): void {
-  getHost().clearMapPoiProviders();
-}
-
 // The read half of the contribution registry. The WRITE half stays on
 // `defineUplinkClient`'s handle rather than appearing here: the handle stamps
 // `${clientId}:` onto every id, and a bare `registerContribution` on this
@@ -472,11 +464,6 @@ export function clearContributions(): void {
 /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
 export function useFogMaskCache() {
   return getHost().useFogMaskCache();
-}
-
-/** Look up a previously registered Uplink handle by id. `undefined` if none. */
-export function getUplinkHandle<T = unknown>(uplinkId: string): T | undefined {
-  return getHost().getUplinkHandle<T>(uplinkId);
 }
 
 // --- Logger shim (stateful → injected host) ---------------------------------

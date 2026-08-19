@@ -3,27 +3,21 @@ import {
   ContributionsProvider,
   clearAugments,
   clearContributions,
-  clearMapPoiProviders,
   defineUplinkClient,
   getAugmentsForSlot,
   getBody,
   getContributionsForSlot,
   getFogRevealSources,
   getGameHost,
-  getMapPoiProviders,
-  getUplinkHandle,
   onContributionsChange,
   onFogRevealSourcesChange,
-  onMapPoiProvidersChange,
   PerfBudget,
   registerAugment,
   registerComponent,
   registerFogRevealSource,
-  registerMapPoiProvider,
   registerSetting,
   registerSettingsTab,
   registerTheme,
-  registerUplinkHandle,
   setSetting,
   subscribeSetting,
   useActionInput,
@@ -103,10 +97,6 @@ export function installRealTestHost(): () => void {
       registerFogRevealSource(
         def as Parameters<typeof registerFogRevealSource>[0],
       ),
-    registerMapPoiProvider: (def) =>
-      registerMapPoiProvider(
-        def as Parameters<typeof registerMapPoiProvider>[0],
-      ),
 
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
     // A single unconditional forward of both args, never a conditional call to
@@ -167,12 +157,6 @@ export function installRealTestHost(): () => void {
     },
     getFogRevealSources: () => getFogRevealSources(),
     onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
-    getMapPoiProviders: () =>
-      getMapPoiProviders() as ReturnType<GonogoHost["getMapPoiProviders"]>,
-    onMapPoiProvidersChange: (cb) => onMapPoiProvidersChange(cb),
-    clearMapPoiProviders: () => {
-      clearMapPoiProviders();
-    },
     getContributionsForSlot: (slot) =>
       getContributionsForSlot(slot) as ReturnType<
         GonogoHost["getContributionsForSlot"]
@@ -186,9 +170,6 @@ export function installRealTestHost(): () => void {
     useFogMaskCache: () =>
       useFogMaskCache() as ReturnType<GonogoHost["useFogMaskCache"]>,
 
-    registerUplinkHandle: (uplinkId, handle) =>
-      registerUplinkHandle(uplinkId, handle),
-    getUplinkHandle: (uplinkId) => getUplinkHandle(uplinkId),
     defineUplinkClient: (cfg) => defineUplinkClient(cfg),
 
     registerSettingsTab: (def) =>
