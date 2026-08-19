@@ -74,6 +74,9 @@ function extractDeclaredTopics(): Set<string> {
 }
 
 describe("C#-declared Topics stay in exact sync with the full runtime registry", () => {
+  // This walks the whole `mod/` tree with synchronous fs reads. Alone it is well
+  // under a second; run concurrently with the repo-scanning ratchets in `core` it
+  // has been measured past the 5s default, so it carries its own scan budget.
   it("every C# Topic is known, and every known Topic is declared in C#", () => {
     const declared = extractDeclaredTopics();
     const known = new Set<string>(getAllKnownTopicIds());
@@ -96,7 +99,7 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
       staleInRegistry,
       "runtime-registry Topics no longer declared in C#",
     ).toEqual([]);
-  });
+  }, 30_000);
 
   it("the bare-primitive Uplink Topics are present via client registration", () => {
     // A focused witness that the relocation's whole point holds: these are NOT in the
