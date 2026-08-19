@@ -660,5 +660,105 @@ namespace Sitrep.Host.Tests
                 ut: 1_950.0);
             Assert.Null(tracker.TryGetState("v")!.PredictedReacquisitionUt);
         }
+
+        /// <summary>
+        /// The onset instant is validated for FINITENESS, not for sign.
+        ///
+        /// <para>One guard used to serve both the onset instant and the cycle
+        /// duration, and its <c>&gt; 0.0</c> arm is correct for only one of them.
+        /// KSP's universal time starts at zero on a new save, so at <c>ut == 0</c>
+        /// the policy withheld every prediction and returned the fallback: a
+        /// plausible deadline rather than an error, which is why the loss was
+        /// silent.</para>
+        ///
+        /// <para>Each case asserts the BASIS, not the duration. The fallback and a
+        /// real prediction can agree on a number, so a test that only checked
+        /// seconds could not tell which path ran, and that indistinguishability
+        /// was the original defect rather than a way to detect it.</para>
+        [Theory]
+        [InlineData(0.0)]      // the origin: a new save's first moment
+        [InlineData(1e-9)]     // just above it, the control
+        [InlineData(-5_000.0)] // documents the rule; not reachable from the game clock
+        public void PredictsFromAnyFiniteOnsetIncludingZeroAndBelow(double onset)
+        {
+            var orbit = Circular(3600.0);
+            var emergence = onset + 900.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(emergence));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Equal(emergence, deadline.PredictedReacquisitionUt!.Value, 1);
+        }
+
+        /// <summary>
+        /// The finiteness arm still bites. Either of these would poison the sweep
+        /// bounds and the <c>emergence - ut</c> subtraction, so the fallback is
+        /// the right answer here, unlike at zero.
+        /// </summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NegativeInfinity)]
+        public void WithholdsAPredictionForANonFiniteOnset(double onset)
+        {
+            var orbit = Circular(3600.0);
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new OneCrossingGeometry(1_900.0));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            Assert.NotEqual(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Null(deadline.PredictedReacquisitionUt);
+        }
+
+        /// <summary>
+        /// The duration guard keeps its <c>&gt; 0.0</c> arm: a cadence of zero
+        /// divides the sweep step to nothing, so it is not a short cycle, it is
+        /// not a cycle. The orbital period stands in instead, which is
+        /// <see cref="PredictedReacquisitionSilenceDeadlinePolicy"/>'s own rule
+        /// for a geometry that declares no usable cadence.
+        /// </summary>
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(-60.0)]
+        public void ANonPositiveCadenceFallsBackToThePeriodRatherThanSizingAStepFromIt(double cadence)
+        {
+            var orbit = Circular(3600.0);
+            var onset = 1_000.0;
+            var emergence = onset + 900.0;
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
+                (sample, ut) => new CadencedOneCrossingGeometry(emergence, cadence));
+
+            var deadline = policy.Evaluate(Sample(orbit), ut: onset);
+
+            // Sized against the 3600 s period, so the grace matches the
+            // period-stepped case exactly: 4 * (3600/720) + 2 * 1 + 300 = 322.
+            Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, deadline.Basis);
+            Assert.Equal(900.0 + 322.0, deadline.DurationSec, 1);
+        }
+
+        /// <summary>
+        /// <see cref="OneCrossingGeometry"/> plus a declared cadence, so a test
+        /// can drive the duration guard in <c>CycleOf</c>.
+        /// </summary>
+        private sealed class CadencedOneCrossingGeometry : IVisibilityGeometry, IVisibilityCadence
+        {
+            private readonly OneCrossingGeometry _inner;
+
+            public CadencedOneCrossingGeometry(double clearsAt, double cadence)
+            {
+                _inner = new OneCrossingGeometry(clearsAt);
+                ShortestCycleSeconds = cadence;
+            }
+
+            public double? ShortestCycleSeconds { get; }
+
+            public double MarginAt(double ut) => _inner.MarginAt(ut);
+
+            public double SeparationAt(double ut) => _inner.SeparationAt(ut);
+        }
+
     }
 }

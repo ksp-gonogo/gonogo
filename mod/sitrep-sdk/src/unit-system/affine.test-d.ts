@@ -85,14 +85,15 @@ seconds.lessThan(ut);
 export const _utOrdersAgainstUt: boolean = ut.lessThan(laterUt);
 export const _secondsOrderAgainstHours: boolean = seconds.lessThan(hours);
 
-// ── the two non-affine multi-kind dimensions are UNCHANGED ─────────────────
+// ── the other two multi-kind dimensions get their own answers ──────────────
 //
-// `energy` and `torque` coincide on {kg:1,m:2,s:-2}. That `J.plus(N·m)` compiles is
-// a real defect, and it is NOT this mechanism's to fix: it is on the ledger as its
-// own item. Asserted here so that if the affine rules ever widen to cover
-// coincidental pairs, it is a deliberate change that breaks this line rather than a
-// silent one.
-export const _energyStillTakesTorque = value("J", 1).plus(value("N·m", 1));
+// `energy` and `torque` coincide on {kg:1,m:2,s:-2}, and that is now refused by the
+// COINCIDENTAL mechanism rather than this one. Two declarations, two rules: a pair
+// opts in to interaction here, and opts in to refusal there. Asserted from this file
+// so that widening the affine rules to swallow coincidental pairs breaks a line
+// instead of quietly changing what `ut` means.
+// @ts-expect-error: refused by `coincidentWith`, not by the affine layer
+export const _energyRefusesTorque = value("J", 1).plus(value("N·m", 1));
 
 // `percent` and `ratio` are the SAME quantity at two scales, and arithmetic between
 // them is not merely legal but already relied on by `.in("%")`. If the mechanism

@@ -53,9 +53,13 @@ describe("affine units at runtime", () => {
   it("leaves a non-affine dimension's subtraction on the left operand's unit", () => {
     // The control. If `minus` had started rewriting units generally rather than
     // only for point-like ones, this is what would move.
-    const work = value("J", 10).minus(value("N·m", 4));
-    expect(work.unit).toBe("J");
-    expect(work.magnitude).toBe(6);
+    //
+    // Power, not energy: this was J minus N·m until those two were declared
+    // COINCIDENTAL and stopped combining at all. The control needs a dimension
+    // that is neither affine nor coincidental, and power is one.
+    const output = value("kW", 2).minus(value("W", 500));
+    expect(output.unit).toBe("kW");
+    expect(output.magnitude).toBe(1.5);
   });
 });
 

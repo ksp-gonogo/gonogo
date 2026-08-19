@@ -183,11 +183,49 @@ type Comparand<U extends string> = [PointUnit] extends [never]
  */
 type ScalarFor<U extends string> = U extends PointUnit ? never : number;
 
+/**
+ * The coincidental layer: units that share a dimension while measuring
+ * unrelated quantities.
+ *
+ * Reads the `coincidentWith` declaration off `UNIT_DEFINITIONS`, so a kind that
+ * does not declare one is untouched. That is what keeps `percent`/`ratio`
+ * combining: they are the same quantity at two scales and `.in("%")` depends on
+ * it.
+ */
+
+/** The kind `U`'s kind merely coincides with, per its declaration. */
+type CoincidentKindOf<U> = U extends KnownUnit
+  ? (typeof UNIT_DEFINITIONS)[U] extends { coincidentWith: infer C }
+    ? C
+    : never
+  : never;
+
+/**
+ * The units `U` shares a dimension with but must not be combined with: those
+ * whose kind is the one `U` declares itself merely coincident with.
+ */
+type CoincidentWith<U> = {
+  [K in SameDimensionAs<U>]: (typeof UNIT_DEFINITIONS)[K &
+    KnownUnit]["kind"] extends CoincidentKindOf<U>
+    ? K
+    : never;
+}[SameDimensionAs<U>];
+
+/**
+ * The coincidental exclusion lands HERE rather than on `Addend` and `Comparand`
+ * separately, because this type is the whole additive surface: `plus`, `minus`,
+ * `in`, the four orderings and `min`/`max` all constrain through it, and
+ * `Addend`/`Comparand` are built on top.
+ *
+ * `times` and `dividedBy` take a free `W extends string` and never consult this
+ * type, which is exactly the wanted scope: `force.times(distance)` is a `J` and
+ * `energy.dividedBy(torque)` is the angle swept, both real.
+ */
 type CombinableWith<U extends string> = [U] extends [UnknownUnit]
   ? never
   : [SameDimensionAs<U>] extends [never]
     ? U
-    : SameDimensionAs<U>;
+    : Exclude<SameDimensionAs<U>, CoincidentWith<U>>;
 
 /**
  * A quantity that carries its own unit.
@@ -376,6 +414,29 @@ function baseMagnitude(value: Value): number {
   return value.magnitude * ratioOf(value.unit);
 }
 
+/** The kind a unit declares itself merely coincident with, if any. */
+function coincidentKindFor(unit: string): string | undefined {
+  return definitionOf(unit)?.coincidentWith;
+}
+
+/**
+ * True when these two share a dimension but measure unrelated quantities, per
+ * the `coincidentWith` declarations. Symmetric by data rather than by code: both
+ * sides of a pair declare it.
+ */
+function areCoincidental(a: string, b: string): boolean {
+  const aKind = definitionOf(a)?.kind;
+  const bKind = definitionOf(b)?.kind;
+  if (aKind === undefined || bKind === undefined) return false;
+  return coincidentKindFor(a) === bKind || coincidentKindFor(b) === aKind;
+}
+
+/**
+ * The one runtime chokepoint for `plus`, `minus`, `in` and the orderings, which
+ * is why the coincidental refusal lives here rather than in four places. The
+ * multiplicative operators do not pass through it, matching the type-level
+ * scope: a torque times an angle is work.
+ */
 function requireSameDimension(a: Value, b: Value, operation: string): void {
   const left = dimensionOf(a.unit);
   const right = dimensionOf(b.unit);
@@ -384,6 +445,15 @@ function requireSameDimension(a: Value, b: Value, operation: string): void {
       `Cannot ${operation} ${a.unit} and ${b.unit}: ` +
         `${Dim.formatDimension(left) || "dimensionless"} is not ` +
         `${Dim.formatDimension(right) || "dimensionless"}.`,
+    );
+  }
+  if (areCoincidental(a.unit, b.unit)) {
+    throw new TypeError(
+      `Cannot ${operation} ${a.unit} and ${b.unit}: ` +
+        `${definitionOf(a.unit)?.kind} and ${definitionOf(b.unit)?.kind} share ` +
+        `the dimension ${Dim.formatDimension(left) || "dimensionless"} but are ` +
+        "unrelated quantities. Multiplication and division between them are " +
+        "still available where they mean something.",
     );
   }
 }
@@ -474,6 +544,12 @@ const prototype = {
       return this.magnitude === other;
     }
     if (!Dim.equal(dimensionOf(this.unit), dimensionOf(other.unit))) {
+      return false;
+    }
+    // A total predicate, so a coincidental pair answers `false` rather than
+    // throwing the way the additive operators do. One joule is not one newton
+    // metre, and before this it said it was.
+    if (areCoincidental(this.unit, other.unit)) {
       return false;
     }
     return baseMagnitude(this) === baseMagnitude(other);

@@ -22,10 +22,22 @@ const hours = value("h", 2);
 // ── Same dimension, different name: allowed ─────────────────────────────────
 export const _wattsPlusJoulesPerSecond = watts.plus(joulesPerSecond);
 
-// ── Same dimension, different KIND: allowed, and deliberately so ────────────
-// Kind gating cannot name the kind of `force.times(distance)`, so kind is
-// display-only and `format="N·m"` is how a torque keeps reading as a torque.
+// ── Same dimension, COINCIDENTAL kinds: refused ─────────────────────────────
+// Energy and torque share {kg:1,m:2,s:-2} while measuring unrelated quantities,
+// and both declare `coincidentWith`. Adding them was legal until that landed.
+// @ts-expect-error: a torque and an energy are not the same quantity
 export const _torquePlusEnergy = newtonMetres.plus(joules);
+// @ts-expect-error: and refused from the other side, since both sides declare it
+export const _energyPlusTorque = joules.plus(newtonMetres);
+// @ts-expect-error: converting between them is not a change of scale
+export const _energyAsTorque = joules.in("N·m");
+// @ts-expect-error: nor is there an ordering between them
+export const _energyUnderTorque = joules.lessThan(newtonMetres);
+
+// Multiplication and division are deliberately NOT refused: a torque times an
+// angle is work, and an energy over a torque is the angle swept. Both stay.
+export const _torqueTimesAngle = newtonMetres.times(2);
+export const _energyOverTorque = joules.dividedBy(newtonMetres);
 
 // ── Same dimension, different scale: allowed, and converts ──────────────────
 export const _hoursPlusSeconds = hours.plus(seconds);

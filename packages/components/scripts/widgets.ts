@@ -36,6 +36,29 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [{ name: "full-w12", w: 12, h: 16 }],
   },
   {
+    // CURRENCY showcase: whether an operator can tell, at a glance, which
+    // numbers the board is asserting and which it is merely describing.
+    //
+    // The rule it renders is "describe from what we have, refuse to instruct
+    // from what we do not": altitude, velocity and the delta-v margin are
+    // descriptions and survive a stale input with a caption, while the
+    // suicide-burn instant is an instruction and is withheld outright. Losing
+    // contact mid-descent is the expected case rather than an edge, so the
+    // interesting render is the stale one, not the live one.
+    //
+    // Both a wide and a narrow mode, because the caption competing with the
+    // hero for room is a small-breakpoint problem.
+    widgetId: "landing-status",
+    label: "landing-status/currency",
+    fixturesPath: "LandingStatus/__render_currency__",
+    outPath: "renders/landing-status/currency",
+    fullContent: true,
+    modes: [
+      { name: "full-w12", w: 12, h: 16 },
+      { name: "compact-4x5", w: 4, h: 5 },
+    ],
+  },
+  {
     // Terrain-type showcase: the Touchdown Reticle relief across distinct
     // synthesized terrains (flat / slope / steep / crater / ridge / boulder),
     // one near-touchdown frame each so the hillshade + SAFE/MARGINAL/DIVERT
