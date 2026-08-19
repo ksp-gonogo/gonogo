@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ActionMenu, type ActionMenuItem } from "./ActionMenu";

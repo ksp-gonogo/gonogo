@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";

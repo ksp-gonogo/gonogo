@@ -1,4 +1,4 @@
-import { render } from "@ksp-gonogo/test-utils";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Gauge } from "./Gauge";
 

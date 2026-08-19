@@ -19,15 +19,6 @@
  * array.
  */
 
-import {
-  clearActionHandlers,
-  clearAugments,
-  clearRegistry,
-  clearUplinkHandles,
-  DashboardItemContext,
-  dispatchAction,
-  getAugmentsForSlot,
-} from "@ksp-gonogo/core";
 import type {
   CameraKind,
   CameraLifecycle,
@@ -35,11 +26,6 @@ import type {
   Layer,
 } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
 import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -48,7 +34,18 @@ import {
   render,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  clearActionHandlers,
+  clearRegistry,
+  clearUplinkHandles,
+  DashboardItemContext,
+  dispatchAction,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+} from "@ksp-gonogo/sitrep-testing";
+import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

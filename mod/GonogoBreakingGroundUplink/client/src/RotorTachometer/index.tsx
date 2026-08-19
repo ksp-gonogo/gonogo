@@ -1,16 +1,16 @@
-import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   value as quantity,
   registerComponent,
   useActionInput,
+  useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Gauge } from "@ksp-gonogo/ui";
 import {
   ActionButton,
   Cluster,
   EmptyState,
+  Gauge,
   Inline,
   magnitudeOr,
   Panel,

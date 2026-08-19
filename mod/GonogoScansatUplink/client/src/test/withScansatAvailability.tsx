@@ -1,5 +1,5 @@
-import { useTelemetry } from "@ksp-gonogo/core";
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   DomainAvailabilityProvider,
   useDomainAvailabilityStore,

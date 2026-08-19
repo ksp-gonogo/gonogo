@@ -1,17 +1,16 @@
+import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
+  BufferedDataSource,
   clearRegistry,
+  MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
-import type { DataKey } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

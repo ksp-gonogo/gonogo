@@ -8,7 +8,8 @@ import type {
   LabEntry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import {
   KERBALISM_SCIENCE_PROVIDER_ID,
@@ -22,7 +23,6 @@ import {
   SCIENCE_INSTRUMENTS_TOPIC,
   SCIENCE_LAB_TOPIC,
 } from "./science";
-import { setupStreamFixture } from "./test/setupStreamFixture";
 
 // src -> client -> GonogoKerbalismUplink -> mod
 const MOD_ROOT = join(

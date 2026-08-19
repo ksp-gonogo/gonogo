@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { createRef } from "react";
 import { describe, expect, it } from "vitest";
 import { Cluster } from "./Cluster";

@@ -1,5 +1,5 @@
-import type { DerivedGet } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
+import type { DerivedGet } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import {
   deriveResourceProjectionReckoning,

@@ -1,4 +1,4 @@
-import { render } from "@ksp-gonogo/test-utils";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import { ActionMenu } from "./ActionMenu";
 import { axe } from "./test/axe";

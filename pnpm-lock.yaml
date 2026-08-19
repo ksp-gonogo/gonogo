@@ -79,15 +79,6 @@ importers:
 
   mod/GonogoAvionicsUplink/client:
     dependencies:
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -101,9 +92,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -140,15 +131,6 @@ importers:
 
   mod/GonogoBreakingGroundUplink/client:
     dependencies:
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -162,9 +144,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -214,15 +196,12 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
       '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -250,30 +229,18 @@ importers:
 
   mod/GonogoKerbcastUplink/client:
     dependencies:
-      '@ksp-gonogo/components':
-        specifier: workspace:*
-        version: link:../../../packages/components
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
       '@ksp-gonogo/kerbcast':
         specifier: ^1.8.1
         version: 1.8.1
       '@ksp-gonogo/kerbcast-react':
         specifier: ^1.8.1
         version: 1.8.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(styled-components@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
-      '@ksp-gonogo/logger':
-        specifier: workspace:*
-        version: link:../../../packages/logger
       '@ksp-gonogo/sitrep-client':
         specifier: workspace:*
         version: link:../../../packages/sitrep-client
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -284,9 +251,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -323,21 +290,6 @@ importers:
 
   mod/GonogoKosUplink/client:
     dependencies:
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@ksp-gonogo/data':
-        specifier: workspace:*
-        version: link:../../../packages/data
-      '@ksp-gonogo/logger':
-        specifier: workspace:*
-        version: link:../../../packages/logger
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -357,9 +309,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -408,12 +360,6 @@ importers:
 
   mod/GonogoMechJebUplink/client:
     dependencies:
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -424,9 +370,9 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -469,22 +415,16 @@ importers:
 
   mod/GonogoRealAntennasUplink/client:
     dependencies:
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
       react:
         specifier: ^18.0.0
         version: 18.3.1
     devDependencies:
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -506,18 +446,6 @@ importers:
 
   mod/GonogoScansatUplink/client:
     dependencies:
-      '@ksp-gonogo/components':
-        specifier: workspace:*
-        version: link:../../../packages/components
-      '@ksp-gonogo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@ksp-gonogo/data':
-        specifier: workspace:*
-        version: link:../../../packages/data
-      '@ksp-gonogo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../../../packages/ui-kit
@@ -528,15 +456,12 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../sitrep-sdk
-      '@ksp-gonogo/test-utils':
+      '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
-        version: link:../../../packages/test-utils
+        version: link:../../../packages/sitrep-testing
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -592,12 +517,21 @@ importers:
       '@ksp-gonogo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@types/react':
         specifier: ^18.3.28
         version: 18.3.28
       react:
         specifier: ^18.0.0
         version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   mod/sitrep-server:
     dependencies:
@@ -690,6 +624,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ksp-gonogo/sitrep-testing':
+        specifier: workspace:*
+        version: link:../sitrep-testing
       '@ksp-gonogo/test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -1073,14 +1010,51 @@ importers:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
 
-  packages/test-utils:
+  packages/sitrep-testing:
     dependencies:
-      '@ksp-gonogo/theme':
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      styled-components:
+        specifier: ^6.0.0
+        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@ksp-gonogo/core':
         specifier: workspace:*
-        version: link:../theme
+        version: link:../core
+      '@ksp-gonogo/data':
+        specifier: workspace:*
+        version: link:../data
+      '@ksp-gonogo/logger':
+        specifier: workspace:*
+        version: link:../logger
+      '@ksp-gonogo/sitrep-client':
+        specifier: workspace:*
+        version: link:../sitrep-client
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
+      '@ksp-gonogo/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
+  packages/test-utils:
+    dependencies:
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -1178,9 +1152,6 @@ importers:
       '@ksp-gonogo/sitrep-sdk':
         specifier: workspace:*
         version: link:../../mod/sitrep-sdk
-      '@ksp-gonogo/test-utils':
-        specifier: workspace:*
-        version: link:../test-utils
       '@ksp-gonogo/theme':
         specifier: workspace:*
         version: link:../theme

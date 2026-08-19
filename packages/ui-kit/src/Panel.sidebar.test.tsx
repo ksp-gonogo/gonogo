@@ -1,4 +1,4 @@
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 

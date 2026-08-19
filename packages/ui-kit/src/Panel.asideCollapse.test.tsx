@@ -1,4 +1,9 @@
-import { fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";

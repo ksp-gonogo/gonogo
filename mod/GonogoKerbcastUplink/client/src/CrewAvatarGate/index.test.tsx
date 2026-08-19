@@ -6,16 +6,21 @@
  * CLAUDE.md's testing philosophy: mock at the boundary, not the module).
  */
 
+import { CameraKind, CrewLocation } from "@ksp-gonogo/kerbcast";
+import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
+import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearUplinkHandles,
   SettingsProvider,
   SettingsService,
-} from "@ksp-gonogo/core";
-import { CameraKind, CrewLocation } from "@ksp-gonogo/kerbcast";
-import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
-import { fireEvent, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { ModalProvider } from "@ksp-gonogo/ui";
+} from "@ksp-gonogo/sitrep-testing";
+import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";

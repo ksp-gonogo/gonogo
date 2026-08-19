@@ -21,11 +21,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ksp-gonogo/core": "workspace:*",
-    "@ksp-gonogo/data": "workspace:*",
-    "@ksp-gonogo/logger": "workspace:*",
-    "@ksp-gonogo/sitrep-client": "workspace:*",
-    "@ksp-gonogo/ui": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
@@ -33,7 +28,7 @@
   },
   "devDependencies": {
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
-    "@ksp-gonogo/test-utils": "workspace:*",
+    "@ksp-gonogo/sitrep-testing": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

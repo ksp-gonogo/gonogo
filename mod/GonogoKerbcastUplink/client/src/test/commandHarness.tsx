@@ -11,12 +11,12 @@
  * (its inferred type leaks `pretty-format` across the package boundary).
  */
 
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
-import { render } from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 
 export interface CommandClientHarness {

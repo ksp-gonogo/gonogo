@@ -19,16 +19,6 @@
 // (real -> mirror).
 // ---------------------------------------------------------------------------
 
-// Type-only, unused-looking import: forces `@ksp-gonogo/core`'s declarations
-// into this isolated `tsconfig.test-d.json` program so DeployedScience's own
-// `declare module "@ksp-gonogo/core" { interface SlotRegistry { ... } }`
-// augmentation (index.tsx) can resolve its target module. Nothing else in
-// this file's import graph reaches a real `@ksp-gonogo/core` import (unlike
-// the components-side sibling file, which transitively does via its many
-// OTHER widget imports): the same "type-only import pulls in a SlotRegistry
-// merge" idiom other Uplink client packages in this repo already use for
-// the same reason.
-import type {} from "@ksp-gonogo/core";
 import type { SlotProps as SdkSlotProps } from "@ksp-gonogo/sitrep-sdk";
 import type { DeployedExperimentContext } from "./DeployedScience";
 

@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import { visibleText } from "./testing";

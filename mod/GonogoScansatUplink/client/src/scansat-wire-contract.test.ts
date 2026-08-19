@@ -8,7 +8,7 @@ import {
   mapTopic,
   TimelineStore,
   ViewClock,
-} from "@ksp-gonogo/sitrep-client";
+} from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import { SCAN_TYPE } from "./schema";
 

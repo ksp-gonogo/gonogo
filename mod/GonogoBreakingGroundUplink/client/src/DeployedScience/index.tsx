@@ -456,12 +456,18 @@ export interface DeployedExperimentContext {
   body: string;
 }
 
-// Declaration-merge this widget's slot ids → their props types into core's
+// Declaration-merge this widget's slot ids → their props types into the sdk's
 // `SlotRegistry` (Uplink architecture §4.6). Kept co-located here, not in a
 // shared central registry file, so parallel per-widget slot work never
 // collides. `.sections` is a typed-contract per-card slot (carries the
 // experiment); `.badges` is a plain header escape-hatch (no props).
-declare module "@ksp-gonogo/core" {
+//
+// The target is `@ksp-gonogo/sitrep-sdk`, as it is for every other slot-owning
+// widget in the mod tree. This one named `@ksp-gonogo/core` until 2026-08-18,
+// which is a module a third-party author cannot install and therefore cannot
+// augment: the merge would simply never resolve for them, silently, leaving
+// every augment of this slot typed as the loose fallback.
+declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "deployed-science.sections": DeployedExperimentContext;
     "deployed-science.badges": Record<string, never>;

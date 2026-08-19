@@ -1,13 +1,16 @@
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   ContributionsProvider,
+  clearProcessorRuntime,
+  setupStreamFixture,
   useWidgetBadges,
+} from "@ksp-gonogo/sitrep-testing";
+import {
+  Panel,
+  PanelBadgesProvider,
   WidgetMetaContext,
-} from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { Panel, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
+} from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load
 // `KERBALISM.registerContribution(...)` (the panel badge under test).
 import "./badge";

@@ -1,8 +1,8 @@
-import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { resourceColor } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load registerComponent(...).
 import { fmtAmt, ShipSystemsComponent } from "./index";
 

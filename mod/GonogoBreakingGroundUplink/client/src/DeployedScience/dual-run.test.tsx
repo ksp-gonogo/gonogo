@@ -1,8 +1,10 @@
-import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
+import { act, render, waitFor, within } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  DashboardItemContext,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 import { DeployedScienceComponent } from "./index";
 
 /**

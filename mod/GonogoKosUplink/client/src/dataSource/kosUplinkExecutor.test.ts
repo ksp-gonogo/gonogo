@@ -1,4 +1,4 @@
-import { StubTransport, TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import { StubTransport, TelemetryClient } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { isKosScriptError } from "../shared/KosScriptError";

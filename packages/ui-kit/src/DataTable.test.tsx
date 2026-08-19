@@ -1,4 +1,4 @@
-import { render, screen, within } from "@ksp-gonogo/test-utils";
+import { render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { DataTable } from "./DataTable";
 import { axe } from "./test/axe";

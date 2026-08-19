@@ -1,4 +1,4 @@
-import { render } from "@ksp-gonogo/test-utils";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";

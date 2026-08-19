@@ -28,6 +28,10 @@ export default defineConfig({
   // author needs the readout helpers without them. `./guards` is split from
   // `./testing` in turn because it reads the filesystem, which would break a
   // browser-based test runner that only wanted the DOM helpers.
+  //
+  // The RENDER harness is NOT here: it is `@ksp-gonogo/sitrep-sdk/testing`, so
+  // an Uplink has one import site for its whole harness and the kit keeps its
+  // empty dependency list.
   entry: ["src/index.ts", "src/testing.ts", "src/guards.ts"],
   format: ["esm"],
   outDir: "dist",

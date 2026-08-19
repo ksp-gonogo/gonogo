@@ -1,24 +1,11 @@
-import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-// Resolve @ksp-gonogo/* workspace deps to their `src` (not built `dist`) so the
-// suite runs hermetically without a prior build, mirrors the components
-// package's vitest config, since the moved kOS widget tests were authored
-// against that resolution. `@ksp-gonogo/sitrep-client` / `@ksp-gonogo/sitrep-sdk` stay
-// unaliased (resolved from their built dist) exactly as they were in
-// @ksp-gonogo/components: the stream test-adapter and KosProcessors consume them.
-const pkgs = path.resolve(import.meta.dirname, "../../../packages");
+// No `@ksp-gonogo/*` aliases. This client imports only published packages, so
+// everything resolves from its own node_modules the way it would for an author
+// outside this repo. The aliases that used to be here pointed the private
+// packages at their `src`, which is part of what let the harness reach into them.
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@ksp-gonogo/core/test": path.resolve(pkgs, "core/src/test/helpers.ts"),
-      "@ksp-gonogo/core": path.resolve(pkgs, "core/src/index.ts"),
-      "@ksp-gonogo/data": path.resolve(pkgs, "data/src/index.ts"),
-      "@ksp-gonogo/logger": path.resolve(pkgs, "logger/src/index.ts"),
-      "@ksp-gonogo/ui": path.resolve(pkgs, "ui/src/index.ts"),
-    },
-  },
   test: {
     pool: "threads", // forks EPERM on macOS+Node24; matches packages/components config
     name: "kos",

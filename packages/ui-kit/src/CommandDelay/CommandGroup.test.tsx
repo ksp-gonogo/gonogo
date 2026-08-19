@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";

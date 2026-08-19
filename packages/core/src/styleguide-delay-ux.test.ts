@@ -79,6 +79,12 @@ const PLUMBING = [
   "packages/core/src/hooks/useExecuteAction.ts",
   // App-side host wiring: forwards the core hook into the sitrep-sdk facade.
   "packages/app/src/uplinks/host.ts",
+  // Test-side host wiring, the same forward for an Uplink's own suite. It has
+  // no choice: `GonogoHost` is a full interface and the harness builds a whole
+  // one, so TypeScript requires this member whether or not a widget calls it.
+  // Naming the hook here is not a new caller, it is the same plumbing as the
+  // app's builder one line up.
+  "packages/sitrep-testing/src/host.ts",
   // The sitrep-sdk facade: declares the host member + the passthrough shim.
   "mod/sitrep-sdk/src/api/host.ts",
   "mod/sitrep-sdk/src/api/index.ts",

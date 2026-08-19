@@ -1,14 +1,17 @@
-import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import {
   act,
   render as rtlRender,
   screen,
   waitFor,
-} from "@ksp-gonogo/test-utils";
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  clearActionHandlers,
+  DashboardItemContext,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RotorTachometerComponent } from "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the

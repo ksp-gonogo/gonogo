@@ -12,12 +12,19 @@ An Uplink client (`mod/Gonogo*Uplink/client/src/**`) may import:
 - **`@ksp-gonogo/ui-kit`**, the published design system
 - `react`, `styled-components`, and third-party packages
 
-Nothing else from this repo. `core`, `ui`, `components`, `data`, `logger` and
-`sitrep-client` are all `private: true` and unpublished, so an author outside this
-tree cannot install them, typecheck against them, or build.
+Nothing else from this repo. `core`, `ui`, `components`, `data`, `logger`,
+`sitrep-client` and `test-utils` are all `private: true` and unpublished, so an
+author outside this tree cannot install them, typecheck against them, or build. So
+are the Uplinks themselves, which is why one Uplink may not import another.
 
 `@ksp-gonogo/ui` and `@ksp-gonogo/ui-kit` are different packages. `ui` is private
 and app-side; only `ui-kit` is published.
+
+`@ksp-gonogo/test-utils` was the exception nobody noticed: it went unlisted in
+`FORBIDDEN_PACKAGES` until 2026-08-18, so the guard read as clean while 56 Uplink
+files imported it. It is now a one-line re-export of
+`@ksp-gonogo/ui-kit/testing-react`, which is where the themed `render`/`renderHook`
+live and is published. Import that.
 
 ### The import map is not a licence
 
@@ -48,10 +55,25 @@ sensible export sitting in the wrong package, not a design problem:
 - an authoring or runtime API (`registerComponent`, `AugmentSlot`,
   `useActionInput`, `PerfBudget`) → move or re-export it through
   `@ksp-gonogo/sitrep-sdk`
-- a test helper (`clearRegistry`, `MockDataSource`, `installDomStubs`,
-  `clearUplinkHandles`, `clearActionHandlers`) → publish it through
-  `@ksp-gonogo/sitrep-sdk/testing`, which currently exports only
-  `installTestHost` and `resetTestHost`
+- a render helper (`render`, `renderHook`, and the Testing Library surface
+  alongside them) → `@ksp-gonogo/ui-kit/testing-react`. It is a separate entry
+  from `@ksp-gonogo/ui-kit/testing` because that one deliberately imports nothing
+  from React or the DOM, and a runtime bundle must never pull React test code in
+- a test helper that needs the real spine (`clearRegistry`, `MockDataSource`,
+  `installDomStubs`, `clearUplinkHandles`, `clearActionHandlers`,
+  `setupStreamFixture`, and `installRealTestHost` itself) →
+  `@ksp-gonogo/sitrep-testing`, a published package that sits ABOVE `core` and
+  `sitrep-client` and hands over the REAL `TelemetryClient` / `TimelineStore` /
+  `StubTransport`. It exists, so an Uplink's tests should need nothing else
+
+  It deliberately does NOT go in `@ksp-gonogo/sitrep-sdk/testing`. The SDK is the
+  leaf everything else depends on, so it cannot re-export from `core` or
+  `sitrep-client` without a cycle, and the only way to publish a harness from
+  there would be to reimplement the spine over an in-memory store. That would
+  leave every stream test passing while testing a reimplementation of the thing
+  it is supposed to be evidence about, which is the exact inversion of
+  `CLAUDE.md`'s "mock as little of the system as possible". A third-party author
+  should run the same spine we do
 
 If you are unsure which package something belongs in, stop and ask rather than
 importing across the boundary "for now".
@@ -79,6 +101,18 @@ A dependency that works locally is not a dependency you have. Several Uplinks
 import packages their `package.json` never declares; those resolve only through
 pnpm workspace hoisting, and would be module-not-found for anyone else. If you
 add an import, declare it, and if you cannot declare it, you cannot import it.
+
+This runs both ways, and the reverse is the one that rots quietly: a declaration
+for a package nothing imports any more still makes the Uplink uninstallable, while
+reading like a live dependency to everyone after you. Kerbcast and Scansat
+declared `components` (and Scansat carried a vitest alias, plus a comment
+explaining a type-only import no file had contained) for weeks after the last
+import died. Three more Uplinks declared `ui` and five aliased it without a single
+importer between them.
+
+Both directions are enforced now: `DECLARED_DEPENDENCY_DEBT` covers the
+declarations, and a separate check derives staleness from the two scans, so it
+needs no list of its own and cannot itself go out of date.
 
 ## Enforcement
 

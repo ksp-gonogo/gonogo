@@ -1,8 +1,8 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
-import { setupStreamFixture } from "../test/setupStreamFixture";
 // Importing the real module runs its module-load registerAugment(...).
 import { CrewRadiationSummaryAugment, radiationSummaryFor } from "./summary";
 

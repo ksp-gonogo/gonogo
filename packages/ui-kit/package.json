@@ -44,7 +44,6 @@
   },
   "devDependencies": {
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
-    "@ksp-gonogo/test-utils": "workspace:*",
     "@ksp-gonogo/theme": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

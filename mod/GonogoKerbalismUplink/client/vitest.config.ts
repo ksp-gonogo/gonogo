@@ -1,13 +1,12 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-// Resolve the SDK + core workspace deps to their `src` so the suite runs
-// without a prior build. `@ksp-gonogo/sitrep-client` / `@ksp-gonogo/ui-kit`
-// stay unaliased (resolved from their built dist), matching every other
-// Uplink client's vitest config: the stream test-adapter and the rendered
-// widget expect the real published shape.
+// Only the SDK is aliased to its `src`, so the suite runs without a prior build
+// of it. Everything else resolves from node_modules the way it would for an
+// author outside this repo: `@ksp-gonogo/sitrep-testing` and
+// `@ksp-gonogo/ui-kit` are published, and the stream fixture and the rendered
+// widget both expect the real published shape.
 const sdkPkgs = path.resolve(import.meta.dirname, "../../sitrep-sdk");
-const corePkgs = path.resolve(import.meta.dirname, "../../../packages");
 
 export default defineConfig({
   resolve: {
@@ -17,7 +16,6 @@ export default defineConfig({
         "src/testing/index.ts",
       ),
       "@ksp-gonogo/sitrep-sdk": path.resolve(sdkPkgs, "src/index.ts"),
-      "@ksp-gonogo/core": path.resolve(corePkgs, "core/src/index.ts"),
     },
   },
   test: {

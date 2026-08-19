@@ -11,6 +11,7 @@ import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 import {
   BLOCKED_FILENAMES,
+  DECLARED_DEPENDENCY_DEBT,
   FORBIDDEN_PACKAGES,
   type ForbiddenPackage,
   INTERNAL_IMPORT_DEBT,
@@ -45,9 +46,19 @@ const ALLOWLIST_PATH = "packages/core/src/uplink-isolation.allowlist.ts";
  * inflated a first pass at this audit from 15 real violations to 72 and sent the
  * remediation after four Uplinks that were clean. A word boundary does not save
  * you, because `-` is a non-word character and `\bui\b` matches inside `ui-kit`.
+ *
+ * The terminator accepts `/` as well as a quote, so a SUBPATH import
+ * (`@ksp-gonogo/core/test`, which several Uplink vitest configs still alias) is
+ * caught. Nothing matched that form when the alternative was added; a check that
+ * only sees the bare specifier would have gone on reporting clean the first time
+ * one did.
+ *
+ * `from` is required. Without it the possessive in a comment ("`@ksp-gonogo/
+ * components`'s MapView") reads as a terminated specifier, which is how a summary
+ * of this audit once reported four imports that were four sentences.
  */
 const IMPORT_RE = new RegExp(
-  `from\\s*["']@ksp-gonogo/(${FORBIDDEN_PACKAGES.join("|")})["']`,
+  `from\\s*["']@ksp-gonogo/(${FORBIDDEN_PACKAGES.join("|")})(?:["']|/)`,
   "g",
 );
 
@@ -85,6 +96,44 @@ function scan(): Map<string, Set<ForbiddenPackage>> {
   return found;
 }
 
+/** `mod/Gonogo*Uplink/client/package.json`, in directory order. */
+function uplinkManifests(): string[] {
+  if (!existsSync(MOD_DIR)) return [];
+  const out: string[] = [];
+  for (const entry of readdirSync(MOD_DIR)) {
+    if (!/^Gonogo.*Uplink$/.test(entry)) continue;
+    const manifest = join(MOD_DIR, entry, "client", "package.json");
+    if (existsSync(manifest)) out.push(manifest);
+  }
+  return out;
+}
+
+function scanDeclaredDependencies(): Map<string, Set<ForbiddenPackage>> {
+  const forbidden = new Set<string>(FORBIDDEN_PACKAGES);
+  const found = new Map<string, Set<ForbiddenPackage>>();
+  for (const manifest of uplinkManifests()) {
+    const rel = relative(REPO_ROOT, manifest).split("\\").join("/");
+    const pkg = JSON.parse(readFileSync(manifest, "utf8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const hits = new Set<ForbiddenPackage>();
+    for (const name of Object.keys({
+      ...pkg.dependencies,
+      ...pkg.devDependencies,
+    })) {
+      const suffix = name.startsWith("@ksp-gonogo/")
+        ? name.slice("@ksp-gonogo/".length)
+        : undefined;
+      if (suffix !== undefined && forbidden.has(suffix)) {
+        hits.add(suffix as ForbiddenPackage);
+      }
+    }
+    if (hits.size > 0) found.set(rel, hits);
+  }
+  return found;
+}
+
 describe("uplink isolation", () => {
   /**
    * The instrument check, before any assertion that could pass by finding
@@ -98,6 +147,15 @@ describe("uplink isolation", () => {
     expect(
       new Set(files.map((f) => f.split("/mod/")[1]?.split("/")[0])).size,
     ).toBeGreaterThanOrEqual(8);
+  });
+
+  /**
+   * Instrument check for the manifest scan, for the same reason the source scan
+   * has one: `scanDeclaredDependencies` reporting nothing is indistinguishable
+   * from every Uplink being clean, and a renamed directory would produce it.
+   */
+  it("actually read the Uplink manifests", () => {
+    expect(uplinkManifests().length).toBeGreaterThanOrEqual(8);
   });
 
   it("no Uplink client imports an app-internal package outside the debt list", () => {
@@ -132,6 +190,44 @@ describe("uplink isolation", () => {
     ).toEqual([]);
   });
 
+  /**
+   * `@ksp-gonogo/sitrep-testing` is published, so every check above is happy with
+   * it, and a widget importing it would ship a test harness (and through it the
+   * whole spine, which that package inlines) inside a runtime bundle.
+   *
+   * This is not hypothetical either. Moving the harness there, a bulk re-point
+   * moved `DerivedChannelDefinition` into `resourceProjection.ts`, a production
+   * file, because the script sorted by symbol and not by who was importing. The
+   * types went back to where they came from and out of the harness's barrel;
+   * declaring a derived channel is a widget's job and needs a home on the sdk,
+   * which is an open gap rather than something to paper over from here.
+   */
+  it("no PRODUCTION Uplink file imports the test harness", () => {
+    const isTest = (f: string) =>
+      /\.test\.|\.test-d\.|\/test\/|__fixtures__|\/scripts\//.test(f);
+    const offenders = uplinkSourceFiles()
+      .map((f) => relative(REPO_ROOT, f).split("\\").join("/"))
+      .filter((f) => !isTest(f))
+      .filter((f) =>
+        /from\s*["']@ksp-gonogo\/sitrep-testing["']/.test(
+          readFileSync(join(REPO_ROOT, f), "utf8"),
+        ),
+      );
+    expect(
+      offenders,
+      [
+        "A production Uplink file imported @ksp-gonogo/sitrep-testing.",
+        "",
+        "That package is published, so the isolation checks above allow it, but it",
+        "is a TEST harness and it inlines core + sitrep-client. Importing it from a",
+        "widget puts the whole spine in a runtime bundle.",
+        "",
+        "If a widget needs the symbol at runtime, it belongs on @ksp-gonogo/",
+        "sitrep-sdk or @ksp-gonogo/ui-kit, not here.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
   it("does not re-introduce a blocked strategy", () => {
     const offenders = uplinkSourceFiles()
       .map((f) => relative(REPO_ROOT, f).split("\\").join("/"))
@@ -150,26 +246,163 @@ describe("uplink isolation", () => {
     ).toEqual([]);
   });
 
-  it("the debt list only ever shrinks", () => {
-    let baseSource: string;
-    try {
-      baseSource = execFileSync(
-        "git",
-        ["show", `${BASE_REF}:${ALLOWLIST_PATH}`],
-        { cwd: REPO_ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-      );
-    } catch {
-      // No base (first land, shallow clone, detached CI ref): nothing to diff
-      // against. Soft-pass, same as `uplink-boundary` does.
-      return;
+  /**
+   * The declaration half of the same rule. An import that resolves only through
+   * pnpm workspace hoisting is not one an outside author has, and the reverse
+   * (a declared dependency nothing imports) is a lie about the package's shape
+   * that outlives the import by weeks: two Uplinks still declared `components`
+   * when this check was written, long after the last import died.
+   */
+  it("no Uplink client DECLARES an app-internal package outside the debt list", () => {
+    const found = scanDeclaredDependencies();
+    const unlisted: string[] = [];
+    for (const [manifest, pkgs] of found) {
+      const allowed = DECLARED_DEPENDENCY_DEBT[manifest];
+      if (!allowed) {
+        unlisted.push(`${manifest} -> ${[...pkgs].join(", ")}`);
+        continue;
+      }
+      for (const pkg of pkgs) {
+        if (!allowed.includes(pkg)) unlisted.push(`${manifest} -> ${pkg}`);
+      }
     }
-    const js = transformSync(baseSource, { loader: "ts", format: "cjs" }).code;
-    const module_ = { exports: {} as Record<string, unknown> };
-    new Function("module", "exports", js)(module_, module_.exports);
-    const baseDebt = module_.exports.INTERNAL_IMPORT_DEBT as
-      | Record<string, readonly ForbiddenPackage[]>
-      | undefined;
-    if (!baseDebt) return;
+    expect(
+      unlisted,
+      [
+        "An Uplink client's package.json declares an app-internal package.",
+        "",
+        "A dependency that works locally through pnpm workspace hoisting is not a",
+        "dependency you have: an outside author installing from the registry gets",
+        "module-not-found. Declare only published packages.",
+        "",
+        "Same rule as the import list: do NOT add an entry here, move the export",
+        "you need into a published package instead.",
+        "",
+        "See docs/uplink-isolation.md.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
+  /**
+   * The staleness direction, which neither the import scan nor the declaration
+   * scan catches on its own: a manifest entry for a package this Uplink no
+   * longer imports anywhere. It still makes the Uplink uninstallable for an
+   * outsider while looking like a live dependency to everyone reading it, which
+   * is how one Uplink's `components` declaration AND its vitest alias outlived
+   * the last import by weeks, with a comment explaining a type-only import that
+   * no file had contained for just as long.
+   *
+   * Derived from the two scans rather than from a list of its own, so it has no
+   * upkeep and cannot itself go stale.
+   */
+  /**
+   * The debt lists are checked for GROWTH everywhere else in this file. Nothing
+   * checked whether an entry's violation was still there, so a fix somewhere else
+   * left the entry behind, silently, and the list could never reach zero by
+   * attrition: someone had to notice each dead line by hand. Publishing the render
+   * harness fixed a dozen files at a stroke and left a dozen stale entries nobody
+   * would have looked for.
+   *
+   * With this, every fix anywhere is an automatic reduction, and the list is
+   * self-cleaning rather than merely non-growing. It is the counterpart to
+   * `FORBIDDEN_PACKAGES never shrinks`: that one stops the SUBJECT narrowing, this
+   * one stops the LIST outliving its subject.
+   */
+  it("lists no debt that is already fixed", () => {
+    const found = scan();
+    const stale: string[] = [];
+    for (const [file, pkgs] of Object.entries(INTERNAL_IMPORT_DEBT)) {
+      const actual = found.get(file);
+      if (!actual) {
+        stale.push(`${file} (whole entry: imports none of ${pkgs.join(", ")})`);
+        continue;
+      }
+      for (const pkg of pkgs) {
+        if (!actual.has(pkg)) stale.push(`${file} -> ${pkg}`);
+      }
+    }
+    const declared = scanDeclaredDependencies();
+    for (const [manifest, pkgs] of Object.entries(DECLARED_DEPENDENCY_DEBT)) {
+      const actual = declared.get(manifest);
+      if (!actual) {
+        stale.push(
+          `${manifest} (whole entry: declares none of ${pkgs.join(", ")})`,
+        );
+        continue;
+      }
+      for (const pkg of pkgs) {
+        if (!actual.has(pkg)) stale.push(`${manifest} -> ${pkg}`);
+      }
+    }
+    expect(
+      stale,
+      [
+        "The debt list names a violation that no longer exists.",
+        "",
+        "Good news: something fixed it. Delete the line(s) above so the list keeps",
+        "telling the truth about what is left. A debt list that outlives its debt",
+        "reads as work remaining and hides how close to zero this is.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
+  it("declares nothing it no longer imports", () => {
+    const imported = new Map<string, Set<ForbiddenPackage>>();
+    for (const [file, pkgs] of scan()) {
+      const uplink = file.split("/")[1];
+      const into = imported.get(uplink) ?? new Set<ForbiddenPackage>();
+      for (const pkg of pkgs) into.add(pkg);
+      imported.set(uplink, into);
+    }
+    const stale: string[] = [];
+    for (const [manifest, pkgs] of scanDeclaredDependencies()) {
+      const uplink = manifest.split("/")[1];
+      for (const pkg of pkgs) {
+        if (!imported.get(uplink)?.has(pkg))
+          stale.push(`${manifest} -> ${pkg}`);
+      }
+    }
+    expect(
+      stale,
+      [
+        "An Uplink declares a forbidden package no file in it imports.",
+        "",
+        "Delete the declaration, and any vitest alias that went with it. The",
+        "point of clearing an import is to stop depending on the package, and a",
+        "manifest entry left behind still does.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
+  describe("the debt lists only ever shrink", () => {
+    /**
+     * Both lists at `BASE_REF`, or `undefined` when there is no base (first
+     * land, shallow clone, detached CI ref) and there is nothing to diff
+     * against. Soft-pass in that case, same as `uplink-boundary` does.
+     */
+    function baseAllowlist(): Record<string, unknown> | undefined {
+      let baseSource: string;
+      try {
+        baseSource = execFileSync(
+          "git",
+          ["show", `${BASE_REF}:${ALLOWLIST_PATH}`],
+          {
+            cwd: REPO_ROOT,
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe"],
+          },
+        );
+      } catch {
+        return undefined;
+      }
+      const js = transformSync(baseSource, {
+        loader: "ts",
+        format: "cjs",
+      }).code;
+      const module_ = { exports: {} as Record<string, unknown> };
+      new Function("module", "exports", js)(module_, module_.exports);
+      return module_.exports;
+    }
 
     /**
      * Compare only packages forbidden at BOTH ends. When `FORBIDDEN_PACKAGES`
@@ -179,30 +412,135 @@ describe("uplink isolation", () => {
      * forbidden at both ends is still strictly shrink-only, which is the part
      * that has to hold.
      */
-    const baseForbidden = new Set(
-      (module_.exports.FORBIDDEN_PACKAGES as readonly string[] | undefined) ??
-        FORBIDDEN_PACKAGES,
-    );
-    const graded = new Set(
-      FORBIDDEN_PACKAGES.filter((pkg) => baseForbidden.has(pkg)),
-    );
-
-    const added: string[] = [];
-    for (const [file, pkgs] of Object.entries(INTERNAL_IMPORT_DEBT)) {
-      const relevant = pkgs.filter((pkg) => graded.has(pkg));
-      if (relevant.length === 0) continue;
-      const before = baseDebt[file];
-      if (!before) {
-        added.push(`${file} (whole entry: ${relevant.join(", ")})`);
-        continue;
-      }
-      for (const pkg of relevant) {
-        if (!before.includes(pkg)) added.push(`${file} -> ${pkg}`);
-      }
+    function gradedPackages(base: Record<string, unknown>): Set<string> {
+      const baseForbidden = new Set(
+        (base.FORBIDDEN_PACKAGES as readonly string[] | undefined) ??
+          FORBIDDEN_PACKAGES,
+      );
+      return new Set(
+        FORBIDDEN_PACKAGES.filter((pkg) => baseForbidden.has(pkg)),
+      );
     }
-    expect(
-      added,
-      `Debt entries may only be REMOVED, never added, vs ${BASE_REF}. See docs/uplink-isolation.md.`,
-    ).toEqual([]);
+
+    function additions(
+      current: Record<string, readonly ForbiddenPackage[]>,
+      base: Record<string, readonly ForbiddenPackage[]>,
+      graded: Set<string>,
+    ): string[] {
+      const added: string[] = [];
+      for (const [file, pkgs] of Object.entries(current)) {
+        const relevant = pkgs.filter((pkg) => graded.has(pkg));
+        if (relevant.length === 0) continue;
+        const before = base[file];
+        if (!before) {
+          added.push(`${file} (whole entry: ${relevant.join(", ")})`);
+          continue;
+        }
+        for (const pkg of relevant) {
+          if (!before.includes(pkg)) added.push(`${file} -> ${pkg}`);
+        }
+      }
+      return added;
+    }
+
+    it("INTERNAL_IMPORT_DEBT", () => {
+      const base = baseAllowlist();
+      if (!base) return;
+      const baseDebt = base.INTERNAL_IMPORT_DEBT as
+        | Record<string, readonly ForbiddenPackage[]>
+        | undefined;
+      if (!baseDebt) return;
+      expect(
+        additions(INTERNAL_IMPORT_DEBT, baseDebt, gradedPackages(base)),
+        `Debt entries may only be REMOVED, never added, vs ${BASE_REF}. See docs/uplink-isolation.md.`,
+      ).toEqual([]);
+    });
+
+    it("DECLARED_DEPENDENCY_DEBT", () => {
+      const base = baseAllowlist();
+      if (!base) return;
+      const baseDebt = base.DECLARED_DEPENDENCY_DEBT as
+        | Record<string, readonly ForbiddenPackage[]>
+        | undefined;
+      // Absent at base: the list was seeded after BASE_REF, so every entry is
+      // the seed rather than growth. Graded from the next commit onwards.
+      if (!baseDebt) return;
+      expect(
+        additions(DECLARED_DEPENDENCY_DEBT, baseDebt, gradedPackages(base)),
+        `Declared-dependency debt may only be REMOVED, never added, vs ${BASE_REF}. See docs/uplink-isolation.md.`,
+      ).toEqual([]);
+    });
+
+    /**
+     * The debt lists shrink; the list of what counts as debt does the OPPOSITE.
+     * Dropping a name from `FORBIDDEN_PACKAGES` looks exactly like progress from
+     * every other angle in this file: the scan stops finding that package, its
+     * entries can be deleted as "cleared", and the shrink checks grade only
+     * packages forbidden at BOTH ends, so they stop grading it too. The suite
+     * goes green by no longer asking the question.
+     *
+     * That is not hypothetical. Clearing `ui` and `test-utils` from the debt
+     * list on 2026-08-18 was done with a regex over this file, which matched the
+     * entries AND the `FORBIDDEN_PACKAGES` members, and the full suite passed
+     * with `ui` silently unguarded, because by then nothing imported it. A build
+     * error over an unrelated union type is the only reason anyone looked.
+     */
+    it("FORBIDDEN_PACKAGES never shrinks", () => {
+      const base = baseAllowlist();
+      if (!base) return;
+      const baseForbidden = base.FORBIDDEN_PACKAGES as
+        | readonly string[]
+        | undefined;
+      if (!baseForbidden) return;
+      const now = new Set<string>(FORBIDDEN_PACKAGES);
+      expect(
+        baseForbidden.filter((pkg) => !now.has(pkg)),
+        [
+          `A package was REMOVED from FORBIDDEN_PACKAGES vs ${BASE_REF}.`,
+          "",
+          "The rule may widen, never narrow. An Uplink importing a private",
+          "package is unbuildable by an outside author whether or not this list",
+          "still mentions it, and removing the name only stops the guard asking.",
+          "",
+          "If an Uplink no longer imports it, delete the DEBT ENTRIES and leave",
+          "the package here so the next one is caught.",
+        ].join("\n"),
+      ).toEqual([]);
+    });
+
+    /**
+     * `BLOCKED_FILENAMES` has the same property as `FORBIDDEN_PACKAGES` and needs
+     * the same counterpart. Deleting an entry passes everything: the blocked-
+     * strategy check then finds no offenders because it is no longer looking for
+     * any, which is indistinguishable from the strategy not having come back.
+     *
+     * It is worse here than for the package list, because a blocked filename is a
+     * strategy someone already arrived at twice by careful reasoning from a wrong
+     * premise. It is the entry MOST likely to be removed by someone who has just
+     * re-derived it and believes they are correcting an oversight.
+     */
+    it("BLOCKED_FILENAMES never shrinks", () => {
+      const base = baseAllowlist();
+      if (!base) return;
+      const baseBlocked = base.BLOCKED_FILENAMES as
+        | readonly string[]
+        | undefined;
+      if (!baseBlocked) return;
+      const now = new Set<string>(BLOCKED_FILENAMES);
+      expect(
+        baseBlocked.filter((name) => !now.has(name)),
+        [
+          `A name was REMOVED from BLOCKED_FILENAMES vs ${BASE_REF}.`,
+          "",
+          "These are strategies removed rather than allowlisted, each with its own",
+          "story in the allowlist. Deleting the entry does not unblock the",
+          "strategy, it only stops the guard looking for it, and the suite then",
+          "goes green for the wrong reason.",
+          "",
+          "If you believe one no longer applies, say so in the allowlist and leave",
+          "the name in place.",
+        ].join("\n"),
+      ).toEqual([]);
+    });
   });
 });

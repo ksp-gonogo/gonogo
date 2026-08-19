@@ -1,20 +1,18 @@
 import "fake-indexeddb/auto";
-import {
-  clearFogRevealSources,
-  clearRegistry,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/core";
+import type { BodyDefinition, DataKey } from "@ksp-gonogo/sitrep-sdk";
+import { registerFogRevealSource } from "@ksp-gonogo/sitrep-sdk";
+import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
+  clearFogRevealSources,
+  clearRegistry,
   DEFAULT_PROFILE_ID,
   FogMaskCacheProvider,
   FogMaskStore,
   MemoryStore,
-} from "@ksp-gonogo/data";
-import type { BodyDefinition, DataKey } from "@ksp-gonogo/sitrep-sdk";
-import { registerFogRevealSource } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+  MockDataSource,
+  registerDataSource,
+} from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SCANBiomeGrid } from "../schema";

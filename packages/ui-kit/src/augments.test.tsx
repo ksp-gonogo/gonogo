@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AugmentSlot, useAugmentAvailable } from "./AugmentSlot";
 import {

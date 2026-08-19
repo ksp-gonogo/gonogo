@@ -22,19 +22,15 @@
     "render-camera": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-camera.ts"
   },
   "dependencies": {
-    "@ksp-gonogo/components": "workspace:*",
-    "@ksp-gonogo/core": "workspace:*",
-    "@ksp-gonogo/logger": "workspace:*",
-    "@ksp-gonogo/sitrep-client": "workspace:*",
-    "@ksp-gonogo/sitrep-sdk": "workspace:*",
-    "@ksp-gonogo/ui": "workspace:*",
-    "@ksp-gonogo/ui-kit": "workspace:*",
     "@ksp-gonogo/kerbcast": "^1.8.1",
     "@ksp-gonogo/kerbcast-react": "^1.8.1",
+    "@ksp-gonogo/sitrep-client": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
-    "@ksp-gonogo/test-utils": "workspace:*",
+    "@ksp-gonogo/sitrep-testing": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@types/jest-axe": "^3.5.9",
     "@types/react": "^18.3.28",

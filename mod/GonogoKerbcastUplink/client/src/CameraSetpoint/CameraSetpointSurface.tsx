@@ -14,7 +14,7 @@
  * no kerbcast client.
  */
 
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
   type CameraSetpoint,

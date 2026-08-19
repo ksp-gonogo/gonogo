@@ -202,7 +202,7 @@ shape (`GonogoUplinkManifest`):
 }
 ```
 
-- **`apiVersion`** pins the `@ksp-gonogo/core` extension surface you built against (`EXTENSION_API_VERSION`)
+- **`apiVersion`** pins the `@ksp-gonogo/sitrep-sdk` authoring surface you built against (`EXTENSION_API_VERSION`)
 - **`uiKitVersion`** pins the `@ksp-gonogo/ui-kit` design-system surface (`UI_KIT_VERSION`)
 - **`contractMajor`/`contractMinor`** pin the telemetry contract your Topics and Commands speak
 - **`minAppVersion`** is an advisory floor
@@ -224,9 +224,12 @@ exact bundle it expects.
 ## The externals rule (do not skip this)
 
 Import from **`@ksp-gonogo/sitrep-sdk`** and **`@ksp-gonogo/ui-kit`**. They are the
-two packages gonogo publishes, and between them they carry the whole authoring
-surface: the hooks, every `registerX`, the generated contract, the unit system and
-the design system.
+two packages gonogo publishes for RUNTIME, and between them they carry the whole
+authoring surface: the hooks, every `registerX`, the generated contract, the unit
+system and the design system.
+
+There is a third, **`@ksp-gonogo/sitrep-testing`**, and it is a devDependency: your
+tests import it, your widgets never do. See "Testing your Uplink" below.
 
 Build your client bundle **external-expecting**. Declare `react`,
 `styled-components` and the two gonogo packages as externals/peer dependencies,
@@ -239,6 +242,9 @@ and do NOT bundle your own copies.
   "@ksp-gonogo/sitrep-sdk": "...",
   "@ksp-gonogo/ui-kit": "...",
   "styled-components": "^6.0.0"
+},
+"devDependencies": {
+  "@ksp-gonogo/sitrep-testing": "..."
 }
 ```
 
@@ -290,6 +296,81 @@ first-party workflow is to develop your client as a workspace package imported i
 and renders in `pnpm dev` with a normal HMR loop, and you switch to the fetch-and-verify loader path only
 when you package for distribution. When the local-URL mechanism lands, this section will describe pointing
 the loader at your local build directly.
+
+---
+
+## Testing your Uplink
+
+Install **`@ksp-gonogo/sitrep-testing`**. It is the third and last package gonogo
+publishes, and it is a devDependency: your widgets never import it, only your tests
+do.
+
+Your widgets call SDK hooks (`useTelemetry`, `useCommand`, `useStream`), and those
+are shims that resolve through the host the app installs at boot. A unit test has no
+app, so it has to install one. That is one line:
+
+```ts
+// client/src/test/setup.ts, in full
+import { installDomStubs, installRealTestHost, PerfBudget }
+  from "@ksp-gonogo/sitrep-testing";
+import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+
+installDomStubs();          // jsdom gaps: ResizeObserver, canvas, matchMedia
+PerfBudget.installTestGate(); // fail a test that pushes a budget over its cap
+installRealTestHost();      // wire the SDK shims to the real implementations
+setQuantityLocale("en-GB"); // so a render is reproducible off your machine
+```
+
+You cannot write `installRealTestHost` yourself, and it is worth knowing why: the
+implementations behind the shims are the app's, and passing a shim back in as its
+own implementation is infinite recursion rather than a bridge. That is the single
+thing this package exists to hand you.
+
+### Running a widget off the real stream
+
+`setupStreamFixture` builds a real `TelemetryClient` / `TimelineStore` / `ViewClock`
+behind a `TelemetryProvider`, and you emit frames by hand. It is the same pipeline
+the app runs, not a stand-in, so a test that passes here is evidence about the
+stream and not about a mock of it.
+
+```tsx
+import { render, screen, setupStreamFixture, waitFor }
+  from "@ksp-gonogo/sitrep-testing";
+
+const fixture = setupStreamFixture({
+  carriedChannels: ["mymod.reactor"],  // required: nothing is promoted silently
+  pinnedUt: 1000,                      // omit to leave the clock live
+});
+
+render(
+  <fixture.Provider>
+    <ReactorPanel />
+  </fixture.Provider>,
+);
+
+fixture.emit("mymod.reactor", { output: 42 });
+await waitFor(() => expect(screen.getByText("42")).toBeInTheDocument());
+```
+
+Two things that surprise everyone once:
+
+- **`emit` is subscription-gated.** A frame nothing has subscribed to yet is
+  dropped, exactly as in production. If your widget renders behind a gate, wait for
+  the subscription (`fixture.transport.isSubscribed(topic)`) before emitting
+- **`delaySeconds` and `pinnedUt` are mutually exclusive.** A pinned clock wins
+  outright over the delay computation, which makes `delaySeconds` a silent no-op.
+  To test delay, leave the clock live and drive it with
+  `fixture.wall.advanceBy(seconds)` plus `fixture.store.beginFrame()`
+
+### `render`, and the theme
+
+`render` and `renderHook` come from here (or from
+`@ksp-gonogo/sitrep-sdk/testing` if you want them without the spine) and they mount
+the kit's theme for you. Every `@ksp-gonogo/ui-kit` primitive reads
+`theme.space[…]` off the styled-components context, and with no provider that is a
+TypeError rather than a fallback. Everything else Testing Library offers
+(`screen`, `waitFor`, `within`, `act`, `fireEvent`) is re-exported unchanged, so
+this is a drop-in for the import source.
 
 ---
 
@@ -521,5 +602,6 @@ something the week after.
       seams: dimension and ratio with the SDK, family and rungs with ui-kit
 - [ ] `expectNoHandTypedUnits({ dir: "src" })` runs as a test (skip only if the Uplink renders nothing)
 - [ ] the test setup calls `setQuantityLocale("en-GB")`, so a render is reproducible
+- [ ] tests import `@ksp-gonogo/sitrep-testing` (a devDependency), and nothing in `src/` does
 - [ ] widget tests read readouts with `visibleText` / `toShowQuantity`, not `getByText`
 - [ ] the main screen is served over https or localhost so integrity verification works

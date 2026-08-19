@@ -1,15 +1,13 @@
+import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  clearAugments,
   DashboardItemContext,
-  registerAugment,
-} from "@ksp-gonogo/core";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it } from "vitest";
-import {
   type StreamFixture,
   setupStreamFixture,
-} from "../test/setupStreamFixture";
+} from "@ksp-gonogo/sitrep-testing";
+import { clearAugments } from "@ksp-gonogo/ui-kit";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   type DeployedExperimentContext,
   DeployedScienceComponent,

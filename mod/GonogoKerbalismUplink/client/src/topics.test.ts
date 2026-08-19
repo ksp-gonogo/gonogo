@@ -6,9 +6,9 @@ import {
   isTopicId,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
-import { setupStreamFixture } from "./test/setupStreamFixture";
 // Side-effect import: registers `kerbalism.available` plus the five relocated
 // structured Topics into the SDK's runtime registry, and feeds this Uplink's own
 // generated unit/shape maps into BOTH halves of it.
