@@ -16,6 +16,9 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CheckIcon,
+  ChevronUpIcon,
+  FitLabelButton,
   NULL_DISPLAY,
   Panel,
   speakQuantity,
@@ -352,40 +355,38 @@ function SpaceCenterStatusComponent({
   if (sizeBucket === "tiny") {
     return (
       <Panel panelTitle="KSC" fitToSize>
-        <>
-          {careerFunds !== null ? (
-            <TinyFunds
-              title={speakQuantity(value("funds", careerFunds), {
-                decimals: 0,
-              })}
-            >
-              {formatTinyFunds(Math.round(careerFunds))}
-              <TinyFundsUnit>f</TinyFundsUnit>
-            </TinyFunds>
-          ) : (
-            /* No room for a sentence in a 2x3 box, but the reason still has to
+        {careerFunds !== null ? (
+          <TinyFunds
+            title={speakQuantity(value("funds", careerFunds), {
+              decimals: 0,
+            })}
+          >
+            {formatTinyFunds(Math.round(careerFunds))}
+            <TinyFundsUnit>f</TinyFundsUnit>
+          </TinyFunds>
+        ) : (
+          /* No room for a sentence in a 2x3 box, but the reason still has to
                leave the component: a held balance is titled, a balance that never
                arrived is not, so the two are distinguishable from outside. */
-            <TinyFunds
-              title={heldFunds ? "Funds balance no longer current" : undefined}
-            >
-              {NULL_DISPLAY}
-            </TinyFunds>
-          )}
-          <TinyPad
-            $occupied={padOccupied === true}
-            title={padLine}
-            role="img"
-            aria-label={padLine}
+          <TinyFunds
+            title={heldFunds ? "Funds balance no longer current" : undefined}
           >
-            {/* "PAD CLEAR" is the same claim as the line above, in two words. */}
-            {padOccupied === true
-              ? "PAD ACTIVE"
-              : padKnown
-                ? "PAD CLEAR"
-                : "PAD UNKNOWN"}
-          </TinyPad>
-        </>
+            {NULL_DISPLAY}
+          </TinyFunds>
+        )}
+        <TinyPad
+          $occupied={padOccupied === true}
+          title={padLine}
+          role="img"
+          aria-label={padLine}
+        >
+          {/* "PAD CLEAR" is the same claim as the line above, in two words. */}
+          {padOccupied === true
+            ? "PAD ACTIVE"
+            : padKnown
+              ? "PAD CLEAR"
+              : "PAD UNKNOWN"}
+        </TinyPad>
       </Panel>
     );
   }
@@ -574,33 +575,34 @@ function UpgradeButton({
 
   if (!enabled) {
     return (
-      <UpgradeButtonStyled type="button" disabled title={titleOverride}>
-        Upgrade
-      </UpgradeButtonStyled>
+      <UpgradeButtonStyled
+        disabled
+        title={titleOverride}
+        label="Upgrade"
+        icon={<ChevronUpIcon size={12} />}
+      />
     );
   }
   if (!armed) {
     return (
       <UpgradeButtonStyled
-        type="button"
         onClick={() => setArmed(true)}
         title={titleOverride}
-      >
-        Upgrade
-      </UpgradeButtonStyled>
+        label="Upgrade"
+        icon={<ChevronUpIcon size={12} />}
+      />
     );
   }
   return (
     <ConfirmUpgradeButton
-      type="button"
       onClick={() => {
         setArmed(false);
         onConfirm();
       }}
       title={titleOverride}
-    >
-      Confirm
-    </ConfirmUpgradeButton>
+      label="Confirm"
+      icon={<CheckIcon size={12} />}
+    />
   );
 }
 
@@ -771,7 +773,7 @@ const FullTextBody = styled.pre`
   white-space: pre-wrap;
 `;
 
-const UpgradeButtonStyled = styled.button`
+const UpgradeButtonStyled = styled(FitLabelButton)`
   font-size: var(--font-size-2xs);
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -790,11 +792,14 @@ const UpgradeButtonStyled = styled.button`
      refusing to shrink, but that just moved the problem: the button
      kept its full intrinsic width and overflowed the cell (and, for
      the last column, right past the panel's own padding, reading as
-     a "cut off" button). Let it shrink and wrap instead, every
-     character stays visible, just spread over two lines, and the box
-     never exceeds the space its row actually has. */
+     a "cut off" button).
+
+     Letting it wrap instead kept every character but broke the word
+     mid-syllable, "Upgra / de". FitLabelButton measures the label
+     against the box and shows an icon when the word does not fit, so
+     nothing is hyphenated and nothing overflows. It still has to
+     shrink for that measurement to mean anything. */
   min-width: 0;
-  overflow-wrap: anywhere;
 
   &:hover:not(:disabled) {
     color: var(--color-accent-fg);
