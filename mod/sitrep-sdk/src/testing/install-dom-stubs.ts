@@ -5,6 +5,11 @@
  * options are either to crash, to gate every caller behind `typeof`, or to
  * stub here once: stubbing wins. Each shim is idempotent so setup files can
  * call `installDomStubs()` unconditionally.
+ *
+ * Lives on the sdk rather than in `core` because it names nothing at all: no
+ * registry, no React, no import of any kind. An Uplink's `test/setup.ts` needs it
+ * before it can render a widget, and `core` is unpublished, so the one file every
+ * outside author's first test depends on was the one they could not obtain.
  */
 export function installDomStubs(): void {
   if (
@@ -32,9 +37,9 @@ export function installDomStubs(): void {
     HTMLMediaElement.prototype.play = () => Promise.resolve();
   }
 
-  // jsdom inherits Node's built-in `WebSocket` (undici-backed). Production
-  // code paths that auto-connect on mount (Telemachus, kOS) end up opening
-  // real sockets against localhost during tests, then crashing on a Node
+  // jsdom inherits Node's built-in `WebSocket` (undici-backed). Any code path
+  // that auto-connects on mount ends up opening a real socket against
+  // localhost during tests, then crashing on a Node
   // 24 × undici 7 incompatibility: undici fires events whose `Event` class
   // doesn't satisfy Node's stricter `EventTarget.dispatchEvent` validator
   // ("The 'event' argument must be an instance of Event. Received an

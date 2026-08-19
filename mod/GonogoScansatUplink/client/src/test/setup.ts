@@ -1,9 +1,7 @@
 import "@testing-library/jest-dom";
 import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
-import {
-  installDomStubs,
-  installRealTestHost,
-} from "@ksp-gonogo/sitrep-testing";
+import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
+import { installRealTestHost } from "@ksp-gonogo/sitrep-testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 
 installDomStubs();

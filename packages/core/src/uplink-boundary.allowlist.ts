@@ -180,7 +180,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/dataSources/migrateGameHost.ts",
       "packages/app/src/dataSources/seedKspHost.ts",
       "packages/core/src/settings/store.ts",
-      "packages/core/src/testing/installDomStubs.ts",
+      "mod/sitrep-sdk/src/testing/install-dom-stubs.ts",
       "packages/data/src/FlightsManager/AutoRecordController.tsx",
       "packages/relay/src/bootstrapConfig.ts",
       // slots.ts's header comment explains why kerbcast's OWN CameraFeed
@@ -683,7 +683,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // instead, dropping the only "kOS" text in the file, stale, ratcheted off.
       "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
-      "packages/core/src/testing/installDomStubs.ts",
       "packages/core/src/types.ts",
       "packages/data/src/BufferedDataSource.ts",
       "packages/data/src/flightDetector.ts",

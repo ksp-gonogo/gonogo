@@ -81,6 +81,9 @@ export {
 } from "../spine";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
+// The jsdom shims a widget test needs before it can mount anything. Moved down
+// from `core` on 2026-08-19: it imports nothing, so nothing kept it up there.
+export { installDomStubs } from "./install-dom-stubs";
 export { probeText, render, renderHook } from "./render";
 // The stream fixture: a real `TelemetryProvider` over a real
 // `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored emissions.

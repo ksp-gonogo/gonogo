@@ -21,7 +21,8 @@
  * A typical Uplink `test/setup.ts` is now:
  *
  * ```ts
- * import { installDomStubs, installRealTestHost } from "@ksp-gonogo/sitrep-testing";
+ * import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { installRealTestHost } from "@ksp-gonogo/sitrep-testing";
  * import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
  *
  * installDomStubs();
@@ -47,7 +48,6 @@ export {
   getAugmentsForSlot,
   getComponent,
   getMapPoiProviders,
-  installDomStubs,
   MockDataSource,
   PerfBudget,
   registerComponent,
