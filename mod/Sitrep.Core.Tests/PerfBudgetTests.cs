@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using Sitrep.Host;
+using Sitrep.Contract;
 using Xunit;
 
-namespace Sitrep.Host.Tests
+namespace Sitrep.Core.Tests
 {
     public class PerfBudgetTests
     {

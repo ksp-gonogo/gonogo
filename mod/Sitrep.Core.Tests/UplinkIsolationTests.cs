@@ -108,7 +108,7 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> ImportDebt = new(StringComparer.Ordinal)
         {
             ["GonogoActionGroupsExtendedUplink"] = new[] { "Sitrep.Host.ActionGroups" },
-            ["GonogoKerbalismUplink"] = new[] { "Gonogo.KSP.CurrencyDelay", "Sitrep.Host" },
+            ["GonogoKerbalismUplink"] = new[] { "Gonogo.KSP.CurrencyDelay" },
         };
 
         [Fact]

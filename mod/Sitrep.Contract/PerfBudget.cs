@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Sitrep.Host
+namespace Sitrep.Contract
 {
     /// <summary>
     /// Soft performance budget, the mod-side counterpart to the app's
