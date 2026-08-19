@@ -15,8 +15,8 @@ import type {
 import {
   AugmentSlot,
   getUplinkHandle,
-  judgeable,
   logger,
+  type Reading,
   useActionInput,
   useLatestValue,
   useTelemetry,
@@ -76,6 +76,17 @@ export interface CameraFeedConfig extends Record<string, unknown> {
  * camera the SDK positively reports as a kerbal face; nothing is lost when
  * `kind` is absent.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 export function isPartCamera(camera: CameraState): boolean {
   return camera.kind !== CameraKind.Kerbal;
 }

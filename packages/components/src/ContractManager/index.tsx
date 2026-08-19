@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
+  type Reading,
   useCommand,
   useStream,
   useViewUt,
@@ -25,7 +26,6 @@ import {
 import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
-import { stillTrue } from "../shared/currency";
 import {
   magnitudeOf,
   magnitudeOr,
@@ -130,6 +130,23 @@ const KNOWN_PARAM_STATES = new Set<ContractParameterState>([
   "Complete",
   "Failed",
 ]);
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
 
 function isKnownParamState(value: string): value is ContractParameterState {
   return KNOWN_PARAM_STATES.has(value as ContractParameterState);

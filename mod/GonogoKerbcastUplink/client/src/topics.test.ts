@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
-  judgeable,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -18,6 +18,17 @@ import { KERBCAST_AVAILABLE_TOPIC, KERBCAST_CAMERAS_TOPIC } from "./topics";
 const UPLINK_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The value of `KerbcastUplink.AvailableTopic` as declared in the C# source. */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function csAvailableTopic(): string {
   const src = readFileSync(join(UPLINK_ROOT, "KerbcastUplink.cs"), "utf8");
   const m = src.match(/const\s+string\s+AvailableTopic\s*=\s*"([^"]+)"/);

@@ -20,6 +20,7 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 // ratchet, so moving the widget deletes the entry and the ratchet forces that
 // deletion in the same commit.
 import type {} from "@ksp-gonogo/gonogo-kerbalism-uplink";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { Meter } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -29,7 +30,6 @@ import {
   Section,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { judgeable, notCurrent } from "../shared/currency";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 type SpaceWeatherConfig = Record<string, never>;
@@ -98,6 +98,22 @@ type SpaceWeatherRead =
  * absent record coerced to a confident "Sheltered, no storm activity, 0.000
  * rad/h" board built from nothing at all.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
 function useSpaceWeather(): SpaceWeatherRead {
   const weatherReading = useTelemetry("kerbalism.spaceweather");
   // Positional, so also a judgement: this only places the "you are here" dot on

@@ -10,6 +10,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  type Reading,
   type StreamStatusValue,
   useCommand,
   useTelemetryClientOptional,
@@ -45,7 +46,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import styled from "styled-components";
-import { stillTrue } from "../shared/currency";
 import {
   bare,
   radialSpeed,
@@ -145,6 +145,23 @@ type TargetPickerActions = typeof targetPickerActions;
  * the row's React key. Baked from the SAME stable id `tar.setTarget*` takes,
  * so it never collides across kinds.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function entryId(entry: TargetListEntry): string {
   switch (entry.kind) {
     case TargetKind.Body:

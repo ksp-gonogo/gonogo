@@ -24,11 +24,10 @@ import {
   KerbcastProvider,
   type KerbcastSubscriptions,
 } from "@ksp-gonogo/kerbcast-react";
-import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   getUplinkHandle,
   registerAugment,
-  stillTrue,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef } from "react";
@@ -42,6 +41,23 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 // which also imports this module for the same reason).
 import "../topics";
 import { selectDockingCamera } from "./selectDockingCamera";
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
 
 export function DockingCameraAugment({
   cameraFlightId,

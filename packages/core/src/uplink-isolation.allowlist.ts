@@ -125,6 +125,5 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
   string,
   readonly ForbiddenPackage[]
 > = {
-  "mod/GonogoKerbalismUplink/client/package.json": ["sitrep-client"],
   "mod/GonogoKerbcastUplink/client/package.json": ["sitrep-client"],
 };

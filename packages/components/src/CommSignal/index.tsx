@@ -5,7 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
@@ -20,7 +24,6 @@ import {
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { judgeable, notCurrent } from "../shared/currency";
 
 type CommSignalConfig = Record<string, never>;
 
@@ -51,6 +54,22 @@ declare module "@ksp-gonogo/core" {
 //   0 = none, 1 = partial (unmanned probe with crew nearby etc.), 2 = full
 // The name accessor `comm.controlStateName` mirrors the stock KSP string so
 // we prefer it when present and fall back to the integer for legacy.
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
 function describeControl(
   name: string | undefined,
   state: number | undefined,

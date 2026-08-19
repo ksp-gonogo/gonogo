@@ -1,5 +1,5 @@
 import {
-  judgeable,
+  type Reading,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
@@ -20,6 +20,17 @@ import type { DataSource, DataSourceStatus } from "../types";
 import { useTelemetry } from "./useTelemetry";
 
 // Minimal in-memory legacy DataSource: same shape as useTelemetry.legacy-datasource.test.ts.
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function makeSource(id = "data") {
   const dataListeners = new Map<string, Set<(v: unknown) => void>>();
   const statusListeners = new Set<(s: DataSourceStatus) => void>();

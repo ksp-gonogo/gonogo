@@ -1,11 +1,10 @@
 import type { MapPoi } from "@ksp-gonogo/core";
 import { registerMapPoiProvider, useTelemetry } from "@ksp-gonogo/core";
-import { stillTrue } from "../shared/currency";
 
 /** A confirmed-no-POIs tombstone: a list, and it is empty. */
 const EMPTY_POIS: never[] = [];
 
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { type SpaceCenterPoiEntry, TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -29,6 +28,23 @@ import { useMemo } from "react";
  * that helper is module-private and shaped for a derived-channel
  * `DerivedGet` reader, not a plain React-hook call site like this one.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function useBodyNameByIndex(): Map<number, string> {
   // A body catalogue: declared unmodellable because it changes when the GAME
   // changes, never continuously, so a stale one is simply the catalogue.

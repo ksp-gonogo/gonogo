@@ -1,7 +1,10 @@
-import type { ExperimentEntry, SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ExperimentEntry,
+  Reading,
+  SlotProps,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
-  stillTrue,
   useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -43,6 +46,23 @@ interface DriveEntries {
  * shows as two `science.experiments` entries sharing the same `subjectId`,
  * distinguished by `kind`.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function findDriveEntries(
   experiments: ExperimentEntry[] | undefined,
   subjectId: string,

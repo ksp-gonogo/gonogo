@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 import type {
   IsruConverterEntry,
   IsruDrillEntry,
+  Reading,
 } from "@ksp-gonogo/sitrep-sdk";
-import { judgeable, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
@@ -35,6 +36,17 @@ const FIXTURE = join(MOD_ROOT, "golden-fixtures", "isru-extensions.json");
  * ARE the wire frames, and the two halves of the proof cannot drift without one of
  * them going red.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function serverFrame<T>(name: string): { topic: string; payload: T } {
   const vectors = JSON.parse(readFileSync(FIXTURE, "utf8")) as {
     name: string;

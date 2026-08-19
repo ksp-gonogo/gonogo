@@ -1,6 +1,6 @@
 import type { StageInfo } from "@ksp-gonogo/core";
 import { useTelemetry } from "@ksp-gonogo/core";
-import { judgeable } from "@ksp-gonogo/sitrep-client";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 
 export interface VesselDeltaV {
@@ -26,6 +26,17 @@ const EMPTY: VesselDeltaV = {
  * units and arrives wrapped, while the legacy row is plain. Without it every
  * stage summed to zero and the ΔV readout went blank.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function numField(entry: Record<string, unknown>, ...keys: string[]): number {
   for (const k of keys) {
     const raw = entry[k];

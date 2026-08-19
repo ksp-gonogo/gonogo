@@ -10,11 +10,10 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { Box, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { judgeable, notCurrent } from "../shared/currency";
 // Side-effect import: the built-in half of the `ship-map.part-meters`
 // self-contribution self-registers on module load, same contract as every
 // other built-in registration. See that file's own header for why the five
@@ -122,6 +121,22 @@ interface ShipMapConfig {
   /** Reserved. No widget-level options yet; kept for forward
    *  compatibility so saved layouts don't break when options land. */
   _reserved?: never;
+}
+
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
 }
 
 function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {

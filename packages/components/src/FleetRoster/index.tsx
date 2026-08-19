@@ -8,6 +8,7 @@ import {
 import {
   contactPhase,
   overdueSeconds,
+  type Reading,
   useFleetVesselLink,
   useFleetVesselSilence,
   useSelectedVantage,
@@ -44,7 +45,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 
 type FleetRosterConfig = Record<string, never>;
@@ -109,6 +109,23 @@ const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
  * usual null placeholder, comms shows the "unknown" tier) rather than
  * getting a fabricated craft identity.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function isRosterCraft(vesselType: VesselType): boolean {
   return (
     vesselType === VesselType.Unknown || CRAFT_VESSEL_TYPES.has(vesselType)

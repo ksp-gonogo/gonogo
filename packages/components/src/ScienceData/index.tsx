@@ -5,11 +5,14 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { StreamStatusBadge, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Inline, Panel, Value } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import { judgeable, notCurrent, stillTrue } from "../shared/currency";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
@@ -22,6 +25,39 @@ import {
 } from "./parsers";
 
 type ScienceDataConfig = Record<string, never>;
+
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
 
 function ScienceDataComponent({
   w,

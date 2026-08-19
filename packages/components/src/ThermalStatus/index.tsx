@@ -5,6 +5,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
@@ -17,7 +18,6 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import { judgeable, notCurrent } from "../shared/currency";
 import { magnitudeOr } from "../shared/magnitude";
 
 // Empty config: room to add a "hide heat shield" toggle later.
@@ -70,6 +70,22 @@ type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
  * overheating, and an absent ratio is not evidence of that: it read identically
  * to a part measured at 40% of its maximum.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
 function bandFromRatio(ratio: number | undefined): Band {
   if (ratio === undefined || !Number.isFinite(ratio)) return "unknown";
   if (ratio >= 0.97) return "critical";

@@ -19,10 +19,9 @@
 // `usePois` once `scansat.available` is live, so an install without
 // SCANsat never surfaces anomaly markers.
 
-import type { MapPoi } from "@ksp-gonogo/sitrep-sdk";
+import type { MapPoi, Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerMapPoiProvider,
-  stillTrue,
   TargetKind,
   useCommand,
   useTelemetry,
@@ -38,6 +37,23 @@ import { useScanAnomalies } from "../FogReveal/useScanLayers";
  * `SetTargetArgs.Position` (`tar.setTargetPosition[bodyIndex,lat,lon]`)
  * wants the stable index.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function useBodyIndexByName(): Map<string, number> {
   // The solar system is the least volatile fact on the wire.
   const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);

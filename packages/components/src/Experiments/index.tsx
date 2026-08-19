@@ -5,7 +5,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -27,7 +27,6 @@ import {
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
-import { stillTrue } from "../shared/currency";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 type ExperimentsConfig = Record<string, never>;
@@ -111,6 +110,23 @@ declare module "@ksp-gonogo/core" {
 /** Confirmed-none tombstones for the three science reads: present, and empty. */
 const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
 const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
 
 export function parseInstruments(raw: unknown): Instrument[] | null {
   if (raw === null || raw === undefined) return null;

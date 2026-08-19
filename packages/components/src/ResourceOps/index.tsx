@@ -4,6 +4,7 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type {
   IsruConverterEntry,
   IsruDrillEntry,
@@ -30,7 +31,6 @@ import {
   Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
-import { notCurrent, stillTrue } from "../shared/currency";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 /**
@@ -135,6 +135,28 @@ const RESOURCE_NAME_STYLE = {
  * genuinely sit at 0.0002 units/s, and a fixed precision flattens that to
  * "0.000", which reads as a dead process rather than a slow one.
  */
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function rateDecimals(rate: Quantityish, base: number): number {
   const magnitude = magnitudeOf(rate);
   if (magnitude === null || magnitude === 0) return base;

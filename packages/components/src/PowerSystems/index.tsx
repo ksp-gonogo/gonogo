@@ -11,6 +11,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline, VisuallyHidden } from "@ksp-gonogo/ui";
 import {
@@ -40,7 +41,6 @@ import { useEffect, useMemo, useState } from "react";
 // re-render per mouse-move to a potentially long list). Both documented.
 // biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector + passive row :hover, no inline/primitive equivalent (see above)
 import styled from "styled-components";
-import { judgeable } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 
 /**
@@ -127,6 +127,17 @@ declare module "@ksp-gonogo/core" {
     "power-systems.sections": PowerSystemsSlotContext;
     "power-systems.badges": PowerSystemsSlotContext;
   }
+}
+
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
 }
 
 function PowerSystemsComponent({

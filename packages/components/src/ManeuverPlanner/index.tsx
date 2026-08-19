@@ -14,6 +14,7 @@ import {
   useVesselDeltaV,
 } from "@ksp-gonogo/data";
 import {
+  type Reading,
   useCommand,
   useStream,
   useViewUt,
@@ -30,7 +31,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { dateable, stillTrue } from "../shared/currency";
 import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
@@ -107,6 +107,40 @@ const EMPTY_SLOT_PROPS: Record<string, never> = {};
  * auto-removal timeout resolve identically. They did not, and the auto-removal
  * was the one that was wrong.
  */
+/**
+ * A measurement this widget can present with its age attached, and whether it needs
+ * that label. The reckoned value needs none: it IS the current one.
+ */
+function dateable<T>(reading: Reading<T>): {
+  value: T | undefined;
+  needsDating: boolean;
+} {
+  if (reading.state === "observed")
+    return { value: reading.value, needsDating: false };
+  if (reading.state === "reckonable")
+    return { value: reading.reckoned.value, needsDating: false };
+  if (reading.state === "stale")
+    return { value: reading.value, needsDating: true };
+  return { value: undefined, needsDating: false };
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function nodeIdAtPosition(
   streamNodes: readonly { id?: string }[] | undefined,
   index: number,

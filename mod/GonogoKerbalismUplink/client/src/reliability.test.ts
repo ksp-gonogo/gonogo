@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ReliabilitySummary } from "@ksp-gonogo/sitrep-sdk";
-import { judgeable, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, ReliabilitySummary } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
@@ -35,6 +35,17 @@ const FIXTURE = join(
  * without one of them going red. Same shared-JSON discipline as
  * `mod/golden-fixtures/README.md`, in the C#-to-TS direction.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function serverFrame(): { topic: string; payload: ReliabilitySummary } {
   // The frame is held as a JSON STRING inside the fixture, the shape every other
   // file in mod/golden-fixtures/ uses: the C# side asserts byte equality against

@@ -1,10 +1,8 @@
-import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   getBody,
-  judgeable,
   registerComponent,
-  stillTrue,
   useTelemetry,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -122,6 +120,34 @@ const DISPLAY_SCAN_TYPES: SCANType[] = [
  * that lookup (the widget only ever needs the active vessel's own body, not
  * a full index->name table).
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function useActiveVesselBodyName(): string | undefined {
   // Both facts: a vessel's parent body and the body catalogue change by event.
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);

@@ -21,14 +21,7 @@ export type {
   StaleGrade,
   TopicModel,
 } from "@ksp-gonogo/sitrep-sdk";
-export {
-  dateable,
-  judgeable,
-  notCurrent,
-  observedAt,
-  stillTrue,
-  withoutReckoning,
-} from "@ksp-gonogo/sitrep-sdk";
+export { observedAt, withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
 
 import type {
   ModelledField,
