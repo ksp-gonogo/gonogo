@@ -203,10 +203,26 @@ export function deriveActiveBurnParams(
 }
 
 /**
- * Read the one-way delay off `comms.delay`. Mirrors `delay-authority.ts`'s
- * `readOneWaySeconds` (None => 0, malformed => 0) but returns `null` when the
- * payload has not arrived at all, so the regime banner can honestly say the
- * link state is unknown rather than fabricating a live (zero-delay) reading.
+ * Read the one-way delay off `comms.delay`, or `null` when nothing has
+ * established one.
+ *
+ * `null` means NO PATH and zero means a measured zero-distance link. The
+ * contract is explicit about this (`command-delay.ts`: "null means NO PATH,
+ * never a measured zero-distance delay. Never coerce it to 0") and this
+ * function used to coerce it anyway, falling through to `return 0` for an
+ * absent field, a malformed one, and the backend's own "no path" null alike.
+ *
+ * `classifyRegime` reads a zero round trip as `live`, so the cost was a vessel
+ * with no comms path rendering "T-1s SUICIDE BURN" behind a green LIVE badge:
+ * a countdown an operator would burn on, asserted about a craft nothing can
+ * reach. `CommitLayer`'s `no-path` arm was written expecting this null and
+ * could only be reached by the whole payload being absent, so the two halves of
+ * the design disagreed about which value meant "no path".
+ *
+ * `CommsDelaySource.None` keeps its zero: that is a LAN loop with genuinely no
+ * delay, the one place the number is a measurement rather than a fabrication.
+ * A NEGATIVE delay is impossible, so it reads as unknown rather than as zero:
+ * fabricating a live link is the one direction it must not fail in.
  */
 function readOneWaySeconds(
   delay: { source?: number; oneWaySeconds?: Quantityish<"s"> } | undefined,
@@ -214,7 +230,8 @@ function readOneWaySeconds(
   if (!delay) return null;
   if (delay.source === CommsDelaySource.None) return 0;
   const s = magnitudeOf(delay.oneWaySeconds);
-  return s !== null && s >= 0 ? s : 0;
+  if (s === null || s < 0) return null;
+  return s;
 }
 
 /** A labelled value row inside a two-column readout grid. */

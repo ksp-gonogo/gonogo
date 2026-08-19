@@ -190,16 +190,81 @@ describe("LandingStatus: what undefined means today", () => {
     expect(screen.queryByText("NO LINK")).toBeNull();
   });
 
-  it("reads a comms.delay record with no fields as a LIVE zero-delay link", async () => {
-    // Partial payload, and it inverts the absence: `readOneWaySeconds` only
-    // answers "unknown" for a MISSING record. A record that arrived carrying
-    // neither a source nor a one-way time falls through to `return 0`, so an
-    // empty frame is reported as a closed real-time loop.
+  /**
+   * `oneWaySeconds: null` is the mod's DOCUMENTED "no path" signal, and
+   * `command-delay.ts` says of it: "null means NO PATH, never a measured
+   * zero-distance delay. Never coerce it to 0."
+   *
+   * `readOneWaySeconds` coerced it to 0 anyway, and `classifyRegime` reads a
+   * zero round trip as `live`. So a vessel with no comms path rendered
+   * "T-1s SUICIDE BURN" behind a green LIVE badge: a countdown an operator
+   * would burn on, asserted about a craft nothing can reach. Found by
+   * rendering it, not by reading it.
+   *
+   * The `no-path` arm in `CommitLayer` was written expecting this null and
+   * could only ever be reached by the payload being ABSENT, so the two halves
+   * of the design disagreed about which value meant "no path".
+   */
+  /**
+   * Each of these emits a GOOD delay first and waits for the pill to leave
+   * `NO LINK`, then emits the absence and waits for it to come back.
+   *
+   * That shape is the point. `NO LINK` is also the pre-emit state, so a test
+   * that merely waited for `NO LINK` after emitting passed on the first tick,
+   * before the emit had propagated, and reported success while measuring
+   * nothing. Both of these tests did exactly that when first written, and
+   * agreed with a render that showed the opposite. Requiring the pill to change
+   * TWICE is what makes the second change real.
+   */
+  it("reads an explicit oneWaySeconds:null as NO LINK, never as a zero-delay link", async () => {
+    renderWidget();
+
+    act(() => {
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
+    });
+    await waitFor(() => expect(screen.getByText("STAGED")).toBeInTheDocument());
+
+    act(() => {
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: null });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("NO LINK")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("LIVE")).toBeNull();
+    const hero = screen.getByRole("status");
+    expect(hero).toHaveTextContent("BURN TIMING NEEDS A LINK");
+    expect(hero).not.toHaveTextContent("SUICIDE BURN");
+  });
+
+  it("reads a comms.delay record with no fields as NO LINK too", async () => {
+    // Same defect, milder shape: a record carrying neither a source nor a
+    // one-way time fell through to `return 0` and reported a closed real-time
+    // loop. Nothing in an empty frame says the link is up.
+    renderWidget();
+
+    act(() => {
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
+    });
+    await waitFor(() => expect(screen.getByText("STAGED")).toBeInTheDocument());
+
+    act(() => {
+      stream.emit("comms.delay", {});
+    });
+    await waitFor(() =>
+      expect(screen.getByText("NO LINK")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("LIVE")).toBeNull();
+  });
+
+  it("still reads a CommsDelaySource.None record as a LIVE zero-delay link", async () => {
+    // The one place zero is a real measurement rather than a fabrication:
+    // source None is a LAN loop with genuinely no delay. This is what stops the
+    // fix above from turning every local session into NO LINK.
     renderWidget();
     expect(screen.getByText("NO LINK")).toBeInTheDocument();
 
     act(() => {
-      stream.emit("comms.delay", {});
+      stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
     });
 
     await waitFor(() => expect(screen.getByText("LIVE")).toBeInTheDocument());
