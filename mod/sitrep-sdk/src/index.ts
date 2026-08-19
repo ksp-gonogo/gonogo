@@ -1,5 +1,18 @@
 export * from "./__generated__/contract";
 export * from "./api";
+// The HOST's logger, not `@ksp-gonogo/logger`'s singleton (a bundled second copy of
+// that is a dead logger: console-only, never reaching Axiom or the shared
+// `exportLogs()` buffer). Published from the root barrel and NOT from `./api`,
+// deliberately: `api/index.ts` says why it is absent there, and re-exporting it
+// through that barrel is what made `perf/PerfBudget -> api/index ->
+// api/settings/SettingsService -> perf/PerfBudget` a cycle.
+//
+// Published at all because `@ksp-gonogo/ui-kit` is published and does real work:
+// the contribution aggregation isolates a throwing contribution and has to say
+// which one threw. Its only alternative was a bare `console.warn`, which is
+// invisible to Axiom, so the one place an Uplink author's broken `compute` gets
+// reported would have been the place nobody can read after the fact.
+export { logger } from "./api/logger";
 // Carried-topic POLICY: which topics the stream carries, and whether a given
 // topic resolves entirely to carried inputs. Published because it decides where
 // an Uplink's data actually routes, which is runtime behaviour rather than a

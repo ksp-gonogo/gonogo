@@ -1244,12 +1244,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // searchTags.ts: "Kerbalism" as the example value of an Uplink's display
       // name field, in that field's doc comment.
       "packages/core/src/searchTags.ts",
-      // contributionsRuntime.tsx: the `requires`-gate subscription bug's own
-      // post-mortem comment names the case it was found on (a ShipMap hosting a
-      // Kerbalism part-meters contribution with no other Kerbalism widget
-      // mounted, so nothing had subscribed to the gate Topic). Provenance for a
-      // generic fix.
-      "packages/core/src/contributionsRuntime.tsx",
       // map-topic.ts / event-timeline.ts: a section header for the kerbalism
       // Topic block, and a design-doc citation respectively.
       "mod/sitrep-sdk/src/event-timeline.ts",

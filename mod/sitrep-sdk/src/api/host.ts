@@ -140,13 +140,12 @@ export interface GonogoHost {
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
   /**
-   * The aggregation host for contribution slots: mounts the per-widget store
-   * and runs every registered contribution's `compute`. A widget that READS
-   * contributions (`useContributions`) sees nothing without one mounted above
-   * it, which is why an Uplink hosting its own slot needs it and not just the
-   * app.
+   * Retired member: `ContributionsProvider`. The aggregation lives in
+   * `@ksp-gonogo/ui-kit` beside the per-widget store it writes into, and ui-kit is
+   * published, so there is exactly one implementation and nothing for the host to
+   * inject. It was here while the aggregation was in `@ksp-gonogo/core` and an
+   * Uplink could not reach it.
    */
-  ContributionsProvider: ComponentType<{ children?: ReactNode }>;
   createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle;
 
   /**

@@ -515,18 +515,13 @@ export function AugmentSlot<S extends string>(props: {
   );
 }
 
-/**
- * The aggregation host for contribution slots. A widget reading contributions
- * (`useContributions` from `@ksp-gonogo/ui-kit`) sees an empty list unless one
- * of these is mounted above it, so an Uplink that HOSTS a slot needs it, not
- * just the app. Resolves to the host's own provider, so contributions land in
- * the app's single registry rather than a bundled copy.
- */
-export function ContributionsProvider(props: {
-  children?: ReactNode;
-}): ReactElement {
-  return createElement(getHost().ContributionsProvider, props);
-}
+// `ContributionsProvider` is NOT a shim here any more. It is
+// `@ksp-gonogo/ui-kit`'s, directly: the aggregation moved there to sit beside the
+// per-widget store it writes, and ui-kit is published, so an Uplink hosting its own
+// slot imports it from the package that owns it. A shim would have made the name
+// declared in two published packages, which
+// `styleguide-shared-published-surface.test.ts` fails the build for, and it would
+// have been indirection with one implementation on the other end.
 
 /**
  * Construct a performance budget on the app's single registry (design: every
