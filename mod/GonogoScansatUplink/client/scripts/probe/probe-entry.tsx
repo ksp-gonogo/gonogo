@@ -17,14 +17,15 @@
  */
 // Side-effect import: the Scanning widget self-registers on module load.
 import {
-  DashboardItemContext,
+  BufferedDataSource,
   getComponent,
+  MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
-} from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
+  WidgetHost,
+} from "@ksp-gonogo/sitrep-testing";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import "../../src";
@@ -78,8 +79,8 @@ async function renderScanning(payload: Payload): Promise<void> {
   root = createRoot(el);
   root.render(
     createElement(
-      DashboardItemContext.Provider,
-      { value: { instanceId: "probe" } },
+      WidgetHost,
+      { widgetId: payload.widgetId, instanceId: "probe" },
       createElement(def.component, {
         config: payload.config ?? {},
         id: "probe",

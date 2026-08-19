@@ -6,13 +6,13 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearActionHandlers,
-  DashboardItemContext,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseServos, RoboticsConsoleComponent } from "./index";
+import { parseServos } from "./index";
 
 /**
  * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
@@ -30,7 +30,7 @@ import { parseServos, RoboticsConsoleComponent } from "./index";
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
 
-function render(ui: ReactElement) {
+function _render(ui: ReactElement) {
   const result = rtlRender(ui);
   renderedTrees.push(result.unmount);
   return result;
@@ -59,13 +59,11 @@ const servo = (
 });
 
 function renderConsole(fixture: ReturnType<typeof setupStreamFixture>) {
-  return render(
-    <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "rc" }}>
-        <RoboticsConsoleComponent config={{}} id="rc" />
-      </DashboardItemContext.Provider>
-    </fixture.Provider>,
-  );
+  return renderWidget("robotics-console", {
+    instanceId: "rc",
+    config: {},
+    wrapper: fixture.Provider,
+  });
 }
 
 describe("RoboticsConsoleComponent", () => {

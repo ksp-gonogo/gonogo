@@ -39,11 +39,14 @@ import {
   clearActionHandlers,
   clearRegistry,
   clearUplinkHandles,
-  DashboardItemContext,
   dispatchAction,
+  getComponent,
+  registerComponent,
+  renderWidget,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
+  WidgetHost,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -56,12 +59,15 @@ import {
   type CameraFeedConfig,
   type CameraOverlayContext,
 } from "./CameraFeed";
+// Side-effect import: `registerComponent` lives in ./index, not ./CameraFeed,
+// and `renderWidget`/`WidgetHost` look the widget up by id.
+import "./index";
 import { CameraFeedConfigPanel } from "./CameraFeedConfigPanel";
 
 // ---------------------------------------------------------------------------
 // Render helper, CameraFeed calls useActionInput, which reads its instance
-// ID from the enclosing DashboardItemContext. Rendering the component bare
-// throws ("must be used inside a DashboardItemContext.Provider"), so every
+// ID from the enclosing dashboard item. Rendering the component bare throws
+// ("must be used inside a DashboardItemContext.Provider"), so every
 // test goes through this wrapper. Mirrors CameraFeed/index.test.tsx's
 // renderFeed(). The instanceId is also what dispatchAction() targets when a
 // test drives the serial-input path directly.
@@ -91,15 +97,11 @@ function renderFeed(
   config: Partial<CameraFeedConfig>,
   onConfigChange?: ComponentProps<CameraFeedConfig>["onConfigChange"],
 ): ReturnType<typeof render> {
-  const result = render(
-    <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
-      <CameraFeed
-        config={fullConfig(config)}
-        id={TEST_INSTANCE_ID}
-        onConfigChange={onConfigChange}
-      />
-    </DashboardItemContext.Provider>,
-  );
+  const result = renderWidget("camera-feed", {
+    instanceId: TEST_INSTANCE_ID,
+    config: fullConfig(config),
+    onConfigChange,
+  });
   renderedTrees.push(result.unmount);
   return result;
 }
@@ -117,13 +119,13 @@ function renderFeedWithComms(
   config: Partial<CameraFeedConfig>,
   client: TelemetryClient,
 ): ReturnType<typeof render> {
-  const result = render(
-    <TelemetryProvider client={client}>
-      <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
-        <CameraFeed config={fullConfig(config)} id={TEST_INSTANCE_ID} />
-      </DashboardItemContext.Provider>
-    </TelemetryProvider>,
-  );
+  const result = renderWidget("camera-feed", {
+    instanceId: TEST_INSTANCE_ID,
+    config: fullConfig(config),
+    wrapper: ({ children }) => (
+      <TelemetryProvider client={client}>{children}</TelemetryProvider>
+    ),
+  });
   renderedTrees.push(result.unmount);
   return result;
 }
@@ -166,13 +168,15 @@ function renderStatefulFeed(
   function Harness() {
     const [config, setConfig] = useState<CameraFeedConfig>(fullConfig(initial));
     return (
-      <DashboardItemContext.Provider value={{ instanceId: TEST_INSTANCE_ID }}>
+      // `WidgetHost` rather than `renderWidget`: the config has to CHANGE in
+      // response to `onConfigChange`, and `renderWidget` owns a static one.
+      <WidgetHost widgetId="camera-feed" instanceId={TEST_INSTANCE_ID}>
         <CameraFeed
           config={config}
           id={TEST_INSTANCE_ID}
           onConfigChange={(next) => setConfig(next as CameraFeedConfig)}
         />
-      </DashboardItemContext.Provider>
+      </WidgetHost>
     );
   }
   const result = render(<Harness />);
@@ -298,6 +302,16 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 
 beforeEach(() => {
   vi.spyOn(globalThis, "fetch").mockImplementation(kerbcastFetch([42]));
+});
+
+// Module-load registration happens ONCE, and this file's `clearRegistry()`
+// below wipes it along with the data sources it is actually there to reset. So
+// the definition is captured while it exists and put back before each test,
+// which is what keeps `renderWidget`'s lookup working past the first case.
+const CAMERA_FEED_DEF = getComponent("camera-feed");
+
+beforeEach(() => {
+  if (CAMERA_FEED_DEF) registerComponent(CAMERA_FEED_DEF);
 });
 
 afterEach(() => {

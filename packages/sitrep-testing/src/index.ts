@@ -58,6 +58,7 @@ export {
   SettingsProvider,
   SettingsService,
   setSetting,
+  unregisterDataSource,
   useDashboardItemId,
   useWidgetBadges,
 } from "@ksp-gonogo/core";
@@ -118,6 +119,7 @@ export { installRealTestHost } from "./host";
 export {
   type RenderWidgetOptions,
   renderWidget,
+  WidgetHost,
 } from "./renderWidget";
 export {
   type StreamFixture,

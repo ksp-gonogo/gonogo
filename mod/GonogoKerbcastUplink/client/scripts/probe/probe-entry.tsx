@@ -12,10 +12,10 @@
  * the <video> actually paints a frame behind the controls.
  */
 import {
-  DashboardItemContext,
   registerDataSource,
   unregisterDataSource,
-} from "@ksp-gonogo/core";
+  WidgetHost,
+} from "@ksp-gonogo/sitrep-testing";
 import { createRoot, type Root } from "react-dom/client";
 import { CameraFeed } from "../../src/CameraFeed/CameraFeed";
 import { KerbcastDataSource } from "../../src/KerbcastDataSource";
@@ -168,9 +168,9 @@ async function renderCamera(payload: Payload): Promise<void> {
   el.style.height = `${payload.pxH}px`;
   root = createRoot(el);
   root.render(
-    <DashboardItemContext.Provider value={{ instanceId: "probe" }}>
+    <WidgetHost widgetId="camera-feed" instanceId="probe">
       <CameraFeed config={payload.config as never} id="probe" />
-    </DashboardItemContext.Provider>,
+    </WidgetHost>,
   );
 
   // Let connect settle + the camera-snapshot propagate, then paint the feed

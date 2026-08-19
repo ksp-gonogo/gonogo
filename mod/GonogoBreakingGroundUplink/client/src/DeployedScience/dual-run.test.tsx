@@ -1,11 +1,10 @@
-import { act, render, waitFor, within } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  DashboardItemContext,
-  setupStreamFixture,
-} from "@ksp-gonogo/sitrep-testing";
+import { act, waitFor, within } from "@ksp-gonogo/sitrep-sdk/testing";
+import { renderWidget, setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { DeployedScienceComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 /**
  * DeployedScience's stream render golden. This began life as a
@@ -29,13 +28,12 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
       pinnedUt: 10,
     });
 
-    const { container } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "ds-dual" }}>
-          <DeployedScienceComponent id="ds-dual" w={5} h={9} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    const { container } = renderWidget("deployed-science", {
+      instanceId: "ds-dual",
+      w: 5,
+      h: 9,
+      wrapper: fixture.Provider,
+    });
 
     act(() => {
       fixture.emit("game.dlc", { breakingGround: true });

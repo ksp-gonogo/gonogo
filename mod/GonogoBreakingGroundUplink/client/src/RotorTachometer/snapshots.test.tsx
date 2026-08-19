@@ -1,14 +1,13 @@
-import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  DashboardItemContext,
-  setupStreamFixture,
-} from "@ksp-gonogo/sitrep-testing";
+import { act, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { renderWidget, setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import rotors from "./__fixtures__/rotors.json";
 import unavailable from "./__fixtures__/unavailable.json";
-import { RotorTachometerComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 /**
  * DOM-snapshot regression tests for RotorTachometer.
@@ -51,18 +50,13 @@ async function snapshotStream(
     pinnedUt: 10,
   });
 
-  const { container } = render(
-    <streamFixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
-        <RotorTachometerComponent
-          config={mode.config ?? {}}
-          id="snap"
-          w={mode.w}
-          h={mode.h}
-        />
-      </DashboardItemContext.Provider>
-    </streamFixture.Provider>,
-  );
+  const { container } = renderWidget("rotor-tachometer", {
+    instanceId: "snap",
+    config: mode.config ?? {},
+    w: mode.w,
+    h: mode.h,
+    wrapper: streamFixture.Provider,
+  });
 
   act(() => {
     streamFixture.emit("robotics.available", {

@@ -62,14 +62,25 @@ const IMPORT_RE = new RegExp(
   "g",
 );
 
+/**
+ * Every source file in an Uplink's client, not just `client/src`.
+ *
+ * It WAS `client/src` alone, hardcoded, and that missed `client/scripts`, where
+ * the visual-gate probe harnesses live. Three of them imported
+ * `@ksp-gonogo/core` and one also `@ksp-gonogo/data`, none of which those
+ * packages declare, so they were resolving through pnpm hoisting and the
+ * ratchet reported clean throughout. A probe harness is Uplink code an outside
+ * author has to be able to run, and a check that cannot see half the package is
+ * not a check.
+ */
 function uplinkSourceFiles(): string[] {
   if (!existsSync(MOD_DIR)) return [];
   const out: string[] = [];
   for (const entry of readdirSync(MOD_DIR)) {
     if (!/^Gonogo.*Uplink$/.test(entry)) continue;
-    const src = join(MOD_DIR, entry, "client", "src");
-    if (!existsSync(src)) continue;
-    walk(src, out);
+    const client = join(MOD_DIR, entry, "client");
+    if (!existsSync(client)) continue;
+    walk(client, out);
   }
   return out;
 }

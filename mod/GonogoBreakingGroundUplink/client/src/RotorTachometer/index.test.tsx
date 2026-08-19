@@ -6,14 +6,14 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearActionHandlers,
-  DashboardItemContext,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseRotors, RotorTachometerComponent } from "./index";
+import { parseRotors } from "./index";
 
 /**
  * RotorTachometer runs genuinely off the real `TelemetryProvider`/
@@ -27,7 +27,7 @@ import { parseRotors, RotorTachometerComponent } from "./index";
 
 const renderedTrees: Array<() => void> = [];
 
-function render(ui: ReactElement) {
+function _render(ui: ReactElement) {
   const result = rtlRender(ui);
   renderedTrees.push(result.unmount);
   return result;
@@ -60,13 +60,11 @@ const rotor = (
 });
 
 function renderRotor(fixture: ReturnType<typeof setupStreamFixture>) {
-  return render(
-    <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "rt" }}>
-        <RotorTachometerComponent config={{}} id="rt" />
-      </DashboardItemContext.Provider>
-    </fixture.Provider>,
-  );
+  return renderWidget("rotor-tachometer", {
+    instanceId: "rt",
+    config: {},
+    wrapper: fixture.Provider,
+  });
 }
 
 describe("RotorTachometerComponent", () => {
