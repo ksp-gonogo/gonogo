@@ -62,6 +62,30 @@ import type { UplinkClientHandle as CoreUplinkClientHandle } from "./uplinkClien
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
 
+/**
+ * A DIFFERENT KIND of check from `Assignable`, and it exists because that one is
+ * structurally blind to the drift that actually happened.
+ *
+ * `contributionSlots?: readonly ContributionSlotId[]` was added to core's
+ * `ComponentDefinition` and never mirrored. Both `Assignable` directions still
+ * passed, and they had to: an object type MISSING an optional property is
+ * assignable to one that has it (nothing is required) and vice versa (nothing
+ * conflicts). So the gate reported success on a facade that was missing a real
+ * field, and it only surfaced when two widgets failed to compile against the
+ * mirror, which is a build error a long way from the cause.
+ *
+ * Key-set equality catches it: a name present on one side and absent on the other
+ * fails regardless of optionality. Kept separate from `Assignable` rather than
+ * replacing it, because the two answer different questions, and a shape can pass
+ * either one while failing the other (a property present on both sides with
+ * incompatible TYPES passes this and fails `Assignable`).
+ */
+type SameKeys<A, B> = [keyof A] extends [keyof B]
+  ? [keyof B] extends [keyof A]
+    ? true
+    : false
+  : false;
+
 // Registration-boundary direction (facade value must satisfy the real API): the
 // facade type is assignable to core's, so an author's def is accepted by the
 // app's real registerX at the injection seam.
@@ -70,6 +94,11 @@ type _Component = Expect<
 >;
 type _ComponentBack = Expect<
   Assignable<Core.ComponentDefinition, SdkComponentDefinition>
+>;
+// The key-set half, on the object mirrors where a silently-unmirrored OPTIONAL
+// property is the realistic drift. See `SameKeys` for the one that got through.
+type _ComponentKeys = Expect<
+  SameKeys<SdkComponentDefinition, Core.ComponentDefinition>
 >;
 type _ComponentProps = Expect<
   Assignable<SdkComponentProps, Core.ComponentProps>
@@ -81,6 +110,7 @@ type _ConfigProps = Expect<
   Assignable<SdkConfigComponentProps, Core.ConfigComponentProps>
 >;
 type _Action = Expect<Assignable<SdkActionDefinition, Core.ActionDefinition>>;
+type _ActionKeys = Expect<SameKeys<SdkActionDefinition, Core.ActionDefinition>>;
 type _ActionBack = Expect<
   Assignable<Core.ActionDefinition, SdkActionDefinition>
 >;
@@ -106,6 +136,7 @@ type _Theme = Expect<Assignable<Core.ThemeDefinition, SdkThemeDefinition>>;
 // both directions are still checked here.
 type _DataSource = Expect<Assignable<SdkDataSource, Core.DataSource>>;
 type _DataSourceBack = Expect<Assignable<Core.DataSource, SdkDataSource>>;
+type _DataSourceKeys = Expect<SameKeys<SdkDataSource, Core.DataSource>>;
 type _DataSourceStatus = Expect<
   Assignable<SdkDataSourceStatus, Core.DataSourceStatus>
 >;
@@ -114,8 +145,10 @@ type _DataSourceStatusBack = Expect<
 >;
 type _ConfigField = Expect<Assignable<SdkConfigField, Core.ConfigField>>;
 type _ConfigFieldBack = Expect<Assignable<Core.ConfigField, SdkConfigField>>;
+type _ConfigFieldKeys = Expect<SameKeys<SdkConfigField, Core.ConfigField>>;
 type _DataKey = Expect<Assignable<SdkDataKey, Core.DataKey>>;
 type _DataKeyBack = Expect<Assignable<Core.DataKey, SdkDataKey>>;
+type _DataKeyKeys = Expect<SameKeys<SdkDataKey, Core.DataKey>>;
 
 // Map SPI (facade-sealing, 2026-07-19): BodyDefinition is owned by core
 // (bodies.ts), not this file's ./types, checked both directions same as every
@@ -128,6 +161,7 @@ type _DataKeyBack = Expect<Assignable<Core.DataKey, SdkDataKey>>;
 // gate is meant to retire in, one type at a time.
 type _Body = Expect<Assignable<SdkBodyDefinition, CoreBodyDefinition>>;
 type _BodyBack = Expect<Assignable<CoreBodyDefinition, SdkBodyDefinition>>;
+type _BodyKeys = Expect<SameKeys<SdkBodyDefinition, CoreBodyDefinition>>;
 
 // Screen identity (facade-sealing, 2026-07-19): owned by
 // contexts/ScreenContext.tsx.
@@ -243,12 +277,14 @@ type _UplinkClientHandleBack = Expect<
 // Keep the aliases "used" under noUnusedLocals.
 export type _SdkFacadeConformance = [
   _Component,
+  _ComponentKeys,
   _ComponentBack,
   _ComponentProps,
   _ComponentPropsBack,
   _ConfigProps,
   _Action,
   _ActionBack,
+  _ActionKeys,
   _Augment,
   _AugmentBack,
   _Perf,
@@ -256,14 +292,18 @@ export type _SdkFacadeConformance = [
   _Theme,
   _DataSource,
   _DataSourceBack,
+  _DataSourceKeys,
   _DataSourceStatus,
   _DataSourceStatusBack,
   _ConfigField,
   _ConfigFieldBack,
+  _ConfigFieldKeys,
   _DataKey,
   _DataKeyBack,
+  _DataKeyKeys,
   _Body,
   _BodyBack,
+  _BodyKeys,
   _Screen,
   _ScreenBack,
   _SettingsTab,

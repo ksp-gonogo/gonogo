@@ -46,10 +46,6 @@ import type {
  * are NOT here: they are real, published bytes re-exported directly from the sdk.
  */
 export interface GonogoHost {
-  registerComponent<TConfig = Record<string, unknown>>(
-    def: ComponentDefinition<TConfig>,
-  ): void;
-  registerTheme(def: ThemeDefinition): void;
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
   registerFogRevealSource(def: FogRevealSourceDefinition): void;
 
@@ -273,7 +269,7 @@ export function getHost(): GonogoHost {
   if (!host) {
     throw new Error(
       "@ksp-gonogo/sitrep-sdk: the gonogo host has not been installed. " +
-        "This package's stateful surface (registerComponent, the hooks, …) is " +
+        "This package's stateful surface (the hooks, registerAugment, …) is " +
         "runtime-injected by the app: mark @ksp-gonogo/sitrep-sdk `external` in " +
         "your bundle so it resolves to the host, and do not bundle a second copy. " +
         "In tests, install a host with @ksp-gonogo/sitrep-sdk/testing.",

@@ -108,6 +108,20 @@ describe("registerComponent / getComponent / getComponents", () => {
     expect(getComponents()).toHaveLength(1);
     expect(getComponent("test-component")).toBe(mockComponent);
   });
+
+  it("accepts an EQUAL def arriving as a different object, which a second bundle produces", () => {
+    // The case reference equality could not express, and the reason it had to
+    // stop being the test: the registry is a `globalThis` slot now, so two
+    // bundles share it, and the same widget evaluated in each arrives as two
+    // distinct objects. Nothing is fighting for the id, so nothing should throw.
+    registerComponent(mockComponent);
+    const secondBundlesCopy = { ...mockComponent };
+    expect(secondBundlesCopy).not.toBe(mockComponent);
+    expect(() => registerComponent(secondBundlesCopy)).not.toThrow();
+    // First registration wins: the later copy does not silently replace it.
+    expect(getComponent("test-component")).toBe(mockComponent);
+    expect(getComponents()).toHaveLength(1);
+  });
 });
 
 describe("registerDataSource / getDataSources", () => {

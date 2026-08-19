@@ -13,11 +13,9 @@ import {
   onFogRevealSourcesChange,
   PerfBudget,
   registerAugment,
-  registerComponent,
   registerFogRevealSource,
   registerSetting,
   registerSettingsTab,
-  registerTheme,
   setSetting,
   subscribeSetting,
   useActionInput,
@@ -87,10 +85,6 @@ export function installRealTestHost(): () => void {
   // are honest (same runtime, mirrored type surface) rather than papering over a
   // shape mismatch. Same reasoning, same casts, as the app's own builder.
   const host: { [K in keyof GonogoHost]: GonogoHost[K] } = {
-    registerComponent: (def) =>
-      registerComponent(def as Parameters<typeof registerComponent>[0]),
-    registerTheme: (def) =>
-      registerTheme(def as Parameters<typeof registerTheme>[0]),
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
     registerFogRevealSource: (def) =>

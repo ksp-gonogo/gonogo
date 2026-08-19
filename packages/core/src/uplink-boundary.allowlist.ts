@@ -642,14 +642,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/data/src/BufferedDataSource.test.ts",
       "packages/data/src/hooks/useDataSchema.test.tsx",
 
-      // "centralised kOS scripts" infra (audit §3; CLAUDE.md). Kos migration
-      // (2026-07-18) Tasks 2-4/6 moved registerKosScript/ScriptableDataSource/
-      // KosScriptError/CpuRegistryService and their satellites (barrel
-      // exports, the [KOSDATA] parser, the CPU-registry context, their own
-      // tests) wholesale into the kos Uplink per the operator's explicit
-      // "no generalising" call. Only registry.ts's own clearKosScripts()
-      // import removal remains a core-side trace: doc/comment-only now.
-      "packages/core/src/registry.ts",
+      // `registry.ts` was here for `clearRegistry`'s doc, which explained itself
+      // by naming what it does NOT clear: the kOS script registry. The registry
+      // moved into `@ksp-gonogo/sitrep-sdk` on 2026-08-19 and the sdk is the leaf
+      // every Uplink depends on, so it cannot name one at all, not even in prose.
+      // The doc now states the general rule instead (it never reaches a registry
+      // an Uplink owns), which is what it always meant.
 
       // -- Doc/comment-only mentions elsewhere (kOS is a documented Key
       // Design Constraint: "optional, not a hard dependency": so it is

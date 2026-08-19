@@ -140,12 +140,29 @@ export const GAME_HOST_KEY = "gameHost" as const;
 
 // --- Registration shims (stateful → injected host) --------------------------
 
-export const registerComponent = <TConfig = Record<string, unknown>>(
-  def: ComponentDefinition<TConfig>,
-): void => getHost().registerComponent(def);
-
-export const registerTheme = (def: ThemeDefinition): void =>
-  getHost().registerTheme(def);
+// The component / data-source / theme registry is NOT a shim: it lives in this
+// package (`./registry.ts`). It was the LAST place the shim story did not hold up,
+// because registration was published and nothing else about the registry was: an
+// Uplink could add a widget through `registerComponent` and then had no supported
+// way to reset the registry between test cases (18 Uplink files call
+// `clearRegistry`) or to read back what it had added.
+//
+// Only the author-and-test half is here. The ORCHESTRATION reads
+// (`getResolvedComponents`, `getReplacementConflicts`, `getComponents`,
+// `getThemes`, `getTheme`, `onDataSourcesChange`) are on the `/registry` subpath
+// instead, for the same reason `/spine` keeps `TimelineStore` off this barrel:
+// nothing about writing an Uplink needs the dashboard's widget-resolution rules,
+// and publishing them here would freeze app orchestration as third-party API.
+export {
+  clearRegistry,
+  getComponent,
+  getDataSource,
+  getDataSources,
+  registerComponent,
+  registerDataSource,
+  registerTheme,
+  unregisterDataSource,
+} from "./registry";
 
 /**
  * Every augment bound into `slot`, in render order. The read half of

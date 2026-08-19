@@ -100,6 +100,13 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   requires?: readonly ComponentRequirement[];
   /** Addressable augment slots this widget owns. */
   augmentSlots?: string[];
+  /**
+   * Addressable CONTRIBUTION slots this widget owns, the pure-data sibling of
+   * `augmentSlots`. Declared once so `useContributions([...] as const)` types its
+   * keyed result off this widget's own list. A slot id is one kind or the other,
+   * never both: do not list a slot here that is also in `augmentSlots`.
+   */
+  contributionSlots?: readonly ContributionSlotId[];
   /** Declares this widget REPLACES the widget with the given id. */
   replaces?: string;
   /**
@@ -518,6 +525,12 @@ export interface BodyDefinition {
     /** Scale height (e-folding altitude) in metres. */
     scaleHeight: number;
   };
+  /**
+   * Representative sky/haze colour, for tinting an atmospheric readout. Only
+   * meaningful when `hasAtmosphere` is true; leave unset for airless bodies so
+   * consumers fall back to a neutral default.
+   */
+  atmosphereColor?: string;
   /** Sidereal rotation period in seconds. */
   rotationPeriod?: number;
   /** Minimum altitude (metres ASL) at which satellite imaging produces usable data. */
