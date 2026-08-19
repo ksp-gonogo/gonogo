@@ -15,7 +15,7 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -540,7 +540,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
     await user.click(getDataKeyCombobox());
 
     const options = await screen.findAllByRole("option");
@@ -563,7 +563,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
 
     await user.type(screen.getByLabelText(/^name$/i), "Crossed 70 km");
-    await user.click(screen.getByRole("tab", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
     await user.click(getDataKeyCombobox());
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
       o.textContent?.toLowerCase().includes("altitude"),
@@ -578,5 +578,69 @@ describe("AlarmsModal threshold trigger key picker", () => {
       kind: "threshold",
       dataKey: "v.altitude",
     });
+  });
+});
+
+/**
+ * The trigger-kind control switches which fields the ONE "Add alarm" form
+ * shows. It is not a tab set: Name is shared, only the middle of the form
+ * differs, and there are no tab panels for the tabs to control. It had
+ * `role="tablist"`/`role="tab"` anyway, which is an ARIA claim the markup
+ * does not honour: a screen-reader user is told "tab" and reaches for arrow
+ * keys that do nothing, and both controls sit in the tab order where a
+ * chosen-one-of-many control should expose only its selection.
+ */
+describe("AlarmsModal trigger-kind control", () => {
+  beforeEach(registerStubDataSource);
+
+  function renderModal() {
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    return screen.getByRole("radiogroup", { name: /trigger kind/i });
+  }
+
+  it("is a radio group over one form, not a tab set", () => {
+    const group = renderModal();
+    expect(within(group).getAllByRole("radio")).toHaveLength(2);
+    // The negative: a tab role here would be a promise of panels we do not keep.
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(screen.queryAllByRole("tabpanel")).toHaveLength(0);
+  });
+
+  it("moves the selection with arrow keys and wraps", async () => {
+    const user = userEvent.setup();
+    const group = renderModal();
+    const [atUt, whenTelemetry] = within(group).getAllByRole("radio");
+
+    atUt.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(whenTelemetry).toHaveAttribute("aria-checked", "true");
+    expect(whenTelemetry).toHaveFocus();
+
+    await user.keyboard("{ArrowRight}");
+    expect(atUt).toHaveAttribute("aria-checked", "true");
+    expect(atUt).toHaveFocus();
+
+    await user.keyboard("{ArrowLeft}");
+    expect(whenTelemetry).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("exposes only the selected option to the tab order", async () => {
+    const user = userEvent.setup();
+    const group = renderModal();
+    const [atUt, whenTelemetry] = within(group).getAllByRole("radio");
+
+    expect(atUt).toHaveAttribute("tabindex", "0");
+    expect(whenTelemetry).toHaveAttribute("tabindex", "-1");
+
+    await user.click(whenTelemetry);
+    expect(whenTelemetry).toHaveAttribute("tabindex", "0");
+    expect(atUt).toHaveAttribute("tabindex", "-1");
   });
 });

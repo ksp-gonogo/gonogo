@@ -136,6 +136,7 @@ export function AlarmsModal({
     return () => clearTimeout(t);
   }, [justAddedName]);
   const [kind, setKind] = useState<DraftKind>("time");
+  const kindRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [name, setName] = useState(prefill?.name ?? "");
   // Time-trigger fields
   const [offsetSeconds, setOffsetSeconds] = useState("60");
@@ -238,25 +239,39 @@ export function AlarmsModal({
     <Wrap>
       <Stack as="section" gap="md">
         <SectionTitle as="h3">Add alarm</SectionTitle>
-        <KindRow role="tablist" aria-label="Trigger kind">
-          <KindButton
-            type="button"
-            role="tab"
-            aria-selected={kind === "time"}
-            $active={kind === "time"}
-            onClick={() => setKind("time")}
-          >
-            At UT
-          </KindButton>
-          <KindButton
-            type="button"
-            role="tab"
-            aria-selected={kind === "threshold"}
-            $active={kind === "threshold"}
-            onClick={() => setKind("threshold")}
-          >
-            When telemetry...
-          </KindButton>
+        <KindRow role="radiogroup" aria-label="Trigger kind">
+          {KIND_OPTIONS.map((option, index) => (
+            <KindButton
+              key={option.kind}
+              ref={(el) => {
+                kindRefs.current[index] = el;
+              }}
+              type="button"
+              role="radio"
+              aria-checked={kind === option.kind}
+              // Roving tabindex: a chosen-one-of-many control offers the tab
+              // order its selection, and the arrow keys the rest.
+              tabIndex={kind === option.kind ? 0 : -1}
+              $active={kind === option.kind}
+              onClick={() => setKind(option.kind)}
+              onKeyDown={(e) => {
+                const step =
+                  e.key === "ArrowRight" || e.key === "ArrowDown"
+                    ? 1
+                    : e.key === "ArrowLeft" || e.key === "ArrowUp"
+                      ? -1
+                      : 0;
+                if (step === 0) return;
+                e.preventDefault();
+                const next =
+                  (index + step + KIND_OPTIONS.length) % KIND_OPTIONS.length;
+                setKind(KIND_OPTIONS[next].kind);
+                kindRefs.current[next]?.focus();
+              }}
+            >
+              {option.label}
+            </KindButton>
+          ))}
         </KindRow>
 
         <Field>
@@ -915,6 +930,15 @@ const Wrap = styled.div`
   min-width: 480px;
   max-width: 640px;
 `;
+
+/**
+ * The two trigger kinds, in the order they are offered. Ordered rather than
+ * mapped because the arrow keys step through this list.
+ */
+const KIND_OPTIONS: readonly { kind: DraftKind; label: string }[] = [
+  { kind: "time", label: "At UT" },
+  { kind: "threshold", label: "When telemetry..." },
+];
 
 const KindRow = styled.div`
   display: flex;
