@@ -1,5 +1,10 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  DEFAULT_KEEP_COUNT,
+  getKeepCount,
+  setKeepCount,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { HeartIcon } from "@ksp-gonogo/ui";
 import { EmptyState, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
@@ -10,11 +15,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import styled from "styled-components";
-import {
-  DEFAULT_KEEP_COUNT,
-  getKeepCount,
-  setKeepCount,
-} from "../flightAutoDelete";
 import { getReplaySessionController } from "../replaySession/ReplaySessionController";
 import type { MissionMeta } from "../storage/MissionStore";
 import type { FlightRecord } from "../types";

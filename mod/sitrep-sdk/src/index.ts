@@ -56,6 +56,62 @@ export {
   type ProviderExtension,
   type ProviderExtensions,
 } from "./extensions";
+// The buffered-recording subsystem: wraps a live `DataSource`, persists every
+// sample into a `Store` keyed by inferred flight, and answers columnar range
+// queries. Moved down from `@ksp-gonogo/data` on 2026-08-19: an Uplink's tests
+// build one to assert what its widgets read, and `data` is `private: true`, so
+// the harness they needed was unbuildable outside this repo. Its transitive
+// imports were this package and itself all along.
+export type { KeyEnricher } from "./flight/BufferedDataSource";
+export { BufferedDataSource } from "./flight/BufferedDataSource";
+export { DataSourceWrapper } from "./flight/DataSourceWrapper";
+export { debugFlight } from "./flight/debugFlight";
+export type { DerivedKeyDef } from "./flight/derive";
+export {
+  clearDerivedKeys,
+  getDerivedKeys,
+  registerDerivedKey,
+} from "./flight/derive";
+export type {
+  ExportFlightOptions,
+  FlightChapter,
+  FlightFixture,
+} from "./flight/fixtureIO";
+export {
+  exportFlightToFixture,
+  FLIGHT_FIXTURE_FORMAT,
+  fixtureDurationMs,
+  importFixtureToStore,
+  isFlightFixture,
+} from "./flight/fixtureIO";
+export {
+  DEFAULT_KEEP_COUNT,
+  getKeepCount,
+  setKeepCount,
+  subscribeAutoDelete,
+} from "./flight/flightAutoDelete";
+export type {
+  DetectorDecision,
+  DetectorInput,
+} from "./flight/flightDetector";
+export { FlightDetector } from "./flight/flightDetector";
+export { KeyedListenerSet, ListenerSet } from "./flight/ListenerSet";
+export type { LocalStorageStoreOptions } from "./flight/storage/LocalStorageStore";
+export { LocalStorageStore } from "./flight/storage/LocalStorageStore";
+export { MemoryStore } from "./flight/storage/MemoryStore";
+export type { FlightStore } from "./flight/storage/Store";
+export { FLIGHTS_DESC } from "./flight/storage/Store";
+export type {
+  DataKeyMeta,
+  FlightChapterRecord,
+  FlightCrashOutcome,
+  FlightOutcome,
+  FlightRecord,
+  FlightRecoveryOutcome,
+  Sample,
+  SeriesRange,
+  UnitHint,
+} from "./flight/types";
 // The curated author-facing barrel (registration + hook shims + author types).
 // PROPOSAL surface pending operator sign-off (design D-D) before first external
 // publish. See ./api for why these are host-injected shims, not core re-exports.

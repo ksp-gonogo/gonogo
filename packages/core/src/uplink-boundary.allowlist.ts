@@ -632,9 +632,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/shared/RequiresGuard.test.tsx",
       "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
       "packages/sitrep-client/src/uplink-health.test.ts",
-      // BufferedDataSource.test.ts / useDataSchema.test.tsx test the doc-
-      // comment-only files of the same name below, same subject.
-      "packages/data/src/BufferedDataSource.test.ts",
+      // BufferedDataSource.test.ts was here alongside the file it tests; it moved
+      // to the sdk with it and its `kos.compute.*` fixture keys became
+      // `compute.*`, since what they assert is per-feeder namespacing rather than
+      // any one Uplink. Ratcheted off.
+      // useDataSchema.test.tsx tests the doc-comment-only file of the same name
+      // below, same subject.
       "packages/data/src/hooks/useDataSchema.test.tsx",
 
       // `registry.ts` was here for `clearRegistry`'s doc, which explained itself
@@ -677,11 +680,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/ManeuverPlanner/index.tsx",
       "packages/core/src/safeRandomUuid.ts",
       "packages/core/src/types.ts",
-      "packages/data/src/BufferedDataSource.ts",
-      "packages/data/src/flightDetector.ts",
+      // BufferedDataSource.ts / flightDetector.ts were here (prose asides about a
+      // kOS-sourced `vesselUid` and the kOS compute fanout as an example feeder).
+      // Both moved into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk is the
+      // leaf every Uplink depends on, so it cannot name one even in prose. They now
+      // describe the general shape they always meant ("another feeder", "an
+      // authoritative vesselUid from the vessel"), so both ratcheted off.
       "packages/data/src/hooks/useDataSchema.ts",
       "packages/data/src/replaySession/ReplaySessionProvider.tsx",
-      "packages/data/src/types.ts",
+      // types.ts was here for `FlightRecord.vesselUid`'s "arrives from kOS" aside.
+      // The flight types moved to the sdk leaf with `BufferedDataSource` and the
+      // aside now names the vessel rather than the Uplink that reads it, so this
+      // ratcheted off; what stayed behind is the `declare module` block, which
+      // names nothing.
       // packages/kerbcast/src/index.ts was here (a "alongside Telemachus / kOS /
       // etc." aside in its header). That package is now
       // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
@@ -1468,8 +1479,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // "data"/BufferedDataSource are slated for wholesale deletion. ---
       "packages/data/src/schema/telemachusMeta.ts",
       "packages/data/src/schema/legacyDataCatalog.ts",
-      "packages/data/src/BufferedDataSource.ts",
-      "packages/data/src/BufferedDataSource.test.ts",
+      // BufferedDataSource(.test).ts were here. They moved to
+      // `@ksp-gonogo/sitrep-sdk` on 2026-08-19 and could not carry the name onto a
+      // published leaf, so `enrichKey` became an injected seam: the catalogue stays
+      // here with the keys it describes, and the buffering layer no longer knows
+      // whose keys it is labelling. Ratcheted off.
       "packages/data/src/FlightsManager/MissionHistorySource.ts",
       "packages/data/src/FlightsManager/MissionHistorySource.test.ts",
       "packages/data/src/index.ts",

@@ -1,19 +1,16 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import type { Store } from "./storage/Store";
+import type { DataKey } from "../api/types";
+import type { FlightStore } from "./storage/Store";
 import type { FlightRecord } from "./types";
 
 /**
  * Portable, versioned representation of a `BufferedDataSource`-recorded
- * flight: the shape `BufferedDataSource.exportFlight()` produces and the
- * old flight-history export/download button (still live in `FlightsManager`
- * for legacy, star/graph/chapter-editable flights) downloads as JSON.
+ * flight: the shape `BufferedDataSource.exportFlight()` produces, and what a
+ * flight-history download button writes out as JSON.
  *
- * NOT the mission-recording/replay fixture: that's `ReplayFixture`
- * (`@ksp-gonogo/sitrep-client`), a raw wire-frame capture the new
- * `StreamRecorder`/`ReplaySessionController` produce and consume. This type
- * predates that system and stays scoped to `BufferedDataSource`'s own
- * per-sample export/import, which is unrelated (still Telemachus-fed, not
- * on the new stream).
+ * NOT the mission-recording/replay fixture, which is a raw wire-frame capture of
+ * the telemetry stream. This type predates that system and stays scoped to
+ * `BufferedDataSource`'s own per-sample export/import, which reads a wrapped
+ * `DataSource` rather than the stream.
  *
  * `samples` uses `[t, v]` tuples (not `{ t, v }` objects) to roughly halve
  * the on-disk size of long recordings. Sample `t` values are absolute unix
@@ -140,7 +137,7 @@ export interface ExportFlightOptions {
  * through this helper stays compact.
  */
 export async function exportFlightToFixture(
-  store: Store,
+  store: FlightStore,
   flightId: string,
   opts: ExportFlightOptions,
 ): Promise<FlightFixture> {
@@ -177,7 +174,7 @@ export async function exportFlightToFixture(
  * are observable to subsequent reads.
  */
 export async function importFixtureToStore(
-  store: Store,
+  store: FlightStore,
   fixture: FlightFixture,
 ): Promise<void> {
   await store.upsertFlight(fixture.flight);

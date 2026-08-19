@@ -1,6 +1,7 @@
-import { memoryStorage } from "@ksp-gonogo/core/test";
-import { logger } from "@ksp-gonogo/logger";
 import { describe, expect, it, vi } from "vitest";
+import type { GonogoHost } from "../../api/host";
+import { installTestHost } from "../../testing";
+import { memoryStorage } from "../../testing/memory-storage";
 import { LocalStorageStore } from "./LocalStorageStore";
 
 interface Cfg {
@@ -70,22 +71,32 @@ describe("LocalStorageStore", () => {
     const storage = memoryStorage();
     storage.setItem("the-key", "{also not json");
     const warn = vi.fn();
-    const tagSpy = vi.spyOn(logger, "tag").mockReturnValue({
+    const tag = vi.fn().mockReturnValue({
       debug: vi.fn(),
       info: vi.fn(),
       warn,
       error: vi.fn(),
     });
-    const store = new LocalStorageStore<Cfg>({
-      key: "the-key",
-      defaults: DEFAULTS,
-      storage,
+    // Through a real installed host rather than a spy on the `logger` export:
+    // that export is a Proxy with a `get` trap and no `set` trap, so an
+    // assignment-based spy would land on the dead target and every read would
+    // still resolve to the host. This asserts the path the store actually takes.
+    const uninstall = installTestHost({
+      logger: { tag } as unknown as GonogoHost["logger"],
     });
-    expect(store.get()).toEqual(DEFAULTS);
-    expect(tagSpy).toHaveBeenCalledWith("storage");
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][0]).toContain("the-key");
-    tagSpy.mockRestore();
+    try {
+      const store = new LocalStorageStore<Cfg>({
+        key: "the-key",
+        defaults: DEFAULTS,
+        storage,
+      });
+      expect(store.get()).toEqual(DEFAULTS);
+      expect(tag).toHaveBeenCalledWith("storage");
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain("the-key");
+    } finally {
+      uninstall();
+    }
   });
 
   it("round-trips set → get", () => {

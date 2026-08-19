@@ -95,6 +95,10 @@ export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
 // The jsdom shims a widget test needs before it can mount anything. Moved down
 // from `core` on 2026-08-19: it imports nothing, so nothing kept it up there.
 export { installDomStubs } from "./install-dom-stubs";
+// The in-memory `Storage` shim, moved down from `core` on 2026-08-19 for the same
+// reason: it imports nothing, and an Uplink test wanting one was reaching through
+// `@ksp-gonogo/core/test` to find it.
+export { memoryStorage } from "./memory-storage";
 // The in-memory `DataSource` double, moved down from `core` on 2026-08-19: it
 // names four types and no behaviour, so nothing kept it in an unpublished package
 // that 15 Uplink test files had to import to construct one.

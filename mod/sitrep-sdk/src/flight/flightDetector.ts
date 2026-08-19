@@ -1,11 +1,11 @@
-import { safeRandomUuid } from "@ksp-gonogo/core";
-import { debugFlight } from "./logger";
+import { safeRandomUuid } from "../api/safe-random-uuid";
+import { debugFlight } from "./debugFlight";
 import type { FlightRecord } from "./types";
 
 /**
- * Inferred heuristically from `v.name` + `v.missionTime`. In Phase 6 an
- * authoritative `vesselUid` will arrive from kOS; when present it takes
- * precedence and the heuristic becomes a fallback.
+ * Inferred heuristically from `v.name` + `v.missionTime`. When an
+ * authoritative `vesselUid` is available it takes precedence and the
+ * heuristic becomes a fallback.
  */
 export interface DetectorInput {
   vesselName: string;

@@ -11,7 +11,7 @@ import {
   type ReplayFixture,
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
-import { ListenerSet } from "../ListenerSet";
+import { ListenerSet } from "@ksp-gonogo/sitrep-sdk";
 import { enrichKey, TELEMACHUS_META } from "../schema/telemachusMeta";
 import type {
   MissionMeta,

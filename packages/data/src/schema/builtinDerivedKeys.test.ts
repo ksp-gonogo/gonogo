@@ -1,6 +1,6 @@
 import type { StageInfo } from "@ksp-gonogo/core";
+import { clearDerivedKeys, getDerivedKeys } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { clearDerivedKeys, getDerivedKeys } from "../derive";
 import type { Sample } from "../types";
 import { registerBuiltinDerivedKeys } from "./builtinDerivedKeys";
 
@@ -141,5 +141,53 @@ describe("builtin derived keys: delta-V / mass", () => {
       stage({ stage: 1, stageMass: 2500 }),
     ];
     expect(def.fn([sample(stages)], null)).toBe(10500);
+  });
+});
+
+// Moved here with `builtinDerivedKeys` when the derive REGISTRY went to the sdk:
+// these assert the shapes this package registers, not the registry that holds them.
+describe("built-in derived key shapes", () => {
+  beforeEach(() => {
+    clearDerivedKeys();
+  });
+  afterEach(() => {
+    clearDerivedKeys();
+  });
+
+  it("v.missionTimeHours converts seconds to hours", () => {
+    registerBuiltinDerivedKeys();
+
+    const def = getDerivedKeys().find((d) => d.id === "v.missionTimeHours");
+    if (!def) throw new Error("v.missionTimeHours not registered");
+    const result = def.fn([{ t: 1000, v: 3600 }], null);
+    expect(result).toBe(1);
+  });
+
+  it("v.altitudeRate returns undefined on first sample", () => {
+    registerBuiltinDerivedKeys();
+
+    const def = getDerivedKeys().find((d) => d.id === "v.altitudeRate");
+    if (!def) throw new Error("v.altitudeRate not registered");
+    expect(def.fn([{ t: 1000, v: 0 }], null)).toBeUndefined();
+  });
+
+  it("v.altitudeRate computes m/s correctly", () => {
+    registerBuiltinDerivedKeys();
+
+    const def = getDerivedKeys().find((d) => d.id === "v.altitudeRate");
+    if (!def) throw new Error("v.altitudeRate not registered");
+    // 100m gained in 2 seconds = 50 m/s
+    const result = def.fn([{ t: 3000, v: 200 }], [{ t: 1000, v: 100 }]);
+    expect(result).toBe(50);
+  });
+
+  it("v.altitudeRate returns undefined when dt === 0", () => {
+    registerBuiltinDerivedKeys();
+
+    const def = getDerivedKeys().find((d) => d.id === "v.altitudeRate");
+    if (!def) throw new Error("v.altitudeRate not registered");
+    expect(
+      def.fn([{ t: 1000, v: 200 }], [{ t: 1000, v: 100 }]),
+    ).toBeUndefined();
   });
 });

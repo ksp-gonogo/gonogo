@@ -12,12 +12,14 @@ import {
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import {
+  BufferedDataSource,
+  MemoryStore,
+  Quality,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { BufferedDataSource } from "../BufferedDataSource";
-import { MemoryStore } from "../storage/MemoryStore";
 import { useDataSeries } from "./useDataSeries";
 
 /**

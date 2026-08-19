@@ -1,6 +1,9 @@
-import { debugFlight } from "../logger";
+import {
+  debugFlight,
+  FLIGHTS_DESC,
+  type FlightStore,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { FlightRecord, SeriesRange } from "../types";
-import { FLIGHTS_DESC, type Store } from "./Store";
 
 const DB_NAME = "gonogo-data";
 const DB_VERSION = 1;
@@ -26,7 +29,7 @@ interface PendingSample {
  * individually is measurably wasteful in Chromium. Reads always trigger
  * a synchronous flush so range queries observe the latest data.
  */
-export class IndexedDbStore implements Store {
+export class IndexedDbStore implements FlightStore {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private readonly dbName: string;
   private readonly flushIntervalMs: number;

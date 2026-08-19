@@ -1,5 +1,5 @@
 import type { StageInfo } from "@ksp-gonogo/core";
-import { registerDerivedKey } from "../derive";
+import { registerDerivedKey } from "@ksp-gonogo/sitrep-sdk";
 
 function asStageArray(value: unknown): StageInfo[] | null {
   return Array.isArray(value) ? (value as StageInfo[]) : null;

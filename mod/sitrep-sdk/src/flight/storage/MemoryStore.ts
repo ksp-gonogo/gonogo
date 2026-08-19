@@ -1,5 +1,5 @@
 import type { FlightRecord, SeriesRange } from "../types";
-import { FLIGHTS_DESC, type Store } from "./Store";
+import { FLIGHTS_DESC, type FlightStore } from "./Store";
 
 interface SampleRow {
   t: number;
@@ -16,7 +16,7 @@ interface SampleRow {
  * expected case from a live stream: with a fallback linear-insert path
  * for out-of-order samples (e.g. backfilled history).
  */
-export class MemoryStore implements Store {
+export class MemoryStore implements FlightStore {
   // Separator between flightId and key in a bucket map key. `\u0000`
   // prevents collisions between keys that happen to contain the flightId
   // as a prefix.
