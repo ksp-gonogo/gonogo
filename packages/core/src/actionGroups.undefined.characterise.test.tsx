@@ -28,7 +28,13 @@ import { clearRegistry } from "./registry";
  * The second one is the dangerous one: with no telemetry at all, asking for
  * `AG1` still hands back a FULLY OPERABLE toggle pill bound to `f.ag1`. That
  * is a control the operator can fire against a vessel we have heard nothing
- * from. Pinned here so the migration has to decide about it on purpose.
+ * from.
+ *
+ * That control is still offered, on purpose: the alternative is retiring a
+ * group the operator plainly configured. What changed is that it no longer
+ * passes itself off as reported. `provenance` distinguishes the three ways a
+ * descriptor can exist, and the tests below are written around that
+ * distinction rather than around the old byte-identity.
  */
 
 type LooseControl =
@@ -147,11 +153,18 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
       toggle: "f.ag4",
       description: "Custom action group 4",
       index: 4,
+      provenance: "reported",
     });
   });
 
-  /** An entry whose index is undefined fabricates the string "AGundefined". */
-  it("fabricates AGundefined and f.agundefined for an entry with no index", () => {
+  /**
+   * An entry with no index used to interpolate one anyway, yielding the name
+   * "AGundefined" and the toggle "f.agundefined": a pressable pill bound to a
+   * command string no backend can honour. The index is what makes a group
+   * addressable, so without one the entry is listed and inert rather than
+   * fabricated into a command.
+   */
+  it("lists an entry with no index as inert instead of fabricating f.agundefined", () => {
     const partial = [
       { name: undefined, state: true },
     ] as unknown as ActionGroupStatePayload[];
@@ -159,11 +172,33 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
       useActionGroupsFrom({ actionGroups: partial }),
     );
 
-    // Pinned as-observed, not as-desired: this pill would dispatch a bogus
-    // `f.agundefined` command.
+    const entry = result.current.at(-1);
+    expect(entry).toEqual({
+      name: "Unidentified group",
+      toggle: null,
+      description: "Custom action group with no index",
+      provenance: "reported",
+    });
+    // The two ways the old string could reach the wire are both gone: the
+    // toggle no longer exists at all, so there is nothing to dispatch.
+    expect(entry?.name).not.toContain("undefined");
+    expect(entry?.toggle).toBeNull();
+    expect(entry?.index).toBeUndefined();
+  });
+
+  /** A named entry with no index keeps its name and is still inert. */
+  it("keeps a named entry's name when its index did not arrive", () => {
+    const partial = [
+      { name: "Solar Panels", state: true },
+    ] as unknown as ActionGroupStatePayload[];
+    const { result } = renderHook(() =>
+      useActionGroupsFrom({ actionGroups: partial }),
+    );
+
     expect(result.current.at(-1)).toMatchObject({
-      name: "AGundefined",
-      toggle: "f.agundefined",
+      name: "Solar Panels",
+      toggle: null,
+      provenance: "reported",
     });
   });
 
@@ -187,11 +222,12 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
 
 describe("useActionGroup characterisation: resolving a configured id against an empty registry", () => {
   /**
-   * THE HIGH-VALUE ONE. With zero telemetry, `AG1` resolves to a complete,
-   * clickable toggle bound to `f.ag1`. Nothing in the returned descriptor
-   * records that it was synthesised rather than reported.
+   * With zero telemetry, `AG1` still resolves to a complete, clickable toggle
+   * bound to `f.ag1`, which is the fallback doing its job. What it no longer
+   * does is present that as a reported group: `provenance: "assumed"` is the
+   * descriptor saying so.
    */
-  it("synthesises a fully operable AG1 toggle from no telemetry whatsoever", () => {
+  it("synthesises a fully operable AG1 toggle from no telemetry whatsoever, marked assumed", () => {
     const { result } = renderHook(() => useActionGroup("AG1"));
 
     expect(result.current).toEqual({
@@ -199,6 +235,7 @@ describe("useActionGroup characterisation: resolving a configured id against an 
       toggle: "f.ag1",
       description: "Custom action group 1",
       index: 1,
+      provenance: "assumed",
     });
   });
 
@@ -212,6 +249,7 @@ describe("useActionGroup characterisation: resolving a configured id against an 
       toggle: "f.ag240",
       description: "Custom action group 240",
       index: 240,
+      provenance: "assumed",
     });
   });
 
@@ -227,6 +265,7 @@ describe("useActionGroup characterisation: resolving a configured id against an 
       name: "Deploy Solar",
       toggle: null,
       description: "Deploy Solar",
+      provenance: "assumed",
     });
     expect(result.current?.index).toBeUndefined();
   });
@@ -259,16 +298,21 @@ describe("useActionGroup characterisation: resolving a configured id against an 
       name: "Gear",
       toggle: "f.gear",
       description: "Gear state",
+      provenance: "stock",
     });
   });
 
   /**
-   * The fabricated AG1 is INDISTINGUISHABLE from the reported one. Nothing on
-   * the descriptor says which it is, so a widget cannot caveat the pill it
-   * renders from no telemetry. The registry length is the only observable
-   * difference, and no consumer of `useActionGroup` sees it.
+   * THE ONE THIS FILE EXISTS FOR. A fabricated AG1 and a reported AG1 are the
+   * same control, deliberately, but they are no longer the same CLAIM: the
+   * descriptor carries `provenance`, so a widget can caveat the pill it drew
+   * from an absence instead of presenting it as reported fact.
+   *
+   * Everything else about the two stays identical on purpose. The fallback
+   * exists to keep a configured group operable, and marking where it came
+   * from must not quietly retire it.
    */
-  it("hands back a descriptor identical to the reported one, so fabricated and reported cannot be told apart", async () => {
+  it("marks the fabricated descriptor as assumed, and flips it to reported when telemetry lands", async () => {
     const transport = new StubTransport();
     const { result } = renderHook(
       () => ({ one: useActionGroup("AG1"), all: useActionGroups() }),
@@ -276,6 +320,13 @@ describe("useActionGroup characterisation: resolving a configured id against an 
     );
 
     const fabricated = result.current.one;
+    expect(fabricated).toEqual({
+      name: "AG1",
+      toggle: "f.ag1",
+      description: "Custom action group 1",
+      index: 1,
+      provenance: "assumed",
+    });
     expect(result.current.all).toHaveLength(STOCK_ACTION_GROUPS.length);
 
     act(() =>
@@ -288,14 +339,19 @@ describe("useActionGroup characterisation: resolving a configured id against an 
     await waitFor(() =>
       expect(result.current.all).toHaveLength(STOCK_ACTION_GROUPS.length + 1),
     );
-    // And the descriptor did not change at all.
-    expect(result.current.one).toEqual(fabricated);
+
+    // Same operable control, different claim: that is the whole change.
+    expect(result.current.one).toEqual({
+      ...fabricated,
+      provenance: "reported",
+    });
+    expect(result.current.one).not.toEqual(fabricated);
   });
 });
 
 describe("useActionGroupFrom characterisation: the no-duplicate-subscription variant", () => {
   /** Same fabrication as `useActionGroup`, reached without any telemetry read. */
-  it("synthesises AG1 from an undefined control payload", () => {
+  it("synthesises AG1 from an undefined control payload, marked assumed", () => {
     const { result } = renderHook(() => useActionGroupFrom(undefined, "AG1"));
 
     expect(result.current).toEqual({
@@ -303,6 +359,7 @@ describe("useActionGroupFrom characterisation: the no-duplicate-subscription var
       toggle: "f.ag1",
       description: "Custom action group 1",
       index: 1,
+      provenance: "assumed",
     });
   });
 

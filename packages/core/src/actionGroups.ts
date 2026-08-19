@@ -31,20 +31,56 @@ import type { ActionGroup } from "./types";
  * ---------------------------------------------------------------------------
  */
 export const STOCK_ACTION_GROUPS = [
-  { name: "SAS", toggle: "f.sas", description: "SAS state" },
-  { name: "RCS", toggle: "f.rcs", description: "RCS state" },
-  { name: "Light", toggle: "f.light", description: "Lights state" },
-  { name: "Gear", toggle: "f.gear", description: "Gear state" },
-  { name: "Brake", toggle: "f.brake", description: "Brakes state" },
-  { name: "Abort", toggle: "f.abort", description: "Abort state" },
+  {
+    name: "SAS",
+    toggle: "f.sas",
+    description: "SAS state",
+    provenance: "stock",
+  },
+  {
+    name: "RCS",
+    toggle: "f.rcs",
+    description: "RCS state",
+    provenance: "stock",
+  },
+  {
+    name: "Light",
+    toggle: "f.light",
+    description: "Lights state",
+    provenance: "stock",
+  },
+  {
+    name: "Gear",
+    toggle: "f.gear",
+    description: "Gear state",
+    provenance: "stock",
+  },
+  {
+    name: "Brake",
+    toggle: "f.brake",
+    description: "Brakes state",
+    provenance: "stock",
+  },
+  {
+    name: "Abort",
+    toggle: "f.abort",
+    description: "Abort state",
+    provenance: "stock",
+  },
   {
     // No toggle key: a read-only indicator. The widget renders its pill
     // disabled rather than as a no-op clickable.
     name: "Precision Control",
     toggle: null,
     description: "Precision mode state",
+    provenance: "stock",
   },
-  { name: "Stage", toggle: "f.stage", description: "Activate next stage" },
+  {
+    name: "Stage",
+    toggle: "f.stage",
+    description: "Activate next stage",
+    provenance: "stock",
+  },
 ] as const satisfies readonly ActionGroup[];
 
 /**
@@ -113,7 +149,9 @@ export function useActionGroupsFrom(
   return useMemo(
     () => [
       ...STOCK_ACTION_GROUPS,
-      ...(named ?? []).map((g) => customActionGroup(g.index, g.name)),
+      ...(named ?? []).map((g) =>
+        customActionGroup(g.index, g.name, "reported"),
+      ),
     ],
     [named],
   );
@@ -124,13 +162,33 @@ export function useActionGroupsFrom(
  * The single place the `f.ag{n}` toggle convention is derived, keyed by INDEX,
  * never by name, because `map-command.ts` bridges `f.ag{n}` to
  * `setActionGroup{group: n}` and two AGX groups may share a display name.
+ *
+ * The index is what makes a group addressable, so an entry that arrived
+ * without a usable one gets an inert descriptor rather than a fabricated
+ * command: interpolating a missing index yields `f.agundefined`, which is a
+ * pill the operator can press and a string no backend can honour. The entry
+ * is still listed, because the backend did report a group and dropping it
+ * would hide that, it just cannot be fired.
  */
-function customActionGroup(index: number, name?: string): ActionGroup {
+function customActionGroup(
+  index: number,
+  name: string | undefined,
+  provenance: "reported" | "assumed",
+): ActionGroup {
+  if (!Number.isInteger(index)) {
+    return {
+      name: name ?? "Unidentified group",
+      toggle: null,
+      description: "Custom action group with no index",
+      provenance,
+    };
+  }
   return {
     name: name ?? `AG${index}`,
     toggle: `f.ag${index}`,
     description: `Custom action group ${index}`,
     index,
+    provenance,
   };
 }
 
@@ -149,6 +207,13 @@ function customActionGroup(index: number, name?: string): ActionGroup {
  *  - anything else (an AGX name we can't map back to an index) becomes a
  *    read-only pill under its configured name, visibly present, honestly
  *    unknown, never silently mis-toggling some other group.
+ *
+ * Either way the descriptor is marked `provenance: "assumed"`, because
+ * degrading gracefully and claiming the group exists are different things.
+ * Without that mark a widget cannot tell a group the backend reported from
+ * one this function invented out of the saved config, so it cannot caveat the
+ * pill, and an `AG{n}` fabricated from nothing is otherwise byte-identical to
+ * a reported one.
  *
  * Returns `undefined` only when nothing is configured at all, which IS the
  * genuine "No action group configured" case.
@@ -181,6 +246,6 @@ function resolveActionGroup(
   if (found) return found;
   const match = /^AG(\d+)$/.exec(id);
   return match
-    ? customActionGroup(Number(match[1]))
-    : { name: id, toggle: null, description: id };
+    ? customActionGroup(Number(match[1]), undefined, "assumed")
+    : { name: id, toggle: null, description: id, provenance: "assumed" };
 }

@@ -456,9 +456,19 @@ function ActionGroupView({
   if (valueNotCurrent) unavailableReason = "State not current";
   else if (isPaused === true) unavailableReason = "Paused";
   else if (commConnected === false) unavailableReason = "No signal";
-  const unavailableTitle = valueNotCurrent
-    ? "The last known state is too old to invert, so the toggle is held"
-    : "The action group can't fire right now";
+  // Last, because unlike the three above this one does not stop the press:
+  // the registry keeps a configured group operable on purpose and the toggle
+  // stays live. It explains the empty pill when nothing else is claiming the
+  // line, and yields to any condition that would actually block the action.
+  else if (group.provenance === "assumed") unavailableReason = "Not reported";
+  // Keyed off the reason actually chosen above, not re-derived, so the two
+  // cannot drift apart into a caveat explained by the wrong sentence.
+  const unavailableTitle =
+    unavailableReason === "State not current"
+      ? "The last known state is too old to invert, so the toggle is held"
+      : unavailableReason === "Not reported"
+        ? "Configured, but no backend has reported this group, so its state is unknown"
+        : "The action group can't fire right now";
 
   // Selective rendering: drop the secondary "official name" line when the
   // widget is narrow. The state pill is itself the toggle control, so it is
