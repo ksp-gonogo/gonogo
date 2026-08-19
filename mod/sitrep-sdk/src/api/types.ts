@@ -283,6 +283,24 @@ export interface AugmentSettingField {
   default?: boolean | string | number;
 }
 
+/**
+ * One contributor's settings block, namespaced for the host panel. `namespace` is
+ * the contributor's id; the host stores each field under `<namespace>.<key>` in
+ * the widget instance config so two contributors' identically-named settings never
+ * collide, and an absent Uplink contributes nothing.
+ *
+ * Declared here rather than in `@ksp-gonogo/ui-kit`, which re-exports it, for the
+ * reason `AugmentSettingField` already moved: it is a shape over that type, and it
+ * is the return type of a registry read (`getFogRevealSourceSettings`) that lives
+ * in this package. ui-kit imports the sdk, so the type can only sit at this end if
+ * both are to have it.
+ */
+export interface NamespacedAugmentSettings {
+  augmentId: string;
+  namespace: string;
+  fields: readonly AugmentSettingField[];
+}
+
 /** Registration descriptor for an augment bound into another widget's slot. */
 export interface AugmentDefinition<S extends string = string> {
   id: string;

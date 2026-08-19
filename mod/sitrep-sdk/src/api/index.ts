@@ -45,8 +45,6 @@ import type {
   AnyContribution,
   AugmentDefinition,
   BodyDefinition,
-  ComponentDefinition,
-  FogRevealSourceDefinition,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -54,7 +52,6 @@ import type {
   SettingsTabDefinition,
   SlotProps,
   TelemetryClient,
-  ThemeDefinition,
   UplinkClientHandle,
   UseRouteCommandsResult,
 } from "./types";
@@ -107,6 +104,7 @@ export type {
   MapPoiAction,
   MapPoiProviderContext,
   MapPoiProviderDefinition,
+  NamespacedAugmentSettings,
   PerfBudgetHandle,
   PerfBudgetOptions,
   PredictedPhase,
@@ -179,9 +177,6 @@ export const registerAugment = <S extends string>(
   def: AugmentDefinition<S>,
 ): void => getHost().registerAugment(def);
 
-export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
-  getHost().registerFogRevealSource(def);
-
 // Registries that are NOT shims: they live in this package. None of them named
 // anything above this leaf (provider definitions, opaque handles, one payload
 // type), so the host indirection bought nothing and cost an Uplink the read half:
@@ -198,6 +193,14 @@ export {
   registerActionHandler,
   unregisterActionHandler,
 } from "./action-dispatch";
+export {
+  clearFogRevealSources,
+  getFogRevealSourceSettings,
+  getFogRevealSources,
+  onFogRevealSourcesChange,
+  registerFogRevealSource,
+  unregisterFogRevealSource,
+} from "./fog-reveal";
 export {
   clearMapPoiProviders,
   getMapPoiProviders,
@@ -455,16 +458,6 @@ export function setSetting(key: string, value: string): void {
  */
 export function getBody(id: string): BodyDefinition | undefined {
   return getHost().getBody(id);
-}
-
-/** Every registered fog-of-war reveal source, in registration order. */
-export function getFogRevealSources(): FogRevealSourceDefinition[] {
-  return getHost().getFogRevealSources();
-}
-
-/** Subscribe to any change (register/unregister) in the fog reveal source registry. */
-export function onFogRevealSourcesChange(cb: () => void): () => void {
-  return getHost().onFogRevealSourcesChange(cb);
 }
 
 // The read half of the contribution registry. The WRITE half stays on

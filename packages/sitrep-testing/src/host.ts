@@ -7,13 +7,10 @@ import {
   getAugmentsForSlot,
   getBody,
   getContributionsForSlot,
-  getFogRevealSources,
   getGameHost,
   onContributionsChange,
-  onFogRevealSourcesChange,
   PerfBudget,
   registerAugment,
-  registerFogRevealSource,
   registerSetting,
   registerSettingsTab,
   setSetting,
@@ -87,10 +84,6 @@ export function installRealTestHost(): () => void {
   const host: { [K in keyof GonogoHost]: GonogoHost[K] } = {
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
-    registerFogRevealSource: (def) =>
-      registerFogRevealSource(
-        def as Parameters<typeof registerFogRevealSource>[0],
-      ),
 
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
     // A single unconditional forward of both args, never a conditional call to
@@ -149,8 +142,6 @@ export function installRealTestHost(): () => void {
     clearAugments: () => {
       clearAugments();
     },
-    getFogRevealSources: () => getFogRevealSources(),
-    onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
     getContributionsForSlot: (slot) =>
       getContributionsForSlot(slot) as ReturnType<
         GonogoHost["getContributionsForSlot"]

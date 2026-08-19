@@ -138,14 +138,49 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(getBody).toHaveBeenCalledWith("Kerbin");
     });
 
-    it("getFogRevealSources fails LOUD with no host, resolves once installed", () => {
+    // Not a shim any more: the reveal-source registry moved into this package on
+    // 2026-08-19, alongside the POI one and for the same reason. It went last of
+    // the three because it was the one that needed a TYPE to move with it
+    // (`NamespacedAugmentSettings`, down from ui-kit).
+    it("the reveal-source registry needs no host, in either direction", () => {
       resetTestHost();
-      expect(() => barrel.getFogRevealSources()).toThrow(named);
+      barrel.clearFogRevealSources();
+      const changed = vi.fn();
+      const unsubscribe = barrel.onFogRevealSourcesChange(changed);
 
-      const sources = [{ id: "example-uplink:AltimetryHiRes" }] as never;
-      const getFogRevealSources = vi.fn().mockReturnValue(sources);
-      installTestHost({ getFogRevealSources });
-      expect(barrel.getFogRevealSources()).toBe(sources);
+      const source = { id: "example-uplink:AltimetryHiRes", weight: 200 };
+      barrel.registerFogRevealSource(source);
+      expect(changed).toHaveBeenCalledTimes(1);
+      expect(barrel.getFogRevealSources()).toEqual([source]);
+
+      barrel.unregisterFogRevealSource(source.id);
+      expect(changed).toHaveBeenCalledTimes(2);
+      expect(barrel.getFogRevealSources()).toEqual([]);
+
+      unsubscribe();
+      barrel.clearFogRevealSources();
+      // Unsubscribed before the clear, so the count has not moved again.
+      expect(changed).toHaveBeenCalledTimes(2);
+    });
+
+    it("namespaces each source's settings by its own id", () => {
+      resetTestHost();
+      barrel.clearFogRevealSources();
+      // A source with no settings contributes no block at all, so the panel does
+      // not render an empty section for it.
+      barrel.registerFogRevealSource({ id: "a:plain" });
+      barrel.registerFogRevealSource({
+        id: "b:tunable",
+        settings: [{ key: "enabled", type: "boolean", default: true }],
+      });
+      expect(barrel.getFogRevealSourceSettings()).toEqual([
+        {
+          augmentId: "b:tunable",
+          namespace: "b:tunable",
+          fields: [{ key: "enabled", type: "boolean", default: true }],
+        },
+      ]);
+      barrel.clearFogRevealSources();
     });
 
     it("setSetting fails LOUD with no host, resolves once installed", () => {
@@ -235,18 +270,6 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
         second.id,
       ]);
       barrel.clearMapPoiProviders();
-    });
-
-    it("onFogRevealSourcesChange fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      const cb = vi.fn();
-      expect(() => barrel.onFogRevealSourcesChange(cb)).toThrow(named);
-
-      const unsubscribe = vi.fn();
-      const onFogRevealSourcesChange = vi.fn().mockReturnValue(unsubscribe);
-      installTestHost({ onFogRevealSourcesChange });
-      expect(barrel.onFogRevealSourcesChange(cb)).toBe(unsubscribe);
-      expect(onFogRevealSourcesChange).toHaveBeenCalledWith(cb);
     });
 
     it("useFogMaskCache fails LOUD with no host, resolves once installed", () => {

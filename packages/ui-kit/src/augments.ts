@@ -1,9 +1,8 @@
 import type {
   AugmentDefinition,
-  AugmentSettingField,
+  NamespacedAugmentSettings,
   SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { ComponentType } from "react";
 
 // ---------------------------------------------------------------------------
 // The augment model (Uplink architecture spec §4)
@@ -110,19 +109,18 @@ export type AugmentSegmentProps<Seg extends string> =
  * The sdk's, re-exported. It was an identical copy here, and two published
  * declarations of one author-facing type drift without anything saying so.
  */
-export type { AugmentSettingField } from "@ksp-gonogo/sitrep-sdk";
-
 /**
- * One augment's settings block, namespaced for the host panel. `namespace` is
- * the augment id; the host stores each field under `<namespace>.<key>` in the
- * widget instance config so two augments' identically-named settings never
- * collide, and an absent Uplink contributes nothing.
+ * One augment's settings block, namespaced for the host panel.
+ *
+ * The sdk's, re-exported, same as `AugmentSettingField` above and for the same
+ * reason: it is a shape over that type, and the fog-reveal registry in the sdk
+ * returns it too. Two published declarations of one author-facing type drift
+ * without anything saying so.
  */
-export interface NamespacedAugmentSettings {
-  augmentId: string;
-  namespace: string;
-  fields: readonly AugmentSettingField[];
-}
+export type {
+  AugmentSettingField,
+  NamespacedAugmentSettings,
+} from "@ksp-gonogo/sitrep-sdk";
 
 // ---------------------------------------------------------------------------
 // Augment definition + registration (spec §4.2)
