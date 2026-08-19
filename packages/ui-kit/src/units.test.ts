@@ -781,3 +781,33 @@ describe("the locale is named, not ambient", () => {
     expect(formatQuantity(78_401, "funds").value).toBe("78,401");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Reported as "an explicit `format` is ignored for a computed value". It is
+// not: it is the kind guard doing exactly its job, on the sharpest pair in the
+// model.
+//
+// J and N·m are DIMENSIONALLY IDENTICAL (both kg·m²/s²) and are different
+// KINDS: energy and torque. Relabelling one as the other would put a
+// right-looking symbol on a quantity that is not that quantity, which is the
+// failure this module exists to prevent. Pinned here because the behaviour
+// looks like a bug from the call site and is the feature.
+// ---------------------------------------------------------------------------
+describe("formatQuantity: a format across KINDS is refused, not applied", () => {
+  it("keeps J as J when asked to show it as N·m", () => {
+    const shown = formatQuantity(50, "J", { format: "N·m" });
+
+    expect(shown.symbol).toBe("J");
+    expect(shown.value).not.toContain("N·m");
+  });
+
+  it("keeps N·m as N·m when asked to show it as J", () => {
+    expect(formatQuantity(50, "N·m", { format: "J" }).symbol).toBe("N·m");
+  });
+
+  // The contrast that shows the guard is about KIND and not about refusing
+  // every format: within one kind the pin is honoured.
+  it("still honours a format within the same kind", () => {
+    expect(formatQuantity(12_400, "m", { format: "km" }).symbol).toBe("km");
+  });
+});

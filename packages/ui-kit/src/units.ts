@@ -1,5 +1,6 @@
 import { calendarRatio } from "@ksp-gonogo/sitrep-sdk";
 import { GENERATED_UNIT_KINDS } from "./__generated__/unit-kinds";
+import { formatKspDate } from "./formatKspDate";
 
 /** Every symbol the model declares. */
 type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
@@ -1141,6 +1142,33 @@ export function formatQuantity(
     // that renders as a plausible number.
     if (kind === "irlTime") {
       return { value: formatIrlDuration(value), symbol: "", rung: "irl:s" };
+    }
+
+    // A universal time is an INSTANT, not a length, and it is the one kind that
+    // was in the union and never in this dispatch. Falling through to the
+    // generic numeric path rendered it as "12,345,678.00 ut", which is a true
+    // statement about the wrong quantity: the number is right and it is not a
+    // number anybody reads.
+    //
+    // It must not go on the time ladder either. That would render the same
+    // instant as "1y 145d", which is how long the game has been running rather
+    // than when this happened, and the two are confusable precisely because
+    // both look like plausible answers.
+    //
+    // Delegates to `formatKspDate`, the same formatter `<MissionDate>` uses,
+    // rather than restating it: the calendar is whichever one the GAME reported
+    // (six-hour days on stock Kerbin, 24 under a planet pack), so a second
+    // implementation here would be a second thing to keep in step with
+    // `setKspCalendar`. The symbol comes back empty for the same reason the
+    // duration branch's does: the parts are interleaved with the number and
+    // cannot be split off the way "12.4" and "km" can.
+    //
+    // Note this ACCEPTS a UT where `<Countdown>` refuses one. Refusing is right
+    // there because rendering an instant as a duration is meaningless; here
+    // rendering it as a date is correct and unambiguous, and refusing would only
+    // push every call site to a second component for nothing.
+    if (kind === "universalTime") {
+      return { value: formatKspDate(value), symbol: "", rung: "ut" };
     }
   }
 
