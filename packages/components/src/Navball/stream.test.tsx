@@ -16,7 +16,7 @@ import { NavballComponent } from "./index";
  * placeholder (NULL_DISPLAY) forever.
  *
  * Navball's `dataRequirements` split MAPPED / GAPPED (`map-topic.ts`'s
- * `TELEMACHUS_CLEAN_HOMES`/`TELEMACHUS_KNOWN_GAPS`):
+ * `LEGACY_KEY_HOMES`/`LEGACY_KEY_GAPS`):
  * - MAPPED: `n.heading`/`n.pitch`/`n.roll` -> `vessel.attitude.*` (the
  *   CoM-referenced frame); `n.heading2`/`n.pitch2`/`n.roll2` ->
  *   `vessel.attitude.*RootFrame` (the genuinely distinct root-part frame:

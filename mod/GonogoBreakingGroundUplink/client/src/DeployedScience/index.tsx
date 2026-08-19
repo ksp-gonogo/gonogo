@@ -39,7 +39,7 @@ import { BREAKING_GROUND } from "../uplink";
  * `deployed.available` is migrated too, the earlier "no new-wire
  * equivalent" read was stale: `game.dlc.breakingGround` is its
  * own independent capability boolean, not derived from `deployed.bases`'s
- * emptiness (see `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`).
+ * emptiness (see `map-topic.ts`'s `LEGACY_KEY_HOMES`).
  *
  * Real-recording validation is deferred to the user's next Space Center
  * capture with a deployed Breaking Ground cluster in physics range, this

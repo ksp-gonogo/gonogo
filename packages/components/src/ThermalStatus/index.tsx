@@ -207,7 +207,7 @@ function ThermalStatusComponent({
   // (-> `vessel.thermal.hottestPart.skinTemp`). The heat-shield rows are
   // mapped too (`vessel.thermal.heatShieldTemp`/`heatShieldFlux`), but
   // the engine rows still read GAPPED keys (map-topic.ts's
-  // TELEMACHUS_KNOWN_GAPS "thermal detail beyond headline ratios") and stay on
+  // LEGACY_KEY_GAPS "thermal detail beyond headline ratios") and stay on
   // legacy regardless, so a single representative mapped key drives this badge
   // rather than conflating "stream carried" with "legacy connected".
 

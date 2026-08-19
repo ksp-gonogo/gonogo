@@ -235,7 +235,7 @@ function useKeyOptions(): KeyOption[] {
   // The legacy "data" `DataSource` (and its live schema listing) is gone,
   // suggestions now come straight from `TELEMACHUS_META`, which already
   // covers every stream-mapped key (see `map-topic.ts`'s
-  // `TELEMACHUS_CLEAN_HOMES`). Recomputed every render, the map is small
+  // `LEGACY_KEY_HOMES`). Recomputed every render, the map is small
   // (~few dozen entries) and the cost is well under a millisecond.
   return useMemo<KeyOption[]>(() => {
     const merged: KeyOption[] = Object.entries(TELEMACHUS_META).map(

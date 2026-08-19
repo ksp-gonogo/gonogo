@@ -194,11 +194,11 @@ export {
 } from "./map-command";
 export {
   isKnownFieldPath,
-  isKnownTelemachusGap,
+  isKnownLegacyKeyGap,
+  LEGACY_KEY_GAPS,
+  LEGACY_KEY_HOMES,
   mapTopic,
   redirectKinematicSubtopic,
-  TELEMACHUS_CLEAN_HOMES,
-  TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
 export type {
   NeverReckonable,

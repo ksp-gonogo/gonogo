@@ -939,7 +939,7 @@ export class TimelineStore {
     if (literal !== undefined) return literal;
 
     // Raw record field-subtopic fallback: the
-    // mechanism `map-topic.ts`'s whole `TELEMACHUS_CLEAN_HOMES` table
+    // mechanism `map-topic.ts`'s whole `LEGACY_KEY_HOMES` table
     // depends on: `topic` is a `"<domain>.<channel>.<field...>"` string with no
     // registered-derived-channel match: e.g. `"time.warp.warpRate"`. No
     // wire message is EVER published to that literal string; the real wire
@@ -1342,7 +1342,7 @@ export class TimelineStore {
    * nested field path into that record's payload (see this file's
    * own doc comment on the `sample()` branch that calls this, and
    * `timeline-store-raw-fields.test.ts`). Cross-checked against every dotted
-   * value in `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`: a flat 3-segment
+   * value in `map-topic.ts`'s `LEGACY_KEY_HOMES`: a flat 3-segment
    * entry (`"vessel.orbit.sma"`) yields a 1-element field path; the one
    * 4-segment entry (`"vessel.thermal.hottestPart.skinTemp"`) yields a
    * 2-element path, walked in one nested lookup rather than a second round
@@ -1402,7 +1402,7 @@ export class TimelineStore {
    * on an otherwise-whole, non-null record -> `undefined` (the phantom-
    * mapping case `TimelineStore.isUnresolvableField`'s doc describes for the
    * derived-channel analog; not extended to this raw path, every currently
-   * shipped `TELEMACHUS_CLEAN_HOMES` raw-field entry has been checked against
+   * shipped `LEGACY_KEY_HOMES` raw-field entry has been checked against
    * the real wire fixture, so there is no known-dead mapping this needs to
    * catch yet).
    *

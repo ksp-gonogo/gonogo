@@ -104,7 +104,7 @@ interface CommandHome {
 
 /**
  * toggle -> absolute bridge for the 5 action-group booleans that DO have a
- * clean per-field read home (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`:
+ * clean per-field read home (`map-topic.ts`'s `LEGACY_KEY_HOMES`:
  * `v.sasValue`/`v.rcsValue`/`v.gearValue`/`v.brakeValue`/`v.lightValue` ->
  * `vessel.control.{sas,rcs,gear,brakes,lights}`). `readTopic` is the exact
  * same stream topic a migrated `useDataValue` read of the sibling `v.<x>
@@ -167,7 +167,7 @@ function toggleHome(command: string, readTopic: string): CommandHome {
  * safest mapping" contract, never a guessed toggle.
  *
  * `f.abort` is UN-GAPPED and uses `toggleHome` against `vessel.control.abort`
- * (see `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES`) rather than this, since
+ * (see `map-topic.ts`'s `LEGACY_KEY_HOMES`) rather than this, since
  * Abort is a stock singleton with its own field and command.
  */
 function actionGroupHome(groupNumber: number): CommandHome {
@@ -832,7 +832,7 @@ const TELEMACHUS_COMMAND_HOMES: Readonly<Record<string, CommandHome>> = {
 
 /**
  * Old action keys with NO new command home yet, the command-side
- * analog of `map-topic.ts`'s `TELEMACHUS_KNOWN_GAPS`. Exported so
+ * analog of `map-topic.ts`'s `LEGACY_KEY_GAPS`. Exported so
  * `@ksp-gonogo/core`'s coverage test can assert "mapped OR declared gap"
  * without a silent third case.
  */
@@ -921,7 +921,7 @@ export function mapCommand(
  * `true` when `action`'s base key (post bracket-strip) is a legacy action
  * with a deliberately-tracked absence of a new command home (as opposed to
  * simply never having been audited). Used by the coverage test to
- * distinguish "known gap" from "silent miss": mirrors `isKnownTelemachusGap`.
+ * distinguish "known gap" from "silent miss": mirrors `isKnownLegacyKeyGap`.
  */
 export function isKnownCommandGap(
   dataSourceId: string,

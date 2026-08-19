@@ -6,9 +6,9 @@ import type {
 import { PerfBudget } from "@ksp-gonogo/core";
 import {
   buildFullHistoryStore,
+  LEGACY_KEY_GAPS,
   mapTopic,
   type ReplayFixture,
-  TELEMACHUS_KNOWN_GAPS,
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
 import { ListenerSet } from "../ListenerSet";
@@ -50,7 +50,7 @@ const FULL_HISTORY_REBUILD_BUDGET = new PerfBudget({
  * offered them; nothing to `sampleRange` against.
  */
 function isGapKey(key: string): boolean {
-  return TELEMACHUS_KNOWN_GAPS.has(key);
+  return LEGACY_KEY_GAPS.has(key);
 }
 
 /**

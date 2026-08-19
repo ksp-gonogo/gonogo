@@ -292,7 +292,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
 
 /**
  * Proof separate from the node-id round-trip above: `dv.stages` is mapped
- * on the wire (map-topic.ts's TELEMACHUS_CLEAN_HOMES, whole-topic identity
+ * on the wire (map-topic.ts's LEGACY_KEY_HOMES, whole-topic identity
  * read) and rides the stream once carried, with zero change to the
  * `useVesselDeltaV()` call site in index.tsx. The two transports disagree
  * on field names though: legacy `StageInfo` (`deltaVVac`/`deltaVASL`) vs.

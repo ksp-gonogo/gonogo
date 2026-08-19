@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
+import { LEGACY_KEY_HOMES } from "./map-topic";
 
 /**
  * Fixture hardening: the deeper half of
@@ -15,7 +15,7 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * of its siblings hiding in a channel the old 6-topic reference wire
  * fixture never carried.
  *
- * This test is that missing check: for every `TELEMACHUS_CLEAN_HOMES`
+ * This test is that missing check: for every `LEGACY_KEY_HOMES`
  * target of the raw-field form (`<domain>.<channel>.<field...>`), it takes
  * a REAL captured payload for `<domain>.<channel>` from the grown
  * 15-channel `reference-wire-fixture.json`
@@ -141,7 +141,7 @@ describe.skipIf(!fixtureExists)(
       }
     }
 
-    const rawFieldEntries = Object.entries(TELEMACHUS_CLEAN_HOMES).filter(
+    const rawFieldEntries = Object.entries(LEGACY_KEY_HOMES).filter(
       ([, target]) => isRawFieldForm(target),
     );
 

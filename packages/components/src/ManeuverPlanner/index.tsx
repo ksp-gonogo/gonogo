@@ -274,7 +274,7 @@ function ManeuverPlannerComponent({
 
   const nodes = useManeuverNodes();
   // dv.stages is mapped on the wire (see map-topic.ts's
-  // TELEMACHUS_CLEAN_HOMES: whole-topic identity read, same "dv.stages"
+  // LEGACY_KEY_HOMES: whole-topic identity read, same "dv.stages"
   // key off either transport) and rides the stream once carried, with
   // zero call-site change here: `useVesselDeltaV` reads it via the same
   // `useTelemetry("dv.stages")` regardless of which transport

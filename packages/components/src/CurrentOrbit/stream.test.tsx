@@ -11,8 +11,8 @@ import { CurrentOrbitComponent } from "./index";
  * `ThermalStatus/stream.test.tsx`): genuinely running off the real
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`: no legacy `DataSource` is registered anywhere in this
- * file. CurrentOrbit reads no `TELEMACHUS_KNOWN_GAPS` key, so
- * every field it shows is `TELEMACHUS_CLEAN_HOMES` and resolves off the
+ * file. CurrentOrbit reads no `LEGACY_KEY_GAPS` key, so
+ * every field it shows is `LEGACY_KEY_HOMES` and resolves off the
  * stream: what stays NULL_DISPLAY here does so only because its INPUT topic isn't
  * emitted in this file, never because it's gapped.
  *

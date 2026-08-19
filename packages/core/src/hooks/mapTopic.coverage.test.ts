@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isKnownTelemachusGap, mapTopic } from "@ksp-gonogo/sitrep-client";
+import { isKnownLegacyKeyGap, mapTopic } from "@ksp-gonogo/sitrep-client";
 import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { classifyRequirement } from "../declarations";
@@ -11,7 +11,7 @@ import { classifyRequirement } from "../declarations";
  * Telemachus key a real widget actually asks for, via a declared
  * `dataRequirements` entry or a literal `useTelemetry("data", "<key>")` call,
  * must be either mapped to a new stream topic (`mapTopic("data", key)`) or
- * explicitly listed as a known gap (`isKnownTelemachusGap`). Anything
+ * explicitly listed as a known gap (`isKnownLegacyKeyGap`). Anything
  * neither mapped nor gap-listed is a silent miss: a widget that gets
  * migrated onto the shim later would quietly regress to `undefined` forever
  * instead of falling back to its working legacy `DataSource` read.
@@ -147,7 +147,7 @@ describe("mapTopic coverage: every widget Telemachus key is mapped or a declared
   // which is not an `isTopicId` because nothing on the wire publishes it).
   // Those aren't old Telemachus keys at all, so this scan, built to police
   // the legacy-key migration table specifically: excludes them rather than
-  // asking `mapTopic`/`isKnownTelemachusGap` to account for a key that was
+  // asking `mapTopic`/`isKnownLegacyKeyGap` to account for a key that was
   // never theirs to route. `classifyRequirement` owns the full set of legal
   // declaration forms; this test only cares which of them are legacy keys.
   const scanned = collectWidgetTelemachusKeys();
@@ -178,7 +178,7 @@ describe("mapTopic coverage: every widget Telemachus key is mapped or a declared
       .filter(
         (key) =>
           mapTopic("data", key) === undefined &&
-          !isKnownTelemachusGap("data", key),
+          !isKnownLegacyKeyGap("data", key),
       )
       .sort();
 
@@ -188,8 +188,7 @@ describe("mapTopic coverage: every widget Telemachus key is mapped or a declared
   it("mapped keys and known gaps are mutually exclusive for every widget key", () => {
     const bothMappedAndGapped = [...widgetKeys].filter(
       (key) =>
-        mapTopic("data", key) !== undefined &&
-        isKnownTelemachusGap("data", key),
+        mapTopic("data", key) !== undefined && isKnownLegacyKeyGap("data", key),
     );
 
     expect(bothMappedAndGapped).toEqual([]);

@@ -1,6 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
+import { LEGACY_KEY_HOMES } from "./map-topic";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
@@ -110,7 +110,7 @@ describe("mapTopic vessel.state.* targets stay in sync with deriveVesselState's 
   });
 
   it("every mapTopic target under the vessel.state.* namespace names a field deriveVesselState actually produces", () => {
-    const vesselStateTargets = Object.values(TELEMACHUS_CLEAN_HOMES).filter(
+    const vesselStateTargets = Object.values(LEGACY_KEY_HOMES).filter(
       (target) => target.startsWith("vessel.state."),
     );
 
