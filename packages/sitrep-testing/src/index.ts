@@ -46,16 +46,19 @@ export {
   DashboardItemContext,
   dispatchAction,
   getAugmentsForSlot,
+  getComponent,
   getMapPoiProviders,
   installDomStubs,
   MockDataSource,
   PerfBudget,
+  registerComponent,
   registerDataSource,
   registerStockBodies,
   resetSettingsForTests,
   SettingsProvider,
   SettingsService,
   setSetting,
+  useDashboardItemId,
   useWidgetBadges,
 } from "@ksp-gonogo/core";
 export {
@@ -110,6 +113,12 @@ export {
 // Library through the harness rather than directly. One source, one path.
 export * from "@ksp-gonogo/sitrep-sdk/testing";
 export { installRealTestHost } from "./host";
+// Renders a widget the way the DASHBOARD does, not the way `render` does. See
+// its own doc for the stack, and for the three wrappers it deliberately omits.
+export {
+  type RenderWidgetOptions,
+  renderWidget,
+} from "./renderWidget";
 export {
   type StreamFixture,
   type StreamFixtureOptions,

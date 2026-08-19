@@ -1,18 +1,14 @@
 import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  DashboardItemContext,
+  renderWidget,
   type StreamFixture,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  type DeployedExperimentContext,
-  DeployedScienceComponent,
-  parseBases,
-} from "./index";
+import { type DeployedExperimentContext, parseBases } from "./index";
 
 // One flat entry off the new `deployed.bases` wire (see index.tsx's
 // `parseBases`/`groupFlatDeployedEntries`): grouped by `vesselName` into the
@@ -45,13 +41,12 @@ function newFixture(): StreamFixture {
 }
 
 function renderDeployed(fixture: StreamFixture) {
-  const result = render(
-    <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "db" }}>
-        <DeployedScienceComponent config={{}} id="db" />
-      </DashboardItemContext.Provider>
-    </fixture.Provider>,
-  );
+  // Through the registry, inside the dashboard's own provider stack, with the
+  // stream fixture above it: what the app actually mounts.
+  const result = renderWidget("deployed-science", {
+    instanceId: "db",
+    wrapper: fixture.Provider,
+  });
   renderedTrees.push(result.unmount);
   return result;
 }
