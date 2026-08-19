@@ -151,6 +151,8 @@ export interface GonogoHost {
   getGameHost(): string;
   /** Subscribe to any change (saved OR seeded) for one shared settings key. */
   subscribeSetting(key: string, cb: () => void): () => void;
+  /** Persist a user-chosen value for one settings key (the "saved" layer). */
+  setSetting(key: string, value: string): void;
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
   /**

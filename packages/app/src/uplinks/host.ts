@@ -37,6 +37,7 @@ import {
   registerSettingsTab,
   registerTheme,
   registerUplinkHandle,
+  setSetting,
   subscribeSetting,
   useActionInput,
   useDataSources,
@@ -152,6 +153,9 @@ export function buildGonogoHost(): GonogoHost {
 
     getGameHost: () => getGameHost(),
     subscribeSetting: (key, cb) => subscribeSetting(key, cb),
+    setSetting: (key, value) => {
+      setSetting(key, value);
+    },
 
     getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getFogRevealSources: () => getFogRevealSources(),

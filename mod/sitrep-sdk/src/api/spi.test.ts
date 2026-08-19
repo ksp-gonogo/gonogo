@@ -148,6 +148,18 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(barrel.getFogRevealSources()).toBe(sources);
     });
 
+    it("setSetting fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => {
+        barrel.setSetting("gameHost", "10.0.0.5");
+      }).toThrow(named);
+
+      const setSetting = vi.fn();
+      installTestHost({ setSetting });
+      barrel.setSetting("gameHost", "10.0.0.5");
+      expect(setSetting).toHaveBeenCalledWith("gameHost", "10.0.0.5");
+    });
+
     it("getContributionsForSlot fails LOUD with no host, resolves once installed", () => {
       resetTestHost();
       expect(() =>

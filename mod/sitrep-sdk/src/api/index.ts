@@ -379,6 +379,17 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
   return getHost().subscribeSetting(key, cb);
 }
 
+/**
+ * Persist a user-chosen value for one settings key. The write half of the
+ * trio an Uplink already had: `registerSetting` declares one, `useSetting`
+ * and `subscribeSetting` read it, and until now nothing could set it, so an
+ * Uplink offering its own control over its own setting had no way to save
+ * what the operator chose.
+ */
+export function setSetting(key: string, value: string): void {
+  getHost().setSetting(key, value);
+}
+
 // --- Registry accessor shims (stateful → injected host) ---------------------
 
 /**

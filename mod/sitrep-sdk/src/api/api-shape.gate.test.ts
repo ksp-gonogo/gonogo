@@ -44,6 +44,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerTheme",
   "registerUplinkHandle",
   "safeRandomUuid",
+  "setSetting",
   "subscribeSetting",
   "useActionInput",
   "useCommand",
