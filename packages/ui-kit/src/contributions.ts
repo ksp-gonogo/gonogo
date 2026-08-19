@@ -32,83 +32,38 @@ export interface UplinkClientIdentity {
   name: string;
 }
 
-/**
- * Global slot -> {ctx, entry, topics} registry, extended via declaration
- * merging exactly like SlotRegistry (augments.ts). `topics` is the union of
- * Topic ids a contribution bound to this slot may read; omit it for a slot
- * that needs no topics.
- */
-// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam, mirrors SlotRegistry
-export interface ContributionRegistry {}
-
-/** Union of every declared in-tree contribution slot id. `never` until a package merges one in. */
-export type ContributionSlotId = keyof ContributionRegistry;
-
 // ---------------------------------------------------------------------------
-// Segment-keyed registry for HOST-INVARIANT component slot types.
+// The declaration-merge seam itself is NOT declared here. It is
+// `@ksp-gonogo/sitrep-sdk`'s, re-exported.
 //
-// A reusable component (mostly ui-kit / `@ksp-gonogo/ui`) cannot write the
-// full slot literal `${componentId}.${segment}`, because it does not know
-// which widget it is mounted in. So it writes only the SEGMENT ("filters") and
-// the primitives complete `${componentId}.${segment}` from `useWidgetMeta()`
-// at runtime. This registry maps a SEGMENT -> the entry type its contributions
-// carry: the host-invariant sibling of `ContributionRegistry`'s full-id map.
+// It used to be declared in both packages, and that is the one divergence shape
+// that cannot fail loudly. An Uplink writes `declare module
+// "@ksp-gonogo/sitrep-sdk" { interface ContributionRegistry ... }` and an
+// in-repo widget writes `declare module "@ksp-gonogo/core" { ... }`; both are
+// correct-looking, both compile, and they landed on two different interfaces, so
+// neither could see the other's slots and nothing anywhere said so.
 //
-// The framework owns the universal `filters` segment here, once, forever, so
-// every component / widget / contributor writes nothing. A component inventing
-// a NOVEL host-invariant segment declares its one line co-located at the
-// bottom of its own file, the same way a widget's other module-load
-// self-registrations sit alongside its `registerComponent` call:
+// A re-export carries the augmentation: `declare module "@ksp-gonogo/core"`
+// merges into the aliased declaration, so every in-repo merge keeps working
+// unchanged and now lands on the same interface an Uplink's does. That is the
+// whole point, and `contribution-registry-augmentation.test-d.ts` is what proves
+// it rather than this comment.
 //
-//   declare module "@ksp-gonogo/core" {
-//     interface ComponentSlotRegistry { "my-segment": MyEntry }
-//   }
-//
-// OVERRIDE HATCH (documented, unused in this change): a widget that needs a
-// HOST-SPECIFIC entry type for one completed key: the rare component slot whose
-// entry genuinely depends on the host: overrides the host-invariant default by
-// declaring that full key in `ContributionRegistry` in its OWN package. The
-// full-id branch of `ContributionEntry` below wins over the segment branch, so
-// the override is cleanly cordoned, never on the common path.
+// `ComponentSlotRegistry` and the three-branch `ContributionEntry` resolution
+// moved WITH it, rather than the sdk's two-branch copy winning: deferring to the
+// poorer shape would have silently dropped the host-invariant segment branch
+// (`*.filters`) that every FilterList contribution rides on.
 // ---------------------------------------------------------------------------
 
-export interface ComponentSlotRegistry {
-  /**
-   * The framework-universal filter segment: a contribution is a pre-filled
-   * SEARCH TERM (a plain string) that `FilterList` shows as a toggle. Host-
-   * invariant, the same string means the same thing in any widget.
-   */
-  filters: string;
-}
+import type { ContributionRegistry } from "@ksp-gonogo/sitrep-sdk";
 
-/** Every segment declared as a host-invariant component slot. */
-export type ComponentSlotSegment = keyof ComponentSlotRegistry;
-
-/** The trailing segment of a completed slot id: `"resource-ops.filters"` -> `"filters"`. */
-type SegmentOf<S extends string> = S extends `${string}.${infer Rest}`
-  ? Rest extends `${string}.${string}`
-    ? SegmentOf<Rest>
-    : Rest
-  : never;
-
-/**
- * The entry shape a slot renders. Resolution order:
- *  1. a full slot id declared in {@link ContributionRegistry} (host-specific,
- *     the override hatch and every existing widget-led slot) wins outright
- *  2. else the slot's trailing SEGMENT in {@link ComponentSlotRegistry} (the
- *     host-invariant component-slot case, e.g. `*.filters` -> `string`)
- *  3. else a loose record, the out-of-repo / undeclared fallback.
- */
-export type ContributionEntry<S extends string> =
-  S extends keyof ContributionRegistry
-    ? ContributionRegistry[S] extends { entry: infer E }
-      ? E
-      : Record<string, unknown>
-    : [SegmentOf<S>] extends [ComponentSlotSegment]
-      ? [SegmentOf<S>] extends [never]
-        ? Record<string, unknown>
-        : ComponentSlotRegistry[SegmentOf<S>]
-      : Record<string, unknown>;
+export type {
+  ComponentSlotRegistry,
+  ComponentSlotSegment,
+  ContributionEntry,
+  ContributionRegistry,
+  ContributionSlotId,
+} from "@ksp-gonogo/sitrep-sdk";
 
 type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
   ? ContributionRegistry[S] extends { topics: infer T extends string }

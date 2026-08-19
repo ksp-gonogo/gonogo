@@ -1,4 +1,8 @@
-import type { TopicId, UplinkClientHandle } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  SlotProps,
+  TopicId,
+  UplinkClientHandle,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 
 // ---------------------------------------------------------------------------
@@ -54,24 +58,23 @@ import type { ComponentType } from "react";
 // erroring: matching the spec's hybrid (c) fallback.
 // ---------------------------------------------------------------------------
 
-/**
- * Global slot → props-type registry, extended via declaration merging. Empty in
- * ui-kit; each package that exposes a slot augments it. See the module comment.
- */
-// biome-ignore lint/suspicious/noEmptyInterface: intentional declaration-merging seam (spec §4.6)
-export interface SlotRegistry {}
-
-/** Union of every declared in-tree slot id. `never` until a package merges one in. */
-export type SlotId = keyof SlotRegistry;
-
-/**
- * The props a slot passes to its augments. Typed precisely for a slot declared
- * in {@link SlotRegistry}; falls back to `Record<string, unknown>` for a slot
- * id not (yet) in the registry: the out-of-repo/loose case (spec §4.6 (c)).
- */
-export type SlotProps<S extends string> = S extends keyof SlotRegistry
-  ? SlotRegistry[S]
-  : Record<string, unknown>;
+// The seam itself is NOT declared here. It is `@ksp-gonogo/sitrep-sdk`'s,
+// re-exported, and a re-export carries the augmentation: a `declare module
+// "@ksp-gonogo/core"` merge lands on the aliased declaration, so every in-repo
+// augmentation keeps working unchanged and now lands on the SAME interface an
+// Uplink's `declare module "@ksp-gonogo/sitrep-sdk"` merge does.
+//
+// Both were declared, in both packages, until now. That is the one divergence
+// shape that cannot fail loudly: an Uplink merging a slot id into the sdk's
+// registry and a widget merging one into ui-kit's are both correct-looking, both
+// compile, and landed on two different interfaces. `AugmentSlot` read ui-kit's
+// and so never saw an Uplink's slot ids; `SlotProps` off the sdk never saw a
+// widget's. Neither side could observe the other's absence.
+export type {
+  SlotId,
+  SlotProps,
+  SlotRegistry,
+} from "@ksp-gonogo/sitrep-sdk";
 
 // ---------------------------------------------------------------------------
 // Segment-keyed augment-props seam, the parallel of `SlotRegistry` for the
@@ -240,7 +243,13 @@ export function registerAugment<S extends string>(
   def: AugmentDefinition<S>,
 ): void {
   augments.set(def.id, {
-    def: def as AnyAugment,
+    // Erased through `unknown`: with the slot registry merged, `SlotProps<S>` is
+    // a real props type rather than the loose bag it collapsed to while ui-kit
+    // carried its own permanently-empty copy of the seam, so `ComponentType` is
+    // no longer bivariantly comparable to the erased form. The erasure itself is
+    // the point (the registry holds augments for every slot); `S` is checked at
+    // this call site, which is the only place it can be.
+    def: def as unknown as AnyAugment,
     order: registrationCounter++,
   });
   notifyAugmentChange();
