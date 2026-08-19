@@ -1,12 +1,16 @@
 import {
   AugmentSlot,
+  ContributionsProvider,
+  clearContributions,
   clearMapPoiProviders,
   defineUplinkClient,
   getBody,
+  getContributionsForSlot,
   getFogRevealSources,
   getGameHost,
   getMapPoiProviders,
   getUplinkHandle,
+  onContributionsChange,
   onFogRevealSourcesChange,
   onMapPoiProvidersChange,
   PerfBudget,
@@ -158,6 +162,16 @@ export function installRealTestHost(): () => void {
     clearMapPoiProviders: () => {
       clearMapPoiProviders();
     },
+    getContributionsForSlot: (slot) =>
+      getContributionsForSlot(slot) as ReturnType<
+        GonogoHost["getContributionsForSlot"]
+      >,
+    onContributionsChange: (cb) => onContributionsChange(cb),
+    clearContributions: () => {
+      clearContributions();
+    },
+    ContributionsProvider:
+      ContributionsProvider as GonogoHost["ContributionsProvider"],
     useFogMaskCache: () =>
       useFogMaskCache() as ReturnType<GonogoHost["useFogMaskCache"]>,
 

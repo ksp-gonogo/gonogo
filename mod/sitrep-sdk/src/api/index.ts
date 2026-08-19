@@ -23,7 +23,7 @@
 // ---------------------------------------------------------------------------
 
 import type { Logger } from "@ksp-gonogo/logger";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { createElement } from "react";
 import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
@@ -42,6 +42,7 @@ import "./contribution-slots";
 import type {
   ActionDefinition,
   ActionHandlers,
+  AnyContribution,
   AugmentDefinition,
   BodyDefinition,
   ComponentDefinition,
@@ -69,6 +70,7 @@ export type {
   ActionHandlers,
   ActionInputKind,
   ActionInputPayload,
+  AnyContribution,
   AugmentDefinition,
   AugmentSettingField,
   BodyDefinition,
@@ -82,6 +84,8 @@ export type {
   ComponentRequirement,
   ConfigComponentProps,
   ConfigField,
+  ContributionDefinition,
+  ContributionDep,
   ContributionEntry,
   ContributionRegistry,
   DataKey,
@@ -415,6 +419,27 @@ export function clearMapPoiProviders(): void {
   getHost().clearMapPoiProviders();
 }
 
+// The read half of the contribution registry. The WRITE half stays on
+// `defineUplinkClient`'s handle rather than appearing here: the handle stamps
+// `${clientId}:` onto every id, and a bare `registerContribution` on this
+// barrel would be a way to opt out of the namespacing that stops two Uplinks
+// colliding.
+
+/** Every contribution registered for a slot, in priority then registration order. */
+export function getContributionsForSlot(slot: string): AnyContribution[] {
+  return getHost().getContributionsForSlot(slot);
+}
+
+/** Subscribe to any change (register/unregister) in the contribution registry. */
+export function onContributionsChange(cb: () => void): () => void {
+  return getHost().onContributionsChange(cb);
+}
+
+/** Empty the contribution registry. For tests; a running app never calls it. */
+export function clearContributions(): void {
+  getHost().clearContributions();
+}
+
 /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
 export function useFogMaskCache() {
   return getHost().useFogMaskCache();
@@ -481,6 +506,19 @@ export function AugmentSlot<S extends string>(props: {
     getHost().AugmentSlot,
     props as unknown as { name: string; props?: Record<string, unknown> },
   );
+}
+
+/**
+ * The aggregation host for contribution slots. A widget reading contributions
+ * (`useContributions` from `@ksp-gonogo/ui-kit`) sees an empty list unless one
+ * of these is mounted above it, so an Uplink that HOSTS a slot needs it, not
+ * just the app. Resolves to the host's own provider, so contributions land in
+ * the app's single registry rather than a bundled copy.
+ */
+export function ContributionsProvider(props: {
+  children?: ReactNode;
+}): ReactElement {
+  return createElement(getHost().ContributionsProvider, props);
 }
 
 /**
