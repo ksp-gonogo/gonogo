@@ -18,7 +18,6 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
   Panel,
-  ScrollArea,
   speakQuantity,
   Unit,
   usePanelDelay,
@@ -637,15 +636,10 @@ function formatTinyFunds(value: number): string {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-10);
-  }
+const Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
 `;
 
 const FacilityGrid = styled.div<{ $compact: boolean }>`
