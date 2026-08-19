@@ -262,6 +262,12 @@ namespace Gonogo.KSP.CommandCentres
                 Kind = centre.Kind.ToString(),
                 BodyIndex = centre.BodyIndex,
                 Active = centre.IsActiveNow(),
+                // Copied, never derived here. Whether a centre is surface-anchored is
+                // known only to the source that produced it, and a null is the
+                // contract's "not applicable" rather than "not computed": see
+                // SurfaceCoordinates and CommandCentreEntry.Latitude.
+                Latitude = ksp?.Latitude,
+                Longitude = ksp?.Longitude,
                 // Only one honest value now. A centre with no CommNode cannot be
                 // routed to, so it reports that rather than a quality of estimate.
                 DelayQuality = ksp?.Node != null ? "routed" : "unroutable",

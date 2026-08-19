@@ -39,11 +39,26 @@ public class CommandCentreEntry
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
-    /// <summary>Surface latitude of the centre, when surface-anchored; null for a moving vessel centre.</summary>
+    /// <summary>
+    /// Body-fixed surface latitude of the centre in degrees, when surface-anchored;
+    /// null for a moving vessel centre.
+    ///
+    /// <para><b>Null is "not applicable", not "not computed".</b> A
+    /// <c>GroundStation</c> always reports coordinates. A <c>CrewedVessel</c> reports
+    /// them only while landed, splashed or pre-launch: off the ground the only thing
+    /// derivable is a sub-vessel ground point that sweeps at orbital rate, which is
+    /// not a place the centre occupies. So null says the centre is airborne or in
+    /// space, and a client may act on that rather than treating it as missing data.
+    /// The one case where an anchored centre reports null is a body that could not be
+    /// read at all, and then <see cref="BodyIndex"/> is null too: the two travel
+    /// together, so a null coordinate never appears beside a known body.</para>
+    ///
+    /// <para>Always null or non-null together with <see cref="Longitude"/>.</para>
+    /// </summary>
     [SitrepUnit(Units.Degrees)]
     public double? Latitude { get; set; }
 
-    /// <summary>Surface longitude of the centre, when surface-anchored; null for a moving vessel centre.</summary>
+    /// <summary>Body-fixed surface longitude of the centre in degrees, wrapped to (-180, 180], matching every other geographic value on the wire. Null under exactly the rule <see cref="Latitude"/> documents, and always null together with it.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? Longitude { get; set; }
 

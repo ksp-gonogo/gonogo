@@ -46,14 +46,24 @@ namespace Gonogo.KSP.CommandCentres
                 var id = home.isKSC ? "ksc" : "ground:" + (home.nodeName ?? "unknown");
                 var name = home.displaynodeName ?? home.nodeName ?? id;
 
+                // A ground station is surface-anchored by definition, so its
+                // coordinates are always reported. They can only be absent when the
+                // body itself is unreadable, and then BodyIndex is null too: the
+                // entry says "I do not know what this sits on" rather than leaving a
+                // bare coordinate hole beside a known body.
+                var body = CommNetHomeAccess.Body(home);
+                var anchored = SurfaceCoordinates.TryFrom(body, comm.precisePosition, out var latitude, out var longitude);
+
                 yield return new KspCommandCentre(
                     id,
                     name,
                     CommandCentreKind.GroundStation,
-                    BodyIndexOf(CommNetHomeAccess.Body(home)),
+                    BodyIndexOf(body),
                     comm,
                     comm.precisePosition,
-                    active: true);
+                    active: true,
+                    latitude: anchored ? latitude : (double?)null,
+                    longitude: anchored ? longitude : (double?)null);
             }
         }
 
