@@ -29,7 +29,6 @@ import type {
 import type {
   ActionDefinition as SdkActionDefinition,
   AugmentDefinition as SdkAugmentDefinition,
-  BodyDefinition as SdkBodyDefinition,
   CommandStatus as SdkCommandStatus,
   ComponentDefinition as SdkComponentDefinition,
   ComponentProps as SdkComponentProps,
@@ -52,7 +51,6 @@ import type {
   UseRouteCommandsResult as SdkUseRouteCommandsResult,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
-import type { BodyDefinition as CoreBodyDefinition } from "./bodies";
 import type { Screen as CoreScreen } from "./contexts/ScreenContext";
 import type { PerfBudgetOptions as CorePerfBudgetOptions } from "./perf/PerfBudget";
 import type { SettingsTabDefinition as CoreSettingsTabDefinition } from "./settingsTabs";
@@ -150,18 +148,12 @@ type _DataKey = Expect<Assignable<SdkDataKey, Core.DataKey>>;
 type _DataKeyBack = Expect<Assignable<Core.DataKey, SdkDataKey>>;
 type _DataKeyKeys = Expect<SameKeys<SdkDataKey, Core.DataKey>>;
 
-// Map SPI (facade-sealing, 2026-07-19): BodyDefinition is owned by core
-// (bodies.ts), not this file's ./types, checked both directions same as every
-// other core-owned mirror above.
-//
-// `MapPoi` and `MapPoiProviderDefinition` USED to be checked here, and no longer
-// need to be: the registry and its types moved into the sdk on 2026-08-19 and
-// core re-exports them, so the two sides are now one declaration and a mirror
-// test on them would compare a type to itself. That is the direction this whole
-// gate is meant to retire in, one type at a time.
-type _Body = Expect<Assignable<SdkBodyDefinition, CoreBodyDefinition>>;
-type _BodyBack = Expect<Assignable<CoreBodyDefinition, SdkBodyDefinition>>;
-type _BodyKeys = Expect<SameKeys<SdkBodyDefinition, CoreBodyDefinition>>;
+// The map SPI has no mirror left to check. `MapPoi`, `MapPoiProviderDefinition`
+// and `BodyDefinition` were all checked here, in both directions, and their
+// registries moved into the sdk on 2026-08-19 with core re-exporting: the two
+// sides are one declaration now, so a mirror test on them would compare a type to
+// itself. That is the direction this whole gate is meant to retire in, one type at
+// a time, and it retired `_BodyKeys` two hours after adding it.
 
 // Screen identity (facade-sealing, 2026-07-19): owned by
 // contexts/ScreenContext.tsx.
@@ -301,9 +293,6 @@ export type _SdkFacadeConformance = [
   _DataKey,
   _DataKeyBack,
   _DataKeyKeys,
-  _Body,
-  _BodyBack,
-  _BodyKeys,
   _Screen,
   _ScreenBack,
   _SettingsTab,

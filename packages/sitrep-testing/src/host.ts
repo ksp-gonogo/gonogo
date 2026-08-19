@@ -5,7 +5,6 @@ import {
   clearContributions,
   defineUplinkClient,
   getAugmentsForSlot,
-  getBody,
   getContributionsForSlot,
   getGameHost,
   onContributionsChange,
@@ -136,7 +135,6 @@ export function installRealTestHost(): () => void {
       setSetting(key, value);
     },
 
-    getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getAugmentsForSlot: (slot) =>
       getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,
     clearAugments: () => {

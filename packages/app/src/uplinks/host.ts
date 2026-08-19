@@ -20,7 +20,6 @@ import {
   clearContributions,
   defineUplinkClient,
   getAugmentsForSlot,
-  getBody,
   getContributionsForSlot,
   getGameHost,
   onContributionsChange,
@@ -136,7 +135,6 @@ export function buildGonogoHost(): GonogoHost {
       setSetting(key, value);
     },
 
-    getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getAugmentsForSlot: (slot) =>
       getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,
     clearAugments: () => {

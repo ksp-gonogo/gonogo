@@ -23,7 +23,6 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
-  BodyDefinition,
   FogMaskCacheHandle,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
@@ -163,14 +162,6 @@ export interface GonogoHost {
    */
   logger: Logger;
 
-  /**
-   * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Despite
-   * looking like a static lookup, this MUST resolve to the app's own
-   * registry rather than a bundled copy: bodies are registered into it at
-   * runtime (module load), so a facade-sealed client bundling its own
-   * `getBody` would read its own, permanently-empty copy of the map.
-   */
-  getBody(id: string): BodyDefinition | undefined;
   /**
    * Every augment bound into `slot`, ascending `priority`, ties in registration
    * order: the READ half of `registerAugment`.

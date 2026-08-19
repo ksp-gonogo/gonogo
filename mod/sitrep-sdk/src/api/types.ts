@@ -495,16 +495,38 @@ export interface MapPoiProviderDefinition {
 
 // --- Celestial bodies ---------------------------------------------------------
 
+/** Texture map metadata, required for accurate lat/lon to pixel mapping. */
+export interface BodyMapConfig {
+  type: "equirectangular";
+  /** Pixel width of the source texture image. */
+  width: number;
+  /** Pixel height of the source texture image. */
+  height: number;
+}
+
 /**
- * Mirrors `packages/core/src/bodies.ts`'s `BodyDefinition`: same leaf
- * constraint as every other type in this file. Note the body REGISTRY
- * itself (`getBody`, below) is still a host shim, not a bundled copy: it is
- * a module-global map populated at runtime via `registerBody()`, so a
- * facade-sealed client bundling its own `getBody` would read its own,
- * permanently-empty copy of that map rather than the app's real one.
+ * Approximate exponential atmosphere model. Real KSP atmospheres are tabulated
+ * and not purely exponential, but a single scale-height approximation is enough
+ * to draw a recognisable pressure-vs-altitude curve and to distinguish "thin"
+ * from "thick" atmospheres at a glance.
+ */
+export interface AtmosphereModel {
+  /** Surface pressure in pascals. */
+  surfacePressure: number;
+  /** Scale height (e-folding altitude) in metres. */
+  scaleHeight: number;
+}
+
+/**
+ * A celestial body, as the registry in `./bodies.ts` stores it.
+ *
+ * The registry lives in this package as of 2026-08-19, so this is the real
+ * declaration rather than a mirror of core's. It moved because a planet pack is an
+ * Uplink's business: `registerStockBodies` is called by seven Uplink test files
+ * and `registerBody` is how a pack adds or overrides an entry.
  */
 export interface BodyDefinition {
-  /** Unique identifier: must match Telemachus v.body / o.referenceBody strings. */
+  /** Unique identifier, matching the body name the telemetry stream reports. */
   id: string;
   /** Human-readable display name. */
   name: string;
@@ -516,33 +538,22 @@ export interface BodyDefinition {
   texture?: string;
   /** Fallback display colour (CSS colour string) used when no texture is available. */
   color?: string;
-  /** Longitude correction in degrees added to Telemachus v.long before mapping. */
+  /** Longitude correction in degrees added to a reported longitude before mapping. */
   longitudeOffset?: number;
-  /** Latitude correction in degrees added to Telemachus v.lat before mapping. */
+  /** Latitude correction in degrees added to a reported latitude before mapping. */
   latitudeOffset?: number;
   /** ID of the parent body (e.g. "Kerbin" for "Mun"). Absent for the star. */
   parent?: string;
   /** Radius of the sphere of influence in metres (KSP `a·(m/M)^0.4`). */
   soi?: number;
   /** Texture map metadata, required for accurate lat/lon → pixel mapping. */
-  map?: {
-    type: "equirectangular";
-    /** Pixel width of the source texture image. */
-    width: number;
-    /** Pixel height of the source texture image. */
-    height: number;
-  };
+  map?: BodyMapConfig;
   /** If the body has an atmosphere */
   hasAtmosphere: boolean;
   /** The height above sea level where the atmosphere is stopped */
   maxAtmosphere: number;
   /** Optional atmosphere model. Only meaningful when `hasAtmosphere` is true. */
-  atmosphere?: {
-    /** Surface pressure in pascals. */
-    surfacePressure: number;
-    /** Scale height (e-folding altitude) in metres. */
-    scaleHeight: number;
-  };
+  atmosphere?: AtmosphereModel;
   /**
    * Representative sky/haze colour, for tinting an atmospheric readout. Only
    * meaningful when `hasAtmosphere` is true; leave unset for airless bodies so
