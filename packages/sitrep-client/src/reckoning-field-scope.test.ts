@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearReckoners,
@@ -101,7 +102,7 @@ describe("a per-topic model, expressed per field", () => {
     if (position.state !== "reckonable") return;
     const reckoning = position.reckoned;
     expect(reckoning.value).toEqual({ x: 1600 });
-    expect(reckoning.atUt).toBe(160);
+    expect(reckoning.atUt).toEqual(value("ut", 160));
     expect(reckoning.basis).toBe("linear-dead-reckoning");
 
     // Same frame, same model, same topic. Nothing dead-reckons a name.
@@ -143,7 +144,7 @@ describe("a per-topic model, expressed per field", () => {
     );
     if (position.state !== "reckonable") throw new Error("expected reckonable");
     expect(position.value).toEqual({ x: 1000 });
-    expect(position.asOfUt).toBe(100);
+    expect(position.asOfUt).toEqual(value("ut", 100));
   });
 
   it("covers a nested path under a covered parent", () => {

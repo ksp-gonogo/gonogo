@@ -33,6 +33,8 @@ export function useFleetVesselPosition(guid: string): StateVector | null {
       "VesselOrbit",
       structuredClone(raw),
     ) as VesselOrbitPayload;
-    return propagateVesselOrbit(orbit, viewUt);
+    // `.magnitude` at the boundary of the solver: propagation is arithmetic on a
+    // bare UT, and threading `Value` through the Kepler code would buy nothing.
+    return propagateVesselOrbit(orbit, viewUt.magnitude);
   }, [raw, viewUt]);
 }

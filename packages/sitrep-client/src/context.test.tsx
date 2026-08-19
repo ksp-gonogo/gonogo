@@ -1,4 +1,4 @@
-import { CommsDelaySource } from "@ksp-gonogo/sitrep-sdk";
+import { CommsDelaySource, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
@@ -386,13 +386,13 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
   });
 
   it("returns undefined when no TelemetryProvider is mounted", () => {
-    let value: number | undefined = 999;
+    let seen: Value<"ut"> | undefined = value("ut", 999);
     function Probe() {
-      value = useViewUt();
+      seen = useViewUt();
       return null;
     }
     render(<Probe />);
-    expect(value).toBeUndefined();
+    expect(seen).toBeUndefined();
   });
 
   it("returns the frozen view UT from the first render, honouring the scrub", () => {
@@ -402,9 +402,9 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
     clock.scrubTo(12_345); // pin viewUt() regardless of samples
     const store = new TimelineStore(clock);
 
-    let value: number | undefined;
+    let seen: Value<"ut"> | undefined;
     function Probe() {
-      value = useViewUt();
+      seen = useViewUt();
       return null;
     }
     render(
@@ -417,9 +417,9 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
     // to seed from `confirmedEdgeUt()`, which ignores the scrub outright: the
     // probe rendered `undefined` for one frame and only snapped to 12_345 on
     // the first tick.
-    expect(value).toBe(12_345);
+    expect(seen).toEqual(value("ut", 12_345));
     act(() => raf.flush());
-    expect(value).toBe(12_345);
+    expect(seen).toEqual(value("ut", 12_345));
 
     client.dispose();
   });
@@ -433,9 +433,9 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
     const client = new TelemetryClient(transport);
     const store = new TimelineStore(new ViewClock());
 
-    let value: number | undefined = 999;
+    let seen: Value<"ut"> | undefined = value("ut", 999);
     function Probe() {
-      value = useViewUt();
+      seen = useViewUt();
       return null;
     }
     render(
@@ -443,9 +443,9 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
         <Probe />
       </TelemetryProvider>,
     );
-    expect(value).toBeUndefined();
+    expect(seen).toBeUndefined();
     act(() => raf.flush());
-    expect(value).toBeUndefined();
+    expect(seen).toBeUndefined();
 
     client.dispose();
   });

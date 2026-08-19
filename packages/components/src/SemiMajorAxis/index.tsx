@@ -2,7 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import {
-  readingAge,
+  observedAt,
   useStream,
   useViewUt,
   type VesselState,
@@ -52,7 +52,16 @@ function SemiMajorAxisComponent({
   // Age of the observation against the FRAME's view time, never a wall clock:
   // two reads in one frame must not disagree about how old the same sample is.
   const viewUt = useViewUt();
-  const smaAgeSec = readingAge(orbitReading, viewUt);
+  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
+  // is a duration, and the affine rules make that the type. The clamp came with it
+  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
+  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
+  // a thing to render.
+  const smaObservedUt = observedAt(orbitReading);
+  const smaAgeSec =
+    viewUt && smaObservedUt
+      ? Math.max(0, viewUt.minus(smaObservedUt).magnitude)
+      : undefined;
   const referenceBody =
     useStream<VesselState>("vessel.state")?.referenceBodyName ?? undefined;
   // `useDataSeries` (sparkline history) carries the same stream shim, `o.sma`

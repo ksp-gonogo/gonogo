@@ -199,7 +199,9 @@ export function useCelestialBodies(): CelestialBody[] {
     bodiesReading.state === "observed" || bodiesReading.state === "stale"
       ? bodiesReading.value
       : undefined;
-  const ut = useViewUt();
+  // `.magnitude` at the read: this widget threads the view time through geometry and
+  // solver code typed on plain numbers, and the instant type earns nothing there.
+  const ut = useViewUt()?.magnitude;
 
   return useMemo(() => {
     const wire = systemBodies?.bodies;

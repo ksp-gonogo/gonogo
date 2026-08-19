@@ -213,7 +213,9 @@ function ManeuverPlannerComponent({
     useStream<VesselState>("vessel.state")?.trueAnomaly ?? undefined;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
-  const currentUT = useViewUt();
+  // `.magnitude` at the read: this widget threads the view time through geometry and
+  // solver code typed on plain numbers, and the instant type earns nothing there.
+  const currentUT = useViewUt()?.magnitude;
   const orbitalSpeed =
     useStream<VesselState>("vessel.state")?.orbitalSpeed ?? undefined;
   const radius =

@@ -365,7 +365,7 @@ function ContractManagerComponent({
                 }}
               />
               <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+                {formatDeadline(c.deadlineUt, universalTime?.magnitude ?? 0)}
               </ContractDeadline>
             </ContractHeader>
             {c.agency && <Agency>{c.agency}</Agency>}
@@ -523,7 +523,7 @@ function ContractManagerComponent({
                 }}
               />
               <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+                {formatDeadline(c.deadlineUt, universalTime?.magnitude ?? 0)}
               </ContractDeadline>
             </ContractHeader>
             {c.agency && <Agency>{c.agency}</Agency>}

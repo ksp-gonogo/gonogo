@@ -25,7 +25,7 @@ export {
   dateable,
   judgeable,
   notCurrent,
-  readingAge,
+  observedAt,
   stillTrue,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -37,6 +37,7 @@ import type {
   StaleGrade,
   TopicModel,
 } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import type { StreamStatusValue } from "./stream-status";
 import type { TimelinePoint } from "./timeline";
 
@@ -76,10 +77,14 @@ export function readingFrom<T>(
   // stronger claim than "may have changed, cannot tell". It also has no
   // observed VALUE to carry, so the stale arms could not represent it anyway.
   if (point.payload === null || status === "absent") {
-    return { state: "absent", atUt: point.validAt };
+    return { state: "absent", atUt: value("ut", point.validAt) };
   }
   if (status === "live") {
-    return { state: "observed", value: point.payload, atUt: point.validAt };
+    return {
+      state: "observed",
+      value: point.payload,
+      atUt: value("ut", point.validAt),
+    };
   }
   const model = reckoner?.(point, status, viewUt);
   const root = model && rootCoverage(model);
@@ -106,11 +111,11 @@ export function readingFrom<T>(
     return {
       state: "reckonable",
       value: observed,
-      asOfUt: point.validAt,
+      asOfUt: value("ut", point.validAt),
       grade: status,
       reckoned: {
         value: model.reckon(viewUt),
-        atUt: viewUt,
+        atUt: value("ut", viewUt),
         basis: root.basis,
         modelled: model.modelled,
       },
@@ -119,7 +124,7 @@ export function readingFrom<T>(
   return {
     state: "stale",
     value: point.payload,
-    asOfUt: point.validAt,
+    asOfUt: value("ut", point.validAt),
     grade: status,
   };
 }

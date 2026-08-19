@@ -1,4 +1,5 @@
 import type { TimelinePoint } from "./timeline";
+import type { Value } from "./unit-system/value";
 
 /**
  * What a telemetry read answers with, and how a widget may use it.
@@ -54,7 +55,7 @@ export type ReckoningBasis =
  */
 export interface Reckoning<T> {
   value: T;
-  atUt: number;
+  atUt: Value<"ut">;
   basis: ReckoningBasis;
   /**
    * Which paths inside `value` the model actually MOVED, dotted from the
@@ -207,21 +208,21 @@ export interface TopicModel<T> {
  */
 export type Reading<T> =
   | { state: "pending" }
-  | { state: "absent"; atUt: number }
-  | { state: "observed"; value: T; atUt: number }
+  | { state: "absent"; atUt: Value<"ut"> }
+  | { state: "observed"; value: T; atUt: Value<"ut"> }
   | {
       state: "stale";
       /** The last REAL observation. Never a modelled value. */
       value: T;
       /** The UT that observation was made at. */
-      asOfUt: number;
+      asOfUt: Value<"ut">;
       grade: StaleGrade;
     }
   | {
       state: "reckonable";
       /** The last REAL observation, exactly as on `stale`. Never modelled. */
       value: T;
-      asOfUt: number;
+      asOfUt: Value<"ut">;
       grade: StaleGrade;
       /**
        * The forward-modelled value for this frame's view time, computed when the
@@ -315,36 +316,24 @@ export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
 }
 
 /**
- * How old the reading's observation is, in seconds of UT, measured against the
- * FRAME's view time (`useViewUt`) and nothing else.
+ * The instant a reading's OBSERVATION was made, or `undefined` when there has not
+ * been one.
  *
- * `viewUt` is a parameter rather than something read in here so this stays
- * pure, and so a caller cannot substitute `Date.now()` without it being visible
- * at the call site. Wall clock is the available wrong answer: it lets two reads
- * within one frame disagree about how old the same sample is, which is the bug
- * class `FrameToken` exists to prevent, and a ratchet
- * (`styleguide-wall-clock.test.ts`) now guards it. `undefined` in gives
- * `undefined` out for the same reason: a widget with no provider mounted has no
- * legitimate "now" and should render no age rather than a fabricated one.
+ * This replaces `readingAge`, which did the subtraction itself and returned a bare
+ * `number`. An age is now `viewUt.minus(observedAt(reading))`, which is a
+ * `Value<"s">` natively and renders through `<Unit>` like any other duration: the
+ * affine rules made the subtraction say what it means, so a function to do it by hand
+ * was one more thing to keep honest.
  *
- * `pending` has no age: there is no observation to be old. This measures the
- * OBSERVATION in every other case, including `reckonable`, where the age of the
- * last real contact is the number an operator wants next to a modelled figure.
+ * `pending` has no instant: there is no observation to be old. Every other arm has
+ * one, `reckonable` included, where the age of the last real contact is the number an
+ * operator wants beside a modelled figure.
+ *
+ * Callers still clamp at zero. Samples arrive out of order (`ClientTimeline`
+ * insert-sorts for it), so one can sit marginally ahead of the frame's view time, and
+ * "-0.4 s old" is never a thing to render.
  */
-export function readingAge<T>(
-  reading: Reading<T>,
-  viewUt: number | undefined,
-): number | undefined {
-  if (viewUt === undefined) return undefined;
-  const atUt = observedAtUt(reading);
-  if (atUt === undefined) return undefined;
-  // Samples arrive out of order (`ClientTimeline` insert-sorts for it), so one
-  // can sit marginally ahead of the frame's view time. "-0.4 s old" is never a
-  // thing to render.
-  return Math.max(0, viewUt - atUt);
-}
-
-function observedAtUt<T>(reading: Reading<T>): number | undefined {
+export function observedAt<T>(reading: Reading<T>): Value<"ut"> | undefined {
   switch (reading.state) {
     case "pending":
       return undefined;

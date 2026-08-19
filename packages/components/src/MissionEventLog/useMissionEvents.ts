@@ -53,7 +53,9 @@ interface EdgePrev {
  * removes the Tier-B risks.
  */
 export function useMissionEvents(): MissionEvent[] {
-  const ut = useViewUt() ?? 0;
+  // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
+  // and the instant type earns nothing threaded through it. Unwrapped once, here.
+  const ut = useViewUt()?.magnitude ?? 0;
 
   /**
    * Every read below goes through `stillTrue`, and none through `judgeable`,

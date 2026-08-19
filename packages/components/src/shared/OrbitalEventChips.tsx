@@ -43,7 +43,7 @@ export function OrbitalEventChips() {
         : null;
   const encIn =
     typeof encUt === "number" && Number.isFinite(encUt) && viewUt !== undefined
-      ? encUt - viewUt
+      ? encUt - viewUt.magnitude
       : undefined;
   const hasEncounter =
     encounterKind !== null &&

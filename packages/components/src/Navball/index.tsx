@@ -13,8 +13,8 @@ import {
 } from "@ksp-gonogo/core";
 import type { ControlStream } from "@ksp-gonogo/sitrep-client";
 import {
+  observedAt,
   type Reading,
-  readingAge,
   useCommand,
   useControlStream,
   useStream,
@@ -237,7 +237,16 @@ function StaleCaption({
   reading: Reading<unknown>;
 }) {
   const viewUt = useViewUt();
-  const ageSec = readingAge(reading, viewUt);
+  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
+  // is a duration, and the affine rules make that the type. The clamp came with it
+  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
+  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
+  // a thing to render.
+  const observedUt = observedAt(reading);
+  const ageSec =
+    viewUt && observedUt
+      ? Math.max(0, viewUt.minus(observedUt).magnitude)
+      : undefined;
   return (
     <ReadoutCaption role="status">
       {label}

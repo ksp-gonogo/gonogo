@@ -5,6 +5,7 @@ import type {
   VesselTarget,
   WarpState,
 } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   createContext,
   type ReactNode,
@@ -569,7 +570,7 @@ export function useViewClockOptional(): ViewClockView | undefined {
  * which is exactly what a live countdown requires. Callers that only need the
  * clock object (not a reactive value) should use `useViewClock` instead.
  */
-export function useViewUt(): number | undefined {
+export function useViewUt(): Value<"ut"> | undefined {
   const clock = useViewClockOptional();
   // Seed from `viewUt()`: the SAME quantity `onFrame` hands the tick below,
   // not `confirmedEdgeUt()`. The two only agree on a free-running clock:
@@ -604,7 +605,20 @@ export function useViewUt(): number | undefined {
       setViewUt(next);
     });
   }, [clock]);
-  return viewUt;
+  /*
+   * Wrapped at the RETURN, not carried as a `Value` through the state above. The
+   * frame bailout compares the incoming UT against the last delivered one, and two
+   * `Value`s holding the same instant are different objects, so comparing them would
+   * dispatch a render every frame and undo the thing that comment is about.
+   *
+   * Memoised for the same reason from the other side: an unchanged view time must
+   * hand back an unchanged reference, or every `useMemo` downstream that depends on
+   * it recomputes each frame.
+   */
+  return useMemo(
+    () => (viewUt === undefined ? undefined : value("ut", viewUt)),
+    [viewUt],
+  );
 }
 
 /**

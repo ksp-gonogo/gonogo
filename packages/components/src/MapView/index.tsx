@@ -442,7 +442,9 @@ function MapViewComponent({
   )?.nodes;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
-  const universalTime = useViewUt();
+  // `.magnitude` at the read: this widget threads the view time through geometry and
+  // solver code typed on plain numbers, and the instant type earns nothing there.
+  const universalTime = useViewUt()?.magnitude;
   const impactLat = vesselState?.landingPredictedLat ?? undefined;
   const impactLon = vesselState?.landingPredictedLon ?? undefined;
   // SOI encounter / escape (-1 escape, 0 none, 1 encounter). Only the

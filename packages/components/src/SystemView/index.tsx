@@ -361,7 +361,11 @@ function SystemViewComponent({
       : undefined;
   // View-UT: the SDK view time the propagation already evaluates at
   // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
-  const universalTime = useViewUt();
+  // `.magnitude` at the read. Everything below is geometry on a bare UT, and two
+  // guards further down test it with `Number.isFinite` and `typeof === "number"`,
+  // which both answer NO for a wrapped value and would silently stop drawing the
+  // arc with no type error at all.
+  const universalTime = useViewUt()?.magnitude;
 
   // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
   // array position): the display-map behind `v.body` / `o.encounterBody`.

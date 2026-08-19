@@ -1,6 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import { type Reading, readingAge, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
@@ -247,7 +247,16 @@ function DistanceToTargetComponent({
   // number. `Number.isFinite` on the wrapper answered "no approach" for every
   // real one and the TCA readout was a permanent em dash.
   const closestApproachUT = magnitudeOf(target?.closestApproach?.time);
-  const universalTime = useViewUt();
+  /**
+   * `.magnitude` at the read, and it matters more here than it reads.
+   *
+   * Two guards below test this with `typeof === "number"` and `Number.isFinite`.
+   * Both answer NO for a wrapped value, so leaving it an instant would silently
+   * null the TCA readout and the approach countdown, with no type error anywhere:
+   * a runtime type check is a third blind spot alongside an `unknown` parameter
+   * and an `as` cast.
+   */
+  const universalTime = useViewUt()?.magnitude;
 
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
@@ -326,7 +335,16 @@ function DistanceToTargetComponent({
   // target that stopped being a docking port. The approach view names it.
   const alignmentWithheld =
     notCurrent(dockReading) && dockPairing?.relativePosition !== undefined;
-  const dockAgeSec = readingAge(dockReading, universalTime);
+  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
+  // is a duration, and the affine rules make that the type. The clamp came with it
+  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
+  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
+  // a thing to render.
+  const dockObservedUt = observedAt(dockReading);
+  const dockAgeSec =
+    universalTime !== undefined && dockObservedUt
+      ? Math.max(0, universalTime - dockObservedUt.magnitude)
+      : undefined;
 
   useEffect(() => {
     // The specialised views assert something about NOW: a closing rate to act
@@ -368,7 +386,11 @@ function DistanceToTargetComponent({
   // view time and nothing else. `Date.now()` is the available wrong answer: it
   // lets two reads within one frame disagree about how old the same sample is,
   // which is the bug class `FrameToken` exists to prevent.
-  const ageSec = readingAge(targetReading, universalTime);
+  const targetObservedUt = observedAt(targetReading);
+  const ageSec =
+    universalTime !== undefined && targetObservedUt
+      ? Math.max(0, universalTime - targetObservedUt.magnitude)
+      : undefined;
 
   if (targetReading.state === "pending") {
     return (

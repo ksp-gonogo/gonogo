@@ -340,7 +340,10 @@ function LaunchDirectorComponent({
   // below the crash snapshot's capture ut. t.universalTime is dropped as a
   // data key (it was never a stream; it IS the SDK view-UT), so read that
   // directly.
-  const universalTime = useViewUt();
+  // `.magnitude` at the read: the guard below tests this with `typeof === "number"`,
+  // which answers NO for a wrapped value. Left as an instant it would silently stop
+  // recognising a post-dated crash snapshot, and the type layer would say nothing.
+  const universalTime = useViewUt()?.magnitude;
   // `target.available` ships the switcher's real roster: the producer
   // (TargetProvider) already excludes the active vessel itself, so no extra
   // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and

@@ -144,7 +144,9 @@ function TransferWindowComponent({
    */
   const orbitConfirmedAbsent = orbitReading.state === "absent";
   const bodies = useCelestialBodies();
-  const nowUt = useViewUt() ?? 0;
+  // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
+  // and the instant type earns nothing threaded through it. Unwrapped once, here.
+  const nowUt = useViewUt()?.magnitude ?? 0;
   const createAlarm = useAlarmCreator<TimeTrigger>();
 
   const origin = useMemo(

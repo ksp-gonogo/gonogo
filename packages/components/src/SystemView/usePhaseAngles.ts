@@ -45,7 +45,9 @@ export function usePhaseAngles(
       : orbitReading.state === "reckonable"
         ? orbitReading.reckoned.value
         : undefined;
-  const ut = useViewUt();
+  // `.magnitude` at the read: this widget threads the view time through geometry and
+  // solver code typed on plain numbers, and the instant type earns nothing there.
+  const ut = useViewUt()?.magnitude;
 
   return useMemo(() => {
     if (!orbit) return EMPTY;

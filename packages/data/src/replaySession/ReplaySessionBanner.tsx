@@ -28,7 +28,9 @@ export function ReplaySessionBanner() {
   if (!snapshot.active || !snapshot.meta) return null;
 
   const meta = snapshot.meta;
-  const position = viewUt ?? meta.firstFrameUt;
+  // `.magnitude`: the scrubber's `value`/`min`/`max` and the elapsed arithmetic are
+  // all plain numbers on a range input, and the frame metadata beside it is too.
+  const position = viewUt?.magnitude ?? meta.firstFrameUt;
   const duration = Math.max(0, meta.lastFrameUt - meta.firstFrameUt);
   const elapsed = Math.max(0, position - meta.firstFrameUt);
 

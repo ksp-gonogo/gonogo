@@ -7,6 +7,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-testing";
+import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SHIP_SYSTEMS, type ShipSystems } from "./processor";
 
@@ -95,7 +96,9 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
     store.beginFrame();
 
     expect(read(store)?.levels.state).toBe("observed");
-    expect(read(store)?.levels.asOfUt).toBe(100);
+    // The instant, not a bare number: `asOfUt` carries `Value<"ut">` now, which is
+    // what lets an age be a subtraction rather than a helper.
+    expect(read(store)?.levels.asOfUt).toEqual(value("ut", 100));
     expect(read(store)?.levels.ageSec).toBe(0);
   });
 
@@ -120,7 +123,7 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
     expect(levels?.state).toBe("stale");
     // The OBSERVATION's UT, not the frame's: the whole point is that these two
     // have come apart.
-    expect(levels?.asOfUt).toBe(100);
+    expect(levels?.asOfUt).toEqual(value("ut", 100));
     expect(levels?.ageSec).toBe(1200);
   });
 

@@ -281,7 +281,7 @@ export {
   dateable,
   judgeable,
   notCurrent,
-  readingAge,
+  observedAt,
   readingFrom,
   stillTrue,
   withoutReckoning,
