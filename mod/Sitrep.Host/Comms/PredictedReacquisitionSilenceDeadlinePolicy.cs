@@ -198,7 +198,7 @@ namespace Sitrep.Host.Comms
             }
 
             var period = _propagator.CharacteristicCycleSeconds(target);
-            if (!IsUsable(ut))
+            if (!IsUsableInstant(ut))
             {
                 return fallback;
             }
@@ -372,11 +372,11 @@ namespace Sitrep.Host.Comms
             }
 
             var cycle = cadence.ShortestCycleSeconds;
-            if (cycle == null || !IsUsable(cycle.Value))
+            if (cycle == null || !IsUsableDuration(cycle.Value))
             {
                 return period;
             }
-            if (period == null || !IsUsable(period.Value))
+            if (period == null || !IsUsableDuration(period.Value))
             {
                 return cycle;
             }
@@ -386,7 +386,39 @@ namespace Sitrep.Host.Comms
         private static SilenceDeadline WithBasis(SilenceDeadline deadline, string basis) =>
             new SilenceDeadline(deadline.DurationSec, basis);
 
-        private static bool IsUsable(double value) =>
-            !double.IsNaN(value) && !double.IsInfinity(value) && value > 0.0;
+        /// <summary>
+        /// A DURATION this policy can size a sweep step against.
+        ///
+        /// <para><c>&gt; 0.0</c> is a real constraint here: a cadence of zero or
+        /// less divides the step to nothing (see <see cref="CycleOf"/>), so a
+        /// non-positive length is not a short cycle, it is not a cycle.</para>
+        /// </summary>
+        private static bool IsUsableDuration(double seconds) =>
+            !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds > 0.0;
+
+        /// <summary>
+        /// An INSTANT this policy can sweep from.
+        ///
+        /// <para>Finiteness only, deliberately. This used to share the duration
+        /// guard above, and <c>&gt; 0.0</c> is meaningless for an instant: zero is
+        /// not a small quantity, it is the origin, and KSP's universal time
+        /// starts there on a new save. <see cref="VisibilitySweep"/> already
+        /// draws the same line one layer down, NaN-checking its window bounds
+        /// while demanding its refinement tolerance be strictly positive, and
+        /// the sibling <see cref="OrbitalPeriodSilenceDeadlinePolicy"/> says as
+        /// much by defaulting its own <c>ut</c> to <c>0.0</c>.</para>
+        ///
+        /// <para>Rejecting <c>ut &lt;= 0</c> cost a whole prediction and said
+        /// nothing: the policy returned the fallback deadline, which is a
+        /// plausible answer rather than an error, so the loss was silent.</para>
+        ///
+        /// <para>Nothing downstream divides by <c>ut</c> or cares about its sign:
+        /// it is a sweep origin, an ordering operand (<c>change.Ut &gt; ut</c>),
+        /// and a subtrahend (<c>emergence - ut</c>, an instant minus an instant
+        /// giving a duration). NaN and infinity still want rejecting, because
+        /// each would poison the sweep bounds and that subtraction.</para>
+        /// </summary>
+        private static bool IsUsableInstant(double ut) =>
+            !double.IsNaN(ut) && !double.IsInfinity(ut);
     }
 }
