@@ -14,10 +14,10 @@ import {
   Cluster,
   Section,
   Stack,
+  Text,
   ToggleButton,
   Unit,
   usePanelDelay,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import {
@@ -143,7 +143,7 @@ function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
     ext.sampleSlotsTotal !== undefined && ext.sampleSlotsUsed !== undefined;
   if (!hasStorage && !hasSlots) return null;
   return (
-    <Value size="xs" tone="muted">
+    <Text size="xs" tone="muted">
       Drive{" "}
       {hasStorage && (
         <>
@@ -158,7 +158,7 @@ function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
           <Unit value={ext.sampleSlotsTotal} /> slots
         </>
       )}
-    </Value>
+    </Text>
   );
 }
 
@@ -220,15 +220,15 @@ function ScienceDataAboardRowAugment({
         <Stack gap="xs">
           <Cluster gap="xs" wrap justify="start">
             {file.dataSizeMB !== undefined && (
-              <Value size="xs">
+              <Text size="xs">
                 <Unit value={file.dataSizeMB} />
-              </Value>
+              </Text>
             )}
             {file.transmitRateMBps !== undefined &&
               file.transmitRateMBps.magnitude > 0 && (
-                <Value size="xs" tone="muted">
+                <Text size="xs" tone="muted">
                   <Unit value={file.transmitRateMBps} />
-                </Value>
+                </Text>
               )}
             {file.transmitting && (
               <Badge
@@ -274,9 +274,9 @@ function ScienceDataAboardRowAugment({
         <Stack gap="xs">
           <Cluster gap="xs" wrap justify="start">
             {sample.sampleMass !== undefined && (
-              <Value size="xs">
+              <Text size="xs">
                 <Unit value={sample.sampleMass} />
-              </Value>
+              </Text>
             )}
           </Cluster>
           <Cluster gap="xs" wrap justify="start">

@@ -7,9 +7,9 @@ import {
   NULL_DISPLAY,
   ScrollArea,
   Stack,
+  Text,
   Unit,
   useRowFilter,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ArchiveBodyGroup, ArchiveSubject } from "./parsers";
 
@@ -35,7 +35,7 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
   {
     key: "biome",
     header: "Biome",
-    render: (r) => r.biome || <Value tone="muted">{NULL_DISPLAY}</Value>,
+    render: (r) => r.biome || <Text tone="muted">{NULL_DISPLAY}</Text>,
   },
   {
     key: "science",
@@ -53,7 +53,7 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
       r.remainingPotential > 0 ? (
         <Unit value={value("science", r.remainingPotential)} />
       ) : (
-        <Value tone="muted">complete</Value>
+        <Text tone="muted">complete</Text>
       ),
   },
 ];

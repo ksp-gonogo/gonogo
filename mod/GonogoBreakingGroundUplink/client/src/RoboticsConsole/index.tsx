@@ -22,10 +22,10 @@ import {
   ScrollArea,
   SelectableRow,
   Stack,
+  Text,
   ToggleButton,
   Unit,
   usePanelDelay,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { BREAKING_GROUND } from "../uplink";
@@ -319,17 +319,17 @@ function RoboticsConsoleComponent({
       <ScrollArea>
         <Stack gap="md">
           <Cluster justify="start" align="baseline" wrap>
-            <Value size="lg" weight="semibold">
+            <Text size="lg" weight="semibold">
               {formatPos(selected.type, selected.current)}
               <Unit>{unit}</Unit>
-            </Value>
-            <Value tone="muted" aria-hidden="true">
+            </Text>
+            <Text tone="muted" aria-hidden="true">
               →
-            </Value>
-            <Value tone="muted" size="lg">
+            </Text>
+            <Text tone="muted" size="lg">
               {formatPos(selected.type, selected.target)}
               <Unit>{unit}</Unit>
-            </Value>
+            </Text>
             {showToggles && (
               <Badge
                 severity={selected.atTarget ? "nominal" : undefined}
@@ -358,10 +358,10 @@ function RoboticsConsoleComponent({
                 >
                   −
                 </ActionButton>
-                <Value size="sm" tone="default">
+                <Text size="sm" tone="default">
                   {formatPos(selected.type, selected.target)}
                   {unit}
-                </Value>
+                </Text>
                 <ActionButton
                   tone="ghost"
                   type="button"

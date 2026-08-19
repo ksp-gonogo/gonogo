@@ -27,9 +27,9 @@ import {
   SectionTitle,
   Select,
   speakQuantity,
+  Text,
   Unit,
   useModalSaveBar,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -408,7 +408,7 @@ function PowerSystemsComponent({
       <Panel panelTitle="POWER">
         <div style={COMPACT_BODY}>
           <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
-          <Value
+          <Text
             tone={
               netTone === "go" ? "go" : netTone === "warn" ? "warn" : "default"
             }
@@ -416,7 +416,7 @@ function PowerSystemsComponent({
           >
             {net >= 0 ? "+" : ""}
             {net.toFixed(2)}/s
-          </Value>
+          </Text>
         </div>
       </Panel>
     );
@@ -469,17 +469,17 @@ function PowerSystemsComponent({
           <span style={{ ...CELL_LABEL, color: cellLabelColor(netTone) }}>
             NET
           </span>
-          <Value size="sm" style={CELL_VALUE}>
+          <Text size="sm" style={CELL_VALUE}>
             {net >= 0 ? "+" : ""}
             {net.toFixed(2)}/s
-          </Value>
+          </Text>
         </div>
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>PROD</span>
-          <Value tone="go" size="sm" style={CELL_VALUE}>
+          <Text tone="go" size="sm" style={CELL_VALUE}>
             {totalProduced > 0 ? "+" : ""}
             {totalProduced.toFixed(2)}
-          </Value>
+          </Text>
         </div>
         {measuredDisagrees && (
           <div
@@ -487,23 +487,23 @@ function PowerSystemsComponent({
             title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
           >
             <span style={CELL_LABEL}>MEASURED</span>
-            <Value size="sm" style={CELL_VALUE}>
+            <Text size="sm" style={CELL_VALUE}>
               {measuredTotalProduced?.toFixed(2)}
-            </Value>
+            </Text>
           </div>
         )}
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>CONS</span>
-          <Value tone="warn" size="sm" style={CELL_VALUE}>
+          <Text tone="warn" size="sm" style={CELL_VALUE}>
             {totalConsumed.toFixed(2)}
-          </Value>
+          </Text>
         </div>
         {storage.maxAmount > 0 && (
           <div style={TOTALS_CELL}>
             <span style={CELL_LABEL}>STORED</span>
-            <Value size="sm" style={STORED_VALUE}>
+            <Text size="sm" style={STORED_VALUE}>
               {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
-            </Value>
+            </Text>
           </div>
         )}
       </div>
@@ -631,14 +631,14 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
           <Unit value={value("%", eff * 100)} decimals={0} />
         </span>
       )}
-      <Value
+      <Text
         tone={sign === "pos" ? "go" : sign === "neg" ? "warn" : "faint"}
         title={flowKnown ? undefined : "No flow reading for this part"}
       >
         {flowKnown
           ? `${sign === "pos" ? "+" : ""}${flow.toFixed(2)}`
           : NULL_DISPLAY}
-      </Value>
+      </Text>
     </PowerRow>
   );
 }
@@ -781,8 +781,8 @@ function cellLabelColor(tone: "go" | "warn" | "neutral"): string {
       : "var(--color-text-faint)";
 }
 
-// `Value` supplies tone (-fg), size and tabular-nums; the weight + nowrap are
-// this widget's. The neg/warn sign now renders on Value's warning-fg (was the
+// `Text` supplies tone (-fg), size and tabular-nums; the weight + nowrap are
+// this widget's. The neg/warn sign now renders on Text's warning-fg (was the
 // -bg token): the intended -fg normalization.
 const CELL_VALUE: CSSProperties = { fontWeight: 700, whiteSpace: "nowrap" };
 

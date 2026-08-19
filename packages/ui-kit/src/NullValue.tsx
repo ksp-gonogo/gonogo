@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Value } from "./Value";
+import { Text } from "./Text";
 
 /**
  * The ONE sanctioned em dash in the codebase: the UI convention for "no
@@ -22,7 +22,7 @@ import { Value } from "./Value";
  *  - `NullValue`, a component, for a bare JSX node with no styled
  *    wrapper of its own already carrying a placeholder look. Most call
  *    sites already have one (a `Chip`, a bespoke `Dash`/`Muted` span,
- *    or `Value tone="muted"` directly): prefer interpolating
+ *    or `Text tone="muted"` directly): prefer interpolating
  *    `NULL_DISPLAY` into that existing wrapper over nesting a second
  *    element inside it. Reach for `NullValue` only when there truly is
  *    no such wrapper.
@@ -30,11 +30,11 @@ import { Value } from "./Value";
 export const NULL_DISPLAY = "—";
 
 /**
- * Renders `NULL_DISPLAY` through `Value tone="muted"`, so a bare
+ * Renders `NULL_DISPLAY` through `Text tone="muted"`, so a bare
  * placeholder reads as intentionally-empty rather than as ordinary body
  * text. See the module doc comment above for when to reach for this
  * versus `NULL_DISPLAY` directly.
  */
 export function NullValue(): ReactNode {
-  return <Value tone="muted">{NULL_DISPLAY}</Value>;
+  return <Text tone="muted">{NULL_DISPLAY}</Text>;
 }

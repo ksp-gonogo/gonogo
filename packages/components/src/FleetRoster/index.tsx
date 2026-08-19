@@ -33,9 +33,9 @@ import {
   ScrollArea,
   Stack,
   severityFromBadgeTone,
+  Text,
   Truncate,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
@@ -671,7 +671,7 @@ function FleetRosterComponent({
                       {v.body ?? NULL_DISPLAY}
                     </Truncate>
                   )}
-                  <Value
+                  <Text
                     tone="default"
                     size="sm"
                     style={{
@@ -681,7 +681,7 @@ function FleetRosterComponent({
                     }}
                   >
                     {crewLabel(v)}
-                  </Value>
+                  </Text>
                   <div
                     style={{ padding: "0 var(--space-6)", textAlign: "right" }}
                   >

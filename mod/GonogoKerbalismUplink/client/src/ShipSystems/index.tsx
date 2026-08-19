@@ -24,8 +24,8 @@ import {
   Stack,
   severityFromBadgeTone,
   speakQuantity,
+  Text,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type {
@@ -423,15 +423,15 @@ function ShipSystemsBody({
           // inconsistently, some rows boxed, some not).
           <Card role="status" aria-live="polite">
             <Stack gap="xs">
-              <Value tone="nogo" weight="semibold" size="sm">
+              <Text tone="nogo" weight="semibold" size="sm">
                 Limiting factors
-              </Value>
+              </Text>
               {summary.causes.flatMap((cause) =>
                 cause.explains.length > 0
                   ? cause.explains.map((explained) => {
                       const explainedRow = rowsByDisplayName.get(explained);
                       return (
-                        <Value
+                        <Text
                           key={`${cause.name}-${explained}`}
                           tone="nogo"
                           size="xs"
@@ -443,11 +443,11 @@ function ShipSystemsBody({
                               explainedRow?.secondsToEmpty ?? null
                             }
                           />
-                        </Value>
+                        </Text>
                       );
                     })
                   : [
-                      <Value key={cause.name} tone="nogo" size="xs">
+                      <Text key={cause.name} tone="nogo" size="xs">
                         {cause.displayName} is running critically low
                         {cause.secondsToEmpty !== null && (
                           <>
@@ -462,7 +462,7 @@ function ShipSystemsBody({
                             left)
                           </>
                         )}
-                      </Value>,
+                      </Text>,
                     ],
               )}
             </Stack>
@@ -559,9 +559,9 @@ function ShipSystemsBody({
           <Stack gap="xs">
             {processes.map((p) => (
               <Cluster key={p.id} justify="between">
-                <Value tone="default" size="xs">
+                <Text tone="default" size="xs">
                   {p.name}
-                </Value>
+                </Text>
                 <Badge severity={processSeverity(p.state)} size="sm">
                   {p.state}
                 </Badge>
@@ -595,18 +595,18 @@ function SectionHead({
 }) {
   return (
     <Cluster justify="between" align="baseline">
-      <Value tone="muted" size="xs">
+      <Text tone="muted" size="xs">
         {label.toUpperCase()}
-      </Value>
+      </Text>
       {value !== undefined && (
-        // `neutral` is a Meter/Badge tone, not a Value one: a resting
+        // `neutral` is a Meter/Badge tone, not a Text one: a resting
         // section reading renders in the same muted text as the label.
-        <Value
+        <Text
           tone={tone === undefined || tone === "neutral" ? "muted" : tone}
           size="xs"
         >
           {value}
-        </Value>
+        </Text>
       )}
     </Cluster>
   );
@@ -673,7 +673,7 @@ function ResourceLedgerRow({
           // functionally invisible. The `-fg-muted` override is the same
           // fix GreenhouseSection.tsx documents for the identical landmine
           // (LaunchDirector, CommSignal, DeployedScience hit it too).
-          <Value
+          <Text
             tone="warn"
             size="xs"
             style={{ color: "var(--color-status-warning-fg-muted)" }}
@@ -683,7 +683,7 @@ function ResourceLedgerRow({
               blockedBy={row.blockedBy}
               secondsToEmpty={row.secondsToEmpty}
             />
-          </Value>
+          </Text>
         )}
         {/* Chevron-only: five worded "Show detail" buttons in one column
             read as five competing controls (operator feedback). The rotating
@@ -755,9 +755,9 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
     // minSize.
     <Stack gap="xs" style={{ width: "100%", minWidth: 0 }}>
       {ledger.terms.length === 0 ? (
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           No modelled sources
-        </Value>
+        </Text>
       ) : (
         ledger.terms.map((term) => (
           // `wrap`: the rate ("-0.01/s") is one unbreakable token (no space
@@ -773,9 +773,9 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
             justify="between"
             wrap
           >
-            <Value tone="default" size="xs">
+            <Text tone="default" size="xs">
               {term.name}
-            </Value>
+            </Text>
             {/* Nested Cluster, not a bespoke row: groups the bar and the
                 rate so the pair moves together as one item on the outer
                 Cluster's trailing edge. `justify="start"` packs them at
@@ -788,33 +788,33 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
                   NUMBER beside a red/green bar doubled the same reading and
                   fed the widget's colour pile-up. The signed prefix keeps
                   the direction legible in text. */}
-              <Value tone="default" size="xs">
+              <Text tone="default" size="xs">
                 {formatRate(term.ratePerSecond)}
-              </Value>
+              </Text>
             </Cluster>
           </Cluster>
         ))
       )}
       <Divider space="xs" />
       <Cluster justify="between" wrap>
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           Net (derived)
-        </Value>
+        </Text>
         {/* tone="default", never the accent default: `Value`'s accent green
             on a NEGATIVE net read as "this drain is good". The sign prefix
             carries the direction. */}
-        <Value tone="default" size="xs">
+        <Text tone="default" size="xs">
           {formatRate(ledger.derivedNet)}
-        </Value>
+        </Text>
       </Cluster>
       {ledger.reportedNet !== undefined && (
         <Cluster justify="between" wrap>
-          <Value tone="muted" size="xs">
+          <Text tone="muted" size="xs">
             Reported
-          </Value>
-          <Value tone="default" size="xs">
+          </Text>
+          <Text tone="default" size="xs">
             {formatRate(ledger.reportedNet)}
-          </Value>
+          </Text>
         </Cluster>
       )}
       {hasResidual && ledger.residual !== undefined && (
@@ -826,13 +826,13 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
         // model-vs-reality gap (timewarp catch-up between samples, a consumer
         // this ledger doesn't enumerate) and is worth keeping visible as
         // exactly that, never hidden.
-        <Value
+        <Text
           tone="warn"
           size="xs"
           style={{ color: "var(--color-status-warning-fg-muted)" }}
         >
           Residual {formatRate(ledger.residual)} (unaccounted)
-        </Value>
+        </Text>
       )}
     </Stack>
   );

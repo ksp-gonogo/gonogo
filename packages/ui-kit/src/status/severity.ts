@@ -2,7 +2,7 @@ import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at bu
 import type { BadgeTone } from "../Badge";
 import type { ReadoutTone } from "../Readout";
 import type { StatusTone } from "../StatusIndicator";
-import type { ValueTone } from "../Value";
+import type { TextTone } from "../Text";
 
 /**
  * The one canonical severity vocabulary (Scale B, operator-locked 2026-08-05).
@@ -139,11 +139,11 @@ export function severityFromStatusTone(tone: StatusTone): Severity {
 }
 
 /**
- * `ValueTone` -> `Severity`. `Value`'s tones (`accent`/`default`/`muted`/
+ * `TextTone` -> `Severity`. `Text`'s tones (`accent`/`default`/`muted`/
  * `faint`) are display-emphasis tiers, not severity, so they all fold to the
  * nominal floor. The mapper exists only so a caller threading a value tone into
  * a severity slot compiles and is treated as non-alarming rather than breaking.
  */
-export function severityFromValueTone(_tone: ValueTone): Severity {
+export function severityFromTextTone(_tone: TextTone): Severity {
   return "nominal";
 }

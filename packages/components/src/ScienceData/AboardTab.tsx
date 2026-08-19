@@ -7,9 +7,9 @@ import {
   NULL_DISPLAY,
   ScrollArea,
   Stack,
+  Text,
   Unit,
   useRowFilter,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ExperimentBreakdownEntry, ParsedExperiment } from "./parsers";
 
@@ -49,7 +49,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
   {
     key: "biome",
     header: "Biome",
-    render: (b) => b.biome || <Value tone="muted">{NULL_DISPLAY}</Value>,
+    render: (b) => b.biome || <Text tone="muted">{NULL_DISPLAY}</Text>,
   },
   {
     key: "data",
@@ -67,7 +67,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
       b.remainingPotential > 0 ? (
         <Unit value={value("science", b.remainingPotential)} />
       ) : (
-        <Value tone="muted">complete</Value>
+        <Text tone="muted">complete</Text>
       ),
   },
 ];
@@ -95,7 +95,7 @@ const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
     width: "9ch",
     render: (e) =>
       e.dataAmount === null ? (
-        <Value tone="muted">{NULL_DISPLAY}</Value>
+        <Text tone="muted">{NULL_DISPLAY}</Text>
       ) : (
         <Unit value={value("Mit", e.dataAmount)} />
       ),
@@ -147,7 +147,7 @@ export function AboardTab({
 
   return (
     <Stack gap="sm" fill>
-      <Value
+      <Text
         tone="muted"
         size="sm"
         role="status"
@@ -157,9 +157,9 @@ export function AboardTab({
         {body && situation
           ? `${body} · ${situation}${localeSuffix}`
           : "Awaiting situation telemetry"}
-      </Value>
+      </Text>
       {!compact && typeof sciCount === "number" && (
-        <Value size="xs" tone="muted">
+        <Text size="xs" tone="muted">
           {sciCount} record{sciCount === 1 ? "" : "s"}
           {typeof sciDataAmount === "number" && (
             <>
@@ -167,7 +167,7 @@ export function AboardTab({
               <Unit value={value("Mit", sciDataAmount)} /> collected
             </>
           )}
-        </Value>
+        </Text>
       )}
       <ScrollArea>
         {hasBreakdown ? (

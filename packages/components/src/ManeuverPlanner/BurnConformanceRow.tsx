@@ -4,9 +4,9 @@ import {
   NULL_DISPLAY,
   Row,
   Stack,
+  Text,
   Truncate,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import type { BurnConformance, BurnConformancePhase } from "./conformance";
@@ -75,7 +75,7 @@ export function BurnConformanceRow({
         </Truncate>
       </Stack>
       <Stack gap="xs" style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
-        <Value tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
+        <Text tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
           {conformance.deliveredDv == null || conformance.plannedDv == null ? (
             NULL_DISPLAY
           ) : (
@@ -88,7 +88,7 @@ export function BurnConformanceRow({
               <Unit value={value("m/s", conformance.plannedDv)} decimals={1} />
             </>
           )}
-        </Value>
+        </Text>
         <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
           {conformance.deliveredFraction == null ? (
             NULL_DISPLAY

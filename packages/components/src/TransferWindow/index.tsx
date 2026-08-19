@@ -20,8 +20,8 @@ import {
   Panel,
   Select,
   type Severity,
+  Text,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -338,10 +338,10 @@ function TransferWindowComponent({
           // because a bare "not current" over a live dial would read as a dead
           // instrument: the phase relationship and the window times come off the
           // body catalogue and are as current as the view clock.
-          <Value tone="warn" size="xs" role="status" aria-live="polite">
+          <Text tone="warn" size="xs" role="status" aria-live="polite">
             Parking orbit no longer current: Δv is from the last known elements.
             Phase and window times stay live.
-          </Value>
+          </Text>
         )}
         {solution ? (
           // Responsive on the body's own width (container query): stacked when

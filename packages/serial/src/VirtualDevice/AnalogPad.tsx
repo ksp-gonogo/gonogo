@@ -1,4 +1,4 @@
-import { Value } from "@ksp-gonogo/ui-kit";
+import { Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -127,7 +127,7 @@ const Thumb = styled.div<{ $active: boolean }>`
 
 // The tone and the type size are the kit's; only the right alignment, which
 // keeps the numeric echo pinned to the stick's edge, is local.
-const PadValue = styled(Value).attrs({
+const PadValue = styled(Text).attrs({
   tone: "faint" as const,
   size: "xs" as const,
 })`

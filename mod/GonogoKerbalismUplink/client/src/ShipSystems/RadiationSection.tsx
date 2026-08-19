@@ -6,8 +6,8 @@ import {
   LineGraph,
   type LineGraphSeries,
   Stack,
+  Text,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import type { KerbalismSpaceWeather } from "../__generated__/contract";
@@ -320,7 +320,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
             near-black on this dark surface, so the escalated ambient reads
             through the same -fg-muted override every warning-toned text on
             a panel surface uses (see LedgerBody's residual note). */}
-        <Value
+        <Text
           tone={ambientHigh ? "warn" : "default"}
           size="xs"
           style={
@@ -334,18 +334,18 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
             value={ambientValue}
             decimals={doseRateDecimals(ambientRadPerHour)}
           />
-        </Value>
-        <Value tone={shieldedHigh ? "nogo" : "info"} size="xs">
+        </Text>
+        <Text tone={shieldedHigh ? "nogo" : "info"} size="xs">
           Shielded{" "}
           <Unit
             value={shieldedValue}
             decimals={doseRateDecimals(shieldedRadPerHour)}
           />
-        </Value>
+        </Text>
       </Cluster>
-      <Value tone="muted" size="xs" role="status" aria-live="polite">
+      <Text tone="muted" size="xs" role="status" aria-live="polite">
         {location}
-      </Value>
+      </Text>
     </Stack>
   );
 }

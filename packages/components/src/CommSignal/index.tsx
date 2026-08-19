@@ -19,8 +19,8 @@ import {
   NULL_DISPLAY,
   Panel,
   Stack,
+  Text,
   Unit,
-  Value,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -368,7 +368,7 @@ function SignalHeadline({
   lost: boolean;
 }) {
   return (
-    <Value
+    <Text
       tone="default"
       size="lg"
       style={{
@@ -378,7 +378,7 @@ function SignalHeadline({
       }}
     >
       {headline}
-    </Value>
+    </Text>
   );
 }
 
@@ -397,25 +397,25 @@ function CommSignalDetailRows({
   };
   return (
     <>
-      <Value tone="muted" size="xs" style={labelStyle}>
+      <Text tone="muted" size="xs" style={labelStyle}>
         Control
-      </Value>
-      <Value
+      </Text>
+      <Text
         tone="default"
         size="sm"
         style={{ color: TONE_TEXT_COLOR[control.tone] }}
       >
         {control.label}
-      </Value>
-      <Value tone="muted" size="xs" style={labelStyle}>
+      </Text>
+      <Text tone="muted" size="xs" style={labelStyle}>
         Delay
-      </Value>
-      <Value tone="default" size="sm">
+      </Text>
+      <Text tone="default" size="sm">
         {/* null (no measurable ControlPath) reads the same as undefined
             (nothing arrived yet): comms-delay-nullable-when-no-path fix:
             neither is a duration to show. */}
         {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
-      </Value>
+      </Text>
     </>
   );
 }

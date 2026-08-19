@@ -7,7 +7,7 @@ import styled, { css } from "styled-components";
  * analog stick. Added because `VirtualDevice/AnalogPad` was keeping its own
  * `Value` for this one colour.
  */
-export type ValueTone =
+export type TextTone =
   | "accent"
   | "default"
   | "muted"
@@ -16,12 +16,12 @@ export type ValueTone =
   | "warn"
   | "nogo"
   | "info";
-export type ValueSize = "xs" | "sm" | "base" | "lg";
-export type ValueWeight = "regular" | "semibold";
+export type TextSize = "xs" | "sm" | "base" | "lg";
+export type TextWeight = "regular" | "semibold";
 
-export interface ValueProps extends HTMLAttributes<HTMLSpanElement> {
+export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
   /** Foreground colour. Defaults to `accent`. */
-  tone?: ValueTone;
+  tone?: TextTone;
   /** Adds `margin-left: 2px` so the value sits apart from a preceding label. */
   spaced?: boolean;
   /**
@@ -30,12 +30,12 @@ export interface ValueProps extends HTMLAttributes<HTMLSpanElement> {
    * set it explicitly for dense list/grid rows (coverage %, sensor state,
    * vessel meta) that need to stay off the 14px body-text size.
    */
-  size?: ValueSize;
+  size?: TextSize;
   /**
    * Font weight. Omit to inherit the ambient weight; set `semibold` to
    * emphasise a key figure. Extracted from ScienceBench's chip/career values.
    */
-  weight?: ValueWeight;
+  weight?: TextWeight;
   children?: ReactNode;
 }
 
@@ -91,20 +91,31 @@ const SIZE_STYLES = {
 } as const;
 
 /**
- * Inline numeric/data readout. `font-variant-numeric: tabular-nums` is baked
- * in so widgets never forget it and digits don't jitter as they update.
- * Extracted from ScienceOfficer's `DataReadout`.
+ * Inline text: tone, size, weight, spacing. `font-variant-numeric: tabular-nums`
+ * is baked in so widgets never forget it and digits don't jitter as they update.
+ *
+ * Called `Value` until now, and the name was wrong twice over. It collided with
+ * `@ksp-gonogo/sitrep-sdk`'s `Value<U>`, the unit-system's actual value type, so
+ * two published packages exported one name for unrelated things and an author
+ * importing either got no warning. And it oversold itself: this renders whatever
+ * you give it, with no magnitude, no unit and no formatting anywhere in it.
+ *
+ * It does NOT merge into `Unit`, which is a different axis: `Unit` renders a
+ * quantity and its symbol, this colours and sizes a span. They compose, and that
+ * composition is the normal case:
+ *
+ *     <Text tone="go"><Unit value={altitude} /></Text>
  */
-export function Value({
+export function Text({
   tone = "accent",
   spaced = false,
   size,
   weight,
   children,
   ...rest
-}: ValueProps) {
+}: TextProps) {
   return (
-    <Value__Root
+    <Text__Root
       $tone={tone}
       $spaced={spaced}
       $size={size}
@@ -112,15 +123,15 @@ export function Value({
       {...rest}
     >
       {children}
-    </Value__Root>
+    </Text__Root>
   );
 }
 
-const Value__Root = styled.span<{
-  $tone: ValueTone;
+const Text__Root = styled.span<{
+  $tone: TextTone;
   $spaced: boolean;
-  $size?: ValueSize;
-  $weight?: ValueWeight;
+  $size?: TextSize;
+  $weight?: TextWeight;
 }>`
   font-variant-numeric: tabular-nums;
   ${({ $tone }) => TONE_STYLES[$tone]}
