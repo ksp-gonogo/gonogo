@@ -203,6 +203,10 @@ export const UNIT_DEFINITIONS = {
   // outright is what stops it decomposing into angle-per-second, which is a
   // real dimension (rpm's) and would have compared equal.
   "rad/s": { dim: { radDose: 1, s: -1 }, ratio: 1, kind: "doseRate" },
+  // The scale a dose rate is READ at. The mod reports rad/s; an operator reads
+  // rad/h, and that conversion was a bare `* 3600` at the one widget that
+  // needed it. Same dimension, different scale, which is what `ratio` is for.
+  "rad/h": { dim: { radDose: 1, s: -1 }, ratio: 1 / 3600, kind: "doseRate" },
 
   // ── Career currencies ────────────────────────────────────────────────────
   // Three separate bases, not one "amount": they are not interchangeable, and a

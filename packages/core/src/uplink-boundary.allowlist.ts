@@ -80,6 +80,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
+      // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
+      // budget is keyed by file path, so it names every Uplink that unwraps a
+      // Value. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -243,6 +247,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
+      // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
+      // budget is keyed by file path, so it names every Uplink that unwraps a
+      // Value. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -466,6 +474,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/telemetry/SitrepPeerRelay.test.tsx",
     ],
     permanent: [
+      // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
+      // budget is keyed by file path, so it names every Uplink that unwraps a
+      // Value. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
@@ -1153,6 +1165,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
+      // budget is keyed by file path, so it names every Uplink that unwraps a
+      // Value. Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
