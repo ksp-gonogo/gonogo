@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Host;
 
 namespace Gonogo.KerbalismUplink
 {

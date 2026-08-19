@@ -22,6 +22,27 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
     /// </summary>
     public class ActionGroupsExtendedElectionTests
     {
+        /// <summary>
+        /// The uplink names the capability with its own constant rather than
+        /// reading core's, because core's lives in Sitrep.Host and an Uplink may
+        /// build against Sitrep.Contract and its own contract slice only. That
+        /// leaves one identity spelled in two assemblies with nothing tying them
+        /// together, and the drift is silent: change either spelling and the
+        /// provider registers against a capability that does not exist, so AGX
+        /// simply never elects and no error is raised anywhere. Stock action
+        /// groups keep working, which is what makes it hard to notice.
+        ///
+        /// <para>This test is the tie. It can exist because a test project may
+        /// reference both assemblies, which is exactly the asymmetry that makes
+        /// the arrangement safe: the constraint is on what an Uplink SHIPS
+        /// against, not on what can be verified about it.</para>
+        /// </summary>
+        [Fact]
+        public void UplinkCapabilityIdMatchesTheOneCoreRegisters()
+        {
+            Assert.Equal(ActionGroupsElection.CapabilityId, ActionGroupsExtendedUplink.CapabilityId);
+        }
+
         private sealed class FakeActionGroupsBackend : IActionGroupsBackend
         {
             public FakeActionGroupsBackend(string id) => Id = id;

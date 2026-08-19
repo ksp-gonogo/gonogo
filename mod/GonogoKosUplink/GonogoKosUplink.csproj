@@ -102,35 +102,33 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Sitrep.Contract / Sitrep.Host (+ Sitrep.Host's own Sitrep.Core /
-       Sitrep.Transport deps): compile-time only. ISitrepExtension/
-       IExtensionHost/ExtensionManifest live in Sitrep.Host (see
-       ExtensionContract.cs, whose IExtensionHost.AddChannelSource
-       signature also reaches into Sitrep.Core's KspSnapshot); Sitrep.Contract
-       is the wire-DTO assembly P1+ channel payloads will use. Core Gonogo
-       already ships all four (GameData/Gonogo/Plugins/Sitrep.*.dll) and
-       KSP loads every GameData plugin into one AppDomain, so this
-       extension resolves those types from core's copy at runtime, it
-       must NOT bundle its own. Private=false on every one of these keeps
-       them out of this project's output/deploy set; each is listed
-       explicitly (not left to flow transitively through Sitrep.Host),
-       Private=false on an OUTER ProjectReference does not, by itself,
-       suppress copying of that project's OWN transitive references, so
-       each link in the chain needs the flag itself. Mirrors
-       Gonogo.KSP.csproj's equivalent explicit three-project list, just
-       with Private=false added since THIS project deploys separately. -->
+  <!--
+    Sitrep.Contract, and nothing else of core Gonogo's: compile-time only.
+    ISitrepUplink, IUplinkHost and UplinkManifest all live in Sitrep.Contract
+    (UplinkContract.cs), so an Uplink needs no more than this to be built by
+    anyone. That is the whole point of the isolation rule: Sitrep.Host,
+    Sitrep.Core and Sitrep.Transport are unpublished, and a third-party author
+    can neither install nor build against them.
+
+    Sitrep.Host / Sitrep.Core / Sitrep.Transport used to be listed here, from
+    when the uplink contract lived in Sitrep.Host. It moved to Sitrep.Contract
+    and the references outlived the reason for them: by the time they were
+    removed not one line of this project imported a type from any of the three.
+
+    Private=false: core Gonogo already ships Sitrep.Contract.dll in
+    GameData/Gonogo/Plugins and KSP loads every GameData plugin into one
+    AppDomain, so this Uplink resolves those types from core's copy at runtime
+    and must not bundle a second one.
+  -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
   </ItemGroup>
 
   <!-- GonogoKosUplink.Contract: THIS Uplink's own eleven wire types, relocated
        out of Sitrep.Contract (see that project's header comment). Deliberately
-       WITHOUT Private="false", unlike every reference above: those four are
-       core Gonogo's assemblies, already in GameData/Gonogo/Plugins, and a
-       bundled copy here would shadow them. This one is ours and nothing else
+       WITHOUT Private="false", unlike Sitrep.Contract above: that one is core
+       Gonogo's assembly, already in GameData/Gonogo/Plugins, and a bundled
+       copy here would shadow it. This one is ours and nothing else
        ships it, so it must be copied into this extension's own deploy set,
        making GonogoKosUplink a TWO-DLL deployable (see build_gonogokosuplink in
        scripts/gonogo_claude_tools.sh). -->

@@ -1,6 +1,5 @@
 using System;
 using Sitrep.Contract;
-using Sitrep.Host.ActionGroups;
 
 namespace Gonogo.ActionGroupsExtendedUplink
 {
@@ -43,6 +42,21 @@ namespace Gonogo.ActionGroupsExtendedUplink
 
         /// <inheritdoc cref="ProviderId"/>
         public const double ProviderPriority = 100.0;
+
+        /// <summary>
+        /// The exclusive capability this uplink registers against, spelled out
+        /// rather than read from core's <c>ActionGroupsElection.CapabilityId</c>:
+        /// that constant lives in Sitrep.Host, which is unpublished, and an
+        /// Uplink builds against Sitrep.Contract and its own contract slice only.
+        /// The comms backends already name <c>"comms"</c> the same way for the
+        /// same reason.
+        ///
+        /// <para>Two spellings of one identity in two assemblies is a drift
+        /// risk, and a silent one: the capability would simply never elect, with
+        /// no error anywhere. GonogoActionGroupsExtendedUplink.Tests pins them
+        /// equal, which it can do because a test project may reference both.</para>
+        /// </summary>
+        public const string CapabilityId = "actionGroups";
 
         // Set at Register when AGX is absent (the uplink goes inert); read by
         // Health(). Null means available. AgxReflection.Probe() is only run at
@@ -91,7 +105,7 @@ namespace Gonogo.ActionGroupsExtendedUplink
             {
                 host.Kernel.RegisterProvider(new ProviderRegistration
                 {
-                    Capability = ActionGroupsElection.CapabilityId,
+                    Capability = CapabilityId,
                     Id = ProviderId,
                     Priority = ProviderPriority,
                     Factory = _ => new AgxActionGroupsBackend(agx),

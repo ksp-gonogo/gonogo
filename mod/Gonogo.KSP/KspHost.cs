@@ -10,7 +10,6 @@ using ModuleWheels;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.Propulsion;
-using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Targeting;
 using Strategies;
 using UnityEngine;

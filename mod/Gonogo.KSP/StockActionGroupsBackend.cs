@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Host.ActionGroups;
 
 namespace Gonogo.KSP
 {
