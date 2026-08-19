@@ -73,6 +73,7 @@ export const GENERATED_UNIT_KINDS = {
   "m³/s²": { kind: "gravParameter", ratio: 1 },
   "n/a": { kind: "n/a", ratio: 1 },
   "rad": { kind: "planeAngle", ratio: 1 },
+  "rad/h": { kind: "doseRate", ratio: 0.0002777777777777778 },
   "rad/s": { kind: "doseRate", ratio: 1 },
   "ratio": { kind: "ratio", ratio: 1 },
   "rep": { kind: "reputation", ratio: 1 },
