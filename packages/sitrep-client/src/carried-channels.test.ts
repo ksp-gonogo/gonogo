@@ -1,5 +1,5 @@
+import { isTopicCarried } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { isTopicCarried } from "./carried-channels";
 import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";

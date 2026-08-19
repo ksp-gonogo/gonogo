@@ -11,10 +11,14 @@ export type {
   EventRevealOptions,
   EventTimelineOptions,
 } from "@ksp-gonogo/sitrep-sdk";
+// Carried-topic policy now lives in the SDK: an Uplink needs it at runtime.
 export {
   computeConfirmedEdgeUt,
   computeUtNowEstimate,
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  DYNAMIC_CARRIED_TOPIC_PREFIXES,
   EventTimeline,
+  isTopicCarried,
 } from "@ksp-gonogo/sitrep-sdk";
 // Generic delayed-media infrastructure (buffer, per-frame pipeline, per-camera
 // sharing). Now published as `@ksp-gonogo/sitrep-sdk/media`; re-exported here so
@@ -27,7 +31,6 @@ export {
   decideAutoDispatch,
   useAutoCommand,
 } from "./auto-command";
-export { isTopicCarried } from "./carried-channels";
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
 export { RealTimeClock } from "./clock";
@@ -123,10 +126,6 @@ export {
   useScienceCredit,
   useStickyVesselGuids,
 } from "./currency-events";
-export {
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  DYNAMIC_CARRIED_TOPIC_PREFIXES,
-} from "./default-carried-topics";
 export {
   COMMS_DELAY_TOPIC,
   DelayAuthority,

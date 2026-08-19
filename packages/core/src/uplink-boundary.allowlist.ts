@@ -137,7 +137,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // is a literal-string set and so must name every Uplink's topics,
       // it already names scansat.*, kos.*, recovery.* and comms.* the same
       // way. String literals only; nothing kerbcast-specific is imported.
-      "packages/sitrep-client/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/default-carried-topics.ts",
 
       // WirePayloadCoverageTests.cs: the wire-coverage ratchet. Its
       // FlattenedByProducer set is a literal-string allowlist over every
@@ -336,7 +336,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // file's mirroring approach exists to avoid). Comment-only; nothing
       // scansat-specific is imported or re-exported.
       "mod/sitrep-sdk/src/api/slots.ts",
-      "packages/sitrep-client/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-topic.ts",
 
       // -- TEST-only --
@@ -567,7 +567,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
-      "packages/sitrep-client/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-command.test.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
       "packages/sitrep-client/src/map-topic.ts",

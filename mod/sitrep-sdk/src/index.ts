@@ -1,5 +1,13 @@
 export * from "./__generated__/contract";
 export * from "./api";
+// Carried-topic POLICY: which topics the stream carries, and whether a given
+// topic resolves entirely to carried inputs. Published because it decides where
+// an Uplink's data actually routes, which is runtime behaviour rather than a
+// test concern; it reached authors through the test harness until 2026-08-19.
+export {
+  isTopicCarried,
+  type SubscriptionTopicResolver,
+} from "./carried-channels";
 export { parseServerMessage } from "./client";
 export {
   type ControlChannelHandle,
@@ -7,6 +15,10 @@ export {
   controlChannelIds,
   getControlChannel,
 } from "./control-channels";
+export {
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  DYNAMIC_CARRIED_TOPIC_PREFIXES,
+} from "./default-carried-topics";
 export * from "./envelope";
 // The discrete-occurrence timeline. It lives here rather than in the spine
 // because an Uplink that PRODUCES an event topic needs the same primitive the

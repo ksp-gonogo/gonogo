@@ -1,7 +1,7 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
-import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import type { ReplayFixture } from "./replay-transport";
 import { ReplayTransport } from "./replay-transport";
 import { TimelineStore } from "./timeline-store";

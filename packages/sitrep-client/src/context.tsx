@@ -5,7 +5,11 @@ import type {
   VesselTarget,
   WarpState,
 } from "@ksp-gonogo/sitrep-sdk";
-import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  DYNAMIC_CARRIED_TOPIC_PREFIXES,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   createContext,
   type ReactNode,
@@ -18,7 +22,6 @@ import {
 } from "react";
 import type { TelemetryClient } from "./client";
 import { getContributedDerivedChannels } from "./contributed-channels";
-import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "./default-carried-topics";
 import { DelayAuthority } from "./delay-authority";
 import { dvLegacyScalarsChannel } from "./dv-legacy-scalars";
 import {
