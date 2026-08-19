@@ -4,6 +4,10 @@ import { axe } from "../test/axe";
 import { CommitLayer } from "./CommitLayer";
 
 const live = {
+  // These cases are all about WHICH instruction the hero shows, so they grant
+  // permission to instruct. The refusal itself is covered in `stale.test.tsx`,
+  // where the inputs are what goes stale.
+  mayInstruct: true,
   regime: "live" as const,
   roundTripSeconds: 0,
   live: true,

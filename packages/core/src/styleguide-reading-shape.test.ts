@@ -80,6 +80,23 @@ const ACCESSORS =
  */
 const ALLOWED = new Set(["packages/components/scripts/probe/probe-entry.tsx"]);
 
+/**
+ * Names of functions declared in this file that take a `Reading`. Calling one is a
+ * narrowing, because the parameter type is the thing that makes it safe.
+ */
+function localNarrowers(text: string): string[] {
+  const names: string[] = [];
+  const decl =
+    /(?:function\s+(\w+)\s*(?:<[^>]*>)?\s*\([^)]*:\s*Reading<|const\s+(\w+)\s*=\s*(?:<[^>]*>)?\s*\([^)]*:\s*Reading<)/g;
+  let m: RegExpExecArray | null = decl.exec(text);
+  while (m !== null) {
+    const name = m[1] ?? m[2];
+    if (name !== undefined) names.push(name);
+    m = decl.exec(text);
+  }
+  return names;
+}
+
 interface Suspect {
   at: string;
   variable: string;
@@ -108,6 +125,17 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
         `(?:${ACCESSORS.source})\\(\\s*${variable}|${variable}\\.state`,
       ).test(rest);
       if (narrowed) continue;
+      // A function declared IN THIS FILE that takes a `Reading` is a narrowing too.
+      // A widget with its own rule writes one rather than reaching for a shared
+      // accessor, and the receiver being typed `Reading<T>` is exactly what makes it
+      // safe: the hazard this scan exists for is a receiver that accepts anything.
+      if (
+        localNarrowers(text).some((fn) =>
+          new RegExp(`\\b${fn}\\(\\s*${variable}\\b`).test(rest),
+        )
+      ) {
+        continue;
+      }
       found.push({ at: `${file}:${index + 1}`, variable });
     }
   }

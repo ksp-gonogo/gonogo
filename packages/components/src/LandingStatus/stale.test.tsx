@@ -10,7 +10,16 @@ import { LandingStatusComponent } from "./index";
  * What LandingStatus does when the telemetry the burn solve rests on is no longer
  * current.
  *
- * The decision: it stops solving. A suicide-burn countdown names an instant a few
+ * SUPERSEDED once, and the correction is the interesting part. The first version of
+ * this file asserted that the whole board suspended. That was wrong for the reason
+ * the case itself makes obvious: losing contact mid-descent is the EXPECTED case, and
+ * a blank board during a descent nobody is tracking is the worst available answer.
+ *
+ * The rule now splits by what the operator DOES with a number, not by which field it
+ * came from. A DESCRIPTION renders from the best value available and says it is
+ * dated; an INSTRUCTION does not render from a reckoned state at all.
+ *
+ * The old decision, for the record: it stopped solving entirely. A suicide-burn countdown names an instant a few
  * seconds away, computed from a position, a velocity and a thrust. Recomputed from
  * readings taken some seconds ago it still counts down, still looks live, and
  * names the wrong instant. An operator would burn on it. There is no honest way to
@@ -127,7 +136,7 @@ describe("LandingStatus when the solve inputs are not current", () => {
     expect(visibleText(container)).not.toContain("Descent solve suspended");
   });
 
-  it("suspends the solve when the flight reading stops being current, and SAYS which reading", async () => {
+  it("keeps describing the board, and SAYS which reading is no longer current", async () => {
     const { container } = renderWidget();
     emitDescent();
     await waitFor(() =>
@@ -140,14 +149,16 @@ describe("LandingStatus when the solve inputs are not current", () => {
     });
 
     await waitFor(() => {
-      expect(visibleText(container)).toContain("Descent solve suspended");
+      expect(visibleText(container)).toContain("Described from last known");
     });
-    // Named, not just refused. Which reading went is the operator's first
+    // Named, not merely captioned. Which reading went is the operator's first
     // question and the widget already knows the answer.
     expect(visibleText(container)).toContain("flight");
+    // And the board is still THERE: the descent picture is the thing that stays.
+    expect(visibleText(container)).not.toContain("No landing in progress");
   });
 
-  it("does not present the suspended board as a vessel with no descent", async () => {
+  it("does not present the described board as a vessel with no descent", async () => {
     // The distinction this file exists for. "No landing in progress" is what a
     // vessel in orbit shows, and reaching it from stale telemetry would report a
     // calm sky during an untracked descent.
@@ -163,12 +174,12 @@ describe("LandingStatus when the solve inputs are not current", () => {
     });
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Descent solve suspended"),
+      expect(visibleText(container)).toContain("Described from last known"),
     );
     expect(visibleText(container)).not.toContain("No landing in progress");
   });
 
-  it("withholds the burn countdown rather than recomputing it from held values", async () => {
+  it("refuses the INSTRUCTION while still describing everything around it", async () => {
     // The hero is the instruction. A countdown recomputed from a stale position
     // is not a stale number, it is a wrong one, so nothing in the suspended board
     // may present an ignition clock.
@@ -183,19 +194,27 @@ describe("LandingStatus when the solve inputs are not current", () => {
       stream.store.beginFrame();
     });
 
+    // "NEEDS A LINK" rather than "NEEDS CURRENT TELEMETRY", and that is the arms
+    // working: this fixture drops the whole transport, so the link itself is the
+    // more specific answer and the operator can act on it. The currency wording is
+    // for a link that is delivering while these particular readings are not.
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Descent solve suspended"),
+      expect(visibleText(container)).toContain("BURN TIMING NEEDS A LINK"),
     );
+    // The hero is the one number an operator acts on at a named moment, so it is
+    // the one number withheld. A modelled ignition instant is not a dated reading,
+    // it is a wrong instruction.
     expect(visibleText(container)).not.toContain("SUICIDE BURN");
     expect(visibleText(container)).not.toContain("IGNITE");
   });
 
-  it("says nothing about a suspended solve before anything has ever arrived", async () => {
-    // A cold start is not a suspension. Conflating them would accuse the link of
+  it("says nothing about dated readings before anything has ever arrived", async () => {
+    // A cold start is not a dated board. "Described from last known" is a lie when
+    // nothing has ever arrived, and conflating the two would accuse the link of
     // dropping on first paint.
     const { container } = renderWidget();
     await waitFor(() => {
-      expect(visibleText(container)).not.toContain("Descent solve suspended");
+      expect(visibleText(container)).not.toContain("Described from last known");
     });
   });
 });

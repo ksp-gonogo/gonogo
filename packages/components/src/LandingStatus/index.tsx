@@ -5,7 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import {
   CommsDelaySource,
   type Value as Quantity,
@@ -32,7 +36,6 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { judgeable, notCurrent } from "../shared/currency";
 import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
@@ -341,30 +344,76 @@ function LandingStatusComponent({
   const orbitReading = useTelemetry("vessel.orbit");
   const landingReading = useTelemetry("vessel.landing");
 
-  const flight = judgeable(flightReading);
-  const surface = judgeable(surfaceReading);
-  const propulsion = judgeable(propulsionReading);
-  const orbit = judgeable(orbitReading);
-  const landing = judgeable(landingReading);
-  const summary = judgeable(useTelemetry("dv.summary"));
-  const dvStages = judgeable(useTelemetry("dv.stages"));
-  const structure = judgeable(useTelemetry("vessel.structure"));
-  const commsDelay = judgeable(useTelemetry("comms.delay"));
+  /**
+   * Describe from the best value available; instruct only from a current one.
+   *
+   * This replaces "the whole board suspends", which was the wrong call for the
+   * reason the case itself makes obvious: losing contact mid-descent is the
+   * EXPECTED case, not an edge one, and a blank board during a descent nobody is
+   * tracking is the worst of the available answers.
+   *
+   * The split is not by field but by what the operator DOES with the number:
+   *
+   * - a DESCRIPTION (altitude, velocity, how much delta-v there was) renders from a
+   *   modelled or last-known value, labelled as such. It stays useful when dated,
+   *   and blanking it throws away the only picture there is
+   * - an INSTRUCTION (the suicide-burn instant, the ignition countdown) does not
+   *   render from a reckoned state at all. The number IS the act: an operator burns
+   *   on it at a named moment, and a modelled ignition time is a wrong instruction
+   *   rather than a stale reading
+   *
+   * `describe` takes the reckoned value where one exists, because a propagated
+   * descent state is genuinely better than the last observed one. `instruct` demands
+   * `observed`, which is the whole distinction.
+   */
+  const describe = <T,>(r: Reading<T>): T | undefined =>
+    r.state === "observed"
+      ? r.value
+      : r.state === "reckonable"
+        ? r.reckoned.value
+        : r.state === "stale"
+          ? r.value
+          : undefined;
+
+  const flight = describe(flightReading);
+  const surface = describe(surfaceReading);
+  const propulsion = describe(propulsionReading);
+  const orbit = describe(orbitReading);
+  const landing = describe(landingReading);
+  const summaryReading = useTelemetry("dv.summary");
+  const dvStagesReading = useTelemetry("dv.stages");
+  const structureReading = useTelemetry("vessel.structure");
+  const commsDelayReading = useTelemetry("comms.delay");
+  const summary = describe(summaryReading);
+  const dvStages = describe(dvStagesReading);
+  const structure = describe(structureReading);
+  const commsDelay = describe(commsDelayReading);
 
   /**
-   * The board is suspended, not empty. Every reading below feeds the burn solve or
-   * the impact point, so one of them going stale invalidates the whole descent
-   * picture rather than one row of it. Without this the widget would fall back to
-   * "No landing in progress", which is a different and reassuring statement.
+   * Whether the board is DESCRIBING rather than reporting, and which readings put it
+   * there. Drives a caption, never a blank: the numbers below are still the best
+   * picture available and stay on screen.
    */
-  const staleSolveInputs = [
-    notCurrent(flightReading) ? "flight" : null,
-    notCurrent(surfaceReading) ? "surface" : null,
-    notCurrent(propulsionReading) ? "propulsion" : null,
-    notCurrent(orbitReading) ? "orbit" : null,
-    notCurrent(landingReading) ? "landing" : null,
+  const isDated = (r: Reading<unknown>): boolean =>
+    r.state === "stale" || r.state === "reckonable";
+  const datedInputs = [
+    isDated(flightReading) ? "flight" : null,
+    isDated(surfaceReading) ? "surface" : null,
+    isDated(propulsionReading) ? "propulsion" : null,
+    isDated(orbitReading) ? "orbit" : null,
+    isDated(landingReading) ? "landing" : null,
   ].filter((name): name is string => name !== null);
-  const descentSolveSuspended = staleSolveInputs.length > 0;
+  /**
+   * The gate on the INSTRUCTION half: no input the burn solve rests on may be DATED.
+   *
+   * Keyed on dated rather than on "every input is observed", which is what I wrote
+   * first and which the snapshot fixtures caught. A never-arrived input is not a
+   * reason to refuse: a scenario that carries no `vessel.landing` at all still has a
+   * nameable ignition instant, and `solveSuicideBurn` already answers
+   * "not-descending" when it genuinely lacks data. Refusing there would have
+   * withheld the countdown on every board that simply does not carry every topic.
+   */
+  const mayInstruct = datedInputs.length === 0;
 
   // ve + burnout mass of the ACTIVE engine(s), see `deriveActiveBurnParams`.
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
@@ -847,6 +896,7 @@ function LandingStatusComponent({
       regime={clocks.regime}
       roundTripSeconds={clocks.roundTripSeconds}
       live={live}
+      mayInstruct={mayInstruct}
       suicideBurnCountdown={solution.suicideBurnCountdown}
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}
@@ -1009,11 +1059,21 @@ function LandingStatusComponent({
           {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
         </Value>
       )}
-      {descentSolveSuspended ? (
-        <EmptyState>
-          {`Descent solve suspended: ${staleSolveInputs.join(", ")} no longer current`}
-        </EmptyState>
-      ) : board === "not-descending" && !landed ? (
+      {/* The board is DESCRIBED, not suspended. No `role="status"`: the hero below
+          already owns one, and a second live region on the same panel floods a
+          screen reader rather than informing it. `isDated` rather than
+          "not observed", so a cold start says nothing at all: "described from last
+          known" is a lie when nothing has ever arrived, which is the exact
+          conflation this whole workstream exists to stop. It stays on screen with a caption
+          naming which readings are no longer current, because losing contact
+          mid-descent is the expected case and a blank board is the worst answer
+          available. The ignition instant is refused separately, in CommitLayer. */}
+      {datedInputs.length > 0 && (
+        <ReadoutCaption>
+          {`Described from last known ${datedInputs.join(", ")}, not current`}
+        </ReadoutCaption>
+      )}
+      {board === "not-descending" && !landed ? (
         <EmptyState>No landing in progress</EmptyState>
       ) : (
         // The rail beside the content, both inside the panel's own body. This
