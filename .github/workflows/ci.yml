@@ -135,6 +135,18 @@ jobs:
       - name: Generated SDK is in sync with the contract
         run: bash mod/codegen.sh && git diff --exit-code -- mod/sitrep-sdk/src/__generated__
 
+      # ui-kit's symbol -> kind table is generated FROM the SDK's unit model
+      # (scripts/gen-unit-kinds.mjs), and it was ungated: the step above runs
+      # mod/codegen.sh, which does not generate it, and diffs only the SDK's own
+      # __generated__ directory. So a unit added to UNIT_DEFINITIONS without a
+      # regen went unnoticed, and one had: `rad/h` was added for the express
+      # purpose of letting <Unit format="rad/h"> re-express a dose rate instead
+      # of a widget doing a bare * 3600, and ui-kit reads its ratios from this
+      # table, so the capability did not work. Separate step because its input is
+      # TypeScript rather than the C# assembly.
+      - name: ui-kit's generated unit table is in sync with the SDK's unit model
+        run: node scripts/gen-unit-kinds.mjs && git diff --exit-code -- packages/ui-kit/src/__generated__
+
       # The headless kOS terminal harness (GonogoKosUplink.Tests/Headless) needs
       # kOS.Safe.dll + kOS.dll, and Gonogo.KSP.Tests' ConfigNode-backed ledger
       # suite needs Assembly-CSharp.dll; both live in the private ksp-managed
