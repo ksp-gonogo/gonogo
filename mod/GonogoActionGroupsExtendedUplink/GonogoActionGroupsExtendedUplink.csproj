@@ -41,25 +41,34 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- Sitrep.Contract / Sitrep.Host (+ Sitrep.Host's own Sitrep.Core /
-       Sitrep.Transport deps): compile-time only, exactly GonogoKosUplink's
-       equivalent block. Core Gonogo already ships all four
-       (GameData/Gonogo/Plugins/Sitrep.*.dll) and KSP loads every GameData
-       plugin into one AppDomain, so this uplink resolves those types from
-       core's copy at runtime: it must NOT bundle its own. Private=false on
-       every one of these keeps them out of THIS project's output/deploy
-       set; each is listed explicitly (not left to flow transitively through
-       Sitrep.Host): Private=false on an OUTER ProjectReference does not,
-       by itself, suppress copying of that project's OWN transitive
-       references, so each link in the chain needs the flag itself. NOTE: no
-       reference to AGExt.dll, by design (see the licence header above), and
-       NO KSP/Unity reference either (see above: this uplink never touches
-       stock KSP directly). -->
+  <!--
+    Compile-time only. Core Gonogo already ships Sitrep.*.dll in
+    GameData/Gonogo/Plugins and KSP loads every GameData plugin into one
+    AppDomain, so this uplink resolves those types from core's copy at runtime
+    and must NOT bundle its own: hence Private=false on both.
+
+    Sitrep.Core and Sitrep.Transport used to be listed here as well, to carry
+    Private=false down each link of the chain (the flag on an outer
+    ProjectReference does not suppress copying of that project's own transitive
+    references). They are gone because nothing here imports a type from either,
+    and the copying they were guarding against is separately prevented: the
+    release workflow copies only the DLLs it is told to bundle, and this uplink
+    bundles none. Sitrep.Propagation, which Sitrep.Host also drags in, was never
+    in the list and demonstrates the point, it lands in bin/ today and still
+    does not ship.
+
+    Sitrep.Host is the one remaining breach of the Uplink isolation rule and is
+    not meant to survive: it is here only for Sitrep.Host.ActionGroups'
+    IActionGroupsBackend and ActionGroupsElection, pending those moving to
+    Sitrep.Contract. See docs/uplink-isolation.md.
+
+    NOTE: no reference to AGExt.dll, by design (see the licence header above),
+    and NO KSP/Unity reference either (see above: this uplink never touches
+    stock KSP directly).
+  -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />
     <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
   </ItemGroup>
 
 </Project>
