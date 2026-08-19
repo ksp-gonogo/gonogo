@@ -598,6 +598,10 @@
       "topic": "id",
       "vantage": "id"
     },
+    "PropagationHorizon": {
+      "kind": "enum",
+      "untilUt": "ut"
+    },
     "RecoveryCrewEntry": {
       "isTourist": "flag",
       "levelsGained": "count",
@@ -1757,6 +1761,7 @@
     },
     "VesselOrbit": {
       "encounter": "OrbitEncounter",
+      "horizon": "PropagationHorizon",
       "meta": "PayloadMeta",
       "patches": "OrbitPatch"
     },
@@ -1911,6 +1916,7 @@
     },
     "vessel.orbit": {
       "encounter": "OrbitEncounter",
+      "horizon": "PropagationHorizon",
       "meta": "PayloadMeta",
       "patches": "OrbitPatch"
     },

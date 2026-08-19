@@ -1287,7 +1287,18 @@ export interface VesselOrbit
 	mu: Value<"m³/s²">;
 	encounter?: OrbitEncounter;
 	patches: OrbitPatch[];
+	horizon: PropagationHorizon;
 	meta: PayloadMeta;
+}
+export interface PropagationHorizon
+{
+	kind: PropagationHorizonKind;
+	untilUt?: Value<"ut">;
+}
+export enum PropagationHorizonKind {
+	Unspecified = 0,
+	Unbounded = 1,
+	Until = 2
 }
 export interface OrbitEncounter
 {

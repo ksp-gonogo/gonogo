@@ -80,7 +80,83 @@ public class VesselOrbit
     /// </summary>
     public List<OrbitPatch> Patches { get; set; } = new();
 
+    /// <summary>
+    /// How far ahead these elements may be propagated before they stop being
+    /// trustworthy. NOT nullable: a producer states its horizon or its samples
+    /// read as unpropagatable, because "nobody said" must never be the
+    /// permissive answer.
+    ///
+    /// <para>A client cannot compute this. Deriving it needs the perturbation
+    /// environment (which bodies are near, how massive, how far), so it has to
+    /// arrive on the sample from the only thing that knows. It rides HERE rather
+    /// than on a sibling Topic because a horizon and the elements it bounds
+    /// share one lifetime and one <c>validAt</c>: split across frames a client
+    /// could hold one sample's elements beside another's horizon and draw a
+    /// conic authorised by the wrong sample, silently.
+    /// <see cref="OrbitPatch.StartUt"/>/<see cref="OrbitPatch.EndUt"/> already
+    /// set the precedent for a validity window living with its elements.</para>
+    /// </summary>
+    public PropagationHorizon Horizon { get; set; } = new();
+
     public PayloadMeta Meta { get; set; } = new();
+}
+
+/// <summary>
+/// The window over which an element set is authoritative, as stated by whichever
+/// propagation provider produced it.
+///
+/// <para>Measured from the sample's OBSERVATION instant, not from
+/// <see cref="VesselOrbit.Epoch"/>. `Epoch` is the mean-anomaly reference epoch
+/// and can sit far from when the sample was taken, so subtracting it would
+/// answer a different question with the same units and no type could catch
+/// it.</para>
+/// </summary>
+[SitrepContract]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public class PropagationHorizon
+{
+    [SitrepUnit(Units.Enumeration)]
+    public PropagationHorizonKind Kind { get; set; }
+
+    /// <summary>
+    /// The last UT these elements answer for. Set if and only if
+    /// <see cref="Kind"/> is <see cref="PropagationHorizonKind.Until"/>; null
+    /// otherwise, never a sentinel standing in for "forever".
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? UntilUt { get; set; }
+}
+
+/// <summary>
+/// Deliberately THREE arms, and the ordering is the point.
+///
+/// <para><see cref="Unspecified"/> is 0, so a producer that forgets the horizon
+/// gets the REFUSING answer rather than the permissive one. Had
+/// <see cref="Unbounded"/> been the default, a provider that failed to populate
+/// it would have read as "trust this conic forever", which is the most dangerous
+/// available reading and would have failed silently.</para>
+///
+/// <para><see cref="Unbounded"/> is a CLAIM, made by a provider that genuinely
+/// has no limit (an analytic two-body solver), not a default nobody made. It is
+/// its own arm rather than an infinite <see cref="PropagationHorizon.UntilUt"/>
+/// so that "forever" never has to be recognised as an extreme number.</para>
+/// </summary>
+#if NETSTANDARD2_0
+[TsEnum]
+#endif
+[SitrepContract]
+public enum PropagationHorizonKind
+{
+    /// <summary>No provider stated one. Treat as unpropagatable.</summary>
+    Unspecified = 0,
+
+    /// <summary>Authoritative for all future UT: an analytic solver with no horizon.</summary>
+    Unbounded = 1,
+
+    /// <summary>Authoritative until <see cref="PropagationHorizon.UntilUt"/>.</summary>
+    Until = 2,
 }
 
 /// <summary>One upcoming SOI patch transition: see <see cref="VesselOrbit.Encounter"/>.</summary>

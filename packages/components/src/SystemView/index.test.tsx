@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -54,6 +55,7 @@ function encounterOrbit() {
     meanAnomalyAtEpoch: 0,
     epoch: 100,
     mu: KERBIN_MU,
+    horizon: UNBOUNDED_HORIZON,
     encounter: { transitionType: 2, transitionUt: 600, bodyIndex: 1 },
   };
 }
@@ -319,6 +321,7 @@ describe("SystemViewComponent", () => {
       meanAnomalyAtEpoch: 0,
       epoch: 100,
       mu: KERBIN_MU,
+      horizon: UNBOUNDED_HORIZON,
       encounter: { transitionType: 3, transitionUt: 600, bodyIndex: 1 },
     });
     // Frame label still lands (widget rendered, didn't throw). The escape is
@@ -382,6 +385,7 @@ describe("SystemViewComponent", () => {
       meanAnomalyAtEpoch: 0,
       epoch: 100,
       mu: KERBIN_MU,
+      horizon: UNBOUNDED_HORIZON,
     });
     await waitFor(() => {
       const dots = container.querySelectorAll(

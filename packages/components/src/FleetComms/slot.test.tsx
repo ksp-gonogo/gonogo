@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SystemViewComponent } from "../SystemView";
 import { axe } from "../test/axe";
+import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -105,6 +106,7 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 100,
         mu: KERBIN_MU,
+        horizon: UNBOUNDED_HORIZON,
       });
     });
     await waitFor(() =>
@@ -222,6 +224,7 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 100,
         mu: 6.5138398e10,
+        horizon: UNBOUNDED_HORIZON,
       });
     });
     await waitFor(() =>

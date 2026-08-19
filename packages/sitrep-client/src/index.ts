@@ -169,10 +169,18 @@ export {
 export type {
   Anomalies,
   OrbitElements,
+  PropagationHorizonLike,
+  PropagationRefusal,
   StateVector,
   Vector3,
 } from "./kepler";
-export { solve, solveAnomalies, solveEccentricAnomaly } from "./kepler";
+export {
+  canPropagate,
+  PropagationHorizonKindLike,
+  solve,
+  solveAnomalies,
+  solveEccentricAnomaly,
+} from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export type {
   LegacyManeuverNode,

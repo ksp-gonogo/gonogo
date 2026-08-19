@@ -94,6 +94,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/sitrep-client/src/control-expectation.ts": 2,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
   "packages/sitrep-client/src/fleet-position.ts": 1,
+  // `canPropagate` accepts a horizon UT either wrapped (as the wire delivers it)
+  // or already unwrapped, so one read normalises the two. Not arithmetic: the
+  // number is compared against a window and never computed with.
+  "mod/sitrep-sdk/src/spine/kepler.ts": 1,
   "mod/sitrep-sdk/src/spine/maneuver-legacy.ts": 6,
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
   "packages/sitrep-client/src/use-command.ts": 1,
