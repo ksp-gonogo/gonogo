@@ -1,5 +1,5 @@
-import type { Transport } from "@ksp-gonogo/sitrep-client";
-import { TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import type { Transport } from "../api/transport";
+import { TelemetryClient } from "../spine";
 
 /**
  * A `TelemetryClient` over a transport you supply, for a test that genuinely

@@ -1,5 +1,9 @@
-import { act, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import { renderWidget, setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
+import {
+  act,
+  setupStreamFixture,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { renderWidget } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";

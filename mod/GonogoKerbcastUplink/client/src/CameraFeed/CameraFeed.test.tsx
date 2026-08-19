@@ -32,7 +32,9 @@ import {
   act,
   fireEvent,
   render,
+  type StreamFixture,
   screen,
+  setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -43,8 +45,6 @@ import {
   getComponent,
   registerComponent,
   renderWidget,
-  type StreamFixture,
-  setupStreamFixture,
   WidgetHost,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";

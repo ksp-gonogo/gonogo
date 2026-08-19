@@ -1,8 +1,12 @@
-import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  render,
+  screen,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   ContributionsProvider,
   clearProcessorRuntime,
-  setupStreamFixture,
   useWidgetBadges,
 } from "@ksp-gonogo/sitrep-testing";
 import {

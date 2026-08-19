@@ -2,13 +2,10 @@ import {
   act,
   render as rtlRender,
   screen,
+  setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  clearActionHandlers,
-  renderWidget,
-  setupStreamFixture,
-} from "@ksp-gonogo/sitrep-testing";
+import { clearActionHandlers, renderWidget } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";

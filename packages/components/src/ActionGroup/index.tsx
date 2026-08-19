@@ -204,7 +204,7 @@ const TOGGLE_INVALID: unique symbol = Symbol("action-group-toggle-invalid");
 /**
  * The mapped absolute-set command for one group's toggle, or `null` when the
  * group has no toggle (Precision Control) or isn't recognized. Keyed the
- * same way `map-command.ts`'s `TELEMACHUS_COMMAND_HOMES`/`actionGroupHome`
+ * same way `map-command.ts`'s `LEGACY_COMMAND_HOMES`/`actionGroupHome`
  * are: an AGX custom (`group.index !== undefined`) always resolves to the
  * shared `setActionGroup` command regardless of name; Stage has its own
  * unconditional (non-invert) command; the remaining stock singletons each
@@ -445,7 +445,7 @@ function ActionGroupView({
   };
 
   // Surface the most common reasons the action wouldn't fire if the user
-  // pressed it now. Mirrors Telemachus's action-group response codes 1–4
+  // pressed it now. Mirrors the legacy action-group response codes 1–4
   // (paused / no power / antenna off / antenna missing), codes 0 and 5 are
   // covered upstream (0 = OK, 5 = handled by `requires: ["flight"]`).
   let unavailableReason: string | null = null;

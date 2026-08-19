@@ -1,12 +1,16 @@
 import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
-import { act, renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  createTestTelemetryClient,
+  renderHook,
+  StubTransport,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
-  createTestTelemetryClient,
   getMapPoiProviders,
   MockDataSource,
   registerDataSource,
-  StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactNode } from "react";

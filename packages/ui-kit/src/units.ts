@@ -352,7 +352,9 @@ function toScientific(value: number, significant: number): string {
  * out at 9.81 m/s², so "one gee" and "one Kerbin gee" are the same number and
  * the ambiguity is unobservable in-game.
  */
-export const STANDARD_GRAVITY = 9.80665;
+export { STANDARD_GRAVITY } from "@ksp-gonogo/sitrep-sdk";
+
+import { STANDARD_GRAVITY } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * Presentation conversions: what a value may be SHOWN as, given what it IS.

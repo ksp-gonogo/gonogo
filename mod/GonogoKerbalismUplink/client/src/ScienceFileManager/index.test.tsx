@@ -1,5 +1,10 @@
-import { act, render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
-import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
+import {
+  act,
+  render,
+  screen,
+  setupStreamFixture,
+  within,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";

@@ -1,17 +1,14 @@
 import { AugmentSlot, Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
+  createTestTelemetryClient,
   fireEvent,
   render,
+  StubTransport,
   screen,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  clearRegistry,
-  createTestTelemetryClient,
-  StubTransport,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-testing";
+import { clearRegistry, TelemetryProvider } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

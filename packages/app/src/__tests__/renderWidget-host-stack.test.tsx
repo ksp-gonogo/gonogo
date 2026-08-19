@@ -1,7 +1,7 @@
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
   registerComponent,
-  render,
   renderWidget,
   screen,
   useDashboardItemId,

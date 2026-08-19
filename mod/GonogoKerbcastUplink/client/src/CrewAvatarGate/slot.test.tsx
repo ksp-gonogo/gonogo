@@ -6,14 +6,16 @@
  */
 
 import { AugmentSlot, Quality, type SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  createTestTelemetryClient,
+  render,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
   clearUplinkHandles,
-  createTestTelemetryClient,
   SettingsProvider,
   SettingsService,
-  StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";

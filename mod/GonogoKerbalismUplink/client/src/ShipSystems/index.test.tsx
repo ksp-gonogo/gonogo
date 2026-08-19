@@ -1,5 +1,10 @@
-import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { resourceColor } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";

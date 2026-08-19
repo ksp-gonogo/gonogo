@@ -42,6 +42,10 @@ function collectContractSources(dir: string, out: string[] = []): string[] {
         entry === "obj" ||
         entry === "bin" ||
         entry === "node_modules" ||
+        // Build output, and 43% of everything under mod/ once the spine landed
+        // in the sdk. It cannot contain a `.cs` file, so walking it is pure cost:
+        // enough of it to push this test's 5s budget over on a parallel run.
+        entry === "dist" ||
         entry.includes("Tests") || // *.Tests / *.IntegrationTests
         entry === "Sitrep.Skeleton" // example server, not a shipped Uplink
       ) {

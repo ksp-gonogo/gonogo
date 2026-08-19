@@ -45,11 +45,22 @@ export function resetTestHost(): void {
 // drop-in for the import source. The named exports above take precedence, so
 // `render`/`renderHook` resolve to the themed versions.
 export * from "@testing-library/react";
-export { probeText, render, renderHook } from "./render";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,
 // `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`
 // was the only reason an Uplink's `sentCommands`/`isSubscribed` assertions needed a
 // package an outside author cannot install.
+export { createTestTelemetryClient } from "./create-test-telemetry-client";
+export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
+export { probeText, render, renderHook } from "./render";
+// The stream fixture: a real `TelemetryProvider` over a real
+// `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored emissions.
+// It sits here rather than a package above because the spine it drives is in this
+// package now, so there is no reimplementation involved in publishing it.
+export {
+  type StreamFixture,
+  type StreamFixtureOptions,
+  setupStreamFixture,
+} from "./stream-fixture";
 export {
   makeMeta,
   type SentCommand,

@@ -89,7 +89,7 @@ const PLUMBING = [
   "mod/sitrep-sdk/src/api/host.ts",
   "mod/sitrep-sdk/src/api/index.ts",
   // A doc-comment reference in the command mapper, not a call site.
-  "packages/sitrep-client/src/map-command.ts",
+  "mod/sitrep-sdk/src/spine/map-command.ts",
 ];
 
 const ALLOWLIST = new Set([...SANCTIONED_WIDGET_CALLERS, ...PLUMBING]);

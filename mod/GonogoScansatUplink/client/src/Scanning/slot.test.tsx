@@ -1,14 +1,18 @@
 import { type DataKey, registerAugment } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  createTestTelemetryClient,
+  render,
+  StubTransport,
+  screen,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
   clearRegistry,
-  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-  StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";

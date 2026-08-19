@@ -30,10 +30,32 @@
 // whole of each belongs here.
 // ---------------------------------------------------------------------------
 
+export * from "./client";
 export * from "./client-reading";
 export * from "./client-timeline";
+export * from "./clock";
+export * from "./context";
+export * from "./contributed-channels";
+export * from "./delay-authority";
+export * from "./dv-legacy-scalars";
+export * from "./dv-stage-resources";
 export * from "./heartbeat-tracker";
+export * from "./kepler";
+export * from "./lifecycle";
+export * from "./maneuver-legacy";
+export * from "./map-command";
+export * from "./map-topic";
+export * from "./orbit-patches";
+export * from "./processorEvaluator";
+export * from "./processors";
+export * from "./propagation";
 export * from "./reckoners";
+export * from "./replay-recorder";
+export * from "./replay-transport";
+export * from "./space-center-state";
 export * from "./stream-status";
+export * from "./system-state";
 export * from "./timeline-store";
+export * from "./uplink-health";
+export * from "./vessel-state";
 export * from "./view-clock";
