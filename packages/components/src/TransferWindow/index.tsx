@@ -13,7 +13,6 @@ import {
   Badge,
   Button,
   FieldLabel,
-  FieldRow,
   KSP_DAY_SECONDS,
   KSP_YEAR_DAYS,
   NULL_DISPLAY,
@@ -471,13 +470,15 @@ function TransferWindowComponent({
               selectedIndex={selIdx}
               onSelect={setSelectedWindow}
               destPicker={
-                <FieldRow>
-                  {/*
-                   * The section heading IS the control's label. The widget is
-                   * origin-based, so the destination scopes THIS list rather than
-                   * the panel, and a static "Windows to Mars" beside a Mars select
-                   * would name the destination twice on one line.
-                   */}
+                /*
+                 * NOT wrapped in a FieldRow: the label and the select have to be
+                 * direct children of the wrapping SectionHead, or the select's
+                 * narrow-width rule sizes against an inner row that is itself the
+                 * thing overflowing the panel. The heading IS the control's label,
+                 * since a static "Windows to Mars" beside a Mars select would name
+                 * the destination twice on one line.
+                 */
+                <>
                   <FieldLabel htmlFor="transfer-dest">
                     <ListTitle as="span">Windows to</ListTitle>
                   </FieldLabel>
@@ -492,7 +493,7 @@ function TransferWindowComponent({
                       </option>
                     ))}
                   </RouteSelect>
-                </FieldRow>
+                </>
               }
               createAlarm={
                 createAlarm
@@ -1093,6 +1094,14 @@ const TEXT_PAD = "var(--space-12)";
 // Container-query breakpoint (body inline-size) at which the chart flows from
 // under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
+
+/**
+ * Below this body width the destination select stops sharing a line with its
+ * heading. Measured against the render harness rather than picked: a 5-unit-wide
+ * placement gives the body about 152px and a 6-unit one about 192px, and neither
+ * fits "WINDOWS TO" plus a select without the select touching the panel edge.
+ */
+const NARROW_HEAD_AT = "256px";
 // Panel.Body already pads, scrolls and glows; all this adds is the query
 // container, so the content grid reflows on the body's own width rather than
 // the viewport's (a container cannot query itself, hence the wrapper).
@@ -1101,6 +1110,9 @@ const Body = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Reach is its own answer and the dial/windows block is another; without a gap
+     they ran together as one dense column. */
+  gap: var(--space-8);
   container-type: inline-size;
 `;
 
@@ -1134,7 +1146,18 @@ const LeftCol = styled.div`
 
 const RouteSelect = styled(Select)`
   width: auto;
-  min-width: 8rem;
+  /* Shrinkable: an 8rem floor is most of a 192px panel, which is what pushed the
+     fused heading off the edge at portrait-5x18. It still cannot go below its own
+     content, so the body name stays readable. */
+  min-width: 0;
+  max-width: 100%;
+
+  /* Below this the label and the select cannot share a line without the select
+     hugging the panel edge, so it takes its own full-width line instead. Reads as
+     deliberate rather than crammed, and the phrase still reads top-to-bottom. */
+  @container (max-width: ${NARROW_HEAD_AT}) {
+    flex: 1 1 100%;
+  }
 `;
 
 const NowRow = styled.div`
@@ -1211,9 +1234,11 @@ const ListTitle = styled.div`
 const SectionHead = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-4);
+  /* The heading and its select are one phrase, so they wrap together rather than
+     being pushed to opposite ends, and they wrap onto two lines before they overflow. */
   flex-wrap: wrap;
+  min-width: 0;
 `;
 
 /**
@@ -1269,7 +1294,6 @@ const ReachScroll = styled.div`
 `;
 
 const ReachTable = styled.table`
-  min-width: 30rem;
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
