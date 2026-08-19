@@ -10,6 +10,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  canPropagate,
   type OrbitElements,
   solveAnomalies,
   useFleetVesselSilence,
@@ -399,6 +400,19 @@ function SystemViewComponent({
     // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
     // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
     if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) {
+      return null;
+    }
+    // Ask the provider before extrapolating. The window is the VIEW instant on
+    // both ends, deliberately: the horizon is an absolute UT bound, so "can you
+    // answer for this instant" is the whole question, and building a window from
+    // `orbit.epoch` would be wrong in a way no type could catch (`epoch` is the
+    // mean-anomaly reference, not when the sample was taken).
+    //
+    // Permits everything while the elected provider is the analytic solver. It
+    // starts refusing when one that integrates is elected; see `canPropagate`.
+    if (
+      !canPropagate(orbit.horizon, universalTime, universalTime).propagatable
+    ) {
       return null;
     }
     const elements = buildElements(orbit);

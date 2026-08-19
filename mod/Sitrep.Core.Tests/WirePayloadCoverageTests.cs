@@ -46,6 +46,11 @@ namespace Sitrep.Core.Tests
             // vessel.*: VesselViewProvider.ToWire(...) flattens each of these to
             // a Dictionary<string, object?> before Publish; JsonWriter only ever
             // sees the dictionary, never the POCO.
+            // PropagationHorizon rides VesselOrbit.Horizon: ToWire(VesselOrbit)
+            // maps it through its own ToWire(PropagationHorizon) overload, the
+            // same as OrbitEncounter beside it, so JsonWriter only ever sees the
+            // flattened dictionary.
+            "PropagationHorizon",
             "VesselIdentity", "VesselOrbit", "VesselOrbitTruth", "OrbitEncounter",
             "VesselFlight", "VesselAttitude", "VesselResources", "ResourceAmount",
             // ActionGroupState rides VesselControl.ActionGroups: ToWire(VesselControl)

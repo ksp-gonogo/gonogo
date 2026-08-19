@@ -97,6 +97,7 @@ public static class RtConfig
                 typeof(ClosestApproach),
                 // nested payload records
                 typeof(OrbitEncounter),
+                typeof(PropagationHorizon),
                 typeof(OrbitPatch),
                 typeof(ManeuverNode),
                 typeof(DockAlignment),
@@ -393,6 +394,7 @@ public static class RtConfig
                 typeof(Situation),
                 typeof(TargetKind),
                 typeof(TransitionType),
+                typeof(PropagationHorizonKind),
                 typeof(VesselType),
                 typeof(WarpMode),
                 typeof(GameMode),

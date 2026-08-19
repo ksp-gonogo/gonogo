@@ -4,6 +4,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -105,6 +106,7 @@ function kerbinOrbitWithEncounter() {
     meanAnomalyAtEpoch: 0,
     epoch: 100,
     mu: KERBIN_MU,
+    horizon: UNBOUNDED_HORIZON,
     encounter: { transitionType: 2, transitionUt: 600, bodyIndex: 1 },
   };
 }
@@ -388,6 +390,7 @@ describe("SystemView: what undefined means today", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 100,
         mu: KERBIN_MU,
+        horizon: UNBOUNDED_HORIZON,
       });
     });
 

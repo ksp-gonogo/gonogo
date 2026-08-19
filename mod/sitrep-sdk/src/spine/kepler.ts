@@ -31,6 +31,108 @@ const MAX_NEWTON_ITERATIONS = 50;
 const NEWTON_TOLERANCE = 1e-12;
 
 /**
+ * The client half of the propagation seam: whether an element set answers for a
+ * window, asked BEFORE propagating into it.
+ *
+ * The TS twin of `IPropagationProvider.CanPropagate(target, frame, fromUt,
+ * toUt)`, deliberately the same shape rather than a second design. Mod-side
+ * that method takes a window precisely so a provider with a horizon can decline,
+ * and until now no caller passed a window it cared about; this is that caller.
+ *
+ * ## Why a client cannot answer this itself
+ *
+ * The horizon depends on the perturbation environment (which bodies are near,
+ * how massive, how far), so it arrives on the sample from the only thing that
+ * knows. It is a LOCAL property: the same save at the same instant has horizons
+ * differing by orders of magnitude between craft, because the perturbation ratio
+ * scales as `2 (mu_perturber / mu_primary) (r / d)^3`. A measured 20 km Minmus
+ * orbit drifts ~11 m per hour under two-body extrapolation; an ordinary
+ * high-Kerbin orbit perturbed by the Mun drifts ~19 km per hour. One global
+ * answer cannot be right, and reconstructing it client-side would mean
+ * reimplementing the thing this seam exists to avoid.
+ *
+ * ## It does not refuse anything yet, and that is not a dead branch
+ *
+ * The only elected provider is the analytic two-body solver, which has no
+ * horizon and says so (`Unbounded`). This gate therefore permits everything
+ * today. It becomes load-bearing when a provider that INTEGRATES, i.e. an
+ * n-body backend, is elected and starts returning `Until`. Do not delete it as
+ * unreachable: it is the system working with a provider that has no limit.
+ */
+export interface PropagationHorizonLike {
+  kind: PropagationHorizonKindLike;
+  /** Only meaningful for `Until`; a UT, not a duration. */
+  untilUt?: { magnitude: number } | number;
+}
+
+/**
+ * Mirrors the contract enum by VALUE rather than importing it, because this
+ * module is the propagator's twin and deliberately depends on nothing generated.
+ */
+export const PropagationHorizonKindLike = {
+  Unspecified: 0,
+  Unbounded: 1,
+  Until: 2,
+} as const;
+export type PropagationHorizonKindLike =
+  (typeof PropagationHorizonKindLike)[keyof typeof PropagationHorizonKindLike];
+
+/** Why a propagation was refused, for a caller that wants to say so on screen. */
+export type PropagationRefusal =
+  | { propagatable: true }
+  | { propagatable: false; reason: "no-horizon-stated" }
+  | { propagatable: false; reason: "past-horizon"; horizonUt: number };
+
+function horizonUtOf(horizon: PropagationHorizonLike): number | undefined {
+  const raw = horizon.untilUt;
+  if (raw === undefined || raw === null) return undefined;
+  const n = typeof raw === "number" ? raw : raw.magnitude;
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Whether `horizon` authorises propagating across `[fromUt, toUt]`.
+ *
+ * An `Unspecified` horizon REFUSES. Nobody stated one, and "nobody said" must
+ * not read as "trust this forever": that is the permissive default this whole
+ * seam exists to remove, and it would fail silently the first time a producer
+ * forgot the field.
+ *
+ * An `Until` horizon with no usable UT also refuses, for the same reason: the
+ * arm claims a bound and then fails to name it.
+ */
+export function canPropagate(
+  horizon: PropagationHorizonLike | undefined,
+  fromUt: number,
+  toUt: number,
+): PropagationRefusal {
+  // Tolerates `undefined` and refuses, rather than trusting the type. The field
+  // is required on the wire, so absent means a producer predating it or one that
+  // dropped it, and neither is a licence to extrapolate. Throwing here would
+  // take a whole widget down inside render for a state the gate can answer.
+  if (horizon === undefined || horizon === null) {
+    return { propagatable: false, reason: "no-horizon-stated" };
+  }
+  if (horizon.kind === PropagationHorizonKindLike.Unbounded) {
+    return { propagatable: true };
+  }
+  if (horizon.kind !== PropagationHorizonKindLike.Until) {
+    return { propagatable: false, reason: "no-horizon-stated" };
+  }
+  const horizonUt = horizonUtOf(horizon);
+  if (horizonUt === undefined) {
+    return { propagatable: false, reason: "no-horizon-stated" };
+  }
+  // Both ends are checked: a window that starts beyond the horizon is no more
+  // answerable than one that ends beyond it, and a caller sweeping backwards
+  // should not slip through on the `to` end alone.
+  if (Math.max(fromUt, toUt) > horizonUt) {
+    return { propagatable: false, reason: "past-horizon", horizonUt };
+  }
+  return { propagatable: true };
+}
+
+/**
  * Classical (Keplerian) orbital elements for a body relative to its parent,
  * plus the epoch/mean-anomaly pair needed to propagate the orbit forward
  * (or backward) in time.

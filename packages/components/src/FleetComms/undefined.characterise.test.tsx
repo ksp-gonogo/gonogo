@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SystemOverlayContext } from "../SystemView";
+import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -146,6 +147,7 @@ function emitGeometry() {
       meanAnomalyAtEpoch: 0,
       epoch: PINNED_UT,
       mu: KERBIN_MU,
+      horizon: UNBOUNDED_HORIZON,
     });
   });
 }
@@ -356,6 +358,7 @@ describe("FleetComms overlay: what undefined means today", () => {
         meanAnomalyAtEpoch: 0,
         epoch: PINNED_UT,
         mu: KERBIN_MU,
+        horizon: UNBOUNDED_HORIZON,
       });
       fixture.emit("comms.link", { connected: true });
     });
@@ -401,6 +404,7 @@ describe("FleetComms overlay: what undefined means today", () => {
         meanAnomalyAtEpoch: 0,
         epoch: PINNED_UT,
         mu: KERBIN_MU,
+        horizon: UNBOUNDED_HORIZON,
       });
       fixture.emit("comms.link", { connected: true });
     });

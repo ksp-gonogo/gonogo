@@ -1,5 +1,6 @@
 import { registerAugment, useTelemetry } from "@ksp-gonogo/core";
 import {
+  canPropagate,
   type OrbitElements,
   solveAnomalies,
   useLatestValue,
@@ -217,10 +218,11 @@ function FleetCommsOverlay({
     // eccentricity (an escape/flyby trajectory, routine mid-transfer). Mirrors
     // `SystemView/index.tsx`'s identical guard on the same solver.
     if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) return null;
-    const anomalies = solveAnomalies(
-      buildElements(orbit),
-      universalTime.magnitude,
-    );
+    // Ask the provider before extrapolating; see the same gate in
+    // `SystemView/index.tsx` for why the window is the view instant on both ends.
+    const viewUt = universalTime.magnitude;
+    if (!canPropagate(orbit.horizon, viewUt, viewUt).propagatable) return null;
+    const anomalies = solveAnomalies(buildElements(orbit), viewUt);
     const deg = wrapDegrees360(radToDeg(anomalies.trueAnomaly));
     return Number.isFinite(deg) ? deg : null;
   }, [orbit, universalTime]);

@@ -250,9 +250,36 @@ namespace Sitrep.Host
                 Mu = mu.Value,
                 Encounter = encounter,
                 Patches = patches,
+                Horizon = ElementHorizon(),
                 Meta = BuildMeta(vesselId),
             };
         }
+
+        /// <summary>
+        /// The horizon these elements carry.
+        ///
+        /// <para><see cref="PropagationHorizonKind.Unbounded"/> because the only
+        /// <c>IPropagationProvider</c> that exists is <c>KeplerProvider</c>, an
+        /// analytic two-body solver whose <c>CanPropagate</c> ignores its window
+        /// parameters entirely: it has no horizon, and saying so is a claim
+        /// rather than a default.</para>
+        ///
+        /// <para>This is the ONE place to change when a provider that INTEGRATES
+        /// is elected, i.e. an n-body backend. Such a provider must
+        /// return <see cref="PropagationHorizonKind.Until"/> with a per-sample
+        /// UT, because the horizon is a local property: the same save at the same
+        /// instant has horizons differing by orders of magnitude between craft,
+        /// scaling as <c>2 (mu_perturber / mu_primary) (r / d)^3</c>. A measured
+        /// 20 km Minmus orbit drifts ~11 m per hour under two-body extrapolation
+        /// while an ordinary high-Kerbin orbit perturbed by the Mun drifts ~19 km
+        /// per hour, which is why one global answer cannot be right.</para>
+        ///
+        /// <para>Until then the client-side gate never refuses. That is the
+        /// system working with a provider that has no limit, not a dead branch:
+        /// do not delete it as unreachable.</para>
+        /// </summary>
+        private static PropagationHorizon ElementHorizon() =>
+            new PropagationHorizon { Kind = PropagationHorizonKind.Unbounded };
 
         /// <summary>
         /// Maps a raw patch-chain list (<c>Gonogo.KSP.KspHost.
@@ -1303,6 +1330,11 @@ namespace Sitrep.Host
             ["mu"] = orbit.Mu,
             ["encounter"] = orbit.Encounter != null ? ToWire(orbit.Encounter) : null,
             ["patches"] = orbit.Patches.Select(p => (object?)ToWire(p)).ToList(),
+            // Never conditional, unlike `encounter`: the horizon is not nullable
+            // and an omitted one would decode as "nobody said", which the client
+            // gate treats as unpropagatable. Correct as a fail-safe, wrong as a
+            // routine state.
+            ["horizon"] = ToWire(orbit.Horizon),
             ["meta"] = ToWire(orbit.Meta),
         };
 
@@ -1311,6 +1343,12 @@ namespace Sitrep.Host
             ["transitionType"] = (int)encounter.TransitionType,
             ["transitionUt"] = encounter.TransitionUt,
             ["bodyIndex"] = encounter.BodyIndex,
+        };
+
+        private static Dictionary<string, object?> ToWire(PropagationHorizon horizon) => new Dictionary<string, object?>
+        {
+            ["kind"] = (int)horizon.Kind,
+            ["untilUt"] = horizon.UntilUt,
         };
 
         private static Dictionary<string, object?> ToWire(OrbitPatch patch) => new Dictionary<string, object?>

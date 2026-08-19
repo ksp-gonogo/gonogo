@@ -632,6 +632,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     topic: "id",
     vantage: "id",
   },
+  "PropagationHorizon": {
+    kind: "enum",
+    untilUt: "ut",
+  },
   "RecoveryCrewEntry": {
     isTourist: "flag",
     levelsGained: "count",
@@ -1814,6 +1818,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "VesselOrbit": {
     encounter: "OrbitEncounter",
+    horizon: "PropagationHorizon",
     meta: "PayloadMeta",
     patches: "OrbitPatch",
   },
@@ -1970,6 +1975,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "vessel.orbit": {
     encounter: "OrbitEncounter",
+    horizon: "PropagationHorizon",
     meta: "PayloadMeta",
     patches: "OrbitPatch",
   },
