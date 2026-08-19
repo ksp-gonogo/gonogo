@@ -882,6 +882,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   agx: {
     domainDebt: [],
     permanent: [
+      // The mod-side Uplink isolation ratchet. It keys its shrink-only debt
+      // lists by Uplink project name, so the two Uplinks that still reach a
+      // private assembly have to be named in it: a debt list that cannot say
+      // whose debt it is does not work. Everything else in that file is
+      // deliberately name-free, the walk is checked against the project list in
+      // Gonogo.sln rather than a hardcoded one, precisely to keep this entry and
+      // its kerbalism twin the only two. Both go when the debt does.
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       // -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
       // NOTE: mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs used to sit
       // here, justified as "constant/method names ... and prose". Naming the API
@@ -1168,6 +1176,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // The mod-side Uplink isolation ratchet, same case as the magnitude budget
+      // below and as its agx twin: its shrink-only debt lists are keyed by Uplink
+      // project name, and this Uplink still reaches Gonogo.KSP. Goes when that does.
+      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
