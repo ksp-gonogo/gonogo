@@ -43,10 +43,4 @@ export const KNOWN_UNFED: Record<string, number> = {
   "AtmosphereProfile/kerbin-sea-level": 8,
   "AtmosphereProfile/kerbin-upper-atmosphere": 8,
   "AtmosphereProfile/mun-vacuum": 8,
-  "SpaceCenterStatus/early-game-t1": 8,
-  "SpaceCenterStatus/flight-scene-upgrades-disabled": 8,
-  "SpaceCenterStatus/fully-upgraded-t3": 8,
-  "SpaceCenterStatus/low-funds-expensive-upgrade": 8,
-  "SpaceCenterStatus/mid-career-mixed": 8,
-  "SpaceCenterStatus/sandbox-no-career": 8,
 };
