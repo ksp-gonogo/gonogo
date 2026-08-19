@@ -10,13 +10,13 @@ import {
   createTestTelemetryClient,
   render,
   StubTransport,
+  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
   clearUplinkHandles,
   SettingsProvider,
   SettingsService,
-  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";

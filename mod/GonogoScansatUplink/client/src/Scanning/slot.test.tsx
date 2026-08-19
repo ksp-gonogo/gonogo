@@ -5,6 +5,7 @@ import {
   render,
   StubTransport,
   screen,
+  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
@@ -13,7 +14,6 @@ import {
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

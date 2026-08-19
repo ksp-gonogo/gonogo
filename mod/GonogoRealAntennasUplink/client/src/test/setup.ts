@@ -1,7 +1,7 @@
+import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
 import {
   installDomStubs,
   installRealTestHost,
-  PerfBudget,
 } from "@ksp-gonogo/sitrep-testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 

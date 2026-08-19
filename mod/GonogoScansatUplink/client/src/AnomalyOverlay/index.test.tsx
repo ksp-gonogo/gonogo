@@ -4,6 +4,7 @@ import {
   createTestTelemetryClient,
   renderHook,
   StubTransport,
+  TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -11,7 +12,6 @@ import {
   getMapPoiProviders,
   MockDataSource,
   registerDataSource,
-  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";

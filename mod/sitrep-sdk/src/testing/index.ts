@@ -49,6 +49,29 @@ export * from "@testing-library/react";
 // `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`
 // was the only reason an Uplink's `sentCommands`/`isSubscribed` assertions needed a
 // package an outside author cannot install.
+// ── The spine, for a test that drives it directly ───────────────────────────
+//
+// `setupStreamFixture` covers the common case and should be reached for first.
+// These are for a test that builds its own pipeline: a second store, a clock it
+// scrubs by hand, a processor it activates without a provider.
+//
+// Forwarded from `../spine` rather than re-exported from the root barrel, because
+// the root barrel is the AUTHOR surface and none of this belongs on it: nothing
+// about writing an Uplink needs `TimelineStore`, and publishing it there would
+// freeze the store's internals as third-party API. A test is a different audience
+// from a widget, and this subpath is where that difference is expressed.
+export {
+  activateProcessor,
+  clearProcessorRuntime,
+  type DerivedGet,
+  getProcessorValue,
+  mapTopic,
+  setActiveTelemetryClientForTests,
+  setActiveTimelineStore,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+} from "../spine";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
 export { probeText, render, renderHook } from "./render";

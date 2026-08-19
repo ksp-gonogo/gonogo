@@ -9,6 +9,7 @@ import {
   createTestTelemetryClient,
   render,
   StubTransport,
+  TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -18,7 +19,6 @@ import {
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
