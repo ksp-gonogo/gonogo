@@ -24,7 +24,6 @@ import {
   EmptyState,
   Panel,
   ReadoutCaption,
-  ScrollArea,
   SectionTitle,
   Stack,
   usePanelDelay,
@@ -928,13 +927,10 @@ const PaddedSection = styled(Stack).attrs({
   padding-top: var(--space-4);
 `;
 
-const ScrollBody = styled(ScrollArea)`
-  flex: 1;
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-  }
+const ScrollBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 `;
 
 const RefBodyCaption = styled.div`

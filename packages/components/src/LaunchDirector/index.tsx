@@ -24,7 +24,6 @@ import {
 import {
   NULL_DISPLAY,
   Panel,
-  ScrollArea,
   Spinner,
   Unit,
   usePanelDelay,
@@ -1085,15 +1084,10 @@ function ArmedButton({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-  }
+const Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 `;
 
 const SectionLabel = styled.div`
