@@ -129,15 +129,15 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (variant === "tiny") {
     return (
-      <Panel panelTitle="TWR">
-        <TinyBody>
+      <Panel panelTitle="TWR" fitToSize>
+        <>
           {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
               two-character value, which clips the leading digit of "1.82"
               into ".82" at 72 px inner width. Scale the readout font and
               drop the explicit "g" unit at this size, the panel title is
               "TWR", the unit is implied. */}
           <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
-        </TinyBody>
+        </>
       </Panel>
     );
   }
@@ -215,15 +215,6 @@ const SparkSlot = styled.div`
   width: 100%;
   height: 24px;
   flex: 0 0 auto;
-`;
-
-const TinyBody = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  min-height: 0;
 `;
 
 const TinyValue = styled.span<{ $color: string }>`
