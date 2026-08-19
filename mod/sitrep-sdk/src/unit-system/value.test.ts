@@ -52,11 +52,34 @@ describe("plus and minus", () => {
     expect(value("W", 5).plus(value("J/s", 3)).unit).toBe("W");
   });
 
-  it("allows torque plus energy, and that is deliberate", () => {
-    // Same dimension, different kind. Meaningless but harmless, and allowing it
-    // is the price of gating on something a COMPUTED value actually has:
-    // force.times(distance) is this dimension with no way to tell which it is.
-    expect(value("N·m", 5).plus(value("J", 3)).magnitude).toBe(8);
+  it("refuses torque plus energy, from either side", () => {
+    // Same dimension, unrelated quantities, and both declare `coincidentWith`.
+    // The message names the two kinds rather than the dimension they agree on,
+    // because "kg·m²/s² is not kg·m²/s²" is what the old dimension check would
+    // have had to say and it explains nothing.
+    expect(() => value("N·m", 5).plus(value("J", 3))).toThrow(
+      /torque and energy share the dimension/,
+    );
+    expect(() => value("J", 3).plus(value("N·m", 5))).toThrow(
+      /energy and torque share the dimension/,
+    );
+  });
+
+  it("refuses to convert, order or equate a torque against an energy", () => {
+    expect(() => value("J", 1).in("N·m")).toThrow(/unrelated quantities/);
+    expect(() => value("J", 1).lessThan(value("N·m", 2))).toThrow(
+      /unrelated quantities/,
+    );
+    // `equals` is total, so it answers rather than throwing. One joule is not
+    // one newton metre, and it used to say it was.
+    expect(value("J", 1).equals(value("N·m", 1))).toBe(false);
+  });
+
+  it("still multiplies and divides across the coincidental pair", () => {
+    // A torque times an angle is work; an energy over a torque is the angle
+    // swept. The refusal is scoped to the additive surface for this reason.
+    expect(value("N·m", 5).times(2).magnitude).toBe(10);
+    expect(value("J", 10).dividedBy(value("N·m", 2)).magnitude).toBe(5);
   });
 
   it("converts to base before combining, and keeps the left unit", () => {

@@ -63,6 +63,35 @@ export interface UnitDefinition {
    * are general, the data is meant to stay small.
    */
   readonly affineVector?: string;
+
+  /**
+   * The kind this one merely COINCIDES with: same dimension, unrelated
+   * quantity. Adding, subtracting, ordering or converting between the two is
+   * never meaningful, and declaring it here is what refuses all four.
+   *
+   * The mirror of {@link affineVector}. That one opts a pair IN to interaction
+   * rules; this one opts a pair IN to refusal. Both are declarations rather
+   * than inferences, because the three dimensions carrying more than one kind
+   * want three different answers and nothing about a shared dimension says
+   * which:
+   *
+   *  - `{s:1}` time/universalTime: AFFINE, an instant and a duration interact
+   *    under rules, see {@link affineVector}
+   *  - `{kg:1,m:2,s:-2}` energy/torque: COINCIDENTAL, declared here
+   *  - `{}` dimensionless/ratio/percent: the SAME quantity at two scales, where
+   *    `.in("%")` is a correct conversion. Declaring these would break it
+   *
+   * Scoped to the ADDITIVE surface on purpose (`CombinableWith` governs `plus`,
+   * `minus`, `in`, the orderings and `min`/`max`). It does NOT reach `times` or
+   * `dividedBy`, because a torque times an angle IS work and an energy divided
+   * by a torque IS the angle swept: those are real physics and refusing them
+   * would be the bug.
+   *
+   * Declared on BOTH sides of a pair. Symmetry could be inferred, but two
+   * entries read the same forwards and backwards and neither side can be
+   * changed without the other being visible.
+   */
+  readonly coincidentWith?: string;
 }
 
 /**
@@ -157,14 +186,26 @@ export const UNIT_DEFINITIONS = {
   N: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1, kind: "force" },
   kN: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1_000, kind: "force" },
   MN: { dim: { kg: 1, m: 1, s: -2 }, ratio: 1e6, kind: "force" },
-  J: { dim: { kg: 1, m: 2, s: -2 }, ratio: 1, kind: "energy" },
-  // Same dimension as J, different meaning. Adding a torque to an energy is
-  // meaningless but harmless, and it is ALLOWED: gating on kind cannot name the
-  // kind of `force.times(distance)`, which is this exact map. `format="N·m"` is
-  // how a torque keeps reading as a torque.
+  J: {
+    dim: { kg: 1, m: 2, s: -2 },
+    ratio: 1,
+    kind: "energy",
+    coincidentWith: "torque",
+  },
+  // Same dimension as J, different quantity, so the two are declared
+  // COINCIDENTAL and refuse each other additively. `force.times(distance)`
+  // still lands here: `times` is deliberately outside the refusal, because a
+  // torque times an angle is work. `format="N·m"` is how a torque keeps
+  // reading as a torque.
   // `alias` because J was registered first and is what a computed
   // {kg:1,m:2,s:-2} renders as; see the flag's own doc on UnitDefinition.
-  N·m: { dim: { kg: 1, m: 2, s: -2 }, ratio: 1, kind: "torque", alias: true },
+  N·m: {
+    dim: { kg: 1, m: 2, s: -2 },
+    ratio: 1,
+    kind: "torque",
+    alias: true,
+    coincidentWith: "energy",
+  },
   W: { dim: { kg: 1, m: 2, s: -3 }, ratio: 1, kind: "power" },
   // A declared alias for the same dimension. It parses, and it never renders:
   // the ratio-1 entry registered first (W) is what a computed power shows as.
