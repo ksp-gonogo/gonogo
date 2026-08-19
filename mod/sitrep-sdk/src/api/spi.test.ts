@@ -322,15 +322,11 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       barrel.clearMapPoiProviders();
     });
 
-    it("useFogMaskCache fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      expect(() => barrel.useFogMaskCache()).toThrow(named);
-
-      const fakeCache = { acquire: vi.fn() } as never;
-      const useFogMaskCache = vi.fn().mockReturnValue(fakeCache);
-      installTestHost({ useFogMaskCache });
-      expect(barrel.useFogMaskCache()).toBe(fakeCache);
-    });
+    // `useFogMaskCache` used to be checked here, as a shim that failed loud with
+    // no host. It is the real hook now (the context moved into this package), so
+    // it needs a render to exercise and lives in `fog/FogMaskContext.test.tsx`,
+    // which sets its own jsdom environment. Converting this file would have
+    // changed the environment for forty node-environment assertions to gain one.
   });
 
   // Also no longer a shim: the handle registry moved into this package with the

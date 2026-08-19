@@ -23,7 +23,6 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
-  FogMaskCacheHandle,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -180,8 +179,6 @@ export interface GonogoHost {
   onContributionsChange(cb: () => void): () => void;
   /** Empty the contribution registry. For tests; a running app never calls it. */
   clearContributions(): void;
-  /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
-  useFogMaskCache(): FogMaskCacheHandle | null;
 
   /**
    * Declare an Uplink client's identity (Uplink Client Contract design

@@ -74,6 +74,7 @@
   "devDependencies": {
     "@ksp-gonogo/logger": "workspace:*",
     "esbuild": "^0.28.0",
+    "fake-indexeddb": "^6.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.28",
     "react": "^18.0.0",

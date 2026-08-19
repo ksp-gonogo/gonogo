@@ -371,19 +371,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // `registerScansatAndRender` function name and doc comments still name
       // "scansat" as one of the loader-covered first-party 3, prose only.
       "packages/app/src/main.tsx",
-      // T11 (2026-07-19) re-verified this one against current code, not just
-      // the original audit prose: FogMaskStore.ts's fog-store rewrite
-      // (landed since the original audit) means it no longer imports
-      // SCANType/SCAN_TYPE at all: scanType has been an opaque string
-      // `layerId` since the v2→v3 migration noted inline. What's left is
-      // doc-comment-only mentions of SCANsat as the historical motivator
-      // for the migration wipe ("SCANsat regenerates the underlying
-      // coverage cheaply", "let SCANsat repopulate..."). Zero code
-      // coupling today, so this sits in `permanent`, not `domainDebt`,
-      // despite the ratchet-hardening design doc's Part 2.3 example citing
-      // "FogMaskStore.ts's SCANType import" as the textbook domain-debt
-      // case; that characterisation predates the fog-store rewrite.
-      "packages/data/src/fog/FogMaskStore.ts",
+      // `FogMaskStore.ts` was here, and is gone entirely rather than moved: the
+      // store went into `@ksp-gonogo/sitrep-sdk` on 2026-08-19, and the sdk is
+      // the leaf every Uplink depends on, so it cannot name one at all, not even
+      // in prose. Its three remaining doc mentions (the historical motivator for
+      // the migration wipe) now say "a reveal source" instead, which is what the
+      // code has actually meant since scanType became an opaque `layerId` at
+      // v2→v3. That also settles the ratchet-hardening design doc's Part 2.3
+      // example, which cited "FogMaskStore.ts's SCANType import" as the textbook
+      // domain-debt case: the import had already gone, and now the file has too.
       // G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
       // justification comment while inventorying every TrueNow declaration
       // in mod/: doc-mention only, same class as CareerUplink.cs above.

@@ -476,11 +476,6 @@ export function clearContributions(): void {
   getHost().clearContributions();
 }
 
-/** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
-export function useFogMaskCache() {
-  return getHost().useFogMaskCache();
-}
-
 // --- Logger shim (stateful → injected host) ---------------------------------
 
 /**
@@ -563,41 +558,34 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
 
 // --- Trivial utils (stateless, self-contained) -------------------------------
 
+// The fog-of-war mask store, its in-memory cache and the React context that
+// carries them. Owned here for the same reason the settings context is: a second
+// copy of a context is invisible to the other side's provider, and `useFogMaskCache`
+// was a shim precisely so an Uplink's hook would read the app's. With one context in
+// one published package there is no second copy, so that shim retires too.
+export {
+  DEFAULT_MASK_HEIGHT,
+  DEFAULT_MASK_WIDTH,
+  FogMaskCache,
+} from "./fog/FogMaskCache";
+export {
+  DEFAULT_PROFILE_ID,
+  FogMaskCacheProvider,
+  FogMaskStoreProvider,
+  useBodyFogMask,
+  useFogMaskCache,
+  useFogMaskStore,
+} from "./fog/FogMaskContext";
+export {
+  type FogMaskChangeListener,
+  FogMaskStore,
+  MASK_SCHEMA_VERSION,
+  type StoredMask,
+} from "./fog/FogMaskStore";
 /**
  * A small typed wrapper around `localStorage`. Stateless (no module-global
  * registry): a byte-for-byte port of `@ksp-gonogo/data`'s implementation,
  * not a re-export. See `./localStorageStore.ts`'s module header for why.
  */
 export { LocalStorageStore } from "./localStorageStore";
-
-/**
- * Like `crypto.randomUUID()` but works on insecure-context pages, most
- * notably the LAN-IP dev URL station devices use to reach the dev box, where
- * the Web Crypto spec's secure-context gate makes `randomUUID` hard-throw.
- * Falls back to `crypto.getRandomValues` (available regardless of context)
- * and assembles a v4 UUID from the 16 random bytes per RFC 4122.
- *
- * A byte-for-byte copy of `@ksp-gonogo/core`'s implementation
- * (`safeRandomUuid.ts`), not a re-export: it is a pure function with no
- * state and no dependency beyond the `crypto` global, so duplicating it here
- * carries none of the "second copy of a registry" risk that rules out
- * bundling core's stateful members (see the module header) and the sdk
- * leaf cannot name core as a workspace dependency regardless (would form a
- * turbo `^build` cycle, same constraint as the mirrored types in `./types.ts`).
- */
-export function safeRandomUuid(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
-  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
-    "",
-  );
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
+export { safeRandomUuid } from "./safe-random-uuid";
