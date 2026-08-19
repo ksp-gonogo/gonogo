@@ -89,7 +89,7 @@ const PLUMBING = [
   // one, so TypeScript requires this member whether or not a widget calls it.
   // Naming the hook here is not a new caller, it is the same plumbing as the
   // app's builder one line up.
-  "packages/sitrep-testing/src/host.ts",
+  "mod/sitrep-sdk/src/testing/install-real-test-host.ts",
   // The sitrep-sdk facade: declares the host member + the passthrough shim.
   "mod/sitrep-sdk/src/api/host.ts",
   "mod/sitrep-sdk/src/api/index.ts",

@@ -416,7 +416,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // scansat Uplink.
       "packages/core/src/sdk-facade.conformance.test-d.ts",
       "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
-      "packages/sitrep-client/src/use-late-telemetry-subscribe.ts",
+      "mod/sitrep-sdk/src/spine/use-late-telemetry-subscribe.ts",
       // GonogoMechJebUplink (2026-08-08): its version-guard + Register doc
       // comments cite "mirrors GonogoScansatUplink.VersionGuard" as the
       // pattern this Uplink's own MechJebVersionGuard/Register-inert-path
@@ -547,13 +547,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // test fixture uses "kos/7"/"kos.run" as sample topic/command
       // strings. Same class as command-delay.ts above: mod-agnostic,
       // imports nothing kOS-specific.
-      "packages/sitrep-client/src/use-route-commands.ts",
+      "mod/sitrep-sdk/src/spine/use-route-commands.ts",
       "packages/sitrep-client/src/use-route-commands.test.tsx",
       // connectivity-history.ts's doc-comment cites the kOS terminal's own
       // noPath gate convention ("undefined/unknown = connected") as the
       // precedent its own unknown-history default follows: doc-mention
       // only, no kOS import or coupling.
-      "packages/sitrep-client/src/connectivity-history.ts",
+      "mod/sitrep-sdk/src/spine/connectivity-history.ts",
       // -- comment/doc + pending-topic mentions (no kOS coupling) --
       // CameraFeed's doc-comment references `KosTerminal`'s command-response
       // pattern; Comms.cs's CommsLink doc mentions the kOS terminal reading
@@ -687,7 +687,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // describe the general shape they always meant ("another feeder", "an
       // authoritative vesselUid from the vessel"), so both ratcheted off.
       "packages/data/src/hooks/useDataSchema.ts",
-      "packages/data/src/replaySession/ReplaySessionProvider.tsx",
+      "mod/sitrep-sdk/src/spine/replay-session.tsx",
       // types.ts was here for `FlightRecord.vesselUid`'s "arrives from kOS" aside.
       // The flight types moved to the sdk leaf with `BufferedDataSource` and the
       // aside now names the vessel rather than the Uplink that reads it, so this

@@ -5,19 +5,21 @@
  * hand-picked props (that's index.test.tsx's job).
  */
 
-import { AugmentSlot, Quality, type SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import {
+  AugmentSlot,
+  clearRegistry,
+  Quality,
+  SettingsProvider,
+  SettingsService,
+  type SlotProps,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  clearUplinkHandles,
   createTestTelemetryClient,
   render,
   StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  clearRegistry,
-  clearUplinkHandles,
-  SettingsProvider,
-  SettingsService,
-} from "@ksp-gonogo/sitrep-testing";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 // Importing the real module runs its module-load `registerAugment(...)` once,

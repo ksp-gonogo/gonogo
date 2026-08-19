@@ -236,6 +236,9 @@ export {
   useSettingsService,
 } from "./settings/SettingsContext";
 export { SettingsService } from "./settings/SettingsService";
+
+import { getSetting as readSetting } from "./settings/store";
+
 export {
   getSetting,
   resetSettingsForTests,
@@ -442,21 +445,34 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 
 // --- Data introspection shims (stateful → injected host) ---------------------
 
-/** The enriched schema (key + label/unit/group) for a data source's keys. */
-export function useDataSchema(sourceId?: string): unknown[] {
-  return getHost().useDataSchema(sourceId);
-}
+// `useDataSchema` retired, 2026-08-19. It was a host member and a shim that no
+// Uplink ever called: its readers are the app's own Data Sources panel and key
+// picker. Keeping it would have been the one member that could not follow the
+// others here, because the schema it returns for the default `"data"` source is
+// built from a legacy vendor key catalogue, and moving that would have published a
+// dying table as devkit API where its removal becomes an outside author's breaking
+// change. `@ksp-gonogo/data` still exports it for the app.
 
 /** Whether a recorded-flight replay session is currently active. */
 export function useReplaySessionActive(): boolean {
   return getHost().useReplaySessionActive();
 }
 
-// --- Game-host SPI shims (stateful → injected host) --------------------------
-
-/** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
+/**
+ * The authoritative host every Uplink dials: `saved ?? build-default`, where the
+ * build default is `VITE_SITREP_HOST` or `localhost`. Ports are per-service and NOT
+ * part of this, callers append their own.
+ *
+ * Implemented here rather than forwarded to the host. It was a shim while the
+ * implementation lived in `@ksp-gonogo/core`, and the only thing it needed was
+ * `getSetting`, which this package has owned since the settings store moved. A host
+ * member for a two-line read of a setting this package already holds is indirection
+ * with nothing on the other end, so the member retires with the shim.
+ */
 export function getGameHost(): string {
-  return getHost().getGameHost();
+  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
+  const buildDefault = env?.VITE_SITREP_HOST || "localhost";
+  return readSetting(GAME_HOST_KEY) ?? buildDefault;
 }
 // The read half of the contribution registry. The WRITE half stays on
 // `defineUplinkClient`'s handle rather than appearing here: the handle stamps

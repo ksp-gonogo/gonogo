@@ -1,23 +1,21 @@
-import type { ComponentDefinition } from "@ksp-gonogo/core";
+import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
+import { getComponent } from "@ksp-gonogo/sitrep-sdk";
+import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import {
-  ContributionsProvider,
   DashboardItemContext,
-  getComponent,
-  getComponents,
-  useWidgetBadges,
   useWidgetStreamStatus,
-  WidgetMetaContext,
-} from "@ksp-gonogo/core";
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import type { RenderResult } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  DelayRailProvider,
-  PanelBadgesProvider,
-  PanelStatusProvider,
-  PanelStatusStoreProvider,
-} from "@ksp-gonogo/ui-kit";
 import type { JSXElementConstructor } from "react";
 import { type ReactNode, useMemo } from "react";
+import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
+import { ContributionsProvider } from "./contributionsRuntime";
+import { PanelStatusProvider } from "./Panel";
+import { PanelBadgesProvider } from "./PanelBadges";
+import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
+import { useWidgetBadges } from "./useWidgetBadges";
+import { WidgetMetaContext } from "./WidgetMetaContext";
 
 /**
  * Render a widget THE WAY THE DASHBOARD DOES, by its registered id.

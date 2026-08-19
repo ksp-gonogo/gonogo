@@ -1,3 +1,4 @@
+import { clearRegistry } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
@@ -5,7 +6,6 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearRegistry } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { KosProcessorInfo } from "../__generated__/contract";
 import { KosTerminalComponent } from "./index";

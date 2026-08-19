@@ -7,8 +7,11 @@
 
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearUplinkHandles } from "@ksp-gonogo/sitrep-testing";
+import {
+  clearUplinkHandles,
+  renderHook,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
 import { useKerbcastCameras } from "./useKerbcastCameras";

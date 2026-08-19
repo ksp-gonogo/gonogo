@@ -75,11 +75,28 @@ function uplinkClientSources(): string[] {
   return out;
 }
 
+/**
+ * The ONE legitimate holder of both ends: a file that installs the test host.
+ *
+ * `installRealTestHost` builds a whole `GonogoHost`, and the four augment members
+ * are the ones `@ksp-gonogo/sitrep-sdk` cannot implement, because the registry and
+ * `<AugmentSlot>` are ui-kit's and ui-kit imports the sdk. So the caller supplies
+ * them, and a setup file naming them is not bypassing the host, it is CONSTRUCTING
+ * it: the very indirection this rule protects is what the import feeds.
+ *
+ * Conditioned on the call rather than on a path allowlist, which is what makes it
+ * self-limiting: a widget cannot qualify, because a widget does not install a host.
+ */
+function suppliesTheTestHost(text: string): boolean {
+  return text.includes("installRealTestHost(");
+}
+
 /** `[file, name]` for every augment-registry name an Uplink takes off ui-kit. */
 function offenders(): string[] {
   const found: string[] = [];
   for (const file of uplinkClientSources()) {
     const text = readFileSync(file, "utf8");
+    if (suppliesTheTestHost(text)) continue;
     for (const match of text.matchAll(UI_KIT_IMPORT_RE)) {
       for (const raw of match[1].split(",")) {
         const name = raw
@@ -110,6 +127,17 @@ describe("an Uplink reaches the augment registry through the sdk", () => {
         `clearAugments, from @ksp-gonogo/sitrep-sdk/testing): those are shims\n` +
         `onto the injected host, so they reach the app's single registry.`,
     ).toEqual([]);
+  });
+
+  it("exempts the test-host setup files, and there really are some", () => {
+    // The instrument check for the exemption above: if `installRealTestHost` were
+    // renamed, `suppliesTheTestHost` would match nothing, every setup file would
+    // become an offender, and the failure would read as a widget bug. Asserting the
+    // exemption FIRES means a green run above is a green run about widgets.
+    const exempt = uplinkClientSources().filter((f) =>
+      suppliesTheTestHost(readFileSync(f, "utf8")),
+    );
+    expect(exempt.length, "no file installs the test host").toBeGreaterThan(0);
   });
 
   it("scans a non-trivial number of Uplink client files, so a green result means something", () => {

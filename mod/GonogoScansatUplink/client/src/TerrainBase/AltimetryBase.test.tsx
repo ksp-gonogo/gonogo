@@ -1,25 +1,23 @@
 import {
   AugmentSlot,
+  BufferedDataSource,
+  clearRegistry,
   type DataKey,
+  MemoryStore,
   Quality,
+  registerDataSource,
+  registerStockBodies,
   type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   createTestTelemetryClient,
+  MockDataSource,
   render,
   StubTransport,
   TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  BufferedDataSource,
-  clearRegistry,
-  MemoryStore,
-  MockDataSource,
-  registerDataSource,
-  registerStockBodies,
-} from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SCANHeightGrid } from "../schema";

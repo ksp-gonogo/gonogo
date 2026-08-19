@@ -1,12 +1,8 @@
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  clearRegistry,
-  registerComponent,
-  renderWidget,
-  screen,
-  useDashboardItemId,
-} from "@ksp-gonogo/sitrep-testing";
+import { clearRegistry, registerComponent } from "@ksp-gonogo/sitrep-sdk";
+import { useDashboardItemId } from "@ksp-gonogo/sitrep-sdk/spine";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { usePanelStatusStore } from "@ksp-gonogo/ui-kit";
+import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 
 /**
@@ -24,11 +20,12 @@ import { afterEach, describe, expect, it } from "vitest";
  * `useWidgetStreamStatus` derives it from a live store: `renderWidget` puts the
  * plumbing up, and `setupStreamFixture` puts data through it.
  *
- * Everything comes from the HARNESS rather than `@ksp-gonogo/core`, assertions
- * included. The harness bundles its own copy of core, so a registry written
- * through the app's copy is a different Map and a context read through it is a
- * different object: both read empty whatever the host does. An Uplink only ever
- * has the harness, so going through it is also the faithful thing to do.
+ * Everything comes from the published packages, assertions included, which is what
+ * an Uplink has. That used to be load-bearing in a second way: the harness was its
+ * own package and BUNDLED core, so a registry written through the app's copy was a
+ * different Map and a context read through it a different object, both reading empty
+ * whatever the host did. There is one copy of each now, so this is fidelity rather
+ * than avoidance.
  */
 
 const PROBE_ID = "render-widget-host-probe";

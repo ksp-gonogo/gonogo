@@ -1,3 +1,11 @@
+import {
+  getComponent,
+  registerDataSource,
+  registerStockBodies,
+  unregisterDataSource,
+} from "@ksp-gonogo/sitrep-sdk";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { WidgetHost } from "@ksp-gonogo/ui-kit/testing";
 /**
  * Browser entry for the kOS render harness. esbuild bundles this into
  * probe.html; a Playwright driver mounts it via the `window.__renderKos` hook
@@ -19,14 +27,6 @@
  * are preserved alongside; regenerate them on Linux via the update-baselines
  * workflow once the driver lands.
  */
-import {
-  getComponent,
-  MockDataSource,
-  registerDataSource,
-  registerStockBodies,
-  unregisterDataSource,
-  WidgetHost,
-} from "@ksp-gonogo/sitrep-testing";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 // Side-effect import: every kOS widget self-registers on module load.

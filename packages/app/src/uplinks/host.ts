@@ -20,7 +20,6 @@ import {
   defineUplinkClient,
   getAugmentsForSlot,
   getContributionsForSlot,
-  getGameHost,
   onContributionsChange,
   PerfBudget,
   registerAugment,
@@ -31,7 +30,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useDataSchema, useReplaySessionActive } from "@ksp-gonogo/data";
+import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
@@ -118,10 +117,7 @@ export function buildGonogoHost(): GonogoHost {
         GonogoHost["useTelemetryClientOptional"]
       >,
 
-    useDataSchema: (sourceId) => useDataSchema(sourceId),
     useReplaySessionActive: () => useReplaySessionActive(),
-
-    getGameHost: () => getGameHost(),
 
     getAugmentsForSlot: (slot) =>
       getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,

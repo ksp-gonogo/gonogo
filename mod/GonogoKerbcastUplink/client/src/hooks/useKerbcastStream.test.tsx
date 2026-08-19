@@ -9,9 +9,12 @@
  */
 
 import { MockSidecar } from "@ksp-gonogo/kerbcast/testing";
-import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
-import { act, render } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/sitrep-testing";
+import { clearRegistry, registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
+import {
+  act,
+  clearUplinkHandles,
+  render,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
 import { useKerbcastStream } from "./useKerbcastStream";

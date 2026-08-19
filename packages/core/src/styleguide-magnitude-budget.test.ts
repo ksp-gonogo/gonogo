@@ -100,7 +100,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/kepler.ts": 1,
   "mod/sitrep-sdk/src/spine/maneuver-legacy.ts": 6,
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
-  "packages/sitrep-client/src/use-command.ts": 1,
+  "mod/sitrep-sdk/src/spine/use-command.ts": 1,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "mod/sitrep-sdk/src/spine/vessel-state.ts": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,

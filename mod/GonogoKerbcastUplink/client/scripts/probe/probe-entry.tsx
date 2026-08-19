@@ -1,3 +1,8 @@
+import {
+  registerDataSource,
+  unregisterDataSource,
+} from "@ksp-gonogo/sitrep-sdk";
+import { WidgetHost } from "@ksp-gonogo/ui-kit/testing";
 /**
  * Browser entry for the CameraFeed render harness. esbuild bundles this
  * into probe.html; `render-camera.ts` (Playwright) drives it via the
@@ -11,11 +16,6 @@
  * a canvas.captureStream() is delivered through the mock's onTrack path, so
  * the <video> actually paints a frame behind the controls.
  */
-import {
-  registerDataSource,
-  unregisterDataSource,
-  WidgetHost,
-} from "@ksp-gonogo/sitrep-testing";
 import { createRoot, type Root } from "react-dom/client";
 import { CameraFeed } from "../../src/CameraFeed/CameraFeed";
 import { KerbcastDataSource } from "../../src/KerbcastDataSource";

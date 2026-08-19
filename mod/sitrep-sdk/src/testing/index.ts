@@ -25,24 +25,6 @@
 // symbols hit the prose and read as though the subpath already exported them.
 // ---------------------------------------------------------------------------
 
-import { __setGonogoHost, type GonogoHost } from "../api/host";
-
-/**
- * Install a (usually partial) host for the duration of a test. Returns a
- * disposer that clears it again: call it in `afterEach` so tests don't leak a
- * host into each other. A partial host is allowed: only wire the members the
- * code under test actually calls.
- */
-export function installTestHost(host: Partial<GonogoHost>): () => void {
-  __setGonogoHost(host as GonogoHost);
-  return () => __setGonogoHost(undefined);
-}
-
-/** Clear any installed host. */
-export function resetTestHost(): void {
-  __setGonogoHost(undefined);
-}
-
 // Everything else Testing Library offers (`screen`, `waitFor`, `within`, `act`,
 // `fireEvent`, `cleanup`, …) passes straight through, so this subpath is a
 // drop-in for the import source. The named exports above take precedence, so
@@ -90,11 +72,20 @@ export {
   TimelineStore,
   ViewClock,
 } from "../spine";
+export { consoleLogger } from "./console-logger";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
 // The jsdom shims a widget test needs before it can mount anything. Moved down
 // from `core` on 2026-08-19: it imports nothing, so nothing kept it up there.
 export { installDomStubs } from "./install-dom-stubs";
+// The WHOLE host, built from the real implementations rather than a subset. See its
+// own doc for why a partial host fails repeatedly, and for the four ui-kit members
+// the caller supplies because this package cannot import that one back.
+export {
+  installRealTestHost,
+  type UiKitHostPieces,
+} from "./install-real-test-host";
+export { installTestHost, resetTestHost } from "./install-test-host";
 // The in-memory `Storage` shim, moved down from `core` on 2026-08-19 for the same
 // reason: it imports nothing, and an Uplink test wanting one was reaching through
 // `@ksp-gonogo/core/test` to find it.

@@ -1,8 +1,16 @@
 import "@testing-library/jest-dom";
 import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
-import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
-import { installRealTestHost } from "@ksp-gonogo/sitrep-testing";
-import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+import {
+  installDomStubs,
+  installRealTestHost,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  AugmentSlot,
+  clearAugments,
+  getAugmentsForSlot,
+  registerAugment,
+  setQuantityLocale,
+} from "@ksp-gonogo/ui-kit";
 
 installDomStubs();
 
@@ -15,7 +23,17 @@ PerfBudget.installTestGate();
 // today: a test gains nothing from the host lacking members, and a partial host
 // fails as `getHost().<member> is not a function` the first time a widget is
 // re-pointed at the facade.
-installRealTestHost();
+//
+// The four augment members come from `@ksp-gonogo/ui-kit` because that is where
+// the augment registry and `<AugmentSlot>` live, and ui-kit imports the sdk, so
+// the sdk cannot import them back. Everything else in the host is the sdk's own
+// implementation, reached directly.
+installRealTestHost({
+  AugmentSlot,
+  clearAugments,
+  getAugmentsForSlot,
+  registerAugment,
+});
 
 // Pin the locale every quantity is written in. It defaults to the READER's
 // locale, which is right for an operator and wrong for a snapshot: a render on

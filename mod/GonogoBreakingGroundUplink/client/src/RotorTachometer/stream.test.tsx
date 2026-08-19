@@ -1,12 +1,12 @@
 import {
   act,
+  clearActionHandlers,
   render as rtlRender,
   screen,
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearActionHandlers, renderWidget } from "@ksp-gonogo/sitrep-testing";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 // Side-effect import: the widget self-registers on module load, and

@@ -3,7 +3,7 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { renderWidget } from "@ksp-gonogo/sitrep-testing";
+import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";

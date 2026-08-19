@@ -1,18 +1,19 @@
 import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  clearRegistry,
   Quality,
   registerUplinkHandle,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
+  clearUplinkHandles,
   render,
   type StreamFixture,
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/sitrep-testing";
 import {
   DomainAvailabilityProvider,
   useDomainAvailabilityStore,
