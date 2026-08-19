@@ -143,10 +143,12 @@ export function Tabs({
   // uncompacting happens when the bar grows past the natural width and not
   // before.
   //
-  // A hidden ghost copy of the row was tried first and measured 188px against
-  // the real row's 208px, so min-6x9 never compacted at all: a mirror of a
-  // styled component has to reproduce it exactly, and this one silently did
-  // not. Measuring the real element cannot drift from itself.
+  // Do NOT replace this with a hidden ghost row, which looks tidier and was the
+  // first attempt: it measured 188px against the real row's 208px, so min-6x9
+  // never compacted at all. A mirror of a styled component has to reproduce it
+  // exactly, and an instrument that silently fails to reproduce its subject
+  // does not report an error, it reports a plausible number. Caching the real
+  // element deletes that possibility rather than correcting one instance of it.
   const naturalWidthRef = useRef<number | null>(null);
   const [compact, setCompact] = useState(false);
   const [overflow, setOverflow] = useState({ left: false, right: false });
