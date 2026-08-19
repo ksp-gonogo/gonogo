@@ -221,6 +221,25 @@ export {
   onMapPoiProvidersChange,
   registerMapPoiProvider,
 } from "./map-poi";
+// The settings store, its service and its React CONTEXT, likewise owned. `gameHost`
+// has to have one answer, which is why `setSetting` and `subscribeSetting` were
+// shims already; the context is the part a second copy breaks in silence, because a
+// provider from one copy is invisible to a consumer of the other. With one context
+// in one published package there is no second copy, so `useSetting`'s shim retires
+// too.
+export {
+  SettingsProvider,
+  useSetting,
+  useSettingsService,
+} from "./settings/SettingsContext";
+export { SettingsService } from "./settings/SettingsService";
+export {
+  getSetting,
+  resetSettingsForTests,
+  seedSetting,
+  setSetting,
+  subscribeSetting,
+} from "./settings/store";
 export { registerStockBodies } from "./stock-bodies";
 export {
   clearUplinkHandles,
@@ -348,18 +367,6 @@ export function useDataSources(): unknown {
   return getHost().useDataSources();
 }
 
-/**
- * Reactive read of a client-pref setting by key, `[value, setValue]`, the
- * value persisted through the app's `SettingsService`. Use it to gate on a
- * declared kill-switch etc. Source-backed settings are not read here.
- */
-export function useSetting<T>(
-  key: string,
-  defaultValue: T,
-): [T, (v: T) => void] {
-  return getHost().useSetting<T>(key, defaultValue);
-}
-
 // --- Stream SPI shims (stateful → injected host) -----------------------------
 
 /**
@@ -448,23 +455,6 @@ export function useReplaySessionActive(): boolean {
 export function getGameHost(): string {
   return getHost().getGameHost();
 }
-
-/** Subscribe to any change (saved OR seeded) for one shared settings key. */
-export function subscribeSetting(key: string, cb: () => void): () => void {
-  return getHost().subscribeSetting(key, cb);
-}
-
-/**
- * Persist a user-chosen value for one settings key. The write half of the
- * trio an Uplink already had: `registerSetting` declares one, `useSetting`
- * and `subscribeSetting` read it, and until now nothing could set it, so an
- * Uplink offering its own control over its own setting had no way to save
- * what the operator chose.
- */
-export function setSetting(key: string, value: string): void {
-  getHost().setSetting(key, value);
-}
-
 // The read half of the contribution registry. The WRITE half stays on
 // `defineUplinkClient`'s handle rather than appearing here: the handle stamps
 // `${clientId}:` onto every id, and a bare `registerContribution` on this

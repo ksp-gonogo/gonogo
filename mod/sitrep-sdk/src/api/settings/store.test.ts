@@ -1,3 +1,8 @@
+// @vitest-environment jsdom
+// The store talks to `localStorage` directly, so it needs a DOM. The sdk suite
+// defaults to `node`, where the guard `typeof localStorage === "undefined"` would
+// silently make every assertion pass against an in-memory-only store: the saved
+// layer is the half worth testing here.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getSetting,
@@ -12,7 +17,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe("core settings store", () => {
+describe("shared settings store", () => {
   it("returns undefined for an unset key", () => {
     expect(getSetting("gameHost")).toBeUndefined();
   });
