@@ -150,7 +150,7 @@ describe("TransferWindow widget", () => {
   it("lists several upcoming windows to the target", async () => {
     setup();
     await waitFor(() =>
-      expect(screen.getByText("Windows to Mars")).toBeInTheDocument(),
+      expect(screen.getByText(/^Windows to$/)).toBeInTheDocument(),
     );
     // one selectable row per upcoming window (WINDOW_COUNT of them)
     expect(
@@ -161,7 +161,7 @@ describe("TransferWindow widget", () => {
   it("expands the selected window's detail (window 0 selected by default)", async () => {
     setup();
     await waitFor(() =>
-      expect(screen.getByText("Windows to Mars")).toBeInTheDocument(),
+      expect(screen.getByText(/^Windows to$/)).toBeInTheDocument(),
     );
     expect(screen.getByText("Departs")).toBeInTheDocument();
     expect(screen.getByText("Ejection Δv")).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("TransferWindow widget", () => {
   it("selecting another window expands it (list drives the selection)", async () => {
     setup();
     await waitFor(() =>
-      expect(screen.getByText("Windows to Mars")).toBeInTheDocument(),
+      expect(screen.getByText(/^Windows to$/)).toBeInTheDocument(),
     );
     // window 0 is expanded by default; the rest are collapsed window-row buttons
     const collapsed = screen.getAllByRole("button", { expanded: false });
@@ -182,14 +182,14 @@ describe("TransferWindow widget", () => {
 
   it("lets the operator pick the destination (labelled select)", async () => {
     setup();
-    const select = await screen.findByLabelText(/Earth to/);
+    const select = await screen.findByLabelText(/Windows to/);
     expect(select).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Mars" })).toBeInTheDocument();
   });
 
   it("defaults the destination to the current target body (Target API)", async () => {
     setup(3); // Venus targeted via target.available (default sibling would be Mars)
-    const select = await screen.findByLabelText(/Earth to/);
+    const select = await screen.findByLabelText(/Windows to/);
     expect((select as HTMLSelectElement).value).toBe("3");
     expect(screen.getByRole("option", { name: "Venus" })).toBeInTheDocument();
   });
@@ -330,5 +330,61 @@ describe("TransferWindow reach list: the absent budget", () => {
     // Silence is not a tombstone: no caption asserting anything about the craft.
     expect(visibleText()).not.toMatch(/No Δv figure for this craft/i);
     expect(screen.queryByText("Affords")).not.toBeInTheDocument();
+  });
+});
+
+describe("TransferWindow layout: origin-based, not destination-based", () => {
+  /*
+   * The reach list answers "where can I go" and has to come BEFORE the widget
+   * commits to one destination. Asserted on document order rather than on styling,
+   * because the complaint was that reach read as an afterthought tucked at the
+   * bottom while the destination picker sat at the top.
+   */
+  it("puts REACH above the windows list in document order", async () => {
+    setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    const reach = screen.getByText("Reach from Earth");
+    const windows = screen.getByText(/^Windows to$/);
+    expect(
+      reach.compareDocumentPosition(windows) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("scopes the destination select to the windows section, not the panel header", async () => {
+    setup(undefined, { budgetDvVac: 6000 });
+    const select = await screen.findByLabelText(/Windows to/);
+    // The heading IS the label, so the control and the section title are one thing.
+    expect(select.tagName).toBe("SELECT");
+    expect(screen.getByText(/^Windows to$/)).toBeInTheDocument();
+  });
+
+  it("a reach row picks the destination the windows list is scoped to", async () => {
+    setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    // Mars is the fixture's targeted body, so the windows list starts scoped to it.
+    const select = await screen.findByLabelText(/Windows to/);
+    expect((select as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+      "Mars",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Venus" }));
+
+    await waitFor(() =>
+      expect((select as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+        "Venus",
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Venus" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Mars" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 });
