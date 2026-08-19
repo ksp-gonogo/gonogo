@@ -47,15 +47,23 @@
     AppDomain, so this uplink resolves those types from core's copy at runtime
     and must NOT bundle its own: hence Private=false on both.
 
-    Sitrep.Core and Sitrep.Transport used to be listed here as well, to carry
-    Private=false down each link of the chain (the flag on an outer
+    Sitrep.Core, Sitrep.Transport and Sitrep.Propagation are listed for ONE
+    reason: Sitrep.Host drags all three in, and the flag on an outer
     ProjectReference does not suppress copying of that project's own transitive
-    references). They are gone because nothing here imports a type from either,
-    and the copying they were guarding against is separately prevented: the
-    release workflow copies only the DLLs it is told to bundle, and this uplink
-    bundles none. Sitrep.Propagation, which Sitrep.Host also drags in, was never
-    in the list and demonstrates the point, it lands in bin/ today and still
-    does not ship.
+    references, so a reachable project that is not named here is copied into
+    this uplink's output. Nothing here imports a type from any of the three.
+    That is not a reason to drop them, it is what makes them easy to drop by
+    mistake: removing them for tidiness re-opens the copying, which is how
+    Sitrep.Propagation came to be in bin/ in the first place, having never been
+    listed at all.
+
+    The flag has to go here, on the consumer, and NOT on Sitrep.Host's own
+    reference to Sitrep.Propagation: core Gonogo must bundle that assembly
+    (Sitrep.Host's public surface exposes OrbitElements and IVisibilityGeometry),
+    so suppressing it at the producer would un-ship it from
+    GameData/Gonogo/Plugins.
+
+    All four lines go away with the Sitrep.Host reference itself.
 
     Sitrep.Host is the one remaining breach of the Uplink isolation rule and is
     not meant to survive: it is here only for Sitrep.Host.ActionGroups'
@@ -69,6 +77,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />
     <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
+    <ProjectReference Include="..\Sitrep.Propagation\Sitrep.Propagation.csproj" Private="false" />
   </ItemGroup>
 
 </Project>
