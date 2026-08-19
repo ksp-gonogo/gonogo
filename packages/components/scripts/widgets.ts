@@ -1279,6 +1279,16 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       { name: "default-12x20", w: 12, h: 20 },
       { name: "wide-18x18", w: 18, h: 18 },
+      // minSize 6x10, and the reach list is a TABLE: five columns at the
+      // tightest placement the widget allows is where a table either wraps
+      // legibly or overflows its panel. Rendered for the reach fixtures only,
+      // since the older two carry no budget and so no verdict column to squeeze.
+      {
+        name: "min-6x10",
+        w: 6,
+        h: 10,
+        forFixtures: ["earth-mars-reach-band", "earth-mars-no-budget"],
+      },
     ],
   },
   {

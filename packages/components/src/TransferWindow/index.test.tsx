@@ -1,5 +1,11 @@
 import { clearRegistry, DashboardItemContext } from "@ksp-gonogo/core";
-import { fireEvent, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -287,5 +293,42 @@ describe("TransferWindow reach list", () => {
       expect(screen.getByText("Affords")).toBeInTheDocument(),
     );
     expect(await axe(view.container)).toHaveNoViolations();
+  });
+});
+
+describe("TransferWindow reach list: the absent budget", () => {
+  /*
+   * The state the design exists for, and the one a fixture has to be able to
+   * express: stock will not compute Δv for a vessel it is not simulating, so
+   * `dv.summary` tombstones for a real craft. That is a DIFFERENT sentence from
+   * "we have not heard", and neither is "cannot afford".
+   */
+  it("says the sim has no figure, and still shows the costs", async () => {
+    const { fixture } = setup();
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    act(() => {
+      fixture.emit("dv.summary", null);
+    });
+
+    await waitFor(() =>
+      expect(visibleText()).toMatch(/No Δv figure for this craft/i),
+    );
+    // A confirmed absence is not a verdict of any kind.
+    expect(screen.queryByText("Affords")).not.toBeInTheDocument();
+    expect(screen.queryByText("NO")).not.toBeInTheDocument();
+    // The costs and windows do not depend on the budget, so they stay.
+    expect(screen.getByText("Δv needed")).toBeInTheDocument();
+  });
+
+  it("does not claim the sim has no figure when nothing has merely arrived yet", async () => {
+    setup();
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    // Silence is not a tombstone: no caption asserting anything about the craft.
+    expect(visibleText()).not.toMatch(/No Δv figure for this craft/i);
+    expect(screen.queryByText("Affords")).not.toBeInTheDocument();
   });
 });

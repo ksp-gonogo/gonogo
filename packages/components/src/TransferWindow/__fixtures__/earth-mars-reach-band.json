@@ -1,0 +1,163 @@
+{
+  "_meta": {
+    "capturedAt": "2026-07-24",
+    "vessel": "Ares (LEO parking orbit)",
+    "body": "Earth (RSS)",
+    "situation": "700 km LEO around Earth, Mars targeted, phase AT the Hohmann ideal, and a 5,700 m/s vacuum budget that lands one destination in each verdict state",
+    "notes": "Reach-list showcase. The budget is chosen so all three interesting verdicts are on screen at once: Mars GO (ejection 3,511 + capture 2,110 = 5,621, inside 5,700), Venus ONE WAY (departure 3,400 affordable, whole trip 6,780 not: Venus is cheaper to leave for than Mars and far dearer to arrive at), Jupiter MARGINAL (ejection 6,278, within a tenth of the budget, so the coplanar model declines to commit). Jupiter is added for the marginal case; the other three bodies match earth-mars-go."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "system.bodies",
+      "target.available",
+      "dv.summary"
+    ],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Sun",
+              "parentIndex": null,
+              "radius": 695700000,
+              "gravParameter": 1.32712440018e20,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Earth",
+              "parentIndex": 0,
+              "radius": 6371000,
+              "gravParameter": 398600441800000.0,
+              "sphereOfInfluence": 924000000,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 140000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 149597870700,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mars",
+              "parentIndex": 0,
+              "radius": 3389500,
+              "gravParameter": 42828370000000,
+              "sphereOfInfluence": 577000000,
+              "atmosphere": {
+                "depth": 125000,
+                "hasOxygen": false,
+                "seaLevelPressure": 0.636
+              },
+              "orbit": {
+                "sma": 227939200000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0.773148,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Venus",
+              "parentIndex": 0,
+              "radius": 6051800,
+              "gravParameter": 324859000000000,
+              "sphereOfInfluence": 616000000,
+              "orbit": {
+                "sma": 108208000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 4,
+              "name": "Jupiter",
+              "parentIndex": 0,
+              "radius": 69911000,
+              "gravParameter": 1.26686534e17,
+              "sphereOfInfluence": 48200000000,
+              "atmosphere": {
+                "depth": 1000000,
+                "hasOxygen": false,
+                "seaLevelPressure": 1000.0
+              },
+              "orbit": {
+                "sma": 778570000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 7071000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 398600441800000.0
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "target.available",
+        "value": {
+          "entries": [
+            {
+              "kind": 1,
+              "name": "Mars",
+              "bodyIndex": 2,
+              "isCurrent": true
+            }
+          ]
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": {
+          "stageCount": 2,
+          "totalDvVac": 5700,
+          "totalDvAsl": 5100,
+          "totalDvActual": 5700,
+          "totalBurnTime": 410
+        }
+      }
+    ]
+  }
+}

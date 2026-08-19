@@ -411,24 +411,6 @@ function TransferWindowComponent({
       panelTitle="Transfer Window"
       panelAside={
         <FieldRow>
-          {/*
-           * The budget sits with the verdicts it produced, on the same reasoning as
-           * the funds readout on any widget that spends money: an operator reading
-           * "NO" should not have to find another panel to learn what number said so.
-           * `vac` is on screen because the ISP assumption is part of the figure.
-           */}
-          {budgetDeltaV != null && (
-            <BudgetReadout>
-              <FieldLabel as="span">Budget</FieldLabel>
-              <Unit value={value("m/s", budgetDeltaV)} decimals={0} /> vac
-              {reserveDeltaV > 0 && (
-                <Muted>
-                  {" reserve "}
-                  <Unit value={value("m/s", reserveDeltaV)} decimals={0} />
-                </Muted>
-              )}
-            </BudgetReadout>
-          )}
           <FieldLabel htmlFor="transfer-dest">
             {origin.name ?? "Origin"} to
           </FieldLabel>
@@ -659,7 +641,30 @@ function ReachList({
 
   return (
     <ListWrap>
-      <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
+      <ReachHead>
+        <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
+        {/*
+         * The budget belongs on THIS row, not in the panel header. It is the reach
+         * list's own input, it sits directly above the verdicts it produced (the
+         * funds-readout rule: nobody should have to look elsewhere for the number
+         * that said NO), and putting it in `panelAside` pushed that row past its
+         * width so Panel collapsed the destination select behind a disclosure. The
+         * render caught it; `vac` stays on screen because the ISP assumption is part
+         * of the figure.
+         */}
+        {budgetDeltaV != null && (
+          <BudgetReadout>
+            <Muted>Budget</Muted>{" "}
+            <Unit value={value("m/s", budgetDeltaV)} decimals={0} /> vac
+            {reserveDeltaV > 0 && (
+              <Muted>
+                {" reserve "}
+                <Unit value={value("m/s", reserveDeltaV)} decimals={0} />
+              </Muted>
+            )}
+          </BudgetReadout>
+        )}
+      </ReachHead>
       <ReachTable aria-describedby="reach-caption">
         <thead>
           <tr>
@@ -1171,6 +1176,14 @@ const ListTitle = styled.div`
   font-size: var(--font-size-sm);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+`;
+
+const ReachHead = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
 `;
 
 const BudgetReadout = styled.span`
