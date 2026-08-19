@@ -21,6 +21,7 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 // deletion in the same commit.
 import type {} from "@ksp-gonogo/gonogo-kerbalism-uplink";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -144,7 +145,12 @@ function useSpaceWeather(): SpaceWeatherRead {
   // real countdown needs a mod-side storm-onset clock (Kerbalism tracks storm
   // timing internally / reflectable) surfaced on the Topic; the UI was designed
   // for it, the data isn't wired. Tracked in local_docs/feature_log/.
-  const radiationRadPerHour = magnitudeOr(t.radiationRadPerSecond, 0) * 3600; // API is rad/s
+  // Reported per second, read per hour: a scale change the registry knows,
+  // rather than a bare 3600 sitting next to a comment saying which end it is.
+  const radiationRadPerHour = value(
+    "rad/s",
+    magnitudeOr(t.radiationRadPerSecond, 0),
+  ).in("rad/h").magnitude;
   const innerBelt = t.innerBelt ?? false;
   const outerBelt = t.outerBelt ?? false;
   const magnetosphere = t.magnetosphere ?? false;

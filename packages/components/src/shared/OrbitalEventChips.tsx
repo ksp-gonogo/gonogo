@@ -3,6 +3,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 
@@ -43,7 +44,7 @@ export function OrbitalEventChips() {
         : null;
   const encIn =
     typeof encUt === "number" && Number.isFinite(encUt) && viewUt !== undefined
-      ? encUt - viewUt.magnitude
+      ? value("ut", encUt).minus(viewUt).magnitude
       : undefined;
   const hasEncounter =
     encounterKind !== null &&

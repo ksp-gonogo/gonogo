@@ -375,7 +375,7 @@ function DistanceToTargetComponent({
   const dockObservedUt = observedAt(dockReading);
   const dockAgeSec =
     universalTime !== undefined && dockObservedUt
-      ? Math.max(0, universalTime - dockObservedUt.magnitude)
+      ? Math.max(0, value("ut", universalTime).minus(dockObservedUt).magnitude)
       : undefined;
 
   useEffect(() => {
@@ -421,7 +421,10 @@ function DistanceToTargetComponent({
   const targetObservedUt = observedAt(targetReading);
   const ageSec =
     universalTime !== undefined && targetObservedUt
-      ? Math.max(0, universalTime - targetObservedUt.magnitude)
+      ? Math.max(
+          0,
+          value("ut", universalTime).minus(targetObservedUt).magnitude,
+        )
       : undefined;
 
   if (targetReading.state === "pending") {

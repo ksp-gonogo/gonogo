@@ -13,7 +13,10 @@ const entry = (over: Partial<import("./command-delay").PendingEntry> = {}) => ({
   label: "boot",
   topic: "kos/7",
   vantage: "ksc",
-  dispatchedAt: value("s", 100),
+  // An instant, not an interval. Built as `value("s", …)` until the affine
+  // rules landed, which meant every test here exercised duration + duration
+  // and none of them exercised the instant + duration the module actually does.
+  dispatchedAt: value("ut", 100),
   oneWaySeconds: value("s", 4),
   ...over,
 });
@@ -82,6 +85,35 @@ describe("classifyRetained", () => {
   it("defaults pathConnectedDuring to always-connected when omitted", () => {
     const c = classifyRetained({ entry: e, nowUt: 106, present: true });
     expect(c.predictedPhase).toBe("awaiting-reply");
+  });
+
+  /**
+   * The reply instant is the dispatch offset by TWO one-way legs, and the
+   * overdue margin is a duration added to that instant, not an instant of its
+   * own. Dispatch 100, leg 4, margin 5: reply at 108, overdue past 113.
+   *
+   * Pinned at the boundary because that is where the two ways of getting this
+   * wrong show up: one leg instead of two moves it to 109, and treating the
+   * margin as a UT moves it to 5.
+   */
+  it("goes overdue only past dispatch + two legs + the margin", () => {
+    const overdueAt = (nowUt: number) =>
+      classifyRetained({
+        entry: e,
+        nowUt,
+        present: true,
+        overdueMarginSeconds: 5,
+      }).predictedPhase;
+
+    expect(overdueAt(112.9)).not.toBe("overdue");
+    expect(overdueAt(113)).not.toBe("overdue");
+    expect(overdueAt(113.1)).toBe("overdue");
+  });
+
+  it("reports the two etas as intervals from now to each instant", () => {
+    const [c] = deriveInFlight([e], 100);
+    expect(c.reachEtaSeconds).toBe(4);
+    expect(c.replyEtaSeconds).toBe(8);
   });
 });
 

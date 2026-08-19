@@ -423,8 +423,12 @@ function FleetContactCell({
   }
 
   if (phase === "expected") {
+    // No predicted instant means no interval to count down, not an interval of
+    // zero length that happens to render the same.
     const due =
-      (silence.predictedReacquisitionUt ?? nowUt.magnitude) - nowUt.magnitude;
+      silence.predictedReacquisitionUt == null
+        ? 0
+        : value("ut", silence.predictedReacquisitionUt).minus(nowUt).magnitude;
     return (
       <Badge severity="info">
         reacquire in ~{formatDuration(Math.max(0, due))}
