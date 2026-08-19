@@ -121,6 +121,7 @@ export type {
   FlightOutcome,
   FlightRecord,
   FlightRecoveryOutcome,
+  MissionMeta,
   Sample,
   SeriesRange,
   UnitHint,

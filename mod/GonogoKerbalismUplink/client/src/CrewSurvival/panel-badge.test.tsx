@@ -7,11 +7,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   ContributionsProvider,
-  useWidgetBadges,
-} from "@ksp-gonogo/sitrep-testing";
-import {
   Panel,
   PanelBadgesProvider,
+  useWidgetBadges,
   WidgetMetaContext,
 } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

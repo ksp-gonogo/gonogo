@@ -61,6 +61,16 @@ export default defineConfig({
   // specifier, so `@ksp-gonogo/sitrep-sdk` alone would leave
   // `@ksp-gonogo/sitrep-sdk/spine` and `/testing` inlined, which is the same bug
   // with a longer path.
+  //
+  // Listed HERE and left in `devDependencies` rather than promoted to a
+  // `peerDependency`, which is what it should be on the published manifest and
+  // cannot be yet: a peer entry on a workspace package makes pnpm resolve a per-peer
+  // INSTANCE of ui-kit and core, copying only each package's `files`, and the sdk's
+  // in-workspace `exports` map points at `./src`, which a copy does not carry. The
+  // whole workspace then fails to typecheck with "Cannot find module './api'". So
+  // the published manifest under-declares this one edge, which is survivable because
+  // every consumer of ui-kit in and out of this repo already depends on the sdk
+  // directly, and the alternative breaks every build here.
   external: [
     "@ksp-gonogo/sitrep-sdk",
     "@ksp-gonogo/sitrep-sdk/*",

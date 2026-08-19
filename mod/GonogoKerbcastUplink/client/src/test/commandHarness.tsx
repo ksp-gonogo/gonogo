@@ -1,3 +1,4 @@
+import type { TelemetryClient } from "@ksp-gonogo/sitrep-sdk";
 /**
  * Render helper for delayed-command widgets under test. Mounts a REAL
  * `TelemetryClient` over an in-memory `StubTransport` inside a
@@ -17,7 +18,6 @@ import {
   StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import type { TelemetryClient } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 
 export interface CommandClientHarness {

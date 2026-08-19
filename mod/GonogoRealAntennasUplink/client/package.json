@@ -22,7 +22,6 @@
   "dependencies": {},
   "devDependencies": {
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
-    "@ksp-gonogo/sitrep-testing": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
     "@types/react": "^18.3.28",
     "@vitest/coverage-v8": "^4.1.4",

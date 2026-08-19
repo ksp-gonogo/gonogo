@@ -159,3 +159,40 @@ export interface FlightChapterRecord {
   /** Elapsed ms since `launchedAt`. */
   endMs: number;
 }
+
+/**
+ * Small, cheap-to-list metadata for one recorded mission. Kept in its own
+ * object store, separate from the (potentially large) `fixture` payload, so
+ * populating the FlightsManager list never has to pull every recording's raw
+ * wire frames into memory.
+ */
+export interface MissionMeta {
+  id: string;
+  vesselName: string;
+  /** Wall-clock ms when recording started. */
+  launchedAt: number;
+  /** UT (seconds) of the first captured frame. */
+  firstFrameUt: number;
+  /** UT (seconds) of the last captured frame. */
+  lastFrameUt: number;
+  frameCount: number;
+  /**
+   * User-pinned: starred missions are exempt from `pruneMissionsKeepLatest`.
+   * Per-row delete and "Clear all" still remove them. Optional/backward
+   * compatible: existing rows read as `undefined` (falsy, same as
+   * unstarred).
+   */
+  starred?: boolean;
+  /**
+   * User-authored chapters / markers, ported from the old
+   * `FlightRecord.chapters`. Reuses `FlightChapterRecord` as-is, its
+   * `startMs`/`endMs` fields keep their literal millisecond semantics,
+   * elapsed since `firstFrameUt` (converted from the mission's UT-second
+   * delta: `(ut - firstFrameUt) * 1000`) rather than since the old
+   * wall-clock-ms `launchedAt`. Keeping the unit as ms means
+   * `ChaptersEditor`'s `formatElapsed`/`parseElapsed` (which do real ms
+   * math, dividing/multiplying by 1000) need no changes, only the anchor
+   * point moves. Optional: missions start with none.
+   */
+  chapters?: FlightChapterRecord[];
+}

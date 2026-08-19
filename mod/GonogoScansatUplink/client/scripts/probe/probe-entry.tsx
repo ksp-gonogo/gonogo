@@ -1,3 +1,13 @@
+import {
+  BufferedDataSource,
+  getComponent,
+  MemoryStore,
+  registerDataSource,
+  registerStockBodies,
+  unregisterDataSource,
+} from "@ksp-gonogo/sitrep-sdk";
+import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { WidgetHost } from "@ksp-gonogo/ui-kit/testing";
 /**
  * Browser entry for the Scanning render harness. esbuild bundles this into
  * probe.html; a Playwright driver mounts it via the `window.__renderScanning`
@@ -16,16 +26,6 @@
  * workflow once the driver lands.
  */
 // Side-effect import: the Scanning widget self-registers on module load.
-import {
-  BufferedDataSource,
-  getComponent,
-  MemoryStore,
-  MockDataSource,
-  registerDataSource,
-  registerStockBodies,
-  unregisterDataSource,
-  WidgetHost,
-} from "@ksp-gonogo/sitrep-testing";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import "../../src";

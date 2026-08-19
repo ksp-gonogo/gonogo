@@ -1,18 +1,18 @@
-import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import {
+  clearRegistry,
+  getMapPoiProviders,
+  registerDataSource,
+  TargetKind,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   createTestTelemetryClient,
+  MockDataSource,
   renderHook,
   StubTransport,
   TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  clearRegistry,
-  getMapPoiProviders,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/sitrep-testing";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 // Importing the real module (not a throwaway test double) runs its

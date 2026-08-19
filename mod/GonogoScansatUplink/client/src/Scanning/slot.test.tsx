@@ -1,22 +1,23 @@
-import { type DataKey, registerAugment } from "@ksp-gonogo/sitrep-sdk";
+import {
+  BufferedDataSource,
+  clearRegistry,
+  type DataKey,
+  MemoryStore,
+  registerAugment,
+  registerDataSource,
+  registerStockBodies,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   clearAugments,
   createTestTelemetryClient,
   getAugmentsForSlot,
+  MockDataSource,
   render,
   StubTransport,
   screen,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  BufferedDataSource,
-  clearRegistry,
-  MemoryStore,
-  MockDataSource,
-  registerDataSource,
-  registerStockBodies,
-} from "@ksp-gonogo/sitrep-testing";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";

@@ -4,8 +4,7 @@ import {
   waitFor,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { renderWidget } from "@ksp-gonogo/sitrep-testing";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 // Side-effect import: the widget self-registers on module load, and
 // `renderWidget` looks it up by id rather than importing the component.

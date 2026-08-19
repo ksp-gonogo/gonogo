@@ -1,4 +1,5 @@
 import type { PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
+import { clearRegistry } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -7,7 +8,6 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearRegistry } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { Terminal } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -131,12 +131,18 @@ export interface GonogoHost {
   useViewClockOptional(): unknown;
 
   /** The enriched schema (key + label/unit/group) for a data source's keys. */
-  useDataSchema(sourceId?: string): unknown[];
   /** Whether a recorded-flight replay session is currently active. */
   useReplaySessionActive(): boolean;
 
   /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
-  getGameHost(): string;
+  /**
+   * Retired members: `getGameHost` and `useDataSchema`.
+   *
+   * `getGameHost` is implemented in `api/index.ts` now: it reads one setting this
+   * package already owns. `useDataSchema` was called by no Uplink, and its default
+   * source's schema comes from a legacy vendor key catalogue that must not become
+   * published API.
+   */
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
   /**

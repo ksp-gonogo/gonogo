@@ -87,7 +87,6 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "unregisterUplinkHandle",
   "useActionInput",
   "useCommand",
-  "useDataSchema",
   "useDataSources",
   "useExecuteAction",
   "useBodyFogMask",

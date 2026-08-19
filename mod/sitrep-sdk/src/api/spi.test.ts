@@ -82,15 +82,17 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
   });
 
   describe("data introspection", () => {
-    it("useDataSchema fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      expect(() => barrel.useDataSchema("kos")).toThrow(named);
-
-      const schema = [{ key: "widget.example.value", label: "X" }];
-      const useDataSchema = vi.fn().mockReturnValue(schema);
-      installTestHost({ useDataSchema });
-      expect(barrel.useDataSchema("kos")).toBe(schema);
-      expect(useDataSchema).toHaveBeenCalledWith("kos");
+    it("does not publish useDataSchema at all", () => {
+      // Retired 2026-08-19 along with its host member, and asserted here rather
+      // than simply deleted: it is the one SPI shim that could not follow the
+      // others into this package, because the schema it returns for the default
+      // `"data"` source is built from a legacy vendor key catalogue. Publishing
+      // that would make a dying table into devkit API, where its removal becomes
+      // an outside author's breaking change. No Uplink ever called it.
+      expect(
+        (barrel as Record<string, unknown>).useDataSchema,
+        "useDataSchema is retired; @ksp-gonogo/data still exports it for the app",
+      ).toBeUndefined();
     });
 
     it("useReplaySessionActive fails LOUD with no host, resolves once installed", () => {
@@ -104,13 +106,19 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
   });
 
   describe("game-host SPI", () => {
-    it("getGameHost fails LOUD with no host, resolves once installed", () => {
+    it("getGameHost reads the setting itself rather than forwarding to a host", () => {
+      // Not a shim any more. It was one while the implementation lived in
+      // `@ksp-gonogo/core`, and the only thing it needed was `getSetting`, which
+      // this package has owned since the settings store moved. So the host member
+      // retired with it: a two-line read of a setting this package holds does not
+      // need injecting.
       resetTestHost();
-      expect(() => barrel.getGameHost()).toThrow(named);
-
-      const getGameHost = vi.fn().mockReturnValue("192.168.1.50");
-      installTestHost({ getGameHost });
-      expect(barrel.getGameHost()).toBe("192.168.1.50");
+      // The assertion that matters is that it does not throw with NO host, which
+      // every shim in this file does. The value is the build default because this
+      // suite runs in `node`: `localStorage` is undefined, so the store's own guard
+      // makes the saved layer a no-op, as the comment below records for the settings
+      // shims too.
+      expect(barrel.getGameHost()).toBe("localhost");
     });
 
     // The settings STORE is not a shim any more: it moved into this package with

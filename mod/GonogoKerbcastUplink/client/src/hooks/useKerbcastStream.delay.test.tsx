@@ -33,9 +33,13 @@
  */
 
 import type { DelayClockLike } from "@ksp-gonogo/sitrep-sdk";
-import { registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/sitrep-testing";
+import { clearRegistry, registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
+import {
+  act,
+  clearUplinkHandles,
+  render,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type DelayedPlayoutResult,

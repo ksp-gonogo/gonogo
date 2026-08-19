@@ -16,8 +16,21 @@ import { writeQuantity } from "./units";
  * splits the readout should ship the way to read it back.
  *
  * This entrypoint is separate from the root so a runtime bundle never pulls
- * testing code in: it imports nothing from React and nothing from the DOM
- * beyond what a test environment already provides.
+ * testing code in.
+ *
+ * It also ships `renderWidget`, which mounts a widget inside the provider stack the
+ * dashboard puts around one. That belongs here rather than in
+ * `@ksp-gonogo/sitrep-sdk/testing` for a structural reason and not a filing one:
+ * the stack IS this package's providers (`DelayRailProvider`,
+ * `PanelStatusStoreProvider`, `ContributionsProvider`, `PanelBadgesProvider`,
+ * `PanelStatusProvider`), and the sdk cannot import them. Putting it there would
+ * have meant handing the sdk seven ui-kit values so it could reassemble a ui-kit
+ * stack, which is not an injectable seam, it is the subject matter.
+ *
+ * The two testing entries do NOT re-export each other. A design-system package
+ * fronting a generic test harness is a dependency inversion wearing a convenience,
+ * so an Uplink's setup names both when it needs both: a host from the sdk, a
+ * provider stack from here. Those are genuinely two things.
  */
 
 /**
@@ -130,3 +143,11 @@ export interface UnitMatchers<R = unknown> {
     opts?: FormatQuantityOptions,
   ): R;
 }
+
+// The widget render harness. Its own module because it is 200 lines of provider
+// stack and JSX, and this file is otherwise plain functions over strings.
+export {
+  type RenderWidgetOptions,
+  renderWidget,
+  WidgetHost,
+} from "./renderWidget";

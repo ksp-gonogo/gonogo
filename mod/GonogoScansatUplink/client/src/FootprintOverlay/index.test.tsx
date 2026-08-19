@@ -1,24 +1,22 @@
 import {
   AugmentSlot,
+  BufferedDataSource,
+  clearRegistry,
   type DataKey,
+  MemoryStore,
   Quality,
+  registerDataSource,
   type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   createTestTelemetryClient,
+  MockDataSource,
   render,
   StubTransport,
   TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  BufferedDataSource,
-  clearRegistry,
-  MemoryStore,
-  MockDataSource,
-  registerDataSource,
-} from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WithScansatAvailability } from "../test/withScansatAvailability";

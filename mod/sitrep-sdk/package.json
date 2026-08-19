@@ -21,7 +21,8 @@
   "homepage": "https://github.com/ksp-gonogo/gonogo/tree/main/mod/sitrep-sdk#readme",
   "files": [
     "biome.shared.json",
-    "dist"
+    "dist",
+    "src"
   ],
   "publishConfig": {
     "access": "public",

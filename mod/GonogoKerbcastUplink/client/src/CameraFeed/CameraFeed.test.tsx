@@ -1,5 +1,7 @@
 import {
+  clearActionHandlers,
   clearAugments,
+  clearUplinkHandles,
   getAugmentsForSlot,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 /**
@@ -31,7 +33,14 @@ import type {
 } from "@ksp-gonogo/kerbcast";
 import { type MockCameraInit, MockSidecar } from "@ksp-gonogo/kerbcast/testing";
 import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, registerUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
+import {
+  clearRegistry,
+  dispatchAction,
+  getComponent,
+  registerAugment,
+  registerComponent,
+  registerUplinkHandle,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -41,18 +50,12 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  clearActionHandlers,
-  clearRegistry,
-  clearUplinkHandles,
-  dispatchAction,
-  getComponent,
-  registerComponent,
-  renderWidget,
-  WidgetHost,
-} from "@ksp-gonogo/sitrep-testing";
 
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  renderWidget,
+  visibleText,
+  WidgetHost,
+} from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";

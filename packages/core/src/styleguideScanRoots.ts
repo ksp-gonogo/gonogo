@@ -43,11 +43,6 @@ export const SCANNED_PACKAGE_ROOTS = [
  */
 export const UNSCANNED_PACKAGE_ROOTS: { path: string; reason: string }[] = [
   {
-    path: "packages/sitrep-testing/src",
-    reason:
-      "No UI: a test harness. Re-exports the spine and the registry helpers, and its one component is a TelemetryProvider wrapper that renders no DOM of its own. No styled-components, no CSS, no colour.",
-  },
-  {
     path: "packages/logger/src",
     reason:
       "No UI: ring buffer, Axiom transport and error types only. No styled-components, no CSS, no colour.",
