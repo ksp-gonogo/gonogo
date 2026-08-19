@@ -524,8 +524,8 @@ function renderBody({
     return (
       <Stack as="ul" gap="sm" style={rosterListStyle}>
         <EmptyState>
-          {crewCount} aboard, names unavailable. Telemachus may withhold crew
-          names when out of CommNet range.
+          {crewCount} aboard, names unavailable. Crew names can be withheld when
+          the vessel is out of CommNet range.
         </EmptyState>
       </Stack>
     );

@@ -922,7 +922,7 @@ function InFlightPanel({
               onArm(null);
               onToTrackingStation();
             }}
-            title="KSP may revert this flight to its last save if it can't save here (Telemachus has no equivalent of the in-game warning dialog)."
+            title="KSP may revert this flight to its last save if it can't save here (the in-game warning dialog has no equivalent on the wire)."
           >
             Confirm: flight may revert
           </TrackingStationConfirm>

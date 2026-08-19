@@ -204,7 +204,7 @@ export function ShipDiagramSvg({
           fill="var(--color-text-dim)"
           fontSize={11}
         >
-          No vessel topology yet, waiting for Telemachus.
+          No vessel topology yet.
         </text>
       </svg>
     );
