@@ -746,14 +746,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/Sitrep.Host/Comms/CommsElection.cs",
       "mod/Sitrep.Host/Comms/SignalDelay.cs",
-      // The action-groups capability seam is a deliberate copy of the comms
-      // precedent above, and its doc-comments say so: they cite
-      // GonogoRealAntennasUplink as the worked example of a provider elected
-      // over the stock backend that ships no client code of its own. Prose
-      // only: no RA type, reference or coupling; same category as
-      // Comms/CommsElection.cs itself.
+      // The action-groups election is a deliberate copy of the comms precedent
+      // above, and its doc-comment says so: it cites GonogoRealAntennasUplink as
+      // the worked example of a provider elected over the stock backend that
+      // ships no client code of its own. Prose only: no RA type, reference or
+      // coupling; same category as Comms/CommsElection.cs itself.
       "mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs",
-      "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
       // Kernel provider-election tests, both halves of the golden-fixture pair.
       // They use "realantennas" as the id of a losing/failing provider because
       // the exclusive "comms" election is the real-world shape the kernel
@@ -882,14 +880,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   agx: {
     domainDebt: [],
     permanent: [
-      // The mod-side Uplink isolation ratchet. It keys its shrink-only debt
-      // lists by Uplink project name, so the two Uplinks that still reach a
-      // private assembly have to be named in it: a debt list that cannot say
-      // whose debt it is does not work. Everything else in that file is
-      // deliberately name-free, the walk is checked against the project list in
-      // Gonogo.sln rather than a hardcoded one, precisely to keep this entry and
-      // its kerbalism twin the only two. Both go when the debt does.
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       // -- Judgment calls, all doc-mention only (Phase 1's seam commentary) --
       // NOTE: mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs used to sit
       // here, justified as "constant/method names ... and prose". Naming the API
@@ -900,8 +890,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // uplink that owns them, so the entry is gone rather than reclassified.
       // Doc-comment explaining why the capability's Groups() list is
       // named/arbitrary-length rather than a positional bool[]: cites
-      // "Action Groups Extended (AGX)" as the reason, no AGX coupling.
-      "mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs",
+      // "Action Groups Extended (AGX)" as the reason, no AGX coupling. Moved
+      // out of mod/Sitrep.Host/ActionGroups/ into the contract, which is where
+      // a seam an Uplink implements has to live for the Uplink to be able to
+      // build against it at all.
+      "mod/Sitrep.Contract/ActionGroupsBackend.cs",
       // ContractVersion's migration-history doc-comment for the
       // bool[]->ActionGroupState[] change names AGX as the reason the
       // contract had to stop being positional.
@@ -1177,8 +1170,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       // The mod-side Uplink isolation ratchet, same case as the magnitude budget
-      // below and as its agx twin: its shrink-only debt lists are keyed by Uplink
-      // project name, and this Uplink still reaches Gonogo.KSP. Goes when that does.
+      // below: its shrink-only debt lists are keyed by Uplink project name, so
+      // an Uplink that still reaches a private assembly has to be named in one.
+      // This is now the only such Uplink, and the entry goes when the debt does.
+      // Nothing else in that file names a mod: the directory walk is checked
+      // against the project list in Gonogo.sln rather than a hardcoded one,
+      // precisely so this stays the last one.
       "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
       // budget is keyed by file path, so it names every Uplink that unwraps a

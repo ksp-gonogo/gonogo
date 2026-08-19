@@ -2,7 +2,6 @@ using System;
 using KSP.UI.Screens;
 using Sitrep.Contract;
 using Sitrep.Host;
-using Sitrep.Host.ActionGroups;
 using UnityEngine;
 
 namespace Gonogo.KSP

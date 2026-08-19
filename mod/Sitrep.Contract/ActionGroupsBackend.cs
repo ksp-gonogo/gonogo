@@ -1,37 +1,44 @@
 using System.Collections.Generic;
-using Sitrep.Contract;
 
-namespace Sitrep.Host.ActionGroups
+namespace Sitrep.Contract
 {
     /// <summary>
     /// The action-groups capability seam: the exact shape
-    /// <see cref="Sitrep.Host.Comms.ICommsBackend"/> established for comms, and
+    /// <see cref="ICommsBackend"/> established for comms, and
     /// for the same reason: ONE client interface, SWAPPABLE authority.
     ///
-    /// <para><b>The precedent being mirrored</b> (see
-    /// <c>Gonogo.KSP.CommsCoreUplink</c> / <c>GonogoRealAntennasUplink</c>):
-    /// core registers an always-present vanilla factory for an exclusive
-    /// capability; a mod-specific uplink registers a higher-priority provider
-    /// that is elected only when that mod is actually loaded; the read path
-    /// resolves the winner at CAPTURE time. Critically, <b>the topics never
-    /// change and the mod-specific uplink ships no client at all</b>, the
-    /// RealAntennas uplink adds zero client code, because <c>comms.*</c> looks
-    /// identical whoever sources it.</para>
+    /// <para><b>The precedent being mirrored</b> is the comms capability and its
+    /// backends: core registers an always-present vanilla factory for an
+    /// exclusive capability; a mod-specific uplink registers a higher-priority
+    /// provider that is elected only when that mod is actually loaded; the read
+    /// path resolves the winner at CAPTURE time. Critically, <b>the topics never
+    /// change and the mod-specific uplink ships no client at all</b>, because
+    /// <c>comms.*</c> looks identical whoever sources it.</para>
     ///
     /// <para><b>What that buys here:</b> stock KSP has exactly ten anonymous
     /// custom groups; Action Groups Extended (AGX) gives the player up to 250
     /// that they NAME. Because <c>vessel.control.actionGroups</c> is now a
     /// NAMED, arbitrary-length list (<see cref="ActionGroupState"/>) rather
-    /// than a positional <c>bool[10]</c>, a future AGX backend elected over
+    /// than a positional <c>bool[10]</c>, an AGX backend elected over
     /// <c>StockActionGroupsBackend</c> needs <b>zero client change</b>: the
     /// widget already renders whatever names/indices arrive. That is the whole
     /// point of the seam, and it is why the contract had to stop being
-    /// positional first. The AGX backend itself is a LATER phase, this phase
-    /// only proves the seam by registering the stock backend through it.</para>
+    /// positional first.</para>
+    ///
+    /// <para><b>Why this interface is here and not in Sitrep.Host.</b> It was
+    /// written for a third-party AGX uplink to implement, and then put in an
+    /// assembly no third-party author can install or build against. That is the
+    /// whole of the mistake: the comms seam it mirrors, <see cref="ICommsBackend"/>,
+    /// has always been in this assembly, and the uplink implementing THAT one
+    /// reaches into nothing private to do it. An Uplink may build against
+    /// Sitrep.Contract and its own contract slice, so anything an Uplink is
+    /// expected to implement has to live here. The election helper stays in
+    /// Sitrep.Host: registering the capability and resolving the winner are
+    /// core's side of the seam, not an implementor's.</para>
     ///
     /// <para><b>Threading: read this before adding a backend.</b> Unlike a
     /// <c>Sitrep.Host</c> view-provider (which maps an ALREADY-captured
-    /// <see cref="KspSnapshot"/> and may run on the Courier thread), an
+    /// <c>KspSnapshot</c> and may run on the Courier thread), an
     /// implementation of this interface reads LIVE KSP. It is therefore only
     /// ever called from the main-thread capture (<c>Gonogo.KSP.KspHost</c>'s
     /// <c>BuildControl</c>), which is the same main-thread seam

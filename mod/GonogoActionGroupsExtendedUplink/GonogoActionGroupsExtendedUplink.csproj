@@ -17,16 +17,9 @@
        FlightGlobals.ActiveVessel internally, so this assembly never touches
        stock KSP itself.
 
-       Compile surface: Sitrep.Contract + Sitrep.Host (both Private="false",
-       see below). Sitrep.Host is where the design doc's own §5.4 election
-       code (ActionGroupsElection.RegisterActionGroupsExtendedProvider) and
-       the IActionGroupsBackend seam actually live
-       (mod/Sitrep.Host/ActionGroups/): unlike comms' ICommsBackend, which
-       sits in Sitrep.Contract, Phase 1 placed the action-groups seam one
-       layer down. Sitrep.Host is itself KSP-free/zero-external-dependency
-       (see its own csproj comment), so referencing it does not touch KSP or
-       AGExt: the arm's-length boundary this header describes is
-       unaffected. -->
+       Compile surface: Sitrep.Contract alone (Private="false", see below).
+       IActionGroupsBackend, the seam this uplink implements, sits there
+       beside comms' ICommsBackend. -->
   <PropertyGroup>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <TargetFramework>net48</TargetFramework>
@@ -42,33 +35,20 @@
   </PropertyGroup>
 
   <!--
-    Compile-time only. Core Gonogo already ships Sitrep.*.dll in
-    GameData/Gonogo/Plugins and KSP loads every GameData plugin into one
-    AppDomain, so this uplink resolves those types from core's copy at runtime
-    and must NOT bundle its own: hence Private=false on both.
+    Sitrep.Contract, and nothing else of this repo's: the whole compile surface,
+    which is what the Uplink isolation rule requires and what makes this project
+    buildable by someone who only has what is published. Private=false because
+    core Gonogo already ships Sitrep.Contract.dll in GameData/Gonogo/Plugins and
+    KSP loads every GameData plugin into one AppDomain, so this uplink resolves
+    those types from core's copy at runtime and must not bundle a second one.
 
-    Sitrep.Core, Sitrep.Transport and Sitrep.Propagation are listed for ONE
-    reason: Sitrep.Host drags all three in, and the flag on an outer
-    ProjectReference does not suppress copying of that project's own transitive
-    references, so a reachable project that is not named here is copied into
-    this uplink's output. Nothing here imports a type from any of the three.
-    That is not a reason to drop them, it is what makes them easy to drop by
-    mistake: removing them for tidiness re-opens the copying, which is how
-    Sitrep.Propagation came to be in bin/ in the first place, having never been
-    listed at all.
-
-    The flag has to go here, on the consumer, and NOT on Sitrep.Host's own
-    reference to Sitrep.Propagation: core Gonogo must bundle that assembly
-    (Sitrep.Host's public surface exposes OrbitElements and IVisibilityGeometry),
-    so suppressing it at the producer would un-ship it from
-    GameData/Gonogo/Plugins.
-
-    All four lines go away with the Sitrep.Host reference itself.
-
-    Sitrep.Host is the one remaining breach of the Uplink isolation rule and is
-    not meant to survive: it is here only for Sitrep.Host.ActionGroups'
-    IActionGroupsBackend and ActionGroupsElection, pending those moving to
-    Sitrep.Contract. See docs/uplink-isolation.md.
+    Sitrep.Host was here for IActionGroupsBackend and ActionGroupsElection. The
+    interface moved to Sitrep.Contract, where the comms seam it mirrors already
+    lived, and the election helper is core's own registration side that this
+    uplink never needed: it names the capability id directly, as the comms
+    backends do. Sitrep.Core, Sitrep.Transport and Sitrep.Propagation went with
+    it, having only ever been listed to stop Sitrep.Host copying them into this
+    uplink's output.
 
     NOTE: no reference to AGExt.dll, by design (see the licence header above),
     and NO KSP/Unity reference either (see above: this uplink never touches
@@ -76,10 +56,6 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj" Private="false" />
-    <ProjectReference Include="..\Sitrep.Propagation\Sitrep.Propagation.csproj" Private="false" />
   </ItemGroup>
 
 </Project>

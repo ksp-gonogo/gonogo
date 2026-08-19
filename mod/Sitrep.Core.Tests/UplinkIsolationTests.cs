@@ -74,20 +74,14 @@ namespace Sitrep.Core.Tests
         /// project references its csproj declares. Seeded 2026-08-19 from the
         /// measurement in the same commit. Shrink only.
         ///
-        /// <para>Both entries trace to a single declared reference apiece and are
-        /// pending a ruling on where the types they exist for belong:
-        /// GonogoActionGroupsExtendedUplink declares <c>Sitrep.Host</c> for
-        /// <c>Sitrep.Host.ActionGroups</c>, and GonogoKerbalismUplink declares
-        /// <c>Gonogo.KSP</c> for <c>Gonogo.KSP.CurrencyDelay.DelayedScienceSink</c>.
-        /// Sitrep.Core, Sitrep.Transport and Sitrep.Propagation appear in neither
-        /// csproj: they arrive through Sitrep.Host and leave when it does.</para>
+        /// <para>The one remaining entry traces to a single declared reference:
+        /// GonogoKerbalismUplink declares <c>Gonogo.KSP</c> for
+        /// <c>Gonogo.KSP.CurrencyDelay.DelayedScienceSink</c>. Sitrep.Host,
+        /// Sitrep.Core, Sitrep.Transport and Sitrep.Propagation appear nowhere in
+        /// its csproj: they arrive through Gonogo.KSP and leave when it does.</para>
         /// </summary>
         private static readonly Dictionary<string, string[]> ReferenceDebt = new(StringComparer.Ordinal)
         {
-            ["GonogoActionGroupsExtendedUplink"] = new[]
-            {
-                "Sitrep.Core", "Sitrep.Host", "Sitrep.Propagation", "Sitrep.Transport",
-            },
             ["GonogoKerbalismUplink"] = new[]
             {
                 "Gonogo.KSP", "Sitrep.Core", "Sitrep.Host", "Sitrep.Propagation", "Sitrep.Transport",
@@ -107,7 +101,6 @@ namespace Sitrep.Core.Tests
         /// </summary>
         private static readonly Dictionary<string, string[]> ImportDebt = new(StringComparer.Ordinal)
         {
-            ["GonogoActionGroupsExtendedUplink"] = new[] { "Sitrep.Host.ActionGroups" },
             ["GonogoKerbalismUplink"] = new[] { "Gonogo.KSP.CurrencyDelay" },
         };
 
