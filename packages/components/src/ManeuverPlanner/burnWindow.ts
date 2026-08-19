@@ -29,16 +29,45 @@ export interface BurnInstantRow {
 
 const ORDER: readonly BurnInstantKind[] = ["ignition", "reference", "cutoff"];
 
-const FRAMING: Record<
-  BurnInstantKind,
-  {
-    label: string;
-    question: string;
-    basis: string;
-    absent: string;
-    absentDetail: string;
-  }
-> = {
+/**
+ * The words wrapped around one instant. Supplied by the caller because four of
+ * these five fields describe where THIS app gets a burn from rather than
+ * anything true of burns: `basis` says "rocket equation" because
+ * `BurnTiming` computed it, `absent`/`absentDetail` name stock's own solver
+ * outright, and the reference row's `question` asserts an impulsive equivalent
+ * exists.
+ *
+ * The row MODEL around it is general: the fixed ignition/reference/cutoff
+ * order, the rule that an absent instant says WHY rather than dropping out, and
+ * the axis are true of any burn from any planner.
+ */
+export interface BurnInstantFraming {
+  /** What happens at it. */
+  label: string;
+  /** The question this row answers, so the three never read as restatements. */
+  question: string;
+  /** How it was arrived at. */
+  basis: string;
+  /** Shown in place of `basis` when nothing supplies the instant. */
+  absent: string;
+  /** The long form of `absent`, for a tooltip. */
+  absentDetail: string;
+}
+
+/**
+ * The stock-shaped framing, and the default.
+ *
+ * **It assumes the reference instant exists**, which is a stock-patched-conic
+ * assumption and not a fact about burns. A planner that INTEGRATES has a real
+ * ignition and a real cutoff and may have no impulsive equivalent at all, in
+ * which case the honest render is two rows rather than three reworded, and no
+ * table of words fixes that. Whether it is two or three-reworded is the first
+ * thing a second caller settles; it is deliberately not designed for here.
+ *
+ * Recorded rather than merely known, because a default that cannot say what it
+ * assumes is a default that gets adopted as a truth.
+ */
+export const STOCK_FRAMING: Record<BurnInstantKind, BurnInstantFraming> = {
   ignition: {
     label: "Ignition",
     question: "when do the engines light",
@@ -79,6 +108,7 @@ export interface BurnInstants {
  */
 export function burnInstantRows(
   burn: BurnInstants,
+  framingTable: Record<BurnInstantKind, BurnInstantFraming> = STOCK_FRAMING,
 ): readonly [BurnInstantRow, BurnInstantRow, BurnInstantRow] {
   const at: Record<BurnInstantKind, number | null> = {
     ignition: burn.ignitionUt ?? null,
@@ -86,7 +116,7 @@ export function burnInstantRows(
     cutoff: burn.cutoffUt ?? null,
   };
   const rows = ORDER.map((kind) => {
-    const framing = FRAMING[kind];
+    const framing = framingTable[kind];
     const atUt = at[kind];
     return {
       kind,
