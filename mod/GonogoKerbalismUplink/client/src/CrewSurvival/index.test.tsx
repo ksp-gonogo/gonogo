@@ -23,7 +23,7 @@ function newFixture() {
   // comment on this same gap). A dummy subscribe per topic flips
   // `StubTransport.emit`'s subscription gate the way a companion widget
   // reading the same topic would in production.
-  for (const topic of CARRIED) fixture.client.subscribe(topic, () => {});
+  for (const topic of CARRIED) fixture.subscribe(topic);
   return fixture;
 }
 

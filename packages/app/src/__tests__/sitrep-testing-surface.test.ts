@@ -27,9 +27,15 @@ import { describe, expect, it } from "vitest";
  * needs to see everything belongs.
  */
 
-/** Constructed with `new`, so they must be real classes. */
+/**
+ * Constructed with `new`, so they must be real classes.
+ *
+ * `TelemetryClient` is deliberately NOT here. It is published as a TYPE only:
+ * the class is spine plumbing and freezing it as public API would make every
+ * future change to it someone else's breaking change. A test that wants a
+ * stream calls `setupStreamFixture`. See `TYPE_ONLY` below.
+ */
 const CONSTRUCTORS = [
-  "TelemetryClient",
   "TimelineStore",
   "ViewClock",
   "StubTransport",
@@ -42,6 +48,7 @@ const CONSTRUCTORS = [
 
 /** Called directly. */
 const FUNCTIONS = [
+  "createTestTelemetryClient",
   "installRealTestHost",
   "setupStreamFixture",
   "installDomStubs",
@@ -77,7 +84,30 @@ const VALUES = [
   "DEFAULT_PROFILE_ID",
 ] as const;
 
+/**
+ * The other half of the type-vs-value distinction: these must NOT be values.
+ * Without this, re-exporting `TelemetryClient` as a class again would restore
+ * the surface nobody wants and no test would notice.
+ */
+const TYPE_ONLY = ["TelemetryClient"] as const;
+
 describe("@ksp-gonogo/sitrep-testing: published surface", () => {
+  it("exports the type-only names as types, never as constructible values", () => {
+    const leaked = TYPE_ONLY.filter(
+      (name) => (harness as Record<string, unknown>)[name] !== undefined,
+    );
+    expect(
+      leaked,
+      [
+        "These are published as TYPES on purpose and are values at runtime.",
+        "",
+        "`TelemetryClient` is spine plumbing: the transport, the store, command",
+        "lifecycle and loss detection. Publishing the class freezes all of that",
+        "as public API. Give the fixture a verb instead.",
+      ].join("\n"),
+    ).toEqual([]);
+  });
+
   /**
    * The instrument check. A namespace import that resolved to an empty object
    * passes every `typeof` assertion below by having nothing to disagree with, and

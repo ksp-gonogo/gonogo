@@ -43,9 +43,8 @@ import {
   getComponent,
   registerComponent,
   renderWidget,
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
+  type StreamFixture,
+  setupStreamFixture,
   WidgetHost,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
@@ -111,20 +110,21 @@ function renderFeed(
 // badge tests below: those three reads (signalStrength/connected/
 // signalDelay) were migrated off the legacy two-arg `useTelemetry("data",
 // "comm.*")` shim onto native topics, so they need a mounted
-// `TelemetryProvider`, not the `makeDataSource("data", ...)` fake the rest
+// the stream fixture, not the `makeDataSource("data", ...)` fake the rest
 // of this file's `dataRequirements` still use.
 // ---------------------------------------------------------------------------
 
+/** The three native topics CameraFeed reads its comms state off. */
+const COMMS_TOPICS = ["vessel.comms", "comms.link", "comms.delay"] as const;
+
 function renderFeedWithComms(
   config: Partial<CameraFeedConfig>,
-  client: TelemetryClient,
+  stream: StreamFixture,
 ): ReturnType<typeof render> {
   const result = renderWidget("camera-feed", {
     instanceId: TEST_INSTANCE_ID,
     config: fullConfig(config),
-    wrapper: ({ children }) => (
-      <TelemetryProvider client={client}>{children}</TelemetryProvider>
-    ),
+    wrapper: stream.Provider,
   });
   renderedTrees.push(result.unmount);
   return result;
@@ -139,7 +139,7 @@ function renderFeedWithComms(
  * their key names updated.
  */
 function emitComms(
-  transport: StubTransport,
+  stream: StreamFixture,
   fixture: {
     signalStrength?: number;
     connected?: boolean;
@@ -147,13 +147,13 @@ function emitComms(
   },
 ): void {
   if (fixture.signalStrength !== undefined) {
-    transport.emit("vessel.comms", { signalStrength: fixture.signalStrength });
+    stream.emit("vessel.comms", { signalStrength: fixture.signalStrength });
   }
   if (fixture.connected !== undefined) {
-    transport.emit("comms.link", { connected: fixture.connected });
+    stream.emit("comms.link", { connected: fixture.connected });
   }
   if (fixture.signalDelay !== undefined) {
-    transport.emit("comms.delay", { oneWaySeconds: fixture.signalDelay });
+    stream.emit("comms.delay", { oneWaySeconds: fixture.signalDelay });
   }
 }
 
@@ -943,14 +943,13 @@ describe("CameraFeed: CommNet degrade", () => {
   it("CommNet degrade 0 when signal is full strength", async () => {
     const { sidecar } = await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     // Reads are native topics now: emit after mount so the widget's already
     // subscribed, then let the rAF-scheduled store frame commit land.
     await act(async () => {
-      emitComms(transport, { signalStrength: 1.0, connected: true });
+      emitComms(stream, { signalStrength: 1.0, connected: true });
     });
 
     // Two SEPARATE advances, not one bulk one: the first flushes the rAF
@@ -979,12 +978,11 @@ describe("CameraFeed: CommNet degrade", () => {
   it("weak signal maps to a proportional degrade level (1 - signalStrength)", async () => {
     const { sidecar } = await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     await act(async () => {
-      emitComms(transport, { signalStrength: 0.3, connected: true });
+      emitComms(stream, { signalStrength: 0.3, connected: true });
     });
     // Two separate advances: see the first test in this describe block for
     // why the rAF-then-debounce cascade needs its own act() boundary.
@@ -1004,12 +1002,11 @@ describe("CameraFeed: CommNet degrade", () => {
   it("comm disconnected applies maximum degrade (level 1.0)", async () => {
     const { sidecar } = await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     await act(async () => {
-      emitComms(transport, { signalStrength: 1.0, connected: false });
+      emitComms(stream, { signalStrength: 1.0, connected: false });
     });
     // Two separate advances: see the first test in this describe block for
     // why the rAF-then-debounce cascade needs its own act() boundary.
@@ -1034,13 +1031,12 @@ describe("CameraFeed: CommNet degrade", () => {
       makeCamera({ flightId: 42, cameraName: "Starboard Cam" }),
     ]);
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
     // Auto mode: no explicit flightId configured.
-    renderFeedWithComms({ flightId: null }, client);
+    renderFeedWithComms({ flightId: null }, stream);
 
     await act(async () => {
-      emitComms(transport, { signalStrength: 0.5, connected: true });
+      emitComms(stream, { signalStrength: 0.5, connected: true });
     });
     // Two separate advances: see the first test in this describe block for
     // why the rAF-then-debounce cascade needs its own act() boundary.
@@ -1069,12 +1065,11 @@ describe("CameraFeed: CommNet degrade", () => {
     // once connected, falling back to 0 with no strength reading.
     const { sidecar } = await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     await act(async () => {
-      emitComms(transport, { connected: false });
+      emitComms(stream, { connected: false });
     });
     // Two separate advances: see the first test in this describe block for
     // why the rAF-then-debounce cascade needs its own act() boundary.
@@ -1089,7 +1084,7 @@ describe("CameraFeed: CommNet degrade", () => {
 
     // Signal returns; signalStrength is never published for this install.
     await act(async () => {
-      emitComms(transport, { connected: true });
+      emitComms(stream, { connected: true });
     });
     // Two separate advances: see the first test in this describe block for
     // why the rAF-then-debounce cascade needs its own act() boundary.
@@ -1119,16 +1114,15 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows the one-way signal delay badge as a one-decimal readout (sub-minute)", async () => {
     await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     act(() => {
       // A delay is a readout, not a countdown: sub-minute keeps one decimal
       // (3.8 -> "3.8 s"), NOT the time ladder's whole-unit truncation, so the
       // operator sees the real light-time. The space is SI's and comes from
       // the shared formatter, where the hand-rolled string had none.
-      emitComms(transport, {
+      emitComms(stream, {
         signalStrength: 1.0,
         connected: true,
         signalDelay: 3.8,
@@ -1142,12 +1136,11 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows a multi-unit one-way signal delay (e.g. deep-space distances)", async () => {
     await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     act(() => {
-      emitComms(transport, {
+      emitComms(stream, {
         signalStrength: 1.0,
         connected: true,
         signalDelay: 80,
@@ -1163,12 +1156,11 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("hides the delay badge when the delay is zero (LAN / no delay authority)", async () => {
     await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     act(() => {
-      emitComms(transport, {
+      emitComms(stream, {
         signalStrength: 1.0,
         connected: true,
         signalDelay: 0,
@@ -1182,12 +1174,11 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("hides the delay badge when no delay data has ever arrived", async () => {
     await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     act(() => {
-      emitComms(transport, { signalStrength: 1.0, connected: true });
+      emitComms(stream, { signalStrength: 1.0, connected: true });
     });
 
     await screen.findByRole("button", { name: /starboard cam/i });
@@ -1197,12 +1188,11 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows the signal quality badge as a percentage", async () => {
     await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     act(() => {
-      emitComms(transport, { signalStrength: 0.72, connected: true });
+      emitComms(stream, { signalStrength: 0.72, connected: true });
     });
 
     // `visibleText`, not `findByText`: <Unit> puts the number and its symbol in
@@ -1217,12 +1207,11 @@ describe("CameraFeed: signal delay + signal quality badges", () => {
   it("shows a clear no-signal state when comm.connected is false", async () => {
     await buildConnectedSource();
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    renderFeedWithComms({ flightId: 42 }, client);
+    const stream = setupStreamFixture({ carriedChannels: COMMS_TOPICS });
+    renderFeedWithComms({ flightId: 42 }, stream);
 
     act(() => {
-      emitComms(transport, { signalStrength: 0.72, connected: false });
+      emitComms(stream, { signalStrength: 0.72, connected: false });
     });
 
     expect(await screen.findByText("NO SIGNAL")).toBeTruthy();

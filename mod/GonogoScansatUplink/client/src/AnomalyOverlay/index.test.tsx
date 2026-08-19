@@ -2,11 +2,11 @@ import { TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
+  createTestTelemetryClient,
   getMapPoiProviders,
   MockDataSource,
   registerDataSource,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactNode } from "react";
@@ -55,7 +55,7 @@ describe("scansat:anomalies map POI provider", () => {
     const anomalySource = new MockDataSource({ id: "data" });
     registerDataSource(anomalySource);
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     const provider = getProvider();
 
     const { result, unmount } = renderHook(
@@ -119,7 +119,7 @@ describe("scansat:anomalies map POI provider", () => {
     // the dispatch is asserted against the command client's recorded envelope
     // (`transport.sentCommands`), same as TargetPicker's migrated test.
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     const provider = getProvider();
 
     const { result, unmount } = renderHook(
@@ -179,7 +179,7 @@ describe("scansat:anomalies map POI provider", () => {
     const anomalySource = new MockDataSource({ id: "data" });
     registerDataSource(anomalySource);
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     const provider = getProvider();
 
     const { result, unmount } = renderHook(

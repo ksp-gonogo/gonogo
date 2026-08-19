@@ -69,6 +69,13 @@ export {
   FogMaskStore,
   MemoryStore,
 } from "@ksp-gonogo/data";
+// The TYPE only. Publishing the class as a value would freeze app-internal
+// plumbing (transport, store, command lifecycle, loss detection) as public API,
+// where every future change to it becomes someone else's breaking change. A
+// test that wants a stream calls `setupStreamFixture`; one that needs to hand
+// the client to something (an Uplink DataSource's `attachTelemetryClient`)
+// passes `fixture.client` along without ever constructing one.
+export type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 // ── The spine, for a test that drives it directly ────────────────────────────
 // `setupStreamFixture` above covers the common case. These are for a test that
 // needs to build its own pipeline (a ReplayTransport, a second store, a clock it
@@ -95,7 +102,6 @@ export {
   setActiveTelemetryClientForTests,
   setActiveTimelineStore,
   spaceCenterStateChannel,
-  TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
@@ -112,6 +118,7 @@ export {
 // silently dropping the name, and the repo's own lint rule says to reach Testing
 // Library through the harness rather than directly. One source, one path.
 export * from "@ksp-gonogo/sitrep-sdk/testing";
+export { createTestTelemetryClient } from "./createTestTelemetryClient";
 export { installRealTestHost } from "./host";
 // Renders a widget the way the DASHBOARD does, not the way `render` does. See
 // its own doc for the stack, and for the three wrappers it deliberately omits.

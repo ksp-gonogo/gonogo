@@ -162,7 +162,7 @@ function renderWidget(fixture: ReturnType<typeof newFixture>) {
  * subscribes to the brand-new `kerbalism.profile` topic either).
  */
 function primeSubscriptions(fixture: ReturnType<typeof newFixture>) {
-  for (const topic of CARRIED) fixture.client.subscribe(topic, () => {});
+  for (const topic of CARRIED) fixture.subscribe(topic);
 }
 
 function emitAll(fixture: ReturnType<typeof newFixture>) {

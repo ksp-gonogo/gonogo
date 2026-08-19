@@ -46,7 +46,7 @@ function newFixture() {
     carriedChannels: CARRIED,
     pinnedUt: 10,
   });
-  for (const topic of CARRIED) fixture.client.subscribe(topic, () => {});
+  for (const topic of CARRIED) fixture.subscribe(topic);
   return fixture;
 }
 

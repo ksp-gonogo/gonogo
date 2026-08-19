@@ -107,7 +107,7 @@ function newFixture() {
     carriedChannels: CARRIED,
     pinnedUt: 10,
   });
-  fixture.client.subscribe("kerbalism.spaceweather", () => {});
+  fixture.subscribe("kerbalism.spaceweather");
   return fixture;
 }
 

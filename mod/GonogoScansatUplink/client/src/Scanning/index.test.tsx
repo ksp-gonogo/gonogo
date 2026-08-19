@@ -3,12 +3,12 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
   clearRegistry,
+  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -74,7 +74,7 @@ describe("ScanningComponent", () => {
     registerDataSource(buffered);
     await buffered.connect();
     transport = new StubTransport();
-    client = new TelemetryClient(transport);
+    client = createTestTelemetryClient(transport);
   });
 
   afterEach(() => {
