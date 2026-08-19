@@ -7,13 +7,12 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
-import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
+import { TargetKind, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
   Button,
   FieldLabel,
-  FieldRow,
   KSP_DAY_SECONDS,
   KSP_YEAR_DAYS,
   NULL_DISPLAY,
@@ -23,7 +22,7 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useId, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useCelestialBodies } from "../SystemView/useCelestialBodies";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
@@ -407,45 +406,7 @@ function TransferWindowComponent({
   }
 
   return (
-    <Panel
-      panelTitle="Transfer Window"
-      panelAside={
-        <FieldRow>
-          {/*
-           * The budget sits with the verdicts it produced, on the same reasoning as
-           * the funds readout on any widget that spends money: an operator reading
-           * "NO" should not have to find another panel to learn what number said so.
-           * `vac` is on screen because the ISP assumption is part of the figure.
-           */}
-          {budgetDeltaV != null && (
-            <BudgetReadout>
-              <FieldLabel as="span">Budget</FieldLabel>
-              <Unit value={value("m/s", budgetDeltaV)} decimals={0} /> vac
-              {reserveDeltaV > 0 && (
-                <Muted>
-                  {" reserve "}
-                  <Unit value={value("m/s", reserveDeltaV)} decimals={0} />
-                </Muted>
-              )}
-            </BudgetReadout>
-          )}
-          <FieldLabel htmlFor="transfer-dest">
-            {origin.name ?? "Origin"} to
-          </FieldLabel>
-          <RouteSelect
-            id="transfer-dest"
-            value={dest.index}
-            onChange={(e) => setDestIndex(Number(e.target.value))}
-          >
-            {dests.map((d) => (
-              <option key={d.index} value={d.index}>
-                {d.name ?? `Body ${d.index}`}
-              </option>
-            ))}
-          </RouteSelect>
-        </FieldRow>
-      }
-    >
+    <Panel panelTitle="Transfer Window">
       <Body>
         {orbitNotCurrent && (
           // Dated, not withheld. Says which half of the panel it applies to,
@@ -457,33 +418,27 @@ function TransferWindowComponent({
             Phase and window times stay live.
           </Text>
         )}
+        <ReachList
+          entries={reach}
+          originName={origin.name ?? "here"}
+          budgetDeltaV={budgetDeltaV}
+          reserveDeltaV={reserveDeltaV}
+          budgetNotCurrent={budgetNotCurrent}
+          selectedIndex={dest.index}
+          onSelect={setDestIndex}
+          budgetAge={budgetAge}
+          budgetConfirmedAbsent={budgetConfirmedAbsent}
+        />
         {/*
-         * The budget, beside the verdicts it produced. Three different sentences,
-         * and the widget must not collapse them: a dated figure still plans, a
-         * confirmed-absent one says the stock sim has nothing for this craft, and
-         * silence says we have not heard. Only the first renders a number.
+         * Responsive on the body's own width (container query): stacked when
+         * narrow (dial + list, then the chart below), side-by-side when wide. The
+         * grid renders whether or not a transfer solves, because the destination
+         * select lives on the windows heading and must stay reachable: an operator
+         * whose orbit payload is partial still needs to change destination.
          */}
-        {budgetNotCurrent && budgetDeltaV != null && (
-          <Text tone="warn" size="xs" role="status" aria-live="polite">
-            Budget last heard{" "}
-            {budgetAge ? <Unit value={budgetAge} decimals={0} /> : "some time"}{" "}
-            ago. Δv only falls as you burn, so reach here can only be
-            optimistic.
-          </Text>
-        )}
-        {budgetConfirmedAbsent && (
-          <Text tone="warn" size="xs" role="status" aria-live="polite">
-            No Δv figure for this craft: the stock simulation reports none, so
-            costs are shown without a verdict.
-          </Text>
-        )}
-        {solution ? (
-          // Responsive on the body's own width (container query): stacked when
-          // narrow: dial + list, then the chart below; side-by-side when wide,
-          // dial + list on the left, the chart flowing to the right. The
-          // chart holds a minimum size and grows to fill whatever space is free.
-          <ContentGrid>
-            <LeftCol>
+        <ContentGrid>
+          <LeftCol>
+            {solution ? (
               <NowRow>
                 <PhaseDial solution={solution} />
                 <NowFacts role="status" aria-live="polite">
@@ -506,43 +461,60 @@ function TransferWindowComponent({
                   </Badge>
                 </NowFacts>
               </NowRow>
-
-              <WindowsList
-                windows={windows}
-                selectedIndex={selIdx}
-                onSelect={setSelectedWindow}
-                destName={dest.name ?? "target"}
-                createAlarm={
-                  createAlarm
-                    ? (w) =>
-                        createAlarm({
-                          name: `Transfer: ${origin.name} to ${dest.name}`,
-                          trigger: {
-                            kind: "time",
-                            ut: w.departureUt,
-                            leadSeconds,
-                          },
-                        })
-                    : null
-                }
-              />
-
-              <ReachList
-                entries={reach}
-                originName={origin.name ?? "here"}
-                budgetDeltaV={budgetDeltaV}
-                reserveDeltaV={reserveDeltaV}
-                budgetNotCurrent={budgetNotCurrent}
-              />
-            </LeftCol>
-
-            {showPorkchop && focusedPorkchop && (
-              <Porkchop grid={focusedPorkchop} nowUt={nowUt} />
+            ) : (
+              <Placeholder>Waiting for orbital elements...</Placeholder>
             )}
-          </ContentGrid>
-        ) : (
-          <Placeholder>Waiting for orbital elements...</Placeholder>
-        )}
+
+            <WindowsList
+              windows={windows}
+              selectedIndex={selIdx}
+              onSelect={setSelectedWindow}
+              destPicker={
+                /*
+                 * NOT wrapped in a FieldRow: the label and the select have to be
+                 * direct children of the wrapping SectionHead, or the select's
+                 * narrow-width rule sizes against an inner row that is itself the
+                 * thing overflowing the panel. The heading IS the control's label,
+                 * since a static "Windows to Mars" beside a Mars select would name
+                 * the destination twice on one line.
+                 */
+                <>
+                  <FieldLabel htmlFor="transfer-dest">
+                    <ListTitle as="span">Windows to</ListTitle>
+                  </FieldLabel>
+                  <RouteSelect
+                    id="transfer-dest"
+                    value={dest.index}
+                    onChange={(e) => setDestIndex(Number(e.target.value))}
+                  >
+                    {dests.map((d) => (
+                      <option key={d.index} value={d.index}>
+                        {d.name ?? `Body ${d.index}`}
+                      </option>
+                    ))}
+                  </RouteSelect>
+                </>
+              }
+              createAlarm={
+                createAlarm
+                  ? (w) =>
+                      createAlarm({
+                        name: `Transfer: ${origin.name} to ${dest.name}`,
+                        trigger: {
+                          kind: "time",
+                          ut: w.departureUt,
+                          leadSeconds,
+                        },
+                      })
+                  : null
+              }
+            />
+          </LeftCol>
+
+          {showPorkchop && focusedPorkchop && (
+            <Porkchop grid={focusedPorkchop} nowUt={nowUt} />
+          )}
+        </ContentGrid>
       </Body>
     </Panel>
   );
@@ -552,19 +524,19 @@ function WindowsList({
   windows,
   selectedIndex,
   onSelect,
-  destName,
+  destPicker,
   createAlarm,
 }: {
   windows: TransferWindowEntry[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  destName: string;
+  /** The destination select, on this section's heading line: it scopes THIS list. */
+  destPicker: ReactNode;
   createAlarm: ((w: TransferWindowEntry) => void) | null;
 }) {
-  if (windows.length === 0) return null;
   return (
     <ListWrap>
-      <ListTitle>Windows to {destName}</ListTitle>
+      <SectionHead>{destPicker}</SectionHead>
       <List>
         {windows.map((w) => {
           const isSel = w.index === selectedIndex;
@@ -647,83 +619,147 @@ function ReachList({
   budgetDeltaV,
   reserveDeltaV,
   budgetNotCurrent,
+  selectedIndex,
+  onSelect,
+  budgetAge,
+  budgetConfirmedAbsent,
 }: {
   entries: ReachEntry[];
   originName: string;
   budgetDeltaV: number | null;
   reserveDeltaV: number;
   budgetNotCurrent: boolean;
+  /** Body index of the destination the windows list is currently scoped to. */
+  selectedIndex: number;
+  onSelect: (bodyIndex: number) => void;
+  /** How long ago the budget was observed, for the dated caption. */
+  budgetAge: Value<"s"> | null;
+  /** The stock sim reports no figure for this craft, as opposed to none arriving. */
+  budgetConfirmedAbsent: boolean;
 }) {
   if (entries.length === 0) return null;
   const haveBudget = budgetDeltaV != null;
 
   return (
     <ListWrap>
-      <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
-      <ReachTable aria-describedby="reach-caption">
-        <thead>
-          <tr>
-            <ReachTh scope="col">Destination</ReachTh>
-            <ReachTh scope="col">Δv needed</ReachTh>
-            {haveBudget && <ReachTh scope="col">Affords</ReachTh>}
-            <ReachTh scope="col">Window</ReachTh>
-            <ReachTh scope="col">Transit</ReachTh>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry) => {
-            const verdict = reachVerdict(entry, budgetDeltaV, reserveDeltaV);
-            return (
-              <tr key={entry.body.index}>
-                <ReachTd>
-                  {entry.body.name ?? `Body ${entry.body.index}`}
-                </ReachTd>
-                <ReachTdNum>
-                  {entry.totalDeltaV != null ? (
-                    <Unit
-                      value={value("m/s", entry.totalDeltaV)}
-                      decimals={0}
-                    />
-                  ) : (
-                    NULL_DISPLAY
-                  )}
-                </ReachTdNum>
-                {haveBudget && (
+      <ReachHead>
+        <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
+        {/*
+         * The budget belongs on THIS row, not in the panel header. It is the reach
+         * list's own input, it sits directly above the verdicts it produced (the
+         * funds-readout rule: nobody should have to look elsewhere for the number
+         * that said NO), and putting it in `panelAside` pushed that row past its
+         * width so Panel collapsed the destination select behind a disclosure. The
+         * render caught it; `vac` stays on screen because the ISP assumption is part
+         * of the figure.
+         */}
+        {budgetDeltaV != null && (
+          <BudgetReadout>
+            <Muted>Budget</Muted>{" "}
+            <Unit value={value("m/s", budgetDeltaV)} decimals={0} /> vac
+            {reserveDeltaV > 0 && (
+              <Muted>
+                {" reserve "}
+                <Unit value={value("m/s", reserveDeltaV)} decimals={0} />
+              </Muted>
+            )}
+          </BudgetReadout>
+        )}
+      </ReachHead>
+      {/*
+       * Three different sentences about the budget, and the list must not collapse
+       * them: a dated figure still plans, a confirmed-absent one says the stock sim
+       * has nothing for this craft, and silence says we have not heard. Only the
+       * first renders a number. They sit HERE rather than at the top of the panel
+       * because they are about this list, and above the panel's first heading they
+       * read as a statement about the whole widget.
+       */}
+      {budgetNotCurrent && budgetDeltaV != null && (
+        <Text tone="warn" size="xs" role="status" aria-live="polite">
+          Budget last heard{" "}
+          {budgetAge ? <Unit value={budgetAge} decimals={0} /> : "some time"}{" "}
+          ago. Δv only falls as you burn, so reach here can only be optimistic.
+        </Text>
+      )}
+      {budgetConfirmedAbsent && (
+        <Text tone="warn" size="xs" role="status" aria-live="polite">
+          No Δv figure for this craft: the stock simulation reports none, so
+          costs are shown without a verdict.
+        </Text>
+      )}
+      <ReachScroll>
+        <ReachTable aria-describedby="reach-caption">
+          <thead>
+            <tr>
+              <ReachTh scope="col">Destination</ReachTh>
+              <ReachTh scope="col">Δv needed</ReachTh>
+              {haveBudget && <ReachTh scope="col">Affords</ReachTh>}
+              <ReachTh scope="col">Window</ReachTh>
+              <ReachTh scope="col">Transit</ReachTh>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => {
+              const verdict = reachVerdict(entry, budgetDeltaV, reserveDeltaV);
+              return (
+                <tr key={entry.body.index}>
                   <ReachTd>
-                    {verdict ? (
-                      // Dated verdicts read as advisory rather than live. A stale
-                      // budget can only over-state reach (Δv falls by burning), so
-                      // "GO as of some minutes ago" must not wear the live GO
-                      // colour.
-                      <Badge
-                        severity={
-                          budgetNotCurrent
-                            ? undefined
-                            : VERDICT_SEVERITY[verdict]
-                        }
-                      >
-                        {VERDICT_LABEL[verdict]}
-                      </Badge>
+                    <ReachPick
+                      type="button"
+                      $selected={entry.body.index === selectedIndex}
+                      aria-pressed={entry.body.index === selectedIndex}
+                      onClick={() => onSelect(entry.body.index)}
+                    >
+                      {entry.body.name ?? `Body ${entry.body.index}`}
+                    </ReachPick>
+                  </ReachTd>
+                  <ReachTdNum>
+                    {entry.totalDeltaV != null ? (
+                      <Unit
+                        value={value("m/s", entry.totalDeltaV)}
+                        decimals={0}
+                      />
                     ) : (
                       NULL_DISPLAY
                     )}
-                  </ReachTd>
-                )}
-                <ReachTdNum>
-                  {entry.waitSeconds != null
-                    ? fmtCountdown(entry.waitSeconds)
-                    : NULL_DISPLAY}
-                </ReachTdNum>
-                <ReachTdNum>
-                  {entry.transferTimeSec != null
-                    ? fmtDays(entry.transferTimeSec)
-                    : NULL_DISPLAY}
-                </ReachTdNum>
-              </tr>
-            );
-          })}
-        </tbody>
-      </ReachTable>
+                  </ReachTdNum>
+                  {haveBudget && (
+                    <ReachTd>
+                      {verdict ? (
+                        // Dated verdicts read as advisory rather than live. A stale
+                        // budget can only over-state reach (Δv falls by burning), so
+                        // "GO as of some minutes ago" must not wear the live GO
+                        // colour.
+                        <Badge
+                          severity={
+                            budgetNotCurrent
+                              ? undefined
+                              : VERDICT_SEVERITY[verdict]
+                          }
+                        >
+                          {VERDICT_LABEL[verdict]}
+                        </Badge>
+                      ) : (
+                        NULL_DISPLAY
+                      )}
+                    </ReachTd>
+                  )}
+                  <ReachTdNum>
+                    {entry.waitSeconds != null
+                      ? fmtCountdown(entry.waitSeconds)
+                      : NULL_DISPLAY}
+                  </ReachTdNum>
+                  <ReachTdNum>
+                    {entry.transferTimeSec != null
+                      ? fmtDays(entry.transferTimeSec)
+                      : NULL_DISPLAY}
+                  </ReachTdNum>
+                </tr>
+              );
+            })}
+          </tbody>
+        </ReachTable>
+      </ReachScroll>
       <ReachFooter>
         Coplanar circular model, plane change not included. Capture circularises
         10 km above the destination's atmosphere.
@@ -1058,6 +1094,14 @@ const TEXT_PAD = "var(--space-12)";
 // Container-query breakpoint (body inline-size) at which the chart flows from
 // under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
+
+/**
+ * Below this body width the destination select stops sharing a line with its
+ * heading. Measured against the render harness rather than picked: a 5-unit-wide
+ * placement gives the body about 152px and a 6-unit one about 192px, and neither
+ * fits "WINDOWS TO" plus a select without the select touching the panel edge.
+ */
+const NARROW_HEAD_AT = "256px";
 // Panel.Body already pads, scrolls and glows; all this adds is the query
 // container, so the content grid reflows on the body's own width rather than
 // the viewport's (a container cannot query itself, hence the wrapper).
@@ -1066,6 +1110,9 @@ const Body = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Reach is its own answer and the dial/windows block is another; without a gap
+     they ran together as one dense column. */
+  gap: var(--space-8);
   container-type: inline-size;
 `;
 
@@ -1099,7 +1146,18 @@ const LeftCol = styled.div`
 
 const RouteSelect = styled(Select)`
   width: auto;
-  min-width: 8rem;
+  /* Shrinkable: an 8rem floor is most of a 192px panel, which is what pushed the
+     fused heading off the edge at portrait-5x18. It still cannot go below its own
+     content, so the body name stays readable. */
+  min-width: 0;
+  max-width: 100%;
+
+  /* Below this the label and the select cannot share a line without the select
+     hugging the panel edge, so it takes its own full-width line instead. Reads as
+     deliberate rather than crammed, and the phrase still reads top-to-bottom. */
+  @container (max-width: ${NARROW_HEAD_AT}) {
+    flex: 1 1 100%;
+  }
 `;
 
 const NowRow = styled.div`
@@ -1173,12 +1231,66 @@ const ListTitle = styled.div`
   letter-spacing: 0.08em;
 `;
 
+const SectionHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  /* The heading and its select are one phrase, so they wrap together rather than
+     being pushed to opposite ends, and they wrap onto two lines before they overflow. */
+  flex-wrap: wrap;
+  min-width: 0;
+`;
+
+/**
+ * The destination cell as a control. A `<button>` inside the cell rather than a
+ * click handler on the `<tr>`: the row stays a row for a screen reader, and picking
+ * a destination is reachable by keyboard. `aria-pressed` carries which one the
+ * windows list below is currently scoped to, since the visual cue is a colour.
+ */
+const ReachPick = styled.button<{ $selected: boolean }>`
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: ${(p) => (p.$selected ? "var(--color-accent-fg)" : "inherit")};
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+`;
+
+const ReachHead = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+`;
+
 const BudgetReadout = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: var(--space-2);
   font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
+`;
+
+/**
+ * The reach table is the widest thing in the widget and it is now the FIRST thing,
+ * so at a narrow placement it has to go somewhere. It scrolls here rather than
+ * clipping: at `mobile-9x8` the Transit column was cut off mid-heading and at
+ * `portrait-5x18` the verdict badges were sliced in half, which loses data with no
+ * indication that anything is missing. A scroll container keeps every column intact
+ * and says so by scrolling. `min-width` stops the columns collapsing into each other
+ * instead of overflowing, which is what makes the scroll meaningful.
+ */
+const ReachScroll = styled.div`
+  overflow-x: auto;
+  max-width: 100%;
 `;
 
 const ReachTable = styled.table`

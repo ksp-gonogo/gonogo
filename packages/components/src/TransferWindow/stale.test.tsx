@@ -157,7 +157,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
     // there, and the caption names the one figure that does not.
     expect(screen.getByText("Current phase")).toBeInTheDocument();
     expect(screen.getByText("IDEAL")).toBeInTheDocument();
-    expect(screen.getByText("Windows to Mars")).toBeInTheDocument();
+    expect(screen.getByText(/^Windows to$/)).toBeInTheDocument();
     expect(screen.getByText("Ejection Δv")).toBeInTheDocument();
     expect(visibleText(view.container)).toMatch(/Δv is from the last known/);
   });

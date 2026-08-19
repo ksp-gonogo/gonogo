@@ -1,0 +1,135 @@
+{
+  "_meta": {
+    "capturedAt": "2026-07-24",
+    "vessel": "Ares (LEO parking orbit)",
+    "body": "Earth (RSS)",
+    "situation": "700 km LEO around Earth, Mars targeted, and the stock delta-v simulation reporting NO figure for this craft",
+    "notes": "The absent-budget case, which is a first-class state rather than an edge: stock VesselDeltaV declines outright for a vessel it is not simulating (CheckDirtyAndRun returns early when the craft is not loaded, and IsReady is false through every scene load and after each staging event). dv.summary is CARRIED and emitted as null, which is the confirmed tombstone, not silence: the widget owes the operator 'no figure for this craft' and no verdict at all. Costs and window times do not depend on the budget and must stay. Contrast the NO verdict, which is a computed answer and looks like one."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "system.bodies",
+      "target.available",
+      "dv.summary"
+    ],
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Sun",
+              "parentIndex": null,
+              "radius": 695700000,
+              "gravParameter": 1.32712440018e20,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Earth",
+              "parentIndex": 0,
+              "radius": 6371000,
+              "gravParameter": 398600441800000.0,
+              "sphereOfInfluence": 924000000,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 140000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 149597870700,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mars",
+              "parentIndex": 0,
+              "radius": 3389500,
+              "gravParameter": 42828370000000,
+              "sphereOfInfluence": 577000000,
+              "atmosphere": {
+                "depth": 125000,
+                "hasOxygen": false,
+                "seaLevelPressure": 0.636
+              },
+              "orbit": {
+                "sma": 227939200000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0.773148,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Venus",
+              "parentIndex": 0,
+              "radius": 6051800,
+              "gravParameter": 324859000000000,
+              "sphereOfInfluence": 616000000,
+              "orbit": {
+                "sma": 108208000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 0,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 7071000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 398600441800000.0
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "target.available",
+        "value": {
+          "entries": [
+            {
+              "kind": 1,
+              "name": "Mars",
+              "bodyIndex": 2,
+              "isCurrent": true
+            }
+          ]
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "dv.summary",
+        "value": null
+      }
+    ]
+  }
+}

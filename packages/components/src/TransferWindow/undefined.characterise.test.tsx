@@ -276,7 +276,7 @@ describe("TransferWindow: a partial vessel.orbit payload", () => {
     expect(
       screen.queryByText("Waiting for vessel orbit..."),
     ).not.toBeInTheDocument();
-    expect(await screen.findByLabelText(/Earth to/)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Windows to/)).toBeInTheDocument();
     expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
   });
 
@@ -304,9 +304,9 @@ describe("TransferWindow: an absent target.available picks a destination anyway"
     act(() => {
       emitReady(fixture);
     });
-    const select = await screen.findByLabelText(/Earth to/);
+    const select = await screen.findByLabelText(/Windows to/);
     expect((select as HTMLSelectElement).value).toBe("2"); // Mars, dests[0]
-    expect(await screen.findByText("Windows to Mars")).toBeInTheDocument();
+    expect(await screen.findByText(/^Windows to$/)).toBeInTheDocument();
   });
 
   it("reads a target.available tombstone the same way", async () => {
@@ -317,7 +317,7 @@ describe("TransferWindow: an absent target.available picks a destination anyway"
       emitReady(fixture);
       fixture.emit("target.available", null);
     });
-    const select = await screen.findByLabelText(/Earth to/);
+    const select = await screen.findByLabelText(/Windows to/);
     expect((select as HTMLSelectElement).value).toBe("2");
   });
 
@@ -329,7 +329,7 @@ describe("TransferWindow: an absent target.available picks a destination anyway"
         entries: [{ kind: 1, name: "Venus", bodyIndex: 3, isCurrent: true }],
       });
     });
-    const select = await screen.findByLabelText(/Earth to/);
+    const select = await screen.findByLabelText(/Windows to/);
     await waitFor(() => expect((select as HTMLSelectElement).value).toBe("3"));
   });
 });
