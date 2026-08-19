@@ -127,25 +127,94 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
   });
 
   describe("map/fog SPI", () => {
-    it("getBody fails LOUD with no host, resolves once installed", () => {
+    // `getBody` was a shim, and its doc argued for this move without taking it: a
+    // bundled copy of a module-static map would read its own permanently-empty
+    // version. The map is a `globalThis` slot now, so there is no second copy to
+    // read and no host to fail loud against.
+    it("the body registry needs no host, and a pack overrides by re-registering", () => {
       resetTestHost();
-      expect(() => barrel.getBody("Kerbin")).toThrow(named);
+      barrel.clearBodies();
+      const kerbin = {
+        id: "Kerbin",
+        name: "Kerbin",
+        radius: 600_000,
+        hasAtmosphere: true,
+        maxAtmosphere: 70_000,
+      };
+      barrel.registerBody(kerbin);
+      expect(barrel.getBody("Kerbin")).toBe(kerbin);
+      expect(barrel.getAllBodies()).toEqual([kerbin]);
 
-      const fakeBody = { id: "Kerbin" } as never;
-      const getBody = vi.fn().mockReturnValue(fakeBody);
-      installTestHost({ getBody });
-      expect(barrel.getBody("Kerbin")).toBe(fakeBody);
-      expect(getBody).toHaveBeenCalledWith("Kerbin");
+      // Last write wins, which is the documented mechanism for a planet pack
+      // overriding a stock entry rather than colliding with it. Unlike the
+      // component registry, a duplicate id here is the intended usage.
+      const rescaled = { ...kerbin, radius: 6_371_000 };
+      barrel.registerBody(rescaled);
+      expect(barrel.getBody("Kerbin")).toBe(rescaled);
+      expect(barrel.getAllBodies()).toHaveLength(1);
+
+      barrel.clearBodies();
+      expect(barrel.getBody("Kerbin")).toBeUndefined();
     });
 
-    it("getFogRevealSources fails LOUD with no host, resolves once installed", () => {
+    it("registers the whole stock system, and threads the texture base URL", () => {
       resetTestHost();
-      expect(() => barrel.getFogRevealSources()).toThrow(named);
+      barrel.clearBodies();
+      barrel.registerStockBodies("/gonogo/bodies");
+      // The star plus every planet and moon: a count rather than a list, because
+      // the point is that nothing silently dropped out of the data file.
+      expect(barrel.getAllBodies().length).toBeGreaterThanOrEqual(16);
+      expect(barrel.getBody("Kerbin")?.texture).toBe(
+        "/gonogo/bodies/Kerbin_Color.png",
+      );
+      // Kerbol has no texture, so the base URL must not be applied blindly.
+      expect(barrel.getBody("Sun")?.texture).toBeUndefined();
+      barrel.clearBodies();
+    });
 
-      const sources = [{ id: "example-uplink:AltimetryHiRes" }] as never;
-      const getFogRevealSources = vi.fn().mockReturnValue(sources);
-      installTestHost({ getFogRevealSources });
-      expect(barrel.getFogRevealSources()).toBe(sources);
+    // Not a shim any more: the reveal-source registry moved into this package on
+    // 2026-08-19, alongside the POI one and for the same reason. It went last of
+    // the three because it was the one that needed a TYPE to move with it
+    // (`NamespacedAugmentSettings`, down from ui-kit).
+    it("the reveal-source registry needs no host, in either direction", () => {
+      resetTestHost();
+      barrel.clearFogRevealSources();
+      const changed = vi.fn();
+      const unsubscribe = barrel.onFogRevealSourcesChange(changed);
+
+      const source = { id: "example-uplink:AltimetryHiRes", weight: 200 };
+      barrel.registerFogRevealSource(source);
+      expect(changed).toHaveBeenCalledTimes(1);
+      expect(barrel.getFogRevealSources()).toEqual([source]);
+
+      barrel.unregisterFogRevealSource(source.id);
+      expect(changed).toHaveBeenCalledTimes(2);
+      expect(barrel.getFogRevealSources()).toEqual([]);
+
+      unsubscribe();
+      barrel.clearFogRevealSources();
+      // Unsubscribed before the clear, so the count has not moved again.
+      expect(changed).toHaveBeenCalledTimes(2);
+    });
+
+    it("namespaces each source's settings by its own id", () => {
+      resetTestHost();
+      barrel.clearFogRevealSources();
+      // A source with no settings contributes no block at all, so the panel does
+      // not render an empty section for it.
+      barrel.registerFogRevealSource({ id: "a:plain" });
+      barrel.registerFogRevealSource({
+        id: "b:tunable",
+        settings: [{ key: "enabled", type: "boolean", default: true }],
+      });
+      expect(barrel.getFogRevealSourceSettings()).toEqual([
+        {
+          augmentId: "b:tunable",
+          namespace: "b:tunable",
+          fields: [{ key: "enabled", type: "boolean", default: true }],
+        },
+      ]);
+      barrel.clearFogRevealSources();
     });
 
     it("setSetting fails LOUD with no host, resolves once installed", () => {
@@ -235,18 +304,6 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
         second.id,
       ]);
       barrel.clearMapPoiProviders();
-    });
-
-    it("onFogRevealSourcesChange fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      const cb = vi.fn();
-      expect(() => barrel.onFogRevealSourcesChange(cb)).toThrow(named);
-
-      const unsubscribe = vi.fn();
-      const onFogRevealSourcesChange = vi.fn().mockReturnValue(unsubscribe);
-      installTestHost({ onFogRevealSourcesChange });
-      expect(barrel.onFogRevealSourcesChange(cb)).toBe(unsubscribe);
-      expect(onFogRevealSourcesChange).toHaveBeenCalledWith(cb);
     });
 
     it("useFogMaskCache fails LOUD with no host, resolves once installed", () => {

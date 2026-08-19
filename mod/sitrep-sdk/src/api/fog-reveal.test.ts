@@ -6,7 +6,7 @@ import {
   onFogRevealSourcesChange,
   registerFogRevealSource,
   unregisterFogRevealSource,
-} from "./fogReveal";
+} from "./fog-reveal";
 
 beforeEach(() => clearFogRevealSources());
 

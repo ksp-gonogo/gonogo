@@ -23,17 +23,13 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
-  BodyDefinition,
-  ComponentDefinition,
   FogMaskCacheHandle,
-  FogRevealSourceDefinition,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SettingDefinition,
   SettingsTabDefinition,
   TelemetryClient,
-  ThemeDefinition,
   UplinkClientHandle,
   UseCommandResult,
   UseRouteCommandsResult,
@@ -47,7 +43,6 @@ import type {
  */
 export interface GonogoHost {
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
-  registerFogRevealSource(def: FogRevealSourceDefinition): void;
 
   useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
   /**
@@ -167,18 +162,6 @@ export interface GonogoHost {
    */
   logger: Logger;
 
-  /**
-   * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Despite
-   * looking like a static lookup, this MUST resolve to the app's own
-   * registry rather than a bundled copy: bodies are registered into it at
-   * runtime (module load), so a facade-sealed client bundling its own
-   * `getBody` would read its own, permanently-empty copy of the map.
-   */
-  getBody(id: string): BodyDefinition | undefined;
-  /** Every registered fog-of-war reveal source, in registration order. */
-  getFogRevealSources(): FogRevealSourceDefinition[];
-  /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
-  onFogRevealSourcesChange(cb: () => void): () => void;
   /**
    * Every augment bound into `slot`, ascending `priority`, ties in registration
    * order: the READ half of `registerAugment`.

@@ -25,6 +25,8 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   // silently never appear). See uplink-augment-route.test.ts.
   "clearAugments",
   "clearActionHandlers",
+  "clearBodies",
+  "clearFogRevealSources",
   "clearRegistry",
   "clearContributions",
   "clearMapPoiProviders",
@@ -34,28 +36,34 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "dispatchAction",
   "getActiveTelemetryClient",
   "getBody",
+  "getAllBodies",
   "getAugmentsForSlot",
   "getComponent",
   "getContributionsForSlot",
   "getDataSource",
   "getDataSources",
+  "getFogRevealSourceSettings",
   "getFogRevealSources",
   "getGameHost",
+  "getImagingWindow",
   "getMapPoiProviders",
   "getUplinkHandle",
   "hasHost",
+  "imagingQuality",
   "logger",
   "onContributionsChange",
   "onFogRevealSourcesChange",
   "onMapPoiProvidersChange",
   "registerActionHandler",
   "registerAugment",
+  "registerBody",
   "registerComponent",
   "registerDataSource",
   "registerFogRevealSource",
   "registerMapPoiProvider",
   "registerSetting",
   "registerSettingsTab",
+  "registerStockBodies",
   "registerTheme",
   "registerUplinkHandle",
   "safeRandomUuid",
@@ -63,6 +71,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "subscribeSetting",
   "unregisterActionHandler",
   "unregisterDataSource",
+  "unregisterFogRevealSource",
   "unregisterUplinkHandle",
   "useActionInput",
   "useCommand",
@@ -103,7 +112,6 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     const named =
       /@ksp-gonogo\/sitrep-sdk: the gonogo host has not been installed/;
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
-    expect(() => barrel.registerFogRevealSource({} as never)).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
     expect(() => barrel.registerSetting({} as never)).toThrow(named);
     expect(() => barrel.useSetting("x", false)).toThrow(named);
@@ -154,6 +162,22 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     expect(barrel.getComponent("gate-gauge")).toBe(def);
     barrel.clearRegistry();
     expect(barrel.getComponent("gate-gauge")).toBeUndefined();
+
+    // Fog reveal, whose settings read is the reason `NamespacedAugmentSettings`
+    // had to come down from ui-kit: the type is the return of a registry read
+    // that now lives in this package.
+    barrel.clearFogRevealSources();
+    const source = {
+      id: "gate:coverage",
+      settings: [{ key: "enabled", type: "boolean" as const }],
+    };
+    expect(() => barrel.registerFogRevealSource(source)).not.toThrow();
+    expect(barrel.getFogRevealSources()).toEqual([source]);
+    expect(barrel.getFogRevealSourceSettings()).toEqual([
+      { augmentId: source.id, namespace: source.id, fields: source.settings },
+    ]);
+    barrel.clearFogRevealSources();
+    expect(barrel.getFogRevealSources()).toEqual([]);
   });
 
   it("hasHost reflects installation and never throws", () => {

@@ -20,15 +20,11 @@ import {
   clearContributions,
   defineUplinkClient,
   getAugmentsForSlot,
-  getBody,
   getContributionsForSlot,
-  getFogRevealSources,
   getGameHost,
   onContributionsChange,
-  onFogRevealSourcesChange,
   PerfBudget,
   registerAugment,
-  registerFogRevealSource,
   registerSetting,
   registerSettingsTab,
   setSetting,
@@ -80,10 +76,6 @@ export function buildGonogoHost(): GonogoHost {
   const host: Loose = {
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
-    registerFogRevealSource: (def) =>
-      registerFogRevealSource(
-        def as Parameters<typeof registerFogRevealSource>[0],
-      ),
 
     useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
     // Overloaded on the sdk side (canonical one-arg Topic read, and the
@@ -143,14 +135,11 @@ export function buildGonogoHost(): GonogoHost {
       setSetting(key, value);
     },
 
-    getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getAugmentsForSlot: (slot) =>
       getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,
     clearAugments: () => {
       clearAugments();
     },
-    getFogRevealSources: () => getFogRevealSources(),
-    onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
     getContributionsForSlot: (slot) =>
       getContributionsForSlot(slot) as ReturnType<
         GonogoHost["getContributionsForSlot"]

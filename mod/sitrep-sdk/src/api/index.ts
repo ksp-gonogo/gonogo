@@ -44,9 +44,6 @@ import type {
   ActionHandlers,
   AnyContribution,
   AugmentDefinition,
-  BodyDefinition,
-  ComponentDefinition,
-  FogRevealSourceDefinition,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -54,7 +51,6 @@ import type {
   SettingsTabDefinition,
   SlotProps,
   TelemetryClient,
-  ThemeDefinition,
   UplinkClientHandle,
   UseRouteCommandsResult,
 } from "./types";
@@ -74,9 +70,11 @@ export type {
   ActionInputKind,
   ActionInputPayload,
   AnyContribution,
+  AtmosphereModel,
   AugmentDefinition,
   AugmentSettingField,
   BodyDefinition,
+  BodyMapConfig,
   BodyMask,
   ClientPrefSetting,
   CommandOutputToken,
@@ -107,6 +105,7 @@ export type {
   MapPoiAction,
   MapPoiProviderContext,
   MapPoiProviderDefinition,
+  NamespacedAugmentSettings,
   PerfBudgetHandle,
   PerfBudgetOptions,
   PredictedPhase,
@@ -179,9 +178,6 @@ export const registerAugment = <S extends string>(
   def: AugmentDefinition<S>,
 ): void => getHost().registerAugment(def);
 
-export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
-  getHost().registerFogRevealSource(def);
-
 // Registries that are NOT shims: they live in this package. None of them named
 // anything above this leaf (provider definitions, opaque handles, one payload
 // type), so the host indirection bought nothing and cost an Uplink the read half:
@@ -198,12 +194,34 @@ export {
   registerActionHandler,
   unregisterActionHandler,
 } from "./action-dispatch";
+// The body registry, likewise owned rather than shimmed. `getBody` WAS a shim, and
+// its doc argued the case for this move without taking it: a bundled copy of a
+// module-static map reads its own permanently-empty version. A `globalThis` slot
+// closes that rather than routing around it, and `registerBody` /
+// `registerStockBodies` become reachable for a planet pack at the same time.
+export {
+  clearBodies,
+  getAllBodies,
+  getBody,
+  getImagingWindow,
+  imagingQuality,
+  registerBody,
+} from "./bodies";
+export {
+  clearFogRevealSources,
+  getFogRevealSourceSettings,
+  getFogRevealSources,
+  onFogRevealSourcesChange,
+  registerFogRevealSource,
+  unregisterFogRevealSource,
+} from "./fog-reveal";
 export {
   clearMapPoiProviders,
   getMapPoiProviders,
   onMapPoiProvidersChange,
   registerMapPoiProvider,
 } from "./map-poi";
+export { registerStockBodies } from "./stock-bodies";
 export {
   clearUplinkHandles,
   getUplinkHandle,
@@ -445,26 +463,6 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
  */
 export function setSetting(key: string, value: string): void {
   getHost().setSetting(key, value);
-}
-
-// --- Registry accessor shims (stateful → injected host) ---------------------
-
-/**
- * The static body table (`@ksp-gonogo/core`'s `bodies.ts`). Resolves to the
- * app's own registry, not a bundled copy; see `GonogoHost.getBody`'s doc.
- */
-export function getBody(id: string): BodyDefinition | undefined {
-  return getHost().getBody(id);
-}
-
-/** Every registered fog-of-war reveal source, in registration order. */
-export function getFogRevealSources(): FogRevealSourceDefinition[] {
-  return getHost().getFogRevealSources();
-}
-
-/** Subscribe to any change (register/unregister) in the fog reveal source registry. */
-export function onFogRevealSourcesChange(cb: () => void): () => void {
-  return getHost().onFogRevealSourcesChange(cb);
 }
 
 // The read half of the contribution registry. The WRITE half stays on
