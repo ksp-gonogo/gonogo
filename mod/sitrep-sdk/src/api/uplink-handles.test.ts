@@ -4,7 +4,7 @@ import {
   getUplinkHandle,
   registerUplinkHandle,
   unregisterUplinkHandle,
-} from "./uplinkHandles";
+} from "./uplink-handles";
 
 describe("uplinkHandles", () => {
   it("registers a handle and looks it up by id", () => {

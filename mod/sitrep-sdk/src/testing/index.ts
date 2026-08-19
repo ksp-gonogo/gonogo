@@ -13,13 +13,16 @@
 // Testing Library and styled-components are OPTIONAL peers and this is a separate
 // entry from the root barrel, so a runtime consumer never resolves any of it.
 //
-// The spine helpers and the registry helpers are NOT here and will not be: they
-// need `core` / `sitrep-client`, which are above this leaf, so they live in
-// `@ksp-gonogo/sitrep-testing` instead. An earlier revision of this comment listed
-// them by name as a future proposal for this subpath, and that cost more than it
-// was worth: greps of the sdk for those symbols hit the prose and read as though
-// the subpath already exported them. The rule, with no names to mis-grep: if a
-// helper needs anything above this package, it belongs in `sitrep-testing`.
+// The rule for what belongs here, with no names to mis-grep: a helper lives in
+// this subpath once it needs nothing above this package, and in
+// `@ksp-gonogo/sitrep-testing` until then. That boundary MOVES as registries come
+// down into the leaf, and the spine and two registries below crossed it rather
+// than being reimplemented, so the direction of travel is that this subpath
+// eventually holds all of it and `sitrep-testing` retires.
+//
+// An earlier revision of this comment named the not-yet-here helpers as a future
+// proposal, and that cost more than it was worth: greps of the sdk for those
+// symbols hit the prose and read as though the subpath already exported them.
 // ---------------------------------------------------------------------------
 
 import { __setGonogoHost, type GonogoHost } from "../api/host";
@@ -45,6 +48,12 @@ export function resetTestHost(): void {
 // drop-in for the import source. The named exports above take precedence, so
 // `render`/`renderHook` resolve to the themed versions.
 export * from "@testing-library/react";
+// The `clear` half of the three registries this package OWNS outright rather than
+// shimming: action handlers here, then `clearMapPoiProviders` and
+// `clearUplinkHandles` below (import ordering splits them around the augment line).
+// Forwarded here as well as from the root barrel, because a test is the only caller
+// of a `clear` and wants it from the same import as `render`.
+export { clearActionHandlers } from "../api/action-dispatch";
 // The registry-observation half. `getAugmentsForSlot` is on the root barrel next to
 // `registerAugment`, since reading a slot's augments is something a widget does too;
 // `clearAugments` is test-only and so lives here rather than on the author surface.
@@ -52,6 +61,8 @@ export * from "@testing-library/react";
 // registry the shim wrote to, instead of reaching for ui-kit's copy and relying on
 // the two happening to be the same object.
 export { clearAugments, getAugmentsForSlot } from "../api/index";
+export { clearMapPoiProviders } from "../api/map-poi";
+export { clearUplinkHandles } from "../api/uplink-handles";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,
 // `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`
 // was the only reason an Uplink's `sentCommands`/`isSubscribed` assertions needed a
@@ -81,6 +92,9 @@ export {
 } from "../spine";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
+// The jsdom shims a widget test needs before it can mount anything. Moved down
+// from `core` on 2026-08-19: it imports nothing, so nothing kept it up there.
+export { installDomStubs } from "./install-dom-stubs";
 export { probeText, render, renderHook } from "./render";
 // The stream fixture: a real `TelemetryProvider` over a real
 // `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored emissions.

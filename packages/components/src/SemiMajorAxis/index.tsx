@@ -141,7 +141,7 @@ function SemiMajorAxisComponent({
     roRef.current = ro;
   }, []);
 
-  if (sma === undefined || !Number.isFinite(sma.magnitude)) {
+  if (sma === undefined || !sma.isFinite()) {
     return (
       <Panel panelTitle="SMA">
         <EmptyState>No orbit data</EmptyState>

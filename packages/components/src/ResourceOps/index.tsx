@@ -328,7 +328,7 @@ function ConverterCard({
     !converterNotCurrent &&
     converter.running === true &&
     converter.outputs.length > 0 &&
-    converter.outputs.every((flow) => (flow.rate?.magnitude ?? 0) === 0);
+    converter.outputs.every((flow) => flow.rate?.isZero() ?? true);
 
   // The card's identity colour: what it MAKES if it makes anything, else what
   // it consumes. Purely a "what kind of thing is this" mark (Card's top tab),

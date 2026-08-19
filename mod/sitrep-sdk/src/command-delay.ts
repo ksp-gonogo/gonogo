@@ -68,7 +68,7 @@ const STAGED_THRESHOLD_SECONDS = 1;
 export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
   const d = commsDelay?.oneWaySeconds;
   if (d == null) return "no-path";
-  return d.magnitude <= STAGED_THRESHOLD_SECONDS ? "live" : "staged";
+  return d.lessThanOrEqual(STAGED_THRESHOLD_SECONDS) ? "live" : "staged";
 }
 
 /**

@@ -10,6 +10,10 @@ export {
   type ResolvedDeps,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
+// Re-exported, not owned: `installDomStubs` moved to `@ksp-gonogo/sitrep-sdk/testing`
+// so an Uplink can obtain it. Kept on this barrel so core's own consumers (the app
+// and components setup files) did not have to move with it.
+export { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
 export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";
@@ -66,7 +70,6 @@ export * from "./settings/SettingsService";
 export * from "./settings/store";
 export * from "./settingsTabs";
 export * from "./stock-bodies";
-export * from "./testing/installDomStubs";
 export * from "./testing/MockDataSource";
 export * from "./theme";
 export * from "./types";

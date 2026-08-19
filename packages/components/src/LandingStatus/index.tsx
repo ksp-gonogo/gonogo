@@ -326,7 +326,7 @@ const DESCENT_HISTORY_MAX = 60;
 // them on an atmospheric board when the predicted point is moving slowly OR the
 // vessel is already low (final approach under chutes), never at hypersonic entry.
 const PREDICTION_STABLE_M = 250; // predicted point moves < this per tick ⇒ settled
-const ATMO_PLOTS_ALT_GATE = 10_000; // …or below this AGL, show them regardless
+const ATMO_PLOTS_ALT_GATE = 10_000; // metres AGL, the base unit a bare operand takes
 
 // Landing-ZONE heuristic (no dispersion on the wire, so derived): the touchdown
 // point could drift by ~this fraction of the remaining horizontal travel; floored
@@ -338,7 +338,7 @@ const LANDING_ZONE_FLOOR_M = 30;
  * drag does nothing a lander can plan around and the readout says so rather
  * than quoting four zeroes.
  */
-const NEGLIGIBLE_DENSITY = 0.001; // kg/m³
+const NEGLIGIBLE_DENSITY = 0.001; // kg/m³, the base unit a bare operand takes
 // The reticle / cross-section SLIDING scale: the spatial full-scale zooms to
 // contain the drift + the zone (so a close approach fills the plot instead of
 // sitting as a dot at a fixed 3 km scale), clamped to a sane window.
@@ -493,7 +493,7 @@ function LandingStatusComponent({
   const requiredDv = solution.burnDeltaV;
   const affordable =
     requiredDv != null && availableDv != null
-      ? requiredDv <= availableDv.magnitude
+      ? availableDv.greaterThanOrEqual(requiredDv)
       : null;
 
   // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
@@ -577,7 +577,7 @@ function LandingStatusComponent({
     predictionMovement != null && predictionMovement < PREDICTION_STABLE_M;
   const lowApproach =
     heightFromTerrain != null &&
-    heightFromTerrain.magnitude < ATMO_PLOTS_ALT_GATE;
+    heightFromTerrain.lessThan(ATMO_PLOTS_ALT_GATE);
   const atmosphericPlotsShown =
     atmospheric &&
     landing?.sampleSource != null &&
@@ -833,10 +833,9 @@ function LandingStatusComponent({
             {<Mps v={solution.horizontalSpeed} />}
           </GridCellPair>
           <GridCellPair label="Air density">
-            {flight?.atmDensity == null ||
-            !Number.isFinite(flight.atmDensity.magnitude) ? (
+            {flight?.atmDensity == null || !flight.atmDensity.isFinite() ? (
               NULL_DISPLAY
-            ) : flight.atmDensity.magnitude < NEGLIGIBLE_DENSITY ? (
+            ) : flight.atmDensity.lessThan(NEGLIGIBLE_DENSITY) ? (
               "negligible"
             ) : (
               <Unit value={flight.atmDensity} decimals={3} />
@@ -845,7 +844,7 @@ function LandingStatusComponent({
         </Grid>
         <Text tone="muted" size="xs">
           {flight?.atmDensity != null &&
-          flight.atmDensity.magnitude < NEGLIGIBLE_DENSITY
+          flight.atmDensity.lessThan(NEGLIGIBLE_DENSITY)
             ? "negligible drag · near free-fall, terminal velocity resolves as air thickens"
             : "above terminal · drag building, terminal velocity resolves as descent continues"}
         </Text>

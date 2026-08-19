@@ -4,7 +4,7 @@ import {
   getMapPoiProviders,
   onMapPoiProvidersChange,
   registerMapPoiProvider,
-} from "./mapPoi";
+} from "./map-poi";
 
 beforeEach(() => clearMapPoiProviders());
 

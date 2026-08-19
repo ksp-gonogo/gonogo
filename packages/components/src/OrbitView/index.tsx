@@ -239,7 +239,7 @@ function OrbitViewComponent({
   let pillLabel = NULL_DISPLAY;
   let pillTone: ReadoutTone = "default";
   if (hasOrbit) {
-    if (eccentricity.magnitude >= 1) {
+    if (eccentricity.greaterThanOrEqual(1)) {
       pillLabel = compactPill ? "ESC" : "Escape";
       pillTone = "warning";
     } else if (isOrbiting) {
@@ -302,10 +302,9 @@ function OrbitViewComponent({
           trueAnomaly: trueAnomaly ?? 0,
           bodyRadius: body?.radius,
           center: { x: 0, y: 0 },
-          scale:
-            eccentricity.magnitude >= 1
-              ? periapsisR * HYPERBOLIC_OVERLAY_SCALE
-              : (apoapsisR ?? periapsisR),
+          scale: eccentricity.greaterThanOrEqual(1)
+            ? periapsisR * HYPERBOLIC_OVERLAY_SCALE
+            : (apoapsisR ?? periapsisR),
         }
       : null;
 
