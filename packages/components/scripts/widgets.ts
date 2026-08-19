@@ -1183,7 +1183,15 @@ const WIDGETS: WidgetRenderConfig[] = [
       // actually failed, and the check itself was watched FAILING at a
       // deliberately-tiny 6x3 tile first, because a check never seen to fail is
       // not evidence of anything.
-      mayScroll: ["landscape-18x5", "mobile-9x8"],
+      //
+      // min-6x9 was NOT exempt and did hold all three rows. The Plan/Conformance
+      // tab strip is a fixed ~40px above the content and that was the whole
+      // margin, so the cutoff row now sits below the fold. It stays reachable
+      // (Panel's body is the scroller, so this is below-the-fold rather than
+      // clipped-and-unreachable), which is the same accepted degradation as the
+      // two sizes above, and the gate is what reported it rather than a reading
+      // of the render.
+      mayScroll: ["landscape-18x5", "mobile-9x8", "min-6x9"],
     },
     modes: [
       // minSize 6×9: node editor at its tightest.
@@ -1192,6 +1200,24 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-10x18", w: 10, h: 18 },
       // wide landscape.
       { name: "wide-14x12", w: 14, h: 12 },
+      // The CONFORMANCE tab, which the default render never reaches: Plan is
+      // the opening tab, so the plot is only rendered after a click. Selected
+      // by the tab's id suffix rather than its text, since a CSS selector
+      // cannot match on content and `useId`'s prefix moves with the mount.
+      {
+        name: "conformance-10x18",
+        w: 10,
+        h: 18,
+        clicks: [{ selector: "[id$='conformance-tab']" }],
+      },
+      // The same tab at the widget's MINIMUM width, since every widget defect
+      // found in this batch was at a small breakpoint.
+      {
+        name: "conformance-6x9",
+        w: 6,
+        h: 9,
+        clicks: [{ selector: "[id$='conformance-tab']" }],
+      },
     ],
   },
   {

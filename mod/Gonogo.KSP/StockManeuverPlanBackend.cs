@@ -137,6 +137,19 @@ namespace Gonogo.KSP
                     CutoffUt = window == null
                         ? (double?)null
                         : node.UT - window.LeadToHalfSeconds + window.TotalSeconds,
+                    // Element 0 is KSP's own post-burn conic (nextPatch), which
+                    // is the planner's statement of what the burn produces, not
+                    // ours. That distinction is the whole point of reading it:
+                    // recomputing the post-burn orbit from the node's delta-v
+                    // would compare the vessel against a two-body model we
+                    // wrote, and would be wrong by construction for a planner
+                    // that integrates.
+                    //
+                    // Empty while the solver has not produced a patch yet (a
+                    // just-added node mid-tick), which ManeuverNode.Patches
+                    // documents as a legitimate state rather than a malformed
+                    // node.
+                    Patches = KspHost.WalkPatchChain(node.nextPatch),
                 });
             }
 

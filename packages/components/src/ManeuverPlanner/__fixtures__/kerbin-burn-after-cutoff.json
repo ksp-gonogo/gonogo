@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
-    "notes": "ONE queued burn, described consistently by every section: the node list, its burn window, and a planner with real orbit elements. The window is asymmetric about the node because the craft is lighter for the second half. The node's post-burn patch chain is the SAME capture's own o.maneuverNodes[0].orbitPatches[0], copied across to the stream half rather than authored: the legacy half recorded it and the stream half had it empty, because nothing filled ManeuverNode.Patches on the mod side until the stock backend was wired to KSP's nextPatch."
+    "notes": "The SAME captured burn, wound forward past cutoff so the gap between the planned conic and the current orbit IS deviance. T/P here is 45/725.7, so the impulsive-plan residual is well under the attributable limit and the widget may read the gap as flying rather than modelling. A second vessel.maneuver frame drops the node's remaining delta-v from 300 to 4 m/s, so the burn was actually flown: past cutoff WITH delivery behind it is what makes the gap deviance rather than a missed window."
   },
   "o.argumentOfPeriapsis": 185.804298723466,
   "o.trueAnomaly": 178.272189124686,
@@ -47,7 +47,7 @@
       "UT": 43301.21875
     }
   ],
-  "t.universalTime": 43274.2794794121,
+  "t.universalTime": 43362.21875,
   "o.PeR": 33805.5730715984,
   "a.physicsMode": "patched_conics",
   "o.referenceBody": "Kerbin",
@@ -130,7 +130,7 @@
   "v.body": "Kerbin",
   "_stream": {
     "carriedChannels": ["vessel.maneuver", "vessel.orbit", "vessel.state"],
-    "pinnedUt": 43274.2794794121,
+    "pinnedUt": 43362.21875,
     "emits": [
       {
         "channel": "vessel.maneuver",
@@ -290,6 +290,116 @@
           "period": 725.7,
           "referenceBodyName": "Kerbin",
           "parentBodyName": "Kerbin"
+        }
+      },
+      {
+        "channel": "vessel.maneuver",
+        "value": {
+          "nodes": [
+            {
+              "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
+              "ut": {
+                "magnitude": 43301.21875,
+                "unit": "ut"
+              },
+              "dvRadial": {
+                "magnitude": 0,
+                "unit": "m/s"
+              },
+              "dvNormal": {
+                "magnitude": 0,
+                "unit": "m/s"
+              },
+              "dvPrograde": {
+                "magnitude": 4.0,
+                "unit": "m/s"
+              },
+              "dvTotal": {
+                "magnitude": 4.0,
+                "unit": "m/s"
+              },
+              "frame": 0,
+              "patches": [
+                {
+                  "sma": {
+                    "magnitude": 361169.27946205,
+                    "unit": "m"
+                  },
+                  "ecc": {
+                    "magnitude": 0.803788750928158,
+                    "unit": "1"
+                  },
+                  "inc": {
+                    "magnitude": 7.48656558210146,
+                    "unit": "°"
+                  },
+                  "lan": {
+                    "magnitude": 18.1447306307575,
+                    "unit": "°"
+                  },
+                  "argPe": {
+                    "magnitude": 185.792710062224,
+                    "unit": "°"
+                  },
+                  "meanAnomalyAtEpoch": {
+                    "magnitude": 3.14362968912802,
+                    "unit": "rad"
+                  },
+                  "epoch": {
+                    "magnitude": 43301.21875,
+                    "unit": "ut"
+                  },
+                  "period": {
+                    "magnitude": 725.705339368524,
+                    "unit": "s"
+                  },
+                  "startUt": {
+                    "magnitude": 43301.21875,
+                    "unit": "ut"
+                  },
+                  "endUt": {
+                    "magnitude": 44026.9240893685,
+                    "unit": "ut"
+                  },
+                  "patchStartTransition": 4,
+                  "patchEndTransition": 1,
+                  "peA": {
+                    "magnitude": -529134.524550374,
+                    "unit": "m"
+                  },
+                  "apA": {
+                    "magnitude": 51473.0834744739,
+                    "unit": "m"
+                  },
+                  "semiLatusRectum": {
+                    "magnitude": 127826.347445211,
+                    "unit": "m"
+                  },
+                  "semiMinorAxis": {
+                    "magnitude": 214864.957131339,
+                    "unit": "m"
+                  },
+                  "referenceBody": "Kerbin",
+                  "closestEncounterBody": null,
+                  "mu": {
+                    "magnitude": 3531600000000.0,
+                    "unit": "m³/s²"
+                  },
+                  "referenceBodyIndex": 1,
+                  "closestEncounterBodyIndex": null
+                }
+              ],
+              "ignitionUt": {
+                "magnitude": 43277.21875,
+                "unit": "ut"
+              },
+              "cutoffUt": {
+                "magnitude": 43322.21875,
+                "unit": "ut"
+              }
+            }
+          ],
+          "planner": "stock-patched-conic"
         }
       }
     ]

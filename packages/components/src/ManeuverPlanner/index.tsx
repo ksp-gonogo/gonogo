@@ -26,6 +26,7 @@ import {
   ReadoutCaption,
   SectionTitle,
   Stack,
+  Tabs,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,7 +36,9 @@ import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { BurnConformanceRow } from "./BurnConformanceRow";
 import { BurnWindowRows } from "./BurnWindowRows";
+import { ConformancePlot } from "./ConformancePlot";
 import { burnConformance } from "./conformance";
+import { conformanceRegime, finiteBurnResidual } from "./conformanceRegime";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
@@ -710,16 +713,75 @@ function ManeuverPlannerComponent({
       <PaddedSection>
         <SectionTitle as="h4">Conformance</SectionTitle>
         <Stack gap="xs">
-          {nodes.map((node) => (
-            <BurnConformanceRow
-              key={node.UT}
-              conformance={burnConformance(
-                node.deltaVMagnitude,
-                maxDvByUt.get(node.UT) ?? null,
-                thrustLatch,
-              )}
-            />
-          ))}
+          {nodes.map((node) => {
+            const first = node.orbitPatches[0];
+            // ONE conformance reading feeding both the row and the plot's
+            // regime. They are two views of the same burn and a render caught
+            // them contradicting each other when each worked it out for itself:
+            // the row said "not started, 0 of 300" beside a chip saying "flown,
+            // the gap is the deviance".
+            const conformance = burnConformance(
+              node.deltaVMagnitude,
+              maxDvByUt.get(node.UT) ?? null,
+              thrustLatch,
+            );
+            return (
+              <Stack key={node.UT} gap="xs">
+                <BurnConformanceRow conformance={conformance} />
+                <ConformancePlot
+                  current={
+                    sma !== undefined &&
+                    ecc !== undefined &&
+                    ApR !== undefined &&
+                    PeR !== undefined &&
+                    trueAnomaly !== undefined
+                      ? {
+                          sma,
+                          ecc,
+                          apoapsis: ApR,
+                          periapsis: PeR,
+                          trueAnomaly,
+                          argPe: argPe ?? 0,
+                        }
+                      : null
+                  }
+                  // Patches[0] ONLY, the immediate post-burn conic. See the
+                  // component's own doc for why a downstream patch cannot be
+                  // compared at all.
+                  planned={
+                    first
+                      ? {
+                          sma: first.sma,
+                          ecc: first.eccentricity,
+                          apoapsis: first.ApA,
+                          periapsis: first.PeA,
+                          argPe: first.argumentOfPeriapsis,
+                        }
+                      : null
+                  }
+                  regime={conformanceRegime(
+                    {
+                      ut: node.UT,
+                      ignitionUt: node.ignitionUt,
+                      cutoffUt: node.cutoffUt,
+                    },
+                    currentUT,
+                    conformance.deliveredDv,
+                    node.deltaVMagnitude,
+                  )}
+                  residual={finiteBurnResidual(
+                    node.ignitionUt != null && node.cutoffUt != null
+                      ? node.cutoffUt - node.ignitionUt
+                      : null,
+                    period,
+                  )}
+                  // The CURRENT orbit follows the observation rules; the planned
+                  // conic is authored and never dims.
+                  currentIsObserved={!elementsNeedDating}
+                />
+              </Stack>
+            );
+          })}
         </Stack>
       </PaddedSection>
     );
@@ -795,10 +857,36 @@ function ManeuverPlannerComponent({
       }
     >
       <ScrollBody>
-        {refBody !== undefined && <RefBodyCaption>{refBody}</RefBodyCaption>}
+        {refBody !== undefined && (
+          <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
+        )}
+        {/* Two tabs, PLAN and CONFORMANCE.
+            PLAN is everything about authoring and flying the next burn: the
+            queued nodes, their windows, the armed triggers, and NEW MANEUVER
+            with its preview. CONFORMANCE is the retrospective: what each burn
+            delivered against what it was planned with, and the two-conic plot.
+            They are separated because they answer different questions at
+            different times, and stacking them made the operator scroll past a
+            preview to reach a verdict. */}
+        <Tabs
+          tabs={[
+            { id: "plan", label: "Plan", content: renderPlanTab() },
+            {
+              id: "conformance",
+              label: "Conformance",
+              content: renderConformanceTab(),
+            },
+          ]}
+        />
+      </ScrollBody>
+    </Panel>
+  );
+
+  function renderPlanTab() {
+    return (
+      <>
         {renderNodesSection()}
         {renderBurnWindowsSection()}
-        {renderConformanceSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
         {waiting ? (
@@ -847,9 +935,13 @@ function ManeuverPlannerComponent({
           name="maneuver-planner.sections"
           props={EMPTY_SLOT_PROPS}
         />
-      </ScrollBody>
-    </Panel>
-  );
+      </>
+    );
+  }
+
+  function renderConformanceTab() {
+    return <>{renderConformanceSection()}</>;
+  }
 }
 
 // ---------------------------------------------------------------------------
