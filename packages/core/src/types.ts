@@ -75,6 +75,19 @@ export interface ActionGroup {
    * the identity.
    */
   index?: number;
+  /**
+   * Where this descriptor came from, so a widget can caveat a pill it drew
+   * from an absence.
+   *
+   * `"stock"` and `"reported"` are both claims about a group that exists:
+   * one we know statically, one the elected backend told us about.
+   * `"assumed"` is not a claim at all, it is the registry keeping a
+   * configured group operable while nothing has confirmed it exists (see
+   * `useActionGroup`). The distinction has to live on the descriptor because
+   * the resolving hooks hand back one group and no registry, so a consumer
+   * has nothing else to read it off.
+   */
+  provenance: "stock" | "reported" | "assumed";
 }
 
 /**

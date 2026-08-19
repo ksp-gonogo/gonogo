@@ -22,10 +22,21 @@ export interface GameContext {
   /** Convenience derived from `scene === "Flight"`. */
   inFlight: boolean;
   /**
-   * True when the active vessel is in `PRELAUNCH` situation. Implies
-   * `inFlight` (KSP only sets PRELAUNCH after the flight scene loads).
+   * True when the active vessel is in `PRELAUNCH` situation, false when it is
+   * confirmed not to be. Implies `inFlight` (KSP only sets PRELAUNCH after the
+   * flight scene loads).
+   *
+   * `undefined` when nothing has reported occupancy yet. A gate reading
+   * `!padOccupied` would otherwise proceed on a dropped frame, because
+   * "the pad is clear" and "we have not heard" were one value.
+   *
+   * `scene` and this arrive on different channels, so they can disagree for a
+   * frame or two around a scene change. The context reports both as read
+   * rather than reconciling them: inventing a scene from an occupancy (or
+   * suppressing an occupancy that contradicts the scene) would be this hook
+   * asserting something neither channel said.
    */
-  padOccupied: boolean;
+  padOccupied: boolean | undefined;
   /**
    * `career.mode` from Telemachus. `"Unknown"` when the value hasn't
    * arrived yet. Sandbox saves are a meaningful state to detect
@@ -52,6 +63,10 @@ export interface GameContext {
    * no save). Used by widgets to decide whether to dim, distinguishes
    * "data sources connected but nothing happening" from "data sources
    * still booting up".
+   *
+   * Any of the three reads answering at all counts, including a pad occupancy
+   * reported `false`: hearing "the active vessel is not in prelaunch" is
+   * hearing from the game.
    */
   hasGameSignal: boolean;
 }
@@ -136,8 +151,10 @@ export function useGameContext(): GameContext {
     sceneReading.state === "observed" || sceneReading.state === "stale"
       ? sceneReading.value.scene
       : undefined;
+  // `null` (the list carried no occupancy) and `undefined` (no derived state
+  // yet) are the same answer to a caller: nobody has told us.
   const padOccupiedRaw =
-    useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied;
+    useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied ?? undefined;
   const careerModeReading = useTelemetry("career.mode");
   const careerModeRaw =
     careerModeReading.state === "observed" ||
@@ -153,11 +170,14 @@ export function useGameContext(): GameContext {
   const careerMode: CareerMode = resolveCareerMode(careerModeRaw);
 
   const inFlight = scene === "Flight";
-  const padOccupied = padOccupiedRaw === true;
+  const padOccupied = padOccupiedRaw;
   const isCareerLike = careerMode === "CAREER" || careerMode === "SCIENCE";
   const chargesFunds = careerMode === "CAREER" || careerMode === "Unknown";
   const chargesScience = careerMode !== "SANDBOX";
-  const hasGameSignal = scene !== "Unknown" || careerMode !== "Unknown";
+  const hasGameSignal =
+    scene !== "Unknown" ||
+    careerMode !== "Unknown" ||
+    padOccupied !== undefined;
 
   return {
     scene,
