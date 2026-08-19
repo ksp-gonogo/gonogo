@@ -9,8 +9,11 @@ import {
   unitsForType,
   useStream,
 } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
+import {
+  renderHook,
+  setupStreamFixture,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import type { KosProcessorInfo } from "./__generated__/contract";
 // Side-effect import: registers `kos.processors` into the SDK's runtime registry

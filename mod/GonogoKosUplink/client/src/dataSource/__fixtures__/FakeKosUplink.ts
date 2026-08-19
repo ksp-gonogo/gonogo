@@ -44,8 +44,8 @@ import type { CommandResult } from "@ksp-gonogo/sitrep-sdk";
 import {
   createTestTelemetryClient,
   StubTransport,
-  setActiveTelemetryClientForTests,
-} from "@ksp-gonogo/sitrep-testing";
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { setActiveTelemetryClientForTests } from "@ksp-gonogo/sitrep-testing";
 import type {
   KosProcessorInfo,
   KosRunResult,

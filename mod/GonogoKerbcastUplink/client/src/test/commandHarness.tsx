@@ -11,10 +11,12 @@
  * (its inferred type leaks `pretty-format` across the package boundary).
  */
 
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   createTestTelemetryClient,
+  render,
   StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import {
   type TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";

@@ -12,8 +12,8 @@ import { getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import {
   createTestTelemetryClient,
   StubTransport,
-  setActiveTelemetryClientForTests,
-} from "@ksp-gonogo/sitrep-testing";
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { setActiveTelemetryClientForTests } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { KosDataSource, kosSource } from "./kos";

@@ -4,16 +4,20 @@ import {
   Quality,
   type SlotProps,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  createTestTelemetryClient,
+  render,
+  StubTransport,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
   clearRegistry,
-  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-  StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";

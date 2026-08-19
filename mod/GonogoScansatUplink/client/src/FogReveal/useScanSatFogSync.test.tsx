@@ -1,17 +1,21 @@
 import "fake-indexeddb/auto";
 import type { BodyDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { useFogMaskCache } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  createTestTelemetryClient,
+  render,
+  StubTransport,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import type { FogMaskCache } from "@ksp-gonogo/sitrep-testing";
 import {
   clearFogRevealSources,
   clearRegistry,
-  createTestTelemetryClient,
   FogMaskCacheProvider,
   FogMaskStore,
   MockDataSource,
   registerDataSource,
-  StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { useEffect } from "react";

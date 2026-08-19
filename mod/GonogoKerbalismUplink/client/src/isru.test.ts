@@ -7,8 +7,11 @@ import type {
   Reading,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
-import { setupStreamFixture } from "@ksp-gonogo/sitrep-testing";
+import {
+  renderHook,
+  setupStreamFixture,
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import {
   ISRU_CONVERTERS_TOPIC,

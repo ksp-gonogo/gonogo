@@ -1,18 +1,17 @@
+import type { JSX, ReactNode } from "react";
+import type { Meta } from "../__generated__/contract";
 import {
-  createFakeWallClock,
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
-  type FakeWallClock,
-  StubTransport,
   spaceCenterStateChannel,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
   vesselStateChannel,
-} from "@ksp-gonogo/sitrep-client";
-import type { Meta } from "@ksp-gonogo/sitrep-sdk";
-import type { JSX, ReactNode } from "react";
+} from "../spine";
+import { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
+import { StubTransport } from "./stub-transport";
 
 /**
  * A widget test that genuinely runs OFF THE STREAM: a real `TelemetryProvider`
@@ -22,9 +21,15 @@ import type { JSX, ReactNode } from "react";
  * This is the REAL spine, not a stand-in. That is the point of publishing it: a
  * third-party Uplink author should be running the same pipeline the app runs, and
  * an in-memory reimplementation of it would leave their tests passing while
- * testing the reimplementation. It is also why this package sits above
- * `sitrep-client` rather than inside the sdk, which is the leaf everything else
- * depends on and so cannot reach the spine at all.
+ * testing the reimplementation.
+ *
+ * It used to live a package above this one, on the reasoning that the sdk is the
+ * leaf and so could not reach the spine at all. That turned out to be a fact
+ * about where the spine was STORED rather than what it depended on: the whole
+ * read-and-stream cluster's transitive imports were the sdk and itself, so it
+ * moved here (`../spine`) and this fixture came with it. Nothing was
+ * reimplemented to make that happen, which is the only version of this worth
+ * having.
  *
  * It replaces nine copies of itself. Every Uplink carried its own
  * `src/test/setupStreamFixture.tsx`, five byte-identical and the other four

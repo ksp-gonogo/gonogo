@@ -5,13 +5,14 @@ import {
   registerUplinkHandle,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  clearRegistry,
-  clearUplinkHandles,
+  act,
+  render,
   type StreamFixture,
   setupStreamFixture,
-} from "@ksp-gonogo/sitrep-testing";
+  waitFor,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { clearRegistry, clearUplinkHandles } from "@ksp-gonogo/sitrep-testing";
 import {
   DomainAvailabilityProvider,
   useDomainAvailabilityStore,

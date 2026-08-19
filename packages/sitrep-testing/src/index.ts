@@ -89,12 +89,10 @@ export type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 export {
   activateProcessor,
   clearProcessorRuntime,
-  createFakeWallClock,
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
-  type FakeWallClock,
   getProcessorValue,
   isTopicCarried,
   mapTopic,
@@ -118,7 +116,6 @@ export {
 // silently dropping the name, and the repo's own lint rule says to reach Testing
 // Library through the harness rather than directly. One source, one path.
 export * from "@ksp-gonogo/sitrep-sdk/testing";
-export { createTestTelemetryClient } from "./createTestTelemetryClient";
 export { installRealTestHost } from "./host";
 // Renders a widget the way the DASHBOARD does, not the way `render` does. See
 // its own doc for the stack, and for the three wrappers it deliberately omits.
@@ -127,8 +124,8 @@ export {
   renderWidget,
   WidgetHost,
 } from "./renderWidget";
-export {
-  type StreamFixture,
-  type StreamFixtureOptions,
-  setupStreamFixture,
-} from "./streamFixture";
+// `setupStreamFixture`, `createTestTelemetryClient` and the fake wall clock moved
+// to `@ksp-gonogo/sitrep-sdk/testing`, which the `export *` above already
+// forwards. They moved because the spine they drive did: the read-and-stream
+// cluster's transitive imports were the sdk and itself all along, so it was stored
+// in `sitrep-client` rather than dependent on it. Nothing was reimplemented.

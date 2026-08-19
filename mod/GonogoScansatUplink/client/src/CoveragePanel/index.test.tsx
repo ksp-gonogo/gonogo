@@ -6,7 +6,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
+  createTestTelemetryClient,
   render,
+  StubTransport,
   screen,
   waitFor,
   within,
@@ -14,11 +16,9 @@ import {
 import {
   BufferedDataSource,
   clearRegistry,
-  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
-  StubTransport,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
