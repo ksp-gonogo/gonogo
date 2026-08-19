@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   getBody,
@@ -120,9 +120,38 @@ const DISPLAY_SCAN_TYPES: SCANType[] = [
  * that lookup (the widget only ever needs the active vessel's own body, not
  * a full index->name table).
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function useActiveVesselBodyName(): string | undefined {
-  const identity = useTelemetry("vessel.identity");
-  const systemBodies = useTelemetry("system.bodies");
+  // Both facts: a vessel's parent body and the body catalogue change by event.
+  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);
   return useMemo(() => {
     const index = identity?.parentBodyIndex;
     if (index == null) return undefined;
@@ -135,9 +164,13 @@ function ScanningComponent({
 }: Readonly<ComponentProps<ScanningConfig>>) {
   const activeBody = useActiveVesselBodyName();
   const bodyName = config?.bodyName ?? activeBody;
-  const surface = useTelemetry("vessel.surface");
+  // The biome under the craft is a judgement: it changes as the craft moves, and a
+  // held one would label a scan with the wrong terrain.
+  const surface = judgeable(useTelemetry("vessel.surface"));
   const biome = surface?.biome;
-  const scanAvailable = useTelemetry("scansat.available");
+  // A presence gate, so a fact: a domain that reported and went quiet is still
+  // installed.
+  const scanAvailable = stillTrue(useTelemetry("scansat.available"), undefined);
   const scanningVessels = useScanningVessels();
   const anomalies = useScanAnomalies(bodyName);
 

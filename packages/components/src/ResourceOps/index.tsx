@@ -4,6 +4,7 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type {
   IsruConverterEntry,
   IsruDrillEntry,
@@ -19,6 +20,7 @@ import {
   type FilterRow,
   Grid,
   Inline,
+  NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   resourceColor,
@@ -74,6 +76,18 @@ import { magnitudeOf, type Quantityish } from "../shared/magnitude";
  * the list untouched. A genuine per-process location (e.g. a future multi-vessel
  * view) is NOT representable today; that needs a contract change adding a
  * `vesselId`/`vesselName` field to both entry types, mod-side.
+ *
+ * CURRENCY IS PER FIELD, AND EACH ENTRY CARRIES BOTH KINDS. What hardware is
+ * bolted to the vessel is a fact: a drill does not leave the craft, a converter's
+ * recipe is fixed at design time, and a deploy animation only moves when something
+ * moves it. Those keep their last value, because no event that changes them can
+ * reach us down a link that stopped delivering, and blanking them would erase a
+ * rig that is demonstrably still bolted on. What each process is DOING is not a
+ * fact of that kind: `running` stops on its own when a tank fills or the ore runs
+ * out, and rates and ore abundance drift with load and location. So a channel that
+ * goes stale keeps its cards and withholds every rate, abundance and run badge on
+ * them, with the header naming which channel went, because a green "running" card
+ * is a claim about the vessel now.
  */
 
 type ResourceOpsConfig = Record<string, never>;
@@ -91,6 +105,13 @@ const resourceOpsActions = [
 export type ResourceOpsActions = typeof resourceOpsActions;
 
 /** Resource | rate | flow-direction, shared by every process card's table. */
+/**
+ * The tombstone answer for both harvester lists: the producer saying "this vessel
+ * has no drills" is an empty list, not a missing one. One shared frozen array so a
+ * confirmed-none does not hand a fresh identity to `useMemo` every frame.
+ */
+const EMPTY_LIST: never[] = [];
+
 const RESOURCE_TABLE_COLS = "minmax(0, 1fr) auto auto";
 const RIGHT_ALIGN = { textAlign: "right" } as const;
 /**
@@ -114,6 +135,28 @@ const RESOURCE_NAME_STYLE = {
  * genuinely sit at 0.0002 units/s, and a fixed precision flattens that to
  * "0.000", which reads as a dead process rather than a slow one.
  */
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function rateDecimals(rate: Quantityish, base: number): number {
   const magnitude = magnitudeOf(rate);
   if (magnitude === null || magnitude === 0) return base;
@@ -159,9 +202,17 @@ function netElectricChargeDraw(
 function ResourceCells({
   flow,
   direction,
+  ratesNotCurrent,
 }: Readonly<{
   flow: IsruResourceFlow;
   direction: "in" | "out" | "extract";
+  /**
+   * The rate went stale rather than never arriving, so the cell reads as
+   * held-back rather than as "unknown", which the backend says when it has a
+   * recipe but no figure for it. The resource name beside it stays: which
+   * resource a process moves is a design fact.
+   */
+  ratesNotCurrent: boolean;
 }>) {
   return (
     <>
@@ -169,7 +220,9 @@ function ResourceCells({
         {flow.resource ?? "?"}
       </Truncate>
       <Value size="sm" tone="default" style={RIGHT_ALIGN}>
-        {flow.rate !== null && flow.rate !== undefined ? (
+        {ratesNotCurrent ? (
+          <Value tone="muted">{NULL_DISPLAY}</Value>
+        ) : flow.rate !== null && flow.rate !== undefined ? (
           <Unit value={flow.rate} decimals={rateDecimals(flow.rate, 3)} />
         ) : (
           <Value tone="faint">unknown</Value>
@@ -183,11 +236,19 @@ function ResourceCells({
 function DrillCard({
   drill,
   highlighted,
-}: Readonly<{ drill: IsruDrillEntry; highlighted: boolean }>) {
+  notCurrent: drillNotCurrent,
+}: Readonly<{
+  drill: IsruDrillEntry;
+  highlighted: boolean;
+  /** The drill channel went stale: the rig is still there, its figures are not. */
+  notCurrent: boolean;
+}>) {
   return (
     <Card
       aria-current={highlighted ? "true" : undefined}
-      tone={drill.running ? "go" : "default"}
+      // A `go` card is read as "extracting, right now". Held-back run state gets
+      // the neutral tone instead of the last green one.
+      tone={!drillNotCurrent && drill.running ? "go" : "default"}
       categoryColor={drill.resource ? resourceColor(drill.resource) : undefined}
     >
       <Stack gap="xs">
@@ -205,19 +266,31 @@ function DrillCard({
               {drill.deployed ? "deployed" : "retracted"}
             </Badge>
           )}
-          <Badge severity={drill.running ? "nominal" : "info"}>
-            {drill.running ? "running" : "stopped"}
-          </Badge>
+          {/* A harvester stops itself when its tank fills or the ore runs out, so
+              "running" is a statement about now and is withheld rather than held
+              over. The header says which channel it was withheld for. */}
+          {drillNotCurrent ? (
+            <Badge severity="info">run state held</Badge>
+          ) : (
+            <Badge severity={drill.running ? "nominal" : "info"}>
+              {drill.running ? "running" : "stopped"}
+            </Badge>
+          )}
         </Cluster>
         <Grid cols={RESOURCE_TABLE_COLS} gap="sm" rowGap="xs" align="baseline">
           <ResourceCells
             flow={{ resource: drill.resource, rate: drill.rate }}
             direction="extract"
+            ratesNotCurrent={drillNotCurrent}
           />
         </Grid>
         <Inline gap="xs">
           <ReadoutCaption>abundance</ReadoutCaption>
-          {drill.abundance !== null && drill.abundance !== undefined ? (
+          {/* Ore abundance is a property of where the drill is standing, and the
+              drill can be driven somewhere else while the link is down. */}
+          {drillNotCurrent ? (
+            <Value tone="muted">{NULL_DISPLAY}</Value>
+          ) : drill.abundance !== null && drill.abundance !== undefined ? (
             <Unit value={drill.abundance} as="%" decimals={2} />
           ) : (
             <Value tone="faint">unknown</Value>
@@ -231,14 +304,28 @@ function DrillCard({
 function ConverterCard({
   converter,
   highlighted,
-}: Readonly<{ converter: IsruConverterEntry; highlighted: boolean }>) {
+  notCurrent: converterNotCurrent,
+}: Readonly<{
+  converter: IsruConverterEntry;
+  highlighted: boolean;
+  /**
+   * The converter channel went stale: the recipe still holds, the rates and the
+   * run state do not, and the starved diagnostic derived from them cannot be
+   * claimed either.
+   */
+  notCurrent: boolean;
+}>) {
   // A converter that is on but moving nothing is a starved recipe. That is the
   // derived diagnostic the shared shape is meant to carry, rather than a string
   // no engine actually reports, so it is spelled out here rather than on the wire.
   // A process with NO outputs is exempt: a scrubber or waste processor consumes
   // and dumps by design, and an empty output side is its healthy state, not a
   // stall.
+  //
+  // A stall is diagnosed from rates and a run flag, so a stale record cannot
+  // support it: the fault it names would be one the vessel had some seconds ago.
   const starved =
+    !converterNotCurrent &&
     converter.running === true &&
     converter.outputs.length > 0 &&
     converter.outputs.every((flow) => (flow.rate?.magnitude ?? 0) === 0);
@@ -252,7 +339,13 @@ function ConverterCard({
   return (
     <Card
       aria-current={highlighted ? "true" : undefined}
-      tone={starved ? "warning" : converter.running ? "go" : "default"}
+      tone={
+        starved
+          ? "warning"
+          : !converterNotCurrent && converter.running
+            ? "go"
+            : "default"
+      }
       categoryColor={
         primaryResource ? resourceColor(primaryResource) : undefined
       }
@@ -262,9 +355,13 @@ function ConverterCard({
           <Value size="sm" tone="default" weight="semibold">
             {converter.partTitle ?? converter.partId ?? "Converter"}
           </Value>
-          <Badge severity={converter.running ? "nominal" : "info"}>
-            {converter.running ? "running" : "stopped"}
-          </Badge>
+          {converterNotCurrent ? (
+            <Badge severity="info">run state held</Badge>
+          ) : (
+            <Badge severity={converter.running ? "nominal" : "info"}>
+              {converter.running ? "running" : "stopped"}
+            </Badge>
+          )}
           {starved && <Badge severity="warning">no output</Badge>}
         </Cluster>
         {/* The recipe table is the card's core content: every input then every
@@ -280,6 +377,7 @@ function ConverterCard({
                 key={`in-${flow.resource ?? index}`}
                 flow={flow}
                 direction="in"
+                ratesNotCurrent={converterNotCurrent}
               />
             ))
           ) : (
@@ -293,6 +391,7 @@ function ConverterCard({
                 key={`out-${flow.resource ?? index}`}
                 flow={flow}
                 direction="out"
+                ratesNotCurrent={converterNotCurrent}
               />
             ))
           ) : (
@@ -326,12 +425,19 @@ function ResourceOpsStats({
   total,
   activeCount,
   netEc,
+  netEcNotCurrent,
   location,
+  staleChannels,
 }: Readonly<{
   total: number;
-  activeCount: number;
+  /** Withheld (`undefined`) while either channel's run flags are stale. */
+  activeCount: number | undefined;
   netEc: number | null;
+  /** Whether `netEc` is a held figure rather than the vessel's current draw. */
+  netEcNotCurrent: boolean;
   location: string | undefined;
+  /** Which channels stopped being current, named for the operator. */
+  staleChannels: readonly string[];
 }>) {
   return (
     <Cluster
@@ -349,17 +455,24 @@ function ResourceOpsStats({
       </Inline>
       <Inline gap="xs">
         <Value size="sm" tone="default" weight="semibold">
-          {activeCount}
+          {activeCount ?? NULL_DISPLAY}
         </Value>
         <ReadoutCaption>active</ReadoutCaption>
       </Inline>
+      {/* The stat stays mounted while the figure is withheld: WHETHER the vessel
+          moves ElectricCharge is a property of the recipes, which is a fact, so
+          dropping the row would say "nothing here draws power". */}
       {netEc !== null && (
         <Inline gap="xs">
           <ReadoutCaption>net EC</ReadoutCaption>
-          <Unit
-            value={value("units/s", netEc)}
-            decimals={rateDecimals(netEc, 2)}
-          />
+          {netEcNotCurrent ? (
+            <Value tone="muted">{NULL_DISPLAY}</Value>
+          ) : (
+            <Unit
+              value={value("units/s", netEc)}
+              decimals={rateDecimals(netEc, 2)}
+            />
+          )}
         </Inline>
       )}
       {location && (
@@ -370,6 +483,11 @@ function ResourceOpsStats({
           </Value>
         </Inline>
       )}
+      {staleChannels.length > 0 && (
+        <Value tone="warn" size="xs" role="status" aria-live="polite">
+          {`Rates and run state no longer current: ${staleChannels.join(", ")}`}
+        </Value>
+      )}
     </Cluster>
   );
 }
@@ -377,12 +495,32 @@ function ResourceOpsStats({
 function ResourceOpsComponent(
   _props: Readonly<ComponentProps<ResourceOpsConfig>>,
 ) {
-  const drills = useTelemetry("isru.drills");
-  const converters = useTelemetry("isru.converters");
+  /**
+   * The roster of processes is a fact and stays drawn (see the class doc's
+   * CURRENCY note), so these two reads keep their last list. Each channel carries
+   * its own currency: a stale drill channel says nothing about the converters, and
+   * hollowing out both because one went would withhold figures that are current.
+   */
+  const drillsReading = useTelemetry("isru.drills");
+  const convertersReading = useTelemetry("isru.converters");
+  const drillsNotCurrent = notCurrent(drillsReading);
+  const convertersNotCurrent = notCurrent(convertersReading);
 
-  const allDrills = useMemo(() => drills ?? [], [drills]);
-  const allConverters = useMemo(() => converters ?? [], [converters]);
+  const allDrills = useMemo(
+    // A confirmed no-drills IS an empty list, not a wait, so it is named here
+    // rather than left to the `??` below (which also has to cover pending).
+    () => stillTrue(drillsReading, EMPTY_LIST) ?? EMPTY_LIST,
+    [drillsReading],
+  );
+  const allConverters = useMemo(
+    () => stillTrue(convertersReading, EMPTY_LIST) ?? EMPTY_LIST,
+    [convertersReading],
+  );
   const anything = allDrills.length + allConverters.length > 0;
+  const staleChannels = [
+    ...(drillsNotCurrent ? ["drills"] : []),
+    ...(convertersNotCurrent ? ["converters"] : []),
+  ];
 
   // Drills then converters, read end to end, so one "next" button walks the
   // whole vessel. The index is into this full order, not the currently-shown
@@ -409,12 +547,18 @@ function ResourceOpsComponent(
     },
   });
 
-  const activeCount = useMemo(
-    () =>
+  /**
+   * How many processes are running right now, so it is withheld the moment either
+   * side of the sum stops being current: "3 active" counted partly from held run
+   * flags is a number with no moment attached to it.
+   */
+  const activeCount = useMemo(() => {
+    if (drillsNotCurrent || convertersNotCurrent) return undefined;
+    return (
       allDrills.filter((d) => d.running === true).length +
-      allConverters.filter((c) => c.running === true).length,
-    [allDrills, allConverters],
-  );
+      allConverters.filter((c) => c.running === true).length
+    );
+  }, [allDrills, allConverters, drillsNotCurrent, convertersNotCurrent]);
   const netEc = useMemo(
     () => netElectricChargeDraw(allConverters),
     [allConverters],
@@ -423,8 +567,13 @@ function ResourceOpsComponent(
   // Optional, additive vessel/body context (see the class doc's LOCATION
   // note): both reads are `optionalChannels`, so a mount with neither still
   // renders the list untouched, just without this header line.
-  const identity = useTelemetry("vessel.identity");
-  const systemBodies = useTelemetry("system.bodies");
+  //
+  // Both are facts. A vessel's name and the body it is orbiting change on an
+  // event (a rename, an SOI change), and the body table is the solar system
+  // itself, so the last answer is still the answer and dropping "at Prospector
+  // One · Duna" would lose a caption that is still true.
+  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const systemBodies = stillTrue(useTelemetry("system.bodies"), undefined);
   const bodyName = useMemo(() => {
     if (identity?.parentBodyIndex == null) return undefined;
     return (systemBodies?.bodies ?? []).find(
@@ -448,7 +597,13 @@ function ResourceOpsComponent(
       searchText: `${drill.partTitle ?? drill.partId ?? "Drill"} drill ${
         drill.resource ?? ""
       }`,
-      node: <DrillCard drill={drill} highlighted={index === current} />,
+      node: (
+        <DrillCard
+          drill={drill}
+          highlighted={index === current}
+          notCurrent={drillsNotCurrent}
+        />
+      ),
     }));
     const converterRows = allConverters.map((converter, index) => ({
       id: converter.partId ?? `converter-${index}`,
@@ -459,11 +614,18 @@ function ResourceOpsComponent(
         <ConverterCard
           converter={converter}
           highlighted={allDrills.length + index === current}
+          notCurrent={convertersNotCurrent}
         />
       ),
     }));
     return [...drillRows, ...converterRows];
-  }, [allDrills, allConverters, current]);
+  }, [
+    allDrills,
+    allConverters,
+    current,
+    drillsNotCurrent,
+    convertersNotCurrent,
+  ]);
 
   if (!anything) {
     return (
@@ -483,7 +645,9 @@ function ResourceOpsComponent(
         total={total}
         activeCount={activeCount}
         netEc={netEc}
+        netEcNotCurrent={convertersNotCurrent}
         location={location}
+        staleChannels={staleChannels}
       />
       <ScrollArea>
         <FilterList

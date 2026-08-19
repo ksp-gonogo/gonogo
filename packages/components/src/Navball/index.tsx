@@ -9,13 +9,12 @@ import {
   registerComponent,
   useActionInput,
   useExecuteAction,
-  useReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import type { ControlStream } from "@ksp-gonogo/sitrep-client";
 import {
+  observedAt,
   type Reading,
-  readingAge,
   useCommand,
   useControlStream,
   useStream,
@@ -238,7 +237,16 @@ function StaleCaption({
   reading: Reading<unknown>;
 }) {
   const viewUt = useViewUt();
-  const ageSec = readingAge(reading, viewUt);
+  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
+  // is a duration, and the affine rules make that the type. The clamp came with it
+  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
+  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
+  // a thing to render.
+  const observedUt = observedAt(reading);
+  const ageSec =
+    viewUt && observedUt
+      ? Math.max(0, viewUt.minus(observedUt).magnitude)
+      : undefined;
   return (
     <ReadoutCaption role="status">
       {label}
@@ -274,7 +282,7 @@ function NavballComponent({
   // the absence-gate audit turned up this was the worst operationally, because
   // an attitude is the reading an operator acts on most directly, and a wrong
   // one is a wrong input to a control decision rather than a cosmetic defect.
-  const attitudeReading = useReading("vessel.attitude");
+  const attitudeReading = useTelemetry("vessel.attitude");
   const attitude = lastObserved(attitudeReading);
   const attitudeObserved = attitudeReading.state === "observed";
   const heading = numericOrNull(
@@ -283,7 +291,13 @@ function NavballComponent({
   const pitch = numericOrNull(attitude?.[useCoM ? "pitch" : "pitchRootFrame"]);
   const roll = numericOrNull(attitude?.[useCoM ? "roll" : "rollRootFrame"]);
 
-  const control = useTelemetry("vessel.control");
+  // `vessel.control` is declared unmodellable: a commanded state changes only
+  // when a command lands, so there is no model, and the in-flight case is the
+  // expectation channel's job rather than this read's. The buttons therefore
+  // show the last CONFIRMED state on every arm that has one; `useCommandFailures`
+  // and the control-delay strip are what say "something is in flight" beside
+  // them, which is why a stale toggle here is not a lie.
+  const control = lastObserved(useTelemetry("vessel.control"));
   const vesselState = useStream<VesselState>("vessel.state");
   const sasMode = vesselState?.sasModeName ?? undefined;
   const sasOn = control?.sas === true;
@@ -349,7 +363,11 @@ function NavballComponent({
   // throttle wins over the previous vessel's stale commanded value. Keyed
   // off `vessel.identity.vesselId`, the same stable per-vessel id
   // `TargetPicker`/`LaunchDirector` dispatch against.
-  const activeVesselId = useTelemetry("vessel.identity")?.vesselId;
+  // An id, not a quantity: it does not decay, and a stale one is still which
+  // vessel this is. Used only to scope per-vessel UI memory.
+  const activeVesselId = lastObserved(
+    useTelemetry("vessel.identity"),
+  )?.vesselId;
   const prevVesselIdRef = useRef(activeVesselId);
   useEffect(() => {
     if (activeVesselId !== prevVesselIdRef.current) {
@@ -521,7 +539,13 @@ function NavballComponent({
   // number of one-way light-time seconds, 0 when the delay feature is
   // disabled, so the warning naturally stays hidden with no extra "is it
   // enabled" check.
-  const delaySeconds = magnitudeOf(useTelemetry("comms.delay")?.oneWaySeconds);
+  // The delay drives whether the control-delay strip is drawn at all. Last
+  // observed on every arm that has one: nothing models light-time client-side,
+  // and a craft whose delay reading has gone quiet has not stopped being far
+  // away, so suppressing the strip would hide the delay rather than report it.
+  const delaySeconds = magnitudeOf(
+    lastObserved(useTelemetry("comms.delay"))?.oneWaySeconds,
+  );
   const delayHigh =
     delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
   const showFbwDelayWarning = fbwArmed && delayHigh;

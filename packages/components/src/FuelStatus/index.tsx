@@ -10,7 +10,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { type ResourceAmountMap, useStream } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  type ResourceAmountMap,
+  useStream,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
@@ -118,6 +122,39 @@ const RESOURCES: readonly ResourceDef[] = [
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function useResourceReading(def: ResourceDef): { value: number; max: number } {
   // Vessel-total amounts come off `vessel.resources` (the wire topic, a
   // resource-name-keyed `{ current, max }` map). Stage-scoped amounts come off
@@ -125,7 +162,13 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
   // (`dv-stage-resources.ts`): the active stage's slice of `dv.stages`, keyed
   // by resource name. All three reads happen unconditionally (Rules of Hooks)
   // regardless of which scope this resource ultimately uses.
-  const vesselResources = useTelemetry("vessel.resources")?.resources;
+  /**
+   * Propellant only falls while an engine burns, and every readout here is a gauge
+   * the operator reads as "what is left". A held figure overstates the remaining
+   * fuel, which is the direction that strands a craft.
+   */
+  const resourcesReading = useTelemetry("vessel.resources");
+  const vesselResources = judgeable(resourcesReading)?.resources;
   const stageCurrent = useStream<ResourceAmountMap>("dv.currentStageResource");
   const stageMaxMap = useStream<ResourceAmountMap>(
     "dv.currentStageResourceMax",
@@ -470,9 +513,20 @@ function FuelStatusComponent({
   h,
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
-  const currentStage = useTelemetry("vessel.structure")?.currentStage;
-  // Connectivity indicator, mirroring the WarpControl pilot.
-  const summary = useTelemetry("dv.summary");
+  // The staging structure is a fact: staging is an event, so the last reported
+  // stage is still the stage.
+  const currentStage = stillTrue(
+    useTelemetry("vessel.structure"),
+    undefined,
+  )?.currentStage;
+  /**
+   * The delta-v budget is a measurement of remaining propellant expressed as
+   * capability, so it goes the way the propellant does: withheld rather than held.
+   * A stale budget is the number an operator commits a burn against.
+   */
+  const summaryReading = useTelemetry("dv.summary");
+  const summary = judgeable(summaryReading);
+  const budgetNotCurrent = notCurrent(summaryReading);
   const stageCount = summary?.stageCount;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
   const totalDVVac = magnitudeOf(summary?.totalDvVac) ?? undefined;
@@ -502,7 +556,7 @@ function FuelStatusComponent({
   // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
   // stage 0 last) matching the stack-top-down render order. `parseStages`
   // reconciles either wire's field names into the `StageInfo` shape below.
-  const stagesRaw = useTelemetry("dv.stages");
+  const stagesRaw = judgeable(useTelemetry("dv.stages"));
   const stages = parseStages(stagesRaw);
   // Filter to finite values before Math.max: a single NaN/undefined entry
   // would propagate NaN through every BarFill width and render a row of

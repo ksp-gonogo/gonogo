@@ -37,7 +37,6 @@ export * from "./hooks/useDataStreamStatus";
 export * from "./hooks/useExecuteAction";
 export * from "./hooks/useGameContext";
 export * from "./hooks/useOrbitElements";
-export * from "./hooks/useReading";
 export * from "./hooks/useTelemetry";
 export * from "./hooks/useTelemetryHostStatus";
 export * from "./hooks/useTouchDevice";

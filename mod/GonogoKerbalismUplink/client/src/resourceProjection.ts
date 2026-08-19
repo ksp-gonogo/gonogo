@@ -2,8 +2,6 @@ import type {
   DerivedChannelDefinition,
   DerivedGet,
   ReckoningBasis,
-} from "@ksp-gonogo/sitrep-client";
-import type {
   StreamStatusValue,
   TopicPayload,
   Value,

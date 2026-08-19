@@ -1,11 +1,6 @@
 import type { ComponentProps, ConfigComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  registerComponent,
-  useReading,
-  useTelemetry,
-} from "@ksp-gonogo/core";
-import { type Reading, readingAge, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
@@ -189,6 +184,39 @@ type ViewMode = "tracking" | "approach" | "docking-hud";
  * `reckon()` in the branch that renders it, so a propagated number can never
  * arrive at a readout by accident.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function observedPayload<T>(reading: Reading<T>): T | undefined {
   switch (reading.state) {
     case "observed":
@@ -217,12 +245,26 @@ function DistanceToTargetComponent({
   // mod-side, so the confirmed-absence arm is a real wire state here, not a
   // theoretical one.
   //
-  // `vessel.dock` stays a plain read: it is undefined whenever the target is
-  // not a docking port with a free port on our side, which is a legitimate
-  // "not a docking scenario" rather than a currency question, and the HUD it
-  // feeds is gated on the TARGET reading being current anyway (see `mode`).
-  const targetReading = useReading("vessel.target");
-  const dock = useTelemetry("vessel.dock");
+  // `vessel.dock` splits per FIELD, not per topic. The PAIRING is a fact: a
+  // docking scenario exists because the operator selected a port and our side
+  // has a free one, and no link outage can change that while nobody is looking.
+  // The GEOMETRY carried on the same record is the opposite kind of thing: a
+  // reticle, an alignment angle and a port-to-port closing rate are all read as
+  // "fly this, now", so they go through `judgeable` and stop being drawn the
+  // moment they stop being current. A reticle placed from a last-known relative
+  // position asserts an attitude it cannot know, which is the sharpest form of
+  // the failure the union exists to prevent.
+  //
+  // `absent` and `pending` stay indistinguishable here, exactly as they were
+  // before the migration. `vessel.dock` is declared `absenceIsData` mod-side, so
+  // a tombstone genuinely means "not a docking scenario", and never-arrived
+  // leaves the widget with the same nothing to draw. Neither one is a readout
+  // that could carry different wording: the only visible consequence is a HUD
+  // that does not open.
+  const targetReading = useTelemetry("vessel.target");
+  const dockReading = useTelemetry("vessel.dock");
+  const dock = judgeable(dockReading);
+  const dockPairing = stillTrue(dockReading, undefined);
   const target = observedPayload(targetReading);
 
   const tarName = target?.name;
@@ -237,14 +279,25 @@ function DistanceToTargetComponent({
   // number. `Number.isFinite` on the wrapper answered "no approach" for every
   // real one and the TCA readout was a permanent em dash.
   const closestApproachUT = magnitudeOf(target?.closestApproach?.time);
-  const universalTime = useViewUt();
+  /**
+   * `.magnitude` at the read, and it matters more here than it reads.
+   *
+   * Two guards below test this with `typeof === "number"` and `Number.isFinite`.
+   * Both answer NO for a wrapped value, so leaving it an instant would silently
+   * null the TCA readout and the approach countdown, with no type error anywhere:
+   * a runtime type check is a third blind spot alongside an `unknown` parameter
+   * and an `as` cast.
+   */
+  const universalTime = useViewUt()?.magnitude;
 
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
     target?.relativeVelocity && bare(target.relativeVelocity);
   // vessel.dock is null unless the target is a docking port with a free
   // port on the active vessel: undefined here legitimately means "not a
-  // docking scenario right now", not "still loading".
+  // docking scenario right now", not "still loading". Post-migration it also
+  // means "the geometry is no longer current", and `alignmentWithheld` below is
+  // what tells those two apart on screen.
   const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
   const dockDistanceStream = dock?.distance?.magnitude;
@@ -307,6 +360,24 @@ function DistanceToTargetComponent({
   // "any non-body target under 100 m".
   const dockingAvailable = dockRelPos !== undefined;
 
+  // The pairing is still selected but its geometry is no longer current, so the
+  // reticle is being WITHHELD rather than never having existed. Worth its own
+  // flag because the two look identical from outside: the HUD simply is not
+  // there, and without this the operator would read a link that went quiet as a
+  // target that stopped being a docking port. The approach view names it.
+  const alignmentWithheld =
+    notCurrent(dockReading) && dockPairing?.relativePosition !== undefined;
+  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
+  // is a duration, and the affine rules make that the type. The clamp came with it
+  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
+  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
+  // a thing to render.
+  const dockObservedUt = observedAt(dockReading);
+  const dockAgeSec =
+    universalTime !== undefined && dockObservedUt
+      ? Math.max(0, universalTime - dockObservedUt.magnitude)
+      : undefined;
+
   useEffect(() => {
     // The specialised views assert something about NOW: a closing rate to act
     // on, an alignment reticle to fly. Both are only honest off a current
@@ -347,7 +418,11 @@ function DistanceToTargetComponent({
   // view time and nothing else. `Date.now()` is the available wrong answer: it
   // lets two reads within one frame disagree about how old the same sample is,
   // which is the bug class `FrameToken` exists to prevent.
-  const ageSec = readingAge(targetReading, universalTime);
+  const targetObservedUt = observedAt(targetReading);
+  const ageSec =
+    universalTime !== undefined && targetObservedUt
+      ? Math.max(0, universalTime - targetObservedUt.magnitude)
+      : undefined;
 
   if (targetReading.state === "pending") {
     return (
@@ -435,6 +510,9 @@ function DistanceToTargetComponent({
           typeof closestApproachUT === "number" ? closestApproachUT : null
         }
         universalTime={typeof universalTime === "number" ? universalTime : null}
+        alignmentWithheld={
+          alignmentWithheld ? { ageSec: dockAgeSec } : undefined
+        }
         cols={cols}
         rows={rows}
       />
@@ -581,6 +659,13 @@ interface ApproachHudProps {
   relVel: number | undefined;
   closestApproachUT: number | null;
   universalTime: number | null;
+  /**
+   * Set when a docking pairing is still selected but its geometry stopped being
+   * current, so the docking HUD was withheld rather than never having been
+   * available. Carries the age of the last dock observation where there is one,
+   * so the notice can date itself.
+   */
+  alignmentWithheld?: { ageSec: number | undefined };
   cols: number;
   rows: number;
 }
@@ -622,6 +707,23 @@ function ReadoutRow({
 }
 
 /**
+ * Why the docking HUD is not on screen while a pairing is still selected.
+ *
+ * A missing reticle says nothing on its own: the HUD looks the same whether the
+ * target stopped being a docking port or the dock channel went quiet, and only
+ * the second is a link problem. So the withholding is stated in words, dated off
+ * the last dock observation where there is one.
+ */
+function AlignmentWithheldNotice({ ageSec }: { ageSec: number | undefined }) {
+  return (
+    <ReadoutCaption role="status">
+      Docking alignment no longer current
+      {ageSec !== undefined && `, last seen ${formatDuration(ageSec)} ago`}
+    </ReadoutCaption>
+  );
+}
+
+/**
  * Approach mode: between the long-range tracking readout and the docking
  * HUD. Vessels in the 100 m – 5 km band are too close to be a "tracking"
  * problem and too far to align in the reticle. The relevant numbers are
@@ -637,6 +739,7 @@ function ApproachHud({
   relVel,
   closestApproachUT,
   universalTime,
+  alignmentWithheld,
   cols,
   rows,
 }: ApproachHudProps) {
@@ -693,6 +796,9 @@ function ApproachHud({
               <Unit value={value("m/s", closingMagnitude)} decimals={1} />
             </Value>
           )}
+          {alignmentWithheld && (
+            <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
+          )}
         </Stack>
       </Panel>
     );
@@ -741,6 +847,9 @@ function ApproachHud({
           )}
         </ReadoutRow>
       </Grid>
+      {alignmentWithheld && (
+        <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
+      )}
     </Panel>
   );
 }

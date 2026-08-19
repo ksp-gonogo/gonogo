@@ -1,4 +1,8 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  Reading,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
   useActionInput,
@@ -71,6 +75,17 @@ export type MechJebActions = typeof mechjebActions;
 // CommandStatus.phase → operator-facing chip, in the delayed-command
 // vocabulary. `in-flight` is the dispatched-but-unconfirmed window: from the
 // operator's seat the command is in transit / awaiting reply across the delay.
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function commandChip(
   phase: string,
 ): { severity: Severity; text: string } | undefined {
@@ -129,7 +144,9 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   usePanelDelay(executeNode);
   usePanelDelay(land);
 
-  const commsDelay = useTelemetry("comms.delay");
+  // The delay sets how long a command takes to arrive, so it is a judgement: a
+  // held value would time an uplink against a link that has since changed.
+  const commsDelay = judgeable(useTelemetry("comms.delay"));
   const oneWay =
     commsDelay &&
     typeof commsDelay === "object" &&

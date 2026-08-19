@@ -1,3 +1,4 @@
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type { TopicId, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "./useTelemetry";
 
@@ -65,16 +66,25 @@ import { useTelemetry } from "./useTelemetry";
  */
 
 /**
- * The per-call return type of a widget-bound telemetry hook. A Topic listed in
- * the widget's REQUIRED array (`Required`) resolves to its payload **non-null**;
- * any other declared Topic (i.e. one from the optional array) resolves to
- * `payload | undefined`. This conditional is the "mapped type over TopicId" the
- * spec (§3.3) calls for: optionality is derived, never annotated.
+ * The per-call return type of a widget-bound telemetry hook: a `Reading` of the
+ * Topic's payload.
+ *
+ * This used to be a conditional that resolved a REQUIRED Topic to its payload
+ * non-null and an optional one to `payload | undefined`, which is the distinction
+ * the `Reading` union now carries in its own arms: `pending` IS "nothing has
+ * arrived", and it is not reachable only for the required ones. The conditional was
+ * also a lie once `useTelemetry` began answering with a `Reading`, and because the
+ * bound hook is built with `as unknown as`, nothing would have caught it. No widget
+ * has adopted a manifest yet, so this cost nothing; the first one would have been
+ * silently broken.
+ *
+ * `Required` stays in the signature because it still constrains which Topics may be
+ * read at all, which is the mechanism's real value.
  */
 export type WidgetTopicValue<
   T extends TopicId,
   Required extends readonly TopicId[],
-> = T extends Required[number] ? TopicPayload<T> : TopicPayload<T> | undefined;
+> = Reading<TopicPayload<T>>;
 
 /**
  * A telemetry read hook bound to one widget's declared Topics. The single call

@@ -6,7 +6,11 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  META_VANTAGE,
+  type Reading,
+  useCommand,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Panel,
@@ -90,6 +94,39 @@ declare module "@ksp-gonogo/core" {
  * operator still sees title + scienceCost + state + parents even without
  * the 2026-05-13 fork additions.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -334,11 +371,30 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // reads migrate here.
   // One read of the record, two fields off it: the tech list and the science
   // balance are the same payload and cannot differ in how current they are.
+  /**
+   * One record, two fields, two different currency decisions.
+   *
+   * The node list is a fact. A node's state changes when the player spends on
+   * it, and nobody can spend down a link that is not delivering, so the last
+   * tree received is still the tree. Withholding it would blank a catalogue
+   * that is demonstrably still accurate and leave the operator unable even to
+   * browse what they own.
+   *
+   * The science balance is the input to a verdict, `canAfford` below, which
+   * arms a control that spends it. "You can afford this" is a claim about now,
+   * and a balance we can no longer vouch for cannot support one, so a stale
+   * balance is withheld and every Unlock refuses. `careerNotCurrent` is what
+   * lets the refusal say "no longer current" rather than accusing the link of
+   * never having delivered.
+   */
   const career = useTelemetry("career.status");
-  const nodesRaw = career?.tech?.nodes;
-  const scene = useTelemetry("spaceCenter.scene")?.scene;
+  const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
+  const careerScience = judgeable(career)?.economy?.science;
+  const careerNotCurrent = notCurrent(career);
+  // The game scene is a fact as well: it changes when the player walks through
+  // a door, which is an event and not a drift.
+  const scene = stillTrue(useTelemetry("spaceCenter.scene"), undefined)?.scene;
   const { chargesScience } = useGameContext();
-  const careerScience = career?.economy?.science;
   // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
   // so it dispatches at the meta-vantage (instant). The handle is contributed to
   // the panel delay rail by usePanelDelay (draws nothing at meta-vantage).
@@ -419,11 +475,16 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
             {counts.researchable}
             <TinyLabel>RESEARCHABLE</TinyLabel>
           </TinyCount>
-          {sciAvailable !== null && (
+          {sciAvailable !== null ? (
             <TinySci>
               {Math.round(sciAvailable)}
               <Unit>science</Unit>
             </TinySci>
+          ) : (
+            /* Tiny mode has room for one short line, and a withheld balance
+               has to spend it saying so. Dropping the line silently would make
+               a suspended balance look like a save that never had one. */
+            careerNotCurrent && <TinySci>SCIENCE NOT CURRENT</TinySci>
           )}
         </TinyBody>
       </Panel>
@@ -450,7 +511,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       isPending: pendingUnlock === n.id,
       affordTooltip: !canAfford
         ? sciAvailable === null
-          ? `Need ${writeQuantity(value("science", n.scienceCost))} (no science balance has arrived)`
+          ? careerNotCurrent
+            ? `Need ${writeQuantity(value("science", n.scienceCost))} (the science balance is no longer current)`
+            : `Need ${writeQuantity(value("science", n.scienceCost))} (no science balance has arrived)`
           : `Need ${writeQuantity(value("science", n.scienceCost))} (have ${sciAvailable})`
         : !upgradesEnabled
           ? "Unlock from the Space Center scene"
@@ -475,12 +538,19 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
         </SciReadout>
       ) : (
         /* The balance the Unlock buttons are judged against has to stay on
-           screen when it is missing, since that is when they refuse. */
-        chargesScience && (
+           screen when it is missing, since that is when they refuse. Which
+           kind of missing decides whether the operator distrusts the save or
+           the link, so the two get different words. */
+        chargesScience &&
+        (careerNotCurrent ? (
+          <SciReadout title="The science balance is no longer current">
+            · science not current
+          </SciReadout>
+        ) : (
           <SciReadout title="No science balance has arrived">
             · science unknown
           </SciReadout>
-        )
+        ))
       )}
     </span>
   ) : undefined;

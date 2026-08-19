@@ -5,7 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
 import {
   BigReadout,
@@ -19,6 +23,7 @@ import {
   Truncate,
   Unit,
   useElementSize,
+  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
@@ -87,6 +92,39 @@ const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
 
 /** Pure size calc, unit-testable with no DOM: clamp a fraction of the
  *  measured roster width between the cell's min/max bounds. */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function avatarCellSizePx(containerWidthPx: number): number {
   return Math.round(
     Math.min(
@@ -148,10 +186,25 @@ function suitResourceTone(fraction: number): MeterTone {
 function EvaSuitReadout({
   oxygen,
   electricCharge,
+  notCurrent: readingsNotCurrent,
 }: Readonly<{
   oxygen: SuitResourceReadout | undefined;
   electricCharge: SuitResourceReadout | undefined;
+  /** The suit figures went stale rather than never arriving. */
+  notCurrent: boolean;
 }>) {
+  // Said out loud rather than rendered as an absent meter. A kerbal outside the
+  // craft with no consumption figures is a different situation from one whose
+  // suit reports nothing, and only the first means "get them back inside".
+  if (readingsNotCurrent) {
+    return (
+      <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
+        <Value tone="warn" size="xs">
+          Suit resources no longer current
+        </Value>
+      </Cluster>
+    );
+  }
   if (!oxygen && !electricCharge) return null;
   return (
     <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
@@ -325,7 +378,13 @@ function CrewStatusComponent({
 }: Readonly<ComponentProps<CrewStatusConfig>>) {
   // Roster, count, and capacity all ride the single `vessel.crew` Topic,
   // read it once and pick the three fields off it.
-  const crew = useTelemetry("vessel.crew");
+  /**
+   * The roster is a fact, not a measurement: nobody leaves the capsule because the
+   * link dropped, so a held roster is still the crew. The suit resources further
+   * down the same record are the opposite and go through `judgeable`.
+   */
+  const crewReading = useTelemetry("vessel.crew");
+  const crew = stillTrue(crewReading, undefined);
   const crewRaw = crew?.crew;
   const crewCount = crew?.count;
   const crewCapacity = crew?.capacity;
@@ -341,7 +400,14 @@ function CrewStatusComponent({
   // an EVA kerbal (see the EvaSuitReadout block comment above). Read
   // unconditionally (stable hook order); undefined whenever no Uplink
   // publishes `vessel.resources` or the active vessel isn't an EVA kerbal.
-  const resources = useTelemetry("vessel.resources");
+  /**
+   * Suit oxygen and charge only fall, and they are read as "what is left right
+   * now". A held figure would overstate both, on the two numbers that decide
+   * whether a kerbal outside the craft has time to get back in.
+   */
+  const resourcesReading = useTelemetry("vessel.resources");
+  const resources = judgeable(resourcesReading);
+  const suitReadingsNotCurrent = notCurrent(resourcesReading);
   const suitOxygen = isEVA
     ? toSuitResourceReadout(resources?.resources?.Oxygen)
     : undefined;
@@ -406,7 +472,11 @@ function CrewStatusComponent({
           per-kerbal one. Renders nothing until an Uplink binds it. */}
       <AugmentSlot name="crew-status.summary" props={{}} />
       {crewSummary && <ReadoutCaption>{crewSummary}</ReadoutCaption>}
-      <EvaSuitReadout oxygen={suitOxygen} electricCharge={suitElectricCharge} />
+      <EvaSuitReadout
+        oxygen={suitOxygen}
+        electricCharge={suitElectricCharge}
+        notCurrent={isEVA === true && suitReadingsNotCurrent}
+      />
       <div ref={rosterWidthRef}>
         {renderBody({
           known,

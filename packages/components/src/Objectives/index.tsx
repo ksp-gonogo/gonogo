@@ -5,6 +5,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import {
   BellIcon,
   EmptyState,
@@ -113,6 +114,23 @@ const STATE_GLYPH: Record<ObjectiveState, string> = {
   failed: "✕",
 };
 
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function contractParamState(raw: string): ObjectiveState {
   if (raw === "Complete") return "reached";
   if (raw === "Failed") return "failed";
@@ -206,7 +224,19 @@ function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
  * the Contract Manager exposes. Renders nothing when no contracts are active.
  */
 function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
-  const contractsRaw = useTelemetry("career.status")?.contracts?.active;
+  // The active board is a fact and is held through a quiet link: a contract is
+  // accepted, completed or failed by an EVENT, and no event reaches us down a
+  // link that has stopped delivering, so the last list we were sent is still
+  // what the programme is trying to achieve. Dropping it would replace a real
+  // objective list with "No active objectives", which is the one sentence here
+  // that makes a claim about the career rather than about the link.
+  //
+  // Each parameter's Complete/Failed state travels the same way, for the same
+  // reason: it is an event on a record, not a quantity that decays between
+  // frames. Nothing on this record is the second kind, so nothing here goes
+  // through `judgeable`.
+  const contractsRaw = stillTrue(useTelemetry("career.status"), undefined)
+    ?.contracts?.active;
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 

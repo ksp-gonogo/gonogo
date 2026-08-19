@@ -212,10 +212,14 @@ describe("AstronautComplexComponent", () => {
     );
   }
 
-  it("renders the panel and a career-only empty state before telemetry", () => {
+  it("renders the panel and a waiting-for-telemetry empty state before telemetry", () => {
+    // Before anything has arrived the widget says it is waiting, not that the
+    // save is off career: "career mode only" is reserved for the producer
+    // confirming there is no Astronaut Complex.
     renderWidget();
     expect(screen.getByText(/ASTRONAUT COMPLEX/i)).toBeInTheDocument();
-    expect(screen.getByText(/career mode only/i)).toBeInTheDocument();
+    expect(screen.getByText(/waiting for telemetry/i)).toBeInTheDocument();
+    expect(screen.queryByText(/career mode only/i)).not.toBeInTheDocument();
   });
 
   it("shows the header (funds, next-hire cost, active/max crew) and the Applicants tab by default", async () => {

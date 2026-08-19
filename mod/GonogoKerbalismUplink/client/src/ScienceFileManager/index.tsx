@@ -1,4 +1,8 @@
-import type { ExperimentEntry, SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ExperimentEntry,
+  Reading,
+  SlotProps,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
   useCommand,
@@ -42,6 +46,23 @@ interface DriveEntries {
  * shows as two `science.experiments` entries sharing the same `subjectId`,
  * distinguished by `kind`.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function findDriveEntries(
   experiments: ExperimentEntry[] | undefined,
   subjectId: string,
@@ -157,8 +178,12 @@ function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
 function ScienceDataAboardRowAugment({
   subjectId,
 }: SlotProps<"science-data.aboard-row">) {
-  const experiments = useTelemetry("science.experiments");
-  const labs = useTelemetry("science.lab");
+  // A drive's file list is a fact: it changes when an experiment runs or a file is
+  // moved, and a quiet link cannot have moved one. Before this the raw `Reading`
+  // reached `findDriveEntries` and threw "experiments is not iterable", which `tsc`
+  // could not see because that helper takes `unknown`.
+  const experiments = stillTrue(useTelemetry("science.experiments"), undefined);
+  const labs = stillTrue(useTelemetry("science.lab"), undefined);
 
   // Every command is dispatched from this row regardless of which verbs it
   // ends up rendering, so all five hooks (and their panel-delay handles)

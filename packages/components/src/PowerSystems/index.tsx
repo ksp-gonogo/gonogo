@@ -11,6 +11,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline, VisuallyHidden } from "@ksp-gonogo/ui";
 import {
@@ -128,6 +129,17 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function PowerSystemsComponent({
   config,
   w,
@@ -159,7 +171,13 @@ function PowerSystemsComponent({
   // measurement meaningfully DISAGREES with that total, it's surfaced
   // separately as an explicitly-labeled "MEASURED" reading (see the
   // `Totals` cells) instead of being silently dropped OR silently winning.
-  const streamPower = useTelemetry("parts.power");
+  /**
+   * The MEASURED cell exists to disagree with the itemised total, so a held figure
+   * would manufacture a disagreement out of two readings taken at different times
+   * and report it as an instrument fault. Withheld once it stops being current,
+   * which is the same thing this cell already does when it never arrives.
+   */
+  const streamPower = judgeable(useTelemetry("parts.power"));
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);

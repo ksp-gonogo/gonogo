@@ -4,12 +4,17 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  META_VANTAGE,
+  type Reading,
+  useCommand,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ActionButton,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   ScrollArea,
   speakQuantity,
   type TabDescriptor,
@@ -35,6 +40,14 @@ type AstronautComplexConfig = Record<string, never>;
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
 const ARM_TIMEOUT_MS = 4000;
+
+/**
+ * Said on screen whenever the balance is withheld for going stale, so the blank
+ * beside "Funds" is legible as a refusal to quote rather than as a balance
+ * nobody has sent yet. Hiring stays available: the game arbitrates the purchase,
+ * and refusing locally on a balance we cannot see would block a legal hire.
+ */
+const FUNDS_STALE_NOTE = "Funds no longer current";
 
 /**
  * Firing is a per-row action against an arbitrary-length Available list, the
@@ -80,6 +93,39 @@ interface Applicant {
  *  books, so they take their safe zero and those badges never render. Rank
  *  is retained on the model (astronauts keep experience when dismissed and
  *  rehired) but withheld from display via `showRank={false}`. */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function applicantStats(a: Applicant): KerbalStatFields {
   return {
     name: a.name,
@@ -105,16 +151,49 @@ function applicantStats(a: Applicant): KerbalStatFields {
 function AstronautComplexComponent(
   _props: Readonly<ComponentProps<AstronautComplexConfig>>,
 ) {
-  // The applicant pool, roster cap and active-crew count ride the
-  // spaceCenter.astronautComplex Topic; funds comes off
-  // career.status.economy.funds (the same read SpaceCenterStatus uses). Both
-  // degrade to null outside career, so the widget shows an empty state rather
-  // than erroring.
-  const complex = useTelemetry("spaceCenter.astronautComplex");
-  const careerFunds = magnitudeOf(
-    useTelemetry("career.status")?.economy?.funds,
+  /**
+   * The applicant pool, roster cap and active-crew count ride the
+   * spaceCenter.astronautComplex Topic; funds comes off
+   * career.status.economy.funds (the same read SpaceCenterStatus uses). Both
+   * degrade to nothing outside career, so the widget shows an empty state
+   * rather than erroring.
+   *
+   * All four fields on the complex record are facts, which is why the record
+   * takes `stillTrue` whole: the applicant pool changes when the game refreshes
+   * it or somebody is hired, the active-crew count when somebody is hired or
+   * fired, the cap when the facility is upgraded, and the next-hire price is a
+   * quote the game derives from the roster size. None of them can move while
+   * nobody is looking, and a blanked pool would report a Complex with no
+   * candidates for a save that has four waiting.
+   */
+  const complexReading = useTelemetry("spaceCenter.astronautComplex");
+  const complex = stillTrue(complexReading, undefined);
+  /**
+   * Off career there is no Astronaut Complex and the producer says so, which is
+   * `absent` and is the case the "career mode only" wording was written for.
+   * `pending` is a cold start, and it gets its own sentence so a first paint
+   * stops reading as a save with no space programme.
+   */
+  const complexConfirmedEmpty = complexReading.state === "absent";
+  /**
+   * Funds is the one judgement in this widget. The figure sits beside a spend
+   * control, the operator reads it as the balance they are about to spend from,
+   * and it decides `affordable`. A recovery or a purchase moves it while the
+   * link is down, so a held balance is a claim about money that may already be
+   * spent; withheld instead, with `fundsNotCurrent` saying which of the two
+   * reasons the figure is missing for.
+   */
+  const fundsReading = useTelemetry("career.status");
+  const careerFunds = magnitudeOf(judgeable(fundsReading)?.economy?.funds);
+  const fundsNotCurrent = notCurrent(fundsReading);
+  /**
+   * The hired-crew roster is the textbook fact: a kerbal is on the books until
+   * an event takes them off, so the last roster received is still the roster.
+   */
+  const crewRosterRaw = stillTrue(
+    useTelemetry("spaceCenter.crewRoster"),
+    undefined,
   );
-  const crewRosterRaw = useTelemetry("spaceCenter.crewRoster");
   const crewRoster = useMemo(
     () => readCrewRoster(crewRosterRaw),
     [crewRosterRaw],
@@ -194,7 +273,14 @@ function AstronautComplexComponent(
               <FundsValue>{NULL_DISPLAY}</FundsValue>
             )}
           </FundsLine>
-          <Empty>No applicant data (career mode only)</Empty>
+          {fundsNotCurrent && (
+            <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
+          )}
+          <Empty>
+            {complexConfirmedEmpty
+              ? "No applicant data (career mode only)"
+              : "No applicant data yet (waiting for telemetry)"}
+          </Empty>
         </Body>
       </Panel>
     );
@@ -222,6 +308,9 @@ function AstronautComplexComponent(
               </StatValue>
             ) : (
               <StatValue>{NULL_DISPLAY}</StatValue>
+            )}
+            {fundsNotCurrent && (
+              <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
             )}
           </StatBox>
           <StatBox>

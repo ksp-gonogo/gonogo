@@ -5,7 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -24,6 +28,22 @@ export interface AtmosphereProfileConfig {
 }
 
 const REFERENCE_SAMPLES = 80;
+
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
 
 function buildPressureCurve(
   body: BodyDefinition,
@@ -65,7 +85,19 @@ function AtmosphereProfileComponent({
   // `v.externalTemperature` off the raw `vessel.flight` Topic: replacing
   // every legacy two-arg `data`-source shim read this widget used to make.
   const vesselState = useStream<VesselState>("vessel.state");
-  const flight = useTelemetry("vessel.flight");
+  /**
+   * All three atmospheric numbers are quantities that drift on their own as the
+   * craft climbs or dives, and the HUD chip states them as the air the craft is
+   * flying through: an undated three-row overlay pinned to the plot, with no
+   * room for an "as of" and no reading of it other than "now". Density is the
+   * stronger case still, because it also decides whether the craft counts as
+   * being in atmosphere at all. So a stale record is withheld and the notice
+   * names the reason, rather than the chip holding a sea-level density over a
+   * craft that has since left the air.
+   */
+  const flightReading = useTelemetry("vessel.flight");
+  const flight = judgeable(flightReading);
+  const flightNotCurrent = notCurrent(flightReading);
   const bodyName = vesselState?.parentBodyName ?? undefined;
   const body = bodyName ? getBody(bodyName) : undefined;
   const altitude = vesselState?.altitudeAsl ?? undefined;
@@ -74,7 +106,6 @@ function AtmosphereProfileComponent({
   const liveDensity = magnitudeOf(flight?.atmDensity);
   const liveAirTemp = magnitudeOf(flight?.atmosphericTemperature);
   const liveSkinTemp = magnitudeOf(flight?.externalTemperature);
-  // Connectivity indicator (mirrors the pattern used elsewhere in this widget
 
   const cols = w ?? 8;
   const rows = h ?? 8;
@@ -164,6 +195,11 @@ function AtmosphereProfileComponent({
     liveDensity !== null &&
     liveDensity > 1e-9 &&
     body?.hasAtmosphere === true;
+  /* The chip vanishes for three unrelated reasons (nothing has arrived, a
+     confirmed vacuum, a stale record) and only the third is worth explaining,
+     so the notice fires on staleness alone. Gated on `chipFits` because a
+     widget too small to have drawn the chip has withheld nothing. */
+  const showNotCurrentNotice = chipFits && flightNotCurrent;
 
   return (
     <Fill>
@@ -193,6 +229,11 @@ function AtmosphereProfileComponent({
       {showNoBodyNotice && (
         <div role="status" style={NOTICE_STYLE}>
           Unknown body “{bodyName}”.
+        </div>
+      )}
+      {showNotCurrentNotice && (
+        <div role="status" style={NOTICE_STYLE}>
+          Atmospheric readings no longer current.
         </div>
       )}
       {showLiveChip && (

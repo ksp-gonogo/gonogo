@@ -8,6 +8,7 @@ import {
 import {
   contactPhase,
   overdueSeconds,
+  type Reading,
   useFleetVesselLink,
   useFleetVesselSilence,
   useSelectedVantage,
@@ -108,6 +109,23 @@ const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
  * usual null placeholder, comms shows the "unknown" tier) rather than
  * getting a fabricated craft identity.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function isRosterCraft(vesselType: VesselType): boolean {
   return (
     vesselType === VesselType.Unknown || CRAFT_VESSEL_TYPES.has(vesselType)
@@ -160,8 +178,27 @@ function rosterCommsLink(
  * `fleet.vessels` key.
  */
 function useFleet(): { known: boolean; vessels: FleetVessel[] } {
-  const system = useTelemetry("system.vessels");
-  const bodies = useTelemetry("system.bodies");
+  // FAIL-OPEN FIX, not merely a migration. `known` was `system !== undefined`,
+  // and a `Reading` is never undefined, so the roster would have reported itself
+  // KNOWN before a single frame arrived: an empty fleet presented as a confirmed
+  // empty fleet, on a GO/NO-GO-adjacent surface. `known` now means what its name
+  // says, that the fleet list has actually reported.
+  //
+  // A stale roster counts as known: a vessel does not cease to exist because a
+  // frame went missing, and the per-vessel comms state inside it is rendered from
+  // its own field rather than inferred from this list's currency.
+  /**
+   * A tombstone here is a CONFIRMED empty fleet, and the pre-migration gate said so
+   * (`system !== undefined` was false only for never-arrived). Collapsing it into
+   * `pending` would show "waiting for the fleet" to an operator whose save genuinely
+   * has no other vessels, which is a wait that never ends.
+   */
+  const systemReading = useTelemetry("system.vessels");
+  const system = stillTrue(systemReading, EMPTY_FLEET);
+  // The body catalogue is a fact, and a tombstone for it would mean a save with no
+  // celestial bodies, which cannot happen; `undefined` is the honest answer there.
+  const bodiesReading = useTelemetry("system.bodies");
+  const bodies = stillTrue(bodiesReading, undefined);
 
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
@@ -361,7 +398,7 @@ function FleetContactCell({
 }) {
   const silence = useFleetVesselSilence(guid);
   const nowUt = useViewUt();
-  const phase = contactPhase(silence, nowUt ?? 0);
+  const phase = contactPhase(silence, nowUt?.magnitude ?? 0);
 
   if (!silence || nowUt == null || phase === "nominal" || phase === undefined) {
     return null;
@@ -377,7 +414,7 @@ function FleetContactCell({
   }
 
   if (phase === "overdue") {
-    const late = overdueSeconds(silence, nowUt);
+    const late = overdueSeconds(silence, nowUt.magnitude);
     return (
       <Badge severity="warning" live>
         overdue by {late == null ? "?" : formatDuration(late)}
@@ -386,7 +423,8 @@ function FleetContactCell({
   }
 
   if (phase === "expected") {
-    const due = (silence.predictedReacquisitionUt ?? nowUt) - nowUt;
+    const due =
+      (silence.predictedReacquisitionUt ?? nowUt.magnitude) - nowUt.magnitude;
     return (
       <Badge severity="info">
         reacquire in ~{formatDuration(Math.max(0, due))}
@@ -515,6 +553,9 @@ function UpdatesRow({ children }: { children: ReactNode }) {
 // Widget
 // ---------------------------------------------------------------------------
 
+/** A confirmed-no-other-vessels tombstone: a fleet, and it is empty. */
+const EMPTY_FLEET = { vessels: [] as never[] };
+
 function FleetRosterComponent({
   w,
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
@@ -524,7 +565,14 @@ function FleetRosterComponent({
   // command centre (Plan 3). Resolved to its display name via the roster,
   // falling back to the raw id (e.g. the default "ksc" before the roster lands).
   const vantage = useSelectedVantage();
-  const centres = useTelemetry("commandCentre.roster");
+  // A command-centre roster is ground-side and declared unmodellable: centres do
+  // not move and a stale list is still the list. Falls back to the raw id before
+  // anything has landed, which is what the comment above already described.
+  const centresReading = useTelemetry("commandCentre.roster");
+  const centres =
+    centresReading.state === "observed" || centresReading.state === "stale"
+      ? centresReading.value
+      : undefined;
   const vantageName =
     centres?.find((c) => c.id === vantage)?.displayName ?? vantage;
   const cols = w ?? 8;

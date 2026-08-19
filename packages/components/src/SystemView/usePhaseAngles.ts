@@ -35,8 +35,19 @@ import type { CelestialBody } from "./useCelestialBodies";
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
 ): Map<number, number> {
-  const orbit = useTelemetry("vessel.orbit");
-  const ut = useViewUt();
+  // A phase angle is a POSITION relationship, so it is only meaningful from a
+  // current reading (or a model, where one exists). A stale one would draw the
+  // transfer window the craft was in, not the one it is in.
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbit =
+    orbitReading.state === "observed"
+      ? orbitReading.value
+      : orbitReading.state === "reckonable"
+        ? orbitReading.reckoned.value
+        : undefined;
+  // `.magnitude` at the read: this widget threads the view time through geometry and
+  // solver code typed on plain numbers, and the instant type earns nothing there.
+  const ut = useViewUt()?.magnitude;
 
   return useMemo(() => {
     if (!orbit) return EMPTY;

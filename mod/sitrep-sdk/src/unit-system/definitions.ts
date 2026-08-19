@@ -42,6 +42,27 @@ export interface UnitDefinition {
    * `declaredUnitFor` still agree. See `algebra.ts`'s `CanonicalUnit`.
    */
   readonly alias?: true;
+  /**
+   * This kind is POINT-LIKE, and the named kind is what a difference of two of
+   * them produces.
+   *
+   * An instant and a duration share a dimension and are not the same thing. The
+   * algebra between them is affine: a point minus a point is a vector, a point
+   * plus a vector is a point, and point plus point, point times a scalar, and
+   * ordering a point against a vector are all meaningless. Before this,
+   * `ut.minus(ut)` answered `Value<"ut">`, which says the gap between two
+   * instants is itself an instant.
+   *
+   * Opt-in by declaration, so nothing else in the table changes. Two other
+   * dimensions carry more than one kind and neither wants this: `energy` and
+   * `torque` are unrelated quantities that coincide, and `percent` and `ratio`
+   * are the SAME quantity at two scales, where arithmetic between them is not
+   * merely legal but already relied on by `.in("%")`.
+   *
+   * `universalTime` is the only member. Do not add speculative ones: the rules
+   * are general, the data is meant to stay small.
+   */
+  readonly affineVector?: string;
 }
 
 /**
@@ -87,6 +108,7 @@ export const UNIT_DEFINITIONS = {
     ratio: 1,
     kind: "universalTime",
     alias: true,
+    affineVector: "time",
   },
   min: { dim: { s: 1 }, ratio: 60, kind: "time" },
   h: { dim: { s: 1 }, ratio: 3_600, kind: "time" },

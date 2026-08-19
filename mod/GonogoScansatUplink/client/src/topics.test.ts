@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
@@ -22,6 +23,17 @@ import {
 const UPLINK_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The value of a `const string <name>` in ScansatUplink.cs, as the C# declares it. */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function csTopic(constName: string): string {
   const src = readFileSync(join(UPLINK_ROOT, "ScansatUplink.cs"), "utf8");
   const m = src.match(
@@ -75,7 +87,7 @@ describe("scansat structured Topics (relocated out of Sitrep.Contract)", () => {
       carriedChannels: [SCANSAT_SCANNING_VESSELS_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC),
+      () => judgeable(useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -126,7 +138,7 @@ describe("scansat structured Topics (relocated out of Sitrep.Contract)", () => {
       carriedChannels: [SCANSAT_SCANNING_VESSELS_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC),
+      () => judgeable(useTelemetry(SCANSAT_SCANNING_VESSELS_TOPIC)),
       { wrapper: fixture.Provider },
     );
 
@@ -170,9 +182,12 @@ describe("scansat structured Topics (relocated out of Sitrep.Contract)", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [SCANSAT_SCIENCE_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(SCANSAT_SCIENCE_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(SCANSAT_SCIENCE_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(SCANSAT_SCIENCE_TOPIC, [
       {

@@ -24,7 +24,7 @@ import {
   KerbcastProvider,
   type KerbcastSubscriptions,
 } from "@ksp-gonogo/kerbcast-react";
-import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   getUplinkHandle,
   registerAugment,
@@ -42,10 +42,28 @@ import type { KerbcastDataSource } from "../KerbcastDataSource";
 import "../topics";
 import { selectDockingCamera } from "./selectDockingCamera";
 
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 export function DockingCameraAugment({
   cameraFlightId,
 }: SlotProps<"distance-to-target.camera">) {
-  const cameras = useTelemetry("kerbcast.cameras");
+  // A camera roster is a fact: cameras are fitted by an event, not by a frame.
+  const cameras = stillTrue(useTelemetry("kerbcast.cameras"), undefined);
   const flightId = selectDockingCamera(cameras, cameraFlightId);
   const ds = getUplinkHandle<KerbcastDataSource>("kerbcast");
   const client = ds?.getClient();

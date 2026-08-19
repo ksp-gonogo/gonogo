@@ -192,8 +192,16 @@ function mapBody(
  * sample lands.
  */
 export function useCelestialBodies(): CelestialBody[] {
-  const systemBodies = useTelemetry("system.bodies");
-  const ut = useViewUt();
+  // A body catalogue: declared unmodellable, changes when the game changes, so a
+  // stale one is the catalogue.
+  const bodiesReading = useTelemetry("system.bodies");
+  const systemBodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : undefined;
+  // `.magnitude` at the read: this widget threads the view time through geometry and
+  // solver code typed on plain numbers, and the instant type earns nothing there.
+  const ut = useViewUt()?.magnitude;
 
   return useMemo(() => {
     const wire = systemBodies?.bodies;

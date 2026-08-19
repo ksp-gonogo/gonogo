@@ -559,6 +559,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // is NOT relisted here: see the 2026-07-29 systemview-overlays branch.
       "packages/components/src/FleetComms/pendingPulse.ts",
       "packages/components/src/FleetComms/slot.test.tsx",
+      // The `undefined.characterise.test.tsx` files pin what each widget does
+      // with absent telemetry, so they name the same domain tokens their widget
+      // does: a real topic id, a real wire value, or the widget's own copy. Same
+      // debt as the widget beside them, not new debt.
+      "packages/components/src/FleetComms/undefined.characterise.test.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
       "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
@@ -678,7 +683,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
       // another Uplink at all: stale twice over, so it ratcheted off.
       "packages/relay/src/bootstrapConfig.ts",
-      "packages/sitrep-client/src/stream-status.ts",
       "packages/sitrep-client/src/timeline-store.ts",
       "packages/sitrep-client/src/use-certainty.ts",
       "packages/sitrep-client/src/use-stream-status.ts",
@@ -1153,6 +1157,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // FleetReliability's characterisation test emits `reliability.summary`
+      // payloads carrying real `source` values. A wire-value reference: the widget
+      // only branches on `source === "none"`, never on the vendor.
+      "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
       // -- ratchet inventory --
       // The rate-integration candidate scan reads EVERY generated unit
       // descriptor, core's and each Uplink's, because a rate-bearing field
@@ -1332,6 +1340,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   testflight: {
     domainDebt: [],
     permanent: [
+      // FleetReliability's characterisation test emits `reliability.summary`
+      // payloads carrying real `source` values, which is what the wire carries.
+      // A wire-value reference, the case this bucket exists for: the widget only
+      // branches on `source === "none"` and never on the vendor, so the strings
+      // are fixture realism rather than coupling.
+      "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
+      // Same wire-value reference in the widget's stale-branch test.
+      "packages/components/src/FleetReliability/stale.test.tsx",
       // Every entry is a doc-mention naming TestFlight as the OTHER backend that
       // competes for the shared "reliability" capability, which is how the
       // election and the wire shape are explained. None imports, references or

@@ -1,4 +1,4 @@
-import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
@@ -28,6 +28,17 @@ type AvionicsConfig = Record<string, never>;
  * A mass readout, the way an Uplink is meant to write one: the value carries
  * its own unit off the Topic, so this names neither the unit nor the format.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function Tons({ t }: { t?: Value<"t"> }) {
   return t == null ? NULL_DISPLAY : <Unit value={t} decimals={2} />;
 }
@@ -43,7 +54,19 @@ function Tons({ t }: { t?: Value<"t"> }) {
 export function AvionicsGoNoGoComponent(
   _props: ComponentProps<AvionicsConfig>,
 ) {
-  const s = useTelemetry("avionics.status") as AvionicsStatus | undefined;
+  /**
+   * The `as AvionicsStatus | undefined` cast that used to be here hid the whole
+   * migration: `useTelemetry` began answering with a `Reading` and the assertion
+   * silenced it, so `s?.avionicsActive` was permanently undefined and the widget
+   * read "NO AVIONICS" forever. A cast is a stronger blind spot than `unknown`,
+   * because someone chose it.
+   *
+   * A GO/NO-GO is the definition of a judgement, so it is withheld rather than held:
+   * a stale GO is the single worst thing this widget could draw.
+   */
+  const s = judgeable(useTelemetry("avionics.status")) as
+    | AvionicsStatus
+    | undefined;
   const noAvionics = !(s?.avionicsActive ?? false);
   const controllable = s?.controllable ?? false;
   const label = noAvionics ? "NO AVIONICS" : controllable ? "GO" : "NO-GO";

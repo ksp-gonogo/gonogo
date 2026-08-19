@@ -199,9 +199,28 @@ function parseStringArray(raw: unknown): string[] {
 
 export function FlightOutcomeBanner() {
   const recoveryHasRecent = useStream<boolean>("recovery.hasRecent") === true;
-  const recoveryRaw = useTelemetry("recovery.lastSummary");
+  const recoveryReading = useTelemetry("recovery.lastSummary");
   const crashHasRecent = useStream<boolean>("crash.hasRecent") === true;
-  const crashRaw = useTelemetry("crash.lastCrash");
+  const crashReading = useTelemetry("crash.lastCrash");
+  /**
+   * Both feed parsers typed `(raw: unknown)`, so handing them a `Reading` produced
+   * no type error: the parse simply failed its shape checks and the banner stopped
+   * appearing. Branched explicitly here rather than through a helper, because this
+   * package cannot reach `@ksp-gonogo/components`' internals and two sites do not
+   * justify moving that file.
+   *
+   * Both are records of an event that already happened, so the last one received is
+   * still true: a recovery does not un-happen because the link went quiet. The
+   * `hasRecent` gates above already decide whether there is anything to show.
+   */
+  const recoveryRaw =
+    recoveryReading.state === "pending" || recoveryReading.state === "absent"
+      ? undefined
+      : recoveryReading.value;
+  const crashRaw =
+    crashReading.state === "pending" || crashReading.state === "absent"
+      ? undefined
+      : crashReading.value;
   const currentFlight = useFlight();
 
   const recovery = useMemo(

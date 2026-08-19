@@ -6,7 +6,7 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
@@ -21,6 +21,7 @@ import {
   Select,
   type Severity,
   Unit,
+  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -106,15 +107,67 @@ const fmtCountdown = (sec: number): string => {
   return `in ${(d / KSP_YEAR_DAYS).toFixed(1)} y`;
 };
 
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function TransferWindowComponent({
   config,
 }: ComponentProps<TransferWindowConfig>) {
   const showPorkchop = config?.showPorkchop ?? true;
   const leadSeconds = (config?.leadHours ?? 6) * 3600;
 
-  const orbit = useTelemetry("vessel.orbit");
+  /**
+   * The parking orbit, and what of it survives the link going quiet.
+   *
+   * Two fields are read off this record and both are facts rather than
+   * measurements. The reference body changes on an SOI transition; the elements
+   * change under thrust or drag. Both are events, and no event reaches us down a
+   * link that is not delivering. Keplerian elements in particular do not drift on
+   * their own, which is what makes them elements, so the last ones received still
+   * describe the orbit the craft is parked in.
+   *
+   * Nothing this widget JUDGES rests on them either, which is why holding them is
+   * not a stale verdict in disguise. The dial, the IDEAL/NEAR/FAR badge and the
+   * window countdowns are computed from the body catalogue propagated to the view
+   * time (`transferStatus` takes a phase angle and nothing else), so the verdict
+   * is current even when the vessel channel is not. The elements set the ejection
+   * Δv alone, a planning figure for a departure days to years out, and that is a
+   * number a readout can date: `orbitNotCurrent` captions it rather than blanking
+   * a whole board that is otherwise live.
+   */
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbit = stillTrue(orbitReading, undefined);
+  const orbitNotCurrent = notCurrent(orbitReading);
+  /**
+   * "This vessel is not in an orbit" and "no orbit has reached us yet" are
+   * different sentences. The pre-migration gate was `!orbit` and said "waiting" to
+   * both, so a craft on the pad waited forever for telemetry that was never
+   * coming. `absent` is the subject confirming it, so it gets its own wording.
+   */
+  const orbitConfirmedAbsent = orbitReading.state === "absent";
   const bodies = useCelestialBodies();
-  const nowUt = useViewUt() ?? 0;
+  // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
+  // and the instant type earns nothing threaded through it. Unwrapped once, here.
+  const nowUt = useViewUt()?.magnitude ?? 0;
   const createAlarm = useAlarmCreator<TimeTrigger>();
 
   const origin = useMemo(
@@ -133,7 +186,17 @@ function TransferWindowComponent({
   // Seed the destination from the Target API: a targeted body defaults the
   // transfer to it. An explicit pick wins; otherwise the targeted body, then
   // the first sibling.
-  const targetList = useTelemetry("target.available");
+  /**
+   * The roster is a fact, on TargetPicker's reasoning: bodies and vessels do not
+   * stop existing because the link dropped, and which one is flagged current is
+   * what we last told the craft and what it last confirmed. So a held list still
+   * seeds the destination.
+   *
+   * `absent` needs no arm of its own here, unlike the orbit above: a confirmed
+   * empty roster and a roster that has not arrived both mean nothing is targeted,
+   * and the fall-through to the first sibling is already the answer to that.
+   */
+  const targetList = stillTrue(useTelemetry("target.available"), undefined);
   const targetBodyIndex = useMemo(
     () =>
       targetList?.entries.find((e) => e.isCurrent && e.kind === TargetKind.Body)
@@ -228,7 +291,11 @@ function TransferWindowComponent({
   if (!orbit || !origin) {
     return (
       <Panel panelTitle="Transfer Window">
-        <Placeholder>Waiting for vessel orbit...</Placeholder>
+        <Placeholder>
+          {orbitConfirmedAbsent
+            ? "No parking orbit: the vessel reports it is not in one."
+            : "Waiting for vessel orbit..."}
+        </Placeholder>
       </Panel>
     );
   }
@@ -266,6 +333,16 @@ function TransferWindowComponent({
       }
     >
       <Body>
+        {orbitNotCurrent && (
+          // Dated, not withheld. Says which half of the panel it applies to,
+          // because a bare "not current" over a live dial would read as a dead
+          // instrument: the phase relationship and the window times come off the
+          // body catalogue and are as current as the view clock.
+          <Value tone="warn" size="xs" role="status" aria-live="polite">
+            Parking orbit no longer current: Δv is from the last known elements.
+            Phase and window times stay live.
+          </Value>
+        )}
         {solution ? (
           // Responsive on the body's own width (container query): stacked when
           // narrow: dial + list, then the chart below; side-by-side when wide,

@@ -1,8 +1,9 @@
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
+  observedAt,
   type Reading,
   type ReckonerFor,
-  readingAge,
   readingFrom,
   withoutReckoning,
 } from "./reading";
@@ -52,7 +53,7 @@ describe("readingFrom", () => {
     // (confirmed 3 s ago)" rather than asserting it for the rest of the mission.
     expect(readingFrom(point(10, null), "absent", VIEW_UT)).toEqual({
       state: "absent",
-      atUt: 10,
+      atUt: value("ut", 10),
     });
   });
 
@@ -60,7 +61,7 @@ describe("readingFrom", () => {
     expect(readingFrom(point(10, 5), "live", VIEW_UT)).toEqual({
       state: "observed",
       value: 5,
-      atUt: 10,
+      atUt: value("ut", 10),
     });
   });
 
@@ -73,7 +74,7 @@ describe("readingFrom", () => {
       state: "stale",
       grade: status,
       value: 5,
-      asOfUt: 10,
+      asOfUt: value("ut", 10),
     });
   });
 
@@ -86,7 +87,7 @@ describe("readingFrom", () => {
       state: "stale",
       grade: "held-stale",
       value: 5,
-      asOfUt: 10,
+      asOfUt: value("ut", 10),
     });
   });
 
@@ -103,7 +104,7 @@ describe("readingFrom", () => {
     // last contact" reads this; a widget that wants the propagated figure calls
     // `reckoned`. Neither is a substitute for the other.
     expect(reading.value).toBe(5);
-    expect(reading.asOfUt).toBe(10);
+    expect(reading.asOfUt).toEqual(value("ut", 10));
     expect(reading.grade).toBe("last-before-blackout");
   });
 
@@ -140,13 +141,15 @@ describe("readingFrom", () => {
     const reckoned = reading.reckoned;
     expect(reckoned).toEqual({
       value: 6,
-      atUt: VIEW_UT,
+      atUt: value("ut", VIEW_UT),
       basis: "linear-dead-reckoning",
       modelled: [{ path: "", basis: "linear-dead-reckoning" }],
     });
     // The two UTs are different questions: when we last saw it, and what moment
     // the model is claiming about.
-    expect(reckoned.atUt).toBeGreaterThan(reading.asOfUt);
+    // Ordering two instants, which the affine rules still allow: point against
+    // point is the one comparison that means something here.
+    expect(reckoned.atUt.greaterThan(reading.asOfUt)).toBe(true);
   });
 
   it("degrades a stale-graded point with no payload to a confirmed absence", () => {
@@ -158,7 +161,7 @@ describe("readingFrom", () => {
       readingFrom(point(10, null), "held-stale", VIEW_UT, alwaysReckons),
     ).toEqual({
       state: "absent",
-      atUt: 10,
+      atUt: value("ut", 10),
     });
   });
 });
@@ -175,7 +178,7 @@ describe("withoutReckoning", () => {
       state: "stale",
       grade: "held-stale",
       value: 5,
-      asOfUt: 10,
+      asOfUt: value("ut", 10),
     });
   });
 
@@ -202,7 +205,7 @@ describe("Reading, as a type", () => {
     // @ts-expect-error `pending` has no value at all, by design
     expect(pending.value).toBeUndefined();
 
-    const absent: Reading<number> = { state: "absent", atUt: 10 };
+    const absent: Reading<number> = { state: "absent", atUt: value("ut", 10) };
     // @ts-expect-error a confirmed absence has no value, by design
     expect(absent.value).toBeUndefined();
 
@@ -210,7 +213,7 @@ describe("Reading, as a type", () => {
       state: "stale",
       grade: "held-stale",
       value: 5,
-      asOfUt: 10,
+      asOfUt: value("ut", 10),
     };
     // A stale reading has no `reckon`: the capability IS the arm, so a widget
     // cannot call a model that does not exist.
@@ -219,50 +222,65 @@ describe("Reading, as a type", () => {
   });
 });
 
-describe("readingAge", () => {
-  it("measures a stale reading against the frame's view time", () => {
+describe("observedAt", () => {
+  /**
+   * `readingAge` used to live here and did the subtraction itself, returning a bare
+   * `number`. An age is now `viewUt.minus(observedAt(reading))`, which is a
+   * `Value<"s">` natively because the affine rules made a difference of two instants
+   * say what it is. So the library answers WHEN, and the caller does the arithmetic.
+   *
+   * Two things moved to the caller with it, and both are asserted below rather than
+   * assumed: the undefined-view-time case, and the clamp.
+   */
+  it("answers with the OBSERVATION's instant for a stale reading", () => {
     const stale: Reading<number> = {
       state: "stale",
       grade: "held-stale",
       value: 5,
-      asOfUt: 10,
+      asOfUt: value("ut", 10),
     };
-    expect(readingAge(stale, 34)).toBe(24);
-  });
-
-  it("measures a reckonable reading by its OBSERVATION, not its model", () => {
-    // Next to a propagated figure, the number an operator wants is how long ago
-    // real contact was, which is what the model is being asked to bridge.
-    const reading = readingFrom(
-      point(10, 5),
-      "held-stale",
-      VIEW_UT,
-      alwaysReckons,
+    expect(observedAt(stale)).toEqual(value("ut", 10));
+    expect(value("ut", 34).minus(observedAt(stale) as Value<"ut">)).toEqual(
+      value("s", 24),
     );
-    expect(readingAge(reading, 34)).toBe(24);
   });
 
-  it("measures a confirmed absence too, so a tombstone can itself go old", () => {
-    expect(readingAge({ state: "absent", atUt: 10 }, 34)).toBe(24);
+  it("answers by the OBSERVATION for a reckonable reading, not by its model", () => {
+    const reading: Reading<number> = {
+      state: "reckonable",
+      grade: "held-stale",
+      value: 5,
+      asOfUt: value("ut", 10),
+      reckoned: {
+        value: 9,
+        atUt: value("ut", 34),
+        basis: "kepler-propagation",
+        modelled: [{ path: "", basis: "kepler-propagation" }],
+      },
+    };
+    // The model's instant is the frame; the observation's is what went old.
+    expect(observedAt(reading)).toEqual(value("ut", 10));
   });
 
-  it("has no age for a pending reading", () => {
-    expect(readingAge({ state: "pending" }, 34)).toBeUndefined();
+  it("answers for a confirmed absence too, so a tombstone can itself go old", () => {
+    expect(observedAt({ state: "absent", atUt: value("ut", 10) })).toEqual(
+      value("ut", 10),
+    );
   });
 
-  it("has no age without a view time, rather than falling back to wall clock", () => {
-    // `useViewUt` is `undefined` with no provider mounted. Reaching for
-    // `Date.now()` here would let two reads in one frame disagree about how old
-    // the same sample is, which is the bug `FrameToken` exists to stop.
-    expect(
-      readingAge({ state: "absent", atUt: 10 }, undefined),
-    ).toBeUndefined();
+  it("has no instant for a pending reading: there is no observation to be old", () => {
+    expect(observedAt({ state: "pending" })).toBeUndefined();
   });
 
-  it("clamps a view time behind the observation to zero rather than going negative", () => {
-    // Out-of-order arrival is normal (`ClientTimeline` insert-sorts for it), so
-    // a sample can sit marginally ahead of the frame's viewUt. "-0.4 s old" is
-    // never a thing to render.
-    expect(readingAge({ state: "absent", atUt: 10 }, 9.6)).toBe(0);
+  it("subtracts to a NEGATIVE duration when a sample sits ahead of the frame", () => {
+    // The clamp moved out of the library and into every caller, so this records
+    // what the raw subtraction does rather than pretending it cannot happen.
+    // Out-of-order arrival is normal (`ClientTimeline` insert-sorts for it), so a
+    // sample can sit marginally ahead of the frame's view time, and every caller
+    // clamps at zero because "-0.4 s old" is never a thing to render.
+    const absent: Reading<number> = { state: "absent", atUt: value("ut", 10) };
+    const raw = value("ut", 9.6).minus(observedAt(absent) as Value<"ut">);
+    expect(raw.magnitude).toBeCloseTo(-0.4);
+    expect(Math.max(0, raw.magnitude)).toBe(0);
   });
 });

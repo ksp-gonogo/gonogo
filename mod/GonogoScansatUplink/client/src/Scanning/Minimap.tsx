@@ -1,3 +1,4 @@
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   type BodyDefinition,
   useTelemetry,
@@ -49,6 +50,17 @@ const WINDOW_HALF_DEG = 20;
 /** Source-canvas dimensions; must match paintTile's BASE_LAYER_CANVAS_W/H. */
 const SRC_W = BASE_LAYER_CANVAS_W;
 const SRC_H = BASE_LAYER_CANVAS_H;
+
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
 
 export function Minimap({
   body,
@@ -216,7 +228,7 @@ export function Minimap({
 export function MinimapForActiveVessel({
   body,
 }: Readonly<{ body: BodyDefinition }>) {
-  const flight = useTelemetry("vessel.flight");
+  const flight = judgeable(useTelemetry("vessel.flight"));
   return (
     <Minimap
       body={body}

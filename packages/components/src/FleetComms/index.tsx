@@ -147,9 +147,32 @@ function FleetCommsOverlay({
   center,
   parentName,
 }: Readonly<SystemOverlayContext>) {
-  const orbit = useTelemetry("vessel.orbit");
-  const identity = useTelemetry("vessel.identity");
-  const systemBodies = useTelemetry("system.bodies");
+  // The vessel DOT is a marker: a positive claim about where the craft is now,
+  // which `reading.ts` names as the sharpest form of the failure this type
+  // prevents. So the elements come from a CURRENT reading, or from a model if
+  // one is on offer, and otherwise from nothing: `vesselDot` below returns null
+  // and the diagram simply does not draw it, which is the contract
+  // `SystemDiagram`'s own marker already follows.
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbit =
+    orbitReading.state === "observed"
+      ? orbitReading.value
+      : orbitReading.state === "reckonable"
+        ? orbitReading.reckoned.value
+        : undefined;
+  // An identity and a body catalogue, neither of which decays: a stale SOI index
+  // is still which body this craft is around, and a stale catalogue is still the
+  // catalogue. Both declared unmodellable.
+  const identityReading = useTelemetry("vessel.identity");
+  const identity =
+    identityReading.state === "observed" || identityReading.state === "stale"
+      ? identityReading.value
+      : undefined;
+  const bodiesReading = useTelemetry("system.bodies");
+  const systemBodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : undefined;
   const universalTime = useViewUt();
 
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
@@ -163,7 +186,15 @@ function FleetCommsOverlay({
   const utNow = useUtNow();
   // Delayed MetaTopic: see this file's class doc for why connectivity alone
   // moved off `useLatestValue`/`comms.connectivity`.
-  const connectivity = useTelemetry("comms.link");
+  // Three states that must never collapse into two: connected, NOT connected,
+  // and unknown. `comms.link` is declared unmodellable, and a STALE link state
+  // is deliberately treated as unknown rather than carried forward, because
+  // this one is the exception to "stale is still true": a link is exactly the
+  // thing a dropped frame is evidence about, so painting a live commlink from a
+  // last-known `connected: true` asserts the one fact the silence contradicts.
+  const linkReading = useTelemetry("comms.link");
+  const connectivity =
+    linkReading.state === "observed" ? linkReading.value : undefined;
 
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
@@ -179,14 +210,21 @@ function FleetCommsOverlay({
       : null;
 
   const trueAnomalyDeg = useMemo(() => {
-    if (!orbit || universalTime == null || !Number.isFinite(universalTime)) {
+    if (
+      !orbit ||
+      universalTime == null ||
+      !Number.isFinite(universalTime.magnitude)
+    ) {
       return null;
     }
     // Hyperbolic/parabolic guard: `solveAnomalies` throws outside `[0, 1)`
     // eccentricity (an escape/flyby trajectory, routine mid-transfer). Mirrors
     // `SystemView/index.tsx`'s identical guard on the same solver.
     if (!(orbit.ecc.magnitude >= 0 && orbit.ecc.magnitude < 1)) return null;
-    const anomalies = solveAnomalies(buildElements(orbit), universalTime);
+    const anomalies = solveAnomalies(
+      buildElements(orbit),
+      universalTime.magnitude,
+    );
     const deg = wrapDegrees360(radToDeg(anomalies.trueAnomaly));
     return Number.isFinite(deg) ? deg : null;
   }, [orbit, universalTime]);
@@ -347,8 +385,15 @@ function FleetCommsActions() {
  * which body the diagram is framed on.
  */
 function FleetCommsBadge(_props: Readonly<SystemBadgesContext>) {
-  const link = useTelemetry("comms.link");
-  const connected = link?.connected ?? null;
+  const linkReading = useTelemetry("comms.link");
+  // Same rule as the diagram's own read above, and the same reason: a stale
+  // link reads as UNKNOWN (`null`), never as its last value, because silence is
+  // evidence about a link in a way it is not about an altitude. `null` is
+  // already this badge's honest-unknown state, so nothing else changes.
+  const connected =
+    linkReading.state === "observed"
+      ? (linkReading.value.connected ?? null)
+      : null;
   // `Badge` (ui-kit): the codebase's one canonical state-pill, already
   // carrying the vetted go/nogo/neutral fg-on-bg contrast pairing, so this
   // badge composes it rather than hand-rolling a styled dot (the widget

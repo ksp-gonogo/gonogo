@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
+  type Reading,
   type SpaceCenterState,
   useCommand,
   useStream,
@@ -139,6 +140,39 @@ export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
  * Drops anything that doesn't read as one of the two known shapes,
  * sandbox saves emit zeroed entries, which is fine.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 export function parseFacilityLevels(raw: unknown): FacilityLevels {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out: FacilityLevels = {};
@@ -207,18 +241,44 @@ function SpaceCenterStatusComponent({
   // kc.upgradeFacility[...] (the spend command) still has no command home
   // (KNOWN_COMMAND_GAPS) and falls back to legacy execute automatically,
   // reads migrate first, commands come later.
-  const careerStatus = useTelemetry("career.status");
-  const facilitiesRaw = careerStatus?.facilities;
+  /**
+   * One record, two kinds of field.
+   *
+   * The facility tiers and their upgrade costs are facts. A tier changes when the
+   * player pays for an upgrade, and a tier's cost is a game-config constant, so
+   * neither can drift while the link is not delivering. Withholding them would
+   * blank nine cells of a KSC that is demonstrably still standing.
+   *
+   * The balance on the same record is not a fact. It moves on its own (contract
+   * payouts, a recovery, a spend made elsewhere), and here it authorises spending:
+   * `canAfford` below is a verdict that arms a button. A held number is exactly
+   * the one that says yes to an upgrade the player can no longer pay for, so it
+   * is withheld, and `fundsNotCurrent` lets the widget say which of the two
+   * reasons the balance is missing for.
+   */
+  const careerReading = useTelemetry("career.status");
+  const facilitiesRaw = stillTrue(careerReading, undefined)?.facilities;
   // Magnitude: compared against an upgrade cost and rendered through this
   // widget's own compact funds formatting, both of which want a number.
-  const careerFunds = magnitudeOf(careerStatus?.economy?.funds);
+  const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
+  const fundsNotCurrent = notCurrent(careerReading);
+  // Only claim a balance is being held when one actually arrived and is being
+  // refused. A career that never reported an `economy` block has nothing held.
+  const heldFunds =
+    fundsNotCurrent &&
+    magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   const { chargesFunds } = useGameContext();
+  // The parts count moves when R&D unlocks a part, an event, and it is a footer
+  // readout rather than an input to any verdict here.
   const partsAvailable = magnitudeOf(
-    useTelemetry("spaceCenter.partsAvailable")?.count,
+    stillTrue(useTelemetry("spaceCenter.partsAvailable"), undefined)?.count,
   );
-  const sceneTopic = useTelemetry("spaceCenter.scene");
-  const launchSite = sceneTopic?.launchSite;
-  const scene = sceneTopic?.scene;
+  const sceneReading = useTelemetry("spaceCenter.scene");
+  // "Last site" is a claim about the past by construction: the site changes when
+  // a vessel launches from it, so the last one reported is still the answer.
+  const launchSite = stillTrue(sceneReading, undefined)?.launchSite;
+  const scene = judgeable(sceneReading)?.scene;
+  const lastScene = stillTrue(sceneReading, undefined)?.scene;
   const spaceCenterState = useStream<SpaceCenterState>("spaceCenter.state");
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
@@ -241,8 +301,23 @@ function SpaceCenterStatusComponent({
    * That granted permission to spend from not knowing where the player was, and
    * it read the same on a dropped frame mid-session as it did on first paint.
    * No scene means no permission.
+   *
+   * Which is why the scene reads through `judgeable` while the launch site beside
+   * it on the same record does not. The site is something this widget reports; the
+   * scene is nothing but a permission to spend, and a held scene is precisely "we
+   * do not know where the player is now". They may have walked out of the Space
+   * Center since. So a scene that is no longer current means no permission either,
+   * and `heldScene` names that on screen so a row of dead buttons is not mistaken
+   * for a KSC with nothing left to upgrade.
    */
   const upgradesEnabled = scene === "SpaceCenter";
+  // Cite the scene only when withholding it actually cost the operator the
+  // affordance. A held "Flight" disables nothing that was ever enabled.
+  const heldScene = notCurrent(sceneReading) && lastScene === "SpaceCenter";
+  const heldUpgradeInputs = [
+    heldScene ? "scene" : undefined,
+    heldFunds ? "funds balance" : undefined,
+  ].filter((held): held is string => held !== undefined);
 
   const cols = w ?? 6;
   const rows = h ?? 8;
@@ -289,7 +364,14 @@ function SpaceCenterStatusComponent({
               <TinyFundsUnit>f</TinyFundsUnit>
             </TinyFunds>
           ) : (
-            <TinyFunds>{NULL_DISPLAY}</TinyFunds>
+            /* No room for a sentence in a 2x3 box, but the reason still has to
+               leave the component: a held balance is titled, a balance that never
+               arrived is not, so the two are distinguishable from outside. */
+            <TinyFunds
+              title={heldFunds ? "Funds balance no longer current" : undefined}
+            >
+              {NULL_DISPLAY}
+            </TinyFunds>
           )}
           <TinyPad
             $occupied={padOccupied === true}
@@ -329,14 +411,29 @@ function SpaceCenterStatusComponent({
               /* The balance is required beside a spend control, and an absent
                  balance is the state that rule exists for: it is exactly when
                  the affordability check below has nothing to judge against.
-                 Sandbox charges nothing, so there is no balance to be missing. */
-              chargesFunds && (
+                 Sandbox charges nothing, so there is no balance to be missing.
+                 Held and never-arrived are two different sentences: one accuses
+                 the link, the other only reports a cold start. */
+              chargesFunds &&
+              (heldFunds ? (
+                <FundsReadout title="Funds balance no longer current">
+                  · funds no longer current
+                </FundsReadout>
+              ) : (
                 <FundsReadout title="No funds balance has arrived">
                   · funds unknown
                 </FundsReadout>
-              )
+              ))
             )}
           </PadStatusLine>
+        )}
+        {heldUpgradeInputs.length > 0 && (
+          /* Not a live region: the funds half of this already re-announces
+             through the pad line above, and telling the operator twice in one
+             frame is how a status line gets ignored. */
+          <UpgradesHeld>
+            {`Upgrades held: ${heldUpgradeInputs.join(" and ")} no longer current`}
+          </UpgradesHeld>
         )}
         <FacilityGrid $compact={compactGrid}>
           {FACILITIES.map(({ key, label }) => {
@@ -769,6 +866,16 @@ const PadStatusLine = styled.span`
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
+`;
+
+const UpgradesHeld = styled.span`
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.04em;
+  /* Same "warning text on a dark surface" treatment as UpgradeCost's
+     unaffordable state: the nogo *-fg token is meant to sit on the red fill and
+     reads as ordinary light copy standing alone on the panel. */
+  color: var(--color-status-nogo-bg);
+  font-weight: 600;
 `;
 
 const FundsReadout = styled.span`

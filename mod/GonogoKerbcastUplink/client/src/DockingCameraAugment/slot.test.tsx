@@ -46,10 +46,14 @@ const HUD_CONTEXT = {
 // stream, then the augment mounts and subscribes" end to end.
 function KerbcastAvailabilityFeeder() {
   const store = useDomainAvailabilityStore();
-  const value = useTelemetry("kerbcast.available" as TopicId);
+  const reading = useTelemetry("kerbcast.available" as TopicId);
   useEffect(() => {
-    store?.setAvailable("kerbcast", value !== undefined);
-  }, [store, value]);
+    // A presence gate asks "has the domain ever reported?", which is the `pending`
+    // arm now: a `Reading` is never `undefined`, so the old spelling announced the
+    // domain before anything arrived and the "does not subscribe until announced"
+    // case could not fail.
+    store?.setAvailable("kerbcast", reading.state !== "pending");
+  }, [store, reading]);
   return null;
 }
 

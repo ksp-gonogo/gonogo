@@ -5,7 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  META_VANTAGE,
+  type Reading,
+  useCommand,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
@@ -65,6 +69,39 @@ const COMMIT_TIMEOUT_MS = 5_000;
  * staying absent on the new wire: the fallback below to
  * `initialCostReputation` already covers that, unchanged.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 export function parseStrategies(raw: unknown): Strategy[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -157,11 +194,32 @@ function StrategiesComponent({
   // COMMANDS still have no command home (KNOWN_COMMAND_GAPS) and fall back to
   // the legacy DataSource via `useExecuteAction` automatically: a later
   // migration will move the write path too.
-  const career = useTelemetry("career.status");
-  const stratsRaw = career?.strategies?.all;
-  const funds = career?.economy?.funds;
-  const reputation = career?.economy?.reputation;
-  const science = career?.economy?.science;
+  //
+  // One record, two kinds of field, so it is read twice.
+  //
+  // The strategy list is a FACT. What the Administration building offers, what
+  // each one costs, which are running: those move when the operator activates or
+  // deactivates something, never on their own, so the last list received is still
+  // the list. Withholding it would swap the whole widget for "Awaiting career
+  // data..." over a roster that is demonstrably still on offer.
+  //
+  // The balances are JUDGEMENTS, because this widget does not merely print them:
+  // `overBudget` turns each one into an affordability verdict that arms or
+  // refuses a control which SPENDS them. Funds move on contract payouts, science
+  // on transmissions, reputation on both, and none of that reaches us down a link
+  // that has stopped delivering. Committing 500,000f against a figure we can no
+  // longer vouch for is the exact harm the balance-visibility rule exists for, so
+  // a stale balance is withheld and the refusal says why.
+  const careerReading = useTelemetry("career.status");
+  const stratsRaw = stillTrue(careerReading, undefined)?.strategies?.all;
+  const economy = judgeable(careerReading)?.economy;
+  const funds = economy?.funds;
+  const reputation = economy?.reputation;
+  const science = economy?.science;
+  // Distinguishes "the balances went stale" from "no economy has ever arrived".
+  // Both blank the figures and both refuse Activate, but only one of them is a
+  // statement about the link, and the operator acts differently on each.
+  const balancesNotCurrent = notCurrent(careerReading);
   // Activating/deactivating a strategy is an Administration-building action
   // with no vessel signal delay, so it dispatches at the meta-vantage
   // (instant). The handles are contributed to the panel delay rail by usePanelDelay.
@@ -287,7 +345,14 @@ function StrategiesComponent({
             fix: the balance wrapped clean off the bottom of a 3x3 box).
             Compact k/M formatting plus nowrap+ellipsis keeps this to one
             line that always fits. */}
-        {funds != null ? (
+        {balancesNotCurrent ? (
+          /* Withheld, and said so in the operator's own words. "funds unknown"
+             below would accuse the link of never having delivered a balance it
+             did deliver, and a bare dash would leave the refusal unexplained. */
+          <TinyFundsRow title="The funds balance is no longer current, so affordability is not being checked">
+            funds not current
+          </TinyFundsRow>
+        ) : funds != null ? (
           <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
             {formatCompactNumber(funds.magnitude, 0)}
             <Unit>funds</Unit>
@@ -320,22 +385,34 @@ function StrategiesComponent({
             {overCap && ` / ${inferredCap}`}
           </Tally>
           <Sep>·</Sep>
-          <Tally>
-            {formatNumber(funds?.magnitude)}
-            <Unit>funds</Unit>
-          </Tally>
-          {(w ?? 9) >= 6 && (
+          {balancesNotCurrent ? (
+            /* One statement replaces all three figures. Three dashes would read
+               as a career with nothing in it, and dashes are already what an
+               absent economy renders, so the rail has to name the link instead
+               of showing the operator the same nothing twice over. */
+            <NotCurrentTally title="The career balances are no longer current, so affordability is not being checked">
+              balances not current
+            </NotCurrentTally>
+          ) : (
             <>
-              <Sep>·</Sep>
               <Tally>
-                {formatNumber(reputation?.magnitude)}
-                <Unit>rep</Unit>
+                {formatNumber(funds?.magnitude)}
+                <Unit>funds</Unit>
               </Tally>
-              <Sep>·</Sep>
-              <Tally>
-                {formatNumber(science?.magnitude)}
-                <Unit>science</Unit>
-              </Tally>
+              {(w ?? 9) >= 6 && (
+                <>
+                  <Sep>·</Sep>
+                  <Tally>
+                    {formatNumber(reputation?.magnitude)}
+                    <Unit>rep</Unit>
+                  </Tally>
+                  <Sep>·</Sep>
+                  <Tally>
+                    {formatNumber(science?.magnitude)}
+                    <Unit>science</Unit>
+                  </Tally>
+                </>
+              )}
             </>
           )}
         </HeaderMeta>
@@ -420,6 +497,7 @@ function StrategiesComponent({
                   funds={magnitudeOf(funds)}
                   reputation={magnitudeOf(reputation)}
                   science={magnitudeOf(science)}
+                  balancesNotCurrent={balancesNotCurrent}
                   factor={factorById[s.id] ?? s.factorSliderDefault}
                   onFactorChange={(v) =>
                     setFactorById((prev) => ({ ...prev, [s.id]: v }))
@@ -478,6 +556,7 @@ function AvailableRow({
   funds,
   reputation,
   science,
+  balancesNotCurrent,
   factor,
   onFactorChange,
   armed,
@@ -492,6 +571,8 @@ function AvailableRow({
   funds: number | null;
   reputation: number | null;
   science: number | null;
+  /** Withheld because the balances went stale, rather than never having arrived. */
+  balancesNotCurrent: boolean;
   factor: number;
   onFactorChange: (v: number) => void;
   armed: boolean;
@@ -520,6 +601,11 @@ function AvailableRow({
    * spends career funds, science and reputation, and a balance that never
    * arrived says nothing about whether the operator has it. The old
    * `?? POSITIVE_INFINITY` read absence as an unlimited balance.
+   *
+   * A balance withheld for going stale takes this same fail-closed path, so the
+   * cost chips tint identically for both. The difference between them is carried
+   * where the operator acts on it: the button's own refusal text and the header
+   * rail, not a shade of red on a figure that is the COST and is known either way.
    */
   const overBudget = (cost: number, balance: number | null) =>
     !Number.isFinite(cost) || balance === null || balance < cost;
@@ -619,12 +705,18 @@ function AvailableRow({
             type="button"
             onClick={onArm}
             disabled={!s.canActivate || pending || cantAfford}
+            /* A stale balance and a short one both refuse, and the operator does
+               something different about each: top up the treasury, or find out
+               why the link stopped. So the refusal names which it is rather than
+               calling a career it cannot see insufficient. */
             title={
               !s.canActivate
                 ? s.activateBlockedReason || "Cannot activate"
-                : cantAfford
-                  ? "Insufficient funds / science / reputation at this factor"
-                  : "Set the factor, then confirm"
+                : balancesNotCurrent
+                  ? "Career balances are no longer current, so affordability cannot be checked"
+                  : cantAfford
+                    ? "Insufficient funds / science / reputation at this factor"
+                    : "Set the factor, then confirm"
             }
           >
             {pending ? "Activating..." : "Activate"}
@@ -661,6 +753,11 @@ const Tally = styled.span<{ $overCap?: boolean }>`
       : "var(--color-text-primary)"};
   font-variant-numeric: tabular-nums;
   font-weight: ${(p) => (p.$overCap ? 700 : 400)};
+`;
+
+const NotCurrentTally = styled.span`
+  color: var(--color-status-warning-bg);
+  font-weight: 700;
 `;
 
 const Sep = styled.span`

@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -45,7 +46,11 @@ describe("TimelineStore.sampleReading", () => {
     const second = s.sampleReading("vessel.target");
 
     expect(second).not.toBe(first);
-    expect(second).toEqual({ state: "observed", value: 6, atUt: 11 });
+    expect(second).toEqual({
+      state: "observed",
+      value: 6,
+      atUt: value("ut", 11),
+    });
   });
 
   it("agrees with the value and status reads for the same frame", () => {
@@ -57,7 +62,7 @@ describe("TimelineStore.sampleReading", () => {
     expect(s.sampleReading("vessel.target", frame)).toEqual({
       state: "observed",
       value: s.sample<number>("vessel.target", frame)?.payload,
-      atUt: 10,
+      atUt: value("ut", 10),
     });
     expect(s.sampleStatus("vessel.target", frame)).toBe("live");
   });
@@ -75,7 +80,7 @@ describe("TimelineStore.sampleReading", () => {
     expect(s.sampleReading("vessel.target")).toEqual({
       state: "observed",
       value: 5,
-      atUt: 10,
+      atUt: value("ut", 10),
     });
 
     s.setTransportConnected(false);
@@ -84,7 +89,7 @@ describe("TimelineStore.sampleReading", () => {
       state: "stale",
       grade: "disconnected",
       value: 5,
-      asOfUt: 10,
+      asOfUt: value("ut", 10),
     });
   });
 
@@ -94,7 +99,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.target")).toEqual({
       state: "absent",
-      atUt: 10,
+      atUt: value("ut", 10),
     });
   });
 });

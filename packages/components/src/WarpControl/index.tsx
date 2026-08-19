@@ -6,7 +6,11 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  META_VANTAGE,
+  type Reading,
+  useCommand,
+} from "@ksp-gonogo/sitrep-client";
 import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
 import {
   NULL_DISPLAY,
@@ -101,6 +105,23 @@ const HIGH_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
   { index: 7, label: "100k×" },
 ];
 
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function WarpControlComponent({
   w,
   h,
@@ -110,7 +131,22 @@ function WarpControlComponent({
   // stream: no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
   // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,
   // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
-  const warp = useTelemetry("time.warp");
+  //
+  // Every field on this record is a FACT, so all four go through `stillTrue`.
+  // Warp rate, warp index, warp mode and pause are discrete simulation MODES:
+  // they change when something sets them and cannot drift on their own between
+  // updates, exactly like the game scene. Nothing about warp decays while the
+  // link is quiet, so the last state received is still the state the simulation
+  // is in, and the panel's own stream-status badge already tells the operator
+  // how fresh that is.
+  //
+  // Withholding them would be actively worse than dating them. `currentIndex ??
+  // 0` feeds the stepper, so a withheld index does not render as "unknown": it
+  // renders as 1x pressed and warp-down disabled, which is a positive claim that
+  // the simulation is at realtime. Refusing to answer would make the widget
+  // assert something it had stopped knowing.
+  const warpReading = useTelemetry("time.warp");
+  const warp = stillTrue(warpReading, undefined);
   const rate = warp?.warpRate;
   const indexRaw = warp?.warpRateIndex;
   const mode = normalizeWarpMode(warp?.warpMode);

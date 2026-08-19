@@ -16,6 +16,7 @@ import {
   AugmentSlot,
   getUplinkHandle,
   logger,
+  type Reading,
   useActionInput,
   useLatestValue,
   useTelemetry,
@@ -75,6 +76,17 @@ export interface CameraFeedConfig extends Record<string, unknown> {
  * camera the SDK positively reports as a kerbal face; nothing is lost when
  * `kind` is absent.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 export function isPartCamera(camera: CameraState): boolean {
   return camera.kind !== CameraKind.Kerbal;
 }
@@ -293,14 +305,14 @@ export function CameraFeed({
   // `comm.connected`/`comm.signalDelay` two-arg shim; the field paths below
   // are exactly what that shim used to map to, per
   // `@ksp-gonogo/sitrep-client`'s `map-topic.ts`).
-  const vesselComms = useTelemetry("vessel.comms");
+  const vesselComms = judgeable(useTelemetry("vessel.comms"));
   const signalStrength = vesselComms?.signalStrength;
   // `comms.link` (NOT `vessel.comms.connected`): a dedicated, freeze-EXEMPT
   // MetaTopic. `vessel.comms` is a Delayed struct subject to the reveal-gate
   // freeze, so its own `.connected` field would stick at last-known through
   // a blackout instead of firing "NO SIGNAL". `comms.link` escapes that
   // freeze, so it's the edge that actually reflects a live disconnect.
-  const commConnected = useTelemetry("comms.link")?.connected;
+  const commConnected = judgeable(useTelemetry("comms.link"))?.connected;
   // One-way light-time delay for THIS downlink (the footage left the craft
   // this long ago): NOT round-trip. Round-trip doubling only applies to
   // interactive command/response paths (e.g. the kOS terminal), which this

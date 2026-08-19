@@ -14,7 +14,7 @@
 // while `scansat.available` is live, so an install without the SCANsat mod
 // never mounts it: zero impact on Experiments for non-SCANsat users.
 
-import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -41,6 +41,23 @@ import { SCANSAT } from "../uplink";
  * `ScanScience.cs`'s own doc comment), so a SCANsat row's
  * DEPLOYED/INOPERABLE/ONE-SHOT badges never show; only DATA does.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -80,7 +97,8 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
  * flagged for live review, not built here.
  */
 function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
-  const raw = useTelemetry("scansat.science");
+  // Accumulated science is a fact: it changes when a scan completes.
+  const raw = stillTrue(useTelemetry("scansat.science"), undefined);
   const experiments = parseScanScience(raw);
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();

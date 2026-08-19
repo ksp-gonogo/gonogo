@@ -57,6 +57,17 @@ export interface CommitLayerProps {
    * link takes its own hero arm below rather than borrowing this one.
    */
   live: boolean;
+  /**
+   * Whether an INSTRUCTION may be named at all: every input the burn solve rests on
+   * is current.
+   *
+   * The hero is the one part of this widget an operator acts on at a named moment,
+   * so it is the one part that must not render from a modelled or last-known state.
+   * The board around it describes from the best value available and says so; this
+   * refuses instead, because a suicide-burn instant computed from a propagated
+   * position is not a dated number, it is a wrong one.
+   */
+  mayInstruct: boolean;
   suicideBurnCountdown: number | null;
   commitInSeconds: number | null;
   committed: boolean;
@@ -79,6 +90,7 @@ export function CommitLayer({
   regime,
   roundTripSeconds,
   live,
+  mayInstruct,
   suicideBurnCountdown,
   commitInSeconds,
   committed,
@@ -124,6 +136,17 @@ export function CommitLayer({
     // us. This used to fall into the live arm and read "SUICIDE BURN".
     heroValue = NULL_DISPLAY;
     heroCaption = "BURN TIMING NEEDS A LINK";
+    heroTone = "default";
+  } else if (!mayInstruct) {
+    // Described, not instructed. The board beside this still carries the descent
+    // picture from the best values available; this is the number an operator would
+    // ACT on at a named moment, so it is the one that is withheld.
+    //
+    // After the `no-path` arm deliberately: when there is no link at all, "needs a
+    // link" is the more specific answer and the operator can act on it. This arm is
+    // for a link that is delivering while these particular readings are not current.
+    heroValue = NULL_DISPLAY;
+    heroCaption = "BURN TIMING NEEDS CURRENT TELEMETRY";
     heroTone = "default";
   } else if (live) {
     heroCaption = "SUICIDE BURN";

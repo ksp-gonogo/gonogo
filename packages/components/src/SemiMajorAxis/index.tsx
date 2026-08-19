@@ -1,15 +1,44 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  observedAt,
+  type Reading,
+  useStream,
+  useViewUt,
+  type VesselState,
+  withoutReckoning,
+} from "@ksp-gonogo/sitrep-client";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { formatDuration, ReadoutCaption, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
 type SemiMajorAxisConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 300;
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
 
 function SemiMajorAxisComponent({
   w,
@@ -23,7 +52,38 @@ function SemiMajorAxisComponent({
   //    display map (the client resolves `vessel.orbit.referenceBodyIndex`
   //    against `system.bodies`, see `vessel-state.ts`). It isn't a wire
   //    `TopicId`, so it reads through `useStream`.
-  const sma = useTelemetry("vessel.orbit")?.sma;
+  /**
+   * SMA is a scalar readout beside a label, so it DATES rather than blanks.
+   * `judgeable` is for the widgets that turn a value into a verdict; a number an
+   * operator reads as "2.87 Mm, at last contact 14s ago" is still a useful,
+   * honest thing to draw, and blanking it would lose the one figure this tile
+   * exists to show.
+   *
+   * `withoutReckoning` first, deliberately: it is what makes the caption fire on
+   * a modelled reading too. A propagated orbit conserves SMA exactly, so a
+   * reckoned figure here would be the same number dressed as fresh evidence,
+   * and it would also disagree in kind with the sparkline beside it, which is
+   * observed history and cannot be modelled forward. So this widget declines the
+   * model and says how old the observation is instead.
+   */
+  const orbitReading = withoutReckoning(useTelemetry("vessel.orbit"));
+  const sma = stillTrue(orbitReading, undefined)?.sma;
+  // Held rather than never-seen: only `stale` reads as "the link went quiet",
+  // and a cold start must not accuse it.
+  const smaHeld = notCurrent(orbitReading);
+  // Age of the observation against the FRAME's view time, never a wall clock:
+  // two reads in one frame must not disagree about how old the same sample is.
+  const viewUt = useViewUt();
+  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
+  // is a duration, and the affine rules make that the type. The clamp came with it
+  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
+  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
+  // a thing to render.
+  const smaObservedUt = observedAt(orbitReading);
+  const smaAgeSec =
+    viewUt && smaObservedUt
+      ? Math.max(0, viewUt.minus(smaObservedUt).magnitude)
+      : undefined;
   const referenceBody =
     useStream<VesselState>("vessel.state")?.referenceBodyName ?? undefined;
   // `useDataSeries` (sparkline history) carries the same stream shim, `o.sma`
@@ -100,10 +160,24 @@ function SemiMajorAxisComponent({
         <SmaDisplay
           role="status"
           aria-live="polite"
-          style={{ fontSize: `${readoutFontPx}px` }}
+          style={{
+            fontSize: `${readoutFontPx}px`,
+            // Muted while held: the tone carries the caveat at a glance, the
+            // caption below says it in words.
+            ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
+          }}
         >
           <Unit value={sma} />
         </SmaDisplay>
+        {/* The caveat belongs on the value rather than in the panel chrome: a
+            header badge beside a confident-looking number is the thing an
+            operator reads past. */}
+        {smaHeld && (
+          <ReadoutCaption role="status">
+            at last contact
+            {smaAgeSec !== undefined && `, ${formatDuration(smaAgeSec)} ago`}
+          </ReadoutCaption>
+        )}
         {showSparkline && (
           <SparkSlot ref={sparkRef}>
             <Sparkline

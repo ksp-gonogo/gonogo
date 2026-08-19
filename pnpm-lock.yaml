@@ -196,9 +196,6 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@ksp-gonogo/sitrep-client':
-        specifier: workspace:*
-        version: link:../../../packages/sitrep-client
       '@ksp-gonogo/sitrep-testing':
         specifier: workspace:*
         version: link:../../../packages/sitrep-testing

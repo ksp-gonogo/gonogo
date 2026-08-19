@@ -5,7 +5,11 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type Reading,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
@@ -50,6 +54,22 @@ declare module "@ksp-gonogo/core" {
 //   0 = none, 1 = partial (unmanned probe with crew nearby etc.), 2 = full
 // The name accessor `comm.controlStateName` mirrors the stock KSP string so
 // we prefer it when present and fall back to the integer for legacy.
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/** Whether a reading went stale, as opposed to never having arrived. */
+function notCurrent<T>(reading: Reading<T>): boolean {
+  return reading.state === "stale";
+}
+
 function describeControl(
   name: string | undefined,
   state: number | undefined,
@@ -91,15 +111,25 @@ function CommSignalComponent({
   //    same ordinal resolved to its enum NAME string)
   //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
   //    SignalDelay authority, live via CommsCoreUplink)
-  const connected = useTelemetry("comms.link")?.connected;
-  const strength = useTelemetry("vessel.comms")?.signalStrength;
+  /**
+   * A link indicator is the one instrument where withholding is not merely honest
+   * but informative: silence IS evidence about a link. A held "connected: true"
+   * from before the gap is the single most misleading thing this widget could
+   * draw, because the operator uses it to decide whether the vessel is hearing
+   * them at all.
+   */
+  const linkReading = useTelemetry("comms.link");
+  const commsReading = useTelemetry("vessel.comms");
+  const connected = judgeable(linkReading)?.connected;
+  const strength = judgeable(commsReading)?.signalStrength;
+  const linkNotCurrent = notCurrent(linkReading) || notCurrent(commsReading);
   const vesselState = useStream<VesselState>("vessel.state");
   // Collapse the derived channel's `null` (comms unknown this tick) to
   // `undefined` so the empty-state + `describeControl` semantics match the
   // old single-value legacy read exactly.
   const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
   const controlStateName = vesselState?.commsControlStateName ?? undefined;
-  const delay = useTelemetry("comms.delay")?.oneWaySeconds;
+  const delay = judgeable(useTelemetry("comms.delay"))?.oneWaySeconds;
 
   const hasData =
     connected !== undefined ||
@@ -112,7 +142,9 @@ function CommSignalComponent({
         panelTitle="COMMNET"
         panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
       >
-        <EmptyState>No signal data</EmptyState>
+        <EmptyState>
+          {linkNotCurrent ? "Link state no longer current" : "No signal data"}
+        </EmptyState>
       </Panel>
     );
   }

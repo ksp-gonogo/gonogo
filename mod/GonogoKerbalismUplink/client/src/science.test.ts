@@ -6,6 +6,7 @@ import type {
   ExperimentEntry,
   InstrumentEntry,
   LabEntry,
+  Reading,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import { renderHook, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -42,6 +43,17 @@ const FIXTURE = join(MOD_ROOT, "golden-fixtures", "science-extensions.json");
  * frames, they ARE the wire frames, and the two halves of the proof cannot drift
  * without one of them going red.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function serverFrame<T>(name: string): { topic: string; payload: T } {
   const vectors = JSON.parse(readFileSync(FIXTURE, "utf8")) as {
     name: string;
@@ -57,12 +69,16 @@ function serverFrame<T>(name: string): { topic: string; payload: T } {
 /** Drive one frame through the real client pipeline and hand back what a widget would see. */
 async function decoded<T>(topic: string, payload: unknown): Promise<T> {
   const fixture = setupStreamFixture({ carriedChannels: [topic] });
-  const { result } = renderHook(() => useTelemetry(topic), {
+  const { result } = renderHook(() => judgeable(useTelemetry(topic)), {
     wrapper: fixture.Provider,
   });
 
   fixture.emit(topic, payload);
 
+  // The hook read above is wrapped in `judgeable`, so `result.current` is the
+  // PAYLOAD, as it was before `useTelemetry` began answering with a `Reading`.
+  // Without that wrap this wait passes on the first tick, because a `Reading` is
+  // always defined, and every hydration assertion reads `undefined` off the wrapper.
   await waitFor(() => {
     expect(result.current).toBeDefined();
   });

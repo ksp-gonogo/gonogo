@@ -1,4 +1,8 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ActionDefinition,
+  ComponentProps,
+  Reading,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
   useActionInput,
@@ -99,6 +103,34 @@ export interface ServoInfo {
  * wrapped from the decode, and a `typeof === "number"` test answers "no
  * reading" for every one of them, which is silent and total.
  */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function num(v: unknown, fallback = 0): number {
   return magnitudeOr(v as Quantityish, fallback);
 }
@@ -183,8 +215,13 @@ export type RoboticsConsoleActions = typeof roboticsActions;
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
-  const roboticsRaw = useTelemetry("robotics.servos");
-  const available = useTelemetry("robotics.available")?.available;
+  // Servo angles move continuously and this console commands against them, so a
+  // held position would aim a command at a hinge that has since travelled.
+  const roboticsRaw = judgeable(useTelemetry("robotics.servos"));
+  const available = stillTrue(
+    useTelemetry("robotics.available"),
+    undefined,
+  )?.available;
 
   // Delayed vessel commands (Breaking Ground robotics-audit-migration): the
   // servo motor/lock/target are actuated on the craft, subject to the same

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
@@ -24,6 +25,17 @@ import {
 const UPLINK_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The value of a `const string <name>` in RealAntennasUplink.cs, as the C# declares it. */
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function csTopic(constName: string): string {
   const src = readFileSync(join(UPLINK_ROOT, "RealAntennasUplink.cs"), "utf8");
   const m = src.match(
@@ -76,9 +88,12 @@ describe("registerTopicUnits: hydration at decode time", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [COMMS_LINK_MARGIN_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(COMMS_LINK_MARGIN_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(COMMS_LINK_MARGIN_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(COMMS_LINK_MARGIN_TOPIC, {
       decibelMargin: 3.5,
@@ -105,9 +120,12 @@ describe("registerTopicUnits: hydration at decode time", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [COMMS_DATA_RATE_TOPIC],
     });
-    const { result } = renderHook(() => useTelemetry(COMMS_DATA_RATE_TOPIC), {
-      wrapper: fixture.Provider,
-    });
+    const { result } = renderHook(
+      () => judgeable(useTelemetry(COMMS_DATA_RATE_TOPIC)),
+      {
+        wrapper: fixture.Provider,
+      },
+    );
 
     fixture.emit(COMMS_DATA_RATE_TOPIC, {
       upBitsPerSec: 1000,
@@ -134,7 +152,7 @@ describe("registerTopicUnits: hydration at decode time", () => {
       carriedChannels: [COMMS_LINK_QUALITY_TOPIC],
     });
     const { result } = renderHook(
-      () => useTelemetry(COMMS_LINK_QUALITY_TOPIC),
+      () => judgeable(useTelemetry(COMMS_LINK_QUALITY_TOPIC)),
       { wrapper: fixture.Provider },
     );
 

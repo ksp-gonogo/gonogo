@@ -7,7 +7,7 @@ import { ViewClock } from "./view-clock";
 /**
  * A reading's identity must track its DATA, not the frame it was read in.
  *
- * `useReading` hands the reading straight to `useSyncExternalStore`, which
+ * `useTelemetry` hands the reading straight to `useSyncExternalStore`, which
  * compares snapshots with `Object.is`. A store that rebuilt the union on every
  * frame would therefore re-render every widget reading telemetry at frame
  * cadence forever, whether or not anything arrived, and put a fresh `reckon`

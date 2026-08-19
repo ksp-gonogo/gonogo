@@ -171,6 +171,26 @@ export function declaredUnitFor(dimensionKey: string): string | undefined {
     ?.find((symbol) => registry.get(symbol)?.ratio === 1);
 }
 
+/**
+ * The base unit a point-like unit's differences land in, or `undefined` when the
+ * unit is not point-like.
+ *
+ * Reads the same `affineVector` declaration the type layer reads, through the
+ * registry rather than the static table so a unit registered at runtime by an Uplink
+ * gets the same answer. Ratio-1 only, for the reason `declaredUnitFor` gives: a
+ * computed value is in base units by construction.
+ */
+export function affineVectorUnitFor(symbol: string): string | undefined {
+  const definition = registry.get(symbol);
+  const vectorKind = definition?.affineVector;
+  if (!definition || vectorKind === undefined) return undefined;
+  const key = Dim.key(definition.dim);
+  return byDimension.get(key)?.find((candidate) => {
+    const other = registry.get(candidate);
+    return other?.kind === vectorKind && other.ratio === 1;
+  });
+}
+
 function resolveComponent(symbol: string, registering: string): UnitDefinition {
   const definition = registry.get(symbol);
   if (!definition) {

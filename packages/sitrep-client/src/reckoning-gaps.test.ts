@@ -1,7 +1,12 @@
-import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Quality,
+  type Value,
+  value,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ReckonerFor } from "./reading";
-import { readingAge } from "./reading";
+import { observedAt } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -113,7 +118,11 @@ describe("a derived reading must not claim the frame's own view time as its obse
     expect(reading.state === "stale" || reading.state === "reckonable").toBe(
       true,
     );
-    expect(readingAge(reading, viewUt)).toBe(1200);
+    // The age, as the subtraction it now is: twenty minutes since the ORBIT was
+    // observed, not zero because the derived channel was recomputed this frame.
+    expect(
+      value("ut", viewUt).minus(observedAt(reading) as Value<"ut">),
+    ).toEqual(value("s", 1200));
   });
 
   it("does not serve a forward-modelled derived value on the `stale` arm", () => {
@@ -183,7 +192,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     expect(reading.state).toBe("reckonable");
     if (reading.state !== "reckonable") return;
     const reckoning = reading.reckoned;
-    expect(reckoning.atUt).toBe(160);
+    expect(reckoning.atUt).toEqual(value("ut", 160));
     expect(reckoning.value).toBe(65);
   });
 });
@@ -313,7 +322,7 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     const second = store.sampleReading<number>("temperature");
     if (second.state !== "reckonable") throw new Error("expected reckonable");
     expect(second.reckoned.value).toBe(20);
-    expect(second.reckoned.atUt).toBe(120);
+    expect(second.reckoned.atUt).toEqual(value("ut", 120));
   });
 });
 

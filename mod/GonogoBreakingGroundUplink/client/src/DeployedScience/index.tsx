@@ -1,4 +1,4 @@
-import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   registerComponent,
@@ -80,6 +80,23 @@ export interface DeployedBase {
  * wrapped from the decode, and a `typeof === "number"` test answers "no
  * reading" for every one of them, which is silent and total.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function num(v: unknown, fallback = 0): number {
   return magnitudeOr(v as Quantityish, fallback);
 }
@@ -304,8 +321,12 @@ const XS2_STYLE = { fontSize: "var(--font-size-2xs)" } as const;
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
-  const basesRaw = useTelemetry("deployed.bases");
-  const available = useTelemetry("game.dlc")?.breakingGround;
+  // A deployed-base roster is a fact: bases are planted by an event.
+  const basesRaw = stillTrue(useTelemetry("deployed.bases"), undefined);
+  const available = stillTrue(
+    useTelemetry("game.dlc"),
+    undefined,
+  )?.breakingGround;
 
   const bases = parseBases(basesRaw) ?? [];
 

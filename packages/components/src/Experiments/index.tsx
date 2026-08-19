@@ -5,7 +5,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -107,6 +107,27 @@ declare module "@ksp-gonogo/core" {
  *   below only ever interpolates it into a key or an action-command
  *   string, never does numeric comparison on it.
  */
+/** Confirmed-none tombstones for the three science reads: present, and empty. */
+const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
+const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 export function parseInstruments(raw: unknown): Instrument[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -226,11 +247,27 @@ function ExperimentsComponent({
   // delay-audit #35/#36), subject to signal delay, so they ride `useCommand`
   // against the real `science.experiment.deploy`/`.transmit` commands
   // instead of the legacy `useExecuteAction` string path.
-  const instrumentsRaw = useTelemetry("science.instruments");
+  /**
+   * These three feed parsers typed `(raw: unknown)`, so the migration produced no
+   * type error here at all: a `Reading` object went into `parseInstruments`, failed
+   * its shape checks, and the widget rendered as though the vessel carried no
+   * instruments. `tsc` cannot see this class, which is why it is called out here.
+   *
+   * All three are facts. An instrument list, a science archive and a lab's state
+   * change when an event changes them, and a confirmed-none is an empty list rather
+   * than a wait.
+   */
+  const instrumentsRaw = stillTrue(
+    useTelemetry("science.instruments"),
+    EMPTY_INSTRUMENTS,
+  );
   // No pre-aggregated data field on the wire, derive the vessel-wide total
   // client-side from the same `science.experiments` Topic ScienceData uses,
   // same aggregate semantics as the old Telemachus "Total science data (mits)".
-  const experimentsRaw = useTelemetry("science.experiments");
+  const experimentsRaw = stillTrue(
+    useTelemetry("science.experiments"),
+    EMPTY_EXPERIMENTS,
+  );
   const instruments = parseInstruments(instrumentsRaw);
   const deployCmd = useCommand("science.experiment.deploy");
   const transmitCmd = useCommand("science.experiment.transmit");
@@ -245,7 +282,7 @@ function ExperimentsComponent({
   // Declared with the other reads so it sits above every early return: a
   // hook after a conditional return is a hooks-order bug waiting to happen.
   const filter = useRowFilter({ placeholder: "Filter instruments…" });
-  const labRaw = useTelemetry("science.lab");
+  const labRaw = stillTrue(useTelemetry("science.lab"), undefined);
   const labs = parseLab(labRaw);
 
   const rows = h ?? 8;

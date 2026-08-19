@@ -1,4 +1,5 @@
-import type { ResourceAmount } from "@ksp-gonogo/sitrep-sdk";
+import type { ResourceAmount, Value } from "@ksp-gonogo/sitrep-sdk";
+import { observedAt, value } from "@ksp-gonogo/sitrep-sdk";
 import type {
   KerbalismLifeSupport,
   KerbalismProfile,
@@ -49,7 +50,7 @@ export interface LevelsProvenance {
   /** The reading arm the levels arrived on. */
   state: "pending" | "absent" | "observed" | "stale" | "reckonable";
   /** UT the levels were observed at; undefined when nothing has been observed. */
-  asOfUt: number | undefined;
+  asOfUt: Value<"ut"> | undefined;
   /** Seconds between that observation and the frame this was derived for. */
   ageSec: number | undefined;
 }
@@ -88,14 +89,9 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
       resourcesReading.state === "reckonable"
         ? resourcesReading.value
         : undefined;
-    const observedAtUt =
-      resourcesReading.state === "observed" ||
-      resourcesReading.state === "absent"
-        ? resourcesReading.atUt
-        : resourcesReading.state === "stale" ||
-            resourcesReading.state === "reckonable"
-          ? resourcesReading.asOfUt
-          : undefined;
+    // `observedAt` rather than the five-arm switch that used to be written out
+    // here: the SDK carries it now, and one copy cannot disagree with itself.
+    const observedAtUt = observedAt(resourcesReading);
     const stored: Record<string, number> = {};
     const capacity: Record<string, number> = {};
     const levels: Record<string, ResourceAmount> = resources?.resources ?? {};
@@ -120,10 +116,17 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
         asOfUt: observedAtUt,
         // Never negative: a sample can sit marginally ahead of the frame's view
         // time, and a negative age is not a thing to render.
+        // An instant minus an instant is a duration, and the affine rules make
+        // that the type; `.magnitude` because this field is declared in seconds.
+        // Still clamped: a sample can sit marginally ahead of the frame's view
+        // time, and a negative age is not a thing to render.
         ageSec:
           observedAtUt === undefined
             ? undefined
-            : Math.max(0, frame.viewUt - observedAtUt),
+            : Math.max(
+                0,
+                value("ut", frame.viewUt).minus(observedAtUt).magnitude,
+              ),
       },
     };
   },

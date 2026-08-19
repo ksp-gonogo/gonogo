@@ -39,7 +39,15 @@ import { useEffect } from "react";
  * rendering blanks.
  */
 export function KspCalendarObserver() {
-  const calendar = useTelemetry("time.calendar");
+  // Calendar CONSTANTS, declared unmodellable: a day is 21600 s until the game
+  // itself says otherwise, so a stale calendar is the calendar and the whole
+  // point of this observer is that the answer persists. Only never-arrived
+  // leaves the kit on its defaults.
+  const calendarReading = useTelemetry("time.calendar");
+  const calendar =
+    calendarReading.state === "observed" || calendarReading.state === "stale"
+      ? calendarReading.value
+      : undefined;
 
   // Unwrapped here, and this is one of the places that is SUPPOSED to. The
   // fields arrive as `Value<"s">` because the contract declares their unit,

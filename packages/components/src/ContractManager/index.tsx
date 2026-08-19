@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
+  type Reading,
   useCommand,
   useStream,
   useViewUt,
@@ -129,6 +130,23 @@ const KNOWN_PARAM_STATES = new Set<ContractParameterState>([
   "Complete",
   "Failed",
 ]);
+
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
 
 function isKnownParamState(value: string): value is ContractParameterState {
   return KNOWN_PARAM_STATES.has(value as ContractParameterState);
@@ -259,7 +277,24 @@ function ContractManagerComponent({
 }: Readonly<ComponentProps<ContractManagerConfig>>) {
   // active/offered/completedRecent all ride the `career.status` Topic's
   // `contracts` sub-tree (map-topic.ts): read the Topic once and pick them off.
-  const contracts = useTelemetry("career.status")?.contracts;
+  //
+  // Facts, so they are held through a quiet link. A contract joins the offered
+  // board, gets accepted, or completes because the PLAYER or the game did
+  // something, and none of that can happen down a link that is not delivering:
+  // the last board we were sent is still the board. Blanking it would claim the
+  // programme has no contracts, which is a positive statement about career state
+  // made from the absence of a frame. Same split `SpaceCenterStatus` makes, where
+  // the facility tiers stay and only the funds balance goes.
+  //
+  // Nothing on these records is a quantity that drifts on its own. The one
+  // number that moves, the deadline countdown, is not remembered at all: it is
+  // computed from a FIXED `deadlineUt` against the frame's view UT, and that
+  // view time is the confirmed edge, so with nothing arriving it holds where the
+  // last sample left it rather than inventing progress the link cannot support.
+  const contracts = stillTrue(
+    useTelemetry("career.status"),
+    undefined,
+  )?.contracts;
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
@@ -347,7 +382,7 @@ function ContractManagerComponent({
                 }}
               />
               <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+                {formatDeadline(c.deadlineUt, universalTime?.magnitude ?? 0)}
               </ContractDeadline>
             </ContractHeader>
             {c.agency && <Agency>{c.agency}</Agency>}
@@ -505,7 +540,7 @@ function ContractManagerComponent({
                 }}
               />
               <ContractDeadline>
-                {formatDeadline(c.deadlineUt, universalTime ?? 0)}
+                {formatDeadline(c.deadlineUt, universalTime?.magnitude ?? 0)}
               </ContractDeadline>
             </ContractHeader>
             {c.agency && <Agency>{c.agency}</Agency>}

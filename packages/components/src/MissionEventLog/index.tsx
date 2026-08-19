@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import type { Reading } from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
   Countdown,
@@ -68,6 +69,23 @@ const KIND_LABEL: Record<MissionEventKind, string> = {
  * rather than a length of time, and reading it as a duration would produce a
  * true statement about the wrong quantity.
  */
+/**
+ * The value of a FACT: something that stays true until an event changes it, and no
+ * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
+ * what an `absent` tombstone means here, which is a different answer from `pending`
+ * and must not collapse into it.
+ */
+function stillTrue<T, A>(
+  reading: Reading<T>,
+  whenConfirmedNothing: A,
+): T | A | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "stale") return reading.value;
+  if (reading.state === "reckonable") return reading.value;
+  if (reading.state === "absent") return whenConfirmedNothing;
+  return undefined;
+}
+
 function Stamp({ ut, launchUt }: { ut: number; launchUt: number | undefined }) {
   if (typeof launchUt === "number" && Number.isFinite(launchUt)) {
     // The sign is decided HERE rather than by `clock`, because a log's zero
@@ -94,13 +112,22 @@ function MissionEventLogComponent(
   _props: Readonly<ComponentProps<MissionEventLogConfig>>,
 ) {
   const events = useMissionEvents();
-  // The magnitude, not the cast that was here: `launchUt` is declared in
-  // seconds and arrives as a `Value<"s">`, so casting it to `number` was an
-  // assertion the compiler could not check and the `typeof` guard below
-  // rejected every real frame, stamping each row with a raw UT where the MET
-  // belonged.
+  /**
+   * The launch instant is a fact, so it is held rather than withheld: a vessel
+   * that left the pad at UT 900 did not leave at some other UT because the link
+   * later went quiet, and dropping the read would silently reformat every row of
+   * a mission's history from a mission-elapsed clock to a raw UT, mid-mission,
+   * on nothing but a stream hiccup.
+   *
+   * The magnitude, not the cast that was here: `launchUt` is declared in seconds
+   * and arrives as a `Value<"s">`, so casting it to `number` was an assertion
+   * the compiler could not check and the `typeof` guard in `Stamp` rejected
+   * every real frame, stamping each row with a raw UT where the MET belonged.
+   */
   const launchUt =
-    magnitudeOf(useTelemetry("vessel.identity")?.launchUt) ?? undefined;
+    magnitudeOf(
+      stillTrue(useTelemetry("vessel.identity"), undefined)?.launchUt,
+    ) ?? undefined;
 
   if (events.length === 0) {
     return (

@@ -1,4 +1,5 @@
 import {
+  type Reading,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
@@ -19,6 +20,17 @@ import type { DataSource, DataSourceStatus } from "../types";
 import { useTelemetry } from "./useTelemetry";
 
 // Minimal in-memory legacy DataSource: same shape as useTelemetry.legacy-datasource.test.ts.
+/**
+ * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
+ * A stale reading gives nothing, because a judgement cannot be dated: the operator
+ * reads a band or a pill as the situation NOW.
+ */
+function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.state === "observed") return reading.value;
+  if (reading.state === "reckonable") return reading.reckoned.value;
+  return undefined;
+}
+
 function makeSource(id = "data") {
   const dataListeners = new Map<string, Set<(v: unknown) => void>>();
   const statusListeners = new Set<(s: DataSourceStatus) => void>();
@@ -69,14 +81,15 @@ const ORBIT: VesselOrbitPayload = {
 beforeEach(() => clearRegistry());
 
 describe("useTelemetry: canonical TopicId read", () => {
-  it("reads a Topic's payload straight off the mounted TimelineStore, typed as TopicPayload<T>", async () => {
+  it("reads a Topic straight off the mounted TimelineStore, typed as Reading<TopicPayload<T>>", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
     function Orbit() {
-      const orbit = useTelemetry("vessel.orbit");
-      // Compile-time proof: the canonical overload resolves to the Topic's
-      // payload type. A wrong payload type here would fail `typecheck`.
+      const orbit = judgeable(useTelemetry("vessel.orbit"));
+      // Compile-time proof: the canonical overload resolves to a `Reading` of the
+      // Topic's payload, and `judgeable` narrows it back to the payload. A wrong
+      // payload type here would fail `typecheck`.
       // `.magnitude`: `sma` is a declared length, so the decode hands the
       // widget a `Value`. The probe prints the number to keep the assertion
       // about the read path rather than about rendering.
@@ -106,9 +119,13 @@ describe("useTelemetry: canonical TopicId read", () => {
     await waitFor(() => expect(screen.getByText("sma:700000")).toBeTruthy());
   });
 
-  it("returns undefined when no TelemetryProvider is mounted", () => {
+  it("answers `pending` when no TelemetryProvider is mounted", () => {
+    // Not `undefined`: "there is no stream here" and "the stream has told us
+    // nothing yet" are the same statement from a widget's point of view, and both
+    // are the `pending` arm. A widget on a station with no host reads exactly what a
+    // widget waiting for its first frame reads, which is the honest answer.
     const { result } = renderHook(() => useTelemetry("vessel.orbit"));
-    expect(result.current).toBeUndefined();
+    expect(result.current).toEqual({ state: "pending" });
   });
 });
 

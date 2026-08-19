@@ -272,7 +272,18 @@ export type {
   ReckoningBasis,
   StaleGrade,
 } from "./reading";
-export { readingAge, readingFrom, withoutReckoning } from "./reading";
+/**
+ * Re-exported from `./reading`, which re-exports them from `@ksp-gonogo/sitrep-sdk`.
+ * They ended up on the devkit surface because every consumer of `useTelemetry` needs
+ * them and an Uplink client cannot import this package.
+ */
+/**
+ * The fact-versus-verdict accessors are gone: whether a value is a standing fact or a
+ * decaying verdict is context-dependent rather than a property of the field, so a
+ * shared helper forced one answer on every reader. Each widget branches on the arms
+ * and decides for itself. What remains answers questions that have one answer.
+ */
+export { observedAt, readingFrom, withoutReckoning } from "./reading";
 export type { ReckonerConflict } from "./reckoners";
 export {
   clearReckoners,
