@@ -3,23 +3,30 @@ import type {
   DataKey,
   DataSource,
   DataSourceStatus,
-} from "../types";
+} from "../api/types";
 
 export interface MockDataSourceOptions {
   id?: string;
   name?: string;
   keys?: DataKey[];
-  /** Mirror the real TelemachusDataSource so BufferedDataSource's signal-gate
-   * logic is exercised. */
+  /**
+   * Set this to match a source whose samples stop arriving on signal loss, so a
+   * buffering wrapper's signal-gate path is actually exercised rather than
+   * skipped.
+   */
   affectedBySignalLoss?: boolean;
   /** Optional spy / handler for `execute()` calls. */
   onExecute?: (action: string) => void | Promise<void>;
 }
 
 /**
- * Minimal in-memory DataSource for tests. Lets us drive arbitrary samples
- * without MSW/WS setup, and exposes `emit(key, value)` to push values to all
- * subscribers.
+ * Minimal in-memory `DataSource` for tests: drives arbitrary samples with no MSW
+ * or WebSocket setup, and exposes `emit(key, value)` to push a value to every
+ * subscriber.
+ *
+ * Published from here rather than `@ksp-gonogo/core` because 15 Uplink test files
+ * construct one and that package is `private: true`. It names four types and no
+ * behaviour, so there was nothing holding it up there.
  */
 export class MockDataSource implements DataSource {
   readonly id: string;
