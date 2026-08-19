@@ -640,7 +640,7 @@ function FuelStatusComponent({
         <ReadoutCaption>
           Stage {currentStage}
           {stageCount !== undefined &&
-            ` / ${Math.max(stageCount.magnitude - 1, 0)}`}
+            ` / ${stageCount.minus(1).max(0).magnitude}`}
         </ReadoutCaption>
       )}
       {showHeroDv && (

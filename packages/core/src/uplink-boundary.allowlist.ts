@@ -179,7 +179,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
       "packages/app/src/dataSources/migrateGameHost.ts",
       "packages/app/src/dataSources/seedKspHost.ts",
-      "packages/core/src/settings/store.ts",
       "mod/sitrep-sdk/src/testing/install-dom-stubs.ts",
       "packages/data/src/FlightsManager/AutoRecordController.tsx",
       "packages/relay/src/bootstrapConfig.ts",

@@ -27,12 +27,9 @@ import {
   registerAugment,
   registerSetting,
   registerSettingsTab,
-  setSetting,
-  subscribeSetting,
   useActionInput,
   useDataSources,
   useExecuteAction,
-  useSetting,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -130,10 +127,6 @@ export function buildGonogoHost(): GonogoHost {
     useReplaySessionActive: () => useReplaySessionActive(),
 
     getGameHost: () => getGameHost(),
-    subscribeSetting: (key, cb) => subscribeSetting(key, cb),
-    setSetting: (key, value) => {
-      setSetting(key, value);
-    },
 
     getAugmentsForSlot: (slot) =>
       getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,
@@ -160,8 +153,6 @@ export function buildGonogoHost(): GonogoHost {
 
     registerSetting: (def) =>
       registerSetting(def as Parameters<typeof registerSetting>[0]),
-    useSetting: ((key: string, defaultValue: unknown) =>
-      useSetting(key, defaultValue)) as GonogoHost["useSetting"],
 
     AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
     createPerfBudget: (opts) => new PerfBudget(opts),

@@ -1,64 +1,17 @@
-import type { ReactNode } from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import type { SettingsService } from "./SettingsService";
-
-const SettingsContext = createContext<SettingsService | null>(null);
-
-export function SettingsProvider({
-  service,
-  children,
-}: {
-  service: SettingsService;
-  children: ReactNode;
-}) {
-  return (
-    <SettingsContext.Provider value={service}>
-      {children}
-    </SettingsContext.Provider>
-  );
-}
-
-export function useSettingsService(): SettingsService {
-  const svc = useContext(SettingsContext);
-  if (!svc) {
-    throw new Error(
-      "useSettingsService must be used inside a <SettingsProvider>",
-    );
-  }
-  return svc;
-}
-
 /**
- * Reactive accessor for a single client-pref setting. Returns a
- * `[value, setValue]` tuple; mutations persist through the underlying
- * `SettingsService` and broadcast to other subscribers.
+ * The settings React context moved to `@ksp-gonogo/sitrep-sdk` with the service it
+ * carries: see `./SettingsService.ts`. A context is the one thing a second copy
+ * breaks silently, since a provider from one copy is invisible to a consumer of
+ * the other, so it has to sit in the single published package both sides resolve.
  *
- * This is the CLIENT-PREF path only, source-backed settings never route
- * through here (their value lives on a `DataSource`, not `SettingsService`);
- * `SettingsModal` renders those with a dedicated source-bound row so this hook
- * stays a simple, single-purpose localStorage reader.
+ * That also retires `useSetting`'s host shim. It was a shim so an Uplink's hook
+ * would read the app's context rather than a bundled copy of it; with one context
+ * in one published package, there is no second copy to read.
+ *
+ * Re-exported so this package's importers keep their import site.
  */
-export function useSetting<T>(
-  key: string,
-  defaultValue: T,
-): [T, (v: T) => void] {
-  const svc = useSettingsService();
-  const [value, setValueState] = useState<T>(() => svc.get(key, defaultValue));
-
-  useEffect(() => svc.subscribe<T>(key, setValueState), [svc, key]);
-
-  const setValue = useCallback(
-    (next: T) => {
-      svc.set(key, next);
-    },
-    [svc, key],
-  );
-
-  return [value, setValue];
-}
+export {
+  SettingsProvider,
+  useSetting,
+  useSettingsService,
+} from "@ksp-gonogo/sitrep-sdk";

@@ -113,16 +113,44 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(barrel.getGameHost()).toBe("192.168.1.50");
     });
 
-    it("subscribeSetting fails LOUD with no host, resolves once installed", () => {
+    // The settings STORE is not a shim any more: it moved into this package with
+    // its service and its React context on 2026-08-19. `getGameHost` above still
+    // is one, because the build-time default it falls back to is the app's.
+    // This suite runs in `node`, where `localStorage` is undefined and the store's
+    // own guard makes the SAVED layer a no-op. So these exercise the seed layer and
+    // the subscriber fan-out, which are plain memory and mean the same thing in
+    // either environment. The saved-beats-seed rule is `settings/store.test.ts`'s,
+    // which runs under jsdom for exactly that reason.
+    it("the settings store needs no host at all", () => {
       resetTestHost();
-      const cb = vi.fn();
-      expect(() => barrel.subscribeSetting("gameHost", cb)).toThrow(named);
+      barrel.resetSettingsForTests();
+      const changed = vi.fn();
+      const unsubscribe = barrel.subscribeSetting("gameHost", changed);
 
-      const unsubscribe = vi.fn();
-      const subscribeSetting = vi.fn().mockReturnValue(unsubscribe);
-      installTestHost({ subscribeSetting });
-      expect(barrel.subscribeSetting("gameHost", cb)).toBe(unsubscribe);
-      expect(subscribeSetting).toHaveBeenCalledWith("gameHost", cb);
+      barrel.seedSetting("gameHost", "seeded.local");
+      expect(barrel.getSetting("gameHost")).toBe("seeded.local");
+      expect(changed).toHaveBeenCalledTimes(1);
+
+      unsubscribe();
+      barrel.seedSetting("gameHost", "other.local");
+      expect(changed).toHaveBeenCalledTimes(1);
+
+      barrel.resetSettingsForTests();
+      expect(barrel.getSetting("gameHost")).toBeUndefined();
+    });
+
+    it("notifies only the subscribers of the key that changed", () => {
+      resetTestHost();
+      barrel.resetSettingsForTests();
+      const onHost = vi.fn();
+      const onOther = vi.fn();
+      barrel.subscribeSetting("gameHost", onHost);
+      barrel.subscribeSetting("somethingElse", onOther);
+
+      barrel.seedSetting("gameHost", "10.0.0.5");
+      expect(onHost).toHaveBeenCalledTimes(1);
+      expect(onOther).not.toHaveBeenCalled();
+      barrel.resetSettingsForTests();
     });
   });
 
@@ -215,18 +243,6 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
         },
       ]);
       barrel.clearFogRevealSources();
-    });
-
-    it("setSetting fails LOUD with no host, resolves once installed", () => {
-      resetTestHost();
-      expect(() => {
-        barrel.setSetting("gameHost", "10.0.0.5");
-      }).toThrow(named);
-
-      const setSetting = vi.fn();
-      installTestHost({ setSetting });
-      barrel.setSetting("gameHost", "10.0.0.5");
-      expect(setSetting).toHaveBeenCalledWith("gameHost", "10.0.0.5");
     });
 
     it("getContributionsForSlot fails LOUD with no host, resolves once installed", () => {

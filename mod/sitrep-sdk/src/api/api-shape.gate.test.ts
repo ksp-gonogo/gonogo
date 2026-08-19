@@ -16,6 +16,8 @@ import * as barrel from "./index";
 const EXPECTED_BARREL_VALUE_EXPORTS = [
   "AugmentSlot",
   "ContributionsProvider",
+  "SettingsProvider",
+  "SettingsService",
   "GAME_HOST_KEY",
   "GONOGO_HOST_KEY",
   "LocalStorageStore",
@@ -45,6 +47,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "getFogRevealSourceSettings",
   "getFogRevealSources",
   "getGameHost",
+  "getSetting",
   "getImagingWindow",
   "getMapPoiProviders",
   "getUplinkHandle",
@@ -65,8 +68,10 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerSettingsTab",
   "registerStockBodies",
   "registerTheme",
+  "resetSettingsForTests",
   "registerUplinkHandle",
   "safeRandomUuid",
+  "seedSetting",
   "setSetting",
   "subscribeSetting",
   "unregisterActionHandler",
@@ -85,6 +90,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useReplaySessionActive",
   "useRouteCommands",
   "useSetting",
+  "useSettingsService",
   "useStream",
   "useStreamEvent",
   "useTelemetry",
@@ -114,7 +120,6 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
     expect(() => barrel.registerSetting({} as never)).toThrow(named);
-    expect(() => barrel.useSetting("x", false)).toThrow(named);
     expect(() => barrel.createPerfBudget({ name: "b", threshold: 1 })).toThrow(
       named,
     );

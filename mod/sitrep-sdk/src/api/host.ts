@@ -138,10 +138,6 @@ export interface GonogoHost {
 
   /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
   getGameHost(): string;
-  /** Subscribe to any change (saved OR seeded) for one shared settings key. */
-  subscribeSetting(key: string, cb: () => void): () => void;
-  /** Persist a user-chosen value for one settings key (the "saved" layer). */
-  setSetting(key: string, value: string): void;
 
   AugmentSlot: ComponentType<{ name: string; props?: Record<string, unknown> }>;
   /**
@@ -213,14 +209,6 @@ export interface GonogoHost {
    * own `DataSource` (see `SettingDefinition`).
    */
   registerSetting(def: SettingDefinition): void;
-  /**
-   * Reactive read of a client-pref setting by key, `[value, setValue]`, the
-   * value persisted via the app's `SettingsService`. This is the hook a
-   * consumer uses to gate on a kill-switch etc. Source-backed settings are not
-   * read through here (their value lives on a `DataSource`); the Settings UI
-   * renders those with a dedicated source-bound row.
-   */
-  useSetting<T>(key: string, defaultValue: T): [T, (v: T) => void];
 
   /**
    * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
