@@ -719,21 +719,19 @@ const ScrollOverflowGlow = styled.div<{
   $visible: boolean;
 }>`
   position: absolute;
-  /* Extend past the scroll container so the glow sits flush with the panel
-     chrome rather than the inner edge. Zero unless a consumer publishes the
-     pad vars (a widget that puts its own inset between the two); the panel
-     itself needs none, because Panel.Body's inset is inside the scroller. */
-  left: calc(-1 * var(--scroll-glow-pad-x, 0px));
-  right: calc(-1 * var(--scroll-glow-pad-x, 0px));
-  ${({ $position }) =>
-    $position === "top"
-      ? "top: calc(-1 * var(--scroll-glow-pad-y, 0px));"
-      : "bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));"}
-  /* 44px box (before the pad-y compensation) is the container both layers fade
-     within; each layer sets its OWN reach through its gradient stops below
-     (mask ~50%, affordance ~40%). Height is outside the ratchet's scanned
-     properties, so it stays a literal. */
-  height: calc(44px + var(--scroll-glow-pad-y, 0px));
+  /* Flush with the scroller's own edges. There is no pad-var escape hatch: the
+     panel needs none because Panel.Body's inset is inside the scroller, and a
+     widget that appeared to need one was really nesting a SECOND scroller as
+     its whole body, whose glow then drew inside the outer body's inset.
+     Deleting that nesting is the fix; four widgets had it. */
+  left: 0;
+  right: 0;
+  ${({ $position }) => ($position === "top" ? "top: 0;" : "bottom: 0;")}
+  /* 44px is the container both layers fade within; each layer sets its OWN
+     reach through its gradient stops below (mask ~50%, affordance ~40%).
+     Height is outside the ratchet's scanned properties, so it stays a
+     literal. */
+  height: 44px;
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity var(--duration-base, 150ms) var(--ease-standard, ease);
@@ -1137,9 +1135,13 @@ const PanelGlow__Root = styled.div`
  *
  * The previous arrangement passed `--scroll-glow-pad-*` between Panel,
  * PanelBody and ScrollArea: three participants, no owner, and an invalid
- * unitless zero sat in it unnoticed so the glow never rendered at all. There
- * is no pad var between the panel's own parts now, because the inset lives
- * inside the scroller.
+ * unitless zero sat in it unnoticed so the glow never rendered at all. Giving
+ * it an owner left the vars behind as an escape hatch, and they then sat with
+ * NO PUBLISHER anywhere in the repo, permanently resolving to their `0px`
+ * fallback while one widget carried a comment describing a bleed that
+ * therefore never happened. They are gone entirely now. A widget that appears
+ * to need one is nesting a second scroller as its whole body; delete that
+ * instead.
  */
 export function PanelGlow({
   children,
@@ -1190,10 +1192,12 @@ export function PanelGlow({
 //
 // `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so it
 // owns both the glow's behaviour and the inset compensation it needs. That
-// replaces a `--scroll-glow-pad-*` var contract shared between three
+// replaced a `--scroll-glow-pad-*` var contract shared between three
 // components with no owner, which is exactly how a unitless `0` sat in the
 // scrollable shell making `calc(-1 * 0)` invalid, so the glow never rendered
-// there at all.
+// there at all. The vars themselves are now deleted too: left in place as an
+// escape hatch they acquired no publisher, which is the same failure one step
+// quieter.
 //
 // Title and toolbar sit inside the glow but BESIDE the body rather than in
 // it, and the body is the scroller, so the header stays pinned while
