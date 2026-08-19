@@ -202,6 +202,10 @@ export {
   type FilterRow,
 } from "./FilterList";
 export {
+  FitLabelButton,
+  type FitLabelButtonProps,
+} from "./FitLabelButton";
+export {
   ConfigForm,
   Field,
   FieldHint,
