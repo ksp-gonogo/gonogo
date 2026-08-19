@@ -99,12 +99,26 @@ async function flushViewUt(): Promise<void> {
   });
 }
 
-function scrollInner(container: HTMLElement): HTMLElement {
-  const inner = container.querySelector<HTMLElement>(
-    "[data-scroll-area-inner]",
+/**
+ * The widget's own content wrapper: the sibling right after the panel header,
+ * inside `[data-panel-body]`.
+ *
+ * It used to reach for `[data-scroll-area-inner]`, an element that no longer
+ * exists. This widget wrapped its whole body in a SECOND `ScrollArea` inside
+ * `Panel.Body`, whose glow then drew inside the outer body's inset, and that
+ * nesting was deleted. These tests are about the reference-body caption's
+ * three states and never had anything to do with scrolling; the inner element
+ * was only ever a convenient query root.
+ *
+ * Not `[data-panel-body]` itself, which was the obvious replacement and is
+ * wrong: the header renders INSIDE it, so its first child is the title.
+ */
+function panelBody(container: HTMLElement): HTMLElement {
+  const content = container.querySelector<HTMLElement>(
+    "[data-panel-header] + *",
   );
-  if (!inner) throw new Error("scroll inner not found");
-  return inner;
+  if (!content) throw new Error("panel content not found");
+  return content;
 }
 
 describe("ManeuverPlanner: nothing has arrived at all", () => {
@@ -142,7 +156,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
     await screen.findByText("Awaiting orbit telemetry.");
     // With `vessel.state.referenceBodyName` never arrived the caption is not
     // rendered at all, so the scroll body opens on the first <section>.
-    expect(scrollInner(view.container).firstElementChild?.tagName).toBe(
+    expect(panelBody(view.container).firstElementChild?.tagName).toBe(
       "SECTION",
     );
   });
@@ -219,7 +233,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
       fixture.emit("system.bodies", null);
     });
     await waitFor(() => {
-      const first = scrollInner(view.container).firstElementChild;
+      const first = panelBody(view.container).firstElementChild;
       expect(first?.tagName).toBe("DIV");
       expect(first?.textContent).toBe("");
     });
@@ -246,7 +260,7 @@ describe("ManeuverPlanner: the reference-body caption's three states", () => {
       });
     });
     await waitFor(() => {
-      const first = scrollInner(view.container).firstElementChild;
+      const first = panelBody(view.container).firstElementChild;
       expect(first?.tagName).toBe("DIV");
       expect(first?.textContent).toBe("Kerbin");
     });
