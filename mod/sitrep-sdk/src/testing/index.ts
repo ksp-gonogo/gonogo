@@ -48,6 +48,12 @@ export function resetTestHost(): void {
 // drop-in for the import source. The named exports above take precedence, so
 // `render`/`renderHook` resolve to the themed versions.
 export * from "@testing-library/react";
+// The `clear` half of the three registries this package OWNS outright rather than
+// shimming: action handlers here, then `clearMapPoiProviders` and
+// `clearUplinkHandles` below (import ordering splits them around the augment line).
+// Forwarded here as well as from the root barrel, because a test is the only caller
+// of a `clear` and wants it from the same import as `render`.
+export { clearActionHandlers } from "../api/action-dispatch";
 // The registry-observation half. `getAugmentsForSlot` is on the root barrel next to
 // `registerAugment`, since reading a slot's augments is something a widget does too;
 // `clearAugments` is test-only and so lives here rather than on the author surface.
@@ -55,9 +61,6 @@ export * from "@testing-library/react";
 // registry the shim wrote to, instead of reaching for ui-kit's copy and relying on
 // the two happening to be the same object.
 export { clearAugments, getAugmentsForSlot } from "../api/index";
-// The two registries this package OWNS outright rather than shimming, forwarded
-// here as well as from the root barrel. A test wants them from one import site,
-// and a test is the only caller of the `clear` half.
 export { clearMapPoiProviders } from "../api/map-poi";
 export { clearUplinkHandles } from "../api/uplink-handles";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,

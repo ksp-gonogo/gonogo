@@ -165,12 +165,22 @@ export const registerAugment = <S extends string>(
 export const registerFogRevealSource = (def: FogRevealSourceDefinition): void =>
   getHost().registerFogRevealSource(def);
 
-// Two registries that are NOT shims: they live in this package. Neither named
-// anything above this leaf (one holds provider definitions, the other holds
-// opaque handles), so the host indirection bought nothing and cost an Uplink the
-// read half: it could register a POI provider or a handle and then had no
-// published way to assert it had. See `./map-poi.ts` and `./uplink-handles.ts`
-// for why their state sits in a `globalThis` slot rather than a module static.
+// Registries that are NOT shims: they live in this package. None of them named
+// anything above this leaf (provider definitions, opaque handles, one payload
+// type), so the host indirection bought nothing and cost an Uplink the read half:
+// it could register a POI provider, a handle or an action handler and then had no
+// published way to fire or observe it. See `./map-poi.ts` for why their state sits
+// in a `globalThis` slot rather than a module static.
+//
+// `dispatchAction` is the one an Uplink TEST reaches for most: it is how a widget's
+// action is exercised with no serial device attached.
+export {
+  type ActionHandler,
+  clearActionHandlers,
+  dispatchAction,
+  registerActionHandler,
+  unregisterActionHandler,
+} from "./action-dispatch";
 export {
   clearMapPoiProviders,
   getMapPoiProviders,

@@ -1,52 +1,23 @@
-import type { ActionInputPayload } from "../types";
-
-export type ActionHandler = (payload: ActionInputPayload) => unknown;
-
-const handlers = new Map<string, Map<string, ActionHandler>>();
-
-function keyFor(instanceId: string): Map<string, ActionHandler> {
-  let bucket = handlers.get(instanceId);
-  if (!bucket) {
-    bucket = new Map();
-    handlers.set(instanceId, bucket);
-  }
-  return bucket;
-}
-
-export function registerActionHandler(
-  instanceId: string,
-  actionId: string,
-  handler: ActionHandler,
-): void {
-  keyFor(instanceId).set(actionId, handler);
-}
-
-export function unregisterActionHandler(
-  instanceId: string,
-  actionId: string,
-): void {
-  const bucket = handlers.get(instanceId);
-  if (!bucket) return;
-  bucket.delete(actionId);
-  if (bucket.size === 0) handlers.delete(instanceId);
-}
-
 /**
- * Fires the handler registered for `instanceId`/`actionId` if one exists and
- * returns its value (for the render-output path). Unknown actions are a no-op
- * and return `undefined`.
+ * The action-handler registry moved to `@ksp-gonogo/sitrep-sdk`.
+ *
+ * Both ends of it belong to an Uplink: a widget registers a handler through
+ * `useActionInput` in its own component body, and the widget's TEST fires it with
+ * `dispatchAction` (the only way to exercise an action without a serial device
+ * attached) and wipes it with `clearActionHandlers` between cases that share an
+ * instance id. Seven Uplink test files call the clear; reaching either meant
+ * importing this package, which is `private: true`.
+ *
+ * It named one TYPE and nothing else, so it moves rather than staying a host
+ * shim, and its state moved to a `globalThis` slot in the same change.
+ *
+ * Re-exported so this package's importers, `useActionInput` included, keep their
+ * import site.
  */
-export function dispatchAction(
-  instanceId: string,
-  actionId: string,
-  payload: ActionInputPayload,
-): unknown {
-  const handler = handlers.get(instanceId)?.get(actionId);
-  if (!handler) return undefined;
-  return handler(payload);
-}
-
-/** Test-only: wipe all registered handlers. */
-export function clearActionHandlers(): void {
-  handlers.clear();
-}
+export {
+  type ActionHandler,
+  clearActionHandlers,
+  dispatchAction,
+  registerActionHandler,
+  unregisterActionHandler,
+} from "@ksp-gonogo/sitrep-sdk";

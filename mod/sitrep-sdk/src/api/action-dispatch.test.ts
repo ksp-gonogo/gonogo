@@ -4,7 +4,7 @@ import {
   dispatchAction,
   registerActionHandler,
   unregisterActionHandler,
-} from "./dispatcher";
+} from "./action-dispatch";
 
 beforeEach(() => clearActionHandlers());
 
