@@ -121,6 +121,24 @@ public class PropagationHorizon
     public PropagationHorizonKind Kind { get; set; }
 
     /// <summary>
+    /// Which provider stated this horizon. <c>"kepler"</c> for the stock
+    /// analytic solver, said EXPLICITLY: an absent field and a stock field are
+    /// different claims, so empty never means stock.
+    ///
+    /// <para>Without it a client knows a number is bounded but not by whom, and
+    /// cannot label honestly, which is the entire point of carrying a horizon.
+    /// The value comes from <c>IPropagationProvider.ProviderId</c>, which has
+    /// existed mod-side since the seam shipped and had no way onto the wire.</para>
+    ///
+    /// <para>Nothing outside the election may branch on the VALUE. A provider
+    /// says what it is so a readout can NAME it and a diagnostic can record it,
+    /// never so a consumer can special-case one: the same rule
+    /// <see cref="VesselManeuver.Planner"/> carries, for the same reason.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ProviderId { get; set; } = "";
+
+    /// <summary>
     /// The last UT these elements answer for. Set if and only if
     /// <see cref="Kind"/> is <see cref="PropagationHorizonKind.Until"/>; null
     /// otherwise, never a sentinel standing in for "forever".

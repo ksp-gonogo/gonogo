@@ -78,3 +78,47 @@ describe("canPropagate", () => {
     ).toEqual({ propagatable: false, reason: "past-horizon", horizonUt: 500 });
   });
 });
+
+describe("canPropagate carries the provider's identity", () => {
+  it("names who bounded the number when it refuses past a horizon", () => {
+    // The reason increment 2 put an id on the wire: a client that knows a number
+    // is bounded but not by whom cannot label honestly, and going blank is the
+    // presentation the horizon exists to replace.
+    const refusal = canPropagate(
+      {
+        kind: Kind.Until,
+        untilUt: 1_000,
+        providerId: "an-integrating-backend",
+      },
+      0,
+      2_000,
+    );
+
+    expect(refusal).toEqual({
+      propagatable: false,
+      reason: "past-horizon",
+      horizonUt: 1_000,
+      providerId: "an-integrating-backend",
+    });
+  });
+
+  it("does not consult the id when deciding", () => {
+    // The decision is `kind` and `untilUt` alone. `VesselOrbit`'s own doc says
+    // nothing outside the election may branch on a provider id's value, so an
+    // unknown id must change nothing about whether the window is answerable.
+    const inside = {
+      kind: Kind.Until,
+      untilUt: 1_000,
+      providerId: "who-knows",
+    };
+    expect(canPropagate(inside, 0, 500).propagatable).toBe(true);
+    expect(
+      canPropagate({ ...inside, providerId: "kepler" }, 0, 500).propagatable,
+    ).toBe(true);
+    expect(
+      canPropagate({ kind: Kind.Unbounded, providerId: "anything" }, 0, 1e12),
+    ).toEqual({
+      propagatable: true,
+    });
+  });
+});

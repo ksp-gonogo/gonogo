@@ -63,6 +63,15 @@ export interface PropagationHorizonLike {
   kind: PropagationHorizonKindLike;
   /** Only meaningful for `Until`; a UT, not a duration. */
   untilUt?: { magnitude: number } | number;
+  /**
+   * Who stated the horizon. Optional HERE and required on the wire: this shape
+   * also describes a caller-built horizon in a test, which has no provider.
+   *
+   * Carried so a refusal can NAME who bounded the number. Never compared: the
+   * gate's decision is `kind` and `untilUt` alone, and the id exists for a
+   * readout and a diagnostic.
+   */
+  providerId?: string;
 }
 
 /**
@@ -81,7 +90,17 @@ export type PropagationHorizonKindLike =
 export type PropagationRefusal =
   | { propagatable: true }
   | { propagatable: false; reason: "no-horizon-stated" }
-  | { propagatable: false; reason: "past-horizon"; horizonUt: number };
+  | {
+      propagatable: false;
+      reason: "past-horizon";
+      horizonUt: number;
+      /**
+       * Who bounded it, when the sample said. Present so a readout can name the
+       * provider instead of going blank, which is the whole reason the horizon
+       * carries an identity.
+       */
+      providerId?: string;
+    };
 
 function horizonUtOf(horizon: PropagationHorizonLike): number | undefined {
   const raw = horizon.untilUt;
@@ -127,7 +146,12 @@ export function canPropagate(
   // answerable than one that ends beyond it, and a caller sweeping backwards
   // should not slip through on the `to` end alone.
   if (Math.max(fromUt, toUt) > horizonUt) {
-    return { propagatable: false, reason: "past-horizon", horizonUt };
+    return {
+      propagatable: false,
+      reason: "past-horizon",
+      horizonUt,
+      providerId: horizon.providerId,
+    };
   }
   return { propagatable: true };
 }
