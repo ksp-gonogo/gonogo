@@ -1,4 +1,3 @@
-import type { Meta } from "../__generated__/contract";
 import type { TimelinePoint } from "../timeline";
 
 /**

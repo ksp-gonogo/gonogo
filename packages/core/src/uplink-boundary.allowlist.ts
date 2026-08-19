@@ -119,7 +119,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // Comment/doc mentions only; neither file imports anything
       // kerbcast-specific, and sitrep-client stays mod-agnostic.
       "mod/sitrep-sdk/src/view-clock-formula.ts",
-      "packages/sitrep-client/src/view-clock.ts",
+      "mod/sitrep-sdk/src/spine/view-clock.ts",
 
       // -- the kerbcast Uplink's provenance record in core --
       // ContractVersion.cs's Minor-history doc comment records the ORIGINAL
@@ -695,7 +695,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
       // another Uplink at all: stale twice over, so it ratcheted off.
       "packages/relay/src/bootstrapConfig.ts",
-      "packages/sitrep-client/src/timeline-store.ts",
+      "mod/sitrep-sdk/src/spine/timeline-store.ts",
       "packages/sitrep-client/src/use-certainty.ts",
       "packages/sitrep-client/src/use-stream-status.ts",
       "packages/ui/src/VersionMismatchBanner.tsx",

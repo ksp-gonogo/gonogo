@@ -2,12 +2,7 @@ import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { isValue, value } from "../unit-system/value";
-import {
-  type Reading,
-  type ReckonerFor,
-  type ReckoningBasis,
-  readingFrom,
-} from "./client-reading";
+import { type Reading, type ReckonerFor, readingFrom } from "./client-reading";
 import {
   ClientTimeline,
   type ClientTimelineOptions,

@@ -1,10 +1,4 @@
-import type {
-  ModelledField,
-  Reading,
-  ReckonerFor,
-  StaleGrade,
-  TopicModel,
-} from "../reading";
+import type { ModelledField, Reading, ReckonerFor } from "../reading";
 import { value } from "../unit-system/value";
 
 /**
