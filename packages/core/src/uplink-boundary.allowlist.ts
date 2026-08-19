@@ -246,6 +246,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/schemas/telemachus-scan-types.ts",
     ],
     permanent: [
+      // The vendor-name ratchet's seed data enumerates every file in the tree
+      // that still carries the retired source's name, so it necessarily lists
+      // paths under this Uplink. Inventory data, same category as this file.
+      "packages/core/src/vendor-name.allowlist.ts",
       // -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
@@ -1445,6 +1449,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     // that put fakeTelemachus.ts in the "dead" bucket of the very inventory
     // written to catch it.
     permanent: [
+      // The ratchet that counts this name, and its seed data. Naming it is
+      // their whole job, and they are the instrument that retires every other
+      // entry in this token.
+      "packages/core/src/vendor-name.allowlist.ts",
+      "packages/core/src/vendor-name.test.ts",
       // Files whose only mention RECORDS that the coupling is gone, or
       // describes a third party's bug. Naming it is the file's job.
       "packages/components/src/OrbitView/stream.test.tsx",
