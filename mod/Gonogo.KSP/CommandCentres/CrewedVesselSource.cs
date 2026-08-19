@@ -41,6 +41,21 @@ namespace Gonogo.KSP.CommandCentres
                     continue;
                 }
 
+                // Coordinates only while the craft is actually ON its body. Off the
+                // ground, converting precisePosition gives the sub-vessel ground
+                // point, which sweeps at orbital rate and is not a place the centre
+                // occupies; between spheres of influence it is a projection onto
+                // whatever mainBody happens to be. The contract already says null
+                // for a moving vessel centre, so this is where that gets honoured.
+                double? latitude = null;
+                double? longitude = null;
+                if (IsOnSurface(vessel)
+                    && SurfaceCoordinates.TryFrom(vessel.mainBody, comm.precisePosition, out var lat, out var lon))
+                {
+                    latitude = lat;
+                    longitude = lon;
+                }
+
                 yield return new KspCommandCentre(
                     "vessel:" + vessel.id,
                     string.IsNullOrEmpty(vessel.vesselName) ? "Vessel" : vessel.vesselName,
@@ -48,9 +63,21 @@ namespace Gonogo.KSP.CommandCentres
                     BodyIndexOf(vessel.mainBody),
                     comm,
                     comm.precisePosition,
-                    active: comm.isControlSource);
+                    active: comm.isControlSource,
+                    latitude: latitude,
+                    longitude: longitude);
             }
         }
+
+        /// <summary>
+        /// Whether the craft is resting on its body, which is the only state where a
+        /// crewed centre has a surface position rather than a groundtrack point.
+        /// PRELAUNCH counts: a craft on the pad is as anchored as the pad is.
+        /// </summary>
+        private static bool IsOnSurface(Vessel vessel) =>
+            vessel.situation == Vessel.Situations.LANDED
+            || vessel.situation == Vessel.Situations.SPLASHED
+            || vessel.situation == Vessel.Situations.PRELAUNCH;
 
         private static int? BodyIndexOf(CelestialBody body)
         {

@@ -29,7 +29,9 @@ namespace Gonogo.KSP.CommandCentres
             int? bodyIndex,
             CommNode node,
             Vector3d position,
-            bool active)
+            bool active,
+            double? latitude = null,
+            double? longitude = null)
         {
             Id = id;
             DisplayName = displayName;
@@ -38,6 +40,8 @@ namespace Gonogo.KSP.CommandCentres
             Node = node;
             Position = position;
             _active = active;
+            Latitude = latitude;
+            Longitude = longitude;
         }
 
         public string Id { get; }
@@ -50,6 +54,18 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>Straight-line-geometry fallback position when <see cref="Node"/> is null.</summary>
         public Vector3d Position { get; }
+
+        /// <summary>
+        /// Body-fixed surface latitude in degrees, or null when this centre is not
+        /// surface-anchored (a crewed vessel that is flying or in orbit has a
+        /// sub-vessel ground point, which is not a place the centre occupies).
+        /// Decided by the SOURCE, which is the only layer that knows whether the
+        /// centre is anchored; <see cref="SurfaceCoordinates"/> does the conversion.
+        /// </summary>
+        public double? Latitude { get; }
+
+        /// <summary>Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null under the same rule as <see cref="Latitude"/>, and always null together with it.</summary>
+        public double? Longitude { get; }
 
         public bool IsActiveNow() => _active;
     }
