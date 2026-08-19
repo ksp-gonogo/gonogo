@@ -9,6 +9,7 @@ using KSP.UI.Screens;
 using ModuleWheels;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
+using Sitrep.Host.Propulsion;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Targeting;
 using Strategies;
@@ -63,6 +64,25 @@ namespace Gonogo.KSP
         // vessel.maneuver.update/.remove command, not just a cosmetic
         // read-only label.
         private readonly ReferenceIdRegistry<ManeuverNode> _maneuverNodeIdRegistry;
+
+        /// <summary>
+        /// Carries the thrust latches (<c>vessel.propulsion.thrustStartedUt</c>
+        /// / <c>.lastThrustEndUt</c>) ACROSS captures, which is the only reason
+        /// it is a field: a per-capture reading cannot say when thrust began,
+        /// and a per-capture reading of zero cannot tell a craft that never lit
+        /// from one that has just shut down. See
+        /// <see cref="ThrustObserver"/> for why the fact is latched rather than
+        /// emitted as an edge.
+        ///
+        /// <para>Fed once per capture, so its instants resolve to
+        /// <c>GonogoAddon.SampleIntervalUt</c>. A burn shorter than that may
+        /// never be observed under thrust at all, in which case both latches
+        /// simply stay where they were: the failure mode is a refusal to say
+        /// anything, never a wrong instant. Reading engine thrust every physics
+        /// tick instead would mean walking the part tree at physics rate for a
+        /// resolution no orbital burn needs.</para>
+        /// </summary>
+        private readonly ThrustObserver _thrustObserver = new ThrustObserver();
 
         /// <summary>
         /// Resolves the elected <see cref="IManeuverPlanSource"/> (stock's
@@ -213,7 +233,7 @@ namespace Gonogo.KSP
                         // no target / no encounter -- stamped onto vessel.target
                         // below, replacing the old SDK-side two-body solve.
                         var closestApproach = _approachSolver != null ? _approachSolver.Invoke()?.Solve(ut) : null;
-                        values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach);
+                        values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, ut);
 
                         // Science + parts/power/robotics capture-adds (this
                         // session) - both require an active vessel to have
@@ -457,7 +477,7 @@ namespace Gonogo.KSP
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach, ThrustObserver thrustObserver, double ut)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -477,7 +497,7 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "comms", () => BuildComms(vessel));
             TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
             TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
-            TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel));
+            TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel, thrustObserver, ut));
             // ONE Plan() call per capture: it reads live KSP, so asking twice
             // is both wasted work and an invitation for the two answers to
             // disagree within a single tick.
@@ -1370,7 +1390,14 @@ namespace Gonogo.KSP
         /// flamed-out stage's rated thrust doesn't inflate "what can this
         /// vessel produce right now."
         /// </summary>
-        private static Dictionary<string, object?> BuildPropulsion(Vessel vessel)
+        /// <summary>
+        /// <paramref name="thrustObserver"/> is fed the thrust this method
+        /// already measures, and answers with the two LATCHED instants that
+        /// describe it over time. The walk stays here; the state machine is
+        /// pure and lives in <c>Sitrep.Host</c>, same split as
+        /// <see cref="BurnTiming"/>.
+        /// </summary>
+        private static Dictionary<string, object?> BuildPropulsion(Vessel vessel, ThrustObserver thrustObserver, double ut)
         {
             var parts = vessel.parts;
             double dryMass = 0;
@@ -1410,12 +1437,22 @@ namespace Gonogo.KSP
                 }
             }
 
+            // Thrust is only READABLE on a loaded, unpacked craft: an on-rails
+            // vessel has no parts to walk and so reports nothing, which is a
+            // fact about the simulation and not about the engines. Passing that
+            // through as a genuine zero would latch a shutdown every time the
+            // operator switched away from a burning craft.
+            var measurable = vessel.loaded && !vessel.packed;
+            thrustObserver.Observe(vessel.id.ToString(), ut, currentThrust, measurable);
+
             return new Dictionary<string, object?>
             {
                 ["totalMass"] = vessel.totalMass,
                 ["dryMass"] = dryMass,
                 ["currentThrust"] = currentThrust,
                 ["availableThrust"] = availableThrust,
+                ["thrustStartedUt"] = thrustObserver.ThrustStartedUt,
+                ["lastThrustEndUt"] = thrustObserver.LastThrustEndUt,
             };
         }
 

@@ -1,6 +1,7 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
+import { MissionDate } from "./MissionDate";
 import { NULL_DISPLAY } from "./NullValue";
 import { visibleText } from "./testing";
 import { Unit } from "./Unit";
@@ -310,5 +311,57 @@ describe("Unit: format pins the unit", () => {
       <Unit value={value("m", 12_400)} format="s" />,
     );
     expect(visibleText(container)).toBe("12.4 km");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A UT is an INSTANT. Every other kind here is a quantity that scales, and the
+// generic numeric path renders one as a grouped decimal, which for a universal
+// time is a true statement about the wrong thing.
+//
+// `<Countdown>` refuses a UT and `<MissionDate>` demands one, so the two
+// specialists already respect the split. `<Unit>` is the default renderer
+// nearly everything reaches for, and it fell through to the numeric path
+// because `universalTime` appeared only in the kind union and never in the
+// dispatch.
+// ---------------------------------------------------------------------------
+describe("Unit: a universal time renders as a date, not a decimal", () => {
+  it("renders a mission date rather than a grouped number", () => {
+    const { container } = render(<Unit value={value("ut", 12_345_678)} />);
+
+    const shown = visibleText(container);
+    // The failure this exists to catch, stated as what it must NOT be: the
+    // magnitude is large enough that the decimal rendering is unmistakable.
+    expect(shown).not.toMatch(/12,345,678/);
+    expect(shown).toMatch(/^Y\d+ D\d+ \d{2}:\d{2}:\d{2}$/);
+  });
+
+  it("agrees exactly with <MissionDate> for the same instant", () => {
+    // Delegation asserted as a PROPERTY rather than by pinning a string, so the
+    // two cannot drift and a calendar change moves both together.
+    const viaUnit = render(<Unit value={value("ut", 12_345_678)} />);
+    const unitText = visibleText(viaUnit.container);
+    viaUnit.unmount();
+
+    const viaDate = render(<MissionDate value={12_345_678} />);
+    expect(unitText).toBe(visibleText(viaDate.container));
+  });
+
+  it("does not render a UT as a duration", () => {
+    // The specific confusion: the same magnitude as a duration is "1y 145d".
+    // If a UT ever renders that way, it has been put on the time ladder.
+    const { container } = render(<Unit value={value("ut", 12_345_678)} />);
+
+    expect(visibleText(container)).not.toMatch(/\d+y \d+d/);
+  });
+
+  it("still gives the raw number when the caller opts out of scaling", () => {
+    // `scale="never"` means "the reading in the unit the contract declared",
+    // which for an instant is the UT itself. Same escape the time ladder has.
+    const { container } = render(
+      <Unit value={value("ut", 12_345_678)} scale="never" />,
+    );
+
+    expect(visibleText(container)).toMatch(/12,345,678|12345678/);
   });
 });

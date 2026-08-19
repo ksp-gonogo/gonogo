@@ -1127,6 +1127,41 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "maneuver-planner",
     fixturesPath: "ManeuverPlanner/__fixtures__",
     outPath: "renders/maneuver-planner-widget",
+    // Scoped to the INSTANT rows, and deliberately NOT the conformance rows,
+    // which do clip at 6x9 now that four sections stack above them.
+    //
+    // The two differ in how cropping harms them, and that is the whole
+    // criterion. Three instants share one axis, so losing the third changes what
+    // the other two MEAN: a reader sees a two-instant burn and is not told
+    // otherwise. A conformance row is self-contained ("180 of 300, 60%"), so
+    // below the fold it is hidden and scrollable, not distorted.
+    //
+    // Recording the temptation because it was real: widening the selector and
+    // then exempting 6x9 would have made the check pass and would have quietly
+    // given up the one mode the instants are still checked at.
+    //
+    // A burn's three instants are a COMPARISON: "burn in 4min" is true of
+    // whichever of them it came from and wrong about the other two, so a row
+    // rendered below the panel edge is missing from the thing the section
+    // exists to show, and every DOM assertion still passes on it. jsdom
+    // computes no boxes, so this cannot live in the unit suite; it is only
+    // answerable after a real browser has laid the widget out.
+    mustBeVisible: {
+      selector: "[data-burn-instant-row]",
+      // TWO earned exemptions, and the interesting one is what is NOT here.
+      // The 18x5 letterbox and the 9x8 mobile tile genuinely cannot hold three
+      // rows and scroll, which is the accepted degradation: a row one scroll
+      // down is legible, a row silently cropped is not. The 6x9 MINIMUM does
+      // hold all three, so it stays checked. Copying the vessel-tracker list
+      // wholesale would have exempted it too and quietly excused a mode that
+      // passes, hiding the next regression there.
+      //
+      // Established per-mode by removing every exemption and reading what
+      // actually failed, and the check itself was watched FAILING at a
+      // deliberately-tiny 6x3 tile first, because a check never seen to fail is
+      // not evidence of anything.
+      mayScroll: ["landscape-18x5", "mobile-9x8"],
+    },
     modes: [
       // minSize 6×9: node editor at its tightest.
       { name: "min-6x9", w: 6, h: 9 },

@@ -32,6 +32,9 @@ import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
+import { BurnConformanceRow } from "./BurnConformanceRow";
+import { BurnWindowRows } from "./BurnWindowRows";
+import { burnConformance } from "./conformance";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
@@ -143,8 +146,38 @@ function ManeuverPlannerComponent({
   // reads of two memoized records, and shortly ten branches on two currencies
   // that cannot possibly differ within a frame. Read once, destructure, and the
   // orbital elements visibly arrive together, which is what they are.
+  // OWED: a caption naming how old these elements are.
+  //
+  // The ruling is that the planner plans with whatever it has and the commit
+  // control stays enabled, because too little delta-v at execution time is
+  // operator error and not something a widget should pre-empt. What is forbidden
+  // is planning from stale elements SILENTLY, which is what happens here today.
+  //
+  // Deliberately not implemented yet, and deliberately not implemented privately:
+  // `readingAge(reading, viewUt)` in `@ksp-gonogo/sitrep-client` already answers
+  // it from a stale reading's `asOfUt`, and this widget reading through that shape
+  // is the reckoning-model sweep's job. A local age read would be a second
+  // mechanism deleted a week later.
+  //
+  // Do NOT compute it as `viewUt - orbit.epoch`. `epoch` is the mean-anomaly
+  // REFERENCE epoch, not an observation time, so that difference looks like an
+  // age and is not one. The `ut` token does not catch the mistake: `epoch` and a
+  // view clock are both correctly `Value<"ut">` and subtracting them is
+  // type-legal and meaningless.
   const orbit = useTelemetry("vessel.orbit");
   const target = useTelemetry("vessel.target");
+  // The thrust latch, for conformance. Undefined until the propulsion channel
+  // arrives, which is NOT "engines off": see ThrustLatchReading.
+  const propulsion = useTelemetry("vessel.propulsion");
+  const thrustLatch = propulsion
+    ? {
+        // Latched, not `currentThrust > 0`: the start instant is nulled on
+        // cessation and set on ignition, so it survives a dropped frame the way
+        // an instantaneous thrust reading does not.
+        thrusting: magnitudeOf(propulsion.thrustStartedUt) != null,
+        lastThrustEndUt: magnitudeOf(propulsion.lastThrustEndUt),
+      }
+    : undefined;
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
   const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
   const {
@@ -258,7 +291,10 @@ function ManeuverPlannerComponent({
     },
     [removeNodeCmd.send],
   );
-  const { completedNodes } = useBurnCompletionTracker(nodes, removeNode);
+  const { completedNodes, maxDvByUt } = useBurnCompletionTracker(
+    nodes,
+    removeNode,
+  );
 
   // Armed conditional triggers come from a service, host service on the
   // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
@@ -555,6 +591,76 @@ function ManeuverPlannerComponent({
     );
   }
 
+  /**
+   * The three instants of each queued burn, off `nodes`: THE SAME LIST the
+   * node-list section above renders.
+   *
+   * It first read `vessel.maneuver` directly, because the instants were new
+   * contract fields the legacy reshape predated. That is what let a render show
+   * a burn window for a node the list beside it said did not exist: two reads of
+   * one truth, free to disagree, and a fixture that fed only one of them made
+   * them. The instants now travel on the parsed node itself, so the two sections
+   * are structurally incapable of disagreeing rather than merely tested for it.
+   *
+   * Its own section rather than inside each node row: three rows plus an axis
+   * per burn is more than a row can hold at the sizes this widget is used at,
+   * and the whole reason the instants are separate is that they must not be
+   * squeezed back onto one line.
+   */
+  function renderBurnWindowsSection() {
+    if (nodes.length === 0) return null;
+    return (
+      <PaddedSection>
+        <SectionTitle as="h4">Burn windows</SectionTitle>
+        <Stack gap="sm">
+          {nodes.map((burn) => (
+            <BurnWindowRows
+              // UT, the same key the burn tracker uses: stable across KSP
+              // renumbering the list on a removal, which an index is not.
+              key={burn.UT}
+              burn={{
+                ut: burn.UT,
+                ignitionUt: burn.ignitionUt,
+                cutoffUt: burn.cutoffUt,
+              }}
+              nowUt={currentUT ?? 0}
+            />
+          ))}
+        </Stack>
+      </PaddedSection>
+    );
+  }
+
+  /**
+   * Tier-1 conformance: what each burn was planned with against what it has
+   * delivered. Model-agnostic, so it reads the same whoever planned the burn.
+   *
+   * Reads `maxDvByUt` off the completion tracker rather than watching the burns
+   * itself, because a single sample cannot tell a 300 m/s burn with 300 to go
+   * from a 1000 m/s burn with 300 to go, and two independent watchers of that
+   * one quantity could disagree about whether the same burn finished.
+   */
+  function renderConformanceSection() {
+    if (nodes.length === 0) return null;
+    return (
+      <PaddedSection>
+        <SectionTitle as="h4">Conformance</SectionTitle>
+        <Stack gap="xs">
+          {nodes.map((node) => (
+            <BurnConformanceRow
+              key={node.UT}
+              conformance={burnConformance(
+                node.deltaVMagnitude,
+                maxDvByUt.get(node.UT) ?? null,
+                thrustLatch,
+              )}
+            />
+          ))}
+        </Stack>
+      </PaddedSection>
+    );
+  }
+
   function renderNewManeuverSection() {
     return (
       <PaddedSection>
@@ -619,6 +725,8 @@ function ManeuverPlannerComponent({
       <ScrollBody>
         {refBody !== undefined && <RefBodyCaption>{refBody}</RefBodyCaption>}
         {renderNodesSection()}
+        {renderBurnWindowsSection()}
+        {renderConformanceSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
         {waiting ? (
