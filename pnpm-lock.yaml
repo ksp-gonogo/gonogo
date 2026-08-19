@@ -520,6 +520,9 @@ importers:
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0
+      fake-indexeddb:
+        specifier: ^6.0.0
+        version: 6.2.5
       react:
         specifier: ^18.0.0
         version: 18.3.1

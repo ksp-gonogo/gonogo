@@ -106,12 +106,12 @@ export function useBodyFogMask(
   bodyId: string | undefined,
   layerId: string | undefined,
 ): {
-  mask: import("./FogMaskCache").BodyMask | undefined;
+  mask: import("../types").BodyMask | undefined;
   version: number;
 } {
   const cache = useFogMaskCache();
   const [state, setState] = useState<{
-    mask: import("./FogMaskCache").BodyMask | undefined;
+    mask: import("../types").BodyMask | undefined;
     version: number;
   }>(() => ({
     mask:

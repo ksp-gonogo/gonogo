@@ -12,17 +12,9 @@
  * independently and composes them with precedence rules at paint time.
  */
 
-import { safeRandomUuid } from "@ksp-gonogo/core";
+import { safeRandomUuid } from "../safe-random-uuid";
+import type { BodyMask } from "../types";
 import type { FogMaskStore } from "./FogMaskStore";
-
-export interface BodyMask {
-  readonly bodyId: string;
-  readonly layerId: string;
-  readonly width: number;
-  readonly height: number;
-  /** Alpha bytes, row-major. Mutable: caller writes directly. */
-  data: Uint8Array;
-}
 
 interface CacheEntry {
   mask: BodyMask;

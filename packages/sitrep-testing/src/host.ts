@@ -17,11 +17,7 @@ import {
   useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  useDataSchema,
-  useFogMaskCache,
-  useReplaySessionActive,
-} from "@ksp-gonogo/data";
+import { useDataSchema, useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
@@ -143,8 +139,6 @@ export function installRealTestHost(): () => void {
     },
     ContributionsProvider:
       ContributionsProvider as GonogoHost["ContributionsProvider"],
-    useFogMaskCache: () =>
-      useFogMaskCache() as ReturnType<GonogoHost["useFogMaskCache"]>,
 
     defineUplinkClient: (cfg) => defineUplinkClient(cfg),
 

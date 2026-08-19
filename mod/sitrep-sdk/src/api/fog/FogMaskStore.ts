@@ -22,8 +22,8 @@ const DB_NAME = "gonogo-fog";
 /**
  * DB version bumped from 1 → 2 to drop the old single-mask-per-body
  * schema. onupgradeneeded recreates the object store, which wipes any
- * pre-existing keys. SCANsat regenerates the underlying coverage cheaply
- * (it's persisted in the save's SCANcontroller), so the wipe is recoverable
+ * pre-existing keys. A reveal source regenerates the underlying coverage
+ * cheaply from whatever it persists of its own, so the wipe is recoverable
  * by flying over already-scanned regions again.
  */
 const DB_VERSION = 3;
@@ -265,8 +265,8 @@ export class FogMaskStore {
         const oldVersion = event.oldVersion;
         // v1 → v2: schema added layerId to the key shape. Old single-mask-
         // per-body rows can't be migrated to per-type rows without inventing
-        // the type, so drop the store and let SCANsat repopulate from its
-        // own persisted coverage.
+        // the type, so drop the store and let the reveal source repopulate from
+        // its own persisted coverage.
         if (
           oldVersion > 0 &&
           oldVersion < 2 &&
@@ -274,8 +274,8 @@ export class FogMaskStore {
         ) {
           db.deleteObjectStore(STORE);
         }
-        // v2 → v3: scanType (a closed SCANsat bit-value enum) generalised to
-        // layerId (an opaque string): old rows carry a numeric field where a
+        // v2 → v3: scanType (a closed bit-value enum, one source's own) generalised
+        // to layerId (an opaque string): old rows carry a numeric field where a
         // string is now expected, so they're dropped the same way v1→v2 was,
         // and any registered reveal source repopulates on its own schedule.
         if (
