@@ -62,7 +62,7 @@ describe("useGameContext: no TelemetryProvider mounted", () => {
     const { result } = renderHook(() => useGameContext());
     expect(result.current.careerMode).toBe("Unknown");
     expect(result.current.scene).toBe("Unknown");
-    expect(result.current.padOccupied).toBe(false);
+    expect(result.current.padOccupied).toBeUndefined();
     expect(result.current.inFlight).toBe(false);
     expect(result.current.isCareerLike).toBe(false);
     expect(result.current.hasGameSignal).toBe(false);
@@ -81,7 +81,7 @@ describe("useGameContext: no TelemetryProvider mounted", () => {
     // No provider, canonical reads only, the legacy emits never surface.
     expect(result.current.careerMode).toBe("Unknown");
     expect(result.current.scene).toBe("Unknown");
-    expect(result.current.padOccupied).toBe(false);
+    expect(result.current.padOccupied).toBeUndefined();
   });
 });
 
@@ -202,7 +202,7 @@ describe("useGameContext: kc.padOccupied streamed via spaceCenter.state (mapped 
       ),
     });
 
-    expect(result.current.padOccupied).toBe(false);
+    expect(result.current.padOccupied).toBeUndefined();
     expect(transport.isSubscribed("spaceCenter.launchSites")).toBe(true);
 
     act(() =>

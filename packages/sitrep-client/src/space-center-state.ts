@@ -23,8 +23,17 @@ interface LaunchSiteWireEntry {
  * keys' scope.
  */
 export interface SpaceCenterState {
-  /** Whether the stock KSC pad currently has a vessel on it, old `kc.padOccupied`. */
-  padOccupied: boolean;
+  /**
+   * Whether the ACTIVE VESSEL is sitting on the stock KSC pad in `PRELAUNCH`,
+   * old `kc.padOccupied`. Despite the name this is not pad tenancy: the mod
+   * derives it from `FlightGlobals.ActiveVessel.situation`, so a craft parked
+   * on the pad while you are in the Space Centre scene reads `false`, and a
+   * `true` implies the flight scene.
+   *
+   * `null` when the launch-site list arrived carrying no occupancy at all,
+   * which is a different fact from a pad reported clear.
+   */
+  padOccupied: boolean | null;
   /** Name of the vessel occupying the pad, or null when it's clear, old `kc.padVesselTitle`. */
   padVesselTitle: string | null;
 }
@@ -33,8 +42,9 @@ export interface SpaceCenterState {
  * `spaceCenter.state` derivation. `undefined` while `spaceCenter.launchSites`
  * hasn't arrived (still resyncing); `null` when it's a confirmed tombstone;
  * otherwise the pad-occupancy pair pulled from the stock-pad entry (the one
- * carrying a non-null `padOccupied`). A clear/absent pad reads as
- * `{ padOccupied: false, padVesselTitle: null }`. Never throws.
+ * carrying a non-null `padOccupied`). A pad reported clear reads as
+ * `{ padOccupied: false, padVesselTitle: null }`; a list carrying no
+ * occupancy at all reads `padOccupied: null`. Never throws.
  */
 export function deriveSpaceCenterState(
   get: DerivedGet,
@@ -51,7 +61,9 @@ export function deriveSpaceCenterState(
   );
 
   return {
-    padOccupied: pad?.padOccupied === true,
+    // No entry carried occupancy at all: nothing to report, which is not the
+    // same answer as a pad reported clear and must not collapse into it.
+    padOccupied: pad ? pad.padOccupied === true : null,
     padVesselTitle:
       typeof pad?.padVesselTitle === "string" ? pad.padVesselTitle : null,
   };

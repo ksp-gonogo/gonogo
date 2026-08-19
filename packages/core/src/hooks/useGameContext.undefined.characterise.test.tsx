@@ -15,12 +15,15 @@ import { useGameContext } from "./useGameContext";
  *
  * Every one of the three reads goes through an absence gate:
  *   - `useTelemetry("spaceCenter.scene")?.scene` then a `KNOWN_SCENES` check
- *   - `useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied` then `=== true`
+ *   - `useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied`, which
+ *     no longer coerces: an unreported occupancy stays `undefined`
  *   - `useTelemetry("career.mode")?.mode` then `resolveCareerMode`'s typeof gates
  *
- * All three collapse "nothing arrived", "confirmed nothing", and "arrived but
- * unrecognised" onto ONE answer. These tests pin that collapse so the
- * migration cannot quietly change which of those it means.
+ * The scene and career reads still collapse "nothing arrived", "confirmed
+ * nothing", and "arrived but unrecognised" onto ONE answer; both are string
+ * lookups whose miss and whose absence are the same `"Unknown"`. The pad read
+ * no longer does, and the tests below carry that difference: it is the one
+ * field a caller can ask "do we actually know?" of.
  */
 
 const ALL_CARRIED = [
@@ -56,7 +59,9 @@ describe("useGameContext characterisation: a provider is mounted but nothing has
     expect(result.current).toEqual({
       scene: "Unknown",
       inFlight: false,
-      padOccupied: false,
+      // No longer `false`: nothing has reported occupancy, and that is not the
+      // affirmative "the pad is clear" a gate would read off a `false`.
+      padOccupied: undefined,
       careerMode: "Unknown",
       isCareerLike: false,
       // The two charging flags are the exception to this test's own heading:
@@ -216,20 +221,20 @@ describe("useGameContext characterisation: the careerMode gate", () => {
 
 describe("useGameContext characterisation: the padOccupied gate", () => {
   /**
-   * `padOccupiedRaw === true` is the coercion. Absent, null, and a confirmed
-   * `false` all become `false`, so "the pad is clear" and "we have no idea
-   * whether the pad is clear" are one value.
+   * The coercion `padOccupiedRaw === true` is gone. An unreported occupancy
+   * reads `undefined`, so `!padOccupied` no longer answers the affirmative
+   * "the pad is clear" for a gate that never heard anything.
    */
-  it("reports padOccupied false when the derived channel has produced nothing", () => {
+  it("reports padOccupied undefined when the derived channel has produced nothing", () => {
     const transport = new StubTransport();
     const { result } = renderHook(() => useGameContext(), {
       wrapper: mountedWrapper(transport),
     });
 
-    expect(result.current.padOccupied).toBe(false);
+    expect(result.current.padOccupied).toBeUndefined();
   });
 
-  it("reports the same false for a launch-site list whose stock pad reports null occupancy", async () => {
+  it("distinguishes a stock pad reporting null occupancy from one reporting clear", async () => {
     const transport = new StubTransport();
     const { result } = renderHook(() => useGameContext(), {
       wrapper: mountedWrapper(transport),
@@ -242,32 +247,44 @@ describe("useGameContext characterisation: the padOccupied gate", () => {
     );
     await waitFor(() => expect(result.current.padOccupied).toBe(true));
 
-    // Occupancy tombstoned back to null: reads as "not occupied", the same
-    // answer as never having heard from the space centre.
+    // Occupancy tombstoned back to null: no entry carries a boolean, so
+    // nothing reported occupancy this tick. Reads as unknown, NOT as clear.
     act(() =>
       transport.emit("spaceCenter.launchSites", [
         { name: "LaunchPad", padOccupied: null, padVesselTitle: null },
       ]),
     );
+    await waitFor(() => expect(result.current.padOccupied).toBeUndefined());
+
+    // A pad that genuinely reports clear is the separate, affirmative answer.
+    act(() =>
+      transport.emit("spaceCenter.launchSites", [
+        { name: "LaunchPad", padOccupied: false, padVesselTitle: null },
+      ]),
+    );
     await waitFor(() => expect(result.current.padOccupied).toBe(false));
   });
 
-  it("reports padOccupied false for an empty launch-site list, indistinguishable from no data", async () => {
+  it("reports padOccupied undefined for an empty launch-site list, which reports no occupancy", async () => {
     const transport = new StubTransport();
     const { result } = renderHook(() => useGameContext(), {
       wrapper: mountedWrapper(transport),
     });
 
     act(() => transport.emit("spaceCenter.launchSites", []));
-    await waitFor(() => expect(result.current.padOccupied).toBe(false));
+    await waitFor(() =>
+      expect(transport.isSubscribed("spaceCenter.launchSites")).toBe(true),
+    );
+    expect(result.current.padOccupied).toBeUndefined();
   });
 
   /**
-   * padOccupied is NOT gated on the scene read: it can be true while the
-   * scene is still Unknown, which contradicts its doc comment ("Implies
-   * inFlight"). Pinned because the migration touches both reads.
+   * padOccupied still does not imply `inFlight` in the context's own reads:
+   * the two arrive on different channels and the hook reconciles nothing.
+   * What HAS changed is that a reported occupancy now counts as having heard
+   * from the game, so it can no longer be true while `hasGameSignal` is false.
    */
-  it("can report padOccupied true while scene is still Unknown, contradicting its own doc", async () => {
+  it("counts a reported occupancy as game signal, whichever way it reports", async () => {
     const transport = new StubTransport();
     const { result } = renderHook(() => useGameContext(), {
       wrapper: mountedWrapper(transport),
@@ -281,12 +298,21 @@ describe("useGameContext characterisation: the padOccupied gate", () => {
     await waitFor(() => expect(result.current.padOccupied).toBe(true));
     expect(result.current.scene).toBe("Unknown");
     expect(result.current.inFlight).toBe(false);
-    // And padOccupied does NOT feed hasGameSignal: only scene and careerMode do.
-    expect(result.current.hasGameSignal).toBe(false);
+    expect(result.current.hasGameSignal).toBe(true);
+
+    // And a pad reported CLEAR is game signal too: hearing "the active vessel
+    // is not in prelaunch" is hearing from the game.
+    act(() =>
+      transport.emit("spaceCenter.launchSites", [
+        { name: "LaunchPad", padOccupied: false, padVesselTitle: null },
+      ]),
+    );
+    await waitFor(() => expect(result.current.padOccupied).toBe(false));
+    expect(result.current.hasGameSignal).toBe(true);
   });
 });
 
-describe("useGameContext characterisation: hasGameSignal is an OR over two absence gates", () => {
+describe("useGameContext characterisation: hasGameSignal is an OR over three absence gates", () => {
   it("flips true on the scene read alone, with careerMode still Unknown", async () => {
     const transport = new StubTransport();
     const { result } = renderHook(() => useGameContext(), {

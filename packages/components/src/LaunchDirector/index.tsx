@@ -279,10 +279,20 @@ function LaunchDirectorComponent({
     useTelemetry("spaceCenter.crewRoster"),
     undefined,
   );
-  const padOccupied = useStream<SpaceCenterState>("spaceCenter.state")
-    ?.padOccupied as boolean | undefined;
-  const padVesselTitle = useStream<SpaceCenterState>("spaceCenter.state")
-    ?.padVesselTitle as string | undefined;
+  /**
+   * One read of the record, both fields off it: two subscriptions to the same
+   * derived channel could not disagree usefully and the casts they used to
+   * carry (`as boolean | undefined`, `as string | undefined`) each erased a
+   * `null` the channel genuinely reports, so an unreported pad and a pad
+   * reported clear arrived here as one value.
+   *
+   * Only `true` makes a pad claim below. `null`/`undefined` fall through to
+   * the saved-craft list, which describes what we do have without asserting
+   * the pad is clear.
+   */
+  const spaceCentre = useStream<SpaceCenterState>("spaceCenter.state");
+  const padOccupied = spaceCentre?.padOccupied;
+  const padVesselTitle = spaceCentre?.padVesselTitle;
   /**
    * One read of the record; `launchSite` here and `scene` below are two fields of
    * the same payload, so nothing about them can differ in how current it is.

@@ -43,9 +43,11 @@ describe("deriveSpaceCenterState: pad occupancy off the raw spaceCenter.launchSi
     expect(deriveSpaceCenterState(fakeGet(launchSitesPoint(null)))).toBeNull();
   });
 
-  it("reads as clear for an empty (but present) launch-sites array", () => {
+  it("reads as unknown for an empty (but present) launch-sites array", () => {
+    // An empty list reports no occupancy, which is not the same claim as a pad
+    // reported clear: a gate reading `!padOccupied` must not treat it as one.
     expect(deriveSpaceCenterState(fakeGet(launchSitesPoint([])))).toEqual({
-      padOccupied: false,
+      padOccupied: null,
       padVesselTitle: null,
     });
   });
@@ -63,7 +65,7 @@ describe("deriveSpaceCenterState: pad occupancy off the raw spaceCenter.launchSi
     });
   });
 
-  it("reports padOccupied:false, padVesselTitle:null when no entry carries the stock-pad occupancy flag", () => {
+  it("reports padOccupied:null when no entry carries the stock-pad occupancy flag", () => {
     expect(
       deriveSpaceCenterState(
         fakeGet(
@@ -74,7 +76,9 @@ describe("deriveSpaceCenterState: pad occupancy off the raw spaceCenter.launchSi
         ),
       ),
     ).toEqual({
-      padOccupied: false,
+      // Sites exist but none of them reported occupancy: nobody has answered
+      // the question, so the channel does not answer it either.
+      padOccupied: null,
       padVesselTitle: null,
     });
   });
