@@ -10,10 +10,17 @@ export {
   type ResolvedDeps,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
-// Re-exported, not owned: `installDomStubs` moved to `@ksp-gonogo/sitrep-sdk/testing`
-// so an Uplink can obtain it. Kept on this barrel so core's own consumers (the app
-// and components setup files) did not have to move with it.
-export { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
+// Re-exported, not owned. Both moved to `@ksp-gonogo/sitrep-sdk/testing` so an
+// Uplink can obtain them: `installDomStubs` imports nothing, and `MockDataSource`
+// names four types and no behaviour, so neither had anything keeping it in an
+// unpublished package that 9 and 15 Uplink test files respectively had to import.
+// Kept on this barrel so core's own consumers (the app and components setup files)
+// did not have to move with them.
+export {
+  installDomStubs,
+  MockDataSource,
+  type MockDataSourceOptions,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 export * from "./AugmentSlot";
 export * from "./actionGroups";
 export * from "./actions/dispatcher";
@@ -70,7 +77,6 @@ export * from "./settings/SettingsService";
 export * from "./settings/store";
 export * from "./settingsTabs";
 export * from "./stock-bodies";
-export * from "./testing/MockDataSource";
 export * from "./theme";
 export * from "./types";
 export * from "./uplinkClients";

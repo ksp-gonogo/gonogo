@@ -28,11 +28,9 @@ import {
   onFogRevealSourcesChange,
   PerfBudget,
   registerAugment,
-  registerComponent,
   registerFogRevealSource,
   registerSetting,
   registerSettingsTab,
-  registerTheme,
   setSetting,
   subscribeSetting,
   useActionInput,
@@ -80,10 +78,6 @@ export function buildGonogoHost(): GonogoHost {
     [K in keyof GonogoHost]: GonogoHost[K];
   };
   const host: Loose = {
-    registerComponent: (def) =>
-      registerComponent(def as Parameters<typeof registerComponent>[0]),
-    registerTheme: (def) =>
-      registerTheme(def as Parameters<typeof registerTheme>[0]),
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
     registerFogRevealSource: (def) =>

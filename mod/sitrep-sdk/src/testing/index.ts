@@ -95,6 +95,13 @@ export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
 // The jsdom shims a widget test needs before it can mount anything. Moved down
 // from `core` on 2026-08-19: it imports nothing, so nothing kept it up there.
 export { installDomStubs } from "./install-dom-stubs";
+// The in-memory `DataSource` double, moved down from `core` on 2026-08-19: it
+// names four types and no behaviour, so nothing kept it in an unpublished package
+// that 15 Uplink test files had to import to construct one.
+export {
+  MockDataSource,
+  type MockDataSourceOptions,
+} from "./mock-data-source";
 export { probeText, render, renderHook } from "./render";
 // The stream fixture: a real `TelemetryProvider` over a real
 // `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored emissions.

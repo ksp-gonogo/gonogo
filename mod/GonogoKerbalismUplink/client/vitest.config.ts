@@ -12,11 +12,19 @@ export default defineConfig({
   resolve: {
     // Subpaths first: these are PREFIX matches, so the bare specifier would
     // otherwise swallow `@ksp-gonogo/sitrep-sdk/media` and rewrite it to a path
-    // under `index.ts`. Every subpath the SDK exports needs a line here.
+    // under `index.ts`. Every subpath the SDK exports needs a line here, and
+    // `packages/core/src/sdk-subpath-alias.test.ts` fails if one is missing:
+    // omitting a line surfaces as an unresolved import inside
+    // `sitrep-testing/dist`, which reads as a build problem rather than a missing
+    // alias, and cost a while to place the first time it happened.
     alias: {
       "@ksp-gonogo/sitrep-sdk/media": path.resolve(
         sdkPkgs,
         "src/media/index.ts",
+      ),
+      "@ksp-gonogo/sitrep-sdk/registry": path.resolve(
+        sdkPkgs,
+        "src/registry/index.ts",
       ),
       "@ksp-gonogo/sitrep-sdk/spine": path.resolve(
         sdkPkgs,

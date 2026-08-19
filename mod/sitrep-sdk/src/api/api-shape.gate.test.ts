@@ -25,6 +25,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   // silently never appear). See uplink-augment-route.test.ts.
   "clearAugments",
   "clearActionHandlers",
+  "clearRegistry",
   "clearContributions",
   "clearMapPoiProviders",
   "clearUplinkHandles",
@@ -34,7 +35,10 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "getActiveTelemetryClient",
   "getBody",
   "getAugmentsForSlot",
+  "getComponent",
   "getContributionsForSlot",
+  "getDataSource",
+  "getDataSources",
   "getFogRevealSources",
   "getGameHost",
   "getMapPoiProviders",
@@ -47,6 +51,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerActionHandler",
   "registerAugment",
   "registerComponent",
+  "registerDataSource",
   "registerFogRevealSource",
   "registerMapPoiProvider",
   "registerSetting",
@@ -57,6 +62,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "setSetting",
   "subscribeSetting",
   "unregisterActionHandler",
+  "unregisterDataSource",
   "unregisterUplinkHandle",
   "useActionInput",
   "useCommand",
@@ -96,16 +102,6 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     resetTestHost();
     const named =
       /@ksp-gonogo\/sitrep-sdk: the gonogo host has not been installed/;
-    expect(() =>
-      barrel.registerComponent({
-        id: "x",
-        name: "X",
-        description: "",
-        tags: [],
-        component: () => null,
-      }),
-    ).toThrow(named);
-    expect(() => barrel.registerTheme({} as never)).toThrow(named);
     expect(() => barrel.registerAugment({} as never)).toThrow(named);
     expect(() => barrel.registerFogRevealSource({} as never)).toThrow(named);
     expect(() => barrel.useTelemetry("vessel.orbit" as never)).toThrow(named);
@@ -120,12 +116,12 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     ).toThrow(named);
   });
 
-  it("the two OWNED registries work with no host at all", () => {
+  it("the OWNED registries work with no host at all", () => {
     // The counterpart to the test above, and it has to be here rather than only
-    // in map-poi.test.ts / uplink-handles.test.ts: those import the registry
-    // module directly, so they would still pass if the BARREL went back to
-    // resolving these through the host. This asserts the barrel's own export is
-    // the real function, which is the property that changed.
+    // in the per-registry test files: those import the registry module directly,
+    // so they would still pass if the BARREL went back to resolving these
+    // through the host. This asserts the barrel's own export is the real
+    // function, which is the property that changed.
     resetTestHost();
     const provider = { id: "gate:pois", usePois: () => [] };
     expect(() => barrel.registerMapPoiProvider(provider)).not.toThrow();
@@ -138,6 +134,26 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     expect(barrel.getUplinkHandle("gate")).toEqual({ live: true });
     barrel.clearUplinkHandles();
     expect(barrel.getUplinkHandle("gate")).toBeUndefined();
+
+    // The component registry, which is the one that matters most: a widget calls
+    // `registerComponent` at MODULE LOAD, which can run before the app installs
+    // its host, so needing one here would break registration outright. That is
+    // also why the `REGISTERED` log is guarded by `hasHost` rather than fired
+    // unconditionally.
+    barrel.clearRegistry();
+    const def = {
+      id: "gate-gauge",
+      name: "Gate Gauge",
+      category: "test",
+      component: () => null,
+      dataRequirements: [],
+      behaviors: [],
+      defaultConfig: {},
+    };
+    expect(() => barrel.registerComponent(def)).not.toThrow();
+    expect(barrel.getComponent("gate-gauge")).toBe(def);
+    barrel.clearRegistry();
+    expect(barrel.getComponent("gate-gauge")).toBeUndefined();
   });
 
   it("hasHost reflects installation and never throws", () => {
@@ -150,19 +166,8 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
   });
 
   it("resolves to the injected host when present (first-party parity)", () => {
-    const registerComponent = vi.fn();
     const useTelemetry = vi.fn().mockReturnValue(42);
-    installTestHost({ registerComponent, useTelemetry });
-
-    const def = {
-      id: "gauge",
-      name: "Gauge",
-      description: "",
-      tags: [],
-      component: () => null,
-    };
-    barrel.registerComponent(def);
-    expect(registerComponent).toHaveBeenCalledWith(def);
+    installTestHost({ useTelemetry });
 
     expect(barrel.useTelemetry("kos.compute.x" as never)).toBe(42);
     // The shim forwards both args through in a single unconditional call
