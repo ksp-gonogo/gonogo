@@ -106,11 +106,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- sitrep-client / contract layer, comment or string-literal only --
       "mod/Sitrep.Contract/UplinkContract.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
-      "packages/sitrep-client/src/context.tsx",
-      "packages/sitrep-client/src/delay-authority.ts",
-      "packages/sitrep-client/src/map-command.ts",
+      "mod/sitrep-sdk/src/spine/context.tsx",
+      "mod/sitrep-sdk/src/spine/delay-authority.ts",
+      "mod/sitrep-sdk/src/spine/map-command.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
-      "packages/sitrep-client/src/map-topic.ts",
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
       // view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
       // video-delay design (2026-07-16) extracted ViewClock's
       // confirmedEdgeUt()/utNowEstimate() formula into pure functions
@@ -345,7 +345,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // scansat-specific is imported or re-exported.
       "mod/sitrep-sdk/src/api/slots.ts",
       "mod/sitrep-sdk/src/default-carried-topics.ts",
-      "packages/sitrep-client/src/map-topic.ts",
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
 
       // -- TEST-only --
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
@@ -538,7 +538,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // dispatch()'s label doc-comment cites `kos.keystroke` as the example
       // line-mode command whose composed text becomes the queue label,
       // comment-only, no kOS coupling in the client spine.
-      "packages/sitrep-client/src/client.ts",
+      "mod/sitrep-sdk/src/spine/client.ts",
       // command-delay.ts's doc-comment cites the kOS terminal's original
       // isPastReach judder fix as the precedent latchForward generalizes;
       // its test fixture uses "kos.run"/"kos/7" as sample command/topic
@@ -582,7 +582,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-command.test.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
-      "packages/sitrep-client/src/map-topic.ts",
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
 
       // -- TEST-only --
       // pending-uplink wire tests use "kos.run" as the sample command name;
@@ -902,14 +902,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // it can no longer assume a 1..10 bound "because Action Groups Extended
       // legitimately goes to 250": prose only, no AGX type/reference.
       "mod/Sitrep.Host/VesselCommandProvider.cs",
-      "packages/sitrep-client/src/map-topic.ts",
-      "packages/sitrep-client/src/vessel-state.ts",
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
+      "mod/sitrep-sdk/src/spine/vessel-state.ts",
       // f.ag<N>-beyond-10 toggle fix (2026-07-19): actionGroupHome's
       // doc-comment explains why the write bridge is now a generic
       // `/^f\.ag(\d+)$/` rule instead of a 10-row static table, AGX assigns
       // indices up to 250, same rationale as VesselCommandProvider.cs's own
       // comment above. Prose only; no AGX type or import.
-      "packages/sitrep-client/src/map-command.ts",
+      "mod/sitrep-sdk/src/spine/map-command.ts",
 
       // -- TEST-only --
       // Regression-comment mirrors the VesselCommandProvider rationale above.
@@ -1250,7 +1250,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // map-topic.ts / event-timeline.ts: a section header for the kerbalism
       // Topic block, and a design-doc citation respectively.
       "mod/sitrep-sdk/src/event-timeline.ts",
-      "packages/sitrep-client/src/map-topic.ts",
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
 
       // -- base-library widgets: SLOT DOCUMENTATION, not coupling --
       // Each of these names Kerbalism in prose while documenting a slot,
@@ -1429,7 +1429,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // The three client-side records of that same revert: they exist to explain
       // why a.physicsMode is neither mapped nor gapped, which is unanswerable
       // without naming what was removed.
-      "packages/sitrep-client/src/map-topic.ts",
+      "mod/sitrep-sdk/src/spine/map-topic.ts",
       "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
       "packages/app/src/telemetry/SitrepTelemetryProvider.mappedAndCarried.test.ts",
       // Documentation of the LEGACY TELEMACHUS wire key's literal values, which
@@ -1461,7 +1461,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // declared across 23 widget files. The largest item by far, and a
       // 76-key migration rather than a rename. ---
       "packages/sitrep-client/src/map-topic.test.ts",
-      "packages/sitrep-client/src/map-command.ts",
       "packages/core/src/hooks/mapTopic.coverage.test.ts",
       // orbit-patches renames wire fields onto the legacy OrbitPatch shape,
       // and its test says so in a test name. Retires when that shape does.

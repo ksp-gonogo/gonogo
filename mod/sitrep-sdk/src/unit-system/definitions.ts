@@ -79,6 +79,18 @@ export interface UnitDefinition {
  * off while leaving the runtime one in place. `satisfies` gets the checking
  * without the widening.
  */
+/**
+ * Standard gravity in m/s², the number KSP's own TWR / dV / geeForce readouts
+ * use.
+ *
+ * Named here, once, because it had three homes: the `g` ratio just below,
+ * `spine/propagation.ts`'s own `STANDARD_GRAVITY`, and a third in
+ * `@ksp-gonogo/ui-kit`'s unit conversions. All three happened to say 9.80665, so
+ * nothing was wrong yet, which is the only reason three copies of a physical
+ * constant survived this long.
+ */
+export const STANDARD_GRAVITY = 9.80665;
+
 export const UNIT_DEFINITIONS = {
   // ── Length ───────────────────────────────────────────────────────────────
   m: { dim: { m: 1 }, ratio: 1, kind: "length" },
@@ -165,7 +177,7 @@ export const UNIT_DEFINITIONS = {
   kPa: { dim: { kg: 1, m: -1, s: -2 }, ratio: 1_000, kind: "pressure" },
   "kg/m³": { dim: { kg: 1, m: -3 }, ratio: 1, kind: "density" },
   // Multiples of standard gravity, the convention KSP's own geeForce reports.
-  g: { dim: { m: 1, s: -2 }, ratio: 9.80665, kind: "acceleration" },
+  g: { dim: { m: 1, s: -2 }, ratio: STANDARD_GRAVITY, kind: "acceleration" },
   "m/s²": { dim: { m: 1, s: -2 }, ratio: 1, kind: "acceleration" },
   "m³/s²": { dim: { m: 3, s: -2 }, ratio: 1, kind: "gravParameter" },
   "W/m²": { dim: { kg: 1, s: -3 }, ratio: 1, kind: "irradiance" },

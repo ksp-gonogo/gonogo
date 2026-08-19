@@ -109,6 +109,7 @@ export {
   registerUnit,
   resetUnitRegistry,
   type SameDimensionAs,
+  STANDARD_GRAVITY,
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
   UNIT_DEFINITIONS,

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   solveAnomalies,
   solveEccentricAnomaly,
-} from "../../sitrep-client/src/kepler";
+} from "../../../mod/sitrep-sdk/src/spine/kepler";
 import { solveKepler as coreSolveKepler } from "./calc/trajectory";
 
 /**
@@ -148,7 +148,7 @@ function sweptAreaFraction(E: number, e: number, intervals: number): number {
  * The implementations this suite can actually reach, and the ones it cannot.
  *
  * There is now ONE Newton iteration on this equation in the repo, in
- * `sitrep-client/src/kepler.ts`. The entries below are the public names that reach
+ * `sitrep-sdk/src/spine/kepler.ts`. The entries below are the public names that reach
  * it; each is pinned separately so that giving any of them an implementation of its
  * own again is caught here rather than discovered later.
  */
@@ -157,11 +157,11 @@ const CONFORMANT: ReadonlyArray<{
   solve: (M: number, e: number) => number;
 }> = [
   {
-    name: "packages/sitrep-client/src/kepler.ts (solveEccentricAnomaly)",
+    name: "mod/sitrep-sdk/src/spine/kepler.ts (solveEccentricAnomaly)",
     solve: (M, e) => solveEccentricAnomaly(M, e),
   },
   {
-    name: "packages/sitrep-client/src/kepler.ts (solveAnomalies)",
+    name: "mod/sitrep-sdk/src/spine/kepler.ts (solveAnomalies)",
     solve: (M, e) =>
       solveAnomalies(
         {
@@ -371,6 +371,12 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
         }
       };
       walk(join(repoRoot, "packages"));
+      // `mod/` as well, and it is not optional. The kernel itself lives under
+      // mod/sitrep-sdk now, so a scan of `packages/` alone would neither find the
+      // kernel (making the "detector points at something real" check vacuous) nor
+      // catch a second solver written in the sdk or in any Uplink client, which is
+      // most of the code that would plausibly want one.
+      walk(join(repoRoot, "mod"));
       return out;
     }
 
@@ -382,9 +388,10 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
       // the original would not have been enough.
       const kernel = join(
         repoRoot,
-        "packages",
-        "sitrep-client",
+        "mod",
+        "sitrep-sdk",
         "src",
+        "spine",
         "kepler.ts",
       );
       const offenders = sourcesToScan()
@@ -434,7 +441,7 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
 
     it("the kernel itself is what the detector finds, so the scan is looking in the right place", () => {
       const kernel = readFileSync(
-        join(repoRoot, "packages", "sitrep-client", "src", "kepler.ts"),
+        join(repoRoot, "mod", "sitrep-sdk", "src", "spine", "kepler.ts"),
         "utf8",
       );
 
@@ -444,7 +451,7 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
     it("propagation.ts and orbit-patches.ts consume the kernel rather than carrying one", () => {
       for (const file of ["propagation.ts", "orbit-patches.ts"]) {
         const source = readFileSync(
-          join(repoRoot, "packages", "sitrep-client", "src", file),
+          join(repoRoot, "mod", "sitrep-sdk", "src", "spine", file),
           "utf8",
         );
 

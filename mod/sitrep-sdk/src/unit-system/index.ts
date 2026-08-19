@@ -9,6 +9,7 @@ export {
 } from "./calendar";
 export {
   type KnownUnit,
+  STANDARD_GRAVITY,
   UNIT_DEFINITIONS,
   type UnitDefinition,
 } from "./definitions";
