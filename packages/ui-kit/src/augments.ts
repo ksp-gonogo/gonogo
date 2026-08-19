@@ -1,7 +1,7 @@
 import type {
+  AugmentDefinition,
+  AugmentSettingField,
   SlotProps,
-  TopicId,
-  UplinkClientHandle,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 
@@ -106,13 +106,11 @@ export type AugmentSegmentProps<Seg extends string> =
 /**
  * A single per-instance setting an augment contributes. Merged (namespaced by
  * augment id) into the host widget's settings panel; see {@link getAugmentSettings}.
+ *
+ * The sdk's, re-exported. It was an identical copy here, and two published
+ * declarations of one author-facing type drift without anything saying so.
  */
-export interface AugmentSettingField {
-  key: string;
-  type: "boolean" | "text" | "number";
-  label?: string;
-  default?: boolean | string | number;
-}
+export type { AugmentSettingField } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * One augment's settings block, namespaced for the host panel. `namespace` is
@@ -134,83 +132,15 @@ export interface NamespacedAugmentSettings {
  * Registration descriptor for an augment: a component bound into another
  * widget's slot. `S` is inferred from `augments`, so `component` is typed
  * against that slot's {@link SlotProps} (spec §4.4: slot-parameterised augments).
+ *
+ * The sdk's, re-exported. Both packages declared it with the same nine fields,
+ * and two published declarations of one author-facing type is the shape that
+ * drifts with nothing to say so: an Uplink typing an augment against the sdk's
+ * and a widget typing one against ui-kit's would both compile forever while
+ * meaning different things. The long-form field documentation stays on the sdk's
+ * copy, which is the one an author reads.
  */
-export interface AugmentDefinition<S extends string = string> {
-  /**
-   * Stable id, unique per augment. Used as the React key, for de-duplication on
-   * re-registration, and as the settings namespace (spec §4.7). Required, an
-   * augment has no identity to namespace its settings without it.
-   */
-  id: string;
-  /** The slot this augment binds into: must match a base widget's `augmentSlots` entry. */
-  augments: S;
-  /**
-   * The augment's own component, rendered inside the slot and receiving the
-   * slot's props (spec §4.4). Lives in the augmenting Uplink's package.
-   */
-  component: ComponentType<SlotProps<S>>;
-  /** This augment's OWN Topics only (spec §4.2); never another Uplink's. */
-  channels?: readonly TopicId[];
-  /**
-   * Domain presence gate (spec §4.2): the augment renders only while the
-   * Domain's `<requires>.available` Topic is live. When the augmenting Uplink
-   * is absent, that Topic never arrives → the augment is not rendered and the
-   * slot composes without it, with zero impact on users who don't run it.
-   */
-  requires?: string;
-  /**
-   * Ordering within a slot. Augments render in ASCENDING priority order, so the
-   * highest-priority augment renders LAST, for overlay slots (spec §4.8) that
-   * puts it on top (z-order); for section slots it appears after the others.
-   * Ties preserve registration order (stable sort). Defaults to 0.
-   */
-  priority?: number;
-  /**
-   * Per-instance settings merged into the host widget's settings panel,
-   * namespaced by this augment's id (spec §4.7).
-   */
-  settings?: readonly AugmentSettingField[];
-  /**
-   * Declares that, while this augment's Domain is LIVE, the host's own
-   * default/replaceable surface for the slot it targets is suppressed
-   * outright: a REPLACE, not an overlay. This field itself is static and
-   * can be read straight off the registry (e.g. via
-   * {@link getAugmentsForSlot}), but the SUPPRESSION DECISION must NOT stop
-   * there: registration alone only proves the augment's client package was
-   * bundled, not that its Domain is actually live (a bundled client
-   * package registers its augments unconditionally at import time, whether
-   * or not the corresponding mod is running). A host must gate this field
-   * by the same Domain-presence signal `<AugmentSlot>` itself uses before
-   * ever rendering the augment's component: see
-   * {@link useAugmentAvailable}: or every user without that Uplink
-   * installed loses the host's default surface with nothing to replace it
-   * (regression fixed 2026-07-20). Independent of any other augment's
-   * `settings`/per-instance visibility, and independent of whether THIS
-   * augment currently has anything to draw. A host slot that has no such
-   * default surface can ignore the field entirely, it's an opt-in
-   * contract between a slot and the augments that choose to use it, not a
-   * universal one every slot must interpret (spec:
-   * local_docs/spec-mapview-stackable-layers.md).
-   */
-  suppressesVanillaBase?: boolean;
-  /**
-   * The Uplink client that registered this augment (Uplink Client Contract
-   * design §3.1/§3.3), stamped via `defineUplinkClient`'s returned handle,
-   * never set by hand. Purely for provenance / mod search tags on the HOST
-   * widget it augments (`effectiveSearchTags` reads `augment.requires`, not
-   * this field, to derive that tag: `owner` here is provenance for the
-   * augment itself, e.g. future health/version surfaces). Plays no part in
-   * augment registration or slot composition.
-   *
-   * Typed against the SDK's author-facing `UplinkClientHandle` mirror (the
-   * type `defineUplinkClient` returns and an Uplink stamps), sourced from the
-   * generated `@ksp-gonogo/sitrep-sdk` facade this floor already sits on, NOT
-   * core's `UplinkClientHandle` (which would be a ui-kit → core edge). The two
-   * are proven bidirectionally assignable, so a stamped core handle assigns
-   * straight in.
-   */
-  owner?: UplinkClientHandle;
-}
+export type { AugmentDefinition } from "@ksp-gonogo/sitrep-sdk";
 
 // Stored erased to the loose slot type so the registry can hold augments for
 // any slot; `S` is checked at the `registerAugment` call site.
