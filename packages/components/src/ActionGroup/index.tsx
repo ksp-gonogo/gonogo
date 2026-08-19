@@ -36,9 +36,9 @@ import {
   Inline,
   NULL_DISPLAY,
   Stack,
+  Text,
   Truncate,
   usePanelDelay,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -573,9 +573,9 @@ function ActionGroupView({
             {showOfficialName &&
               config?.label &&
               config.label !== group.name && (
-                <Value tone="faint" size="xs">
+                <Text tone="faint" size="xs">
                   {group.name}
-                </Value>
+                </Text>
               )}
           </Stack>
         )}

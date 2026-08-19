@@ -21,10 +21,10 @@ import {
   Section,
   SectionTitle,
   Stack,
+  Text,
   Unit,
   usePanelDelay,
   useRowFilter,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
@@ -378,15 +378,15 @@ function ExperimentsComponent({
       }
     >
       {showSubtitle && (
-        <Value tone="muted" size="xs" role="status" aria-live="polite">
+        <Text tone="muted" size="xs" role="status" aria-live="polite">
           {totals.hasData}/{totals.total} with data · {totals.deployed} deployed
           {totals.inoperable > 0 ? ` · ${totals.inoperable} inoperable` : ""}
           {totalDataMits > 0 && (
-            <Value spaced title="Total stored science data (mits)">
+            <Text spaced title="Total stored science data (mits)">
               · <Unit value={value("Mit", totalDataMits)} decimals={1} />
-            </Value>
+            </Text>
           )}
-        </Value>
+        </Text>
       )}
       {showLab && <LabSection labs={labs} />}
       <ScrollArea>
@@ -433,15 +433,15 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
             </Cluster>
             <Inline gap="md">
               {lab.scientistCount !== null && (
-                <Value tone="muted" size="xs">
+                <Text tone="muted" size="xs">
                   {lab.scientistCount} scientist
                   {lab.scientistCount === 1 ? "" : "s"}
-                </Value>
+                </Text>
               )}
               {lab.dataStored !== null && lab.dataStorage !== null && (
-                <Value tone="muted" size="xs">
+                <Text tone="muted" size="xs">
                   {lab.dataStored.toFixed(0)}/{lab.dataStorage.toFixed(0)} data
-                </Value>
+                </Text>
               )}
             </Inline>
           </Stack>

@@ -11,7 +11,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { StreamStatusBadge, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { Inline, Panel, Value } from "@ksp-gonogo/ui-kit";
+import { Inline, Panel, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AboardTab } from "./AboardTab";
@@ -188,9 +188,9 @@ function ScienceDataComponent({
       panelAside={
         <Inline gap="sm">
           {isCareerLike && careerScience !== null && (
-            <Value size="sm" title="Science banked">
+            <Text size="sm" title="Science banked">
               {fixed(careerScience, 0)} SCI
-            </Value>
+            </Text>
           )}
           <StreamStatusBadge status={breakdownStreamStatus} />
         </Inline>

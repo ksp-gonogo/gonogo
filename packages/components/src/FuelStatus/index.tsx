@@ -29,10 +29,10 @@ import {
   ReadoutCaption,
   Select,
   Stack,
+  Text,
   Truncate,
   Unit,
   useModalSaveBar,
-  Value,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -684,7 +684,7 @@ function FuelStatusComponent({
             >
               Total ΔV
             </ReadoutCaption>
-            <Value
+            <Text
               tone="default"
               size="sm"
               style={{
@@ -710,7 +710,7 @@ function FuelStatusComponent({
               >
                 {DELTA_V_MODE_SHORT[mode]}
               </span>
-            </Value>
+            </Text>
           </Stack>
           <Stack gap="xs">
             <ReadoutCaption
@@ -721,7 +721,7 @@ function FuelStatusComponent({
             >
               Total burn
             </ReadoutCaption>
-            <Value
+            <Text
               tone="default"
               size="sm"
               style={{
@@ -740,7 +740,7 @@ function FuelStatusComponent({
                   NULL_DISPLAY
                 )}
               </span>
-            </Value>
+            </Text>
           </Stack>
         </Box>
       )}

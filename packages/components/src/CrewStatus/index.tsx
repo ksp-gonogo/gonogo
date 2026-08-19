@@ -20,10 +20,10 @@ import {
   Panel,
   ReadoutCaption,
   Stack,
+  Text,
   Truncate,
   Unit,
   useElementSize,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
@@ -199,9 +199,9 @@ function EvaSuitReadout({
   if (readingsNotCurrent) {
     return (
       <Cluster justify="start" gap="lg" wrap aria-label="EVA suit resources">
-        <Value tone="warn" size="xs">
+        <Text tone="warn" size="xs">
           Suit resources no longer current
-        </Value>
+        </Text>
       </Cluster>
     );
   }

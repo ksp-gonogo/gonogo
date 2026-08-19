@@ -1,13 +1,13 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { Value } from "./Value";
+import { Text } from "./Text";
 
 describe("Value", () => {
   it("maps status tones to their fg tokens", () => {
     render(
-      <Value tone="go" data-testid="v">
+      <Text tone="go" data-testid="v">
         GO
-      </Value>,
+      </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
       color: "var(--color-status-go-fg)",
@@ -16,25 +16,25 @@ describe("Value", () => {
 
   it("maps warn/nogo/info tones too", () => {
     const { rerender } = render(
-      <Value tone="warn" data-testid="v">
+      <Text tone="warn" data-testid="v">
         x
-      </Value>,
+      </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
       color: "var(--color-status-warning-fg)",
     });
     rerender(
-      <Value tone="nogo" data-testid="v">
+      <Text tone="nogo" data-testid="v">
         x
-      </Value>,
+      </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
       color: "var(--color-status-nogo-fg)",
     });
     rerender(
-      <Value tone="info" data-testid="v">
+      <Text tone="info" data-testid="v">
         x
-      </Value>,
+      </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
       color: "var(--color-status-info-fg)",
@@ -43,12 +43,12 @@ describe("Value", () => {
 
   it("applies semibold weight when set, inherits otherwise", () => {
     const { rerender } = render(
-      <Value weight="semibold" data-testid="v">
+      <Text weight="semibold" data-testid="v">
         x
-      </Value>,
+      </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({ fontWeight: "600" });
-    rerender(<Value data-testid="v">x</Value>);
+    rerender(<Text data-testid="v">x</Text>);
     expect(screen.getByTestId("v")).not.toHaveStyle({ fontWeight: "600" });
   });
 });

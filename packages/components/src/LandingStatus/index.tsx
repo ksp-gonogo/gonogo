@@ -31,8 +31,8 @@ import {
   SectionTitle,
   Stack,
   StatusPill,
+  Text,
   Unit,
-  Value,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -230,7 +230,7 @@ function GridCellPair({
   return (
     <>
       <ReadoutCaption>{label}</ReadoutCaption>
-      <Value tone={tone ?? "default"}>{children}</Value>
+      <Text tone={tone ?? "default"}>{children}</Text>
     </>
   );
 }
@@ -252,7 +252,7 @@ function StackedField({
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <ReadoutCaption>{label}</ReadoutCaption>
-      <Value>{children}</Value>
+      <Text>{children}</Text>
     </div>
   );
 }
@@ -683,9 +683,9 @@ function LandingStatusComponent({
     ) : null;
 
   const comDatumNote = usingComDatum ? (
-    <Value tone="muted" size="xs">
+    <Text tone="muted" size="xs">
       centre-of-mass altitude (lowest-point datum unavailable)
-    </Value>
+    </Text>
   ) : null;
 
   // Compact caption-over-value burn/touchdown readouts. `minColWidth` makes it
@@ -731,9 +731,9 @@ function LandingStatusComponent({
           {noLandingVector ? (
             // Fuel isn't the wall (there's no path at all): a green "yes" here
             // would contradict the ABORT above, so mute it.
-            <Value tone="muted">n/a · no path</Value>
+            <Text tone="muted">n/a · no path</Text>
           ) : affordable == null ? (
-            <Value tone="muted">{NULL_DISPLAY}</Value>
+            <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : (
             <Badge severity={affordable ? "nominal" : "critical"} size="sm">
               {affordable ? "yes" : "insufficient dV"}
@@ -796,10 +796,10 @@ function LandingStatusComponent({
             <GridCellPair label="Regime">{landing.descentRegime}</GridCellPair>
           )}
         </Grid>
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           est · current config
           {landing?.parachuteState === "armed" ? " · excludes chute" : ""}
-        </Value>
+        </Text>
       </Section>
     ) : board === "atmospheric-estimate" ? (
       // Descending in atmosphere but the mod shipped no terminal velocity yet
@@ -826,22 +826,22 @@ function LandingStatusComponent({
             )}
           </GridCellPair>
         </Grid>
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           {flight?.atmDensity != null &&
           flight.atmDensity.magnitude < NEGLIGIBLE_DENSITY
             ? "negligible drag · near free-fall, terminal velocity resolves as air thickens"
             : "above terminal · drag building, terminal velocity resolves as descent continues"}
-        </Value>
+        </Text>
       </Section>
     ) : board === "atmospheric-unmodelled" ? (
       <Section>
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           descent in atmosphere · no terrain model (no body data)
-        </Value>
+        </Text>
       </Section>
     ) : board === "no-solution" ? (
       <Section>
-        <Value tone="muted">no solution · no body data</Value>
+        <Text tone="muted">no solution · no body data</Text>
       </Section>
     ) : null;
 
@@ -989,7 +989,7 @@ function LandingStatusComponent({
         ? "sub-vessel (est.)"
         : null;
   const terrainReadoutEl = showReticle ? (
-    <Value tone="muted" size="xs">
+    <Text tone="muted" size="xs">
       {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
       {landing?.predictedSlopeAngle != null ? (
         <>
@@ -1005,7 +1005,7 @@ function LandingStatusComponent({
         ? ` · ${writeQuantity(value("m", siteDrift.distanceMeters), { decimals: 0 })} downrange`
         : ""}
       {sourceLabel ? ` · ${sourceLabel}` : ""}
-    </Value>
+    </Text>
   ) : null;
 
   return (
@@ -1034,9 +1034,9 @@ function LandingStatusComponent({
         >
           {commitLayerEl}
           {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
-            <Value tone="muted">
+            <Text tone="muted">
               RT <Countdown value={clocks.roundTripSeconds} precise />
-            </Value>
+            </Text>
           )}
           <span
             style={{
@@ -1055,9 +1055,9 @@ function LandingStatusComponent({
       }
     >
       {bodyName !== undefined && (
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
-        </Value>
+        </Text>
       )}
       {/* The board is DESCRIBED, not suspended. No `role="status"`: the hero below
           already owns one, and a second live region on the same panel floods a

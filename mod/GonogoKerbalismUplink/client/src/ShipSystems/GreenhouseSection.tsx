@@ -6,7 +6,7 @@ import {
   Section,
   type Severity,
   Stack,
-  Value,
+  Text,
 } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
 
@@ -199,11 +199,11 @@ function GreenhouseEntryRow({
     <Section>
       <Cluster justify="between" gap="md">
         {/* Same head treatment as the host widget's own SectionHead (a
-            muted uppercase Value), so the greenhouse rows read as part of
+            muted uppercase Text), so the greenhouse rows read as part of
             one system rather than a second heading style. */}
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           {titlePrefix.toUpperCase()}
-        </Value>
+        </Text>
         <Cluster gap="xs" justify="end" wrap>
           {tooHigh && (
             // `warning`, not `critical`: recoverable once the storm passes,
@@ -230,22 +230,22 @@ function GreenhouseEntryRow({
       </Cluster>
       {/* Wraps rather than truncating at narrow widths, a hidden number is
           worse than an extra line. */}
-      <Value tone="default" size="xs">
+      <Text tone="default" size="xs">
         Natural {fmtWm2(g.natural)} · Artificial {fmtWm2(g.artificial)} · Rate{" "}
         {fmtRatePerDay(g.foodRatePerSec)}
-      </Value>
+      </Text>
       {blocked && (
         // The bare "-fg" warning token is meant to sit ON the warning "-bg"
         // (e.g. inside a Badge); standalone on the panel's dark surface it
         // is near-black. "-fg-muted" is the standalone-warning-text token
         // (LaunchDirector, CommSignal, DeployedScience all use it).
-        <Value
+        <Text
           tone="warn"
           size="xs"
           style={{ color: "var(--color-status-warning-fg-muted)" }}
         >
           {g.issue}
-        </Value>
+        </Text>
       )}
     </Section>
   );
@@ -276,9 +276,9 @@ function GreenhouseSection({
   }
   return (
     <Stack gap="xs">
-      <Value tone="muted" size="xs">
+      <Text tone="muted" size="xs">
         GREENHOUSES
-      </Value>
+      </Text>
       {greenhouses.map((g, i) => (
         <GreenhouseEntryRow
           // biome-ignore lint/suspicious/noArrayIndexKey: greenhouse parts carry no stable id on the wire yet

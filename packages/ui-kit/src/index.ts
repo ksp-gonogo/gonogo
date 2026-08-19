@@ -396,7 +396,7 @@ export {
   severityFromReadoutTone,
   severityFromStatusTone,
   severityFromStreamStatus,
-  severityFromValueTone,
+  severityFromTextTone,
   severityRank,
   worstSeverity,
 } from "./status/severity";
@@ -420,6 +420,13 @@ export {
   type TapeProps,
   type TapeZone,
 } from "./Tape";
+export {
+  Text,
+  type TextProps,
+  type TextSize,
+  type TextTone,
+  type TextWeight,
+} from "./Text";
 // Switch's sibling, and the other half of the toggle vocabulary: a row of
 // alternatives is a ToggleButton, a single labelled setting is a Switch.
 export {
@@ -466,13 +473,6 @@ export {
   type UseRowFilterOptions,
   useRowFilter,
 } from "./useRowFilter";
-export {
-  Value,
-  type ValueProps,
-  type ValueSize,
-  type ValueTone,
-  type ValueWeight,
-} from "./Value";
 export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";

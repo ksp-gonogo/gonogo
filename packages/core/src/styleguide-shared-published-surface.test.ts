@@ -58,22 +58,25 @@ const DECLARED_RE =
  */
 const KNOWN_DIVERGENCES: readonly string[] = [
   // The sdk's is a one-line shim onto `getHost()`; ui-kit's is the augment
-  // registry the host eventually reaches. Resolving it means deciding which of
-  // the two an Uplink is allowed to import, since importing ui-kit's directly
-  // gets a bundled registry the app never reads.
+  // registry the host eventually reaches. RULED: an Uplink imports the sdk's, and
+  // ui-kit's must not be reachable from an Uplink at all, because importing it
+  // directly gets a bundled registry the app never reads and the symptom is that
+  // the author's widgets silently never appear. The mechanism for enforcing that
+  // (narrowing ui-kit's barrel, or a guard) is the open half; see
+  // docs/uplink-isolation.md.
   "AugmentSlot",
   "registerAugment",
   // Two independent unit registries with the same two entry points and
   // DIFFERENT signatures (`registerUnit(def: UnitDefinition)` here against
   // `registerUnit(registration: UnitRegistration)` there; `displaySymbol` takes
   // a token plus options here and a bare token there). Not a copy: two designs.
+  // RULED that the sdk owns the unit system and ui-kit defers, but a merge is
+  // held pending a measurement of what each registry actually holds: a token
+  // present in only one of them is invisible to the other, which would be a
+  // live defect rather than a duplication.
   "UnitDefinition",
   "displaySymbol",
   "registerUnit",
-  // ui-kit's `Value` is a styled span (tone/size/weight); the sdk's is the
-  // unit-system's value type. Same name, unrelated axes. Resolved by renaming
-  // ui-kit's to `Text`, which is a separate, settled piece of work.
-  "Value",
 ];
 
 function sourceFiles(dir: string): string[] {

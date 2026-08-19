@@ -11,7 +11,7 @@
  */
 
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Tape, Value, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { Tape, Text, writeQuantity } from "@ksp-gonogo/ui-kit";
 
 export interface AltitudeRailProps {
   /** Height of the vessel's lowest point above terrain, metres. */
@@ -90,13 +90,13 @@ export function AltitudeRail({
           the numbers rather than against the panel border. Panel.Body supplies
           the outer inset, so this needs none of its own. */}
       <div style={{ alignSelf: "stretch" }}>
-        <Value tone={near ? "accent" : "muted"} size="xs">
+        <Text tone={near ? "accent" : "muted"} size="xs">
           {suicideBurnCountdown == null
             ? "no burn"
             : suicideBurnCountdown <= 0
               ? "past ignition"
               : `ignite in ${writeQuantity(value("s", Math.ceil(suicideBurnCountdown)))}`}
-        </Value>
+        </Text>
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   ALLOWLIST,
   type ModAllowlist,
@@ -521,6 +521,19 @@ function findViolations(root: string, token: ModToken): string[] {
 }
 
 describe("uplink boundary: mod references stay inside their owning Uplink", () => {
+  // Read the corpus here, not inside whichever `it` happens to run first.
+  //
+  // The scan reads every scannable file in the repo, and that cost has to live
+  // somewhere. While it lived in the first test, that ONE test paid ~2000 file
+  // reads and blew the 30s limit under a parallel full-suite run, reported as
+  // "kerbcast: matches the seeded allowlist exactly" timing out: a message that
+  // points at a token and an allowlist, neither of which had anything to do with
+  // it. A `beforeAll` with its own generous budget names the expensive step, and
+  // leaves each token's assertion as the fast comparison it actually is.
+  beforeAll(() => {
+    scanCorpus(findRepoRoot(dirname(fileURLToPath(import.meta.url))));
+  }, 120_000);
+
   for (const token of Object.keys(MOD_OWNERSHIP) as ModToken[]) {
     it(`${token}: matches the seeded allowlist exactly`, () => {
       const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));

@@ -12,7 +12,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Value } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -344,9 +344,9 @@ function OrbitViewComponent({
         panelSidebar={
           <LandscapeChrome>
             {bodyName !== undefined && (
-              <Value tone="muted" size="xs">
+              <Text tone="muted" size="xs">
                 {bodyName}
-              </Value>
+              </Text>
             )}
             <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
           </LandscapeChrome>
@@ -387,9 +387,9 @@ function OrbitViewComponent({
       panelAside={
         <>
           {showBodyNameInAside && (
-            <Value tone="muted" size="xs">
+            <Text tone="muted" size="xs">
               {bodyName}
-            </Value>
+            </Text>
           )}
           <AugmentSlot name="orbit-view.badges" props={badgesContext} />
         </>
@@ -397,9 +397,9 @@ function OrbitViewComponent({
       floatingHeader={drawingFillsPanel}
     >
       {showBodyNameInBody && (
-        <Value tone="muted" size="xs">
+        <Text tone="muted" size="xs">
           {bodyName}
-        </Value>
+        </Text>
       )}
       {!hasOrbit ? (
         <NoData>

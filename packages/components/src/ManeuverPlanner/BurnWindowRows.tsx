@@ -5,8 +5,8 @@ import {
   NULL_DISPLAY,
   Row,
   Stack,
+  Text,
   Truncate,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import {
@@ -148,9 +148,9 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
         </Stack>
       </Cluster>
       <Stack gap="xs" style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
-        <Value tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
+        <Text tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
           {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
-        </Value>
+        </Text>
         {row.atUt != null && (
           <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
             <MissionDate value={row.atUt} />

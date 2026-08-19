@@ -5,7 +5,7 @@ import {
   severityFromReadoutTone,
   severityFromStatusTone,
   severityFromStreamStatus,
-  severityFromValueTone,
+  severityFromTextTone,
   severityRank,
   worstSeverity,
 } from "./severity";
@@ -140,10 +140,10 @@ describe("severityFromStatusTone (mapping table)", () => {
   });
 });
 
-describe("severityFromValueTone (display tones carry no severity)", () => {
+describe("severityFromTextTone (display tones carry no severity)", () => {
   it("folds every display tone to the nominal floor", () => {
     for (const t of ["accent", "default", "muted", "faint"] as const) {
-      expect(severityFromValueTone(t)).toBe("nominal");
+      expect(severityFromTextTone(t)).toBe("nominal");
     }
   });
 });

@@ -26,9 +26,9 @@ import {
   resourceColor,
   ScrollArea,
   Stack,
+  Text,
   Truncate,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
@@ -219,15 +219,15 @@ function ResourceCells({
       <Truncate style={RESOURCE_NAME_STYLE} title={flow.resource ?? undefined}>
         {flow.resource ?? "?"}
       </Truncate>
-      <Value size="sm" tone="default" style={RIGHT_ALIGN}>
+      <Text size="sm" tone="default" style={RIGHT_ALIGN}>
         {ratesNotCurrent ? (
-          <Value tone="muted">{NULL_DISPLAY}</Value>
+          <Text tone="muted">{NULL_DISPLAY}</Text>
         ) : flow.rate !== null && flow.rate !== undefined ? (
           <Unit value={flow.rate} decimals={rateDecimals(flow.rate, 3)} />
         ) : (
-          <Value tone="faint">unknown</Value>
+          <Text tone="faint">unknown</Text>
         )}
-      </Value>
+      </Text>
       <ReadoutCaption style={RIGHT_ALIGN}>{direction}</ReadoutCaption>
     </>
   );
@@ -255,9 +255,9 @@ function DrillCard({
         {/* Wraps rather than clips: a no-wrap Cluster cut badges off at the
             default tile width. */}
         <Cluster justify="start" gap="xs" wrap>
-          <Value size="sm" tone="default" weight="semibold">
+          <Text size="sm" tone="default" weight="semibold">
             {drill.partTitle ?? drill.partId ?? "Drill"}
-          </Value>
+          </Text>
           {/* Deployed is genuinely absent on a harvester with no deploy
               animation, so the chip is omitted rather than shown as a false
               "retracted". */}
@@ -289,11 +289,11 @@ function DrillCard({
           {/* Ore abundance is a property of where the drill is standing, and the
               drill can be driven somewhere else while the link is down. */}
           {drillNotCurrent ? (
-            <Value tone="muted">{NULL_DISPLAY}</Value>
+            <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : drill.abundance !== null && drill.abundance !== undefined ? (
             <Unit value={drill.abundance} as="%" decimals={2} />
           ) : (
-            <Value tone="faint">unknown</Value>
+            <Text tone="faint">unknown</Text>
           )}
         </Inline>
       </Stack>
@@ -352,9 +352,9 @@ function ConverterCard({
     >
       <Stack gap="xs">
         <Cluster justify="start" gap="xs" wrap>
-          <Value size="sm" tone="default" weight="semibold">
+          <Text size="sm" tone="default" weight="semibold">
             {converter.partTitle ?? converter.partId ?? "Converter"}
-          </Value>
+          </Text>
           {converterNotCurrent ? (
             <Badge severity="info">run state held</Badge>
           ) : (
@@ -381,9 +381,9 @@ function ConverterCard({
               />
             ))
           ) : (
-            <Value tone="faint" size="sm">
+            <Text tone="faint" size="sm">
               none
-            </Value>
+            </Text>
           )}
           {converter.outputs.length > 0 ? (
             converter.outputs.map((flow, index) => (
@@ -397,9 +397,9 @@ function ConverterCard({
           ) : (
             // A consume-and-dump process (a scrubber) has no output side by
             // design: this reads as a fact, not a blank row.
-            <Value tone="faint" size="sm">
+            <Text tone="faint" size="sm">
               none
-            </Value>
+            </Text>
           )}
         </Grid>
       </Stack>
@@ -448,15 +448,15 @@ function ResourceOpsStats({
       aria-label="Resource ops summary"
     >
       <Inline gap="xs">
-        <Value size="sm" tone="default" weight="semibold">
+        <Text size="sm" tone="default" weight="semibold">
           {total}
-        </Value>
+        </Text>
         <ReadoutCaption>{total === 1 ? "process" : "processes"}</ReadoutCaption>
       </Inline>
       <Inline gap="xs">
-        <Value size="sm" tone="default" weight="semibold">
+        <Text size="sm" tone="default" weight="semibold">
           {activeCount ?? NULL_DISPLAY}
-        </Value>
+        </Text>
         <ReadoutCaption>active</ReadoutCaption>
       </Inline>
       {/* The stat stays mounted while the figure is withheld: WHETHER the vessel
@@ -466,7 +466,7 @@ function ResourceOpsStats({
         <Inline gap="xs">
           <ReadoutCaption>net EC</ReadoutCaption>
           {netEcNotCurrent ? (
-            <Value tone="muted">{NULL_DISPLAY}</Value>
+            <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : (
             <Unit
               value={value("units/s", netEc)}
@@ -478,15 +478,15 @@ function ResourceOpsStats({
       {location && (
         <Inline gap="xs">
           <ReadoutCaption>at</ReadoutCaption>
-          <Value size="sm" tone="default">
+          <Text size="sm" tone="default">
             {location}
-          </Value>
+          </Text>
         </Inline>
       )}
       {staleChannels.length > 0 && (
-        <Value tone="warn" size="xs" role="status" aria-live="polite">
+        <Text tone="warn" size="xs" role="status" aria-live="polite">
           {`Rates and run state no longer current: ${staleChannels.join(", ")}`}
-        </Value>
+        </Text>
       )}
     </Cluster>
   );

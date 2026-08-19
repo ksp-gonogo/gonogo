@@ -23,11 +23,11 @@ import {
   ScrollArea,
   SelectableRow,
   Stack,
+  Text,
   ToggleButton,
   Unit,
   useElementSize,
   usePanelDelay,
-  Value,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -344,9 +344,9 @@ function RotorTachometerComponent({
                 >
                   −
                 </ActionButton>
-                <Value size="sm" tone="default">
+                <Text size="sm" tone="default">
                   {Math.round(selected.rpmLimit)}
-                </Value>
+                </Text>
                 <ActionButton
                   tone="ghost"
                   type="button"
@@ -376,12 +376,12 @@ function RotorTachometerComponent({
                 >
                   −
                 </ActionButton>
-                <Value size="sm" tone="default">
+                <Text size="sm" tone="default">
                   <Unit
                     value={quantity("%", selected.torqueLimit)}
                     decimals={0}
                   />
-                </Value>
+                </Text>
                 <ActionButton
                   tone="ghost"
                   type="button"

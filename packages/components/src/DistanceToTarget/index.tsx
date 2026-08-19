@@ -24,10 +24,10 @@ import {
   Select,
   Stack,
   Switch,
+  Text,
   Truncate,
   Unit,
   useModalSaveBar,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -555,19 +555,19 @@ function DistanceToTargetComponent({
         style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
       >
         {showTargetName && (
-          <Value tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
             {tarName}
-          </Value>
+          </Text>
         )}
         {tarDistance === undefined ? (
           <DisplayDash />
         ) : (
-          <Value
+          <Text
             tone={outOfContact ? "muted" : "accent"}
             style={DISPLAY_VALUE_STYLE}
           >
             <Unit value={value("m", tarDistance)} />
-          </Value>
+          </Text>
         )}
         {/* The caveat belongs on the value, not in the panel chrome: a header
             badge beside a confident readout is what the operator reads past.
@@ -586,13 +586,13 @@ function DistanceToTargetComponent({
           </ReadoutCaption>
         )}
         {showSubReadout && (
-          <Value
+          <Text
             size="xs"
             tone="muted"
             style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
           >
             Δv <Unit value={value("m/s", relVel as number)} decimals={2} />
-          </Value>
+          </Text>
         )}
       </Stack>
     </TargetPanel>
@@ -694,7 +694,7 @@ function ReadoutRow({
       >
         {label}
       </ReadoutCaption>
-      <Value
+      <Text
         size="lg"
         tone={tone === "ok" ? "accent" : "default"}
         style={{
@@ -704,7 +704,7 @@ function ReadoutRow({
         }}
       >
         {children}
-      </Value>
+      </Text>
     </>
   );
 }
@@ -779,25 +779,25 @@ function ApproachHud({
           gap="sm"
           style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
         >
-          <Value tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
             {name}
-          </Value>
+          </Text>
           {distance === undefined ? (
             <DisplayDash />
           ) : (
-            <Value tone="accent" style={DISPLAY_VALUE_STYLE}>
+            <Text tone="accent" style={DISPLAY_VALUE_STYLE}>
               <Unit value={value("m", distance)} />
-            </Value>
+            </Text>
           )}
           {closingMagnitude !== null && (
-            <Value
+            <Text
               size="xs"
               tone="muted"
               style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
             >
               {closing ? "−" : "+"}
               <Unit value={value("m/s", closingMagnitude)} decimals={1} />
-            </Value>
+            </Text>
           )}
           {alignmentWithheld && (
             <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
@@ -809,9 +809,9 @@ function ApproachHud({
 
   return (
     <Panel panelTitle="APPROACH">
-      <Value tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+      <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
         {name}
-      </Value>
+      </Text>
       <Grid
         cols={stack ? "1fr" : "auto 1fr"}
         gap="lg"
@@ -1166,7 +1166,7 @@ function DockingHud(props: DockingHudProps) {
           >
             {name}
           </Truncate>
-          <Value
+          <Text
             size="lg"
             tone="accent"
             style={{ fontWeight: 700, whiteSpace: "nowrap" }}
@@ -1176,7 +1176,7 @@ function DockingHud(props: DockingHudProps) {
             ) : (
               <Unit value={value("m", distance)} />
             )}
-          </Value>
+          </Text>
         </Cluster>
         <Grid
           cols={stackReadouts ? "1fr" : "auto 1fr"}
@@ -1192,7 +1192,7 @@ function DockingHud(props: DockingHudProps) {
           >
             Δv
           </ReadoutCaption>
-          <Value
+          <Text
             style={{
               fontSize: 11,
               whiteSpace: "nowrap",
@@ -1206,7 +1206,7 @@ function DockingHud(props: DockingHudProps) {
             ) : (
               <Unit value={value("m/s", relVel)} decimals={2} />
             )}
-          </Value>
+          </Text>
 
           {showAlignmentDetail && (
             <>
@@ -1219,7 +1219,7 @@ function DockingHud(props: DockingHudProps) {
               >
                 X/Y
               </ReadoutCaption>
-              <Value
+              <Text
                 style={{
                   fontSize: 11,
                   whiteSpace: "nowrap",
@@ -1237,7 +1237,7 @@ function DockingHud(props: DockingHudProps) {
                 ) : (
                   <Unit value={value("m", y)} decimals={2} />
                 )}
-              </Value>
+              </Text>
 
               <ReadoutCaption
                 style={{
@@ -1248,7 +1248,7 @@ function DockingHud(props: DockingHudProps) {
               >
                 α/β/γ
               </ReadoutCaption>
-              <Value
+              <Text
                 style={{
                   fontSize: 11,
                   whiteSpace: "nowrap",
@@ -1272,7 +1272,7 @@ function DockingHud(props: DockingHudProps) {
                 ) : (
                   <Unit value={value("°", az)} decimals={1} />
                 )}
-              </Value>
+              </Text>
             </>
           )}
         </Grid>

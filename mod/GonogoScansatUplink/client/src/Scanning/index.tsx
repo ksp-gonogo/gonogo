@@ -20,8 +20,8 @@ import {
   Section,
   SectionTitle,
   Stack,
+  Text,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -208,9 +208,9 @@ function ScanningComponent({
         <Stack gap="lg">
           {biome ? (
             <Card>
-              <Value size="sm" tone="default">
+              <Text size="sm" tone="default">
                 Biome: {biome}
-              </Value>
+              </Text>
             </Card>
           ) : null}
 
@@ -246,14 +246,14 @@ function ScanningComponent({
                   <Card key={v.vesselId}>
                     <Stack gap="xs">
                       <Cluster>
-                        <Value size="sm" tone="default">
+                        <Text size="sm" tone="default">
                           {v.vesselName || "(unnamed)"}
-                        </Value>
-                        <Value size="xs" tone="muted">
+                        </Text>
+                        <Text size="xs" tone="muted">
                           {v.body}
-                        </Value>
+                        </Text>
                       </Cluster>
-                      <Value size="xs" tone="muted">
+                      <Text size="xs" tone="muted">
                         sub-point {v.subLatitude.toFixed(2)},{" "}
                         {v.subLongitude.toFixed(2)} · alt{" "}
                         {/* Pinned to km rather than left to the ladder: this
@@ -266,7 +266,7 @@ function ScanningComponent({
                           format="km"
                           decimals={0}
                         />
-                      </Value>
+                      </Text>
                       <Stack gap="xs">
                         {v.sensors.length === 0 ? (
                           <EmptyState>No scanners.</EmptyState>
@@ -278,10 +278,10 @@ function ScanningComponent({
                               cols="140px 1fr auto"
                               gap="md"
                             >
-                              <Value size="xs" tone="default">
+                              <Text size="xs" tone="default">
                                 {SCAN_TYPE_LABELS[s.type] ?? `type=${s.type}`}
-                              </Value>
-                              <Value size="xs" tone="muted">
+                              </Text>
+                              <Text size="xs" tone="muted">
                                 FoV{" "}
                                 <Unit value={value("°", s.fov)} decimals={1} />{" "}
                                 · alt{" "}
@@ -296,7 +296,7 @@ function ScanningComponent({
                                   format="km"
                                   decimals={0}
                                 />
-                              </Value>
+                              </Text>
                               <Badge
                                 size="sm"
                                 severity={
@@ -332,18 +332,18 @@ function ScanningComponent({
               <Stack gap="xs">
                 {anomalies.map((a) => (
                   <Grid key={`${a.name}-${a.latitude}`} cols="1fr auto">
-                    <Value size="xs" tone={a.known ? "default" : "muted"}>
+                    <Text size="xs" tone={a.known ? "default" : "muted"}>
                       {a.detail
                         ? a.name
                         : a.known
                           ? "(unknown)"
                           : "(undetected)"}
-                    </Value>
-                    <Value size="xs" tone="muted">
+                    </Text>
+                    <Text size="xs" tone="muted">
                       {a.known
                         ? `${a.latitude.toFixed(2)}, ${a.longitude.toFixed(2)}`
                         : NULL_DISPLAY}
-                    </Value>
+                    </Text>
                   </Grid>
                 ))}
               </Stack>
@@ -368,16 +368,16 @@ function CoverageRow({
   const coverage = typeof pct === "number" ? pct : 0;
   return (
     <Grid cols="120px 1fr 60px" gap="md">
-      <Value size="xs" tone="default">
+      <Text size="xs" tone="default">
         {SCAN_TYPE_LABELS[scanType]}
-      </Value>
+      </Text>
       <ProgressBar
         value={coverage}
         ariaLabel={`${SCAN_TYPE_LABELS[scanType]} coverage: ${bodyName}`}
       />
-      <Value size="xs" tone="muted">
+      <Text size="xs" tone="muted">
         <Unit value={value("%", coverage)} decimals={1} />
-      </Value>
+      </Text>
     </Grid>
   );
 }

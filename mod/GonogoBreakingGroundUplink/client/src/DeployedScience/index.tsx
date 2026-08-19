@@ -15,9 +15,9 @@ import {
   Stack,
   StatusIndicator,
   type StatusTone,
+  Text,
   Truncate,
   Unit,
-  Value,
 } from "@ksp-gonogo/ui-kit";
 import { BREAKING_GROUND } from "../uplink";
 
@@ -376,44 +376,44 @@ function DeployedScienceComponent(
             >
               <Stack gap="sm">
                 <Cluster style={{ gap: "var(--space-6)" }}>
-                  <Value tone="default" size="sm" style={{ fontWeight: 600 }}>
+                  <Text tone="default" size="sm" style={{ fontWeight: 600 }}>
                     {base.body || "Surface base"}
-                  </Value>
+                  </Text>
                   <StatusIndicator tone={POWER_TONE[state]} live>
                     {POWER_LABEL[state]}
                   </StatusIndicator>
                 </Cluster>
-                <Value tone="muted" style={XS2_STYLE}>
+                <Text tone="muted" style={XS2_STYLE}>
                   EC {Math.round(base.powerAvailable)}/
                   {Math.round(base.powerRequired)}
                   {base.experiments.length > 0 && (
-                    <Value tone="faint" style={XS2_STYLE}>
+                    <Text tone="faint" style={XS2_STYLE}>
                       {" "}
                       · {base.experiments.length} exp
-                    </Value>
+                    </Text>
                   )}
-                </Value>
+                </Text>
 
                 {base.experiments.map((exp) => (
                   <Stack gap="xs" key={`${base.id}-${exp.partId}`}>
                     <Cluster align="baseline" style={{ gap: "var(--space-6)" }}>
                       <Truncate style={XS2_STYLE}>{exp.name}</Truncate>
-                      <Value tone="muted" style={XS2_STYLE}>
+                      <Text tone="muted" style={XS2_STYLE}>
                         <Unit
                           value={value("%", exp.progress * 100)}
                           decimals={0}
                         />
                         {exp.collecting && (
-                          <Value
+                          <Text
                             tone="accent"
                             style={XS2_STYLE}
                             aria-hidden="true"
                           >
                             {" "}
                             ●
-                          </Value>
+                          </Text>
                         )}
-                      </Value>
+                      </Text>
                     </Cluster>
                     {/* Plain-div track (4px stadium, surface-raised) + go-toned
                         fill, preserving the original bar's exact dims/colour
