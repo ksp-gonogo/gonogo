@@ -134,6 +134,21 @@ export function Tabs({
 
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const barRef = useRef<HTMLDivElement>(null);
+  // Tighter padding and tracking once the tabs stop fitting.
+  //
+  // Decided against the row's UNCOMPACTED width, which is cached rather than
+  // re-read, because reading it while compacted would read a width that
+  // compacting had already changed: it would compact, then fit, then uncompact,
+  // then not fit. The cache is only ever written while uncompacted, so
+  // uncompacting happens when the bar grows past the natural width and not
+  // before.
+  //
+  // A hidden ghost copy of the row was tried first and measured 188px against
+  // the real row's 208px, so min-6x9 never compacted at all: a mirror of a
+  // styled component has to reproduce it exactly, and this one silently did
+  // not. Measuring the real element cannot drift from itself.
+  const naturalWidthRef = useRef<number | null>(null);
+  const [compact, setCompact] = useState(false);
   const [overflow, setOverflow] = useState({ left: false, right: false });
   // Where the selection blob sits. Measured rather than derived from flex
   // order: labels are different widths, and the blob has to land exactly on
@@ -183,6 +198,27 @@ export function Tabs({
       mo.disconnect();
     };
   }, [expanded]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the tab SET changes, since that is what changes the natural width.
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const measure = () => {
+      // scrollWidth is the row's content width, so while nothing is compacted
+      // it IS the natural width. Recording it on every uncompacted pass also
+      // picks up a font swap, which changes the labels' width without resizing
+      // the bar.
+      setCompact((wasCompact) => {
+        if (!wasCompact) naturalWidthRef.current = bar.scrollWidth;
+        const natural = naturalWidthRef.current;
+        return natural == null ? false : natural > bar.clientWidth;
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, [expanded, resolved.length]);
 
   /**
    * Move `step` tabs from `from`, wrapping, and keep going while the landing
@@ -306,6 +342,11 @@ export function Tabs({
                 $active={isActive}
                 onClick={() => select(tab.id)}
                 onKeyDown={handleKeyDown}
+                /* The label survives being shortened: a tab narrowed to an
+                   ellipsis still has to say which tab it is. The accessible
+                   name is unaffected, being the button's own text. */
+                title={tab.label}
+                $compact={compact}
               >
                 {tab.label}
                 {tab.indicator && <Tabs__Dot aria-hidden="true" />}
@@ -429,14 +470,23 @@ const Tabs__Dot = styled.span`
   background: var(--color-status-warning-bg);
 `;
 
-const Tabs__Button = styled.button<{ $active: boolean }>`
+const Tabs__Button = styled.button<{
+  $active: boolean;
+  $compact?: boolean;
+}>`
   /* Transparent throughout: the blob behind it is the selected background, so
      a background here would cover the thing that moves. */
   background: transparent;
   border: none;
   /* Lifts the label over the blob by DOM order, no z-index involved. */
   position: relative;
-  /* Keep every tab on one line and let the bar scroll rather than wrap. */
+  /* Keep every tab on one line and let the bar scroll rather than wrap.
+
+     Shrinking them instead was tried and reverted: with two tabs in 158px there
+     is no room for both labels, so proportional shrink took the deficit out of
+     BOTH and rendered the active tab as "P...". A short label losing its word to
+     make room for a long one is worse than the long one continuing offscreen,
+     which the overflow glow already announces. */
   flex: 0 0 auto;
   white-space: nowrap;
   /* On the green blob the label has to invert: accent-bg is a bright green and
@@ -446,10 +496,23 @@ const Tabs__Button = styled.button<{ $active: boolean }>`
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: 700;
-  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: var(--space-6) var(--space-12);
   border-radius: var(--radius-pill);
+  /* Compact gives back the inset and the tracking, in that order, because they
+     cost the most per pixel of legibility: at two tabs it recovers ~38px, which
+     is the whole 10px deficit at min-6x9 with room over. The label itself is
+     never touched, no ellipsis and no shrink: a short label losing its word to
+     make room for a long one is worse than the long one continuing offscreen,
+     which the overflow glow already announces.
+
+     Plain concatenation, NOT a nested template literal: a backtick inside a
+     styled template breaks the parse and builds an empty dist. */
+  ${({ $compact }) =>
+    $compact
+      ? "padding: var(--space-4, 4px) var(--space-6, 6px);" +
+        "letter-spacing: 0.04em;"
+      : "padding: var(--space-6, 6px) var(--space-12, 12px);" +
+        "letter-spacing: 0.12em;"}
   /* Pushing: the label gives under the press and springs back, which is the
      only feedback a tab gets on a touch device where there is no hover. */
   transition: transform var(--duration-fast) var(--ease-standard);
@@ -485,7 +548,12 @@ const Tabs__Button = styled.button<{ $active: boolean }>`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    padding: var(--space-8) var(--space-16);
+    /* Compact still applies on touch: a tab scrolled half out of view is not a
+       bigger target, it is a smaller one. */
+    ${({ $compact }) =>
+      $compact
+        ? "padding: var(--space-4, 4px) var(--space-8, 8px);"
+        : "padding: var(--space-8, 8px) var(--space-16, 16px);"}
   }
 `;
 
