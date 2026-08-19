@@ -1,12 +1,14 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearActionHandlers,
-  DashboardItemContext,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { DeployedScienceComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 /**
  * The stream test-adapter proof for DeployedScience: genuinely running off
@@ -31,13 +33,12 @@ describe("DeployedScience: genuinely runs off the stream (M3 science-domain fina
       pinnedUt: 10,
     });
 
-    render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "ds-stream" }}>
-          <DeployedScienceComponent id="ds-stream" w={5} h={9} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    renderWidget("deployed-science", {
+      instanceId: "ds-stream",
+      w: 5,
+      h: 9,
+      wrapper: fixture.Provider,
+    });
 
     expect(fixture.transport.isSubscribed("deployed.bases")).toBe(true);
 

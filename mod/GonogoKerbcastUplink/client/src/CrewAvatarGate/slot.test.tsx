@@ -10,10 +10,10 @@ import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
   clearUplinkHandles,
+  createTestTelemetryClient,
   SettingsProvider,
   SettingsService,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";
@@ -43,7 +43,7 @@ function memoryStorage(): Storage {
 }
 
 function renderSlot(transport: StubTransport) {
-  const client = new TelemetryClient(transport);
+  const client = createTestTelemetryClient(transport);
   const settings = new SettingsService(memoryStorage());
   return render(
     <TelemetryProvider client={client}>

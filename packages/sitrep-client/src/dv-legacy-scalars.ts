@@ -108,7 +108,7 @@ export function deriveDvLegacyScalars(
  * Ready-to-register definition: `store.registerDerivedChannel(dvLegacyScalarsChannel)`.
  * `fields: true` exposes `dv.legacyScalars.total` / `.current` /
  * `.currentFuelMass` / `.totalMass`: the targets `map-topic.ts`'s
- * `TELEMACHUS_CLEAN_HOMES` entries for `dv.total`/`dv.current`/
+ * `LEGACY_KEY_HOMES` entries for `dv.total`/`dv.current`/
  * `dv.currentFuelMass`/`dv.totalMass` point at. `deriveStatus` omitted: the
  * default (worst status across `dv.stages` + `vessel.structure`, both
  * genuinely consulted every call) is exactly right, same as

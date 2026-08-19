@@ -42,9 +42,9 @@
 
 import type { CommandResult } from "@ksp-gonogo/sitrep-sdk";
 import {
+  createTestTelemetryClient,
   StubTransport,
   setActiveTelemetryClientForTests,
-  TelemetryClient,
 } from "@ksp-gonogo/sitrep-testing";
 import type {
   KosProcessorInfo,
@@ -92,7 +92,7 @@ export class FakeKosUplink {
   }
 
   readonly transport = new StubTransport();
-  readonly client = new TelemetryClient(this.transport);
+  readonly client = createTestTelemetryClient(this.transport);
 
   private cpuTagByCoreId = new Map<number, string>();
   private readonly scripts = new Map<string, FakeKosScriptHandler>();

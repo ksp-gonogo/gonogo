@@ -51,7 +51,7 @@ function numField(entry: Record<string, unknown>, ...keys: string[]): number {
 
 /**
  * `dv.stages` is UN-GAPPED (P4a shared-map batch, map-topic.ts's
- * `TELEMACHUS_CLEAN_HOMES` whole-topic identity read) but the two
+ * `LEGACY_KEY_HOMES` whole-topic identity read) but the two
  * transports don't agree on field names: the legacy Telemachus
  * `DataSource` still ships the historical `StageInfo` camelCase names
  * (`deltaVVac`/`deltaVASL`), while the new mod streams a

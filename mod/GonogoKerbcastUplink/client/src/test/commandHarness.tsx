@@ -13,8 +13,9 @@
 
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
+  createTestTelemetryClient,
   StubTransport,
-  TelemetryClient,
+  type TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
@@ -31,7 +32,7 @@ export function renderWithCommandClient(
   // Answer every command so the in-flight → confirmed lifecycle settles cleanly
   // (echoing the request), rather than leaving a dangling in-flight command.
   transport.setCommandHandler((command, args) => ({ command, args }));
-  const client = new TelemetryClient(transport);
+  const client = createTestTelemetryClient(transport);
   render(<TelemetryProvider client={client}>{ui}</TelemetryProvider>);
   return { transport, client };
 }

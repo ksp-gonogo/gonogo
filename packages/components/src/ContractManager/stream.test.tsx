@@ -17,7 +17,7 @@ import { ContractManagerComponent } from "./index";
  * `career.status.contracts.active`/`.offered`/`.completedRecent`) are all
  * mapped reads, `completedRecent` was
  * mapped onto the wire once `CareerContracts` started carrying it alongside
- * active/offered (map-topic.ts's `TELEMACHUS_CLEAN_HOMES`). `t.universalTime`/
+ * active/offered (map-topic.ts's `LEGACY_KEY_HOMES`). `t.universalTime`/
  * `v.altitude` are unrelated-to-career keys, carried by a
  * `setupMockDataSource` AUX, the same mixed-source pattern used elsewhere.
  */

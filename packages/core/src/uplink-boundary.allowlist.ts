@@ -119,7 +119,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // Comment/doc mentions only; neither file imports anything
       // kerbcast-specific, and sitrep-client stays mod-agnostic.
       "mod/sitrep-sdk/src/view-clock-formula.ts",
-      "packages/sitrep-client/src/view-clock.ts",
+      "mod/sitrep-sdk/src/spine/view-clock.ts",
 
       // -- the kerbcast Uplink's provenance record in core --
       // ContractVersion.cs's Minor-history doc comment records the ORIGINAL
@@ -695,7 +695,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
       // another Uplink at all: stale twice over, so it ratcheted off.
       "packages/relay/src/bootstrapConfig.ts",
-      "packages/sitrep-client/src/timeline-store.ts",
+      "mod/sitrep-sdk/src/spine/timeline-store.ts",
       "packages/sitrep-client/src/use-certainty.ts",
       "packages/sitrep-client/src/use-stream-status.ts",
       "packages/ui/src/VersionMismatchBanner.tsx",
@@ -1456,19 +1456,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host.Tests/SystemViewProviderTests.cs",
     ],
     domainDebt: [
-      // --- The mapTopic shim: TELEMACHUS_CLEAN_HOMES, 204 entries, called by
+      // --- The mapTopic shim: LEGACY_KEY_HOMES, 204 entries, called by
       // context.tsx on every useTelemetry read, with 76 old-style keys still
       // declared across 23 widget files. The largest item by far, and a
       // 76-key migration rather than a rename. ---
-      "packages/sitrep-client/src/map-topic.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
-      "packages/sitrep-client/src/map-topic.rawFieldResolution.fixture.test.ts",
-      "packages/sitrep-client/src/map-topic.rawFieldRoots.coverage.test.ts",
-      "packages/sitrep-client/src/vessel-state-mapping.coverage.test.ts",
       "packages/sitrep-client/src/map-command.ts",
-      "packages/sitrep-client/src/index.ts",
       "packages/core/src/hooks/mapTopic.coverage.test.ts",
-      "packages/app/src/telemetry/SitrepTelemetryProvider.mappedAndCarried.test.ts",
       // orbit-patches renames wire fields onto the legacy OrbitPatch shape,
       // and its test says so in a test name. Retires when that shape does.
       "packages/sitrep-client/src/orbit-patches.test.ts",

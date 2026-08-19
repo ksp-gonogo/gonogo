@@ -9,9 +9,8 @@ import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
   clearUplinkHandles,
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
+  type StreamFixture,
+  setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import {
   DomainAvailabilityProvider,
@@ -57,15 +56,17 @@ function KerbcastAvailabilityFeeder() {
   return null;
 }
 
-function renderSlot(transport: StubTransport) {
-  const client = new TelemetryClient(transport);
+/** The topics this slot's availability gate and inventory read run on. */
+const SLOT_TOPICS = ["kerbcast.available", "kerbcast.cameras"] as const;
+
+function renderSlot(stream: StreamFixture) {
   return render(
-    <TelemetryProvider client={client}>
+    <stream.Provider>
       <DomainAvailabilityProvider>
         <KerbcastAvailabilityFeeder />
         <AugmentSlot name="distance-to-target.camera" props={HUD_CONTEXT} />
       </DomainAvailabilityProvider>
-    </TelemetryProvider>,
+    </stream.Provider>,
   );
 }
 
@@ -76,46 +77,46 @@ describe("kerbcast docking-camera augment: distance-to-target.camera slot", () =
   });
 
   it("does not subscribe to the camera inventory before kerbcast announces availability", () => {
-    const transport = new StubTransport();
-    renderSlot(transport);
+    const stream = setupStreamFixture({ carriedChannels: SLOT_TOPICS });
+    renderSlot(stream);
 
     // Presence-gated: with no `kerbcast.available`, the augment never mounts,
     // so it never reaches for kerbcast's control channel. This is what makes a
     // no-kerbcast install cost the docking HUD nothing.
-    expect(transport.isSubscribed("kerbcast.cameras")).toBe(false);
+    expect(stream.transport.isSubscribed("kerbcast.cameras")).toBe(false);
   });
 
   it("subscribes to kerbcast.cameras once the domain is live", async () => {
-    const transport = new StubTransport();
-    renderSlot(transport);
+    const stream = setupStreamFixture({ carriedChannels: SLOT_TOPICS });
+    renderSlot(stream);
 
     act(() => {
-      transport.emit("kerbcast.available", true, {
+      stream.emit("kerbcast.available", true, {
         quality: Quality.Loaded,
         source: "kerbcast",
       });
     });
 
     await waitFor(() =>
-      expect(transport.isSubscribed("kerbcast.cameras")).toBe(true),
+      expect(stream.transport.isSubscribed("kerbcast.cameras")).toBe(true),
     );
   });
 
   it("renders no video layer when the inventory is empty, the HUD composes without it", async () => {
-    const transport = new StubTransport();
-    const { container } = renderSlot(transport);
+    const stream = setupStreamFixture({ carriedChannels: SLOT_TOPICS });
+    const { container } = renderSlot(stream);
 
     act(() => {
-      transport.emit("kerbcast.available", true, {
+      stream.emit("kerbcast.available", true, {
         quality: Quality.Loaded,
         source: "kerbcast",
       });
     });
     await waitFor(() =>
-      expect(transport.isSubscribed("kerbcast.cameras")).toBe(true),
+      expect(stream.transport.isSubscribed("kerbcast.cameras")).toBe(true),
     );
     act(() => {
-      transport.emit("kerbcast.cameras", [], {
+      stream.emit("kerbcast.cameras", [], {
         quality: Quality.Loaded,
         source: "kerbcast",
       });
@@ -159,24 +160,24 @@ describe("kerbcast docking-camera augment: distance-to-target.camera slot", () =
     };
     registerUplinkHandle("kerbcast", fakeSource);
 
-    const transport = new StubTransport();
-    renderSlot(transport);
+    const stream = setupStreamFixture({ carriedChannels: SLOT_TOPICS });
+    renderSlot(stream);
 
     act(() => {
-      transport.emit("kerbcast.available", true, {
+      stream.emit("kerbcast.available", true, {
         quality: Quality.Loaded,
         source: "kerbcast",
       });
     });
     await waitFor(() =>
-      expect(transport.isSubscribed("kerbcast.cameras")).toBe(true),
+      expect(stream.transport.isSubscribed("kerbcast.cameras")).toBe(true),
     );
 
     // No camera named yet -> nothing to connect for.
     expect(ensureConnectedCalls).toBe(0);
 
     act(() => {
-      transport.emit(
+      stream.emit(
         "kerbcast.cameras",
         [{ cameraId: 7, isDockingCamera: true }],
         { quality: Quality.Loaded, source: "kerbcast" },

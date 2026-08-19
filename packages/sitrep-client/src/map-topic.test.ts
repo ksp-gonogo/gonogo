@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  isKnownTelemachusGap,
+  isKnownLegacyKeyGap,
+  LEGACY_KEY_GAPS,
   mapTopic,
   redirectKinematicSubtopic,
-  TELEMACHUS_KNOWN_GAPS,
 } from "./map-topic";
 
 describe("redirectKinematicSubtopic (T3: new-SDK topic safety net)", () => {
@@ -93,7 +93,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       "o.timeToPe",
       "o.trueAnomaly",
     ]) {
-      expect(isKnownTelemachusGap("data", key)).toBe(false);
+      expect(isKnownLegacyKeyGap("data", key)).toBe(false);
     }
   });
 
@@ -102,8 +102,8 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "o.referenceBody")).toBe(
       "vessel.state.referenceBodyName",
     );
-    expect(isKnownTelemachusGap("data", "v.body")).toBe(false);
-    expect(isKnownTelemachusGap("data", "o.referenceBody")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "v.body")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "o.referenceBody")).toBe(false);
   });
 
   it("maps the enum-ordinal→name keys onto their derived vessel.state.* subtopics (enum-ordinal→string-name migration un-gap)", () => {
@@ -123,22 +123,22 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       "comm.controlStateName",
       "comm.controlState",
     ]) {
-      expect(isKnownTelemachusGap("data", key)).toBe(false);
+      expect(isKnownLegacyKeyGap("data", key)).toBe(false);
     }
   });
 
   it("maps v.biome / v.landedAt onto vessel.surface fields (R6 prep un-gap: vessel.surface capture-add)", () => {
     expect(mapTopic("data", "v.biome")).toBe("vessel.surface.biome");
     expect(mapTopic("data", "v.landedAt")).toBe("vessel.surface.landedAt");
-    expect(isKnownTelemachusGap("data", "v.biome")).toBe(false);
-    expect(isKnownTelemachusGap("data", "v.landedAt")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "v.biome")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "v.landedAt")).toBe(false);
   });
 
   it("maps comm.signalDelay onto comms.delay.oneWaySeconds (Step-3 un-gap: gonogo's live SignalDelay authority)", () => {
     expect(mapTopic("data", "comm.signalDelay")).toBe(
       "comms.delay.oneWaySeconds",
     );
-    expect(isKnownTelemachusGap("data", "comm.signalDelay")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "comm.signalDelay")).toBe(false);
   });
 
   it("resolves the parametric b.<field>[i] family onto the one system.bodies array topic", () => {
@@ -148,7 +148,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
 
   it("maps b.number onto the derived system.state.bodyCount (batch-2 migration, the plain COUNT off the raw system.bodies array)", () => {
     expect(mapTopic("data", "b.number")).toBe("system.state.bodyCount");
-    expect(isKnownTelemachusGap("data", "b.number")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "b.number")).toBe(false);
   });
 
   it("maps the batch-2 shape-mismatch migrations (encounter scalars, target range-rate, dock offsets)", () => {
@@ -174,7 +174,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       "dock.x",
       "dock.y",
     ]) {
-      expect(isKnownTelemachusGap("data", key)).toBe(false);
+      expect(isKnownLegacyKeyGap("data", key)).toBe(false);
     }
   });
 
@@ -213,13 +213,13 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       "tar.o.period",
       "tar.o.trueAnomaly",
     ]) {
-      expect(isKnownTelemachusGap("data", key)).toBe(false);
+      expect(isKnownLegacyKeyGap("data", key)).toBe(false);
     }
   });
 
   it("leaves the genuinely-underivable v.angleToPrograde gapped (needs a facing vector + defined prograde frame, neither on the wire)", () => {
     expect(mapTopic("data", "v.angleToPrograde")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "v.angleToPrograde")).toBe(true);
+    expect(isKnownLegacyKeyGap("data", "v.angleToPrograde")).toBe(true);
   });
 
   it("maps the R6 shared-derivations batch (twr, controllable/EVA/splashed flags, action groups) onto vessel.state.*", () => {
@@ -239,7 +239,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       "v.ag1Value",
       "v.ag10Value",
     ]) {
-      expect(isKnownTelemachusGap("data", key)).toBe(false);
+      expect(isKnownLegacyKeyGap("data", key)).toBe(false);
     }
   });
 
@@ -249,7 +249,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     // fixtures/snapshots: so they stay tracked gaps for now.
     for (const key of ["dock.ax", "dock.ay", "dock.az"]) {
       expect(mapTopic("data", key)).toBeUndefined();
-      expect(isKnownTelemachusGap("data", key)).toBe(true);
+      expect(isKnownLegacyKeyGap("data", key)).toBe(true);
     }
   });
 
@@ -273,7 +273,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     // client-derived onto vessel.state.landing*: see the dedicated test
     // below; only slopeAngle (needs a terrain heightmap) stays gapped.)
     expect(mapTopic("data", "land.slopeAngle")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "land.slopeAngle")).toBe(true);
+    expect(isKnownLegacyKeyGap("data", "land.slopeAngle")).toBe(true);
   });
 
   it("maps land.predictedLat/Lon onto the client patch-walk", () => {
@@ -298,10 +298,10 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "land.suicideBurnCountdown")).toBe(
       "vessel.state.landingSuicideBurnCountdown",
     );
-    expect(isKnownTelemachusGap("data", "land.timeToImpact")).toBe(false);
-    expect(isKnownTelemachusGap("data", "land.speedAtImpact")).toBe(false);
-    expect(isKnownTelemachusGap("data", "land.bestSpeedAtImpact")).toBe(false);
-    expect(isKnownTelemachusGap("data", "land.suicideBurnCountdown")).toBe(
+    expect(isKnownLegacyKeyGap("data", "land.timeToImpact")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "land.speedAtImpact")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "land.bestSpeedAtImpact")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "land.suicideBurnCountdown")).toBe(
       false,
     );
   });
@@ -310,14 +310,14 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "o.orbitPatches")).toBe(
       "vessel.state.orbitPatches",
     );
-    expect(isKnownTelemachusGap("data", "o.orbitPatches")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "o.orbitPatches")).toBe(false);
   });
 
   it("maps o.maneuverNodes onto the dedicated vessel.maneuver.legacy channel", () => {
     expect(mapTopic("data", "o.maneuverNodes")).toBe(
       "vessel.maneuver.legacy.nodes",
     );
-    expect(isKnownTelemachusGap("data", "o.maneuverNodes")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "o.maneuverNodes")).toBe(false);
   });
 
   it("maps the M3 career batch's economy scalars onto career.status", () => {
@@ -330,24 +330,24 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "career.science")).toBe(
       "career.status.economy.science",
     );
-    expect(isKnownTelemachusGap("data", "career.funds")).toBe(false);
-    expect(isKnownTelemachusGap("data", "career.reputation")).toBe(false);
-    expect(isKnownTelemachusGap("data", "career.science")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "career.funds")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "career.reputation")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "career.science")).toBe(false);
   });
 
   it("maps career.mode onto its own raw wire topic's mode field (P4a D1)", () => {
     expect(mapTopic("data", "career.mode")).toBe("career.mode.mode");
-    expect(isKnownTelemachusGap("data", "career.mode")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "career.mode")).toBe(false);
   });
 
   it("maps science.sensors as a whole-topic identity read (P4a D2)", () => {
     expect(mapTopic("data", "science.sensors")).toBe("science.sensors");
-    expect(isKnownTelemachusGap("data", "science.sensors")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "science.sensors")).toBe(false);
     // The four per-type reads are no longer read by any widget, ScienceBench
     // derives every reading by filtering the whole list client-side, so they
     // are neither mapped nor a declared gap.
     expect(mapTopic("data", "s.sensor.temp")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "s.sensor.temp")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "s.sensor.temp")).toBe(false);
   });
 
   it("maps the M3b career-detail batch's facilities/contracts/strategies/tech reads onto career.status", () => {
@@ -364,17 +364,17 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       "career.status.strategies.all",
     );
     expect(mapTopic("data", "tech.nodes")).toBe("career.status.tech.nodes");
-    expect(isKnownTelemachusGap("data", "kc.facilityLevels")).toBe(false);
-    expect(isKnownTelemachusGap("data", "contracts.active")).toBe(false);
-    expect(isKnownTelemachusGap("data", "contracts.offered")).toBe(false);
-    expect(isKnownTelemachusGap("data", "strategies.all")).toBe(false);
-    expect(isKnownTelemachusGap("data", "tech.nodes")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "kc.facilityLevels")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "contracts.active")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "contracts.offered")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "strategies.all")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "tech.nodes")).toBe(false);
     // contracts.completedRecent maps onto career.status too: a
     // completedRecent list now ships alongside active/offered.
     expect(mapTopic("data", "contracts.completedRecent")).toBe(
       "career.status.contracts.completedRecent",
     );
-    expect(isKnownTelemachusGap("data", "contracts.completedRecent")).toBe(
+    expect(isKnownLegacyKeyGap("data", "contracts.completedRecent")).toBe(
       false,
     );
   });
@@ -382,7 +382,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
   it("maps the M3 vessel-gap batch's newly-added roster / node-id keys", () => {
     // tar.availableVessels roster -> system.vessels (2-segment whole topic).
     expect(mapTopic("data", "tar.availableVessels")).toBe("system.vessels");
-    expect(isKnownTelemachusGap("data", "tar.availableVessels")).toBe(false);
+    expect(isKnownLegacyKeyGap("data", "tar.availableVessels")).toBe(false);
     // ManeuverPlanner's node-id read for the update/remove command bridge.
     expect(mapTopic("data", "o.maneuverNodeIds")).toBe("vessel.maneuver.nodes");
   });
@@ -390,7 +390,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
   it("treats derived per-body rotation keys as gaps, not clean homes", () => {
     expect(mapTopic("data", "b.rotationAngle[0]")).toBeUndefined();
     expect(mapTopic("data", "b.rotates[0]")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "b.rotationAngle[0]")).toBe(true);
+    expect(isKnownLegacyKeyGap("data", "b.rotationAngle[0]")).toBe(true);
   });
 
   it("resolves stage-scoped resource keys to the dv.currentStageResource(Max) derived channels", () => {
@@ -400,7 +400,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "r.resourceCurrentMax[LiquidFuel]")).toBe(
       "dv.currentStageResourceMax.LiquidFuel",
     );
-    expect(isKnownTelemachusGap("data", "r.resourceCurrent[LiquidFuel]")).toBe(
+    expect(isKnownLegacyKeyGap("data", "r.resourceCurrent[LiquidFuel]")).toBe(
       false,
     );
   });
@@ -421,15 +421,13 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
     expect(mapTopic("data", "scansat.anomalies.Kerbin")).toBe(
       "scansat.anomalies.Kerbin",
     );
-    expect(isKnownTelemachusGap("data", "scansat.anomalies.Kerbin")).toBe(
-      false,
-    );
+    expect(isKnownLegacyKeyGap("data", "scansat.anomalies.Kerbin")).toBe(false);
   });
 
   it("returns undefined for sources still not wired to the new SDK (kerbcast, unknown)", () => {
     expect(mapTopic("kerbcast", "kerbcast.cameras")).toBeUndefined();
     expect(mapTopic("unknown-source", "anything")).toBeUndefined();
-    expect(isKnownTelemachusGap("kos", "kos.compute.ship-map.parts")).toBe(
+    expect(isKnownLegacyKeyGap("kos", "kos.compute.ship-map.parts")).toBe(
       false,
     );
   });
@@ -465,13 +463,13 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
 
   it("returns undefined for a totally unrecognized 'data' key rather than pretending it's mapped", () => {
     expect(mapTopic("data", "not.a.real.telemachus.key")).toBeUndefined();
-    expect(isKnownTelemachusGap("data", "not.a.real.telemachus.key")).toBe(
+    expect(isKnownLegacyKeyGap("data", "not.a.real.telemachus.key")).toBe(
       false,
     );
   });
 
-  it("TELEMACHUS_KNOWN_GAPS and TELEMACHUS_CLEAN_HOMES never claim the same key", () => {
-    for (const gapKey of TELEMACHUS_KNOWN_GAPS) {
+  it("LEGACY_KEY_GAPS and LEGACY_KEY_HOMES never claim the same key", () => {
+    for (const gapKey of LEGACY_KEY_GAPS) {
       expect(mapTopic("data", gapKey)).toBeUndefined();
     }
   });
@@ -507,7 +505,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
 
       for (const key of shapeMismatchedKeys) {
         expect(mapTopic("data", key)).toBeUndefined();
-        expect(isKnownTelemachusGap("data", key)).toBe(true);
+        expect(isKnownLegacyKeyGap("data", key)).toBe(true);
       }
     });
   });
@@ -523,14 +521,14 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
 
     it("maps v.abortValue onto vessel.control.abort (P4a command batch)", () => {
       expect(mapTopic("data", "v.abortValue")).toBe("vessel.control.abort");
-      expect(isKnownTelemachusGap("data", "v.abortValue")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "v.abortValue")).toBe(false);
     });
 
     it("maps v.precisionControlValue onto vessel.control.precisionControl (P4a shared-map batch)", () => {
       expect(mapTopic("data", "v.precisionControlValue")).toBe(
         "vessel.control.precisionControl",
       );
-      expect(isKnownTelemachusGap("data", "v.precisionControlValue")).toBe(
+      expect(isKnownLegacyKeyGap("data", "v.precisionControlValue")).toBe(
         false,
       );
     });
@@ -541,7 +539,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
       expect(mapTopic("data", "f.precisionControl")).toBe(
         "vessel.control.precisionControl",
       );
-      expect(isKnownTelemachusGap("data", "f.precisionControl")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "f.precisionControl")).toBe(false);
     });
 
     it("maps the not-captured VesselFlight temperatures (G-11)", () => {
@@ -552,29 +550,29 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
         "vessel.flight.externalTemperature",
       );
       for (const key of ["v.atmosphericTemperature", "v.externalTemperature"]) {
-        expect(isKnownTelemachusGap("data", key)).toBe(false);
+        expect(isKnownLegacyKeyGap("data", key)).toBe(false);
       }
     });
 
     it("maps the crew roster + capacity (G-13)", () => {
       expect(mapTopic("data", "v.crew")).toBe("vessel.crew.crew");
       expect(mapTopic("data", "v.crewCapacity")).toBe("vessel.crew.capacity");
-      expect(isKnownTelemachusGap("data", "v.crew")).toBe(false);
-      expect(isKnownTelemachusGap("data", "v.crewCapacity")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "v.crew")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "v.crewCapacity")).toBe(false);
     });
 
     it("maps deployed.available onto the DLC-presence boolean (state-map correction: it IS derivable)", () => {
       expect(mapTopic("data", "deployed.available")).toBe(
         "game.dlc.breakingGround",
       );
-      expect(isKnownTelemachusGap("data", "deployed.available")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "deployed.available")).toBe(false);
     });
 
     it("maps robotics.available onto its own capability topic", () => {
       expect(mapTopic("data", "robotics.available")).toBe(
         "robotics.available.available",
       );
-      expect(isKnownTelemachusGap("data", "robotics.available")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "robotics.available")).toBe(false);
       // The identity lists stay gapped: no stable id on the wire.
       expect(mapTopic("data", "robotics.rotors")).toBeUndefined();
       expect(mapTopic("data", "robotics.servos")).toBeUndefined();
@@ -588,23 +586,23 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
         "ksp.revertAvailability.canRevertToLaunch",
       );
       for (const key of ["ksp.canRevertToEditor", "ksp.canRevertToLaunch"]) {
-        expect(isKnownTelemachusGap("data", key)).toBe(false);
+        expect(isKnownLegacyKeyGap("data", key)).toBe(false);
       }
     });
 
     it("maps kc.scene onto its own scene topic", () => {
       expect(mapTopic("data", "kc.scene")).toBe("spaceCenter.scene.scene");
-      expect(isKnownTelemachusGap("data", "kc.scene")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "kc.scene")).toBe(false);
     });
 
     it("maps sci.instruments onto its own per-instrument list topic (distinct from science.lab)", () => {
       expect(mapTopic("data", "sci.instruments")).toBe("science.instruments");
-      expect(isKnownTelemachusGap("data", "sci.instruments")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "sci.instruments")).toBe(false);
     });
 
     it("maps sci.archive as a whole-topic identity read onto the career-wide R&D archive", () => {
       expect(mapTopic("data", "sci.archive")).toBe("science.archive");
-      expect(isKnownTelemachusGap("data", "sci.archive")).toBe(false);
+      expect(isKnownLegacyKeyGap("data", "sci.archive")).toBe(false);
     });
 
     it("maps dv.stages as a whole-topic read and the summary scalars onto dv.summary", () => {
@@ -626,7 +624,7 @@ describe("mapTopic(sourceId, key): the M3 useDataValue migration table", () => {
         "dv.totalDVActual",
         "dv.totalBurnTime",
       ]) {
-        expect(isKnownTelemachusGap("data", key)).toBe(false);
+        expect(isKnownLegacyKeyGap("data", key)).toBe(false);
       }
     });
   });

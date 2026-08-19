@@ -1,17 +1,12 @@
-// Registry helpers come from the HARNESS, not from core directly: the harness
-// bundles its own copy of core, so a component registered through core's
-// module here would land in a different registry from the one `renderWidget`
-// reads. That is exactly the trap an Uplink author would hit.
 import {
   clearRegistry,
-  DashboardItemContext,
   registerComponent,
   render,
   renderWidget,
   screen,
+  useDashboardItemId,
 } from "@ksp-gonogo/sitrep-testing";
 import { usePanelStatusStore } from "@ksp-gonogo/ui-kit";
-import { useContext } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
 /**
@@ -24,45 +19,50 @@ import { afterEach, describe, expect, it } from "vitest";
  * a `waitFor` for that badge resolves immediately having proved nothing at all.
  * The check passes whatever the widget does, for as long as it exists.
  *
- * The store's PRESENCE is what is asserted here, not a particular status value.
- * A non-null status additionally needs a mounted telemetry stream, because
+ * The store's PRESENCE is what is asserted, not a particular status value. A
+ * non-null status additionally needs a mounted telemetry stream, because
  * `useWidgetStreamStatus` derives it from a live store: `renderWidget` puts the
  * plumbing up, and `setupStreamFixture` puts data through it.
  *
- * So this asserts BOTH directions. Asserting only that `renderWidget` supplies
- * the context would pass just as well if `render` supplied it too, and would
- * then be measuring nothing: the negative case is what proves the positive one
- * is load-bearing.
+ * Everything comes from the HARNESS rather than `@ksp-gonogo/core`, assertions
+ * included. The harness bundles its own copy of core, so a registry written
+ * through the app's copy is a different Map and a context read through it is a
+ * different object: both read empty whatever the host does. An Uplink only ever
+ * has the harness, so going through it is also the faithful thing to do.
  */
 
 const PROBE_ID = "render-widget-host-probe";
+const ITEM_PROBE_ID = "render-widget-item-probe";
 
-/** Prints what it can see of the dashboard host, or the absence of it. */
-function HostProbe() {
+/** Reports whether it can see the dashboard's status store. */
+function HostProbe({ id }: { id?: string }) {
   const store = usePanelStatusStore();
-  // The context rather than `useDashboardItemId`, which throws outside a
-  // dashboard item by design: the absent case is half of what is under test
-  // here, and a hook cannot be called conditionally to catch it.
-  const item = useContext(DashboardItemContext);
   return (
     <div>
       <span data-testid="status">
         {store ? "HAS-STATUS-STORE" : "NO-STATUS-STORE"}
       </span>
-      <span data-testid="instance">
-        {item?.instanceId ?? "NO-ITEM-CONTEXT"}
-      </span>
+      <span data-testid="id-prop">{id ?? "NO-ID-PROP"}</span>
     </div>
   );
 }
 
-function registerProbe(): void {
+/**
+ * Calls `useDashboardItemId`, which THROWS outside a dashboard item by design.
+ * Its own widget so the hook is never called conditionally: it is only ever
+ * rendered through `renderWidget`, where the context is guaranteed.
+ */
+function ItemProbe() {
+  return <span data-testid="instance">{useDashboardItemId()}</span>;
+}
+
+function register(id: string, component: (props: never) => JSX.Element): void {
   registerComponent({
-    id: PROBE_ID,
-    name: "Render Widget Host Probe",
+    id,
+    name: id,
     description: "Reports which dashboard providers it can see.",
     tags: [],
-    component: HostProbe,
+    component: component as never,
     dataRequirements: [],
     behaviors: [],
     defaultConfig: {},
@@ -74,24 +74,34 @@ afterEach(() => {
 });
 
 describe("renderWidget mounts the dashboard's provider stack", () => {
-  it("bare render sees NEITHER the status context nor the item context", () => {
+  it("bare render sees NO status store, which is the silent failure", () => {
     render(<HostProbe />);
     expect(screen.getByTestId("status")).toHaveTextContent("NO-STATUS-STORE");
-    expect(screen.getByTestId("instance")).toHaveTextContent("NO-ITEM-CONTEXT");
   });
 
-  it("renderWidget supplies both, so a status assertion can actually fail", () => {
-    registerProbe();
+  it("renderWidget supplies it, so a status assertion can actually fail", () => {
+    register(PROBE_ID, HostProbe as never);
     renderWidget(PROBE_ID, { instanceId: "probe-7" });
     expect(screen.getByTestId("status")).toHaveTextContent("HAS-STATUS-STORE");
-    expect(screen.getByTestId("instance")).toHaveTextContent("probe-7");
+  });
+
+  it("wires instanceId through to the widget's own id prop", () => {
+    register(PROBE_ID, HostProbe as never);
+    renderWidget(PROBE_ID, { instanceId: "probe-7" });
+    expect(screen.getByTestId("id-prop")).toHaveTextContent("probe-7");
+  });
+
+  it("provides the item context, which a widget reads for its instance", () => {
+    register(ITEM_PROBE_ID, ItemProbe);
+    renderWidget(ITEM_PROBE_ID, { instanceId: "probe-9" });
+    expect(screen.getByTestId("instance")).toHaveTextContent("probe-9");
   });
 
   it("defaults the instance id rather than leaving the widget without one", () => {
-    registerProbe();
-    renderWidget(PROBE_ID);
+    register(ITEM_PROBE_ID, ItemProbe);
+    renderWidget(ITEM_PROBE_ID);
     expect(screen.getByTestId("instance")).toHaveTextContent(
-      `${PROBE_ID}-test`,
+      `${ITEM_PROBE_ID}-test`,
     );
   });
 

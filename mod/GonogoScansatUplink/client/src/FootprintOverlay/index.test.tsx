@@ -8,11 +8,11 @@ import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
   clearRegistry,
+  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
@@ -195,7 +195,7 @@ describe("FootprintOverlay: map-view.overlay slot", () => {
 
   it("does not mount while the scansat domain has not announced availability", () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>
@@ -242,7 +242,7 @@ describe("FootprintOverlay: map-view.overlay slot", () => {
     }) as typeof HTMLCanvasElement.prototype.getContext;
 
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>

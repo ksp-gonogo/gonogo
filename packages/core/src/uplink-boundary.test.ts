@@ -464,25 +464,58 @@ function isUnderOwnedDir(relPath: string, ownedDirs: string[]): boolean {
   );
 }
 
-/** All files (relative to repo root) that reference `token` outside its owning dir. */
-function findViolations(root: string, token: ModToken): string[] {
-  const { patterns, ownedDirs } = MOD_OWNERSHIP[token];
-  const hits: string[] = [];
+interface ScannedFile {
+  rel: string;
+  raw: string;
+  /** Comment-stripped source, parsed on FIRST demand and reused after. */
+  stripped?: string;
+}
+
+/**
+ * Every scannable file in the repo, read once.
+ *
+ * Read once because there are thirteen tokens and there used to be thirteen
+ * walks: each `it` re-walked every scan root and re-read every file, so the
+ * suite did ~13x the necessary I/O and the whole describe block sat close to the
+ * 30s timeout. It went over once the sdk gained the spine directory, and a
+ * timeout here is a bad failure to have: the test's real job is to NAME
+ * offending files, and a timeout names nothing while looking exactly like a
+ * boundary breach in CI.
+ *
+ * Module-scope, not per-test: the corpus does not change during a run.
+ */
+let corpus: ScannedFile[] | undefined;
+function scanCorpus(root: string): ScannedFile[] {
+  if (corpus) return corpus;
+  const files: ScannedFile[] = [];
   for (const scanRoot of scanRoots(root)) {
     for (const file of walk(scanRoot)) {
       const rel = relative(root, file);
       if (SELF_PATHS.has(rel)) continue;
-      if (isUnderOwnedDir(rel, ownedDirs)) continue;
-      const raw = readFileSync(file, "utf8");
-      if (!patterns.some((re) => re.test(raw))) continue;
-      // Only files that mention the token at all are worth parsing, which keeps
-      // the esbuild pass to a couple of hundred files rather than every file in
-      // the repo.
-      const content = MOD_OWNERSHIP[token].codeOnly
-        ? stripCommentsKeepingStrings(raw, rel)
-        : raw;
-      if (patterns.some((re) => re.test(content))) hits.push(rel);
+      files.push({ rel, raw: readFileSync(file, "utf8") });
     }
+  }
+  corpus = files;
+  return corpus;
+}
+
+/** All files (relative to repo root) that reference `token` outside its owning dir. */
+function findViolations(root: string, token: ModToken): string[] {
+  const { patterns, ownedDirs, codeOnly } = MOD_OWNERSHIP[token];
+  const hits: string[] = [];
+  for (const file of scanCorpus(root)) {
+    if (isUnderOwnedDir(file.rel, ownedDirs)) continue;
+    if (!patterns.some((re) => re.test(file.raw))) continue;
+    // Only files that mention the token at all are worth parsing, which keeps
+    // the esbuild pass to a couple of hundred files rather than every file in
+    // the repo. The stripped form is cached on the entry because several tokens
+    // are `codeOnly` and would otherwise each re-parse the same file.
+    let content = file.raw;
+    if (codeOnly) {
+      file.stripped ??= stripCommentsKeepingStrings(file.raw, file.rel);
+      content = file.stripped;
+    }
+    if (patterns.some((re) => re.test(content))) hits.push(file.rel);
   }
   return hits;
 }

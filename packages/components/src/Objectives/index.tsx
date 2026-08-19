@@ -96,16 +96,24 @@ export interface ObjectiveSourceContext {
   Section: ComponentType<ObjectiveSection>;
 }
 
-// Declaration-merge the slot id → props type into core's `SlotRegistry` (spec
-// §4.6 hybrid, declaration-merging base). This is what makes `registerAugment`
-// and `<AugmentSlot name="objectives.sections" ...>` type-check `Section`-shaped
-// props precisely against `ObjectiveSourceContext`, rather than the loose
-// `Record<string, unknown>` fallback an unmerged slot id would get.
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "objectives.sections": ObjectiveSourceContext;
-  }
-}
+// No `declare module` block here, deliberately, and this is the only slot in
+// the package without one.
+//
+// `SlotRegistry` is now a single interface (`@ksp-gonogo/sitrep-sdk`'s), which
+// ui-kit and core re-export rather than re-declare, so this file's merge and the
+// sdk's own mirror in `api/slots.ts` land on the SAME interface instead of two.
+// Declaring the key in both then means declaring it twice, and TypeScript says
+// so: TS2717, "must be of type 'ObjectiveSourceContext', but here has type
+// 'ObjectiveSourceContext'". The two are structurally alike but are different
+// declarations, and this slot is the one that notices because its props are
+// COMPONENT-VALUED (`ComponentType<...>`); the other 46 mirrored slots compare
+// as identical and merge silently.
+//
+// The mirror wins rather than this block, because the mirror is the one that
+// works for a facade-sealed Uplink client: such a client never imports
+// `@ksp-gonogo/components`, so a `declare module` written here is not part of
+// its compiled program and its slot props would fall back to the loose bag. See
+// `api/slots.ts`'s header for the full reasoning.
 
 const STATE_GLYPH: Record<ObjectiveState, string> = {
   pending: "○",

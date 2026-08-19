@@ -165,12 +165,67 @@ export interface ContributionRegistry {}
  * `./contribution-slots.ts` mirrors that slot; a slot not yet declared here
  * falls back to the loose bag, matching `SlotProps`'s own fallback.
  */
+export type ContributionSlotId = keyof ContributionRegistry;
+
+/**
+ * Segment-keyed registry for HOST-INVARIANT component slot types, the sibling
+ * of `ContributionRegistry`'s full-id map.
+ *
+ * A reusable component cannot write the full slot literal
+ * `${componentId}.${segment}`, because it does not know which widget it is
+ * mounted in: it writes only the SEGMENT and the primitives complete the key
+ * from the widget's own meta at runtime. This maps a SEGMENT to the entry type
+ * its contributions carry.
+ *
+ * The framework owns the universal `filters` segment here, once, so no
+ * component/widget/contributor writes it. A component inventing a novel
+ * host-invariant segment declares its one line co-located with its own
+ * module-load self-registrations.
+ */
+export interface ComponentSlotRegistry {
+  /**
+   * The framework-universal filter segment: a contribution is a pre-filled
+   * SEARCH TERM (a plain string) rendered as a toggle. Host-invariant, the same
+   * string means the same thing in any widget.
+   */
+  filters: string;
+}
+
+/** Every segment declared as a host-invariant component slot. */
+export type ComponentSlotSegment = keyof ComponentSlotRegistry;
+
+/** The trailing segment of a completed slot id: `"resource-ops.filters"` -> `"filters"`. */
+type SegmentOf<S extends string> = S extends `${string}.${infer Rest}`
+  ? Rest extends `${string}.${string}`
+    ? SegmentOf<Rest>
+    : Rest
+  : never;
+
+/**
+ * The entry type a contribution slot renders. Resolution order:
+ *  1. a full slot id declared in {@link ContributionRegistry} (host-specific,
+ *     the override hatch and every widget-led slot) wins outright
+ *  2. else the slot's trailing SEGMENT in {@link ComponentSlotRegistry} (the
+ *     host-invariant component-slot case, e.g. `*.filters` -> `string`)
+ *  3. else a loose record, the out-of-repo / undeclared fallback.
+ *
+ * All three branches live HERE rather than in `@ksp-gonogo/ui-kit`, which used
+ * to carry its own copy of this resolution. Two copies of a declaration-merge
+ * seam is the one divergence shape that cannot fail loudly: an Uplink merging
+ * into this package's `ContributionRegistry` and a widget merging into ui-kit's
+ * were both correct-looking and landed on different interfaces, so neither
+ * could see the other's slots and nothing said so.
+ */
 export type ContributionEntry<S extends string> =
   S extends keyof ContributionRegistry
     ? ContributionRegistry[S] extends { entry: infer E }
       ? E
       : Record<string, unknown>
-    : Record<string, unknown>;
+    : [SegmentOf<S>] extends [ComponentSlotSegment]
+      ? [SegmentOf<S>] extends [never]
+        ? Record<string, unknown>
+        : ComponentSlotRegistry[SegmentOf<S>]
+      : Record<string, unknown>;
 
 /**
  * One contribution's dependency: a Topic id, a Topic's `Reading` (the value

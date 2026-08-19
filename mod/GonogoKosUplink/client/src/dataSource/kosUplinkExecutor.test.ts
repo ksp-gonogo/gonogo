@@ -1,4 +1,8 @@
-import { StubTransport, TelemetryClient } from "@ksp-gonogo/sitrep-testing";
+import {
+  createTestTelemetryClient,
+  StubTransport,
+  type TelemetryClient,
+} from "@ksp-gonogo/sitrep-testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { isKosScriptError } from "../shared/KosScriptError";
@@ -31,7 +35,7 @@ interface DispatchedCommand {
 
 function makeClient() {
   const transport = new StubTransport();
-  const client = new TelemetryClient(transport);
+  const client = createTestTelemetryClient(transport);
   return { transport, client };
 }
 

@@ -99,7 +99,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "career.mode",
   "science.sensors",
   // P4a shared-map batch: remaining trivial raw-field-walk + whole-topic
-  // reads (map-topic.ts's TELEMACHUS_CLEAN_HOMES). career.status is also
+  // reads (map-topic.ts's LEGACY_KEY_HOMES). career.status is also
   // newly required here: the M3b career-detail batch mapped
   // kc.facilityLevels/contracts.*/strategies.all/tech.nodes onto it but
   // never added it to this carried list, so those reads have been silently
@@ -113,7 +113,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.instruments",
   "dv.stages",
   "dv.summary",
-  // Mod-served topics mapped in TELEMACHUS_CLEAN_HOMES: they must be promoted
+  // Mod-served topics mapped in LEGACY_KEY_HOMES: they must be promoted
   // here or `isTopicCarried` routes their reads to the legacy source instead of
   // the stream. parts.power, robotics.servos and science.lab have no legacy
   // equivalent, so the stream is their only source of data.
@@ -128,7 +128,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "deployed.bases",
   // spaceCenter.crewRoster/savedShips/partsAvailable: AstronautComplex/
   // LaunchDirector/SpaceCenterStatus's kc.crewRoster/kc.savedShips/
-  // kc.partsAvailable reads are now mapped in TELEMACHUS_CLEAN_HOMES, same
+  // kc.partsAvailable reads are now mapped in LEGACY_KEY_HOMES, same
   // "must be promoted or it silently stays on the legacy read" rule as
   // every other mod-served topic above.
   "spaceCenter.crewRoster",

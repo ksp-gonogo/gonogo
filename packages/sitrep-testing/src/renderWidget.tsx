@@ -80,7 +80,26 @@ export interface RenderWidgetOptions {
  * - `AlarmStatusBridge`, which folds firing alarms into the status store. It
  *   needs an alarm host, which is app-side, and it renders nothing
  */
-function WidgetHost({
+export function WidgetHost({
+  widgetId,
+  instanceId,
+  children,
+}: {
+  /** The registered widget id, which the stack is built from. */
+  widgetId: string;
+  /** Defaults to `<widgetId>-test`, matching `renderWidget`. */
+  instanceId?: string;
+  children: ReactNode;
+}) {
+  const def = requireComponent(widgetId);
+  return (
+    <WidgetHostInner def={def} instanceId={instanceId ?? `${widgetId}-test`}>
+      {children}
+    </WidgetHostInner>
+  );
+}
+
+function WidgetHostInner({
   def,
   instanceId,
   children,
@@ -132,12 +151,7 @@ function WidgetStreamStatus({
   return <PanelStatusProvider status={status}>{children}</PanelStatusProvider>;
 }
 
-const NOOP = () => {};
-
-export function renderWidget(
-  widgetId: string,
-  options: RenderWidgetOptions = {},
-): RenderResult {
+function requireComponent(widgetId: string): ComponentDefinition {
   const def = getComponent(widgetId);
   if (!def) {
     throw new Error(
@@ -153,6 +167,16 @@ export function renderWidget(
         }`,
     );
   }
+  return def;
+}
+
+const NOOP = () => {};
+
+export function renderWidget(
+  widgetId: string,
+  options: RenderWidgetOptions = {},
+): RenderResult {
+  const def = requireComponent(widgetId);
   const {
     instanceId = `${widgetId}-test`,
     config = {},
@@ -163,7 +187,7 @@ export function renderWidget(
   } = options;
   const Widget = def.component;
   return render(
-    <WidgetHost def={def} instanceId={instanceId}>
+    <WidgetHost widgetId={widgetId} instanceId={instanceId}>
       <Widget
         id={instanceId}
         config={config}

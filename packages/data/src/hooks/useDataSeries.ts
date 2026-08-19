@@ -58,7 +58,7 @@ function plotValue(payload: unknown): unknown {
  * for the replay mechanics.
  *
  * A MAPPED + CARRIED raw topic (or raw record field-subtopic, e.g.
- * `"vessel.orbit.sma"`: `map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES` table
+ * `"vessel.orbit.sma"`: `map-topic.ts`'s `LEGACY_KEY_HOMES` table
  * mostly targets these) reads its window straight off
  * `TimelineStore.sampleRange`, mapping each `TimelinePoint`'s
  * `validAt`/`payload` into this hook's existing `{ t, v }` shape, the exact

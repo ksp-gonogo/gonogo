@@ -65,6 +65,10 @@ import type {
 export type { Logger, TaggedLogger } from "@ksp-gonogo/logger";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
+// The message-pipe contract. Defined entirely in terms of this package's own
+// wire messages, so it belongs here rather than in `sitrep-client`, and living
+// here is what lets the transport double ship from `/testing`.
+export type { Transport, TransportStatus } from "./transport";
 export type {
   ActionDefinition,
   ActionHandlers,
@@ -82,12 +86,15 @@ export type {
   ComponentDefinition,
   ComponentProps,
   ComponentRequirement,
+  ComponentSlotRegistry,
+  ComponentSlotSegment,
   ConfigComponentProps,
   ConfigField,
   ContributionDefinition,
   ContributionDep,
   ContributionEntry,
   ContributionRegistry,
+  ContributionSlotId,
   DataKey,
   DataRequirement,
   DataSource,

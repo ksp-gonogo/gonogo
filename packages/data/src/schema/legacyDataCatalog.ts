@@ -20,7 +20,7 @@ import { enrichKey, TELEMACHUS_META } from "./telemachusMeta";
  *
  * A legacy key qualifies iff it is BOTH:
  *   - mapped: `mapTopic("data", key)` resolves to a real stream target
- *     (`map-topic.ts`'s `TELEMACHUS_CLEAN_HOMES` + the dynamic families it
+ *     (`map-topic.ts`'s `LEGACY_KEY_HOMES` + the dynamic families it
  *     recognises); and
  *   - carried: that target is actually promoted to the live stream today
  *     (`isTopicCarried`, gated on `DEFAULT_SITREP_CARRIED_TOPICS`: the same
@@ -59,7 +59,7 @@ function buildLegacyDataCatalog(): DataKeyMeta[] {
 }
 
 /**
- * Computed once at module load: `TELEMACHUS_META`, `TELEMACHUS_CLEAN_HOMES`
+ * Computed once at module load: `TELEMACHUS_META`, `LEGACY_KEY_HOMES`
  * and `DEFAULT_SITREP_CARRIED_TOPICS` are all static, so there's nothing to
  * recompute per render/session. `useDataSchema("data")` returns this array
  * directly (stable identity across renders, same contract the old

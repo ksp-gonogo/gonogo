@@ -67,6 +67,19 @@ export interface StreamFixture {
   wall: FakeWallClock;
   /** Wraps `children` in the `TelemetryProvider` this fixture built. */
   Provider: (props: { children: ReactNode }) => JSX.Element;
+  /**
+   * Open a standing subscription for a topic, the way a mounted widget does.
+   *
+   * A `StubTransport.emit` is subscription-gated, so a test that emits before
+   * anything has subscribed drops the payload silently. Widgets subscribe on
+   * mount, so tests that render one need this only for topics no widget under
+   * test reads: a presence gate, a sibling's topic, the raw inputs of a derived
+   * channel.
+   *
+   * Here rather than on the client, because holding a `TelemetryClient` is not
+   * something an Uplink test should have to do to say "subscribe".
+   */
+  subscribe: (topic: string, cb?: (payload: unknown) => void) => void;
   /** `transport.emit`, forwarded for convenience: subscription-gated, same as calling it directly. */
   emit: (
     topic: string,
@@ -112,6 +125,9 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     store,
     wall,
     Provider,
+    subscribe: (topic, cb) => {
+      client.subscribe(topic, cb ?? (() => {}));
+    },
     emit: (topic, payload, metaOverrides) =>
       transport.emit(topic, payload, metaOverrides),
   };

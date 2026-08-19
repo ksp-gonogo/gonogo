@@ -18,6 +18,10 @@ export default defineConfig({
         sdkPkgs,
         "src/media/index.ts",
       ),
+      "@ksp-gonogo/sitrep-sdk/spine": path.resolve(
+        sdkPkgs,
+        "src/spine/index.ts",
+      ),
       "@ksp-gonogo/sitrep-sdk/testing": path.resolve(
         sdkPkgs,
         "src/testing/index.ts",

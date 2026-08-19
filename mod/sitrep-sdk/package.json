@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./media": "./src/media/index.ts",
+    "./spine": "./src/spine/index.ts",
     "./testing": "./src/testing/index.ts",
     "./biome": "./biome.shared.json"
   },
@@ -33,6 +34,10 @@
       "./media": {
         "types": "./dist/media/index.d.ts",
         "import": "./dist/media/index.js"
+      },
+      "./spine": {
+        "types": "./dist/spine/index.d.ts",
+        "import": "./dist/spine/index.js"
       },
       "./testing": {
         "types": "./dist/testing/index.d.ts",

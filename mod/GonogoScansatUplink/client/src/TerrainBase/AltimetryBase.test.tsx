@@ -8,12 +8,12 @@ import { act, render, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
   clearRegistry,
+  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
@@ -149,7 +149,7 @@ describe("AltimetryBase: map-view.base slot", () => {
 
   function mountWithAvailability(props: SlotProps<"map-view.base">) {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     renderSlot(
       <TelemetryProvider client={client}>
         <WithScansatAvailability>

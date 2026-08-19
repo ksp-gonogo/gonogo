@@ -10,9 +10,9 @@
 
 import { getUplinkHandle } from "@ksp-gonogo/sitrep-sdk";
 import {
+  createTestTelemetryClient,
   StubTransport,
   setActiveTelemetryClientForTests,
-  TelemetryClient,
 } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, describe, expect, it } from "vitest";
 import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
@@ -49,7 +49,7 @@ describe("KosDataSource.executeScript: Uplink cutover", () => {
 
   it("dispatches over kos.run end to end when a TelemetryClient is active", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     const commands: Array<{
       coreId: number;
       requestId: string;
@@ -97,7 +97,7 @@ describe("KosDataSource.executeScript: Uplink cutover", () => {
 
   it("still rejects (never falls back to telnet) when the CPU tagname doesn't resolve, even with an active client", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     setActiveTelemetryClientForTests(client);
 
     const source = makeSource();
@@ -120,7 +120,7 @@ describe("kos.ts module: registerUplinkHandle('kos', ...) registration", () => {
 
   it("delegates the 'executeScript' relay method to the kosSource singleton", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
     const commands: Array<{ coreId: number; requestId: string }> = [];
     transport.setCommandHandler((_command, args) => {
       commands.push(args as { coreId: number; requestId: string });

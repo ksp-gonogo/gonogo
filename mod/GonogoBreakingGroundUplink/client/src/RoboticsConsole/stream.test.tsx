@@ -6,13 +6,15 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearActionHandlers,
-  DashboardItemContext,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { RoboticsConsoleComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // action-handler registry: clearActionHandlers() firing on a still-mounted
@@ -20,7 +22,7 @@ import { RoboticsConsoleComponent } from "./index";
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
 
-function render(ui: ReactElement) {
+function _render(ui: ReactElement) {
   const result = rtlRender(ui);
   renderedTrees.push(result.unmount);
   return result;
@@ -46,13 +48,10 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
       pinnedUt: 10,
     });
 
-    const { container } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "rc-stream" }}>
-          <RoboticsConsoleComponent id="rc-stream" />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    const { container } = renderWidget("robotics-console", {
+      instanceId: "rc-stream",
+      wrapper: fixture.Provider,
+    });
 
     expect(fixture.transport.isSubscribed("robotics.servos")).toBe(true);
     act(() => {
@@ -106,13 +105,10 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
       pinnedUt: 10,
     });
 
-    const { container } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "rc-symmetric" }}>
-          <RoboticsConsoleComponent id="rc-symmetric" />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    const { container } = renderWidget("robotics-console", {
+      instanceId: "rc-symmetric",
+      wrapper: fixture.Provider,
+    });
 
     const hingeName = "Symmetric Hinge";
     act(() => {

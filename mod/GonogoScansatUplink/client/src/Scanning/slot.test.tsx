@@ -3,12 +3,12 @@ import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   BufferedDataSource,
   clearRegistry,
+  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   registerStockBodies,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { clearAugments, getAugmentsForSlot } from "@ksp-gonogo/ui-kit";
@@ -61,7 +61,7 @@ describe("Scanning: augment slots (spec §4)", () => {
     registerDataSource(buffered);
     await buffered.connect();
     transport = new StubTransport();
-    client = new TelemetryClient(transport);
+    client = createTestTelemetryClient(transport);
   });
 
   afterEach(() => {

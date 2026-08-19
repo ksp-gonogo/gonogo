@@ -14,11 +14,11 @@ import {
 import {
   BufferedDataSource,
   clearRegistry,
+  createTestTelemetryClient,
   MemoryStore,
   MockDataSource,
   registerDataSource,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -118,7 +118,7 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
   it("does not render while the scansat domain has not announced availability", () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -153,7 +153,7 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
   it("renders per-type coverage percentages and live in-range chips once the domain is live", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -199,7 +199,7 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
   it("excludes scanning vessels on a different body from the in-range chips", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -229,7 +229,7 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
   it("does not render when no body is mapped", () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -253,7 +253,7 @@ describe("CoveragePanel: map-view.sections slot", () => {
 
   it("passes an a11y smoke with the coverage panel rendered", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>

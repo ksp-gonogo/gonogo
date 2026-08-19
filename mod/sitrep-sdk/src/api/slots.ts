@@ -282,8 +282,15 @@ export interface ObjectiveSlotSection {
   /**
    * Optional per-item alarm affordance a source may offer. Returns a
    * control for an item, or `null` for items that cannot be alarmed.
+   *
+   * `ReactNode`, not `unknown`. It was `unknown`, and that was the one mirrored
+   * field in this file that a merged `SlotRegistry` proved inaccurate: this type
+   * reaches the registry inside a `ComponentType<...>`, which is CONTRAVARIANT in
+   * its props, so the mirror has to be assignable to the real type as well as the
+   * other way round. `(item) => ReactNode` widens to `(item) => unknown` happily;
+   * nothing narrows back. Every other field in this file compares as identical.
    */
-  renderAlarm?: (item: ObjectiveSlotItem) => unknown;
+  renderAlarm?: (item: ObjectiveSlotItem) => import("react").ReactNode;
 }
 
 /** Mirrors `ObjectiveSourceContext` (Objectives/index.tsx). `ComponentType` is

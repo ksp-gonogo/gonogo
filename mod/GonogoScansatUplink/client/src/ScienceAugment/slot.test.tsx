@@ -8,8 +8,8 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearRegistry,
+  createTestTelemetryClient,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import type { ReactElement } from "react";
@@ -50,7 +50,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
   it("does not render while the scansat domain has not announced availability", () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -74,7 +74,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
   it("renders SCANsat science experiments through the ui-kit row once the domain is live", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -134,7 +134,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
   it("renders nothing while scansat.science is null or empty, even with the domain live (silent-until-content)", () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     renderSlot(
       <TelemetryProvider client={client}>
@@ -177,7 +177,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
 
   it("passes an a11y smoke once expanded", async () => {
     const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const client = createTestTelemetryClient(transport);
 
     const { container } = renderSlot(
       <TelemetryProvider client={client}>

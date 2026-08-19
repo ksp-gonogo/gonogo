@@ -1,13 +1,15 @@
-import { act, render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  DashboardItemContext,
   registerStockBodies,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
-import { DeployedScienceComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 /**
  * DeployedScience now reads its whole state off the canonical
@@ -99,13 +101,12 @@ async function snapshotDeployedScienceScenario(
   registerStockBodies();
   const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
 
-  const { container } = render(
-    <stream.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "snap" }}>
-        <DeployedScienceComponent id="snap" w={mode.w} h={mode.h} />
-      </DashboardItemContext.Provider>
-    </stream.Provider>,
-  );
+  const { container } = renderWidget("deployed-science", {
+    instanceId: "snap",
+    w: mode.w,
+    h: mode.h,
+    wrapper: stream.Provider,
+  });
 
   act(() => {
     stream.emit("game.dlc", { breakingGround: scenario.breakingGround });

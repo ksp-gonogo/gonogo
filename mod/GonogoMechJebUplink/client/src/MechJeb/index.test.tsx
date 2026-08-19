@@ -6,15 +6,16 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearActionHandlers,
-  DashboardItemContext,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
-import { DelayRailProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
-import { MechJebComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 /**
  * MechJeb is a command surface with no telemetry identity of its own, so the
@@ -45,18 +46,14 @@ afterEach(() => {
 
 function renderMechJeb(defaultAscentAltitudeKm = 100) {
   const fixture = setupStreamFixture({ carriedChannels: CARRIED });
-  const view = render(
-    <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "mj" }}>
-        {/* Provides the delay-rail store ABOVE the widget, as GridItemContent
-            does in the app: usePanelDelay in the widget body reaches it, and the
-            Panel's rail reads it. */}
-        <DelayRailProvider>
-          <MechJebComponent config={{ defaultAscentAltitudeKm }} id="mj" />
-        </DelayRailProvider>
-      </DashboardItemContext.Provider>
-    </fixture.Provider>,
-  );
+  // The delay-rail store, the item context and the rest of the dashboard's
+  // stack all come from `renderWidget`, which mounts them in GridItemContent's
+  // own order rather than this test reproducing a subset of it.
+  const view = renderWidget("mechjeb", {
+    instanceId: "mj",
+    config: { defaultAscentAltitudeKm },
+    wrapper: fixture.Provider,
+  });
   return { fixture, view };
 }
 

@@ -6,13 +6,15 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   clearActionHandlers,
-  DashboardItemContext,
+  renderWidget,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { RotorTachometerComponent } from "./index";
+// Side-effect import: the widget self-registers on module load, and
+// `renderWidget` looks it up by id rather than importing the component.
+import "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
 // action-handler registry: clearActionHandlers() firing on a still-mounted
@@ -20,7 +22,7 @@ import { RotorTachometerComponent } from "./index";
 // file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
 
-function render(ui: ReactElement) {
+function _render(ui: ReactElement) {
   const result = rtlRender(ui);
   renderedTrees.push(result.unmount);
   return result;
@@ -46,13 +48,11 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
       pinnedUt: 10,
     });
 
-    const { container } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "rt-stream" }}>
-          <RotorTachometerComponent id="rt-stream" h={9} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    const { container } = renderWidget("rotor-tachometer", {
+      instanceId: "rt-stream",
+      h: 9,
+      wrapper: fixture.Provider,
+    });
 
     expect(fixture.transport.isSubscribed("robotics.servos")).toBe(true);
     act(() => {
@@ -110,13 +110,11 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
       pinnedUt: 10,
     });
 
-    const { container } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "rt-coaxial" }}>
-          <RotorTachometerComponent id="rt-coaxial" h={9} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    const { container } = renderWidget("rotor-tachometer", {
+      instanceId: "rt-coaxial",
+      h: 9,
+      wrapper: fixture.Provider,
+    });
 
     const rotorName = "Coaxial Rotor";
     act(() => {

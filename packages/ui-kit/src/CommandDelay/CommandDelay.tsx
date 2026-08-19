@@ -19,9 +19,11 @@ import {
  * so a delayed command can never be dispatched without its delay UX rendered.
  * Stripped in production (the field is absent), so this is never a prod cost.
  */
-export interface CommandOutputToken {
-  consumed: boolean;
-}
+// Re-exported, not re-declared: an identical copy of a published type in a
+// second published package is the shape that drifts silently.
+export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
+
+import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The single delay-output handle every command widget hands to

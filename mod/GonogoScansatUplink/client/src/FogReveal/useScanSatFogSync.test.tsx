@@ -6,12 +6,12 @@ import type { FogMaskCache } from "@ksp-gonogo/sitrep-testing";
 import {
   clearFogRevealSources,
   clearRegistry,
+  createTestTelemetryClient,
   FogMaskCacheProvider,
   FogMaskStore,
   MockDataSource,
   registerDataSource,
   StubTransport,
-  TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { useEffect } from "react";
@@ -74,7 +74,7 @@ describe("useScanSatFogSync: real TelemetryClient subscribe path (no getDataSour
     registerDataSource(legacySource);
 
     transport = new StubTransport();
-    client = new TelemetryClient(transport);
+    client = createTestTelemetryClient(transport);
     store = new FogMaskStore({ dbName: `gonogo-fog-test-${Math.random()}` });
     cache = null;
   });

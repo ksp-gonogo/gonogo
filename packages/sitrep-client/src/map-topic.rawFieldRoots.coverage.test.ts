@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
+import { LEGACY_KEY_HOMES } from "./map-topic";
 
 /**
  * Harness hardening: guards the structural assumption
@@ -10,7 +10,7 @@ import { TELEMACHUS_CLEAN_HOMES } from "./map-topic";
  * mechanically splits a 3+-segment topic into `rawTopic = "<domain>.
  * <channel>"` + the rest as a field path to walk, it does NOT check that
  * `rawTopic` is anything a transport actually publishes. A future
- * `TELEMACHUS_CLEAN_HOMES` entry that gets the root wrong (typo, or a
+ * `LEGACY_KEY_HOMES` entry that gets the root wrong (typo, or a
  * channel that doesn't exist yet) would subscribe to a topic nothing ever
  * emits and resolve to a silent, permanent `undefined`, exactly the failure
  * class `sampleRawFieldSubtopic`'s own doc comment flags as NOT caught by
@@ -110,7 +110,7 @@ const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set([
  * segments: the rare exception to every other raw topic's `domain.channel`
  * convention (`VesselViewProvider.PhysicsModeTopic` is literally
  * `"vessel.physics.mode"`, not `"vessel.physics"` + a `mode` field). A
- * `TELEMACHUS_CLEAN_HOMES` target that is EXACTLY one of these strings (no
+ * `LEGACY_KEY_HOMES` target that is EXACTLY one of these strings (no
  * further field suffix) is a WHOLE-topic identity read, `sample()`'s literal
  * `timelineFor(topic)` lookup (`timeline-store.ts`) matches it directly
  * before `resolveRawFieldSubtopic` is ever consulted, so `firstTwoSegments`'s
@@ -118,7 +118,7 @@ const DERIVED_CHANNEL_ROOTS: ReadonlySet<string> = new Set([
  * Checked by EXACT match, not prefix: a genuine field suffix beyond one of
  * these (e.g. a hypothetical `"vessel.physics.mode.someField"`) is NOT
  * expressible through this convention at all and would still correctly fail
- * this test if attempted. No current `TELEMACHUS_CLEAN_HOMES` target maps to
+ * this test if attempted. No current `LEGACY_KEY_HOMES` target maps to
  * `"vessel.physics.mode"` (the Principia mod-seam revert removed the one
  * that did; see `map-topic.ts`'s `a.physicsMode` comment): this set stays
  * as the general 3-segment-topic exception mechanism for whichever mapping
@@ -142,14 +142,13 @@ function isRawFieldForm(target: string): boolean {
 
 describe("mapTopic raw-field-subtopic convention: every CLEAN_HOMES raw-field target has a real raw wire-topic root", () => {
   it("sanity: found a non-trivial number of raw-field-form targets (scan sanity check)", () => {
-    const rawFieldTargets = Object.values(TELEMACHUS_CLEAN_HOMES).filter(
-      isRawFieldForm,
-    );
+    const rawFieldTargets =
+      Object.values(LEGACY_KEY_HOMES).filter(isRawFieldForm);
     expect(rawFieldTargets.length).toBeGreaterThan(10);
   });
 
   it("every raw-field target's <domain>.<channel> root is a real published wire topic", () => {
-    const badRoots = Object.entries(TELEMACHUS_CLEAN_HOMES)
+    const badRoots = Object.entries(LEGACY_KEY_HOMES)
       .filter(([, target]) => isRawFieldForm(target))
       .map(([key, target]) => ({
         key,
