@@ -622,7 +622,31 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   /* Fit-to-size content is sized to the tile and never scrolls. It lives here
      rather than on Panel so that hand-composing the same arrangement gives the
      same result: a top-level prop that changed WHICH subcomponents render
-     would not be reproducible. */
+     would not be reproducible.
+
+     It does NOT centre, and that is a decision with evidence behind it rather
+     than an omission. SpaceCenterStatus, Twr and TechTree each carry a local
+     TinyBody that centres a headline reading at a tiny tile, and sharing that
+     here was tried and reverted:
+
+       - plain centring is not an option. An overflowing flex column centred the
+         ordinary way overflows at BOTH ends, so its first line sits at a
+         negative offset and cannot be scrolled to. SpaceCenterStatus's TinyBody
+         has that latent today
+       - justify-content: safe center is specified to fix exactly that, and all
+         three engines honour it in isolation (measured: plain centring puts the
+         first child at -40px on chromium, firefox and webkit; safe puts it at
+         0). Firefox STILL clipped the real widget at tiny-2x2
+
+     So do not reach for @supports here either. FIREFOX REPORTS SUPPORT AND THEN
+     PRODUCES THE WRONG LAYOUT, which makes a feature query a guard whose failure
+     is indistinguishable from success: it would ship the bug while looking like
+     a safeguard.
+
+     The wider lesson, because it cost a build: verifying a CSS FEATURE in
+     isolation is not evidence about the LAYOUT built on it. Whatever is tried
+     next here has to be verified by rendering these three widgets on all three
+     engines, not by probing the property. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 0 1 auto; overflow: hidden;" : "")}
   /* Bleed: the content reaches the panel chrome on every side and never
      scrolls.
