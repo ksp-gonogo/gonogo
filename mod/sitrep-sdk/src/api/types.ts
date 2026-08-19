@@ -763,12 +763,12 @@ export interface DelayClockLike {
 
 // --- Performance budgets ----------------------------------------------------
 
-export interface PerfBudgetOptions {
-  name: string;
-  windowMs?: number;
-  threshold: number;
-  unit?: string;
-}
+// The real one, from this package's own `perf/PerfBudget.ts`. It was mirrored
+// here, like every other type in this file, because the class lived in
+// `@ksp-gonogo/core` and the leaf could not name it. The class is now in this
+// package, so there is nothing left to mirror and a second declaration would just
+// be one more thing to drift.
+export type { PerfBudgetOptions } from "../perf/PerfBudget";
 
 /** The subset of `PerfBudget` an author touches after construction. */
 export interface PerfBudgetHandle {

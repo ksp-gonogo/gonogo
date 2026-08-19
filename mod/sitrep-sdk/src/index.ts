@@ -63,6 +63,11 @@ export {
  * The read contract. An Uplink widget's `useTelemetry` answers with a `Reading`, so
  * the union and its accessors ship on the devkit surface rather than app-side.
  */
+// The rate-budget class itself, not just its options type. Every new data source
+// is required to register a budget and all eight Uplink test setups call
+// `installTestGate`, so it has to be reachable from a published package or that
+// requirement only ever applied to code inside this repo.
+export { PerfBudget } from "./perf/PerfBudget";
 export * from "./reading";
 export * from "./timeline";
 export {

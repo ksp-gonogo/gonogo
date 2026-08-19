@@ -1,10 +1,23 @@
-import { logger } from "@ksp-gonogo/logger";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { logger as realLogger } from "@ksp-gonogo/logger";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installTestHost, resetTestHost } from "../testing";
 import { PerfBudget } from "./PerfBudget";
 
+// The breach warning goes through the sdk's host-routed `logger` shim, so these
+// tests install a host: that is the path the app takes. `logger` is the only
+// member of the host a budget ever touches, so a one-member host is honest here
+// rather than lazy. The no-host path has its own test at the bottom, because it
+// is a genuine behaviour and not a fallback nobody hits: a budget is constructed
+// at module scope and recorded against from hot paths, both of which can run
+// before any host exists.
 describe("PerfBudget", () => {
+  beforeEach(() => {
+    installTestHost({ logger: realLogger });
+  });
+
   afterEach(() => {
     PerfBudget.clearRegistry();
+    resetTestHost();
   });
 
   it("tracks the windowed total and clears events outside the window", () => {
@@ -20,7 +33,7 @@ describe("PerfBudget", () => {
 
   it("does not warn while under the threshold", () => {
     const b = new PerfBudget({ name: "test", threshold: 5, windowMs: 1000 });
-    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(realLogger, "warn").mockImplementation(() => {});
     for (let i = 0; i < 5; i++) b.record(1, 1000 + i);
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
@@ -32,7 +45,7 @@ describe("PerfBudget", () => {
       threshold: 5,
       windowMs: 1000,
     });
-    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(realLogger, "warn").mockImplementation(() => {});
     // Burst: 6 events at the same instant. First exceedance fires once.
     for (let i = 0; i < 6; i++) b.record(1, 1000);
     expect(warn).toHaveBeenCalledTimes(1);
@@ -62,7 +75,7 @@ describe("PerfBudget", () => {
 
   it("counts exceedances independently from warn-throttling", () => {
     const b = new PerfBudget({ name: "x", threshold: 1, windowMs: 1000 });
-    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(realLogger, "warn").mockImplementation(() => {});
     for (let i = 0; i < 5; i++) b.record(1, 1000 + i);
     expect(b.getExceedanceCount()).toBeGreaterThan(0);
     // Even though warns were throttled, every record over threshold
@@ -93,5 +106,42 @@ describe("PerfBudget", () => {
     // compaction kicks in once the head crosses 256 + half of length.
     // Hard to assert exact size, but the rate at the end should be small.
     expect(b.rate(10_000)).toBeLessThan(200);
+  });
+});
+
+describe("PerfBudget without a host installed", () => {
+  afterEach(() => {
+    PerfBudget.clearRegistry();
+  });
+
+  // Regression. Routing the breach warning through the sdk's `logger` shim made
+  // `record()` THROW when no host was installed, because the shim's whole job
+  // elsewhere is to fail loudly rather than silently register into a dead
+  // registry. That is right for `registerComponent` and wrong here: this is the
+  // diagnostic path of a budget being breached, and a warning that takes down the
+  // thing it is observing is worse than no warning at all. Four of this file's
+  // own tests failed exactly this way, which is how it was caught.
+  it("warns on the console instead of throwing", () => {
+    resetTestHost();
+    const b = new PerfBudget({
+      name: "hostless",
+      threshold: 2,
+      windowMs: 1000,
+    });
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(() => {
+      for (let i = 0; i < 3; i++) b.record(1, 1000);
+    }).not.toThrow();
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+
+    consoleWarn.mockRestore();
+  });
+
+  it("records and reports rates with no host at all", () => {
+    resetTestHost();
+    const b = new PerfBudget({ name: "hostless-rate", threshold: 100 });
+    b.record(3, 1000);
+    expect(b.rate(1000)).toBe(3);
   });
 });
