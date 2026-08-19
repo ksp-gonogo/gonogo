@@ -10,7 +10,14 @@ const sdkPkgs = path.resolve(import.meta.dirname, "../../sitrep-sdk");
 
 export default defineConfig({
   resolve: {
+    // Subpaths first: these are PREFIX matches, so the bare specifier would
+    // otherwise swallow `@ksp-gonogo/sitrep-sdk/media` and rewrite it to a path
+    // under `index.ts`. Every subpath the SDK exports needs a line here.
     alias: {
+      "@ksp-gonogo/sitrep-sdk/media": path.resolve(
+        sdkPkgs,
+        "src/media/index.ts",
+      ),
       "@ksp-gonogo/sitrep-sdk/testing": path.resolve(
         sdkPkgs,
         "src/testing/index.ts",
