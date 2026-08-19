@@ -43,7 +43,6 @@ export {
   clearFogRevealSources,
   clearRegistry,
   clearUplinkHandles,
-  DashboardItemContext,
   dispatchAction,
   getAugmentsForSlot,
   getComponent,
