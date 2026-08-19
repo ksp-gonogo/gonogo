@@ -186,8 +186,18 @@ namespace Gonogo.KSP
                 // structured-vessel.* cadence/DelayRole.Delayed posture; the
                 // Topic ids are dv.*-domain (not vessel.-prefixed), the same
                 // precedent VesselUplink already sets with time.warp.
-                Channel(StageDeltaVViewProvider.StagesTopic),
-                Channel(StageDeltaVViewProvider.SummaryTopic),
+                //
+                // absenceIsData: the stock sim declines outright for a craft it
+                // will not simulate (VesselDeltaV.CheckDirtyAndRun returns early
+                // when the vessel is not loaded, and IsReady is false through every
+                // scene load and after each staging event), so BuildDeltaV returns
+                // null for a real, present craft rather than for "no subject yet".
+                // Without the opt-in, the birth gate skips that null and a client
+                // waits on SYNCING forever instead of learning there is no figure.
+                // Consumers have to tell "the sim has nothing for this craft" from
+                // "we have not heard", and only the tombstone carries that.
+                Channel(StageDeltaVViewProvider.StagesTopic, absenceIsData: true),
+                Channel(StageDeltaVViewProvider.SummaryTopic, absenceIsData: true),
             },
             // ==== F2 COMMAND DELAY CLASSIFICATION (the single source of
             // truth: the ONE table to edit) ====================================

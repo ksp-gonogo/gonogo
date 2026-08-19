@@ -1,6 +1,7 @@
 import {
   angleDelta,
   buildPorkchop,
+  captureBurn,
   hohmannTransferTime,
   keplerTransferSolver,
   type PorkchopGrid,
@@ -305,4 +306,170 @@ export function transferDestinations(
       b.semiMajorAxis != null &&
       b.period != null,
   );
+}
+
+/** Metres of clearance above a destination's atmosphere (or surface) to circularise at. */
+const CAPTURE_CLEARANCE_M = 10_000;
+
+/**
+ * The radius to quote a capture burn at: clear of the atmosphere if there is one,
+ * clear of the ground if there is not.
+ *
+ * A convention, and stated in the widget's footer rather than hidden, because any
+ * choice here is arbitrary and an unstated arbitrary choice is worse than a stated
+ * one. This one is chosen to agree with the low-orbit figures on the community Δv
+ * map an operator is likely to already know: Kerbin to Duna reads ~620 m/s to
+ * capture on that map, and this convention reproduces it.
+ */
+function captureRadiusOf(body: CelestialBody): number | null {
+  if (body.radius == null || !Number.isFinite(body.radius)) return null;
+  return body.radius + (body.maxAtmosphere ?? 0) + CAPTURE_CLEARANCE_M;
+}
+
+/** What a transfer to one destination costs and when it can be flown. */
+export interface ReachEntry {
+  body: CelestialBody;
+  /** Departure burn from the current parking orbit (m/s), null when unsolvable. */
+  ejectionDeltaV: number | null;
+  /** Orbit-insertion burn at the destination (m/s), null when unsolvable. */
+  captureDeltaV: number | null;
+  /** `ejectionDeltaV + captureDeltaV`, the figure a budget is compared against. */
+  totalDeltaV: number | null;
+  /** Ideal departure UT of the next window, null when unsolvable. */
+  departureUt: number | null;
+  /** Seconds from now until that departure. */
+  waitSeconds: number | null;
+  /** Coasting time on the transfer (s). */
+  transferTimeSec: number | null;
+}
+
+export interface ReachComputeInput {
+  origin: CelestialBody;
+  bodies: CelestialBody[];
+  /** Parking-orbit radius around the origin body (m). */
+  parkingRadius: number;
+  nowUt: number;
+}
+
+/**
+ * Every sibling destination with what it costs THIS craft and when it can go,
+ * cheapest first.
+ *
+ * Closed-form throughout: one `keplerTransferSolver.solve` plus one `captureBurn`
+ * per destination, and deliberately NO porkchop. The porkchop is 1024 Lambert
+ * solves for a single destination and is rebuilt as the view time advances; running
+ * one per sibling would multiply that by the system's planet count on the frame
+ * path. It would also quote the wrong quantity: see `captureBurn` on why a
+ * characteristic Δv is not a cost.
+ *
+ * A destination whose elements have not arrived keeps its row with null figures
+ * rather than disappearing. A missing row and an unaffordable one look identical to
+ * an operator, and they are not the same fact.
+ */
+export function reachEntries(input: ReachComputeInput): ReachEntry[] {
+  const { origin, bodies, parkingRadius, nowUt } = input;
+  const muParent = parentMu(origin, bodies);
+
+  const entries = transferDestinations(origin, bodies).map<ReachEntry>(
+    (dest) => {
+      const blank: ReachEntry = {
+        body: dest,
+        ejectionDeltaV: null,
+        captureDeltaV: null,
+        totalDeltaV: null,
+        departureUt: null,
+        waitSeconds: null,
+        transferTimeSec: null,
+      };
+
+      const solution = computeTransfer({
+        origin,
+        dest,
+        bodies,
+        parkingRadius,
+        nowUt,
+      });
+      if (!solution) return blank;
+
+      const captureRadius = captureRadiusOf(dest);
+      const capture =
+        muParent != null &&
+        dest.gravParameter != null &&
+        captureRadius != null &&
+        origin.semiMajorAxis != null &&
+        dest.semiMajorAxis != null
+          ? captureBurn({
+              muParent,
+              originRadius: origin.semiMajorAxis,
+              destRadius: dest.semiMajorAxis,
+              muDestBody: dest.gravParameter,
+              captureRadius,
+            })
+          : null;
+
+      const ejectionDeltaV = Number.isFinite(solution.ejectionDeltaV)
+        ? solution.ejectionDeltaV
+        : null;
+      const captureDeltaV = capture?.captureDeltaV ?? null;
+      return {
+        body: dest,
+        ejectionDeltaV,
+        captureDeltaV,
+        totalDeltaV:
+          ejectionDeltaV != null && captureDeltaV != null
+            ? ejectionDeltaV + captureDeltaV
+            : null,
+        departureUt: solution.departureUt,
+        waitSeconds: solution.waitSeconds,
+        transferTimeSec: solution.transferTimeSec,
+      };
+    },
+  );
+
+  // Cheapest first, so "the nearest thing I can reach" is the top row. Rows with
+  // no cost sort last rather than to the front, where a null would otherwise read
+  // as free.
+  return entries.sort((a, b) => {
+    if (a.totalDeltaV == null && b.totalDeltaV == null) return 0;
+    if (a.totalDeltaV == null) return 1;
+    if (b.totalDeltaV == null) return -1;
+    return a.totalDeltaV - b.totalDeltaV;
+  });
+}
+
+/**
+ * How a destination's cost sits against the budget.
+ *
+ * - `go`: departure and capture are both covered
+ * - `one-way`: departure is covered, capture is not. A flyby or an impactor is a
+ *   real mission, so this is a DIFFERENT answer from unreachable rather than a
+ *   softer way of saying no
+ * - `marginal`: within a tenth of the departure threshold. The model behind these
+ *   numbers is coplanar and ignores plane change entirely, which for a steeply
+ *   inclined destination is the largest term it is missing, so a crisp boundary
+ *   drawn on it would claim precision the arithmetic does not have
+ * - `no`: departure is not covered
+ * - `null`: no verdict is possible, because there is no budget or no cost. NOT a
+ *   `no`: those are different sentences and only one of them is about the craft
+ */
+export type ReachVerdict = "go" | "one-way" | "marginal" | "no";
+
+/** Fraction of the ejection threshold inside which the coplanar model will not commit. */
+const MARGINAL_BAND = 0.1;
+
+export function reachVerdict(
+  cost: Pick<ReachEntry, "ejectionDeltaV" | "captureDeltaV" | "totalDeltaV">,
+  budgetDeltaV: number | null | undefined,
+  reserveDeltaV: number,
+): ReachVerdict | null {
+  const { ejectionDeltaV, totalDeltaV } = cost;
+  if (budgetDeltaV == null || !Number.isFinite(budgetDeltaV)) return null;
+  if (ejectionDeltaV == null || totalDeltaV == null) return null;
+
+  const spendable = budgetDeltaV - reserveDeltaV;
+  if (spendable >= totalDeltaV) return "go";
+  if (Math.abs(spendable - ejectionDeltaV) <= ejectionDeltaV * MARGINAL_BAND) {
+    return "marginal";
+  }
+  return spendable >= ejectionDeltaV ? "one-way" : "no";
 }

@@ -175,6 +175,73 @@ export function ejectionBurn(input: EjectionInput): EjectionResult {
   return { vInf, ejectionDeltaV, ejectionAngleDeg };
 }
 
+export interface CaptureInput {
+  /** Shared parent's gravitational parameter (Sun for interplanetary). */
+  muParent: number;
+  /** Origin body's orbital radius around the parent (m). */
+  originRadius: number;
+  /** Destination body's orbital radius around the parent (m). */
+  destRadius: number;
+  /** Destination body's own gravitational parameter (for the arrival hyperbola). */
+  muDestBody: number;
+  /** Radius from the destination body's centre to circularise at (m). */
+  captureRadius: number;
+}
+
+export interface CaptureResult {
+  /** Hyperbolic excess velocity entering the destination's SOI (m/s). */
+  vInf: number;
+  /** Burn to circularise from the arrival hyperbola at `captureRadius` (m/s). */
+  captureDeltaV: number;
+}
+
+/**
+ * Capture (arrival-hyperbola) figures: `ejectionBurn` read at the far end of the
+ * same transfer, and deliberately the same algebra rather than a second model.
+ *
+ * Heliocentric leg: the transfer ellipse's APOAPSIS speed at the destination
+ * radius `v_t = √(μ_p·(2/r2 − 1/a_t))` against the destination's circular speed
+ * `v2 = √(μ_p/r2)` gives the arrival excess `v∞ = |v_t − v2|`. Planetary leg: at
+ * capture radius `r_c` about the destination, `v_hyp = √(v∞² + 2·μ_d/r_c)` and
+ * `v_circ = √(μ_d/r_c)`, so the insertion burn is `v_hyp − v_circ`.
+ *
+ * **Why this is not the porkchop's number.** `lambertDeltaV` sums the two legs'
+ * excesses and its own doc says it excludes the parking-orbit Oberth discount.
+ * That makes it a comparison scale for colouring cells, not a cost: Oberth means
+ * departure costs MORE than its excess and arrival costs LESS, so a characteristic
+ * Δv is neither an upper nor a lower bound on what a craft actually spends. A
+ * budget can only honestly be compared against ejection + capture.
+ *
+ * Returns `null` rather than a number when the geometry cannot produce one (a
+ * non-positive radius or μ, a non-finite input), on the same "absent, never
+ * fabricated" discipline the rest of this file follows: an invented insertion cost
+ * is a reachability verdict built on a guess.
+ */
+export function captureBurn(input: CaptureInput): CaptureResult | null {
+  const { muParent, originRadius, destRadius, muDestBody, captureRadius } =
+    input;
+  const finite = [
+    muParent,
+    originRadius,
+    destRadius,
+    muDestBody,
+    captureRadius,
+  ].every((n) => Number.isFinite(n) && n > 0);
+  if (!finite) return null;
+
+  const aT = (originRadius + destRadius) / 2;
+  const vTransfer = Math.sqrt(muParent * (2 / destRadius - 1 / aT));
+  const vDest = Math.sqrt(muParent / destRadius);
+  const vInf = Math.abs(vTransfer - vDest);
+
+  const vHyp = Math.sqrt(vInf * vInf + (2 * muDestBody) / captureRadius);
+  const vCirc = Math.sqrt(muDestBody / captureRadius);
+  const captureDeltaV = vHyp - vCirc;
+  if (!Number.isFinite(vInf) || !Number.isFinite(captureDeltaV)) return null;
+
+  return { vInf, captureDeltaV };
+}
+
 export interface NextWindowInput {
   /** Current phase angle (destination relative to origin), degrees. */
   currentPhaseDeg: number;

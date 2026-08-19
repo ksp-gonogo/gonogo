@@ -8,6 +8,8 @@ import {
   computeTransfer,
   parentMu,
   phaseAngleDeg,
+  reachEntries,
+  reachVerdict,
   transferDestinations,
   upcomingWindows,
 } from "./transferData";
@@ -303,5 +305,158 @@ describe("upcomingWindows", () => {
       4,
     );
     expect(windows).toHaveLength(1);
+  });
+});
+
+describe("reachEntries: what this craft can get to, and on what", () => {
+  const venus = mkBody({
+    index: 3,
+    name: "Venus",
+    referenceBody: "Sun",
+    gravParameter: 3.24859e14,
+    radius: 6.0518e6,
+    maxAtmosphere: 2.5e5,
+    semiMajorAxis: 1.08209e11,
+    eccentricity: 0,
+    inclination: 0,
+    lan: 0,
+    argumentOfPeriapsis: 0,
+    meanAnomalyAtEpoch: 0,
+    epoch: 0,
+    period: 224.7 * DAY,
+    trueAnomaly: 0,
+  });
+  // Mars needs a surface to circularise above; the shared fixture has none.
+  const marsWithSurface = mkBody({
+    ...mars,
+    radius: 3.3895e6,
+    maxAtmosphere: 1.25e5,
+  });
+  const reachBodies = [sun, earth, marsWithSurface, venus];
+  const R_LEO = 6.571e6;
+
+  const entries = () =>
+    reachEntries({
+      origin: earth,
+      bodies: reachBodies,
+      parkingRadius: R_LEO,
+      nowUt: 0,
+    });
+
+  it("covers every sibling destination, cheapest first", () => {
+    const rows = entries();
+    expect(rows.map((r) => r.body.name).sort()).toEqual(["Mars", "Venus"]);
+    expect(rows[0].totalDeltaV).toBeLessThan(rows[1].totalDeltaV!);
+  });
+
+  /*
+   * The case that justifies quoting capture at all, and it is not a contrived one.
+   * Venus is CHEAPER to depart for than Mars and more expensive to arrive at, so a
+   * list ranked on ejection alone would order these two backwards and call Venus
+   * the nearer destination. Insertion into Venus orbit is famously costly: a deep
+   * well and a high arrival excess.
+   */
+  it("ranks on the whole trip, which reverses the departure-only order here", () => {
+    const rows = entries();
+    const mars_ = rows.find((r) => r.body.name === "Mars")!;
+    const venus_ = rows.find((r) => r.body.name === "Venus")!;
+
+    expect(venus_.ejectionDeltaV!).toBeLessThan(mars_.ejectionDeltaV!);
+    expect(venus_.captureDeltaV!).toBeGreaterThan(mars_.captureDeltaV!);
+    expect(venus_.totalDeltaV!).toBeGreaterThan(mars_.totalDeltaV!);
+    expect(rows[0].body.name).toBe("Mars");
+  });
+
+  it("quotes ejection + capture, not the porkchop's characteristic figure", () => {
+    const mars_ = entries().find((r) => r.body.name === "Mars")!;
+    expect(mars_.ejectionDeltaV).toBeCloseTo(3613, -2);
+    expect(mars_.captureDeltaV).toBeCloseTo(2081, -2);
+    expect(mars_.totalDeltaV).toBeCloseTo(3613 + 2081, -2);
+  });
+
+  it("carries the window timing alongside the cost", () => {
+    const mars_ = entries().find((r) => r.body.name === "Mars")!;
+    expect(mars_.departureUt).toBeGreaterThanOrEqual(0);
+    expect(mars_.transferTimeSec).toBeCloseTo(258.9 * DAY, -4);
+  });
+
+  /*
+   * A destination whose elements have not arrived is a row with no numbers, NOT a
+   * row that vanishes. An operator who cannot see that Mars exists cannot tell the
+   * difference between "unreachable" and "we have not been told about it".
+   */
+  it("keeps a destination whose elements are incomplete, with null figures", () => {
+    const halfSynced = mkBody({
+      index: 4,
+      name: "Halfsynced",
+      referenceBody: "Sun",
+      semiMajorAxis: 3e11,
+      period: 900 * DAY,
+    });
+    const rows = reachEntries({
+      origin: earth,
+      bodies: [...reachBodies, halfSynced],
+      parkingRadius: R_LEO,
+      nowUt: 0,
+    });
+    const row = rows.find((r) => r.body.name === "Halfsynced");
+    expect(row).toBeDefined();
+    expect(row!.totalDeltaV).toBeNull();
+    expect(row!.captureDeltaV).toBeNull();
+  });
+
+  it("rows with no cost sort last, so the affordable list reads top-down", () => {
+    const rows = reachEntries({
+      origin: earth,
+      bodies: [
+        ...reachBodies,
+        mkBody({
+          index: 4,
+          name: "Halfsynced",
+          referenceBody: "Sun",
+          semiMajorAxis: 3e11,
+          period: 900 * DAY,
+        }),
+      ],
+      parkingRadius: R_LEO,
+      nowUt: 0,
+    });
+    expect(rows[rows.length - 1].body.name).toBe("Halfsynced");
+  });
+});
+
+describe("reachVerdict: the band, not a boolean", () => {
+  const cost = { ejectionDeltaV: 1000, captureDeltaV: 500, totalDeltaV: 1500 };
+
+  it("affords the whole trip: GO", () => {
+    expect(reachVerdict(cost, 2000, 0)).toBe("go");
+  });
+
+  it("affords departure but not capture: a different answer from unreachable", () => {
+    expect(reachVerdict(cost, 1200, 0)).toBe("one-way");
+  });
+
+  it("cannot afford departure: no", () => {
+    expect(reachVerdict(cost, 500, 0)).toBe("no");
+  });
+
+  /*
+   * The model is coplanar and ignores plane change entirely, so a hard boundary
+   * drawn on it would be more confident than the arithmetic supports. Within 10%
+   * of the ejection threshold reads MARGINAL rather than a crisp yes or no.
+   */
+  it("reads marginal within a tenth of the ejection threshold, either side", () => {
+    expect(reachVerdict(cost, 1000 * 1.05, 0)).toBe("marginal");
+    expect(reachVerdict(cost, 1000 * 0.95, 0)).toBe("marginal");
+  });
+
+  it("spends the reserve before the verdict, so a held-back budget cannot be promised", () => {
+    expect(reachVerdict(cost, 2000, 0)).toBe("go");
+    expect(reachVerdict(cost, 2000, 600)).toBe("one-way");
+  });
+
+  it("has no verdict at all without a budget or without a cost", () => {
+    expect(reachVerdict(cost, null, 0)).toBeNull();
+    expect(reachVerdict({ ...cost, totalDeltaV: null }, 2000, 0)).toBeNull();
   });
 });
