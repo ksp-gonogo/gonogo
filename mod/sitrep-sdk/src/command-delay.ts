@@ -1,3 +1,4 @@
+import { LOSS_MARGIN } from "./spine/client";
 import { type Value, value } from "./unit-system";
 /**
  * Pure delayed-command derivations. Delay is ambient and universal, every
@@ -126,7 +127,7 @@ export function classifyRetained(args: {
     entry,
     nowUt,
     present,
-    overdueMarginSeconds = 3,
+    overdueMarginSeconds = LOSS_MARGIN,
     pathConnectedDuring = () => true,
   } = args;
   const base = deriveInFlight([entry], nowUt)[0];

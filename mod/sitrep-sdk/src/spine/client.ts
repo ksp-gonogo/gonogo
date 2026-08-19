@@ -8,12 +8,31 @@ type Callback = (value: unknown) => void;
 type StoreListener = () => void;
 
 /**
- * Grace period (UT seconds) added on top of a transport's predicted
- * `etaConfirm` before silence is inferred as loss. Sized to absorb small
- * scheduling jitter around the predicted round trip, not to model any
- * additional delay itself: the prediction already IS the round trip.
+ * Grace period (UT seconds) added on top of the predicted `etaConfirm` before
+ * silence is inferred as loss. Sized to absorb small scheduling jitter around the
+ * predicted round trip, not to model any additional delay itself: the prediction
+ * already IS the round trip.
+ *
+ * **Shared with `classifyRetained`'s `overdueMarginSeconds`, deliberately.** Two
+ * layers judge the same silence about the same command and they used to do it on 2s
+ * here and 3s there, which is how one command could be `lost` to an awaiting caller
+ * while the queue still called it merely late. They are ONE number now.
+ *
+ * They still differ in PURPOSE, which is why both exist and neither is redundant:
+ *
+ * - here, the client settles the dispatch PROMISE. That is a liveness guarantee: an
+ *   `await` must end, or a caller that loops over dispatches stalls for ever
+ *   (`ManeuverPlanner.dispatchPlanBurns` abandoning burns 2..n was exactly this)
+ * - in `classifyRetained`, the hook DIAGNOSES the silence, distinguishing `lost`
+ *   (the path was down) from `overdue` (the path was up and nothing acked). It knows
+ *   things the client does not: queue presence and `comms.link` history
+ *
+ * So: one authority for the delay, one margin, two consumers with different jobs.
+ * Do not "unify" them further by deleting one; the promise needs settling whether or
+ * not anything is rendering, and the diagnosis needs inputs the client has no
+ * business subscribing to.
  */
-export const LOSS_MARGIN = 2;
+export const LOSS_MARGIN = 3;
 
 /**
  * One record per `subscribe()` call, not per callback identity, the same
@@ -289,6 +308,52 @@ export class TelemetryClient {
    * same rollout shape as `label`, no role in dispatch, correlation, or loss
    * inference. Defaults to `""` (unscoped) when omitted.
    */
+  /**
+   * The authoritative one-way delay, in UT seconds, or `undefined` when nothing has
+   * offered one. Set by whoever owns the `DelayAuthority` (see
+   * `TelemetryProvider`'s delay-wiring effect, the single wiring point).
+   */
+  private delaySource: (() => number) | undefined;
+
+  private warnedNoLossDeadline = false;
+
+  /**
+   * Hand the client the authoritative one-way delay so it can settle a dispatch that
+   * is never answered. Returns a detach function; calling it restores the
+   * transport-prediction fallback.
+   *
+   * Takes an ACCESSOR rather than a number because the delay changes as a craft moves
+   * and a dispatch must be sized against the delay at ITS moment, not at wiring time.
+   * `DelayAuthority.delaySeconds` is a bound arrow field with a stable identity for
+   * exactly this hand-off.
+   */
+  setDelaySource(getOneWaySeconds: () => number): () => void {
+    this.delaySource = getOneWaySeconds;
+    return () => {
+      if (this.delaySource === getOneWaySeconds) this.delaySource = undefined;
+    };
+  }
+
+  /**
+   * Say so, once, when a dispatch gets no loss deadline.
+   *
+   * Loud on purpose. The whole defect this replaced was a silent fallback to
+   * `clock.now()`: no deadline, no timer, no complaint, and a queue that looked like
+   * nothing was ever lost. A deployment with neither an authority nor a predicting
+   * transport still cannot settle an unanswered promise, and that has to be audible
+   * rather than inferred from an absence months later.
+   */
+  private warnNoLossDeadlineOnce(): void {
+    if (this.warnedNoLossDeadline) return;
+    this.warnedNoLossDeadline = true;
+    console.warn(
+      "[sitrep] no delay authority and no transport prediction: command promises " +
+        "cannot be settled on silence, so an unanswered dispatch will hang. " +
+        "Attach a DelayAuthority (TelemetryProvider does this) or implement " +
+        "Transport.predictConfirmEta.",
+    );
+  }
+
   dispatch(
     command: string,
     args?: unknown,
@@ -297,8 +362,36 @@ export class TelemetryClient {
     vantage?: string,
   ): { requestId: string; result: Promise<unknown> } {
     const requestId = `c${this.nextRequestId++}`;
-    const predictedEta = this.transport.predictConfirmEta?.();
+    // Where the round trip comes from, and why in THIS order.
+    //
+    // A transport that OWNS its delay model is asked first: `CourierTransport` drives
+    // the courier's own engine and its prediction is the ground truth for that
+    // deployment. Nothing else can know it.
+    //
+    // Otherwise the delay AUTHORITY answers. `comms.delay.oneWaySeconds` is the
+    // server-enforced number that DEFINES the delay, and `DelayAuthority` already
+    // holds it live (it subscribes on this very client), so the round trip is
+    // `2 * oneWay` and this layer computes it without the transport knowing anything
+    // about delay at all. That is the production path: `WebSocketTransport`
+    // deliberately does not predict.
+    //
+    // The order matters because of a typed-absence trap. `DelayAuthority.delaySeconds`
+    // fail-safes to 0 (see `readOneWaySeconds`), so "no sample has arrived" and "the
+    // delay is genuinely zero" are the same value from here. Asking the authority
+    // FIRST therefore let an un-fed 0 override a courier that knew the real answer,
+    // which is exactly what three existing courier tests caught. Preferring an
+    // explicit transport prediction avoids needing to tell those two cases apart.
+    //
+    // They are alternatives, never both: one source per deployment rather than two
+    // competing ones. See `Transport.predictConfirmEta` for the rule a new transport
+    // must follow.
+    const predictedEta =
+      this.transport.predictConfirmEta?.() ??
+      (this.delaySource
+        ? this.clock.now() + 2 * this.delaySource()
+        : undefined);
     const etaConfirm = predictedEta ?? this.clock.now();
+    if (predictedEta === undefined) this.warnNoLossDeadlineOnce();
 
     const result = new Promise<unknown>((resolve, reject) => {
       this.commands.set(requestId, {

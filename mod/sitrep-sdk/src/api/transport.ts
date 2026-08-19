@@ -41,6 +41,25 @@ export interface Transport {
    * for it. `CourierTransport` implements it using the courier's own
    * round-trip model.
    */
+  /**
+   * Predict when a just-dispatched command's confirmation is due, in the `Clock`'s UT
+   * domain. **Only for a transport that OWNS its delay model.**
+   *
+   * `CourierTransport` is that case: it drives the courier's own delay engine and runs
+   * without a `TelemetryProvider`, so nothing else can know the round trip.
+   *
+   * A transport riding the mod's SERVER-ENFORCED delay must NOT implement this.
+   * `comms.delay` already carries that number and `DelayAuthority` already holds it
+   * live, so `TelemetryClient` falls back to the authority (`setDelaySource`) whenever
+   * this is absent. Implementing it here as well would re-derive a value another layer
+   * owns, and two estimates of one delay is how they start disagreeing.
+   *
+   * Note the client prefers THIS over the authority when both are available, because a
+   * transport that owns its delay model knows better than a generic authority whose
+   * fail-safe is zero. So implementing it on a server-delayed transport would not merely
+   * duplicate the authority, it would OVERRIDE it. `WebSocketTransport` deliberately
+   * does not implement it, and that is not an omission to fix.
+   */
   predictConfirmEta?(): number | undefined;
 
   /**

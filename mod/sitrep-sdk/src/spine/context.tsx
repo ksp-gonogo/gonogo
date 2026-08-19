@@ -326,7 +326,15 @@ export function TelemetryProvider({
   // matching the auto-built store's client-identity lifetime above.
   useEffect(() => {
     if (!delayAuthority) return;
-    return delayAuthority.attach(client);
+    const detach = delayAuthority.attach(client);
+    // The SAME authority also sizes command loss inference, so a dispatch nothing
+    // answers settles instead of hanging. One wiring point, one number: the client
+    // does not compute delay and the transport is not asked about it.
+    const clearDelaySource = client.setDelaySource(delayAuthority.delaySeconds);
+    return () => {
+      clearDelaySource();
+      detach();
+    };
   }, [client, delayAuthority]);
   useEffect(() => {
     // Coalesce to (at most) one `beginFrame()` per animation-frame tick,

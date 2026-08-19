@@ -416,6 +416,20 @@ export function useCommand(
       ) {
         setDispatchTick((tick) => tick + 1);
       }
+      // Mark the dispatch's own rejection as HANDLED without consuming it.
+      //
+      // Before commands could be settled on silence this promise never rejected, so
+      // the fire-and-forget call sites (`void someCmd.send(...)`, eight of them across
+      // the Robotics/RotorTachometer Uplinks) were safe by accident. Now that a
+      // dropped command rejects, a `void`ed dispatch would raise an unhandled
+      // rejection on every lost command.
+      //
+      // Attaching a no-op handler here marks `result` handled while leaving the
+      // rejection fully observable to anyone who awaits it: `ManeuverPlanner`'s
+      // `try/catch` around `dispatchPlanBurns` still sees the throw. Swallowing it
+      // instead (returning a never-rejecting promise) would have been the wrong fix,
+      // because that caller is the one that NEEDS the rejection.
+      result.catch(() => undefined);
       return result;
     },
     [client, command, vantage],
