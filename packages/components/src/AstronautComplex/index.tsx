@@ -15,7 +15,6 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
-  ScrollArea,
   speakQuantity,
   type TabDescriptor,
   Tabs,
@@ -766,15 +765,10 @@ function readApplicants(raw: unknown): Applicant[] {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-10);
-  }
+const Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
 `;
 
 const Header = styled.div`

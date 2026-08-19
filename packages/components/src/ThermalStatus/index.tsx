@@ -465,15 +465,6 @@ const CriticalNote = styled.span`
 const RowsScroll = styled(ScrollArea)`
   flex: 1;
   min-height: 0;
-  /* Bleed the scroll viewport down through the panel's bottom padding so
-     overflowing rows are revealed, and clipped: right at the widget's
-     bottom edge, with the scroll fade drawn over the top of them. Without
-     this the rows cut off ~12px short of the border, leaving a dead gap
-     that reads as "content truncated even though there's space". The panel
-     publishes its own bottom padding as --scroll-glow-pad-y (the same value
-     the fade already extends by), so the content edge now lines up with the
-     fade and the chrome. */
-  margin-bottom: calc(-1 * var(--scroll-glow-pad-y, 0px));
 `;
 
 // The column and its 2px gap are the kit's Section; only the spacing
