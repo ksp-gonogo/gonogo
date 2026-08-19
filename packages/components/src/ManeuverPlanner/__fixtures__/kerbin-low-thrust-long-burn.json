@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
-    "notes": "ONE queued burn, described consistently by every section: the node list, its burn window, and a planner with real orbit elements. The window is asymmetric about the node because the craft is lighter for the second half. The node's post-burn patch chain is the SAME capture's own o.maneuverNodes[0].orbitPatches[0], copied across to the stream half rather than authored: the legacy half recorded it and the stream half had it empty, because nothing filled ManeuverNode.Patches on the mod side until the stock backend was wired to KSP's nextPatch."
+    "notes": "A LONG low-thrust burn: the same node and the same post-burn conic, with a burn duration of half an orbital period (T/P = 0.5) instead of 45 s. Past cutoff, so the regime is deviance, but the finite-burn residual is ~36% of the burn, far above the attributable limit. This is the case the residual changes what the widget SAYS rather than merely annotating it: an impulsive plan and a burn spanning 90 degrees of orbit differ by construction, so the gap cannot be read as flying error."
   },
   "o.argumentOfPeriapsis": 185.804298723466,
   "o.trueAnomaly": 178.272189124686,
@@ -47,7 +47,7 @@
       "UT": 43301.21875
     }
   ],
-  "t.universalTime": 43274.2794794121,
+  "t.universalTime": 43680.07141968426,
   "o.PeR": 33805.5730715984,
   "a.physicsMode": "patched_conics",
   "o.referenceBody": "Kerbin",
@@ -130,7 +130,7 @@
   "v.body": "Kerbin",
   "_stream": {
     "carriedChannels": ["vessel.maneuver", "vessel.orbit", "vessel.state"],
-    "pinnedUt": 43274.2794794121,
+    "pinnedUt": 43680.07141968426,
     "emits": [
       {
         "channel": "vessel.maneuver",
@@ -234,7 +234,7 @@
                 "unit": "ut"
               },
               "cutoffUt": {
-                "magnitude": 43322.21875,
+                "magnitude": 43640.07141968426,
                 "unit": "ut"
               }
             }

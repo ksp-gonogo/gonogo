@@ -110,15 +110,14 @@ async function flushViewUt(): Promise<void> {
  * three states and never had anything to do with scrolling; the inner element
  * was only ever a convenient query root.
  *
- * Not `[data-panel-body]` itself, which was the obvious replacement and is
- * wrong: the header renders INSIDE it, so its first child is the title.
+ * Query the caption itself rather than whatever sits first in the content.
+ * Two positional versions of this helper have now been broken by changes that
+ * had nothing to do with the caption: the scroll-body nesting going away, then
+ * the Plan/Conformance tabs putting a tab root where a <section> used to be.
+ * The subject is whether the caption rendered, so ask about the caption.
  */
-function panelBody(container: HTMLElement): HTMLElement {
-  const content = container.querySelector<HTMLElement>(
-    "[data-panel-header] + *",
-  );
-  if (!content) throw new Error("panel content not found");
-  return content;
+function refBodyCaption(container: HTMLElement): HTMLElement | null {
+  return container.querySelector<HTMLElement>("[data-ref-body-caption]");
 }
 
 describe("ManeuverPlanner: nothing has arrived at all", () => {
@@ -154,11 +153,9 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
   it("omits the reference-body caption entirely: the gate is `refBody !== undefined`", async () => {
     const { view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
-    // With `vessel.state.referenceBodyName` never arrived the caption is not
-    // rendered at all, so the scroll body opens on the first <section>.
-    expect(panelBody(view.container).firstElementChild?.tagName).toBe(
-      "SECTION",
-    );
+    // With `vessel.state.referenceBodyName` never arrived the caption element
+    // is absent entirely, not present-and-empty.
+    expect(refBodyCaption(view.container)).toBeNull();
   });
 });
 
@@ -233,9 +230,8 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
       fixture.emit("system.bodies", null);
     });
     await waitFor(() => {
-      const first = panelBody(view.container).firstElementChild;
-      expect(first?.tagName).toBe("DIV");
-      expect(first?.textContent).toBe("");
+      expect(refBodyCaption(view.container)).not.toBeNull();
+      expect(refBodyCaption(view.container)?.textContent).toBe("");
     });
   });
 });
@@ -260,9 +256,7 @@ describe("ManeuverPlanner: the reference-body caption's three states", () => {
       });
     });
     await waitFor(() => {
-      const first = panelBody(view.container).firstElementChild;
-      expect(first?.tagName).toBe("DIV");
-      expect(first?.textContent).toBe("Kerbin");
+      expect(refBodyCaption(view.container)?.textContent).toBe("Kerbin");
     });
   });
 });

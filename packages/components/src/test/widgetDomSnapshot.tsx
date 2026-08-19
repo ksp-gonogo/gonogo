@@ -602,3 +602,31 @@ export function stripVolatile(html: string): string {
     .replace(/\sdata-testid="[^"]+"/g, "")
     .replace(/\sdata-sc[a-z-]*="[^"]*"/g, "");
 }
+
+/**
+ * Rewrite React `useId` values (`:r3:`) to their order of first appearance
+ * (`:rid0:`). The counter is per-root and advances for every hook that ran
+ * before ours, so mounting an extra provider alongside the widget shifts every
+ * id in the tree without changing a thing about its behaviour, which is exactly
+ * what a dual-run comparison must not trip on.
+ *
+ * Deliberately a mapping and not a blanket replace: collapsing every id to one
+ * token would also hide a real defect, an `aria-controls` pointing at the wrong
+ * panel. Renumbering keeps each reference matching the element it names, so a
+ * tablist wired to the wrong panel still fails the compare.
+ *
+ * NOT folded into `stripVolatile`, which the committed DOM snapshots also run
+ * through: doing that rewrites ids in every stored snapshot, and a snapshot is
+ * compared against its own past self rather than a second mount, so it never had
+ * the counter-shift problem this solves.
+ */
+export function normaliseReactIds(html: string): string {
+  const seen = new Map<string, string>();
+  return html.replace(/:r[0-9a-z]+:/g, (id) => {
+    const existing = seen.get(id);
+    if (existing !== undefined) return existing;
+    const token = `:rid${seen.size}:`;
+    seen.set(id, token);
+    return token;
+  });
+}

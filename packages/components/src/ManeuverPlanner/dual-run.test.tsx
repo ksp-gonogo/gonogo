@@ -7,7 +7,11 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { snapshotWidgetMode, stripVolatile } from "../test/widgetDomSnapshot";
+import {
+  normaliseReactIds,
+  snapshotWidgetMode,
+  stripVolatile,
+} from "../test/widgetDomSnapshot";
 import kerbinSuborbital from "./__fixtures__/kerbin-suborbital-prograde-node.json";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -45,12 +49,16 @@ describe("ManeuverPlanner: behavior-preservation golden dual-run (delay=0)", () 
   it("renders IDENTICAL markup with a TelemetryProvider mounted (vessel.maneuver carried) as fully legacy", async () => {
     const mode = { name: "default-10x18", w: 10, h: 18 };
 
-    const legacyHtml = await snapshotWidgetMode({
-      Widget: ManeuverPlannerComponent,
-      fixture: kerbinSuborbital,
-      mode,
-      connectSource: true,
-    });
+    // Both sides normalised, since the comparison is between two separate
+    // mounts and React's useId counter does not restart between them.
+    const legacyHtml = normaliseReactIds(
+      await snapshotWidgetMode({
+        Widget: ManeuverPlannerComponent,
+        fixture: kerbinSuborbital,
+        mode,
+        connectSource: true,
+      }),
+    );
 
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.maneuver"],
@@ -123,7 +131,7 @@ describe("ManeuverPlanner: behavior-preservation golden dual-run (delay=0)", () 
       }
     });
 
-    const streamHtml = stripVolatile(container.innerHTML);
+    const streamHtml = normaliseReactIds(stripVolatile(container.innerHTML));
     teardownMockDataSource(legacyAux);
 
     expect(streamHtml).toBe(legacyHtml);

@@ -2,7 +2,7 @@
   "_meta": {
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
-    "notes": "ONE queued burn, described consistently by every section: the node list, its burn window, and a planner with real orbit elements. The window is asymmetric about the node because the craft is lighter for the second half. The node's post-burn patch chain is the SAME capture's own o.maneuverNodes[0].orbitPatches[0], copied across to the stream half rather than authored: the legacy half recorded it and the stream half had it empty, because nothing filled ManeuverNode.Patches on the mod side until the stock backend was wired to KSP's nextPatch."
+    "notes": "The SAME captured burn as kerbin-finite-burn-window, wound forward to 20 s after ignition so the conformance regime is IN PROGRESS. Neither framing is true while the engines are running: the gap is not yet the intended change and not yet deviance, which is why mid-burn is its own state rather than a hole in the design. Only the clock moves; the burn and its patch chain are the capture's own."
   },
   "o.argumentOfPeriapsis": 185.804298723466,
   "o.trueAnomaly": 178.272189124686,
@@ -47,7 +47,7 @@
       "UT": 43301.21875
     }
   ],
-  "t.universalTime": 43274.2794794121,
+  "t.universalTime": 43297.21875,
   "o.PeR": 33805.5730715984,
   "a.physicsMode": "patched_conics",
   "o.referenceBody": "Kerbin",
@@ -130,7 +130,7 @@
   "v.body": "Kerbin",
   "_stream": {
     "carriedChannels": ["vessel.maneuver", "vessel.orbit", "vessel.state"],
-    "pinnedUt": 43274.2794794121,
+    "pinnedUt": 43297.21875,
     "emits": [
       {
         "channel": "vessel.maneuver",
