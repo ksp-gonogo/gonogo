@@ -6,8 +6,8 @@
  * (`useUtNow`), and the command Courier (`useCommand`): no new physics.
  */
 
+import type { CommsDelayLike } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
-import type { CommsDelayLike } from "./command-delay";
 import { useUtNow } from "./context";
 import { type UseCommandResult, useCommand } from "./use-command";
 import { useLatestValue } from "./use-stream";

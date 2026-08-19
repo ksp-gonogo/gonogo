@@ -9,6 +9,23 @@ export {
   type SubscriptionTopicResolver,
 } from "./carried-channels";
 export { parseServerMessage } from "./client";
+// Pure delayed-command derivations. Published because delay is ambient: an
+// Uplink rendering its own command surface needs the same mode/phase vocabulary
+// the app's rail uses, and there is nothing app-specific in deriving it.
+export type {
+  CommsDelayLike,
+  DelayMode,
+  InFlightCommand,
+  PathConnectedDuring,
+  PendingEntry,
+  PredictedPhase,
+} from "./command-delay";
+export {
+  classifyRetained,
+  currentMode,
+  deriveInFlight,
+  latchForward,
+} from "./command-delay";
 export {
   type ControlChannelHandle,
   type ControlChannelId,

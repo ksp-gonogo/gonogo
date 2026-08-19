@@ -5,7 +5,6 @@ import {
   type KerbcastSubscriptions,
   CameraFeed as SharedCameraFeed,
 } from "@ksp-gonogo/kerbcast-react";
-import { currentMode } from "@ksp-gonogo/sitrep-client";
 import type {
   ActionDefinition,
   ComponentProps,
@@ -14,6 +13,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  currentMode,
   getUplinkHandle,
   logger,
   type Reading,
@@ -303,8 +303,7 @@ export function CameraFeed({
 
   // Native topic reads (migrated off the `comm.signalStrength`/
   // `comm.connected`/`comm.signalDelay` two-arg shim; the field paths below
-  // are exactly what that shim used to map to, per
-  // `@ksp-gonogo/sitrep-client`'s `map-topic.ts`).
+  // are exactly what that shim used to map to).
   const vesselComms = judgeable(useTelemetry("vessel.comms"));
   const signalStrength = vesselComms?.signalStrength;
   // `comms.link` (NOT `vessel.comms.connected`): a dedicated, freeze-EXEMPT
@@ -318,10 +317,9 @@ export function CameraFeed({
   // interactive command/response paths (e.g. the kOS terminal), which this
   // feed is not. `comms.delay` is a command-centre "facts about the link"
   // topic (like `comms.path`), not delayed craft telemetry: `useLatestValue`
-  // (not `useTelemetry`) reads it straight off the `TelemetryClient`,
-  // bypassing the certainty-gated `TimelineStore` frame, so the delay figure
-  // itself doesn't appear a whole one-way-delay late (see that hook's own
-  // doc in `@ksp-gonogo/sitrep-client`'s `use-stream.ts`).
+  // (not `useTelemetry`) reads it straight off the stream, bypassing the
+  // certainty-gated frame, so the delay figure itself doesn't appear a whole
+  // one-way-delay late (see `useLatestValue`'s own doc).
   const signalDelay =
     useLatestValue<TopicPayload<"comms.delay">>("comms.delay")?.oneWaySeconds;
   const degradeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

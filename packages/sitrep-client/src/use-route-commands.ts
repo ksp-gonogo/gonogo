@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import {
   type CommsDelayLike,
   currentMode,
@@ -7,7 +6,8 @@ import {
   type InFlightCommand,
   latchForward,
   type PendingEntry,
-} from "./command-delay";
+} from "@ksp-gonogo/sitrep-sdk";
+import { useRef } from "react";
 import { useUtNow } from "./context";
 import { useLatestValue } from "./use-stream";
 

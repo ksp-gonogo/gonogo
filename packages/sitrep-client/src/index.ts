@@ -6,19 +6,29 @@
 export type {
   ClockFormulaInputs,
   ClockFormulaSnapshot,
+  CommsDelayLike,
   ConnectivityAt,
+  DelayMode,
   EventOccurrence,
   EventRevealOptions,
   EventTimelineOptions,
+  InFlightCommand,
+  PathConnectedDuring,
+  PendingEntry,
+  PredictedPhase,
 } from "@ksp-gonogo/sitrep-sdk";
 // Carried-topic policy now lives in the SDK: an Uplink needs it at runtime.
 export {
+  classifyRetained,
   computeConfirmedEdgeUt,
   computeUtNowEstimate,
+  currentMode,
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
+  deriveInFlight,
   EventTimeline,
   isTopicCarried,
+  latchForward,
 } from "@ksp-gonogo/sitrep-sdk";
 // Generic delayed-media infrastructure (buffer, per-frame pipeline, per-camera
 // sharing). Now published as `@ksp-gonogo/sitrep-sdk/media`; re-exported here so
@@ -34,20 +44,6 @@ export {
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
 export { RealTimeClock } from "./clock";
-export type {
-  CommsDelayLike,
-  DelayMode,
-  InFlightCommand,
-  PathConnectedDuring,
-  PendingEntry,
-  PredictedPhase,
-} from "./command-delay";
-export {
-  classifyRetained,
-  currentMode,
-  deriveInFlight,
-  latchForward,
-} from "./command-delay";
 export type { CommsLinkLike } from "./connectivity-history";
 export { ConnectivityHistory } from "./connectivity-history";
 export {

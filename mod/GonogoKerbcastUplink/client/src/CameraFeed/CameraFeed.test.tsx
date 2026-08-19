@@ -907,8 +907,7 @@ describe("CameraFeed: CommNet degrade", () => {
   beforeEach(() => {
     // `requestAnimationFrame` isn't in vitest's default fake-timer set, but
     // the migrated `vessel.comms`/`comms.link` reads only become visible
-    // once `TelemetryProvider`'s rAF-scheduled `store.beginFrame()` commit
-    // runs (`@ksp-gonogo/sitrep-client`'s `context.tsx`). Fake it too so
+    // once the provider's rAF-scheduled frame commit runs. Fake it too so
     // `vi.advanceTimersByTime`'s 500ms debounce-advance also flushes that
     // commit, instead of leaving it waiting on the real (unmocked) clock.
     vi.useFakeTimers({

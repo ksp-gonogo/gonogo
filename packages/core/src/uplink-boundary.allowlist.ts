@@ -533,8 +533,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // strings (same class as PeerTransport.test.ts's sample strings
       // below): the delayed-command primitives themselves are mod-
       // agnostic and import nothing kOS-specific.
-      "packages/sitrep-client/src/command-delay.ts",
-      "packages/sitrep-client/src/command-delay.test.ts",
+      "mod/sitrep-sdk/src/command-delay.ts",
+      "mod/sitrep-sdk/src/command-delay.test.ts",
       // use-route-commands.ts's doc-comment cites the kOS terminal's
       // original hand-rolled strip as the precedent it generalizes; its
       // test fixture uses "kos/7"/"kos.run" as sample topic/command

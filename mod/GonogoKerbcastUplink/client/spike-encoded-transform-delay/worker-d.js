@@ -9,7 +9,7 @@
 //   2. gates release on a LOCALLY-EVALUATED confirmedEdgeUt(), fed by a
 //      periodic ClockFormulaSnapshot from the main thread: the exact same
 //      pure formula already shipped in
-//      packages/sitrep-client/src/view-clock-formula.ts and mirrored by
+//      mod/sitrep-sdk/src/view-clock-formula.ts and mirrored by
 //      mod/GonogoKerbcastUplink/client/src/worker/workerDelayClock.ts, ported verbatim
 //      here (plain JS, no bundler in this throwaway harness).
 //
@@ -50,7 +50,7 @@ function nowWall() {
   return (performance.now() + (offsetMs ?? 0)) / 1000;
 }
 
-// --- ported verbatim from packages/sitrep-client/src/view-clock-formula.ts ---
+// --- ported verbatim from mod/sitrep-sdk/src/view-clock-formula.ts ---
 function computeUtNowEstimate(inputs, nw) {
   if (inputs.anchorWall === undefined || inputs.anchorUt === undefined) {
     return inputs.maxSampleUt === Number.NEGATIVE_INFINITY

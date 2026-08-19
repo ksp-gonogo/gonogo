@@ -1,4 +1,3 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   classifyRetained,
@@ -6,6 +5,7 @@ import {
   deriveInFlight,
   latchForward,
 } from "./command-delay";
+import { value } from "./unit-system/value";
 
 const entry = (over: Partial<import("./command-delay").PendingEntry> = {}) => ({
   id: "r1",

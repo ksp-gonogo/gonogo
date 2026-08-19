@@ -1,5 +1,5 @@
+import type { PathConnectedDuring, PendingEntry } from "@ksp-gonogo/sitrep-sdk";
 import { controlChannelIds, getControlChannel } from "@ksp-gonogo/sitrep-sdk";
-import type { PathConnectedDuring, PendingEntry } from "./command-delay";
 
 /**
  * Optimistic expectations: what we ASKED a control to be, beside what we last

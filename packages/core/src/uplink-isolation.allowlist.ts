@@ -91,11 +91,7 @@ export const BLOCKED_FILENAMES = ["widgetDeclarations.test.ts"] as const;
 
 /** file path -> the forbidden packages it imports. SHRINK-ONLY. */
 export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
-  {
-    "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": [
-      "sitrep-client",
-    ],
-  };
+  {};
 
 /**
  * A dependency that resolves through pnpm workspace hoisting is not a
@@ -113,6 +109,4 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
 export const DECLARED_DEPENDENCY_DEBT: Record<
   string,
   readonly ForbiddenPackage[]
-> = {
-  "mod/GonogoKerbcastUplink/client/package.json": ["sitrep-client"],
-};
+> = {};
