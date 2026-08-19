@@ -63,18 +63,19 @@ export function BurnConformanceRow({
       data-burn-conformance-row=""
       style={{ alignItems: "stretch", gap: "var(--space-8)" }}
     >
-      <Stack gap="xs" style={{ minWidth: 0 }}>
-        <span style={{ ...PHASE_CHIP, color: phase.colour }}>
-          {phase.label}
-        </span>
-        <Truncate
-          style={CAPTION}
-          title="Delivered delta-v against what the plan asked for. Independent of who planned the burn."
-        >
-          delivered of planned
-        </Truncate>
-      </Stack>
-      <Stack gap="xs" style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
+      {/* The chip alone. "delivered of planned" sat under it and only restated
+          the two numbers already beside it, which is description rather than
+          provenance: nothing was lost by cutting it. The claim it was making,
+          that this reading is independent of who planned the burn, moved to the
+          title on the figures themselves, where the numbers it describes are. */}
+      <span style={{ ...PHASE_CHIP, color: phase.colour, minWidth: 0 }}>
+        {phase.label}
+      </span>
+      <Stack
+        gap="xs"
+        style={{ alignItems: "flex-end", flex: "0 0 auto" }}
+        title="Delivered delta-v against what the plan asked for. Independent of who planned the burn."
+      >
         <Text tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
           {conformance.deliveredDv == null || conformance.plannedDv == null ? (
             NULL_DISPLAY

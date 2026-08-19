@@ -860,14 +860,18 @@ function ManeuverPlannerComponent({
         {refBody !== undefined && (
           <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
         )}
+        {/* The node list sits ABOVE the tabs and shows on both, because it is
+            the SUBJECT and the tabs are two views of it. Inside PLAN, switching
+            to CONFORMANCE lost sight of the thing being conformed to. */}
+        {renderNodesSection()}
         {/* Two tabs, PLAN and CONFORMANCE.
             PLAN is everything about authoring and flying the next burn: the
-            queued nodes, their windows, the armed triggers, and NEW MANEUVER
-            with its preview. CONFORMANCE is the retrospective: what each burn
-            delivered against what it was planned with, and the two-conic plot.
-            They are separated because they answer different questions at
-            different times, and stacking them made the operator scroll past a
-            preview to reach a verdict. */}
+            queued nodes' windows, the armed triggers, and NEW MANEUVER with its
+            preview. CONFORMANCE is the retrospective: what each burn delivered
+            against what it was planned with, and the two-conic plot. They are
+            separated because they answer different questions at different
+            times, and stacking them made the operator scroll past a preview to
+            reach a verdict. */}
         <Tabs
           tabs={[
             { id: "plan", label: "Plan", content: renderPlanTab() },
@@ -885,7 +889,6 @@ function ManeuverPlannerComponent({
   function renderPlanTab() {
     return (
       <>
-        {renderNodesSection()}
         {renderBurnWindowsSection()}
         {renderArmedTriggersSection()}
         {renderNewManeuverSection()}
