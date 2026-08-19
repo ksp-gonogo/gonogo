@@ -469,8 +469,8 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Tiny mode: single-glance summary ─────────────────────────────────
   if (bucket === "tiny") {
     return (
-      <Panel panelTitle="TECH">
-        <TinyBody>
+      <Panel panelTitle="TECH" fitToSize>
+        <>
           <TinyCount>
             {counts.researchable}
             <TinyLabel>RESEARCHABLE</TinyLabel>
@@ -486,7 +486,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
                a suspended balance look like a save that never had one. */
             careerNotCurrent && <TinySci>SCIENCE NOT CURRENT</TinySci>
           )}
-        </TinyBody>
+        </>
       </Panel>
     );
   }
@@ -1683,16 +1683,6 @@ const ParentsInline = styled.span`
 `;
 
 // ── Tiny mode ──────────────────────────────────────────────────────────────
-
-const TinyBody = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
-`;
 
 const TinyCount = styled.div`
   /* Off the type scale: the scale stops at --font-size-lg (16px) and this

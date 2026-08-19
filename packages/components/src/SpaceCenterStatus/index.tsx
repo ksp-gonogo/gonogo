@@ -351,8 +351,8 @@ function SpaceCenterStatusComponent({
 
   if (sizeBucket === "tiny") {
     return (
-      <Panel panelTitle="KSC">
-        <TinyBody>
+      <Panel panelTitle="KSC" fitToSize>
+        <>
           {careerFunds !== null ? (
             <TinyFunds
               title={speakQuantity(value("funds", careerFunds), {
@@ -385,7 +385,7 @@ function SpaceCenterStatusComponent({
                 ? "PAD CLEAR"
                 : "PAD UNKNOWN"}
           </TinyPad>
-        </TinyBody>
+        </>
       </Panel>
     );
   }
@@ -876,18 +876,6 @@ const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   margin-left: var(--space-2);
-`;
-
-const TinyBody = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  overflow: hidden;
-  container-type: inline-size;
 `;
 
 const TinyFunds = styled.div`

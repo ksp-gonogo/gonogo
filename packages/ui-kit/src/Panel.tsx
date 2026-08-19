@@ -8,6 +8,7 @@ import {
   useContext,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -624,15 +625,13 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
      same result: a top-level prop that changed WHICH subcomponents render
      would not be reproducible.
 
-     It does NOT centre, and that is a decision with evidence behind it rather
-     than an omission. SpaceCenterStatus, Twr and TechTree each carry a local
-     TinyBody that centres a headline reading at a tiny tile, and sharing that
-     here was tried and reverted:
+     It CENTRES, but only once measurement says the content fits, and that
+     decision arrives as a prop rather than from CSS alone. Two routes were
+     tried and rejected first:
 
        - plain centring is not an option. An overflowing flex column centred the
          ordinary way overflows at BOTH ends, so its first line sits at a
-         negative offset and cannot be scrolled to. SpaceCenterStatus's TinyBody
-         has that latent today
+         negative offset and cannot be scrolled to
        - justify-content: safe center is specified to fix exactly that, and all
          three engines honour it in isolation (measured: plain centring puts the
          first child at -40px on chromium, firefox and webkit; safe puts it at
@@ -643,11 +642,18 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
      is indistinguishable from success: it would ship the bug while looking like
      a safeguard.
 
+     Measuring sidesteps the whole disagreement: content that does not fit is
+     never centred in the first place, so no engine is being asked to do the
+     thing they do differently. The rule it enforces is that a tiny tile is
+     never centred-and-clipped, because an unreachable first line reads as the
+     widget rendering less rather than as content to scroll to.
+
      The wider lesson, because it cost a build: verifying a CSS FEATURE in
-     isolation is not evidence about the LAYOUT built on it. Whatever is tried
-     next here has to be verified by rendering these three widgets on all three
-     engines, not by probing the property. */
-  ${({ $fitToSize }) => ($fitToSize ? "flex: 0 1 auto; overflow: hidden;" : "")}
+     isolation is not evidence about the LAYOUT built on it. This is verified by
+     rendering the widgets on all three engines, not by probing the property. */
+  /* Plain concatenation, NOT a nested template literal: a backtick inside a
+     styled template breaks the parse and builds an empty dist. */
+  ${({ $fitToSize }) => ($fitToSize ? "flex: 1; overflow: hidden;" : "")}
   /* Bleed: the content reaches the panel chrome on every side and never
      scrolls.
 
@@ -704,6 +710,116 @@ export function PanelBody({
       {children}
     </PanelBody__Box>
   );
+}
+
+/**
+ * The tiny-tile layout: fills the space left under the header and centres the
+ * widget's content in it, but only while measurement says the content fits.
+ *
+ * Wraps the widget's children ALONE. The header is a child of the body too, so
+ * centring at the body level centres the title along with the reading and makes
+ * the header part of what is measured, which is not what a tiny presentation
+ * means by centred.
+ */
+function PanelFitBody({ children }: { children?: ReactNode }) {
+  const outerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const fits = useContentFits(outerRef, innerRef);
+  return (
+    <PanelBody__FitOuter ref={outerRef} $fits={fits} data-panel-fit-body="">
+      <PanelBody__FitContent ref={innerRef}>{children}</PanelBody__FitContent>
+    </PanelBody__FitOuter>
+  );
+}
+
+const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* Does NOT clip, and that is measured rather than assumed. At tiny-2x2 this
+     box resolves to 11px while Twr's 24px readout sits in it, overflowing 6.5px
+     into the body's gap above, where nothing paints over it. That overflow is
+     the shipped appearance. Clipping here cut the readout in half; the body
+     above already owns the real boundary, the panel edge.
+
+     No inset of its own either, and both halves of that were measured.
+     Tightening the BODY moved the title 12px left, because the header is the
+     body's child too. Adding 4px HERE instead cost Twr the vertical room its
+     24px readout needs and clipped it in half: the local box this replaces had
+     no padding, and a tiny tile has no spare room to give away. The body's own
+     inset is the inset. */
+  /* Plain concatenation, NOT a nested template literal: a backtick inside a
+     styled template breaks the parse and builds an empty dist. */
+  ${({ $fits }) =>
+    "justify-content: " + ($fits ? "center" : "flex-start") + ";"}
+`;
+
+const PanelBody__FitContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4, 4px);
+  min-height: 0;
+  /* A query container, so a tiny presentation can size its headline against the
+     tile with cqw units. SpaceCenterStatus already did exactly this from its own
+     local box, and the readout it feeds resolves against the SMALL VIEWPORT when
+     no container ancestor exists, so dropping it does not degrade, it produces a
+     font sized off the screen. Owning it here is the difference between the one
+     widget that thought of it and every widget getting it. */
+  container-type: inline-size;
+`;
+
+/**
+ * Whether the content currently fits its box, so a tiny tile can centre only
+ * when centring cannot push the first line out of reach.
+ *
+ * Measured rather than expressed in CSS because the CSS answer, `safe center`,
+ * is honoured by all three engines in isolation and still clipped the real
+ * widget on Firefox. Comparing the two heights asks no engine to agree about
+ * anything.
+ *
+ * Answers true when there is nothing to measure, which is what a test
+ * environment with no ResizeObserver gets: at zero measured height content
+ * trivially fits, and no layout is being asserted there anyway.
+ */
+function useContentFits(
+  boxRef: { current: HTMLElement | null },
+  contentRef: { current: HTMLElement | null },
+): boolean {
+  const [fits, setFits] = useState(true);
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const content = contentRef.current;
+    if (!box || !content) return;
+    const measure = () => {
+      // Measured against the space under the HEADER, not against this box's own
+      // height, and the difference is the whole behaviour. `flex: 1` resolves
+      // this box to whatever is left, which at tiny-2x2 is 11px against a 24px
+      // readout, so comparing content to it says "does not fit" for a widget
+      // that visibly does. What the rule actually protects against is centring
+      // pushing the first line somewhere it cannot be read, so the question is
+      // whether the content fits the PANEL's content area.
+      const body = box.parentElement;
+      const header = body?.querySelector("[data-panel-header]");
+      const available =
+        body != null
+          ? body.clientHeight -
+            (header ? header.getBoundingClientRect().height : 0)
+          : box.clientHeight;
+      // scrollHeight, not clientHeight: the content box is what OVERFLOWS, and
+      // its own client height is capped by the parent it is overflowing.
+      setFits(content.scrollHeight <= available);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [boxRef, contentRef]);
+  return fits;
 }
 
 const ScrollAreaRoot = styled.div`
@@ -1603,7 +1719,7 @@ function PanelRoot({
           stay in view while the body scrolls under it. Only a floating (overlay)
           header lives outside the scroller. */}
       {!floatingHeader && header}
-      {children}
+      {fitToSize ? <PanelFitBody>{children}</PanelFitBody> : children}
     </PanelBody>
   );
 
