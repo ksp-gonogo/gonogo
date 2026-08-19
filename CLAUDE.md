@@ -65,8 +65,6 @@ pnpm --filter @ksp-gonogo/app dev       # run only the SPA
 pnpm --filter @ksp-gonogo/core test     # test a single package
 ```
 
-**Node version:** run `nvm use` before `pnpm`/`node` if your shell isn't already on the repo's pinned version (`.nvmrc` → 24). Do **not** `source ~/.nvm/nvm.sh`, `nvm` is already on the PATH in this environment, so just invoke it directly.
-
 ### Helper scripts
 
 `scripts/gonogo_claude_tools.sh` bundles purpose-scoped helpers that work without per-call permission prompts (the wrappers are already allow-listed in `.claude/settings.local.json`). Prefer the script over ad-hoc `curl`/`ilspycmd`/`dotnet build` calls, every subcommand pins the right paths, host, and timeouts.
@@ -147,7 +145,6 @@ The Vite SPA. Key responsibilities:
 - **kOS integration**, rides the Sitrep stream: `KosDataSource.executeScript` dispatches over the `kos.run` Uplink command and correlates the `kos.run.<coreId>` result; CPU discovery comes off the `kos.processors` channel (`KosCpuDiscovery` stands up the standing subscription; `onProcessorsChanged` feeds the CPU registry). If no stream is mounted, kOS features degrade gracefully.
 - **PeerJS integration**: the main screen acts as the peer host. Stations connect as peers. The main screen distributes a serialised snapshot of data to all peers; stations can also send state back (e.g. GO/NO-GO votes).
 - **Station config**: localStorage-first. Stations can request a config from the main screen over PeerJS; the main screen can push saved configs to connecting stations.
-
 
 ---
 
