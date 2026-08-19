@@ -15,7 +15,6 @@ import * as barrel from "./index";
  */
 const EXPECTED_BARREL_VALUE_EXPORTS = [
   "AugmentSlot",
-  "ContributionsProvider",
   "DEFAULT_MASK_HEIGHT",
   "DEFAULT_MASK_WIDTH",
   "DEFAULT_PROFILE_ID",

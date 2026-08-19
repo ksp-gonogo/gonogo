@@ -1,25 +1,15 @@
-import { createContext, useContext } from "react";
-
-export interface DashboardItemContextValue {
-  /** Stable instance ID of the dashboard item hosting the current component. */
-  instanceId: string;
-}
-
-export const DashboardItemContext =
-  createContext<DashboardItemContextValue | null>(null);
-
 /**
- * Reads the current dashboard item's instance ID. Throws if called outside a
- * `<DashboardItemContext.Provider>`: catches cases where an action-using
- * component is rendered outside the Dashboard.
+ * The dashboard-item context moved to `@ksp-gonogo/sitrep-sdk`.
+ *
+ * `useActionInput` reads the instance id out of it, and that hook is an Uplink's
+ * only way to handle its own declared actions, so the context has to be reachable
+ * from a published package or a widget cannot be tested outside this repo. It
+ * names nothing but React.
+ *
+ * Re-exported so this package's importers keep their import site.
  */
-export function useDashboardItemId(): string {
-  const ctx = useContext(DashboardItemContext);
-  if (!ctx) {
-    throw new Error(
-      "useDashboardItemId must be used inside a DashboardItemContext.Provider. " +
-        "This hook is only valid inside a dashboard-rendered component.",
-    );
-  }
-  return ctx.instanceId;
-}
+export {
+  DashboardItemContext,
+  type DashboardItemContextValue,
+  useDashboardItemId,
+} from "@ksp-gonogo/sitrep-sdk/spine";

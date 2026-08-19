@@ -41,7 +41,34 @@ export default defineConfig({
   // Inline the internal, never-published theme package + lucide-react (icons).
   noExternal: ["@ksp-gonogo/theme", "lucide-react"],
   // Peers: resolved from the consumer's tree, never bundled.
-  external: ["react", "react-dom", "react/jsx-runtime", "styled-components"],
+  //
+  // `@ksp-gonogo/sitrep-sdk` is here because it MUST be, and it was not. It is a
+  // devDependency, which tsup bundles, so `dist/index.js` shipped a second copy of
+  // the sdk with no `@ksp-gonogo/*` import left in it at all. Everything this
+  // package reached for was either a type (erased) or backed by a `globalThis` slot
+  // (`PerfBudget`'s registry, the action-handler map), which is why nothing failed:
+  // both copies found the same state.
+  //
+  // The contribution aggregation is the first thing here to read a React CONTEXT
+  // across that line, and it failed immediately: `useTelemetryClientOptional()`
+  // returned undefined inside `ContributionsProvider` while the test's fixture had
+  // mounted a client, because the two were different context objects. A
+  // `requires`-gated contribution then silently never ran. Same class as ui-kit
+  // being inlined into the test harness and `registerAugment` writing to a copy
+  // `<AugmentSlot>` never read.
+  //
+  // The subpath wildcard is not decoration: an `external` entry matches the exact
+  // specifier, so `@ksp-gonogo/sitrep-sdk` alone would leave
+  // `@ksp-gonogo/sitrep-sdk/spine` and `/testing` inlined, which is the same bug
+  // with a longer path.
+  external: [
+    "@ksp-gonogo/sitrep-sdk",
+    "@ksp-gonogo/sitrep-sdk/*",
+    "react",
+    "react-dom",
+    "react/jsx-runtime",
+    "styled-components",
+  ],
   dts: {
     // `true`, not `["@ksp-gonogo/theme"]`. Naming the package only inlines its
     // entry `.d.ts`; the relative re-exports *inside* it (`./theme`,

@@ -1,33 +1,14 @@
-import type { ReactNode } from "react";
-import { createContext, useContext } from "react";
-
 /**
- * Which screen a component is mounted on. The same registered component
- * can render different UIs on main vs station when it participates in a
- * multi-role interaction (e.g. GO/NO-GO voting).
+ * The screen context moved to `@ksp-gonogo/sitrep-sdk`.
+ *
+ * `Screen` is a member of the setting and settings-tab definitions an Uplink
+ * registers, so it was already part of the published type surface by value while
+ * living in a private package. It names nothing but React.
+ *
+ * Re-exported so this package's importers keep their import site.
  */
-export type Screen = "main" | "station";
-
-const ScreenContext = createContext<Screen | null>(null);
-
-export function ScreenProvider({
-  value,
-  children,
-}: {
-  value: Screen;
-  children: ReactNode;
-}) {
-  return (
-    <ScreenContext.Provider value={value}>{children}</ScreenContext.Provider>
-  );
-}
-
-/**
- * Returns the current screen. Defaults to "main" outside a provider so
- * tests and one-off renders don't need to set one up for components that
- * don't actually branch. Components that rely on the distinction should
- * still wrap with a ScreenProvider explicitly.
- */
-export function useScreen(): Screen {
-  return useContext(ScreenContext) ?? "main";
-}
+export {
+  type Screen,
+  ScreenProvider,
+  useScreen,
+} from "@ksp-gonogo/sitrep-sdk/spine";

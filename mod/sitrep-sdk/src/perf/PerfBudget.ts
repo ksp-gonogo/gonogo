@@ -2,7 +2,8 @@
 // second copy of that is console-only and never reaches the shared ring buffer or
 // Axiom. Only touched on an actual breach, so a budget constructed at module
 // scope never needs a host to exist yet.
-import { hasHost, logger } from "../api/index";
+import { hasHost } from "../api/host";
+import { logger } from "../api/logger";
 
 /**
  * The single global slot the budget registry lives in. A string key rather than a

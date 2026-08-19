@@ -3,10 +3,9 @@ import {
   MockDataSource,
   registerDataSource,
 } from "@ksp-gonogo/core";
+import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { BufferedDataSource } from "../BufferedDataSource";
-import { MemoryStore } from "../storage/MemoryStore";
 import type { SeriesRange } from "../types";
 import { useDataSeries } from "./useDataSeries";
 

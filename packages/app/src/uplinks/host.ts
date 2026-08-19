@@ -15,7 +15,6 @@
 
 import {
   AugmentSlot,
-  ContributionsProvider,
   clearAugments,
   clearContributions,
   defineUplinkClient,
@@ -137,8 +136,6 @@ export function buildGonogoHost(): GonogoHost {
     clearContributions: () => {
       clearContributions();
     },
-    ContributionsProvider:
-      ContributionsProvider as GonogoHost["ContributionsProvider"],
 
     defineUplinkClient: (cfg) => defineUplinkClient(cfg),
 

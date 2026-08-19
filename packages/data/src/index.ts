@@ -11,33 +11,65 @@
 // there is no second copy, so that shim retires.
 //
 // Re-exported so this package's importers keep their import site.
+// The buffered-recording subsystem moved to `@ksp-gonogo/sitrep-sdk`: an Uplink's
+// tests build a `BufferedDataSource` over a `MemoryStore` to assert what its
+// widgets read, and this package is `private: true`, so that harness was
+// unbuildable outside this repo. Its transitive closure was twelve files that
+// named nothing above the sdk leaf, so nothing was reimplemented.
+//
+// Re-exported so this package's importers keep their import site.
 export {
   type BodyMask,
+  BufferedDataSource,
+  clearDerivedKeys,
+  DataSourceWrapper,
+  DEFAULT_KEEP_COUNT,
   DEFAULT_MASK_HEIGHT,
   DEFAULT_MASK_WIDTH,
   DEFAULT_PROFILE_ID,
+  type DerivedKeyDef,
+  type DetectorDecision,
+  type DetectorInput,
+  debugFlight,
+  type ExportFlightOptions,
+  exportFlightToFixture,
+  FLIGHT_FIXTURE_FORMAT,
+  FLIGHTS_DESC,
+  type FlightChapter,
+  FlightDetector,
+  type FlightFixture,
+  type FlightStore,
   FogMaskCache,
   FogMaskCacheProvider,
   type FogMaskChangeListener,
   FogMaskStore,
   FogMaskStoreProvider,
+  fixtureDurationMs,
+  getDerivedKeys,
+  getKeepCount,
+  importFixtureToStore,
+  isFlightFixture,
+  type KeyEnricher,
+  KeyedListenerSet,
+  ListenerSet,
+  LocalStorageStore,
+  type LocalStorageStoreOptions,
   MASK_SCHEMA_VERSION,
+  MemoryStore,
+  registerDerivedKey,
   type StoredMask,
+  setKeepCount,
+  subscribeAutoDelete,
   useBodyFogMask,
   useFogMaskCache,
   useFogMaskStore,
 } from "@ksp-gonogo/sitrep-sdk";
-export * from "./BufferedDataSource";
-export * from "./DataSourceWrapper";
-export * from "./derive";
 export * from "./FlightsFab";
 export * from "./FlightsManager";
 export type { AutoRecordControllerProps } from "./FlightsManager/AutoRecordController";
 export { AutoRecordController } from "./FlightsManager/AutoRecordController";
 export * from "./FlightsManager/autoRecordStatus";
 export { MissionHistorySource } from "./FlightsManager/MissionHistorySource";
-export * from "./fixtureIO";
-export * from "./flightDetector";
 export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";
@@ -53,22 +85,16 @@ export * from "./hooks/useVesselDeltaV";
 // `vessel.parts` Topic payload, evaluated outside React by the contribution
 // aggregator, so it can't go through the hook).
 export { buildResourcesByFlightId } from "./hooks/vesselPartsAdapter";
-export * from "./ListenerSet";
-export { debugFlight } from "./logger";
 export * from "./replaySession/ReplaySessionBanner";
 export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export { enrichKey, TELEMACHUS_META } from "./schema/telemachusMeta";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
-export type { LocalStorageStoreOptions } from "./storage/LocalStorageStore";
-export { LocalStorageStore } from "./storage/LocalStorageStore";
-export { MemoryStore } from "./storage/MemoryStore";
 export type {
   MissionMeta,
   MissionRecord,
   VideoRecordingRef,
 } from "./storage/MissionStore";
 export { MissionStore } from "./storage/MissionStore";
-export type { Store } from "./storage/Store";
 export * from "./types";

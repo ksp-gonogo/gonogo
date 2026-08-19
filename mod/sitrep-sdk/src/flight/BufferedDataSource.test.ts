@@ -1,9 +1,10 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import { MockDataSource } from "@ksp-gonogo/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BufferedDataSource } from "./BufferedDataSource";
+import type { DataKey } from "../api/types";
+import { MockDataSource } from "../testing/mock-data-source";
+import { BufferedDataSource, type KeyEnricher } from "./BufferedDataSource";
 import { clearDerivedKeys, registerDerivedKey } from "./derive";
 import { MemoryStore } from "./storage/MemoryStore";
+import type { UnitHint } from "./types";
 
 const MOCK_KEYS: DataKey[] = [
   { key: "v.name" },
@@ -11,6 +12,20 @@ const MOCK_KEYS: DataKey[] = [
   { key: "v.altitude" },
   { key: "v.surfaceSpeed" },
 ];
+
+// A stand-in for whatever catalogue the wrapped source's owner injects. Two
+// entries is enough to prove `schema()` applies the enricher and falls back
+// per-key; the real catalogues live with the sources they describe.
+const MOCK_META: Record<
+  string,
+  { label: string; unit?: UnitHint; group?: string }
+> = {
+  "v.altitude": { label: "Altitude", unit: "m", group: "Position" },
+  "v.surfaceSpeed": { label: "Surface speed", unit: "m/s", group: "Velocity" },
+};
+
+const mockEnrich: KeyEnricher = (key) =>
+  MOCK_META[key] ?? { label: key, group: "Other" };
 
 describe("BufferedDataSource", () => {
   let source: MockDataSource;
@@ -27,6 +42,7 @@ describe("BufferedDataSource", () => {
       store,
       now: () => clock,
       inMemoryLimit: 10,
+      enrichKey: mockEnrich,
     });
     await buffered.connect();
   });
@@ -425,7 +441,7 @@ describe("BufferedDataSource", () => {
     expect(spy).toHaveBeenCalledWith("disconnected");
   });
 
-  it("schema() enriches raw keys with metadata", () => {
+  it("schema() enriches raw keys through the injected enricher", () => {
     const schema = buffered.schema();
     const alt = schema.find((k) => k.key === "v.altitude");
     expect(alt?.label).toBe("Altitude");
@@ -433,7 +449,7 @@ describe("BufferedDataSource", () => {
     expect(alt?.group).toBe("Position");
   });
 
-  it("schema() falls back to key-as-label for keys absent from telemachusMeta", () => {
+  it("schema() falls back to key-as-label for keys absent from the catalogue", () => {
     // Use a mock source that includes a key with no metadata entry.
     const unknownSource = new MockDataSource({
       keys: [
@@ -446,6 +462,7 @@ describe("BufferedDataSource", () => {
       source: unknownSource,
       store: new MemoryStore(),
       now: () => clock,
+      enrichKey: mockEnrich,
     });
     // connect() is not needed, schema() is synchronous
     const schema = buf.schema();
@@ -648,7 +665,7 @@ const GATED_KEYS: DataKey[] = [
   // `f.throttle` is on the blocklist (`isAntennaOnlyKey` in
   // BufferedDataSource); we use it to exercise the gate's drop path.
   // `v.altitude` / `v.surfaceSpeed` / most other keys flow honestly
-  // even with the Telemachus antenna down: verified live 2026-05-18.
+  // even with the telemetry antenna down: verified live 2026-05-18.
   { key: "f.throttle" },
   { key: "comm.connected" },
   { key: "p.paused" },
@@ -780,7 +797,7 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
 
   it("does NOT gate on a cold-start comm.connected=false (no confirmed link yet)", async () => {
     // Tear down and rebuild without the priming `comm.connected: true`, this
-    // replicates the real-world scenario where Telemachus reports false
+    // replicates the real-world scenario where the source reports false
     // because there's no vessel / CommNet is disabled / similar. Previous
     // versions spuriously gated here and widgets went dark on every load.
     buffered.disconnect();
@@ -797,7 +814,7 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
     expect(range.v).toContain(42);
   });
 
-  // ------------------- p.paused (Telemachus antenna) gate -------------------
+  // ------------------- p.paused (telemetry antenna) gate -------------------
 
   it("drops antenna-only samples when p.paused goes non-zero (antenna lost)", () => {
     // Confirm a prior p.paused=0 so cold-start protection allows the
@@ -851,7 +868,7 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
   it.each([
     ["v.altitude", 100],
     ["v.name", "Throttle Test"],
-  ])("always lets %s through during a Telemachus antenna outage (tracking-station observable)", (key, value) => {
+  ])("always lets %s through during a telemetry antenna outage (tracking-station observable)", (key, value) => {
     source.emit("p.paused", 0);
     source.emit("p.paused", 2); // gate active
 
@@ -869,13 +886,13 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
     "v.ag1Value",
     "v.currentStage",
     "dv.stageCount",
-  ])("drops antenna-only key %s during a Telemachus antenna outage", (key) => {
+  ])("drops antenna-only key %s during a telemetry antenna outage", (key) => {
     source.emit("p.paused", 0);
     source.emit("p.paused", 2); // gate active
 
     const spy = vi.fn();
     buffered.subscribe(key, spy);
-    source.emit(key, 2); // the Telemachus sentinel
+    source.emit(key, 2); // the antenna-down sentinel
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -899,7 +916,7 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
   });
 });
 
-// ── External-source ingestion (kOS) ────────────────────────────────────────
+// ── External-source ingestion ──────────────────────────────────────────────
 
 describe("BufferedDataSource: external-source ingestion (appendExternalSample)", () => {
   let source: MockDataSource;
@@ -929,56 +946,48 @@ describe("BufferedDataSource: external-source ingestion (appendExternalSample)",
 
   it("fans out external samples to live subscribers", () => {
     const spy = vi.fn();
-    buffered.subscribe("kos.compute.demo.value", spy);
-    buffered.appendExternalSample("kos.compute.demo.value", 42);
+    buffered.subscribe("compute.demo.value", spy);
+    buffered.appendExternalSample("compute.demo.value", 42);
     expect(spy).toHaveBeenCalledWith(42);
   });
 
   it("persists external samples into the current flight's store", async () => {
     clock = 2000;
-    buffered.appendExternalSample("kos.compute.demo.value", 100);
+    buffered.appendExternalSample("compute.demo.value", 100);
     clock = 3000;
-    buffered.appendExternalSample("kos.compute.demo.value", 200);
-    const range = await buffered.queryRange(
-      "kos.compute.demo.value",
-      0,
-      10_000,
-    );
+    buffered.appendExternalSample("compute.demo.value", 200);
+    const range = await buffered.queryRange("compute.demo.value", 0, 10_000);
     expect(range).toEqual({ t: [2000, 3000], v: [100, 200] });
   });
 
   it("fires timestamped sample subscribers (useDataSeries path)", () => {
     const samples: { t: number; v: unknown }[] = [];
-    buffered.subscribeSamples("kos.compute.demo.value", (s) => samples.push(s));
+    buffered.subscribeSamples("compute.demo.value", (s) => samples.push(s));
     clock = 2500;
-    buffered.appendExternalSample("kos.compute.demo.value", 7);
+    buffered.appendExternalSample("compute.demo.value", 7);
     expect(samples).toEqual([{ t: 2500, v: 7 }]);
   });
 
   it("replays the last-known external value to late subscribers", () => {
-    buffered.appendExternalSample("kos.compute.demo.value", "ready");
+    buffered.appendExternalSample("compute.demo.value", "ready");
     const spy = vi.fn();
-    buffered.subscribe("kos.compute.demo.value", spy);
+    buffered.subscribe("compute.demo.value", spy);
     expect(spy).toHaveBeenCalledWith("ready");
   });
 
-  it("does NOT pass through the signal-loss gate (kOS isn't comm-affected)", async () => {
+  it("does NOT pass through the signal-loss gate (an onboard feeder isn't comm-affected)", async () => {
     source.affectedBySignalLoss = true;
     source.emit("comm.connected", true); // confirm a prior link
     source.emit("comm.connected", false); // gate now active
     clock = 4000;
-    buffered.appendExternalSample("kos.compute.demo.value", 99);
-    const range = await buffered.queryRange(
-      "kos.compute.demo.value",
-      0,
-      10_000,
-    );
+    buffered.appendExternalSample("compute.demo.value", 99);
+    const range = await buffered.queryRange("compute.demo.value", 0, 10_000);
     expect(range.v).toContain(99);
   });
 
   it("does not advance the FlightDetector (driven by v.missionTime only)", () => {
     const before = buffered.getCurrentFlight()?.id;
-    buffered.appendExternalSample("kos.compute.demo.value", 1);
+    buffered.appendExternalSample("compute.demo.value", 1);
     const after = buffered.getCurrentFlight()?.id;
     expect(after).toBe(before);
   });
@@ -1002,30 +1011,32 @@ describe("BufferedDataSource: registerExternalKeys", () => {
 
   it("merges external keys into schema() output", () => {
     buffered.registerExternalKeys([
-      { key: "kos.compute.demo.value", label: "Demo value", group: "kOS" },
+      { key: "compute.demo.value", label: "Demo value", group: "Compute" },
     ]);
     const keys = buffered.schema().map((k) => k.key);
-    expect(keys).toContain("kos.compute.demo.value");
+    expect(keys).toContain("compute.demo.value");
   });
 
   it("preserves the supplied DataKeyMeta shape", () => {
     buffered.registerExternalKeys([
-      { key: "kos.compute.x.y", label: "X.Y", group: "kOS", unit: "raw" },
+      { key: "compute.x.y", label: "X.Y", group: "Compute", unit: "raw" },
     ]);
-    const found = buffered.schema().find((k) => k.key === "kos.compute.x.y");
-    expect(found).toMatchObject({ label: "X.Y", group: "kOS", unit: "raw" });
+    const found = buffered.schema().find((k) => k.key === "compute.x.y");
+    expect(found).toMatchObject({
+      label: "X.Y",
+      group: "Compute",
+      unit: "raw",
+    });
   });
 
   it("re-registering a key replaces the previous metadata", () => {
     buffered.registerExternalKeys([
-      { key: "kos.compute.demo.value", label: "Old" },
+      { key: "compute.demo.value", label: "Old" },
     ]);
     buffered.registerExternalKeys([
-      { key: "kos.compute.demo.value", label: "New" },
+      { key: "compute.demo.value", label: "New" },
     ]);
-    const found = buffered
-      .schema()
-      .find((k) => k.key === "kos.compute.demo.value");
+    const found = buffered.schema().find((k) => k.key === "compute.demo.value");
     expect(found?.label).toBe("New");
   });
 });

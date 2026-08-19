@@ -15,7 +15,7 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
  * All methods are async to match IndexedDB's native shape. `MemoryStore`
  * resolves synchronously.
  */
-export interface Store {
+export interface FlightStore {
   // --- Flights -----------------------------------------------------------
 
   upsertFlight(record: FlightRecord): Promise<void>;

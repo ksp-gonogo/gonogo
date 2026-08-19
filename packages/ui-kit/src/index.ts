@@ -142,13 +142,15 @@ export {
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
-// ── Contribution read seam (relocated from @ksp-gonogo/core) ──────────────────
-// The contribution TYPE surface (the declaration-merge registries, the segment
-// machinery, the entry types), the component-slot context, and the contribution
-// READ hooks + per-widget store. Spine-free (sdk types only); the registration
-// half and the per-frame aggregation stay in core. `@ksp-gonogo/core` re-exports
-// every symbol below, so existing `@ksp-gonogo/core` importers are byte-
-// identical and a `declare module "@ksp-gonogo/core"` augmentation of
+// ── Contribution seam (relocated from @ksp-gonogo/core) ───────────────────────
+// The type surface (re-exported from the sdk, which declares it), the read hooks
+// and per-widget store, AND the per-frame aggregation that writes into that store.
+// Both halves are here now: the aggregation used to sit in core because it needed
+// spine values, and every one of those is on the sdk, which this package already
+// imports. Only the REGISTRATION registry is elsewhere, on the sdk.
+//
+// `@ksp-gonogo/core` re-exports every symbol below, so existing importers are
+// byte-identical and a `declare module "@ksp-gonogo/core"` augmentation of
 // `ContributionRegistry`/`ComponentSlotRegistry` still merges.
 export * from "./contributions";
 export {
@@ -157,6 +159,7 @@ export {
   useContributions,
   useContributionsBySlotId,
 } from "./contributionsRead";
+export { ContributionsProvider } from "./contributionsRuntime";
 export {
   DataKeyPicker,
   type DataKeyPickerProps,
@@ -477,6 +480,7 @@ export {
   type UseRowFilterOptions,
   useRowFilter,
 } from "./useRowFilter";
+export { useWidgetBadges } from "./useWidgetBadges";
 export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";

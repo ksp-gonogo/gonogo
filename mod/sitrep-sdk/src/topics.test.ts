@@ -94,7 +94,12 @@ describe("typed Topic registry", () => {
     // If this fails: an SDK-owned Topic (generated or the engine tail) is no
     // longer declared in C#: regenerate the codegen map / fix the engine tail.
     expect(staleInSdk, "SDK-owned Topics no longer declared in C#").toEqual([]);
-  });
+    // The 30s budget is for `extractDeclaredTopics`, which walks and reads every
+    // production `.cs` file under `mod/`, not for the assertion. Same measurement
+    // and same reasoning as `control-channels-cs-sync.test.ts`: ~250ms alone,
+    // seconds inside a full parallel `pnpm test`, so the default 5s failed as a
+    // timeout on the whole-repo run while passing in isolation.
+  }, 30_000);
 
   it("has no duplicate TopicIds", () => {
     expect(new Set(TOPIC_IDS).size).toBe(TOPIC_IDS.length);

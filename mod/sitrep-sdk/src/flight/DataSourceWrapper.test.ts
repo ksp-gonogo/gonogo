@@ -1,6 +1,6 @@
-import type { DataKey } from "@ksp-gonogo/core";
-import { MockDataSource } from "@ksp-gonogo/core";
 import { describe, expect, it, vi } from "vitest";
+import type { DataKey } from "../api/types";
+import { MockDataSource } from "../testing/mock-data-source";
 import { DataSourceWrapper } from "./DataSourceWrapper";
 import { KeyedListenerSet, ListenerSet } from "./ListenerSet";
 

@@ -1,6 +1,5 @@
 import {
   AugmentSlot,
-  ContributionsProvider,
   clearAugments,
   clearContributions,
   defineUplinkClient,
@@ -137,8 +136,6 @@ export function installRealTestHost(): () => void {
     clearContributions: () => {
       clearContributions();
     },
-    ContributionsProvider:
-      ContributionsProvider as GonogoHost["ContributionsProvider"],
 
     defineUplinkClient: (cfg) => defineUplinkClient(cfg),
 

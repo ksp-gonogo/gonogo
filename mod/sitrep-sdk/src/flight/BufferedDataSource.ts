@@ -1,15 +1,14 @@
-import type { DataSource, DataSourceStatus } from "@ksp-gonogo/core";
-import { PerfBudget } from "@ksp-gonogo/core";
+import type { DataSource, DataSourceStatus } from "../api/types";
+import { PerfBudget } from "../perf/PerfBudget";
 import { DataSourceWrapper } from "./DataSourceWrapper";
+import { debugFlight } from "./debugFlight";
 import { getDerivedKeys } from "./derive";
 import type { FlightFixture } from "./fixtureIO";
 import { exportFlightToFixture } from "./fixtureIO";
 import { getKeepCount } from "./flightAutoDelete";
 import { FlightDetector } from "./flightDetector";
 import { KeyedListenerSet, ListenerSet } from "./ListenerSet";
-import { debugFlight } from "./logger";
-import { enrichKey } from "./schema/telemachusMeta";
-import type { Store } from "./storage/Store";
+import type { FlightStore } from "./storage/Store";
 import type {
   DataKeyMeta,
   FlightChapterRecord,
@@ -21,9 +20,9 @@ import type {
 } from "./types";
 
 /**
- * Soft cap on samples flowing into the buffered layer. Telemachus runs
- * at 4 Hz across ~170 keys (worst-case 680/sec when every key changes
- * each tick), plus a handful of derived keys and a brief replay burst
+ * Soft cap on samples flowing into the buffered layer. A polling telemetry
+ * source runs at 4 Hz across ~170 keys (worst-case 680/sec when every key
+ * changes each tick), plus a handful of derived keys and a brief replay burst
  * on subscribe. Mid-flight refreshes routinely flirted with the old
  * 1500 limit; 3000 still catches a true regression (e.g. duplicated
  * samples or a runaway WS rate) without false-alarming on normal load.
@@ -39,11 +38,10 @@ type Clock = () => number;
 
 // Generic, mod-agnostic structural type for a wrapped source that can
 // dispatch a script and resolve with some result, deliberately untyped
-// beyond that shape (no kOS-specific arg/result types) so this package
-// never needs to depend on any specific Uplink package. kOS's own typed
-// contract (ScriptableDataSource, with KosScriptArg/KosData types) lives in
-// the kos Uplink itself; KosDataSource's more specific executeScript still
-// satisfies this looser shape structurally.
+// beyond that shape (no Uplink-specific arg/result types) so this package
+// never needs to depend on any specific Uplink package. A scripting Uplink's
+// own typed contract lives in that Uplink; its more specific executeScript
+// still satisfies this looser shape structurally.
 type ExecuteScriptAware = {
   executeScript: (
     cpu: string,
@@ -102,10 +100,10 @@ interface Options {
   id?: string;
   /** Human name. Defaults to a derived value. */
   name?: string;
-  /** Upstream data source to wrap (e.g. the telemachus source). */
+  /** Upstream data source to wrap (e.g. a polling telemetry source). */
   source: DataSource;
   /** Persistence. Usually an `IndexedDbStore`; `MemoryStore` in tests. */
-  store: Store;
+  store: FlightStore;
   /**
    * Number of samples kept in memory per key for `getLatest()`. 500 covers
    * ~2 minutes at 4Hz, enough for the graph widget's initial window
@@ -114,7 +112,20 @@ interface Options {
   inMemoryLimit?: number;
   /** Injectable clock, mostly for tests. Defaults to `Date.now`. */
   now?: Clock;
+  /**
+   * Decorates each upstream `DataKey` with a human-facing label, unit and
+   * group for `schema()`. The catalogue that supplies these is specific to
+   * whichever source is being wrapped, so it is injected rather than owned
+   * here: the default labels a key with itself and groups it under "Other",
+   * which is also the per-key fallback of every real catalogue.
+   */
+  enrichKey?: KeyEnricher;
 }
+
+/** Supplies the human-facing half of a `DataKeyMeta` for one key. */
+export type KeyEnricher = (key: string) => Omit<DataKeyMeta, "key">;
+
+const KEY_AS_LABEL: KeyEnricher = (key) => ({ label: key, group: "Other" });
 
 interface SampleRow {
   t: number;
@@ -131,16 +142,17 @@ interface SampleRow {
  * samples only, not on subscribe. For historical backfill, callers use
  * `queryRange` or the `useDataSeries` hook (which composes both).
  *
- * Flight identification runs off `v.name` + `v.missionTime` for now; a
- * `vesselUid` sourced from kOS (Phase 6) will take precedence once
+ * Flight identification runs off `v.name` + `v.missionTime` for now; an
+ * authoritative `vesselUid` from the vessel takes precedence once
  * available. The detector is seeded from persisted flights on `connect()`
  * so we resume rather than duplicate after a reload.
  */
 export class BufferedDataSource extends DataSourceWrapper {
-  private readonly store: Store;
+  private readonly store: FlightStore;
   private readonly detector = new FlightDetector();
   private readonly inMemoryLimit: number;
   private readonly now: Clock;
+  private readonly enrichKey: KeyEnricher;
 
   private latestName: string | null = null;
 
@@ -178,8 +190,8 @@ export class BufferedDataSource extends DataSourceWrapper {
    */
   private readonly upfrontKeys = new Set<string>();
   /**
-   * Schema entries from non-Telemachus feeders (e.g. kOS centralised
-   * compute). Surfaced through `schema()` so the picker shows them and
+   * Schema entries from feeders other than the wrapped source (e.g. a
+   * centralised compute fanout). Surfaced through `schema()` so the picker shows them and
    * exports include them. Populated via `registerExternalKeys`.
    */
   private readonly externalSchema = new Map<string, DataKeyMeta>();
@@ -200,32 +212,31 @@ export class BufferedDataSource extends DataSourceWrapper {
    * Trust gate state. Tracks TWO independent signals, telemetry is
    * trusted only when BOTH are good:
    *
-   * 1. **Telemachus antenna** via `p.paused`. `0` = active + powered;
+   * 1. **The telemetry antenna** via `p.paused`. `0` = active + powered;
    *    `1` = game paused (frozen values still real). Anything else
    *    (2/3/4/5) means the antenna is gone / unpowered / off and
    *    vessel-required keys collapse to the literal value `2`,
    *    verified live 2026-05-18 (see `local_docs/2026-05-18/_decisions.md`).
    * 2. **Vanilla CommNet** via `comm.connected`. Mission-control
-   *    link; independent of the Telemachus antenna. Widgets like
-   *    LaunchDirector need this too, even with a live Telemachus
-   *    link, no CommNet means the operator shouldn't be acting on
-   *    the data.
+   *    link; independent of the telemetry antenna. Widgets that drive
+   *    the vessel need this too, even with a live telemetry link: no
+   *    CommNet means the operator shouldn't be acting on the data.
    *
    * Each signal has its own "ever confirmed good?" guard so cold-start
    * `false` / non-zero values don't freeze widgets the moment a station
    * connects. The combined gate activates when EITHER signal has been
    * confirmed good and is now bad.
    *
-   * Defaults are `true` so non-signal-affected sources (`kos`) aren't
-   * held back, and so a Telemachus source that hasn't reported either
-   * key yet doesn't freeze every widget on cold-start.
+   * Defaults are `true` so sources that aren't signal-affected aren't held
+   * back, and so a wrapped source that hasn't reported either key yet
+   * doesn't freeze every widget on cold-start.
    */
   private commGate = true;
   private hasConfirmedComm = false;
   private pPausedGate = true;
   private hasConfirmedPPaused = false;
 
-  // Idempotence keys for outcome annotation. Telemachus's
+  // Idempotence keys for outcome annotation. The upstream
   // recovery.lastSummary / crash.lastCrash are sticky, they emit the same
   // payload on every WS tick until a fresh capture replaces them. Track
   // the snapshot's capture-time so we only annotate the FlightRecord
@@ -241,6 +252,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.store = opts.store;
     this.inMemoryLimit = opts.inMemoryLimit ?? 500;
     this.now = opts.now ?? Date.now;
+    this.enrichKey = opts.enrichKey ?? KEY_AS_LABEL;
   }
 
   /** Alias for `this.real` for readability inside this wrapper. */
@@ -272,7 +284,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     }
 
     // Subscribe to every key the upstream exposes. We don't filter, the
-    // graph widget may want any of them. Telemachus schema is static so
+    // graph widget may want any of them. The upstream schema is static so
     // this is a fixed cost at connect time. Indexed keys (e.g.
     // `b.name[1]`) live outside the schema; they're picked up via demand
     // subscribes from `subscribe()` below.
@@ -306,7 +318,7 @@ export class BufferedDataSource extends DataSourceWrapper {
   schema(): DataKeyMeta[] {
     const raw: DataKeyMeta[] = this.source.schema().map((dk) => ({
       ...dk,
-      ...enrichKey(dk.key),
+      ...this.enrichKey(dk.key),
     }));
     const derived: DataKeyMeta[] = getDerivedKeys().map((def) => ({
       key: def.id,
@@ -397,7 +409,7 @@ export class BufferedDataSource extends DataSourceWrapper {
   /**
    * Latest single emitted value for a key, or undefined if none seen yet.
    * Synchronous: used where widgets need a snapshot without subscribing
-   * (e.g. resolving telemetry args at kOS script dispatch time).
+   * (e.g. resolving telemetry args at script dispatch time).
    */
   getLatestValue(key: string): unknown | undefined {
     return this.lastEmittedValue.get(key);
@@ -462,38 +474,38 @@ export class BufferedDataSource extends DataSourceWrapper {
     return this.sampleSubscribers.add(key, cb);
   }
 
-  // ── External-source ingestion (kOS) ──────────────────────────────────────
+  // ── External-source ingestion ────────────────────────────────────────────
   //
-  // The wrapped Telemachus source drives FlightDetector + signal-loss gating
-  // and is the canonical sample feed. But we also want non-Telemachus
-  // sources (the kOS centralised compute fanout) to land in the same flight
-  // record so they replay alongside Telemachus telemetry. These methods are
-  // the public seam for that: they bypass the gate + detector but feed the
-  // store + buffer + subscriber fanout exactly like a Telemachus sample.
+  // The wrapped source drives FlightDetector + signal-loss gating and is the
+  // canonical sample feed. But we also want samples from other feeders (a
+  // centralised compute fanout, say) to land in the same flight record so they
+  // replay alongside it. These methods are the public seam for that: they
+  // bypass the gate + detector but feed the store + buffer + subscriber fanout
+  // exactly like a sample from the wrapped source.
   //
-  // Keys must be globally unique across all feeders. kOS already namespaces
-  // its keys (`kos.compute.<topic>.<field>`) so collision with Telemachus
-  // is impossible by construction.
+  // Keys must be globally unique across all feeders. A feeder that namespaces
+  // its keys under its own prefix cannot collide by construction.
 
   /**
-   * Schema entries from non-Telemachus sources, surfaced through `schema()`
-   * so the data picker shows them and `exportFlight` captures their samples.
-   * Caller (typically the app shell, after wiring the kOS source) calls
-   * this once per known schema; calling again for the same key replaces.
+   * Schema entries from other feeders, surfaced through `schema()` so the
+   * data picker shows them and `exportFlight` captures their samples.
+   * Caller (typically the app shell, after wiring that feeder) calls this
+   * once per known schema; calling again for the same key replaces.
    */
   registerExternalKeys(keys: ReadonlyArray<DataKeyMeta>): void {
     for (const k of keys) this.externalSchema.set(k.key, k);
   }
 
   /**
-   * Append a sample from a non-Telemachus source. Same fanout chain as
-   * Telemachus samples (store, in-memory buffer, live + sample subscribers,
+   * Append a sample from another feeder. Same fanout chain as samples from
+   * the wrapped source (store, in-memory buffer, live + sample subscribers,
    * derived keys), minus the FlightDetector tick (driven by `v.missionTime`
-   * exclusively) and the signal-loss gate (kOS isn't comm-affected).
+   * exclusively) and the signal-loss gate (a feeder running aboard the vessel
+   * isn't comm-affected).
    *
-   * If no flight is established yet (Telemachus warmup hasn't completed),
-   * the sample is fanned out live but NOT persisted, same shape as
-   * Telemachus pre-flight samples.
+   * If no flight is established yet (the wrapped source's warmup hasn't
+   * completed), the sample is fanned out live but NOT persisted, same shape
+   * as pre-flight samples from the wrapped source.
    */
   appendExternalSample(key: string, value: unknown): void {
     const t = this.now();
@@ -510,7 +522,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     if (current) this.sampleSubscribers.fire(key, { t, v: value });
 
     // Derived keys can opt in by listing an external key as one of their
-    // inputs: same machinery as Telemachus-driven derivations.
+    // inputs: same machinery as derivations driven by the wrapped source.
     this.runDerivedKeys(key, current?.id ?? null);
   }
 
@@ -686,7 +698,7 @@ export class BufferedDataSource extends DataSourceWrapper {
   private handleSample(key: string, value: unknown): void {
     BUFFERED_SAMPLE_BUDGET.record();
     // Trust-gate trackers: BOTH `comm.connected` (vanilla CommNet) and
-    // `p.paused` (Telemachus antenna) must be good for the source to
+    // `p.paused` (the telemetry antenna) must be good for the source to
     // be trusted. Cold-start guards on each: only a confirmed-good
     // then bad transition activates that signal's half of the gate.
     if (key === "comm.connected") {
@@ -711,14 +723,14 @@ export class BufferedDataSource extends DataSourceWrapper {
       }
     }
 
-    // Telemachus-antenna-down gate. When the wrapped source is
-    // signal-affected (Telemachus) and we've confirmed a prior live
+    // Antenna-down gate. When the wrapped source is
+    // signal-affected and we've confirmed a prior live
     // link that has since dropped, drop ONLY the specific keys that
     // collapse to the literal value `2` in this state. Everything
     // else stays: tracking-station-observable (vessel position +
     // basic orbital elements + resource quantities + crew + atmosphere
     // readings) and KSC-global state remain trustworthy whether or
-    // not the Telemachus antenna is up.
+    // not the telemetry antenna is up.
     //
     // The blocklist was built from the 2026-05-18 live test: with the
     // data-link disabled in-game, ~42 keys collapse to `2`; 131 keys
@@ -731,7 +743,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     //    detect the gate-lift event. Excluded from the blocklist.
     //  - `comm.controlState`: returns `2` here but legitimately:
     //    `2` means "full control" in the vanilla CommNet enum and
-    //    CommNet is independent of the Telemachus antenna. Flows.
+    //    CommNet is independent of the telemetry antenna. Flows.
     const isAntennaOnlyKey =
       key.startsWith("land.") ||
       key.startsWith("therm.") ||
@@ -760,7 +772,7 @@ export class BufferedDataSource extends DataSourceWrapper {
 
     // Recovery / crash snapshots from the GonogoTelemetry plugin,
     // annotate the matching flight record with the final outcome. Idempotent
-    // per snapshot ut (the snapshots are sticky on Telemachus's side; we
+    // per snapshot ut (the snapshots are sticky upstream; we
     // don't want to overwrite an outcome with the same outcome every tick).
     if (key === "recovery.lastSummary" && value && typeof value === "object") {
       this.applyRecoveryOutcome(value as Record<string, unknown>);

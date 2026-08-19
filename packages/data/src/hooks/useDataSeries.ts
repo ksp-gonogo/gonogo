@@ -6,8 +6,8 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
+import type { BufferedDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useRef, useSyncExternalStore } from "react";
-import type { BufferedDataSource } from "../BufferedDataSource";
 import type { SeriesRange } from "../types";
 
 const EMPTY: SeriesRange = { t: [], v: [] };

@@ -1,4 +1,4 @@
-import { logger } from "@ksp-gonogo/logger";
+import { logger } from "../../api/logger";
 
 export interface LocalStorageStoreOptions<T> {
   /** localStorage key */
