@@ -117,7 +117,7 @@ export interface PredictTrajectoryArgs {
 const DEFAULT_SAMPLES = 64;
 const MAX_SAMPLES = 128;
 
-/** Case + whitespace insensitive body-name compare (Telemachus casing drift). */
+/** Case + whitespace insensitive body-name compare (body-name casing drifts). */
 function sameBody(a: string | null, b: string | null): boolean {
   if (a === null || b === null) return false;
   return a.trim().toLowerCase() === b.trim().toLowerCase();

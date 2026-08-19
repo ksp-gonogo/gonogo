@@ -151,8 +151,8 @@ export function OrbitDiagram({
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
-  // Hyperbolic orbits: Telemachus emits `sma < 0` and `ecc ≥ 1` on
-  // escape trajectories. The ellipse representation collapses (negative
+  // Hyperbolic orbits: an escape trajectory arrives with `sma < 0` and
+  // `ecc >= 1`. The ellipse representation collapses (negative
   // rx + zero ry from b = sma·√(1-e²) when e²>1) so we render a sampled
   // hyperbolic path instead. Apoapsis is meaningless on a hyperbola so
   // we suppress the marker and base scale-ref on periapsis.
@@ -188,9 +188,9 @@ export function OrbitDiagram({
   const sec2ArgPe = secondaryProjected?.argPe ?? argPe;
 
   // Scale reference: expand to contain whichever orbit reaches furthest.
-  // For hyperbolic trajectories, apoapsis is meaningless (Telemachus
-  // emits a huge sentinel: using it would zoom the diagram out to
-  // dwarf the body); fall back to a multiple of periapsis so the
+  // For hyperbolic trajectories, apoapsis is meaningless, and a provider
+  // that answers with a huge sentinel instead of nothing would zoom the
+  // diagram out to dwarf the body; fall back to a multiple of periapsis so the
   // trajectory + body have visual breathing room.
   const HYPERBOLIC_SCALE = 5;
   const mainExtent = isHyperbolic ? periapsis * HYPERBOLIC_SCALE : apoapsis;
@@ -494,10 +494,10 @@ export function OrbitDiagram({
         <g transform={`rotate(${-argPe})`}>
           {showMarkers && (
             <>
-              {/* Apoapsis is undefined on a hyperbolic trajectory, skip
-                  the marker rather than placing it at the sentinel value
-                  Telemachus emits, which would land it off-screen and
-                  point a "tab to focus" target at empty space. */}
+              {/* Apoapsis is undefined on a hyperbolic trajectory. Skip the
+                  marker rather than place it at a sentinel value, which would
+                  land it off-screen and point a "tab to focus" target at empty
+                  space. */}
               {!isHyperbolic && (
                 <ApsisMarker
                   cx={-apoapsis}

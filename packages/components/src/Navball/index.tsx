@@ -265,11 +265,11 @@ function NavballComponent({
   const controlMode = config?.controlMode === true;
 
   // VERIFIED (KspHost.BuildAttitude / VesselAttitude.cs class doc): the
-  // UNSUFFIXED n.heading/pitch/roll are the CoM-referenced frame; the *2
-  // suffix is the genuinely distinct ROOT-PART-referenced frame, the
-  // OPPOSITE pairing a naive reading of Telemachus's old root-vs-CoM
-  // convention would suggest. The ternary below is deliberately "backwards"
-  // relative to the key names so the toggle's OWN semantics (useCoMFrame
+  // UNSUFFIXED `heading`/`pitch`/`roll` are the CoM-referenced frame, and the
+  // `*RootFrame` trio is the genuinely distinct ROOT-PART-referenced one. That
+  // is the OPPOSITE of what the field names suggest at a glance, so the ternary
+  // below is deliberately "backwards" relative to them, so the toggle's OWN
+  // semantics (useCoMFrame
   // true = CoM, default false = root part, both documented on
   // NavballConfig/the config-form copy below) read correctly against the
   // real frames.
@@ -506,7 +506,7 @@ function NavballComponent({
   }
 
   // FBW arm/disarm with auto-disarm on unmount. State mirrors the latest
-  // arm command rather than a Telemachus key, no readback for FBW.
+  // arm command rather than a telemetry read: there is no readback for FBW.
   // `setFlyByWire` is absolute-set (state travels in the arg itself), no
   // invert needed, unlike SAS/RCS.
   const [fbwArmed, setFbwArmed] = useState(false);
@@ -550,8 +550,8 @@ function NavballComponent({
     delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
   const showFbwDelayWarning = fbwArmed && delayHigh;
 
-  // Action wiring: every action surface has a mapping into a Telemachus
-  // execute call, with analog values clamped to [-1, 1] and throttle to
+  // Action wiring: every action surface maps to a command dispatch, with
+  // analog values clamped to [-1, 1] and throttle to
   // [0, 1]. Button payloads only fire on the press edge (value=true) so
   // a hardware press+release doesn't trigger twice.
   useActionInput<NavballActions>({
@@ -577,10 +577,10 @@ function NavballComponent({
     },
     "toggle-precision": (payload) => {
       if (!isButtonPress(payload)) return;
-      // No dedicated key in Telemachus: toggling FBW pitch trim doesn't
-      // help. v.precisionControlValue is a read; setting precision happens
-      // via the SAS path. For now treat as a no-op with a console hint.
-      // (Surfaced as an action so a future Telemachus version can wire it.)
+      // No dedicated command for this: toggling FBW pitch trim doesn't
+      // help, and precision control is readable but only settable via the
+      // SAS path. Treated as a no-op with a console hint, and surfaced as an
+      // action anyway so a future command can be wired to it.
     },
     "kill-rotation": (payload) => {
       if (!isButtonPress(payload)) return;

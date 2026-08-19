@@ -18,10 +18,10 @@ import {
  * period, hill sphere and the live true anomaly are all reconstructed here from
  * `gravParameter` + `radius` + the orbit).
  *
- * This replaced the old Telemachus `b.*[i]` indexed-bucket fan-out (which read
- * `getDataSource("data")` directly: a source deleted in the Telemachus
- * removal, which is why the body list went empty everywhere: SystemView,
- * TargetPicker's Bodies tab, OrbitView's body overlay).
+ * This replaced an indexed-bucket fan-out that read `getDataSource("data")`
+ * directly. That source was deleted, which is why the body list went empty
+ * everywhere at once: SystemView, TargetPicker's Bodies tab, OrbitView's body
+ * overlay.
  *
  * The derived `trueAnomaly` tracks the SDK view-UT, so bodies advance along
  * their orbits on the widget's telemetry-driven re-renders, the same cadence

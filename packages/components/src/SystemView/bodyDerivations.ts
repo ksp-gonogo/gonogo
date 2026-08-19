@@ -79,8 +79,7 @@ export function derivePeriod(
 }
 
 /**
- * Hill-sphere radius, metres: the old Telemachus `hillSphere`, derivable from
- * the orbit and the two masses: `r ≈ a·(1 − e)·∛(m / 3M)`. `null` when any
+ * Hill-sphere radius, metres, derivable from the orbit and the two masses: `r ≈ a·(1 − e)·∛(m / 3M)`. `null` when any
  * input is missing.
  */
 export function deriveHillSphere(

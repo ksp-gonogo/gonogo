@@ -258,8 +258,8 @@ export function SystemDiagram({
 
   if (!parent || children.length === 0) {
     // Diagnostic: list distinct referenceBody values across the whole
-    // body set so the user can see whether Telemachus is actually
-    // emitting parent names that match `parentName`. A common cause
+    // body set so the user can see whether the parent names arriving
+    // actually match `parentName`. A common cause
     // of the empty state is a name mismatch (e.g. "Sun" vs "Kerbol")
     // or referenceBody not arriving at all.
     const distinctParents = Array.from(
@@ -1014,7 +1014,7 @@ function tooltipRows(
 }
 
 /**
- * Telemachus reports phase angles in [0, 360); rendering them as the closest
+ * Phase angles arrive in [0, 360); rendering them as the closest
  * signed value (-180, 180] makes the leading/trailing relationship obvious
  * at a glance.
  */
@@ -1046,9 +1046,9 @@ function organise(
   children: CelestialBody[];
   maxRadius: number;
 } {
-  // Case + whitespace insensitive match: Telemachus has historically
-  // shipped slightly different casings for body names across versions
-  // ("Sun" vs "Sun ", and a stray "Kerbol" alias floating around).
+  // Case + whitespace insensitive match: body names have historically
+  // arrived with slightly different casings across versions ("Sun" vs
+  // "Sun ", and a stray "Kerbol" alias floating around).
   const target = parentName.trim().toLowerCase();
   const norm = (s: string | null) => (s ? s.trim().toLowerCase() : null);
   const parent = bodies.find((b) => norm(b.name) === target) ?? null;

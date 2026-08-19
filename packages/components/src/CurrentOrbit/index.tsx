@@ -195,10 +195,11 @@ function CurrentOrbitComponent({
         >
           <OrbitLabel>Ap</OrbitLabel>
           <OrbitValue accent="ap" tight={tight} narrow={narrow}>
-            {/* Hyperbolic/escape trajectories have no apoapsis, Telemachus
-                emits its sentinel (999999999 m) which would read as a real
-                "1000.00 Mm". Render an em-dash so the operator doesn't
-                mistake an escape trajectory for a vast bound orbit. */}
+            {/* Hyperbolic/escape trajectories have no apoapsis. A provider
+                that answers with a sentinel instead of nothing would read as
+                a real "1000.00 Mm", so render an em-dash and let the operator
+                see the absence rather than mistake an escape trajectory for a
+                vast bound orbit. */}
             {apoapsisA === undefined ? (
               NULL_DISPLAY
             ) : hyperbolic ? (
@@ -242,10 +243,10 @@ function CurrentOrbitComponent({
             <>
               <OrbitLabel>t-Ap</OrbitLabel>
               <OrbitValue accent="ap" tight={tight} narrow={narrow}>
-                {/* On hyperbolic orbits there's no apoapsis to reach,
-                    Telemachus emits 0 which reads as "arriving now" on a
-                    countdown. Render an em-dash so the operator doesn't
-                    mistake a hyperbolic flyby for an imminent event. */}
+                {/* On hyperbolic orbits there's no apoapsis to reach. A
+                    zero here would read as "arriving now" on a countdown, so
+                    render an em-dash rather than let a hyperbolic flyby look
+                    like an imminent event. */}
                 {timeToAp === undefined || hyperbolic ? (
                   NULL_DISPLAY
                 ) : (
@@ -283,8 +284,8 @@ function CurrentOrbitComponent({
               <OrbitLabel>T</OrbitLabel>
               <OrbitValue tight={tight} narrow={narrow}>
                 {/* Period is undefined on a hyperbolic orbit (the
-                    trajectory never closes); Telemachus emits 0 which
-                    is again indistinguishable from "now". */}
+                    trajectory never closes), and a zero there is again
+                    indistinguishable from "now". */}
                 {period === undefined || hyperbolic ? (
                   NULL_DISPLAY
                 ) : (

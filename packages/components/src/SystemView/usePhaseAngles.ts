@@ -9,8 +9,8 @@ import type { CelestialBody } from "./useCelestialBodies";
  * body index: the input the AlmanacPanel's transfer-window readout and
  * SystemDiagram's per-body label consume.
  *
- * This rode Telemachus's derived `b.o.phaseAngle[i]` key, deleted in the
- * Telemachus removal. It's reconstructed CLIENT-SIDE here: each object's true
+ * This rode a derived phase-angle key that no longer exists, so it is
+ * reconstructed CLIENT-SIDE here: each object's true
  * longitude is `L = wrap360(Ω + ω + ν)` (LAN + argPe + true anomaly), and the
  * phase angle is `wrap360(bodyLon − vesselLon)`. Positive = the body is ahead of
  * the vessel in the prograde direction, matching `hohmannPhaseAngle`'s "+ =
