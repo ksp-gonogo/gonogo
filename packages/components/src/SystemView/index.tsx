@@ -143,8 +143,8 @@ function frameNameMatches(a: string, b: string): boolean {
 
 // ── Client-side orbit derivations ───────────────────────────────────────────────
 // Mirror `@ksp-gonogo/sitrep-client`'s `deriveVesselState` (vessel-state.ts) so the
-// widget reconstructs the scalars it used to read off Telemachus's `o.*` keys
-// (trueAnomaly / next-apsis / encounter) directly from the streamed
+// widget reconstructs its orbital scalars (trueAnomaly / next-apsis /
+// encounter) directly from the streamed
 // `vessel.orbit` elements + the SDK view-UT, derived client-side.
 // `vessel.orbit`'s angles are DEGREES on the wire (KSP-native), while
 // `kepler`'s `OrbitElements` is all-radians, so this is the one place the mix is
@@ -305,9 +305,8 @@ function SystemViewComponent({
   // Streamed Topics: raw `vessel.*` records read straight off the Uplink
   // store via the canonical `useTelemetry(TopicId)` hook: no legacy
   // `DataSource` fallback. The scalars the widget used to read off
-  // Telemachus's derived `o.*` keys (trueAnomaly / next-apsis / encounter) are
-  // reconstructed client-side below from `vessel.orbit`'s elements + the SDK
-  // view-UT.
+  // trueAnomaly / next-apsis / encounter are reconstructed client-side below
+  // from `vessel.orbit`'s elements + the SDK view-UT.
   // The vessel's dot and its drawn orbit are MARKERS: positive claims about
   // where the craft is now. So the elements come from a CURRENT reading, or from
   // a model if one is on offer, and otherwise from nothing at all, and the
@@ -378,8 +377,8 @@ function SystemViewComponent({
     return m;
   }, [systemBodies]);
 
-  // Vessel's current body NAME (old Telemachus `v.body`), parentBodyIndex
-  // resolved against `system.bodies`.
+  // Vessel's current body NAME: parentBodyIndex resolved against
+  // `system.bodies`.
   const vesselBody =
     identity?.parentBodyIndex != null
       ? (nameByIndex.get(identity.parentBodyIndex) ?? null)
@@ -395,8 +394,8 @@ function SystemViewComponent({
     // (ecc outside `[0, 1)`: escape/flyby trajectories, a routine state for a
     // system-wide diagram during interplanetary transfers). Degrade the
     // orbital scalars to null rather than crashing the whole widget mid-render
-    // (there's no error boundary inside it, and the old Telemachus path read
-    // trueAnomaly/period/apsis as plain wire scalars that never threw). Guard
+    // (there's no error boundary inside it, and these used to arrive as plain
+    // wire scalars that never threw). Guard
     // exactly the solver's own throw condition (`ecc < 0 || ecc >= 1`); the
     // sibling `orbitPatches` memo already gates the same `ecc < 1` boundary.
     if (!(!orbit.ecc.isNegative() && orbit.ecc.lessThan(1))) {
@@ -434,8 +433,7 @@ function SystemViewComponent({
     return { trueAnomaly, period, ...nextApsisOf(timeToAp, timeToPe) };
   }, [orbit, universalTime]);
 
-  // Next SOI transition (old Telemachus `o.encounter*`) from the streamed
-  // `vessel.orbit.encounter` record.
+  // Next SOI transition, from the streamed `vessel.orbit.encounter` record.
   const encounter = orbit?.encounter ?? null;
   const encounterExists =
     encounter?.transitionType === TRANSITION_TYPE_ENCOUNTER
