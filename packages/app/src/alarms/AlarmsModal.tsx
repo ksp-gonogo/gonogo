@@ -327,7 +327,7 @@ export function AlarmsModal({
                 clearable
               />
               <FieldHint>
-                Any Telemachus key that returns a number, e.g.{" "}
+                Any telemetry key that returns a number, e.g.{" "}
                 <code>v.altitude</code>, <code>v.surfaceVelocity</code>,{" "}
                 <code>v.verticalSpeed</code>.
               </FieldHint>
@@ -391,8 +391,8 @@ export function AlarmsModal({
         )}
         {kind === "time" && snapshot.ut === null && (
           <WaitingNote>
-            Waiting for Telemachus's universal-time reading before new alarms
-            can be scheduled.
+            Waiting for a universal-time reading before new alarms can be
+            scheduled.
           </WaitingNote>
         )}
       </Stack>

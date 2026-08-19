@@ -616,9 +616,9 @@ namespace Gonogo.KSP
         /// a real encounter or escape). Fixed by requiring BOTH
         /// <c>nextPatch.activePatch</c> (the patch is actually part of the
         /// currently active patched-conics solution, not a leftover/
-        /// beyond-the-conics-patch-limit one - mirrors the old Telemachus
-        /// fork's <c>OrbitPatches.getPatchesForOrbit</c>, which walks the
-        /// <c>nextPatch</c> chain only <c>while (activePatch)</c>) AND
+        /// beyond-the-conics-patch-limit one: the chain must be walked only
+        /// <c>while (activePatch)</c>, or leftover patches from a superseded
+        /// solution are reported as though they were still ahead) AND
         /// <c>orbit.patchEndTransition</c> being genuinely <c>ENCOUNTER</c> or
         /// <c>ESCAPE</c> (never <c>FINAL</c>/<c>INITIAL</c>/<c>MANEUVER</c>/
         /// <c>COLLISION</c>). Confirmed via decompile:
@@ -901,10 +901,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Heading/pitch/roll via the same construction MechJeb2 uses
-        /// (borrowed into this codebase's Telemachus fork as
-        /// <c>UpdateHeadingPitchRoll</c> - see
-        /// <c>local_docs/telemachus-fork/Telemachus/src/VesselDataHandlers.cs</c>):
+        /// Heading/pitch/roll via the same construction MechJeb2 uses:
         /// build a local surface frame from the vessel's up/north vectors,
         /// then measure the vessel's reference-transform rotation against
         /// it. Reuses <paramref name="orbit"/>'s already-guarded
@@ -1461,9 +1458,9 @@ namespace Gonogo.KSP
         /// vessel has no maneuver nodes queued, which is the common case;
         /// present whenever the player (or MechJeb, or a script) has queued
         /// at least one. <c>ManeuverNode.DeltaV</c> is in the node's own
-        /// radial/normal/prograde frame - see the project's own
-        /// "Telemachus maneuver-node arg order" finding: x=radial,
-        /// y=normal, z=prograde. <c>solver.maneuverNodes</c> is already
+        /// radial/normal/prograde frame, and the axis order is not the one
+        /// the field name suggests: x=radial, y=normal, z=prograde.
+        /// Established by decompile, and easy to get backwards. <c>solver.maneuverNodes</c> is already
         /// ordered by <c>UT</c> (the order the player queued them / the
         /// order they'll execute).
         /// </summary>
@@ -5826,10 +5823,9 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Per-resource current/max amounts for the parts active in
-        /// <paramref name="stage"/>: the old Telemachus
-        /// <c>r.resourceCurrent[X]</c>/<c>r.resourceCurrentMax[X]</c> pair
-        /// (stage-scoped, as opposed to <see cref="BuildResources"/>'s
-        /// vessel-WIDE totals). <c>DeltaVStageInfo</c> carries only aggregate
+        /// <paramref name="stage"/>: STAGE-scoped, as opposed to
+        /// <see cref="BuildResources"/>'s vessel-WIDE totals. The two are easy
+        /// to confuse and answer different questions. <c>DeltaVStageInfo</c> carries only aggregate
         /// dry/fuel MASS for the stage (confirmed via decompile, no
         /// per-resource field at all), so this walks every
         /// <c>DeltaVPartInfo</c> in the stage's own <c>parts</c> list, looks

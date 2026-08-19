@@ -422,8 +422,8 @@ function renderBody(
   if (!topology) {
     return (
       <div style={PLACEHOLDER}>
-        Waiting for vessel topology from Telemachus. Check the data source
-        status if this persists.
+        Waiting for vessel topology. Check the data source status if this
+        persists.
       </div>
     );
   }
@@ -560,7 +560,7 @@ registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Ship Map",
   description:
-    "Part diagram of the active vessel, driven by Telemachus v.topology. Renders the assembled-space vessel graph as a 2D side-view: prefab-bounds size, per-part heat tint, fuel-fill bars on tanks and boosters, hottest part highlighted.",
+    "Part diagram of the active vessel. Renders the assembled-space vessel graph as a 2D side-view: prefab-bounds size, per-part heat tint, fuel-fill bars on tanks and boosters, hottest part highlighted.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },

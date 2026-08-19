@@ -1503,16 +1503,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/peer-data-sources.test.ts",
       "packages/components/src/DataSourceStatus/index.test.tsx",
 
-      // --- USER-FACING COPY naming a data source the app no longer has.
-      // These are strings an operator reads on screen, which makes them the
-      // most misleading entries here and the cheapest to fix. ---
-      "packages/app/src/alarms/AlarmsModal.tsx",
-      "packages/components/src/ShipMap/ShipDiagramSvg.tsx",
-      "packages/components/src/ShipMap/index.tsx",
-      "packages/components/src/SpaceCenterStatus/index.tsx",
-      "packages/components/src/LaunchDirector/index.tsx",
-      "packages/components/src/Navball/index.tsx",
-      "packages/components/src/CrewStatus/index.tsx",
+      // The USER-FACING COPY group that stood here is PAID OFF: seven widgets
+      // named the retired source in strings an operator reads on screen, and
+      // none of them does now. Each kept the fact it was stating and dropped
+      // the vendor.
     ],
   },
 };

@@ -612,7 +612,7 @@ function UpgradeButton({
 function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
   if (!f) return label;
   if (!f.currentLevelText && !f.nextLevelText) {
-    return `${label} (older Telemachus DLL: no level descriptions)`;
+    return `${label} (no level descriptions on this telemetry)`;
   }
   const parts: string[] = [`${label}: tier ${f.level + 1} of ${f.max + 1}`];
   if (f.currentLevelText) {

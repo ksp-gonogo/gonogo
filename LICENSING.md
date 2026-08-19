@@ -83,7 +83,7 @@ Until that lands, this caveat is the disclosure. Don't delete it early.
 
 ## For third-party code we don't own
 
-`kOS`, `SCANsat`, `RealAntennas`, `Telemachus`, and the vendored `Fleck` source
+`kOS`, `SCANsat`, `RealAntennas`, and the vendored `Fleck` source
 (`mod/Sitrep.Transport/Vendor/Fleck/LICENSE`) are not ours to relicense. Their notices live in
 `THIRD-PARTY-NOTICES.md` and the per-component `NOTICE-*.txt` files, and must be retained. No
 third-party assemblies are bundled, every reference is `Private="false"` and supplied by the

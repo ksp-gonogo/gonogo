@@ -33,7 +33,7 @@ KSP (kOS)                               ──► Gonogo mod kos.run / kos.proce
 Main screen ◄──► Station screens (PeerJS data channels, via a public broker)
 ```
 
-The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`), no HTTP polling. This replaced the app's old Telemachus `DataSource`, which is deleted; Telemachus stays installable in KSP as an optional manual-debug tool, not something the app talks to (see [KSP-SETUP.md](KSP-SETUP.md)). kOS integration rides this same stream now, script dispatch over the `kos.run` command and CPU discovery over the `kos.processors` channel, so there is no separate telnet proxy anymore.
+The Gonogo mod (engineering codename "Sitrep") is the app's telemetry source: the browser opens a WebSocket straight to it (`SitrepTelemetryProvider` in `@ksp-gonogo/app`, backed by `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`), no HTTP polling. It replaced an HTTP-polled data source, which is deleted. kOS integration rides this same stream now, script dispatch over the `kos.run` command and CPU discovery over the `kos.processors` channel, so there is no separate telnet proxy anymore.
 
 The main-screen-is-sole-consumer constraint falls out of this:
 

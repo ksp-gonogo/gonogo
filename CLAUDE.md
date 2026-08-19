@@ -75,10 +75,6 @@ Subcommands:
 - **`./scripts/gonogo_claude_tools.sh members <Type> [<Type>...]`**: list every public member of a type by line-range scan of the cached full disassembly. No per-type cap; nested-class members are included. Designed for new-TelemetryAPI scoping where you need to see *every* field the underlying KSP type exposes (Part has 660+ lines of public members, Strategy has ~50). Run after at least one `decompile` or `findtype` for the same type this session so the cache exists.
 - **`./scripts/gonogo_claude_tools.sh dump <Type> [<Type>...]`**: full ilspycmd output (method bodies, fields). Use when you need to see what a method does, not just its signature. For "what fields does this type have" prefer `members`, `dump` re-runs ilspycmd per call instead of reading the cache.
 - **`./scripts/gonogo_claude_tools.sh findtype <Name>`**: resolve a simple type name to its fully-qualified form. First call per session is ~30s/DLL; subsequent calls hit the textual cache.
-- **`./scripts/gonogo_claude_tools.sh build telemachus`**: `dotnet build` the fork *and* copy the resulting `Telemachus.dll` into `local_docs/syncthing/kspdata/GameData/Telemachus/Plugins/` (syncthing then mirrors it to the user's KSP install). User needs to restart KSP to load the new build.
-- **`./scripts/gonogo_claude_tools.sh tele read <key1> [<key2>...]`**, GET `/telemachus/datalink?…` against the running KSP at the hard-coded host. Pretty-prints JSON.
-- **`./scripts/gonogo_claude_tools.sh tele action <key[args]>`**: fire a write-action key (URL-encodes brackets).
-- **`./scripts/gonogo_claude_tools.sh tele subscribe <key1> [<key2>...]`**: open a WebSocket and stream value transitions. Needs `websocat`.
 
 Prefer `run_in_background: true` for anything that touches the network or `ilspycmd`, both of which are slow enough to be worth getting off the critical path.
 
@@ -97,7 +93,7 @@ Main screen ←──→ Station screens (PeerJS data channels, via peerjs.com b
 
 The Gonogo mod (`GameData/Gonogo/`, engineering codename "Sitrep") is the app's sole telemetry source as of `806e7fe2`, the browser opens a `WebSocketTransport` straight to it (`SitrepTelemetryProvider`, `packages/app/src/telemetry/`), no HTTP polling, **on by default, no flag required**. Host/port resolve at runtime through `sitrepRuntime.ts`, in priority order: a saved **Settings → Data Sources → Sitrep Stream** config, then a `KSP_HOST` bundle seed (`seedKspHost.ts`, same as kOS/kerbcast), then the `VITE_SITREP_HOST`/`VITE_SITREP_PORT` build-time floor (default `localhost:8090`). The Sitrep Stream row is a thin `DataSource` front (`packages/app/src/dataSources/sitrep.ts`) that reuses the generic Data Sources panel for its config form and connected/disconnected pill, it carries no topics itself; those still route through `SitrepTelemetryProvider`'s `TelemetryClient` context.
 
-The old Telemachus `DataSource` (`ws://host:8085/datalink`) that used to serve this role is deleted. Telemachus stays **installable in KSP as an optional debug tool**, the fork, `build telemachus`, and the `tele` CLI helpers below still work, it's just nothing the app itself reads from anymore.
+The old Telemachus `DataSource` (`ws://host:8085/datalink`) that used to serve this role is deleted, and so are the `build telemachus` and `tele read/action/subscribe` helpers that probed it by hand. Nothing in the repo talks to it.
 
 kOS integration now rides the same Sitrep WS stream as telemetry, script dispatch over the `kos.run` command, CPU discovery over the `kos.processors` channel, so there is no separate proxy process. kOS features simply degrade gracefully when no stream is mounted.
 
@@ -194,12 +190,6 @@ Prefer tests that mock as little of the system as possible. Use [Mock Service Wo
   Use `waitFor` rather than `act` for assertions on async external events (WebSocket, PeerJS).
 
 ---
-
-## Telemachus API (optional debug tool: not the app's data source)
-
-The app doesn't read from Telemachus anymore; see Data Flow above. It's still worth having installed as a manual probe, a way to check a raw value or fire an action key by hand without going through the mod or the app. `./scripts/gonogo_claude_tools.sh tele read/action/subscribe` are the CLI helpers for this.
-
-Connects via WebSocket to `ws://host:8085/datalink`. Subscribe by sending `{ "run": ["v.sasValue", ...], "rate": 250 }`. Server streams JSON updates: `{ "v.sasValue": true, ... }`. Execute actions via HTTP GET: `GET http://host:8085/telemachus/datalink?a=<actionKey>`, fire-and-forget, state changes echo back over the WS, so the response body is ignored. Toggle keys use `f.` prefix; value keys use `v.` prefix (e.g. `f.ag1` toggles, `v.ag1Value` reads). The gonogo fork of Telemachus supports a config-driven CORS allowlist (`ALLOWED_ORIGINS` in `PluginData/Telemachus/config.xml`) for the niche cases where a feature needs to read the response body; see `docs/KSP-SETUP.md`'s Telemachus section.
 
 ## Centralised kOS scripts
 
