@@ -134,7 +134,7 @@ export function deriveResourceProjections(
 
   // Never negative: a sample can sit marginally ahead of the frame's view
   // time, and "carried for -0.4 s" is not a thing to model.
-  const elapsed = Math.max(0, viewUt - asOfUt.magnitude);
+  const elapsed = Math.max(0, value("ut", viewUt).minus(asOfUt).magnitude);
 
   const resources: KerbalismResourceProjection[] = [];
   for (const name of Object.keys(rates).sort()) {

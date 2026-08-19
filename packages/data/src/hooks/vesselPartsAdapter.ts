@@ -1,10 +1,11 @@
-import type {
-  PartResources,
-  PartState,
-  PartStateModule,
-  PartThermal,
-  TopologyPart,
-  VesselTopology,
+import {
+  kelvinToCelsius,
+  type PartResources,
+  type PartState,
+  type PartStateModule,
+  type PartThermal,
+  type TopologyPart,
+  type VesselTopology,
 } from "@ksp-gonogo/core";
 import type {
   PartModuleState,
@@ -97,16 +98,15 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
   };
 }
 
-/**
- * Kelvin's zero in Celsius.
- *
- * Written out rather than converted through the unit system because Celsius
- * is an OFFSET unit and the registry only knows ratios: `value("K", 300)` in
- * "degC" would be a scaling, and there is no scale factor that turns 300 K
- * into 26.85 C. The offset lives here, at the one place that needs it, and
- * `temperatureK` beside it stays the number every reader actually uses.
- */
-const ABSOLUTE_ZERO_C = 273.15;
+// The Kelvin -> Celsius offset comes from core's `kelvinToCelsius`. It is not
+// done through the unit system because Celsius is an OFFSET unit and the
+// registry only knows ratios: `value("K", 300)` in "degC" would be a scaling,
+// and there is no scale factor that turns 300 K into 26.85 C.
+//
+// This file used to carry its own `ABSOLUTE_ZERO_C = 273.15` and subtract it,
+// while core exported `ABSOLUTE_ZERO_C = -273.15` and added it. Same name, two
+// packages, opposite signs, each correct only beside its own operator: reading
+// one and applying the other silently lands you 546.3 K out.
 
 /**
  * Per-part internal temperature off the SAME `vessel.parts` payload
@@ -120,8 +120,8 @@ const ABSOLUTE_ZERO_C = 273.15;
 export function derivePartThermal(p: VesselPart): PartThermal | null {
   if (p.currentTemp == null) return null;
   return {
-    temperature: p.currentTemp.magnitude - ABSOLUTE_ZERO_C,
-    maxTemperature: p.maxTemp.magnitude - ABSOLUTE_ZERO_C,
+    temperature: kelvinToCelsius(p.currentTemp.magnitude),
+    maxTemperature: kelvinToCelsius(p.maxTemp.magnitude),
     temperatureK: p.currentTemp.magnitude,
     maxTemperatureK: p.maxTemp.magnitude,
   };

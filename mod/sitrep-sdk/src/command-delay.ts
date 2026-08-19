@@ -1,4 +1,4 @@
-import type { Value } from "./value";
+import { type Value, value } from "./unit-system";
 /**
  * Pure delayed-command derivations. Delay is ambient and universal, every
  * command the mod accepts is already gated by the reveal/uplink machinery,
@@ -80,27 +80,26 @@ export function deriveInFlight(
   entries: PendingEntry[],
   nowUt: number,
 ): InFlightCommand[] {
+  const now = value("ut", nowUt);
   return entries.map((e) => {
-    // `.magnitude`: these are UT arithmetic, and a UT is a plain number the
-    // registry has no name for (see the unwrap boundaries in the design).
-    const dispatchedAt = e.dispatchedAt.magnitude;
-    const oneWay = e.oneWaySeconds.magnitude;
-    const reachUt = dispatchedAt + oneWay;
-    const replyUt = dispatchedAt + 2 * oneWay;
-    const predictedPhase: PredictedPhase =
-      nowUt < reachUt
-        ? "in-transit"
-        : nowUt < replyUt
-          ? "awaiting-reply"
-          : "due";
+    // Two instants, each the dispatch offset by a number of one-way legs, and
+    // two intervals between an instant and now. The algebra distinguishes the
+    // instants from the intervals; `+` and `-` on bare numbers did not.
+    const reachUt = e.dispatchedAt.plus(e.oneWaySeconds);
+    const replyUt = e.dispatchedAt.plus(e.oneWaySeconds.times(2));
+    const predictedPhase: PredictedPhase = now.lessThan(reachUt)
+      ? "in-transit"
+      : now.lessThan(replyUt)
+        ? "awaiting-reply"
+        : "due";
     return {
       id: e.id,
       label: e.label,
       command: e.command,
       topic: e.topic,
-      dispatchedAt,
-      reachEtaSeconds: reachUt - nowUt,
-      replyEtaSeconds: replyUt - nowUt,
+      dispatchedAt: e.dispatchedAt.magnitude,
+      reachEtaSeconds: reachUt.minus(now).magnitude,
+      replyEtaSeconds: replyUt.minus(now).magnitude,
       predictedPhase,
     };
   });
@@ -131,14 +130,17 @@ export function classifyRetained(args: {
     pathConnectedDuring = () => true,
   } = args;
   const base = deriveInFlight([entry], nowUt)[0];
-  const replyUt =
-    entry.dispatchedAt.magnitude + 2 * entry.oneWaySeconds.magnitude;
+  // Out and back: the dispatch instant offset by two one-way legs. An instant
+  // plus a duration, so the algebra does it rather than `+` on two bare
+  // numbers that happen to be seconds apart in meaning.
+  const replyUt = entry.dispatchedAt.plus(entry.oneWaySeconds.times(2));
   // 'lost': path was not continuously up across the in-flight window.
-  if (!pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt)) {
+  if (!pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt.magnitude)) {
     return { ...base, predictedPhase: "lost" };
   }
   // 'overdue': past reply + margin and still tracked with no resolution.
-  if (present && nowUt > replyUt + overdueMarginSeconds) {
+  const overdueAfter = replyUt.plus(value("s", overdueMarginSeconds));
+  if (present && value("ut", nowUt).greaterThan(overdueAfter)) {
     return { ...base, predictedPhase: "overdue" };
   }
   return base;

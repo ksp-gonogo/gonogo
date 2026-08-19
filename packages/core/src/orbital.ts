@@ -204,9 +204,13 @@ export function latLonToMap(
 
 /**
  * Absolute zero expressed in degrees Celsius: the Kelvin→Celsius offset.
- * Several widgets receive part/ambient temperatures from Telemachus in Kelvin
- * and display them in Celsius; this keeps the conversion from being a bare
- * `- 273.15` magic literal sprinkled across the component library.
+ * Part and ambient temperatures arrive in Kelvin and are displayed in Celsius;
+ * this keeps the conversion from being a bare `- 273.15` magic literal
+ * sprinkled across the component library.
+ *
+ * Note the SIGN: this is absolute zero on the Celsius scale, so it is ADDED to
+ * a Kelvin reading. Prefer {@link kelvinToCelsius} over the constant, which is
+ * only correct beside the right operator.
  */
 export const ABSOLUTE_ZERO_C = -273.15;
 
