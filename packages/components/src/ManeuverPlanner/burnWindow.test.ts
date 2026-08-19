@@ -171,3 +171,56 @@ describe("a burn window and its node are the same node", () => {
     expect([].map(() => burnInstantRows({ ut: 0 }))).toHaveLength(0);
   });
 });
+
+describe("burnInstantRows: the framing is the caller's", () => {
+  const burn = { ut: 1000, ignitionUt: 980, cutoffUt: 1020 };
+
+  it("uses the stock framing by default, so the single caller is unaffected", () => {
+    const [ignition, reference] = burnInstantRows(burn);
+    expect(ignition.basis).toBe("rocket equation");
+    expect(reference.basis).toBe("planned");
+  });
+
+  it("takes a caller's whole table, not just its basis strings", () => {
+    // The point of injecting the table rather than one field: an integrating
+    // planner needs different words for where an instant came from AND for why
+    // one is missing, and the stock absent-detail names stock's own solver.
+    const integrated = {
+      ignition: {
+        label: "Ignition",
+        question: "when do the engines light",
+        basis: "integrated",
+        absent: "not integrated yet",
+        absentDetail: "The trajectory has not been integrated this far.",
+      },
+      reference: {
+        label: "Burn",
+        question: "when is the burn",
+        basis: "integrated",
+        absent: "no burn",
+        absentDetail: "There is no burn to place.",
+      },
+      cutoff: {
+        label: "Cutoff",
+        question: "when do the engines stop",
+        basis: "integrated",
+        absent: "not integrated yet",
+        absentDetail: "The trajectory has not been integrated this far.",
+      },
+    };
+    const rows = burnInstantRows(burn, integrated);
+    expect(rows.map((r) => r.basis)).toEqual([
+      "integrated",
+      "integrated",
+      "integrated",
+    ]);
+    expect(rows[1].label).toBe("Burn");
+  });
+
+  it("takes the caller's absent wording too, which is where stock is named", () => {
+    const noDuration = { ut: 1000 };
+    const [ignition] = burnInstantRows(noDuration);
+    expect(ignition.basis).toBe("no burn-time model");
+    expect(ignition.detail).toContain("Stock");
+  });
+});
