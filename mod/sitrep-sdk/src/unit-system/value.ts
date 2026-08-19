@@ -426,8 +426,16 @@ export interface Value<U extends string = string> {
    * in exactly the way comparing `.magnitude` is. `Math.max` of 1 h and 90 min
    * compares 1 against 90 and returns the 90 minutes, which is the shorter
    * duration. These convert first.
+   *
+   * A bare number is accepted and is IN BASE UNITS, like every other bare
+   * operand. The bare arm returns `Value<U>` rather than the union, because a
+   * bare number has no unit of its own to survive: `elapsed.max(0)` is the clamp
+   * that `Math.max(0, elapsed.magnitude)` was written as five times, and it
+   * keeps its type on the way out instead of shedding it. See {@link BareOperand}.
    */
+  min(other: BareOperand<U>): Value<U>;
   min(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
+  max(other: BareOperand<U>): Value<U>;
   max(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
 }
 
@@ -483,6 +491,15 @@ function baseMagnitude(value: Value): number {
  * with no declared name formats as `kg·m²/s³`, and `value()` on that would look
  * up a definition that does not exist.
  */
+/**
+ * A base magnitude re-expressed in `self`'s unit. For the `min`/`max` arm where a
+ * bare operand WINS: it has no unit of its own to carry out, so it adopts the
+ * receiver's, which is the same rule `plus`/`minus` already follow on their result.
+ */
+function inThisUnit(self: Value, baseMagnitudeOfOther: number): Value {
+  return value(self.unit, baseMagnitudeOfOther / ratioOf(self.unit));
+}
+
 function baseOperandOf(
   self: Value,
   other: Value | number,
@@ -674,13 +691,16 @@ const prototype = {
   abs(this: Value): Value {
     return this.magnitude < 0 ? value(this.unit, -this.magnitude) : this;
   },
-  min(this: Value, other: Value): Value {
+  min(this: Value, other: Value | number): Value {
     // Returns the OPERAND, not a new value, so the unit each was expressed in
-    // survives: min(1 h, 90 min) is the hour, still in hours.
-    return this.compare(other) <= 0 ? this : other;
+    // survives: min(1 h, 90 min) is the hour, still in hours. A BARE operand has
+    // no unit to survive, so when it wins it comes back in THIS value's unit.
+    if (this.compare(other) <= 0) return this;
+    return typeof other === "number" ? inThisUnit(this, other) : other;
   },
-  max(this: Value, other: Value): Value {
-    return this.compare(other) >= 0 ? this : other;
+  max(this: Value, other: Value | number): Value {
+    if (this.compare(other) >= 0) return this;
+    return typeof other === "number" ? inThisUnit(this, other) : other;
   },
 };
 

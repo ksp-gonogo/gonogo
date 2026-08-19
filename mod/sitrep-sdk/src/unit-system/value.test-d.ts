@@ -216,3 +216,26 @@ export const _isFiniteTakesNothing: Expect<
 
 // @ts-expect-error: validity is a property of the magnitude, not a comparison.
 export const _isFiniteRejectsOperand = metres.isFinite(1);
+
+// ── min/max take a bare operand, and NARROW when they do ────────────────────
+// The `Value` arm returns the union (either operand can win, each keeping its own
+// unit); the bare arm cannot, because a bare number has no unit to win with, so it
+// resolves to `Value<U>` and the overload order is what expresses that.
+
+const clamped = seconds.max(0);
+export const _maxBareNarrowsToReceiverUnit: Expect<
+  typeof clamped,
+  Value<"s">
+> = "OK";
+
+const floored = metres.min(1000);
+export const _minBareNarrowsToReceiverUnit: Expect<
+  typeof floored,
+  Value<"m">
+> = "OK";
+
+// The Value arm is unchanged: either side can be returned, so it stays a union.
+export const _maxValueArmStillUnion = hours.max(seconds);
+
+// @ts-expect-error: a point takes no bare operand here either, same as everywhere.
+export const _utMaxBare = value("ut", 100).max(0);

@@ -402,6 +402,45 @@ describe("min and max", () => {
   it("refuses across dimensions", () => {
     expect(() => value("m", 5).max(value("s", 5) as never)).toThrow();
   });
+
+  it("takes a bare operand in BASE units, and keeps a Value on the way out", () => {
+    // The clamp `Math.max(0, elapsed.magnitude)` was written as five times. It
+    // comes back a `Value`, so it cannot shed its unit the way the old form did.
+    const elapsed = value("s", -3);
+    const clamped = elapsed.max(0);
+    expect(clamped.unit).toBe("s");
+    expect(clamped.magnitude).toBe(0);
+    // Already above the floor: the receiver is returned untouched, by identity.
+    const positive = value("s", 12);
+    expect(positive.max(0)).toBe(positive);
+  });
+
+  it("gives a winning bare operand THIS value's unit, since it has none", () => {
+    // 30 seconds beats a 0.001 h floor... no: 0.001 h is 3.6 s. The bare 30 is 30
+    // SECONDS, which is larger, and it comes back expressed in hours because that
+    // is the receiver's unit and a bare number brought none of its own.
+    const floor = value("h", 0.001);
+    const winner = floor.max(30);
+    expect(winner.unit).toBe("h");
+    expect(winner.magnitude).toBeCloseTo(30 / 3600, 10);
+  });
+
+  it("answers the same for the same quantity on two different rungs", () => {
+    // THE rule, on min/max as on the comparisons: one hour and sixty minutes are
+    // the same duration, so a bare 1800 (seconds) has to lose to both.
+    expect(value("h", 1).max(1800).in("s").magnitude).toBeCloseTo(3600, 6);
+    expect(value("min", 60).max(1800).in("s").magnitude).toBeCloseTo(3600, 6);
+    expect(value("h", 0.25).max(1800).in("s").magnitude).toBeCloseTo(1800, 6);
+    expect(value("min", 15).max(1800).in("s").magnitude).toBeCloseTo(1800, 6);
+  });
+
+  it("agrees with the same bare operand written out in full", () => {
+    const elapsed = value("h", 0.5);
+    expect(elapsed.min(1800).in("s").magnitude).toBeCloseTo(
+      elapsed.min(value("s", 1800)).in("s").magnitude,
+      6,
+    );
+  });
 });
 
 describe("vectorMagnitude", () => {
