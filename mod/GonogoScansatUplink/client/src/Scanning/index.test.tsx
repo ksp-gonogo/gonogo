@@ -5,6 +5,7 @@ import {
   render,
   StubTransport,
   screen,
+  TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -14,7 +15,6 @@ import {
   MockDataSource,
   registerDataSource,
   registerStockBodies,
-  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";

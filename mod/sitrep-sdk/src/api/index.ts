@@ -148,6 +148,17 @@ export const registerComponent = <TConfig = Record<string, unknown>>(
 export const registerTheme = (def: ThemeDefinition): void =>
   getHost().registerTheme(def);
 
+/**
+ * Every augment bound into `slot`, in render order. The read half of
+ * {@link registerAugment}: an Uplink's test observes what it registered through
+ * the same host it registered into, rather than reaching for ui-kit's copy.
+ */
+export const getAugmentsForSlot = (slot: string) =>
+  getHost().getAugmentsForSlot(slot);
+/** Empty the augment registry. For tests; a running app never calls it. */
+export const clearAugments = (): void => {
+  getHost().clearAugments();
+};
 export const registerAugment = <S extends string>(
   def: AugmentDefinition<S>,
 ): void => getHost().registerAugment(def);

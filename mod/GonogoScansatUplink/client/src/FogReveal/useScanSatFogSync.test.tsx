@@ -6,6 +6,7 @@ import {
   createTestTelemetryClient,
   render,
   StubTransport,
+  TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { FogMaskCache } from "@ksp-gonogo/sitrep-testing";
@@ -16,7 +17,6 @@ import {
   FogMaskStore,
   MockDataSource,
   registerDataSource,
-  TelemetryProvider,
 } from "@ksp-gonogo/sitrep-testing";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

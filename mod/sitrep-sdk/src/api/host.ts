@@ -191,6 +191,22 @@ export interface GonogoHost {
   onMapPoiProvidersChange(cb: () => void): () => void;
   /** Empty the POI provider registry. For tests; a running app never calls it. */
   clearMapPoiProviders(): void;
+  /**
+   * Every augment bound into `slot`, ascending `priority`, ties in registration
+   * order: the READ half of `registerAugment`.
+   *
+   * Here for the same reason `registerAugment` is, and it is not a convenience. An
+   * Uplink's test has to be able to observe what its `registerAugment` call did,
+   * and the only other route was `@ksp-gonogo/ui-kit`'s own
+   * `getAugmentsForSlot`. That happens to work today because the shim resolves
+   * through this host into `core`, whose augment registry IS ui-kit's, but it is
+   * an undocumented convergence rather than a contract, and it breaks the moment
+   * anything gets its own copy. Reading and writing through the same host is what
+   * makes "an Uplink reaches the registry through the sdk" true for both halves.
+   */
+  getAugmentsForSlot(slot: string): AugmentDefinition<string>[];
+  /** Empty the augment registry. For tests; a running app never calls it. */
+  clearAugments(): void;
   /** Every contribution registered for a slot, in priority then registration order. */
   getContributionsForSlot(slot: string): AnyContribution[];
   /** Subscribe to any change (register/unregister) in the contribution registry. */

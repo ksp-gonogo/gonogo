@@ -5,10 +5,12 @@ import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
   isTopicCarried,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
   mapTopic,
   TimelineStore,
   ViewClock,
-} from "@ksp-gonogo/sitrep-testing";
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { SCAN_TYPE } from "./schema";
 

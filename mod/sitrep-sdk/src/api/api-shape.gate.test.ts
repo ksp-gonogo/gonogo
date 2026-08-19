@@ -19,12 +19,18 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "GAME_HOST_KEY",
   "GONOGO_HOST_KEY",
   "LocalStorageStore",
+  // The augment registry's read/clear half, added deliberately: an Uplink reads
+  // what it registered through the host, not through ui-kit's copy of the
+  // registry (which a bundled client would own privately, so its augments would
+  // silently never appear). See uplink-augment-route.test.ts.
+  "clearAugments",
   "clearContributions",
   "clearMapPoiProviders",
   "createPerfBudget",
   "defineUplinkClient",
   "getActiveTelemetryClient",
   "getBody",
+  "getAugmentsForSlot",
   "getContributionsForSlot",
   "getFogRevealSources",
   "getGameHost",

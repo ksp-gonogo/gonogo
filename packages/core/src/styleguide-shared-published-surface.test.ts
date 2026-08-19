@@ -57,14 +57,24 @@ const DECLARED_RE =
  * not available, a new duplicate is a failure.
  */
 const KNOWN_DIVERGENCES: readonly string[] = [
-  // The sdk's is a one-line shim onto `getHost()`; ui-kit's is the augment
-  // registry the host eventually reaches. RULED: an Uplink imports the sdk's, and
-  // ui-kit's must not be reachable from an Uplink at all, because importing it
-  // directly gets a bundled registry the app never reads and the symptom is that
-  // the author's widgets silently never appear. The mechanism for enforcing that
-  // (narrowing ui-kit's barrel, or a guard) is the open half; see
-  // docs/uplink-isolation.md.
+  // The whole augment surface: the sdk's four are one-line shims onto `getHost()`,
+  // ui-kit's are the registry those shims eventually reach. RULED that an Uplink
+  // imports the sdk's, for reading as well as writing, because importing ui-kit's
+  // directly gets a bundled registry the app never reads and the symptom is the
+  // author's augments silently never appearing.
+  //
+  // Enforced by `uplink-augment-route.test.ts`, not by narrowing ui-kit's barrel.
+  // That was checked rather than assumed: `core/src/augments.ts` re-exports this
+  // surface from ui-kit both to build the host and so a `declare module
+  // "@ksp-gonogo/core"` merge of `SlotRegistry` still lands, so the names have to
+  // stay on ui-kit's barrel and the rule has to be about who imports them.
+  //
+  // These four stay on this list because two declarations genuinely exist and the
+  // guard cannot collapse them; what changed is that the route is now enforced
+  // and a planted violation fails.
   "AugmentSlot",
+  "clearAugments",
+  "getAugmentsForSlot",
   "registerAugment",
   // Two independent unit registries with the same two entry points and
   // DIFFERENT signatures (`registerUnit(def: UnitDefinition)` here against

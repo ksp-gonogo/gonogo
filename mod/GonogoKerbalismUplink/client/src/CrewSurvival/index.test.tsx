@@ -1,11 +1,11 @@
 import {
   act,
+  clearProcessorRuntime,
   render,
   screen,
   setupStreamFixture,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerAugment(...).
