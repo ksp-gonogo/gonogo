@@ -174,6 +174,12 @@ export interface GonogoHost {
   getFogRevealSources(): FogRevealSourceDefinition[];
   /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
   onFogRevealSourcesChange(cb: () => void): () => void;
+  /** Every registered map POI provider, in registration order. */
+  getMapPoiProviders(): MapPoiProviderDefinition[];
+  /** Subscribe to any change (register/unregister) in the POI provider registry. */
+  onMapPoiProvidersChange(cb: () => void): () => void;
+  /** Empty the POI provider registry. For tests; a running app never calls it. */
+  clearMapPoiProviders(): void;
   /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */
   useFogMaskCache(): FogMaskCacheHandle | null;
 

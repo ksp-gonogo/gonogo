@@ -15,12 +15,15 @@
 
 import {
   AugmentSlot,
+  clearMapPoiProviders,
   defineUplinkClient,
   getBody,
   getFogRevealSources,
   getGameHost,
+  getMapPoiProviders,
   getUplinkHandle,
   onFogRevealSourcesChange,
+  onMapPoiProvidersChange,
   PerfBudget,
   registerAugment,
   registerComponent,
@@ -149,6 +152,12 @@ export function buildGonogoHost(): GonogoHost {
     getBody: (id) => getBody(id) as ReturnType<GonogoHost["getBody"]>,
     getFogRevealSources: () => getFogRevealSources(),
     onFogRevealSourcesChange: (cb) => onFogRevealSourcesChange(cb),
+    getMapPoiProviders: () =>
+      getMapPoiProviders() as ReturnType<GonogoHost["getMapPoiProviders"]>,
+    onMapPoiProvidersChange: (cb) => onMapPoiProvidersChange(cb),
+    clearMapPoiProviders: () => {
+      clearMapPoiProviders();
+    },
     useFogMaskCache: () =>
       useFogMaskCache() as ReturnType<GonogoHost["useFogMaskCache"]>,
 

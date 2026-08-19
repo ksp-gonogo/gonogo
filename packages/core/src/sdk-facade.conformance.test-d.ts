@@ -42,6 +42,7 @@ import type {
   InFlightCommand as SdkInFlightCommand,
   LateTelemetrySubscribe as SdkLateTelemetrySubscribe,
   MapPoi as SdkMapPoi,
+  MapPoiProviderDefinition as SdkMapPoiProviderDefinition,
   PerfBudgetOptions as SdkPerfBudgetOptions,
   Screen as SdkScreen,
   SettingsTabDefinition as SdkSettingsTabDefinition,
@@ -55,7 +56,10 @@ import type {
 import type { AugmentDefinition as CoreAugmentDefinition } from "./augments";
 import type { BodyDefinition as CoreBodyDefinition } from "./bodies";
 import type { Screen as CoreScreen } from "./contexts/ScreenContext";
-import type { MapPoi as CoreMapPoi } from "./mapPoi";
+import type {
+  MapPoi as CoreMapPoi,
+  MapPoiProviderDefinition as CoreMapPoiProviderDefinition,
+} from "./mapPoi";
 import type { PerfBudgetOptions as CorePerfBudgetOptions } from "./perf/PerfBudget";
 import type { SettingsTabDefinition as CoreSettingsTabDefinition } from "./settingsTabs";
 import type * as Core from "./types";
@@ -126,6 +130,15 @@ type _Body = Expect<Assignable<SdkBodyDefinition, CoreBodyDefinition>>;
 type _BodyBack = Expect<Assignable<CoreBodyDefinition, SdkBodyDefinition>>;
 type _MapPoi = Expect<Assignable<SdkMapPoi, CoreMapPoi>>;
 type _MapPoiBack = Expect<Assignable<CoreMapPoi, SdkMapPoi>>;
+// The PROVIDER descriptor was unchecked until 2026-08-19, and drifted: the
+// mirror's `usePois` had degraded to `() => unknown`, so a third-party author
+// registering a provider got no checking on what they returned.
+type _MapPoiProvider = Expect<
+  Assignable<SdkMapPoiProviderDefinition, CoreMapPoiProviderDefinition>
+>;
+type _MapPoiProviderBack = Expect<
+  Assignable<CoreMapPoiProviderDefinition, SdkMapPoiProviderDefinition>
+>;
 
 // Screen identity (facade-sealing, 2026-07-19): owned by
 // contexts/ScreenContext.tsx.
@@ -264,6 +277,8 @@ export type _SdkFacadeConformance = [
   _BodyBack,
   _MapPoi,
   _MapPoiBack,
+  _MapPoiProvider,
+  _MapPoiProviderBack,
   _Screen,
   _ScreenBack,
   _SettingsTab,

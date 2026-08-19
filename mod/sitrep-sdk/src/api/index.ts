@@ -94,6 +94,8 @@ export type {
   InFlightCommand,
   LateTelemetrySubscribe,
   MapPoi,
+  MapPoiAction,
+  MapPoiProviderContext,
   MapPoiProviderDefinition,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -112,6 +114,7 @@ export type {
   ThemeDefinition,
   UplinkClientHandle,
   UseCommandResult,
+  UseMapPois,
   UseRouteCommandsResult,
 } from "./types";
 
@@ -390,6 +393,26 @@ export function getFogRevealSources(): FogRevealSourceDefinition[] {
 /** Subscribe to any change (register/unregister) in the fog reveal source registry. */
 export function onFogRevealSourcesChange(cb: () => void): () => void {
   return getHost().onFogRevealSourcesChange(cb);
+}
+
+// The read half of the POI provider registry, so an Uplink can HOST a mapping
+// surface and not only contribute points to someone else's. Its fog-reveal
+// sibling above has carried both halves from the start; POI providers shipped
+// with only `registerMapPoiProvider`, which is the asymmetry these close.
+
+/** Every registered map POI provider, in registration order. */
+export function getMapPoiProviders(): MapPoiProviderDefinition[] {
+  return getHost().getMapPoiProviders();
+}
+
+/** Subscribe to any change (register/unregister) in the POI provider registry. */
+export function onMapPoiProvidersChange(cb: () => void): () => void {
+  return getHost().onMapPoiProvidersChange(cb);
+}
+
+/** Empty the POI provider registry. For tests; a running app never calls it. */
+export function clearMapPoiProviders(): void {
+  getHost().clearMapPoiProviders();
 }
 
 /** The current fog mask cache, or `null` with no `FogMaskCacheProvider` mounted. */

@@ -319,12 +319,23 @@ export interface FogRevealSourceDefinition {
 // --- Map POI providers -------------------------------------------------------
 
 /**
+ * One action button on a `MapPoi`. Mirrors `packages/core/src/mapPoi.ts`'s
+ * `MapPoiAction`: same leaf constraint as every other type in this file (see
+ * module header). Named rather than inlined into `MapPoi`, so a provider can
+ * build its actions in a helper and give that helper a return type.
+ */
+export interface MapPoiAction {
+  id: string;
+  label: string;
+  run: () => void | Promise<void>;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+/**
  * One point-of-interest record a `MapPoiProviderDefinition` contributes.
  * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi`: same leaf constraint as
- * every other type in this file (see module header). The action-button
- * shape (`MapPoiAction` in core) is inlined here rather than named
- * separately: nothing in the author-facing surface needs to reference it by
- * name on its own.
+ * every other type in this file (see module header).
  */
 export interface MapPoi {
   /** Unique within the OWNING PROVIDER's namespace. */
@@ -339,14 +350,19 @@ export interface MapPoi {
   detail?: string;
   status?: "active" | "available" | "info";
   meta?: Record<string, unknown>;
-  actions?: readonly {
-    id: string;
-    label: string;
-    run: () => void | Promise<void>;
-    disabled?: boolean;
-    disabledReason?: string;
-  }[];
+  actions?: readonly MapPoiAction[];
 }
+
+/** What a POI provider's hook is told about the surface asking for points. */
+export interface MapPoiProviderContext {
+  /** The currently-mapped body. */
+  bodyId: string | undefined;
+}
+
+/** A POI provider's hook: called per render of the mapping surface. */
+export type UseMapPois = (
+  ctx: MapPoiProviderContext,
+) => readonly MapPoi[] | null | undefined;
 
 /**
  * Registration descriptor for a map point-of-interest provider, a data
@@ -360,7 +376,7 @@ export interface MapPoiProviderDefinition {
   id: string;
   /** Domain presence gate, same semantics as AugmentDefinition.requires. */
   requires?: string;
-  usePois: (ctx: { bodyId: string | undefined }) => unknown;
+  usePois: UseMapPois;
 }
 
 // --- Celestial bodies ---------------------------------------------------------

@@ -148,6 +148,40 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       expect(barrel.getFogRevealSources()).toBe(sources);
     });
 
+    it("getMapPoiProviders fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => barrel.getMapPoiProviders()).toThrow(named);
+
+      const providers = [{ id: "example-uplink:anomalies" }] as never;
+      const getMapPoiProviders = vi.fn().mockReturnValue(providers);
+      installTestHost({ getMapPoiProviders });
+      expect(barrel.getMapPoiProviders()).toBe(providers);
+    });
+
+    it("onMapPoiProvidersChange fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      const cb = vi.fn();
+      expect(() => barrel.onMapPoiProvidersChange(cb)).toThrow(named);
+
+      const unsubscribe = vi.fn();
+      const onMapPoiProvidersChange = vi.fn().mockReturnValue(unsubscribe);
+      installTestHost({ onMapPoiProvidersChange });
+      expect(barrel.onMapPoiProvidersChange(cb)).toBe(unsubscribe);
+      expect(onMapPoiProvidersChange).toHaveBeenCalledWith(cb);
+    });
+
+    it("clearMapPoiProviders fails LOUD with no host, resolves once installed", () => {
+      resetTestHost();
+      expect(() => {
+        barrel.clearMapPoiProviders();
+      }).toThrow(named);
+
+      const clearMapPoiProviders = vi.fn();
+      installTestHost({ clearMapPoiProviders });
+      barrel.clearMapPoiProviders();
+      expect(clearMapPoiProviders).toHaveBeenCalledTimes(1);
+    });
+
     it("onFogRevealSourcesChange fails LOUD with no host, resolves once installed", () => {
       resetTestHost();
       const cb = vi.fn();
