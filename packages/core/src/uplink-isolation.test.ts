@@ -202,39 +202,42 @@ describe("uplink isolation", () => {
   });
 
   /**
-   * `@ksp-gonogo/sitrep-testing` is published, so every check above is happy with
-   * it, and a widget importing it would ship a test harness (and through it the
-   * whole spine, which that package inlines) inside a runtime bundle.
+   * The two `/testing` subpaths are published, so every check above is happy with
+   * them, and a widget importing one would ship test code inside a runtime bundle.
    *
-   * This is not hypothetical either. Moving the harness there, a bulk re-point
-   * moved `DerivedChannelDefinition` into `resourceProjection.ts`, a production
-   * file, because the script sorted by symbol and not by who was importing. The
-   * types went back to where they came from and out of the harness's barrel;
-   * declaring a derived channel is a widget's job and needs a home on the sdk,
-   * which is an open gap rather than something to paper over from here.
+   * This used to name `@ksp-gonogo/sitrep-testing`, which was a whole package and is
+   * deleted. The hazard did not go with it, it generalised: the harness lives on
+   * `@ksp-gonogo/sitrep-sdk/testing` and `@ksp-gonogo/ui-kit/testing` now, and both
+   * are one import away from any widget. Left naming the dead package, this check
+   * could no longer express a failure and would have reported success forever.
+   *
+   * It is not hypothetical either. When the harness first moved, a bulk re-point put
+   * `DerivedChannelDefinition` into `resourceProjection.ts`, a production file,
+   * because the script sorted by symbol and not by who was importing.
    */
-  it("no PRODUCTION Uplink file imports the test harness", () => {
+  it("no PRODUCTION Uplink file imports a test-only entry", () => {
     const isTest = (f: string) =>
       /\.test\.|\.test-d\.|\/test\/|__fixtures__|\/scripts\//.test(f);
+    const testOnlyEntry =
+      /from\s*["']@ksp-gonogo\/(?:sitrep-sdk|ui-kit)\/testing["']/;
     const offenders = uplinkSourceFiles()
       .map((f) => relative(REPO_ROOT, f).split("\\").join("/"))
       .filter((f) => !isTest(f))
       .filter((f) =>
-        /from\s*["']@ksp-gonogo\/sitrep-testing["']/.test(
-          readFileSync(join(REPO_ROOT, f), "utf8"),
-        ),
+        testOnlyEntry.test(readFileSync(join(REPO_ROOT, f), "utf8")),
       );
     expect(
       offenders,
       [
-        "A production Uplink file imported @ksp-gonogo/sitrep-testing.",
+        "A production Uplink file imported a test-only entry.",
         "",
-        "That package is published, so the isolation checks above allow it, but it",
-        "is a TEST harness and it inlines core + sitrep-client. Importing it from a",
-        "widget puts the whole spine in a runtime bundle.",
+        "Both /testing subpaths are published, so the isolation checks above allow",
+        "them, but they exist for a test: Testing Library, the host injector, the",
+        "dashboard provider stack. Importing one from a widget puts all of it in a",
+        "runtime bundle.",
         "",
-        "If a widget needs the symbol at runtime, it belongs on @ksp-gonogo/",
-        "sitrep-sdk or @ksp-gonogo/ui-kit, not here.",
+        "If a widget needs the symbol at runtime, it belongs on the ROOT barrel of",
+        "@ksp-gonogo/sitrep-sdk or @ksp-gonogo/ui-kit, not on a testing entry.",
       ].join("\n"),
     ).toEqual([]);
   });
