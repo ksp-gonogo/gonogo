@@ -44,6 +44,7 @@ import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
 import type { NodeEditPatch } from "./NodeRow";
 import { PresetInput } from "./PresetInput";
+import { describePartialDispatch } from "./partialDispatch";
 import {
   buildCurrentOrbit,
   computeBurnTrueAnomaly,
@@ -504,18 +505,34 @@ function ManeuverPlannerComponent({
 
   async function dispatchPlanBurns(toDispatch: PlanResult): Promise<void> {
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
+    let dispatched = 0;
     for (const b of burns) {
       // Same RADIAL, NORMAL, PROGRADE wire order as before (see handleCommit's
       // own comment): only the transport changed, not the arg shape.
-      await addNodeCmd.send(
-        {
-          ut: b.ut,
-          radialOut: b.radial,
-          normal: b.normal,
-          prograde: b.prograde,
-        },
-        { label: "Add maneuver node" },
-      );
+      try {
+        await addNodeCmd.send(
+          {
+            ut: b.ut,
+            radialOut: b.radial,
+            normal: b.normal,
+            prograde: b.prograde,
+          },
+          { label: "Add maneuver node" },
+        );
+      } catch (err) {
+        // Both counts exist HERE and nowhere above: `dispatched` is what actually
+        // landed in KSP and `burns.length` is the plan. Rethrowing a bare reason would
+        // reach `handleCommit` with no way to recover either, and a wrong count is
+        // worse than none because it is a confident claim about vessel state.
+        throw new Error(
+          describePartialDispatch({
+            dispatched,
+            total: burns.length,
+            reason: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      }
+      dispatched += 1;
     }
   }
 
