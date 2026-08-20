@@ -3,7 +3,7 @@
  * propagator (`kepler.ts`). These are the "orbit Uplink SDK" pieces: the
  * mod streams sparse orbital ELEMENTS (plus the next SOI
  * `encounter`), and the SDK reconstructs everything a widget used to read as a
- * precomputed Telemachus scalar: a post-burn maneuver preview and the
+ * precomputed legacy scalar: a post-burn maneuver preview and the
  * patched-conic chain: client-side.
  *
  * Everything here is deterministic and side-effect-free (no wall-clock, no
@@ -188,8 +188,8 @@ export interface ManeuverBurn {
 /**
  * The orbit a burn produces: the consumer-side post-burn preview the
  * `VesselManeuver` contract doc ("derived, SDK-side, NOT streamed") calls
- * for, replacing Telemachus's arg-order-footgun `[x,y,z]` tuple + streamed
- * preview (old `o.maneuverNodes`).
+ * for, replacing the legacy positional `[x,y,z]` tuple (whose arg order did
+ * not match its axis names) plus its streamed preview.
  */
 export interface ManeuverPreview {
   /** Post-burn osculating elements (radians), or `null` if the pre-burn orbit was degenerate. */

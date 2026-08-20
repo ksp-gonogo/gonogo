@@ -6,8 +6,8 @@
 // (and for most fields, not even that), so nothing machine-readable ever reached the
 // client: the generated SDK carried no unit metadata at all. Every widget therefore
 // hand-rolled its own literal, including whole duplicated scaling ladders, and the only
-// machine-readable unit table in the repo (`packages/data/src/schema/telemachusMeta.ts`)
-// is keyed by LEGACY Telemachus keys (`v.altitude`) that the live topic path no longer
+// machine-readable unit table in the repo is keyed by LEGACY keys
+// (`v.altitude`) that the live topic path no longer
 // speaks.
 //
 // ── The mechanism ───────────────────────────────────────────────────────────────────

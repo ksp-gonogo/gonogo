@@ -45,22 +45,18 @@
  * is both noise and, where the comment points into `packages/*`, a pointer to
  * something they cannot obtain.
  *
- * This bucket must reach zero first.
+ * THIS BUCKET IS AT ZERO as of 2026-08-20, so it is no longer a shrinking list,
+ * it is a hard gate: any entry appearing here at all is a regression, and the
+ * test says so rather than asking for a number to be lowered.
+ *
+ * It reached zero the hard way. The stream spine moved into this package for
+ * test-ergonomics reasons and carried 86 lines of doc comment with it, including
+ * a `LEGACY_KEY_HOMES` header that pointed an outside author at
+ * `packages/components/src`, a directory they cannot obtain. Nothing caught
+ * that, because nothing was counting. Keeping it empty is cheaper than clearing
+ * it twice.
  */
-export const SDK_SURFACE: Readonly<Record<string, number>> = {
-  "mod/sitrep-sdk/src/default-carried-topics.ts": 5,
-  "mod/sitrep-sdk/src/spine/dv-legacy-scalars.ts": 1,
-  "mod/sitrep-sdk/src/spine/dv-stage-resources.ts": 3,
-  "mod/sitrep-sdk/src/spine/maneuver-legacy.ts": 4,
-  "mod/sitrep-sdk/src/spine/map-topic.ts": 13,
-  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 4,
-  "mod/sitrep-sdk/src/spine/propagation.ts": 2,
-  "mod/sitrep-sdk/src/spine/space-center-state.ts": 1,
-  "mod/sitrep-sdk/src/spine/system-state.ts": 2,
-  "mod/sitrep-sdk/src/spine/use-execute-action.ts": 1,
-  "mod/sitrep-sdk/src/spine/use-telemetry.ts": 1,
-  "mod/sitrep-sdk/src/units.ts": 2,
-};
+export const SDK_SURFACE: Readonly<Record<string, number>> = {};
 
 /**
  * Everything else in the tree: app packages, the mod's C# side, tests and
@@ -68,7 +64,6 @@ export const SDK_SURFACE: Readonly<Record<string, number>> = {
  * because none of it is read by anyone outside this repo.
  */
 export const APP_INTERNAL: Readonly<Record<string, number>> = {
-  ".serena/cache/typescript/document_symbols.pkl": 1,
   "mod/Directory.Build.props": 3,
   "mod/Gonogo.KSP/GonogoAddon.cs": 1,
   "mod/Gonogo.KSP/KspVesselActuator.cs": 1,

@@ -45,7 +45,7 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  * **The M3 `useStream` compatibility shim (M2 Task 7).** For the two-arg legacy
  * overloads this hook routes through `mapTopic(dataSourceId, key)`
  * (`@ksp-gonogo/sitrep-client`, seeded from `m1-provider-taxonomy-design.md`
- * §5's old-Telemachus-key → new-stream-topic migration table):
+ * §5's legacy-key → new-stream-topic migration table):
  *
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
  *   CARRIED** → reads reactively from the `TimelineStore` the provider feeds

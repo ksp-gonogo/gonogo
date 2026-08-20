@@ -7,7 +7,7 @@ import type { SystemBodiesPayload } from "./vessel-state";
  * widget-facing shape but have nothing to do with any one vessel.
  *
  * Today it carries a single field, `bodyCount`, the count behind the old
- * Telemachus `b.number` scalar. `system.bodies` on the wire is the raw ARRAY
+ * legacy `b.number` scalar. `system.bodies` on the wire is the raw ARRAY
  * of bodies (`SystemViewProvider.BuildSystemBodies`), whereas
  * SystemView/useCelestialBodies.ts reads a plain `number` (how many bodies
  * exist, so it can fan out per-index subscribes). Deriving the count here,
@@ -17,7 +17,7 @@ import type { SystemBodiesPayload } from "./vessel-state";
  * vessel-independent lifetime.
  */
 export interface SystemState {
-  /** Number of bodies in `system.bodies`: old Telemachus `b.number`. */
+  /** Number of bodies in `system.bodies`. */
   bodyCount: number;
 }
 

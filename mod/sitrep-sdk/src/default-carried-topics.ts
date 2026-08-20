@@ -55,7 +55,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // built-in system.uplinks channel: see uplink-health.ts's derived
   // systemUplinkHealthChannel). Must be carried or Settings' per-Uplink
   // health rows silently fall back to nothing (there is no legacy
-  // Telemachus equivalent).
+  // legacy equivalent).
   "system.uplinks",
   "time.warp",
   // time.calendar: how long a day and a year are in the game being watched.
@@ -137,22 +137,22 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // spaceCenter.launchSites: LaunchDirector's kc.launchSites picker roster,
   // plus the input the spaceCenter.state derived channel reads for the
   // kc.padOccupied/kc.padVesselTitle pair, must be promoted or those reads
-  // silently stay on the legacy Telemachus source.
+  // silently stay on the legacy source.
   "spaceCenter.launchSites",
   // spaceCenter.pois: the map points-of-interest feed (KSC/launch sites +
   // active/offered contract targets) MapView's vanilla POI provider reads,
-  // a brand-new topic with no legacy Telemachus equivalent, so the stream is
+  // a brand-new topic with no legacy equivalent, so the stream is
   // its only source of data.
   "spaceCenter.pois",
   // spaceCenter.astronautComplex: AstronautComplex's applicant pool + roster
-  // cap + active-crew count, a brand-new topic with no legacy Telemachus
+  // cap + active-crew count, a brand-new topic with no legacy
   // equivalent, so the stream is its only source of data.
   "spaceCenter.astronautComplex",
   // Crash event stream (CrashUplink, ReliableOrdered): the crashed-vessel
   // record and its companion "a notable crash happened recently" flag. Raw
   // wire topics; the gate promotes at raw-topic granularity, so a widget
   // reading them through `useDataValue` reaches the stream instead of the
-  // legacy Telemachus source. Delivered on the reliable lane, so every crash
+  // legacy source. Delivered on the reliable lane, so every crash
   // arrives (none coalesced); consumers that must act once per crash use
   // `useStreamEvent` rather than a sticky value read.
   "crash.lastCrash",
