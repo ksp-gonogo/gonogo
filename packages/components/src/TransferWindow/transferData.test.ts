@@ -521,3 +521,44 @@ describe("porkchop grid quantisation: why it scales with the chart", () => {
     expect(quantiseGridUt(12_345, null)).toBe(12_345);
   });
 });
+
+describe("reach list recompute quantum: derived from what the column can show", () => {
+  // The widget quantises `nowUt` to one Kerbin day before the reach memo (see
+  // `REACH_RECOMPUTE_UT`). Kept as a literal here rather than imported from the widget,
+  // so a change to the widget's constant fails this rather than silently agreeing.
+  const KERBIN_DAY = 21_600;
+
+  it("holds under warp, where the old 60-second bucket did not", () => {
+    const base = 1_000_000;
+    // 100,000x: a frame advances UT by ~1,670 seconds.
+    const utPerFrame = 0.0167 * 100_000;
+    const bucket = (ut: number, q: number) => Math.floor(ut / q) * q;
+
+    const day = new Set(
+      Array.from({ length: 60 }, (_, f) =>
+        bucket(base + f * utPerFrame, KERBIN_DAY),
+      ),
+    );
+    const sixtySeconds = new Set(
+      Array.from({ length: 60 }, (_, f) => bucket(base + f * utPerFrame, 60)),
+    );
+
+    // The old bucket changed on every frame at this warp, which is the whole defect.
+    expect(sixtySeconds.size).toBe(60);
+    expect(day.size).toBeLessThanOrEqual(5);
+  });
+
+  it("does not move the delta-v columns at all, which is why coarsening it is safe", () => {
+    // The costs are functions of radii and μ, so the same destination priced at two very
+    // different UTs must give identical Δv. Only the timing columns may differ.
+    const mk = (nowUt: number) =>
+      reachEntries({ origin: earth, bodies, parkingRadius: 6.571e6, nowUt });
+    const early = mk(0).find((r) => r.body.name === "Mars");
+    const late = mk(500 * DAY).find((r) => r.body.name === "Mars");
+    expect(early?.totalDeltaV).toBeCloseTo(late?.totalDeltaV as number, 6);
+    expect(early?.transferTimeSec).toBeCloseTo(
+      late?.transferTimeSec as number,
+      6,
+    );
+  });
+});

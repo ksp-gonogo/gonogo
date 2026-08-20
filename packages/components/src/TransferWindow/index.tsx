@@ -58,11 +58,33 @@ import {
 const WINDOW_COUNT = 5;
 
 /**
- * UT seconds the reach list's phase solve is quantised to. A minute of game time
- * moves an interplanetary phase angle by nothing an operator can read, and the
- * alternative is re-solving every destination on every frame the clock advances.
+ * UT the reach list's phase solve is quantised to: ONE KERBIN DAY, which is what its
+ * countdown column can actually display.
+ *
+ * This was 60 seconds, and 60 seconds was arbitrary. Same trap as the porkchop's
+ * (`porkchopGridQuantum`): a fixed quantum stops working under time warp, because at
+ * 100,000x a frame advances UT by about 1,670 seconds and a 60-second bucket changes on
+ * every one of them. It failed from roughly 10,000x upward, which for a transfer planner
+ * is most of the time it is being looked at.
+ *
+ * **The porkchop's fix does not transfer here, and that is worth saying rather than
+ * forcing.** That quantum scales with the Hohmann transfer time because the chart's axes
+ * are drawn in transfer times. The reach list has N destinations with N different
+ * transfer times and no single T to scale by.
+ *
+ * What it does have is a display granularity. `nowUt` reaches only `waitSeconds` (the
+ * Window column); the Δv columns are functions of radii and μ, and Transit is the Hohmann
+ * time, so neither moves with the clock at all. And Window renders as
+ * `Math.round(days)`, or tenths of a Kerbin year past 1000 days. So one day is the finest
+ * change the column can express, which makes it the honest quantum rather than merely a
+ * bigger number: 0.46 rebuilds/s at 10,000x and 4.6 at 100,000x, of six closed-form
+ * solves each.
+ *
+ * The cost is that a window opening reads "in 1 d" for up to a day before it says "now".
+ * Acceptable because this is the SURVEY column: the actionable countdown is the windows
+ * list below, which is exact and unquantised, and it owns the alarm button.
  */
-const REACH_RECOMPUTE_UT = 60;
+const REACH_RECOMPUTE_UT = KSP_DAY_SECONDS;
 
 const VERDICT_LABEL: Record<ReachVerdict, string> = {
   go: "GO",
