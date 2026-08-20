@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canPropagate, PropagationHorizonKindLike as Kind } from "./kepler";
+import {
+  canPropagate,
+  PropagationHorizonKindLike as Kind,
+  TrajectoryKindLike as Kind2,
+} from "./kepler";
 
 /**
  * The client half of the propagation seam. Mod-side `CanPropagate` has taken a
@@ -79,8 +83,8 @@ describe("canPropagate", () => {
   });
 });
 
-describe("canPropagate carries the provider's identity", () => {
-  it("names who bounded the number when it refuses past a horizon", () => {
+describe("canPropagate carries the trajectory kind", () => {
+  it("says what kind of answer was bounded when it refuses", () => {
     // The reason increment 2 put an id on the wire: a client that knows a number
     // is bounded but not by whom cannot label honestly, and going blank is the
     // presentation the horizon exists to replace.
@@ -88,7 +92,7 @@ describe("canPropagate carries the provider's identity", () => {
       {
         kind: Kind.Until,
         untilUt: 1_000,
-        providerId: "an-integrating-backend",
+        trajectoryKind: Kind2.Integrated,
       },
       0,
       2_000,
@@ -98,25 +102,30 @@ describe("canPropagate carries the provider's identity", () => {
       propagatable: false,
       reason: "past-horizon",
       horizonUt: 1_000,
-      providerId: "an-integrating-backend",
+      trajectoryKind: Kind2.Integrated,
     });
   });
 
-  it("does not consult the id when deciding", () => {
+  it("does not consult the kind when deciding", () => {
     // The decision is `kind` and `untilUt` alone. `VesselOrbit`'s own doc says
     // nothing outside the election may branch on a provider id's value, so an
     // unknown id must change nothing about whether the window is answerable.
     const inside = {
       kind: Kind.Until,
       untilUt: 1_000,
-      providerId: "who-knows",
+      trajectoryKind: Kind2.Integrated,
     };
     expect(canPropagate(inside, 0, 500).propagatable).toBe(true);
     expect(
-      canPropagate({ ...inside, providerId: "kepler" }, 0, 500).propagatable,
+      canPropagate({ ...inside, trajectoryKind: Kind2.Analytic }, 0, 500)
+        .propagatable,
     ).toBe(true);
     expect(
-      canPropagate({ kind: Kind.Unbounded, providerId: "anything" }, 0, 1e12),
+      canPropagate(
+        { kind: Kind.Unbounded, trajectoryKind: Kind2.Analytic },
+        0,
+        1e12,
+      ),
     ).toEqual({
       propagatable: true,
     });

@@ -1294,13 +1294,18 @@ export interface VesselOrbit
 export interface PropagationHorizon
 {
 	kind: PropagationHorizonKind;
-	providerId: string;
+	trajectoryKind: TrajectoryKind;
 	untilUt?: Value<"ut">;
 }
 export enum PropagationHorizonKind {
 	Unspecified = 0,
 	Unbounded = 1,
 	Until = 2
+}
+export enum TrajectoryKind {
+	Unspecified = 0,
+	Analytic = 1,
+	Integrated = 2
 }
 export interface OrbitEncounter
 {

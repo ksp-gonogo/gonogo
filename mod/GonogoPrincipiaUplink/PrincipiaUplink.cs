@@ -13,6 +13,7 @@
 // reaches clients as a property of the ANSWER (an integrated trajectory, bounded
 // by a horizon) rather than as the vendor's identity.
 using Sitrep.Contract;
+
 using System.Collections.Generic;
 
 namespace GonogoPrincipiaUplink
@@ -41,13 +42,20 @@ namespace GonogoPrincipiaUplink
         };
 
         /// <summary>
-        /// Registers nothing.
+        /// Registers nothing YET, and the reason is a boundary rather than a
+        /// choice.
         ///
-        /// <para>Deliberate, and the increment boundary: detection lands on its
-        /// own so that "the mod is present" is observable before anything starts
-        /// changing numbers because of it. The propagation provider that consumes
-        /// this guard is the NEXT increment, and it is the one that will make a
-        /// conic stop being drawn past its horizon.</para>
+        /// <para>The propagation provider is written and tested, but it cannot
+        /// live here: <c>IPropagationProvider</c> is in <c>Sitrep.Propagation</c>,
+        /// a private unpublished assembly an Uplink may not build against. The
+        /// isolation gate is right to refuse it, and the sibling capabilities do
+        /// not have this problem because <c>IReliabilityBackend</c> and
+        /// <c>IActionGroupsBackend</c> both live in <c>Sitrep.Contract</c>.</para>
+        ///
+        /// <para>So the propagation capability is advertised as an extension
+        /// point that no third party can actually extend. That wants the
+        /// interface moved onto the boundary, which is a decision about a shared
+        /// assembly rather than something to do quietly from here.</para>
         /// </summary>
         public void Register(IUplinkHost host)
         {

@@ -634,7 +634,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "PropagationHorizon": {
     kind: "enum",
-    providerId: "id",
+    trajectoryKind: "enum",
     untilUt: "ut",
   },
   "RecoveryCrewEntry": {

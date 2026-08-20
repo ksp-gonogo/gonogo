@@ -64,14 +64,16 @@ export interface PropagationHorizonLike {
   /** Only meaningful for `Until`; a UT, not a duration. */
   untilUt?: { magnitude: number } | number;
   /**
-   * Who stated the horizon. Optional HERE and required on the wire: this shape
-   * also describes a caller-built horizon in a test, which has no provider.
+   * What KIND of answer these elements are: a closed-form conic, or a snapshot
+   * of an integrated path. Optional HERE and required on the wire, because this
+   * shape also describes a caller-built horizon in a test.
    *
-   * Carried so a refusal can NAME who bounded the number. Never compared: the
-   * gate's decision is `kind` and `untilUt` alone, and the id exists for a
-   * readout and a diagnostic.
+   * Carried so a refusal can say what a client cannot DO rather than who it
+   * cannot ask. Never consulted by the gate's decision, which is `kind` and
+   * `untilUt` alone: the horizon answers reach, this answers shape, and mixing
+   * them is the confusion the field exists to end.
    */
-  providerId?: string;
+  trajectoryKind?: TrajectoryKindLike;
 }
 
 /**
@@ -86,6 +88,15 @@ export const PropagationHorizonKindLike = {
 export type PropagationHorizonKindLike =
   (typeof PropagationHorizonKindLike)[keyof typeof PropagationHorizonKindLike];
 
+/** Mirrors the contract enum by VALUE, for the same reason as the horizon kind above. */
+export const TrajectoryKindLike = {
+  Unspecified: 0,
+  Analytic: 1,
+  Integrated: 2,
+} as const;
+export type TrajectoryKindLike =
+  (typeof TrajectoryKindLike)[keyof typeof TrajectoryKindLike];
+
 /** Why a propagation was refused, for a caller that wants to say so on screen. */
 export type PropagationRefusal =
   | { propagatable: true }
@@ -95,11 +106,12 @@ export type PropagationRefusal =
       reason: "past-horizon";
       horizonUt: number;
       /**
-       * Who bounded it, when the sample said. Present so a readout can name the
-       * provider instead of going blank, which is the whole reason the horizon
-       * carries an identity.
+       * What kind of answer was bounded. Present so a readout can say WHY a
+       * conic stopped rather than going blank: an integrated trajectory past its
+       * horizon is a different sentence from an analytic one, and the operator
+       * can act on the difference.
        */
-      providerId?: string;
+      trajectoryKind?: TrajectoryKindLike;
     };
 
 function horizonUtOf(horizon: PropagationHorizonLike): number | undefined {
@@ -150,7 +162,7 @@ export function canPropagate(
       propagatable: false,
       reason: "past-horizon",
       horizonUt,
-      providerId: horizon.providerId,
+      trajectoryKind: horizon.trajectoryKind,
     };
   }
   return { propagatable: true };

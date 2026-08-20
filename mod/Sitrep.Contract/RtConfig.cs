@@ -395,6 +395,7 @@ public static class RtConfig
                 typeof(TargetKind),
                 typeof(TransitionType),
                 typeof(PropagationHorizonKind),
+                typeof(TrajectoryKind),
                 typeof(VesselType),
                 typeof(WarpMode),
                 typeof(GameMode),
