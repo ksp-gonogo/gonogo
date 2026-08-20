@@ -145,6 +145,13 @@ describe("FleetReliabilityUpdates augment", () => {
       });
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
-    expect(await axe(container)).toHaveNoViolations();
+    // axe walks the DOM asynchronously and takes real time, and this widget keeps
+    // updating while it does. Outside act() those updates land unwrapped, which was
+    // three warnings from this one line. The assertion is unchanged.
+    let results: Awaited<ReturnType<typeof axe>> | undefined;
+    await act(async () => {
+      results = await axe(container);
+    });
+    expect(results).toHaveNoViolations();
   });
 });

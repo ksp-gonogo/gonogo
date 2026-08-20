@@ -570,7 +570,13 @@ describe("SettingsModal Data Sources tab: healthy-uplinks collapse chip", () => 
       expect(screen.getByText("1/2 healthy")).toBeInTheDocument(),
     );
 
-    expect(await axe(container)).toHaveNoViolations();
+    // Inside act(): axe walks the DOM asynchronously and the panel keeps updating
+    // while it does, so unwrapped those updates land outside any act scope.
+    let results: Awaited<ReturnType<typeof axe>> | undefined;
+    await act(async () => {
+      results = await axe(container);
+    });
+    expect(results).toHaveNoViolations();
   });
 });
 

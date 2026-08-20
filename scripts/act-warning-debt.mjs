@@ -51,16 +51,6 @@
 
 /** @type {Record<string, number>} keyed `<package>/<path from package root>`. */
 export const KNOWN_ACT_WARNINGS = {
-  // INTERMITTENT, and the worst of them: measured at 0, 1 and 21 across four runs of
-  // an unchanged tree, the 21 on a box at load 15. It is a race, so contention buys
-  // it more chances to fire rather than fewer. Seeded at the observed MAXIMUM so
-  // ordinary noise cannot exceed it, which costs regression sensitivity on this one
-  // file and is the honest price of ratcheting a quantity that is not stable. Fixing
-  // the race is what makes this entry tight again.
-  "components/src/Navball/index.test.tsx": 21,
-  "app/src/settings/SettingsModal.test.tsx": 3,
-  "components/src/FleetReliability/index.test.tsx": 3,
-  "components/src/MapView/index.test.tsx": 2,
   "components/src/ShipMap/partActions.test.tsx": 2,
   "sitrep-client/src/use-command.test.tsx": 2,
   "ui-kit/src/Tabs.test.tsx": 2,

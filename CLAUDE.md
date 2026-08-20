@@ -184,12 +184,17 @@ Prefer tests that mock as little of the system as possible. Use [Mock Service Wo
 - **Integration tests** (in `@ksp-gonogo/app`) use MSW WebSocket/HTTP handlers to simulate KSP APIs. The real data source, real hook, and real component all run, only the network is intercepted. This is the preferred form for tests involving connection status or data flow.
 - **Unit tests** (in `@ksp-gonogo/core`, `@ksp-gonogo/components`) use the real registry with simple disconnected fixture data sources. No `vi.mock()` of internal modules. MSW is only needed when a test actually triggers a network call.
 - Avoid mocking `useDataSources` or other core hooks in component tests, render the real component with real registry state instead.
-- **`act()` warnings are always our bug**; never dismiss them. Two common fixes:
-  1. `connect()` must resolve from *inside* the `open` event handler (after `setStatus`), not before the event fires.
-  2. In `afterEach`, call `cleanup()` before `source.disconnect()`, disconnecting while a component is still mounted triggers state updates outside `act`.
+- **`act()` warnings are always our bug**; never dismiss them. Three causes, measured across the whole tree in August 2026, not two:
+  1. **A long await in the test body** while a live component keeps updating. The commonest instance by far is the `jest-axe` smoke assertion, see Accessibility below; a deliberate `setTimeout` to prove a steady state is the other.
+  2. **An async settle landing after the test body returns**, a socket handshake most often. It reads like a missing `act` in the body and is not.
+  3. **Shared state cleared while the tree is still mounted**, so `useSyncExternalStore` subscribers re-render outside `act`.
   Use `waitFor` rather than `act` for assertions on async external events (WebSocket, PeerJS).
+- **Tell 1 from 2 and 3 with a marker**, rather than guessing: `console.info("MARKER")` as the last line of the test body, run with `--reporter=verbose`, and see which side of it the warning lands on. Before the marker is in-body, after it is teardown, and the two want opposite edits. This found two of the three causes above.
+- **Do NOT add an explicit `cleanup()` to win a teardown race.** RTL registers its own auto-cleanup and it already runs; reaching for a manual one makes the test depend on framework hook ordering that we neither control nor wrote down. If a clear in `afterEach` is notifying a mounted tree, first check whether the clear is needed at all: the registry lives on the test file's own `globalThis` and vitest isolates per file, so there is no cross-file pollution to defend against, and `registerComponent` only throws on a *differing* name. Measured on 13 files: 4 clears were pure harm, 2 were load-bearing, 7 changed nothing.
 - **`pnpm test` cannot show you an act warning.** Vitest 4's default reporter suppresses console output for tests that PASS, and an act warning does not fail the test that emits it, so the normal path prints none of them and always has. `--silent=false` looks like the flag and changes nothing; `--reporter=verbose` is the one that works. To see them for one package: `pnpm --filter <pkg> exec vitest run --reporter=verbose`.
-- **The ratchet is `pnpm act-warning-gate`**, with per-file counts in `scripts/act-warning-debt.mjs` and its own CI job (`act-warnings`). Counts may only shrink, and a file that *improves* also fails, so a fix updates the debt in the same commit (`pnpm act-warning-gate --update`) rather than leaving slack for the next regression to hide in. The gate plants a deliberate violation and fails as BLIND if it cannot see it, because a counter that cannot see a warning reports zero and zero reads as success.
+- **A count measured on a loaded machine is a MAXIMUM, and a low count on a quiet one is not evidence of absence.** Contention does not hide these races, it gives them more chances to fire: one file measured 0, 1 and 21 across runs of an unchanged tree, the 21 at load 21. The gate prints the load beside the count for this reason.
+- **`pnpm test` cannot show you an act warning.** Vitest 4's default reporter suppresses console output for tests that PASS, and an act warning does not fail the test that emits it, so the normal path prints none of them and always has. `--silent=false` looks like the flag and changes nothing; `--reporter=verbose` is the one that works. To see them for one package: `pnpm --filter <pkg> exec vitest run --reporter=verbose`.
+- **The ratchet is `pnpm act-warning-gate`**, with per-file counts in `scripts/act-warning-debt.mjs` and its own CI job (`act-warnings`). It is a CEILING: it fails on growth and on new files, and only REPORTS a count that came in low, because the quantity is not stable enough to fail on a drop. After a real fix, tighten the entry in the same commit with `pnpm act-warning-gate --update --only <substring>`; a bare `--update` rewrites every entry from one measurement and will write down that run's roll for files you never touched. An entry carrying a comment is never lowered automatically, because a comment marks a number that was chosen rather than measured. The gate plants a deliberate violation and fails as BLIND if it cannot see it, because a counter that cannot see a warning reports zero and zero reads as success.
 
 ---
 
@@ -415,7 +420,15 @@ Baseline expectations for every new or modified component. Targets WCAG 2.1 AA; 
 - Wrap mission-state changes (e.g. GO/NO-GO transitions) in `role="status" aria-live="polite"`. Reserve `role="alert"` / `aria-live="assertive"` for events that must interrupt (ABORT). Don't live-region streaming telemetry, it floods screen readers.
 - Respect `prefers-reduced-motion` on any new animation: the global reset in `packages/app/src/styles/global.css` damps transitions, but indefinite CSS animations (e.g. pulses) need an explicit `@media (prefers-reduced-motion: no-preference)` guard.
 - Colour contrast: 4.5:1 for normal text, 3:1 for large text and non-text UI (focus rings, borders).
-- Component tests should include a `jest-axe` smoke assertion (`await axe(container)` → `toHaveNoViolations()`).
+- Component tests should include a `jest-axe` smoke assertion, and it must run **inside `act()`**:
+  ```ts
+  let results: Awaited<ReturnType<typeof axe>> | undefined;
+  await act(async () => {
+    results = await axe(container);
+  });
+  expect(results).toHaveNoViolations();
+  ```
+  `axe` walks the DOM asynchronously and takes real time, so a widget with a clock or a subscription keeps updating throughout. Unwrapped, every one of those updates lands outside `act`, and the bare `expect(await axe(container))` form this document used to recommend was the single largest source of act warnings in the tree: 29 across four files. The assertion itself was never wrong, only its await.
 
 ---
 
