@@ -244,9 +244,18 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ],
   },
   principia: {
-    // NO ownedDirs, and that is the point. There is no Principia Uplink, so
-    // every mention anywhere is a violation that must be justified explicitly
-    // rather than silently permitted by an owning directory.
+    // The Uplink now EXISTS, so the token finally has an owning directory
+    // (2026-08-20). Everything below about why the token was created still
+    // stands: outside those two dirs a mention is a violation, and the
+    // anticipation pattern the token was written to catch is unchanged.
+    //
+    // What the Uplink is allowed to know is narrow. It reads assembly presence
+    // and version and binds NO member, because Principia's surviving native
+    // surface aborts the KSP process on a bad call. So the name lives here and
+    // the substantive fact reaches clients as a property of the ANSWER (an
+    // integrated trajectory, bounded by a horizon), never as the vendor's
+    // identity: see `PropagationHorizon`'s `TrajectoryKind` rather than a
+    // provider name on the wire.
     //
     // This token exists because its absence was a blind spot with teeth. A
     // ratchet keyed on "mods we already integrate" cannot see coupling
@@ -256,7 +265,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // PrincipiaPriority for a year without ever being flagged, because no token
     // looked for the string.
     patterns: [/principia/i],
-    ownedDirs: [],
+    ownedDirs: ["mod/GonogoPrincipiaUplink", "mod/GonogoPrincipiaUplink.Tests"],
   },
   telemachus: {
     // A RETIRED dependency, not an Uplink. Telemachus stopped being the app's
