@@ -1,4 +1,5 @@
 import { CommandErrorCode } from "../__generated__/contract";
+import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import type { ServerMessage } from "../envelope";
 import { type Clock, RealTimeClock } from "./clock";
@@ -542,7 +543,7 @@ export class TelemetryClient {
       pending.status = { phase: "refused", requestId, errorCode };
       reject?.(
         new CommandError(
-          "E_REFUSED",
+          COMMAND_REFUSED,
           `command refused: ${CommandErrorCode[errorCode] ?? errorCode}`,
           errorCode,
         ),
@@ -591,7 +592,7 @@ export class TelemetryClient {
     pending.cancelLossTimer = null;
     reject?.(
       new CommandError(
-        "E_LOST",
+        COMMAND_LOST,
         "command lost: no confirmation received by predicted ETA",
       ),
     );

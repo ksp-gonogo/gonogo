@@ -1,5 +1,8 @@
 import type { ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
-import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  classifyCommandRejection,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -589,5 +592,73 @@ describe("TelemetryClient command refusals", () => {
     const reason = err instanceof Error ? err.message : String(err);
     expect(reason).not.toContain("[object Object]");
     expect(reason).toMatch(/refus/i);
+  });
+});
+
+/**
+ * The published guard and the spine that throws are two files that have to
+ * agree about three strings. They share the code constants, which stops one
+ * kind of drift; this covers the other kind, where a phase is renamed or a
+ * rejection starts carrying something else, by running both halves end to end
+ * and asserting they still describe the same outcome.
+ */
+describe("classifyCommandRejection against the spine that actually throws", () => {
+  const classify = (result: Promise<unknown>) =>
+    result.then(
+      () => null,
+      (err: unknown) => classifyCommandRejection(err),
+    );
+
+  it("agrees with the recorded phase on all three terminal outcomes", async () => {
+    const refusing = new StubTransport();
+    refusing.setCommandHandler(() => ({
+      success: false,
+      errorCode: CommandErrorCode.NotFound,
+    }));
+    const refused = new TelemetryClient(refusing);
+    const refusedDispatch = refused.dispatch("a");
+    expect(await classify(refusedDispatch.result)).toEqual({
+      kind: "refused",
+      errorCode: CommandErrorCode.NotFound,
+      // The typed reason reaches the words too, or an operator-facing message
+      // built from this is back to saying nothing useful.
+      message: expect.stringContaining("NotFound"),
+    });
+    expect(refused.getCommand(refusedDispatch.requestId).phase).toBe("refused");
+
+    const breaking = new StubTransport();
+    breaking.setCommandHandler(() => {
+      throw { code: "E_NO", message: "nope" };
+    });
+    const failed = new TelemetryClient(breaking);
+    const failedDispatch = failed.dispatch("b");
+    expect(await classify(failedDispatch.result)).toEqual({
+      kind: "failed",
+      code: "E_NO",
+      message: "nope",
+    });
+    expect(failed.getCommand(failedDispatch.requestId).phase).toBe("failed");
+
+    const clock = new FakeClock(0);
+    const silent = new EtaTransport(4);
+    const lost = new TelemetryClient(silent, clock);
+    const lostDispatch = lost.dispatch("c");
+    clock.advanceTo(4 + LOSS_MARGIN + 10);
+    expect(await classify(lostDispatch.result)).toMatchObject({ kind: "lost" });
+    expect(lost.getCommand(lostDispatch.requestId).phase).toBe("lost");
+  });
+
+  it("calls an unplaceable throw failed rather than inventing a game reason", async () => {
+    // A handler that throws a bare string, or any foreign error: "something
+    // broke, a retry may work" is the safe reading. Calling it `refused` would
+    // claim the game evaluated something it never saw.
+    const t = new StubTransport();
+    t.setCommandHandler(() => {
+      throw new Error("kaboom");
+    });
+    const client = new TelemetryClient(t);
+    expect(await classify(client.dispatch("d").result)).toMatchObject({
+      kind: "failed",
+    });
   });
 });

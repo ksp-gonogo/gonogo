@@ -254,6 +254,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/styleguide-magnitude-budget.test.ts",
+      // -- FIRE-AND-FORGET command budget (2026-08-20): the per-file budget
+      // for dispatches that discard their outcome is keyed by file path, so it
+      // names every Uplink with a blind dispatch. Ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -942,6 +947,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // a usable comment. Text-only mention in a ratchet-inventory file, the
       // case this bucket documents.
       "packages/core/src/ci-test-project-coverage.test.ts",
+      // -- FIRE-AND-FORGET command budget (2026-08-20): the per-file budget
+      // for dispatches that discard their outcome is keyed by file path, so it
+      // names every Uplink with a blind dispatch. Ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -1197,6 +1207,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/styleguide-magnitude-budget.test.ts",
+      // -- FIRE-AND-FORGET command budget (2026-08-20): the per-file budget
+      // for dispatches that discard their outcome is keyed by file path, so it
+      // names every Uplink with a blind dispatch. Ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.

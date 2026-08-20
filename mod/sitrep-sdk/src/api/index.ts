@@ -550,6 +550,16 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
 
 // --- Trivial utils (stateless, self-contained) -------------------------------
 
+/**
+ * Sort a caught `send()` rejection into refused / lost / failed. Published
+ * because the alternative for an author is `instanceof` against a class in the
+ * unpublished spine, or matching a code string they could only have read in our
+ * source. The three names match the `CommandStatus` phases deliberately.
+ */
+export {
+  type CommandRejection,
+  classifyCommandRejection,
+} from "./command-rejection";
 // The fog-of-war mask store, its in-memory cache and the React context that
 // carries them. Owned here for the same reason the settings context is: a second
 // copy of a context is invisible to the other side's provider, and `useFogMaskCache`
