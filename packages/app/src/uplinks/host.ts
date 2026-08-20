@@ -46,6 +46,7 @@ import {
   useUtNow,
   useViewClock,
   useViewClockOptional,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
   GONOGO_HOST_KEY,
@@ -85,6 +86,7 @@ export function buildGonogoHost(): GonogoHost {
         dataSourceIdOrTopic,
         key,
       )) as GonogoHost["useTelemetry"],
+    useViewUt: () => useViewUt(),
     useCommand: (command) =>
       useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
     useRouteCommands: (topic) =>

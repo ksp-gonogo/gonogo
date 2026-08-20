@@ -249,13 +249,21 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // stands: outside those two dirs a mention is a violation, and the
     // anticipation pattern the token was written to catch is unchanged.
     //
-    // What the Uplink is allowed to know is narrow. It reads assembly presence
-    // and version and binds NO member, because Principia's surviving native
-    // surface aborts the KSP process on a bad call. So the name lives here and
-    // the substantive fact reaches clients as a property of the ANSWER (an
-    // integrated trajectory, bounded by a horizon), never as the vendor's
-    // identity: see `PropagationHorizon`'s `TrajectoryKind` rather than a
-    // provider name on the wire.
+    // What the Uplink is allowed to know is narrow, and it widened once with a
+    // reason. It reads assembly presence and version, and it now also reads the
+    // flight planner's own managed fields by reflection: every one was read in
+    // the decompiled body and confirmed to enter no native call, because the
+    // surviving native surface aborts the KSP process on a bad one and that
+    // guard is armed against a caller's arguments. So the name lives here, and
+    // the substantive fact still reaches clients as a property of the ANSWER (an
+    // integrated trajectory, bounded by a horizon; a plan with an observation
+    // instant on it) rather than as the vendor's identity: see
+    // `PropagationHorizon`'s `TrajectoryKind` rather than a provider name on the
+    // wire.
+    //
+    // The contract slice and the client are owned dirs for the same reason the
+    // mod project is: they ARE this Uplink. `mod/GonogoPrincipiaUplink/client`
+    // sits inside the mod dir already and needs no separate entry.
     //
     // This token exists because its absence was a blind spot with teeth. A
     // ratchet keyed on "mods we already integrate" cannot see coupling
@@ -265,7 +273,11 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // PrincipiaPriority for a year without ever being flagged, because no token
     // looked for the string.
     patterns: [/principia/i],
-    ownedDirs: ["mod/GonogoPrincipiaUplink", "mod/GonogoPrincipiaUplink.Tests"],
+    ownedDirs: [
+      "mod/GonogoPrincipiaUplink",
+      "mod/GonogoPrincipiaUplink.Contract",
+      "mod/GonogoPrincipiaUplink.Tests",
+    ],
   },
   telemachus: {
     // A RETIRED dependency, not an Uplink. Telemachus stopped being the app's

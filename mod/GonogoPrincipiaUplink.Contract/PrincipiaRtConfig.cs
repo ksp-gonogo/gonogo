@@ -5,8 +5,8 @@ using Reinforced.Typings.Fluent;
 namespace GonogoPrincipiaUplink;
 
 /// <summary>
-/// This Uplink's OWN codegen configuration, mirroring
-/// <c>AvionicsRtConfig.Configure</c>'s shape against this assembly's types.
+/// This Uplink's OWN codegen configuration, the same shape every sibling
+/// Uplink's <c>*RtConfig.Configure</c> has, scoped to this assembly's types.
 ///
 /// <para>Both wire types go in the <c>ExportAsInterfaces</c> set, not just the
 /// topic-carrying one. <see cref="PrincipiaFlightPlanBurn"/> is a nested payload

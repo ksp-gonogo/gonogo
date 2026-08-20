@@ -48,9 +48,9 @@ export function widgetReadsTrajectory(
  * What a widget's panel should say about its trajectory's currency, or `null`
  * when the horizon has nothing to add.
  *
- * The instant that matters is the VIEW instant, not the sample's own: Principia
- * is always current with itself, and an operator reading a delayed second
- * screen is not. Asking `canPropagate` for `[viewUt, viewUt]` is asking exactly
+ * The instant that matters is the VIEW instant, not the sample's own: a producer
+ * is always current with itself, and an operator reading a delayed second screen
+ * is not. Asking `canPropagate` for `[viewUt, viewUt]` is asking exactly
  * the operator's question, "can these elements answer for the moment I am
  * looking at", which is why both ends are the view instant.
  *

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     GonogoPrincipiaUplink's OWN contract slice: the flight-plan wire payload.
-    Same shape as GonogoAvionicsUplink.Contract and for the same mandate, no
+    Same shape as every sibling Uplink's contract slice and for the same mandate, no
     uplink-specific wire type may live in Sitrep.Contract even for an
     in-monorepo Uplink (local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md).
 
