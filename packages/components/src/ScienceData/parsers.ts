@@ -23,9 +23,9 @@ export interface ParsedExperiment {
 /**
  * Parses `science.experiments`. Two wire shapes land here:
  *
- * - Legacy Telemachus Reborn: `{ part, title, dataAmount,
+ * - Legacy: `{ part, title, dataAmount,
  *   scienceValueBase, transmitBoost, subjectId }` (see
- *   ScienceCareerDataLinkHandler in the Telemachus fork).
+ *   the legacy science data-link handler).
  * - New SDK `science.experiments`: `{ partName, location, experimentId,
  *   subjectId, title, dataAmount, ... }`,
  *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s superset of the legacy shape,

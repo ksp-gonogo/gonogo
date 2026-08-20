@@ -1,7 +1,7 @@
 /**
  * Quantise universal-time into integer-second buckets so memoised
  * trajectory predictions only invalidate once per second instead of on
- * every Telemachus tick (~4 Hz). The visible difference at 1 Hz vs
+ * every telemetry tick (~4 Hz). The visible difference at 1 Hz vs
  * 4 Hz is below user-perceptible, orbits drawn for 5+ minutes of
  * horizon don't change shape between two adjacent ticks 250 ms apart.
  *

@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useContext } from "react";
 
 /**
  * Lightweight contract for "open the alarms modal pre-populated to fire
- * this Telemachus action": used by component widgets (e.g. ActionGroup)
+ * this action": used by component widgets (e.g. ActionGroup)
  * to avoid the round trip of opening alarms manually and re-typing the
  * action key.
  *
@@ -16,7 +16,7 @@ import { createContext, type ReactNode, useContext } from "react";
 export interface AlarmsLauncherOptions {
   /** Pre-fills the alarm name. Optional. */
   name?: string;
-  /** Telemachus action key, e.g. `f.ag1`, `f.stage`, `f.abort`. */
+  /** Legacy action key, e.g. `f.ag1`, `f.stage`, `f.abort`. */
   action: string;
 }
 

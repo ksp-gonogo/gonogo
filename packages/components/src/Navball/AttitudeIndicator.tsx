@@ -20,7 +20,7 @@ export interface AttitudeIndicatorProps {
  *     sits at the centre.
  *
  * Markers (prograde, retrograde, normal etc.) are deferred, they need
- * direction vectors that Telemachus doesn't expose for a compact projection,
+ * direction vectors the wire doesn't carry for a compact projection,
  * and the attitude readouts here already cover the GNC use-case for v1.
  */
 export function AttitudeIndicator({

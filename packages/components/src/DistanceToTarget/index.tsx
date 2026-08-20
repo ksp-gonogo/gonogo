@@ -443,8 +443,8 @@ function DistanceToTargetComponent({
   // `tarName === undefined` is kept alongside it as a belt-and-braces guard for a
   // record that somehow arrives without a name. It is not a second encoding of
   // absence: an earlier version of this comment claimed KSP had one, a
-  // "No Target Selected." sentinel, and that was wrong. It was Telemachus's
-  // string, unproducible since Telemachus stopped being the data source, and the
+  // "No Target Selected." sentinel, and that was wrong. It was the OLD data
+  // source's string, unproducible since that source was retired, and the
   // client-side translator for it has been deleted.
   //
   // A confirmed absence can itself go old, which is what the age says: with the

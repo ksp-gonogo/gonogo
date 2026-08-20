@@ -90,7 +90,7 @@ declare module "@ksp-gonogo/core" {
 /**
  * Parses `sci.instruments`. Two wire shapes land here:
  *
- * - Legacy Telemachus/GonogoTelemetry: `{ partId: number, partTitle, expId,
+ * - Legacy: `{ partId: number, partTitle, expId,
  *   deployed, hasData, rerunnable, inoperable }`.
  * - New SDK `science.instruments` (mapped onto this same widget-facing key
  *   via `map-topic.ts`):
@@ -174,7 +174,7 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
 /**
  * Sums `dataAmount` across every entry of `sci.experiments`/
  * `science.experiments`: the same vessel-wide aggregate the old
- * `sci.dataAmount` Telemachus key carried, derived instead of read as a
+ * `sci.dataAmount` legacy key carried, derived instead of read as a
  * separate pre-aggregated field (no such field exists on the new wire).
  */
 export function sumExperimentDataAmount(raw: unknown): number {
@@ -206,7 +206,7 @@ export interface LabStatus {
 
 /**
  * Parses `science.lab` (`mod/Sitrep.Host/ScienceViewProvider.cs`'s
- * `BuildLab`): a NEW capability, no legacy Telemachus/GonogoTelemetry
+ * `BuildLab`): a NEW capability, no legacy
  * analogue existed for Mobile Processing Lab status, so this is a straight
  * whole-topic raw-array read (same `parts.power`/`parts.robotics`
  * "key == topic" precedent in `map-topic.ts`), not a migration of an
@@ -263,7 +263,7 @@ function ExperimentsComponent({
   );
   // No pre-aggregated data field on the wire, derive the vessel-wide total
   // client-side from the same `science.experiments` Topic ScienceData uses,
-  // same aggregate semantics as the old Telemachus "Total science data (mits)".
+  // same aggregate semantics as the old "Total science data (mits)".
   const experimentsRaw = stillTrue(
     useTelemetry("science.experiments"),
     EMPTY_EXPERIMENTS,

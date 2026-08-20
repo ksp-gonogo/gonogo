@@ -845,7 +845,7 @@ function MapViewComponent({
   // ── Prediction: forward-propagated ground track from o.orbitPatches ───────
   // Kept as a memoised pure computation so the render effect only fires when
   // the sampled path actually changes. We *throttle* via `quantiseUt` so the
-  // memo only invalidates once a second, not once per Telemachus tick (~4 Hz).
+  // memo only invalidates once a second, not once per telemetry tick (~4 Hz).
   // The orbit shape doesn't change between adjacent ticks; the body-rotation
   // calibration drifts by ~0.1° of longitude over a second, well below
   // perceptible at typical zoom levels.
@@ -1019,7 +1019,7 @@ function MapViewComponent({
       }
     }
 
-    // Impact marker: Telemachus's own landing math. (0, 0) is the
+    // Impact marker. (0, 0) is the
     // "no prediction" sentinel; skip it. Rendered in world space so the
     // marker pans/zooms with the map.
     if (
@@ -1386,7 +1386,7 @@ registerComponent<MapViewConfig>({
     "vessel.state.encounterExists",
     "vessel.state.encounterBody",
     // `encounterUt`, an absolute instant, NOT the duration `o.encounterTime`
-    // named. Those were two Telemachus keys for one event and the field holds
+    // named. Those were two legacy keys for one event and the field holds
     // the instant, which is why `o.encounterTime` maps to nothing at all now:
     // see map-topic.ts. An alarm saved against that key cannot reach this
     // widget any more, recorded in widgetAlarmAttribution.test.ts.

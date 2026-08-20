@@ -6,7 +6,7 @@
  *
  * `vessel.dock` carries only `RelativePosition`/`RelativeVelocity`/`Distance`
  * + a scalar `ForwardDot`: NOT the true port-frame misalignment axes
- * (yaw/pitch/roll) Telemachus's `dock.ax`/`ay`/`az` reported. The decision
+ * (yaw/pitch/roll) the legacy `dock.ax`/`ay`/`az` keys reported. The decision
  * is to DROP those true axes and use the LINE-OF-SIGHT offset off the
  * `relativePosition` Vec3 as a HUD proxy instead (a genuinely new derivation,
  * not a reproduction of a legacy formula).

@@ -90,7 +90,7 @@ declare module "@ksp-gonogo/core" {
  * the extend session's doc comment anticipated. `description`/`parts` stay
  * empty on the new wire (no equivalent field), both already default
  * gracefully. Drops malformed entries; tolerates missing optional fields
- * (description, parts) so older Telemachus DLLs degrade gracefully, the
+ * (description, parts) so an older provider degrades gracefully, the
  * operator still sees title + scienceCost + state + parents even without
  * the 2026-05-13 fork additions.
  */

@@ -306,8 +306,8 @@ function StrategiesComponent({
 
   // Over-cap detection: the KSP UI silently allows a save to carry
   // more active strategies than the admin building's level allows
-  // (see project_ksp_strategy_overcap_quirk). Telemachus's blocked
-  // reason text encodes the cap, e.g. "more than 2 active strategies
+  // (see project_ksp_strategy_overcap_quirk). The blocked-reason text
+  // encodes the cap, e.g. "more than 2 active strategies
   // at this level"; if any softBlocked strategy mentions a cap N and
   // we have more than N active, surface that visually so the operator
   // doesn't mistake the over-cap save for a fully-staffed T3 admin.

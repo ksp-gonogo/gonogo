@@ -531,7 +531,7 @@ function LaunchDirectorComponent({
   // is fail-safe rather than fail-open.
   // A crash snapshot dated AFTER the current universal time belongs to a
   // reverted (undone) timeline: reverting rewinds UT below the capture ut.
-  // Telemachus clears the snapshot server-side on the same rule; this
+  // The provider clears the snapshot server-side on the same rule; this
   // mirror keeps the gate correct against older deployed builds. User hit
   // this on 2026-06-12: post-revert, the chip blocked recovery forever
   // because the reverted vessel shares the crashed vessel's name.

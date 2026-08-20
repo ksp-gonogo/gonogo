@@ -50,7 +50,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// Telemachus' `comm.controlState` is an enum:
+// The legacy `comm.controlState` is an enum:
 //   0 = none, 1 = partial (unmanned probe with crew nearby etc.), 2 = full
 // The name accessor `comm.controlStateName` mirrors the stock KSP string so
 // we prefer it when present and fall back to the integer for legacy.
