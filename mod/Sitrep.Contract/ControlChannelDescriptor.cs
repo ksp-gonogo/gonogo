@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 
 namespace Sitrep.Contract
@@ -56,9 +57,9 @@ namespace Sitrep.Contract
 
             foreach (var type in SafeTypes(target))
             {
-                foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                foreach (var property in SafeProperties(type))
                 {
-                    var attr = property.GetCustomAttribute<SitrepControlChannelAttribute>();
+                    var attr = SafeControlChannelAttribute(property);
                     if (attr == null) continue;
 
                     var key = UnitDescriptor.CamelCase(attr.ValueField);
@@ -124,6 +125,72 @@ namespace Sitrep.Contract
         /// reason. A type that will not load contributes no channels rather
         /// than taking the mod down over a descriptor.
         /// </summary>
+        /// <summary>
+        /// This type's public instance properties, or none if the type will not
+        /// yield them. The <see cref="SafeTypes"/> argument one level down: a
+        /// type that survived assembly-level enumeration can still fail when
+        /// its own members are materialised.
+        /// </summary>
+        private static IEnumerable<PropertyInfo> SafeProperties(Type type)
+        {
+            try
+            {
+                return type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            }
+            catch (Exception ex) when (IsAssemblyResolutionFailure(ex))
+            {
+                return Array.Empty<PropertyInfo>();
+            }
+        }
+
+        /// <summary>
+        /// This property's control-channel attribute, or null if its attributes
+        /// cannot be materialised at all.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// Asking for ONE attribute type still makes the runtime build the
+        /// property's whole attribute list, so it must resolve every attribute
+        /// assembly present on that property, not just the one asked for. The
+        /// contract's netstandard2.0 build carries Reinforced.Typings'
+        /// <c>[TsProperty]</c>, and that package is deliberately compile-time
+        /// only (<c>PrivateAssets="all"</c> with no <c>runtime</c>, because a
+        /// deployed net472 assembly carrying RT attributes would make Kopernicus
+        /// fail to resolve them at startup). So on any runtime consumer of the
+        /// netstandard2.0 build this threw <c>FileNotFoundException</c> for an
+        /// assembly that is correctly absent.
+        ///
+        /// Unguarded, that throw escaped through this method's only caller into
+        /// the middle of an object initializer and aborted the whole dispatch,
+        /// so a delayed command was never enqueued AND never sent. Skipping the
+        /// property is right rather than merely safe: a property whose
+        /// attributes will not load cannot be declaring a control channel we
+        /// could act on, and this type's own doc says anything reflecting over
+        /// it must never have to resolve an external assembly.
+        /// </remarks>
+        private static SitrepControlChannelAttribute SafeControlChannelAttribute(PropertyInfo property)
+        {
+            try
+            {
+                return property.GetCustomAttribute<SitrepControlChannelAttribute>();
+            }
+            catch (Exception ex) when (IsAssemblyResolutionFailure(ex))
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The load failures worth swallowing: an assembly or type that cannot
+        /// be found or loaded. Named rather than a bare <c>catch</c> so a real
+        /// defect in an attribute's own constructor still surfaces.
+        /// </summary>
+        private static bool IsAssemblyResolutionFailure(Exception ex) =>
+            ex is FileNotFoundException
+            || ex is FileLoadException
+            || ex is TypeLoadException
+            || ex is BadImageFormatException;
+
         private static IEnumerable<Type> SafeTypes(Assembly assembly)
         {
             try
