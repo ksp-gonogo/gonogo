@@ -83,6 +83,12 @@ const WINDOW_COUNT = 5;
  * The cost is that a window opening reads "in 1 d" for up to a day before it says "now".
  * Acceptable because this is the SURVEY column: the actionable countdown is the windows
  * list below, which is exact and unquantised, and it owns the alarm button.
+ *
+ * **That makes this quantum conditional on the windows list existing.** If the exact,
+ * unquantised countdown is ever removed or itself coarsened, a day's lag on the only
+ * remaining countdown stops being a survey's rounding and becomes a defect: an operator
+ * would be told "in 1 d" about a window that is open. Re-derive the quantum from
+ * whatever column is then load-bearing rather than leaving this one in place.
  */
 const REACH_RECOMPUTE_UT = KSP_DAY_SECONDS;
 
