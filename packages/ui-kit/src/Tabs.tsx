@@ -57,6 +57,17 @@ export interface TabsProps {
    * section at a time), so this is an opt-in per instance.
    */
   expandWhenRoomy?: boolean;
+  /**
+   * Accessible name for the tab strip itself, not for any one tab. A bare
+   * tablist announces only as "tab list", which is enough while a screen has
+   * one and ambiguous the moment it has two: the operator lands on a strip
+   * with no way to tell which region it switches without reading the tabs and
+   * inferring. Applied to the `tablist`; the side-by-side layout has no strip
+   * to name and ignores both.
+   */
+  "aria-label"?: string;
+  /** As `aria-label`, when the name is already on screen as an element. */
+  "aria-labelledby"?: string;
   className?: string;
 }
 
@@ -89,6 +100,8 @@ export function Tabs({
   activeId,
   onChange,
   expandWhenRoomy = false,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   className,
 }: Readonly<TabsProps>) {
   const uid = useId();
@@ -318,7 +331,12 @@ export function Tabs({
   return (
     <Tabs__Root ref={sizeRef} data-tabs-root="" className={className}>
       <Tabs__BarShell>
-        <Tabs__Bar ref={barRef} role="tablist">
+        <Tabs__Bar
+          ref={barRef}
+          role="tablist"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+        >
           {blob && (
             <Tabs__Blob
               aria-hidden="true"
