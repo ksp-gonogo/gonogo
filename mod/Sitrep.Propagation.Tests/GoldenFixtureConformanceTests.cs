@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Xunit;
 using Sitrep.Propagation;
+using Sitrep.Contract;
 
 namespace Sitrep.Propagation.Tests
 {

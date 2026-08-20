@@ -1,4 +1,5 @@
 using Sitrep.Propagation;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Comms
 {

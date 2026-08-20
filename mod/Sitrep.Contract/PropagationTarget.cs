@@ -1,4 +1,4 @@
-namespace Sitrep.Propagation
+namespace Sitrep.Contract
 {
     /// <summary>What kind of thing a <see cref="PropagationTarget"/> names.</summary>
     public enum PropagationTargetKind

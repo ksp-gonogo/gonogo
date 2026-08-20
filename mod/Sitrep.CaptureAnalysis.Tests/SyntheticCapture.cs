@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
+using Sitrep.Contract;
 
 namespace Sitrep.CaptureAnalysis.Tests;
 

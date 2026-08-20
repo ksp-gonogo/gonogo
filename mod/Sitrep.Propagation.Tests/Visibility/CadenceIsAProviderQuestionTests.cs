@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Sitrep.Propagation.Visibility;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Propagation.Tests.Visibility
 {

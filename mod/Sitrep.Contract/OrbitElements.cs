@@ -1,4 +1,4 @@
-namespace Sitrep.Propagation
+namespace Sitrep.Contract
 {
     /// <summary>
     /// The classical (Keplerian) orbital elements for a body relative to its

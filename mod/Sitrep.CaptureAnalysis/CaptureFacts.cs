@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using Sitrep.Propagation;
+using Sitrep.Contract;
 
 namespace Sitrep.CaptureAnalysis;
 

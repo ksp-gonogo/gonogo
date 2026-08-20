@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Sitrep.Host.CommandCentres
+namespace Sitrep.Contract
 {
     /// <summary>
     /// The kind of a command centre. <see cref="CrewedVessel"/> is load-bearing:

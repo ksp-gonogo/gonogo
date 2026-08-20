@@ -1,6 +1,7 @@
 using System;
 using Sitrep.Propagation;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Propagation.Tests
 {

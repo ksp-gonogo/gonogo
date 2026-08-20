@@ -7,11 +7,21 @@
   </PropertyGroup>
   <!-- Sitrep.Propagation is BCL-only, ZERO external PackageReferences, same
        invariant as Sitrep.Core (KSP's Unity-2019 Mono + AppDomain
-       first-assembly-name-wins collision risk). This is a standalone
-       capability project on purpose: propagation is swappable (a future
-       Principia-backed provider would be a second IPropagationProvider
-       implementation living beside this one), so it does not reference
-       Sitrep.Core or any other Sitrep project. Do not add a
+       first-assembly-name-wins collision risk). Do not add a
        PackageReference without updating that invariant deliberately and in
-       the open. -->
+       the open.
+
+       The "references no other Sitrep project" half of that invariant is
+       GONE, deliberately and in the open as it asked. It used to say this was
+       standalone because "a future Principia-backed provider would be a
+       second IPropagationProvider implementation living beside this one",
+       and that sentence contained the defect: an implementation cannot live
+       beside this one if the interface it implements is private to it. The
+       seam and its type closure now live in Sitrep.Contract, which is what
+       an outside author can reference, so this project references Contract
+       to keep implementing its own seam. The reference points at the
+       boundary, never the other way. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
+  </ItemGroup>
 </Project>

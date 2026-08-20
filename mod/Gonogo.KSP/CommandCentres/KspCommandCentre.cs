@@ -1,6 +1,7 @@
 using CommNet;
 using Sitrep.Host.CommandCentres;
 using UnityEngine;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP.CommandCentres
 {

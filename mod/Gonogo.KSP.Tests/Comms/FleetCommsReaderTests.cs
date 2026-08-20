@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CommNet;
 using Sitrep.Host.Comms;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP.Tests.Comms
 {

@@ -2,6 +2,7 @@ using System;
 using Sitrep.Host.Comms;
 using Sitrep.Propagation;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests
 {

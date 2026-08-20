@@ -6,6 +6,7 @@ using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
 using Xunit;
 using Xunit.Abstractions;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests
 {

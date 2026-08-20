@@ -1,4 +1,5 @@
 using UnityEngine;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP.CommandCentres
 {

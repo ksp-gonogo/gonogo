@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CommNet;
 using Sitrep.Host.CommandCentres;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP.CommandCentres
 {
