@@ -104,6 +104,23 @@ namespace GonogoPrincipiaUplink.Tests
     }
 
     /// <summary>
+    /// A stand-in for Principia's adapter assembly: name and version only, which
+    /// is all this guard reads. Subclassing Assembly is the only way to present a
+    /// chosen AssemblyName without shipping a real Principia DLL into the test.
+    /// </summary>
+    internal sealed class FakeAdapterAssembly : Assembly
+    {
+        private readonly AssemblyName _name;
+
+        public FakeAdapterAssembly(string name, Version version)
+        {
+            _name = new AssemblyName(name) { Version = version };
+        }
+
+        public override AssemblyName GetName() => _name;
+    }
+
+    /// <summary>
     /// What the Uplink reports, which for increment 1 is the entire deliverable:
     /// presence and version, elected nothing, changed no number.
     /// </summary>
@@ -132,19 +149,37 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         [Fact]
-        public void DistinguishesNotInstalledFromAnUnknownVersion()
+        public void AcceptsTheVersionActuallyInstalledOnTheRig()
         {
-            // Two different situations wanting two different actions from an
-            // operator, so they must not arrive as the same sentence.
-            var absent = new PrincipiaUplink(PrincipiaGuardResult.Fail("Principia not loaded")).Health();
-            var wrongVersion = new PrincipiaUplink(
-                PrincipiaGuardResult.Fail("Principia 9.0.0.0 outside known-good range 1.x-1.x",
-                    new Version(9, 0, 0, 0))).Health();
+            // Regression, and it exists because the first draft of this guard
+            // FAILED it. That draft pinned majors 1..1 from an assumption about
+            // Principia's version scheme; the installed adapter reads
+            // 2026.08.12.215, so it would have reported a working install as
+            // "outside known-good range".
+            //
+            // Observed by installing it and reading the assembly, not reasoned.
+            var observed = Version.Parse(PrincipiaVersionGuard.ObservedAdapterVersion);
+            var fake = new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, observed);
 
-            Assert.Equal(UplinkHealthState.Unavailable, absent.State);
-            Assert.Equal(UplinkHealthState.Unavailable, wrongVersion.State);
-            Assert.NotEqual(absent.Detail, wrongVersion.Detail);
-            Assert.Contains("outside known-good range", wrongVersion.Detail);
+            var result = PrincipiaVersionGuard.Probe(fake);
+
+            Assert.True(result.IsAvailable, result.Reason);
+            Assert.Equal(observed, result.DetectedVersion);
+        }
+
+        [Fact]
+        public void AcceptsAnyVersionOfTheAdapter()
+        {
+            // No gate, on purpose: this guard binds no member, so no release can
+            // break it, and what we assert about Principia (integrated
+            // trajectories, with a horizon) is true of every version. A date-based
+            // scheme would make any pinned range need revisiting monthly.
+            foreach (var v in new[] { new Version(1, 0), new Version(2026, 8, 12, 215), new Version(9999, 1) })
+            {
+                var result = PrincipiaVersionGuard.Probe(
+                    new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, v));
+                Assert.True(result.IsAvailable, "rejected " + v);
+            }
         }
 
         [Fact]

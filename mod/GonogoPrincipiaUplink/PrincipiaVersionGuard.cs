@@ -71,13 +71,27 @@ namespace GonogoPrincipiaUplink
         public const string AssemblyName = "ksp_plugin_adapter";
 
         /// <summary>
-        /// Known-good majors. Principia versions by mathematician rather than by
-        /// semver and its assembly version has been stable at this major, so the
-        /// range is a floor against a future reshape rather than a tight pin: an
-        /// unknown major degrades to unavailable instead of being trusted.
+        /// There is NO version gate, deliberately, and this is the one guard here
+        /// that differs from its siblings on purpose.
+        ///
+        /// <para>A version allowlist exists to protect MEMBER BINDING: a sibling
+        /// guard pins a range because it is about to call members that a
+        /// different release might have moved. This guard calls nothing, so there
+        /// is no compatibility to protect and a range would gate on a risk it
+        /// does not carry.</para>
+        ///
+        /// <para>It would also be a time bomb. Principia versions by DATE:
+        /// the installed adapter reads <c>2026.08.12.215</c>, so its major is
+        /// <c>2026</c>. A first draft of this guard pinned majors <c>1..1</c> from
+        /// an assumption about the scheme and would have reported a working
+        /// install as "outside known-good range". That was caught by installing
+        /// it and reading the assembly, not by reasoning, and a date-based scheme
+        /// means any hardcoded range needs revisiting monthly.</para>
+        ///
+        /// <para>The version is still READ and reported, because a bug report
+        /// wants it. It is just not a gate.</para>
         /// </summary>
-        public const int MinKnownGoodMajor = 1;
-        public const int MaxKnownGoodMajor = 1;
+        public const string ObservedAdapterVersion = "2026.08.12.215";
 
         /// <summary>
         /// Probes a candidate assembly. Null (the mod absent) is the ORDINARY
@@ -109,15 +123,10 @@ namespace GonogoPrincipiaUplink
                     "not Principia's adapter assembly: " + (name.Name ?? "<unnamed>"));
             }
 
-            if (version != null &&
-                (version.Major < MinKnownGoodMajor || version.Major > MaxKnownGoodMajor))
-            {
-                return PrincipiaGuardResult.Fail(
-                    "Principia " + version + " outside known-good range " +
-                    MinKnownGoodMajor + ".x-" + MaxKnownGoodMajor + ".x",
-                    version);
-            }
-
+            // No version comparison: see ObservedAdapterVersion for why this
+            // guard has no gate. Any version of the adapter means the same thing
+            // to us, because what we assert about it (its trajectories are
+            // integrated, and they have a horizon) is true of every release.
             return PrincipiaGuardResult.Ok(version);
         }
 
