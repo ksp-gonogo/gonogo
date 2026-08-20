@@ -58,15 +58,12 @@ export const KNOWN_ACT_WARNINGS = {
   // file and is the honest price of ratcheting a quantity that is not stable. Fixing
   // the race is what makes this entry tight again.
   "components/src/Navball/index.test.tsx": 21,
-  "app/src/components/Dashboard/GridItemContent.test.tsx": 14,
-  "app/src/wizard/UplinkHubWizard.test.tsx": 13,
   "app/src/settings/SettingsModal.test.tsx": 3,
   "components/src/FleetReliability/index.test.tsx": 3,
   "components/src/MapView/index.test.tsx": 2,
   "components/src/ShipMap/partActions.test.tsx": 2,
   "sitrep-client/src/use-command.test.tsx": 2,
   "ui-kit/src/Tabs.test.tsx": 2,
-  "app/src/telemetry/SitrepTelemetryProvider.defaultOn.test.tsx": 1,
   "components/src/PowerSystems/undefined.characterise.test.tsx": 1,
   "gonogo-kerbalism-uplink/src/ShipSystems/index.test.tsx": 1,
   "gonogo-scansat-uplink/src/Scanning/index.test.tsx": 1,
