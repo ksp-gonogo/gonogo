@@ -1,6 +1,7 @@
 using System;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Comms
 {

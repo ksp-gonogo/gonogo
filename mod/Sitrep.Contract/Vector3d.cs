@@ -1,4 +1,4 @@
-namespace Sitrep.Propagation
+namespace Sitrep.Contract
 {
     /// <summary>
     /// A plain (x, y, z) double-precision vector. Deliberately not tied to

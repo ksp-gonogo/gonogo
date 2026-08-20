@@ -1,4 +1,5 @@
 using System;
+using Sitrep.Contract;
 
 namespace Sitrep.Propagation.Visibility
 {

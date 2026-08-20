@@ -1,4 +1,4 @@
-namespace Sitrep.Propagation
+namespace Sitrep.Contract
 {
     /// <summary>
     /// The shell of space a target stays within: how close in and how far out it gets

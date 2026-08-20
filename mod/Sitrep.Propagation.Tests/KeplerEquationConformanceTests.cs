@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Propagation.Tests
 {

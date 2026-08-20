@@ -5,6 +5,7 @@ using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Targeting;
 using UnityEngine;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP
 {
@@ -149,7 +150,7 @@ namespace Gonogo.KSP
                 // both registries enumerate identically. Registered after discovery,
                 // before ResolveCapabilities: the delay uplink declares one channel
                 // (commandCentre.roster) and no capability provider. VERIFY at fold.
-                var ccSources = new Sitrep.Host.CommandCentres.ICommandCentreSource[]
+                var ccSources = new Sitrep.Contract.ICommandCentreSource[]
                 {
                     new CommandCentres.StockHomeNodeSource(),
                     new CommandCentres.CrewedVesselSource(),

@@ -1,12 +1,11 @@
 using System.Collections.Generic;
-using Sitrep.Contract;
 
-namespace Sitrep.Host.Maneuver
+namespace Sitrep.Contract
 {
     /// <summary>
     /// The maneuver-plan capability seam: the same shape
-    /// <see cref="Sitrep.Host.ActionGroups.IActionGroupsBackend"/> and
-    /// <see cref="Sitrep.Host.Comms.ICommsBackend"/> established, for the same
+    /// <see cref="IActionGroupsBackend"/> and
+    /// <see cref="ICommsBackend"/> established, for the same
     /// reason. ONE client interface, SWAPPABLE authority, and
     /// <c>vessel.maneuver</c> looks identical whoever sources it.
     ///
@@ -15,7 +14,7 @@ namespace Sitrep.Host.Maneuver
     /// installed, "there are none" counts as one, and stock's own patched-conic
     /// solver is the genuinely CORRECT answer for an unmodified game rather
     /// than a null object standing in for a missing one. That is the test
-    /// <c>PropagationElection</c> already passes and states; a plurality of
+    /// <c>Sitrep.Host.Propagation.PropagationElection</c> already passes and states; a plurality of
     /// competing mods is evidence for a capability, never a requirement of
     /// one.</para>
     ///
@@ -48,7 +47,7 @@ namespace Sitrep.Host.Maneuver
         /// cannot hold a plan rather than merely not holding one. Collapsing
         /// those two onto <c>[]</c> tells an operator their plan is empty when
         /// the truth is that they cannot make one, and it is the same
-        /// distinction <see cref="Sitrep.Host.ActionGroups.IActionGroupsBackend.Groups"/>
+        /// distinction <see cref="IActionGroupsBackend.Groups"/>
         /// draws for the same reason.</para>
         ///
         /// <para>A provider assigns each burn's

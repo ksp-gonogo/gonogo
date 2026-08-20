@@ -3,6 +3,7 @@ using Sitrep.Host.Comms;
 using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests
 {

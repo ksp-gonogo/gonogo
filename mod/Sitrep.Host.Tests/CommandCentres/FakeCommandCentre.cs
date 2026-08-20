@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Sitrep.Host.CommandCentres;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests.CommandCentres
 {

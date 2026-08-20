@@ -1316,7 +1316,7 @@ namespace Sitrep.Host
             _network.SetDelay(fromCentreId, CentreNodePrefix + toCentreId, oneWaySeconds);
         }
 
-        public void RegisterCommandCentreSource(CommandCentres.ICommandCentreSource source)
+        public void RegisterCommandCentreSource(ICommandCentreSource source)
         {
             _commandCentres.RegisterSource(source);
         }

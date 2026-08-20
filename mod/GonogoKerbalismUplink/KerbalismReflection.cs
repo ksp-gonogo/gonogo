@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using UnityEngine;
+using Sitrep.Contract;
 
 namespace Gonogo.KerbalismUplink
 {

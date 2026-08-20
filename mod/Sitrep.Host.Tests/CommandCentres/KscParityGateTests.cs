@@ -3,6 +3,7 @@ using Sitrep.Core;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Xunit;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Tests.CommandCentres
 {

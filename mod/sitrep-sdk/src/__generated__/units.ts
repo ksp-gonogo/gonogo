@@ -1776,6 +1776,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "PendingUplinkQueue": {
     pending: "PendingUplink",
   },
+  "PropagationTarget": {
+    osculating: "OrbitElements",
+  },
   "ProviderRegistration": {
     versions: "ProviderVersions",
   },

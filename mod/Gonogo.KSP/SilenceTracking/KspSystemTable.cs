@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Propagation;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP.SilenceTracking
 {

@@ -1719,6 +1719,9 @@
     "PendingUplinkQueue": {
       "pending": "PendingUplink"
     },
+    "PropagationTarget": {
+      "osculating": "OrbitElements"
+    },
     "ProviderRegistration": {
       "versions": "ProviderVersions"
     },

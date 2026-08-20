@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Sitrep.Propagation
+namespace Sitrep.Contract
 {
     /// <summary>
     /// A capability that answers where something is at a given UT. This is the
