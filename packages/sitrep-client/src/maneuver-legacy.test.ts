@@ -56,6 +56,35 @@ function wireNode(
   }) as ManeuverNodeWirePayload;
 }
 
+describe("mapManeuverNode: a malformed node must not take the stream down", () => {
+  it("survives a node with no patches field at all", () => {
+    // The contract says `patches` is ALWAYS an array, so this payload is
+    // malformed rather than a legitimate state. It still must not throw: this
+    // mapper runs inside a derived channel, so throwing kills the WHOLE uplink
+    // rather than one widget, and a producer omitting one field would take the
+    // stream with it.
+    //
+    // This is not hypothetical. It reddened CI's `test` job across six
+    // consecutive staging runs as an unhandled TypeError, which then landed on
+    // whichever test happened to be running: two ManeuverPlanner tests failed
+    // in a rotating combination, "sometimes 1, sometimes 2, never 0", and
+    // neither had anything to do with patches.
+    const node = wireNode();
+    delete (node as unknown as Record<string, unknown>).patches;
+    expect(() => mapManeuverNode(node)).not.toThrow();
+  });
+
+  it("reads an absent patch chain exactly like an empty one", () => {
+    // Absence loses no distinction: every headline field already falls back
+    // when there is no first patch, so tolerating the malformed case cannot
+    // disagree with the well-formed empty one.
+    const absent = wireNode();
+    delete (absent as unknown as Record<string, unknown>).patches;
+    const empty = wireNode({ patches: [] });
+    expect(mapManeuverNode(absent)).toEqual(mapManeuverNode(empty));
+  });
+});
+
 describe("mapManeuverNode", () => {
   it("builds the [radialOut, normal, prograde] deltaV tuple from the named fields", () => {
     const legacy = mapManeuverNode(wireNode());

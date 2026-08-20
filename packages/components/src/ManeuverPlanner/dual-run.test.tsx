@@ -107,6 +107,9 @@ describe("ManeuverPlanner: behavior-preservation golden dual-run (delay=0)", () 
             dvNormal: 0,
             dvPrograde: 300,
             dvTotal: 300,
+            // Contract-valid: `patches` is always an array. Omitting it was
+            // what made this file the one that threw.
+            patches: [],
           },
         ],
       });

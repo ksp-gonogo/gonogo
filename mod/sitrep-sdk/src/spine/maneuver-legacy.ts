@@ -102,7 +102,16 @@ export interface LegacyManeuverNode {
 export function mapManeuverNode(
   wire: ManeuverNodeWirePayload,
 ): LegacyManeuverNode {
-  const orbitPatches = wire.patches.map(mapOrbitPatch);
+  // `?? []` because this mapper must not throw. The contract says `patches` is
+  // ALWAYS an array, so an absent one is a malformed payload rather than a
+  // legitimate state, and the temptation is to let it fail loudly. It cannot: a
+  // throwing mapper takes the WHOLE uplink down, not one widget, so a producer
+  // that omits one field would kill the stream instead of degrading one row.
+  //
+  // Absence and empty are already the same thing downstream, since every field
+  // read off `first` below falls back when there is no patch, so tolerating it
+  // costs nothing and loses no distinction.
+  const orbitPatches = (wire.patches ?? []).map(mapOrbitPatch);
   const first = orbitPatches[0];
   return {
     // Plain numbers throughout the LEGACY shape, and `UT` especially: it is
