@@ -113,11 +113,20 @@ function isExcludedFromScan(f: string): boolean {
 function productionFilesReferencing(term: string): string[] {
   let out: string;
   try {
-    out = execFileSync("git", ["grep", "-Il", term, "--", "packages", "mod"], {
-      cwd: root,
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 64,
-    });
+    // `--untracked` is load-bearing: `git grep` alone searches only
+    // TRACKED files, so a violation introduced in a BRAND-NEW file is
+    // invisible to this scan until the moment it is staged, and a local
+    // run before `git add` reports success while not looking at it. It
+    // still honours .gitignore, so build output stays out.
+    out = execFileSync(
+      "git",
+      ["grep", "--untracked", "-Il", term, "--", "packages", "mod"],
+      {
+        cwd: root,
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024 * 64,
+      },
+    );
   } catch (err) {
     if ((err as { status?: number }).status === 1) return [];
     throw err;

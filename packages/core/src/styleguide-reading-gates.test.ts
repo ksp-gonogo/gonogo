@@ -75,11 +75,16 @@ function repoRoot(): string {
   }).trim();
 }
 
-/** Every tracked source file that calls the hook, from git rather than a walk. */
+/** Every source file that calls the hook, tracked or not, from git rather than a walk. */
 function candidateFiles(root: string): string[] {
   const out = execFileSync(
     "git",
-    ["grep", "-l", "useTelemetry(", "--", "*.ts", "*.tsx"],
+    // `--untracked` is load-bearing: `git grep` alone searches only
+    // TRACKED files, so a violation introduced in a BRAND-NEW file is
+    // invisible to this scan until the moment it is staged, and a local
+    // run before `git add` reports success while not looking at it. It
+    // still honours .gitignore, so build output stays out.
+    ["grep", "--untracked", "-l", "useTelemetry(", "--", "*.ts", "*.tsx"],
     { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 64 },
   );
   return out
