@@ -1485,6 +1485,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // were "patched_conics" and "n_body" with Principia as the stated cause.
       // Describing a third party's format is not coupling to it.
       "packages/core/src/schemas/telemachus.ts",
+      // The two SANCTIONED SELF-REGISTRATION IMPORTS of this Uplink's client
+      // package, the same pair every bundled Uplink has. An import of a package
+      // whose name contains the mod's is the mechanism by which an Uplink
+      // registers at all; the app learns nothing about the mod from it, and the
+      // alternative is an app that cannot load its own bundled Uplinks. Not
+      // domainDebt, because there is no coupling here to shrink: if the Uplink
+      // is deleted, so is the import.
+      "packages/app/src/main.tsx",
+      "packages/app/src/__tests__/topic-cs-sync.test.ts",
     ],
   },
   telemachus: {

@@ -26,6 +26,7 @@ import type { ReactElement, ReactNode } from "react";
 import { createElement } from "react";
 import type { Reading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
+import type { Value } from "../value";
 import { getHost } from "./host";
 // Side-effect only: carries the `SlotRegistry` declaration-merge for every
 // first-party slot into any program that imports this barrel (facade-sealing
@@ -324,6 +325,14 @@ export function useTelemetry(dataSourceIdOrTopic: string, key?: string) {
     key?: string,
   ) => unknown;
   return hostUseTelemetry(dataSourceIdOrTopic, key);
+}
+
+/**
+ * The frame's view instant. See `GonogoHost.useViewUt` for why an Uplink needs
+ * it and why it answers `undefined` rather than guessing.
+ */
+export function useViewUt(): Value<"ut"> | undefined {
+  return getHost().useViewUt();
 }
 
 export function useCommand(command: string) {

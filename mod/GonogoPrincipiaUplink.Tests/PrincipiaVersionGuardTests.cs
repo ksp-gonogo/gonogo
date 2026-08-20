@@ -121,20 +121,38 @@ namespace GonogoPrincipiaUplink.Tests
     }
 
     /// <summary>
-    /// What the Uplink reports, which for increment 1 is the entire deliverable:
-    /// presence and version, elected nothing, changed no number.
+    /// What the Uplink reports: presence, version, and one channel.
     /// </summary>
     public class PrincipiaUplinkTests
     {
         [Fact]
-        public void DeclaresNoChannels()
+        public void DeclaresTheFlightPlanChannelAndNoAvailabilityTopic()
         {
-            // Presence rides `system.uplinks`, so a dedicated availability topic
-            // plus a client package to register it would be overhead for a
-            // provider with no widget, the same reasoning a sibling client-less
-            // uplink records for itself.
-            Assert.Empty(new PrincipiaUplink().Manifest.Channels);
-            Assert.Equal("principia", new PrincipiaUplink().Manifest.Id);
+            var manifest = new PrincipiaUplink().Manifest;
+
+            Assert.Equal("principia", manifest.Id);
+            var channel = Assert.Single(manifest.Channels);
+            Assert.Equal("principia.flightPlan", channel.Topic);
+
+            // Presence still rides `system.uplinks` rather than a dedicated
+            // availability topic: a client gates on the flight-plan channel
+            // carrying a sample, which is a stronger fact than the mod being
+            // loaded.
+            Assert.DoesNotContain(manifest.Channels, c => c.Topic!.EndsWith(".available"));
+        }
+
+        /// <summary>
+        /// Absence on this channel must carry NO information, which is what
+        /// <c>AbsenceIsData</c> false means. It is asserted rather than left to the
+        /// default because the whole channel turns on it: a missing sample is "the
+        /// planner has not been opened", and a channel whose absence was data would
+        /// license a client to read that silence as "this vessel has no flight
+        /// plan", which is the reading that makes an operator stop looking.
+        /// </summary>
+        [Fact]
+        public void AbsenceOnTheFlightPlanChannelIsNotData()
+        {
+            Assert.False(Assert.Single(new PrincipiaUplink().Manifest.Channels).AbsenceIsData);
         }
 
         [Fact]

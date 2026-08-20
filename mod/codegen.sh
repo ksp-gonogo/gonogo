@@ -292,6 +292,36 @@ echo "codegen -> $realantennas_out_dir/topic-map.ts"
 echo "codegen -> $realantennas_out_dir/units.ts"
 echo "codegen -> $realantennas_out_dir/units.json"
 
+# Principia: the flight-plan slice. PrincipiaFlightPlan carries
+# [SitrepTopic("principia.flightPlan")], so the topic map is emitted here the
+# same as every other topic-carrying slice above. What IS different is that this
+# slice has TWO exported
+# types, the plan and its burn rows, and both are in the ExportAsInterfaces set
+# in PrincipiaRtConfig: a nested payload left out of that set generates with
+# bare numbers where its parent generates Value<> types, in the same file, with
+# nothing failing.
+principia_proj="$ROOT/mod/GonogoPrincipiaUplink.Contract"
+principia_out_dir="$ROOT/mod/GonogoPrincipiaUplink/client/src/__generated__"
+principia_bin="$principia_proj/bin/Debug/netstandard2.0"
+
+dotnet build "$principia_proj/GonogoPrincipiaUplink.Contract.csproj" -v minimal
+cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$principia_bin/"
+cp "$BIN/Sitrep.Contract.dll" "$principia_bin/"
+mkdir -p "$principia_out_dir"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  SITREP_PRINCIPIA_TOPICMAP_OUT="$principia_out_dir/topic-map.ts" \
+  SITREP_PRINCIPIA_UNITMAP_OUT="$principia_out_dir/units.ts" \
+  SITREP_PRINCIPIA_UNITJSON_OUT="$principia_out_dir/units.json" \
+  dotnet "$RTCLI" \
+  SourceAssemblies="$principia_bin/GonogoPrincipiaUplink.Contract.dll" \
+  TargetFile="$principia_out_dir/contract.ts" \
+  ConfigurationMethod="GonogoPrincipiaUplink.PrincipiaRtConfig.Configure"
+echo "codegen -> $principia_out_dir/contract.ts"
+echo "codegen -> $principia_out_dir/topic-map.ts"
+echo "codegen -> $principia_out_dir/units.ts"
+echo "codegen -> $principia_out_dir/units.json"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run

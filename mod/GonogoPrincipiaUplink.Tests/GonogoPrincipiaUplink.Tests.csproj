@@ -16,14 +16,26 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- Both of this uplink's files compile here unconditionally, which is the
-       point of it: it touches no KSP or Unity type at all, because it binds no
-       Principia member and never enters the game's API. The guard needs only
-       System.Reflection; the uplink needs Sitrep.Contract for ISitrepUplink.
+  <!-- Every file of this uplink EXCEPT the one that reaches the game compiles
+       here, which is the point of it. The guard needs only System.Reflection;
+       the observation, the builder and the reflection walk need nothing but the
+       framework; the uplink needs Sitrep.Contract for ISitrepUplink.
+
+       PrincipiaUplink.Observer.cs and FlightPlannerHook.cs are deliberately
+       ABSENT. They are the only files naming a KSP or Harmony type, and
+       PrincipiaUplink is partial precisely so that omitting them still compiles:
+       the AttachObserver partial method call disappears and the publish rule is
+       driven by a fake observer instead. Adding either file here would trade that
+       coverage for a reference this project does not need.
+
        Selective Compile, the pattern the sibling uplink Tests projects use. -->
   <ItemGroup>
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaVersionGuard.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaUplink.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\IFlightPlanObserver.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\FlightPlanObservation.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\FlightPlanBuilder.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\FlightPlanReflection.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -110,6 +110,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useUtNow",
   "useViewClock",
   "useViewClockOptional",
+  "useViewUt",
 ].sort();
 
 afterEach(() => {

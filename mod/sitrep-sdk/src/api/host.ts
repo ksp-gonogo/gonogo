@@ -18,6 +18,7 @@
 import type { Logger } from "@ksp-gonogo/logger";
 import type { ComponentType, ReactNode } from "react";
 import type { TopicId, TopicPayload } from "../topics";
+import type { Value } from "../value";
 import type {
   ActionDefinition,
   ActionHandlers,
@@ -59,6 +60,23 @@ export interface GonogoHost {
    * canonical Topic yet.
    */
   useTelemetry<T = unknown>(dataSourceId: string, key: string): T | undefined;
+  /**
+   * The frame's VIEW instant: the moment the screen is showing, which is not
+   * necessarily now.
+   *
+   * Here because an Uplink cannot render a countdown without it. Every absolute
+   * instant on the wire (`ut`) has to be turned into a duration (`s`) before it
+   * can be shown as one, and `<Countdown>`'s own doc comment instructs an author
+   * to subtract the view time to do it. Until this was on the facade that
+   * instruction named a hook the published packages did not expose, so the
+   * documented operation was one a third-party author could not perform.
+   *
+   * `undefined` when no clock is mounted, rather than falling back to a
+   * wall-clock instant: a mission time guessed from the browser would be a
+   * confident wrong answer on every screen that is delayed, paused or scrubbed,
+   * which is most of them.
+   */
+  useViewUt(): Value<"ut"> | undefined;
   useCommand(command: string): UseCommandResult;
   /**
    * Cross-origin route reader: every currently-pending command addressed to

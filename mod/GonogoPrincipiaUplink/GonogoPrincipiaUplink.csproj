@@ -2,12 +2,15 @@
 
   <!-- MIT, like the rest of gonogo (see LICENSING.md).
 
-       This assembly NEVER references any Principia assembly, and unlike the
-       other reflection-only uplinks it does not bind Principia MEMBERS either:
-       it reads assembly presence and version and stops. Principia's external
-       API was deleted and the surviving native surface aborts the KSP process
-       on a bad call, so there is nothing here it is permitted to invoke. See
-       PrincipiaVersionGuard's doc comment. -->
+       This assembly NEVER references any Principia assembly. It DOES now bind
+       Principia members by reflection, which the earlier detection-only version
+       did not, and the distinction that makes it safe is worth stating: every
+       member it reads is managed, and each one was read in the decompiled body
+       and confirmed to touch no plugin. Principia's native surface aborts the KSP
+       process on a bad call, but that guard is armed against the ARGUMENTS a
+       caller passes it, and a field read passes none. The one property on the
+       burn editor that does cross the ABI is named and excluded in
+       FlightPlanReflection's doc comment. -->
   <PropertyGroup>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <TargetFramework>net48</TargetFramework>
@@ -22,23 +25,60 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- NO KSP or Unity reference, deliberately, and unlike every sibling uplink.
+  <!-- KSP + Harmony, added for the flight-plan observer, and the previous note
+       here asked that the reason be recorded rather than the references added
+       speculatively. It is this:
 
-       This assembly binds no Principia member and enters no game API, so it
-       touches no KSP type at all: the guard needs System.Reflection and the
-       uplink needs Sitrep.Contract. That is why its tests compile both files
-       unconditionally rather than behind a KspManaged gate, and why a fresh
-       worktree with no reference assemblies can still build and test it.
+       - Planetarium, for the UT to stamp an observation with. The whole channel
+         turns on knowing WHEN a plan was seen, and there is no honest substitute:
+         a plan stamped at publish time rather than observation time would make
+         every stale plan look fresh.
+       - Debug, because a warning written to Console.Error from inside the host is
+         invisible in the game's log.
+       - 0Harmony, for the two observe-only postfixes on the planner's render.
+         Polling is not an option here; see FlightPlannerHook's doc comment.
 
-       If a later increment does need a KSP type, add the references then and
-       say why here. Do not add them speculatively: their absence is what makes
-       this uplink testable everywhere. -->
+       The property worth preserving is that the PURE half stays reference-free:
+       FlightPlanObservation, FlightPlanBuilder and FlightPlanReflection touch no
+       KSP or Harmony type, so the payload logic and the reflection walk are
+       tested headless. Only FlightPlannerHook needs the game, and it holds
+       nothing but the attach and the latch. Keep it that way: logic that migrates
+       into the hook stops being testable. -->
+  <PropertyGroup>
+    <!-- KspGameData: root of an installed GameData tree, for 0Harmony.dll (that
+         reference DLL lives in an installed mod's own folder, not the portable
+         KspManaged set). Same property the Kerbalism/kOS uplinks use for the
+         identical Harmony reference. -->
+    <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
+  </PropertyGroup>
 
-  <!-- Sitrep.Contract ONLY (Private="false") - the arm's-length compile
-       surface a third-party uplink needs. NO reference to any TestFlight
-       assembly, by design. -->
+  <ItemGroup>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony" Private="false">
+      <HintPath>$(KspGameData)\000_Harmony\0Harmony.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- The arm's-length compile surface a third-party uplink needs, plus this
+       Uplink's own contract slice for the flight-plan payload. NO reference to
+       any Principia assembly, by design: every Principia member is reached by
+       reflection. -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\GonogoPrincipiaUplink.Contract\GonogoPrincipiaUplink.Contract.csproj">
       <Private>false</Private>
     </ProjectReference>
   </ItemGroup>

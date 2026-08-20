@@ -95,6 +95,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink.Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Contract.Tests", "Sitrep.Contract.Tests\Sitrep.Contract.Tests.csproj", "{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink.Contract", "GonogoPrincipiaUplink.Contract\GonogoPrincipiaUplink.Contract.csproj", "{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -657,6 +659,18 @@ Global
 		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x64.Build.0 = Release|Any CPU
 		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x86.ActiveCfg = Release|Any CPU
 		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x86.Build.0 = Release|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Debug|x64.Build.0 = Debug|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Debug|x86.Build.0 = Debug|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Release|x64.ActiveCfg = Release|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Release|x64.Build.0 = Release|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Release|x86.ActiveCfg = Release|Any CPU
+		{68709DF7-5A1C-4EEE-8B79-C521ED266F2B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

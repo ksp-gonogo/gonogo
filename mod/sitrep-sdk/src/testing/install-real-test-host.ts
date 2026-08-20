@@ -8,6 +8,7 @@ import {
   useUtNow,
   useViewClock,
   useViewClockOptional,
+  useViewUt,
 } from "../spine/context";
 import {
   clearContributions,
@@ -115,6 +116,7 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
         dataSourceIdOrTopic,
         key,
       )) as GonogoHost["useTelemetry"],
+    useViewUt: () => useViewUt(),
     useCommand: (command) =>
       useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
     useRouteCommands: (topic) =>

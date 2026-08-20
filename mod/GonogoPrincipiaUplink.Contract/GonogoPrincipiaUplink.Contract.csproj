@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    GonogoPrincipiaUplink's OWN contract slice: the flight-plan wire payload.
+    Same shape as every sibling Uplink's contract slice and for the same mandate, no
+    uplink-specific wire type may live in Sitrep.Contract even for an
+    in-monorepo Uplink (local_docs/design/2026-08-10-uplink-types-out-of-core-plan.md).
+
+    Its own small project rather than a second TFM leg on
+    GonogoPrincipiaUplink.csproj, because that project now carries KSP + Harmony
+    HintPath references for the flight-planner hook and these DTOs depend on
+    neither. Keeping the netstandard2.0 codegen leg clear of them means rtcli
+    runs against a project with no game references at all.
+
+    MIT. This slice declares plain DTOs against Sitrep.Contract and references
+    no Principia assembly, type or member: a third party could write an
+    alternative flight-plan client against this exact wire shape without
+    Principia present at all.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net48</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>GonogoPrincipiaUplink.Contract</AssemblyName>
+    <RootNamespace>GonogoPrincipiaUplink</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Reinforced.Typings is compile-time-only codegen: rtcli reads the
+       [TsInterface] attributes out of this assembly's metadata to generate the
+       client slice (codegen.sh). Must NOT flow to net48, the runtime TFM the
+       uplink bundles: same PrivateAssets/Condition/#if NETSTANDARD2_0
+       discipline as Sitrep.Contract.csproj, because a Kopernicus-loaded net48
+       assembly must never try to resolve Reinforced.Typings.dll. -->
+  <ItemGroup>
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" Condition="'$(TargetFramework)' == 'netstandard2.0'" PrivateAssets="all" IncludeAssets="compile;build;native;contentfiles;analyzers;buildtransitive" />
+  </ItemGroup>
+
+  <!-- Sitrep.Contract only, Private="false": the attributes and Units are
+       core's cross-package surface, provided by gonogo-core at runtime. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

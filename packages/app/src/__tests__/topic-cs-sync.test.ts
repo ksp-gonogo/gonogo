@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 // static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
 import "@ksp-gonogo/gonogo-avionics-uplink";
+import "@ksp-gonogo/gonogo-principia-uplink";
 import "@ksp-gonogo/gonogo-kerbcast-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-scansat-uplink";
