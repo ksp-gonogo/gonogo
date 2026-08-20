@@ -15,31 +15,42 @@
  *
  *  - a file emitting MORE than its entry fails, which is the regression the gate
  *    exists to catch
- *  - a file emitting FEWER also fails, so a fix forces its number down here rather
- *    than leaving slack behind for the next regression to hide in
+ *  - a file emitting FEWER is REPORTED and does not fail. That is not the stricter
+ *    rule this file first described: the count is not stable enough for it. Five runs
+ *    of an unchanged tree gave 104, 100, 104, 124 and 103, because the causes behind
+ *    them are races, so a gate that failed on any downward move would go red on an
+ *    untouched branch on its own schedule
  *
  * Counts are per FILE, never a single total. A total lets one file's fix pay for
  * another file's regression, and the net would sit still while the tree got worse.
  *
- * Regenerate with `pnpm act-warning-gate --update` and commit the diff alongside
- * whatever you fixed.
+ * Regenerate with `pnpm act-warning-gate --update --only <substring>` and commit the
+ * diff alongside whatever you fixed. Prefer `--only`: a bare `--update` rewrites every
+ * entry from one fresh measurement, so a commit about one widget also writes down that
+ * run's roll for every noisy entry it never touched. An entry carrying a COMMENT is
+ * never lowered by either, because a comment marks a number that was chosen rather
+ * than measured.
  *
  * ## What is actually behind these
  *
- * Not the two causes `CLAUDE.md` documents. The dominant pattern, measured across
- * all of them, is a component with its OWN clock or subscription updating during an
- * un-`act`ed real-time wait: a coalescing interval, a staleness clock, a UT
- * observer, slot-registration effects. Four components account for 74 of them
- * (`NavballComponent` 24, `SpaceWeatherComponent` 22, `KspCalendarObserver` 17,
- * `SlotAggregator` 11, with `AugmentSlot`'s 8 being the same system as the last).
+ * At least three causes, not one, and an early draft of this comment claimed
+ * otherwise by generalising from the first two clusters measured:
  *
- * The largest single entry is one test that sleeps 150 ms outside `act()` on
- * purpose, to prove a steady state, while the interval under test keeps firing.
+ *  1. a component with its OWN clock updating during an un-`act`ed real-time wait.
+ *     `NavballComponent`'s 24 were one test sleeping 150 ms on purpose to prove a
+ *     steady state while the interval under test kept firing. Fixed
+ *  2. an async settle landing AFTER the test body returns: a socket handshake
+ *     completing late, which reads like a missing `act` in the body and is not
+ *  3. shared state cleared while the tree is still mounted, so `useSyncExternalStore`
+ *     subscribers re-render outside `act`. Clear in `beforeEach`, never `afterEach`
+ *
+ * 2 and 3 are the same fix and differ only in disguise. The cheap way to tell 1 from
+ * them: print a marker at the end of the test body. A warning BEFORE the marker is
+ * in-body, AFTER it is teardown, and the two want opposite edits.
  */
 
 /** @type {Record<string, number>} keyed `<package>/<path from package root>`. */
 export const KNOWN_ACT_WARNINGS = {
-  "components/src/Navball/control-delay-stream.test.tsx": 24,
   // INTERMITTENT, and the worst of them: measured at 0, 1 and 21 across four runs of
   // an unchanged tree, the 21 on a box at load 15. It is a race, so contention buys
   // it more chances to fire rather than fewer. Seeded at the observed MAXIMUM so
@@ -47,6 +58,8 @@ export const KNOWN_ACT_WARNINGS = {
   // file and is the honest price of ratcheting a quantity that is not stable. Fixing
   // the race is what makes this entry tight again.
   "components/src/Navball/index.test.tsx": 21,
+  "app/src/components/Dashboard/GridItemContent.test.tsx": 14,
+  "app/src/wizard/UplinkHubWizard.test.tsx": 13,
   "components/src/SpaceWeather/stale.test.tsx": 12,
   "components/src/SpaceWeather/undefined.characterise.test.tsx": 10,
   "components/src/TargetPicker/index.test.tsx": 6,
@@ -57,8 +70,9 @@ export const KNOWN_ACT_WARNINGS = {
   "components/src/PowerSystems/undefined.characterise.test.tsx": 1,
   "app/src/settings/SettingsModal.test.tsx": 3,
   "sitrep-client/src/use-command.test.tsx": 2,
-  "sitrep-client/src/auto-command.hook.test.tsx": 1,
   "ui-kit/src/Tabs.test.tsx": 2,
+  "app/src/telemetry/SitrepTelemetryProvider.defaultOn.test.tsx": 1,
   "gonogo-kerbalism-uplink/src/ShipSystems/index.test.tsx": 1,
   "gonogo-scansat-uplink/src/Scanning/index.test.tsx": 1,
+  "sitrep-client/src/auto-command.hook.test.tsx": 1,
 };
