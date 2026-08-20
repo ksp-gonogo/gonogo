@@ -379,8 +379,17 @@ If something you need is missing from the SDK, **move the export into
 repo-wide gate inside an Uplink: a check needing an app-internal package is one a
 third-party author cannot run.
 
-Enforced by `packages/core/src/uplink-isolation.test.ts` (shrink-only debt list,
-seeded 2026-08-18). Full rules and the reasoning: `docs/uplink-isolation.md`.
+**The C# side is the same rule.** `mod/Gonogo*Uplink/*.csproj` may reference
+`Sitrep.Contract` and its own `<Uplink>.Contract` slice, nothing else of this
+repo's. ProjectReference is transitive, so what counts is the assemblies you can
+*reach*, not the lines you wrote. If an Uplink needs to call into core, declare the
+interface in `Sitrep.Contract` and resolve the implementation through
+`host.Kernel`, do not reference the assembly.
+
+Enforced by `packages/core/src/uplink-isolation.test.ts` (client half, shrink-only
+debt list, seeded 2026-08-18) and `mod/Sitrep.Core.Tests/UplinkIsolationTests.cs`
+(C# half; its debt list is EMPTY as of 2026-08-20, keep it that way). Full rules
+and the reasoning: `docs/uplink-isolation.md`.
 
 ---
 
