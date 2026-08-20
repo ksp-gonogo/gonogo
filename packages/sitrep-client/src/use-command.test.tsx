@@ -377,6 +377,16 @@ describe("useCommand inFlight", () => {
 // ── must-consume invariant (dev): a dispatch needs usePanelDelay (the panel-
 // rail path) or an inline <CommandDelay>, either of which consumes the token ──
 
+/**
+ * `StubTransport` answers a command on a later microtask, so a test whose only
+ * assertion is about the click itself returns before the response lands and the
+ * resulting `in-flight` update falls outside every act scope. This holds one
+ * open across the microtask that carries it.
+ */
+async function settleDispatch() {
+  await act(async () => {});
+}
+
 describe("useCommand must-consume invariant (dev)", () => {
   function makeClient() {
     const transport = new StubTransport();
@@ -425,7 +435,7 @@ describe("useCommand must-consume invariant (dev)", () => {
     );
   }
 
-  it("does not throw when usePanelDelay(cmd) is called (the panel-rail path)", () => {
+  it("does not throw when usePanelDelay(cmd) is called (the panel-rail path)", async () => {
     render(
       <TelemetryProvider client={makeClient()}>
         <UnlockViaPanelDelay />
@@ -434,9 +444,10 @@ describe("useCommand must-consume invariant (dev)", () => {
     expect(() => {
       fireEvent.click(screen.getByText("unlock"));
     }).not.toThrow();
+    await settleDispatch();
   });
 
-  it("does not throw when <CommandDelay handle={cmd}> is mounted", () => {
+  it("does not throw when <CommandDelay handle={cmd}> is mounted", async () => {
     render(
       <TelemetryProvider client={makeClient()}>
         <Unlock withDelay={true} />
@@ -445,6 +456,7 @@ describe("useCommand must-consume invariant (dev)", () => {
     expect(() => {
       fireEvent.click(screen.getByText("unlock"));
     }).not.toThrow();
+    await settleDispatch();
   });
 });
 

@@ -189,7 +189,11 @@ describe("ShipMap: PAW part actions", () => {
     const { fixture } = await renderDiagram();
 
     const part = partElement();
-    part.focus();
+    // Focusing a part is a state change in the diagram (hover/focus highlight),
+    // so the raw DOM call needs the act scope a user-event gesture would bring.
+    act(() => {
+      part.focus();
+    });
     await user.keyboard("{Enter}");
     act(() => {
       fixture.emit(

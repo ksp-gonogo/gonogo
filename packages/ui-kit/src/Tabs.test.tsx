@@ -269,8 +269,15 @@ function tabsRoot(): Element {
   return document.querySelector("[data-tabs-root]") as Element;
 }
 
-function resizeTo(el: Element, width: number) {
-  act(() => {
+/**
+ * `Tabs` watches its tab bar with a `MutationObserver`, whose callback lands on
+ * a microtask and sets state. A synchronous `act` returns before that microtask
+ * runs, so the update would land in teardown, outside any act scope. Awaiting an
+ * async `act` holds the scope open across the checkpoint and takes the update
+ * with it.
+ */
+async function resizeTo(el: Element, width: number) {
+  await act(async () => {
     for (const ro of DrivableResizeObserver.instances) {
       if (!ro.observed.has(el)) continue;
       ro.callback([{ target: el, contentRect: { width, height: 100 } }]);
@@ -291,7 +298,7 @@ describe("Tabs expandWhenRoomy", () => {
     globalThis.ResizeObserver = realResizeObserver;
   });
 
-  it("stays in switch mode (one panel, a tablist) when narrow", () => {
+  it("stays in switch mode (one panel, a tablist) when narrow", async () => {
     render(
       <Tabs
         tabs={TABS}
@@ -300,14 +307,14 @@ describe("Tabs expandWhenRoomy", () => {
         expandWhenRoomy
       />,
     );
-    resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH);
+    await resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH);
 
     expect(screen.getByRole("tablist")).toBeInTheDocument();
     expect(screen.getByText("panel-one")).toBeInTheDocument();
     expect(screen.queryByText("panel-two")).not.toBeInTheDocument();
   });
 
-  it("shows every panel side by side, each labelled, once the container is wide enough", () => {
+  it("shows every panel side by side, each labelled, once the container is wide enough", async () => {
     render(
       <Tabs
         tabs={TABS}
@@ -316,7 +323,7 @@ describe("Tabs expandWhenRoomy", () => {
         expandWhenRoomy
       />,
     );
-    resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
+    await resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
 
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "One" })).toBeInTheDocument();
@@ -325,15 +332,15 @@ describe("Tabs expandWhenRoomy", () => {
     expect(screen.getByText("panel-two")).toBeInTheDocument();
   });
 
-  it("does not expand when expandWhenRoomy is false, even with room to spare", () => {
+  it("does not expand when expandWhenRoomy is false, even with room to spare", async () => {
     render(<Tabs tabs={TABS} activeId="one" onChange={() => undefined} />);
-    resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
+    await resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
 
     expect(screen.getByRole("tablist")).toBeInTheDocument();
     expect(screen.queryByText("panel-two")).not.toBeInTheDocument();
   });
 
-  it("collapses back to switch mode when the container narrows again", () => {
+  it("collapses back to switch mode when the container narrows again", async () => {
     render(
       <Tabs
         tabs={TABS}
@@ -342,10 +349,10 @@ describe("Tabs expandWhenRoomy", () => {
         expandWhenRoomy
       />,
     );
-    resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
+    await resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
 
-    resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH);
+    await resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH);
     expect(screen.getByRole("tablist")).toBeInTheDocument();
     expect(screen.queryByText("panel-two")).not.toBeInTheDocument();
   });
@@ -393,7 +400,7 @@ describe("Tabs expandWhenRoomy", () => {
         expandWhenRoomy
       />,
     );
-    resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
+    await resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
 
     await expectNoA11yViolations(container);
   });

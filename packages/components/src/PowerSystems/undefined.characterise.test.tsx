@@ -112,6 +112,11 @@ describe("PowerSystems: what undefined means today", () => {
     await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-nothing");
+    // The sparkline's `useDataSeries` backfill query resolves on a later
+    // microtask. Every other test here awaits a `waitFor` that carries it; this
+    // one asserts on the empty state and awaits nothing, so it settles the
+    // backfill itself rather than letting the update land in teardown.
+    await act(async () => {});
 
     // `if (!topology)` is the widest gate in the widget: it returns early, so
     // none of the board exists. Named absences, because a widget that renders

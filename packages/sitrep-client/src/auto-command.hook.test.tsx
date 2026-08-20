@@ -86,7 +86,7 @@ describe("useAutoCommand", () => {
     vi.unstubAllGlobals();
   });
 
-  it("dispatches once when utNow crosses targetUt - delay, not before", () => {
+  it("dispatches once when utNow crosses targetUt - delay, not before", async () => {
     // delay 10, target 100 → dispatch at 90.
     const { wall, transport, clock, staged, Provider } = setup();
     render(
@@ -119,6 +119,11 @@ describe("useAutoCommand", () => {
       raf.flush();
     });
     expect(staged()).toHaveLength(1);
+
+    // The dispatch above is still in flight: the stub answers on a later
+    // microtask, and without an act scope held open across it the response
+    // would update the tree after this body has returned.
+    await act(async () => {});
   });
 
   it("skips (no dispatch) when the event is already past on arm", () => {

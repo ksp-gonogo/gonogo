@@ -280,8 +280,20 @@ function writeDebt(rawMeasured) {
       `  ${JSON.stringify(file)}: ${n},`,
     ])
     .join("\n");
+  const block = /export const KNOWN_ACT_WARNINGS = \{[\s\S]*?\n\};/;
+  // Say so rather than writing the file back unchanged. Now that the debt is
+  // empty the block can end up as a one-line `{};`, which this pattern does not
+  // match, and a silent no-op here would report "debt rewritten" over a file it
+  // never touched.
+  if (!block.test(source)) {
+    throw new Error(
+      "Could not find the KNOWN_ACT_WARNINGS block in act-warning-debt.mjs. It has " +
+        "to span at least one line (`{\\n…\\n};`); a collapsed `{}` does not match. " +
+        "Put a line inside it and re-run.",
+    );
+  }
   const next = source.replace(
-    /export const KNOWN_ACT_WARNINGS = \{[\s\S]*?\n\};/,
+    block,
     `export const KNOWN_ACT_WARNINGS = {\n${entries}\n};`,
   );
   writeFileSync(join(repoRoot, "scripts/act-warning-debt.mjs"), next);
