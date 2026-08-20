@@ -75,18 +75,32 @@ function extractDeclaredTopics(): Set<string> {
 
 describe("C#-declared Topics stay in exact sync with the full runtime registry", () => {
   /**
-   * The timeout is raised because this test's cost grows with the C# tree, not
-   * with anything it asserts. It walks every `.cs` file in `mod/` and was
-   * sitting at ~4.0s against vitest's 5s default, so roughly one second of
-   * headroom for a repo that gains C# files most days: adding three unrelated
-   * ones tipped it over, which is a scheduling accident rather than a
-   * regression in what it checks.
+   * A scan budget rather than a unit-test budget. This walks every `.cs` file in
+   * `mod/` with synchronous reads, and its cost is dominated by how busy the
+   * machine is, NOT by how much it has to scan.
+   *
+   * Measured, all on a 14-core box under six concurrent agents:
+   *
+   *     load 14.40   tests 481ms
+   *     load 13.93   tests 935ms
+   *     load 14.16   tests 786ms
+   *     load 13.53   tests 704ms
+   *
+   * and the same body has also been observed past 5s under heavier load. So the
+   * spread is better than 10x, and the VARIANCE is the finding rather than any
+   * one figure: a 5s default is simply the wrong instrument for a whole-tree
+   * scan sharing a machine.
+   *
+   * An earlier version of this comment claimed ~4.0s and reasoned that the gate
+   * was near its limit as the C# tree grew. That was one sample of a variable
+   * quantity quoted as a property of the code, and it is wrong: adding files
+   * barely moves this. Recorded because the wrong version would have had the
+   * next reader either narrow the scan or distrust a green.
    *
    * Raised rather than narrowed on purpose. The scan being exhaustive is the
    * whole point of the gate (a Topic declared in C# and unknown to the registry
    * is exactly what it catches), so trading coverage for speed would be paying
-   * in the wrong currency. If it approaches this bound too, cache the file walk
-   * rather than scoping it down.
+   * in the wrong currency.
    */
   it("every C# Topic is known, and every known Topic is declared in C#", () => {
     const declared = extractDeclaredTopics();

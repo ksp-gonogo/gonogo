@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MIT, like the rest of gonogo (see LICENSING.md).
+
+       This assembly NEVER references any Principia assembly, and unlike the
+       other reflection-only uplinks it does not bind Principia MEMBERS either:
+       it reads assembly presence and version and stops. Principia's external
+       API was deleted and the surviving native surface aborts the KSP process
+       on a bad call, so there is nothing here it is permitted to invoke. See
+       PrincipiaVersionGuard's doc comment. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GonogoPrincipiaUplink</AssemblyName>
+    <RootNamespace>GonogoPrincipiaUplink</RootNamespace>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- NO KSP or Unity reference, deliberately, and unlike every sibling uplink.
+
+       This assembly binds no Principia member and enters no game API, so it
+       touches no KSP type at all: the guard needs System.Reflection and the
+       uplink needs Sitrep.Contract. That is why its tests compile both files
+       unconditionally rather than behind a KspManaged gate, and why a fresh
+       worktree with no reference assemblies can still build and test it.
+
+       If a later increment does need a KSP type, add the references then and
+       say why here. Do not add them speculatively: their absence is what makes
+       this uplink testable everywhere. -->
+
+  <!-- Sitrep.Contract ONLY (Private="false") - the arm's-length compile
+       surface a third-party uplink needs. NO reference to any TestFlight
+       assembly, by design. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>
