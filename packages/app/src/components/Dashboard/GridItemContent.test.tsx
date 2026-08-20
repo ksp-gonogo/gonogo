@@ -18,9 +18,9 @@ import {
   useContributions,
   useWidgetMeta,
 } from "@ksp-gonogo/core";
-import { cleanup, render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen } from "@ksp-gonogo/test-utils";
 import { Panel } from "@ksp-gonogo/ui-kit";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
 
@@ -77,7 +77,15 @@ const STUB_ITEM: DashboardItem = { i: "w1", componentId: "stub" };
 
 describe("GridItemContent: draggableCancel structural guard", () => {
   beforeEach(() => {
+    // Both clears live HERE, not in `afterEach`. RTL's auto-cleanup runs AFTER a user
+    // `afterEach`, so a clear written there fires while the previous test's tree is still
+    // mounted, and `SlotAggregator` reads the contribution registry through
+    // `useSyncExternalStore`: the clear then notifies mounted subscribers from outside
+    // `act`, which was 14 warnings in this file. By the time this hook runs the tree is
+    // already unmounted, so the clear notifies nothing, with no explicit `cleanup()` and
+    // no dependence on which hook the framework registered first.
     clearRegistry();
+    clearContributions();
     registerComponent({
       id: "stub",
       name: "Stub",
@@ -85,17 +93,6 @@ describe("GridItemContent: draggableCancel structural guard", () => {
       tags: [],
       component: StubWidget,
     });
-  });
-
-  afterEach(() => {
-    // Unmount BEFORE clearing. RTL's auto-cleanup runs after this hook, so without an
-    // explicit `cleanup()` the tree is still mounted when `clearContributions()` fires,
-    // and `SlotAggregator` reads that registry through `useSyncExternalStore`: the clear
-    // notifies mounted subscribers from outside `act`. Eleven warnings in this file,
-    // 2-3 per test, scaling with how many slot aggregators each test mounted.
-    cleanup();
-    clearRegistry();
-    clearContributions();
   });
 
   it("wraps Remove and Configure buttons in .widget-action-buttons", () => {
