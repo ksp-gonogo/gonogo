@@ -77,7 +77,23 @@ export const STOCK_FRAMING: Record<BurnInstantKind, BurnInstantFraming> = {
       "Nothing supplies a burn duration for this craft, so there is no ignition time. Stock computes one only for a loaded vessel.",
   },
   reference: {
-    label: "Node",
+    // "Impulse", not "Node", which was stock's word for the object and said
+    // nothing about what KIND of instant it is: this one is the impulsive
+    // equivalent, and the two rows either side of it are the real burn.
+    //
+    // Deliberately NOT "Start", which was the other candidate. A stock node is
+    // the HALF-delta-v instant, not the beginning of the burn: ignition sits a
+    // lead AHEAD of it (see Gonogo.KSP.StockManeuverPlanBackend, where
+    // IgnitionUt is node.UT minus LeadToHalfSeconds). A burn started at the node
+    // is late by that lead, so labelling it "Start" would not merely be imprecise,
+    // it would tell the operator to fly it wrong.
+    //
+    // And it is "Impulse" in BOTH states rather than one word per state. A
+    // patched-conic node IS an impulsive instant whether or not anything supplies
+    // a duration; what changes with a burn-time model is only whether a real burn
+    // can be placed around it, which the ignition and cutoff rows already say by
+    // being present or absent.
+    label: "Impulse",
     question: "when does the impulsive equivalent fall",
     basis: "planned",
     // The reference is the one instant every plan has, so it is never absent
