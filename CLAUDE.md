@@ -188,6 +188,8 @@ Prefer tests that mock as little of the system as possible. Use [Mock Service Wo
   1. `connect()` must resolve from *inside* the `open` event handler (after `setStatus`), not before the event fires.
   2. In `afterEach`, call `cleanup()` before `source.disconnect()`, disconnecting while a component is still mounted triggers state updates outside `act`.
   Use `waitFor` rather than `act` for assertions on async external events (WebSocket, PeerJS).
+- **`pnpm test` cannot show you an act warning.** Vitest 4's default reporter suppresses console output for tests that PASS, and an act warning does not fail the test that emits it, so the normal path prints none of them and always has. `--silent=false` looks like the flag and changes nothing; `--reporter=verbose` is the one that works. To see them for one package: `pnpm --filter <pkg> exec vitest run --reporter=verbose`.
+- **The ratchet is `pnpm act-warning-gate`**, with per-file counts in `scripts/act-warning-debt.mjs` and its own CI job (`act-warnings`). Counts may only shrink, and a file that *improves* also fails, so a fix updates the debt in the same commit (`pnpm act-warning-gate --update`) rather than leaving slack for the next regression to hide in. The gate plants a deliberate violation and fails as BLIND if it cannot see it, because a counter that cannot see a warning reports zero and zero reads as success.
 
 ---
 

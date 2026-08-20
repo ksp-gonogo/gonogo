@@ -96,6 +96,54 @@ jobs:
 
       - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
 
+  # act() warning ratchet: per-file counts held against scripts/act-warning-debt.mjs.
+  #
+  # Its OWN job rather than a step in `test`, because it re-runs every suite with
+  # `--reporter=verbose` and would otherwise double that job's wall time for a
+  # question `test` is structurally unable to answer: vitest 4's default reporter
+  # suppresses console output for tests that PASS, and an act warning does not fail
+  # the test that emits it. So `pnpm test` has never been able to show one, and the
+  # tree carried 103 while reporting clean on every run.
+  #
+  # The gate proves its own instrument before it believes any number: it plants a
+  # component that updates outside act(), runs that one file, and fails as BLIND if
+  # the count does not rise. Without that, a reporter change turns this job into a
+  # permanently green no-op, which is exactly the state it was built to end.
+  act-warnings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      # The suites import built dists from sibling packages, so the tree has to be
+      # built before any of them will run at all.
+      - name: Build workspace
+        run: pnpm build
+
+      - run: pnpm act-warning-gate
+
   # C# Sitrep mod: unit/integration tests + the contract shape-gate.
   # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
   #
