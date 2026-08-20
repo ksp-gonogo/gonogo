@@ -93,6 +93,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink", "Go
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink.Tests", "GonogoPrincipiaUplink.Tests\GonogoPrincipiaUplink.Tests.csproj", "{15DAEABF-598E-48AA-9784-71549CF8B8E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink.Contract", "GonogoPrincipiaUplink.Contract\GonogoPrincipiaUplink.Contract.csproj", "{2CB00FC2-2B90-4875-839F-09A5FA2A0368}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -643,6 +645,18 @@ Global
 		{15DAEABF-598E-48AA-9784-71549CF8B8E1}.Release|x64.Build.0 = Release|Any CPU
 		{15DAEABF-598E-48AA-9784-71549CF8B8E1}.Release|x86.ActiveCfg = Release|Any CPU
 		{15DAEABF-598E-48AA-9784-71549CF8B8E1}.Release|x86.Build.0 = Release|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Debug|x64.Build.0 = Debug|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Debug|x86.Build.0 = Debug|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Release|x64.ActiveCfg = Release|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Release|x64.Build.0 = Release|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Release|x86.ActiveCfg = Release|Any CPU
+		{2CB00FC2-2B90-4875-839F-09A5FA2A0368}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
