@@ -13,9 +13,36 @@ RT_VER="1.6.7"
 RT_PKG="$HOME/.nuget/packages/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
 
+# Reinforced.Typings.dll has to sit beside each contract assembly for the
+# duration of its rtcli run, because rtcli resolves the [TsInterface] attributes
+# out of it. It must NOT survive the run.
+#
+# It is referenced PrivateAssets="all" with no runtime asset precisely so it is
+# never deployed: a net472 assembly carrying RT attributes makes Kopernicus fail
+# to resolve them at KSP startup. But a copy left in a contract's bin flows to
+# every dependent's output, and on 2026-08-20 that is exactly what happened, 29
+# copies deep. It made ControlChannelDescriptor's property scan resolve an
+# assembly that is correctly absent everywhere else, which aborted every delayed
+# command dispatch, and it hid the bug for a month by making 13 tests pass while
+# asserting nothing wherever a copy happened to be.
+#
+# So every copy is tracked and removed on exit, including on failure: a crashed
+# rtcli must not be the thing that leaves one behind.
+RT_COPIES=()
+rt_stage() {
+    cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$1/"
+    RT_COPIES+=("$1/Reinforced.Typings.dll")
+}
+rt_cleanup() {
+    for copy in ${RT_COPIES+"${RT_COPIES[@]}"}; do
+        rm -f "$copy"
+    done
+}
+trap rt_cleanup EXIT
+
 dotnet build "$PROJ/Sitrep.Contract.csproj" -v minimal
 BIN="$PROJ/bin/Debug/netstandard2.0"
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$BIN/"   # rtcli needs to resolve the attributes assembly
+rt_stage "$BIN"
 
 mkdir -p "$(dirname "$OUT")"
 
@@ -59,7 +86,7 @@ mechjeb_out_dir="$ROOT/mod/GonogoMechJebUplink/client/src/__generated__"
 mechjeb_bin="$mechjeb_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$mechjeb_proj/GonogoMechJebUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$mechjeb_bin/"
+rt_stage "$mechjeb_bin"
 # Sitrep.Contract.dll: not copied by the build (Private="false", provided by
 # core at runtime), but rtcli loads GonogoMechJebUplink.Contract.dll's
 # metadata and has to resolve every type it references (SitrepContractAttribute,
@@ -90,7 +117,7 @@ avionics_out_dir="$ROOT/mod/GonogoAvionicsUplink/client/src/__generated__"
 avionics_bin="$avionics_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$avionics_proj/GonogoAvionicsUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$avionics_bin/"
+rt_stage "$avionics_bin"
 cp "$BIN/Sitrep.Contract.dll" "$avionics_bin/"
 mkdir -p "$avionics_out_dir"
 
@@ -117,7 +144,7 @@ kerbcast_out_dir="$ROOT/mod/GonogoKerbcastUplink/client/src/__generated__"
 kerbcast_bin="$kerbcast_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$kerbcast_proj/GonogoKerbcastUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$kerbcast_bin/"
+rt_stage "$kerbcast_bin"
 cp "$BIN/Sitrep.Contract.dll" "$kerbcast_bin/"
 mkdir -p "$kerbcast_out_dir"
 
@@ -147,7 +174,7 @@ scansat_out_dir="$ROOT/mod/GonogoScansatUplink/client/src/__generated__"
 scansat_bin="$scansat_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$scansat_proj/GonogoScansatUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$scansat_bin/"
+rt_stage "$scansat_bin"
 cp "$BIN/Sitrep.Contract.dll" "$scansat_bin/"
 mkdir -p "$scansat_out_dir"
 
@@ -180,7 +207,7 @@ kerbalism_out_dir="$ROOT/mod/GonogoKerbalismUplink/client/src/__generated__"
 kerbalism_bin="$kerbalism_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$kerbalism_proj/GonogoKerbalismUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$kerbalism_bin/"
+rt_stage "$kerbalism_bin"
 cp "$BIN/Sitrep.Contract.dll" "$kerbalism_bin/"
 mkdir -p "$kerbalism_out_dir"
 
@@ -213,7 +240,7 @@ kos_out_dir="$ROOT/mod/GonogoKosUplink/client/src/__generated__"
 kos_bin="$kos_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$kos_proj/GonogoKosUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$kos_bin/"
+rt_stage "$kos_bin"
 cp "$BIN/Sitrep.Contract.dll" "$kos_bin/"
 mkdir -p "$kos_out_dir"
 
@@ -248,7 +275,7 @@ realantennas_out_dir="$ROOT/mod/GonogoRealAntennasUplink/client/src/__generated_
 realantennas_bin="$realantennas_proj/bin/Debug/netstandard2.0"
 
 dotnet build "$realantennas_proj/GonogoRealAntennasUplink.Contract.csproj" -v minimal
-cp "$RT_PKG/tools/net5.0/Reinforced.Typings.dll" "$realantennas_bin/"
+rt_stage "$realantennas_bin"
 cp "$BIN/Sitrep.Contract.dll" "$realantennas_bin/"
 mkdir -p "$realantennas_out_dir"
 
