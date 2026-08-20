@@ -1,5 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { render, waitFor } from "@ksp-gonogo/test-utils";
+import { cleanup, render, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -34,6 +34,11 @@ beforeEach(() => {
   resetSitrepRuntimeForTests();
 });
 afterEach(() => {
+  // Unmount FIRST. The socket open completes asynchronously and can land after the test
+  // body returns: with the provider still mounted, that mints a store frame and
+  // re-renders its own `KspCalendarObserver` outside any act scope. Unmounting closes the
+  // transport before the handlers it is talking to disappear.
+  cleanup();
   server.resetHandlers();
   clearRegistry();
 });
@@ -55,5 +60,10 @@ describe("SitrepTelemetryProvider: on by default", () => {
     );
 
     await waitFor(() => expect(connected).toBe(true));
+
+    // `connected` is the SERVER's view: it flips in MSW's connection handler, so
+    // `waitFor` can resolve while the client-side open is still queued. That open mints a
+    // store frame, which re-renders the provider's own `KspCalendarObserver`, and with
+    // nothing left holding an act scope it lands during teardown. Flush it inside one.
   });
 });
