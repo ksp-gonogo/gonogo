@@ -1,10 +1,12 @@
 /**
- * The `mapTopic` compatibility shim's data: old-Telemachus-key → new SDK
- * stream topic, cross-checked against every widget's real
- * `dataRequirements`/`useDataValue` call in `packages/components/src`: see
- * `map-topic.coverage.test.ts` in `@ksp-gonogo/core`, which enumerates the
- * live widget key set and asserts every key is either mapped here or listed
- * in `LEGACY_KEY_GAPS`.
+ * The `mapTopic` compatibility shim's data: LEGACY KEY → new SDK stream topic.
+ *
+ * The legacy keys are the vocabulary of the telemetry source this app read
+ * before the stream existed. They survive because widgets were written against
+ * them, not because anything still emits them, and they are being migrated out;
+ * an Uplink author has no reason to use one and no way to have inherited one.
+ * A coverage gate in `@ksp-gonogo/core` enumerates the live widget key set and
+ * asserts every key is either mapped here or listed in `LEGACY_KEY_GAPS`.
  *
  * Two independent concerns live in this file:
  *
@@ -16,7 +18,7 @@
  *    safe to call on any topic string.
  * 2. **`mapTopic(sourceId, key)`**: the
  *    `useDataValue` migration table: old widget-facing `(dataSourceId, key)`
- *    pairs (today always `("data", "<Telemachus key>")`) → the new stream
+ *    pairs (today always `("data", "<legacy key>")`) → the new stream
  *    topic string, or `undefined` when there is no new home yet. `undefined`
  *    is the explicit "fall back to the legacy `DataSource` path" signal the
  *    `@ksp-gonogo/core` shim depends on: it is NOT an identity fallback, unlike
@@ -25,7 +27,7 @@
  *    can't route; a direct-topic safety net needs to always return
  *    something sane).
  *
- * `sourceId === "data"` (the Telemachus `DataSource`) is the main table.
+ * `sourceId === "data"` (the legacy `DataSource`) is the main table.
  * `sourceId === "kos"` is ALSO routed: the mod publishes
  * native `kos.processors` push telemetry plus the dynamic
  * `kos.compute.<id>.<field>` compute namespace, so those topics DO exist on
@@ -80,7 +82,7 @@ export function redirectKinematicSubtopic(topic: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Old Telemachus key (as it appears in `dataRequirements`/`useTelemetry`
+ * Legacy key (as it appears in `dataRequirements`/`useTelemetry`
  * calls in `packages/components/src`) → new stream topic. "derived" entries
  * are SDK-computed values (elements propagated at view-UT, quality-picked,
  * etc.) exposed as plain topic strings via `vessel.state`'s `fields: true`
@@ -161,7 +163,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   // enum-ordinal→string-name shape-mismatch migration). Each mod field is a
   // NUMERIC contract-enum ordinal on the wire (`VesselViewProvider` serializes
   // `(int)...`); the widgets read the STRING name (or, for `comm.controlState`,
-  // a Telemachus 0/1/2 numeric). `deriveVesselState` resolves each ordinal
+  // a 0/1/2 control-level numeric). `deriveVesselState` resolves each ordinal
   // against the contract's C#-declared enum order and exposes the widget-shaped
   // value as a `vessel.state.*` field subtopic: same client-side display-map
   // pattern as the body-NAME maps above, zero per-widget change:
@@ -192,7 +194,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   // ---
   "o.encounterExists": "vessel.state.encounterExists",
   "o.encounterBody": "vessel.state.encounterBody",
-  // `o.UTsoi`, not `o.encounterTime`: Telemachus carried both, the first the
+  // `o.UTsoi`, not `o.encounterTime`: the old vocabulary carried both, the first the
   // absolute instant of the transition and the second the seconds remaining
   // until it, and `vessel.orbit.encounter.transitionUt` is the instant. Mapping
   // the duration's key onto it is what put "46d 2h" in the encounter chip.
@@ -289,7 +291,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   // mod wire (VesselSurface.Biome/LandedAt), so these two: previously gapped
   // as "needs capture add", migrate as raw-field walks. vessel.surface is
   // null while ORBITING/ESCAPING (capture-side guard), so widgets see these
-  // only near a surface, which matches the old Telemachus semantics.
+  // only near a surface, which matches the old semantics.
   "v.biome": "vessel.surface.biome",
   "v.landedAt": "vessel.surface.landedAt",
 
@@ -413,7 +415,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   // `orbit-patches.ts`), horizon-bounded off the existing closed-form
   // `landingTimeToImpact` estimate so the walk only ever runs while a
   // landing is actually imminent. Vacuum-exact; on an atmospheric body this
-  // ignores drag (same limitation Telemachus's own: nonexistent:
+  // ignores drag (same limitation the old, nonexistent,
   // implementation had; matches/beats it, doesn't regress it).
   // `land.slopeAngle` stays gapped below: it needs a terrain heightmap
   // this client derivation has no source for. ---
@@ -497,7 +499,7 @@ export const LEGACY_KEY_HOMES: Readonly<Record<string, string>> = {
   //
   // NOTE: `robotics.servos` deliberately has NO identity entry here (unlike
   // `parts.power`/`science.lab` below): the string is already claimed, in
-  // this same table, by the OLD gapped Telemachus identity-list key of the
+  // this same table, by the OLD gapped identity-list key of the
   // same name (see the "robotics.available" gap test/comment further down,
   // `robotics.rotors`/`robotics.servos` as legacy keys with no stable id).
   // A widget never calls the legacy 2-arg form with this string meaning the
@@ -795,7 +797,7 @@ export const LEGACY_KEY_GAPS: ReadonlySet<string> = new Set([
   // ControlState`: despite this comment's former "STRING enum" wording, the
   // host serializes the integer). `deriveVesselState` now resolves it BOTH
   // ways: the ordinal → enum name string (`vessel.state.commsControlStateName`,
-  // the old `comm.controlStateName`) AND → CommSignal's Telemachus 0/1/2
+  // the old `comm.controlStateName`) AND → CommSignal's 0/1/2
   // control-level (`vessel.state.commsControlStateOrdinal`, the old numeric
   // `comm.controlState`). See LEGACY_KEY_HOMES above.
 
@@ -839,7 +841,7 @@ export const LEGACY_KEY_GAPS: ReadonlySet<string> = new Set([
   // See LEGACY_KEY_HOMES above.
 
   // --- ActionGroup's dynamically-resolved keys
-  // (see mapTopic.coverage.test.ts's collectDynamicTelemachusKeys). Of the
+  // (see mapTopic.coverage.test.ts's dynamic-key collector). Of the
   // 17 keys, sas/rcs/gear/brake/light have clean 1:1 boolean homes above;
   // the rest don't exist as individual fields on VesselControl
   // (mod/Sitrep.Contract/VesselControl.cs) yet ---
@@ -1106,7 +1108,7 @@ export const LEGACY_KEY_GAPS: ReadonlySet<string> = new Set([
  * `useDataValue` today: to the new SDK stream topic it should read from.
  *
  * Returns `undefined` when there is no mapping: either `dataSourceId` isn't
- * the Telemachus `"data"` source (nothing else is wired to the new SDK yet),
+ * the legacy `"data"` source (nothing else is wired to the new SDK yet),
  * or `key` is a known, explicitly-tracked gap (`LEGACY_KEY_GAPS`),
  * or `key` is genuinely unrecognized. In every `undefined` case the
  * `@ksp-gonogo/core` `useDataValue` shim falls back to the legacy `DataSource`
@@ -1209,7 +1211,7 @@ export function mapTopic(
 }
 
 /**
- * `true` when `key` is a Telemachus key with a deliberately-tracked absence
+ * `true` when `key` is a legacy key with a deliberately-tracked absence
  * of a new home (as opposed to simply never having been audited). Used by
  * the coverage test to distinguish "known gap" from "silent miss".
  */

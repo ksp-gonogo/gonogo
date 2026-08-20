@@ -1,7 +1,7 @@
 /**
  * The vessel's future-orbit patch chain (`vessel.orbit.patches` / each
  * `vessel.maneuver.nodes[].patches`, `mod/Sitrep.Contract/OrbitPatch.cs`):
- * reshaped into the legacy Telemachus `OrbitPatch` shape MapView/
+ * reshaped into the legacy `OrbitPatch` shape MapView/
  * `packages/core/src/calc/trajectory.ts` already consume (`o.orbitPatches`,
  * `ManeuverNode.orbitPatches`), plus a narrow vacuum-ballistic impact-point
  * walk over that same chain (`land.predictedLat`/`Lon`'s source; see
@@ -81,7 +81,7 @@ export interface LegacyOrbitPatch {
 
 /**
  * `Sitrep.Contract.TransitionType` ordinal → the uppercase name legacy
- * Telemachus's own `OrbitPatchJSONFormatter` used (`packages/core/src/
+ * the legacy formatter used (`packages/core/src/
  * schemas/orbit.ts`'s `OrbitPatch.patchStartTransition` doc comment).
  * Declaration order matches `mod/Sitrep.Contract/VesselEnums.cs`'s
  * `TransitionType` (Initial/Final/Encounter/Escape/Maneuver/Collision/
@@ -113,7 +113,7 @@ function transitionName(ordinal: number): string {
  * for why), unlike most of this codebase's index-based body references.
  *
  * `mu` and the body indexes are deliberately NOT carried through. This is the
- * legacy Telemachus-era shape and those fields never existed in it; a consumer
+ * legacy shape and those fields never existed in it; a consumer
  * that wants them reads the wire payload, which is where they live.
  */
 export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
@@ -286,8 +286,8 @@ export interface ImpactPoint {
  * Walks the patch chain forward from `ref.ut` and returns the LAST sample
  * before altitude drops below `MIN_IMPACT_ALT_M`: the predicted surface
  * impact point. `null` when the walk never dips below the surface within
- * `horizonSec` (no prediction: never a fabricated `(0,0)`, unlike
- * Telemachus's own sentinel convention; see `LandingStatus`'s `isSentinel`
+ * `horizonSec` (no prediction: never a fabricated `(0,0)`, unlike the
+ * sentinel convention this replaced; see `LandingStatus`'s `isSentinel`
  * for the widget-side null handling). Bound `horizonSec`/`stepSec` tightly
  * at the call site: this is an O(horizonSec / stepSec) loop with no
  * internal sample cap.

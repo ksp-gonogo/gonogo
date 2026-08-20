@@ -2,7 +2,7 @@ import type { Value } from "../value";
 /**
  * `vessel.maneuver.legacy`: a narrow derived channel reshaping
  * `vessel.maneuver.nodes` (`mod/Sitrep.Contract/VesselManeuver.cs`) into the
- * legacy Telemachus `o.maneuverNodes` shape ManeuverPlanner/MapView already
+ * legacy `o.maneuverNodes` shape ManeuverPlanner/MapView already
  * consume (`packages/core/src/schemas/orbit.ts`'s `ManeuverNode`).
  *
  * Deliberately a SEPARATE channel from `vessel.state`, not a new field on
@@ -88,13 +88,13 @@ export interface LegacyManeuverNode {
 
 /**
  * Reshapes one wire maneuver node into the legacy shape. `deltaV` is the
- * `[radialOut, normal, prograde]` tuple Telemachus's own
- * `addManeuverNode[ut,x,y,z]` arg order used (see the project's "Telemachus
- * maneuver-node arg order" finding): `dvRadial`/`dvNormal`/`dvPrograde` are
+ * `[radialOut, normal, prograde]` tuple the legacy positional
+ * `addManeuverNode[ut,x,y,z]` command used, and that order is NOT the one the
+ * axis names suggest: `dvRadial`/`dvNormal`/`dvPrograde` are
  * already that same frame, just named instead of positional (kills the
  * arg-order footgun `mod/Sitrep.Contract/VesselManeuver.cs`'s own doc
  * comment describes). The node-level PeA/ApA/inclination/... fields mirror
- * `orbitPatches[0]` exactly, that is how Telemachus's own
+ * `orbitPatches[0]` exactly, which is how the legacy
  * `o.maneuverNodes` always behaved (the node's headline numbers ARE its
  * post-burn patch's numbers): defaulting to 0/""/null when the solver
  * hasn't produced a post-burn patch yet (a just-added node, still mid-tick).

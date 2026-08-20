@@ -23,7 +23,7 @@ import { mapCommand } from "./map-command";
  * The legacy `useCommand` alias this file used to re-export is gone: `useCommand`
  * now unambiguously means the delay-aware per-topic hook.
  *
- * Fires an action (legacy Telemachus `execute(action: string)`) or, when the
+ * Fires an action (the legacy `execute(action: string)`) or, when the
  * action maps onto a typed stream command AND that command topic is carried, a
  * `TelemetryClient.dispatch`. The carried-channels check below is a dev-time
  * PROMOTION gate (which topics the app has wired onto the stream), NOT an

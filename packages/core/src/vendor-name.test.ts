@@ -23,8 +23,17 @@ const SELF = [
   "packages/core/src/vendor-name.allowlist.ts",
   "packages/core/src/vendor-name.test.ts",
 ];
-/** History, deliberately kept: see the allowlist header. */
-const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/"];
+/**
+ * History, deliberately kept: see the allowlist header.
+ *
+ * `.serena/` is a different case and is excluded for a different reason: it
+ * holds TRACKED binary symbol caches (`*.pkl`) that a re-index rewrites, so
+ * their match count moves on its own and would make this gate flaky. They are
+ * derived from the source this already counts, so counting them is also double
+ * counting. That they are tracked at all looks like an oversight worth fixing
+ * separately, and excluding them here does not depend on that happening.
+ */
+const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
 
 function scan(): Map<string, number> {
   // `|| true`: git grep exits 1 when nothing matches, which is a legitimate
@@ -146,8 +155,8 @@ describe("vendor name", () => {
    * test name rather than buried in a diff of two hundred numbers. Update both
    * when a slice lands; they can only fall.
    */
-  it("stands at the seeded totals: 39 published, 407 elsewhere", () => {
-    expect(SEEDED_SDK_TOTAL).toBeLessThanOrEqual(39);
-    expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(407);
+  it("stands at zero published, and 406 elsewhere", () => {
+    expect(SEEDED_SDK_TOTAL).toBe(0);
+    expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(406);
   });
 });

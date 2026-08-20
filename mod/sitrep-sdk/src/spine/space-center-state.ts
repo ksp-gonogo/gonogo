@@ -13,7 +13,7 @@ interface LaunchSiteWireEntry {
 
 /**
  * The `spaceCenter.state` derived channel: the pad-occupancy scalars behind
- * the legacy Telemachus `kc.padOccupied` / `kc.padVesselTitle` keys. The mod
+ * the legacy `kc.padOccupied` / `kc.padVesselTitle` keys. The mod
  * already carries per-site occupancy on `spaceCenter.launchSites`
  * (`LaunchSiteEntry.padOccupied` is non-null only on the stock KSC pad, there
  * is no clean stock per-site occupancy API, so it rides the one pad), so this
