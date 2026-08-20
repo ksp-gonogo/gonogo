@@ -34,8 +34,8 @@ const ORDER: readonly BurnInstantKind[] = ["ignition", "reference", "cutoff"];
  * these five fields describe where THIS app gets a burn from rather than
  * anything true of burns: `basis` says "rocket equation" because
  * `BurnTiming` computed it, `absent`/`absentDetail` name stock's own solver
- * outright, and the reference row's `question` asserts an impulsive equivalent
- * exists.
+ * outright, and the reference row's `question` asserts a delta-v profile to be
+ * half-way through.
  *
  * The row MODEL around it is general: the fixed ignition/reference/cutoff
  * order, the rule that an absent instant says WHY rather than dropping out, and
@@ -76,10 +76,11 @@ export interface BurnInstantFraming {
  * The line falls between the KINDS. `ignition` and `cutoff` are REAL EVENTS,
  * true of any burn from any planner: engines light, engines stop. Their `label`
  * and `question` are shared vocabulary and a second provider should supply the
- * same words, differing only in provenance. `reference` is a MODEL ARTEFACT:
- * "Impulse", and asking when the impulsive EQUIVALENT falls, are claims that
- * such an instant exists at all, which is true of a patched-conic planner and
- * false of one that integrates. So its label and question travel WITH the
+ * same words, differing only in provenance. `reference` is a MODEL ARTEFACT,
+ * and renaming it from "Impulse" to "Half-Δv" did not change that: the new
+ * label presumes a burn with a measurable delta-v profile to be half-way
+ * through, just as the old one presumed an impulsive equivalent to exist. Both
+ * are claims about a burn model, so its label and question travel WITH the
  * provenance rather than with the vocabulary.
  *
  * Freezing `label` and `question` across all three, which is the tidier-looking
@@ -98,24 +99,26 @@ export const STOCK_FRAMING: Record<BurnInstantKind, BurnInstantFraming> = {
       "Nothing supplies a burn duration for this craft, so there is no ignition time. Stock computes one only for a loaded vessel.",
   },
   reference: {
-    // "Impulse", not "Node", which was stock's word for the object and said
-    // nothing about what KIND of instant it is: this one is the impulsive
-    // equivalent, and the two rows either side of it are the real burn.
+    // "Half-Δv" states the BEHAVIOUR. Two earlier candidates were worse: "Node"
+    // was stock's word for the object and said nothing about what kind of
+    // instant it is, and "Impulse" named a model rather than the thing that
+    // happens, which is weak once you know the game supplies only a node and a
+    // duration and that both outer instants are ours.
     //
-    // Deliberately NOT "Start", which was the other candidate. A stock node is
-    // the HALF-delta-v instant, not the beginning of the burn: ignition sits a
-    // lead AHEAD of it (see Gonogo.KSP.StockManeuverPlanBackend, where
-    // IgnitionUt is node.UT minus LeadToHalfSeconds). A burn started at the node
-    // is late by that lead, so labelling it "Start" would not merely be imprecise,
-    // it would tell the operator to fly it wrong.
+    // The half-DELTA-V point, not the time midpoint, and they are not the same
+    // instant: mass falls as the burn proceeds, so the second half takes longer.
+    // BurnTimingTests pins it, LeadToHalfSeconds > TotalSeconds / 2. Anything
+    // reading as "the middle of the burn" is wrong for the same reason "Start"
+    // was: ignition sits a lead AHEAD of this instant (see
+    // Gonogo.KSP.StockManeuverPlanBackend, where IgnitionUt is node.UT minus
+    // LeadToHalfSeconds), so a burn begun here is late by that lead.
     //
-    // And it is "Impulse" in BOTH states rather than one word per state. A
-    // patched-conic node IS an impulsive instant whether or not anything supplies
-    // a duration; what changes with a burn-time model is only whether a real burn
-    // can be placed around it, which the ignition and cutoff rows already say by
-    // being present or absent.
-    label: "Impulse",
-    question: "when does the impulsive equivalent fall",
+    // One word in both states rather than one per state. Where a burn-time model
+    // is absent we cannot place a burn around this instant, but the instant is
+    // still the one the plan supplies; what changes is only whether the rows
+    // either side of it exist, which they say by being present or absent.
+    label: "Half-Δv",
+    question: "when has half the delta-v been delivered",
     basis: "planned",
     // The reference is the one instant every plan has, so it is never absent
     // for a burn that exists at all.
