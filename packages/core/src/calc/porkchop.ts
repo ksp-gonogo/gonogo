@@ -12,8 +12,30 @@
  * trivially testable.
  */
 
+import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
 import type { Vec3Tuple } from "./lambert";
 import { type LambertResult, lambertDeltaV, solveLambert } from "./lambert";
+
+/**
+ * Lambert solves per second across every porkchop grid.
+ *
+ * A porkchop is the most expensive client-side computation in the app: a 32x32 grid is
+ * 1,024 Lambert solves and measures at ~7ms on a dev machine. That fits inside a frame,
+ * which is exactly why this needs a budget rather than a test. A correctness bug fails
+ * loudly; a grid rebuilt every frame just burns 42% of a core for an answer that does
+ * not change, and nothing notices for a month.
+ *
+ * Threshold is four full grids per second: generous for any real interaction (picking a
+ * window, changing destination) and still 15x under the 60Hz rebuild this was written to
+ * catch. Sized against the grid, not the frame, so it stays meaningful if the sample
+ * count changes.
+ */
+export const PORKCHOP_SOLVE_BUDGET = new PerfBudget({
+  name: "Porkchop Lambert solves/sec",
+  threshold: 4 * 32 * 32,
+  windowMs: 1000,
+  unit: "solves",
+});
 
 /** A body's parent-relative state at an instant. Structurally matches sitrep-client's `StateVector`. */
 export interface StateLike {
@@ -114,6 +136,11 @@ export function buildPorkchop(input: PorkchopInput): PorkchopGrid {
     }
     return s;
   };
+
+  // Recorded per GRID rather than per cell: one `Date.now()` and one array push for a
+  // 1,024-solve build, instead of 1,024 of each. The budget is about how often the grid
+  // is rebuilt, and the cell count is known up front.
+  PORKCHOP_SOLVE_BUDGET.record(departureUts.length * arrivalUts.length);
 
   for (let i = 0; i < departureUts.length; i++) {
     const depUt = departureUts[i];

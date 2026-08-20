@@ -8,6 +8,8 @@ import {
   computeTransfer,
   parentMu,
   phaseAngleDeg,
+  porkchopGridQuantum,
+  quantiseGridUt,
   reachEntries,
   reachVerdict,
   transferDestinations,
@@ -458,5 +460,64 @@ describe("reachVerdict: the band, not a boolean", () => {
   it("has no verdict at all without a budget or without a cost", () => {
     expect(reachVerdict(cost, null, 0)).toBeNull();
     expect(reachVerdict({ ...cost, totalDeltaV: null }, 2000, 0)).toBeNull();
+  });
+});
+
+describe("porkchop grid quantisation: why it scales with the chart", () => {
+  const T_EARTH_MARS = 258.9 * DAY;
+
+  it("rounds a frame-rate sequence of UTs onto one value", () => {
+    const q = porkchopGridQuantum(T_EARTH_MARS);
+    const base = 1_000_000;
+    // Sixty frames of a 1x clock: about 16.7ms of game time each.
+    const buckets = new Set(
+      Array.from({ length: 60 }, (_, f) =>
+        quantiseGridUt(base + f * 0.0167, q),
+      ),
+    );
+    expect(buckets.size).toBe(1);
+  });
+
+  /*
+   * The property a fixed quantum does not have, and the reason this is expressed in
+   * transfer times. At 100,000x warp a frame advances UT by ~1,670 seconds, so a
+   * 60-second bucket changes on EVERY frame and a memo keyed on it rebuilds on every
+   * frame: the churn returns exactly when the clock is fastest.
+   */
+  it("still holds at 100,000x warp, where a fixed 60-second bucket would not", () => {
+    const q = porkchopGridQuantum(T_EARTH_MARS);
+    const base = 1_000_000;
+    const utPerFrame = 0.0167 * 100_000; // ~1,670 UT-seconds per frame
+
+    const scaled = new Set(
+      Array.from({ length: 60 }, (_, f) =>
+        quantiseGridUt(base + f * utPerFrame, q),
+      ),
+    );
+    const fixed60 = new Set(
+      Array.from(
+        { length: 60 },
+        (_, f) => Math.floor((base + f * utPerFrame) / 60) * 60,
+      ),
+    );
+
+    // The scaled quantum still collapses a second of frames into a handful of rebuilds;
+    // the fixed one collapses nothing at all.
+    expect(fixed60.size).toBe(60);
+    expect(scaled.size).toBeLessThan(5);
+  });
+
+  it("is far below one departure sample, so the chart cannot show the rounding", () => {
+    const q = porkchopGridQuantum(T_EARTH_MARS) as number;
+    // The departure axis spans 0.8·T across 32 samples.
+    const oneSample = (0.8 * T_EARTH_MARS) / 31;
+    expect(q).toBeLessThan(oneSample / 10);
+  });
+
+  it("declines rather than dividing by zero when there is no transfer time", () => {
+    expect(porkchopGridQuantum(0)).toBeNull();
+    expect(porkchopGridQuantum(Number.NaN)).toBeNull();
+    // A null quantum must pass the UT through, never zero it.
+    expect(quantiseGridUt(12_345, null)).toBe(12_345);
   });
 });
