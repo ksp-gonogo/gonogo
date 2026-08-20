@@ -353,7 +353,12 @@ describe("NavballComponent", () => {
         expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
       });
 
-      const results = await axe(container);
+      // Inside act(): axe walks the DOM asynchronously and the delay countdown keeps
+      // ticking while it does, so unwrapped those updates land outside any act scope.
+      let results: Awaited<ReturnType<typeof axe>> | undefined;
+      await act(async () => {
+        results = await axe(container);
+      });
       expect(results).toHaveNoViolations();
     });
   });
