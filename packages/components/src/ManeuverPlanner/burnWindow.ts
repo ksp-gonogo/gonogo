@@ -66,6 +66,27 @@ export interface BurnInstantFraming {
  *
  * Recorded rather than merely known, because a default that cannot say what it
  * assumes is a default that gets adopted as a truth.
+ *
+ * ## Which of these a second provider may change
+ *
+ * Nothing enforces this and nothing should until a second provider exists, but
+ * the division is NOT the per-field one it looks like, and that is worth having
+ * in writing because the per-field split is what someone would reach for.
+ *
+ * The line falls between the KINDS. `ignition` and `cutoff` are REAL EVENTS,
+ * true of any burn from any planner: engines light, engines stop. Their `label`
+ * and `question` are shared vocabulary and a second provider should supply the
+ * same words, differing only in provenance. `reference` is a MODEL ARTEFACT:
+ * "Impulse", and asking when the impulsive EQUIVALENT falls, are claims that
+ * such an instant exists at all, which is true of a patched-conic planner and
+ * false of one that integrates. So its label and question travel WITH the
+ * provenance rather than with the vocabulary.
+ *
+ * Freezing `label` and `question` across all three, which is the tidier-looking
+ * split, would force a future provider to display a word that is wrong for its
+ * model, and for an integrating planner a word for an instant it does not have.
+ * A consistency rule that produces a false label is doing the opposite of its
+ * job. `basis`, `absent` and `absentDetail` are provenance throughout.
  */
 export const STOCK_FRAMING: Record<BurnInstantKind, BurnInstantFraming> = {
   ignition: {
