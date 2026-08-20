@@ -40,14 +40,13 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>
         /// Records one science increment earned by a vessel. The KSC-anchored one-way light-time is
-        /// derived here from <paramref name="fromVessel"/> (a stock KSP handle), so a delayed
-        /// credit's reveal-UT is computed the same way for every source: the caller supplies only
-        /// the vessel identity, the raw amount, the earn-UT, and an opaque origin label. A null
-        /// <paramref name="fromVessel"/> is fed through with zero light-time (instant reveal) rather
-        /// than dropped. No-op while unbound, or for a non-positive amount.
+        /// derived here, from the vessel <see cref="ResolveLiveDelay"/> finds live for
+        /// <paramref name="vesselId"/>, so a delayed credit's reveal-UT is computed the same way for
+        /// every source: the caller supplies only the vessel identity, the raw amount, the earn-UT,
+        /// and an opaque origin label. No-op while unbound, or for a non-positive amount.
         /// </summary>
         public static void RecordDelayedScienceIncrement(
-            string vesselId, ProtoVessel? fromVessel, double amount, double ut, string originDescription = "")
+            string vesselId, double amount, double ut, string originDescription = "")
         {
             var aggregator = _aggregator;
             var ledger = _ledger;
@@ -103,5 +102,23 @@ namespace Gonogo.KSP.CurrencyDelay
             return KscDelay.Unroutable;
         }
 
+    }
+
+    /// <summary>
+    /// The <c>"delayedScience"</c> capability's active instance: the published face of
+    /// <see cref="DelayedScienceSink"/>, so an Uplink can hand increments to the currency-delay
+    /// subsystem through <c>host.Kernel</c> rather than referencing this assembly. Registered as the
+    /// capability's Vanilla factory by <see cref="CurrencyEventUplink.DeclareCapabilities"/>.
+    ///
+    /// <para>Stateless, and thin on purpose: the binding to the live scenario's aggregator and
+    /// ledger stays on the static, which is where the scenario already installs and clears it.</para>
+    /// </summary>
+    public sealed class DelayedScienceSinkBackend : Sitrep.Contract.IDelayedScienceSink
+    {
+        public void RecordDelayedScienceIncrement(
+            string vesselId, double amount, double ut, string originDescription)
+        {
+            DelayedScienceSink.RecordDelayedScienceIncrement(vesselId, amount, ut, originDescription);
+        }
     }
 }

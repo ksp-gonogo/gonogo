@@ -22,14 +22,14 @@ namespace Sitrep.Core.Tests
     /// <para><b>Why this gates the REACHABLE set and not the declared one.</b>
     /// ProjectReference is transitive and nothing in this graph sets
     /// <c>PrivateAssets</c>, so a csproj naming one internal project gets that
-    /// project's own references too. The seeded debt below is what made the
+    /// project's own references too. The debt this was seeded with is what made the
     /// distinction worth encoding rather than assuming: GonogoKerbalismUplink
-    /// declares exactly one internal project (<c>Gonogo.KSP</c>) and can compile
-    /// against five, and it does, it uses a <c>Sitrep.Host</c> type it never
-    /// declares a reference to. A guard counting csproj lines would have scored it
-    /// the mildest of the breaches instead of the widest. Declared references are
-    /// what an author edits; reachable assemblies are what the boundary actually
-    /// is, so the debt is measured in the latter.</para>
+    /// declared exactly one internal project (<c>Gonogo.KSP</c>) and could compile
+    /// against five, and did, it used a <c>Sitrep.Host</c> type it never declared a
+    /// reference to. A guard counting csproj lines would have scored it the mildest
+    /// of the breaches instead of the widest. Declared references are what an author
+    /// edits; reachable assemblies are what the boundary actually is, so the debt is
+    /// measured in the latter.</para>
     ///
     /// <para><b>Shrink-only, and strictly.</b> An entry may leave
     /// <see cref="ReferenceDebt"/> / <see cref="ImportDebt"/> only by the breach
@@ -71,38 +71,31 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
-        /// project references its csproj declares. Seeded 2026-08-19 from the
-        /// measurement in the same commit. Shrink only.
+        /// project references its csproj declares. Seeded 2026-08-19, EMPTIED
+        /// 2026-08-20. Shrink only, and there is nothing left to shrink: every
+        /// Uplink in this repo now compiles against <c>Sitrep.Contract</c> and its
+        /// own contract slice alone.
         ///
-        /// <para>The one remaining entry traces to a single declared reference:
-        /// GonogoKerbalismUplink declares <c>Gonogo.KSP</c> for
-        /// <c>Gonogo.KSP.CurrencyDelay.DelayedScienceSink</c>. Sitrep.Host,
-        /// Sitrep.Core, Sitrep.Transport and Sitrep.Propagation appear nowhere in
-        /// its csproj: they arrive through Gonogo.KSP and leave when it does.</para>
+        /// <para>The list stays, empty, rather than being deleted with the
+        /// assertions that read it. It is the mechanism that keeps zero at zero: an
+        /// Uplink that reaches a private assembly tomorrow fails rather than needing
+        /// someone to notice, and the shape is here for the entry nobody has to add
+        /// by hand.</para>
         /// </summary>
-        private static readonly Dictionary<string, string[]> ReferenceDebt = new(StringComparer.Ordinal)
-        {
-            ["GonogoKerbalismUplink"] = new[]
-            {
-                "Gonogo.KSP", "Sitrep.Core", "Sitrep.Host", "Sitrep.Propagation", "Sitrep.Transport",
-            },
-        };
+        private static readonly Dictionary<string, string[]> ReferenceDebt = new(StringComparer.Ordinal);
 
         /// <summary>
         /// Namespaces each Uplink still IMPORTS from a private assembly. Seeded
-        /// 2026-08-19. Shrink only.
+        /// 2026-08-19, EMPTIED 2026-08-20. Shrink only.
         ///
         /// <para>Deliberately separate from <see cref="ReferenceDebt"/>, because
         /// "we stopped importing it" and "we stopped depending on it" are different
         /// claims and the mod side was failing them in different places: five
         /// references were dropped in the seeding commit purely because nothing
-        /// imported them, and what is left here is the four imports that are real.
-        /// An Uplink is only done when it appears in neither list.</para>
+        /// imported them, and the imports that remained were real. Both are now
+        /// empty, which is the only state in which an Uplink is done.</para>
         /// </summary>
-        private static readonly Dictionary<string, string[]> ImportDebt = new(StringComparer.Ordinal)
-        {
-            ["GonogoKerbalismUplink"] = new[] { "Gonogo.KSP.CurrencyDelay" },
-        };
+        private static readonly Dictionary<string, string[]> ImportDebt = new(StringComparer.Ordinal);
 
         [Fact]
         public void ScanFindsEveryUplinkProject()

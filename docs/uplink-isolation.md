@@ -116,11 +116,87 @@ Both directions are enforced now: `DECLARED_DEPENDENCY_DEBT` covers the
 declarations, and a separate check derives staleness from the two scans, so it
 needs no list of its own and cannot itself go out of date.
 
+## The same rule applies to the C# side
+
+An Uplink is a client *and* a plugin assembly, and the reasoning does not change
+at the language boundary. `mod/Gonogo*Uplink/*.csproj` may reference:
+
+- **`Sitrep.Contract`**, the contract assembly core ships
+- **its own `<Uplink>.Contract`** slice
+- KSP/Unity reference assemblies and the third-party mod it integrates
+
+`Sitrep.Host`, `Sitrep.Core`, `Sitrep.Transport`, `Sitrep.Propagation`,
+`Sitrep.CaptureAnalysis`, `Sitrep.Skeleton` and `Gonogo.KSP` are unpublished. An
+outside author has no way to obtain them, so an Uplink that references one cannot
+be built by anyone but us.
+
+If a type you need is in one of them, **move it into `Sitrep.Contract`**. A
+contract change is free. The test is not where the type currently sits but what
+it names: three of the four breaches found in the 2026-08-19 audit were types
+whose entire dependency set was already in `Sitrep.Contract`, so the move was a
+file rename.
+
+Anything an Uplink is expected to *implement* has to be in the contract by
+definition. `ICommsBackend` always was; `IActionGroupsBackend` was not, despite a
+doc-comment saying it existed for a third-party AGX uplink to implement, and that
+was the whole of the bug.
+
+The same holds for what an Uplink is expected to *call*, and there the fix is not
+a file move: declare the interface in `Sitrep.Contract`, register the
+implementation as a Kernel capability, and resolve it through `host.Kernel`. That
+is what took `GonogoKerbalismUplink` off `Gonogo.KSP`. Two things fell out of
+doing it:
+
+- **Keep the capability id in the contract.** `ActionGroupsElection.CapabilityId`
+  lives in the unpublished `Sitrep.Host`, so the AGX uplink has to re-declare
+  `"actionGroups"` as its own constant and a test pins the two equal. An id both
+  halves must spell identically belongs where both halves can reach it
+- **A capability resolves only after every Uplink has registered.** That ordering
+  is what lets an Uplink register a provider at all, so nothing can resolve one
+  during its own `Register`. Capture the Kernel there and resolve per use, the way
+  `VesselUplink` already does for action groups and maneuver plans
+
+A one-implementation capability is still the right shape. The point is not the
+election; it is that a caller reaches the thing without reaching the assembly it
+lives in.
+
+### Reachable, not declared
+
+ProjectReference is transitive and nothing in this graph sets `PrivateAssets`, so
+the assemblies you can compile against are the *closure* of what your csproj
+names, not the list itself. One reference to `Gonogo.KSP` puts five private
+assemblies on your compile surface. Count the closure, not the lines.
+
+### An Uplink must not bundle what it reaches
+
+KSP loads every `GameData` plugin into one AppDomain, so an Uplink shipping its
+own copy of a core assembly shadows core's. `Private="false"` on a
+ProjectReference does **not** suppress copying of that project's own transitive
+references, so every reachable project must be named in your csproj with the flag,
+including ones you never import. Those references exist to stop a copy, not to
+compile, and deleting them for tidiness silently re-opens the copying.
+
+Do not verify this by looking in `bin/`: an incremental build shows whatever was
+there last time. `rm -rf bin obj` first, or trust the gate below, which checks the
+references instead.
+
 ## Enforcement
 
 `packages/core/src/uplink-isolation.test.ts` scans every Uplink client, fails on
 any import outside the debt list, fails on a blocked strategy returning, and
 fails if the debt list grows against `origin/staging`.
+
+`mod/Sitrep.Core.Tests/UplinkIsolationTests.cs` is the C# half: it fails on a
+reachable private assembly, on an import of a private namespace, on a bundled
+assembly, and on a debt entry for a breach that no longer exists. It also asserts
+its own directory walk found every Uplink `Gonogo.sln` declares, because a gate
+whose scan silently returns nothing reports no violations and looks exactly like
+a clean repo.
+
+**Its debt list is empty.** As of 2026-08-20 every Uplink in this repo compiles
+against `Sitrep.Contract` and its own contract slice alone, so the C# gate has
+nothing excused. The list stays, empty, because it is what holds zero at zero:
+the next breach fails on its own rather than waiting to be noticed.
 
 It lives in `core` because core is what Uplinks must not depend on, so core owns
 the rule; when the Uplinks move to their own repos the guard stops having

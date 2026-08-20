@@ -40,7 +40,7 @@ namespace Gonogo.KSP
     /// nothing to gain. All of those stay on the existing instant path.</para>
     /// </summary>
     [SitrepUplink("currency")]
-    public sealed class CurrencyEventUplink : ISitrepUplink
+    public sealed class CurrencyEventUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         /// <summary>
         /// How far apart (UT seconds) a crew death and a destruction detector may be and
@@ -87,6 +87,33 @@ namespace Gonogo.KSP
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
         /// channel uplink is Healthy once it has registered without error.</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
+
+        /// <summary>
+        /// Declares the exclusive <c>"delayedScience"</c> capability with
+        /// <see cref="CurrencyDelay.DelayedScienceSinkBackend"/> as its always-present Vanilla
+        /// factory, so any Uplink observing a third-party mod's own science crediting can hand
+        /// increments to the currency-delay subsystem through <c>host.Kernel</c>. Declared HERE, in
+        /// the pre-Register pass, for the same reason comms and action groups are: it guarantees the
+        /// capability exists before any Uplink's <c>Register</c> runs, whatever order the assembly
+        /// scan discovers them in.
+        ///
+        /// <para>This uplink owns it because the reveal side of the same subsystem is already its
+        /// job: the sink produces the pending credits whose reveal these <c>currency.*</c> events
+        /// report. Not SpineCritical, and there is no competing provider to elect: a capability with
+        /// one implementation is still the right shape, because the point is that a consumer reaches
+        /// it without reaching the assembly it lives in.</para>
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            if (kernel == null) throw new ArgumentNullException(nameof(kernel));
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = DelayedScienceCapability.CapabilityId,
+                Exclusive = true,
+                SpineCritical = false,
+                Vanilla = _ => new CurrencyDelay.DelayedScienceSinkBackend(),
+            });
+        }
 
         public void Register(IUplinkHost host)
         {

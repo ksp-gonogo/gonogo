@@ -68,39 +68,6 @@
     </ProjectReference>
   </ItemGroup>
 
-  <!-- Gonogo.KSP (Private="false"): the bundled core addon. This Uplink calls its
-       Gonogo.KSP.CurrencyDelay.DelayedScienceSink to hand delayed science increments to the
-       currency-delay subsystem, which owns the aggregator/ledger/light-time. Never copied to
-       output; gonogo-core provides Gonogo.dll at runtime.
-
-       Sitrep.Host, Sitrep.Core, Sitrep.Transport and Sitrep.Propagation are named
-       below for ONE reason: Gonogo.KSP drags all four in, and <Private>false</Private>
-       on an outer ProjectReference does not suppress copying of that project's own
-       transitive references, so a reachable project not named here is copied into
-       this Uplink's output. All four were, until this list existed. Nothing here
-       imports a type from Sitrep.Core, Sitrep.Transport or Sitrep.Propagation, and
-       that is not a reason to drop them: removing them for tidiness re-opens the
-       copying. Core Gonogo provides every one of them at runtime.
-
-       All five lines go when the Gonogo.KSP reference does. -->
-  <ItemGroup>
-    <ProjectReference Include="..\Gonogo.KSP\Gonogo.KSP.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Sitrep.Core\Sitrep.Core.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Sitrep.Transport\Sitrep.Transport.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Sitrep.Propagation\Sitrep.Propagation.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-  </ItemGroup>
-
   <!-- GonogoKerbalismUplink.Contract: this Uplink's OWN wire types (the five
        kerbalism.* Topic payloads and their ten nested shapes), relocated out
        of Sitrep.Contract (see that project's own header comment). Private

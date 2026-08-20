@@ -203,11 +203,12 @@ namespace Gonogo.KerbalismUplink
                 // Attach the currency-delay science hook. Kerbalism credits science through a
                 // pooled, vessel-less buffer the stock currency interceptor can't see, so this
                 // presence-gated Harmony postfix is the only way that science gets delayed. The
-                // hook forwards to the currency-delay core; if the core scenario isn't active the
-                // forward is a silent no-op.
+                // hook forwards to whatever the "delayedScience" capability elects, resolved
+                // through the Kernel handed in here; if the core scenario isn't active the forward
+                // is a silent no-op.
                 try
                 {
-                    _scienceHook.TryAttach();
+                    _scienceHook.TryAttach(host.Kernel);
                 }
                 catch (Exception ex)
                 {
