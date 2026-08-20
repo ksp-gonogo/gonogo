@@ -4,17 +4,32 @@ import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 
 export interface VesselDeltaV {
-  /** Total ΔV across all stages in vacuum (m/s). */
-  totalVac: number;
-  /** Total ΔV across all stages at sea level (m/s). */
-  totalASL: number;
-  /** Per-stage breakdown, in KSP's stage-number order (current stage last). */
+  /**
+   * Total ΔV across all stages in vacuum (m/s), or **null when there is no usable
+   * reading**: nothing has arrived, the stock sim confirmed no figure, or the reading
+   * went stale.
+   *
+   * Nullable rather than 0 because those are opposite facts and this hook used to
+   * report them with the same number. A spent craft really has 0 m/s, and that is a
+   * statement about the vessel; an absent reading is a statement about the link. Its
+   * one consumer resolved `=== 0` to "unknown feasibility", which is correct for the
+   * absent cases and, for a genuinely empty vessel, showed no shortfall and left the
+   * commit button enabled: a plan accepted that the craft could not fly.
+   *
+   * A caller must therefore branch, and the branch is where "we do not know" gets
+   * said out loud rather than being spelled 0.
+   */
+  totalVac: number | null;
+  /** Total ΔV across all stages at sea level (m/s), null under the same rule as {@link totalVac}. */
+  totalASL: number | null;
+  /** Per-stage breakdown, in KSP's stage-number order (current stage last). Empty when there is no usable reading. */
   stages: readonly StageInfo[];
 }
 
-const EMPTY: VesselDeltaV = {
-  totalVac: 0,
-  totalASL: 0,
+/** No usable reading: distinct from a vessel whose stages really sum to zero. */
+const NO_READING: VesselDeltaV = {
+  totalVac: null,
+  totalASL: null,
   stages: [],
 };
 
@@ -104,7 +119,10 @@ export function useVesselDeltaV(): VesselDeltaV {
   // being current rather than held. Matches FuelStatus' treatment of the same wire.
   const raw = judgeable(useTelemetry("dv.stages"));
   return useMemo(() => {
-    if (!Array.isArray(raw) || raw.length === 0) return EMPTY;
+    // An empty stage list is NOT a zero-ΔV vessel: `dv.stages` is null-not-empty when
+    // the stock sim has nothing (see `StageDeltaVViewProvider.BuildStages`), so an
+    // array that arrived with no entries still means "no figure to total".
+    if (!Array.isArray(raw) || raw.length === 0) return NO_READING;
     const stages = raw
       .map(normalizeStage)
       .filter((s): s is StageInfo => s !== null);

@@ -23,7 +23,8 @@ export interface NodeEditPatch {
 interface NodeRowProps {
   node: ParsedManeuverNode;
   currentUT: number | undefined;
-  availableDv: number;
+  /** Vessel ΔV available, or null when there is no usable reading (NOT the same as zero). */
+  availableDv: number | null;
   completed?: boolean;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
   onDelete?: () => void;
@@ -43,7 +44,12 @@ export function NodeRow({
   const [saving, setSaving] = useState(false);
   const timeTo = currentUT !== undefined ? node.UT - currentUT : null;
   const feasible =
-    completed || availableDv === 0 ? null : availableDv >= node.deltaVMagnitude;
+    // `=== 0` here made a spent craft's every node read as unknown rather than
+    // short. A vessel with no ΔV left is telemetry, and it fails the comparison
+    // like any other number; only an ABSENT reading declines to judge.
+    completed || availableDv === null
+      ? null
+      : availableDv >= node.deltaVMagnitude;
   return (
     <NodeLi $completed={completed} role={completed ? "status" : undefined}>
       <NodeMain>

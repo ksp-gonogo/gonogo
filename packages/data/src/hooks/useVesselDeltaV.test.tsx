@@ -64,9 +64,33 @@ describe("useVesselDeltaV", () => {
     return { transport, renders };
   }
 
-  it("returns zero totals when no stages are present", () => {
+  /*
+   * This asserted `totalVac: 0` for "no stages", which is what let a SPENT vessel and an
+   * ABSENT reading be the same value all the way to the call site: the maneuver planner
+   * read 0 as "unknown", showed no shortfall, and left the commit enabled for a craft
+   * with nothing left to burn. Null is the honest answer to "how much ΔV" when nothing
+   * has said.
+   */
+  it("reports null totals when there is no usable reading, not zero", () => {
     const { renders } = renderProbe();
-    expect(renders.at(-1)).toEqual({ totalVac: 0, totalASL: 0, stages: [] });
+    expect(renders.at(-1)).toEqual({
+      totalVac: null,
+      totalASL: null,
+      stages: [],
+    });
+  });
+
+  it("reports a real zero as zero, which is a different fact", () => {
+    const { transport, renders } = renderProbe();
+    act(() =>
+      transport.emit("dv.stages", [
+        fakeStage({ stage: 0, deltaVVac: 0, deltaVASL: 0 }),
+      ]),
+    );
+    return waitFor(() => {
+      expect(renders.at(-1)?.totalVac).toBe(0);
+      expect(renders.at(-1)?.stages).toHaveLength(1);
+    });
   });
 
   it("sums ΔV across stages", async () => {

@@ -147,7 +147,7 @@ function PreviewBody({
       <Label>Available</Label>
       <PreviewValue>
         <ValueNum>
-          {vesselDeltaV.totalVac === 0 ? (
+          {vesselDeltaV.totalVac === null ? (
             NULL_DISPLAY
           ) : (
             <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} />
@@ -193,7 +193,7 @@ function SequencePreview({
         <Label>Available</Label>
         <PreviewValue>
           <ValueNum>
-            {vesselDeltaV.totalVac === 0 ? (
+            {vesselDeltaV.totalVac === null ? (
               NULL_DISPLAY
             ) : (
               <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} />
@@ -379,7 +379,12 @@ function ShortfallBanner({
   requiredDeltaV,
   vesselDeltaV,
 }: ShortfallBannerProps) {
-  if (feasible !== false || !plan) return null;
+  const available = vesselDeltaV.totalVac;
+  // `feasible === false` already implies a real number (the planner only judges when it
+  // has one), so this narrows for the compiler rather than guarding a reachable case.
+  // A shortfall cannot be quoted without an available figure, and a spent craft's 0 is
+  // a figure: that is the whole point of the total being nullable rather than zeroed.
+  if (feasible !== false || !plan || available === null) return null;
   return (
     <FeasibilityBanner role="status" aria-live="polite">
       <FeasibilityBannerTitle>
@@ -387,12 +392,8 @@ function ShortfallBanner({
       </FeasibilityBannerTitle>
       <FeasibilityBannerBody>
         Required <Unit value={value("m/s", requiredDeltaV)} decimals={0} /> ·
-        available{" "}
-        <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} /> ·{" "}
-        <Unit
-          value={value("m/s", requiredDeltaV - vesselDeltaV.totalVac)}
-          decimals={0}
-        />{" "}
+        available <Unit value={value("m/s", available)} decimals={0} /> ·{" "}
+        <Unit value={value("m/s", requiredDeltaV - available)} decimals={0} />{" "}
         short.
       </FeasibilityBannerBody>
     </FeasibilityBanner>

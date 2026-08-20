@@ -24,8 +24,8 @@ export interface ManeuverFeasibility {
   anyShort: boolean;
   /** Total ΔV across all planned nodes (m/s). */
   totalRequired: number;
-  /** Vessel total ΔV at the time of the last sample (m/s). */
-  available: number;
+  /** Vessel total ΔV at the time of the last sample (m/s), null when there is no usable reading. */
+  available: number | null;
 }
 
 const EMPTY: ManeuverFeasibility = {
@@ -33,7 +33,7 @@ const EMPTY: ManeuverFeasibility = {
   allOk: true,
   anyShort: false,
   totalRequired: 0,
-  available: 0,
+  available: null,
 };
 
 /**
@@ -58,8 +58,12 @@ export function useManeuverFeasibility(): ManeuverFeasibility {
 
     // UT-sorted copy so chronological deduction matches execution order.
     const sorted = [...nodes].sort((a, b) => a.UT - b.UT);
-    const haveTelemetry = vessel.totalVac > 0;
-    let remaining = vessel.totalVac;
+    // Having a reading is not the same as having ΔV. This was `> 0`, which made a
+    // SPENT craft indistinguishable from one we had heard nothing about: every node
+    // came back `ok: null` (unknown) when the honest verdict is `false` (short). A
+    // vessel that really has 0 m/s is telemetry, and rather emphatic telemetry.
+    const haveTelemetry = vessel.totalVac !== null;
+    let remaining = vessel.totalVac ?? 0;
     let totalRequired = 0;
     let anyShort = false;
 

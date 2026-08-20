@@ -472,8 +472,13 @@ function ManeuverPlannerComponent({
   if (plan) {
     requiredDeltaV = isSequence(plan) ? plan.totalDeltaV : plan.requiredDeltaV;
   }
+  // `null` when we cannot judge, which is NOT the same as a vessel that cannot afford
+  // it. This read `=== 0` and so treated a spent craft as unknown: no SHORT chip, and
+  // `feasible === false` is the only thing that disables the commit, so an out-of-fuel
+  // vessel would accept a plan it could not fly. A real 0 now compares like any other
+  // number and comes out short.
   const feasible =
-    plan === null || vesselDeltaV.totalVac === 0
+    plan === null || vesselDeltaV.totalVac === null
       ? null
       : vesselDeltaV.totalVac >= requiredDeltaV;
 
