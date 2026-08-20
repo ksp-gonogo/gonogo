@@ -146,8 +146,8 @@ describe("vendor name", () => {
    * test name rather than buried in a diff of two hundred numbers. Update both
    * when a slice lands; they can only fall.
    */
-  it("stands at the seeded totals: 88 published, 407 elsewhere", () => {
-    expect(SEEDED_SDK_TOTAL).toBeLessThanOrEqual(88);
+  it("stands at the seeded totals: 39 published, 407 elsewhere", () => {
+    expect(SEEDED_SDK_TOTAL).toBeLessThanOrEqual(39);
     expect(SEEDED_APP_TOTAL).toBeLessThanOrEqual(407);
   });
 });

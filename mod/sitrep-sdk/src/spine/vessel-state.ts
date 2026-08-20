@@ -70,8 +70,7 @@ export interface VesselOrbitPayload {
   /**
    * The next upcoming SOI transition, or `null` when there is none (the
    * common case): the source of `vessel.state.encounterExists`/
-   * `encounterBody`/`encounterUt` (old Telemachus `o.encounterExists`/
-   * `o.encounterBody`/`o.UTsoi`). Optional here because it's an
+   * `encounterBody`/`encounterUt`. Optional here because it's an
    * additive field the reference wire fixture / older recordings may not
    * carry yet: treated identically to `null` (no encounter).
    */
@@ -81,8 +80,8 @@ export interface VesselOrbitPayload {
    * OrbitPatch.cs`): element 0 is the current orbit, followed by any
    * subsequent SOI-transition patches. Optional/defaults to `[]` for the
    * same "additive field older recordings may not carry" reason as
-   * `encounter` above. Source of `vessel.state.orbitPatches` (old
-   * Telemachus `o.orbitPatches`) and `deriveLanding`'s impact-point walk.
+   * `encounter` above. Source of `vessel.state.orbitPatches` and
+   * `deriveLanding`'s impact-point walk.
    */
   patches?: OrbitPatchWirePayload[];
 }
@@ -163,7 +162,7 @@ export interface VesselControlPayload {
    * Source of the derived `vessel.state.actionGroups` keyed map, the
    * `vessel.state.actionGroupsNamed` list (which drives the client's
    * ACTION_GROUPS registry), and the per-index `vessel.state.actionGroup{n}`
-   * booleans (old Telemachus `v.ag{n}Value`).
+   * booleans.
    */
   actionGroups?: ActionGroupStatePayload[] | null;
 }
@@ -194,8 +193,7 @@ export interface VesselPropulsionPayload {
  * `relativePosition`/`relativeVelocity` are the canonical `Vec3` fields
  * (metres / m/s, self-relative), each individually `null` when the transform
  * data needed to compute it wasn't available this tick. They're the
- * source of `vessel.state.targetRelativeSpeed`: the signed range-rate behind
- * the old Telemachus scalar `tar.o.relativeVelocity`.
+ * source of `vessel.state.targetRelativeSpeed`, the signed range-rate.
  */
 export interface VesselTargetPayload {
   kind: number;
@@ -206,8 +204,7 @@ export interface VesselTargetPayload {
    * (`mod/Sitrep.Contract/VesselTarget.cs`'s `Orbit` deliberately reuses
    * `VesselOrbit` so the SDK can propagate a target through the identical code
    * path). The source of `vessel.state.targetPeriapsisAlt`/`targetPeriod`/
-   * `targetTrueAnomaly` (old Telemachus `tar.o.PeA`/`tar.o.period`/
-   * `tar.o.trueAnomaly`). `null` when the target has no orbit (landed, or its
+   * `targetTrueAnomaly`. `null` when the target has no orbit (landed, or its
    * orbit couldn't be resolved this tick: the C# field's own null case);
    * optional here because older recordings / the reference fixture may not
    * carry it yet (treated identically to `null`).
@@ -304,8 +301,8 @@ export interface VesselState {
    */
   period: number | null;
   /**
-   * True anomaly at `viewUt`, DEGREES wrapped to [0, 360), the Telemachus/
-   * KSP widget-facing convention (`vessel.orbit.inc`/`argPe`'s own
+   * True anomaly at `viewUt`, DEGREES wrapped to [0, 360), the KSP
+   * widget-facing convention (`vessel.orbit.inc`/`argPe`'s own
    * precedent; `kepler.ts`'s internal radians are converted at this
    * boundary, never leaked past it). OnRails basis only; `null` in the
    * "measured" basis. Reuses `kepler.solveAnomalies`: never a second Kepler
@@ -336,7 +333,7 @@ export interface VesselState {
   /**
    * Name of the body the vessel currently belongs to, the display-map
    * resolution of `vessel.identity.parentBodyIndex` against `system.bodies`
-   * (the old Telemachus `v.body` string). Populated in BOTH bases (needs only
+   * as a display string. Populated in BOTH bases (needs only
    * the index + the body table, no orbital propagation). `undefined` while
    * `vessel.identity` hasn't arrived, the index isn't resolvable yet (body or
    * its name not in `system.bodies` yet, or `system.bodies` itself not whole),
@@ -347,8 +344,8 @@ export interface VesselState {
   parentBodyName: string | null | undefined;
   /**
    * Name of the vessel's orbit reference body, the display-map resolution of
-   * `vessel.orbit.referenceBodyIndex` against `system.bodies` (the old
-   * Telemachus `o.referenceBody` string). Populated in BOTH bases; same
+   * `vessel.orbit.referenceBodyIndex` against `system.bodies`, as a display
+   * string. Populated in BOTH bases; same
    * `undefined`-vs-`null` rules as `parentBodyName`.
    */
   referenceBodyName: string | null | undefined;
@@ -370,7 +367,7 @@ export interface VesselState {
   encounterExists: number | null | undefined;
   /**
    * Encounter body NAME: `vessel.orbit.encounter.bodyIndex` resolved against
-   * `system.bodies` (old Telemachus `o.encounterBody`). `undefined` when there
+   * `system.bodies`. `undefined` when there
    * is no encounter, the index isn't resolvable yet, or `system.bodies` hasn't
    * arrived; `null` when `system.bodies` is a confirmed tombstone. Same
    * `resolveBodyName` discipline as `parentBodyName`.
@@ -381,21 +378,25 @@ export interface VesselState {
    * carried through unchanged. `undefined` when there is no encounter or the
    * value is non-finite.
    *
-   * Named `encounterUt` and not `encounterTime` because the old name was a lie
-   * this repo had already told itself. Telemachus carried BOTH `o.encounterTime`
-   * ("seconds until the SOI transition", see `schemas/telemachus.ts`) and
-   * `o.UTsoi` (the absolute instant); the migration kept the duration's name and
-   * put the instant behind it. `OrbitalEventChips`, written against the old
-   * meaning, then rendered a Mun encounter twenty minutes away as "46d 2h" in
-   * two shipped widgets, and its `> 0` guard held the chip up forever because
-   * every UT passes it. A consumer wants `encounterUt - viewUt`.
+   * Named `encounterUt` and NOT `encounterTime`, because the older name was a
+   * lie this repo had already told itself. The vocabulary this field replaced
+   * carried TWO keys for one event: a DURATION ("seconds until the SOI
+   * transition") and the ABSOLUTE INSTANT of it. The migration kept the
+   * duration's name and put the instant behind it, so `OrbitalEventChips`,
+   * written against the old meaning, rendered a Mun encounter twenty minutes
+   * away as "46d 2h" in two shipped widgets, and its `> 0` guard held the chip
+   * up forever afterwards because every UT passes it.
+   *
+   * So: this is an instant, a consumer wants `encounterUt - viewUt`, and the
+   * two must never be collapsed back into one field. `Units.UniversalTime`
+   * exists as a separate token from `Units.Seconds` for exactly this reason:
+   * "s" reads the same on a duration and on a point in time.
    */
   encounterUt: number | null | undefined;
   /**
    * Signed target closing/opening rate, m/s: the range-rate
    * `dot(relativePosition, relativeVelocity) / |relativePosition|` derived from
-   * `vessel.target`'s two Vec3 fields, the new home for the old Telemachus
-   * scalar `tar.o.relativeVelocity`. Sign follows the standard KSP convention
+   * `vessel.target`'s two Vec3 fields. Sign follows the standard KSP convention
    * DistanceToTarget/TargetPicker were written against: POSITIVE = opening
    * (gap growing), NEGATIVE = closing (the widgets' `< 0` = closing check).
    * Populated in BOTH bases (self-relative kinematics, not orbital-elements
@@ -406,7 +407,7 @@ export interface VesselState {
   targetRelativeSpeed: number | null | undefined;
   /**
    * Apoapsis RADIUS (distance from the reference body's CENTER, metres),
-   * `sma·(1+ecc)`, the old Telemachus `o.ApR` (`useOrbitElements`,
+   * `sma·(1+ecc)` (`useOrbitElements`,
    * CurrentOrbit/OrbitView/ManeuverPlanner read it as a plain number). Derived
    * straight from the orbit elements, so: unlike `apoapsisAlt`, which
    * subtracts the body radius and is therefore `undefined` until
@@ -421,16 +422,16 @@ export interface VesselState {
   /**
    * Current orbital RADIUS: distance from the reference body's center,
    * metres: `|position|` (the propagated parent-body-relative position vector,
-   * the old Telemachus `o.radius` ManeuverPlanner feeds into its vis-viva
-   * `computeMu`). OnRails basis only (needs the propagated position); `null`
+   * which ManeuverPlanner feeds into its vis-viva `computeMu`). OnRails basis
+   * only (needs the propagated position); `null`
    * in the "measured" basis (no position vector there) or on a non-finite
    * result.
    */
   orbitalRadius: number | null;
   /**
-   * Which apsis comes NEXT: `1` = apoapsis, `-1` = periapsis (the old
-   * Telemachus `o.nextApsisType` convention OrbitalEventChips/SystemView read;
-   * `0`/N-A never emitted: `null` when neither apsis is reachable). Derived
+   * Which apsis comes NEXT: `1` = apoapsis, `-1` = periapsis (the convention
+   * OrbitalEventChips/SystemView read; `0`/N-A never emitted, and `null` when
+   * neither apsis is reachable). Derived
    * by picking whichever of `timeToAp`/`timeToPe` is the smaller non-null
    * countdown. OnRails basis only (both countdowns are `null` in the
    * "measured" basis); `null` when neither countdown is available.
@@ -438,15 +439,14 @@ export interface VesselState {
   nextApsisType: number | null;
   /**
    * Seconds until the next apsis: the `timeToAp`/`timeToPe` matching
-   * `nextApsisType` (old Telemachus `o.timeToNextApsis`). OnRails basis only;
+   * `nextApsisType`. OnRails basis only;
    * `null` when neither countdown is available.
    */
   timeToNextApsis: number | null;
   /**
    * Horizontal (surface-tangent) speed, m/s: `sqrt(surfaceSpeed² -
    * verticalSpeed²)`, the surface-frame Pythagorean split of the measured
-   * surface velocity (old Telemachus `v.horizontalVelocity`, OrbitalAscent's
-   * ascent read). MEASURED basis only, sourced straight from `vessel.flight`,
+   * surface velocity (OrbitalAscent's ascent read). MEASURED basis only, sourced straight from `vessel.flight`,
    * exactly like `surfaceSpeed`/`verticalSpeed` themselves (both `null` in the
    * "propagated" basis, so this is too). Clamped at 0 before the sqrt so
    * floating-point `surfaceSpeed < verticalSpeed` noise never yields NaN.
@@ -455,8 +455,8 @@ export interface VesselState {
   horizontalSpeed: number | null;
   /**
    * Scalar range to the current target, metres, `|vessel.target.
-   * relativePosition|` (old Telemachus `tar.distance`, DistanceToTarget/
-   * TargetPicker). Populated in BOTH bases (self-relative kinematics).
+   * relativePosition|` (DistanceToTarget/TargetPicker). Populated in BOTH
+   * bases (self-relative kinematics).
    * `undefined` when `vessel.target` hasn't arrived or `relativePosition`
    * isn't available this tick; `null` on a confirmed tombstone. A genuine
    * zero range is a DEFINED `0`, not `undefined` (contrast
@@ -466,7 +466,7 @@ export interface VesselState {
   targetDistance: number | null | undefined;
   /**
    * Target periapsis ALTITUDE above its reference body's mean radius, metres,
-   * `sma·(1-ecc) - bodyRadius` off `vessel.target.orbit` (old Telemachus
+   * `sma·(1-ecc) - bodyRadius` off `vessel.target.orbit` (read by
    * `tar.o.PeA`, ManeuverPlanner). Populated in BOTH bases (the target's own
    * orbit is valid regardless of the self vessel's basis). `undefined` when
    * `vessel.target` hasn't arrived, the target has no orbit, or `system.bodies`
@@ -477,7 +477,7 @@ export interface VesselState {
   targetPeriapsisAlt: number | null | undefined;
   /**
    * Target orbital period, seconds: `2π·sqrt(sma³/mu)` off
-   * `vessel.target.orbit` (old Telemachus `tar.o.period`). Populated in BOTH
+   * `vessel.target.orbit`. Populated in BOTH
    * bases; needs no body table. `undefined` when `vessel.target` hasn't
    * arrived or the target has no orbit; `null` on a confirmed tombstone or a
    * non-finite result.
@@ -486,7 +486,7 @@ export interface VesselState {
   /**
    * Target true anomaly at `viewUt`, DEGREES wrapped to [0, 360), off
    * `vessel.target.orbit`, propagated to the SAME frozen `viewUt` as the self
-   * vessel (old Telemachus `tar.o.trueAnomaly`, ManeuverPlanner). Populated in
+   * vessel (ManeuverPlanner). Populated in
    * BOTH bases. `undefined` when `vessel.target` hasn't arrived or the target
    * has no orbit; `null` on a confirmed tombstone or a non-finite result.
    */
@@ -495,7 +495,7 @@ export interface VesselState {
    * Situation NAME: the display-map resolution of `vessel.identity.situation`
    * (a numeric `Sitrep.Contract.Situation` enum ordinal on the wire) to its
    * enum name string ("Landed", "Orbiting", ...), the new home for the old
-   * Telemachus `v.situationString` string ScienceBench renders. Populated in
+   * situation string ScienceBench renders. Populated in
    * BOTH bases (needs only `vessel.identity`, no propagation). `undefined`
    * while `vessel.identity` hasn't arrived or the ordinal is out of the enum's
    * range (unrecognized: "still resyncing"); `null` when `vessel.identity` is
@@ -506,7 +506,7 @@ export interface VesselState {
   /**
    * SAS-mode NAME: the display-map resolution of `vessel.control.sasMode` (a
    * numeric `Sitrep.Contract.SasMode` enum ordinal) to its enum name string,
-   * the new home for the old Telemachus `f.sasMode` string. The names match
+   * the SAS-mode string. The names match
    * Navball's `SAS_MODES` union EXACTLY (both mirror KSP's
    * `VesselAutopilot.AutopilotMode` order), so the widget's `sasMode === mode`
    * active-button compare works unchanged. Populated in BOTH bases.
@@ -520,15 +520,14 @@ export interface VesselState {
   /**
    * Target KIND string: the display-map resolution of `vessel.target.kind` (a
    * numeric `Sitrep.Contract.TargetKind` enum ordinal: Vessel/Body/Other) to
-   * the string set TargetPicker/DistanceToTarget were written against, the new
-   * home for the old Telemachus `tar.type`. NOTE the deliberate
-   * NORMALIZATION: TargetKind's `Body` is mapped to the literal
+   * the string set TargetPicker/DistanceToTarget were written against. NOTE
+   * the deliberate NORMALIZATION: TargetKind's `Body` is mapped to the literal
    * `"CelestialBody"` (not the C# name "Body"), because DistanceToTarget's
    * dockable gate is a literal `tarType !== "CelestialBody"` compare against
    * the legacy string: emitting "Body" would silently misclassify every
-   * body as dockable. `Vessel`→"Vessel", `Other`→"Other". (Coarser than
-   * legacy Telemachus, which returned the specific VesselType name e.g.
-   * "Station" for a vessel target: an inherent, documented coarsening of the
+   * body as dockable. `Vessel`→"Vessel", `Other`→"Other". (Coarser than what
+   * this replaced, which returned the specific VesselType name e.g. "Station"
+   * for a vessel target: an inherent, documented coarsening of the
    * `TargetKind` contract; the dockable gate is unaffected.) `undefined` when
    * `vessel.target` is absent (nothing targeted, the common case) or the
    * ordinal is out of range; `null` on a confirmed tombstone.
@@ -538,16 +537,15 @@ export interface VesselState {
    * Comms control-state NAME: the display-map resolution of
    * `vessel.comms.controlState` (a numeric `Sitrep.Contract.ControlState` enum
    * ordinal) to its enum name string ("None", "Partial", "Full", "ProbeFull",
-   * ...), the new home for the old Telemachus `comm.controlStateName` string
-   * CommSignal prefers for its label + tone. `undefined` while `vessel.comms`
+   * ...), the string CommSignal prefers for its label + tone. `undefined`
+   * while `vessel.comms`
    * hasn't arrived or the ordinal is out of range; `null` on a confirmed
    * tombstone. `ControlState.Unknown` (ordinal 11) resolves to "Unknown".
    */
   commsControlStateName: string | null | undefined;
   /**
-   * Comms control-state ORDINAL in CommSignal's Telemachus 0/1/2 scheme
-   * (0=none, 1=partial, 2=full): the new home for the old Telemachus numeric
-   * `comm.controlState`, DERIVED from `vessel.comms.controlState`'s
+   * Comms control-state ORDINAL in CommSignal's 0/1/2 LEVEL scheme
+   * (0=none, 1=partial, 2=full), DERIVED from `vessel.comms.controlState`'s
    * `Sitrep.Contract.ControlState` enum by collapsing its 11 richer values
    * onto the three control LEVELS CommSignal branches on (bars fallback +
    * hasData): any `*Full`/bare `Probe`/`Kerbal` → 2, any `*Partial` → 1, any
@@ -558,7 +556,7 @@ export interface VesselState {
   commsControlStateOrdinal: number | null | undefined;
   /**
    * Thrust-to-weight ratio (dimensionless): `currentThrust / (totalMass·g)`
-   * off `vessel.propulsion` (old Telemachus `dv.currentTWR`, the Twr widget),
+   * off `vessel.propulsion` (the Twr widget),
    * with `g` = standard gravity (9.80665 m/s²), the same constant KSP's own
    * TWR readout uses. Populated in BOTH bases (self-relative, no orbital
    * propagation). `undefined` while `vessel.propulsion` hasn't arrived or
@@ -568,7 +566,7 @@ export interface VesselState {
   twr: number | null | undefined;
   /**
    * Whether the vessel currently has command control, derived from
-   * `vessel.comms.controlState` (old Telemachus `v.isControllable`, Navball):
+   * `vessel.comms.controlState` (Navball):
    * `true` when the control state maps to a non-zero control LEVEL (any
    * Partial/Full/Probe/Kerbal control), `false` for the *None family
    * (`None`/`ProbeNone`/`KerbalNone`). Populated in BOTH bases. `undefined`
@@ -578,14 +576,14 @@ export interface VesselState {
   isControllable: boolean | null | undefined;
   /**
    * Whether the active vessel is a kerbal on EVA, `vessel.identity.vesselType
-   * === EVA` (old Telemachus `v.isEVA`, CrewStatus). Populated in BOTH
+   * === EVA` (CrewStatus). Populated in BOTH
    * bases. `undefined` while `vessel.identity` hasn't arrived; `null` on a
    * confirmed tombstone.
    */
   isEVA: boolean | null | undefined;
   /**
    * Whether the vessel is splashed down, `vessel.identity.situation ===
-   * Splashed` (old Telemachus `v.splashed`). Populated in BOTH
+   * Splashed`. Populated in BOTH
    * bases. `undefined` while `vessel.identity` hasn't arrived; `null` on a
    * confirmed tombstone.
    */
@@ -593,7 +591,7 @@ export interface VesselState {
   /**
    * Dynamic action-group state as a keyed map `{ "1": bool, ... }` (group id →
    * engaged) off `vessel.control.actionGroups`: supports Action Groups
-   * Extended's variable count (old Telemachus `v.ag{n}Value` family). Keys are
+   * Extended's variable count. Keys are
    * 1-based group ids as strings. Populated in BOTH bases. `undefined` while
    * `vessel.control` hasn't arrived or the array is absent this tick; `null`
    * on a confirmed tombstone.
@@ -633,7 +631,7 @@ export interface VesselState {
   actionGroup10: boolean | null | undefined;
   /**
    * Seconds until a no-burn ballistic vacuum fall reaches the terrain below,
-   * the positive root of `altitudeTerrain = vDown·t + ½·g·t²` (old Telemachus
+   * the positive root of `altitudeTerrain = vDown·t + ½·g·t²` (behind
    * `land.timeToImpact`, LandingStatus). `g = mu/(radius+altitudeAsl)²` off
    * `vessel.orbit.mu` + the `system.bodies` radius; `vDown = -verticalSpeed`.
    * A vacuum approximation: ignores atmospheric drag, so on an atmospheric
@@ -646,7 +644,7 @@ export interface VesselState {
   /**
    * Speed at terrain impact with no burn, m/s, `√(surfaceSpeed² + 2·g·h)`,
    * the current surface speed with the potential energy of the remaining drop
-   * added as kinetic energy (old Telemachus `land.speedAtImpact`,
+   * added as kinetic energy (read by
    * LandingStatus). Uses the full `surfaceSpeed` magnitude, not just the
    * vertical component. Same vacuum approximation, inputs, basis and `null`
    * discipline as `landingTimeToImpact`.
@@ -654,7 +652,7 @@ export interface VesselState {
   landingSpeedAtImpact: number | null;
   /**
    * Residual speed at impact if a full-thrust retro burn starts NOW and runs
-   * out of altitude before nulling velocity, m/s (old Telemachus
+   * out of altitude before nulling velocity, m/s (behind
    * `land.bestSpeedAtImpact`, LandingStatus). `0` when the burn distance
    * `d = vDown²/(2·aNet)` fits within `altitudeTerrain` (a perfect landing is
    * reachable), else `√(vDown² − 2·aNet·h)`, with `aNet = availableThrust/
@@ -666,7 +664,7 @@ export interface VesselState {
   landingBestSpeedAtImpact: number | null;
   /**
    * Seconds until the latest-possible full-thrust suicide burn must ignite to
-   * null out velocity exactly at the terrain (old Telemachus
+   * null out velocity exactly at the terrain (behind
    * `land.suicideBurnCountdown`, LandingStatus). Solves the ballistic fall to
    * the ignition altitude `altitudeTerrain − d`, where `d = vDown²/(2·aNet)`
    * is the burn distance and `aNet = availableThrust/totalMass − g`. `0`
@@ -677,7 +675,7 @@ export interface VesselState {
    */
   landingSuicideBurnCountdown: number | null;
   /**
-   * Predicted surface-impact latitude, degrees (old Telemachus
+   * Predicted surface-impact latitude, degrees (behind
    * `land.predictedLat`, LandingStatus): the last pre-surface
    * sample of a vacuum-ballistic walk over `orbitPatches` (`findImpactPoint`
    * in `orbit-patches.ts`), horizon-bounded by `landingTimeToImpact` so the
@@ -692,10 +690,10 @@ export interface VesselState {
    * an honest "approximate" treatment, not this field.
    */
   landingPredictedLat: number | null;
-  /** Predicted surface-impact longitude, degrees (old Telemachus `land.predictedLon`). Same discipline as `landingPredictedLat`; always defined together. */
+  /** Predicted surface-impact longitude, degrees. Same discipline as `landingPredictedLat`; always defined together. */
   landingPredictedLon: number | null;
   /**
-   * The vessel's future-orbit patch chain, legacy-shaped (old Telemachus
+   * The vessel's future-orbit patch chain, legacy-shaped (behind
    * `o.orbitPatches`, MapView's trajectory-overlay/maneuver-preview reads),
    * a reshape of `vessel.orbit.patches` via `mapOrbitPatch`, populated in
    * BOTH bases (pure reshape, no propagation needed, the mod already
@@ -763,7 +761,7 @@ function radToDeg(rad: number): number {
   return (rad * 180) / Math.PI;
 }
 
-/** Wraps a degree value into [0, 360), the Telemachus/KSP widget-facing angle convention (contrast `kepler.ts`'s internal [0, 2π) radian wrap). */
+/** Wraps a degree value into [0, 360), the KSP widget-facing angle convention (contrast `kepler.ts`'s internal [0, 2π) radian wrap). */
 function wrapDegrees360(deg: number): number {
   const wrapped = deg % 360;
   return wrapped < 0 ? wrapped + 360 : wrapped;
@@ -869,7 +867,7 @@ function deriveApsides(
  * Resolve a body INDEX (the stable `SystemBodyPayload.index`, never array
  * position) to its NAME string via `system.bodies`, the client-side
  * display-map behind `vessel.state.parentBodyName`/`referenceBodyName`, the
- * new homes for the old Telemachus `v.body`/`o.referenceBody` name strings
+ * the body-NAME display strings
  * (`map-topic.ts`). Mirrors `deriveApsides`'s `undefined`-vs-`null`
  * discipline:
  * - `undefined` ("still resyncing / not resolvable yet") when there's no
@@ -1119,7 +1117,7 @@ function deriveNextApsis(
 /**
  * `Sitrep.Contract.Situation` names in C# declaration order (VesselEnums.cs).
  * The wire carries `(int)id.Situation`; this is the ordinal→name table behind
- * `vessel.state.situationName` (old Telemachus `v.situationString`).
+ * `vessel.state.situationName`.
  */
 const SITUATION_NAMES: readonly string[] = [
   "Landed", // 0
@@ -1156,9 +1154,9 @@ const SAS_MODE_NAMES: readonly string[] = [
 /**
  * `Sitrep.Contract.TargetKind` (VesselTarget.cs) → the string set the widgets
  * were written against. Index = the C# enum ordinal (Vessel 0 / Body 1 /
- * Other 2). Body is deliberately NORMALIZED to "CelestialBody" (the legacy
- * Telemachus string DistanceToTarget's dockable gate compares against); see
- * `VesselState.targetKind`'s doc. Behind `vessel.state.targetKind` (old `tar.type`).
+ * Other 2). Body is deliberately NORMALIZED to "CelestialBody", the literal
+ * string DistanceToTarget's dockable gate compares against; see
+ * `VesselState.targetKind`'s doc. Behind `vessel.state.targetKind`.
  */
 const TARGET_KIND_NAMES: readonly string[] = [
   "Vessel", // 0
@@ -1186,7 +1184,7 @@ const CONTROL_STATE_NAMES: readonly string[] = [
 ];
 
 /**
- * `ControlState` ordinal → CommSignal's Telemachus 0/1/2 control-LEVEL scheme
+ * `ControlState` ordinal → CommSignal's 0/1/2 control-LEVEL scheme
  * (behind `vessel.state.commsControlStateOrdinal`, old numeric
  * `comm.controlState`). Collapses the 11 richer states onto the three levels
  * the widget branches on: `*Full`/bare source → 2 (full), `*Partial` → 1,
@@ -1210,11 +1208,11 @@ const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
 
 /**
  * Collapse a raw `Sitrep.Contract.ControlState` enum ordinal
- * (`vessel.comms.controlState`) to CommSignal's Telemachus 0/1/2 control-LEVEL
+ * (`vessel.comms.controlState`) to CommSignal's 0/1/2 control-LEVEL
  * scheme via {@link CONTROL_STATE_LEVEL}. `undefined` for an out-of-range /
  * `Unknown` ordinal (unrecognized). This is the single source of truth for the
  * collapse: both the derived `vessel.state.commsControlStateOrdinal` channel
- * (below) and de-Telemachus'd consumers that read `vessel.comms` canonically
+ * (below) and migrated consumers that read `vessel.comms` canonically
  * (e.g. `SignalLossIndicator`) share it rather than re-tabulating the mapping.
  */
 export function collapseControlStateLevel(
@@ -1249,7 +1247,7 @@ function resolveEnumName<T>(
 
 /**
  * `vessel.comms.controlState`'s `ControlState` ordinal collapsed to CommSignal's
- * Telemachus 0/1/2 control-level scheme (`vessel.state.commsControlStateOrdinal`).
+ * 0/1/2 control-level scheme (`vessel.state.commsControlStateOrdinal`).
  * Same channel-presence discipline as `resolveEnumName`: `undefined` when
  * `vessel.comms` hasn't arrived or the ordinal is out of range / maps to no
  * level (`Unknown`); `null` on a confirmed tombstone.
@@ -1528,7 +1526,7 @@ const IMPACT_WALK_MIN_STEPS = 60;
 
 /**
  * The four client-derived ballistic landing scalars (`vessel.state.landing*`,
- * old Telemachus `land.timeToImpact`/`speedAtImpact`/`bestSpeedAtImpact`/
+ * the landing scalars `timeToImpact`/`speedAtImpact`/`bestSpeedAtImpact`/
  * `suicideBurnCountdown`), MEASURED basis only. Every input is already on the
  * wire and carried: no terrain asset, no drag model, no mod-side channel:
  *

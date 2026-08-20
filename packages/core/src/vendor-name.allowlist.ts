@@ -59,7 +59,6 @@ export const SDK_SURFACE: Readonly<Record<string, number>> = {
   "mod/sitrep-sdk/src/spine/system-state.ts": 2,
   "mod/sitrep-sdk/src/spine/use-execute-action.ts": 1,
   "mod/sitrep-sdk/src/spine/use-telemetry.ts": 1,
-  "mod/sitrep-sdk/src/spine/vessel-state.ts": 49,
   "mod/sitrep-sdk/src/units.ts": 2,
 };
 
