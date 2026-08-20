@@ -10,6 +10,8 @@ import {
   Countdown,
   magnitudeOf,
   NULL_DISPLAY,
+  Row,
+  RowName,
   Section,
   SectionTitle,
   Stack,
@@ -42,6 +44,21 @@ type PlanView =
   | { kind: "unobserved" }
   | { kind: "seen"; plan: PrincipiaFlightPlan; observedAtUt: number | null };
 
+/**
+ * The plan's own observation instant wins over the sample's.
+ *
+ * They agree in production, because the producer publishes the sample AT the
+ * instant it observed. But they are different KINDS of fact: the payload field is
+ * the producer's statement about when it looked, and the sample UT is transport
+ * metadata about when the frame is dated. Anything that re-stamps a sample (a
+ * replay, a re-publish) would break the agreement, and then the widget would show
+ * the wrong instant while carrying the right one in the same payload. Preferring
+ * the producer's own claim means the display cannot disagree with the field it is
+ * describing.
+ *
+ * The sample instant stays as the fallback, for a producer that carried the plan
+ * without stating when it saw it.
+ */
 function planView(reading: Reading<PrincipiaFlightPlan>): PlanView {
   switch (reading.state) {
     case "pending":
@@ -51,14 +68,17 @@ function planView(reading: Reading<PrincipiaFlightPlan>): PlanView {
       return {
         kind: "seen",
         plan: reading.value,
-        observedAtUt: magnitudeOf(reading.atUt),
+        observedAtUt:
+          magnitudeOf(reading.value.observedAtUt) ?? magnitudeOf(reading.atUt),
       };
     case "stale":
     case "reckonable":
       return {
         kind: "seen",
         plan: reading.value,
-        observedAtUt: magnitudeOf(reading.asOfUt),
+        observedAtUt:
+          magnitudeOf(reading.value.observedAtUt) ??
+          magnitudeOf(reading.asOfUt),
       };
   }
 }
@@ -115,32 +135,32 @@ function BurnRow({
     ignitionUt === null || viewUt === null ? null : ignitionUt - viewUt;
   const index = magnitudeOf(burn.index);
   return (
-    <Cluster data-burn-row="">
-      <Text>{index === null ? NULL_DISPLAY : `#${index + 1}`}</Text>
-      <Text>
+    // The burn number anchors left and everything else groups right, rather than
+    // four values spread evenly across the row: evenly spaced columns drift out of
+    // alignment between rows as the values change width, so a reader cannot scan
+    // down one quantity. `Row` pins the group instead.
+    <Row as="div" data-burn-row="">
+      <RowName>{index === null ? NULL_DISPLAY : `#${index + 1}`}</RowName>
+      <Cluster justify="end" gap="sm">
         {untilIgnition === null ? (
-          NULL_DISPLAY
+          <Text>{NULL_DISPLAY}</Text>
         ) : (
           <Countdown value={untilIgnition} clock />
         )}
-      </Text>
-      <Text>
         {burn.deltaV == null ? (
-          NULL_DISPLAY
+          <Text>{NULL_DISPLAY}</Text>
         ) : (
-          <Unit value={burn.deltaV} decimals={1} />
+          <Unit value={burn.deltaV} decimals={0} />
         )}
-      </Text>
-      <Text>
         {burn.durationSeconds == null ? (
-          NULL_DISPLAY
+          <Text>{NULL_DISPLAY}</Text>
         ) : (
-          <Unit value={burn.durationSeconds} decimals={0} />
+          <Countdown value={burn.durationSeconds} />
         )}
-      </Text>
-      {isNext && <Badge severity="info">NEXT</Badge>}
-      {burn.anomalous === true && <Badge severity="warning">ANOMALOUS</Badge>}
-    </Cluster>
+        {isNext && <Badge severity="info">NEXT</Badge>}
+        {burn.anomalous === true && <Badge severity="warning">ANOM</Badge>}
+      </Cluster>
+    </Row>
   );
 }
 
@@ -174,13 +194,18 @@ export function FlightPlanSection() {
       <Section data-flight-plan-section="">
         <SectionTitle>N-BODY FLIGHT PLAN</SectionTitle>
         <Stack role="status" aria-live="polite">
-          <Badge severity="caution">PLAN NOT OBSERVED</Badge>
+          {/* Start-justified so the badge shrinks to its content: a `Badge` as a
+              direct `Stack` child stretches full width and stops reading as
+              one. */}
+          <Cluster justify="start">
+            <Badge severity="caution">PLAN NOT OBSERVED</Badge>
+          </Cluster>
           {/* Deliberately not "no flight plan". The producer can only read the
               plan while the game's own planner window is drawing it, so silence
               here means nobody has looked, which is a different fact and the
               more dangerous one to get wrong: an operator told "no plan" for a
               vessel that has one stops looking. */}
-          <Text>
+          <Text tone="faint" size="sm">
             Open the flight planner in-game once and the plan will appear here,
             dated.
           </Text>
@@ -202,7 +227,11 @@ export function FlightPlanSection() {
     <Section data-flight-plan-section="">
       <SectionTitle>N-BODY FLIGHT PLAN</SectionTitle>
       <Stack>
-        <Cluster>
+        {/* Wrapping: three badges do not fit a narrow section on one line, and an
+            unwrapped cluster clips the last one at the edge rather than dropping
+            it to the next. A half-visible INTEGRATION FAILED is the worst of the
+            three outcomes. */}
+        <Cluster wrap justify="start" gap="sm">
           {/* The age is the headline, not a footnote. A zero-age plan is being
               drawn right now; anything else is a snapshot and says so. */}
           {age === null ? (

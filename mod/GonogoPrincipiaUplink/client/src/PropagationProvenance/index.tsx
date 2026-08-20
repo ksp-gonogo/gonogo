@@ -11,8 +11,10 @@ import {
   magnitudeOf,
   NULL_DISPLAY,
   Panel,
+  PanelBody,
   PanelTitle,
-  ReadoutCaption,
+  Row,
+  RowName,
   Section,
   SectionTitle,
   Stack,
@@ -106,8 +108,15 @@ function PredictionBound({
       <Section data-prediction-bound="">
         <SectionTitle>PREDICTION ACCURACY</SectionTitle>
         <Stack role="status" aria-live="polite">
-          <Badge severity="caution">UNOBSERVED</Badge>
-          <Text>
+          {/* A `Badge` is a block child of a `Stack`, so it stretches to the full
+              width and stops reading as a badge. A start-justified `Cluster`
+              shrinks it back to its content. */}
+          <Cluster justify="start">
+            <Badge severity="caution">UNOBSERVED</Badge>
+          </Cluster>
+          {/* Muted: this is instructional, and at the default accent tone it was
+              the loudest thing on a panel whose subject is the data around it. */}
+          <Text tone="faint" size="sm">
             Open Principia's main window once to publish the prediction
             tolerance and step limit.
           </Text>
@@ -120,25 +129,28 @@ function PredictionBound({
     <Section data-prediction-bound="">
       <SectionTitle>PREDICTION ACCURACY</SectionTitle>
       <Stack>
-        <Cluster>
-          <div>
-            {provenance.predictionToleranceMetres == null ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={provenance.predictionToleranceMetres} decimals={3} />
-            )}
-            <ReadoutCaption>Tolerance</ReadoutCaption>
-          </div>
-          <div>
-            {provenance.predictionMaxSteps == null ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={provenance.predictionMaxSteps} decimals={0} />
-            )}
-            <ReadoutCaption>Step limit</ReadoutCaption>
-          </div>
-        </Cluster>
-        <Cluster>
+        {/* A label/value row each, not two captioned readouts side by side. The
+            kit's `Row` is the dense settings shape: the name truncates on the
+            left and the value stays pinned right, so a long frame name cannot
+            push a value off the panel. Captioned readouts put the caption inline
+            after the value, which read as "0.010 mTOLERANCE". */}
+        <Row as="div">
+          <RowName>Tolerance</RowName>
+          {provenance.predictionToleranceMetres == null ? (
+            <Text>{NULL_DISPLAY}</Text>
+          ) : (
+            <Unit value={provenance.predictionToleranceMetres} decimals={3} />
+          )}
+        </Row>
+        <Row as="div">
+          <RowName>Step limit</RowName>
+          {provenance.predictionMaxSteps == null ? (
+            <Text>{NULL_DISPLAY}</Text>
+          ) : (
+            <Unit value={provenance.predictionMaxSteps} decimals={0} />
+          )}
+        </Row>
+        <Cluster wrap justify="start" gap="sm">
           {age === null || age <= 0 ? (
             <Badge severity="nominal">OBSERVED NOW</Badge>
           ) : (
@@ -148,9 +160,16 @@ function PredictionBound({
           )}
           {/* The bound is per vessel, so naming the craft it was read for is not
               decoration: an operator reading it as a global setting would trust
-              the wrong number on every other craft in the fleet. */}
+              the wrong number on every other craft in the fleet.
+
+              Muted and small, because it is an attribution rather than a value.
+              At the default tone and size it rendered as accent-green body text
+              beside a small badge and read as the panel's heading, which put the
+              most emphasis on the least important thing on the row. */}
           {provenance.predictionVesselId != null && (
-            <Text>for {provenance.predictionVesselId}</Text>
+            <Text tone="faint" size="xs">
+              for {provenance.predictionVesselId}
+            </Text>
           )}
         </Cluster>
       </Stack>
@@ -182,13 +201,17 @@ export function PropagationProvenanceComponent(
     return (
       <Panel>
         <PanelTitle>Propagation Provenance</PanelTitle>
-        <Stack role="status" aria-live="polite">
-          <Badge severity="offline">NO N-BODY PROVIDER</Badge>
-          <Text>
-            Nothing is publishing propagation settings, so the trajectories on
-            screen are the stock two-body ones.
-          </Text>
-        </Stack>
+        <PanelBody>
+          <Stack role="status" aria-live="polite">
+            <Cluster justify="start">
+              <Badge severity="offline">NO N-BODY PROVIDER</Badge>
+            </Cluster>
+            <Text tone="faint" size="sm">
+              Nothing is publishing propagation settings, so the trajectories on
+              screen are the stock two-body ones.
+            </Text>
+          </Stack>
+        </PanelBody>
       </Panel>
     );
   }
@@ -196,38 +219,51 @@ export function PropagationProvenanceComponent(
   return (
     <Panel>
       <PanelTitle>Propagation Provenance</PanelTitle>
-      <Stack>
-        <PredictionBound provenance={provenance} viewUt={viewUt} />
-        <Section>
-          <SectionTitle>PLOTTING</SectionTitle>
-          <Stack>
-            <div>
-              <Text>
-                {frameLabel(
-                  magnitudeOf(provenance.plottingFrameType),
-                  provenance.plottingFrameCentreBody,
+      {/* `PanelBody` supplies the content inset and the scrolling. Without it a
+          value pinned to the right of a `Row` runs to the panel's own edge and
+          the last character is clipped, and content taller than the panel is
+          simply cut instead of scrolling. Both were visible in the first
+          renders. */}
+      <PanelBody>
+        <Stack>
+          <PredictionBound provenance={provenance} viewUt={viewUt} />
+          <Section>
+            <SectionTitle>PLOTTING</SectionTitle>
+            <Stack>
+              <Row as="div">
+                <RowName>Frame</RowName>
+                <Text>
+                  {frameLabel(
+                    magnitudeOf(provenance.plottingFrameType),
+                    provenance.plottingFrameCentreBody,
+                  )}
+                </Text>
+              </Row>
+              <Row as="div">
+                <RowName>History kept</RowName>
+                {provenance.historyLengthSeconds == null ? (
+                  <Text>{NULL_DISPLAY}</Text>
+                ) : (
+                  <Countdown value={provenance.historyLengthSeconds} />
                 )}
-              </Text>
-              <ReadoutCaption>Frame</ReadoutCaption>
-            </div>
-            {provenance.targetFrameSelected === true && (
-              <Badge severity="info">TARGET-RELATIVE FRAME</Badge>
-            )}
-            <div>
-              {provenance.historyLengthSeconds == null ? (
-                NULL_DISPLAY
-              ) : (
-                <Countdown value={provenance.historyLengthSeconds} />
-              )}
-              <ReadoutCaption>History kept</ReadoutCaption>
-            </div>
-            {provenance.displayPatchedConics === true && (
-              <Badge severity="warning">STOCK CONICS ALSO DRAWN</Badge>
-            )}
-            <HiddenMarkers provenance={provenance} />
-          </Stack>
-        </Section>
-      </Stack>
+              </Row>
+              {/* Wrapping, because three badges do not fit a narrow panel on one
+                line and an unwrapped cluster clips the last one at the edge
+                rather than dropping it. A clipped warning is worse than a
+                stacked one. */}
+              <Cluster wrap justify="start" gap="sm">
+                {provenance.targetFrameSelected === true && (
+                  <Badge severity="info">TARGET-RELATIVE FRAME</Badge>
+                )}
+                {provenance.displayPatchedConics === true && (
+                  <Badge severity="warning">STOCK CONICS ALSO DRAWN</Badge>
+                )}
+                <HiddenMarkers provenance={provenance} />
+              </Cluster>
+            </Stack>
+          </Section>
+        </Stack>
+      </PanelBody>
     </Panel>
   );
 }
