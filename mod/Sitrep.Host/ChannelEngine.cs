@@ -1847,6 +1847,45 @@ namespace Sitrep.Host
         }
 
         /// <summary>Whether <paramref name="command"/>'s owning uplink (if tracked) is currently available.</summary>
+        /// <summary>
+        /// The sentence an operator reads when a dispatch is refused at
+        /// <see cref="ProcessDispatchCommand"/>'s availability exit.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// Names the owning uplink whenever there is one, which is the whole
+        /// operational value of the refusal: "unavailable" alone tells an
+        /// operator that something is wrong and nothing about where to look,
+        /// and the case that actually happens in flight (an uplink that
+        /// fail-softed) is exactly the case where the owner IS known. An
+        /// unknown command has no owner to name and means something different,
+        /// a client asking for a command this host has never heard of, so it
+        /// gets its own sentence rather than a padded version of the other.
+        ///
+        /// It carries the uplink's OWN <see cref="Availability.Reason"/> rather
+        /// than a cause inferred from the mechanism. This exit fires for a
+        /// throwing Register, a prior runtime throw, AND an uplink that
+        /// legitimately declared itself unavailable because its mod is absent
+        /// ("RealAntennas assembly not loaded"), which is the most common case
+        /// in a normal install. Saying "has failed" would be alarming and wrong
+        /// there, and the reason is already on hand, so there is nothing to
+        /// guess. An empty reason falls back to restating the fact rather than
+        /// inventing a cause: circular beats wrong, and a missing reason is
+        /// itself worth seeing.
+        ///
+        /// The CODE on the wire stays one value for both (see IMPORTANT-A);
+        /// this is prose for a human, never something a client parses.
+        /// </remarks>
+        private string RefusalReason(string command)
+        {
+            if (!_commandOwner.TryGetValue(command, out var ownerId))
+                return $"command \"{command}\" is not recognised by this host";
+            var reason = _availability.TryGetValue(ownerId, out var availability) ? availability.Reason : null;
+            return string.IsNullOrWhiteSpace(reason)
+                ? $"command \"{command}\" is unavailable: its uplink \"{ownerId}\" is unavailable"
+                : $"command \"{command}\" is unavailable: its uplink \"{ownerId}\" reports \"{reason}\"";
+        }
+
         private bool IsCommandAvailable(string command)
         {
             return !_commandOwner.TryGetValue(command, out var ownerId) || IsUplinkAvailable(ownerId);
@@ -2446,14 +2485,14 @@ namespace Sitrep.Host
         /// uplink/downlink delay, resolving only once <see cref="Tick"/>
         /// advances the clock far enough.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "") =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null) =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused));
 
         /// <summary>Test-only deterministic variant of <see cref="DispatchCommand"/>.</summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "")
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused));
             barrier.Wait(timeout);
         }
 
@@ -3484,12 +3523,25 @@ namespace Sitrep.Host
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
             // IMPORTANT-A: an unknown command AND a command whose owning
-            // uplink has gone Unavailable are treated identically,
-            // "unknown/unavailable command": a future wire-level
-            // E_UNAVAILABLE response is the natural uplink of this, not
-            // built here.
+            // uplink has gone Unavailable are treated identically at the WIRE
+            // level, one "unknown/unavailable command" refusal code. They are
+            // told apart only in the sentence an operator reads, because the
+            // two ask for different things to be looked at: a version skew
+            // versus one named uplink that has failed.
+            //
+            // Refused rather than dropped. Silence here used to be
+            // indistinguishable, from every consumer's vantage, from a command
+            // still in flight: the client's loss timer eventually rejected the
+            // promise as "signal-lost" (wrong: the link was fine), and the
+            // operator's queue could not call it a failure at all, because this
+            // exit returns BEFORE the pending bookkeeping below, so there was no
+            // queue entry to classify and the path had never been down. One
+            // throwing mapper marks its owning uplink Unavailable, and from then
+            // on every command that uplink owns landed here, so the whole widget
+            // failed while the board showed a healthy link.
             if (!IsCommandAvailable(job.Command) || !_commandHandlers.ContainsKey(job.Command))
             {
+                job.OnRefused?.Invoke(RefusalReason(job.Command));
                 job.Done?.Set();
                 return;
             }
@@ -3997,7 +4049,26 @@ namespace Sitrep.Host
                                 };
                                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
                             }
-                        }, req.Label, req.Topic);
+                        }, req.Label, req.Topic, onRefused: reason =>
+                        {
+                            // The dispatch never reached a handler (unknown
+                            // command, or its uplink has fail-softed). An
+                            // ErrorMsg rather than a CommandResponse carrying a
+                            // failure, because no handler ran: the same category
+                            // as PeerTransport's E_PEER_DISCONNECTED, a dispatch
+                            // that could not be carried. It lands the client in
+                            // `failed` with a code, instead of `confirmed` with a
+                            // refusal buried in a payload, and it cancels the
+                            // loss timer so the promise never rejects as
+                            // "signal-lost" for a link that was up the whole time.
+                            var error = new ErrorMsg
+                            {
+                                RequestId = req.RequestId,
+                                Code = "E_UNAVAILABLE",
+                                Message = reason,
+                            };
+                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                        });
                         break;
                 }
             }
@@ -4217,13 +4288,23 @@ namespace Sitrep.Host
             public readonly string Label;
             public readonly string Topic;
             public readonly Action<object?> OnResult;
+            /// <summary>
+            /// Called instead of <see cref="OnResult"/> when the dispatch is
+            /// REFUSED before any handler could run, carrying the sentence an
+            /// operator reads. Null for a caller that does not care (every
+            /// in-process test dispatch); the socket layer always supplies one,
+            /// because a client that gets neither a result nor a refusal has
+            /// no way to tell the two apart from silence.
+            /// </summary>
+            public readonly Action<string>? OnRefused;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "")
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<string>? onRefused = null)
             {
                 Command = command;
                 Args = args;
                 Vantage = vantage;
                 OnResult = onResult;
+                OnRefused = onRefused;
                 Done = done;
                 Label = label;
                 Topic = topic;
