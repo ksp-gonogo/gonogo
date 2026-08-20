@@ -35,7 +35,25 @@ const SELF = [
  */
 const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
 
+/**
+ * One scan, shared. Three assertions need the same answer and `git grep` over
+ * the whole tree is the expensive part of this file, so scanning per-test
+ * tripled the cost for no extra coverage.
+ *
+ * It also removes a flakiness vector rather than only wasting time. This box
+ * runs six agents and sits near load 15, where the scan goes from ~0.4s to
+ * ~1s; three of those against vitest's 5s default is a gate that can go red on
+ * an untouched branch, and a gate that cries wolf gets disabled. The result is
+ * deterministic, so caching it changes nothing about what is asserted.
+ */
+let cached: Map<string, number> | undefined;
 function scan(): Map<string, number> {
+  if (cached) return cached;
+  cached = scanUncached();
+  return cached;
+}
+
+function scanUncached(): Map<string, number> {
   // `|| true`: git grep exits 1 when nothing matches, which is a legitimate
   // result here (it is what "finished" looks like) and not an error.
   const out = execFileSync(
