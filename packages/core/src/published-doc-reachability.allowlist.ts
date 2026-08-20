@@ -289,25 +289,21 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
 };
 
 /**
- * The C# half, seeded at 5 references across 4 files rather than at zero.
+ * The C# half, seeded at 5 references across 4 files and now down to 4 across 3.
  *
- * These are REAL and they are not this gate's to fix. All four sites are the
- * same capability-seam bug the `IPropagationProvider` / `IManeuverPlanSource` /
- * `ICommandCentreSource` moves addressed on 2026-08-20, and
- * `ITargetApproachSolver` is a seam that work did not know about: it has a live
- * election (`TargetApproachElection.CapabilityId = "targetApproach"`), its own
- * doc says implementations live "in `Gonogo.KSP` and a separate uplink
- * assembly", it opens a paragraph with "Threading: read before adding a
- * backend", and no Uplink can implement it because `Sitrep.Host` is
- * unpublished. Fixing it is a type move plus a capability-id move, which belongs
- * with the capability work and not with the gate that found it.
+ * These are REAL and they are not this gate's to fix. All of them are the same
+ * capability-seam bug the `IPropagationProvider` / `IManeuverPlanSource` /
+ * `ICommandCentreSource` moves addressed on 2026-08-20.
  *
  * Seeding rather than fixing is also the sequence `uplink-isolation` and the
  * act-warning ratchet both used: the gate lands green, and the count falls as
- * the real work lands.
+ * the real work lands. `VesselTarget.cs` is the first entry to fall that way:
+ * `ITargetApproachSolver` was the seam the census existed to find, and it moved
+ * to `Sitrep.Contract` on 2026-08-20 along with the capability id an implementor
+ * has to name to register (`TargetApproachCapability.CapabilityId`). The type is
+ * reachable now, so the reference is not a violation and the entry is gone
+ * rather than lowered.
  *
- * - `VesselTarget.cs` names `ITargetApproachSolver`, in `Sitrep.Host`. The
- *   fourth private capability seam, and the one this census existed to find.
  * - `IPropagationProvider.cs` crefs `KeplerProvider`, in `Sitrep.Propagation`.
  *   Residue of the original bug: the interface moved to the contract, the cref
  *   pointing into the private assembly did not.
@@ -323,7 +319,6 @@ export const CS_CAPABILITY_SEAM_DEBT: Record<string, number> = {
   "mod/Sitrep.Contract/ActionGroupsBackend.cs": 1,
   "mod/Sitrep.Contract/IPropagationProvider.cs": 1,
   "mod/Sitrep.Contract/PropagationTarget.cs": 2,
-  "mod/Sitrep.Contract/VesselTarget.cs": 1,
 };
 
 /**

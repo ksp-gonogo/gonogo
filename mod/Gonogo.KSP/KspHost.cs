@@ -10,7 +10,6 @@ using ModuleWheels;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.Propulsion;
-using Sitrep.Host.Targeting;
 using Strategies;
 using UnityEngine;
 using Sitrep.Contract;
@@ -129,7 +128,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The elected closest-approach solver resolver (see
-        /// <see cref="Sitrep.Host.Targeting.ITargetApproachSolver"/>). Same
+        /// <see cref="ITargetApproachSolver"/>). Same
         /// late-bound install shape as <see cref="_actionGroupsBackend"/>:
         /// stamped onto <c>vessel.target</c>'s <c>closestApproach</c> on the
         /// main-thread sample, the mod-side replacement for the former

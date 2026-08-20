@@ -28,14 +28,14 @@ namespace Sitrep.Host.Targeting
     /// Such an uplink would declare NO channel of its own and ship NO client
     /// code, exactly as the elected comms provider uplink ships none for
     /// <c>comms.*</c>.</para>
+    ///
+    /// <para>The capability id itself is NOT here. It is
+    /// <see cref="TargetApproachCapability.CapabilityId"/>, in the contract,
+    /// because a backend author has to name it to register and this assembly is
+    /// not something they can reference.</para>
     /// </summary>
     public static class TargetApproachElection
     {
-        /// <summary>The exclusive capability id every closest-approach backend competes for.</summary>
-        public const string CapabilityId = "targetApproach";
-
-
-
         /// <summary>
         /// Registers the exclusive <c>"targetApproach"</c> capability with the
         /// stock Kepler backend as its always-present
@@ -60,7 +60,7 @@ namespace Sitrep.Host.Targeting
 
             kernel.RegisterCapability(new CapabilityDescriptor
             {
-                Id = CapabilityId,
+                Id = TargetApproachCapability.CapabilityId,
                 Exclusive = true,
                 SpineCritical = false,
                 Vanilla = ctx => stockVanillaFactory(ctx),
@@ -84,7 +84,7 @@ namespace Sitrep.Host.Targeting
             if (kernel == null) throw new ArgumentNullException(nameof(kernel));
             try
             {
-                return kernel.Query<ITargetApproachSolver>(CapabilityId);
+                return kernel.Query<ITargetApproachSolver>(TargetApproachCapability.CapabilityId);
             }
             catch (Exception)
             {

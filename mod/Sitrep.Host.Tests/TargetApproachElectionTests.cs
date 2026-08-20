@@ -32,7 +32,7 @@ namespace Sitrep.Host.Tests
             {
                 kernel.RegisterProvider(new ProviderRegistration
                 {
-                    Capability = TargetApproachElection.CapabilityId,
+                    Capability = TargetApproachCapability.CapabilityId,
                     Id = "an-nbody-provider",
                     Priority = 100.0,
                     Factory = _ => new FakeSolver("an-nbody-provider"),
@@ -71,7 +71,7 @@ namespace Sitrep.Host.Tests
 
             // Query throws unless the exclusive capability resolves to exactly
             // one instance -- so a successful Query IS the "exactly one" assertion.
-            var elected = kernel.Query<ITargetApproachSolver>(TargetApproachElection.CapabilityId);
+            var elected = kernel.Query<ITargetApproachSolver>(TargetApproachCapability.CapabilityId);
 
             Assert.NotNull(elected);
         }
