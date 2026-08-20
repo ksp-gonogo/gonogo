@@ -10,6 +10,7 @@
     "includes": [
       "**",
       "!**/test/recorded_fixtures",
+      "!**/__fixtures__/*.wire.json",
       "!**/dist",
       "!.claude",
       "!**/__generated__",
