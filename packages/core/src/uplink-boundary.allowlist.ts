@@ -936,6 +936,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      // -- CI gating ratchet (2026-08-20): names the four Uplink test
+      // projects that were in mod/Gonogo.sln and in no CI job, which is the
+      // finding itself: "four projects drifted" without saying which is not
+      // a usable comment. Text-only mention in a ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/ci-test-project-coverage.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -1030,6 +1036,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      // -- CI gating ratchet (2026-08-20): names the four Uplink test
+      // projects that were in mod/Gonogo.sln and in no CI job, which is the
+      // finding itself: "four projects drifted" without saying which is not
+      // a usable comment. Text-only mention in a ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/ci-test-project-coverage.test.ts",
       // -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
@@ -1366,6 +1378,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   testflight: {
     domainDebt: [],
     permanent: [
+      // -- CI gating ratchet (2026-08-20): names the four Uplink test
+      // projects that were in mod/Gonogo.sln and in no CI job, which is the
+      // finding itself: "four projects drifted" without saying which is not
+      // a usable comment. Text-only mention in a ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/ci-test-project-coverage.test.ts",
       // FleetReliability's characterisation test emits `reliability.summary`
       // payloads carrying real `source` values, which is what the wire carries.
       // A wire-value reference, the case this bucket exists for: the widget only
@@ -1422,6 +1440,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   principia: {
     domainDebt: [],
     permanent: [
+      // -- CI gating ratchet (2026-08-20): names the four Uplink test
+      // projects that were in mod/Gonogo.sln and in no CI job, which is the
+      // finding itself: "four projects drifted" without saying which is not
+      // a usable comment. Text-only mention in a ratchet-inventory file, the
+      // case this bucket documents.
+      "packages/core/src/ci-test-project-coverage.test.ts",
       // Everything below is a HISTORICAL RECORD of a decision that removed
       // Principia awareness from core, or documentation of an external format
       // that named it. You cannot record "we deliberately deleted detection of
