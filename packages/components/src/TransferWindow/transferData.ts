@@ -473,3 +473,34 @@ export function reachVerdict(
   }
   return spendable >= ejectionDeltaV ? "one-way" : "no";
 }
+
+/**
+ * Fraction of the Hohmann transfer time the porkchop's UT inputs are rounded to.
+ *
+ * The departure axis spans `±0.4·T` across 32 samples, so one sample is about `0.026·T`.
+ * `T/500` is roughly a thirteenth of a sample: below anything the chart can express,
+ * which is what makes rounding to it invisible rather than a trade.
+ */
+const GRID_UT_QUANTUM_FRACTION = 500;
+
+/**
+ * The quantum the porkchop's `nowUt` / `centerDepUt` are rounded to before they reach a
+ * memo, or `null` when there is no transfer time to scale against.
+ *
+ * **Scaled to the chart, deliberately, not a fixed number of seconds.** A fixed quantum
+ * is not warp-proof: at 100,000x, sixty UT-seconds elapse in well under a millisecond of
+ * wall time, so a 60-second bucket changes every frame and a memo keyed on it rebuilds
+ * every frame, which is the churn it was meant to stop. It fails exactly when the clock
+ * is moving fastest. A quantum expressed in transfer times cannot fail that way, because
+ * the axes are drawn in transfer times too.
+ */
+export function porkchopGridQuantum(transferTimeSec: number): number | null {
+  if (!Number.isFinite(transferTimeSec) || transferTimeSec <= 0) return null;
+  return transferTimeSec / GRID_UT_QUANTUM_FRACTION;
+}
+
+/** Round a UT down to `quantum`. A null quantum passes the value through unchanged. */
+export function quantiseGridUt(ut: number, quantum: number | null): number {
+  if (quantum === null || !Number.isFinite(ut)) return ut;
+  return Math.floor(ut / quantum) * quantum;
+}

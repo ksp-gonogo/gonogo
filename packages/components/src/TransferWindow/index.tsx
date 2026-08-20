@@ -29,6 +29,8 @@ import { useAlarmCreator } from "../shared/AlarmsLauncher";
 import {
   buildTransferPorkchop,
   computeTransfer,
+  porkchopGridQuantum,
+  quantiseGridUt,
   type ReachEntry,
   type ReachVerdict,
   reachEntries,
@@ -313,6 +315,37 @@ function TransferWindowComponent({
     [origin, dest, bodies, parkingRadius, nowUt],
   );
 
+  /**
+   * What the porkchop's inputs are rounded to before they reach a memo.
+   *
+   * The grid is 1,024 Lambert solves and measures about 7ms. It used to depend on raw
+   * `nowUt`, and `useViewUt` notifies every frame the clock moves, so it rebuilt at 60Hz
+   * for an answer that is identical frame to frame: roughly 42% of one core, burned
+   * continuously, on the main thread. It fits inside a frame, which is why nothing
+   * failed and why `PORKCHOP_SOLVE_BUDGET` exists.
+   *
+   * The quantum SCALES WITH THE CHART rather than being a fixed number of seconds, and
+   * that is the load-bearing part. A fixed quantum is not warp-proof: at 100,000x, sixty
+   * UT-seconds elapse in well under a millisecond of wall time, so a 60-second bucket
+   * flips every frame and the fix evaporates exactly when the clock is moving fastest.
+   * `transferTimeSec` is the Hohmann transfer time, which is what the axes are drawn in
+   * multiples of, so a quantum of T/500 is about a thirteenth of one departure sample:
+   * far below anything the chart can express, at any warp.
+   */
+  const gridQuantum = solution
+    ? porkchopGridQuantum(solution.transferTimeSec)
+    : null;
+  const quantise = (ut: number): number => quantiseGridUt(ut, gridQuantum);
+  // Both inputs are quantised, not just `nowUt`. `departureUt` is `nowUt + waitSeconds`
+  // and so ought to be constant as the clock advances, but it is re-derived from the
+  // body positions every frame and jitters in the low bits, which invalidates a memo
+  // just as effectively as a real change.
+  const gridNowUt = quantise(nowUt);
+  const gridCenterDepUt =
+    solution?.departureUt === undefined
+      ? undefined
+      : quantise(solution.departureUt);
+
   // The base porkchop is windowed on the next window's ideal departure; its
   // optimum is that window's Δv, which seeds the windows list.
   const basePorkchop = useMemo(
@@ -322,11 +355,11 @@ function TransferWindowComponent({
             origin,
             dest,
             bodies,
-            nowUt,
-            centerDepUt: solution?.departureUt,
+            nowUt: gridNowUt,
+            centerDepUt: gridCenterDepUt,
           })
         : null,
-    [origin, dest, bodies, nowUt, solution?.departureUt],
+    [origin, dest, bodies, gridNowUt, gridCenterDepUt],
   );
 
   const windows = useMemo(
@@ -370,18 +403,34 @@ function TransferWindowComponent({
 
   // later windows rebuild centred on their own departure so their Δv surface
   // shows (each is a synodic period later, same bowl shape).
+  // Same quantisation as the base grid, and for the same reason. `selected` is a fresh
+  // object on every windows-list rebuild, so depending on the object rather than the two
+  // numbers read off it would reintroduce the churn by identity even with the UT
+  // quantised.
+  const focusedIsBase = !selected || selected.index === 0;
+  const focusedCenterDepUt = selected
+    ? quantise(selected.departureUt)
+    : undefined;
   const focusedPorkchop = useMemo(() => {
-    if (!origin || !dest || !selected || selected.index === 0) {
+    if (!origin || !dest || focusedIsBase || focusedCenterDepUt === undefined) {
       return basePorkchop;
     }
     return buildTransferPorkchop({
       origin,
       dest,
       bodies,
-      nowUt,
-      centerDepUt: selected.departureUt,
+      nowUt: gridNowUt,
+      centerDepUt: focusedCenterDepUt,
     });
-  }, [origin, dest, bodies, nowUt, selected, basePorkchop]);
+  }, [
+    origin,
+    dest,
+    bodies,
+    gridNowUt,
+    focusedIsBase,
+    focusedCenterDepUt,
+    basePorkchop,
+  ]);
 
   if (!orbit || !origin) {
     return (
