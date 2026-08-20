@@ -2,7 +2,6 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
-  useExecuteAction,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -402,12 +401,12 @@ function LaunchDirectorComponent({
   const availableVessels = targetAvailable?.entries?.filter(
     (e) => e.kind === TargetKind.Vessel,
   );
-  // LAUNCH itself (a delayed command to the pad) still rides `execute` below;
-  // the non-launch scene ops (recover / revert / to-tracking-station / switch
-  // vessel) are KSC-desk actions with no vessel signal delay, so they dispatch
-  // at the meta-vantage (instant). Their handles are contributed to the panel
-  // delay rail by usePanelDelay below.
-  const execute = useExecuteAction("data");
+  // LAUNCH is a delayed command to the pad, so it dispatches at the session
+  // vantage. The non-launch scene ops (recover / revert / to-tracking-station /
+  // switch vessel) are KSC-desk actions with no vessel signal delay, so they
+  // dispatch at the meta-vantage (instant). Every handle is contributed to the
+  // panel delay rail by usePanelDelay below.
+  const launchCmd = useCommand("ksp.launch");
   const recoverCmd = useCommand("ksp.recover", { vantage: META_VANTAGE });
   const revertLaunchCmd = useCommand("ksp.revertToLaunch", {
     vantage: META_VANTAGE,
@@ -419,6 +418,7 @@ function LaunchDirectorComponent({
     vantage: META_VANTAGE,
   });
   const switchCmd = useCommand("ksp.switchVessel", { vantage: META_VANTAGE });
+  usePanelDelay(launchCmd);
   usePanelDelay(recoverCmd);
   usePanelDelay(revertLaunchCmd);
   usePanelDelay(revertEditorCmd);
@@ -788,11 +788,12 @@ function LaunchDirectorComponent({
                       if (launching) return;
                       setArmed(null);
                       setLaunching(true);
-                      const crewArg = Array.from(selectedCrew).join(";");
-                      const site = selectedSite;
-                      void execute(
-                        `ksp.launch[${ship.name},${ship.facility},${site},${crewArg}]`,
-                      );
+                      void launchCmd.send({
+                        shipName: ship.name,
+                        facility: ship.facility,
+                        site: selectedSite,
+                        crew: Array.from(selectedCrew),
+                      });
                     }}
                     label={
                       selectedCrew.size > 0

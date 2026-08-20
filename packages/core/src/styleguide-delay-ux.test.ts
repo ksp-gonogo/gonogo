@@ -21,15 +21,14 @@ import { describe, expect, it } from "vitest";
  *    ship with no delay UX under the SAME name, exactly the ambiguity the plan
  *    removed.
  *
- * 2. **`useExecuteAction` stays confined to its sanctioned callers.** It is the
- *    last surviving legacy escape, deliberately kept (not deleted with the
- *    bridge) ONLY for the two widgets whose migration is deferred: `Navball`
- *    (axis/translation, mod-contract-blocked) and `LaunchDirector`'s launch
- *    (T12, which turns launch into a genuinely delayed pad command). No NEW
- *    widget may adopt it, so the set of production files that reference it must
- *    stay a subset of the allowlist below. When Navball or LaunchDirector
- *    finally migrate, drop them from the allowlist (and, once both are gone,
- *    delete `useExecuteAction` outright).
+ * 2. **`useExecuteAction` stays deleted.** It was the last legacy escape: a
+ *    `(action: string) => Promise<void>` dispatcher that swallowed the
+ *    dispatch's rejection outright (`result.then(()=>undefined, ()=>undefined)`),
+ *    so a command sent through it could ship with no delay UX AND no way to tell
+ *    the operator the game had refused it. Its two remaining callers migrated
+ *    (`Navball`'s trim actions and `LaunchDirector`'s launch, both onto
+ *    `useCommand`) and the hook went with them, off the sdk barrel and the
+ *    `GonogoHost` interface too. Bringing back the name reopens both holes.
  *
  * Uses `git grep` for the same reasons `styleguide-emdash.test.ts` /
  * `uplink-boundary.test.ts` do: it respects `.gitignore` and never has to
@@ -61,43 +60,13 @@ describe('delay-ux: the legacy useCommand("data") bridge stays deleted', () => {
   });
 });
 
-// --- Invariant 2: useExecuteAction confined to sanctioned callers ----------
+// --- Invariant 2: useExecuteAction stays deleted --------------------------
 
-/**
- * Production files allowed to reference `useExecuteAction`. Split into the two
- * sanctioned WIDGET callers (the deferred migrations) and the definition +
- * host-wiring plumbing that necessarily names the hook to expose it. Anything
- * outside this set is a new widget reaching for the legacy escape.
- */
-const SANCTIONED_WIDGET_CALLERS = [
-  "packages/components/src/Navball/index.tsx",
-  "packages/components/src/LaunchDirector/index.tsx",
-];
-
-const PLUMBING = [
-  // The hook's own (deprecated) definition site. In the sdk since the host
-  // implementations moved there: an Uplink's test builds a whole `GonogoHost` and
-  // could not reach a definition inside `@ksp-gonogo/core`. Moving the hatch did
-  // not widen it, and `packages/core/src/hooks/useExecuteAction.ts` is now a
-  // one-line facade over this.
+/** The hook's definition sites, both removed when its last two callers migrated. */
+const DELETED_HOOK_FILES = [
   "mod/sitrep-sdk/src/spine/use-execute-action.ts",
   "packages/core/src/hooks/useExecuteAction.ts",
-  // App-side host wiring: forwards the core hook into the sitrep-sdk facade.
-  "packages/app/src/uplinks/host.ts",
-  // Test-side host wiring, the same forward for an Uplink's own suite. It has
-  // no choice: `GonogoHost` is a full interface and the harness builds a whole
-  // one, so TypeScript requires this member whether or not a widget calls it.
-  // Naming the hook here is not a new caller, it is the same plumbing as the
-  // app's builder one line up.
-  "mod/sitrep-sdk/src/testing/install-real-test-host.ts",
-  // The sitrep-sdk facade: declares the host member + the passthrough shim.
-  "mod/sitrep-sdk/src/api/host.ts",
-  "mod/sitrep-sdk/src/api/index.ts",
-  // A doc-comment reference in the command mapper, not a call site.
-  "mod/sitrep-sdk/src/spine/map-command.ts",
 ];
-
-const ALLOWLIST = new Set([...SANCTIONED_WIDGET_CALLERS, ...PLUMBING]);
 
 function isExcludedFromScan(f: string): boolean {
   return (
@@ -137,40 +106,38 @@ function productionFilesReferencing(term: string): string[] {
     .filter((f) => !isExcludedFromScan(f));
 }
 
-describe("delay-ux: useExecuteAction stays confined to sanctioned callers", () => {
-  // Match the call/definition token `useExecuteAction(`, not the bare word: a
-  // migrated widget legitimately keeps a "moved off useExecuteAction" note in
-  // its comments, and only the parenthesised form is an actual call, the
-  // hook's definition, or the facade's typed passthrough (all plumbing).
-  const referencing = productionFilesReferencing("useExecuteAction(");
+describe("delay-ux: useExecuteAction stays deleted", () => {
+  it("has no definition file left", () => {
+    for (const f of DELETED_HOOK_FILES) {
+      expect(existsSync(join(root, f))).toBe(false);
+    }
+  });
 
-  it("is referenced only by its allowlisted widgets + plumbing", () => {
-    const offenders = referencing.filter((f) => !ALLOWLIST.has(f));
+  it("is not referenced by any production file", () => {
+    // Match the call/definition token `useExecuteAction(`, not the bare word: a
+    // migrated widget legitimately keeps a "moved off useExecuteAction" note in
+    // its comments, and only the parenthesised form is an actual call, the
+    // hook's definition, or a host's typed passthrough.
+    const offenders = productionFilesReferencing("useExecuteAction(");
     if (offenders.length > 0) {
       throw new Error(
-        `New reference(s) to the deprecated useExecuteAction in ${offenders.length} ` +
-          "file(s). Dispatch craft commands through the delay-aware useCommand(topic) " +
-          "(from @ksp-gonogo/sitrep-client or the sitrep-sdk facade) so the signal-delay " +
-          "UX rides along. useExecuteAction is a closing escape hatch, kept only for the " +
-          "deferred Navball + LaunchDirector migrations. Offenders:\n" +
+        `useExecuteAction is back in ${offenders.length} file(s). It was the ` +
+          "legacy escape that dispatched with no signal-delay UX and swallowed " +
+          "the dispatch's rejection, so a refusal the game issued could never " +
+          "reach the operator. Dispatch craft commands through the delay-aware " +
+          "useCommand(topic) (from @ksp-gonogo/sitrep-client or the sitrep-sdk " +
+          "facade) instead. Offenders:\n" +
           offenders.map((f) => `  ${f}`).join("\n"),
       );
     }
-    expect(offenders).toHaveLength(0);
+    expect(offenders).toEqual([]);
   });
 
-  it("still names both deferred widget callers (tighten the allowlist when they migrate)", () => {
-    for (const caller of SANCTIONED_WIDGET_CALLERS) {
-      if (!referencing.includes(caller)) {
-        throw new Error(
-          `${caller} no longer references useExecuteAction. If it migrated to ` +
-            "useCommand, drop it from SANCTIONED_WIDGET_CALLERS in this test (and once " +
-            "both deferred callers are gone, delete useExecuteAction outright).",
-        );
-      }
-    }
-    expect(referencing).toEqual(
-      expect.arrayContaining(SANCTIONED_WIDGET_CALLERS),
+  it("is not on the sitrep-sdk author-facing barrel", () => {
+    const barrel = readFileSync(
+      join(root, "mod/sitrep-sdk/src/api/index.ts"),
+      "utf8",
     );
+    expect(barrel).not.toContain("useExecuteAction");
   });
 });

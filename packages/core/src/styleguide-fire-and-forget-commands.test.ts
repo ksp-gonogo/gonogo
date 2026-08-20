@@ -51,6 +51,12 @@ import { describe, expect, it } from "vitest";
  * Per-file fire-and-forget dispatch budget, seeded 2026-08-20 at the census
  * count. A file may have FEWER than its number; it may not have more, and a
  * file absent from this map may not have any.
+ *
+ * A number may only RISE for one reason: a dispatch that was already blind
+ * became visible to this scan. `useExecuteAction` swallowed its own rejection
+ * internally, so its call sites were discarding an outcome the whole time
+ * while matching nothing here. Retiring it moved two widgets' dispatches into
+ * the census rather than adding any. Every other direction is down.
  */
 const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 3,
@@ -62,10 +68,17 @@ const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "packages/components/src/AstronautComplex/index.tsx": 3,
   "packages/components/src/ContractManager/index.tsx": 3,
   "packages/components/src/Experiments/index.tsx": 2,
-  "packages/components/src/LaunchDirector/index.tsx": 7,
+  // 7 -> 8 on 2026-08-21: `ksp.launch` moved off the deleted `useExecuteAction`,
+  // whose own `result.then(()=>undefined, ()=>undefined)` swallowed the refusal
+  // before any call site could see it. The blind dispatch is not new, only
+  // countable: launch has six refusal arms and showed none of them either way.
+  "packages/components/src/LaunchDirector/index.tsx": 8,
   "packages/components/src/ManeuverPlanner/index.tsx": 1,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 1,
-  "packages/components/src/Navball/index.tsx": 6,
+  // 6 -> 7 on 2026-08-21: the three trim actions moved off the deleted
+  // `useExecuteAction` onto one shared `vessel.control.setAxes` handle. Same
+  // note as LaunchDirector above: the swallow moved into view, it did not appear.
+  "packages/components/src/Navball/index.tsx": 7,
   "packages/components/src/ShipMap/index.tsx": 1,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 2,

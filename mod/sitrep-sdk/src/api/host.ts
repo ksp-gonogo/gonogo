@@ -44,7 +44,6 @@ import type {
 export interface GonogoHost {
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
 
-  useExecuteAction(dataSourceId: string): (action: string) => Promise<void>;
   /**
    * Canonical Topic overload: reads a Topic's payload straight off the
    * mounted TimelineStore (`@ksp-gonogo/core`'s `useTelemetry`, one-arg form).

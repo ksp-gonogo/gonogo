@@ -37,28 +37,24 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
  *    `useCommand`, the mode name resolved to its ordinal off `SAS_MODES`'
  *    own array position (see `setSasMode` in index.tsx). Also unconditional.
  * 3. **continuous, delayed control-stream (control-delay-stream-viz Task 4)**:
- *    the throttle ZERO button. Throttle is now the one continuous axis with
- *    a real bidirectional channel (`vessel.control.throttle`), so it rides
- *    `useControlStream` instead of `useExecuteAction`: the button sets local
- *    commanded state, the hook's coalesced write half dispatches
+ *    the throttle ZERO button. Throttle rides `useControlStream`: the button
+ *    sets local commanded state, the hook's coalesced write half dispatches
  *    `vessel.control.setThrottle` on its own 10 Hz tick. Unconditional too,
  *    same as bridges 1/2: no carried-channels gate, no legacy `DataSource`
  *    fallback (the pre-migration version of this file proved the opposite:
  *    a carried-gated shim promotion with a legacy fallback; that shape is
  *    gone for throttle specifically).
+ * 4. **nullable-partial field set**: each trim action dispatches
+ *    `vessel.control.setAxes` carrying ONLY its own field. Trim is the one
+ *    fly-by-wire input with no `[SitrepControlChannel]` (the contract has the
+ *    write fields but no trim readback), so unlike `set-pitch`/`set-yaw`/
+ *    `set-roll`/`translate-*` it cannot ride `useControlStream` and dispatches
+ *    the command directly.
  *
- * `set-pitch`/`set-yaw`/`set-roll`/`translate-*`/`set-*-trim` stay on the
- * legacy `useExecuteAction` string path + the carried-gated `map-command.ts`
- * shim (K5 in the command-surface delay audit, unmigrated): `VesselControl`
- * has no pitch/yaw/roll READ fields or `[SitrepControlChannel]`
- * declarations yet, so there's no channel for those axes to ride, and
- * closing a full attitude-control loop across signal delay is a
- * control-theory problem needing a select-then-commit `CommandGroup` design
- * regardless. Not separately exercised here. `arm-fbw`/`disarm-fbw`
- * (`vessel.control.setFlyByWire`) DID migrate alongside SAS/SAS-mode (same
- * discrete-command shape) but aren't separately proven in this file; `Twr`
- * (the other Navball/Twr command-validation candidate) declares
- * `actions: []`: no command surface at all to validate.
+ * `arm-fbw`/`disarm-fbw` (`vessel.control.setFlyByWire`) migrated alongside
+ * SAS/SAS-mode (same discrete-command shape) but aren't separately proven in
+ * this file; `Twr` (the other Navball/Twr command-validation candidate)
+ * declares `actions: []`: no command surface at all to validate.
  *
  * Every test renders Navball in `controlMode: true` at a size that clears
  * `showControlSurface`'s gate (rows>=18, cols>=7) so the real DOM buttons
@@ -304,5 +300,64 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     unmount();
     buffered.disconnect();
     clearRegistry();
+  });
+
+  it("each trim action dispatches its own named vessel.control.setAxes field", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.control"],
+      pinnedUt: 0,
+    });
+    const commandHandler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(commandHandler);
+
+    renderControlNavball("nav-cmd-trim", fixture.Provider);
+
+    // Trim has no on-screen control: it is a serial-input action, so the test
+    // fires it the way a mapped device would. `setAxes` is a nullable-partial,
+    // so each trim must send ONLY its own field, never a zero-padded triple
+    // that would clobber a live axis.
+    const { dispatchAction } = await import("@ksp-gonogo/core");
+    for (const [action, field, value] of [
+      ["set-pitch-trim", "pitchTrim", 0.25],
+      ["set-yaw-trim", "yawTrim", -0.5],
+      ["set-roll-trim", "rollTrim", 1],
+    ] as const) {
+      await act(async () => {
+        await dispatchAction("nav-cmd-trim", action, {
+          kind: "analog",
+          value,
+        });
+      });
+      await waitFor(() =>
+        expect(commandHandler).toHaveBeenCalledWith("vessel.control.setAxes", {
+          [field]: value,
+        }),
+      );
+    }
+  });
+
+  it("clamps an out-of-range trim into the -1..1 the fly-by-wire override accepts", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.control"],
+      pinnedUt: 0,
+    });
+    const commandHandler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(commandHandler);
+
+    renderControlNavball("nav-cmd-trim-clamp", fixture.Provider);
+
+    const { dispatchAction } = await import("@ksp-gonogo/core");
+    await act(async () => {
+      await dispatchAction("nav-cmd-trim-clamp", "set-pitch-trim", {
+        kind: "analog",
+        value: 4.2,
+      });
+    });
+
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setAxes", {
+        pitchTrim: 1,
+      }),
+    );
   });
 });

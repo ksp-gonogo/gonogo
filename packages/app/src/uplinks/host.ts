@@ -27,7 +27,6 @@ import {
   registerSettingsTab,
   useActionInput,
   useDataSources,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
@@ -69,7 +68,6 @@ export function buildGonogoHost(): GonogoHost {
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
 
-    useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
     // Overloaded on the sdk side (canonical one-arg Topic read, and the
     // retired useDataValue's legacy two-arg DataSourceRegistry read carried
     // over onto this same name: see GonogoHost.useTelemetry's doc). Real

@@ -22,7 +22,6 @@ import { defineUplinkClient } from "../spine/uplink-clients";
 import { useActionInput } from "../spine/use-action-input";
 import { useCommand } from "../spine/use-command";
 import { useDataSources } from "../spine/use-data-sources";
-import { useExecuteAction } from "../spine/use-execute-action";
 import { useLateTelemetrySubscribe } from "../spine/use-late-telemetry-subscribe";
 import { useProcessor } from "../spine/use-processor";
 import { useRouteCommands } from "../spine/use-route-commands";
@@ -107,7 +106,6 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     clearAugments: uiKit.clearAugments,
     AugmentSlot: uiKit.AugmentSlot as GonogoHost["AugmentSlot"],
 
-    useExecuteAction: (dataSourceId) => useExecuteAction(dataSourceId),
     // A single unconditional forward of both args, never a conditional call to
     // two different hook invocations: `useTelemetry` already branches internally
     // on whether `key` is present while keeping every hook call unconditional.

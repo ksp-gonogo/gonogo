@@ -190,10 +190,9 @@ function StrategiesComponent({
   // canActivate/canDeactivate/effect-text shape `parseStrategies` needs
   // (career-capture-extend-report.md; note `department`, not the legacy
   // `departmentName`, which parseStrategies normalizes). No legacy read
-  // fallback: the canonical Topic read has none. The activate/deactivate
-  // COMMANDS still have no command home (KNOWN_COMMAND_GAPS) and fall back to
-  // the legacy DataSource via `useExecuteAction` automatically: a later
-  // migration will move the write path too.
+  // fallback: the canonical Topic read has none. The activate/deactivate COMMANDS
+  // migrated too: `career.strategy.activate`/`.deactivate` through
+  // `useCommand`, at the meta vantage.
   //
   // One record, two kinds of field, so it is read twice.
   //

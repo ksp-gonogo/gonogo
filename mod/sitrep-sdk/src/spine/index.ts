@@ -83,7 +83,6 @@ export * from "./use-action-input";
 export * from "./use-command";
 export * from "./use-data-source-subscription";
 export * from "./use-data-sources";
-export * from "./use-execute-action";
 export * from "./use-late-telemetry-subscribe";
 export * from "./use-processor";
 export * from "./use-route-commands";

@@ -73,20 +73,20 @@ This interface covers the app's non-Sitrep data sources, kOS, the camera feed, s
 
 ```ts
 const altitude = useDataValue('kos', 'kos.compute.altitude-feed.value');
-const execute  = useExecuteAction('kos');
 ```
 
-These hooks are the **PeerJS boundary**. On the main screen they call the DataSource directly; on a station screen they route through PeerJS instead. The widget code doesn't change; only the hook routing does. Widgets never call a `DataSource` method directly.
+This hook is the **PeerJS boundary**. On the main screen it calls the DataSource directly; on a station screen it routes through PeerJS instead. The widget code doesn't change; only the hook routing does. Widgets never call a `DataSource` method directly.
 
 ### Sitrep telemetry: Domain/Topic/Value
 
 The Sitrep stream (the Gonogo mod's WebSocket feed) doesn't go through the `DataSource` interface, it has its own Uplink model, layered on top of `@ksp-gonogo/sitrep-client`. The mod's contract is organised into **Domains** (e.g. `vessel`, `career`, `spaceCenter`), each exposing named **Topics** (e.g. `vessel.orbit`, `career.funds`); every Topic carries a typed **Value** payload generated from the C# contract (`@ksp-gonogo/sitrep-sdk`). `SitrepTelemetryProvider` (in `@ksp-gonogo/app`) owns the one `WebSocketTransport` to the mod and feeds a `TelemetryClient`/`TimelineStore` pair down through React context.
 
-Widgets read and command Topics with `useTelemetry`/`useCommand` (`@ksp-gonogo/core`), the canonical replacements for `useDataValue`/`useExecuteAction` (which still work as deprecated aliases, and remain the only way to reach non-Sitrep sources):
+Widgets read and command Topics with `useTelemetry`/`useCommand`. `useDataValue` still works as a deprecated read alias and remains the only way to reach a non-Sitrep source; its write twin `useExecuteAction` is gone, so every command goes through `useCommand`:
 
 ```ts
-const orbit = useTelemetry('vessel.orbit');   // canonical Topic read
-const execute = useCommand('data');           // fires a mapped action, same call shape as useExecuteAction
+const orbit = useTelemetry('vessel.orbit');            // canonical Topic read
+const stage = useCommand('vessel.control.stage');     // one handle per command topic
+usePanelDelay(stage);                                 // contributes its delay UX to the panel rail
 ```
 
 External Uplinks (mod-adjacent packages, not just built-in widgets) can also contribute UI into a host widget's named **augment slots** via `registerAugment`/`<AugmentSlot>`, without the host and the augment referencing each other directly.

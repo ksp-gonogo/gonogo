@@ -7,7 +7,7 @@ import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -23,14 +23,12 @@ import {
 } from "./index";
 
 /**
- * Every read this widget makes now has a real wire home (see
- * `stream.test.tsx`'s doc comment for the full read list), only the
- * `ksp.*` COMMANDS still fall back to the legacy `DataSource` (their
- * `mapCommand` entries aren't promoted into `carriedChannels` below, so
- * `useExecuteAction("data")` takes the legacy branch every time), so
- * `setupMockDataSource`'s `onExecute` spy is the one thing left worth a
- * mock registration in this file. Every other assertion drives real stream
- * emits through `setupStreamFixture`.
+ * Every read this widget makes has a real wire home (see `stream.test.tsx`'s
+ * doc comment for the full read list) and every `ksp.*` command now dispatches
+ * through `useCommand`, so both halves are asserted off `setupStreamFixture`:
+ * reads by emitting, writes by reading `stream.transport.sentCommands`. The
+ * `setupMockDataSource` registration survives only because the widget's
+ * `useGameContext` reads still resolve against a registered `DataSource`.
  *
  * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design, `met`
  * only derives in the OnRails/"propagated" basis, `altitudeAsl` only in the
@@ -127,14 +125,19 @@ function emitInFlightVessel(
   });
 }
 
+/** Every `ksp.launch` this render dispatched onto the stream, newest last. */
+function sentLaunches(stream: ReturnType<typeof setupStreamFixture>) {
+  return stream.transport.sentCommands.filter(
+    (c) => c.command === "ksp.launch",
+  );
+}
+
 describe("LaunchDirectorComponent", () => {
   let cmdFixture: MockDataSourceFixture;
-  let onExecute: ReturnType<typeof vi.fn>;
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
-    onExecute = vi.fn();
-    cmdFixture = await setupMockDataSource({ keys: [], onExecute });
+    cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
   });
 
@@ -226,11 +229,18 @@ describe("LaunchDirectorComponent", () => {
     await user.click(screen.getByText(/Jebediah Kerman/));
 
     await user.click(screen.getByText(/Launch Mun Hopper \(1 crew\)/i));
-    expect(onExecute).not.toHaveBeenCalled();
+    expect(sentLaunches(stream)).toEqual([]);
 
     await user.click(screen.getByText(/Confirm launch/i));
-    expect(onExecute).toHaveBeenCalledWith(
-      "ksp.launch[Mun Hopper,VAB,LaunchPad,Jebediah Kerman]",
+    await waitFor(() =>
+      expect(sentLaunches(stream)[0]).toMatchObject({
+        args: {
+          shipName: "Mun Hopper",
+          facility: "VAB",
+          site: "LaunchPad",
+          crew: ["Jebediah Kerman"],
+        },
+      }),
     );
   });
 
@@ -494,8 +504,7 @@ describe("LaunchDirectorComponent", () => {
     // 113270 the crash-staleness math below needs (replaces the outer
     // beforeEach's pinnedUt: 10).
     teardownMockDataSource(cmdFixture);
-    onExecute = vi.fn();
-    cmdFixture = await setupMockDataSource({ keys: [], onExecute });
+    cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 113270 });
 
     renderWidget();
@@ -612,8 +621,10 @@ describe("LaunchDirectorComponent", () => {
     await user.click(screen.getByText("Woomerang"));
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
     await user.click(screen.getByText(/Confirm launch/i));
-    expect(onExecute).toHaveBeenCalledWith(
-      "ksp.launch[Mun Hopper,VAB,Woomerang_Launch_Site,]",
+    await waitFor(() =>
+      expect(sentLaunches(stream)[0]).toMatchObject({
+        args: { site: "Woomerang_Launch_Site", crew: [] },
+      }),
     );
   });
 
@@ -626,8 +637,10 @@ describe("LaunchDirectorComponent", () => {
 
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
     await user.click(screen.getByText(/Confirm launch/i));
-    expect(onExecute).toHaveBeenCalledWith(
-      "ksp.launch[Mun Hopper,VAB,LaunchPad,]",
+    await waitFor(() =>
+      expect(sentLaunches(stream)[0]).toMatchObject({
+        args: { site: "LaunchPad", crew: [] },
+      }),
     );
   });
 
@@ -640,8 +653,10 @@ describe("LaunchDirectorComponent", () => {
 
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
     await user.click(screen.getByText(/Confirm launch/i));
-    expect(onExecute).toHaveBeenCalledWith(
-      "ksp.launch[Mun Hopper,VAB,LaunchPad,]",
+    await waitFor(() =>
+      expect(sentLaunches(stream)[0]).toMatchObject({
+        args: { site: "LaunchPad", crew: [] },
+      }),
     );
   });
 });

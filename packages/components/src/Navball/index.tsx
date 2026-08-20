@@ -8,7 +8,6 @@ import {
   PerfBudget,
   registerComponent,
   useActionInput,
-  useExecuteAction,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import type { ControlStream } from "@ksp-gonogo/sitrep-client";
@@ -317,20 +316,6 @@ function NavballComponent({
   // vessel.attitude topic): so it stays a stable status source across
   // config changes rather than switching with `useCoM`.
 
-  // Continuous/analog controls: pitch/yaw/roll axes, RCS translation, and
-  // trim stay on the legacy string-action path (K5 in the command-surface
-  // delay audit). FOLLOW-ON, not fabricated here: `VesselControl` (mod/
-  // Sitrep.Contract) has no pitch/yaw/roll READ fields and no
-  // `[SitrepControlChannel]` declarations for those axes yet, so
-  // `getControlChannel("vessel.control.pitch"/".yaw"/".roll")` would resolve
-  // `undefined` today. Wiring them needs the read fields + channel
-  // attributes added to the contract first, then the same
-  // `useControlStream` treatment throttle gets below. Closing a full
-  // attitude-control loop across signal delay is also a control-theory
-  // problem needing a select-then-commit `CommandGroup` design, out of
-  // scope here regardless.
-  const execute = useExecuteAction("data");
-
   // Throttle is the one continuous axis with a real bidirectional channel
   // today (`vessel.control.throttle`), so it rides the delayed
   // control-stream spine instead of the legacy path: local state holds the
@@ -463,6 +448,23 @@ function NavballComponent({
   usePanelDelay(rcsCmd);
   usePanelDelay(sasModeCmd);
   usePanelDelay(fbwCmd);
+
+  /**
+   * Pitch/yaw/roll TRIM. Trim is the one fly-by-wire input with no
+   * `[SitrepControlChannel]`: `SetControlAxesArgs` carries the write fields
+   * (`PitchTrim`/`YawTrim`/`RollTrim`) but `VesselControl` publishes no trim
+   * READ field, so there is no echo to anchor a `useControlStream` on and the
+   * axes above cannot absorb it. It therefore dispatches `setAxes` directly,
+   * one nullable-partial field at a time so a trim never clobbers a live axis.
+   */
+  const trimCmd = useCommand("vessel.control.setAxes");
+  usePanelDelay(trimCmd);
+  const sendTrim = (
+    field: "pitchTrim" | "yawTrim" | "rollTrim",
+    raw: number,
+  ) => {
+    void trimCmd.send({ [field]: clamp(raw, -1, 1) });
+  };
 
   // Raw (uncoerced) current values for the toggle-invert guard: `sasOn`/
   // `rcsOn` above already collapse "unknown" to `false` for DISPLAY, but
@@ -606,10 +608,10 @@ function NavballComponent({
       isButtonPress(p) && setThrottleCmd((v) => clamp(v - 0.1, 0, 1)),
     "throttle-zero": (p) => isButtonPress(p) && setThrottleCmd(0),
     "throttle-full": (p) => isButtonPress(p) && setThrottleCmd(1),
-    // Fly-by-wire axes drive their useControlStream state (which coalesces +
-    // dispatches vessel.control.setAxes over the delayed write half), instead
-    // of the legacy execute() one-shot. Each per-axis translate binding sets
-    // its own component; the other axes hold their last-commanded value.
+    // Fly-by-wire axes drive their useControlStream state, which coalesces +
+    // dispatches vessel.control.setAxes over the delayed write half. Each
+    // per-axis translate binding sets its own component; the other axes hold
+    // their last-commanded value.
     "set-pitch": (p) => {
       if (p.kind !== "analog") return;
       setPitchCmd(clamp(p.value as number, -1, 1));
@@ -636,21 +638,15 @@ function NavballComponent({
     },
     "set-pitch-trim": (p) => {
       if (p.kind !== "analog") return;
-      void execute(
-        `f.setPitchTrim[${clamp(p.value as number, -1, 1).toFixed(3)}]`,
-      );
+      sendTrim("pitchTrim", p.value as number);
     },
     "set-yaw-trim": (p) => {
       if (p.kind !== "analog") return;
-      void execute(
-        `f.setYawTrim[${clamp(p.value as number, -1, 1).toFixed(3)}]`,
-      );
+      sendTrim("yawTrim", p.value as number);
     },
     "set-roll-trim": (p) => {
       if (p.kind !== "analog") return;
-      void execute(
-        `f.setRollTrim[${clamp(p.value as number, -1, 1).toFixed(3)}]`,
-      );
+      sendTrim("rollTrim", p.value as number);
     },
   });
 

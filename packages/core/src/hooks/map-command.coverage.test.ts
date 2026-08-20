@@ -6,28 +6,28 @@ import { describe, expect, it } from "vitest";
 import { STOCK_ACTION_GROUPS } from "../actionGroups";
 
 /**
- * Coverage gate for the M3 `mapCommand` command table, the write-half twin
- * of `mapTopic.coverage.test.ts`. Every legacy Telemachus action key a real
- * widget's `useExecuteAction("data")`-bound `execute(...)` call actually
- * fires must be either mapped to a new command (`mapCommand("data", key)`
- * resolves for SOME reachable current-value/arg combination) or explicitly
- * listed as a known gap (`isKnownCommandGap`). Anything neither mapped nor
- * gap-listed is a silent miss: a widget action nobody audited would quietly
- * keep working off legacy forever with no signal that it was never
+ * Coverage gate for the `mapCommand` command table, the write-half twin of
+ * `mapTopic.coverage.test.ts`. Every legacy action key anything in the app
+ * still dispatches must be either mapped to a new command (`mapCommand("data",
+ * key)` resolves for SOME reachable current-value/arg combination) or
+ * explicitly listed as a known gap (`isKnownCommandGap`). Anything neither
+ * mapped nor gap-listed is a silent miss: an action nobody audited would
+ * quietly keep working off legacy forever with no signal that it was never
  * considered for migration.
  *
- * Scans `packages/components/src` directly (mirroring `mapTopic.coverage
- * .test.ts`'s own scan) so a newly-added widget action fails CI immediately
- * instead of slipping through unaudited.
+ * **Where the legacy action strings live now.** The widget half is gone: no
+ * component binds a `(action: string) => Promise<void>` dispatcher any more
+ * (`useExecuteAction`, the last one, was deleted with its final two callers).
+ * What survives is `dispatchActiveCommand(dataSourceId, action)`, the non-hook
+ * router the alarm effects, GO/NO-GO stage effects and maneuver triggers use
+ * from plain classes, so the scan covers `packages/app/src` alongside
+ * `packages/components/src` and matches that call as well as `execute(...)`.
+ * Keeping `execute(...)` in the pattern is deliberate: it is what catches a
+ * widget reaching back for a string-action dispatcher.
  */
 
-const COMPONENTS_SRC = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
-  "components",
-  "src",
+const SCAN_ROOTS = ["components", "app"].map((pkg) =>
+  join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", pkg, "src"),
 );
 
 function listSourceFiles(dir: string): string[] {
@@ -64,27 +64,32 @@ function extractActionKey(raw: string): string {
 }
 
 /**
- * Every literal `execute("...")` / `` execute(`...`) `` call site across
- * `packages/components/src`, reduced to base action keys. Deliberately
- * matches ANY `execute(` call (not just ones on a variable literally named
- * `execute`): every real call site in the widget set today happens to use
- * that name (`const execute = useExecuteAction("data")`), and scanning the
- * call shape rather than requiring a specific binding name is both simpler
- * and more future-proof. `KosProcessors`' `executeKos(...)` calls are NOT
- * matched (`execute\(` requires "execute" immediately followed by "(", which
+ * Every literal action string handed to `execute(...)` or, as its second
+ * argument, to `dispatchActiveCommand(...)` across the scan roots, reduced to
+ * base action keys. `execute(` deliberately matches ANY receiver rather than a
+ * specific binding name: scanning the call shape is both simpler and more
+ * future-proof. `KosProcessors`' `executeKos(...)` calls are NOT matched
+ * (`execute\(` requires "execute" immediately followed by "(", which
  * "executeKos(" never satisfies): correctly excluded, since that hook is
  * bound to `dataSourceId: "kos"`, which `mapCommand` never routes.
  */
-function collectWidgetCommandActions(): Set<string> {
-  const keys = new Set<string>();
-  for (const file of listSourceFiles(COMPONENTS_SRC)) {
-    const source = readFileSync(file, "utf-8");
+const LITERAL_ACTION_PATTERNS = [
+  /execute\(\s*"([^"]*)"/g,
+  /execute\(\s*`([^`]*)`/g,
+  /dispatchActiveCommand\([^,)]*,\s*"([^"]*)"/g,
+  /dispatchActiveCommand\([^,)]*,\s*`([^`]*)`/g,
+];
 
-    for (const match of source.matchAll(/execute\(\s*"([^"]*)"/g)) {
-      keys.add(extractActionKey(match[1]));
-    }
-    for (const match of source.matchAll(/execute\(\s*`([^`]*)`/g)) {
-      keys.add(extractActionKey(match[1]));
+function collectLiteralCommandActions(): Set<string> {
+  const keys = new Set<string>();
+  for (const root of SCAN_ROOTS) {
+    for (const file of listSourceFiles(root)) {
+      const source = readFileSync(file, "utf-8");
+      for (const pattern of LITERAL_ACTION_PATTERNS) {
+        for (const match of source.matchAll(pattern)) {
+          keys.add(extractActionKey(match[1]));
+        }
+      }
     }
   }
   return keys;
@@ -135,17 +140,28 @@ function collectDynamicCommandActions(): Set<string> {
   return keys;
 }
 
-describe("mapCommand coverage: every widget action key is mapped or a declared gap", () => {
+describe("mapCommand coverage: every dispatched action key is mapped or a declared gap", () => {
+  const literalActions = collectLiteralCommandActions();
   const widgetActions = new Set([
-    ...collectWidgetCommandActions(),
+    ...literalActions,
     ...collectDynamicCommandActions(),
   ]);
 
-  it("found a non-trivial number of widget action keys (scan sanity check)", () => {
-    expect(widgetActions.size).toBeGreaterThan(20);
+  // Two separate floors, because the two halves fail in different ways and one
+  // number cannot say which broke. The dynamic half is a hardcoded enumeration
+  // that can only break by being edited; the FILE SCAN is the half that can
+  // silently start matching nothing (a moved root, a renamed extension, a
+  // regex that stopped applying) and then report a clean codebase while
+  // reading no files at all.
+  it("the file scan is actually finding literal action strings", () => {
+    expect(literalActions.size).toBeGreaterThan(0);
   });
 
-  it("maps or explicitly gaps every widget action key, no silent misses", () => {
+  it("found a non-trivial number of action keys overall (scan sanity check)", () => {
+    expect(widgetActions.size).toBeGreaterThan(15);
+  });
+
+  it("maps or explicitly gaps every dispatched action key, no silent misses", () => {
     // `hasCommandHome` is a plain key-existence check (was this action ever
     // audited and given a home), not a full `mapCommand` resolution, several
     // homes need real positional args or a live current-value reader to
@@ -161,7 +177,7 @@ describe("mapCommand coverage: every widget action key is mapped or a declared g
     expect(unaccounted).toEqual([]);
   });
 
-  it("mapped keys and known gaps are mutually exclusive for every widget action key", () => {
+  it("mapped keys and known gaps are mutually exclusive for every dispatched action key", () => {
     const bothMappedAndGapped = [...widgetActions].filter(
       (key) => hasCommandHome("data", key) && isKnownCommandGap("data", key),
     );

@@ -122,7 +122,7 @@ The foundation for everything extensible:
     getConfig(): Record<string, unknown>;
   }
   ```
-- **`useDataValue(dataSourceId, key)`** and **`useExecuteAction(dataSourceId)`** are the universal hooks that all components use to read data and fire actions. Components never call `getDataSource()` or any `DataSource` method directly. These hooks are the **PeerJS boundary**: on the main screen they call the DataSource directly; on a station screen (future) they will route through PeerJS instead. The component code doesn't change, only the hook routing does.
+- **`useDataValue(dataSourceId, key)`** is the universal read hook for the non-Sitrep `DataSource` sources (kOS, camera, serial). Components never call `getDataSource()` or any `DataSource` method directly. It is the **PeerJS boundary**: on the main screen it calls the DataSource directly; on a station screen (future) it will route through PeerJS instead. The component code doesn't change, only the hook routing does. There is no longer a write twin: `useExecuteAction` was deleted once its last two callers migrated, and every command goes through the delay-aware `useCommand(topic)`.
 
 ### `@ksp-gonogo/components`
 
@@ -204,7 +204,7 @@ The kOS data source runs registered kerboscripts on the user's active CPU and fa
 ### When to use this vs. raw `executeScript`
 
 - **Centralised feed** (this section): passive listing / telemetry / state snapshot, same payload for every subscriber. Examples: ShipMap parts, KosProcessors listing. The widget calls `useDataValue` and is done. (NOT TargetPicker, its Bodies/Vessels/Parts list is the `target.available` stream Topic, read with `useTelemetry`, not a kOS feed.)
-- **Raw `executeScript`**: RPC-shaped one-shots that take per-call args. Examples: KosFiles (op + path → contents). The widget calls `getDataSource("kos").executeScript(cpu, scriptPath, args, managed)` directly. No registry entry, no fanout. (NOT TargetPicker's set-target click, that fires `useExecuteAction("data")` with `tar.setTargetBody/Vessel/Part[…]`, a data-source action, not a kOS script.)
+- **Raw `executeScript`**: RPC-shaped one-shots that take per-call args. Examples: KosFiles (op + path → contents). The widget calls `getDataSource("kos").executeScript(cpu, scriptPath, args, managed)` directly. No registry entry, no fanout. (NOT TargetPicker's set-target click, that dispatches the `vessel.target.set` command through `useCommand`, not a kOS script.)
 
 ### Adding a new feed-style widget
 
@@ -240,15 +240,19 @@ The data source runs the script on `0:/widget_scripts/<id>.ks` via the managed w
 **3. Read from the widget** with the standard hooks:
 
 ```ts
-import { useDataValue, useExecuteAction } from "@ksp-gonogo/core";
+import { useDataValue } from "@ksp-gonogo/core";
 import { useKosScriptStatus } from "@ksp-gonogo/data";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 
 const parts = useDataValue<MyPart[]>("kos", "kos.compute.my-feed.parts");
 const status = useKosScriptStatus("my-feed");
-const executeKos = useExecuteAction("kos");
+const dispatchNowCmd = useCommand("kos.dispatchNow");
+const reEnableCmd = useCommand("kos.reEnable");
+usePanelDelay(dispatchNowCmd);
+usePanelDelay(reEnableCmd);
 
-const dispatchNow = () => void executeKos("kos.compute.my-feed.dispatchNow");
-const reEnable = () => void executeKos("kos.compute.my-feed.reEnable");
+const dispatchNow = () => void dispatchNowCmd.send({ coreId, scriptId: "my-feed" });
+const reEnable = () => void reEnableCmd.send({ scriptId: "my-feed" });
 ```
 
 `useDataValue` carries the value; `useKosScriptStatus` carries `running / lastGoodAt / scriptError / parseError / paused`, bits that don't fit the value channel. The standard `KosScriptFrame` chrome accepts all those props directly.

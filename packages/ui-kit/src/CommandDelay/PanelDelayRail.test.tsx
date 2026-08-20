@@ -165,6 +165,22 @@ describe("PanelDelayRail", () => {
     ).toBe("");
   });
 
+  it("renders nothing for a delayed stream handle with no buffers to draw", () => {
+    // A stream-shaped command whose delay UX is drawn elsewhere (the Navball's
+    // trim command shares vessel.control.setAxes with the axes but has no
+    // readback channel of its own) registers with no `streams`. ControlDelayStream
+    // draws nothing from an empty array, so the rail must not mount an empty band.
+    const store = createDelayRailStore();
+    store.register({
+      id: "bufferless-stream",
+      inFlight: [],
+      shape: "stream",
+      effectiveDelaySeconds: 1.6,
+    });
+    const { container } = inPanel(<PanelDelayRail />, store);
+    expect(container.querySelector("[data-panel-rail]")).toBeNull();
+  });
+
   it("publishes its measured height into --panel-rail-height on the panel target", () => {
     const store = createDelayRailStore();
     store.register(handle("cmd"));

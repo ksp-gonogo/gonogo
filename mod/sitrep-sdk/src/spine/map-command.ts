@@ -1,20 +1,20 @@
 /**
  * The write-half analog of `map-topic.ts`'s `mapTopic`: old legacy action-string
- * key (as passed to `useExecuteAction("data")(action)` today, e.g.
+ * key (as passed to `dispatchActiveCommand("data", action)` today, e.g.
  * `"t.timeWarp[4]"`, `"t.pause"`) -> the new typed `vessel.*`/`time.*`
  * command + wire-shaped args, or `undefined` when there is no new command
  * home yet. `undefined` is the explicit "fall back to the legacy
  * `DataSource.execute(action)` path" signal: mirrors `mapTopic`'s own
  * "`undefined` is not an identity fallback" contract exactly, for the same
- * reason: a caller (`@ksp-gonogo/core`'s `useExecuteAction` shim) needs to know
+ * reason: a caller (`dispatchActiveCommand`) needs to know
  * when it CAN'T route, not receive something it has to guess is unrouted.
  *
  * Only `dataSourceId === "data"` is covered, matching `mapTopic`, nothing
  * else (`"kos"`, `"kerbcast"`) is wired to the new command surface yet.
  *
- * **Scope of this table.** The full command table for every `useExecuteAction`
- * action key found in `packages/components/src` (`map-command.coverage.test
- * .ts` in `@ksp-gonogo/core` is the coverage gate, every widget action key must
+ * **Scope of this table.** The full command table for every legacy action key
+ * anything in the app still dispatches (`map-command.coverage.test.ts` in
+ * `@ksp-gonogo/core` is the coverage gate, every dispatched action key must
  * resolve here OR be in `KNOWN_COMMAND_GAPS`, no silent miss). Command topics
  * and arg shapes are confirmed against `mod/Sitrep.Host/
  * VesselCommandProvider.cs` (the 17 registered commands) and
@@ -38,7 +38,7 @@
  *    .Enabled`, doc comment: "a toggle racing an unknown intervening state
  *    under light-time delay is a footgun this contract doesn't reproduce").
  *    `buildArgs` gets a `getCurrentValue(topic)` reader (backed by the
- *    mounted `TimelineStore`'s `sample()`, wired in `useExecuteAction.ts`) and
+ *    mounted `TimelineStore`'s `sample()`, wired in `context.tsx`) and
  *    inverts the CURRENT value to build the absolute one. When the current
  *    value isn't known yet (`undefined`) or isn't the expected shape, this
  *    returns `INVALID`: the shim falls back to legacy rather than ever
@@ -71,14 +71,14 @@
  * returns the `INVALID` sentinel (never a real args value containing e.g.
  * `NaN`) whenever a raw arg fails to parse, an enum name isn't recognized, or
  * a toggle's current value can't be read; `mapCommand` turns that into an
- * overall `undefined`, which is `useExecuteAction`'s existing "use the legacy
+ * overall `undefined`, which is `dispatchActiveCommand`'s "use the legacy
  * path" signal. This repo NEVER dispatches a `{index: NaN}`-class malformed
  * command: see `map-command.test.ts`'s malformed-arg cases.
  */
 
 /** Reads the CURRENT value of a new-SDK stream topic, if one is live,
  * backed by a mounted `TimelineStore`'s `sample()` in production
- * (`useExecuteAction.ts`), a plain stub in tests. `undefined` when nothing
+ * (`sampleActiveTopic`, see `context.tsx`), a plain stub in tests. `undefined` when nothing
  * has arrived yet or no store is mounted; a `buildArgs` that needs the
  * current value to invert a toggle MUST treat that as "can't safely build
  * this command" (return `INVALID`), never assume a default. */
@@ -882,13 +882,13 @@ export interface MappedCommand {
 
 /**
  * Resolve a widget-facing legacy `(dataSourceId, action)` pair, as passed to
- * `useExecuteAction(dataSourceId)(action)` today: to the new typed command +
+ * `dispatchActiveCommand(dataSourceId, action)` today: to the new typed command +
  * args it should dispatch instead. Returns `undefined` when there is no new
  * command home yet, the action's args couldn't be safely built (a toggle
  * whose current value isn't known, a malformed/out-of-range positional arg,
  * an unrecognized enum name: see this file's doc comment), or `dataSourceId`
- * isn't `"data"`. The `@ksp-gonogo/core` `useExecuteAction` shim falls back to
- * the legacy `execute(action)` path in every `undefined` case.
+ * isn't `"data"`. `dispatchActiveCommand` falls back to the legacy
+ * `execute(action)` path in every `undefined` case.
  *
  * `getCurrentValue` defaults to "nothing known" (`() => undefined`) so every
  * existing 2-arg call site (including this file's own earlier tests) keeps

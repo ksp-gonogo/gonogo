@@ -171,7 +171,6 @@ export const APP_INTERNAL: Readonly<Record<string, number>> = {
   "packages/core/src/calc/trajectory.ts": 1,
   "packages/core/src/declarations.ts": 1,
   "packages/core/src/fog.ts": 4,
-  "packages/core/src/hooks/map-command.coverage.test.ts": 1,
   "packages/core/src/hooks/mapTopic.coverage.test.ts": 9,
   "packages/core/src/hooks/useGameContext.test.tsx": 2,
   "packages/core/src/hooks/useGameContext.ts": 3,

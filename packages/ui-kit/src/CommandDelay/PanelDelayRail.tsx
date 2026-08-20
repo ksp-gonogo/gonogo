@@ -11,9 +11,20 @@ import { usePanelRailTarget } from "./PanelRailTarget";
  * instant / idle command (a meta-vantage or not-yet-dispatched handle) is still
  * registered, so its must-consume token is marked and it appears the instant it
  * goes in flight, but it contributes no rail chrome meanwhile.
+ *
+ * A stream handle also needs BUFFERS, not just delay. `ControlDelayStream`
+ * returns null on an empty `streams` array, so a stream-shaped command whose
+ * delay UX is drawn elsewhere (the Navball's trim command shares
+ * `vessel.control.setAxes` with the axes, but has no readback channel to build
+ * a strip from) would otherwise mount the rail permanently to draw nothing
+ * inside it, an empty 16px band on every delayed link.
  */
 function handleHasContent(handle: CommandHandle): boolean {
-  if (handle.shape === "stream") return handle.effectiveDelaySeconds > 0;
+  if (handle.shape === "stream") {
+    return (
+      handle.effectiveDelaySeconds > 0 && (handle.streams?.length ?? 0) > 0
+    );
+  }
   return handle.inFlight.length > 0;
 }
 

@@ -91,7 +91,6 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useActionInput",
   "useCommand",
   "useDataSources",
-  "useExecuteAction",
   "useBodyFogMask",
   "useFogMaskCache",
   "useFogMaskStore",

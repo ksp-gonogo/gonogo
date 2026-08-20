@@ -42,7 +42,7 @@
               },
               "@ksp-gonogo/core": {
                 "importNames": ["useCommand"],
-                "message": "useCommand from @ksp-gonogo/core was the legacy non-delay bridge (deleted in the unified-delay-ux plan). useCommand now means the delay-aware per-topic hook: import it from @ksp-gonogo/sitrep-client or the sitrep-sdk facade so the signal-delay UX rides along. The only surviving legacy escape is useExecuteAction, kept solely for the deferred Navball + LaunchDirector migrations."
+                "message": "useCommand from @ksp-gonogo/core was the legacy non-delay bridge (deleted in the unified-delay-ux plan). useCommand now means the delay-aware per-topic hook: import it from @ksp-gonogo/sitrep-client or the sitrep-sdk facade so the signal-delay UX rides along. There is no legacy escape left: useExecuteAction went with its last two callers."
               },
               "@ksp-gonogo/sitrep-sdk/src": {
                 "message": "Import from the package root. `src/` is internal layout; the same rule ships to third parties in the SDK's own biome.json, so keep our call sites honest to it."

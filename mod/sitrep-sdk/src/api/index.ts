@@ -281,12 +281,6 @@ export const registerSetting = (def: SettingDefinition): void =>
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 
-export function useExecuteAction(
-  dataSourceId: string,
-): (action: string) => Promise<void> {
-  return getHost().useExecuteAction(dataSourceId);
-}
-
 /**
  * Canonical overload: keyed by TopicId, answers with a `Reading` of the Topic's
  * payload.

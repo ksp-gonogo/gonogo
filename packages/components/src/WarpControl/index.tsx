@@ -44,7 +44,7 @@ type WarpControlConfig = Record<string, never>;
 // Declaration-merge this widget's slot ids → props type into core's
 // `SlotRegistry` (Uplink architecture, declaration-merging base). Both
 // slots are plain composition points with no parent context to hand down, a
-// contributed action fires its OWN command via `useExecuteAction`, a badge
+// contributed action fires its OWN command via `useCommand`, a badge
 // reads its OWN Topics, so each passes empty props (`Record<string, never>`).
 // Co-located here (not in a shared central registry file) so parallel slot
 // work on other widgets never collides on the same module.
@@ -129,8 +129,9 @@ function WarpControlComponent({
   // Migrated: the whole warp state rides one native Topic,
   // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
   // stream: no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
-  // reads and no legacy read-fallback. Command keys (`t.timeWarp[N]`,
-  // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
+  // reads and no legacy read-fallback. The commands migrated too:
+  // `time.setWarpIndex`/`time.setPaused` through `useCommand`, no legacy
+  // `t.timeWarp[N]`/`t.pause`/`t.unpause` action strings left in this widget.
   //
   // Every field on this record is a FACT, so all four go through `stillTrue`.
   // Warp rate, warp index, warp mode and pause are discrete simulation MODES:
