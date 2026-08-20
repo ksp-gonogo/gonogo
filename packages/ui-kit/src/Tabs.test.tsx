@@ -350,6 +350,40 @@ describe("Tabs expandWhenRoomy", () => {
     expect(screen.queryByText("panel-two")).not.toBeInTheDocument();
   });
 
+  it("names the tab strip when asked, and leaves it unnamed when not", () => {
+    const { rerender } = render(
+      <Tabs tabs={TABS} activeId="one" onChange={() => undefined} />,
+    );
+    // Unnamed is the default and stays that way: a name nobody asked for would
+    // be one more thing read aloud on every screen that has only one strip.
+    expect(screen.getByRole("tablist")).not.toHaveAttribute("aria-label");
+
+    rerender(
+      <Tabs
+        tabs={TABS}
+        activeId="one"
+        onChange={() => undefined}
+        aria-label="Trigger kind"
+      />,
+    );
+    expect(screen.getByRole("tablist", { name: "Trigger kind" })).toBeTruthy();
+  });
+
+  it("takes the name from another element with aria-labelledby", () => {
+    render(
+      <>
+        <h2 id="strip-heading">Mission phase</h2>
+        <Tabs
+          tabs={TABS}
+          activeId="one"
+          onChange={() => undefined}
+          aria-labelledby="strip-heading"
+        />
+      </>,
+    );
+    expect(screen.getByRole("tablist", { name: "Mission phase" })).toBeTruthy();
+  });
+
   it("has no axe violations when expanded side by side", async () => {
     const { container } = render(
       <Tabs
