@@ -37,3 +37,11 @@ obj/
 
 # Feature log: working history, not repo record. Kept on disk, untracked.
 feature_log/
+
+# Fleet-agent scaffolding: per-worktree launcher state, never repo history.
+# Untracked is not enough, the em-dash and reachability gates both scan
+# untracked files on purpose, so an agent's own log becomes a styleguide
+# offender in whichever worktree it happens to be running.
+.agent.log
+.launch.sh
+.startup-prompt
