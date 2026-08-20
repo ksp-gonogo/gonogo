@@ -68,6 +68,19 @@
       "initialMassTons": "t",
       "specificImpulseSeconds": "s",
       "thrustKilonewtons": "kN"
+    },
+    "PrincipiaProvenance": {
+      "displayPatchedConics": "flag",
+      "framesHidingUnpinnedCelestials": "count",
+      "framesHidingUnpinnedMarkers": "count",
+      "historyLengthSeconds": "s",
+      "plottingFrameCentreBody": "text",
+      "plottingFrameType": "enum",
+      "predictionMaxSteps": "count",
+      "predictionObservedAtUt": "ut",
+      "predictionToleranceMetres": "m",
+      "predictionVesselId": "id",
+      "targetFrameSelected": "flag"
     }
   },
   "topics": {
@@ -83,6 +96,19 @@
       "statusError": "enum",
       "statusMessage": "text",
       "vesselId": "id"
+    },
+    "principia.provenance": {
+      "displayPatchedConics": "flag",
+      "framesHidingUnpinnedCelestials": "count",
+      "framesHidingUnpinnedMarkers": "count",
+      "historyLengthSeconds": "s",
+      "plottingFrameCentreBody": "text",
+      "plottingFrameType": "enum",
+      "predictionMaxSteps": "count",
+      "predictionObservedAtUt": "ut",
+      "predictionToleranceMetres": "m",
+      "predictionVesselId": "id",
+      "targetFrameSelected": "flag"
     }
   },
   "typeShapes": {

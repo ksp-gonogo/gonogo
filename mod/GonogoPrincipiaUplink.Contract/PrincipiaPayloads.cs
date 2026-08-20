@@ -175,3 +175,93 @@ public sealed class PrincipiaFlightPlanBurn
     [SitrepUnit(Units.Flag)]
     public bool? Anomalous { get; set; }
 }
+
+/// <summary>
+/// The <c>principia.provenance</c> channel: what is authoritative right now, and
+/// which parts of that we have actually seen.
+///
+/// <para>Three settings decide whether a propagated number can be trusted at a
+/// given instant, and in-game they live in three different windows. Putting them
+/// on one surface is the thing an in-game overlay cannot do, and the elected
+/// provider belongs here too as a diagnostic rather than a readout.</para>
+///
+/// <para><b>The fields split into two classes and the split is load-bearing.</b>
+/// Most of this is operator state that is correct whenever it is read: a toggle
+/// holds what the operator set, a length is restored from the save. But the
+/// prediction tolerance and step limit are recomputed by the producer's own UI on
+/// every repaint from a per-vessel source we may not query, so they are
+/// <b>observations</b> and carry <see cref="PredictionObservedAtUt"/> plus the
+/// vessel they were observed for. Null means not observed.</para>
+///
+/// <para>That distinction is not pedantry. Unobserved, those two indices sit at
+/// their constructor defaults, which resolve to a plausible tolerance and a
+/// plausible step count. A payload that reported them anyway would hand an
+/// operator a fabricated basis for judging every other number on the screen, with
+/// nothing anywhere to indicate it. A missing tolerance is a gap someone can act
+/// on; an invented one is not.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("principia.provenance")]
+#if NETSTANDARD2_0
+[TsInterface]
+#endif
+public sealed class PrincipiaProvenance
+{
+    /// <summary>True when the game is ALSO drawing stock patched conics. The trust
+    /// question in reverse: an operator seeing two curves needs to know one of them
+    /// is not the integrated one.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? DisplayPatchedConics { get; set; }
+
+    /// <summary>How much flown history the producer keeps. An interval, so
+    /// seconds.</summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? HistoryLengthSeconds { get; set; }
+
+    /// <summary>How many plotting frames are set to hide unpinned markers. A count
+    /// rather than the set: the operator-facing fact is whether markers are being
+    /// hidden from them at all.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? FramesHidingUnpinnedMarkers { get; set; }
+
+    /// <summary>As above, for celestials.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? FramesHidingUnpinnedCelestials { get; set; }
+
+    /// <summary>The plotting frame's kind, as the producer's own enum ordinal.
+    /// Passed through rather than mapped to a name on the producer side: the label
+    /// is built client-side because every method that would name it can abort the
+    /// process.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public int? PlottingFrameType { get; set; }
+
+    /// <summary>The body the plotting frame is centred on, by name.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? PlottingFrameCentreBody { get; set; }
+
+    /// <summary>True when the frame is defined relative to the target rather than
+    /// to a body, in which case the centre body above does not describe it.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? TargetFrameSelected { get; set; }
+
+    /// <summary>The prediction's position tolerance. An OBSERVATION: null until the
+    /// producer's own settings UI has rendered at least once.</summary>
+    [SitrepUnit(Units.Metres)]
+    public double? PredictionToleranceMetres { get; set; }
+
+    /// <summary>The prediction's integration step limit. An observation, as
+    /// above.</summary>
+    [SitrepUnit(Units.Count)]
+    public double? PredictionMaxSteps { get; set; }
+
+    /// <summary>When the two prediction fields above were observed. Their age is
+    /// the operator's cue, exactly as on the flight plan.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictionObservedAtUt { get; set; }
+
+    /// <summary>Which vessel the prediction settings were observed FOR. They are
+    /// per-vessel, so a tolerance with no vessel attached would read as a global
+    /// setting and mislead on every other craft.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PredictionVesselId { get; set; }
+}

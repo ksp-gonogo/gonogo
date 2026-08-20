@@ -14,6 +14,7 @@ namespace GonogoPrincipiaUplink
         partial void AttachObserver()
         {
             _observer ??= new FlightPlannerHook();
+            _provenance ??= new PredictionSettingsHook();
         }
     }
 }

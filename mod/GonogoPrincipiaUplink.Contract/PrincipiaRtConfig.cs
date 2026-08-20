@@ -38,6 +38,7 @@ public static class PrincipiaRtConfig
         {
             typeof(PrincipiaFlightPlan),
             typeof(PrincipiaFlightPlanBurn),
+            typeof(PrincipiaProvenance),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());

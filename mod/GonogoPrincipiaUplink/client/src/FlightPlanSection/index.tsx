@@ -255,12 +255,19 @@ export function FlightPlanSection() {
 /**
  * Whether this is the burn the integrator named as next.
  *
- * Both indices have to be READ before they can agree. Comparing the two
- * magnitudes directly looked equivalent and was not: with neither index
- * readable, both funnel to null and `null === null` marks EVERY row as next, so
- * a payload that had lost one field would confidently point at the wrong burn on
- * every line. Requiring a real index on both sides means an unreadable one
- * marks nothing, which is the honest answer.
+ * Both indices have to be READ before they can agree, and the naive version
+ * LOOKS CORRECT, which is why this is spelled out at the comparison rather than
+ * left to the reader.
+ *
+ * `magnitudeOf(burn.index) === magnitudeOf(plan.firstFutureBurnIndex)` is what
+ * anyone would write. It is wrong for the ABSENT case: with neither index
+ * readable both funnel to null, `null === null` holds, and EVERY row is marked
+ * next. A payload that lost one field would not go blank and would not error, it
+ * would point confidently at the wrong burn on every line, in the widget whose
+ * whole purpose is to point at one. The same shape as a `=== undefined` check
+ * against a `number | null` field: a comparison that is TRUE when nothing is
+ * there. Requiring a real index on both sides means an unreadable one marks
+ * nothing, which is the honest answer.
  */
 function isNextBurn(
   burn: PrincipiaFlightPlanBurn,

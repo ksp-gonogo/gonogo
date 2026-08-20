@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using GonogoPrincipiaUplink;
 using Sitrep.Contract;
@@ -126,34 +127,53 @@ namespace GonogoPrincipiaUplink.Tests
     public class PrincipiaUplinkTests
     {
         [Fact]
-        public void DeclaresTheFlightPlanChannelAndNoAvailabilityTopic()
+        public void DeclaresItsTwoChannelsAndNoAvailabilityTopic()
         {
             var manifest = new PrincipiaUplink().Manifest;
 
             Assert.Equal("principia", manifest.Id);
-            var channel = Assert.Single(manifest.Channels);
-            Assert.Equal("principia.flightPlan", channel.Topic);
+            Assert.Equal(
+                new[] { "principia.flightPlan", "principia.provenance" },
+                manifest.Channels.Select(c => c.Topic).ToArray());
 
             // Presence still rides `system.uplinks` rather than a dedicated
-            // availability topic: a client gates on the flight-plan channel
-            // carrying a sample, which is a stronger fact than the mod being
-            // loaded.
+            // availability topic: a client gates on a channel carrying a sample,
+            // which is a stronger fact than the mod being loaded.
             Assert.DoesNotContain(manifest.Channels, c => c.Topic!.EndsWith(".available"));
         }
 
         /// <summary>
-        /// Absence on this channel must carry NO information, which is what
-        /// <c>AbsenceIsData</c> false means. It is asserted rather than left to the
+        /// Absence on the flight-plan channel must carry NO information, which is
+        /// what <c>AbsenceIsData</c> false means. Asserted rather than left to the
         /// default because the whole channel turns on it: a missing sample is "the
         /// planner has not been opened", and a channel whose absence was data would
-        /// license a client to read that silence as "this vessel has no flight
-        /// plan", which is the reading that makes an operator stop looking.
+        /// license a client to read that silence as "this vessel has no flight plan",
+        /// which is the reading that makes an operator stop looking.
         /// </summary>
         [Fact]
         public void AbsenceOnTheFlightPlanChannelIsNotData()
         {
-            Assert.False(Assert.Single(new PrincipiaUplink().Manifest.Channels).AbsenceIsData);
+            Assert.False(Channel("principia.flightPlan").AbsenceIsData);
         }
+
+        /// <summary>
+        /// The two channels carry OPPOSITE delay roles, and the difference is the
+        /// design rather than an oversight. A flight plan is an observation of a
+        /// craft's future and rides the light-time delay like any other; the
+        /// provenance settings are ground-side facts about how the numbers are being
+        /// computed, on the operator's own machine. Delaying those would mean someone
+        /// adjusting a tolerance could not see the new basis for their readouts until
+        /// light-time had passed.
+        /// </summary>
+        [Fact]
+        public void TheFlightPlanIsDelayedAndTheProvenanceIsNot()
+        {
+            Assert.Equal(DelayRole.Delayed, Channel("principia.flightPlan").Delay);
+            Assert.Equal(DelayRole.TrueNow, Channel("principia.provenance").Delay);
+        }
+
+        private static ChannelDeclaration Channel(string topic) =>
+            new PrincipiaUplink().Manifest.Channels.Single(c => c.Topic == topic);
 
         [Fact]
         public void ReportsUnavailableWithAReasonWhenPrincipiaIsAbsent()

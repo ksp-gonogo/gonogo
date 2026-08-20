@@ -180,6 +180,19 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // consumer unable to read the very frames the delay applies to). 3 explicit
   // declarations.
   "mod/Sitrep.Host/ChannelEngine.cs": 3,
+
+  // principia.provenance (which propagator is computing the trajectories, how
+  // accurately, and in which frame). These are the OPERATOR'S OWN SETTINGS and
+  // the local mod's configuration, held on the same machine the command centre
+  // runs beside: facts about how the numbers are being produced rather than
+  // anything happening in space, so there is no light-time for them to travel.
+  // Delaying them would be actively wrong, not merely pedantic: someone who
+  // tightens a prediction tolerance would keep reading their old basis for every
+  // propagated number on the dashboard until light-time had passed, which is the
+  // opposite of what a provenance surface is for. The flight-plan channel beside
+  // it in the same file IS a claim about a craft's future and stays Delayed.
+  // 1 explicit declaration.
+  "mod/GonogoPrincipiaUplink/PrincipiaUplink.cs": 1,
 };
 
 function findRepoRoot(start: string): string {

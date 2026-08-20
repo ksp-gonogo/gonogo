@@ -112,6 +112,55 @@ Key points:
 - **Topic and Command names are namespaced by your id** (`my-uplink.reading`), which keeps them from
   colliding with other Uplinks
 
+### Reading another mod's internals
+
+Most Uplinks wrap a mod that exposes no API, so you reach its state by reflection: look the type up
+by name, read the members you need, and stay compiled against nothing but `Sitrep.Contract`. That
+part is routine. Two things about it are not, and both have cost us a wrong answer already.
+
+**A field read is safe. A call is safe only once you have read its body.**
+
+The tempting shortcut is "a managed, parameterless getter is harmless, the danger is native
+interop". That is false, and it fails in the worst direction. A mod's own fatal-log helper aborts
+the process, and it gets called from the default branch of an ordinary-looking switch. Principia's
+frame selector holds no native handle at all, and four of its parameterless members still reach it:
+
+```
+FrameParameters()   default branch -> Log.Fatal("Unexpected frame_type …")
+Name()              -> Log.Fatal("Unexpected type …"), plus three root-body cases
+NavballName()       same naming path
+Abbreviation()      same naming path
+```
+
+Reachable, innocuous-looking, forbidden. Nothing about their signatures says so.
+
+What makes this worth a rule rather than a warning is that the loose version gives the right
+answer for the wrong reason. `BurnEditor.Δv()` really is safe, and it passes the loose test too,
+so a shortcut that had been "working" would have kept working right up to the first member that
+happened to have a default branch. If you invoke anything on a foreign object, decompile it first
+and write down what you found next to the call. If you cannot, derive the value from fields
+instead: a label you format yourself is always safer than the mod's own formatter.
+
+**A field you can read is not necessarily a field that is true.**
+
+Ask what WRITES it. Three cases, and only the first is safe to read whenever you like:
+
+| the field is | read it | example |
+| --- | --- | --- |
+| operator state, or restored from the save | freely, it is current | a display toggle, a persisted length |
+| recomputed by the mod's own UI each repaint | only from a hook, and stamp when you saw it | a value the mod refreshes while its window draws |
+| never written unless a window is open | same, and treat "never seen" as its own state | a list the mod fills when the operator looks |
+
+The second and third are the trap, because an unread field is not empty: it holds whatever its
+constructor set, which usually looks like a plausible value. A poll of a window-gated setting will
+happily report the default as though it were the operator's choice, with nothing anywhere to say
+otherwise. If your value only exists while some window renders, put a `Harmony` postfix on that
+render, latch the value with `Planetarium.GetUniversalTime()` beside it, and publish it as a
+sample AT that instant, and the client's own staleness handling then does the rest for free.
+
+And never publish absence from a source that cannot tell "none" from "not looked yet". Publish
+nothing, so the client reads `absent` and can say so.
+
 ---
 
 ## Part 2: the client half

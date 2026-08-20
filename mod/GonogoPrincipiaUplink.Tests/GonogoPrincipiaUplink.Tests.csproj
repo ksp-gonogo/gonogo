@@ -35,7 +35,12 @@
     <Compile Include="..\GonogoPrincipiaUplink\IFlightPlanObserver.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\FlightPlanObservation.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\FlightPlanBuilder.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\ReflectedMembers.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\FlightPlanReflection.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\IProvenanceSource.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\ProvenanceObservation.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\ProvenanceReflection.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\ProvenanceBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

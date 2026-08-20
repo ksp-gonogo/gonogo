@@ -53,10 +53,21 @@ namespace GonogoPrincipiaUplink
             _observer = observer;
         }
 
+        /// <summary>Test seam for the provenance half, same reasoning.</summary>
+        internal PrincipiaUplink(PrincipiaGuardResult guard, IProvenanceSource provenance)
+            : this(guard)
+        {
+            _provenance = provenance;
+        }
+
         public const string FlightPlanTopic = "principia.flightPlan";
+        public const string ProvenanceTopic = "principia.provenance";
 
         private IFlightPlanObserver? _observer;
+        private IProvenanceSource? _provenance;
+        private readonly ProvenanceReflection _provenanceReader = new ProvenanceReflection();
         private IChannelPublisher? _flightPlan;
+        private IChannelPublisher? _provenancePublisher;
         private double _publishedAtUt = double.NegativeInfinity;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -70,6 +81,21 @@ namespace GonogoPrincipiaUplink
                     Topic = FlightPlanTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                // TrueNow, unlike the flight plan beside it, and the difference is
+                // real rather than an oversight. These are the operator's own
+                // settings and the producer's local configuration: ground-side
+                // facts about how the numbers are being computed, not observations
+                // travelling from a craft. Delaying them would mean an operator
+                // adjusting a tolerance could not see the new basis for their
+                // readouts until light-time had passed, which is nonsense for a
+                // setting they just changed on the same machine.
+                new ChannelDeclaration
+                {
+                    Topic = ProvenanceTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
             },
@@ -102,8 +128,11 @@ namespace GonogoPrincipiaUplink
 
             AttachObserver();
             _observer?.TryAttach();
+            _provenance?.TryAttach();
             _flightPlan = host.Publisher(FlightPlanTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, FlightPlanTopic);
+            _provenancePublisher = host.Publisher(ProvenanceTopic);
+            host.AddSampledSource(CaptureProvenanceOnMain, HandleProvenanceOnCourier, ProvenanceTopic);
         }
 
         /// <summary>
@@ -156,6 +185,39 @@ namespace GonogoPrincipiaUplink
         /// "installed but not a version we know" it is, because those want
         /// different actions from an operator.
         /// </summary>
+        /// <summary>
+        /// MAIN-THREAD capture: reads the cold-readable provenance every tick and
+        /// folds in the prediction observation if there is one.
+        ///
+        /// <para>Published every tick rather than on change, unlike the flight plan.
+        /// The difference is what the payload CLAIMS: a flight-plan sample asserts a
+        /// past observation, so re-stamping it would move that observation forward in
+        /// time, while these settings are true now and saying so repeatedly is
+        /// honest. The prediction half carries its own instant inside the payload for
+        /// exactly that reason: it is the one part that is not a statement about
+        /// now.</para>
+        /// </summary>
+        internal object? CaptureProvenanceOnMain(KspSnapshot? snapshot)
+        {
+            if (_provenance == null)
+            {
+                return null;
+            }
+            var observation = _provenanceReader.Read(_provenance.MainWindow, _provenance.FrameSelector);
+            observation.Prediction = _provenance.Prediction;
+            observation.SampledAtUt = snapshot?.Ut ?? 0.0;
+            return observation;
+        }
+
+        internal void HandleProvenanceOnCourier(object? captured)
+        {
+            if (captured is not ProvenanceObservation observation)
+            {
+                return;
+            }
+            _provenancePublisher?.Publish(ProvenanceBuilder.Build(observation), observation.SampledAtUt);
+        }
+
         /// <summary>Sets <c>_observer</c> to the real hook. Implemented only in the
         /// game-facing partial, so a headless build has no observer and says so by
         /// publishing nothing.</summary>
