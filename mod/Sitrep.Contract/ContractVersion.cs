@@ -967,7 +967,26 @@ namespace Sitrep.Contract
         /// can record it, never so a consumer can special-case one;
         /// present-versus-null is the only part anything should test.</para>
         /// </para>
+        ///
+        /// <para><b>Bumped 16 -&gt; 17: command gate declarations.</b>
+        /// <c>CommandDeclaration.Requires</c> plus <c>CommandRequirement</c>,
+        /// <c>GateOutcome</c>, <c>LimitBreach</c>, <c>GateVerdict</c>,
+        /// <c>IGateArguments</c> and <c>ICommandGateEvaluator</c>. Additive: the
+        /// new array defaults empty, so every command that exists is ungated and
+        /// nothing changes behaviour until a requirement is declared.</para>
+        ///
+        /// <para>A command declares its precondition beside <see cref="Delayed"/>
+        /// and the engine does the rest: refuse before the handler runs, publish
+        /// the argument-independent half as addressability, and let the client
+        /// read it off the handle it already holds. The point is that no caller
+        /// has to know what to check. <c>Delayed</c> is the precedent, and it is
+        /// exact: no handler implements delay either.</para>
+        ///
+        /// <para>The evaluator interface lives in THIS assembly rather than the
+        /// host, and that placement is a requirement rather than a preference:
+        /// an Uplink sees only this assembly, so a host-side interface would
+        /// have made gating first-party-only.</para>
         /// </remarks>
-        public const int Minor = 16;
+        public const int Minor = 17;
     }
 }

@@ -189,6 +189,12 @@
       "latitude": "°",
       "longitude": "°"
     },
+    "CommandRequirement": {
+      "facility": "id",
+      "kind": "id",
+      "needs": "id",
+      "quantity": "id"
+    },
     "CommandResult": {
       "errorCode": "enum",
       "success": "flag"
@@ -424,6 +430,10 @@
       "breakingGround": "flag",
       "makingHistory": "flag"
     },
+    "GateVerdict": {
+      "detail": "text",
+      "outcome": "enum"
+    },
     "HireApplicantArgs": {
       "applicantName": "id"
     },
@@ -488,6 +498,14 @@
       "name": "text",
       "padOccupied": "flag",
       "padVesselTitle": "text"
+    },
+    "LimitBreach": {
+      "actual": "n/a",
+      "facility": "id",
+      "facilityLevel": "ratio",
+      "limit": "n/a",
+      "quantity": "id",
+      "unit": "id"
     },
     "ManeuverNode": {
       "cutoffUt": "ut",
@@ -1625,6 +1643,9 @@
     "ChannelDeclaration": {
       "emission": "EmissionPolicy"
     },
+    "CommandDeclaration": {
+      "requires": "CommandRequirement"
+    },
     "CommandResponse`1": {
       "meta": "Meta"
     },
@@ -1668,6 +1689,9 @@
     },
     "EventMsg": {
       "meta": "Meta"
+    },
+    "GateVerdict": {
+      "breach": "LimitBreach"
     },
     "ISitrepUplink": {
       "manifest": "UplinkManifest"

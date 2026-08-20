@@ -216,6 +216,19 @@ namespace Sitrep.Core.Serialization
                 // self-flatten producer-side via Gonogo.KosUplink.
                 // Kos*Builder.Build(), so JsonWriter never sees the raw POCO
                 // any more: see WirePayloadCoverageTests.FlattenedByProducer.
+                case Sitrep.Contract.GateVerdict verdict:
+                    // A declared command gate's answer: the refusal payload, and
+                    // the per-command entry of the addressability set. Flattened
+                    // here rather than by a producer because BOTH consumers hand
+                    // the POCO straight over: there is no view provider in
+                    // between to own the flatten.
+                    AppendGateVerdict(sb, verdict);
+                    break;
+                case Sitrep.Contract.LimitBreach breachValue:
+                    // Reachable on its own, not only nested in a verdict: a
+                    // readout that wants the comparison without the outcome.
+                    AppendLimitBreach(sb, breachValue);
+                    break;
                 case Sitrep.Contract.CommsLink link:
                     // Same "producer owns the flatten" boundary as CommsDelay /
                     // CommsConnectivity below: the comms.link connectivity
@@ -400,6 +413,90 @@ namespace Sitrep.Core.Serialization
         /// <c>Meta.staleness</c> and <see cref="AppendCommandResult"/>'s
         /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
+        /// <summary>
+        /// A gate verdict as <c>{ outcome, breach, detail }</c>, the enum as an
+        /// integer ordinal like every sibling here.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <c>breach</c> is null for every outcome except a numeric Fail, and
+        /// that is the shape the client keys on: an Abstain or an Unknown has
+        /// nothing to compare, so it must not arrive carrying zeroes that render
+        /// as a real limit of 0.
+        /// </remarks>
+        private static void AppendGateVerdict(StringBuilder sb, Sitrep.Contract.GateVerdict verdict)
+        {
+            sb.Append('{');
+            AppendString(sb, "outcome");
+            sb.Append(':');
+            AppendInteger(sb, (long)verdict.Outcome);
+
+            sb.Append(',');
+            AppendString(sb, "breach");
+            sb.Append(':');
+            if (verdict.Breach == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                AppendLimitBreach(sb, verdict.Breach);
+            }
+
+            sb.Append(',');
+            AppendString(sb, "detail");
+            sb.Append(':');
+            AppendString(sb, verdict.Detail ?? "");
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// A limit breach as <c>{ facility, facilityLevel, quantity, limit,
+        /// actual, unit }</c>.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <c>limit</c> and <c>actual</c> are nullable and are written as null
+        /// when absent rather than as 0. An unlimited facility has NO limit, and
+        /// KSP says so with <c>float.MaxValue</c>, which must not reach the wire:
+        /// 3.4e38 beside a craft mass is not "unlimited", it is a bug that reads
+        /// as a units error. Collapsing either to 0 would be worse again, since 0
+        /// is a plausible limit.
+        /// </remarks>
+        private static void AppendLimitBreach(StringBuilder sb, Sitrep.Contract.LimitBreach breach)
+        {
+            sb.Append('{');
+            AppendString(sb, "facility");
+            sb.Append(':');
+            AppendString(sb, breach.Facility ?? "");
+
+            sb.Append(',');
+            AppendString(sb, "facilityLevel");
+            sb.Append(':');
+            AppendNumber(sb, breach.FacilityLevel);
+
+            sb.Append(',');
+            AppendString(sb, "quantity");
+            sb.Append(':');
+            AppendString(sb, breach.Quantity ?? "");
+
+            sb.Append(',');
+            AppendString(sb, "limit");
+            sb.Append(':');
+            if (breach.Limit.HasValue) AppendNumber(sb, breach.Limit.Value); else AppendNull(sb);
+
+            sb.Append(',');
+            AppendString(sb, "actual");
+            sb.Append(':');
+            if (breach.Actual.HasValue) AppendNumber(sb, breach.Actual.Value); else AppendNull(sb);
+
+            sb.Append(',');
+            AppendString(sb, "unit");
+            sb.Append(':');
+            AppendString(sb, breach.Unit ?? "");
+            sb.Append('}');
+        }
+
         private static void AppendCommsDelay(StringBuilder sb, Sitrep.Contract.CommsDelay delay)
         {
             sb.Append('{');

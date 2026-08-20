@@ -223,6 +223,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     latitude: "°",
     longitude: "°",
   },
+  "CommandRequirement": {
+    facility: "id",
+    kind: "id",
+    needs: "id",
+    quantity: "id",
+  },
   "CommandResult": {
     errorCode: "enum",
     success: "flag",
@@ -458,6 +464,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     breakingGround: "flag",
     makingHistory: "flag",
   },
+  "GateVerdict": {
+    detail: "text",
+    outcome: "enum",
+  },
   "HireApplicantArgs": {
     applicantName: "id",
   },
@@ -522,6 +532,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     name: "text",
     padOccupied: "flag",
     padVesselTitle: "text",
+  },
+  "LimitBreach": {
+    actual: "n/a",
+    facility: "id",
+    facilityLevel: "ratio",
+    limit: "n/a",
+    quantity: "id",
+    unit: "id",
   },
   "ManeuverNode": {
     cutoffUt: "ut",
@@ -1682,6 +1700,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ChannelDeclaration": {
     emission: "EmissionPolicy",
   },
+  "CommandDeclaration": {
+    requires: "CommandRequirement",
+  },
   "CommandResponse`1": {
     meta: "Meta",
   },
@@ -1725,6 +1746,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "EventMsg": {
     meta: "Meta",
+  },
+  "GateVerdict": {
+    breach: "LimitBreach",
   },
   "ISitrepUplink": {
     manifest: "UplinkManifest",

@@ -217,6 +217,15 @@ namespace Sitrep.Host
         // DefaultVantage is always allowed).
         private readonly CommandCentres.CommandCentreRegistry _commandCentres = new CommandCentres.CommandCentreRegistry();
 
+        /// <summary>
+        /// Gate evaluators by <see cref="CommandRequirement.Kind"/>. Populated
+        /// during Uplink registration, in no controllable order, which is why the
+        /// declared-kind-has-an-evaluator check is a pass after registration
+        /// rather than a guard inside <see cref="AddCommandHandler{TArgs,TResult}"/>.
+        /// </summary>
+        private readonly Dictionary<string, ICommandGateEvaluator> _gateEvaluators =
+            new Dictionary<string, ICommandGateEvaluator>(StringComparer.Ordinal);
+
         private readonly ConcurrentQueue<IEngineJob> _jobs = new ConcurrentQueue<IEngineJob>();
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
@@ -800,6 +809,12 @@ namespace Sitrep.Host
         // the Courier thread's enumeration of them with no synchronization.
         public void Start()
         {
+            // Every Uplink has registered by now, so this is the first moment
+            // the declared-kind/evaluator pairing is knowable. Before the
+            // threads, so a bad declaration fails without a half-started engine
+            // to tear down. See ValidateGateDeclarations for why it cannot live
+            // in AddCommandHandler beside the missing-declaration check.
+            ValidateGateDeclarations();
             _courierThread.Start();
             _listener.Start();
         }
@@ -1464,6 +1479,151 @@ namespace Sitrep.Host
             return null;
         }
 
+        public void AddGateEvaluator(ICommandGateEvaluator evaluator)
+        {
+            if (evaluator == null) throw new ArgumentNullException(nameof(evaluator));
+            if (string.IsNullOrWhiteSpace(evaluator.Kind))
+            {
+                throw new InvalidOperationException(
+                    "a gate evaluator must name the requirement Kind it answers");
+            }
+            if (_gateEvaluators.TryGetValue(evaluator.Kind, out var existing) && !ReferenceEquals(existing, evaluator))
+            {
+                // Two evaluators for one kind means two answers to the same
+                // question, and which one wins would depend on Uplink
+                // registration order. Refused rather than last-wins.
+                throw new InvalidOperationException(
+                    $"gate kind \"{evaluator.Kind}\" already has an evaluator ({existing.GetType().Name}); "
+                        + $"{evaluator.GetType().Name} cannot also claim it");
+            }
+            _gateEvaluators[evaluator.Kind] = evaluator;
+        }
+
+        /// <summary>
+        /// Evaluate a command's declared requirements against what is known.
+        ///
+        /// <para>ONE evaluation, parameterised by how much of the call is
+        /// supplied. An empty <paramref name="arguments"/> yields the
+        /// addressability answer (static requirements decide, argument-dependent
+        /// ones abstain); the full bag yields the dispatch answer. That is why
+        /// there is no separate addressability path to keep in step with this
+        /// one.</para>
+        ///
+        /// <para>Returns the first non-<see cref="GateOutcome.Pass"/> verdict, or
+        /// Pass. First rather than all: a caller acts on one reason, and
+        /// evaluating the rest after a Fail costs live game reads for an answer
+        /// nobody reads.</para>
+        /// </summary>
+        internal GateVerdict EvaluateGates(string command, IGateArguments arguments)
+        {
+            if (!_commandDeclarations.TryGetValue(command, out var declaration)) return GateVerdict.Pass();
+            var requirements = declaration.Requires;
+            if (requirements == null || requirements.Length == 0) return GateVerdict.Pass();
+
+            foreach (var requirement in requirements)
+            {
+                // Abstention, decided HERE and only here. An evaluator is never
+                // asked a question it lacks the arguments to answer, so it never
+                // has to implement this and so it cannot implement it wrongly.
+                // Getting it wrong privately would publish the command as
+                // permanently unaddressable, which disables the control for good
+                // and looks like it is working.
+                if (!HasAllNeeds(requirement, arguments))
+                {
+                    return new GateVerdict { Outcome = GateOutcome.Abstain };
+                }
+
+                if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator))
+                {
+                    // Unreachable once ValidateGateDeclarations has run, and
+                    // deliberately Unknown rather than Pass if it ever is: an
+                    // unevaluable gate must not read as no gate.
+                    return GateVerdict.Unknown($"no evaluator registered for gate kind \"{requirement.Kind}\"");
+                }
+
+                GateVerdict verdict;
+                try
+                {
+                    verdict = evaluator.Evaluate(requirement, arguments) ?? GateVerdict.Pass();
+                }
+                catch (Exception ex)
+                {
+                    // Same fail-soft posture as a channel mapper, with the
+                    // opposite default: a throwing evaluator marks its owner
+                    // unavailable AND the gate reads Unknown, never Pass.
+                    FailSoftCommand(command, ex);
+                    return GateVerdict.Unknown($"gate kind \"{requirement.Kind}\" threw: {SafeExceptionMessage(ex)}");
+                }
+
+                if (verdict.Outcome == GateOutcome.Abstain)
+                {
+                    // The arithmetic has leaked into an evaluator. Not honoured,
+                    // because an evaluator that abstains when the host already
+                    // decided it had everything it needs is answering a different
+                    // question than the one asked.
+                    return GateVerdict.Unknown(
+                        $"gate kind \"{requirement.Kind}\" abstained despite having its declared arguments; "
+                            + "abstention is the host's decision, not an evaluator's");
+                }
+
+                if (verdict.Outcome != GateOutcome.Pass) return verdict;
+            }
+
+            return GateVerdict.Pass();
+        }
+
+        private static bool HasAllNeeds(CommandRequirement requirement, IGateArguments arguments)
+        {
+            var needs = requirement.Needs;
+            if (needs == null || needs.Length == 0) return true;
+            foreach (var path in needs)
+            {
+                if (!arguments.TryGet(path, out _)) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Every declared gate kind has an evaluator. Run ONCE, after every
+        /// Uplink has registered.
+        ///
+        /// <para>It cannot be a guard inside
+        /// <see cref="AddCommandHandler{TArgs,TResult}"/>, which is where the
+        /// missing-DECLARATION check lives, because evaluators and handlers both
+        /// register during Uplink registration and Uplink order is not
+        /// controllable: a command may legitimately declare a kind whose
+        /// evaluator registers from a later Uplink.</para>
+        ///
+        /// <para>Throwing is the point. A misspelled kind, or an Uplink that
+        /// declares a gate and forgets its evaluator, otherwise produces a gate
+        /// that silently does not exist: nothing refused, nothing disabled,
+        /// published as addressable. A startup failure names it once instead.</para>
+        /// </summary>
+        internal void ValidateGateDeclarations()
+        {
+            var missing = new List<string>();
+            foreach (var pair in _commandDeclarations)
+            {
+                var requires = pair.Value.Requires;
+                if (requires == null) continue;
+                foreach (var requirement in requires)
+                {
+                    var kind = requirement.Kind ?? "";
+                    if (!_gateEvaluators.ContainsKey(kind))
+                    {
+                        missing.Add($"command \"{pair.Key}\" requires gate kind \"{kind}\"");
+                    }
+                }
+            }
+            if (missing.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "gate declarations with no registered evaluator: " + string.Join("; ", missing.ToArray())
+                        + ". Register an ICommandGateEvaluator for each kind, or remove the requirement: "
+                        + "a gate nobody can evaluate is a gate that silently does not exist.");
+            }
+        }
+
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
         {
             if (!_commandDeclarations.ContainsKey(command))
@@ -1876,6 +2036,32 @@ namespace Sitrep.Host
         /// The CODE on the wire stays one value for both (see IMPORTANT-A);
         /// this is prose for a human, never something a client parses.
         /// </remarks>
+        /// <summary>
+        /// The sentence an operator reads when a declared gate refuses.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// Prose for a human. The STRUCTURED form (facility, level, limit,
+        /// actual) belongs on the wire beside it so a client can render the
+        /// comparison in the operator's own units, which a sentence composed
+        /// here cannot: this is the fallback for a refusal with no numbers, and
+        /// the readable half of one that has them.
+        /// </remarks>
+        private static string GateRefusalReason(string command, GateVerdict verdict)
+        {
+            var breach = verdict.Breach;
+            if (breach != null && breach.Limit.HasValue && breach.Actual.HasValue)
+            {
+                return $"command \"{command}\" is not permitted: {breach.Quantity} {breach.Actual.Value} "
+                    + $"exceeds the {breach.Facility} limit of {breach.Limit.Value}";
+            }
+            if (!string.IsNullOrWhiteSpace(verdict.Detail))
+            {
+                return $"command \"{command}\" is not permitted: {verdict.Detail}";
+            }
+            return $"command \"{command}\" is not permitted";
+        }
+
         private string RefusalReason(string command)
         {
             if (!_commandOwner.TryGetValue(command, out var ownerId))
@@ -3542,6 +3728,27 @@ namespace Sitrep.Host
             if (!IsCommandAvailable(job.Command) || !_commandHandlers.ContainsKey(job.Command))
             {
                 job.OnRefused?.Invoke(RefusalReason(job.Command));
+                job.Done?.Set();
+                return;
+            }
+
+            // Declared gates, evaluated before the handler runs and before the
+            // Courier is involved, from the declaration alone. No actuator
+            // performs a facility check: an actuator that did would be a second
+            // source of truth able to disagree with the declaration the
+            // addressability set is published from.
+            //
+            // Inert until a command declares a requirement: Requires defaults
+            // empty, so EvaluateGates returns Pass on the first check.
+            var gate = EvaluateGates(job.Command, new GateArguments(job.Args));
+            if (gate.Outcome != GateOutcome.Pass)
+            {
+                // Abstain cannot mean "allow" here. It means a requirement
+                // declared an argument path this call did not carry, so the gate
+                // could not be evaluated on a REAL dispatch, which is a bad
+                // declaration or a malformed call rather than a permission. Same
+                // treatment as Unknown: refuse and say so, per fail-closed.
+                job.OnRefused?.Invoke(GateRefusalReason(job.Command, gate));
                 job.Done?.Set();
                 return;
             }

@@ -216,6 +216,15 @@ public static class RtConfig
                 // interfaces stay I-prefix-free like every other payload.
                 typeof(PendingUplink),
                 typeof(PendingUplinkQueue),
+                // A declared command gate's answer: the refusal payload and the
+                // per-command entry of the addressability set. Registered here
+                // for AutoI(false) so the generated interfaces stay I-prefix-free
+                // like every other payload. CommandRequirement is deliberately
+                // ABSENT: it is the Uplink-facing registration surface that
+                // carries the declaration, not a wire type, and a client never
+                // sees one. It sees the verdict.
+                typeof(GateVerdict),
+                typeof(LimitBreach),
                 typeof(SystemBodies),
                 typeof(BodyEntry),
                 typeof(OrbitEntry),
