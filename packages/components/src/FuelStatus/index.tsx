@@ -207,7 +207,7 @@ function pickTWR(s: StageInfo, mode: DeltaVMode): number {
 }
 
 /**
- * Telemachus occasionally hands us a stage row where TWR / ΔV is missing
+ * A provider occasionally hands us a stage row where TWR / ΔV is missing
  * (engine-less stage, decoupler-only, post-staging frame where the engine
  * has been ejected). The fix at 21:08 BST on 2026-05-17 was the absence
  * of this guard: `twr.toFixed` crashed the whole widget when twr was
@@ -221,7 +221,7 @@ function fmtFixed(value: unknown, digits: number): string {
 /**
  * `dv.stages` can now arrive off either transport under the identical key
  * (map-topic.ts's whole-topic identity read): the
- * legacy Telemachus `DataSource` still ships the historical `StageInfo`
+ * legacy `DataSource` still ships the historical `StageInfo`
  * camelCase names (`deltaVVac`/`TWRVac`/`thrustASL`/...), while the new mod
  * streams a `StageDeltaVEntry` (mod/sitrep-sdk contract.ts:491) through the
  * same `dv.stages` topic: `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/
@@ -275,7 +275,7 @@ export function parseStages(raw: unknown): StageInfo[] {
 
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
-/** Units of stock KSP resources aren't kg, Telemachus returns the raw unit count. */
+/** Units of stock KSP resources aren't kg: this is the raw unit count. */
 function formatAmount(value: number): string {
   if (value >= 10_000) return value.toFixed(0);
   if (value >= 100) return value.toFixed(1);
@@ -551,7 +551,7 @@ function FuelStatusComponent({
   ];
 
   // `dv.stages` is the whole-vessel stage array. One subscription, all the
-  // per-stage data Telemachus (or the mod's StageDeltaVEntry[] topic, same
+  // per-stage data the legacy source (or the mod's StageDeltaVEntry[] topic, same
   // key) knows about: length matches the real stage count, no hardcoded
   // cap, no hook-per-stage. Entries arrive high → low (stage 3 first,
   // stage 0 last) matching the stack-top-down render order. `parseStages`

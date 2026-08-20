@@ -16,7 +16,7 @@ import type { JSX, ReactNode } from "react";
  * to genuinely run OFF THE STREAM (a real `TelemetryProvider` + a real
  * `TelemetryClient`/`TimelineStore` pipeline), not the legacy
  * `MockDataSource` registry. Built for the WarpControl pilot; scoped to what
- * it needs, a fuller `fromTelemachusFixture` bulk-fixture-converter is
+ * it needs, a fuller legacy bulk-fixture-converter is
  * later work once more widgets migrate.
  *
  * - **`StubTransport`** (not `ReplayTransport`): this adapter is for

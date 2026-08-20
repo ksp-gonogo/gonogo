@@ -1,7 +1,7 @@
 import type { SeriesRange } from "@ksp-gonogo/data";
 
 /**
- * Tolerance for pairing a Y sample with the most recent X sample. Telemachus
+ * Tolerance for pairing a Y sample with the most recent X sample. Telemetry
  * ticks at ~4 Hz and derived samples stamp at call time, so same-tick pairs
  * can drift by a few ms; 1 s also bridges one dropped tick.
  */

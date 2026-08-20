@@ -25,8 +25,8 @@ import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 
 /**
- * Time-warp control widget. Reads the current warp index/rate from
- * Telemachus and exposes a row of step buttons that fire the
+ * Time-warp control widget. Reads the current warp index/rate off the
+ * stream and exposes a row of step buttons that fire the
  * `t.timeWarp[N]` actions. Manual warp (via the in-game keys or another
  * surface) is reflected here too, this widget is purely a thin UI over
  * the same telemetry the alarm banner reads.
@@ -126,10 +126,10 @@ function WarpControlComponent({
   w,
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
-  // De-Telemachus'd: the whole warp state rides one native Topic,
+  // Migrated: the whole warp state rides one native Topic,
   // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
   // stream: no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
-  // reads and no Telemachus read-fallback. Command keys (`t.timeWarp[N]`,
+  // reads and no legacy read-fallback. Command keys (`t.timeWarp[N]`,
   // `t.pause`/`t.unpause`) are a later phase and stay on `useExecuteAction`.
   //
   // Every field on this record is a FACT, so all four go through `stillTrue`.

@@ -546,7 +546,7 @@ function ManeuverPlannerComponent({
     setCommitting(true);
     setError(null);
     try {
-      // Telemachus passes `[ut,x,y,z]` straight to KSP's
+      // The legacy command passed `[ut,x,y,z]` straight to KSP's
       // `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`. KSP's
       // node-local frame is `Vector3d(radialOut, normal, prograde)`,
       // confirmed by kOS's Node.cs which constructs the same vector in

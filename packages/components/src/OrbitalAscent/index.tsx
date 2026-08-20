@@ -59,7 +59,7 @@ function OrbitalAscentComponent({
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
   // Body name reads straight off the client-derived `vessel.state` channel
   // (`parentBodyName`, an index→name display map: see `map-topic.ts`), so no
-  // Telemachus read-fallback is relied on for this read. The two plotted
+  // legacy read-fallback is relied on for this read. The two plotted
   // series (`v.altitude` / `v.horizontalVelocity`) are consumed only via the
   // shared `GraphView` → `useDataSeries` path; both map to DERIVED
   // `vessel.state.*` channels, which have a live value but NO buffered

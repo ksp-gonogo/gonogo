@@ -16,7 +16,7 @@ export interface ManeuverPlannerConfig {
   defaultStandoffMeters?: number;
 }
 
-// Telemachus occasionally sends null / NaN for an orbit value that KSP
+// A provider occasionally sends null / NaN for an orbit value that KSP
 // hasn't computed yet (landed vessel, fresh scene load). Treat those as
 // "not yet arrived" rather than propagating them into the math.
 export function isFiniteNumber(v: unknown): v is number {

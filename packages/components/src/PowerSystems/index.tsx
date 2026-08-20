@@ -338,7 +338,7 @@ function PowerSystemsComponent({
   }, [liveByFlightId, resource]);
 
   // Time-series of the vessel-wide resource level for the sparkline.
-  // r.resource[<Name>] is the base-Telemachus vessel-wide reservoir
+  // r.resource[<Name>] is the vessel-wide reservoir
   // (sum-of-parts) and is already buffered, so 120s of history is
   // available without extra subscriptions. Reading numeric values out
   // of the SeriesRange is the standard pattern.
@@ -643,7 +643,7 @@ function ContributionRow({ contribution }: { contribution: Contribution }) {
   );
 }
 
-/** Telemachus resource ids are camelCase (`ElectricCharge`,
+/** Resource ids are camelCase (`ElectricCharge`,
  *  `LiquidFuel`): the compact-mode CSS uppercases them to
  *  `ELECTRICCHARGE` with no visible word boundary. Inserting a space
  *  between a lowercase and the following uppercase preserves the
@@ -954,7 +954,7 @@ registerComponent<PowerSystemsConfig>({
   // mapTopic); usePartsLive derives per-part thermal, resources, and
   // module state off that SAME payload: no per-flightId subscriptions.
   // The sparkline reads r.resource[<defaultResource>]
-  // from the base-Telemachus vessel-wide reservoir.
+  // from the vessel-wide reservoir.
   dataRequirements: [
     "vessel.parts",
     "r.resource[ElectricCharge]",

@@ -237,7 +237,7 @@ function EvaSuitReadout({
 // Uplink can badge each kerbal with comfort/radiation-dose without leaving this
 // widget. Because the slot renders once PER ROW, its props MUST carry the crew
 // member's identity so the augment badges the right kerbal, `crewName` is that
-// identity (the only per-kerbal handle Telemachus/Sitrep exposes here), and
+// identity (the only per-kerbal handle exposed here), and
 // `crewIndex` disambiguates in the (legal) case of two kerbals sharing a name.
 // ---------------------------------------------------------------------------
 
@@ -344,7 +344,7 @@ declare module "@ksp-gonogo/core" {
 
 /**
  * `v.crew` is documented as `string[]` ("List of crew names") in the
- * Telemachus Reborn readme. (Historical note, kept for the object-shape
+ * the source's own readme. (Historical note, kept for the object-shape
  * guard below: some sources augment this key with a richer per-kerbal
  * object instead of a bare name string; the defensive object-shape parsing
  * stays useful for any `v.crew`-shaped source.)

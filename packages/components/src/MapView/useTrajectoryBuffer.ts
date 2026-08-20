@@ -47,7 +47,7 @@ export function useTrajectoryBuffer({
 
     // Mutate the existing array instead of slicing + spreading. Spread
     // copied the entire backing array on every sample (~2 KB × 2 = 4 KB
-    // per Telemachus tick at default trajectoryLength=2000); push + shift
+    // per telemetry tick at default trajectoryLength=2000); push + shift
     // does one append + one head-shift, ~half the moves and zero allocations.
     const buf = trajectoryRef.current;
     buf.push(point);

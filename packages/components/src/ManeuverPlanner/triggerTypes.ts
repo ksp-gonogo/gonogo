@@ -46,7 +46,7 @@ export interface FrozenPlanInputs {
 
 export interface ArmedTrigger {
   id: string;
-  /** Telemachus key whose value drives the comparison (e.g. `o.ApA`). */
+  /** Legacy key whose value drives the comparison (e.g. `o.ApA`). */
   dataKey: string;
   op: ThresholdOp;
   value: number;

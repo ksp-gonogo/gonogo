@@ -140,7 +140,7 @@ function planHohmannRendezvous(i: PlanInputs): ManeuverSequence | null {
     i.currentUT,
     {
       sma: i.targetSma,
-      // Telemachus reports PeA (altitude); convert to PeR (from body centre).
+      // PeA is an ALTITUDE; convert to PeR (from the body centre).
       PeR: i.bodyRadius + i.targetPeA,
       inclinationDeg: i.targetInclinationLive,
       lanDeg: i.targetLanLive,

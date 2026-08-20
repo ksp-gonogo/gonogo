@@ -227,7 +227,7 @@ function SpaceCenterStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
-  // Canonical Topic reads (former Telemachus kc.*/career.* keys resolved
+  // Canonical Topic reads (former kc.*/career.* keys resolved
   // through map-topic.ts):
   //  - kc.facilityLevels -> career.status.facilities; parseFacilityLevels
   //    accepts the enum-keyed currentTier/maxTier/upgradeCost shape
