@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if NETSTANDARD2_0
+using Reinforced.Typings.Attributes;
+#endif
 
 namespace Sitrep.Contract
 {
@@ -147,6 +150,261 @@ namespace Sitrep.Contract
     {
         public string Command { get; set; } = "";
         public bool Delayed { get; set; } = true;
+
+        /// <summary>
+        /// Preconditions the ENGINE evaluates, before the handler runs, from
+        /// this declaration alone.
+        ///
+        /// <para>Same shape of promise as <see cref="Delayed"/>: no handler
+        /// implements it, no widget checks it, the command says what it needs
+        /// once and the engine does the rest. Empty (the default) means
+        /// ungated, which is every command that exists today.</para>
+        /// </summary>
+        public CommandRequirement[] Requires { get; set; } = new CommandRequirement[0];
+    }
+
+    /// <summary>
+    /// One precondition on a command: WHAT is required, never how to find out.
+    ///
+    /// <para>This assembly has no KSP and no Unity reference and keeps none, so
+    /// a requirement cannot be a predicate. It is a descriptor an
+    /// <see cref="ICommandGateEvaluator"/> registered by the KSP-facing layer
+    /// resolves against live game state.</para>
+    ///
+    /// <para>Not shape-gated, same rule as <see cref="CommandDeclaration"/> that
+    /// carries it and <see cref="IUplinkCapabilityDeclarer"/> beside it: this is
+    /// the Uplink-facing REGISTRATION surface, not a wire type. A client never
+    /// sees a requirement; it sees the derived verdict, which is
+    /// <see cref="GateVerdict"/> and is shape-gated.</para>
+    /// </summary>
+    public class CommandRequirement
+    {
+        /// <summary>
+        /// Which evaluator answers this. A string rather than an enum so an
+        /// Uplink can declare its own kind and register its own evaluator
+        /// beside its own commands: gating expressible only by first-party code
+        /// would make the built-in Uplinks structurally unlike the ones we ask
+        /// people to write.
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string Kind { get; set; } = "";
+
+        /// <summary>
+        /// The <c>SpaceCenterFacility</c> member name whose level sets the
+        /// limit, for the facility kinds. A name rather than the enum because
+        /// the enum is KSP's.
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string Facility { get; set; } = "";
+
+        /// <summary>
+        /// Which limit of that facility, e.g. <c>mass</c>, <c>partCount</c>,
+        /// <c>activeCrew</c>. Evaluator-defined, so a new kind can name its own.
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string Quantity { get; set; } = "";
+
+        /// <summary>
+        /// Argument paths this requirement reads, e.g. <c>craftMass</c>. EMPTY
+        /// means the requirement is static and answerable with no arguments at
+        /// all.
+        ///
+        /// <para>This is what makes one declaration serve both halves. The HOST
+        /// abstains, without calling the evaluator, when a declared path is
+        /// absent from the bag: evaluated with an empty bag the static
+        /// requirements decide and the argument-dependent ones abstain, which is
+        /// the addressability set; evaluated with the full bag every
+        /// requirement decides, which is the refusal.</para>
+        ///
+        /// <para>The arithmetic lives here and once, deliberately. An evaluator
+        /// that implemented its own abstention could get it wrong privately, and
+        /// the failure mode is severe: a requirement that reports BLOCKED rather
+        /// than abstaining when it simply has no arguments yet publishes its
+        /// command as permanently unaddressable, which disables the control for
+        /// good and looks like it is working.</para>
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string[] Needs { get; set; } = new string[0];
+    }
+
+    /// <summary>What an evaluator concluded. Three-valued, and the third value is load-bearing.</summary>
+    [SitrepContract]
+#if NETSTANDARD2_0
+    [TsEnum]
+#endif
+    public enum GateOutcome
+    {
+        /// <summary>Nothing blocks this.</summary>
+        Pass = 0,
+
+        /// <summary>Blocked, with the comparison that says why.</summary>
+        Fail = 1,
+
+        /// <summary>
+        /// Not answerable from what was supplied. NOT a refusal: a caller that
+        /// treats this as blocked disables every argument-dependent control
+        /// permanently. Published as its own state, never folded into either
+        /// neighbour.
+        /// </summary>
+        Abstain = 2,
+
+        /// <summary>
+        /// Answerable in principle but the live state needed is missing, e.g. a
+        /// facility KSP no longer tracks under the name declared. Distinct from
+        /// <see cref="Abstain"/> because nothing further the caller supplies
+        /// will resolve it, and distinct from <see cref="Pass"/> because
+        /// treating an unreadable limit as no limit is how a gate fails open.
+        /// </summary>
+        Unknown = 3,
+    }
+
+    /// <summary>
+    /// The comparison behind a <see cref="GateOutcome.Fail"/>: the limit and the
+    /// actual value, never a verdict on its own.
+    ///
+    /// <para>"Too heavy" does not tell an operator whether to shed 200&#160;kg or
+    /// redesign. Carrying both numbers lets the CLIENT compose "1.4 t over the
+    /// 18 t Launch Pad limit" through its own unit rendering, rather than the mod
+    /// baking an English sentence in one unit system.</para>
+    /// </summary>
+    [SitrepContract]
+#if NETSTANDARD2_0
+    [TsInterface]
+#endif
+    public class LimitBreach
+    {
+        [SitrepUnit(Units.Id)]
+        public string Facility { get; set; } = "";
+
+        /// <summary>Normalised facility level, as KSP reports it. Not a tier index.</summary>
+        [SitrepUnit(Units.Ratio)]
+        public double FacilityLevel { get; set; }
+
+        [SitrepUnit(Units.Id)]
+        public string Quantity { get; set; } = "";
+
+        /// <summary>
+        /// The limit, in whatever unit <see cref="Quantity"/> implies. NULL when
+        /// the facility is unlimited.
+        ///
+        /// <para>Never the sentinel. KSP returns <c>float.MaxValue</c> (and
+        /// <c>int.MaxValue</c>, and a <c>Vector3</c> of them) at maximum level,
+        /// and 3.4e38 rendered beside a craft mass is not "unlimited", it is a
+        /// bug that reads as a units error. No limit is the ABSENCE of a limit.
+        /// A breach with no limit should be unreachable, since nothing can
+        /// exceed an unlimited limit.</para>
+        /// </summary>
+        [SitrepUnit(Units.NotApplicable)]
+        public double? Limit { get; set; }
+
+        /// <summary>What the call actually asked for, same unit as <see cref="Limit"/>.</summary>
+        [SitrepUnit(Units.NotApplicable)]
+        public double? Actual { get; set; }
+
+        /// <summary>
+        /// The unit token <see cref="Limit"/> and <see cref="Actual"/> are in,
+        /// e.g. <c>t</c> for a mass limit, <c>count</c> for a part count.
+        ///
+        /// <para>Carried as DATA because one breach type serves limits with
+        /// different dimensions: a static <c>[SitrepUnit]</c> on those two
+        /// properties cannot be right for all of them, and the unit gate says
+        /// plainly that a wrong unit is worse than a bare readout because the
+        /// client will confidently mislabel it. So they declare
+        /// <c>NotApplicable</c> and their real unit travels here, which is also
+        /// what lets the client render the comparison in the operator's own
+        /// units instead of the mod composing a sentence.</para>
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string Unit { get; set; } = "";
+    }
+
+    /// <summary>
+    /// A verdict plus its evidence.
+    /// </summary>
+    [SitrepContract]
+#if NETSTANDARD2_0
+    // AutoExportMethods=false for the same reason CommandResult sets it: the
+    // static Pass/Fail/Unknown factories are C#-side ergonomics, not wire shape,
+    // and without this rtcli emits them as bogus interface members on the
+    // generated TS type. Confirmed by generating once without it.
+    [TsInterface(AutoExportMethods = false)]
+#endif
+    public class GateVerdict
+    {
+        [SitrepUnit(Units.Enumeration)]
+        public GateOutcome Outcome { get; set; } = GateOutcome.Pass;
+
+        /// <summary>
+        /// Set only for a numeric <see cref="GateOutcome.Fail"/>. Null is the
+        /// shape a client keys on: an Abstain or an Unknown has nothing to
+        /// compare, so it must not arrive carrying zeroes that render as a real
+        /// limit of 0.
+        /// </summary>
+        public LimitBreach? Breach { get; set; }
+
+        /// <summary>
+        /// Why, when the outcome carries no numeric comparison: a
+        /// <see cref="GateOutcome.Unknown"/>'s cause, or a discrete
+        /// prerequisite's name. Prose for a human, never parsed.
+        /// </summary>
+        [SitrepUnit(Units.Text)]
+        public string Detail { get; set; } = "";
+
+        public static GateVerdict Pass() => new GateVerdict { Outcome = GateOutcome.Pass };
+
+        public static GateVerdict Fail(LimitBreach breach) =>
+            new GateVerdict { Outcome = GateOutcome.Fail, Breach = breach };
+
+        public static GateVerdict Fail(string detail) =>
+            new GateVerdict { Outcome = GateOutcome.Fail, Detail = detail };
+
+        public static GateVerdict Unknown(string detail) =>
+            new GateVerdict { Outcome = GateOutcome.Unknown, Detail = detail };
+    }
+
+    /// <summary>
+    /// The arguments a gate may read, as the decoded wire bag.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// An interface rather than the dictionary so the EMPTY case is a real
+    /// object with the same shape: evaluating for addressability passes an empty
+    /// bag rather than a null, and no evaluator needs a null check that would be
+    /// the abstention arithmetic leaking back in.
+    /// </remarks>
+    public interface IGateArguments
+    {
+        /// <summary>
+        /// The value at <paramref name="path"/>, if the call supplied one.
+        /// </summary>
+        bool TryGet(string path, out object value);
+    }
+
+    /// <summary>
+    /// Resolves one <see cref="CommandRequirement.Kind"/> against live game
+    /// state. Implemented by the KSP-facing layer, or by an Uplink for its own
+    /// kinds, and registered through <see cref="IUplinkHost.AddGateEvaluator"/>.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// <para>Declared in this assembly, which has no KSP reference, precisely so
+    /// a THIRD-PARTY Uplink can implement it: an Uplink sees
+    /// <see cref="IUplinkHost"/> and this assembly and nothing else, so an
+    /// evaluator interface living host-side would have made gating
+    /// first-party-only.</para>
+    ///
+    /// <para><b>Never return <see cref="GateOutcome.Abstain"/>.</b> The host
+    /// decides abstention from <see cref="CommandRequirement.Needs"/> before an
+    /// evaluator is called, so an evaluator is only ever asked a question it has
+    /// the arguments to answer. See <c>Needs</c> for why that arithmetic is
+    /// deliberately not distributed.</para>
+    /// </remarks>
+    public interface ICommandGateEvaluator
+    {
+        /// <summary>The <see cref="CommandRequirement.Kind"/> this answers.</summary>
+        string Kind { get; }
+
+        GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments);
     }
 
     /// <summary>
@@ -445,6 +703,22 @@ namespace Sitrep.Contract
         /// <see cref="CommandDeclaration.Delayed"/> flag, not by this call.
         /// </summary>
         void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler);
+
+        /// <summary>
+        /// Register an evaluator for one <see cref="CommandRequirement.Kind"/>.
+        ///
+        /// <para>Available to any Uplink, first-party or not, so an Uplink can
+        /// gate its own commands on its own conditions rather than only on the
+        /// kinds core happens to ship.</para>
+        ///
+        /// <para>Registration ORDER is not controllable across Uplinks, so a
+        /// command may declare a requirement whose evaluator registers later, or
+        /// never. The engine therefore validates the pairing ONCE after every
+        /// Uplink has registered rather than at the moment a handler is added: a
+        /// declared kind with no evaluator is a startup failure, because a gate
+        /// nobody can evaluate is a gate that silently does not exist.</para>
+        /// </summary>
+        void AddGateEvaluator(ICommandGateEvaluator evaluator);
 
         /// <summary>
         /// Advertise the AUTHORITATIVE <c>comms.delay</c> one-way signal delay to

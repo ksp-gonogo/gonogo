@@ -994,6 +994,27 @@ export interface TimeCalendar
 	kerbinTime: boolean;
 	meta: PayloadMeta;
 }
+export enum GateOutcome {
+	Pass = 0,
+	Fail = 1,
+	Abstain = 2,
+	Unknown = 3
+}
+export interface LimitBreach
+{
+	facility: string;
+	facilityLevel: Value<"ratio">;
+	quantity: string;
+	limit?: number;
+	actual?: number;
+	unit: string;
+}
+export interface GateVerdict
+{
+	outcome: GateOutcome;
+	breach?: LimitBreach;
+	detail: string;
+}
 export interface PendingUplink
 {
 	id: string;

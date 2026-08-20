@@ -98,6 +98,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public bool IsAnyTopicSubscribed(string topicPrefix) => throw new NotSupportedException();
             public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();
             public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler) => throw new NotSupportedException();
+            public void AddGateEvaluator(ICommandGateEvaluator evaluator) => throw new NotSupportedException();
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw new NotSupportedException();

@@ -64,6 +64,14 @@ namespace Sitrep.Host.Tests
         {
         }
 
+        /// <summary>Recorded rather than ignored, so a test can assert an uplink registered one.</summary>
+        public List<ICommandGateEvaluator> GateEvaluators { get; } = new List<ICommandGateEvaluator>();
+
+        public void AddGateEvaluator(ICommandGateEvaluator evaluator)
+        {
+            GateEvaluators.Add(evaluator);
+        }
+
         public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread)
         {
         }
