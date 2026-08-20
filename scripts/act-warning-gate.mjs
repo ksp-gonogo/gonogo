@@ -33,10 +33,17 @@
  * ## The debt is a ceiling, and the count is noisy
  *
  * Several of these come from cleanup-ordering and handshake races, so whether one
- * fires is timing-dependent: three full runs of an UNCHANGED tree gave 104, 100 and
- * 104. The gate therefore fails on growth and on new files, re-measuring first so a
- * spuriously high reading cannot fail an innocent branch, and merely reports a count
- * that came in low. Tightening after a real fix is a deliberate `--update`.
+ * fires is timing-dependent: five full runs of an UNCHANGED tree gave 104, 100, 104,
+ * 124 and 103, and one file alone ranged 0 to 21. The gate therefore fails on growth
+ * and on new files, re-measuring first so a spuriously high reading cannot fail an
+ * innocent branch, and merely reports a count that came in low. Tightening after a
+ * real fix is a deliberate `--update`.
+ *
+ * Load matters in the direction people do not expect: contention does not hide a
+ * race, it gives it more chances to fire. So a count taken on a loaded box is the
+ * MAXIMUM, a low count on a quiet one is not evidence of absence, and the worst
+ * reading is the truest. That is why `--update` never lowers a COMMENTED entry: a
+ * comment marks a number that was chosen rather than measured.
  *
  * ## A failing suite is an undercount, not a pass
  *
@@ -48,6 +55,13 @@
  *   pnpm act-warning-gate              check against the committed debt
  *   pnpm act-warning-gate --update     rewrite the debt from what is measured now
  *   pnpm act-warning-gate --filter ui  restrict to packages matching a substring
+ *   pnpm act-warning-gate --update --only <substring>
+ *                                      rewrite ONLY entries matching <substring>
+ *
+ * `--only` exists because a plain `--update` is a force-push for baselines: it rewrites
+ * the whole tree from one fresh measurement, so a commit about one widget's fix also
+ * writes down that run's roll for every noisy entry it never touched. Fixing four files
+ * should move four numbers.
  */
 
 import { spawnSync } from "node:child_process";
@@ -62,6 +76,8 @@ const args = process.argv.slice(2);
 const update = args.includes("--update");
 const filterIdx = args.indexOf("--filter");
 const filter = filterIdx >= 0 ? args[filterIdx + 1] : null;
+const onlyIdx = args.indexOf("--only");
+const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 
 /**
  * Both React 18 spellings. The second only appears when `act()` is called without
@@ -107,11 +123,10 @@ describe("act-warning-gate self test", () => {
 
 /**
  * Machine load beside the count, because these two are the same measurement taken in
- * different conditions and the difference is not small: this count swings by four on
- * an unchanged tree, and the races behind that swing lose their window under
- * contention. A reader comparing today's number with next week's needs to know which
- * they are holding. Recorded rather than acted on, since the gate is a ceiling and
- * survives the noise either way.
+ * different conditions and the difference is not small: the tree total has ranged 100
+ * to 124 unchanged, and one file 0 to 21. A reader comparing today's number with next
+ * week's needs to know which they are holding, and which way to read a drop. Recorded
+ * rather than acted on, since the gate is a ceiling and survives the noise either way.
  */
 function loadLine() {
   const cores = cpus().length;
@@ -151,9 +166,9 @@ function packagesWithTests() {
  * Run one package's vitest and return `{ counts, failed }`, where `counts` is keyed
  * by the file path vitest itself reports, already relative to the package root.
  */
-function measure(pkg, only) {
+function measure(pkg, onlyFile) {
   const argv = ["--filter", pkg.name, "exec", "vitest", "run"];
-  if (only) argv.push(only);
+  if (onlyFile) argv.push(onlyFile);
   argv.push("--reporter=verbose");
 
   // spawnSync rather than execFileSync, and BOTH streams. Vitest prints the
@@ -209,7 +224,7 @@ function runSelfTest() {
   }
 }
 
-function writeDebt(measured) {
+function writeDebt(rawMeasured) {
   const source = readFileSync(
     join(repoRoot, "scripts/act-warning-debt.mjs"),
     "utf8",
@@ -231,6 +246,31 @@ function writeDebt(measured) {
     const entry = /^\s*"([^"]+)":\s*\d+,/.exec(line);
     if (entry && pending.length > 0) notes[entry[1]] = pending;
     pending = [];
+  }
+
+  // A COMMENTED entry is never lowered by --update. The comment is the marker for
+  // "this number was chosen rather than measured", which is exactly the case a
+  // regenerate must not silently overwrite: the one annotated entry here is seeded at
+  // the worst reading across 0/1/21, and a quiet run would replace it with today's
+  // roll and carry the explanation along to the new number, leaving the file asserting
+  // a maximum it no longer holds.
+  //
+  // Reversing my own note in the debt file, which argued against reading intent out of
+  // comments. That holds for INFERRING a value; refusing to lower one fails closed, so
+  // the worst case is slack that a later deliberate edit removes rather than a ceiling
+  // that vanishes unnoticed. One mechanism beats a hand-maintained second list.
+  const measured = { ...rawMeasured };
+  for (const [file, note] of Object.entries(notes)) {
+    const known = KNOWN_ACT_WARNINGS[file];
+    if (known === undefined || note.length === 0) continue;
+    const now = measured[file] ?? 0;
+    if (now < known) {
+      measured[file] = known;
+      console.log(
+        `  keeping ${file} at ${known} (measured ${now}); it carries a comment, so the ` +
+          `number was chosen. Edit it by hand if you actually fixed it.`,
+      );
+    }
   }
 
   const entries = Object.entries(measured)
@@ -291,15 +331,43 @@ console.log(
 );
 
 if (update) {
-  if (filter) {
+  if (filter && !only) {
     console.error(
       "Refusing to --update under --filter. The debt is the whole tree, and rewriting " +
         "it from one package's measurement would delete every entry that was never run, " +
-        "reporting the rest of the tree as fixed. Re-run --update with no filter.",
+        "reporting the rest of the tree as fixed. Either drop --filter, or add --only " +
+        "<substring> to say which entries you actually mean to rewrite.",
     );
     process.exit(1);
   }
-  writeDebt(measured);
+  if (only) {
+    // Every committed entry survives untouched except the ones named, which take what
+    // was just measured, and are dropped when that is now zero.
+    const merged = { ...KNOWN_ACT_WARNINGS };
+    const touched = new Set();
+    for (const file of Object.keys(merged)) {
+      if (file.includes(only)) {
+        delete merged[file];
+        touched.add(file);
+      }
+    }
+    for (const [file, n] of Object.entries(measured)) {
+      if (file.includes(only)) {
+        merged[file] = n;
+        touched.add(file);
+      }
+    }
+    if (touched.size === 0) {
+      console.error(
+        `No debt entry and no measured file matches --only ${only}.`,
+      );
+      process.exit(1);
+    }
+    console.log(`Rewriting only: ${[...touched].join(", ")}`);
+    writeDebt(merged);
+  } else {
+    writeDebt(measured);
+  }
   console.log(
     "act-warning-debt.mjs rewritten. Commit it with whatever you fixed.",
   );

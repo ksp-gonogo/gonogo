@@ -84,7 +84,14 @@ describe("Navball control-delay stream (throttle)", () => {
 
     // Give the coalesce interval a tick to prove this is a genuine
     // steady-state check, not just "hasn't rendered yet".
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    //
+    // Inside act(), because the interval keeps firing state updates into a
+    // mounted component for the whole wait: un-wrapped, this one line produced 24
+    // of the tree's ~103 act warnings, the largest single cluster in it. The wait
+    // itself is the point of the test and stays.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
 
     expect(
       screen.queryByRole("img", { name: /controls in flight/i }),
