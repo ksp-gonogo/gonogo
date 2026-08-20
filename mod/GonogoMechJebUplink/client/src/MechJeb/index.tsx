@@ -1,5 +1,6 @@
 import type {
   ActionDefinition,
+  CommandStatus,
   ComponentProps,
   Reading,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -87,7 +88,7 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
 }
 
 function commandChip(
-  phase: string,
+  phase: CommandStatus["phase"],
 ): { severity: Severity; text: string } | undefined {
   switch (phase) {
     case "in-flight":
@@ -104,9 +105,15 @@ function commandChip(
       return { severity: "critical", text: "refused" };
     case "lost":
       return { severity: "critical", text: "no reply" };
-    default:
-      return undefined; // idle, no chip
+    case "idle":
+      return undefined; // nothing dispatched yet, so nothing to report
   }
+  // Deliberately no `default`. This used to have one, and it is why `refused`
+  // arrived as a silently missing chip rather than a compile error: a widened
+  // `phase: string` plus a catch-all cannot notice a new phase. Assigning to
+  // `never` makes the next one fail the typecheck here instead.
+  const unhandled: never = phase;
+  return unhandled;
 }
 
 function CommandRow({
@@ -116,7 +123,7 @@ function CommandRow({
   onFire,
 }: Readonly<{
   label: string;
-  phase: string;
+  phase: CommandStatus["phase"];
   disabled?: boolean;
   onFire: () => void;
 }>) {

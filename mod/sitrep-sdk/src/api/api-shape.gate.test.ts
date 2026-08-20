@@ -32,6 +32,9 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   // what it registered through the host, not through ui-kit's copy of the
   // registry (which a bundled client would own privately, so its augments would
   // silently never appear). See uplink-augment-route.test.ts.
+  // Lets an Uplink tell "the game said no" from "the machinery broke" without
+  // reaching into the unpublished spine for `CommandError`.
+  "classifyCommandRejection",
   "clearAugments",
   "clearActionHandlers",
   "clearBodies",
