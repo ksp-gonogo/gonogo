@@ -441,6 +441,74 @@ describe("ManeuverPlannerComponent", () => {
     expect(addBtn).toBeDisabled();
   });
 
+  /*
+   * A SPENT craft, and the case the zero sentinel hid.
+   *
+   * `useVesselDeltaV` returned `totalVac: 0` for four different situations: nothing
+   * arrived, the sim confirmed no figure, the reading went stale, and the vessel
+   * genuinely has no ΔV left. The planner read that 0 as "unknown" and set
+   * `feasible = null`, which is RIGHT for the first three and disarms the fourth: null
+   * shows no SHORT chip, and `feasible === false` is the only thing that disables the
+   * commit, so an out-of-fuel craft would accept a plan it cannot fly and say nothing.
+   *
+   * Its OWN fixture, deliberately. The module-level `utFixture` is shared across this
+   * file and topic values are sticky, so emitting a zero-ΔV stage list on it poisons
+   * every later test that expects a dispatchable plan (it did, once).
+   */
+  it("refuses the commit for a craft whose stages report genuinely zero delta-v", async () => {
+    const spent = setupStreamFixture({
+      carriedChannels: [],
+      pinnedUt: UT_FIXTURE_VALUE,
+    });
+    spent.store.registerDerivedChannel(vesselManeuverLegacyChannel);
+
+    render(
+      <spent.Provider>
+        <ManeuverPlannerComponent id="mnv-spent" config={{}} />
+      </spent.Provider>,
+    );
+    act(() => {
+      spent.emit("vessel.orbit", {
+        ...VESSEL_ORBIT_STREAM_FIXTURE,
+        sma: 850000,
+        ecc: 0.1765,
+      });
+      // A real stage list whose ΔV is really zero: a fact about the vessel, not the
+      // absence of one.
+      spent.emit("dv.stages", [
+        {
+          stage: 0,
+          stageMass: 500,
+          dryMass: 500,
+          fuelMass: 0,
+          startMass: 500,
+          endMass: 500,
+          burnTime: 0,
+          deltaVVac: 0,
+          deltaVASL: 0,
+          deltaVActual: 0,
+          TWRVac: 0,
+          TWRASL: 0,
+          TWRActual: 0,
+          ispVac: 300,
+          ispASL: 300,
+          ispActual: 300,
+          thrustVac: 0,
+          thrustASL: 0,
+          thrustActual: 0,
+        },
+      ]);
+    });
+    await flushViewUt();
+
+    const banner = screen
+      .getByText(/shortfall/i)
+      .closest('[role="status"]') as HTMLElement;
+    expect(banner).not.toBeNull();
+    expect(visibleText(banner)).toMatch(/short\.?$/i);
+    expect(screen.getByRole("button", { name: /^add node$/i })).toBeDisabled();
+  });
+
   it("arms a conditional trigger and dispatches the burn when the condition holds", async () => {
     const user = userEvent.setup();
     buffered.disconnect();

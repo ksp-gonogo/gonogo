@@ -9,7 +9,8 @@ interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
   completedNodes: ReadonlyMap<number, CompletedEntry>;
   currentUT: number | undefined;
-  availableDv: number;
+  /** Vessel ΔV available, or null when there is no usable reading (NOT the same as zero). */
+  availableDv: number | null;
   /** Resolves to a no-op the operator can ignore, we only surface the error
    *  via the orchestrator's `error` state. */
   onDelete: (id: number) => Promise<void> | void;
