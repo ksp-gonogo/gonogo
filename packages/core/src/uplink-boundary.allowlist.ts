@@ -1485,6 +1485,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // were "patched_conics" and "n_body" with Principia as the stated cause.
       // Describing a third party's format is not coupling to it.
       "packages/core/src/schemas/telemachus.ts",
+      // truenow-allowlist.test.ts: the sibling architectural ratchet, listed here
+      // for the same reason it is under the other tokens. It is a path-keyed
+      // allowlist over every Uplink's .cs files, so it necessarily names them all.
+      // A path string in a ratchet, not a dependency.
+      "packages/core/src/truenow-allowlist.test.ts",
       // The two SANCTIONED SELF-REGISTRATION IMPORTS of this Uplink's client
       // package, the same pair every bundled Uplink has. An import of a package
       // whose name contains the mod's is the mechanism by which an Uplink

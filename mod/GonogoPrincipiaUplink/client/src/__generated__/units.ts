@@ -103,6 +103,19 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     specificImpulseSeconds: "s",
     thrustKilonewtons: "kN",
   },
+  "PrincipiaProvenance": {
+    displayPatchedConics: "flag",
+    framesHidingUnpinnedCelestials: "count",
+    framesHidingUnpinnedMarkers: "count",
+    historyLengthSeconds: "s",
+    plottingFrameCentreBody: "text",
+    plottingFrameType: "enum",
+    predictionMaxSteps: "count",
+    predictionObservedAtUt: "ut",
+    predictionToleranceMetres: "m",
+    predictionVesselId: "id",
+    targetFrameSelected: "flag",
+  },
 };
 
 /**
@@ -122,6 +135,19 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     statusError: "enum",
     statusMessage: "text",
     vesselId: "id",
+  },
+  "principia.provenance": {
+    displayPatchedConics: "flag",
+    framesHidingUnpinnedCelestials: "count",
+    framesHidingUnpinnedMarkers: "count",
+    historyLengthSeconds: "s",
+    plottingFrameCentreBody: "text",
+    plottingFrameType: "enum",
+    predictionMaxSteps: "count",
+    predictionObservedAtUt: "ut",
+    predictionToleranceMetres: "m",
+    predictionVesselId: "id",
+    targetFrameSelected: "flag",
   },
 };
 

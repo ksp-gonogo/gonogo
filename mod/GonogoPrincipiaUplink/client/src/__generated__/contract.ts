@@ -33,3 +33,17 @@ export interface PrincipiaFlightPlanBurn
 	coordinateSystem?: number;
 	anomalous?: boolean;
 }
+export interface PrincipiaProvenance
+{
+	displayPatchedConics?: boolean;
+	historyLengthSeconds?: Value<"s">;
+	framesHidingUnpinnedMarkers?: Value<"count">;
+	framesHidingUnpinnedCelestials?: Value<"count">;
+	plottingFrameType?: number;
+	plottingFrameCentreBody?: string;
+	targetFrameSelected?: boolean;
+	predictionToleranceMetres?: Value<"m">;
+	predictionMaxSteps?: Value<"count">;
+	predictionObservedAtUt?: Value<"ut">;
+	predictionVesselId?: string;
+}
