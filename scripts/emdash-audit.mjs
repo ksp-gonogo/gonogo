@@ -86,11 +86,20 @@ function gitTrackedFilesContainingEmdash() {
   // a flag; the pattern itself is passed as raw bytes for U+2014.
   let out;
   try {
-    out = execFileSync("git", ["grep", "-Il", EMDASH, "--", "."], {
-      cwd: ROOT,
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 64,
-    });
+    // `--untracked` is load-bearing: `git grep` alone searches only
+    // TRACKED files, so a violation introduced in a BRAND-NEW file is
+    // invisible to this scan until the moment it is staged, and a local
+    // run before `git add` reports success while not looking at it. It
+    // still honours .gitignore, so build output stays out.
+    out = execFileSync(
+      "git",
+      ["grep", "--untracked", "-Il", EMDASH, "--", "."],
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024 * 64,
+      },
+    );
   } catch (err) {
     // git grep exits 1 when there are no matches at all.
     if (err.status === 1) return [];

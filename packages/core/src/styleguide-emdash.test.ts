@@ -54,14 +54,23 @@ function isSnapshotFile(f: string): boolean {
   return f.endsWith(".snap");
 }
 
-function trackedFilesWithEmdash(root: string): string[] {
+function sourceFilesWithEmdash(root: string): string[] {
   let out: string;
   try {
-    out = execFileSync("git", ["grep", "-Il", EMDASH, "--", "."], {
-      cwd: root,
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 64,
-    });
+    // `--untracked` is load-bearing: `git grep` alone searches only
+    // TRACKED files, so a violation introduced in a BRAND-NEW file is
+    // invisible to this scan until the moment it is staged, and a local
+    // run before `git add` reports success while not looking at it. It
+    // still honours .gitignore, so build output stays out.
+    out = execFileSync(
+      "git",
+      ["grep", "--untracked", "-Il", EMDASH, "--", "."],
+      {
+        cwd: root,
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024 * 64,
+      },
+    );
   } catch (err) {
     // git grep exits 1 when there are no matches at all anywhere.
     if ((err as { status?: number }).status === 1) return [];
@@ -77,7 +86,7 @@ function trackedFilesWithEmdash(root: string): string[] {
 }
 
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
-const filesWithEmdash = trackedFilesWithEmdash(root);
+const filesWithEmdash = sourceFilesWithEmdash(root);
 
 describe("design-system: em dash", () => {
   it("appears in no file outside the sanctioned null-display token", () => {

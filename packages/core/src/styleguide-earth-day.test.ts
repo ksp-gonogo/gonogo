@@ -254,7 +254,12 @@ function candidateFiles(root: string): string[] {
   try {
     return execFileSync(
       "git",
-      ["grep", "-IlE", EARTH_DAY_GREP, "--", "packages", "mod"],
+      // `--untracked` is load-bearing: `git grep` alone searches only
+      // TRACKED files, so a violation introduced in a BRAND-NEW file is
+      // invisible to this scan until the moment it is staged, and a local
+      // run before `git add` reports success while not looking at it. It
+      // still honours .gitignore, so build output stays out.
+      ["grep", "--untracked", "-IlE", EARTH_DAY_GREP, "--", "packages", "mod"],
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 64 },
     )
       .split("\n")
