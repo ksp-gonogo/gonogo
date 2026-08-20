@@ -2,8 +2,8 @@ import type { VesselTopology } from "@ksp-gonogo/core";
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { resourceColor } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
 // Importing the real module runs its module-load registration of the
@@ -159,8 +159,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
 
   it("has no axe violations with contributed meters rendered", async () => {
     const { container } = await renderShipMap();
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("draws a status border on a low resource without changing its identity fill hue", async () => {

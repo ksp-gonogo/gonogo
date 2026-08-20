@@ -6,8 +6,8 @@ import {
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { resourceColor } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerComponent(...).
 import { fmtAmt, ShipSystemsComponent } from "./index";
 
@@ -300,7 +300,7 @@ describe("ShipSystemsComponent", () => {
     emitAll(fixture);
     await screen.findByText("Limiting factors");
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("strips each resource row's Card with that resource's own colour from the shared map", async () => {
@@ -511,7 +511,7 @@ describe("ShipSystemsComponent: radiation", () => {
     });
     await screen.findByText("Ambient", { exact: false });
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 

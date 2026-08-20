@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { CommandDelay, type CommandDelayHandle } from "./CommandDelay";
 import type { ControlStreamDatum } from "./ControlDelayStream";
 import type { InFlightCommandLike } from "./toInFlightListItems";
@@ -168,6 +168,6 @@ describe("CommandDelay", () => {
       effectiveDelaySeconds: 5,
     };
     const { container } = render(<CommandDelay handle={handle} />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

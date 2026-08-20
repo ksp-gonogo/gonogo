@@ -5,9 +5,9 @@ import {
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useEffect, useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import {
   doseRateDecimals,
   niceCeil,
@@ -326,6 +326,6 @@ describe("RadiationSection", () => {
       />,
     );
     renderedTrees.push(() => {});
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

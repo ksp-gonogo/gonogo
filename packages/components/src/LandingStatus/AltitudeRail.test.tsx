@@ -1,7 +1,9 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { AltitudeRail } from "./AltitudeRail";
 
 describe("AltitudeRail", () => {
@@ -46,6 +48,6 @@ describe("AltitudeRail", () => {
 
   it("has no axe violations", async () => {
     const { container } = render(<AltitudeRail {...descending} />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

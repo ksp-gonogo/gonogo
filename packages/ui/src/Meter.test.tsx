@@ -1,8 +1,10 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
-import { axe } from "./test/axe";
 
 describe("Meter", () => {
   it("exposes meter semantics with the value as percentage", () => {
@@ -73,6 +75,6 @@ describe("Meter", () => {
         <Meter label="Info" value={0.5} tone="info" size="sm" />
       </>,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

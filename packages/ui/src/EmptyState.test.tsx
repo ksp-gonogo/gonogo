@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { EmptyState } from "./EmptyState";
-import { axe } from "./test/axe";
 
 describe("EmptyState", () => {
   it("renders children", () => {
@@ -28,7 +28,6 @@ describe("EmptyState", () => {
         <EmptyState layout="fill">Filled empty state</EmptyState>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { BackupManager } from "./BackupManager";
 
 beforeEach(() => {
@@ -50,6 +50,6 @@ describe("BackupManager", () => {
 
   it("has no axe violations", async () => {
     const { container } = render(<BackupManager />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

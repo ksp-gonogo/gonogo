@@ -1,6 +1,6 @@
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import {
   ControlDelayStream,
   type ControlStreamDatum,
@@ -316,6 +316,6 @@ describe("ControlDelayStream", () => {
 
   it("has no axe violations", async () => {
     const { container } = render(<ControlDelayStream streams={[stream()]} />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

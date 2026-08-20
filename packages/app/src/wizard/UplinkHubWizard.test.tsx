@@ -5,6 +5,7 @@ import type {
 } from "@ksp-gonogo/core";
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http, ws } from "msw";
@@ -21,7 +22,6 @@ import {
   vi,
 } from "vitest";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
-import { axe } from "../test/axe";
 import { hostCompat } from "../uplinks/hostCompat";
 import { loadUplinkById } from "../uplinks/loader";
 import type { UplinkLoadOutcome } from "../uplinks/loaderState";
@@ -391,7 +391,7 @@ describe("UplinkHubWizard: Load action", () => {
 describe("UplinkHubWizard: accessibility", () => {
   it("has no axe violations on the setup-assist step", async () => {
     const { container } = renderWizard();
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations on the results step once entries have resolved", async () => {
@@ -404,7 +404,7 @@ describe("UplinkHubWizard: accessibility", () => {
         screen.getByText(/no uplinks reported by the mod yet/i),
       ).toBeInTheDocument(),
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 
@@ -461,7 +461,7 @@ describe("UplinkHubWizard: firstRun bookends (Welcome/Done)", () => {
 
   it("has no axe violations on the Welcome step", async () => {
     const { container } = renderWizard({ firstRun: true });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations on the Done step", async () => {
@@ -479,6 +479,6 @@ describe("UplinkHubWizard: firstRun bookends (Welcome/Done)", () => {
       ).toBeInTheDocument(),
     );
     await user.click(screen.getByRole("button", { name: /finish/i }));
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

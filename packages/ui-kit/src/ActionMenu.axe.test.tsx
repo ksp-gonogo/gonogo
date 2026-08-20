@@ -1,7 +1,7 @@
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
 import { ActionMenu } from "./ActionMenu";
-import { axe } from "./test/axe";
 
 describe("ActionMenu a11y", () => {
   it("has no axe violations with grouped, partly-disabled items", async () => {
@@ -18,7 +18,7 @@ describe("ActionMenu a11y", () => {
       />,
     );
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations while empty", async () => {
@@ -32,6 +32,6 @@ describe("ActionMenu a11y", () => {
       />,
     );
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

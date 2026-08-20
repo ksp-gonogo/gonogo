@@ -16,10 +16,12 @@ import {
   TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { ScanningComponent } from "./index";
 
 // `scansat.available`, `vessel.identity`, `system.bodies`, and
@@ -205,6 +207,6 @@ describe("ScanningComponent", () => {
     act(() => {
       transport.emit("scansat.available", false);
     });
-    await expect(axe(container)).resolves.toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

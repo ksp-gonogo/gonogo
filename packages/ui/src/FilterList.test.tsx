@@ -5,9 +5,9 @@ import {
   type WidgetMetaContextValue,
 } from "@ksp-gonogo/core";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { FilterList, type FilterRow } from "./FilterList";
-import { axe } from "./test/axe";
 
 // A real contribution, registered once at module load exactly as an Uplink's
 // would be. No `requires`, so it runs with no TelemetryProvider in the tree.
@@ -118,6 +118,6 @@ describe("FilterList", () => {
   it("has no accessibility violations", async () => {
     const { container } = mountInWidget();
     await screen.findByRole("button", { name: "Scrubber" });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

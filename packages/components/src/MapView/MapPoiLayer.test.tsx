@@ -4,9 +4,11 @@ import {
   registerMapPoiProvider,
 } from "@ksp-gonogo/core";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import { MapPoiLayer } from "./MapPoiLayer";
 
 // Unmount each rendered tree BEFORE clearMapPoiProviders(): clearing the
@@ -174,6 +176,6 @@ describe("MapPoiLayer", () => {
 
     fireEvent.mouseEnter(screen.getByRole("button", { name: "Runway" }));
 
-    await expect(axe(container)).resolves.toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

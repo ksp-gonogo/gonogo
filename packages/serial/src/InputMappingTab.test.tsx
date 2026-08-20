@@ -1,6 +1,7 @@
 import type { ActionDefinition } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider, useModal } from "@ksp-gonogo/ui";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -8,7 +9,6 @@ import { describe, expect, it, vi } from "vitest";
 import { InputMappingTab } from "./InputMappingTab";
 import { SerialDeviceProvider } from "./SerialDeviceContext";
 import { SerialDeviceService } from "./SerialDeviceService";
-import { axe } from "./test/axe";
 import type { VirtualTransport } from "./transports/VirtualTransport";
 
 // The tab's Save button now lives in the modal's sticky footer (registered via
@@ -274,7 +274,7 @@ describe("InputMappingTab press-to-map", () => {
       </SerialDeviceProvider>,
     );
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
     await svc.destroy();
   });
 

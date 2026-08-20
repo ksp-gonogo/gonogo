@@ -28,6 +28,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
@@ -43,7 +44,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { axe } from "../test/axe";
 import { registerSetting } from "./registry";
 import { SettingsProvider } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
@@ -570,13 +570,7 @@ describe("SettingsModal Data Sources tab: healthy-uplinks collapse chip", () => 
       expect(screen.getByText("1/2 healthy")).toBeInTheDocument(),
     );
 
-    // Inside act(): axe walks the DOM asynchronously and the panel keeps updating
-    // while it does, so unwrapped those updates land outside any act scope.
-    let results: Awaited<ReturnType<typeof axe>> | undefined;
-    await act(async () => {
-      results = await axe(container);
-    });
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 

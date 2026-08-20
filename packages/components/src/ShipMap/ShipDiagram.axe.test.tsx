@@ -1,6 +1,6 @@
 import { render } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
 
@@ -87,15 +87,13 @@ describe("ShipDiagram a11y", () => {
         height={400}
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations on the empty-parts placeholder", async () => {
     const { container } = render(
       <ShipDiagram parts={[]} width={200} height={200} />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -9,9 +9,9 @@ import {
   TelemetryProvider,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { WithScansatAvailability } from "../test/withScansatAvailability";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: the same way the app
@@ -212,6 +212,6 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
     fireEvent.click(toggle);
     await screen.findByText("SCANsat SAR Altimetry Sensor");
 
-    await expect(axe(container)).resolves.toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

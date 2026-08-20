@@ -9,9 +9,9 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
@@ -179,6 +179,6 @@ describe("PowerSystems: states + resource pick", () => {
     const { fixture, container } = renderWidget("ps-axe");
     act(() => fixture.emit("vessel.parts", TWO_RESOURCE_WIRE));
     await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

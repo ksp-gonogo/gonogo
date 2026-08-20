@@ -59,6 +59,12 @@
   },
   "peerDependencies": {
     "react": "^18.0.0",
-    "styled-components": "^6.0.0"
+    "styled-components": "^6.0.0",
+    "jest-axe": "^10.0.0"
+  },
+  "peerDependenciesMeta": {
+    "jest-axe": {
+      "optional": true
+    }
   }
 }

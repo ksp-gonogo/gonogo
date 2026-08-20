@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { TouchdownReticle } from "./TouchdownReticle";
 
 const base = {
@@ -65,6 +65,6 @@ describe("TouchdownReticle", () => {
 
   it("has no axe violations", async () => {
     const { container } = render(<TouchdownReticle {...base} />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

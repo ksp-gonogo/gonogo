@@ -14,9 +14,9 @@ import {
   within,
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { MissionBanner } from "./MissionBanner";
 
 /**
@@ -196,10 +196,10 @@ describe("MissionBanner", () => {
     const trigger = await screen.findByRole("button", {
       name: "Command centre vantage: KSC (home)",
     });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
 
     fireEvent.click(trigger);
     expect(screen.getByRole("listbox")).toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -6,9 +6,11 @@ import {
 import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
@@ -401,7 +403,7 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
     });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   const ONE_PROBE = {
@@ -561,7 +563,7 @@ describe("FleetRosterComponent", () => {
         /round-trip[\s~]*9\s*s/i,
       );
     });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("reflects the selected command-source vantage in the header", async () => {

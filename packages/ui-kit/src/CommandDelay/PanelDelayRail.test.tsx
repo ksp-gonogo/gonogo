@@ -1,8 +1,8 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import {
   type CommandHandle,
   createDelayRailStore,
@@ -129,7 +129,7 @@ describe("PanelDelayRail", () => {
     const store = createDelayRailStore();
     store.register(handle("cmd"));
     const { container } = inPanel(<PanelDelayRail />, store);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("renders nothing and sets no rail element when no handles are active (snapshot-stable for no-command widgets)", () => {
@@ -305,7 +305,7 @@ describe("PanelDelayRail", () => {
       store.register(handle("cmd"));
       const { container } = inPanel(<PanelDelayRail />, store);
       await user.click(railButton());
-      expect(await axe(container)).toHaveNoViolations();
+      await expectNoA11yViolations(container);
     });
 
     it("pinned with a stream AND a multi-command discrete handle grows every command", async () => {

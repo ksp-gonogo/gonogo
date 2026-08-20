@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { CameraSetpointSurface } from "./CameraSetpointSurface";
 
 const bounds = {
@@ -65,6 +65,6 @@ describe("CameraSetpointSurface", () => {
         mode="staged"
       />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

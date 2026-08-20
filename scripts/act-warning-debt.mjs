@@ -55,7 +55,5 @@ export const KNOWN_ACT_WARNINGS = {
   "sitrep-client/src/use-command.test.tsx": 2,
   "ui-kit/src/Tabs.test.tsx": 2,
   "components/src/PowerSystems/undefined.characterise.test.tsx": 1,
-  "gonogo-kerbalism-uplink/src/ShipSystems/index.test.tsx": 1,
-  "gonogo-scansat-uplink/src/Scanning/index.test.tsx": 1,
   "sitrep-client/src/auto-command.hook.test.tsx": 1,
 };

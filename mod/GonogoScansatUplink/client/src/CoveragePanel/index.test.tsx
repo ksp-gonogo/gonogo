@@ -19,10 +19,12 @@ import {
   waitFor,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { WithScansatAvailability } from "../test/withScansatAvailability";
 // Importing the real module (not a throwaway test double) runs its
 // module-load `registerAugment(...)` exactly once: same convention as
@@ -272,6 +274,6 @@ describe("CoveragePanel: map-view.sections slot", () => {
     });
     await screen.findByRole("region", { name: /Scan coverage for Kerbin/i });
 
-    await expect(axe(container)).resolves.toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

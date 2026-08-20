@@ -17,12 +17,14 @@ import {
   ModalChromeContext,
   type ModalChromeValue,
 } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -237,13 +239,7 @@ describe("MapViewComponent", () => {
       altitude: 100_000,
       body: "Kerbin",
     });
-    // Inside act(): axe walks the DOM asynchronously and this widget keeps updating
-    // while it does, so unwrapped those updates land outside any act scope.
-    let results: Awaited<ReturnType<typeof axe>> | undefined;
-    await act(async () => {
-      results = await axe(container);
-    });
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   }, 20000);
 
   // axe traversal of the body picker (a select carrying every stock body) is
@@ -253,13 +249,7 @@ describe("MapViewComponent", () => {
     const { container } = render(
       <MapViewConfigComponent config={{}} onSave={() => {}} />,
     );
-    // Inside act(): axe walks the DOM asynchronously and this widget keeps updating
-    // while it does, so unwrapped those updates land outside any act scope.
-    let results: Awaited<ReturnType<typeof axe>> | undefined;
-    await act(async () => {
-      results = await axe(container);
-    });
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   }, 20000);
 
   it("config body picker offers a Follow-vessel default and stock bodies", () => {

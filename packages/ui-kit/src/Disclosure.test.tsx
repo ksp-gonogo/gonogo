@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Disclosure } from "./Disclosure";
-import { axe } from "./test/axe";
 
 describe("Disclosure", () => {
   it("is collapsed by default and toggles the panel on click", () => {
@@ -56,9 +56,9 @@ describe("Disclosure", () => {
         <span>detail</span>
       </Disclosure>,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
     fireEvent.click(screen.getByRole("button", { name: "Delay" }));
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("asButton renders the trigger as a real button, toggling the same way", () => {
@@ -125,10 +125,10 @@ describe("Disclosure", () => {
         <span>ledger</span>
       </Disclosure>,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
     fireEvent.click(
       screen.getByRole("button", { name: "Show rate breakdown for Water" }),
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

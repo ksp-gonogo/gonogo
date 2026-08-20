@@ -144,6 +144,9 @@ export interface UnitMatchers<R = unknown> {
   ): R;
 }
 
+// The a11y smoke assertion, with its `act` wrapping done once here rather than
+// spelled out at every call site. See the module for why it is a helper.
+export { expectNoA11yViolations } from "./expectNoA11yViolations";
 // The widget render harness. Its own module because it is 200 lines of provider
 // stack and JSX, and this file is otherwise plain functions over strings.
 export {

@@ -5,8 +5,8 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ResourceOpsComponent } from "./index";
 
@@ -276,7 +276,7 @@ describe("ResourceOps", () => {
     });
 
     await screen.findByText("Drill-O-Matic");
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("shows a global stats header: process count, active count, and net EC draw", async () => {

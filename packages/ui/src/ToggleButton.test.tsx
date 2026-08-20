@@ -1,8 +1,8 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ToggleButton } from "./ToggleButton";
-import { axe } from "./test/axe";
 
 describe("ToggleButton", () => {
   it("renders a real <button> element", () => {
@@ -89,7 +89,6 @@ describe("ToggleButton", () => {
         <ToggleButton size="sm">Small</ToggleButton>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

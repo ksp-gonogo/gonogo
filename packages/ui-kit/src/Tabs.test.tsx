@@ -1,9 +1,9 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shouldExpandTabs, TABS_PANEL_MIN_WIDTH, Tabs } from "./Tabs";
-import { axe } from "./test/axe";
 
 const TABS = [
   { id: "one", label: "One", content: <span>panel-one</span> },
@@ -210,7 +210,7 @@ describe("Tabs disabled", () => {
     const { container } = render(
       <Tabs tabs={DISABLED_FIRST} activeId="two" onChange={() => undefined} />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 
@@ -395,7 +395,6 @@ describe("Tabs expandWhenRoomy", () => {
     );
     resizeTo(tabsRoot(), TABS_PANEL_MIN_WIDTH * 2 + 8);
 
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

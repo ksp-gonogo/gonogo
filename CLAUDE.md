@@ -420,15 +420,13 @@ Baseline expectations for every new or modified component. Targets WCAG 2.1 AA; 
 - Wrap mission-state changes (e.g. GO/NO-GO transitions) in `role="status" aria-live="polite"`. Reserve `role="alert"` / `aria-live="assertive"` for events that must interrupt (ABORT). Don't live-region streaming telemetry, it floods screen readers.
 - Respect `prefers-reduced-motion` on any new animation: the global reset in `packages/app/src/styles/global.css` damps transitions, but indefinite CSS animations (e.g. pulses) need an explicit `@media (prefers-reduced-motion: no-preference)` guard.
 - Colour contrast: 4.5:1 for normal text, 3:1 for large text and non-text UI (focus rings, borders).
-- Component tests should include a `jest-axe` smoke assertion, and it must run **inside `act()`**:
+- Component tests should include the a11y smoke assertion, via the helper:
   ```ts
-  let results: Awaited<ReturnType<typeof axe>> | undefined;
-  await act(async () => {
-    results = await axe(container);
-  });
-  expect(results).toHaveNoViolations();
+  import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+
+  await expectNoA11yViolations(container);
   ```
-  `axe` walks the DOM asynchronously and takes real time, so a widget with a clock or a subscription keeps updating throughout. Unwrapped, every one of those updates lands outside `act`, and the bare `expect(await axe(container))` form this document used to recommend was the single largest source of act warnings in the tree: 29 across four files. The assertion itself was never wrong, only its await.
+  Do NOT hand-roll `expect(await axe(container)).toHaveNoViolations()`. `axe` walks the DOM asynchronously and takes real time, so a widget with a clock or a subscription keeps updating throughout, and awaited bare every one of those updates lands outside `act`. That form was the single largest remaining source of act warnings in the tree: 29 across four files, one of them ranging 0 to 21 per run depending on machine load. The helper does the `act` wrapping once, in one place, so no caller has to know it exists.
 
 ---
 

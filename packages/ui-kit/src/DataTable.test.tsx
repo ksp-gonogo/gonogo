@@ -1,7 +1,7 @@
 import { render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { DataTable } from "./DataTable";
-import { axe } from "./test/axe";
 
 interface Sample {
   id: string;
@@ -123,7 +123,7 @@ describe("DataTable", () => {
         rowKey={key}
       />,
     );
-    expect(await axe(flat.container)).toHaveNoViolations();
+    await expectNoA11yViolations(flat.container);
 
     const grouped = render(
       <DataTable
@@ -133,6 +133,6 @@ describe("DataTable", () => {
         rowKey={key}
       />,
     );
-    expect(await axe(grouped.container)).toHaveNoViolations();
+    await expectNoA11yViolations(grouped.container);
   });
 });

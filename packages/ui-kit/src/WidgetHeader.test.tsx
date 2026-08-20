@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "./test/axe";
 import { WidgetHeader } from "./WidgetHeader";
 
 describe("WidgetHeader", () => {
@@ -55,7 +55,6 @@ describe("WidgetHeader", () => {
         }
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
