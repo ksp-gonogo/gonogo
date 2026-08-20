@@ -269,6 +269,7 @@ jobs:
             echo "::warning::KSP reference assemblies absent: PendingCreditLedgerTests SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
           fi
           projects=(
+            Sitrep.Contract.Tests
             Sitrep.Core.Tests
             Sitrep.Transport.Tests
             Sitrep.Propagation.Tests
@@ -305,6 +306,13 @@ jobs:
           # time out even the normally-deterministic suites (Kos, Host.Tests) on
           # their WS/async paths. A genuine regression fails all 4 attempts and is
           # still caught; only intermittent-pass flakes are absorbed.
+          # Sitrep.Contract.Tests is deliberately absent from `nonblocking`. It
+          # references Sitrep.Contract and nothing else, touches no WebSocket
+          # harness, and so none of the starvation reasoning above applies to it.
+          # It exists because the contract-reflection tests it holds previously
+          # lived in Sitrep.Host.IntegrationTests, which is non-blocking, so the
+          # fix for a month-long dispatch bug was proven only behind the very
+          # exemption that hid the bug.
           nonblocking=" Sitrep.Host.IntegrationTests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"

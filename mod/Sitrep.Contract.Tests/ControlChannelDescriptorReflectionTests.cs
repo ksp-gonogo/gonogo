@@ -4,7 +4,7 @@ using System.Reflection;
 using Sitrep.Contract;
 using Xunit;
 
-namespace Sitrep.Host.IntegrationTests
+namespace Sitrep.Contract.Tests
 {
     /// <summary>
     /// `ControlChannelDescriptor` reflects over the contract assembly, and its own
@@ -15,13 +15,10 @@ namespace Sitrep.Host.IntegrationTests
     /// contention or stale build output.
     ///
     /// <para>These are the first tests this type has ever had, which is most of
-    /// the explanation for how it survived. They live HERE, rather than in
-    /// `Sitrep.Core.Tests`, because that project deliberately ships
-    /// `Reinforced.Typings.dll` beside its test assembly (documented in its own
-    /// csproj: `UnitDescriptorTests` calls `Assembly.GetTypes()` over the
-    /// netstandard2.0 contract and needs it). Where the package is present these
-    /// assertions pass vacuously, so the only place they mean anything is a
-    /// project that does not reference it.</para>
+    /// the explanation for how it survived. They are contract-reflection tests,
+    /// not integration tests: the question is whether a consumer that references
+    /// `Sitrep.Contract` and NOT the codegen package can reflect over it. This
+    /// project exists to be that consumer, and its csproj carries the rule.</para>
     /// </summary>
     public class ControlChannelDescriptorReflectionTests
     {
@@ -57,13 +54,15 @@ namespace Sitrep.Host.IntegrationTests
         /// anything depend on the DLL being there.</para>
         /// </summary>
         [Fact]
-        public void TheCodegenPackageIsNotResolvableInThisSuite()
+        public void TheCodegenPackageIsNotResolvableInThisProject()
         {
             Assert.False(
                 ReinforcedTypingsIsResolvable(),
-                "Reinforced.Typings resolved at runtime in a project that does not reference it. That means "
-                    + "leftover build output, which silently makes the reflection tests in this file vacuous. "
-                    + "Nuke mod/**/bin and mod/**/obj and rebuild.");
+                "Reinforced.Typings resolved at runtime in the one project whose entire purpose is not "
+                    + "having it. Either this tree has leftover build output (nuke mod/**/bin and mod/**/obj "
+                    + "and rebuild), or someone added the reference, which this project's csproj says never "
+                    + "to do. Until it is gone the other tests here pass vacuously, which is precisely how a "
+                    + "month-long bug hid.");
         }
 
         /// <summary>
