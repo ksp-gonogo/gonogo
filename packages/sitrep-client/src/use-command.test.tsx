@@ -511,3 +511,56 @@ describe("useCommand dismiss", () => {
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
   });
 });
+
+/**
+ * A refusal rejects the dispatch promise, and almost every real call site is
+ * `void someCmd.send(...)` with no local `catch`. `send` marks its own
+ * rejection handled for exactly that reason; this is the check that the
+ * marking still covers the newest rejecting path, rather than the assumption
+ * that it does.
+ */
+describe("useCommand fire-and-forget refusals", () => {
+  function VoidDeploy() {
+    const cmd = useCommand("deploy");
+    usePanelDelay(cmd);
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          // Deliberately NO .catch() here: the whole point is the uncaught
+          // fire-and-forget shape that eight Uplink call sites use.
+          void cmd.send(9);
+        }}
+      >
+        go
+      </button>
+    );
+  }
+
+  it("does not raise an unhandled rejection when the command is refused", async () => {
+    const seen: unknown[] = [];
+    const onUnhandled = (reason: unknown) => seen.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      const t = new StubTransport();
+      t.setCommandHandler(() => ({ success: false, errorCode: 2 }));
+      const client = new TelemetryClient(t);
+      render(
+        <TelemetryProvider client={client}>
+          <VoidDeploy />
+        </TelemetryProvider>,
+      );
+      fireEvent.click(screen.getByText("go"));
+
+      // An unhandled rejection is reported a macrotask after the microtask
+      // queue drains, so awaiting a timer (not just a tick) is what makes
+      // this observable at all.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(seen).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
+  });
+});
