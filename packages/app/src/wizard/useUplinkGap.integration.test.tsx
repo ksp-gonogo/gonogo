@@ -1,5 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { cleanup, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HttpResponse, http, ws } from "msw";
 import { setupServer } from "msw/node";
@@ -38,6 +38,11 @@ beforeEach(() => {
   __resetUplinkOutcomes();
 });
 afterEach(() => {
+  // Unmount FIRST: the socket open can complete after the test body returns, and with the
+  // provider still mounted that mints a store frame and re-renders its own
+  // `KspCalendarObserver` outside any act scope. Same teardown ordering as
+  // `GridItemContent.test.tsx`'s contribution clear.
+  cleanup();
   server.resetHandlers();
   clearRegistry();
 });

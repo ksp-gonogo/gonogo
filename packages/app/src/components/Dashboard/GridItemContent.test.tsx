@@ -18,7 +18,7 @@ import {
   useContributions,
   useWidgetMeta,
 } from "@ksp-gonogo/core";
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { cleanup, render, screen } from "@ksp-gonogo/test-utils";
 import { Panel } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GridItemContent } from "./GridItemContent";
@@ -88,6 +88,12 @@ describe("GridItemContent: draggableCancel structural guard", () => {
   });
 
   afterEach(() => {
+    // Unmount BEFORE clearing. RTL's auto-cleanup runs after this hook, so without an
+    // explicit `cleanup()` the tree is still mounted when `clearContributions()` fires,
+    // and `SlotAggregator` reads that registry through `useSyncExternalStore`: the clear
+    // notifies mounted subscribers from outside `act`. Eleven warnings in this file,
+    // 2-3 per test, scaling with how many slot aggregators each test mounted.
+    cleanup();
     clearRegistry();
     clearContributions();
   });
