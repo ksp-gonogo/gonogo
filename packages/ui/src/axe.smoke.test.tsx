@@ -1,4 +1,5 @@
 import { render } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useEffect } from "react";
 import { describe, it } from "vitest";
 import { Button, GhostButton, IconButton, PrimaryButton } from "./Button";
@@ -6,7 +7,6 @@ import { ModalProvider, useModal } from "./Modal";
 import { SignalLossBanner } from "./SignalLossBanner";
 import { Switch } from "./Switch";
 import { Tabs } from "./Tabs";
-import { axe } from "./test/axe";
 
 describe("a11y smoke (jest-axe)", () => {
   it("Button variants have no axe violations", async () => {
@@ -18,8 +18,7 @@ describe("a11y smoke (jest-axe)", () => {
         <IconButton aria-label="close">×</IconButton>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Modal (open) has no axe violations", async () => {
@@ -35,8 +34,7 @@ describe("a11y smoke (jest-axe)", () => {
         <Harness />
       </ModalProvider>,
     );
-    const results = await axe(container.ownerDocument.body);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container.ownerDocument.body);
   });
 
   it("Tabs have no axe violations", async () => {
@@ -50,23 +48,20 @@ describe("a11y smoke (jest-axe)", () => {
         onChange={() => undefined}
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Switch has no axe violations", async () => {
     const { container } = render(
       <Switch checked={false} onChange={() => undefined} label="Follow" />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("SignalLossBanner has no axe violations", async () => {
     const { container } = render(
       <SignalLossBanner state="lost" elapsedMs={12345} />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

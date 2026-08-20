@@ -1,9 +1,9 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { useStatusSummary } from "./status/useStatusSummary";
-import { axe } from "./test/axe";
 
 function SummaryProbe() {
   const summary = useStatusSummary();
@@ -144,6 +144,6 @@ describe("Badge accessibility", () => {
         </Badge>
       </div>,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -6,8 +6,8 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerAugment(...).
 import { CrewRadiationSummaryAugment, radiationSummaryFor } from "./summary";
 
@@ -148,6 +148,6 @@ describe("CrewRadiationSummaryAugment", () => {
     });
     await screen.findByRole("status");
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

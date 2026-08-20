@@ -3,11 +3,11 @@ import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { DEFAULT_KEEP_COUNT, Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
-import { axe } from "../test/axe";
 import { resetAutoRecordStatusForTests } from "./autoRecordStatus";
 import { FlightsManager } from "./index";
 import { MissionHistorySource } from "./MissionHistorySource";
@@ -96,7 +96,7 @@ describe("FlightsManager", () => {
       expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
     });
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("toggles a flight's starred state", async () => {

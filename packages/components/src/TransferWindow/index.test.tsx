@@ -6,9 +6,11 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TransferWindowComponent } from "./index";
 
@@ -220,7 +222,7 @@ describe("TransferWindow widget", () => {
   it("has no axe violations", async () => {
     const { view } = setup();
     await waitFor(() => expect(screen.getByText("IDEAL")).toBeInTheDocument());
-    expect(await axe(view.container)).toHaveNoViolations();
+    await expectNoA11yViolations(view.container);
   });
 });
 
@@ -292,7 +294,7 @@ describe("TransferWindow reach list", () => {
     await waitFor(() =>
       expect(screen.getByText("Affords")).toBeInTheDocument(),
     );
-    expect(await axe(view.container)).toHaveNoViolations();
+    await expectNoA11yViolations(view.container);
   });
 });
 

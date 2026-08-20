@@ -1,9 +1,11 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
@@ -544,6 +546,6 @@ describe("LandingStatusComponent", () => {
       stream.emit("vessel.control", { gear: false, brakes: false });
     });
     await screen.findByRole("img", { name: /descent/i });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

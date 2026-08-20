@@ -10,8 +10,8 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { RequiresGuard } from "./RequiresGuard";
 
 function makeSitrepFixture(status: DataSourceStatus): DataSource {
@@ -154,7 +154,7 @@ describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => 
       ),
     );
     await waitFor(() => expect(screen.getByText("no CPU")).toBeInTheDocument());
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 

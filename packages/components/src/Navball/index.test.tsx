@@ -16,10 +16,12 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -353,13 +355,7 @@ describe("NavballComponent", () => {
         expect(screen.getByText(/FBW.*DELAY/)).toBeInTheDocument();
       });
 
-      // Inside act(): axe walks the DOM asynchronously and the delay countdown keeps
-      // ticking while it does, so unwrapped those updates land outside any act scope.
-      let results: Awaited<ReturnType<typeof axe>> | undefined;
-      await act(async () => {
-        results = await axe(container);
-      });
-      expect(results).toHaveNoViolations();
+      await expectNoA11yViolations(container);
     });
   });
 });

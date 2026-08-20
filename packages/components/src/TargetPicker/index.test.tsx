@@ -4,10 +4,12 @@ import {
   registerAugment,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -491,7 +493,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
       PORT_ALPHA,
     ]);
     await screen.findByRole("button", { name: /^Bodies/ });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 

@@ -6,11 +6,13 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  renderWidget,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 // Side-effect import: the widget self-registers on module load, and
 // `renderWidget` looks it up by id rather than importing the component.
 import "./index";
@@ -117,7 +119,7 @@ describe("MechJeb command widget", () => {
 
   it("has no axe violations", async () => {
     const { view } = renderMechJeb();
-    expect(await axe(view.container)).toHaveNoViolations();
+    await expectNoA11yViolations(view.container);
   });
 });
 

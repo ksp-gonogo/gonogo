@@ -6,8 +6,8 @@ import {
   setupStreamFixture,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerAugment(...).
 import { CrewSurvivalAugment, CrewSurvivalBadgeAugment } from "./index";
 
@@ -260,7 +260,7 @@ describe("CrewSurvivalAugment", () => {
     ]);
     await screen.findByRole("meter", { name: "Radiation dose" });
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 
@@ -336,6 +336,6 @@ describe("CrewSurvivalBadgeAugment", () => {
     ]);
     await screen.findByText("Radiation dose critical");
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

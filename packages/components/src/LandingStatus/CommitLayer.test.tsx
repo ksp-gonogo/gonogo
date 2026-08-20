@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { CommitLayer } from "./CommitLayer";
 
 const live = {
@@ -143,6 +143,6 @@ describe("CommitLayer", () => {
 
   it("has no axe violations", async () => {
     const { container } = render(<CommitLayer {...live} />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

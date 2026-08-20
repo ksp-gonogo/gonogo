@@ -4,9 +4,11 @@ import {
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerComponent(...) once.
 import { AvionicsGoNoGoComponent } from "./index";
 
@@ -67,7 +69,7 @@ describe("AvionicsGoNoGoComponent", () => {
       });
     });
     expect(await screen.findByText("GO")).toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("shows NO AVIONICS when no avionics unit is active", async () => {

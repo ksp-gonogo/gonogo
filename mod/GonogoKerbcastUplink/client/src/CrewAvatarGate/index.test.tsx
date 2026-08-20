@@ -21,10 +21,10 @@ import {
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { ModalProvider } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KerbcastDataSource } from "../KerbcastDataSource";
-import { axe } from "../test/axe";
 import { KerbcastAvatarAugment } from "./index";
 
 function memoryStorage(): Storage {
@@ -204,8 +204,7 @@ describe("KerbcastAvatarAugment: a11y smoke", () => {
       name: /spotlight jebediah kerman's seated face camera/i,
     });
 
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("has no axe violations with the spotlight modal open", async () => {
@@ -232,8 +231,7 @@ describe("KerbcastAvatarAugment: a11y smoke", () => {
       expect(screen.getByRole("dialog")).not.toBeNull();
     });
 
-    const results = await axe(container.ownerDocument.body);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container.ownerDocument.body);
   });
 });
 

@@ -1,6 +1,7 @@
 import { SerialDeviceService } from "@ksp-gonogo/serial";
 import { render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
@@ -15,7 +16,6 @@ import {
   it,
 } from "vitest";
 import { SettingsService } from "../settings/SettingsService";
-import { axe } from "../test/axe";
 import { UplinkHubWizardHost } from "./UplinkHubWizardHost";
 import {
   __resetUplinkHubWizardFirstRunForTests,
@@ -124,6 +124,6 @@ describe("UplinkHubWizardHost", () => {
     // The modal renders via a portal into `document.body`, not into RTL's
     // `container`: same reason `Modal.tsx`'s own dialog implementation
     // uses `createPortal`.
-    expect(await axe(document.body)).toHaveNoViolations();
+    await expectNoA11yViolations(document.body);
   });
 });

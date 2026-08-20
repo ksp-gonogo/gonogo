@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import { describeConnStatus, StationConnectView, statusTone } from "./index";
 
 const baseProps = {
@@ -104,7 +104,7 @@ describe("StationConnectView", () => {
         nameEditor={<span>Station name: LFV-1b</span>}
       />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });
 

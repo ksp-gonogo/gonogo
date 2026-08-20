@@ -1,4 +1,5 @@
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, it } from "vitest";
 import { ActionButton } from "./ActionButton";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
@@ -16,7 +17,6 @@ import { StatusIndicator } from "./StatusIndicator";
 import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { Tabs } from "./Tabs";
 import { Tape } from "./Tape";
-import { axe } from "./test/axe";
 import { WidgetHeader } from "./WidgetHeader";
 
 describe("a11y smoke (jest-axe)", () => {
@@ -30,8 +30,7 @@ describe("a11y smoke (jest-axe)", () => {
         </ActionButton>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("AugmentSettingsPanel has no axe violations across field types", async () => {
@@ -53,8 +52,7 @@ describe("a11y smoke (jest-axe)", () => {
         onChange={() => {}}
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Badge has no axe violations across tones", async () => {
@@ -67,8 +65,7 @@ describe("a11y smoke (jest-axe)", () => {
         <Badge tone="info">info</Badge>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Row has no axe violations", async () => {
@@ -79,8 +76,7 @@ describe("a11y smoke (jest-axe)", () => {
         </Row>
       </ul>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("EmptyState has no axe violations in either layout", async () => {
@@ -90,8 +86,7 @@ describe("a11y smoke (jest-axe)", () => {
         <EmptyState layout="fill">No instruments</EmptyState>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Panel + PanelTitle has no axe violations", async () => {
@@ -100,8 +95,7 @@ describe("a11y smoke (jest-axe)", () => {
         <PanelTitle>Science Lab</PanelTitle>
       </Panel>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Panel (scrolling header + ghost) has no axe violations", async () => {
@@ -112,8 +106,7 @@ describe("a11y smoke (jest-axe)", () => {
         <p>content</p>
       </Panel>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Panel (degraded status, ghost dot present) has no axe violations", async () => {
@@ -124,8 +117,7 @@ describe("a11y smoke (jest-axe)", () => {
         </Panel>
       </Panel.Status>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Panel (toolbar, pinned header) has no axe violations", async () => {
@@ -137,8 +129,7 @@ describe("a11y smoke (jest-axe)", () => {
         <p>content</p>
       </Panel>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Panel (floatingHeader) has no axe violations", async () => {
@@ -147,22 +138,19 @@ describe("a11y smoke (jest-axe)", () => {
         <p>globe</p>
       </Panel>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Card has no axe violations", async () => {
     const { container } = render(<Card>Kerbin Explorer I</Card>);
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("ProgressBar has no axe violations", async () => {
     const { container } = render(
       <ProgressBar value={64} ariaLabel="Biome coverage: Kerbin" />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Tabs has no axe violations, switch mode", async () => {
@@ -176,8 +164,7 @@ describe("a11y smoke (jest-axe)", () => {
         onChange={() => undefined}
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Tape has no axe violations (with zones, markers, ground line)", async () => {
@@ -194,8 +181,7 @@ describe("a11y smoke (jest-axe)", () => {
         ariaLabel="Altitude above terrain"
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Dial has no axe violations (compass with zones + ticks)", async () => {
@@ -216,8 +202,7 @@ describe("a11y smoke (jest-axe)", () => {
         ariaLabel="Slope fall direction"
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("StatusIndicator has no axe violations across tones, live or not", async () => {
@@ -229,8 +214,7 @@ describe("a11y smoke (jest-axe)", () => {
         </StatusIndicator>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("WidgetHeader has no axe violations", async () => {
@@ -244,8 +228,7 @@ describe("a11y smoke (jest-axe)", () => {
         }
       />,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Section + SectionTitle has no axe violations", async () => {
@@ -255,8 +238,7 @@ describe("a11y smoke (jest-axe)", () => {
         <span>Altimetry (Hi): 42%</span>
       </Section>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("Grid has no axe violations", async () => {
@@ -267,8 +249,7 @@ describe("a11y smoke (jest-axe)", () => {
         <span>64%</span>
       </Grid>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   it("ScienceExperimentRow has no axe violations across instrument states", async () => {
@@ -309,7 +290,6 @@ describe("a11y smoke (jest-axe)", () => {
         />
       </ul>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

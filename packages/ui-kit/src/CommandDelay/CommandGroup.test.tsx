@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import { CommandGroup } from "./CommandGroup";
 
 interface PanTiltValue {
@@ -81,9 +81,9 @@ describe("CommandGroup", () => {
     const { container, rerender } = render(
       <PanTiltHarness onCommit={vi.fn()} />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
 
     rerender(<PanTiltHarness onCommit={vi.fn()} gated />);
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

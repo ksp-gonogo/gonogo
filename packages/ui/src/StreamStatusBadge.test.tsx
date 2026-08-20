@@ -1,8 +1,8 @@
 import type { StreamStatusValue } from "@ksp-gonogo/sitrep-client";
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
-import { axe } from "./test/axe";
 
 const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
   live: null,
@@ -47,7 +47,6 @@ describe("StreamStatusBadge", () => {
         <StreamStatusBadge status="absent" />
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

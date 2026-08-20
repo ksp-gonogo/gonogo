@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import type { DeviceInstance, DeviceType } from "../types";
 import { DeviceEditor } from "./DeviceEditor";
 
@@ -114,6 +114,6 @@ describe("DeviceEditor: gamepad transport", () => {
       />,
     );
     await user.selectOptions(screen.getByLabelText("Transport"), "gamepad");
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

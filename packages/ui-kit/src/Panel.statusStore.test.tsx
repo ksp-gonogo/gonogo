@@ -1,10 +1,10 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
-import { axe } from "./test/axe";
 
 /**
  * The panel header now summarises its OWN worst state out of the per-item
@@ -133,6 +133,6 @@ describe("Panel header summary (store-backed)", () => {
         </Panel>,
       ),
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

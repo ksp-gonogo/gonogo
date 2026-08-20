@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { Badge } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerAugment(...).
 import {
   type GreenhouseRow,
@@ -155,6 +155,6 @@ describe("GreenhouseSection: radiation-too-high badge", () => {
       [row({ radiationToleranceRadPerSec: 0.001 })],
       0.005,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

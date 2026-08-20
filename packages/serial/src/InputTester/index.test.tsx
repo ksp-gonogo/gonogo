@@ -1,8 +1,8 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";
-import { axe } from "../test/axe";
 import { InputTesterComponent } from "./index";
 
 function memoryStorage(): Storage {
@@ -116,7 +116,7 @@ describe("InputTesterComponent: gamepad glyph rendering", () => {
       </SerialDeviceProvider>,
     );
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
     unmount();
     await svc.destroy();
   });

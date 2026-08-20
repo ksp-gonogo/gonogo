@@ -5,9 +5,9 @@ import type {
 } from "@ksp-gonogo/core";
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import { DataSourceStatusComponent } from "./index";
 
 function makeFixtureSource(
@@ -219,7 +219,6 @@ describe("DataSourceStatus config form", () => {
     await user.click(
       screen.getByRole("button", { name: /configure test source/i }),
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

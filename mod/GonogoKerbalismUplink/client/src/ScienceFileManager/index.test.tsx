@@ -5,10 +5,12 @@ import {
   setupStreamFixture,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 // Importing the real module runs its module-load registerAugment(...).
 import { findDriveEntries, ScienceDataAboardRowAugment } from "./index";
 
@@ -361,6 +363,6 @@ describe("ScienceDataAboardRowAugment", () => {
       fixture.emit("science.lab", LAB);
     });
     await within(container).findByRole("button", { name: /cancel send/i });
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

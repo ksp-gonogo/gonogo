@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
-import { axe } from "./test/axe";
 
 describe("Badge", () => {
   it("renders its children", () => {
@@ -44,7 +44,6 @@ describe("Badge", () => {
         <Badge size="sm">small</Badge>
       </>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -1,6 +1,6 @@
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
@@ -145,13 +145,6 @@ describe("FleetReliabilityUpdates augment", () => {
       });
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
-    // axe walks the DOM asynchronously and takes real time, and this widget keeps
-    // updating while it does. Outside act() those updates land unwrapped, which was
-    // three warnings from this one line. The assertion is unchanged.
-    let results: Awaited<ReturnType<typeof axe>> | undefined;
-    await act(async () => {
-      results = await axe(container);
-    });
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -1,6 +1,7 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider, useModal } from "@ksp-gonogo/ui";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -9,7 +10,6 @@ import { GAMEPAD_ROLES } from "../gamepadRoles";
 import { MockGamepadAPI, type MockGamepadSpec } from "../mocks/mockGamepad";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";
-import { axe } from "../test/axe";
 import { GamepadPoller } from "../transports/GamepadPoller";
 import type { DeviceInput, DeviceType } from "../types";
 import { GamepadLearnWizard } from "./GamepadLearnWizard";
@@ -405,7 +405,7 @@ describe("GamepadLearnWizard", () => {
       </SerialDeviceProvider>,
     );
 
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
 
     await svc.destroy();
   });

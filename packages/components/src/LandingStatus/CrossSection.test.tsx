@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { CrossSection } from "./CrossSection";
 
 // A 4x4 patch with a clear high/low split so the sliced profile is non-flat.
@@ -168,6 +168,6 @@ describe("CrossSection", () => {
         horizontalSpeed={15}
       />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
-import { axe } from "../test/axe";
 import { CameraSetpointInput } from "./CameraSetpointInput";
 
 const bounds = {
@@ -71,6 +71,6 @@ describe("CameraSetpointInput", () => {
         onCommit={() => {}}
       />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

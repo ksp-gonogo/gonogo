@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
 import { JogWheel } from "./JogWheel";
-import { axe } from "./test/axe";
 
 describe("JogWheel", () => {
   it("exposes slider semantics with current/bounds/valuetext", () => {
@@ -72,6 +72,6 @@ describe("JogWheel", () => {
         onChange={() => {}}
       />,
     );
-    expect(await axe(container)).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

@@ -4,11 +4,11 @@ import {
   screen,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
-import { axe } from "./test/axe";
 import { usePanelAsideSize } from "./usePanelAsideSize";
 
 /**
@@ -228,7 +228,6 @@ describe("Panel header aside expand box, accessibility", () => {
         </Panel.Status>
       </PanelStatusStoreProvider>,
     );
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 });

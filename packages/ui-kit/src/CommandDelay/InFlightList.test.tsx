@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { axe } from "../test/axe";
 import { InFlightList, type InFlightListItem } from "./InFlightList";
 
 const ITEMS: InFlightListItem[] = [
@@ -39,8 +39,7 @@ describe("InFlightList", () => {
 
   it("has no axe violations across phases, incl. the error tones", async () => {
     const { container } = render(<InFlightList items={ITEMS} />);
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
+    await expectNoA11yViolations(container);
   });
 
   describe('variant="rail" (v3 glow band)', () => {
@@ -115,7 +114,7 @@ describe("InFlightList", () => {
       const { container } = render(
         <InFlightList items={ITEMS} variant="rail" />,
       );
-      expect(await axe(container)).toHaveNoViolations();
+      await expectNoA11yViolations(container);
     });
   });
 
@@ -225,7 +224,7 @@ describe("InFlightList", () => {
           onDismiss={() => {}}
         />,
       );
-      expect(await axe(container)).toHaveNoViolations();
+      await expectNoA11yViolations(container);
     });
   });
 });
