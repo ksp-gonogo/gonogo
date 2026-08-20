@@ -3,6 +3,7 @@ using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
+using Sitrep.Propagation;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Propagation;
 using Sitrep.Host.Targeting;
@@ -310,6 +311,10 @@ namespace Gonogo.KSP
             // routes through the election; without this the three write commands
             // mutate stock's solver whoever owns the plan, which under a foreign
             // owner leaves a node nothing reads (see `PlanWriteRefusal`).
+            VesselViewProvider.SetIntegratingProviderSource(
+                () => _kernel != null
+                    && PropagationElection.Elected(_kernel) is IIntegratedTrajectorySource);
+
             _kspActuator?.SetPlanOwnerSource(() =>
             {
                 var elected = _kernel != null ? ManeuverPlanElection.Elected(_kernel) : null;

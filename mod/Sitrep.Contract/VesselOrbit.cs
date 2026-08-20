@@ -121,22 +121,31 @@ public class PropagationHorizon
     public PropagationHorizonKind Kind { get; set; }
 
     /// <summary>
-    /// Which provider stated this horizon. <c>"kepler"</c> for the stock
-    /// analytic solver, said EXPLICITLY: an absent field and a stock field are
-    /// different claims, so empty never means stock.
+    /// What KIND of answer these elements are, which is the client's real
+    /// question. Replaced a provider id, and the difference matters.
     ///
-    /// <para>Without it a client knows a number is bounded but not by whom, and
-    /// cannot label honestly, which is the entire point of carrying a horizon.
-    /// The value comes from <c>IPropagationProvider.ProviderId</c>, which has
-    /// existed mod-side since the seam shipped and had no way onto the wire.</para>
+    /// <para>The horizon answers REACH: how far may I extrapolate. It does not
+    /// answer SHAPE: is a conic the right renderer at all. A client cannot infer
+    /// the second from the first, and the failure case is concrete rather than
+    /// principled: an analytic provider reports
+    /// <see cref="PropagationHorizonKind.Unbounded"/>, and so may an INTEGRATING
+    /// provider in a low-perturbation regime, where the horizon is genuinely
+    /// long. A client reasoning "unbounded, therefore analytic, therefore an
+    /// ellipse is fine" then draws a closed conic for an integrated trajectory:
+    /// faithful at the sample instant, wrong as a path, and confident.</para>
     ///
-    /// <para>Nothing outside the election may branch on the VALUE. A provider
-    /// says what it is so a readout can NAME it and a diagnostic can record it,
-    /// never so a consumer can special-case one: the same rule
-    /// <see cref="VesselManeuver.Planner"/> carries, for the same reason.</para>
+    /// <para>An earlier draft carried the provider's literal id instead. That
+    /// answered "who computed this" where the client needed "what is this like",
+    /// and it put a vendor's name in a standard payload. An enumeration answers
+    /// the real question completely, and every provider can state it, stock
+    /// included, which is what makes it belong on the standard shape at all.</para>
+    ///
+    /// <para>Diagnostics keep their own home: <c>system.uplinks</c> already
+    /// carries each Uplink's id, version and availability once per session, and
+    /// a version is what a bug report wants more than a name.</para>
     /// </summary>
-    [SitrepUnit(Units.Id)]
-    public string ProviderId { get; set; } = "";
+    [SitrepUnit(Units.Enumeration)]
+    public TrajectoryKind TrajectoryKind { get; set; }
 
     /// <summary>
     /// The last UT these elements answer for. Set if and only if
@@ -175,6 +184,40 @@ public enum PropagationHorizonKind
 
     /// <summary>Authoritative until <see cref="PropagationHorizon.UntilUt"/>.</summary>
     Until = 2,
+}
+
+/// <summary>
+/// What kind of thing an element set describes: a closed-form conic, or a
+/// snapshot of an integrated path.
+///
+/// <para><see cref="Unspecified"/> is 0 for the same reason
+/// <see cref="PropagationHorizonKind.Unspecified"/> is: a producer that forgets
+/// the field gets the answer that WITHHOLDS rather than the one that permits.
+/// Had <see cref="Analytic"/> been zero, a provider that failed to populate it
+/// would have every client treating an integrated trajectory as an ellipse.</para>
+/// </summary>
+#if NETSTANDARD2_0
+[TsEnum]
+#endif
+[SitrepContract]
+public enum TrajectoryKind
+{
+    /// <summary>No provider stated one. Treat the shape as unknown.</summary>
+    Unspecified = 0,
+
+    /// <summary>
+    /// A closed-form conic. The orbit IS an ellipse, so a conic renderer is
+    /// exactly right and stays right for as long as the horizon allows.
+    /// </summary>
+    Analytic = 1,
+
+    /// <summary>
+    /// A numerically integrated path. The osculating conic on the wire is a
+    /// SNAPSHOT of it, true at the sample instant and never the path itself, so
+    /// a client that draws a closed ellipse from it is drawing something the
+    /// craft will not fly.
+    /// </summary>
+    Integrated = 2,
 }
 
 /// <summary>One upcoming SOI patch transition: see <see cref="VesselOrbit.Encounter"/>.</summary>
