@@ -93,6 +93,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink", "Go
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GonogoPrincipiaUplink.Tests", "GonogoPrincipiaUplink.Tests\GonogoPrincipiaUplink.Tests.csproj", "{15DAEABF-598E-48AA-9784-71549CF8B8E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitrep.Contract.Tests", "Sitrep.Contract.Tests\Sitrep.Contract.Tests.csproj", "{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -643,6 +645,18 @@ Global
 		{15DAEABF-598E-48AA-9784-71549CF8B8E1}.Release|x64.Build.0 = Release|Any CPU
 		{15DAEABF-598E-48AA-9784-71549CF8B8E1}.Release|x86.ActiveCfg = Release|Any CPU
 		{15DAEABF-598E-48AA-9784-71549CF8B8E1}.Release|x86.Build.0 = Release|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Debug|x64.Build.0 = Debug|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Debug|x86.Build.0 = Debug|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x64.ActiveCfg = Release|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x64.Build.0 = Release|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x86.ActiveCfg = Release|Any CPU
+		{AFFE23C3-2E35-4E30-A26D-B43FF3C244C1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

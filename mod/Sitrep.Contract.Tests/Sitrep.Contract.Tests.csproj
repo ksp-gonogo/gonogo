@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- THE REFERENCE SHAPE IS THIS PROJECT'S REASON TO EXIST. It models a
+       runtime consumer of Sitrep.Contract that does NOT have the codegen
+       package: exactly what a deployed assembly is, and exactly what nothing
+       else here was.
+
+       So: this project must NEVER reference Reinforced.Typings. Not to fix a
+       red, not "just for this one test". If a test here needs it, the test is
+       wrong or the contract is, and one of those is the finding.
+
+       Note that Sitrep.Core.Tests requires the OPPOSITE and says so in its own
+       csproj: it deliberately ships Reinforced.Typings.dll beside its test
+       assembly because UnitDescriptorTests calls Assembly.GetTypes() over the
+       netstandard2.0 contract and needs every type to resolve. Two projects,
+       opposite requirements about the same DLL, one deliberate and documented.
+
+       The accident is what cost us a month. ControlChannelDescriptor's property
+       scan resolved Reinforced.Typings at runtime and threw where the package
+       was correctly absent, which aborted every delayed command dispatch. It
+       went unseen because the only suite exercising it had a stale copy of that
+       DLL in bin, so thirteen tests passed while asserting nothing. -->
+  <ItemGroup>
+    <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
+  </ItemGroup>
+</Project>

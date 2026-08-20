@@ -269,6 +269,7 @@ jobs:
             echo "::warning::KSP reference assemblies absent: PendingCreditLedgerTests SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
           fi
           projects=(
+            Sitrep.Contract.Tests
             Sitrep.Core.Tests
             Sitrep.Transport.Tests
             Sitrep.Propagation.Tests
@@ -282,8 +283,27 @@ jobs:
             GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
+            GonogoAvionicsUplink.Tests
+            GonogoTestFlightUplink.Tests
+            GonogoMechJebUplink.Tests
+            GonogoPrincipiaUplink.Tests
             Gonogo.KSP.Tests
           )
+          # THE OMISSION MODE HERE IS SILENT, so read this before adding a test
+          # project anywhere. This list is hand-maintained by construction: the
+          # solution cannot be tested wholesale because the KSP-linked projects
+          # need a gitignored install (see SCOPING above), which is sound and is
+          # not going to change. But nothing notices when a project joins
+          # Gonogo.sln and not this array, and the result is not a warning, it is
+          # a suite that silently never runs.
+          #
+          # Four projects drifted in over four weeks that way, in neither this
+          # array nor `nonblocking`, so 35 tests were gated by nothing:
+          # GonogoAvionicsUplink.Tests and GonogoTestFlightUplink.Tests (both
+          # 2026-07-22), GonogoMechJebUplink.Tests (2026-08-08) and
+          # GonogoPrincipiaUplink.Tests (2026-08-20, found the same day it
+          # landed). All four cost 343ms together, so the omission bought
+          # nothing either. Added 2026-08-20.
           # The real-WebSocket integration suites are CPU-fragile on the shared
           # CI runner: the in-process test server's pump competes with client
           # work on the thread pool, so on a slow/loaded runner instance a
@@ -305,6 +325,13 @@ jobs:
           # time out even the normally-deterministic suites (Kos, Host.Tests) on
           # their WS/async paths. A genuine regression fails all 4 attempts and is
           # still caught; only intermittent-pass flakes are absorbed.
+          # Sitrep.Contract.Tests is deliberately absent from `nonblocking`. It
+          # references Sitrep.Contract and nothing else, touches no WebSocket
+          # harness, and so none of the starvation reasoning above applies to it.
+          # It exists because the contract-reflection tests it holds previously
+          # lived in Sitrep.Host.IntegrationTests, which is non-blocking, so the
+          # fix for a month-long dispatch bug was proven only behind the very
+          # exemption that hid the bug.
           nonblocking=" Sitrep.Host.IntegrationTests "
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
