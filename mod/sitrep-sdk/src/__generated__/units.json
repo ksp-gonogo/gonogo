@@ -600,6 +600,7 @@
     },
     "PropagationHorizon": {
       "kind": "enum",
+      "providerId": "id",
       "untilUt": "ut"
     },
     "RecoveryCrewEntry": {

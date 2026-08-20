@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sitrep.Contract;
+using Sitrep.Propagation;
 
 namespace Sitrep.Host
 {
@@ -279,7 +280,15 @@ namespace Sitrep.Host
         /// do not delete it as unreachable.</para>
         /// </summary>
         private static PropagationHorizon ElementHorizon() =>
-            new PropagationHorizon { Kind = PropagationHorizonKind.Unbounded };
+            new PropagationHorizon
+            {
+                Kind = PropagationHorizonKind.Unbounded,
+                // Stated, not defaulted. The stock solver's own
+                // `IPropagationProvider.ProviderId`, so a readout can say who
+                // bounded a number rather than leaving the client to infer that
+                // an empty field means stock.
+                ProviderId = KeplerProvider.ProviderIdValue,
+            };
 
         /// <summary>
         /// Maps a raw patch-chain list (<c>Gonogo.KSP.KspHost.
@@ -1348,6 +1357,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(PropagationHorizon horizon) => new Dictionary<string, object?>
         {
             ["kind"] = (int)horizon.Kind,
+            ["providerId"] = horizon.ProviderId,
             ["untilUt"] = horizon.UntilUt,
         };
 

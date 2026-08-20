@@ -57,7 +57,14 @@ namespace Sitrep.Propagation
             _bodies = bodies;
         }
 
-        public string ProviderId => "kepler";
+        /// <summary>
+        /// The stock analytic solver's id, as a constant so the wire can state it
+        /// rather than a second literal drifting from this one (see
+        /// <c>PropagationHorizon.ProviderId</c>).
+        /// </summary>
+        public const string ProviderIdValue = "kepler";
+
+        public string ProviderId => ProviderIdValue;
 
         public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut)
         {

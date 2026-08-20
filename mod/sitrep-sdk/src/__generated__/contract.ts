@@ -1294,6 +1294,7 @@ export interface VesselOrbit
 export interface PropagationHorizon
 {
 	kind: PropagationHorizonKind;
+	providerId: string;
 	untilUt?: Value<"ut">;
 }
 export enum PropagationHorizonKind {
