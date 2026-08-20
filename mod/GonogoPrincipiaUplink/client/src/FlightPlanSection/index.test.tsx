@@ -4,6 +4,7 @@ import {
   screen,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
@@ -107,13 +108,29 @@ describe("FlightPlanSection: an observation, dated", () => {
     expect(screen.queryByText("PLAN NOT OBSERVED")).not.toBeInTheDocument();
   });
 
-  it("renders a burn row for an observed plan", async () => {
+  /**
+   * Asserts the NUMBERS, not just the row label and the badge.
+   *
+   * The first version of this checked `#1` and `NEXT` and passed while BOTH
+   * quantity columns rendered a null dash: the nested burn type's units were
+   * never registered, so Δv and duration arrived bare and `<Unit>` had nothing
+   * to format. A render is what showed the empty columns. A test that names a
+   * label proves the row exists; only one that names a value proves the row says
+   * anything.
+   */
+  it("renders a burn row with its quantities, not just its label", async () => {
     const stream = mount();
 
     emitPlan(stream);
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
     expect(screen.getByText("NEXT")).toBeInTheDocument();
+    // The Δv WITH ITS UNIT, because the unit is the half that was missing: the
+    // nested type's units were unregistered, so the value arrived bare and
+    // `<Unit>` rendered a null dash. `121` is 120.5 at zero decimals.
+    const text = visibleText(stream.container);
+    expect(text).toContain("121 m/s");
+    expect(text).not.toContain(NULL_DISPLAY);
   });
 
   /**
@@ -144,11 +161,14 @@ describe("FlightPlanSection: an observation, dated", () => {
    * countdown is measured from the VIEW instant, so a burn four minutes after a
    * six-hour-old snapshot reads as long past rather than as imminent.
    */
-  it("shows a plan observed in the past, and says how long ago", async () => {
+  it("falls back to the sample instant when the plan does not state its own", async () => {
     const stream = mount();
 
+    // `observedAtUt` deliberately absent: this is the fallback path, for a
+    // producer that carried a plan without saying when it looked. The sample's
+    // own UT is then the best available answer and is used as one.
     act(() => {
-      stream.emit("principia.flightPlan", plan(), {
+      stream.emit("principia.flightPlan", plan({ observedAtUt: undefined }), {
         validAt: VIEW_UT - 3_600,
       });
     });
@@ -163,6 +183,29 @@ describe("FlightPlanSection: an observation, dated", () => {
    * observed at the view instant says so. Without this pair, a widget that
    * always printed an age would pass every other test in this file.
    */
+  /**
+   * The payload's own instant is what is shown, not the sample's, and they are
+   * made to DISAGREE here on purpose. A render fixture that set only the payload
+   * field produced a byte-identical image to the fresh one, which is how the two
+   * were found to be different facts: the sample UT is transport metadata and the
+   * payload field is the producer's claim about when it looked.
+   */
+  it("prefers the plan's own observation instant over the sample's", async () => {
+    const stream = mount();
+
+    act(() => {
+      stream.emit(
+        "principia.flightPlan",
+        plan({ observedAtUt: VIEW_UT - 3_600 }),
+        { validAt: VIEW_UT },
+      );
+    });
+
+    expect(await screen.findByText("#1")).toBeInTheDocument();
+    expect(visibleText(stream.container)).toMatch(/OBSERVED .* AGO/);
+    expect(screen.queryByText("OBSERVED NOW")).not.toBeInTheDocument();
+  });
+
   it("says a plan observed at the view instant is current", async () => {
     const stream = mount();
 
@@ -188,7 +231,7 @@ describe("FlightPlanSection: an observation, dated", () => {
       ],
     });
 
-    expect(await screen.findByText("ANOMALOUS")).toBeInTheDocument();
+    expect(await screen.findByText("ANOM")).toBeInTheDocument();
   });
 
   /**
