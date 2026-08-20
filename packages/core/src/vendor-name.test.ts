@@ -84,7 +84,7 @@ describe("vendor name", () => {
     expect([...found.keys()].some((p) => p.includes("map-topic"))).toBe(true);
   });
 
-  it("the published SDK surface only ever shrinks", () => {
+  it("the published SDK surface carries the name nowhere at all", () => {
     const found = new Map([...scan()].filter(([p]) => isSdk(p)));
     const drift: string[] = [];
     for (const [path, actual] of found) {
@@ -103,18 +103,21 @@ describe("vendor name", () => {
     expect(
       drift,
       [
-        "The published SDK surface's vendor-name count changed.",
+        "The published SDK surface names the retired telemetry source.",
         "",
         "mod/sitrep-sdk is what a third-party Uplink author reads, and they",
         "cannot install anything else we publish. A line here is worse than a",
         "line anywhere else in the tree, so this bucket must reach zero first",
         "and can never grow.",
         "",
-        "If a number went DOWN, that is the sweep working: lower it here, or",
-        "delete the entry when it hits zero.",
-        "If a number went UP or a file is NEW, something re-introduced the name",
-        "on a published surface. That has happened once already, when the stream",
-        "spine moved here and carried 86 lines of doc comment with it.",
+        "This bucket is EMPTY and is a hard gate rather than a shrinking list:",
+        "there is no acceptable number of vendor names on the package a",
+        "third-party author installs, so there is no entry to add here. Rewrite",
+        "the line to say what it means without the name, the way the rest of",
+        "this surface already does.",
+        "",
+        "It has regressed once, when the stream spine moved here and carried 86",
+        "lines of doc comment with it, which is why this is a gate and not a list.",
       ].join("\n"),
     ).toEqual([]);
   });
