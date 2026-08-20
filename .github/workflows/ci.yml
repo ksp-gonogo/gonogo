@@ -283,8 +283,27 @@ jobs:
             GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
+            GonogoAvionicsUplink.Tests
+            GonogoTestFlightUplink.Tests
+            GonogoMechJebUplink.Tests
+            GonogoPrincipiaUplink.Tests
             Gonogo.KSP.Tests
           )
+          # THE OMISSION MODE HERE IS SILENT, so read this before adding a test
+          # project anywhere. This list is hand-maintained by construction: the
+          # solution cannot be tested wholesale because the KSP-linked projects
+          # need a gitignored install (see SCOPING above), which is sound and is
+          # not going to change. But nothing notices when a project joins
+          # Gonogo.sln and not this array, and the result is not a warning, it is
+          # a suite that silently never runs.
+          #
+          # Four projects drifted in over four weeks that way, in neither this
+          # array nor `nonblocking`, so 35 tests were gated by nothing:
+          # GonogoAvionicsUplink.Tests and GonogoTestFlightUplink.Tests (both
+          # 2026-07-22), GonogoMechJebUplink.Tests (2026-08-08) and
+          # GonogoPrincipiaUplink.Tests (2026-08-20, found the same day it
+          # landed). All four cost 343ms together, so the omission bought
+          # nothing either. Added 2026-08-20.
           # The real-WebSocket integration suites are CPU-fragile on the shared
           # CI runner: the in-process test server's pump competes with client
           # work on the thread pool, so on a slow/loaded runner instance a
