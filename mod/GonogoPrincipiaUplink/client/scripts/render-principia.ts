@@ -7,9 +7,13 @@
  *
  * Every scene is POPULATED, deliberately. An empty widget renders the same
  * whether it works or not, so a render of one tells a reviewer nothing about the
- * format: the fixtures below carry a plan with burns, a failed integration, a
- * stale observation and an unobserved accuracy bound, which are the states worth
- * looking at.
+ * format: the fixtures below carry a plan with burns, a failed integration and a
+ * stale observation, which are the states worth looking at.
+ *
+ * The three `PropagationProvenance` scenes are gone with that widget, which the
+ * operator rejected on sight of these renders: "the user shouldn't have a concept
+ * of a propagator". Recorded because it is the harness working as intended, a
+ * surface reviewed before four more were built on the same assumption.
  *
  * The one thing this cannot do: render `FlightPlanSection` inside the real
  * `ManeuverPlanner`. That widget lives in a package an Uplink may not import, so
@@ -97,78 +101,6 @@ interface Scene {
 }
 
 const SCENES: Scene[] = [
-  // ---- PropagationProvenance -------------------------------------------
-  {
-    name: "provenance-default",
-    scene: {
-      kind: "widget",
-      widgetId: "propagation-provenance",
-      topic: "principia.provenance",
-      pxW: 420,
-      pxH: 520,
-      payload: {
-        displayPatchedConics: false,
-        historyLengthSeconds: 7 * 24 * HOUR,
-        framesHidingUnpinnedMarkers: 0,
-        framesHidingUnpinnedCelestials: 0,
-        plottingFrameType: 3,
-        plottingFrameCentreBody: "Duna",
-        targetFrameSelected: false,
-        predictionToleranceMetres: 0.01,
-        predictionMaxSteps: 10_000,
-        predictionObservedAtUt: VIEW_UT,
-        predictionVesselId: "Ares-IV",
-      },
-    },
-  },
-  {
-    // The case the widget exists for: nobody has opened the main window, so the
-    // accuracy bound is unobserved and the panel says so instead of printing the
-    // plausible-looking constructor defaults.
-    name: "provenance-bound-unobserved",
-    scene: {
-      kind: "widget",
-      widgetId: "propagation-provenance",
-      topic: "principia.provenance",
-      pxW: 420,
-      pxH: 520,
-      payload: {
-        displayPatchedConics: true,
-        historyLengthSeconds: 30 * 24 * HOUR,
-        framesHidingUnpinnedMarkers: 2,
-        framesHidingUnpinnedCelestials: 0,
-        plottingFrameType: 0,
-        plottingFrameCentreBody: "Kerbin",
-        targetFrameSelected: false,
-      },
-    },
-  },
-  {
-    // A bound read six hours ago, against a craft that may no longer be the one
-    // on screen. Also the small size, which is where the density shows.
-    name: "provenance-small-stale-bound",
-    scene: {
-      kind: "widget",
-      widgetId: "propagation-provenance",
-      topic: "principia.provenance",
-      pxW: 300,
-      pxH: 400,
-      payload: {
-        displayPatchedConics: false,
-        historyLengthSeconds: 2 * 24 * HOUR,
-        framesHidingUnpinnedMarkers: 1,
-        framesHidingUnpinnedCelestials: 3,
-        plottingFrameType: 1,
-        plottingFrameCentreBody: "Jool",
-        targetFrameSelected: true,
-        predictionToleranceMetres: 1,
-        predictionMaxSteps: 1_000,
-        predictionObservedAtUt: VIEW_UT - 6 * HOUR,
-        predictionVesselId: "Jool-Probe-2",
-      },
-    },
-  },
-
   // ---- FlightPlanSection ------------------------------------------------
   {
     name: "flight-plan-healthy",
