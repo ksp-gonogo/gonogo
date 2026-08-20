@@ -1,7 +1,8 @@
+import { CommandErrorCode } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import type { ServerMessage } from "../envelope";
 import { type Clock, RealTimeClock } from "./clock";
-import type { CommandStatus } from "./lifecycle";
+import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
 
 type Callback = (value: unknown) => void;
@@ -81,6 +82,30 @@ interface PendingCommand {
  * and exposes a store-listener channel for `useSyncExternalStore`-style React
  * hooks (added in a later task). Command dispatch is out of scope here.
  */
+/**
+ * The `CommandErrorCode` a `command-response` payload is refusing with, or
+ * `null` if it is not a refusal at all.
+ *
+ * Structural rather than nominal, because `CommandResult` is only one of the
+ * shapes carried on this channel (an Uplink may answer its own). So a payload
+ * with no `success` field is "not a CommandResult", never "refused": reading
+ * absence as refusal would break every command that answers a bare value. Only
+ * an explicit `success: false` counts.
+ *
+ * A refusal that somehow arrives without a usable `errorCode` still counts as
+ * one, reported as `Unknown`: that we were refused is the load-bearing half,
+ * and inventing a success out of a missing reason is the bug this whole path
+ * exists to stop.
+ */
+function refusalOf(result: unknown): CommandErrorCode | null {
+  if (typeof result !== "object" || result === null) return null;
+  const candidate = result as { success?: unknown; errorCode?: unknown };
+  if (candidate.success !== false) return null;
+  return typeof candidate.errorCode === "number"
+    ? (candidate.errorCode as CommandErrorCode)
+    : CommandErrorCode.Unknown;
+}
+
 export class TelemetryClient {
   private readonly transport: Transport;
   private readonly clock: Clock;
@@ -459,7 +484,7 @@ export class TelemetryClient {
       pending.status = { phase: "failed", requestId, error };
       pending.resolve = null;
       pending.reject = null;
-      reject(error);
+      reject(new CommandError(error.code, error.message));
     }
 
     this.subscribers.clear();
@@ -504,9 +529,29 @@ export class TelemetryClient {
     pending.cancelLossTimer?.();
     pending.cancelLossTimer = null;
     const resolve = pending.resolve;
-    pending.status = { phase: "confirmed", requestId, result };
+    const reject = pending.reject;
     pending.resolve = null;
     pending.reject = null;
+
+    // A well-formed refusal arrives on this channel, not as an `"error"`
+    // message: the mod answers `CommandResult.Fail(code)` when the handler ran
+    // and the game said no. Settling that as `confirmed` told the operator a
+    // refused command had worked.
+    const errorCode = refusalOf(result);
+    if (errorCode !== null) {
+      pending.status = { phase: "refused", requestId, errorCode };
+      reject?.(
+        new CommandError(
+          "E_REFUSED",
+          `command refused: ${CommandErrorCode[errorCode] ?? errorCode}`,
+          errorCode,
+        ),
+      );
+      this.notifyStore();
+      return;
+    }
+
+    pending.status = { phase: "confirmed", requestId, result };
     resolve(result);
     this.notifyStore();
   }
@@ -521,12 +566,11 @@ export class TelemetryClient {
     if (!pending?.reject) return;
     pending.cancelLossTimer?.();
     pending.cancelLossTimer = null;
-    const error = { code, message };
     const reject = pending.reject;
-    pending.status = { phase: "failed", requestId, error };
+    pending.status = { phase: "failed", requestId, error: { code, message } };
     pending.resolve = null;
     pending.reject = null;
-    reject(error);
+    reject(new CommandError(code, message));
     this.notifyStore();
   }
 
@@ -545,10 +589,12 @@ export class TelemetryClient {
     pending.resolve = null;
     pending.reject = null;
     pending.cancelLossTimer = null;
-    reject?.({
-      code: "E_LOST",
-      message: "command lost: no confirmation received by predicted ETA",
-    });
+    reject?.(
+      new CommandError(
+        "E_LOST",
+        "command lost: no confirmation received by predicted ETA",
+      ),
+    );
     this.notifyStore();
   }
 

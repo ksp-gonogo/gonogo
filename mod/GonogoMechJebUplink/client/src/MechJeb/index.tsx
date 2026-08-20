@@ -96,6 +96,12 @@ function commandChip(
       return { severity: "nominal", text: "confirmed" };
     case "failed":
       return { severity: "critical", text: "rejected" };
+    case "refused":
+      // The game evaluated the command and said no, which is a different
+      // thing from the machinery breaking above: MechJeb not installed at the
+      // version the guard wants, no vessel, wrong mode. Nothing was broken and
+      // a retry changes nothing until the situation does.
+      return { severity: "critical", text: "refused" };
     case "lost":
       return { severity: "critical", text: "no reply" };
     default:

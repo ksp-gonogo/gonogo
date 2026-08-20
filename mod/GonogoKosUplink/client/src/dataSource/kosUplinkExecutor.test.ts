@@ -227,7 +227,12 @@ describe("KosUplinkExecutor", () => {
 
     const pending = executor.run(client, "cpu-a", "0:/a.ks", [], null);
 
-    await expect(pending).rejects.toThrow(/command rejected/i);
+    // The SPINE settles this now: a `CommandResult.success === false` reply
+    // rejects the dispatch promise rather than resolving it, so the refusal
+    // reaches `settleFailure` through the executor's `.catch` and carries the
+    // mod's typed reason. The executor's own `success === false` branch in
+    // `.then` is no longer the mechanism under test here.
+    await expect(pending).rejects.toThrow(/refused/i);
   });
 
   it("rejects with a KosScriptError when kos.run.<coreId> carries an error", async () => {

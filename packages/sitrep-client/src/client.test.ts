@@ -1,4 +1,5 @@
 import type { ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -488,5 +489,105 @@ describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
       requestId,
       result: { ok: "deploy" },
     });
+  });
+});
+
+/**
+ * A command the mod REFUSED is not a command that worked. The mod answers a
+ * well-formed refusal on the normal `command-response` channel, carrying a
+ * typed `CommandResult.errorCode`; the `"error"` message type is reserved for
+ * a different class entirely (handler exception, unserializable result). So
+ * "the handler ran and said no" and "the machinery broke" arrive by different
+ * routes on purpose, and the client must not collapse them.
+ */
+describe("TelemetryClient command refusals", () => {
+  const refusing = (errorCode: CommandErrorCode) => {
+    const t = new StubTransport();
+    t.setCommandHandler(() => ({ success: false, errorCode }));
+    return t;
+  };
+
+  it("does not read a refusal as confirmed", async () => {
+    const t = refusing(CommandErrorCode.NoVessel);
+    const client = new TelemetryClient(t);
+    const { requestId, result } = client.dispatch("vessel.maneuver.add");
+
+    await expect(result).rejects.toMatchObject({
+      code: "E_REFUSED",
+      errorCode: CommandErrorCode.NoVessel,
+    });
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "refused",
+      requestId,
+      errorCode: CommandErrorCode.NoVessel,
+    });
+  });
+
+  it("keeps a refusal distinct from a malfunction: the phase says which happened", async () => {
+    const refused = new TelemetryClient(
+      refusing(CommandErrorCode.ModeUnavailable),
+    );
+    const { requestId: refusedId, result: refusedResult } = refused.dispatch(
+      "vessel.control.stage",
+    );
+    await expect(refusedResult).rejects.toMatchObject({ code: "E_REFUSED" });
+
+    const broken = new StubTransport();
+    broken.setCommandHandler(() => {
+      throw { code: "E_BOOM", message: "handler exploded" };
+    });
+    const malfunction = new TelemetryClient(broken);
+    const { requestId: failedId, result: failedResult } = malfunction.dispatch(
+      "vessel.control.stage",
+    );
+    await expect(failedResult).rejects.toMatchObject({ code: "E_BOOM" });
+
+    // Same command, both terminal, both unsuccessful, and a UI that wants to
+    // say "the game said no" vs "something broke" can tell them apart.
+    expect(refused.getCommand(refusedId).phase).toBe("refused");
+    expect(malfunction.getCommand(failedId).phase).toBe("failed");
+  });
+
+  it("still confirms a successful CommandResult", async () => {
+    const t = new StubTransport();
+    t.setCommandHandler(() => ({
+      success: true,
+      errorCode: CommandErrorCode.None,
+    }));
+    const client = new TelemetryClient(t);
+    const { requestId, result } = client.dispatch("vessel.control.stage");
+
+    await expect(result).resolves.toMatchObject({ success: true });
+    expect(client.getCommand(requestId).phase).toBe("confirmed");
+  });
+
+  it("still confirms a result that is not CommandResult-shaped at all", async () => {
+    // Not every command-response payload is a `CommandResult`: an Uplink may
+    // answer with a shape of its own. Absence of `success` is not a refusal,
+    // and reading it as one would break every such command.
+    const t = new StubTransport();
+    t.setCommandHandler((c) => ({ ok: c, stdout: "" }));
+    const client = new TelemetryClient(t);
+    const { requestId, result } = client.dispatch("uplink.own.shape");
+
+    await expect(result).resolves.toMatchObject({ ok: "uplink.own.shape" });
+    expect(client.getCommand(requestId).phase).toBe("confirmed");
+  });
+
+  it("rejects with a real Error, so a caller rendering the reason gets words", async () => {
+    // `ManeuverPlanner` reports a partial dispatch with
+    // `err instanceof Error ? err.message : String(err)`. A plain object
+    // rejection renders as "[object Object]" in the operator's face.
+    const client = new TelemetryClient(refusing(CommandErrorCode.PlanNotOwned));
+    const { result } = client.dispatch("vessel.maneuver.add");
+
+    const err = await result.then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(Error);
+    const reason = err instanceof Error ? err.message : String(err);
+    expect(reason).not.toContain("[object Object]");
+    expect(reason).toMatch(/refus/i);
   });
 });

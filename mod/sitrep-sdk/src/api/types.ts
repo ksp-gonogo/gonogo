@@ -17,6 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import type { CommandErrorCode } from "../__generated__/contract";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type { TopicId, TopicPayload } from "../topics";
 
@@ -834,6 +835,7 @@ export type CommandStatus =
       requestId: string;
       error: { code: string; message: string };
     }
+  | { phase: "refused"; requestId: string; errorCode: CommandErrorCode }
   | { phase: "lost"; requestId: string; reason: string };
 
 /**
