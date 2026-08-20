@@ -4,7 +4,7 @@ import type {
   DataSourceStatus,
 } from "@ksp-gonogo/core";
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { cleanup, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http, ws } from "msw";
@@ -58,15 +58,15 @@ beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 beforeEach(() => {
   __resetUplinkOutcomes();
   mockLoadUplinkById.mockReset();
+  // Cleared here, not in `afterEach`. RTL's auto-cleanup runs AFTER a user `afterEach`, so
+  // a clear written there fires while the previous test's tree is still mounted and
+  // notifies live subscribers from outside `act`. By the time this runs, that tree has
+  // already been auto-unmounted, so the clear notifies nothing. No explicit `cleanup()`,
+  // and no dependence on which hook the framework happens to register first.
+  clearRegistry();
 });
 afterEach(() => {
-  // Unmount FIRST: the socket open can complete after the test body returns, and with the
-  // provider still mounted that mints a store frame and re-renders its own
-  // `KspCalendarObserver` outside any act scope. Same teardown ordering as
-  // `GridItemContent.test.tsx`'s contribution clear.
-  cleanup();
   server.resetHandlers();
-  clearRegistry();
 });
 afterAll(() => server.close());
 

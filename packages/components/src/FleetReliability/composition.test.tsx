@@ -1,11 +1,7 @@
-import {
-  clearAugments,
-  DashboardItemContext,
-  registerAugment,
-} from "@ksp-gonogo/core";
+import { DashboardItemContext, registerAugment } from "@ksp-gonogo/core";
 import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { FleetRosterComponent } from "../FleetRoster";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
@@ -50,10 +46,6 @@ const CARRIED = [
   "reliability.summary",
   "reliability.parts",
 ];
-
-afterEach(() => {
-  clearAugments();
-});
 
 describe("reliability augment composed into FleetRoster", () => {
   it("shows the failing part on the active vessel's row only", async () => {

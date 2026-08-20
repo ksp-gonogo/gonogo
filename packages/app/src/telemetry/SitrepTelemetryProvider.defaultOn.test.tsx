@@ -1,5 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { cleanup, render, waitFor } from "@ksp-gonogo/test-utils";
+import { render, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -32,15 +32,12 @@ beforeAll(() => server.listen());
 beforeEach(() => {
   localStorage.clear();
   resetSitrepRuntimeForTests();
+  // Cleared here, not in `afterEach`: see UplinkHubWizard.test.tsx for why the hook
+  // matters. The previous test's tree is already unmounted by the time this runs.
+  clearRegistry();
 });
 afterEach(() => {
-  // Unmount FIRST. The socket open completes asynchronously and can land after the test
-  // body returns: with the provider still mounted, that mints a store frame and
-  // re-renders its own `KspCalendarObserver` outside any act scope. Unmounting closes the
-  // transport before the handlers it is talking to disappear.
-  cleanup();
   server.resetHandlers();
-  clearRegistry();
 });
 afterAll(() => server.close());
 

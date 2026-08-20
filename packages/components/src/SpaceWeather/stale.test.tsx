@@ -1,11 +1,7 @@
-import {
-  clearRegistry,
-  DashboardItemContext,
-  getComponent,
-} from "@ksp-gonogo/core";
+import { DashboardItemContext, getComponent } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceWeatherComponent } from "./index";
 
@@ -81,15 +77,10 @@ function loseContact(): void {
 
 describe("SpaceWeather when its readings are not current", () => {
   beforeEach(() => {
-    clearRegistry();
     stream = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 149_489,
     });
-  });
-
-  afterEach(() => {
-    clearRegistry();
   });
 
   it("draws the board while the readings are current", async () => {

@@ -1,6 +1,4 @@
 import {
-  clearActionHandlers,
-  clearAugments,
   DashboardItemContext,
   getAugmentsForSlot,
   registerAugment,
@@ -8,7 +6,7 @@ import {
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
 import {
   type StreamFixture,
@@ -501,12 +499,7 @@ describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
-    clearActionHandlers();
     fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
-  });
-
-  afterEach(() => {
-    clearAugments();
   });
 
   it("exposes the two host slots empty by default (no augment DOM)", () => {
