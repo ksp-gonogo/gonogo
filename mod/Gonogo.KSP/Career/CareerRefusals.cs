@@ -81,9 +81,18 @@ namespace Gonogo.KSP.Career
             double scienceCost,
             double scienceCostLimit)
         {
-            // As shipped: UnlockTech never reads the limit, so no cost is ever
-            // over it and we unlock nodes stock refuses at this R&D tier.
-            return null;
+            var limit = RealLimit(scienceCostLimit);
+            if (limit == null || scienceCost <= limit.Value) return null;
+            return new LimitBreach
+            {
+                Facility = facilityId,
+                FacilityName = facilityName,
+                FacilityLevel = facilityLevel,
+                Quantity = "scienceCost",
+                Limit = limit,
+                Actual = scienceCost,
+                Unit = Units.Science,
+            };
         }
 
         /// <summary>
@@ -102,9 +111,18 @@ namespace Gonogo.KSP.Career
             int activeContracts,
             double contractsLimit)
         {
-            // As shipped: AcceptContract asks Contract.Accept() and nothing
-            // else, so it accepts past a cap the game would have stopped at.
-            return null;
+            var limit = RealLimit(contractsLimit);
+            if (limit == null || activeContracts < limit.Value) return null;
+            return new LimitBreach
+            {
+                Facility = facilityId,
+                FacilityName = facilityName,
+                FacilityLevel = facilityLevel,
+                Quantity = "activeContracts",
+                Limit = limit,
+                Actual = activeContracts,
+                Unit = Units.Count,
+            };
         }
 
         /// <summary>

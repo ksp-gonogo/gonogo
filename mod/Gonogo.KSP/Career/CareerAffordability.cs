@@ -35,15 +35,19 @@ namespace Gonogo.KSP.Career
         }
 
         /// <summary>
-        /// What the spend actually costs, as a positive amount.
+        /// What the spend actually costs, as a positive amount: the modified
+        /// total, which is the number <see cref="CanAfford"/> compares and the
+        /// number an operator is charged.
+        ///
+        /// <para><c>GetTotal</c>, not <c>GetInput</c>. <c>GetInput</c> is the
+        /// sticker price before the chain ran, so reading it makes an active
+        /// cost-modifying strategy invisible and the answer wrong in both
+        /// directions: refusing a discounted spend that is affordable, and
+        /// allowing a surcharged one that is not.</para>
         /// </summary>
         public static double PriceOf(CurrencyModifierQuery query, Currency currency)
         {
-            // As shipped: the sticker price the caller named. GetInput is the
-            // cost before the modifier chain ran, so an active strategy that
-            // discounts or surcharges this reason changes nothing here and our
-            // answer is wrong in both directions.
-            return -query.GetInput(currency);
+            return -query.GetTotal(currency);
         }
 
         /// <summary>
