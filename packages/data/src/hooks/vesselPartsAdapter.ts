@@ -67,6 +67,7 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
     title: p.title,
     manufacturer: "",
     category: p.category,
+    categoryOrdinal: p.categoryOrdinal ?? null,
     inverseStage: p.inverseStage,
     crewCapacity: 0,
     maxTemp: p.maxTemp.magnitude,

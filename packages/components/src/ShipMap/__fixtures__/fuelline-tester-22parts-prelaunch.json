@@ -30,6 +30,7 @@
         "crewCapacity": 1,
         "inverseStage": -1,
         "category": "Pods",
+        "categoryOrdinal": 6,
         "bounds": {
           "size": {
             "x": 1.25,
@@ -62,6 +63,7 @@
         "crewCapacity": 0,
         "inverseStage": 0,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "size": {
             "x": 0.630669236183167,
@@ -96,6 +98,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Thermal",
+        "categoryOrdinal": 12,
         "bounds": {
           "size": {
             "x": 1.35549640655518,
@@ -128,6 +131,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "size": {
             "x": 1.25,
@@ -153,6 +157,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "FuelTank",
+        "categoryOrdinal": 7,
         "bounds": {
           "size": {
             "x": 1.25001692771912,
@@ -190,6 +195,7 @@
         "crewCapacity": 0,
         "inverseStage": 4,
         "category": "Engine",
+        "categoryOrdinal": 8,
         "bounds": {
           "size": {
             "x": 1.26249992847443,
@@ -219,6 +225,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.202265068888664,
@@ -248,6 +255,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.202265068888664,
@@ -273,6 +281,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.275159865617752,
@@ -298,6 +307,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.275159865617752,
@@ -329,6 +339,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "size": {
             "x": 0.332573980093002,
@@ -354,6 +365,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "FuelTank",
+        "categoryOrdinal": 7,
         "bounds": {
           "size": {
             "x": 1.25001692771912,
@@ -379,6 +391,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Aero",
+        "categoryOrdinal": 3,
         "bounds": {
           "size": {
             "x": 1.24999761581421,
@@ -414,6 +427,7 @@
         "crewCapacity": 0,
         "inverseStage": 3,
         "category": "Engine",
+        "categoryOrdinal": 8,
         "bounds": {
           "size": {
             "x": 1.26894199848175,
@@ -440,11 +454,12 @@
         "fuelLineTarget": 1351475656,
         "orgPos": [-0.740406215190887, -0.772211074829102, -1.06196331977844],
         "title": "FTX-2 External Fuel Duct",
-        "up": [2.72488392738524e-7, 1, -0.00000112474708657828],
+        "up": [2.72488392738524e-7, 1, -1.12474708657828e-6],
         "flightId": 942558324,
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "FuelTank",
+        "categoryOrdinal": 7,
         "bounds": {
           "size": {
             "x": 1.62343633174896,
@@ -476,6 +491,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "size": {
             "x": 0.332573980093002,
@@ -501,6 +517,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "FuelTank",
+        "categoryOrdinal": 7,
         "bounds": {
           "size": {
             "x": 1.25001692771912,
@@ -526,6 +543,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Aero",
+        "categoryOrdinal": 3,
         "bounds": {
           "size": {
             "x": 1.24999761581421,
@@ -561,6 +579,7 @@
         "crewCapacity": 0,
         "inverseStage": 3,
         "category": "Engine",
+        "categoryOrdinal": 8,
         "bounds": {
           "size": {
             "x": 1.26894199848175,
@@ -587,11 +606,12 @@
         "fuelLineTarget": 1351475656,
         "orgPos": [0.740407228469849, -0.772211074829102, 1.06196331977844],
         "title": "FTX-2 External Fuel Duct",
-        "up": [-2.72488392738524e-7, 1, 0.00000112474720026512],
+        "up": [-2.72488392738524e-7, 1, 1.12474720026512e-6],
         "flightId": 3616518718,
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "FuelTank",
+        "categoryOrdinal": 7,
         "bounds": {
           "size": {
             "x": 1.62343633174896,
@@ -617,6 +637,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "size": {
             "x": 0.289516389369965,
@@ -642,6 +663,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "size": {
             "x": 0.289516389369965,

@@ -1,4 +1,5 @@
 import type { TopologyPart } from "@ksp-gonogo/core";
+import { KspPartCategory } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { buildShipMapPart, classifyPart } from "./shipTopology";
 
@@ -24,6 +25,68 @@ function part(overrides: Partial<TopologyPart>): TopologyPart {
 }
 
 describe("classifyPart", () => {
+  /**
+   * The category branch reads KSP's ORDINAL, not its name.
+   *
+   * It switched on the name until 2026-08-21, and the failure was quiet rather
+   * than loud: a renamed `PartCategories` member sent every part of that
+   * category through to `classifyByName` underneath, so an engine was drawn as
+   * whatever its title happened to match. Falling through to a heuristic is the
+   * right behaviour for a category with no glyph; for `Engine` it is not.
+   *
+   * The part below carries a category name this build has never seen and a
+   * title with no engine word in it, so only the ordinal can classify it.
+   */
+  it("classifies from the category ordinal, not the category name", () => {
+    expect(
+      classifyPart(
+        part({
+          name: "mysteryThruster",
+          title: "Mystery Unit",
+          category: "Propulsive",
+          categoryOrdinal: KspPartCategory.Engine,
+        }),
+      ),
+    ).toBe("engine");
+  });
+
+  /**
+   * With no ordinal to read, the name/title heuristic underneath still runs.
+   * A fixture captured before the mod emitted the ordinal has to stay readable,
+   * and an unclassifiable part is not an error.
+   */
+  it("falls through to the name heuristic when no ordinal arrived", () => {
+    expect(
+      classifyPart(
+        part({
+          name: "liquidEngine",
+          title: "Liquid Fuel Engine",
+          category: "Engine",
+          categoryOrdinal: null,
+        }),
+      ),
+    ).toBe("engine");
+  });
+
+  /**
+   * `PartCategories.none` is `-1`, a declared member rather than an absence, and
+   * this diagram has no glyph for it. It must reach the heuristic like any other
+   * unglyphed category, not be mistaken for "no ordinal sent" - the two would
+   * behave the same here, but only one of them is a missing read.
+   */
+  it("treats PartCategories.none as a category with no glyph", () => {
+    expect(
+      classifyPart(
+        part({
+          name: "strutConnector",
+          title: "Strut Connector",
+          category: "none",
+          categoryOrdinal: KspPartCategory.none,
+        }),
+      ),
+    ).toBe("other");
+  });
+
   it("classifies cargo bays as 'other', not 'fin'", () => {
     // mk2CargoBayS in the rover-b-alone fixture has both
     // ModuleLiftingSurface (body-lift bonus) and ModuleCargoBay. The fin

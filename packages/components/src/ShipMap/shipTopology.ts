@@ -5,6 +5,7 @@ import type {
   PartThermal,
   TopologyPart,
 } from "@ksp-gonogo/core";
+import { KspPartCategory } from "@ksp-gonogo/sitrep-sdk";
 import type { MeterTone } from "@ksp-gonogo/ui-kit";
 
 /**
@@ -270,32 +271,51 @@ export function classifyPart(
 
   // Fall back to KSP's `PartCategories` enum, then name/title heuristics.
   return (
-    categoryFromKsp(part.category) ?? classifyByName(part.name, part.title)
+    categoryFromKsp(part.categoryOrdinal) ??
+    classifyByName(part.name, part.title)
   );
 }
 
-function categoryFromKsp(category: string): PartType | null {
-  switch (category) {
-    case "Engine":
+/**
+ * KSP's `PartCategories` ORDINAL to a diagram glyph, or null for a category
+ * this diagram has no distinct shape for.
+ *
+ * Switched on the NAME until 2026-08-21, which is KSP's spelling to change.
+ * A renamed member did not break anything visibly: every part of that category
+ * fell through to `classifyByName`, so engines got drawn as whatever their title
+ * happened to match, and nothing said it had happened. Falling through to a
+ * heuristic is the right behaviour for a category with no glyph; it is the wrong
+ * behaviour for `Engine`.
+ *
+ * Null covers three cases that all want the heuristic underneath: no ordinal
+ * sent, a category with no distinct glyph, and a category KSP has added since.
+ * `Propulsion`, `Payload`, `Cargo`, `Robotics` and `none` are members with no
+ * arm here, which is deliberate rather than an omission: a part in one of those
+ * is better served by its modules and title than by a generic box.
+ */
+function categoryFromKsp(ordinal: number | null | undefined): PartType | null {
+  if (ordinal == null) return null;
+  switch (ordinal) {
+    case KspPartCategory.Engine:
       return "engine";
-    case "FuelTank":
+    case KspPartCategory.FuelTank:
       return "tank";
-    case "Coupling":
+    case KspPartCategory.Coupling:
       return "decoupler";
-    case "Control":
+    case KspPartCategory.Control:
       return "rcs";
-    case "Pods":
+    case KspPartCategory.Pods:
       return "capsule";
-    case "Electrical":
+    case KspPartCategory.Electrical:
       return "solar";
-    case "Aero":
+    case KspPartCategory.Aero:
       return "fin";
-    case "Utility":
-    case "Science":
-    case "Structural":
-    case "Communication":
-    case "Thermal":
-    case "Ground":
+    case KspPartCategory.Utility:
+    case KspPartCategory.Science:
+    case KspPartCategory.Structural:
+    case KspPartCategory.Communication:
+    case KspPartCategory.Thermal:
+    case KspPartCategory.Ground:
       return "other";
     default:
       return null;

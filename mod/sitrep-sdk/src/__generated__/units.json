@@ -1034,6 +1034,7 @@
     },
     "VesselPart": {
       "category": "text",
+      "categoryOrdinal": "enum",
       "currentTemp": "K",
       "dryMass": "t",
       "fuelLineTargetId": "id",

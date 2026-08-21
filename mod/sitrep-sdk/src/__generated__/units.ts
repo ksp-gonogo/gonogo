@@ -1068,6 +1068,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "VesselPart": {
     category: "text",
+    categoryOrdinal: "enum",
     currentTemp: "K",
     dryMass: "t",
     fuelLineTargetId: "id",

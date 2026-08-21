@@ -14,13 +14,28 @@
               "id": "1",
               "name": "mk1pod.v2",
               "title": "Mk1 Command Pod",
-              "position": { "x": 0, "y": 0, "z": 0 },
-              "up": { "x": 0, "y": 1, "z": 0 },
-              "bounds": { "size": { "x": 1.25, "y": 1.14, "z": 1.25 } },
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.14,
+                  "z": 1.25
+                }
+              },
               "dryMass": 0.8,
               "inverseStage": -1,
               "maxTemp": 1200,
               "category": "Pods",
+              "categoryOrdinal": 6,
               "modules": ["ModuleCommand"],
               "isRobotics": false,
               "isPowerRelated": false,
@@ -32,19 +47,40 @@
               "parentId": "1",
               "name": "fuelTankSmallFlat",
               "title": "FL-T400 Fuel Tank",
-              "position": { "x": 0, "y": -1.145, "z": 0 },
-              "up": { "x": 0, "y": 1, "z": 0 },
-              "bounds": { "size": { "x": 1.25, "y": 1.85, "z": 1.25 } },
+              "position": {
+                "x": 0,
+                "y": -1.145,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.85,
+                  "z": 1.25
+                }
+              },
               "dryMass": 0.25,
               "inverseStage": 1,
               "maxTemp": 2000,
               "category": "FuelTank",
+              "categoryOrdinal": 7,
               "modules": [],
               "isRobotics": false,
               "isPowerRelated": false,
               "resources": {
-                "LiquidFuel": { "amount": 90, "maxAmount": 180 },
-                "Oxidizer": { "amount": 100, "maxAmount": 220 }
+                "LiquidFuel": {
+                  "amount": 90,
+                  "maxAmount": 180
+                },
+                "Oxidizer": {
+                  "amount": 100,
+                  "maxAmount": 220
+                }
               },
               "moduleStates": []
             },
@@ -53,13 +89,28 @@
               "parentId": "2",
               "name": "liquidEngine3",
               "title": "LV-T30 \"Reliant\" Liquid Fuel Engine",
-              "position": { "x": 0, "y": -3.0, "z": 0 },
-              "up": { "x": 0, "y": 1, "z": 0 },
-              "bounds": { "size": { "x": 1.25, "y": 1.0, "z": 1.25 } },
+              "position": {
+                "x": 0,
+                "y": -3.0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.0,
+                  "z": 1.25
+                }
+              },
               "dryMass": 1.25,
               "inverseStage": 1,
               "maxTemp": 2000,
               "category": "Engine",
+              "categoryOrdinal": 8,
               "modules": ["ModuleEngines"],
               "isRobotics": false,
               "isPowerRelated": false,

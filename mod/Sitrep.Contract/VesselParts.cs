@@ -119,9 +119,27 @@ public class VesselPart
     [SitrepUnit(Units.Kelvin)]
     public double? SkinTemp { get; set; }
 
-    /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name, e.g. <c>"Engine"</c>).</summary>
+    /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name, e.g. <c>"Engine"</c>). A display label; see <see cref="CategoryOrdinal"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string Category { get; set; } = "";
+
+    /// <summary>
+    /// <see cref="Category"/>'s KSP ORDINAL, typed to
+    /// <see cref="KspPartCategory"/>.
+    ///
+    /// <para>ShipMap picks a part's diagram glyph from this. It used to switch
+    /// on the NAME, so a member KSP renamed dropped every part of that category
+    /// through to the name/title heuristic underneath: engines drawn as
+    /// whatever "engine" happened to match in a part's title, and nothing to
+    /// say it had happened.</para>
+    ///
+    /// <para><c>null</c> when the part had no <c>partInfo</c> to read, the same
+    /// case that already leaves <see cref="Category"/> empty. Note
+    /// <c>PartCategories.none</c> is <c>-1</c> and is a real value, NOT an
+    /// absence.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspPartCategory? CategoryOrdinal { get; set; }
 
     /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), what ShipMap's <c>classifyPart</c> matches on.</summary>
     [SitrepUnit(Units.Text)]

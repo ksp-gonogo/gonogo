@@ -30,6 +30,7 @@
         "crewCapacity": 1,
         "inverseStage": -1,
         "category": "Pods",
+        "categoryOrdinal": 6,
         "bounds": {
           "size": {
             "x": 1.25,
@@ -55,15 +56,14 @@
         "dryMass": 0.100000001490116,
         "persistentId": 1506949844,
         "fuelLineTarget": null,
-        "orgPos": [
-          1.2638068369597e-7, 0.65745884180069, 0.00000390243894798914
-        ],
+        "orgPos": [1.2638068369597e-7, 0.65745884180069, 3.90243894798914e-6],
         "title": "Mk16 Parachute",
         "up": [0, 1, 0],
         "flightId": 4104582180,
         "crewCapacity": 0,
         "inverseStage": 0,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "size": {
             "x": 0.630669236183167,
@@ -87,7 +87,7 @@
         "persistentId": 2670291914,
         "fuelLineTarget": null,
         "orgPos": [
-          -0.555686354637146, -0.186259552836418, -0.00000234697540690831
+          -0.555686354637146, -0.186259552836418, -2.34697540690831e-6
         ],
         "title": "OX-4W 3x2 Photovoltaic Panels",
         "up": [0.276844948530197, 0.960914611816406, -2.79559806415364e-8],
@@ -95,6 +95,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.200387164950371,
@@ -117,15 +118,14 @@
         "dryMass": 0.0175000000745058,
         "persistentId": 1934047157,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.555686593055725, -0.186256572604179, 0.00000211456017495948
-        ],
+        "orgPos": [0.555686593055725, -0.186256572604179, 2.11456017495948e-6],
         "title": "OX-4W 3x2 Photovoltaic Panels",
         "up": [-0.276844799518585, 0.960914671421051, 8.81679795838863e-8],
         "flightId": 2876835219,
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.200387164950371,
@@ -144,15 +144,14 @@
         "dryMass": 0.00499999988824129,
         "persistentId": 4294719940,
         "fuelLineTarget": null,
-        "orgPos": [
-          -0.443643093109131, 0.16602785885334, 0.00000303359729514341
-        ],
+        "orgPos": [-0.443643093109131, 0.16602785885334, 3.03359729514341e-6],
         "title": "Z-100 Rechargeable Battery Pack",
         "up": [0.27684497833252, 0.960914611816406, -7.45058059692383e-8],
         "flightId": 2446762744,
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.275159865617752,
@@ -171,15 +170,14 @@
         "dryMass": 0.00499999988824129,
         "persistentId": 138312309,
         "fuelLineTarget": null,
-        "orgPos": [
-          0.443643122911453, 0.166030421853065, 0.00000642888153379317
-        ],
+        "orgPos": [0.443643122911453, 0.166030421853065, 6.42888153379317e-6],
         "title": "Z-100 Rechargeable Battery Pack",
         "up": [-0.276844918727875, 0.960914611816406, 7.45058059692383e-8],
         "flightId": 2018495260,
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.275159865617752,
@@ -210,6 +208,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Science",
+        "categoryOrdinal": 5,
         "bounds": {
           "size": {
             "x": 0.091363400220871,
@@ -240,6 +239,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Science",
+        "categoryOrdinal": 5,
         "bounds": {
           "size": {
             "x": 0.175093486905098,
@@ -271,6 +271,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "size": {
             "x": 0.0192123018205166,
@@ -302,6 +303,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "size": {
             "x": 0.0192123018205166,
@@ -327,6 +329,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "size": {
             "x": 0.289516389369965,
@@ -354,15 +357,14 @@
         "dryMass": 0.100000001490116,
         "persistentId": 3701749464,
         "fuelLineTarget": null,
-        "orgPos": [
-          1.71757605471612e-7, -0.427033334970474, 0.0000037760544273624
-        ],
+        "orgPos": [1.71757605471612e-7, -0.427033334970474, 3.7760544273624e-6],
         "title": "Heat Shield (1.25m)",
         "up": [0, 1, 0],
         "flightId": 557662987,
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Thermal",
+        "categoryOrdinal": 12,
         "bounds": {
           "size": {
             "x": 1.35549640655518,
@@ -389,7 +391,7 @@
         "persistentId": 3394720517,
         "fuelLineTarget": null,
         "orgPos": [
-          1.16308164876955e-7, -0.647035479545593, 0.00000214329998016183
+          1.16308164876955e-7, -0.647035479545593, 2.14329998016183e-6
         ],
         "title": "TD-12 Decoupler",
         "up": [0, 1, 0],
@@ -397,6 +399,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "size": {
             "x": 1.25,
@@ -416,7 +419,7 @@
         "persistentId": 1774913421,
         "fuelLineTarget": null,
         "orgPos": [
-          -1.14740430490201e-7, -1.67876362800598, -0.00000565569507671171
+          -1.14740430490201e-7, -1.67876362800598, -5.65569507671171e-6
         ],
         "title": "FL-T400 Fuel Tank",
         "up": [0, 1, 0],
@@ -424,6 +427,7 @@
         "crewCapacity": 0,
         "inverseStage": 1,
         "category": "FuelTank",
+        "categoryOrdinal": 7,
         "bounds": {
           "size": {
             "x": 1.25001692771912,
@@ -461,6 +465,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Engine",
+        "categoryOrdinal": 8,
         "bounds": {
           "size": {
             "x": 1.26249992847443,
@@ -487,7 +492,7 @@
         "persistentId": 257551186,
         "fuelLineTarget": null,
         "orgPos": [
-          -1.19357892458538e-7, -4.27126169204712, -0.00000339153280037863
+          -1.19357892458538e-7, -4.27126169204712, -3.39153280037863e-6
         ],
         "title": "TD-12 Decoupler",
         "up": [0, 1, 0],
@@ -495,6 +500,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "size": {
             "x": 1.25,
@@ -526,6 +532,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Payload",
+        "categoryOrdinal": 13,
         "bounds": {
           "size": {
             "x": 2.5,
@@ -562,6 +569,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Ground",
+        "categoryOrdinal": 11,
         "bounds": {
           "size": {
             "x": 1.0032205581665,
@@ -598,6 +606,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Ground",
+        "categoryOrdinal": 11,
         "bounds": {
           "size": {
             "x": 1.0032205581665,
@@ -634,6 +643,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Ground",
+        "categoryOrdinal": 11,
         "bounds": {
           "size": {
             "x": 1.0032205581665,
@@ -670,6 +680,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Ground",
+        "categoryOrdinal": 11,
         "bounds": {
           "size": {
             "x": 1.0032205581665,
@@ -699,6 +710,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.800000011920929,
@@ -728,6 +740,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.800000011920929,
@@ -753,6 +766,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.5,
@@ -778,6 +792,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "size": {
             "x": 0.5,
@@ -808,6 +823,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "size": {
             "x": 0.224300369620323,
@@ -838,6 +854,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "size": {
             "x": 0.224300369620323,
@@ -869,6 +886,7 @@
         "crewCapacity": 0,
         "inverseStage": 2,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "size": {
             "x": 1.15134644508362,

@@ -5,6 +5,7 @@
     "parts": [
       {
         "category": "Pods",
+        "categoryOrdinal": 6,
         "name": "mk1pod.v2",
         "bounds": {
           "size": {
@@ -43,6 +44,7 @@
       },
       {
         "category": "Utility",
+        "categoryOrdinal": 4,
         "name": "parachuteSingle",
         "bounds": {
           "size": {
@@ -73,6 +75,7 @@
       },
       {
         "category": "Control",
+        "categoryOrdinal": 1,
         "name": "Telemach.Blade",
         "bounds": {
           "size": {
@@ -96,6 +99,7 @@
       },
       {
         "category": "Control",
+        "categoryOrdinal": 1,
         "name": "Telemach.Blade",
         "bounds": {
           "size": {

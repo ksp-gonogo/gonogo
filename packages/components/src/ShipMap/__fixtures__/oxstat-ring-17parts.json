@@ -30,6 +30,7 @@
         "crewCapacity": 1,
         "inverseStage": -1,
         "category": "Pods",
+        "categoryOrdinal": 6,
         "bounds": {
           "center": {
             "x": 0,
@@ -67,9 +68,10 @@
         "crewCapacity": 0,
         "inverseStage": 0,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "center": {
-            "x": 0.00000673532485961914,
+            "x": 6.73532485961914e-6,
             "y": 0.103433951735497,
             "z": 0.0184769332408905
           },
@@ -97,6 +99,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "center": {
             "x": -0.0821265429258347,
@@ -133,6 +136,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Control",
+        "categoryOrdinal": 1,
         "bounds": {
           "center": {
             "x": -0.00643050717189908,
@@ -167,6 +171,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": -0.0318589396774769,
@@ -201,6 +206,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": -0.0225276574492455,
@@ -235,6 +241,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": 2.03380849939094e-8,
@@ -269,6 +276,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": 0.0225276872515678,
@@ -303,6 +311,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": 0.0318589396774769,
@@ -337,6 +346,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": 0.0225276555866003,
@@ -373,6 +383,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": -2.03380849939094e-8,
@@ -407,6 +418,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Electrical",
+        "categoryOrdinal": 10,
         "bounds": {
           "center": {
             "x": -0.0225276947021484,
@@ -442,6 +454,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Coupling",
+        "categoryOrdinal": 14,
         "bounds": {
           "center": {
             "x": -0.00860993936657906,
@@ -476,6 +489,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "center": {
             "x": 0.000140003234264441,
@@ -510,6 +524,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "center": {
             "x": 0,
@@ -544,6 +559,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "center": {
             "x": -0.0450428798794746,
@@ -579,6 +595,7 @@
         "crewCapacity": 0,
         "inverseStage": -1,
         "category": "Utility",
+        "categoryOrdinal": 4,
         "bounds": {
           "center": {
             "x": -0.0150143019855022,

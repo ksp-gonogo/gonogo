@@ -1471,6 +1471,7 @@ export interface VesselPart
 	currentTemp?: Value<"K">;
 	skinTemp?: Value<"K">;
 	category: string;
+	categoryOrdinal?: KspPartCategory;
 	modules: string[];
 	isRobotics: boolean;
 	isPowerRelated: boolean;

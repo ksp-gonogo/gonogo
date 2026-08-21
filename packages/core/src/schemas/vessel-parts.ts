@@ -26,8 +26,16 @@ export interface TopologyPart {
   name: string;
   title: string;
   manufacturer: string;
-  /** `PartCategories` enum as string (e.g. "Engine", "FuelTank"). */
+  /** `PartCategories` enum name as a DISPLAY LABEL (e.g. "Engine", "FuelTank").
+   *  {@link categoryOrdinal} is what a consumer should branch on. */
   category: string;
+  /**
+   * `PartCategories` ORDINAL (`KspPartCategory`). Optional because a fixture
+   * captured before the mod emitted it stays readable, and `null` when the part
+   * carried no `partInfo`. Note `none` is `-1` and is a real category, not an
+   * absence.
+   */
+  categoryOrdinal?: number | null;
   inverseStage: number;
   crewCapacity: number;
   maxTemp: number;

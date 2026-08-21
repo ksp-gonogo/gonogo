@@ -5043,6 +5043,9 @@ namespace Gonogo.KSP
                 // unsimulated part rather than a cold one.
                 ["skinTemp"] = part.skinTemperature,
                 ["category"] = part.partInfo != null ? part.partInfo.category.ToString() : null,
+                // The ordinal is what the client branches on; the name is its
+                // display label. `PartCategories.none` is -1, a real value.
+                ["categoryOrdinal"] = part.partInfo != null ? (int)part.partInfo.category : (int?)null,
                 ["modules"] = modules,
                 ["isRobotics"] = part.isRobotic(),
                 ["isPowerRelated"] = IsPowerRelated(part),
