@@ -497,6 +497,231 @@ describe("CommandButton: a dead command echoes on the control that issued it", (
   });
 });
 
+describe("CommandButton: the blocked phase", () => {
+  /** A gate the mod has already decided, in the shape `useCommand.gate` returns. */
+  function blockedGate(over: Record<string, unknown> = {}) {
+    return {
+      blocked: true,
+      // CommandErrorCode.SiteOccupied
+      errorCode: 17,
+      detail: "Launch Pad is occupied",
+      ...over,
+    };
+  }
+
+  it("dispatches nothing when the game has already said it will refuse", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(undefined));
+    render(
+      <CommandButton
+        handle={makeHandle(send, { gate: blockedGate() })}
+        label="Launch"
+      />,
+    );
+
+    await user.click(screen.getByRole("button"));
+
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("is aria-disabled and NOT disabled, so a screen reader still finds it", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined))}
+        label="Launch"
+      />,
+    );
+    const ungated = screen.getByRole("button");
+    expect(ungated).not.toHaveAttribute("aria-disabled");
+    expect(ungated).not.toBeDisabled();
+
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined), {
+          gate: blockedGate(),
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+      />,
+    );
+    const gated = screen.getAllByRole("button")[1];
+    expect(gated).toHaveAttribute("aria-disabled", "true");
+    // The load-bearing half: `disabled` would drop it from some screen readers'
+    // walk entirely, leaving nothing where the reason should be.
+    expect(gated).not.toBeDisabled();
+  });
+
+  it("makes the REASON the accessible name, not just the fact", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined), {
+          gate: blockedGate(),
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+        aria-label="Launch Kerbal I"
+      />,
+    );
+
+    // The game's own words, through the shared composer.
+    expect(
+      screen.getByRole("button", {
+        name: "Launch Kerbal I unavailable: Launch Pad is occupied.",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("quotes the numbers when the gate carried a breach", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined), {
+          gate: blockedGate({
+            // CommandErrorCode.LimitReached
+            errorCode: 8,
+            detail: "",
+            breach: {
+              facility: "AstronautComplex",
+              facilityName: "Astronaut Complex",
+              facilityLevel: { magnitude: 0, unit: "ratio" },
+              quantity: "activeCrew",
+              limit: 16,
+              actual: 16,
+              unit: "count",
+            },
+          }),
+        })}
+        label="Hire"
+        commandLabel="Hire Valentina Kerman"
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Hire Valentina Kerman unavailable: the Astronaut Complex holds 16 of 16 active crew.",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the reason in the control on a press, for the keyboard user a title never reaches", async () => {
+    const user = userEvent.setup();
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined), {
+          gate: blockedGate(),
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+      />,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveTextContent("Launch");
+
+    await user.click(button);
+
+    expect(button).toHaveTextContent(
+      "Launch Kerbal I unavailable: Launch Pad is occupied.",
+    );
+  });
+
+  it("puts the reason away again, since the condition the game named can change", async () => {
+    const user = useArmClock();
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined), {
+          gate: blockedGate(),
+        })}
+        label="Launch"
+      />,
+    );
+
+    const button = screen.getByRole("button");
+    await user.click(button);
+    expect(button).toHaveTextContent(/Unavailable: Launch Pad is occupied/);
+
+    await act(async () => {
+      vi.advanceTimersByTime(REFUSAL_TIMEOUT_MS + 10);
+    });
+
+    expect(button).toHaveTextContent("Launch");
+  });
+
+  it("comes back to life the moment the gate opens", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(undefined));
+    const { rerender } = render(
+      <CommandButton
+        handle={makeHandle(send, { gate: blockedGate() })}
+        label="Launch"
+      />,
+    );
+
+    rerender(
+      <CommandButton
+        handle={makeHandle(send, {
+          gate: { blocked: false, errorCode: 0 },
+        })}
+        label="Launch"
+      />,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).not.toHaveAttribute("aria-disabled");
+    await user.click(button);
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  it("leaves an ungated handle exactly as it was, so nothing changes for a command with no gates", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(undefined));
+    render(<CommandButton handle={makeHandle(send)} label="Launch" />);
+
+    await user.click(screen.getByRole("button"));
+
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  it("lets an in-flight dispatch finish rather than reading as blocked behind it", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    const { rerender } = render(
+      <CommandButton handle={makeHandle(() => d.promise)} label="Launch" />,
+    );
+
+    await user.click(screen.getByRole("button"));
+    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+
+    // The gate shuts behind the command that is already travelling.
+    rerender(
+      <CommandButton
+        handle={makeHandle(() => d.promise, { gate: blockedGate() })}
+        label="Launch"
+      />,
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-disabled");
+
+    await act(async () => {
+      d.resolve(undefined);
+    });
+  });
+
+  it("has no axe violations while blocked", async () => {
+    const { container } = render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(undefined), {
+          gate: blockedGate(),
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+      />,
+    );
+
+    await expectNoA11yViolations(container);
+  });
+});
+
 describe("CommandButton: accessibility", () => {
   let container: HTMLElement;
 

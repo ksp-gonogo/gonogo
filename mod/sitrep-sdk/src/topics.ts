@@ -49,7 +49,10 @@
 // precedent): a dynamically-loaded Uplink never statically imported by a type-checking
 // entry point types its bare Topic `unknown` until loaded.
 
-import type { PendingUplinkQueue } from "./__generated__/contract";
+import type {
+  CommandGateReport,
+  PendingUplinkQueue,
+} from "./__generated__/contract";
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
 import { GENERATED_TOPIC_IDS } from "./__generated__/topic-map";
 
@@ -103,6 +106,21 @@ export interface SystemUplinkPendingTopicPayloadMap {
 }
 
 /**
+ * `system.uplink.gates`: every gated command's CURRENT verdict, evaluated with no
+ * arguments, so a control knows it is gated before it is pressed. `ChannelEngine`
+ * declares it directly (not any one Uplink's contract), so like `system.uplinks` and
+ * `system.uplink.pending` it is hand-mapped here; its payload IS a real reflected
+ * contract type, so this maps to the generated interface rather than re-describing it.
+ *
+ * Not a permission. The snapshot is up to half a second old and the DISPATCH
+ * re-evaluates the same gates against live state, so a stale `Pass` never lets a
+ * command through. It exists to say no in advance, never to say yes.
+ */
+export interface SystemUplinkGatesTopicPayloadMap {
+  "system.uplink.gates": CommandGateReport;
+}
+
+/**
  * `system.units`: the contract's own unit knowledge, so the stream describes
  * itself.
  *
@@ -138,6 +156,7 @@ interface SdkOwnedTopicPayloadMap
   extends GeneratedTopicPayloadMap,
     SystemUplinksTopicPayloadMap,
     SystemUplinkPendingTopicPayloadMap,
+    SystemUplinkGatesTopicPayloadMap,
     SystemUnitsTopicPayloadMap {}
 
 /**
@@ -175,6 +194,7 @@ export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
   "system.uplinks",
   "system.uplink.pending",
+  "system.uplink.gates",
   "system.units",
 ] as const satisfies readonly TopicId[];
 

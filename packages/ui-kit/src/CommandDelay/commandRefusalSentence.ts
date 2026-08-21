@@ -168,6 +168,30 @@ function said(detail: string | undefined): string | null {
  * eats the numbers off the end, which are the only actionable part.
  */
 export function commandRefusalSentence(refusal: CommandRefusalLike): string {
+  return sentence(refusal, "refused");
+}
+
+/**
+ * What the operator reads when the game will refuse a command that has not been
+ * pressed yet:
+ *
+ *     Hire Valentina Kerman unavailable: the Astronaut Complex holds 16 of 16 active crew.
+ *     Recover unavailable: the craft is throttled up.
+ *
+ * The same clause as {@link commandRefusalSentence}, and deliberately so: the
+ * mod evaluates ONE gate set one way, and whether the arguments were supplied is
+ * the only difference between the two answers. Sharing the composer is what
+ * stops a control saying one thing before the press and another after it.
+ *
+ * "Unavailable" rather than "refused" because nothing has been asked yet. A
+ * refusal is an event that happened; a gate is a condition that holds, and the
+ * operator's next move is to change the condition.
+ */
+export function commandGateSentence(gate: CommandRefusalLike): string {
+  return sentence(gate, "unavailable");
+}
+
+function sentence(refusal: CommandRefusalLike, verb: string): string {
   const subject = commandRefusalSubject(refusal);
   const clause =
     (refusal.breach ? comparison(refusal.errorCode, refusal.breach) : null) ??
@@ -184,5 +208,7 @@ export function commandRefusalSentence(refusal: CommandRefusalLike): string {
     // and it beats "refused." with nothing after it.
     CommandErrorCode[refusal.errorCode] ??
     String(refusal.errorCode);
-  return subject ? `${subject} refused: ${clause}.` : `Refused: ${clause}.`;
+  return subject
+    ? `${subject} ${verb}: ${clause}.`
+    : `${verb.charAt(0).toUpperCase()}${verb.slice(1)}: ${clause}.`;
 }

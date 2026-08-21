@@ -86,6 +86,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // (Phase 1 doesn't draw the relay graph, Phase 2).
   "comms.path",
   "system.uplink.pending",
+  // system.uplink.gates: every gated command's standing verdict, read by
+  // `useCommand` so a control can be drawn dark before the operator presses it.
+  // MUST be carried or every gated control renders as though nothing were
+  // gated, which is the state the whole gate mechanism was built to leave.
+  "system.uplink.gates",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here,

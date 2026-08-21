@@ -145,6 +145,15 @@ export interface CommandCentreEntry
 	active: boolean;
 	delayQuality?: string;
 }
+export interface CommandGate
+{
+	command: string;
+	verdict: GateVerdict;
+}
+export interface CommandGateReport
+{
+	gates: CommandGate[];
+}
 export enum CommandErrorCode {
 	None = 0,
 	Unknown = 1,

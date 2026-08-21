@@ -100,6 +100,7 @@ export {
   type CommandButtonSize,
   type CommandButtonState,
   type CommandButtonTone,
+  type CommandGateLike,
   PENDING_BACKSTOP_MS,
   REFUSAL_TIMEOUT_MS,
   type UseCommandButtonOptions,
@@ -135,6 +136,7 @@ export {
 export {
   type CommandRefusalEntry,
   type CommandRefusalLike,
+  commandGateSentence,
   commandRefusalSentence,
 } from "./CommandDelay/commandRefusalSentence";
 export {

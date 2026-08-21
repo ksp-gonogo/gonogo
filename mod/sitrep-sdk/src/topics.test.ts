@@ -23,6 +23,11 @@ import {
 const HAND_DECLARED_TOPICS = [
   "system.uplinks",
   "system.uplink.pending",
+  // Every gated command's standing verdict. Engine-declared for the same
+  // reason as the queue above: only ChannelEngine sees every command
+  // declaration and every gate evaluator at once, so no one Uplink could
+  // own it and there is no [SitrepTopic] to reflect.
+  "system.uplink.gates",
   // The contract's own unit descriptor, so the stream describes itself. Same
   // engine-declared treatment as the two above: ChannelEngine sources it
   // directly because it describes the CONTRACT rather than anything an
