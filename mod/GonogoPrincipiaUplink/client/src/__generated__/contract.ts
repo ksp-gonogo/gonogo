@@ -33,17 +33,63 @@ export interface PrincipiaFlightPlanBurn
 	coordinateSystem?: number;
 	anomalous?: boolean;
 }
-export interface PrincipiaProvenance
+export interface PrincipiaReferenceFrame
 {
-	displayPatchedConics?: boolean;
-	historyLengthSeconds?: Value<"s">;
-	framesHidingUnpinnedMarkers?: Value<"count">;
-	framesHidingUnpinnedCelestials?: Value<"count">;
-	plottingFrameType?: number;
-	plottingFrameCentreBody?: string;
+	selector?: string;
+	type?: number;
+	centreBody?: string;
+	primaryBody?: string;
+	secondaryBody?: string;
 	targetFrameSelected?: boolean;
+	targetVesselId?: string;
+	targetVesselName?: string;
+}
+export interface PrincipiaSettings
+{
+	observedAtUt?: Value<"ut">;
+	pluginVersion?: string;
+	readingSuspended?: boolean;
+	readingSuspendedReason?: string;
+	plottingFrame?: PrincipiaReferenceFrame;
+	burnFrames?: PrincipiaReferenceFrame[];
+	selectingTargetVessel?: boolean;
+	targetVesselId?: string;
+	targetVesselName?: string;
+	selectingTargetCelestial?: boolean;
+	targetCelestialBody?: string;
+	displayPatchedConics?: boolean;
+	analysisMissionDurationRequestedSeconds?: Value<"s">;
+	recurrenceAutodetect?: boolean;
+	recurrenceRevolutionsPerCycle?: Value<"count">;
+	recurrenceDaysPerCycle?: Value<"count">;
+	groundTrackRevolution?: Value<"count">;
+	predictionVesselId?: string;
 	predictionToleranceMetres?: Value<"m">;
 	predictionMaxSteps?: Value<"count">;
-	predictionObservedAtUt?: Value<"ut">;
-	predictionVesselId?: string;
+	planToleranceMetres?: Value<"m">;
+	planMaxSteps?: Value<"count">;
+	planInitialTimeUt?: Value<"ut">;
+	planDesiredFinalTimeUt?: Value<"ut">;
+	planActualFinalTimeUt?: Value<"ut">;
+	flightPlanCount?: Value<"count">;
+	selectedFlightPlan?: Value<"count">;
+	optimiserTargetAltitudeMetres?: Value<"m">;
+	optimiserTargetInclinationDegrees?: Value<"°">;
+	historyLengthSeconds?: Value<"s">;
+	unpinnedMarkersHiddenHere?: boolean;
+	framesHidingUnpinnedMarkers?: Value<"count">;
+	unpinnedCelestialsHiddenHere?: boolean;
+	framesHidingUnpinnedCelestials?: Value<"count">;
+	pinnedCelestials?: string[];
+	targetPinned?: boolean;
+	showManoeuvreOnNavball?: boolean;
+	stabilityGridMaxEccentricityMinInclination?: boolean;
+	stabilityGridMinEccentricityMaxInclination?: boolean;
+	showElementGraphs?: boolean;
+	verboseLevel?: Value<"count">;
+	logThreshold?: Value<"count">;
+	stderrThreshold?: Value<"count">;
+	flushThreshold?: Value<"count">;
+	recordJournalRequested?: boolean;
+	journaling?: boolean;
 }

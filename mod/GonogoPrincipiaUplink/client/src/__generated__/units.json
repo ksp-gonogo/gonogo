@@ -69,18 +69,61 @@
       "specificImpulseSeconds": "s",
       "thrustKilonewtons": "kN"
     },
-    "PrincipiaProvenance": {
+    "PrincipiaReferenceFrame": {
+      "centreBody": "text",
+      "primaryBody": "text",
+      "secondaryBody": "text",
+      "selector": "text",
+      "targetFrameSelected": "flag",
+      "targetVesselId": "id",
+      "targetVesselName": "text",
+      "type": "enum"
+    },
+    "PrincipiaSettings": {
+      "analysisMissionDurationRequestedSeconds": "s",
       "displayPatchedConics": "flag",
+      "flightPlanCount": "count",
+      "flushThreshold": "count",
       "framesHidingUnpinnedCelestials": "count",
       "framesHidingUnpinnedMarkers": "count",
+      "groundTrackRevolution": "count",
       "historyLengthSeconds": "s",
-      "plottingFrameCentreBody": "text",
-      "plottingFrameType": "enum",
+      "journaling": "flag",
+      "logThreshold": "count",
+      "observedAtUt": "ut",
+      "optimiserTargetAltitudeMetres": "m",
+      "optimiserTargetInclinationDegrees": "°",
+      "pinnedCelestials": "text",
+      "planActualFinalTimeUt": "ut",
+      "planDesiredFinalTimeUt": "ut",
+      "planInitialTimeUt": "ut",
+      "planMaxSteps": "count",
+      "planToleranceMetres": "m",
+      "pluginVersion": "text",
       "predictionMaxSteps": "count",
-      "predictionObservedAtUt": "ut",
       "predictionToleranceMetres": "m",
       "predictionVesselId": "id",
-      "targetFrameSelected": "flag"
+      "readingSuspended": "flag",
+      "readingSuspendedReason": "text",
+      "recordJournalRequested": "flag",
+      "recurrenceAutodetect": "flag",
+      "recurrenceDaysPerCycle": "count",
+      "recurrenceRevolutionsPerCycle": "count",
+      "selectedFlightPlan": "count",
+      "selectingTargetCelestial": "flag",
+      "selectingTargetVessel": "flag",
+      "showElementGraphs": "flag",
+      "showManoeuvreOnNavball": "flag",
+      "stabilityGridMaxEccentricityMinInclination": "flag",
+      "stabilityGridMinEccentricityMaxInclination": "flag",
+      "stderrThreshold": "count",
+      "targetCelestialBody": "text",
+      "targetPinned": "flag",
+      "targetVesselId": "id",
+      "targetVesselName": "text",
+      "unpinnedCelestialsHiddenHere": "flag",
+      "unpinnedMarkersHiddenHere": "flag",
+      "verboseLevel": "count"
     }
   },
   "topics": {
@@ -97,28 +140,69 @@
       "statusMessage": "text",
       "vesselId": "id"
     },
-    "principia.provenance": {
+    "principia.settings": {
+      "analysisMissionDurationRequestedSeconds": "s",
       "displayPatchedConics": "flag",
+      "flightPlanCount": "count",
+      "flushThreshold": "count",
       "framesHidingUnpinnedCelestials": "count",
       "framesHidingUnpinnedMarkers": "count",
+      "groundTrackRevolution": "count",
       "historyLengthSeconds": "s",
-      "plottingFrameCentreBody": "text",
-      "plottingFrameType": "enum",
+      "journaling": "flag",
+      "logThreshold": "count",
+      "observedAtUt": "ut",
+      "optimiserTargetAltitudeMetres": "m",
+      "optimiserTargetInclinationDegrees": "°",
+      "pinnedCelestials": "text",
+      "planActualFinalTimeUt": "ut",
+      "planDesiredFinalTimeUt": "ut",
+      "planInitialTimeUt": "ut",
+      "planMaxSteps": "count",
+      "planToleranceMetres": "m",
+      "pluginVersion": "text",
       "predictionMaxSteps": "count",
-      "predictionObservedAtUt": "ut",
       "predictionToleranceMetres": "m",
       "predictionVesselId": "id",
-      "targetFrameSelected": "flag"
+      "readingSuspended": "flag",
+      "readingSuspendedReason": "text",
+      "recordJournalRequested": "flag",
+      "recurrenceAutodetect": "flag",
+      "recurrenceDaysPerCycle": "count",
+      "recurrenceRevolutionsPerCycle": "count",
+      "selectedFlightPlan": "count",
+      "selectingTargetCelestial": "flag",
+      "selectingTargetVessel": "flag",
+      "showElementGraphs": "flag",
+      "showManoeuvreOnNavball": "flag",
+      "stabilityGridMaxEccentricityMinInclination": "flag",
+      "stabilityGridMinEccentricityMaxInclination": "flag",
+      "stderrThreshold": "count",
+      "targetCelestialBody": "text",
+      "targetPinned": "flag",
+      "targetVesselId": "id",
+      "targetVesselName": "text",
+      "unpinnedCelestialsHiddenHere": "flag",
+      "unpinnedMarkersHiddenHere": "flag",
+      "verboseLevel": "count"
     }
   },
   "typeShapes": {
     "PrincipiaFlightPlan": {
       "burns": "PrincipiaFlightPlanBurn"
+    },
+    "PrincipiaSettings": {
+      "burnFrames": "PrincipiaReferenceFrame",
+      "plottingFrame": "PrincipiaReferenceFrame"
     }
   },
   "topicShapes": {
     "principia.flightPlan": {
       "burns": "PrincipiaFlightPlanBurn"
+    },
+    "principia.settings": {
+      "burnFrames": "PrincipiaReferenceFrame",
+      "plottingFrame": "PrincipiaReferenceFrame"
     }
   }
 }

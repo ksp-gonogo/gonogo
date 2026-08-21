@@ -138,10 +138,29 @@ namespace GonogoPrincipiaUplink.Tests
             return new PrincipiaVector(0.0, 0.0, 1.0);
         }
 
+        /// <summary>
+        /// What the interchange reads hand back, settable so a mapping test can
+        /// supply a struct-shaped stand-in.
+        ///
+        /// <para>Defaulted to opaque strings on purpose. A test about call ORDER
+        /// should not have to describe a payload, and a string is the shape that
+        /// makes it obvious the value was never meant to be read: a mapping bug
+        /// that reached for a member here would find nothing rather than find a
+        /// plausible default.</para>
+        /// </summary>
+        public object? PredictionStepParameters { get; set; } = "prediction-step-parameters";
+
+        /// <summary>As above, for the flight plan's own integrator bound.</summary>
+        public object? PlanStepParameters { get; set; } = "plan-step-parameters";
+
+        /// <summary>As above, per burn index. A missing index answers the opaque
+        /// default, so an over-read is visible rather than absorbed.</summary>
+        public Dictionary<int, object?> Manoeuvres { get; } = new Dictionary<int, object?>();
+
         public object? VesselGetPredictionAdaptiveStepParameters(IntPtr plugin, string vesselGuid)
         {
             Vessel("VesselGetPredictionAdaptiveStepParameters", plugin, vesselGuid);
-            return "prediction-step-parameters";
+            return PredictionStepParameters;
         }
 
         public object? VesselGetAnalysis(IntPtr plugin, string vesselGuid, int groundTrackRevolution)
@@ -186,7 +205,7 @@ namespace GonogoPrincipiaUplink.Tests
         public object? FlightPlanGetAdaptiveStepParameters(IntPtr plugin, string vesselGuid)
         {
             Plan("FlightPlanGetAdaptiveStepParameters", plugin, vesselGuid);
-            return "plan-step-parameters";
+            return PlanStepParameters;
         }
 
         public int FlightPlanNumberOfManoeuvres(IntPtr plugin, string vesselGuid) =>
@@ -213,7 +232,9 @@ namespace GonogoPrincipiaUplink.Tests
         public object? FlightPlanGetManoeuvre(IntPtr plugin, string vesselGuid, int index)
         {
             BurnIndex("FlightPlanGetManoeuvre", plugin, vesselGuid, index);
-            return "manoeuvre-" + index;
+            return Manoeuvres.TryGetValue(index, out var manoeuvre)
+                ? manoeuvre
+                : "manoeuvre-" + index;
         }
 
         public object? FlightPlanGetManoeuvreFrenetTrihedron(

@@ -251,19 +251,26 @@ namespace GonogoPrincipiaUplink.Tests
 #pragma warning restore IDE1006
     }
 
+    /// <summary>Fields, not properties, because that is what the game's vessel
+    /// carries. A double that presented a property here would exercise the
+    /// property-audit path for a read that never takes it in production, and pass
+    /// on a member the guard would never have been asked about.</summary>
     public class FakeVessel
     {
 #pragma warning disable IDE1006
-        public object id { get; set; } = "vessel-guid";
+        public object id = "vessel-guid";
+        public string vesselName = "Munar Relay";
 #pragma warning restore IDE1006
     }
 
+    /// <summary>The integrator's status: two public fields and its own health
+    /// predicate, as on the real one.</summary>
     public class FakeStatus
     {
 #pragma warning disable IDE1006
-        public int error { get; set; }
-        public string message { get; set; } = "";
-        internal bool isOk { get; set; } = true;
+        public int error;
+        public string message = "";
+        internal bool isOk = true;
 
         public bool ok() => isOk;
 #pragma warning restore IDE1006

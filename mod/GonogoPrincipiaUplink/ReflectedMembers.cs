@@ -62,8 +62,48 @@ namespace GonogoPrincipiaUplink
         ///
         /// <para><c>Count</c> is here because <see cref="ReadCount"/> reads it off a
         /// BCL collection we are already holding, not off a producer type.</para>
+        ///
+        /// <para>What each getter turned out to be, in the order below. Most are
+        /// compiler-generated backing-field reads on auto-properties
+        /// (<c>display_patched_conics</c>, <c>frame_type</c>,
+        /// <c>frames_that_hide_unpinned_markers</c> and its celestial twin,
+        /// <c>selected_celestial</c>, <c>target</c>, <c>target_frame_selected</c>,
+        /// <c>flightGlobalsIndex</c>), which cannot run producer code at all. Four
+        /// do arithmetic and nothing else: <c>value</c> answers a nullable's
+        /// default, <c>history_length</c> forwards to that same slider,
+        /// <c>initial_time</c> forwards to a field and <c>final_time</c> adds two.
+        /// <c>referenceBody</c> tests one reference and returns either the body's
+        /// own parent or itself, so a root body answers itself rather than
+        /// null.</para>
+        ///
+        /// <para><c>predicted_vessel</c> is the one that is not obviously
+        /// harmless and it is cleared deliberately. Its getter invokes a delegate
+        /// into the producer's addon, which asks the PLUGIN whether the vessel is
+        /// one it knows. That is a native call, made outside our own frame
+        /// protocol, and it is safe for one specific reason: the call is
+        /// <c>HasVessel</c>, the single guid-tolerant entry point on the whole
+        /// surface, and it is guarded by a running-plugin test on the line above
+        /// it. Nothing else on this list crosses that boundary, and nothing new
+        /// should join it without the same paragraph.</para>
         /// </summary>
-        public static readonly string[] ReadableProperties = { "Count" };
+        public static readonly string[] ReadableProperties =
+        {
+            "Count",
+            "display_patched_conics",
+            "final_time",
+            "flightGlobalsIndex",
+            "frame_type",
+            "frames_that_hide_unpinned_celestials",
+            "frames_that_hide_unpinned_markers",
+            "history_length",
+            "initial_time",
+            "predicted_vessel",
+            "referenceBody",
+            "selected_celestial",
+            "target",
+            "target_frame_selected",
+            "value",
+        };
 
         /// <summary>
         /// Properties read in production BEFORE this guard existed, whose getters
@@ -76,33 +116,39 @@ namespace GonogoPrincipiaUplink
         ///
         /// <para>They are listed separately rather than folded into the audited list
         /// because a list that claims an audit it did not do is the failure this
-        /// whole class exists to prevent. <c>frame_type</c>,
-        /// <c>target_frame_selected</c> and <c>selected_celestial</c> are the
-        /// pressing ones: they read off <c>ReferenceFrameSelector</c>, the type whose
-        /// <c>FrameParameters</c>, <c>Name</c>, <c>NavballName</c> and
-        /// <c>Abbreviation</c> all reach <c>Log.Fatal</c>.</para>
+        /// whole class exists to prevent.</para>
+        ///
+        /// <para><b>It is now EMPTY, and the settings work is what emptied it.</b>
+        /// Eleven of the fifteen names had their getters read and moved to
+        /// <see cref="ReadableProperties"/>. The other four never belonged here at
+        /// all: <c>bodyName</c>, <c>id</c>, <c>error</c> and <c>message</c> are
+        /// plain public fields on their declaring types, so the guard was never
+        /// consulted for them and the list was carrying four entries that claimed
+        /// a debt that did not exist. Keep it empty.</para>
         /// </summary>
-        public static readonly string[] UnauditedProperties =
-        {
-            "bodyName",
-            "display_patched_conics",
-            "error",
-            "final_time",
-            "frame_type",
-            "frames_that_hide_unpinned_celestials",
-            "frames_that_hide_unpinned_markers",
-            "history_length",
-            "id",
-            "initial_time",
-            "message",
-            "predicted_vessel",
-            "selected_celestial",
-            "target_frame_selected",
-            "value",
-        };
+        public static readonly string[] UnauditedProperties = new string[0];
 
-        private const BindingFlags AnyInstance =
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        /// <summary>
+        /// Instance AND static, and the static half is a bug fix rather than
+        /// breadth for its own sake.
+        ///
+        /// <para>Several of the producer's settings are static: whether a journal
+        /// recorder is actually running, and the two tables its prediction settings
+        /// index into. With instance-only flags every one of those resolved to no
+        /// member and answered null, which this class's per-read tolerance then
+        /// reported as "could not be read" rather than as "was never looked for".
+        /// The prediction tolerance and step count were reaching the wire as null
+        /// for exactly that reason, on the channel that existed for them, and
+        /// nothing failed because a tolerant reader cannot tell a missing member
+        /// from a missing value.</para>
+        ///
+        /// <para>Static widens no permission: a static FIELD read still cannot run
+        /// producer code, and a static property still has to be on
+        /// <see cref="ReadableProperties"/> like any other.</para>
+        /// </summary>
+        private const BindingFlags AnyMember =
+            BindingFlags.Instance | BindingFlags.Static
+            | BindingFlags.Public | BindingFlags.NonPublic;
 
         private readonly Dictionary<string, MemberInfo?> _members = new Dictionary<string, MemberInfo?>();
 
@@ -272,9 +318,9 @@ namespace GonogoPrincipiaUplink
             MemberInfo? found = null;
             for (var t = type; t != null && found == null; t = t.BaseType)
             {
-                found = (MemberInfo?)t.GetField(name, AnyInstance)
-                    ?? (MemberInfo?)t.GetProperty(name, AnyInstance)
-                    ?? t.GetMethod(name, AnyInstance);
+                found = (MemberInfo?)t.GetField(name, AnyMember)
+                    ?? (MemberInfo?)t.GetProperty(name, AnyMember)
+                    ?? t.GetMethod(name, AnyMember);
             }
             _members[key] = found;
             return found;
