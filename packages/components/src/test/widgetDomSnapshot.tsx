@@ -4,7 +4,7 @@ import {
   type MockDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type React from "react";
 import { Fragment } from "react";
@@ -279,7 +279,39 @@ export interface WidgetSnapshotMode {
 
 interface Fixture {
   _meta?: unknown;
+  _stream?: StreamFixtureBlock;
   [key: string]: unknown;
+}
+
+/**
+ * A fixture's own declaration of what it puts on the wire, and the ONLY
+ * authority for a fixture that carries one.
+ *
+ * Structurally identical to the probe's `StreamFixtureBlock`
+ * (`scripts/probe/probe-entry.tsx`), which is the point: one fixture format,
+ * read the same way by both harnesses. Declared here rather than imported
+ * because the probe entry is browser-bundled and pulls in a React root, a
+ * registry install and a `createRoot` call that a vitest run has no business
+ * loading; the shared thing is the fixture JSON, not the module.
+ */
+interface StreamFixtureBlock {
+  /** Topics this fixture carries, forwarded to `setupStreamFixture`. */
+  carriedChannels: string[];
+  /** UT to pin the view clock at. */
+  pinnedUt?: number;
+  /** Fixed network/display delay in seconds. */
+  delaySeconds?: number;
+  /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
+  emits: Array<{ channel: string; value: unknown; meta?: Partial<Meta> }>;
+}
+
+/** Extracts and narrows the optional `_stream` block off a fixture. */
+function resolveStreamBlock(fixture: Fixture): StreamFixtureBlock | undefined {
+  const raw = fixture._stream;
+  if (!raw || typeof raw !== "object") return undefined;
+  return Array.isArray(raw.emits) && Array.isArray(raw.carriedChannels)
+    ? raw
+    : undefined;
 }
 
 interface SnapshotOpts<Cfg> {
@@ -315,6 +347,34 @@ interface StreamWrap {
   emitVesselControl: () => void;
   /** Emits the fixture's `sw.*`/`ls.*` keys (reshaped) onto `kerbalism.spaceweather`/`kerbalism.lifesupport` (+ `vessel.orbit`), or a no-op when it carries none. Same `act()` block as the other emits. */
   emitKerbalism: () => void;
+  /**
+   * Replays the fixture's own `_stream.emits`, one topic at a time, each
+   * gated on that topic having a live subscription. Awaited AFTER the
+   * synchronous emit block rather than inside it, because the gating needs
+   * frames to pass. A no-op for a fixture with no `_stream` block.
+   */
+  replayStreamBlock: () => Promise<void>;
+}
+
+/**
+ * `StubTransport.emit` silently DROPS a sample for a topic nothing has
+ * subscribed to yet, and a widget subscribes inside React *passive* effects
+ * that no single flush is guaranteed to have run. Poll until the subscription
+ * lands, exactly as the probe does, so the replay is deterministic instead of
+ * a race the fixture loses on some runs. A topic the widget never reads simply
+ * times out, and is then emitted-and-dropped, which is what the probe does too.
+ */
+async function waitForSubscription(
+  transport: { isSubscribed(topic: string): boolean },
+  topic: string,
+  maxFrames = 30,
+): Promise<void> {
+  for (let i = 0; i < maxFrames; i++) {
+    if (transport.isSubscribed(topic)) return;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
 }
 
 /**
@@ -327,6 +387,44 @@ interface StreamWrap {
  * neither is needed, matching every widget that touches neither key.
  */
 function buildStreamWrap(fixture: Fixture): StreamWrap {
+  // A fixture that declares its own wire wins outright, and the legacy
+  // reshapes below are skipped entirely for it.
+  //
+  // This is the one place the two harnesses used to disagree about one file:
+  // the playwright probe has honoured `_stream` since it was introduced, while
+  // this one read only the flat legacy keys. A widget migrated to canonical
+  // stream reads therefore rendered its EMPTY state here, and `toMatchSnapshot`
+  // wrote that emptiness down as the expected result. The probe is the correct
+  // reader of the format, so this follows it rather than the reverse.
+  //
+  // Deliberately exclusive rather than additive: a legacy reshape emitting onto
+  // a channel the block already emits would overwrite the fixture's own,
+  // more-complete payload with one derived from a handful of `v.*` mirrors, and
+  // which of the two survived would come down to emit order.
+  const streamBlock = resolveStreamBlock(fixture);
+  if (streamBlock !== undefined) {
+    const stream = setupStreamFixture({
+      carriedChannels: streamBlock.carriedChannels,
+      pinnedUt: streamBlock.pinnedUt ?? resolvePinnedUt(fixture),
+      delaySeconds: streamBlock.delaySeconds,
+    });
+    return {
+      Wrap: stream.Provider,
+      providerMounted: true,
+      emitVesselParts: () => {},
+      emitVesselControl: () => {},
+      emitKerbalism: () => {},
+      replayStreamBlock: async () => {
+        for (const e of streamBlock.emits) {
+          await waitForSubscription(stream.transport, e.channel);
+          stream.emit(e.channel, e.value, e.meta);
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+          });
+        }
+      },
+    };
+  }
   const pinnedUt = resolvePinnedUt(fixture);
   const vesselPartsWire = resolveVesselPartsWire(fixture);
   const vesselControlWire = resolveVesselControlWire(fixture);
@@ -353,6 +451,7 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
       emitVesselParts: () => {},
       emitVesselControl: () => {},
       emitKerbalism: () => {},
+      replayStreamBlock: async () => {},
     };
   }
   // `time.warp`/`comms.link` must be CARRIED, not merely emitted: the pause and
@@ -401,6 +500,7 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
         stream.emit("vessel.resources", lifeSupportLevelsWire);
       }
     },
+    replayStreamBlock: async () => {},
   };
 }
 
@@ -467,6 +567,7 @@ export async function snapshotWidgetMode<
       emitVesselParts,
       emitVesselControl,
       emitKerbalism,
+      replayStreamBlock,
     } = buildStreamWrap(opts.fixture);
     const { container } = render(
       <Wrap>
@@ -494,6 +595,11 @@ export async function snapshotWidgetMode<
       emitVesselParts();
       emitVesselControl();
       emitKerbalism();
+    });
+    // Outside the synchronous block above: each entry waits for its topic's
+    // subscription, which only lands once frames have run.
+    await act(async () => {
+      await replayStreamBlock();
     });
     await flushProviderFrame(providerMounted);
 
@@ -551,8 +657,14 @@ export async function renderWidgetMode<
     ...((opts.mode.config ?? {}) as Cfg),
   };
   const instanceId = opts.instanceId ?? "snap";
-  const { Wrap, providerMounted, emitVesselParts, emitVesselControl } =
-    buildStreamWrap(opts.fixture);
+  const {
+    Wrap,
+    providerMounted,
+    emitVesselParts,
+    emitVesselControl,
+    emitKerbalism,
+    replayStreamBlock,
+  } = buildStreamWrap(opts.fixture);
   const { container } = render(
     <Wrap>
       <DashboardItemContext.Provider value={{ instanceId }}>
@@ -574,6 +686,12 @@ export async function renderWidgetMode<
     }
     emitVesselParts();
     emitVesselControl();
+    // Was missing here while `snapshotWidgetMode` called it, so a Kerbalism
+    // fixture's a11y render was a blank board even when its snapshot was fed.
+    emitKerbalism();
+  });
+  await act(async () => {
+    await replayStreamBlock();
   });
   await flushProviderFrame(providerMounted);
 
