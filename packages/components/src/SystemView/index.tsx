@@ -12,8 +12,10 @@ import {
 import {
   canPropagate,
   type OrbitElements,
+  type OrbitTrajectory,
   solveAnomalies,
   useFleetVesselSilence,
+  useOrbitTrajectory,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
@@ -31,6 +33,7 @@ import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
+import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
 import {
@@ -450,6 +453,17 @@ function SystemViewComponent({
       ? encounter.transitionUt.magnitude
       : null;
 
+  // What the vessel's trajectory IS, asked once and handed to the diagram,
+  // which draws whichever answer arrives. This widget held TWO independent
+  // conic implementations of it, the ellipse the diagram draws from
+  // `sma`/`ecc` and the `OrbitPatch` fabricated below, and neither asked
+  // whether a conic was the right renderer at all.
+  const vesselTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const trajectoryWithheld =
+    vesselTrajectory !== null && vesselTrajectory.shape === "withheld"
+      ? vesselTrajectory
+      : null;
+
   // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame
   // matches its parent body.
   const vSma = orbit?.sma?.magnitude;
@@ -484,8 +498,17 @@ function SystemViewComponent({
   // unchanged. The post-encounter conic's elements aren't on the wire, so the
   // chain never fabricates a second patch; the encounter is surfaced separately
   // from the derived `encounter*` scalars above (subtitle + almanac).
+  //
+  // Fabricated only on the CONIC answer. The `derived` scalars this leans on are
+  // already gated on reach, so an out-of-horizon sample never got here, but
+  // shape was never asked: a provider that integrates got a confident
+  // one-period conic prediction plus, where an encounter was on the wire, an
+  // SOI crossing predicted by maths it does not use. On the arc answer the
+  // diagram draws the sampled path the provider vouched for instead, which is
+  // the same curve honestly bounded.
   const orbitPatches = useMemo<OrbitPatch[]>(() => {
     if (!orbit || vesselBody == null || utBucket == null) return [];
+    if (vesselTrajectory?.shape !== "conic") return [];
     const period = derived?.period;
     if (period == null || period <= 0) return [];
     if (!orbit.ecc.lessThan(1)) return []; // hyperbolic, elliptical only
@@ -527,6 +550,7 @@ function SystemViewComponent({
     vesselBody,
     utBucket,
     derived,
+    vesselTrajectory,
     encounterExists,
     encounterTimeUt,
     encounterBody,
@@ -741,6 +765,12 @@ function SystemViewComponent({
           typeof identity?.name === "string" ? identity.name : "Vessel"
         }
       />
+      {/* Beside the frame caption rather than over the diagram: the bodies are
+          still being drawn correctly and only the vessel's own curve is
+          missing, so covering the picture would overstate what was refused. */}
+      {trajectoryWithheld && (
+        <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
+      )}
       {showDiagram ? (
         <FramedDisplay style={DIAGRAM_FRAME}>
           <div ref={wrapRef} style={DIAGRAM_WRAP}>
@@ -751,6 +781,7 @@ function SystemViewComponent({
                 highlightNames={vesselBody ? [vesselBody] : []}
                 targetName={typeof targetName === "string" ? targetName : null}
                 vessel={vesselOrbit}
+                vesselTrajectory={vesselTrajectory}
                 vesselPlotState={vesselPlotState}
                 phaseAngles={phaseAngles}
                 transferStatuses={transferStatuses}

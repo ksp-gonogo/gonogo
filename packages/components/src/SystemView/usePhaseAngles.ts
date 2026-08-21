@@ -1,5 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { canPropagate, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import { deriveTrueAnomalyDeg } from "./bodyDerivations";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -30,7 +30,8 @@ import type { CelestialBody } from "./useCelestialBodies";
  *
  * Degrades to a stable empty map (no consumer churn, treated as "no highlight")
  * when there's no vessel orbit yet, the orbit is hyperbolic (ecc ≥ 1, no valid
- * anomaly), or the view-UT isn't known.
+ * anomaly), the view-UT isn't known, or the elected provider declines to answer
+ * for the instant on screen.
  */
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
@@ -51,6 +52,21 @@ export function usePhaseAngles(
 
   return useMemo(() => {
     if (!orbit) return EMPTY;
+    // No instant, no question: `deriveTrueAnomalyDeg` refuses a non-finite `ut`
+    // on its own, but the gate below needs a real one to put a window to.
+    if (typeof ut !== "number" || !Number.isFinite(ut)) return EMPTY;
+    // Ask the provider before propagating the vessel's elements to the view
+    // instant, the same question and the same window as SystemView's own
+    // `derived` memo: the horizon is an absolute UT bound, so "can these answer
+    // for the moment on screen" is the whole of it. This read used to skip the
+    // gate its sibling applies to the identical propagation, so an operator
+    // scrubbed past an integrator's horizon and got no vessel dot but a live
+    // transfer-window highlight worked out from where the craft would have been.
+    //
+    // SHAPE is deliberately not consulted. A phase angle is a position
+    // relationship at one instant, which the osculating elements give exactly
+    // whoever computed them; only a CURVE through them needs a shape.
+    if (!canPropagate(orbit.horizon, ut, ut).propagatable) return EMPTY;
     // Vessel true anomaly at the view-UT via the shared solver (null for a
     // parabolic/hyperbolic orbit or a missing element: no phase reference).
     // Magnitudes: `deriveTrueAnomalyDeg` is the shared Kepler solver and works

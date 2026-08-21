@@ -1,5 +1,11 @@
+import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import {
+  ANALYTIC_UNBOUNDED_HORIZON,
+  integratedHorizon,
+  UNBOUNDED_HORIZON,
+} from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import type { CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
@@ -58,8 +64,18 @@ function makeBody(
   };
 }
 
-/** A circular vessel orbit whose true longitude is exactly `lonDeg` at UT 0. */
-function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
+/**
+ * A circular vessel orbit whose true longitude is exactly `lonDeg` at UT 0.
+ *
+ * The horizon is what the stock analytic producer sends unless a test states
+ * otherwise. It has to be stated: the hook propagates these elements to the
+ * view instant, and a sample carrying no horizon is one from a producer that
+ * dropped the field, which is not a licence to extrapolate.
+ */
+function vesselAtLongitude(
+  lonDeg: number,
+  horizon: PropagationHorizonLike = ANALYTIC_UNBOUNDED_HORIZON,
+): Record<string, unknown> {
   return {
     referenceBodyIndex: 0,
     sma: 700_000,
@@ -70,6 +86,7 @@ function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
     meanAnomalyAtEpoch: 0,
     epoch: 0,
     mu: KERBIN_MU,
+    horizon,
   };
 }
 
@@ -180,5 +197,71 @@ describe("usePhaseAngles", () => {
     });
     // Give the stream a beat; the map must stay empty.
     await waitFor(() => expect(result.current.size).toBe(0));
+  });
+
+  /**
+   * A phase angle is these elements propagated to the instant on screen, which
+   * is the one thing the elected provider gets to bound. SystemView's own
+   * `derived` memo puts exactly this question to `canPropagate`; this read did
+   * not, so an operator scrubbed past an integrator's horizon lost the vessel
+   * dot and kept a transfer-window highlight computed from where the craft
+   * would have been.
+   *
+   * SHAPE is not consulted, and the last case says so: a position at one instant
+   * needs no shape, only a curve does.
+   */
+  describe("asks the provider before propagating to the view instant", () => {
+    it("is empty when no horizon was stated at all", async () => {
+      const { fixture, result } = renderPhaseAngles([
+        makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
+      ]);
+      act(() => {
+        // `horizon` absent entirely: a producer predating the field or one that
+        // dropped it, and neither is a licence to extrapolate.
+        const { horizon: _dropped, ...noHorizon } = vesselAtLongitude(0);
+        fixture.emit("vessel.orbit", noHorizon);
+      });
+      await waitFor(() => expect(result.current.size).toBe(0));
+    });
+
+    it("is empty once the view instant runs past the integrator's horizon", async () => {
+      const { fixture, result } = renderPhaseAngles([
+        makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
+      ]);
+      act(() => {
+        // The fixture pins the clock at UT 0, so a horizon at -100 is already
+        // behind the instant being asked about.
+        fixture.emit(
+          "vessel.orbit",
+          vesselAtLongitude(0, integratedHorizon(-100)),
+        );
+      });
+      await waitFor(() => expect(result.current.size).toBe(0));
+    });
+
+    it("answers for an integrating provider inside its horizon, shape or no shape", async () => {
+      const { fixture, result } = renderPhaseAngles([
+        makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
+      ]);
+      act(() => {
+        fixture.emit(
+          "vessel.orbit",
+          vesselAtLongitude(0, integratedHorizon(5000)),
+        );
+      });
+      await waitFor(() => expect(result.current.get(1)).toBeCloseTo(90, 4));
+    });
+
+    it("answers when reach is stated and shape is not", async () => {
+      // Where the craft IS does not depend on whether a conic is the right
+      // renderer for its path. Refusing here would be a refusal nobody stated.
+      const { fixture, result } = renderPhaseAngles([
+        makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
+      ]);
+      act(() => {
+        fixture.emit("vessel.orbit", vesselAtLongitude(0, UNBOUNDED_HORIZON));
+      });
+      await waitFor(() => expect(result.current.get(1)).toBeCloseTo(90, 4));
+    });
   });
 });
