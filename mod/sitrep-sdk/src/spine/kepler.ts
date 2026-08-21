@@ -114,7 +114,17 @@ export type PropagationRefusal =
       trajectoryKind?: TrajectoryKindLike;
     };
 
-function horizonUtOf(horizon: PropagationHorizonLike): number | undefined {
+/**
+ * The horizon's bound as a plain UT, or `undefined` when it names none.
+ *
+ * Exported so a caller that needs the number for something other than the gate
+ * reads it HERE rather than unwrapping the wire's magnitude a second time. The
+ * one-copy rule is the same one `solveEccentricAnomaly`'s own doc argues for,
+ * and for the same reason: a second copy is free to disagree.
+ */
+export function horizonUtOf(
+  horizon: PropagationHorizonLike,
+): number | undefined {
   const raw = horizon.untilUt;
   if (raw === undefined || raw === null) return undefined;
   const n = typeof raw === "number" ? raw : raw.magnitude;

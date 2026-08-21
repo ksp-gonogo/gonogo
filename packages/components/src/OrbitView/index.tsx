@@ -7,12 +7,16 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  type OrbitTrajectory,
+  orbitTrajectory,
+  TrajectoryKindLike,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
+import { magnitudeOf, NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -135,6 +139,54 @@ const orbitViewActions = [
 
 export type OrbitViewActions = typeof orbitViewActions;
 
+/**
+ * What the panel says when the propagation seam declines to authorise a curve.
+ *
+ * A heading in the same vocabulary `TrajectoryCurrencyBridge` badges with, so
+ * an operator reading both sees one word for one fact, plus a line saying what
+ * it means for this particular drawing. The four reasons stay four sentences:
+ * "nobody stated a horizon" and "you have outrun a stated one" have different
+ * remedies, and an integrator that has not computed this far yet resolves on
+ * its own where a producer that dropped a field does not.
+ */
+function TrajectoryWithheld({
+  withheld,
+}: Readonly<{ withheld: Extract<OrbitTrajectory, { shape: "withheld" }> }>) {
+  let heading: string;
+  let detail: string;
+  switch (withheld.reason) {
+    case "no-horizon-stated":
+      heading = "NO HORIZON STATED";
+      detail = "Nothing has said how far these elements answer for.";
+      break;
+    case "past-horizon":
+      if (withheld.trajectoryKind === TrajectoryKindLike.Integrated) {
+        heading = "BEYOND INTEGRATION";
+        detail = "The trajectory is not computed this far ahead yet.";
+      } else {
+        heading = "PAST HORIZON";
+        detail = "These elements do not answer for the instant on screen.";
+      }
+      break;
+    case "shape-not-stated":
+      heading = "SHAPE NOT STATED";
+      detail = "Nothing has said whether this trajectory is a conic.";
+      break;
+    default:
+      heading = "NO PATH AVAILABLE";
+      detail = "The integrated trajectory could not be sampled.";
+      break;
+  }
+  return (
+    <NoData role="status">
+      <Text size="xs">{heading}</Text>
+      <Text tone="muted" size="xs">
+        {detail}
+      </Text>
+    </NoData>
+  );
+}
+
 function OrbitViewComponent({
   config,
   onConfigChange,
@@ -196,6 +248,18 @@ function OrbitViewComponent({
   // resolvable orbit, hyperbolic or not.
   const periapsisR = vesselState?.periapsisRadius;
 
+  // What the trajectory IS, asked of the propagation seam rather than decided
+  // here. The widget holds `sma` and `ecc` and could draw an ellipse from them
+  // without asking anything, which is exactly why it must not: a provider whose
+  // trajectories are integrated would then change nothing the operator sees.
+  // `orbitTrajectory` reads the horizon riding on this same sample and answers
+  // conic, arc, or a refusal, and the render below does as it is told.
+  const viewUt = magnitudeOf(useViewUt());
+  const trajectory: OrbitTrajectory | null =
+    orbit === undefined || viewUt === null
+      ? null
+      : orbitTrajectory({ orbit, viewUt });
+
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
   // Live rotation feed: single-body subscription so we don't pay the
@@ -213,6 +277,14 @@ function OrbitViewComponent({
   // `null` and `undefined` (a naive `apoapsisRadius ?? undefined` upstream
   // must not be able to flip this gate).
   const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
+
+  // A withheld trajectory is not a missing orbit: the elements arrived, and the
+  // provider declined to authorise a curve through them. The two get different
+  // sentences because they have different remedies, the same reason
+  // `TrajectoryCurrencyBridge` refuses to collapse its own two refusals.
+  const withheld =
+    trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
+  const hasTrajectory = hasOrbit && trajectory !== null && withheld === null;
 
   // Selective rendering: at small sizes the SVG diagram doesn't have room
   // to be readable, so collapse to a single status pill (the user's
@@ -251,9 +323,12 @@ function OrbitViewComponent({
     }
   }
 
-  const diagram = hasOrbit ? (
+  const diagram = hasTrajectory ? (
     <OrbitDiagram
       variant="full"
+      // The seam's answer, drawn as given. `null` on the conic arm, where the
+      // diagram's own conic renderer is what the provider said is right.
+      trajectoryPath={trajectory.shape === "arc" ? trajectory.points : null}
       sma={sma.magnitude}
       ecc={eccentricity.magnitude}
       // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram already
@@ -323,7 +398,7 @@ function OrbitViewComponent({
       diagram
     );
 
-  if (isLandscape && showDiagram && hasOrbit) {
+  if (isLandscape && showDiagram && hasTrajectory) {
     // Wide-short slot: chrome on the left, diagram on the right, via
     // `panelSidebar`. Body name and status pill stack in the sidebar column;
     // the panel's own header sits above the diagram (a non-floating header
@@ -365,7 +440,7 @@ function OrbitViewComponent({
   // is far cheaper than the row the title used to reserve. Only when there IS
   // a diagram, though. The no-data and pill-only branches are centred text,
   // and floating a title over centred text just overlaps it.
-  const drawingFillsPanel = hasOrbit && showDiagram;
+  const drawingFillsPanel = hasTrajectory && showDiagram;
   // The body name used to be `panelSubtitle`, which the floating-header case
   // rendered for free (no body row, it floated in the header alongside the
   // title). Now that subtitles are gone entirely, the two cases split:
@@ -410,6 +485,8 @@ function OrbitViewComponent({
             ? "No osculating orbit (packed)"
             : "No orbital data"}
         </NoData>
+      ) : withheld ? (
+        <TrajectoryWithheld withheld={withheld} />
       ) : showDiagram ? (
         diagramWithOverlay
       ) : (

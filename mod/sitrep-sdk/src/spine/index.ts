@@ -63,6 +63,7 @@ export * from "./map-command";
 export * from "./map-topic";
 export * from "./never-reckonable";
 export * from "./orbit-patches";
+export * from "./orbit-trajectory";
 export * from "./processorEvaluator";
 export * from "./processors";
 export * from "./propagation";

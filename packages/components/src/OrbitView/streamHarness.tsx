@@ -1,6 +1,8 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -55,6 +57,14 @@ export interface OrbitScenario {
    * every pre-existing scenario/test keeps its prior behaviour unchanged.
    */
   quality?: Quality;
+  /**
+   * The propagation horizon the sample carries: how far these elements answer
+   * for, and what SHAPE of thing they describe. Defaults to what the stock
+   * analytic producer sends (`AnalyticHorizon()` in `VesselViewProvider.cs`),
+   * so a scenario that does not care about the seam keeps a conic. State it
+   * explicitly to render a sample from a provider that integrates.
+   */
+  horizon?: PropagationHorizonLike;
   /** Also emit `vessel.flight`: needed for a "measured" (Loaded) basis scenario, whose `deriveVesselState` branch reads it. Ignored under OnRails. */
   flight?: {
     altitudeAsl?: number;
@@ -82,6 +92,7 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
         meanAnomalyAtEpoch: s.meanAnomalyAtEpoch ?? 0,
         epoch: 0,
         mu: KERBIN_MU,
+        horizon: s.horizon ?? ANALYTIC_UNBOUNDED_HORIZON,
       },
       { quality: s.quality ?? Quality.OnRails },
     );

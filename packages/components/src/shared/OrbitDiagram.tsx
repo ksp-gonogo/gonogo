@@ -103,6 +103,18 @@ export interface OrbitDiagramProps {
   atmosphereDepthM?: number | null;
   /** Tint the atmosphere band blue when oxygen, amber when not. */
   atmosphereHasOxygen?: boolean | null;
+  /**
+   * The trajectory as SUPPLIED points, in the orbit's own plane with periapsis
+   * on +x, same units as `apoapsis`/`periapsis`. When present it replaces the
+   * conic entirely: the caller has been told by the propagation seam that this
+   * path, and not a curve derived from `sma`/`ecc`, is what the craft flies.
+   *
+   * `sma`/`ecc` still arrive alongside it and are still used, for the frame's
+   * extent and the apsis markers. That is scale and annotation, not the
+   * trajectory, and it is the one thing a supplied path cannot give: a bounded
+   * arc says nothing about how large the orbit it belongs to is.
+   */
+  trajectoryPath?: readonly { x: number; y: number }[] | null;
 }
 
 // Per-variant styling knobs. Kept here so the two call sites don't diverge.
@@ -148,6 +160,7 @@ export function OrbitDiagram({
   rotationAngleDeg = null,
   atmosphereDepthM = null,
   atmosphereHasOxygen = null,
+  trajectoryPath = null,
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
@@ -422,7 +435,19 @@ export function OrbitDiagram({
 
         {/* Trajectory first so the body overdraws it at the focus */}
         <g transform={`rotate(${-argPe})`}>
-          {isHyperbolic ? (
+          {trajectoryPath ? (
+            /* A supplied path wins over the conic: the seam has said this is
+               the trajectory, and deriving one from the elements beside it
+               would be drawing a second, contradicting answer. Open by
+               construction, no `Z`: it stops where the provider stopped. */
+            <path
+              data-trajectory="supplied"
+              d={buildSuppliedPath(trajectoryPath)}
+              fill="none"
+              stroke={orbitStroke}
+              strokeWidth={strokeW}
+            />
+          ) : isHyperbolic ? (
             <path
               d={buildHyperbolicPath(sma, ecc, periapsis * HYPERBOLIC_SCALE)}
               fill="none"
@@ -690,6 +715,31 @@ interface BBox {
  *  inside this box; periapsis sits on the +x axis at `periapsis` units. */
 function hyperbolicBoundingBox(rMax: number): BBox {
   return { xMin: -rMax, xMax: rMax, yMin: -rMax, yMax: rMax };
+}
+
+/**
+ * Emit an SVG `d` for a trajectory that arrived as points.
+ *
+ * Pure transcription: a `M` and then an `L` per point, y negated because SVG's
+ * y grows downward while the orbital frame's grows up. Nothing here decides
+ * anything about the curve, which is the point of the prop that feeds it, and
+ * it never closes the path: a supplied arc that came back short did so because
+ * the provider stopped, and joining its ends would put the closure back.
+ *
+ * Non-finite points are skipped rather than emitted as `NaN,NaN`, which SVG
+ * treats as a parse error and drops the ENTIRE path for.
+ */
+function buildSuppliedPath(
+  points: readonly { x: number; y: number }[],
+): string {
+  const parts: string[] = [];
+  for (const p of points) {
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    parts.push(
+      `${parts.length === 0 ? "M" : "L"}${p.x.toFixed(1)},${(-p.y).toFixed(1)}`,
+    );
+  }
+  return parts.join(" ");
 }
 
 /** Sample points along a hyperbolic trajectory and emit an SVG path `d`

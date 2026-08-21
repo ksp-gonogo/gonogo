@@ -169,13 +169,18 @@ export {
 export type {
   Anomalies,
   OrbitElements,
+  OrbitTrajectory,
+  OrbitTrajectoryInput,
+  PerifocalPoint,
   PropagationHorizonLike,
   PropagationRefusal,
   StateVector,
+  TrajectoryWithheldReason,
   Vector3,
 } from "./kepler";
 export {
   canPropagate,
+  orbitTrajectory,
   PropagationHorizonKindLike,
   solve,
   solveAnomalies,
