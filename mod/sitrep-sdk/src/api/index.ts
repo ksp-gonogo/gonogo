@@ -562,6 +562,7 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
 export {
   type CommandRejection,
   classifyCommandRejection,
+  commandRefusalSubject,
 } from "./command-rejection";
 // The fog-of-war mask store, its in-memory cache and the React context that
 // carries them. Owned here for the same reason the settings context is: a second

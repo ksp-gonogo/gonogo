@@ -117,6 +117,75 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A DECIDED gate refusal is a refusal, not a breakage.
+        ///
+        /// <para>It used to leave through the same callback the unavailable-uplink
+        /// exit uses, which emits an <c>E_UNAVAILABLE</c> error frame. The client
+        /// put that in phase <c>failed</c> and <c>classifyCommandRejection</c>
+        /// reported "the machinery broke, a retry may work". Nothing had broken,
+        /// and no number of retries moves a limit.</para>
+        /// </summary>
+        [Fact]
+        public void AGateThatDecidedNoIsRefusedWithItsNumbersRatherThanReportedAsBroken()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new GatedTestUplink());
+            engine.Start();
+            try
+            {
+                object? result = null;
+                string? refusal = null;
+                engine.DispatchCommandAndWait(
+                    GatedTestUplink.Command, "x", "vantage-1",
+                    r => result = r,
+                    SettleWindow,
+                    onRefused: reason => refusal = reason);
+
+                Assert.Null(refusal);
+                var commandResult = Assert.IsAssignableFrom<CommandResult>(result);
+                Assert.False(commandResult.Success);
+                Assert.Equal(CommandErrorCode.LimitReached, commandResult.ErrorCode);
+                // The arm alone cannot say "19.4 t over 18 t". Both, or neither.
+                Assert.NotNull(commandResult.Breach);
+                Assert.Equal("LaunchPad", commandResult.Breach!.Facility);
+                Assert.Equal("Launch Pad", commandResult.Breach.FacilityName);
+                Assert.Equal(18.0, commandResult.Breach.Limit);
+                Assert.Equal(19.4, commandResult.Breach.Actual);
+                Assert.Equal("t", commandResult.Breach.Unit);
+            }
+            finally { engine.Stop(); }
+        }
+
+        /// <summary>
+        /// The other half of the split: a gate that could not decide is still an
+        /// error frame. Abstain and Unknown mean a bad declaration or unreadable
+        /// live state, which IS the machinery-broke class, and the prose naming
+        /// the cause is the whole value of them.
+        /// </summary>
+        [Fact]
+        public void AGateThatCouldNotDecideStaysAnErrorFrameWithItsProse()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new GatedTestUplink(undecidable: true));
+            engine.Start();
+            try
+            {
+                object? result = null;
+                string? refusal = null;
+                engine.DispatchCommandAndWait(
+                    GatedTestUplink.Command, "x", "vantage-1",
+                    r => result = r,
+                    SettleWindow,
+                    onRefused: reason => refusal = reason);
+
+                Assert.Null(result);
+                Assert.NotNull(refusal);
+                Assert.Contains("the scales are down", refusal);
+            }
+            finally { engine.Stop(); }
+        }
+
+        /// <summary>
         /// The seam, C# half: a real <c>ClientWebSocket</c> asks for a command
         /// whose uplink is unavailable and reads what actually comes back off the
         /// wire, then writes that frame to the committed fixture the TS half
@@ -192,6 +261,75 @@ namespace Sitrep.Host.IntegrationTests
             var fixtures = Path.Combine(dir, "packages", "sitrep-client", "src", "__fixtures__");
             Directory.CreateDirectory(fixtures);
             return Path.Combine(fixtures, fileName);
+        }
+
+        /// <summary>
+        /// A command that declares a gate, plus the evaluator that answers it.
+        /// The evaluator either decides no with numbers, or cannot decide at all,
+        /// which are the two sides of the split under test.
+        /// </summary>
+        private sealed class GatedTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-gated";
+            public const string Command = "gated.launch";
+            public const string GateKind = "test-pad-mass";
+
+            private readonly bool _undecidable;
+
+            public GatedTestUplink(bool undecidable = false)
+            {
+                _undecidable = undecidable;
+            }
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration
+                    {
+                        Command = Command,
+                        Delayed = false,
+                        Requires = new[]
+                        {
+                            new CommandRequirement { Kind = GateKind, Facility = "LaunchPad", Quantity = "mass" },
+                        },
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddCommandHandler<string, string>(Command, args => "lifted:" + args);
+                host.AddGateEvaluator(new Evaluator(_undecidable));
+            }
+
+            private sealed class Evaluator : ICommandGateEvaluator
+            {
+                private readonly bool _undecidable;
+                public Evaluator(bool undecidable) => _undecidable = undecidable;
+
+                public string Kind => GateKind;
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+                {
+                    return _undecidable
+                        ? GateVerdict.Unknown("the scales are down")
+                        : GateVerdict.Fail(new LimitBreach
+                        {
+                            Facility = "LaunchPad",
+                            FacilityName = "Launch Pad",
+                            FacilityLevel = 1.0,
+                            Quantity = "mass",
+                            Limit = 18.0,
+                            Actual = 19.4,
+                            Unit = "t",
+                        });
+                }
+            }
         }
 
         private sealed class RefusalTestUplink : ISitrepUplink

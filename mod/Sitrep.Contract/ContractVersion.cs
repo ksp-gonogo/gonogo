@@ -986,7 +986,25 @@ namespace Sitrep.Contract
         /// host, and that placement is a requirement rather than a preference:
         /// an Uplink sees only this assembly, so a host-side interface would
         /// have made gating first-party-only.</para>
+        ///
+        /// <para><b>Bumped 17 -&gt; 18: a refusal can say what happened.</b>
+        /// <see cref="CommandErrorCode"/> gains <c>LimitReached</c>,
+        /// <c>AlreadyAtMaximum</c> and <c>InsufficientFunds</c>;
+        /// <see cref="CommandResult"/> gains <c>Breach</c>; <c>LimitBreach</c>
+        /// gains <c>FacilityName</c>. All additive: an older consumer reads the
+        /// three new codes as its own <c>Unknown</c> fallback and simply does not
+        /// see the new properties.</para>
+        ///
+        /// <para>Everything a refusal needed to say was already in scope on the
+        /// line that refused and was discarded there. Crew cap and facility max
+        /// tier both arrived as <c>ModeUnavailable</c>, indistinguishable from
+        /// "not in career mode"; "cannot afford" arrived as <c>Range</c>, which
+        /// documents an out-of-range ARGUMENT and is not what happened. The new
+        /// codes separate the causes and <c>Breach</c> carries the comparison,
+        /// and they are one change rather than two because neither is worth
+        /// sending alone: a code with no numbers cannot say "16 of 16", and
+        /// numbers with no code do not say which sentence they belong in.</para>
         /// </remarks>
-        public const int Minor = 17;
+        public const int Minor = 18;
     }
 }

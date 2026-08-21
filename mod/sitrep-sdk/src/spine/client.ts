@@ -1,4 +1,4 @@
-import { CommandErrorCode } from "../__generated__/contract";
+import { CommandErrorCode, type LimitBreach } from "../__generated__/contract";
 import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import type { ServerMessage } from "../envelope";
@@ -61,6 +61,21 @@ interface Subscription {
  * `useSyncExternalStore`.
  */
 interface PendingCommand {
+  /**
+   * What was dispatched, kept so a refusal can NAME it. Without these three a
+   * refusal could only ever say "command refused: ModeUnavailable": the reply
+   * carries a `requestId` and a reason and deliberately no command name, so the
+   * only place the name still exists is here, and it used to be dropped the
+   * moment the request left.
+   *
+   * Retained client-side rather than added to the wire on purpose. The mod
+   * already told us what we asked it; asking it to say so again would be paying
+   * for a fact we threw away.
+   */
+  command: string;
+  args: unknown;
+  /** The dispatch's own operator-facing description, when it carried one. */
+  label: string;
   status: CommandStatus;
   resolve: ((result: unknown) => void) | null;
   reject: ((error: { code: string; message: string }) => void) | null;
@@ -98,13 +113,29 @@ interface PendingCommand {
  * and inventing a success out of a missing reason is the bug this whole path
  * exists to stop.
  */
-function refusalOf(result: unknown): CommandErrorCode | null {
+function refusalOf(
+  result: unknown,
+): { errorCode: CommandErrorCode; breach?: LimitBreach } | null {
   if (typeof result !== "object" || result === null) return null;
-  const candidate = result as { success?: unknown; errorCode?: unknown };
+  const candidate = result as {
+    success?: unknown;
+    errorCode?: unknown;
+    breach?: unknown;
+  };
   if (candidate.success !== false) return null;
-  return typeof candidate.errorCode === "number"
-    ? (candidate.errorCode as CommandErrorCode)
-    : CommandErrorCode.Unknown;
+  return {
+    errorCode:
+      typeof candidate.errorCode === "number"
+        ? (candidate.errorCode as CommandErrorCode)
+        : CommandErrorCode.Unknown,
+    // The comparison behind the code, when the refusal had one. Absent is the
+    // shape a reader keys on: an arm with no breach says the general thing
+    // rather than rendering zeroes as a real limit of 0.
+    breach:
+      typeof candidate.breach === "object" && candidate.breach !== null
+        ? (candidate.breach as LimitBreach)
+        : undefined,
+  };
 }
 
 export class TelemetryClient {
@@ -421,6 +452,9 @@ export class TelemetryClient {
 
     const result = new Promise<unknown>((resolve, reject) => {
       this.commands.set(requestId, {
+        command,
+        args,
+        label: label ?? "",
         status: { phase: "in-flight", requestId, etaConfirm },
         resolve,
         reject,
@@ -538,14 +572,34 @@ export class TelemetryClient {
     // message: the mod answers `CommandResult.Fail(code)` when the handler ran
     // and the game said no. Settling that as `confirmed` told the operator a
     // refused command had worked.
-    const errorCode = refusalOf(result);
-    if (errorCode !== null) {
-      pending.status = { phase: "refused", requestId, errorCode };
+    const refusal = refusalOf(result);
+    if (refusal !== null) {
+      const { errorCode, breach } = refusal;
+      pending.status = {
+        phase: "refused",
+        requestId,
+        errorCode,
+        command: pending.command,
+        args: pending.args,
+        label: pending.label,
+        breach,
+      };
       reject?.(
         new CommandError(
           COMMAND_REFUSED,
-          `command refused: ${CommandErrorCode[errorCode] ?? errorCode}`,
+          // Names what was refused. The old text was the enum member and
+          // nothing else, so every refusal of every command in the mod read the
+          // same and an operator could not tell which control had said no.
+          `command ${JSON.stringify(pending.command)} refused: ${
+            CommandErrorCode[errorCode] ?? errorCode
+          }`,
           errorCode,
+          {
+            command: pending.command,
+            args: pending.args,
+            label: pending.label,
+            breach,
+          },
         ),
       );
       this.notifyStore();

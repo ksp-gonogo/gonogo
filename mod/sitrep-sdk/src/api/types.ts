@@ -17,7 +17,6 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
-import type { CommandErrorCode } from "../__generated__/contract";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type { TopicId, TopicPayload } from "../topics";
 
@@ -815,28 +814,21 @@ export interface PerfBudgetHandle {
 }
 
 // --- Hook result shapes -----------------------------------------------------
-//
-// Same leaf constraint again: `CommandStatus` is owned by
-// `@ksp-gonogo/sitrep-client` (packages/sitrep-client/src/lifecycle.ts),
-// which the sdk cannot name as a workspace dependency either. Mirrored here
-// verbatim; kept honest by `packages/core/src/sdk-facade.conformance.test-d.ts`.
 
-/**
- * Lifecycle state for a single dispatched command, keyed by `requestId`.
- * Mirrors `packages/sitrep-client/src/lifecycle.ts`'s `CommandStatus`:
- * same leaf constraint as every other type in this file.
- */
-export type CommandStatus =
-  | { phase: "idle" }
-  | { phase: "in-flight"; requestId: string; etaConfirm: number }
-  | { phase: "confirmed"; requestId: string; result: unknown }
-  | {
-      phase: "failed";
-      requestId: string;
-      error: { code: string; message: string };
-    }
-  | { phase: "refused"; requestId: string; errorCode: CommandErrorCode }
-  | { phase: "lost"; requestId: string; reason: string };
+// The real one, from this package's own `spine/lifecycle.ts`, for the same
+// reason `PerfBudgetOptions` above stopped being mirrored: `CommandStatus` used
+// to live in `@ksp-gonogo/sitrep-client`, which the sdk could not name as a
+// workspace dependency, so it was copied here verbatim. The spine moved into
+// this package and the copy immediately became what a copy always becomes: the
+// `refused` arm gained the fields that let a refusal be SAID and this one did
+// not, so the two disagreed about what a refusal carries.
+import type { CommandRefusal, CommandStatus } from "../spine/lifecycle";
+
+export type {
+  CommandRefusal,
+  CommandRefusalDetail,
+  CommandStatus,
+} from "../spine/lifecycle";
 
 /**
  * Mirrors `packages/sitrep-client/src/command-delay.ts`'s `PredictedPhase`:
@@ -893,9 +885,13 @@ export interface UseCommandResult {
   shape: "discrete" | "stream";
   /** Effective one-way delay under this command's vantage (0 = instant). */
   effectiveDelaySeconds: number;
-  /** Clear a dead (`overdue`/`lost`) command from `inFlight`; the manual out for
-   *  a command that would otherwise sit forever. See sitrep-client's own doc. */
+  /** Clear a dead (`overdue`/`lost`) command from `inFlight`, or a refusal from
+   *  `refusals`; the manual out for anything that would otherwise sit forever.
+   *  See the spine's own doc. */
   dismiss: (id: string) => void;
+  /** Dispatches from this hook the game REFUSED, until dismissed. See the
+   *  spine's `UseCommandResult.refusals`. */
+  refusals: CommandRefusal[];
   /** Dev-only must-consume token (absent in production). See `CommandOutputToken`. */
   _output?: CommandOutputToken;
 }

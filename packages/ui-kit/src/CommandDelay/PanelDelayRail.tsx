@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { CommandDelay } from "./CommandDelay";
+import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
 import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 import { usePanelRailTarget } from "./PanelRailTarget";
 
@@ -62,8 +63,15 @@ function handleHasContent(handle: CommandHandle): boolean {
 export function PanelDelayRail() {
   const handles = useActiveHandles();
   const visible = handles.filter(handleHasContent);
-  const hasContent = visible.length > 0;
-  const railRef = useRef<HTMLButtonElement>(null);
+  // Refusals come from EVERY registered handle, not just the ones with delay
+  // content: a refused command has nothing in flight by definition (it settled),
+  // so gating on `handleHasContent` would hide exactly the case this exists for.
+  // Each carries its handle's shape, which decides glyph-tile vs. text label.
+  const refusals: RailRefusal[] = handles.flatMap((h) =>
+    (h.refusals ?? []).map((r) => ({ ...r, shape: h.shape })),
+  );
+  const hasContent = visible.length > 0 || refusals.length > 0;
+  const railRef = useRef<HTMLDivElement>(null);
   const targetRef = usePanelRailTarget();
   const [pinned, setPinned] = useState(false);
   // Suppresses the CSS hover-preview immediately after an explicit un-pin
@@ -84,12 +92,16 @@ export function PanelDelayRail() {
   const [suppressHoverPreview, setSuppressHoverPreview] = useState(false);
 
   // Re-run when the rail mounts / unmounts (hasContent flip). On mount it
-  // observes the rail and publishes its height onto the target element; on
+  // observes the rail FRAME and publishes its height onto the target element; on
   // unmount it removes the var so the panel falls back to 0px. The single
-  // ResizeObserver watches ONLY the rail element, so a pin GROWING the rail
+  // ResizeObserver watches ONLY the frame, so a pin GROWING the rail
   // republishes the taller height (pushing the header + body down) with no
-  // measure-render-measure loop. hasContent is the mount/unmount TRIGGER, not a
-  // value read in the body, which the exhaustive-deps rule cannot see.
+  // measure-render-measure loop. It is the frame rather than the toggle button
+  // because the refusal boxes are the button's SIBLING (see the render below):
+  // measuring the button alone would leave their height out of the var and let
+  // the panel body render straight through them. hasContent is the
+  // mount/unmount TRIGGER, not a value read in the body, which the
+  // exhaustive-deps rule cannot see.
   // biome-ignore lint/correctness/useExhaustiveDependencies: hasContent is the rail-mount/unmount trigger, not a body input
   useEffect(() => {
     const rail = railRef.current;
@@ -115,51 +127,90 @@ export function PanelDelayRail() {
     ...visible.filter((h) => h.shape !== "stream"),
   ];
 
+  // Route a dismiss to the handle that owns the refusal, the same way
+  // `CommandDelay` routes an in-flight dismiss. Absent when no handle can
+  // dismiss, so the boxes carry no clear control rather than an inert one.
+  const canDismissRefusal = handles.some(
+    (h) => h.dismiss && (h.refusals?.length ?? 0) > 0,
+  );
+  const dismissRefusal = canDismissRefusal
+    ? (id: string) =>
+        handles.find((h) => h.refusals?.some((r) => r.id === id))?.dismiss?.(id)
+    : undefined;
+
   return (
-    <PanelDelayRail__Rail
-      type="button"
-      data-panel-rail=""
-      ref={railRef}
-      data-pinned={pinned}
-      data-suppress-hover={suppressHoverPreview}
-      aria-pressed={pinned}
-      aria-expanded={pinned}
-      aria-label={
-        pinned
-          ? "Signal-delay detail; activate to collapse"
-          : "Signal-delay detail; activate to expand it in place"
-      }
-      onClick={() => {
-        setPinned((p) => {
-          const next = !p;
-          if (!next) setSuppressHoverPreview(true);
-          return next;
-        });
-      }}
-      onMouseEnter={() => setSuppressHoverPreview(false)}
-      onKeyDown={(e) => {
-        if (e.key === "Escape" && pinned) {
-          e.stopPropagation();
-          setPinned(false);
+    <PanelDelayRail__Frame data-panel-rail-frame="" ref={railRef}>
+      <PanelDelayRail__Rail
+        type="button"
+        data-panel-rail=""
+        data-pinned={pinned}
+        data-suppress-hover={suppressHoverPreview}
+        aria-pressed={pinned}
+        aria-expanded={pinned}
+        aria-label={
+          pinned
+            ? "Signal-delay detail; activate to collapse"
+            : "Signal-delay detail; activate to expand it in place"
         }
-      }}
-    >
-      {pinned && (
-        <PanelDelayRail__CollapseHint aria-hidden="true">
-          ▲
-        </PanelDelayRail__CollapseHint>
+        onClick={() => {
+          setPinned((p) => {
+            const next = !p;
+            if (!next) setSuppressHoverPreview(true);
+            return next;
+          });
+        }}
+        onMouseEnter={() => setSuppressHoverPreview(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && pinned) {
+            e.stopPropagation();
+            setPinned(false);
+          }
+        }}
+      >
+        {pinned && (
+          <PanelDelayRail__CollapseHint aria-hidden="true">
+            ▲
+          </PanelDelayRail__CollapseHint>
+        )}
+        {ordered.map((h) => (
+          <CommandDelay
+            key={h.id}
+            handle={h}
+            variant={pinned ? "expanded" : "rail"}
+            ariaLabel={pinned ? "Delay detail" : undefined}
+          />
+        ))}
+        {refusals.length > 0 && !pinned && (
+          <PanelDelayRail__FailureSummary role="status">
+            {refusals.length === 1
+              ? "1 command failed"
+              : `${refusals.length} commands failed`}
+          </PanelDelayRail__FailureSummary>
+        )}
+      </PanelDelayRail__Rail>
+      {/* Underneath BOTH queues, and outside the toggle button rather than
+          inside it. A dismiss control is a button, and a button inside a button
+          is a nested interactive: axe fails it, and a real keyboard user gets a
+          control they cannot reach past the one wrapping it. */}
+      {pinned && refusals.length > 0 && (
+        <CommandRefusalList refusals={refusals} onDismiss={dismissRefusal} />
       )}
-      {ordered.map((h) => (
-        <CommandDelay
-          key={h.id}
-          handle={h}
-          variant={pinned ? "expanded" : "rail"}
-          ariaLabel={pinned ? "Delay detail" : undefined}
-        />
-      ))}
-    </PanelDelayRail__Rail>
+    </PanelDelayRail__Frame>
   );
 }
+
+/**
+ * The measured rail box: the toggle button plus, when expanded, the refusal
+ * boxes under it. Carries the flush-to-the-edges bleed the button used to own
+ * (cancels the panel body's own top + side inset) so both children line up on
+ * the same edges rather than each choosing its own.
+ */
+const PanelDelayRail__Frame = styled.div`
+  /* Never let the panel scroller's flex layout shrink this below its content:
+     the rail takes its full height and the body scrolls under it. */
+  flex: 0 0 auto;
+  margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
+`;
 
 /**
  * The rail button. Flush to the true top-left-right edges (cancels the body's
@@ -201,11 +252,10 @@ const grownRail = css`
 const PanelDelayRail__Rail = styled.button`
   appearance: none;
   border: 0;
-  /* Never let the scroller's flex layout shrink the grown rail below its content
-     (that would clip the lower stacked commands under overflow:hidden): the rail
-     takes its full height and the body scrolls under it. */
-  flex: 0 0 auto;
-  margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
+  width: 100%;
+  /* The bleed moved to PanelDelayRail__Frame, which is what the panel measures
+     and what both the button and the refusal boxes have to line up inside. */
+  margin: 0;
   padding: 0;
   /* Positioning context for the pinned-only collapse hint below. */
   position: relative;
@@ -269,6 +319,29 @@ const PanelDelayRail__Rail = styled.button`
  * assistive tech; this is purely the sighted affordance so pinning doesn't
  * read as a one-way action.
  */
+/**
+ * The whole of a refusal in the COLLAPSED strip: how many commands the game
+ * said no to, in the warning colour, sharing the band with the delay glows
+ * (every rail child sits in the one grid cell). It says only the count on
+ * purpose, since a hundred-character sentence cannot live in a 16px band, and
+ * opening the rail is what gets the operator the reason.
+ *
+ * `role="status"` so a refusal arriving while the operator is looking elsewhere
+ * is announced, politely: a refusal is a mission-state change, not streaming
+ * telemetry.
+ */
+const PanelDelayRail__FailureSummary = styled.span`
+  align-self: center;
+  justify-self: end;
+  padding: 0 var(--space-16, 16px);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-status-warning-fg);
+  white-space: nowrap;
+  pointer-events: none;
+`;
+
 const PanelDelayRail__CollapseHint = styled.span`
   position: absolute;
   top: var(--space-4, 4px);

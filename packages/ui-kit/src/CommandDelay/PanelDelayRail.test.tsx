@@ -1,3 +1,4 @@
+import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -185,7 +186,9 @@ describe("PanelDelayRail", () => {
     const store = createDelayRailStore();
     store.register(handle("cmd"));
     const { container } = inPanel(<PanelDelayRail />, store);
-    const rail = container.querySelector("[data-panel-rail]") as HTMLElement;
+    const rail = container.querySelector(
+      "[data-panel-rail-frame]",
+    ) as HTMLElement;
     drive(rail, 48);
     expect(
       targetOf(container).style.getPropertyValue("--panel-rail-height"),
@@ -364,11 +367,151 @@ describe("PanelDelayRail", () => {
     });
   });
 
+  describe("a command the game refused", () => {
+    const refusal = (id: string) => ({
+      id,
+      errorCode: CommandErrorCode.AlreadyAtMaximum,
+      command: "career.facility.upgrade",
+      args: { facilityId: "LaunchPad" },
+      breach: {
+        facility: "LaunchPad",
+        facilityName: "Launch Pad",
+        facilityLevel: { magnitude: 1, unit: "ratio" },
+        quantity: "tier",
+        limit: 3,
+        actual: 3,
+        unit: "count",
+      },
+    });
+
+    function refusedHandle(
+      id: string,
+      count: number,
+      dismiss?: (id: string) => void,
+    ): CommandHandle {
+      return {
+        id,
+        // Nothing in flight: a refusal is terminal, so it has already left the
+        // pending queue. This is the case that used to render nothing at all.
+        inFlight: [],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+        refusals: Array.from({ length: count }, (_, i) =>
+          refusal(`${id}-r${i}`),
+        ),
+        dismiss,
+      };
+    }
+
+    it("mounts the rail for a handle carrying only refusals", () => {
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 1));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      expect(container.querySelector("[data-panel-rail]")).not.toBeNull();
+    });
+
+    it("says how many failed in the collapsed strip, singular and plural", () => {
+      const store = createDelayRailStore();
+      store.register(refusedHandle("one", 1));
+      const { unmount } = inPanel(<PanelDelayRail />, store);
+      expect(screen.getByText("1 command failed")).toBeTruthy();
+      unmount();
+
+      const many = createDelayRailStore();
+      many.register(refusedHandle("three", 3));
+      inPanel(<PanelDelayRail />, many);
+      expect(screen.getByText("3 commands failed")).toBeTruthy();
+    });
+
+    it("keeps the reason out of the collapsed strip and shows it once expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 1));
+      inPanel(<PanelDelayRail />, store);
+
+      const sentence =
+        "Upgrade Launch Pad refused: it is already at tier 3 of 3.";
+      // A hundred-character sentence cannot live in a 16px band.
+      expect(screen.queryByText(sentence)).toBeNull();
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      expect(screen.getByText(sentence)).toBeTruthy();
+      // And the count line gives way to the reason rather than doubling it.
+      expect(screen.queryByText("1 command failed")).toBeNull();
+    });
+
+    it("clears a refusal through the handle that owns it", async () => {
+      const user = userEvent.setup();
+      const dismissed: string[] = [];
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 1, (id) => dismissed.push(id)));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await user.click(
+        screen.getByRole("button", { name: "Dismiss Upgrade Launch Pad" }),
+      );
+      expect(dismissed).toEqual(["cmd-r0"]);
+    });
+
+    it("has no axe violations collapsed or expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 2, () => {}));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      await expectNoA11yViolations(container);
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await expectNoA11yViolations(container);
+    });
+
+    it("says nothing failed for a handle that only has commands in flight", () => {
+      // The negative. Without it the suite would pass just as well if the rail
+      // called every command a failure.
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.queryByText(/command(s)? failed/)).toBeNull();
+    });
+
+    it("never reads a lost command as refused", async () => {
+      // A lost command decided NOTHING and may well have executed. It belongs in
+      // the queue as lost, and saying the game refused it would be a confident
+      // wrong answer about something the game never said.
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register({
+        id: "lost",
+        inFlight: [
+          {
+            id: "l1",
+            label: "Launch",
+            command: "ksp.launch",
+            reachEtaSeconds: null,
+            replyEtaSeconds: null,
+            predictedPhase: "lost",
+          },
+        ],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+      });
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.queryByText(/command(s)? failed/)).toBeNull();
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      expect(screen.queryByText(/refused/)).toBeNull();
+      // It IS still shown, as what it is.
+      expect(
+        screen.getByRole("listitem", { name: /Launch, lost/ }),
+      ).toBeTruthy();
+    });
+  });
+
   it("drops --panel-rail-height back to the 0px fallback when the last command completes", () => {
     const store = createDelayRailStore();
     const deregister = store.register(handle("cmd"));
     const { container } = inPanel(<PanelDelayRail />, store);
-    const rail = container.querySelector("[data-panel-rail]") as HTMLElement;
+    const rail = container.querySelector(
+      "[data-panel-rail-frame]",
+    ) as HTMLElement;
     drive(rail, 48);
     const target = targetOf(container);
     expect(target.style.getPropertyValue("--panel-rail-height")).toBe("48px");

@@ -576,3 +576,123 @@ describe("useCommand fire-and-forget refusals", () => {
     }
   });
 });
+
+/**
+ * What the widget layer gets to render. A refusal is terminal and never appears
+ * in `system.uplink.pending`, so `inFlight` cannot carry it and `status` only
+ * tracks the latest `requestId`; without its own channel a refusal reached the
+ * operator as nothing at all.
+ */
+describe("useCommand refusals", () => {
+  function Hire({
+    onDismiss,
+  }: {
+    onDismiss?: (fn: (id: string) => void) => void;
+  }) {
+    const cmd = useCommand("career.crew.hire");
+    usePanelDelay(cmd);
+    onDismiss?.(cmd.dismiss);
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => {
+            cmd.send({ applicantName: "Valentina Kerman" }).catch(() => {});
+          }}
+        >
+          hire
+        </button>
+        <span>count:{cmd.refusals.length}</span>
+        {cmd.refusals.map((r) => (
+          <span key={r.id}>
+            refusal:{r.errorCode}:{r.breach?.facilityName ?? "none"}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  function renderWith(
+    handler: () => unknown,
+    capture?: (fn: (id: string) => void) => void,
+  ) {
+    const t = new StubTransport();
+    t.setCommandHandler(handler);
+    const client = new TelemetryClient(t);
+    return render(
+      <TelemetryProvider client={client}>
+        <Hire onDismiss={capture} />
+      </TelemetryProvider>,
+    );
+  }
+
+  it("collects a refusal with the reason and the numbers behind it", async () => {
+    renderWith(() => ({
+      success: false,
+      errorCode: 8,
+      breach: {
+        facility: "AstronautComplex",
+        facilityName: "Astronaut Complex",
+        quantity: "activeCrew",
+        limit: 16,
+        actual: 16,
+        unit: "count",
+      },
+    }));
+    fireEvent.click(screen.getByText("hire"));
+    await waitFor(() =>
+      expect(screen.getByText("refusal:8:Astronaut Complex")).toBeTruthy(),
+    );
+  });
+
+  it("keeps every refusal, not just the latest dispatch's", async () => {
+    // `status` tracks one requestId, so a widget fired twice would lose the
+    // first refusal entirely if this were derived from it.
+    renderWith(() => ({ success: false, errorCode: 8 }));
+    fireEvent.click(screen.getByText("hire"));
+    fireEvent.click(screen.getByText("hire"));
+    await waitFor(() => expect(screen.getByText("count:2")).toBeTruthy());
+  });
+
+  it("collects nothing from a command that succeeded", async () => {
+    // The negative: without it this would pass just as well if every dispatch
+    // were recorded as a refusal.
+    renderWith(() => ({ success: true, errorCode: 0 }));
+    fireEvent.click(screen.getByText("hire"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(screen.getByText("count:0")).toBeTruthy();
+  });
+
+  it("collects nothing from a command that BROKE, which is not the game saying no", async () => {
+    renderWith(() => {
+      throw { code: "E_BOOM", message: "handler exploded" };
+    });
+    fireEvent.click(screen.getByText("hire"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(screen.getByText("count:0")).toBeTruthy();
+  });
+
+  it("clears one through the same dismiss the delay queue uses", async () => {
+    let dismiss: ((id: string) => void) | undefined;
+    renderWith(
+      () => ({ success: false, errorCode: 8 }),
+      (fn) => {
+        dismiss = fn;
+      },
+    );
+    fireEvent.click(screen.getByText("hire"));
+    await waitFor(() => expect(screen.getByText("count:1")).toBeTruthy());
+    const id = screen.getByText(/^refusal:/).textContent as string;
+    expect(id).toBeTruthy();
+    act(() => {
+      // The refusal's id is the dispatch's own requestId, the first the stub
+      // client mints.
+      dismiss?.("c0");
+    });
+    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});

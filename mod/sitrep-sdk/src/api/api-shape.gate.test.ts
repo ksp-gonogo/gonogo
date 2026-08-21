@@ -35,6 +35,10 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   // Lets an Uplink tell "the game said no" from "the machinery broke" without
   // reaching into the unpublished spine for `CommandError`.
   "classifyCommandRejection",
+  // Names the refused command for the sentence an operator reads, so an Uplink
+  // does not have to invent a naming rule per command to say which control the
+  // game said no to.
+  "commandRefusalSubject",
   "clearAugments",
   "clearActionHandlers",
   "clearBodies",

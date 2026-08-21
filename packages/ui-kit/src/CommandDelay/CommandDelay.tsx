@@ -24,6 +24,7 @@ import {
 export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
 import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandRefusalEntry } from "./commandRefusalSentence";
 
 /**
  * The single delay-output handle every command widget hands to
@@ -62,6 +63,14 @@ export interface CommandDelayHandle {
    * passes. A handle from a non-`useCommand` source simply omits it.
    */
   _output?: CommandOutputToken;
+  /**
+   * Dispatches from this command the GAME REFUSED, until dismissed. Rendered by
+   * the Panel rail UNDER both queues, never by `<CommandDelay>`: a refusal is
+   * terminal and has nothing to do with delay, so it does not belong in an
+   * in-flight list or a stream strip. `useCommand().refusals` satisfies this
+   * structurally; a handle from another source omits it.
+   */
+  refusals?: CommandRefusalEntry[];
   /**
    * Clear a dead command (`overdue`/`lost`) from this handle's shared delay
    * queue. Supplied by `useCommand` (acting on the shared per-grid-item

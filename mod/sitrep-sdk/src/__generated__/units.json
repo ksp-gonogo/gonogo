@@ -503,6 +503,7 @@
       "actual": "n/a",
       "facility": "id",
       "facilityLevel": "ratio",
+      "facilityName": "text",
       "limit": "n/a",
       "quantity": "id",
       "unit": "id"
@@ -1648,6 +1649,9 @@
     },
     "CommandResponse`1": {
       "meta": "Meta"
+    },
+    "CommandResult": {
+      "breach": "LimitBreach"
     },
     "CommsConnectivity": {
       "meta": "PayloadMeta"

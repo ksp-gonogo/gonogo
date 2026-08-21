@@ -199,7 +199,22 @@ namespace Gonogo.KSP
             var live = proto.facilityRefs[0];
             if (live.FacilityLevel >= live.MaxLevel)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                // Tiers are 0-based internally and 1-based to an operator, who
+                // reads "tier 3 of 3" off the same building the game labels
+                // "Level 3". Both sides are shifted here so the pair stays
+                // consistent rather than one of them being off by one.
+                return CommandResult.Fail(
+                    CommandErrorCode.AlreadyAtMaximum,
+                    new LimitBreach
+                    {
+                        Facility = facilityId,
+                        FacilityName = FacilityDisplayName(facilityId),
+                        FacilityLevel = live.GetNormLevel(),
+                        Quantity = "tier",
+                        Limit = live.MaxLevel + 1,
+                        Actual = live.FacilityLevel + 1,
+                        Unit = Units.Count,
+                    });
             }
 
             var funding = Funding.Instance;
@@ -211,7 +226,21 @@ namespace Gonogo.KSP
             var cost = live.GetUpgradeCost();
             if (funding.Funds < cost)
             {
-                return CommandResult.Fail(CommandErrorCode.Range);
+                // Limit is the balance and Actual is the price, which is the
+                // right way round for the comparison the breach models: what the
+                // call asked for against what was allowed.
+                return CommandResult.Fail(
+                    CommandErrorCode.InsufficientFunds,
+                    new LimitBreach
+                    {
+                        Facility = facilityId,
+                        FacilityName = FacilityDisplayName(facilityId),
+                        FacilityLevel = live.GetNormLevel(),
+                        Quantity = "funds",
+                        Limit = funding.Funds,
+                        Actual = cost,
+                        Unit = Units.Funds,
+                    });
             }
 
             funding.AddFunds(-cost, TransactionReasons.StructureConstruction);
@@ -262,16 +291,38 @@ namespace Gonogo.KSP
             if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
             {
                 var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
-                if (activeCrew >= gameVariables.GetActiveCrewLimit(norm))
+                var crewLimit = gameVariables.GetActiveCrewLimit(norm);
+                if (activeCrew >= crewLimit)
                 {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                    return CommandResult.Fail(
+                        CommandErrorCode.LimitReached,
+                        new LimitBreach
+                        {
+                            Facility = SpaceCenterFacility.AstronautComplex.ToString(),
+                            FacilityName = FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
+                            FacilityLevel = norm,
+                            Quantity = "activeCrew",
+                            Limit = crewLimit,
+                            Actual = activeCrew,
+                            Unit = Units.Count,
+                        });
                 }
             }
 
             var cost = gameVariables != null ? gameVariables.GetRecruitHireCost(activeCrew) : 0f;
             if (funding.Funds < cost)
             {
-                return CommandResult.Fail(CommandErrorCode.Range);
+                return CommandResult.Fail(
+                    CommandErrorCode.InsufficientFunds,
+                    new LimitBreach
+                    {
+                        Facility = SpaceCenterFacility.AstronautComplex.ToString(),
+                        FacilityName = FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
+                        Quantity = "funds",
+                        Limit = funding.Funds,
+                        Actual = cost,
+                        Unit = Units.Funds,
+                    });
             }
 
             funding.AddFunds(-cost, TransactionReasons.CrewRecruited);
@@ -322,6 +373,46 @@ namespace Gonogo.KSP
 
             roster.SackAvailable(kerbal);
             return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// The facility's name as the game writes it, for the sentence an
+        /// operator reads on a refusal. <c>ScenarioUpgradeableFacilities.GetFacilityName</c>
+        /// goes through <c>Localizer</c>, so this is the player's own language
+        /// rather than an English string composed here.
+        /// </summary>
+        private static string FacilityDisplayName(SpaceCenterFacility facility)
+        {
+            try
+            {
+                return ScenarioUpgradeableFacilities.GetFacilityName(facility) ?? "";
+            }
+            catch (Exception)
+            {
+                // A missing display name loses part of a sentence. Failing the
+                // whole command over it would lose the refusal, which is the part
+                // that matters.
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Same, from the <c>facilityId</c> a command carries. That id is the
+        /// <c>SpaceCenterFacility</c> member name (the read side publishes the
+        /// facilities keyed by it), so anything that does not parse is a
+        /// modded facility this build has no display name for, and an empty
+        /// name is the honest answer rather than the id dressed up as one.
+        /// </summary>
+        private static string FacilityDisplayName(string facilityId)
+        {
+            foreach (SpaceCenterFacility candidate in Enum.GetValues(typeof(SpaceCenterFacility)))
+            {
+                if (string.Equals(candidate.ToString(), facilityId, StringComparison.Ordinal))
+                {
+                    return FacilityDisplayName(candidate);
+                }
+            }
+            return "";
         }
 
         /// <summary>Resolve a strategy by its stable <c>StrategyConfig.Name</c> (the read-side id) against the live roster.</summary>

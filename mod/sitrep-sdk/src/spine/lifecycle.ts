@@ -1,4 +1,40 @@
-import type { CommandErrorCode } from "../__generated__/contract";
+import type { CommandErrorCode, LimitBreach } from "../__generated__/contract";
+
+/**
+ * Everything a refusal needs to be SAID, beyond the typed reason itself.
+ *
+ * The reason alone reads "ModeUnavailable", which names neither the command nor
+ * a single number. `command`/`args`/`label` are what the client dispatched, kept
+ * client-side (the reply carries a `requestId` and no command name, deliberately);
+ * `breach` is the comparison the mod attached when the refusal had one.
+ *
+ * The code picks the sentence and the breach fills it in. Neither is much use
+ * alone: an arm cannot say "16 of 16", and a pair of numbers does not say which
+ * sentence they belong in.
+ */
+export interface CommandRefusalDetail {
+  /** The command id that was dispatched, e.g. `career.facility.upgrade`. */
+  command: string;
+  /** The args it was dispatched with, verbatim. */
+  args: unknown;
+  /** The dispatch's own operator-facing description; `""` when it carried none. */
+  label: string;
+  /** The limit and the actual behind the refusal, when there is one. */
+  breach?: LimitBreach;
+}
+
+/**
+ * One refused dispatch, as a widget surface renders it: the typed reason plus
+ * everything needed to name the command and quote its numbers.
+ *
+ * The `id` is the dispatch's own `requestId`, so the same `dismiss(id)` clears a
+ * refusal and a dead in-flight command, and the operator has one gesture rather
+ * than two that look alike.
+ */
+export interface CommandRefusal extends CommandRefusalDetail {
+  id: string;
+  errorCode: CommandErrorCode;
+}
 
 /**
  * Lifecycle state for a single dispatched command, keyed by `requestId`.
@@ -45,7 +81,11 @@ export type CommandStatus =
       requestId: string;
       error: { code: string; message: string };
     }
-  | { phase: "refused"; requestId: string; errorCode: CommandErrorCode }
+  | ({
+      phase: "refused";
+      requestId: string;
+      errorCode: CommandErrorCode;
+    } & Partial<CommandRefusalDetail>)
   | { phase: "lost"; requestId: string; reason: string };
 
 /**
@@ -61,11 +101,28 @@ export class CommandError extends Error {
   readonly code: string;
   /** Present only on a refusal: the mod's typed reason, never string-matched. */
   readonly errorCode?: CommandErrorCode;
+  /** Present only on a refusal: what was dispatched, and the numbers behind the
+   *  reason. See `CommandRefusalDetail`. Own properties, like `code`, so a
+   *  structural reader (`classifyCommandRejection`) finds them across a bundled
+   *  copy or a peer-relayed rehydration. */
+  readonly command?: string;
+  readonly args?: unknown;
+  readonly label?: string;
+  readonly breach?: LimitBreach;
 
-  constructor(code: string, message: string, errorCode?: CommandErrorCode) {
+  constructor(
+    code: string,
+    message: string,
+    errorCode?: CommandErrorCode,
+    detail?: CommandRefusalDetail,
+  ) {
     super(message);
     this.name = "CommandError";
     this.code = code;
     this.errorCode = errorCode;
+    this.command = detail?.command;
+    this.args = detail?.args;
+    this.label = detail?.label;
+    this.breach = detail?.breach;
   }
 }

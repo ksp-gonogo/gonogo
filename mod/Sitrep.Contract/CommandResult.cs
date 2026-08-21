@@ -69,6 +69,46 @@ public enum CommandErrorCode
     /// name. Additive (Major 5).</para>
     /// </summary>
     PlanNotOwned = 7,
+
+    /// <summary>
+    /// A capacity is full: the Astronaut Complex holds its cap of active crew,
+    /// a facility holds its cap of anything else countable.
+    ///
+    /// <para>Split out of <see cref="ModeUnavailable"/>, which was carrying five
+    /// unrelated causes at once (crew cap, facility maxed, no roster, no
+    /// Funding, wrong scene) and so could not tell a permanent refusal from a
+    /// transient one. This arm says the cap is reached and the world has to
+    /// change before a retry means anything; freeing a slot is a thing an
+    /// operator can actually do.</para>
+    ///
+    /// <para>The arm chooses the sentence, <see cref="CommandResult.Breach"/>
+    /// supplies the numbers in it. Neither is worth sending without the other:
+    /// a code with no payload cannot say "16 of 16".</para>
+    /// </summary>
+    LimitReached = 8,
+
+    /// <summary>
+    /// Already at the top of an upgradeable scale, so there is nothing above
+    /// this to move to. The Launch Pad at tier 3 of 3.
+    ///
+    /// <para>Deliberately NOT <see cref="LimitReached"/>. A cap that is full can
+    /// be freed; a maximum tier cannot be exceeded by any action at all, and an
+    /// operator reads those two differently.</para>
+    /// </summary>
+    AlreadyAtMaximum = 9,
+
+    /// <summary>
+    /// The command costs more than the funds on hand.
+    ///
+    /// <para>Was <see cref="Range"/>, which documents "an argument was out of
+    /// its valid range" and is not what happened: affordability is not about an
+    /// argument, and a client reading the enum name aloud got it wrong.</para>
+    ///
+    /// <para><see cref="CommandResult.Breach"/> carries the cost as
+    /// <c>Actual</c> against the balance as <c>Limit</c>, so the client can say
+    /// how short and in the operator's own currency rendering.</para>
+    /// </summary>
+    InsufficientFunds = 10,
 }
 
 /// <summary>
@@ -100,10 +140,31 @@ public class CommandResult
     [SitrepUnit(Units.Enumeration)]
     public CommandErrorCode ErrorCode { get; set; } = CommandErrorCode.None;
 
+    /// <summary>
+    /// The numbers behind the refusal, when the refusal has any: the cap and the
+    /// count, the tier and the top tier, the price and the balance. Null on
+    /// success and on every refusal that is not a comparison.
+    ///
+    /// <para><see cref="ErrorCode"/> alone cannot say "16 of 16 active crew", and
+    /// the code and the numbers only mean anything together: the code picks the
+    /// sentence, this fills the gaps in it. Every number here was already in
+    /// scope on the line that refused, and used to be discarded there.</para>
+    ///
+    /// <para>The SAME <see cref="LimitBreach"/> the declared-gate path carries on
+    /// <see cref="GateVerdict.Breach"/>, deliberately, so an operator reads one
+    /// sentence shape whether the refusal came from a gate or from an actuator
+    /// that got far enough to look.</para>
+    /// </summary>
+    public LimitBreach? Breach { get; set; }
+
     public static CommandResult Ok() => new CommandResult { Success = true };
 
     public static CommandResult Fail(CommandErrorCode errorCode) =>
         new CommandResult { Success = false, ErrorCode = errorCode };
+
+    /// <summary>A refusal that carries its comparison. See <see cref="Breach"/>.</summary>
+    public static CommandResult Fail(CommandErrorCode errorCode, LimitBreach breach) =>
+        new CommandResult { Success = false, ErrorCode = errorCode, Breach = breach };
 }
 
 /// <summary>
@@ -130,4 +191,8 @@ public class CommandResult<T> : CommandResult
 
     public static new CommandResult<T> Fail(CommandErrorCode errorCode) =>
         new CommandResult<T> { Success = false, ErrorCode = errorCode };
+
+    /// <summary>A refusal that carries its comparison. See <see cref="CommandResult.Breach"/>.</summary>
+    public static new CommandResult<T> Fail(CommandErrorCode errorCode, LimitBreach breach) =>
+        new CommandResult<T> { Success = false, ErrorCode = errorCode, Breach = breach };
 }

@@ -153,12 +153,16 @@ export enum CommandErrorCode {
 	Range = 4,
 	NotFound = 5,
 	Timeout = 6,
-	PlanNotOwned = 7
+	PlanNotOwned = 7,
+	LimitReached = 8,
+	AlreadyAtMaximum = 9,
+	InsufficientFunds = 10
 }
 export interface CommandResult
 {
 	success: boolean;
 	errorCode: CommandErrorCode;
+	breach?: LimitBreach;
 }
 export interface CommandResultOf<T> extends CommandResult
 {
@@ -1003,6 +1007,7 @@ export enum GateOutcome {
 export interface LimitBreach
 {
 	facility: string;
+	facilityName: string;
 	facilityLevel: Value<"ratio">;
 	quantity: string;
 	limit?: number;

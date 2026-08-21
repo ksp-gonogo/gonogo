@@ -5,7 +5,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { CommandStatus } from "../api/types";
+import { classifyCommandRejection } from "../api/command-rejection";
+import type { CommandRefusal, CommandStatus } from "../api/types";
 import {
   type CommsDelayLike,
   classifyRetained,
@@ -53,6 +54,10 @@ const IDLE: CommandStatus = { phase: "idle" };
  * array must be referentially stable across renders that have nothing
  * in-flight, or every consumer re-renders needlessly. */
 const NO_IN_FLIGHT: InFlightCommand[] = [];
+
+/** Same reason as `NO_IN_FLIGHT`: a fresh `[]` per render would re-render every
+ *  consumer of a hook that has refused nothing, which is nearly all of them. */
+const NO_REFUSALS: CommandRefusal[] = [];
 
 /**
  * How long (real UT seconds) a dispatched id may go without EVER appearing
@@ -120,6 +125,22 @@ export interface UseCommandResult {
    * `handle.dismiss`.
    */
   dismiss: (id: string) => void;
+  /**
+   * Every dispatch from this hook the GAME REFUSED, newest last, until the
+   * operator clears it with the same `dismiss`.
+   *
+   * Separate from `inFlight` because a refusal is not a delay state: it is
+   * terminal, it never appears in `system.uplink.pending` (the queue holds
+   * commands still travelling), and it is the one outcome that has something to
+   * say. A refusal used to reach the operator as nothing at all in most widgets,
+   * and at best as "command refused: ModeUnavailable" in a thrown message
+   * nobody rendered.
+   *
+   * Deliberately refusals ONLY. A `lost` command decided nothing and may well
+   * have executed; saying it was refused would be a confident wrong answer, and
+   * the queue already shows it as lost.
+   */
+  refusals: CommandRefusal[];
   /**
    * Dev-only must-consume token (absent in production). Set the moment a
    * `<CommandDelay handle={cmd}>` mounts; `send()` throws if it is dispatched
@@ -230,6 +251,12 @@ export function useCommand(
   // Pruned once the id leaves the underlying set anyway, so it can't grow
   // unbounded over a long session.
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  // Refusals this hook has collected, accumulated on the dispatch promise's own
+  // rejection rather than derived from `status`: `status` only ever tracks the
+  // LATEST requestId, so a widget that fires twice would lose the first
+  // refusal, and a refusal is terminal so there is nothing to re-derive it from
+  // later.
+  const [refusals, setRefusals] = useState<CommandRefusal[]>(NO_REFUSALS);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
@@ -393,6 +420,14 @@ export function useCommand(
 
   const dismiss = useCallback((id: string) => {
     setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    // A refusal is dropped outright rather than hidden behind `dismissedIds`.
+    // That set is pruned once an id leaves the underlying in-flight set, which a
+    // refused dispatch does as soon as its grace window closes, and a dismissed
+    // refusal that came back would read as the game refusing a second time.
+    setRefusals((prev) => {
+      const keep = prev.filter((r) => r.id !== id);
+      return keep.length === prev.length ? prev : keep;
+    });
   }, []);
 
   const send = useCallback(
@@ -429,7 +464,25 @@ export function useCommand(
       // `try/catch` around `dispatchPlanBurns` still sees the throw. Swallowing it
       // instead (returning a never-rejecting promise) would have been the wrong fix,
       // because that caller is the one that NEEDS the rejection.
-      result.catch(() => undefined);
+      result.catch((err: unknown) => {
+        // ONLY a refusal. `lost` decided nothing and the command may well have
+        // executed; `failed` is the machinery, which the queue and the link
+        // indicators already speak for. Calling either of them a refusal would
+        // be a confident wrong answer about what the game said.
+        const rejection = classifyCommandRejection(err);
+        if (rejection.kind !== "refused") return;
+        setRefusals((prev) => [
+          ...prev,
+          {
+            id: newRequestId,
+            errorCode: rejection.errorCode,
+            command: rejection.command ?? command,
+            args: rejection.args ?? args,
+            label: rejection.label ?? opts?.label ?? "",
+            breach: rejection.breach,
+          },
+        ]);
+      });
       return result;
     },
     [client, command, vantage],
@@ -439,6 +492,7 @@ export function useCommand(
     send,
     status,
     inFlight,
+    refusals,
     shape,
     effectiveDelaySeconds,
     dismiss,

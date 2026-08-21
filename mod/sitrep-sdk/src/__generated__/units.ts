@@ -537,6 +537,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     actual: "n/a",
     facility: "id",
     facilityLevel: "ratio",
+    facilityName: "text",
     limit: "n/a",
     quantity: "id",
     unit: "id",
@@ -1705,6 +1706,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CommandResponse`1": {
     meta: "Meta",
+  },
+  "CommandResult": {
+    breach: "LimitBreach",
   },
   "CommsConnectivity": {
     meta: "PayloadMeta",

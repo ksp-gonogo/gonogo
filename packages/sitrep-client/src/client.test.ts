@@ -519,11 +519,73 @@ describe("TelemetryClient command refusals", () => {
       code: "E_REFUSED",
       errorCode: CommandErrorCode.NoVessel,
     });
-    expect(client.getCommand(requestId)).toEqual({
+    expect(client.getCommand(requestId)).toMatchObject({
       phase: "refused",
       requestId,
       errorCode: CommandErrorCode.NoVessel,
     });
+  });
+
+  it("names the command it dispatched, so a refusal is not anonymous", async () => {
+    // The reply carries a requestId and a reason and deliberately no command
+    // name, so the only place the name still exists is the client's own pending
+    // record, which used to drop it. Every refusal of every command in the mod
+    // therefore read "command refused: ModeUnavailable" and an operator could
+    // not tell which control had said no.
+    const client = new TelemetryClient(refusing(CommandErrorCode.LimitReached));
+    const { requestId, result } = client.dispatch(
+      "career.crew.hire",
+      { applicantName: "Valentina Kerman" },
+      "Hire Valentina Kerman",
+    );
+
+    const err = await result.then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(err).toMatchObject({
+      code: "E_REFUSED",
+      command: "career.crew.hire",
+      args: { applicantName: "Valentina Kerman" },
+      label: "Hire Valentina Kerman",
+    });
+    expect((err as Error).message).toContain("career.crew.hire");
+    expect(client.getCommand(requestId)).toMatchObject({
+      phase: "refused",
+      command: "career.crew.hire",
+      label: "Hire Valentina Kerman",
+    });
+  });
+
+  it("carries the refusal's numbers through, and carries none when there are none", async () => {
+    // A code with no payload cannot say "16 of 16"; a breach with no code does
+    // not say which sentence it belongs in. Both, or neither.
+    const withNumbers = new StubTransport();
+    withNumbers.setCommandHandler(() => ({
+      success: false,
+      errorCode: CommandErrorCode.LimitReached,
+      breach: {
+        facility: "AstronautComplex",
+        facilityName: "Astronaut Complex",
+        quantity: "activeCrew",
+        limit: 16,
+        actual: 16,
+        unit: "count",
+      },
+    }));
+    const client = new TelemetryClient(withNumbers);
+    const { result } = client.dispatch("career.crew.hire");
+    await expect(result).rejects.toMatchObject({
+      breach: { facilityName: "Astronaut Complex", limit: 16, actual: 16 },
+    });
+
+    // An older mod, or an arm with nothing to compare: absent, never zeroes.
+    const bare = new TelemetryClient(refusing(CommandErrorCode.NoVessel));
+    const err = await bare.dispatch("vessel.control.stage").result.then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect((err as { breach?: unknown }).breach).toBeUndefined();
   });
 
   it("keeps a refusal distinct from a malfunction: the phase says which happened", async () => {
@@ -623,6 +685,11 @@ describe("classifyCommandRejection against the spine that actually throws", () =
       // The typed reason reaches the words too, or an operator-facing message
       // built from this is back to saying nothing useful.
       message: expect.stringContaining("NotFound"),
+      // And WHICH command was refused, which the reply itself never says.
+      command: "a",
+      args: undefined,
+      label: "",
+      breach: undefined,
     });
     expect(refused.getCommand(refusedDispatch.requestId).phase).toBe("refused");
 

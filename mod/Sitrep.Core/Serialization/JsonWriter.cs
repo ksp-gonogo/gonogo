@@ -364,7 +364,9 @@ namespace Sitrep.Core.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommandResult"/> (or its
         /// generic <c>CommandResult&lt;T&gt;</c> subtype) to the wire object
-        /// <c>{ success, errorCode, [payload] }</c>. <c>errorCode</c> is the
+        /// <c>{ success, errorCode, [breach], [payload] }</c>. <c>breach</c> is
+        /// present only on a refusal that carries a comparison (see
+        /// <see cref="Sitrep.Contract.CommandResult.Breach"/>). <c>errorCode</c> is the
         /// enum's integer ordinal (same convention as every other enum in
         /// this codec). The <c>payload</c> key is emitted ONLY for the
         /// generic subtype (read reflectively because <c>T</c> is open here)
@@ -385,6 +387,18 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "errorCode");
             sb.Append(':');
             AppendInteger(sb, (long)result.ErrorCode);
+
+            // Only on a refusal that HAS numbers. A success carrying a null
+            // breach key would put the shape on every ack for nothing, and a
+            // breach of zeroes would render as a real limit of 0, the same
+            // reason AppendGateVerdict keeps its own null strictly meaningful.
+            if (result.Breach != null)
+            {
+                sb.Append(',');
+                AppendString(sb, "breach");
+                sb.Append(':');
+                AppendLimitBreach(sb, result.Breach);
+            }
 
             var type = result.GetType();
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Sitrep.Contract.CommandResult<>))
@@ -451,8 +465,8 @@ namespace Sitrep.Core.Serialization
         }
 
         /// <summary>
-        /// A limit breach as <c>{ facility, facilityLevel, quantity, limit,
-        /// actual, unit }</c>.
+        /// A limit breach as <c>{ facility, facilityName, facilityLevel,
+        /// quantity, limit, actual, unit }</c>.
         /// </summary>
         ///
         /// <remarks>
@@ -469,6 +483,11 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "facility");
             sb.Append(':');
             AppendString(sb, breach.Facility ?? "");
+
+            sb.Append(',');
+            AppendString(sb, "facilityName");
+            sb.Append(':');
+            AppendString(sb, breach.FacilityName ?? "");
 
             sb.Append(',');
             AppendString(sb, "facilityLevel");

@@ -276,6 +276,21 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Id)]
         public string Facility { get; set; } = "";
 
+        /// <summary>
+        /// The facility's name as the GAME writes it ("Astronaut Complex"), for
+        /// the sentence an operator reads. Empty when the producer had no
+        /// display name to hand.
+        ///
+        /// <para><see cref="Facility"/> beside it is the raw
+        /// <c>SpaceCenterFacility</c> member name, which is an id and reads like
+        /// one. Nothing else on the wire publishes the display name, so without
+        /// this the client would have to keep its own English mapping of KSP's
+        /// enum: a second source of truth, wrong in every other language, and
+        /// stale the moment KSP adds a facility.</para>
+        /// </summary>
+        [SitrepUnit(Units.Text)]
+        public string FacilityName { get; set; } = "";
+
         /// <summary>Normalised facility level, as KSP reports it. Not a tier index.</summary>
         [SitrepUnit(Units.Ratio)]
         public double FacilityLevel { get; set; }

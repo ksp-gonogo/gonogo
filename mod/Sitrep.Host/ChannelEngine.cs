@@ -2062,6 +2062,25 @@ namespace Sitrep.Host
             return $"command \"{command}\" is not permitted";
         }
 
+        /// <summary>
+        /// The RESULT a decided gate refusal returns, the machine-readable half
+        /// of <see cref="GateRefusalReason"/>'s sentence.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// A gate that failed with numbers is a limit reached, and it carries
+        /// them: the code chooses the sentence, the breach fills it in. A gate
+        /// that failed with only prose has no comparison to offer, so it falls
+        /// back to <see cref="CommandErrorCode.ModeUnavailable"/> and the client
+        /// says the general thing rather than inventing numbers.
+        /// </remarks>
+        private static CommandResult GateRefusalResult(GateVerdict verdict)
+        {
+            return verdict.Breach != null
+                ? CommandResult.Fail(CommandErrorCode.LimitReached, verdict.Breach)
+                : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+        }
+
         private string RefusalReason(string command)
         {
             if (!_commandOwner.TryGetValue(command, out var ownerId))
@@ -3741,6 +3760,22 @@ namespace Sitrep.Host
             // Inert until a command declares a requirement: Requires defaults
             // empty, so EvaluateGates returns Pass on the first check.
             var gate = EvaluateGates(job.Command, new GateArguments(job.Args));
+            if (gate.Outcome == GateOutcome.Fail)
+            {
+                // A DECIDED refusal: the gate looked at live state and the answer
+                // was no. It rides the normal result channel as a failed
+                // CommandResult, so the client lands in `refused` with the
+                // comparison attached.
+                //
+                // It used to ride OnRefused, which emits an E_UNAVAILABLE error
+                // frame, so the client landed in `failed` and
+                // classifyCommandRejection reported "the machinery broke, a retry
+                // may work". A limit breach is neither: nothing broke, and no
+                // number of retries moves a limit.
+                job.OnResult(GateRefusalResult(gate));
+                job.Done?.Set();
+                return;
+            }
             if (gate.Outcome != GateOutcome.Pass)
             {
                 // Abstain cannot mean "allow" here. It means a requirement
@@ -3748,6 +3783,12 @@ namespace Sitrep.Host
                 // could not be evaluated on a REAL dispatch, which is a bad
                 // declaration or a malformed call rather than a permission. Same
                 // treatment as Unknown: refuse and say so, per fail-closed.
+                //
+                // These two stay on the error-frame path deliberately. Neither
+                // decided anything, so neither is a refusal an operator can act
+                // on: they are a bad declaration or unreadable live state, which
+                // IS the machinery-broke class, and the prose naming the cause is
+                // the whole value of them.
                 job.OnRefused?.Invoke(GateRefusalReason(job.Command, gate));
                 job.Done?.Set();
                 return;
