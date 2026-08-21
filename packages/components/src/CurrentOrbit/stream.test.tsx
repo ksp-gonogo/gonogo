@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -83,6 +84,7 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
         inc: 0.3,
         argPe: 12.5,
         mu,
+        horizon: ANALYTIC_UNBOUNDED_HORIZON,
         meanAnomalyAtEpoch: 0,
         epoch: 10,
       });

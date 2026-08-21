@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -90,6 +91,7 @@ function emitOrbit(fixture: StreamFixture, o: OrbitEmission) {
         meanAnomalyAtEpoch: 0,
         epoch: 0,
         mu: KERBIN_MU,
+        horizon: ANALYTIC_UNBOUNDED_HORIZON,
       },
       { quality: Quality.OnRails },
     );

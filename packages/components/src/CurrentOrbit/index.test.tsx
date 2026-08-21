@@ -4,6 +4,7 @@ import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -78,6 +79,7 @@ describe("CurrentOrbitComponent", () => {
           meanAnomalyAtEpoch: 0,
           epoch: 0,
           mu: KERBIN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
           ...overrides,
         },
         { quality: Quality.OnRails },
