@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { STANDARD_GRAVITY } from "../unit-system/definitions";
 import {
   deriveEscapeVelocity,
   deriveHillSphere,
@@ -8,8 +9,7 @@ import {
   deriveSurfaceGravityG,
   deriveTrueAnomalyDeg,
   GRAVITATIONAL_CONSTANT,
-  STANDARD_GRAVITY,
-} from "./bodyDerivations";
+} from "./body-derivations";
 
 // Kerbin's stock figures (μ, radius, orbit) for round-number sanity checks.
 const KERBIN_MU = 3.5316e12;

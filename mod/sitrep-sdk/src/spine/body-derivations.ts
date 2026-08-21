@@ -1,4 +1,5 @@
-import { solveAnomalies } from "@ksp-gonogo/sitrep-client";
+import { STANDARD_GRAVITY } from "../unit-system/definitions";
+import { solveAnomalies } from "./kepler";
 
 /**
  * Pure client-side derivations for the celestial-body almanac values that the
@@ -17,9 +18,6 @@ import { solveAnomalies } from "@ksp-gonogo/sitrep-client";
 
 /** Newtonian gravitational constant, m³·kg⁻¹·s⁻² (CODATA: the value KSP uses). */
 export const GRAVITATIONAL_CONSTANT = 6.6743e-11;
-
-/** Standard gravity g₀, m/s²: the reference KSP's surface-gravity "g" unit divides by. */
-export const STANDARD_GRAVITY = 9.80665;
 
 function finite(x: number): number | null {
   return Number.isFinite(x) ? x : null;

@@ -6,7 +6,15 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  bodyAtIndex,
+  CELESTIAL_FACTS,
+  type CelestialBody,
+  DELTA_V_BUDGET,
+  type Reading,
+  useProcessor,
+  useViewUt,
+} from "@ksp-gonogo/sitrep-client";
 import { TargetKind, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
@@ -24,7 +32,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
-import { useCelestialBodies } from "../SystemView/useCelestialBodies";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
 import {
   buildTransferPorkchop,
@@ -39,6 +46,9 @@ import {
   transferDestinations,
   upcomingWindows,
 } from "./transferData";
+
+/** Stable empty catalogue: `useProcessor` answers undefined before the first frame. */
+const NO_BODIES: CelestialBody[] = [];
 
 /**
  * Transfer Window: interplanetary/interlunar departure planning. Client-derived
@@ -231,7 +241,10 @@ function TransferWindowComponent({
    * coming. `absent` is the subject confirming it, so it gets its own wording.
    */
   const orbitConfirmedAbsent = orbitReading.state === "absent";
-  const bodies = useCelestialBodies();
+  // The one enriched catalogue, evaluated once per frame however many widgets
+  // read it, plus the index lookup this panel used to do by hand.
+  const facts = useProcessor(CELESTIAL_FACTS);
+  const bodies = facts?.bodies ?? NO_BODIES;
   // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
   // and the instant type earns nothing threaded through it. Unwrapped once, here.
   const viewUt = useViewUt();
@@ -260,26 +273,20 @@ function TransferWindowComponent({
    * and a list that had declined the model in advance would be the wrong default
    * the day someone writes it.
    */
-  const budgetReading = useTelemetry("dv.summary");
-  const budgetDeltaV =
-    stillTrue(budgetReading, null)?.totalDvVac?.magnitude ?? null;
-  const budgetNotCurrent = notCurrent(budgetReading);
+  const budget = useProcessor(DELTA_V_BUDGET);
+  const budgetDeltaV = budget?.totalVac?.magnitude ?? null;
+  const budgetNotCurrent = budget?.budget.state === "stale";
   /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
-  const budgetConfirmedAbsent = budgetReading.state === "absent";
-  const budgetAsOf = observedAt(budgetReading);
-  // Stays in the algebra: an instant minus an instant is a duration, and `Unit`
-  // renders it. Unwrapping here would type a unit symbol beside a number, which is
-  // what `Unit` exists to prevent.
-  const budgetAge = viewUt && budgetAsOf ? viewUt.minus(budgetAsOf) : null;
+  const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;
+  // Stays in the algebra: `Unit` renders a duration and unwrapping here would type
+  // a unit symbol beside a number, which is what `Unit` exists to prevent.
+  const budgetAge =
+    budget?.budget.ageSec === undefined
+      ? null
+      : value("s", budget.budget.ageSec);
   const createAlarm = useAlarmCreator<TimeTrigger>();
 
-  const origin = useMemo(
-    () =>
-      orbit?.referenceBodyIndex != null
-        ? (bodies.find((b) => b.index === orbit.referenceBodyIndex) ?? null)
-        : null,
-    [bodies, orbit?.referenceBodyIndex],
-  );
+  const origin = bodyAtIndex(facts, orbit?.referenceBodyIndex);
 
   const dests = useMemo(
     () => (origin ? transferDestinations(origin, bodies) : []),

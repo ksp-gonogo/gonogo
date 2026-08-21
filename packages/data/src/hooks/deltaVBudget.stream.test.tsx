@@ -1,0 +1,125 @@
+import {
+  DELTA_V_BUDGET,
+  type DeltaVBudget,
+  StubTransport,
+  TelemetryClient,
+  TelemetryProvider,
+  useProcessor,
+} from "@ksp-gonogo/sitrep-client";
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { describe, expect, it } from "vitest";
+
+/**
+ * `DELTA_V_BUDGET` read the way a widget reads it: through a real
+ * `TelemetryProvider`/`TelemetryClient` over a `StubTransport`, no mocked hooks.
+ *
+ * This file replaces `useVesselDeltaV.test.tsx`, whose subject summed
+ * `dv.stages` client-side for the vessel total. The cases below pin the ruling
+ * that replaced it: the total is the game's own `dv.summary` figure, and stage
+ * rows alone do not produce one.
+ */
+
+function Probe({ onRender }: { onRender: (v?: DeltaVBudget) => void }) {
+  onRender(useProcessor(DELTA_V_BUDGET));
+  return null;
+}
+
+function renderProbe() {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
+  const renders: Array<DeltaVBudget | undefined> = [];
+  render(
+    <TelemetryProvider client={client}>
+      <Probe onRender={(v) => renders.push(v)} />
+    </TelemetryProvider>,
+  );
+  return { transport, renders };
+}
+
+describe("DELTA_V_BUDGET over a live stream", () => {
+  /*
+   * The predecessor asserted `totalVac: 0` for "no stages", which is what let a
+   * SPENT vessel and an ABSENT reading be the same value all the way to the call
+   * site: the maneuver planner read 0 as "unknown", showed no shortfall, and
+   * left the commit enabled for a craft with nothing left to burn.
+   */
+  it("reports null totals when there is no usable reading, not zero", () => {
+    const { renders } = renderProbe();
+    const last = renders.at(-1);
+    expect(last?.totalVac).toBeNull();
+    expect(last?.totalAsl).toBeNull();
+    expect(last?.stages).toEqual([]);
+  });
+
+  it("reports a real zero as zero, which is a different fact", async () => {
+    const { transport, renders } = renderProbe();
+    act(() => {
+      transport.emit("dv.summary", {
+        stageCount: 1,
+        totalDvVac: 0,
+        totalDvAsl: 0,
+      });
+    });
+    await waitFor(() => {
+      expect(renders.at(-1)?.totalVac?.magnitude).toBe(0);
+    });
+  });
+
+  it("takes the total off dv.summary, and 3 stage rows alone give none", async () => {
+    const { transport, renders } = renderProbe();
+    act(() => {
+      transport.emit("dv.stages", [
+        { stage: 2, dvVac: 1000, dvAsl: 900 },
+        { stage: 1, dvVac: 500, dvAsl: 450 },
+        { stage: 0, dvVac: 250, dvAsl: 225 },
+      ]);
+    });
+    await waitFor(() => expect(renders.at(-1)?.stages).toHaveLength(3));
+    // Three rows summing to 1750 on screen, and still no vessel total: the
+    // client does not add these up, because `dv.stages` (OperatingStageInfo) and
+    // `dv.summary` (accumulated over WorkingStageInfo) are different lists.
+    expect(renders.at(-1)?.totalVac).toBeNull();
+
+    act(() => {
+      transport.emit("dv.summary", {
+        stageCount: 3,
+        totalDvVac: 1900,
+        totalDvAsl: 1700,
+      });
+    });
+    // 1900, the game's figure, NOT the 1750 the rows add up to.
+    await waitFor(() => expect(renders.at(-1)?.totalVac?.magnitude).toBe(1900));
+    expect(renders.at(-1)?.totalAsl?.magnitude).toBe(1700);
+  });
+
+  it("reconciles both wires' stage field names onto one row shape", async () => {
+    const { transport, renders } = renderProbe();
+    act(() => {
+      transport.emit("dv.stages", [
+        // The mod's own `StageDeltaVEntry` names.
+        { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },
+        // The historical `StageInfo` names.
+        { stage: 0, deltaVVac: 600, deltaVASL: 500, deltaVActual: 550 },
+      ]);
+    });
+    await waitFor(() => expect(renders.at(-1)?.stages).toHaveLength(2));
+    const [upper, lower] = renders.at(-1)?.stages ?? [];
+    expect(upper.deltaVVac).toBe(1200);
+    expect(upper.deltaVActual).toBe(1100);
+    expect(lower.deltaVVac).toBe(600);
+    expect(lower.deltaVActual).toBe(550);
+  });
+
+  it("marks the active stage from vessel.structure.currentStage", async () => {
+    const { transport, renders } = renderProbe();
+    act(() => {
+      transport.emit("dv.stages", [
+        { stage: 1, dvVac: 1200 },
+        { stage: 0, dvVac: 600 },
+      ]);
+      transport.emit("vessel.structure", { currentStage: 1 });
+    });
+    await waitFor(() => expect(renders.at(-1)?.activeStage?.stage).toBe(1));
+    expect(renders.at(-1)?.activeStage?.deltaVVac).toBe(1200);
+  });
+});

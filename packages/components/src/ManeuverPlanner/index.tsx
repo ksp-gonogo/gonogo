@@ -8,16 +8,14 @@ import {
   useOrbitElements,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import {
-  useManeuverNodes,
-  useValueKeys,
-  useVesselDeltaV,
-} from "@ksp-gonogo/data";
-import {
+  DELTA_V_BUDGET,
   type OrbitTrajectory,
   type Reading,
   useCommand,
   useOrbitTrajectory,
+  useProcessor,
   useStream,
   useViewUt,
   type VesselState,
@@ -279,15 +277,19 @@ function ManeuverPlannerComponent({
   const period = useStream<VesselState>("vessel.state")?.period ?? undefined;
 
   const nodes = useManeuverNodes();
-  // dv.stages is mapped on the wire (see map-topic.ts's
-  // LEGACY_KEY_HOMES: whole-topic identity read, same "dv.stages"
-  // key off either transport) and rides the stream once carried, with
-  // zero call-site change here: `useVesselDeltaV` reads it via the same
-  // `useTelemetry("dv.stages")` regardless of which transport
-  // ultimately answers. The wire shapes disagree on field names though
-  // (new mod: `dvVac`/`dvAsl`, legacy: `deltaVVac`/`deltaVASL`): see
-  // useVesselDeltaV.ts's `normalizeStage` reconciliation.
-  const vesselDeltaV = useVesselDeltaV();
+  /**
+   * The shared ΔV budget: the game's own vessel total off `dv.summary`, never a
+   * client-side sum of the stage rows. The two are built from different stage
+   * lists (`OperatingStageInfo` versus `WorkingStageInfo`), so the planner and
+   * the fuel panel used to be able to disagree about the same craft.
+   *
+   * Carried when it goes stale rather than blanked, which matters here more than
+   * anywhere: `feasible === false` is the ONLY thing that disables the commit, so
+   * a budget that vanished mid-blackout turned a craft that is demonstrably short
+   * into one we have no opinion about, and re-enabled the button.
+   */
+  const availableDeltaV =
+    useProcessor(DELTA_V_BUDGET)?.totalVac?.magnitude ?? null;
 
   // Delayed vessel commands (command-surface-delay-audit #15-17): adding,
   // updating and removing a maneuver node all actuate the craft's flight
@@ -481,9 +483,9 @@ function ManeuverPlannerComponent({
   // vessel would accept a plan it could not fly. A real 0 now compares like any other
   // number and comes out short.
   const feasible =
-    plan === null || vesselDeltaV.totalVac === null
+    plan === null || availableDeltaV === null
       ? null
-      : vesselDeltaV.totalVac >= requiredDeltaV;
+      : availableDeltaV >= requiredDeltaV;
 
   // True anomaly at the burn, for drag-handle placement on the preview.
   // Apsis presets are exact (0° / 180°); custom-ut re-uses our propagator.
@@ -674,7 +676,7 @@ function ManeuverPlannerComponent({
           nodes={nodes}
           completedNodes={completedNodes}
           currentUT={currentUT}
-          availableDv={vesselDeltaV.totalVac}
+          availableDv={availableDeltaV}
           onDelete={handleDelete}
           onEdit={handleEdit}
           onClearAll={handleClearAll}
@@ -940,7 +942,7 @@ function ManeuverPlannerComponent({
             normal={normal}
             setPrograde={setPrograde}
             setRadial={setRadial}
-            vesselDeltaV={vesselDeltaV}
+            availableDeltaV={availableDeltaV}
             feasible={feasible}
             requiredDeltaV={requiredDeltaV}
             currentUT={currentUT}

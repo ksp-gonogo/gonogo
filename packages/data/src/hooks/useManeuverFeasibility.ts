@@ -1,6 +1,6 @@
+import { DELTA_V_BUDGET, useProcessor } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import { type ParsedManeuverNode, useManeuverNodes } from "./useManeuverNodes";
-import { useVesselDeltaV } from "./useVesselDeltaV";
 
 /** One row of the feasibility verdict: a planned node plus whether we can pull it off. */
 export interface NodeFeasibility {
@@ -42,18 +42,22 @@ const EMPTY: ManeuverFeasibility = {
  * deduction in UT order so a later node sees only the ΔV left after
  * earlier burns: matches how the pilot actually executes the plan.
  *
- * Available ΔV uses `totalVac` from `useVesselDeltaV` as a first-order
+ * Available ΔV uses `totalVac` from the shared `DELTA_V_BUDGET` processor as a
+ * first-order
  * approximation. Real stage-aware accounting (each node must fit inside
  * its owning stage) is a refinement, when we ship that, the interface
  * here doesn't change, only the computation inside.
  */
 export function useManeuverFeasibility(): ManeuverFeasibility {
   const nodes = useManeuverNodes();
-  const vessel = useVesselDeltaV();
+  // The one shared budget: the game's own vessel total, carried and dated
+  // rather than blanked when it goes stale. A blanked budget reads as "no
+  // opinion", and `allOk` is what a commit gate consults.
+  const available = useProcessor(DELTA_V_BUDGET)?.totalVac?.magnitude ?? null;
 
   return useMemo(() => {
     if (nodes.length === 0) {
-      return { ...EMPTY, available: vessel.totalVac };
+      return { ...EMPTY, available };
     }
 
     // UT-sorted copy so chronological deduction matches execution order.
@@ -62,8 +66,8 @@ export function useManeuverFeasibility(): ManeuverFeasibility {
     // SPENT craft indistinguishable from one we had heard nothing about: every node
     // came back `ok: null` (unknown) when the honest verdict is `false` (short). A
     // vessel that really has 0 m/s is telemetry, and rather emphatic telemetry.
-    const haveTelemetry = vessel.totalVac !== null;
-    let remaining = vessel.totalVac ?? 0;
+    const haveTelemetry = available !== null;
+    let remaining = available ?? 0;
     let totalRequired = 0;
     let anyShort = false;
 
@@ -83,7 +87,7 @@ export function useManeuverFeasibility(): ManeuverFeasibility {
       allOk: haveTelemetry && !anyShort,
       anyShort,
       totalRequired,
-      available: vessel.totalVac,
+      available,
     };
-  }, [nodes, vessel]);
+  }, [nodes, available]);
 }

@@ -41,6 +41,30 @@ export {
   decideAutoDispatch,
   useAutoCommand,
 } from "./auto-command";
+// Pure almanac derivations behind CELESTIAL_FACTS: the values `system.bodies`
+// deliberately leaves off the wire, reconstructed from mu + radius + the orbit.
+export {
+  deriveEscapeVelocity,
+  deriveHillSphere,
+  deriveMass,
+  derivePeriod,
+  deriveSurfaceGravity,
+  deriveSurfaceGravityG,
+  deriveTrueAnomalyDeg,
+  GRAVITATIONAL_CONSTANT,
+} from "./body-derivations";
+// The two shared Processors and their result types. Also on the SDK's ROOT
+// barrel, which is what an Uplink imports; here so app-side call sites read the
+// same as every other spine name.
+export {
+  type BodyAtmosphere,
+  bodyAtIndex,
+  bodyNamed,
+  CELESTIAL_FACTS,
+  type CelestialBody,
+  type CelestialFacts,
+  deriveCelestialFacts,
+} from "./celestial-facts";
 export { LOSS_MARGIN, TelemetryClient } from "./client";
 export type { Clock } from "./clock";
 export { RealTimeClock } from "./clock";
@@ -127,6 +151,14 @@ export {
   DelayAuthority,
   type DelaySubscribable,
 } from "./delay-authority";
+export {
+  type BudgetProvenance,
+  DELTA_V_BUDGET,
+  type DeltaVBudget,
+  type DeltaVStage,
+  deriveDeltaVBudget,
+  normaliseStage,
+} from "./delta-v-budget";
 export type { DvLegacyScalars } from "./dv-legacy-scalars";
 export {
   deriveDvLegacyScalars,

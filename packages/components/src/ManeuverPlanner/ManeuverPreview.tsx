@@ -5,7 +5,6 @@ import type {
   ManeuverPlan,
   ManeuverSequence,
 } from "@ksp-gonogo/core";
-import type { VesselDeltaV } from "@ksp-gonogo/data";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
@@ -54,7 +53,8 @@ interface ManeuverPreviewProps {
   normal: number;
   setPrograde: (n: number) => void;
   setRadial: (n: number) => void;
-  vesselDeltaV: VesselDeltaV;
+  /** Vessel-total ΔV in m/s off the shared budget, `null` when there is no usable figure. */
+  availableDeltaV: number | null;
   feasible: boolean | null;
   requiredDeltaV: number;
   currentUT: number | undefined;
@@ -91,7 +91,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         feasible={props.feasible}
         plan={plan}
         requiredDeltaV={props.requiredDeltaV}
-        vesselDeltaV={props.vesselDeltaV}
+        availableDeltaV={props.availableDeltaV}
       />
       {props.error && <ErrorLine>{props.error}</ErrorLine>}
       <TriggerEditor
@@ -124,7 +124,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
 function PreviewBody({
   plan,
   body,
-  vesselDeltaV,
+  availableDeltaV,
   feasible,
   currentUT,
 }: ManeuverPreviewProps) {
@@ -134,7 +134,7 @@ function PreviewBody({
       <SequencePreview
         seq={plan}
         body={body}
-        vesselDeltaV={vesselDeltaV}
+        availableDeltaV={availableDeltaV}
         feasible={feasible}
         currentUT={currentUT}
       />
@@ -155,10 +155,10 @@ function PreviewBody({
       <Label>Available</Label>
       <PreviewValue>
         <ValueNum>
-          {vesselDeltaV.totalVac === null ? (
+          {availableDeltaV === null ? (
             NULL_DISPLAY
           ) : (
-            <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} />
+            <Unit value={value("m/s", availableDeltaV)} decimals={0} />
           )}
         </ValueNum>
         {feasible !== null && (
@@ -176,7 +176,8 @@ function PreviewBody({
 interface SequencePreviewProps {
   seq: ManeuverSequence;
   body: BodyDefinition | undefined;
-  vesselDeltaV: VesselDeltaV;
+  /** Vessel-total ΔV in m/s off the shared budget, `null` when there is no usable figure. */
+  availableDeltaV: number | null;
   feasible: boolean | null;
   currentUT: number | undefined;
 }
@@ -184,7 +185,7 @@ interface SequencePreviewProps {
 function SequencePreview({
   seq,
   body,
-  vesselDeltaV,
+  availableDeltaV,
   feasible,
   currentUT,
 }: SequencePreviewProps) {
@@ -201,10 +202,10 @@ function SequencePreview({
         <Label>Available</Label>
         <PreviewValue>
           <ValueNum>
-            {vesselDeltaV.totalVac === null ? (
+            {availableDeltaV === null ? (
               NULL_DISPLAY
             ) : (
-              <Unit value={value("m/s", vesselDeltaV.totalVac)} decimals={0} />
+              <Unit value={value("m/s", availableDeltaV)} decimals={0} />
             )}
           </ValueNum>
           {feasible !== null && (
@@ -396,16 +397,17 @@ interface ShortfallBannerProps {
   feasible: boolean | null;
   plan: PlanResult;
   requiredDeltaV: number;
-  vesselDeltaV: VesselDeltaV;
+  /** Vessel-total ΔV in m/s off the shared budget, `null` when there is no usable figure. */
+  availableDeltaV: number | null;
 }
 
 function ShortfallBanner({
   feasible,
   plan,
   requiredDeltaV,
-  vesselDeltaV,
+  availableDeltaV,
 }: ShortfallBannerProps) {
-  const available = vesselDeltaV.totalVac;
+  const available = availableDeltaV;
   // `feasible === false` already implies a real number (the planner only judges when it
   // has one), so this narrows for the compiler rather than guarding a reachable case.
   // A shortfall cannot be quoted without an available figure, and a spent craft's 0 is
