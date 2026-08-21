@@ -54,12 +54,18 @@ namespace Sitrep.Host
         /// <summary>
         /// KSP's <c>VesselType.ToString()</c> already yields PascalCase matching
         /// <see cref="Sitrep.Contract.VesselType"/>'s members: case-insensitive
-        /// match, <c>Unknown</c> fallback. Hand-rolled (not <c>Enum.TryParse</c>):
-        /// the Contract enums carry compile-time-only Reinforced.Typings
-        /// attributes whose assembly isn't in <c>bin</c> at runtime, and the
-        /// reflective enum machinery eagerly resolves EVERY custom-attribute type
-        /// (→ <c>FileNotFoundException</c> on net10.0, and a real crash risk on
-        /// KSP's Mono). No code path here may resolve a Contract enum's attributes.
+        /// match, <c>Unknown</c> fallback.
+        ///
+        /// <para>Hand-rolled rather than <c>Enum.TryParse</c>. That was once
+        /// forced: the Contract enums carried Reinforced.Typings attributes
+        /// whose assembly is never deployed, and reflective enum machinery
+        /// materialises every custom-attribute type, so a parse threw
+        /// <c>FileNotFoundException</c>. That cause is gone, the attributes now
+        /// live only in Sitrep.Contract.Codegen, and
+        /// <c>Sitrep.Core.Tests.ContractEnumRenderingTests</c> proves reflective
+        /// parsing works. The switch stays because it is explicit and
+        /// reflection-free, which is worth having on KSP's Mono, not because
+        /// anything still forbids the reflective form.</para>
         /// </summary>
         public static Sitrep.Contract.VesselType ParseVesselType(string? raw)
         {

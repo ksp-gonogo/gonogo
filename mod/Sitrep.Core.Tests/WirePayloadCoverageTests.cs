@@ -258,10 +258,12 @@ namespace Sitrep.Core.Tests
         private static IEnumerable<Type> ContractPayloadTypes() =>
             typeof(CommsDelay).Assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition)
-                // IsDefined checks only for THIS attribute: it does NOT construct
-                // the sibling Reinforced.Typings [TsInterface]/[TsEnum] attributes
-                // (whose assembly isn't loadable in this net10.0 test), unlike
-                // GetCustomAttributesData().
+                // [SitrepContract] is the contract's own marker, applied alongside
+                // every codegen attribute. It used to matter that IsDefined does
+                // not construct the sibling Reinforced.Typings attributes, whose
+                // assembly was unloadable here; those attributes no longer ship at
+                // all (see Sitrep.Contract.Codegen), so this is now just the
+                // straightforward way to ask.
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false))
                 .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
 

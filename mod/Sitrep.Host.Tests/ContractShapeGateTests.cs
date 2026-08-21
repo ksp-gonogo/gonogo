@@ -20,8 +20,11 @@ namespace Sitrep.Host.Tests
     /// <c>[TsInterface]</c> usage: see <see cref="SitrepContractAttribute"/>'s
     /// own doc comment for why this gate uses its own same-assembly marker
     /// rather than reflecting <c>[TsInterface]</c> directly: that attribute's
-    /// declaring assembly, <c>Reinforced.Typings</c>, is a compile-time-only
-    /// dependency by explicit design and must never be resolved at runtime)
+    /// declaring assembly, <c>Reinforced.Typings</c>, is codegen-only by
+    /// explicit design and must never be resolved at runtime. Those attributes
+    /// are no longer compiled into the shipped contract at all, they exist only
+    /// in <c>Sitrep.Contract.Codegen</c>, so reflecting them here would find
+    /// nothing)
     /// and checks it against a checked-in LEDGER
     /// (<c>mod/Sitrep.Contract/contract-shape.baseline.json</c>, wired into
     /// this project the same way the other <c>golden-fixtures/</c> JSON
@@ -698,19 +701,23 @@ namespace Sitrep.Host.Tests
         /// while writing this gate: even wrapping the enumeration call itself
         /// in try/catch wasn't enough: <c>GetCustomAttributesData()</c> throws
         /// building its full record list before a single record is ever
-        /// inspected). Since every <c>[SitrepContract]</c> type ALSO carries
-        /// <c>[TsInterface]</c>, and <c>[TsInterface]</c>'s declaring assembly
-        /// (<c>Reinforced.Typings</c>) is a compile-time-only dependency that is
-        /// never runtime-loadable by this project's own explicit design (see
-        /// <c>Sitrep.Contract.csproj</c>'s doc comment and
-        /// <see cref="SitrepContractAttribute"/>'s), any CLR-level attribute
-        /// enumeration on these types always throws
-        /// <see cref="System.IO.FileNotFoundException"/> here: regardless of
-        /// which specific attribute is being searched for. Reading the PE
-        /// metadata directly (a file-parsing operation, not a type-load)
-        /// sidesteps that entirely: it only ever needs the attribute
-        /// CONSTRUCTOR's simple name, never resolves it to a live
-        /// <see cref="Type"/>.
+        /// inspected). That mattered enormously while every
+        /// <c>[SitrepContract]</c> type ALSO carried <c>[TsInterface]</c> from
+        /// <c>Reinforced.Typings</c>, an assembly deliberately never deployed:
+        /// any CLR-level attribute enumeration on these types threw
+        /// <see cref="System.IO.FileNotFoundException"/>, whichever attribute
+        /// was actually being searched for. That is fixed at the source, the
+        /// codegen attributes are compiled only into
+        /// <c>Sitrep.Contract.Codegen</c> now (see
+        /// <c>Sitrep.Contract.csproj</c>'s doc comment), and
+        /// <c>Sitrep.Core.Tests.ContractEnumRenderingTests</c> holds it there.
+        ///
+        /// <para>The PE-metadata read stays regardless. It only ever needs the
+        /// attribute CONSTRUCTOR's simple name and never resolves it to a live
+        /// <see cref="Type"/>, so a gate whose whole job is to describe an
+        /// assembly's shape cannot be broken by anything that assembly happens
+        /// to reference. That is the right property for this check to have on
+        /// its own merits, rather than as a workaround.</para>
         /// </summary>
         private static (HashSet<string> MarkedTypeNames, Dictionary<string, string[]> EnumShapes) ReadSitrepContractMarkedShapes(string assemblyPath)
         {
@@ -759,18 +766,22 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Base-type check done at the metadata level (compares the base
         /// type reference's simple name against <c>"Enum"</c> in namespace
-        /// <c>"System"</c>): deliberately NOT <c>Type.IsEnum</c>. Verified
-        /// experimentally while extending this gate: on a
-        /// <see cref="SitrepContractAttribute"/>-marked enum whose sibling
-        /// types (never this type itself, since attribute enumeration is
-        /// never invoked here) carry <c>[TsEnum]</c> from the
-        /// compile-time-only <c>Reinforced.Typings</c> package,
-        /// <c>Type.IsEnum</c>/<c>Enum.GetNames</c>'s underlying CLR machinery
+        /// <c>"System"</c>): deliberately NOT <c>Type.IsEnum</c>, and kept that
+        /// way so this gate reads an assembly's shape without depending on
+        /// anything that assembly references.
+        ///
+        /// <para>The measurement that first forced it is worth keeping, because
+        /// it is the clearest statement of what the codegen-attribute leak
+        /// actually did. While the contract enums carried <c>[TsEnum]</c> from
+        /// the undeployed <c>Reinforced.Typings</c>,
+        /// <c>Type.IsEnum</c>/<c>Enum.GetNames</c>'s own CLR machinery
         /// (<c>RuntimeType.GetEnumNames</c> → <c>Enum.EnumInfo.Create</c>)
-        /// itself calls <c>CustomAttribute.IsCustomAttributeDefined</c> and
-        /// throws the same <see cref="System.IO.FileNotFoundException"/> the
-        /// marker check works around, so enum SHAPE, not just the marker,
-        /// must stay off every CLR reflection path for this assembly.
+        /// called <c>CustomAttribute.IsCustomAttributeDefined</c> and threw
+        /// <see cref="System.IO.FileNotFoundException"/>. Enum SHAPE, not just
+        /// the marker, was unreachable. The same call chain is why
+        /// <c>Enum.ToString()</c> threw. That leak is fixed at the source
+        /// (<c>Sitrep.Contract.Codegen</c>), so the CLR path would work now,
+        /// but the metadata read remains the better instrument.</para>
         /// </summary>
         private static bool IsEnumTypeDefinition(
             System.Reflection.Metadata.MetadataReader metadataReader,

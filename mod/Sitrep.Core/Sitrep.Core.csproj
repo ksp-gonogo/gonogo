@@ -9,10 +9,11 @@
        README.md / ArchiveState for why (KSP's Unity-2019 Mono +
        AppDomain first-assembly-name-wins collision risk). Do not add one
        without updating that invariant deliberately and in the open. The
-       ProjectReference below is fine: Sitrep.Contract's Reinforced.Typings
-       PackageReference is PrivateAssets="all" (compile-time codegen only),
-       so it does not flow here, Sitrep.Contract.dll is the only extra
-       runtime dependency this project picks up. -->
+       ProjectReference below is fine: Sitrep.Contract has no package
+       references at all, its Reinforced.Typings codegen dependency lives in
+       the separate Sitrep.Contract.Codegen twin, which nothing references and
+       nothing ships. Sitrep.Contract.dll is the only extra runtime dependency
+       this project picks up. -->
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Contract/Sitrep.Contract.csproj" />
   </ItemGroup>

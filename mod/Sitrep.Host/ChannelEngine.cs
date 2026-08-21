@@ -2056,19 +2056,26 @@ namespace Sitrep.Host
         /// <summary>
         /// Case-insensitive enum-name → value using ONLY metadata (each member's
         /// <see cref="MemberInfo.Name"/> + <see cref="FieldInfo.GetRawConstantValue"/>),
-        /// never <see cref="Enum.Parse(Type,string,bool)"/>. The
-        /// <c>Sitrep.Contract</c> enums carry a Reinforced.Typings <c>[TsEnum]</c>
-        /// attribute in the netstandard2.0 (KSP) build; <see cref="Enum.Parse(Type,string,bool)"/>
-        /// constructs the enum type's custom attributes, which throws
-        /// <see cref="System.IO.FileNotFoundException"/> whenever
-        /// <c>Reinforced.Typings.dll</c> isn't on the runtime probing path, that
-        /// is BOTH the net10.0 test host AND the live KSP <c>GameData</c> deploy,
-        /// where the codegen tool ships build-time-only. So a string-form enum arg
-        /// (e.g. <c>setTarget {kind:"Vessel"}</c>) would have dead-softed the whole
-        /// command in-game, not just here. Reading FieldInfo names / raw constant
-        /// values touches metadata only: the same "don't construct the sibling
-        /// attributes" boundary <c>WirePayloadCoverageTests</c> relies on: and
-        /// <see cref="Enum.ToObject"/> just boxes the value (no name/attribute work).
+        /// never <see cref="Enum.Parse(Type,string,bool)"/>.
+        ///
+        /// <para>This began as the workaround for the worst instance of the
+        /// codegen-attribute leak. The <c>Sitrep.Contract</c> enums used to
+        /// carry a Reinforced.Typings <c>[TsEnum]</c> in the shipped build, and
+        /// <see cref="Enum.Parse(Type,string,bool)"/> constructs the enum type's
+        /// custom attributes, so it threw
+        /// <see cref="System.IO.FileNotFoundException"/> wherever
+        /// <c>Reinforced.Typings.dll</c> was absent: both the net10.0 test host
+        /// and the live KSP <c>GameData</c> deploy. A string-form enum argument
+        /// (e.g. <c>setTarget {kind:"Vessel"}</c>) would have dead-softed the
+        /// whole command in-game, not just in a test.</para>
+        ///
+        /// <para>The leak is fixed: the attributes exist only in
+        /// Sitrep.Contract.Codegen now, and
+        /// <c>Sitrep.Core.Tests.ContractEnumRenderingTests</c> asserts that
+        /// reflective enum parsing works on a contract enum. The metadata-only
+        /// walk stays anyway, being strictly narrower work than
+        /// <see cref="Enum.Parse(Type,string,bool)"/> on a hot command path;
+        /// <see cref="Enum.ToObject"/> just boxes the value.</para>
         /// </summary>
         private static object ParseEnumByNameMetadataOnly(Type enumType, string name)
         {

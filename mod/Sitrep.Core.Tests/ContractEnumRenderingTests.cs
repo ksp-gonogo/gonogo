@@ -72,6 +72,25 @@ public class ContractEnumRenderingTests
     }
 
     /// <summary>
+    /// The other half of the same breakage, and the reason
+    /// <c>Sitrep.Host</c> hand-rolls its enum parsers over
+    /// <see cref="FieldInfo"/> instead of calling <see cref="Enum.Parse(Type, string, bool)"/>:
+    /// the reflective parse path materialises every custom attribute on the
+    /// enum type, so it threw for exactly the same reason
+    /// <c>ToString()</c> did — in the net10.0 test host AND in the live KSP
+    /// deploy, where a string-form enum command argument would have dead-softed
+    /// the command in-game.
+    /// </summary>
+    [Fact]
+    public void ReflectiveEnumParsingWorksOnAContractEnum()
+    {
+        Assert.Equal(Situation.Orbiting, Enum.Parse<Situation>("Orbiting"));
+        Assert.True(Enum.TryParse<GameMode>("Career", ignoreCase: true, out var mode));
+        Assert.Equal(GameMode.Career, mode);
+        Assert.True(Enum.IsDefined(typeof(SasMode), SasMode.Prograde));
+    }
+
+    /// <summary>
     /// The root cause, asserted directly: no type in the shipped contract may
     /// carry an attribute from an assembly that is not deployed beside it.
     /// <c>GetCustomAttributes</c> throws rather than returning a partial list,
