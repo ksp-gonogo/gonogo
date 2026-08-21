@@ -204,9 +204,24 @@ public class ActionBinding
     [SitrepUnit(Units.Text)]
     public string Action { get; set; } = "";
 
-    /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty, an action bound to no group isn't emitted.</summary>
+    /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty, an action bound to no group isn't emitted. Display labels; see <see cref="GroupsMask"/>.</summary>
     [SitrepUnit(Units.Text)]
     public List<string> Groups { get; set; } = new();
+
+    /// <summary>
+    /// <c>BaseAction.actionGroup</c>'s raw <c>[Flags]</c> BITMASK, the whole of
+    /// it. <see cref="KspActionGroup"/> names the bits.
+    ///
+    /// <para>A mask rather than an ordinal because <c>KSPActionGroup</c> is a
+    /// flags enum: one action can fire with several groups, which is exactly
+    /// what <see cref="Groups"/> already carries as names. The mask is here
+    /// because the NAME list cannot be trusted to be complete - it is built by
+    /// intersecting the mask against the groups the capture knows about, so a
+    /// group KSP adds is dropped before the wire and the client cannot tell that
+    /// from a group nothing is bound to. The mask has no such ceiling.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public int GroupsMask { get; set; }
 }
 
 /// <summary>

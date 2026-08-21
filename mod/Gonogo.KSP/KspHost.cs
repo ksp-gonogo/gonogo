@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Contracts;
 using Expansions;
@@ -5056,20 +5057,28 @@ namespace Gonogo.KSP
             };
         }
 
-        // The named KSPActionGroup members a part action can be bound to, in
-        // canonical order (None / REPLACEWITHDEFAULT are deliberately excluded,
-        // they aren't real groups). Emitted as their enum-name strings, matching
-        // the client's kspActionGroupName vocabulary.
+        /// <summary>
+        /// The named <see cref="KSPActionGroup"/> members a part action can be
+        /// bound to, DERIVED from the enum rather than written out.
+        ///
+        /// <para>This was a hand-written list of seventeen, which is a
+        /// transcription of somebody else's declaration and drifts the moment
+        /// they append to it: a group KSP adds is dropped before it reaches the
+        /// wire, and the client cannot tell a group it was never sent from a
+        /// group nothing is bound to. That is the ServoCapture failure from
+        /// contract Minor 20 in a different domain, so it gets the same fix.</para>
+        ///
+        /// <para><c>None</c> (0) and <c>REPLACEWITHDEFAULT</c> (-1) are excluded
+        /// because neither is a group: 0 matches every mask under <c>&amp;</c>
+        /// and -1 matches any bit set at all, so including either would report a
+        /// group on every action. Ordered by value, which reproduces the previous
+        /// list's order for every member it had.</para>
+        /// </summary>
         private static readonly KSPActionGroup[] NamedActionGroups =
-        {
-            KSPActionGroup.Stage, KSPActionGroup.Gear, KSPActionGroup.Light,
-            KSPActionGroup.RCS, KSPActionGroup.SAS, KSPActionGroup.Brakes,
-            KSPActionGroup.Abort,
-            KSPActionGroup.Custom01, KSPActionGroup.Custom02, KSPActionGroup.Custom03,
-            KSPActionGroup.Custom04, KSPActionGroup.Custom05, KSPActionGroup.Custom06,
-            KSPActionGroup.Custom07, KSPActionGroup.Custom08, KSPActionGroup.Custom09,
-            KSPActionGroup.Custom10,
-        };
+            ((KSPActionGroup[])Enum.GetValues(typeof(KSPActionGroup)))
+            .Where(g => (int)g > 0)
+            .OrderBy(g => (int)g)
+            .ToArray();
 
         /// <summary>
         /// Per-action action-group bindings for the parts tree, one entry per
@@ -5112,6 +5121,9 @@ namespace Gonogo.KSP
                 {
                     ["action"] = action.guiName ?? "",
                     ["groups"] = groups,
+                    // The whole bitmask, so a client is never limited to the
+                    // groups this capture happened to name.
+                    ["groupsMask"] = (int)action.actionGroup,
                 });
             }
 

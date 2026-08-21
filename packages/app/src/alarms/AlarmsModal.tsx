@@ -2,7 +2,11 @@ import type { ActionGroup } from "@ksp-gonogo/core";
 import { useActionGroups, useTelemetry } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  KSP_ACTION_GROUP_NAMES,
+  KspActionGroup,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   DataKeyPicker,
@@ -771,34 +775,42 @@ interface OnFireEditorProps {
  * tree's `actionBindings[].groups` (`Custom01`, `SAS`, `Brakes`).
  * Returns null for toggle keys with no KSP equivalent.
  */
-function kspActionGroupName(toggle: string | null): string | null {
+function kspActionGroupBit(toggle: string | null): number | null {
   if (!toggle) return null;
   switch (toggle) {
     case "f.sas":
-      return "SAS";
+      return KspActionGroup.SAS;
     case "f.rcs":
-      return "RCS";
+      return KspActionGroup.RCS;
     case "f.light":
-      return "Light";
+      return KspActionGroup.Light;
     case "f.gear":
-      return "Gear";
+      return KspActionGroup.Gear;
     // KSP plural: toggle key is singular for ergonomic reasons.
     case "f.brake":
-      return "Brakes";
+      return KspActionGroup.Brakes;
     case "f.abort":
-      return "Abort";
+      return KspActionGroup.Abort;
     case "f.stage":
-      return "Stage";
+      return KspActionGroup.Stage;
     default: {
       const m = toggle.match(/^f\.ag(\d+)$/);
-      if (m) return `Custom${m[1].padStart(2, "0")}`;
+      if (!m) return null;
+      const name = `Custom${m[1].padStart(2, "0")}`;
+      // Looked up in the derived value→name table rather than against a
+      // Custom01..Custom10 list, so a custom group KSP adds resolves here with
+      // the next codegen and needs no edit.
+      for (const [bit, memberName] of KSP_ACTION_GROUP_NAMES) {
+        if (memberName === name) return bit;
+      }
       return null;
     }
   }
 }
 
 interface AgBinding {
-  actionGroup: string;
+  /** The action's whole `KSPActionGroup` bitmask, what the caption matches on. */
+  groupsMask: number;
   partName: string;
   partTitle: string;
   actionGuiName: string;
@@ -832,14 +844,17 @@ function useActionGroupBindings(): AgBinding[] | null {
     const out: AgBinding[] = [];
     for (const part of parts.parts) {
       for (const binding of part.actionBindings ?? []) {
-        for (const group of binding.groups) {
-          out.push({
-            actionGroup: group,
-            partName: part.name,
-            partTitle: part.title,
-            actionGuiName: binding.action,
-          });
-        }
+        // One entry per ACTION, not per (action, group) pair: the mask already
+        // carries every group the action fires with, and the name list it used
+        // to be flattened from is built by intersecting that mask against the
+        // groups the mod's capture knows about, so a group KSP added was dropped
+        // before the wire.
+        out.push({
+          groupsMask: binding.groupsMask ?? 0,
+          partName: part.name,
+          partTitle: part.title,
+          actionGuiName: binding.action,
+        });
       }
     }
     return out;
@@ -851,9 +866,9 @@ function captionForAg(
   bindings: AgBinding[] | null,
 ): string {
   if (!bindings) return "";
-  const kspName = kspActionGroupName(toggle);
-  if (!kspName) return "";
-  const matches = bindings.filter((b) => b.actionGroup === kspName);
+  const bit = kspActionGroupBit(toggle);
+  if (bit === null) return "";
+  const matches = bindings.filter((b) => (b.groupsMask & bit) === bit);
   if (matches.length === 0) return "";
   const first = matches[0].actionGuiName || matches[0].partTitle || "bound";
   if (matches.length === 1) return `: ${first}`;

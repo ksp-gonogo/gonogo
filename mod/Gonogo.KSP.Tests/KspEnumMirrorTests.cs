@@ -132,6 +132,44 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
+        /// The BINDABLE action groups, as <c>KspHost.NamedActionGroups</c>
+        /// derives them: every <see cref="KSPActionGroup"/> member with a
+        /// positive value.
+        ///
+        /// <para>That list used to be seventeen members written out by hand, so a
+        /// group KSP added was intersected away before it reached the wire and
+        /// the client could not tell a group it was never sent from a group
+        /// nothing is bound to. This pins the derivation instead: it reproduces
+        /// the seventeen the hand-written list had, in the same order, and it
+        /// cannot come up short.</para>
+        ///
+        /// <para><c>None</c> (0) and <c>REPLACEWITHDEFAULT</c> (-1) must stay
+        /// out, and not merely as tidiness: 0 matches every mask under
+        /// <c>&amp;</c> and -1 matches any bit set at all, so either one would
+        /// report a group on every action on every part.</para>
+        /// </summary>
+        [Fact]
+        public void NamedActionGroupsAreEveryPositiveMemberAndNothingElse()
+        {
+            var derived = ((KSPActionGroup[])Enum.GetValues(typeof(KSPActionGroup)))
+                .Where(g => (int)g > 0)
+                .OrderBy(g => (int)g)
+                .Select(g => g.ToString())
+                .ToList();
+
+            Assert.Equal(
+                new[]
+                {
+                    "Stage", "Gear", "Light", "RCS", "SAS", "Brakes", "Abort",
+                    "Custom01", "Custom02", "Custom03", "Custom04", "Custom05",
+                    "Custom06", "Custom07", "Custom08", "Custom09", "Custom10",
+                },
+                derived);
+            Assert.DoesNotContain("None", derived);
+            Assert.DoesNotContain("REPLACEWITHDEFAULT", derived);
+        }
+
+        /// <summary>
         /// The names on the wire are KSP's own <c>.ToString()</c>, and the
         /// client's closed union is derived from the mirror's member names, so a
         /// mirror that renamed a member to something tidier would make the union

@@ -80,6 +80,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "ActionBinding": {
     action: "text",
     groups: "text",
+    groupsMask: "enum",
   },
   "ActionGroupState": {
     index: "id",

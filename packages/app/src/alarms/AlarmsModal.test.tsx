@@ -161,7 +161,11 @@ describe("AlarmsModal onFire editor", () => {
             name: "solarPanel",
             title: "OX-4L Solar Panel",
             actionBindings: [
-              { action: "Toggle Solar Panel", groups: ["Custom01"] },
+              {
+                action: "Toggle Solar Panel",
+                groups: ["Custom01"],
+                groupsMask: 128,
+              },
             ],
           },
         ],

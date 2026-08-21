@@ -140,6 +140,7 @@ namespace Sitrep.Host
                         {
                             Action = GetString(row, "action") ?? "",
                             Groups = groups,
+                            GroupsMask = GetInt(row, "groupsMask") ?? 0,
                         });
                     }
                 }
@@ -268,6 +269,7 @@ namespace Sitrep.Host
         {
             ["action"] = binding.Action,
             ["groups"] = binding.Groups.Select(g => (object?)g).ToList(),
+            ["groupsMask"] = binding.GroupsMask,
         };
 
         private static Dictionary<string, object?> ToWire(PartResourceFlow row) => new Dictionary<string, object?>

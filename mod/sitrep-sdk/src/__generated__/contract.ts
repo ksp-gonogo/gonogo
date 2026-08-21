@@ -1484,6 +1484,7 @@ export interface ActionBinding
 {
 	action: string;
 	groups: string[];
+	groupsMask: number;
 }
 export interface PartResourceFlow
 {

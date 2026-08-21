@@ -117,7 +117,9 @@ const PARTS_WITH_AG1_BINDING = {
       id: "1",
       name: "solarPanel",
       title: "OX-4L Solar Panel",
-      actionBindings: [{ action: "Toggle Solar Panel", groups: ["Custom01"] }],
+      actionBindings: [
+        { action: "Toggle Solar Panel", groups: ["Custom01"], groupsMask: 128 },
+      ],
     },
   ],
   meta: {},

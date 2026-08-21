@@ -45,7 +45,8 @@
   "types": {
     "ActionBinding": {
       "action": "text",
-      "groups": "text"
+      "groups": "text",
+      "groupsMask": "enum"
     },
     "ActionGroupState": {
       "index": "id",
