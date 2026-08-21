@@ -60,7 +60,9 @@ const CS_QUALIFIERS = compile(CS_QUALIFIER_PATTERNS);
 const GLOBALS = new Set<string>(GLOBAL_IDENTIFIERS);
 const PRIVATE_NPM = new Set<string>(PRIVATE_NPM_PACKAGES);
 const CS_PRIVATE = new Set<string>(CS_PRIVATE_ASSEMBLIES);
-const PUBLISHED_NAMES = new Set(PUBLISHED_PACKAGES.map((p) => p.name));
+// `Set<string>`, not the literal union `PUBLISHED_PACKAGES` infers: the names
+// tested against it are read out of the tree, so they are plain strings.
+const PUBLISHED_NAMES = new Set<string>(PUBLISHED_PACKAGES.map((p) => p.name));
 
 /**
  * `--cached --others --exclude-standard`, so a NEW FILE that has not been staged
@@ -94,6 +96,20 @@ function parse(rel: string, text?: string): ts.SourceFile {
     true,
     rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
+}
+
+/**
+ * The declared identifier of a statement that has one, or undefined.
+ *
+ * Not written inline as `"name" in st && ts.isIdentifier(st.name)`: the `in`
+ * check narrows the property to `unknown`, and `ts.isIdentifier` takes a
+ * `Node`. Declaring the shape once is what lets the call typecheck.
+ */
+function statementName(st: ts.Statement): string | undefined {
+  const named = st as ts.Statement & { name?: ts.Node };
+  return named.name && ts.isIdentifier(named.name)
+    ? named.name.text
+    : undefined;
 }
 
 /* ------------------------------------------------------------------ *
@@ -184,8 +200,9 @@ function declarationIndex(): Map<string, Set<string>> {
         for (const d of st.declarationList.declarations) {
           if (ts.isIdentifier(d.name)) add(d.name.text);
         }
-      } else if ("name" in st && st.name && ts.isIdentifier(st.name)) {
-        add(st.name.text);
+      } else {
+        const name = statementName(st);
+        if (name) add(name);
       }
     }
   }
@@ -246,9 +263,7 @@ function publishedDocRanges(
       ? st.declarationList.declarations.map((d) =>
           ts.isIdentifier(d.name) ? d.name.text : "",
         )
-      : "name" in st && st.name && ts.isIdentifier(st.name)
-        ? [st.name.text]
-        : [];
+      : [statementName(st) ?? ""];
     walk(st, !!exported && names.some((n) => barrel.has(n)));
   }
   return ranges;

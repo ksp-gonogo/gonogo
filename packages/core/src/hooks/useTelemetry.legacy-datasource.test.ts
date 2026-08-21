@@ -1,8 +1,8 @@
 import { act, renderHook } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
+import { useLegacyTelemetry } from "../test/legacyTelemetry";
 import type { DataSource, DataSourceStatus } from "../types";
-import { useTelemetry } from "./useTelemetry";
 
 // Minimal in-memory data source that lets tests push values and status changes.
 function makeSource(id = "test-source") {
@@ -51,7 +51,9 @@ beforeEach(() => clearRegistry());
 
 describe("useTelemetry", () => {
   it("returns undefined when the data source is not registered", () => {
-    const { result } = renderHook(() => useTelemetry("missing", "v.altitude"));
+    const { result } = renderHook(() =>
+      useLegacyTelemetry("missing", "v.altitude"),
+    );
     expect(result.current).toBeUndefined();
   });
 
@@ -59,7 +61,7 @@ describe("useTelemetry", () => {
     const source = makeSource();
     registerDataSource(source);
     const { result } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
     expect(result.current).toBeUndefined();
   });
@@ -69,7 +71,7 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
 
     act(() => source.emit("v.altitude", 80_000));
@@ -82,7 +84,7 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
 
     act(() => source.emit("v.altitude", 100_000));
@@ -97,7 +99,7 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
 
     act(() => source.emit("v.altitude", 80_000));
@@ -112,7 +114,7 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
 
     act(() => source.emit("v.altitude", 80_000));
@@ -126,7 +128,7 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
 
     act(() => source.emit("v.altitude", 80_000));
@@ -140,10 +142,10 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result: altResult } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
     const { result: speedResult } = renderHook(() =>
-      useTelemetry("test-source", "v.surfaceSpeed"),
+      useLegacyTelemetry("test-source", "v.surfaceSpeed"),
     );
 
     act(() => source.emit("v.altitude", 250));
@@ -158,7 +160,7 @@ describe("useTelemetry", () => {
     registerDataSource(source);
 
     const { result, unmount } = renderHook(() =>
-      useTelemetry("test-source", "v.altitude"),
+      useLegacyTelemetry("test-source", "v.altitude"),
     );
 
     act(() => source.emit("v.altitude", 100));

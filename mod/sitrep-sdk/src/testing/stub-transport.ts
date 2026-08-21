@@ -20,6 +20,36 @@ export function makeMeta(overrides: Partial<Meta> = {}): Meta {
   };
 }
 
+/**
+ * A payload type restated as the mod sends it: every `Value<U>` back down to
+ * the plain number that actually crosses the wire, recursively, structure
+ * otherwise untouched.
+ *
+ * This is the type of the second argument to {@link StubTransport.emit}, which
+ * takes a pre-wrap frame and runs `wrapTopicPayload` over it. That parameter is
+ * `unknown`, so annotating a fixture is the only structural check a test gets,
+ * and annotating it with the MODELLED payload type checks it against the shape
+ * emit produces rather than the one it consumes. A fixture written the honest
+ * way then fails to compile on every quantity-bearing field, which is what
+ * `WireOf` exists to stop: it keeps the field names and the nesting under the
+ * compiler's eye while letting the magnitudes stay bare.
+ *
+ * `Value` is matched by its `magnitude`/`unit` pair rather than by name, so a
+ * `Vec3Of<U>`'s three leaves collapse the same way its parent does.
+ */
+export type WireOf<T> = T extends {
+  readonly magnitude: number;
+  readonly unit: string;
+}
+  ? number
+  : T extends readonly (infer E)[]
+    ? WireOf<E>[]
+    : T extends (...args: never[]) => unknown
+      ? T
+      : T extends object
+        ? { [K in keyof T]: WireOf<T[K]> }
+        : T;
+
 type CommandHandler = (command: string, args: unknown) => unknown;
 
 /** One recorded `command-request` envelope, verbatim: see `StubTransport.sentCommands`. */

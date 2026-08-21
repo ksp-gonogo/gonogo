@@ -263,10 +263,22 @@ describe("useContributions", () => {
   });
 
   it("has no cap on the number of slots requested in one call (10 slots, one useContributions call)", async () => {
-    const slotIds = Array.from(
-      { length: 10 },
-      (_, i) => `fixture.slot${i}` as const,
-    );
+    // Written out rather than generated: `Array.from` produces the template
+    // literal `fixture.slot${number}`, which is wider than the ten keys the
+    // augmentation at the top of this file declares, so `useContributions`
+    // cannot resolve an entry type for it.
+    const slotIds = [
+      "fixture.slot0",
+      "fixture.slot1",
+      "fixture.slot2",
+      "fixture.slot3",
+      "fixture.slot4",
+      "fixture.slot5",
+      "fixture.slot6",
+      "fixture.slot7",
+      "fixture.slot8",
+      "fixture.slot9",
+    ] as const;
 
     for (const slotId of slotIds) {
       registerContribution({

@@ -4,6 +4,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
   type VesselOrbitPayload,
+  type WireOf,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -16,6 +17,7 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
+import { useLegacyTelemetry } from "../test/legacyTelemetry";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useTelemetry } from "./useTelemetry";
 
@@ -66,7 +68,7 @@ function makeSource(id = "data") {
   return source;
 }
 
-const ORBIT: VesselOrbitPayload = {
+const ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -134,7 +136,9 @@ describe("useTelemetry: legacy two-arg overload preserved", () => {
     const source = makeSource();
     registerDataSource(source);
 
-    const { result } = renderHook(() => useTelemetry("data", "career.funds"));
+    const { result } = renderHook(() =>
+      useLegacyTelemetry("data", "career.funds"),
+    );
 
     expect(result.current).toBeUndefined();
     act(() => source.emit("career.funds", 289_848));

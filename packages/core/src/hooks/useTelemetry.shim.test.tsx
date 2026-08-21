@@ -4,6 +4,7 @@ import {
   TelemetryProvider,
   type VesselFlightPayload,
   type VesselOrbitPayload,
+  type WireOf,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -16,6 +17,7 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearRegistry, registerDataSource } from "../registry";
+import { useLegacyTelemetry } from "../test/legacyTelemetry";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useTelemetry } from "./useTelemetry";
 
@@ -64,7 +66,7 @@ function makeLegacySource(id = "data") {
   return source;
 }
 
-const ORBIT: VesselOrbitPayload = {
+const ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -76,7 +78,7 @@ const ORBIT: VesselOrbitPayload = {
   mu: 3.5316e12,
 };
 
-const FLIGHT: VesselFlightPayload = {
+const FLIGHT: WireOf<VesselFlightPayload> = {
   latitude: -0.05,
   longitude: 42.3,
   altitudeAsl: 71_234,
@@ -121,7 +123,7 @@ describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProv
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useTelemetry("data", "v.altitude");
+        const alt = useLegacyTelemetry("data", "v.altitude");
         return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
       }
 
@@ -209,7 +211,7 @@ describe("useTelemetry shim: unmapped key falls back to the legacy DataSource pa
     registerDataSource(legacySource);
 
     function Funds() {
-      const funds = useTelemetry("data", "career.funds");
+      const funds = useLegacyTelemetry("data", "career.funds");
       return (
         <div>funds:{funds === undefined ? NULL_DISPLAY : String(funds)}</div>
       );
@@ -239,7 +241,9 @@ describe("useTelemetry shim: no TelemetryProvider mounted behaves exactly like t
     registerDataSource(source);
 
     // No <TelemetryProvider> wrapper at all: this is every screen today.
-    const { result } = renderHook(() => useTelemetry("data", "v.altitude"));
+    const { result } = renderHook(() =>
+      useLegacyTelemetry("data", "v.altitude"),
+    );
 
     expect(result.current).toBeUndefined();
     act(() => source.emit("v.altitude", 80_000));
@@ -250,7 +254,9 @@ describe("useTelemetry shim: no TelemetryProvider mounted behaves exactly like t
     const source = makeLegacySource();
     registerDataSource(source);
 
-    const { result } = renderHook(() => useTelemetry("data", "v.altitude"));
+    const { result } = renderHook(() =>
+      useLegacyTelemetry("data", "v.altitude"),
+    );
     act(() => source.emit("v.altitude", 80_000));
     expect(result.current).toBe(80_000);
 
@@ -270,7 +276,7 @@ describe("useTelemetry shim: raw-field phantom fallback (M3 whole-branch review 
       registerDataSource(legacySource);
 
       function Throttle() {
-        const throttle = useTelemetry("data", "f.throttle");
+        const throttle = useLegacyTelemetry("data", "f.throttle");
         return (
           <div>
             throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
@@ -339,7 +345,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useTelemetry("data", "v.altitude");
+        const alt = useLegacyTelemetry("data", "v.altitude");
         return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
       }
 
@@ -369,7 +375,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
     registerDataSource(legacySource);
 
     function Throttle() {
-      const throttle = useTelemetry("data", "f.throttle");
+      const throttle = useLegacyTelemetry("data", "f.throttle");
       return (
         <div>
           throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
@@ -410,7 +416,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
     registerDataSource(legacySource);
 
     function Alt() {
-      const alt = useTelemetry("data", "v.altitude");
+      const alt = useLegacyTelemetry("data", "v.altitude");
       return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
     }
 
@@ -450,7 +456,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       registerDataSource(legacySource);
 
       function Alt() {
-        const alt = useTelemetry("data", "v.altitude");
+        const alt = useLegacyTelemetry("data", "v.altitude");
         return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
       }
 

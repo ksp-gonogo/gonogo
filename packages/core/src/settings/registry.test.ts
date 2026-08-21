@@ -25,10 +25,10 @@ describe("settings registry: three backings", () => {
     });
     const def = getSettingDefinition("feat.flag");
     expect(def?.backing).toBeUndefined();
-    // narrows to ClientPrefSetting: defaultValue is present
-    expect(def && def.backing !== "source-backed" && def.defaultValue).toBe(
-      true,
-    );
+    // Narrows to ClientPrefSetting, which is the only backing carrying a
+    // `defaultValue`. Not `!== "source-backed"`: stream-backed is a third
+    // backing and has no default either, so excluding one arm is not enough.
+    expect(def && def.backing === undefined && def.defaultValue).toBe(true);
   });
 
   it("stores a source-backed setting with its binding closures", () => {
@@ -48,7 +48,10 @@ describe("settings registry: three backings", () => {
     });
     const def = getSettingDefinition("feat.sourced");
     expect(def?.backing).toBe("source-backed");
-    if (def?.backing === "source-backed") {
+    // `type` as well as `backing`: reading the registry back hands you the
+    // union over every SettingType, and `write`'s value parameter across that
+    // union is `never`, so the boolean it was registered with will not go in.
+    if (def?.backing === "source-backed" && def.type === "boolean") {
       expect(def.sourceId).toBe("some-source");
       // A writable row HAS a write half: `write` is optional now, because a
       // read-only source-backed row omits it, so the presence is the assertion.

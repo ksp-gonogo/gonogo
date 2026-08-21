@@ -9,4 +9,5 @@ export {
   makeMeta,
   type SentCommand,
   StubTransport,
+  type WireOf,
 } from "@ksp-gonogo/sitrep-sdk/testing";

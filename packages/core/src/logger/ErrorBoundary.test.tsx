@@ -2,7 +2,9 @@ import { render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ErrorBoundary } from "./ErrorBoundary";
 
-function Thrower({ msg }: { msg: string }) {
+// `never`: this one only ever throws, and without the annotation its inferred
+// `void` return is not a valid JSX element type.
+function Thrower({ msg }: { msg: string }): never {
   throw new Error(msg);
 }
 
@@ -49,7 +51,10 @@ describe("ErrorBoundary", () => {
   });
 
   it("calls the fallback with the caught error and a reset handler", () => {
-    const fallback = vi.fn((error: Error) => (
+    // Both parameters declared even though only `error` is rendered: the
+    // recorded call is read for `reset` below, and a one-parameter mock has no
+    // second element to read.
+    const fallback = vi.fn((error: Error, _reset: () => void) => (
       <div>caught: {error.message}</div>
     ));
 

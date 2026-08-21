@@ -317,7 +317,7 @@ export {
 } from "./space-center-state";
 export type { StreamStatusValue } from "./stream-status";
 export { worstStatus } from "./stream-status";
-export { StubTransport } from "./stub-transport";
+export { StubTransport, type WireOf } from "./stub-transport";
 export type { SystemState } from "./system-state";
 export { deriveSystemState, systemStateChannel } from "./system-state";
 export type { ClientTimelineOptions, TimelinePoint } from "./timeline";

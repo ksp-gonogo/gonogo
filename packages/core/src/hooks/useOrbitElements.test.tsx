@@ -1,11 +1,11 @@
 import {
   StubTransport,
-  type SystemBodiesPayload,
   TelemetryClient,
   TelemetryProvider,
   type VesselOrbitPayload,
+  type WireOf,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, type SystemBodies } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -25,7 +25,7 @@ import { useOrbitElements } from "./useOrbitElements";
  * `apoapsisAlt`/`periapsisAlt` additionally need `system.bodies` for the
  * reference body's radius.
  */
-const ORBIT: VesselOrbitPayload = {
+const ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -37,10 +37,10 @@ const ORBIT: VesselOrbitPayload = {
   mu: 3.5316e12,
 };
 
-const BODIES: SystemBodiesPayload = {
-  bodies: [
-    { name: "Kerbin", index: 1, parentIndex: 0, radius: 600_000, orbit: null },
-  ],
+// `orbit` is absent rather than null: `BodyEntry.orbit` is optional on the
+// contract, and the reference-body lookup below only reads `radius`.
+const BODIES: WireOf<SystemBodies> = {
+  bodies: [{ name: "Kerbin", index: 1, parentIndex: 0, radius: 600_000 }],
 };
 
 function makeHarness() {

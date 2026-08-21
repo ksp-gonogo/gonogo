@@ -13,6 +13,27 @@ import {
   stateAtUT,
 } from "./maneuver";
 
+/**
+ * Narrows a planner answer that cannot legitimately be null at the call site.
+ *
+ * `stateAtUT`, `matchInclination` and `matchTargetPlane` all answer `null` for
+ * an unbound trajectory: there is no apoapsis to propagate to and no node to
+ * burn at. Every fixture below except `ESCAPING` is a closed orbit, so a null
+ * from one of these is the function under test being wrong, and the tests that
+ * DO expect null (`plane-change presets return null rather than a fabricated
+ * normal burn`) assert it directly instead of coming through here.
+ *
+ * Throwing rather than asserting non-null with `!` so the failure names the
+ * function, instead of surfacing as a property access on null several lines
+ * further down.
+ */
+function bound<T>(answer: T | null, what: string): T {
+  if (answer === null) {
+    throw new Error(`${what} answered null for a closed orbit`);
+  }
+  return answer;
+}
+
 // Kerbin's gravitational parameter (m³/s²).
 const KERBIN_MU = 3.5316e12;
 // Equatorial radius in metres.
@@ -194,7 +215,10 @@ describe("an unbound trajectory has no plan, and says so with null", () => {
 describe("stateAtUT", () => {
   it("recovers the current state when dt = 0", () => {
     // True anomaly 0 = at periapsis on the elliptic orbit.
-    const s = stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, 0, 0);
+    const s = bound(
+      stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, 0, 0),
+      "stateAtUT",
+    );
     expect(s.r).toBeCloseTo(KERBIN_ELLIPTIC.PeR, -1);
     // At periapsis γ = 0.
     expect(s.flightPathAngle).toBeCloseTo(0, 6);
@@ -203,16 +227,28 @@ describe("stateAtUT", () => {
   it("returns to the same state after one full period", () => {
     const a = KERBIN_ELLIPTIC.sma;
     const period = 2 * Math.PI * Math.sqrt((a * a * a) / KERBIN_MU);
-    const at0 = stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, 0);
-    const at1 = stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, period);
+    const at0 = bound(
+      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, 0),
+      "stateAtUT",
+    );
+    const at1 = bound(
+      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, period),
+      "stateAtUT",
+    );
     expect(at1.r).toBeCloseTo(at0.r, -1);
     expect(at1.speed).toBeCloseTo(at0.speed, -1);
     expect(at1.flightPathAngle).toBeCloseTo(at0.flightPathAngle, 4);
   });
 
   it("returns constant r / speed and γ=0 on a circular orbit", () => {
-    const s0 = stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, 0, 0);
-    const s1 = stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, 0, 500);
+    const s0 = bound(
+      stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, 0, 0),
+      "stateAtUT",
+    );
+    const s1 = bound(
+      stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, 0, 500),
+      "stateAtUT",
+    );
     expect(s1.r).toBeCloseTo(s0.r, -1);
     expect(s1.speed).toBeCloseTo(s0.speed, -1);
     expect(s1.flightPathAngle).toBeCloseTo(0, 6);
@@ -222,7 +258,10 @@ describe("stateAtUT", () => {
     // True anomaly 0° = periapsis. Half a period later we're at apoapsis.
     const a = KERBIN_ELLIPTIC.sma;
     const halfPeriod = Math.PI * Math.sqrt((a * a * a) / KERBIN_MU);
-    const s = stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, 0, halfPeriod);
+    const s = bound(
+      stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, 0, halfPeriod),
+      "stateAtUT",
+    );
     expect(s.r).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -1);
     expect(s.flightPathAngle).toBeCloseTo(0, 4);
   });
@@ -312,14 +351,17 @@ describe("customAtUT", () => {
 
 describe("matchInclination", () => {
   it("requires ~zero ΔV when the target equals the current inclination", () => {
-    const plan = matchInclination(
-      KERBIN_100KM_CIRCULAR,
-      0, // ν
-      0, // argPe (AN at ν = 0)
-      45, // current inc
-      KERBIN_MU,
-      0,
-      45, // same target
+    const plan = bound(
+      matchInclination(
+        KERBIN_100KM_CIRCULAR,
+        0, // ν
+        0, // argPe (AN at ν = 0)
+        45, // current inc
+        KERBIN_MU,
+        0,
+        45, // same target
+      ),
+      "matchInclination",
     );
     expect(Math.abs(plan.normal)).toBeLessThan(1e-6);
     expect(plan.prograde).toBe(0);
@@ -334,37 +376,30 @@ describe("matchInclination", () => {
     const deltaIRad = (30 * Math.PI) / 180;
     const expected = 2 * v * Math.sin(deltaIRad / 2);
 
-    const plan = matchInclination(
-      KERBIN_100KM_CIRCULAR,
-      0,
-      0,
-      0, // current inc
-      KERBIN_MU,
-      0,
-      30, // target +30°
+    const plan = bound(
+      matchInclination(
+        KERBIN_100KM_CIRCULAR,
+        0,
+        0,
+        0, // current inc
+        KERBIN_MU,
+        0,
+        30, // target +30°
+      ),
+      "matchInclination",
     );
     expect(Math.abs(plan.normal)).toBeCloseTo(expected, 0);
     expect(plan.projected?.inclination).toBe(30);
   });
 
   it("reverses the normal sign when the target inclination is lower", () => {
-    const planUp = matchInclination(
-      KERBIN_100KM_CIRCULAR,
-      0,
-      0,
-      0,
-      KERBIN_MU,
-      0,
-      30,
+    const planUp = bound(
+      matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 0, KERBIN_MU, 0, 30),
+      "matchInclination",
     );
-    const planDown = matchInclination(
-      KERBIN_100KM_CIRCULAR,
-      0,
-      0,
-      30,
-      KERBIN_MU,
-      0,
-      0,
+    const planDown = bound(
+      matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 30, KERBIN_MU, 0, 0),
+      "matchInclination",
     );
     // Same geometry → same magnitude, opposite sign.
     expect(Math.abs(planUp.normal + planDown.normal)).toBeLessThan(1e-6);
@@ -373,14 +408,17 @@ describe("matchInclination", () => {
   it("schedules the burn at the nearer of AN / DN", () => {
     // argPe = 0 → AN at ν = 0, DN at ν = 180. Current ν just past AN →
     // DN is nearer.
-    const plan = matchInclination(
-      KERBIN_100KM_CIRCULAR,
-      10, // current ν just past AN
-      0, // argPe
-      0,
-      KERBIN_MU,
-      1000,
-      10,
+    const plan = bound(
+      matchInclination(
+        KERBIN_100KM_CIRCULAR,
+        10, // current ν just past AN
+        0, // argPe
+        0,
+        KERBIN_MU,
+        1000,
+        10,
+      ),
+      "matchInclination",
     );
     // ν needs to reach 180° (DN). On a circular orbit with period T,
     // that takes roughly (170°/360°)·T seconds.
@@ -393,16 +431,19 @@ describe("matchInclination", () => {
 
 describe("matchTargetPlane", () => {
   it("requires ~zero ΔV when the target plane equals the current plane", () => {
-    const plan = matchTargetPlane(
-      KERBIN_100KM_CIRCULAR,
-      45, // ν
-      20, // argPe
-      30, // inc
-      50, // LAN
-      30, // target inc (same)
-      50, // target LAN (same)
-      KERBIN_MU,
-      0,
+    const plan = bound(
+      matchTargetPlane(
+        KERBIN_100KM_CIRCULAR,
+        45, // ν
+        20, // argPe
+        30, // inc
+        50, // LAN
+        30, // target inc (same)
+        50, // target LAN (same)
+        KERBIN_MU,
+        0,
+      ),
+      "matchTargetPlane",
     );
     expect(Math.abs(plan.normal)).toBeLessThan(1e-6);
     expect(plan.requiredDeltaV).toBeLessThan(1e-6);
@@ -412,40 +453,49 @@ describe("matchTargetPlane", () => {
     // Same LAN → the relative-plane intersection is our own AN/DN line,
     // so matchTargetPlane should produce the same ΔV as matchInclination.
     const targetInc = 30;
-    const tp = matchTargetPlane(
-      KERBIN_100KM_CIRCULAR,
-      10,
-      0,
-      0,
-      0,
-      targetInc,
-      0,
-      KERBIN_MU,
-      0,
+    const tp = bound(
+      matchTargetPlane(
+        KERBIN_100KM_CIRCULAR,
+        10,
+        0,
+        0,
+        0,
+        targetInc,
+        0,
+        KERBIN_MU,
+        0,
+      ),
+      "matchTargetPlane",
     );
-    const mi = matchInclination(
-      KERBIN_100KM_CIRCULAR,
-      10,
-      0,
-      0,
-      KERBIN_MU,
-      0,
-      targetInc,
+    const mi = bound(
+      matchInclination(
+        KERBIN_100KM_CIRCULAR,
+        10,
+        0,
+        0,
+        KERBIN_MU,
+        0,
+        targetInc,
+      ),
+      "matchInclination",
     );
     expect(Math.abs(tp.normal)).toBeCloseTo(Math.abs(mi.normal), 0);
   });
 
   it("produces a non-zero ΔV when only LAN differs", () => {
-    const plan = matchTargetPlane(
-      KERBIN_100KM_CIRCULAR,
-      0,
-      0,
-      10, // non-zero inc so the LAN distinction matters geometrically
-      0,
-      10,
-      45, // LAN shifted 45° → relative plane differs
-      KERBIN_MU,
-      0,
+    const plan = bound(
+      matchTargetPlane(
+        KERBIN_100KM_CIRCULAR,
+        0,
+        0,
+        10, // non-zero inc so the LAN distinction matters geometrically
+        0,
+        10,
+        45, // LAN shifted 45° → relative plane differs
+        KERBIN_MU,
+        0,
+      ),
+      "matchTargetPlane",
     );
     expect(plan.requiredDeltaV).toBeGreaterThan(0);
     expect(plan.projected?.inclination).toBe(10);

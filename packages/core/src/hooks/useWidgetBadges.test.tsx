@@ -12,7 +12,7 @@ describe("useWidgetBadges", () => {
     registerContribution({
       id: "critical-badge",
       contributes: "fixture-widget.badges",
-      compute: () => [{ id: "crit", label: "CRITICAL", tone: "nogo" }],
+      compute: () => [{ id: "crit", label: "CRITICAL", tone: "nogo" as const }],
     });
 
     const { result } = renderHook(() => useWidgetBadges(), {
