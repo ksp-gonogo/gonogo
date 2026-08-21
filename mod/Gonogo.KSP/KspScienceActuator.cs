@@ -31,7 +31,7 @@ namespace Gonogo.KSP
         /// Deploys (runs) the first experiment module on the addressed part
         /// that is neither already <c>Deployed</c> nor <c>Inoperable</c>,
         /// guarded so a deploy on an already-run/spent experiment returns
-        /// <see cref="CommandErrorCode.ModeUnavailable"/> rather than
+        /// <see cref="CommandErrorCode.WrongState"/> rather than
         /// re-triggering. <c>ModuleScienceExperiment.DeployExperiment()</c>,
         /// <c>Deployed</c>, and <c>Inoperable</c> are decompile-confirmed public
         /// members.
@@ -43,6 +43,7 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(error);
             }
 
+            var anyInoperable = false;
             foreach (var exp in experiments)
             {
                 if (exp == null)
@@ -54,10 +55,17 @@ namespace Gonogo.KSP
                     exp.DeployExperiment();
                     return CommandResult.Ok();
                 }
+                anyInoperable |= exp.Inoperable;
             }
 
             // Every experiment module on the part is already deployed or spent.
-            return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            // Which of the two matters: a deployed experiment still holds its
+            // data and an inoperable one needs a scientist to reset it.
+            return CommandResult.Fail(
+                CommandErrorCode.WrongState,
+                anyInoperable
+                    ? "the experiment is spent and needs resetting"
+                    : "the experiment has already been run");
         }
 
         /// <summary>
@@ -75,8 +83,9 @@ namespace Gonogo.KSP
         /// path stock's transmit uses: it clears the stored data and sets the
         /// module inoperable when it is not rerunnable, so this side effect is
         /// faithful to the stock behaviour, not a guess.
-        /// <see cref="CommandErrorCode.ModeUnavailable"/> when the part holds no
-        /// data or no transmitter is available.
+        /// <see cref="CommandErrorCode.WrongState"/> when the part holds no data,
+        /// <see cref="CommandErrorCode.NoConnection"/> when no transmitter on the
+        /// craft can carry it.
         /// </summary>
         public CommandResult TransmitExperiment(string partId)
         {
@@ -110,13 +119,21 @@ namespace Gonogo.KSP
 
             if (withData == null || data == null)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongState, "no experiment on this part is holding data");
             }
 
+            // GetBestTransmitter already honours CommNet and only returns one
+            // that CanTransmit, so a null here and a busy one are the same fact
+            // from the vessel's side: nothing aboard can carry the payload.
             var transmitter = ScienceUtil.GetBestTransmitter(vessel);
             if (transmitter == null || !transmitter.CanTransmit())
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.NoConnection,
+                    transmitter == null
+                        ? "no usable comms device aboard"
+                        : "the antenna cannot transmit right now");
             }
 
             transmitter.TransmitData(new List<ScienceData>(data));

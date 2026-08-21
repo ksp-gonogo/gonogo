@@ -104,14 +104,19 @@ namespace Gonogo.KSP
                 // retired it, or the client's list is stale). Distinct from
                 // NotFound on purpose: "wrong action" is a different fix from
                 // "wrong part".
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "this part has no such action");
             }
 
             if (!found.active || found.EventIsDisabledByVariant)
             {
                 // Present but inert. Invoking it in-game does nothing, so refusing
                 // is more honest than reporting a success that changed nothing.
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch,
+                    found.EventIsDisabledByVariant
+                        ? "this part's variant disables that action"
+                        : "that action is not active on this part");
             }
 
             found.Invoke();

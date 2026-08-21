@@ -183,17 +183,25 @@ namespace Gonogo.KSP
             // rather than casting an out-of-range int into a native enum.
             if (mode == SasMode.Unknown)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                // Range rather than a capability arm: nothing about the craft is
+                // wrong, the client named a mode this contract cannot spell.
+                return CommandResult.Fail(
+                    CommandErrorCode.Range, "no such autopilot mode");
             }
 
             // VesselAutopilot.SetMode returns false when the requested mode
             // isn't currently available (e.g. Maneuver with no node queued,
             // Target with nothing targeted) -- see the decompile-confirmed
             // signature `bool SetMode(AutopilotMode mode)` /
-            // `bool CanSetMode(AutopilotMode mode)`.
+            // `bool CanSetMode(AutopilotMode mode)`. Its arms are the pilot's
+            // skill or the probe's SAS tier, a speed display mode that does not
+            // suit the axis, and a missing target or node: all facts about what
+            // this craft can hold, none of which a retry changes.
             return vessel.Autopilot.SetMode((VesselAutopilot.AutopilotMode)(int)mode)
                 ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                : CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch,
+                    $"this craft cannot hold {GameWords.Of(mode)}");
         }
 
         public CommandResult SetRcs(bool enabled) => WithActionGroups(actionGroups =>
@@ -423,11 +431,13 @@ namespace Gonogo.KSP
             {
                 // No elected backend => nothing can actuate. NoVessel would be
                 // wrong (a vessel may well be there) and Range would lie about
-                // the group; ModeUnavailable is the honest "this isn't
-                // currently available". Only reachable if the capability never
-                // resolved: a correctly bootstrapped engine always has the
-                // stock backend.
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                // the group. This is the one capability question the KERNEL
+                // answers rather than KSP, and it is still a capability
+                // question. Only reachable if the election never resolved: a
+                // correctly bootstrapped engine always has the stock backend.
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch,
+                    "no action-group provider is elected");
             }
             return backend.SetGroup(group, state)
                 ? CommandResult.Ok()
@@ -574,8 +584,9 @@ namespace Gonogo.KSP
             {
                 // A docking port: find the owning vessel by guid, then the
                 // ModuleDockingNode whose part.flightID matches. NotFound when
-                // the vessel is unknown; ModeUnavailable when it's not loaded
-                // (a ModuleDockingNode only exists on a loaded part tree);
+                // the vessel is unknown; NotClearToProceed when it's not loaded
+                // (a ModuleDockingNode only exists on a loaded part tree, and
+                // getting closer loads it, so this one does resolve by waiting);
                 // Range when the vessel has no port with that flightID.
                 if (string.IsNullOrEmpty(vesselId) || partId == null)
                 {
@@ -596,7 +607,9 @@ namespace Gonogo.KSP
                 }
                 if (!owner.loaded)
                 {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                    return CommandResult.Fail(
+                        CommandErrorCode.NotClearToProceed,
+                        "that vessel is out of physics range, so its ports are not there to target");
                 }
                 ModuleDockingNode? node = null;
                 foreach (var candidate in owner.FindPartModulesImplementing<ModuleDockingNode>())

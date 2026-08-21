@@ -31,14 +31,16 @@ namespace Gonogo.KSP
         /// <c>FlightDriver.CanRevertToPostInit</c>: the same flag KSP's own
         /// pause menu reads to decide whether to draw the "Revert to Launch"
         /// button (see <c>Sitrep.Contract.RevertAvailability</c>'s field
-        /// mapping). Unavailable → <see cref="CommandErrorCode.ModeUnavailable"/>
+        /// mapping). Unavailable → <see cref="CommandErrorCode.NotClearToProceed"/>
         /// rather than firing a revert KSP itself would refuse.
         /// </summary>
         public CommandResult RevertToLaunch()
         {
             if (!FlightDriver.CanRevertToPostInit)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "this flight cannot be reverted to launch");
             }
             FlightDriver.RevertToLaunch();
             return CommandResult.Ok();
@@ -60,7 +62,9 @@ namespace Gonogo.KSP
         {
             if (!FlightDriver.CanRevertToPrelaunch)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "this flight cannot be reverted to the editor");
             }
 
             EditorFacility kspFacility;
@@ -98,10 +102,13 @@ namespace Gonogo.KSP
         /// <c>FlightGlobals.Vessels</c> and matching <c>vessel.id.ToString()</c>,
         /// the identical resolution
         /// <see cref="KspVesselActuator.SetTarget"/> uses, so the client never
-        /// needs (or supplies) a live roster index. <c>SetActiveVessel</c>
-        /// returns false when KSP refuses the switch (e.g. the vessel isn't in
-        /// a switchable state); that surfaces as
-        /// <see cref="CommandErrorCode.ModeUnavailable"/>.
+        /// needs (or supplies) a live roster index.
+        ///
+        /// <para><c>FlightGlobals.setActiveVessel</c> switches on
+        /// <c>FlightGlobals.ClearToSave()</c> arm by arm, then adds one more
+        /// refusal for a vessel that is not <c>DiscoveryLevels.Owned</c>. A
+        /// <c>false</c> return discards which of the eight it was, so the arm is
+        /// read back here to name it.</para>
         /// </summary>
         public CommandResult SwitchVessel(string vesselId)
         {
@@ -127,7 +134,33 @@ namespace Gonogo.KSP
 
             return FlightGlobals.SetActiveVessel(found)
                 ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                : CommandResult.Fail(CommandErrorCode.NotClearToProceed, SwitchRefusalReason(found));
+        }
+
+        /// <summary>
+        /// Which of <c>setActiveVessel</c>'s refusals it was, read back after the
+        /// bare <c>false</c>.
+        ///
+        /// <para>Read back rather than pre-checked: a pre-check would be a second
+        /// evaluation that can disagree with the one that actually decided, and
+        /// this runs only on the branch that already refused. A read that throws
+        /// (no flight scene) loses part of a sentence, never the refusal.</para>
+        /// </summary>
+        private static string SwitchRefusalReason(Vessel vessel)
+        {
+            try
+            {
+                if (vessel.DiscoveryInfo != null && vessel.DiscoveryInfo.Level != DiscoveryLevels.Owned)
+                {
+                    return "the vessel is not tracked as ours";
+                }
+                var clear = FlightGlobals.ClearToSave();
+                return clear == ClearToSaveStatus.CLEAR ? "" : GameWords.Of(clear);
+            }
+            catch (Exception)
+            {
+                return "";
+            }
         }
 
         /// <summary>
@@ -141,8 +174,9 @@ namespace Gonogo.KSP
         /// (<c>Parameters.Flight.CanLeaveToSpaceCenter</c>); both gates are
         /// mirrored here so recovery is never requested when KSP itself would
         /// refuse it: a failed gate returns
-        /// <see cref="CommandErrorCode.ModeUnavailable"/> rather than firing a
-        /// destructive recovery.
+        /// <see cref="CommandErrorCode.NotClearToProceed"/> rather than firing a
+        /// destructive recovery, carrying which of
+        /// <c>ClearToSaveStatus</c>'s seven arms it was.
         /// </summary>
         public CommandResult Recover()
         {
@@ -152,15 +186,18 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
-            if (FlightGlobals.ClearToSave() != ClearToSaveStatus.CLEAR)
+            var clear = FlightGlobals.ClearToSave();
+            if (clear != ClearToSaveStatus.CLEAR)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, GameWords.Of(clear));
             }
 
             var game = HighLogic.CurrentGame;
             if (game?.Parameters?.Flight != null && !game.Parameters.Flight.CanLeaveToSpaceCenter)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "this game does not permit leaving to the space center");
             }
 
             GameEvents.OnVesselRecoveryRequested.Fire(vessel);
@@ -176,10 +213,11 @@ namespace Gonogo.KSP
         /// <c>GonogoAddon.FixedUpdate</c>: so no <c>Defer</c> wrapper is needed
         /// (KSP's scene loader is not re-entrant off the main thread).
         ///
-        /// <para>Refuses unless the scene is the space center or an editor, and
-        /// refuses when an <c>ActiveVessel</c> from a prior flight still exists
-        /// (launching over one wedges KSP into a frozen Flight scene), both
-        /// surface as <see cref="CommandErrorCode.ModeUnavailable"/>. The craft
+        /// <para>Refuses unless the scene is the space center or an editor
+        /// (<see cref="CommandErrorCode.WrongScene"/>), and refuses when an
+        /// <c>ActiveVessel</c> from a prior flight still exists (launching over
+        /// one wedges KSP into a frozen Flight scene:
+        /// <see cref="CommandErrorCode.NotClearToProceed"/>). The craft
         /// path is rebuilt server-side from
         /// <c>&lt;AppRoot&gt;/saves/&lt;SaveFolder&gt;/Ships/&lt;facility&gt;/&lt;shipName&gt;.craft</c>;
         /// a missing save is <see cref="CommandErrorCode.NoVessel"/>, a missing
@@ -196,7 +234,8 @@ namespace Gonogo.KSP
             if (HighLogic.LoadedScene != GameScenes.SPACECENTER &&
                 HighLogic.LoadedScene != GameScenes.EDITOR)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, GameWords.Of(HighLogic.LoadedScene));
             }
 
             // A leftover ActiveVessel from an un-recovered prior flight wedges
@@ -204,7 +243,9 @@ namespace Gonogo.KSP
             // operator recovers/reverts the existing vessel first.
             if (FlightGlobals.ActiveVessel != null)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "a vessel from the last flight is still in the world");
             }
 
             string facilityFolder;
@@ -252,7 +293,14 @@ namespace Gonogo.KSP
             }
             catch (Exception)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                // The ONE genuine attempt-and-see refusal in this assembly. A
+                // .craft is only known to be readable by reading it: a malformed
+                // file, or one that names parts from a mod this install no longer
+                // has, fails inside ConfigNode.Load or VesselCrewManifest with no
+                // query that could have said so first. Everything else here is a
+                // precheck, so ModeUnavailable means what it says only here.
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable, "the craft file could not be read");
             }
 
             var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";

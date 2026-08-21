@@ -42,16 +42,19 @@ namespace Gonogo.KSP
     {
         public CommandResult SetServoTarget(string partId, double value) => WithServo(partId, servo =>
         {
-            // A rotor spins continuously and has no target; a non-motorized
-            // servo can't be driven to one either. Both are ModeUnavailable
-            // rather than a silent no-op.
+            // The part's own module list is the authority here: what a servo IS
+            // decides what it can be told, and none of these resolve by waiting.
+            // A refusal rather than a silent no-op, so the operator learns the
+            // control does not apply to this part.
             if (servo is ModuleRoboticServoRotor)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "a rotor spins freely and holds no target");
             }
             if (!servo.servoIsMotorized)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "this servo has no motor to drive it");
             }
 
             if (servo is ModuleRoboticServoHinge hinge)
@@ -65,14 +68,16 @@ namespace Gonogo.KSP
                 return CommandResult.Ok();
             }
 
-            return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            return CommandResult.Fail(
+                CommandErrorCode.CapabilityMismatch, "this servo is neither a hinge nor a piston");
         });
 
         public CommandResult SetServoMotor(string partId, bool engaged) => WithServo(partId, servo =>
         {
             if (!servo.servoIsMotorized)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "this servo has no motor to engage");
             }
             if (engaged)
             {
@@ -122,7 +127,8 @@ namespace Gonogo.KSP
         {
             if (!rotor.servoIsMotorized)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "this rotor has no motor to engage");
             }
             if (engaged)
             {
@@ -195,7 +201,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Rotor-specific twin of <see cref="WithServo"/>. A part that resolves
         /// but is a hinge/piston rather than a rotor is a subtype mismatch and
-        /// comes back <see cref="CommandErrorCode.ModeUnavailable"/>: an
+        /// comes back <see cref="CommandErrorCode.CapabilityMismatch"/>: an
         /// unknown id is still <see cref="CommandErrorCode.NotFound"/>.
         /// </summary>
         private static CommandResult WithRotor(string partId, Func<ModuleRoboticServoRotor, CommandResult> action)
@@ -215,7 +221,8 @@ namespace Gonogo.KSP
             var rotors = part.Modules.GetModules<ModuleRoboticServoRotor>();
             if (rotors == null || rotors.Count == 0 || rotors[0] == null)
             {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "this part is not a rotor");
             }
 
             return action(rotors[0]);
