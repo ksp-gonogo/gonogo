@@ -331,7 +331,13 @@ function ExperimentsComponent({
   const sectionNodes = grouped.map(({ expId, items }) => (
     <Section key={expId}>
       <SectionTitle>{expId || "(unknown)"}</SectionTitle>
-      <Stack gap="xs">
+      {/* `ScienceExperimentRow` is a kit `Row`, which renders an `<li>`, so
+          the container has to be a real list or every instrument row is an
+          orphaned list item. An augment registered into the per-instrument
+          slot below renders as a sibling inside this `<ul>` and would need
+          to be a list item itself; nothing registers there yet, and the axe
+          sweep over this widget's fixtures is what would say so. */}
+      <Stack gap="xs" as="ul" style={INSTRUMENT_LIST}>
         {items.map((inst) => (
           <Fragment key={inst.partId}>
             <ScienceExperimentRow
@@ -441,6 +447,9 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
     </>
   );
 }
+
+/** Strips the browser's list chrome so the `<ul>` is semantics only. */
+const INSTRUMENT_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 interface InstrumentGroup {
   expId: string;
