@@ -228,17 +228,39 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
         run: |
           set -euo pipefail
-          managed="${{ github.workspace }}/ksp-managed/KSP_Data/Managed/Assembly-CSharp.dll"
-          kos="${{ github.workspace }}/ksp-managed/GameData/kOS/Plugins/kOS.dll"
+          # THE RULE: every DLL a suite's availability gate conditions on has to
+          # be named here. A gate that goes false does not fail, it removes the
+          # sources from the compile, so the suite runs zero tests and the job
+          # stays green. Asserting a SUBSET of what the gates read is therefore a
+          # check that cannot express the failure it exists to catch: it passes
+          # on exactly the checkout that silently tests nothing.
+          #
+          # This list asserted only Assembly-CSharp.dll and kOS.dll and so had
+          # that hole twice over. GonogoKosUplink.Tests' KosSafeAvailable reads
+          # BOTH kOS.dll and kOS.Safe.dll, so a checkout carrying only kOS.dll
+          # dropped the whole headless terminal harness and passed here.
+          # Gonogo.KSP.Tests additionally resolves UnityEngine.CoreModule.dll for
+          # ConfigNode's Vector3/Quaternion overload sets, and the robotics servo
+          # capture needs UnityEngine.PhysicsModule.dll at TYPE LOAD, because
+          # BaseServo declares ConfigurableJoint fields.
+          required=(
+            "KSP_Data/Managed/Assembly-CSharp.dll"
+            "KSP_Data/Managed/UnityEngine.CoreModule.dll"
+            "KSP_Data/Managed/UnityEngine.PhysicsModule.dll"
+            "GameData/kOS/Plugins/kOS.dll"
+            "GameData/kOS/Plugins/kOS.Safe.dll"
+          )
           missing=""
-          [ -f "$managed" ] || missing="$missing $managed"
-          [ -f "$kos" ] || missing="$missing $kos"
+          for rel in "${required[@]}"; do
+            path="${{ github.workspace }}/ksp-managed/$rel"
+            [ -f "$path" ] || missing="$missing $rel"
+          done
           if [ -n "$missing" ]; then
             echo "::error::KSP reference assemblies absent on ${{ github.ref }}:$missing"
-            echo "::error::The KSP-linked suites (kOS headless harness, Gonogo.KSP ConfigNode ledger) would be DROPPED at build time and this job would pass without them. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
+            echo "::error::The KSP-linked suites (kOS headless harness, Gonogo.KSP ConfigNode ledger, robotics servo capture) would be DROPPED at build time and this job would pass without them. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
             exit 1
           fi
-          echo "KSP reference assemblies present: the KSP-linked suites will run."
+          echo "KSP reference assemblies present (${#required[@]} checked): the KSP-linked suites will run."
 
       - name: dotnet test (KSP-independent Sitrep projects)
         working-directory: mod
