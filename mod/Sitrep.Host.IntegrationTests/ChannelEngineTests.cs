@@ -936,17 +936,17 @@ namespace Sitrep.Host.IntegrationTests
         /// something a client can tell apart from a gate that evaluated and said
         /// no. Same channel, same shape, different <see cref="GateOutcome"/>.
         ///
-        /// <para>Load-bearing rather than pedantic.
-        /// <c>ScenarioUpgradeableFacilities</c> is declared
-        /// <c>[KSPScenario]</c> for career and mission only, so its
-        /// <c>Instance</c> is NULL in a sandbox save and every facility gate
-        /// answers Unknown there. Unknown REFUSES at dispatch, on purpose, so a
-        /// consumer that collapsed the two would black out working controls in
-        /// every sandbox game and explain it in the game's own voice, for ever.
-        /// The wire has always carried the distinction; this pins it, because
-        /// the same class of bug has already been shipped once in this feature
-        /// (a cross-thread exception caught as Unknown, refusing two commands
-        /// permanently while looking deliberate).</para>
+        /// <para>Load-bearing rather than pedantic. A career save that is still
+        /// loading has no <c>ScenarioUpgradeableFacilities.Instance</c> yet, so
+        /// every facility gate answers Unknown until it does. Unknown REFUSES at
+        /// dispatch, on purpose, so a consumer that collapsed the two would black
+        /// those controls out and explain it as a fact about a building rather
+        /// than about a scene. The wire has always carried the distinction; this
+        /// pins it, because the same class of bug has already been shipped twice
+        /// in this feature: a cross-thread exception caught as Unknown, refusing
+        /// two commands permanently while looking deliberate, and the facility
+        /// gates answering Unknown in a SANDBOX save, where the scenario is
+        /// absent because there are no tiers and the honest answer was max.</para>
         /// </summary>
         [Fact]
         public async Task AnUnevaluableGateIsDistinguishableOnTheWireFromAnEvaluatedNo()
@@ -1459,9 +1459,9 @@ namespace Sitrep.Host.IntegrationTests
                         case GateOutcome.Fail:
                             return GateVerdict.Fail(CommandErrorCode.SiteOccupied, RefusalDetail);
                         case GateOutcome.Unknown:
-                            // What a facility gate answers in a sandbox save,
-                            // where ScenarioUpgradeableFacilities.Instance is
-                            // null because the scenario is career/mission only.
+                            // What a facility gate answers while a career save is
+                            // still loading and ScenarioUpgradeableFacilities
+                            // has not woken up yet.
                             return GateVerdict.Unknown(UnknownDetail);
                         default:
                             return GateVerdict.Pass();

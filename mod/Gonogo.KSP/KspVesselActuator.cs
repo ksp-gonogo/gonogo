@@ -1,4 +1,5 @@
 using System;
+using Gonogo.KSP.Gates;
 using KSP.UI.Screens;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -137,18 +138,26 @@ namespace Gonogo.KSP
         {
             var vessel = FlightGlobals.ActiveVessel;
 
-            // A career gate with no career scenario to read is OPEN: sandbox has
-            // no ScenarioUpgradeableFacilities at all, and no facility tiers to
-            // be short of. See ManeuverWriteAuthority's own note.
+            // WHICH saves have no facility tiers is decided in one place, shared
+            // with the gates (FacilityGateHelp.ReadFacilityTiers), so the two
+            // cannot come to disagree about what a missing scenario means. In a
+            // save that has none, Mission Control is at its ceiling and flight
+            // planning is unlocked.
             var flightPlanningUnlocked = true;
             var missionControlName = "";
+            var tiers = FacilityGateHelp.ReadFacilityTiers(
+                FacilityGateHelp.FacilitiesScenarioLoaded(), FacilityGateHelp.CurrentGameMode());
             var gameVariables = GameVariables.Instance;
-            if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
+            if (tiers == FacilityTierRead.Live && gameVariables != null)
             {
                 var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.MissionControl);
                 flightPlanningUnlocked = gameVariables.UnlockedFlightPlanning(norm);
                 missionControlName = FacilityName(SpaceCenterFacility.MissionControl);
             }
+            // Unreadable stays OPEN here, unlike the gate, and deliberately.
+            // A gate answers before anyone acts, so Unknown costs a moment; this
+            // runs on a dispatch in FLIGHT, where the scenario has long since
+            // loaded, so the only thing a refusal could be is a false one.
 
             return ManeuverWriteAuthority.RefusalFor(
                 hasVessel: vessel != null,

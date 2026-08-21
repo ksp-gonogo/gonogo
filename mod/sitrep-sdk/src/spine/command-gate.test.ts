@@ -45,23 +45,35 @@ describe("selectCommandGate", () => {
     });
   });
 
-  it("does not block on a Pass", () => {
+  it("does not block on a Pass, and does not mark it undetermined either", () => {
     const gate = selectCommandGate(
       report({ command: "flight.launch", outcome: GateOutcome.Pass }),
       "flight.launch",
     );
 
     expect(gate?.blocked).toBe(false);
+    // Both, because they are different renderings. `undetermined` leaves the
+    // control live but tags it as unjudged, which is what a facility gate in a
+    // sandbox save used to produce and what the mod stopped producing when it
+    // learned that sandbox has no tiers rather than unreadable ones. A control
+    // that PASSED must be an ordinary live one, with nothing said about it.
+    expect(gate?.undetermined).toBe(false);
   });
 
   it("does NOT block on an Unknown: an absent authority is not the game saying no", () => {
-    // The case that forces the distinction. `ScenarioUpgradeableFacilities` is
-    // a career/mission-only [KSPScenario], so its Instance is null in a SANDBOX
-    // save and every facility gate answers Unknown there. Collapsing that into
-    // `blocked` would black out working controls in every sandbox game and
-    // explain it in the game's own voice, permanently. Unknown still refuses at
-    // DISPATCH, which is a rule about acting, not a licence to render a false
-    // certainty in advance.
+    // The case that forces the distinction, and the detail below is the mod's
+    // own sentence for it: a career save is still loading, so
+    // `ScenarioUpgradeableFacilities.Instance` is not there yet and every
+    // facility gate answers Unknown until it is. Collapsing that into `blocked`
+    // would black out working controls and explain it in the game's own voice,
+    // as a fact about a building rather than about a scene. Unknown still
+    // refuses at DISPATCH, which is a rule about acting, not a licence to render
+    // a false certainty in advance.
+    //
+    // A SANDBOX save produces the same null and no longer produces this outcome:
+    // sandbox has no facility tiers, so the gates answer max there. That is why
+    // the distinction is about whether an authority EXISTS, not about whether a
+    // read succeeded.
     const gate = selectCommandGate(
       report({
         command: "career.tech.unlock",
