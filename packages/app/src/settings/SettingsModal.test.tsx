@@ -21,6 +21,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -28,6 +29,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
@@ -211,6 +213,8 @@ function setupTelemetryStream() {
 
   return {
     emit: (payload: unknown) => transport.emit("system.uplinks", payload),
+    emitTopic: (topic: string, payload: unknown) =>
+      transport.emit(topic, payload),
     Provider,
   };
 }
@@ -902,5 +906,297 @@ describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
     expect(
       screen.getByRole("checkbox", { name: /child toggle/i }),
     ).toBeDisabled();
+  });
+});
+
+/*
+ * Read-only, typed and grouped rows.
+ *
+ * The registry could express none of these until 2026-08-21: every row was a
+ * writable boolean rendered as a `Switch`, in one flat list per category. A mod
+ * whose settings are provenance (which plotting frame, what tolerance, which
+ * build) had nowhere to put them but a bespoke tab, which is a status widget
+ * with a different frame around it.
+ */
+
+interface FramePrefs {
+  frameName: string;
+  tolerance: number;
+  maxSteps: number;
+  declutter: boolean;
+}
+
+const FRAME_PREFS: FramePrefs = {
+  frameName: "Kerbin-centred inertial",
+  tolerance: 1,
+  maxSteps: 1000,
+  declutter: true,
+};
+
+function registerStreamBackedRows() {
+  registerSetting({
+    id: "example.frame",
+    backing: "stream-backed",
+    type: "text",
+    topic: "example.settings",
+    select: (p) => (p as FramePrefs).frameName,
+    category: "Example",
+    group: "Plotting frame",
+    label: "Selected frame",
+    screens: ["main"],
+  });
+  registerSetting({
+    id: "example.tolerance",
+    backing: "stream-backed",
+    type: "number",
+    topic: "example.settings",
+    select: (p) => value("m", (p as FramePrefs).tolerance),
+    category: "Example",
+    group: "Prediction",
+    label: "Prediction tolerance",
+    screens: ["main"],
+  });
+  registerSetting({
+    id: "example.maxSteps",
+    backing: "stream-backed",
+    type: "number",
+    topic: "example.settings",
+    select: (p) => (p as FramePrefs).maxSteps,
+    category: "Example",
+    group: "Prediction",
+    label: "Max steps",
+    screens: ["main"],
+  });
+}
+
+describe("SettingsModal: stream-backed read-only rows", () => {
+  it("renders the value as a term/definition pair, never as a control", async () => {
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+
+    const frame = await screen.findByText("Kerbin-centred inertial");
+    expect(frame.closest("dd")).not.toBeNull();
+    // The row is data. A disabled control would be skipped by some screen
+    // readers and would promise a write that does not exist.
+    expect(
+      screen.queryByRole("checkbox", { name: /selected frame/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("textbox", { name: /selected frame/i }),
+    ).toBeNull();
+    await act(async () => {});
+  });
+
+  it("announces the label with the value it belongs to", async () => {
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+
+    // The value is what arrives late; the label renders from the definition
+    // immediately, so awaiting the label would prove nothing.
+    const shown = await screen.findByText("Kerbin-centred inertial");
+    const label = screen.getByText("Selected frame");
+    expect(label.closest("dt")).not.toBeNull();
+    expect(label.closest("dl")).toBe(shown.closest("dl"));
+    await act(async () => {});
+  });
+
+  it("renders a quantity through Unit, so the unit is spoken", async () => {
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+
+    // The symbol is drawn and hidden from the accessibility tree; the word is
+    // what a screen reader gets. `1` on its own would be a lie about a length.
+    expect(await screen.findByText("m")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText(/metres/)).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("shows the null placeholder while the topic is silent", async () => {
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    const { container } = renderModalWithStream(stream);
+
+    // Nothing emitted: three rows, three placeholders, and no invented zeroes.
+    const placeholders = [...container.querySelectorAll("dd")].filter(
+      (dd) => dd.textContent === NULL_DISPLAY,
+    );
+    expect(placeholders).toHaveLength(3);
+    await act(async () => {});
+  });
+
+  it("passes the a11y smoke assertion with read-only and writable rows mixed", async () => {
+    registerStreamBackedRows();
+    registerSetting({
+      id: "example.pref",
+      type: "boolean",
+      label: "A writable preference",
+      category: "Example",
+      defaultValue: true,
+      screens: ["main"],
+    });
+    const stream = setupTelemetryStream();
+    const { container } = renderModalWithStream(stream);
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+    await screen.findByText("Kerbin-centred inertial");
+
+    await expectNoA11yViolations(container);
+    await act(async () => {});
+  });
+});
+
+describe("SettingsModal: grouping inside a category", () => {
+  it("puts ungrouped rows above the named groups", async () => {
+    registerSetting({
+      id: "example.ungrouped",
+      type: "boolean",
+      label: "An ungrouped row",
+      category: "Example",
+      defaultValue: true,
+      screens: ["main"],
+    });
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    const { container } = renderModalWithStream(stream);
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+    await screen.findByText("Kerbin-centred inertial");
+
+    const order = [...container.querySelectorAll("h3, h4, dt, span")]
+      .map((el) => el.textContent)
+      .filter((t): t is string => t !== null);
+    const category = order.indexOf("Example");
+    const ungrouped = order.indexOf("An ungrouped row");
+    const firstGroup = order.indexOf("Plotting frame");
+    expect(category).toBeGreaterThanOrEqual(0);
+    expect(ungrouped).toBeGreaterThan(category);
+    expect(firstGroup).toBeGreaterThan(ungrouped);
+    await act(async () => {});
+  });
+
+  it("titles each group beneath its category, one heading level down", async () => {
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+    await screen.findByText("Kerbin-centred inertial");
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Example" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Plotting frame" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Prediction" }),
+    ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("keeps a group's rows together, in registration order", async () => {
+    registerStreamBackedRows();
+    const stream = setupTelemetryStream();
+    const { container } = renderModalWithStream(stream);
+    act(() => stream.emitTopic("example.settings", FRAME_PREFS));
+    await screen.findByText("Kerbin-centred inertial");
+
+    const labels = [...container.querySelectorAll("h4, dt")].map(
+      (el) => el.textContent ?? "",
+    );
+    const prediction = labels.indexOf("Prediction");
+    expect(labels[prediction + 1]).toContain("Prediction tolerance");
+    expect(labels[prediction + 2]).toContain("Max steps");
+    await act(async () => {});
+  });
+});
+
+describe("SettingsModal: typed writable rows", () => {
+  it("renders a number preference as a spinbutton and persists what is typed", () => {
+    registerSetting({
+      id: "example.historyLength",
+      type: "number",
+      label: "History length",
+      category: "Example",
+      defaultValue: 30,
+      screens: ["main"],
+    });
+    renderModal("main");
+
+    const input = screen.getByRole("spinbutton", { name: /history length/i });
+    expect(input).toHaveValue(30);
+    fireEvent.change(input, { target: { value: "45" } });
+    expect(
+      screen.getByRole("spinbutton", { name: /history length/i }),
+    ).toHaveValue(45);
+  });
+
+  it("ignores an emptied or part-typed box rather than persisting a zero", () => {
+    registerSetting({
+      id: "example.historyLength",
+      type: "number",
+      label: "History length",
+      category: "Example",
+      defaultValue: 30,
+      screens: ["main"],
+    });
+    renderModal("main");
+
+    const input = screen.getByRole("spinbutton", { name: /history length/i });
+    // A number input reports "" for an emptied box AND for anything it cannot
+    // parse. `Number("")` is 0, so this is the case that persisted a silent
+    // zero before the guard checked for emptiness ahead of the parse.
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.change(input, { target: { value: "not a number" } });
+    expect(
+      screen.getByRole("spinbutton", { name: /history length/i }),
+    ).toHaveValue(30);
+  });
+
+  it("renders a text preference as a textbox", () => {
+    registerSetting({
+      id: "example.callsign",
+      type: "text",
+      label: "Callsign",
+      category: "Example",
+      defaultValue: "Houston",
+      screens: ["main"],
+    });
+    renderModal("main");
+
+    const input = screen.getByRole("textbox", { name: /callsign/i });
+    expect(input).toHaveValue("Houston");
+    fireEvent.change(input, { target: { value: "Capcom" } });
+    expect(screen.getByRole("textbox", { name: /callsign/i })).toHaveValue(
+      "Capcom",
+    );
+  });
+});
+
+describe("SettingsModal: a source-backed row that cannot be written", () => {
+  it("renders its value instead of a disabled switch", () => {
+    registerUplinkHandle("throttle-src", makeThrottleSourceStub(true));
+    registerSetting({
+      id: "throttle.build",
+      backing: "source-backed",
+      type: "text",
+      readOnly: true,
+      sourceId: "throttle-src",
+      read: () => "1.4.2",
+      subscribe: () => () => {},
+      category: "Test",
+      label: "Build",
+      screens: ["main"],
+    });
+    renderModal("main");
+
+    expect(screen.getByText("1.4.2").closest("dd")).not.toBeNull();
+    expect(screen.queryByRole("checkbox", { name: /build/i })).toBeNull();
   });
 });

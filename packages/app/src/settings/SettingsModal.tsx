@@ -17,6 +17,7 @@ import type {
   UplinkHealthStateName,
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
+import { isValue } from "@ksp-gonogo/sitrep-sdk";
 import {
   GhostButton,
   Placeholder,
@@ -24,8 +25,15 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui";
-import { Badge, Cluster, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
-import { useState, useSyncExternalStore } from "react";
+import {
+  Badge,
+  Cluster,
+  Input,
+  ReadOnlyField,
+  SectionTitle,
+  Stack,
+} from "@ksp-gonogo/ui-kit";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
@@ -38,8 +46,18 @@ import {
 } from "../uplinks/loaderState";
 import { UplinkHubWizard } from "../wizard/UplinkHubWizard";
 import { useUplinkGap } from "../wizard/useUplinkGap";
-import type { SettingDefinition, SourceBackedSetting } from "./registry";
-import { getSettingDefinition, getSettingsForScreen } from "./registry";
+import type {
+  SettingDefinition,
+  SettingValue,
+  SourceBackedSetting,
+  StreamBackedSetting,
+} from "./registry";
+import {
+  getSettingDefinition,
+  getSettingsForScreen,
+  isReadOnlySetting,
+  settingTypeOf,
+} from "./registry";
 import { useSetting } from "./SettingsContext";
 import { ConnectionRow, Name, SitrepConnection } from "./SitrepConnection";
 
@@ -348,6 +366,18 @@ function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
   );
 }
 
+/** Buckets in first-registration order, so a category's rows keep their order. */
+function bucketBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    const bucket = out.get(k);
+    if (bucket) bucket.push(item);
+    else out.set(k, [item]);
+  }
+  return out;
+}
+
 /** The auto-rendered registered settings + the privacy consent toggle. */
 function GeneralSettings({
   settings,
@@ -356,12 +386,7 @@ function GeneralSettings({
   settings: SettingDefinition[];
   showConsent: boolean;
 }) {
-  const byCategory = new Map<string, SettingDefinition[]>();
-  for (const s of settings) {
-    const bucket = byCategory.get(s.category);
-    if (bucket) bucket.push(s);
-    else byCategory.set(s.category, [s]);
-  }
+  const byCategory = bucketBy(settings, (s) => s.category);
 
   return (
     <SectionStack>
@@ -370,9 +395,7 @@ function GeneralSettings({
           <SectionTitle as="h3" $rule>
             {category}
           </SectionTitle>
-          {items.map((def) => (
-            <SettingRow key={def.id} def={def} />
-          ))}
+          <CategoryRows items={items} />
         </Stack>
       ))}
       {showConsent && (
@@ -420,15 +443,73 @@ function AnalyticsConsentRow() {
   );
 }
 
+/**
+ * A category's rows: the ungrouped ones first, directly under the category
+ * heading, then each named `group` under a sub-heading of its own.
+ *
+ * Ungrouped-first is what keeps a category that never declared a group looking
+ * exactly as it did. It also matches how a mod's settings actually read: the
+ * two or three rows everybody wants sit at the top, and the long tail files
+ * itself away under a name.
+ */
+function CategoryRows({ items }: { items: SettingDefinition[] }) {
+  const ungrouped = items.filter((s) => s.group === undefined);
+  const grouped = bucketBy(
+    items.filter((s) => s.group !== undefined),
+    // Narrowed by the filter above; the predicate does not carry that to TS.
+    (s) => s.group as string,
+  );
+
+  return (
+    <>
+      {ungrouped.map((def) => (
+        <SettingRow key={def.id} def={def} />
+      ))}
+      {[...grouped.entries()].map(([group, rows]) => (
+        <Stack gap="sm" key={group}>
+          <GroupTitle>{group}</GroupTitle>
+          {rows.map((def) => (
+            <SettingRow key={def.id} def={def} />
+          ))}
+        </Stack>
+      ))}
+    </>
+  );
+}
+
 function SettingRow({ def }: { def: SettingDefinition }) {
   // Split by BACKING at the component boundary (not a conditional hook): a
   // source-backed row reads/writes a DataSource via useSyncExternalStore, a
-  // client-pref row reads/writes localStorage via useSetting. Each row calls
-  // exactly one hook path, so rules-of-hooks stays honest.
+  // stream-backed one reads a Topic via useStream, a client-pref row
+  // reads/writes localStorage via useSetting. Each row calls exactly one hook
+  // path, so rules-of-hooks stays honest.
+  if (def.backing === "stream-backed") {
+    return <StreamBackedRow def={def} />;
+  }
   if (def.backing === "source-backed") {
     return <SourceBackedRow def={def} />;
   }
   return <ClientPrefRow def={def} />;
+}
+
+/**
+ * A stream-backed setting's row: the value arrives on a Topic and there is
+ * nothing to write, so this is always a `ReadOnlyField`.
+ *
+ * A silent Topic and a Topic that carries no such field both land on the null
+ * placeholder, which is the honest reading of both: the mod has not said.
+ */
+function StreamBackedRow({ def }: { def: StreamBackedSetting }) {
+  const payload = useStream<unknown>(def.topic);
+  return (
+    <SettingReadOnlyLine $indented={def.dependsOn !== undefined}>
+      <ReadOnlyField
+        label={def.label}
+        description={def.description}
+        value={payload === undefined ? undefined : def.select(payload)}
+      />
+    </SettingReadOnlyLine>
+  );
 }
 
 /**
@@ -444,23 +525,39 @@ function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
   // DataSource registry as a fallback for sources registered that way.
   const source: unknown =
     getUplinkHandle(def.sourceId) ?? getDataSource(def.sourceId);
+  const getSnapshot = useStableSettingSnapshot(() =>
+    source ? def.read(source) : undefined,
+  );
   const value = useSyncExternalStore(
     (cb) => (source ? def.subscribe(source, cb) : () => {}),
-    () => (source ? def.read(source) : false),
+    getSnapshot,
   );
+
+  if (isReadOnlySetting(def)) {
+    return (
+      <SettingReadOnlyLine>
+        <ReadOnlyField
+          label={def.label}
+          description={def.description}
+          value={value}
+        />
+      </SettingReadOnlyLine>
+    );
+  }
   return (
     <SettingLine>
       <RowText>
         <RowLabel>{def.label}</RowLabel>
         {def.description && <RowDesc>{def.description}</RowDesc>}
       </RowText>
-      <Switch
-        checked={value}
-        onChange={(next) => {
-          if (source) def.write(source, next);
-        }}
+      <SettingControl
+        def={def}
+        value={value}
         disabled={source === undefined}
-        aria-label={def.label}
+        onChange={(next) => {
+          // `write` is present because `isReadOnlySetting` returned false.
+          if (source) def.write?.(source, next as never);
+        }}
       />
     </SettingLine>
   );
@@ -471,7 +568,7 @@ function ClientPrefRow({
 }: {
   def: Extract<SettingDefinition, { backing?: "client-pref" }>;
 }) {
-  const [value, setValue] = useSetting<boolean>(def.id, def.defaultValue);
+  const [value, setValue] = useSetting<SettingValue>(def.id, def.defaultValue);
   // `dependsOn` is a rendering-only hint (see its doc comment in
   // registry.ts): read the parent's CURRENT value the same way this row
   // reads its own, so the row visually goes inert the instant the parent
@@ -482,28 +579,140 @@ function ClientPrefRow({
     ? getSettingDefinition(def.dependsOn)
     : undefined;
   // A dependsOn parent is a client-pref boolean by construction (its value
-  // lives in localStorage, which is what this row reads); a source-backed
-  // setting has no localStorage default, so fall back to "on".
+  // lives in localStorage, which is what this row reads); a setting with no
+  // localStorage default has no value to fall back to, so assume "on".
   const [parentValue] = useSetting<boolean>(
     def.dependsOn ?? "__no_parent__",
-    parent && parent.backing !== "source-backed" ? parent.defaultValue : true,
+    parent !== undefined && parent.backing === undefined
+      ? parent.defaultValue === true
+      : true,
   );
   const inert = def.dependsOn !== undefined && !parentValue;
 
+  if (isReadOnlySetting(def)) {
+    return (
+      <SettingReadOnlyLine $indented={def.dependsOn !== undefined}>
+        <ReadOnlyField
+          label={def.label}
+          description={def.description}
+          value={value}
+        />
+      </SettingReadOnlyLine>
+    );
+  }
   return (
     <SettingLine $indented={def.dependsOn !== undefined}>
       <RowText>
         <RowLabel>{def.label}</RowLabel>
         {def.description && <RowDesc>{def.description}</RowDesc>}
       </RowText>
-      <Switch
-        checked={value}
-        onChange={setValue}
+      <SettingControl
+        def={def}
+        value={value}
         disabled={inert}
-        aria-label={def.label}
+        onChange={setValue}
       />
     </SettingLine>
   );
+}
+
+/**
+ * The control half of a WRITABLE row, chosen by the row's declared type. A
+ * read-only row never reaches here: it renders a `ReadOnlyField` instead, which
+ * is the whole point of the flag.
+ */
+function SettingControl({
+  def,
+  value,
+  disabled,
+  onChange,
+}: {
+  def: SettingDefinition;
+  value: SettingValue | undefined;
+  disabled: boolean;
+  onChange: (next: SettingValue) => void;
+}) {
+  const type = settingTypeOf(def);
+  if (type === "boolean") {
+    return (
+      <Switch
+        checked={value === true}
+        onChange={onChange}
+        disabled={disabled}
+        aria-label={def.label}
+      />
+    );
+  }
+  if (type === "number") {
+    return (
+      <SettingInput
+        type="number"
+        value={typeof value === "number" ? String(value) : ""}
+        onChange={(e) => {
+          const typed = e.target.value;
+          // A mid-edit box is empty ("" is also what a number input reports for
+          // anything unparseable), and `Number("")` is 0, so the emptiness has
+          // to be caught before the parse or a cleared field silently persists
+          // a zero. "-" and "1e" parse to NaN and are caught after it.
+          if (typed.trim() === "") return;
+          const next = Number(typed);
+          if (Number.isFinite(next)) onChange(next);
+        }}
+        disabled={disabled}
+        aria-label={def.label}
+      />
+    );
+  }
+  return (
+    <SettingInput
+      type="text"
+      value={typeof value === "string" ? value : ""}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      aria-label={def.label}
+    />
+  );
+}
+
+/**
+ * `useSyncExternalStore` tears the tree down with an infinite loop if
+ * `getSnapshot` hands back a new object each call, and a `number` row's binding
+ * is free to build its `Value` fresh on every read: `read: (s) => value("m",
+ * s.tolerance)` is the natural way to write one. Nothing in the API would tell
+ * the author the loop was theirs, so the previous snapshot is kept and reused
+ * whenever the new one means the same thing.
+ */
+function useStableSettingSnapshot(
+  read: () => SettingValue | undefined,
+): () => SettingValue | undefined {
+  const readRef = useRef(read);
+  readRef.current = read;
+  const last = useRef<{ snapshot: SettingValue | undefined } | undefined>(
+    undefined,
+  );
+  return useCallback(() => {
+    const next = readRef.current();
+    const prev = last.current;
+    if (prev !== undefined && sameSettingValue(prev.snapshot, next)) {
+      return prev.snapshot;
+    }
+    last.current = { snapshot: next };
+    return next;
+  }, []);
+}
+
+function sameSettingValue(
+  a: SettingValue | undefined,
+  b: SettingValue | undefined,
+): boolean {
+  if (Object.is(a, b)) return true;
+  if (isValue(a) && isValue(b)) {
+    // Same rung as well as same quantity: `equals` converts, so 1 km equals
+    // 1000 m, and reusing the old object across that would pin the row's
+    // display to a unit the source has stopped using.
+    return a.unit === b.unit && a.equals(b);
+  }
+  return false;
 }
 
 const Wrap = styled.div`
@@ -539,6 +748,26 @@ const SettingLine = styled(Cluster).attrs({
   margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
 `;
 
+/* A read-only row owns its own label/value pairing (a `<dl>`), so it takes the
+   line's indent and width and nothing else of the switch-row furniture. */
+const SettingReadOnlyLine = styled.div<{ $indented?: boolean }>`
+  margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
+`;
+/* A named group inside a category: an h4 under the category's h3, so the
+   heading order a screen reader walks matches the nesting it is shown. */
+const GroupTitle = styled.h4`
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+`;
+const SettingInput = styled(Input)`
+  width: 10em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+`;
 const RowText = styled.div`
   display: flex;
   flex-direction: column;

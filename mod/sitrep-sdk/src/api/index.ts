@@ -48,7 +48,9 @@ import type {
   PerfBudgetHandle,
   PerfBudgetOptions,
   SettingDefinition,
+  SettingDefinitionOf,
   SettingsTabDefinition,
+  SettingType,
   SlotProps,
   TelemetryClient,
   UplinkClientHandle,
@@ -78,6 +80,7 @@ export type {
   BodyMapConfig,
   BodyMask,
   ClientPrefSetting,
+  ClientPrefSettingOf,
   CommandOutputToken,
   CommandStatus,
   ComponentBehavior,
@@ -115,12 +118,18 @@ export type {
   Screen,
   SettingDefinition,
   SettingDefinitionBase,
+  SettingDefinitionOf,
   SettingsTabDefinition,
   SettingType,
+  SettingValue,
+  SettingValueByType,
   SlotId,
   SlotProps,
   SlotRegistry,
   SourceBackedSetting,
+  SourceBackedSettingOf,
+  StreamBackedSetting,
+  StreamBackedSettingOf,
   StreamStatusValue,
   TelemetryClient,
   ThemeDefinition,
@@ -274,10 +283,31 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * Declare a setting the app renders in its Settings surface, the PREFERRED
  * path over a custom tab (`registerSettingsTab`). A client-pref setting
  * persists to localStorage; a source-backed one binds to the Uplink's own
- * `DataSource`. See `SettingDefinition`.
+ * `DataSource`; a stream-backed one shows a value the mod publishes on a
+ * Topic and cannot be written at all. Rows may be `boolean`, `text` or
+ * `number`, `readOnly`, and filed into a named `group` inside their category.
+ * See `SettingDefinition`.
+ *
+ * Generic so the row's `type` decides what `defaultValue`/`read`/`write`/
+ * `select` are allowed to be: declare `type: "number"` and a `defaultValue` of
+ * `true` is a compile error at the call site rather than a `Switch` rendering
+ * a tolerance.
  */
-export const registerSetting = (def: SettingDefinition): void =>
-  getHost().registerSetting(def);
+export const registerSetting = <T extends SettingType = "boolean">(
+  def: SettingDefinitionOf<T>,
+): void =>
+  // The cast collapses an unresolved T to the union the host takes. Every
+  // instantiation of T IS a member of that union, but TypeScript will not
+  // prove it while T is still a parameter.
+  getHost().registerSetting(def as SettingDefinition);
+
+/**
+ * Whether a registered row is one the operator can change. The renderer's own
+ * rule, exported so an Uplink asking the same question of its own definitions
+ * gets the same answer: a `stream-backed` row and a `source-backed` row with
+ * no `write` are read-only whether or not they said so.
+ */
+export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 
