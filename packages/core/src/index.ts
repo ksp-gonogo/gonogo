@@ -61,7 +61,10 @@ export { ErrorBoundary } from "./logger/ErrorBoundary";
 export * from "./mapPoi";
 export * from "./orbital";
 export * from "./perf/PerfBudget";
-export { PROCESSOR_EVAL_BUDGET } from "./processorPerfBudget";
+export {
+  PROCESSOR_EVAL_BUDGET,
+  PROCESSOR_NOTIFY_BUDGET,
+} from "./processorPerfBudget";
 export * from "./registry";
 export * from "./rss-bodies";
 export * from "./safeRandomUuid";

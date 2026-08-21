@@ -17,6 +17,15 @@ import {
   useContributions,
 } from "./contributionsRuntime";
 
+// A fixture derived channel, declared the way an Uplink declares its own
+// topics: `ContributionDep` is a `TopicId`, so a dep the type system has never
+// heard of cannot be written at all.
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    "derived.contrib": { doubled: number };
+  }
+}
+
 declare module "./contributions" {
   interface ContributionRegistry {
     "fixture.rows": {
@@ -26,6 +35,10 @@ declare module "./contributions" {
     "fixture.other": {
       entry: { id: string; label: string };
       topics: never;
+    };
+    "fixture.derived": {
+      entry: { id: string; label: string };
+      topics: "derived.contrib";
     };
     "fixture.slot0": { entry: { id: string; label: string }; topics: never };
     "fixture.slot1": { entry: { id: string; label: string }; topics: never };
@@ -59,6 +72,17 @@ function Harness({ slots }: { slots: readonly ["fixture.rows"] }) {
 
 function Rows() {
   const rows = useContributions("fixture.rows");
+  return (
+    <ul>
+      {rows.map((r) => (
+        <li key={r.contributionId}>{r.label}</li>
+      ))}
+    </ul>
+  );
+}
+
+function DerivedRows() {
+  const rows = useContributions("fixture.derived");
   return (
     <ul>
       {rows.map((r) => (
@@ -373,5 +397,72 @@ describe("useContributions segment mode", () => {
     );
 
     expect(screen.queryByText("term:Scrubber")).toBeNull();
+  });
+});
+
+describe("a contribution depping on a DERIVED channel", () => {
+  it("subscribes the channel's inputs, not the literal derived topic", async () => {
+    registerContribution({
+      id: "derived-dep",
+      contributes: "fixture.derived",
+      deps: ["derived.contrib"],
+      compute: (topics) =>
+        topics["derived.contrib"]
+          ? [{ id: "d-row", label: `d:${topics["derived.contrib"].doubled}` }]
+          : [],
+    });
+
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    store.registerDerivedChannel<{ doubled: number }>({
+      topic: "derived.contrib",
+      inputs: ["raw.contrib"],
+      derive: (get) => {
+        const point = get<{ n: number }>("raw.contrib");
+        if (!point) return undefined;
+        if (point.payload === null) return null;
+        return { doubled: point.payload.n * 2 };
+      },
+    });
+
+    render(
+      <TelemetryProvider client={client} store={store}>
+        <WidgetMetaContext.Provider
+          value={{
+            componentId: "derived-widget",
+            contributionSlots: ["fixture.derived"] as const,
+          }}
+        >
+          <ContributionsProvider>
+            <DerivedRows />
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </TelemetryProvider>,
+    );
+
+    // The mechanism, stated directly: nothing must ever ask the server for
+    // `derived.contrib`. It is computed here, the server has never heard of it,
+    // and asking for it instead of its inputs is what starved the dep.
+    await waitFor(() =>
+      expect(transport.isSubscribed("raw.contrib")).toBe(true),
+    );
+    expect(transport.isSubscribed("derived.contrib")).toBe(false);
+
+    // And the consequence: `StubTransport.emit` drops an unsubscribed topic
+    // exactly as the real stream never sends one, so a literal subscription
+    // leaves this value never arriving rather than merely arriving late.
+    act(() => {
+      transport.emit(
+        "raw.contrib",
+        { n: 21 },
+        { quality: Quality.Loaded, source: "vessel:1" },
+      );
+      store.beginFrame();
+    });
+
+    await waitFor(() => expect(screen.getByText("d:42")).toBeTruthy());
   });
 });

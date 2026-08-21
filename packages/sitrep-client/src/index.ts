@@ -256,6 +256,7 @@ export {
   // it is worse than naming the seam.
   setActiveTimelineStore,
   setProcessorEvaluationRecorder,
+  setProcessorNotificationRecorder,
 } from "./processorEvaluator";
 export {
   type AnyProcessorDefinition,

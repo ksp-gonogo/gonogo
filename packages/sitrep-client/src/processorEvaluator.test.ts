@@ -110,6 +110,176 @@ describe("processorEvaluator", () => {
     unsubscribe();
     deactivate();
   });
+
+  // The scalar case above passes on `Object.is` alone and so cannot see the
+  // defect: every processor anyone has actually written returns a fresh object
+  // or array, which is a new identity every frame whether or not a single
+  // number inside it moved. These count NOTIFICATIONS across many frames,
+  // because a correct value delivered sixty times a second is exactly the bug.
+  it("does not notify when an allocating compute returns an equal object across frames", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "allocating-object",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ rows: [{ name: "Oxygen", stored: 12, rate: -0.5 }] }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("keeps the previous result's IDENTITY when the new one is equal, so a useSyncExternalStore snapshot is stable", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "allocating-identity",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ crew: ["Jeb", "Bill"] }),
+    });
+
+    const deactivate = activateProcessor(handle.id);
+    store.beginFrame();
+    const first = getProcessorValue(handle.id);
+    store.beginFrame();
+    store.beginFrame();
+
+    // Not merely equal: the SAME object. React re-reads `getSnapshot` outside
+    // of any notification, and a fresh identity there is an infinite render
+    // loop even with the listener silenced.
+    expect(getProcessorValue(handle.id)).toBe(first);
+
+    deactivate();
+  });
+
+  it("still notifies on every frame where the result genuinely moves", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    let tick = 0;
+    const handle = defineProcessor({
+      id: "moving-object",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ rows: [{ name: "Oxygen", stored: tick++ }] }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    // The counterweight to the test above: silencing a processor that is
+    // actually changing would be a worse bug than the one being fixed.
+    expect(cb).toHaveBeenCalledTimes(10);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("re-runs compute on every frame even while nobody is notified", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    let computes = 0;
+    const handle = defineProcessor({
+      id: "still-computes",
+      owner: "core",
+      deps: [] as const,
+      compute: () => {
+        computes++;
+        return { steady: true };
+      },
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    // Evaluation semantics are untouched: memoised WITHIN a frame, re-run
+    // ACROSS frames, because the deps genuinely can move on any of them. Only
+    // the fan-out is gated.
+    expect(computes).toBe(10);
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("notifies a processor with NO deps whose result is a function of the frame's view time", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    const handle = defineProcessor({
+      id: "countdown",
+      owner: "core",
+      deps: [] as const,
+      compute: (_values, frame) => ({ remaining: 1000 - frame.viewUt }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = subscribeProcessor(handle.id, cb);
+
+    for (let ut = 1; ut <= 5; ut++) {
+      store.clock.scrubTo(ut);
+      store.beginFrame();
+    }
+
+    // This is the case that rules out `sampleReading`'s input-identity gate:
+    // there are no deps at all, so an input comparison would see nothing move
+    // and freeze the countdown at its first value forever. Comparing the RESULT
+    // needs no declaration of whether `compute` reads `frame.viewUt`.
+    expect(cb).toHaveBeenCalledTimes(5);
+
+    unsubscribe();
+    deactivate();
+  });
+
+  it("does not notify a DEPENDENT processor whose own result is unchanged by a moving upstream", () => {
+    const store = makeStore();
+    setActiveTimelineStore(store);
+
+    let tick = 0;
+    const upstream = defineProcessor({
+      id: "upstream-moving",
+      owner: "core",
+      deps: [] as const,
+      compute: () => ({ raw: tick++ }),
+    });
+    const downstream = defineProcessor({
+      id: "downstream-clamped",
+      owner: "core",
+      deps: [upstream] as const,
+      compute: ([up]) => ({ bucket: (up as { raw: number }).raw < 100 }),
+    });
+
+    const cb = vi.fn();
+    const deactivate = activateProcessor(downstream.id);
+    const unsubscribe = subscribeProcessor(downstream.id, cb);
+
+    for (let i = 0; i < 10; i++) store.beginFrame();
+
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    deactivate();
+  });
 });
 
 function pointOf<T>(validAt: number, payload: T): TimelinePoint<T> {
