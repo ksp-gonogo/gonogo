@@ -58,6 +58,9 @@
          the order it makes them in. The module is a PartModule and needs a live
          part; the rule takes the three facts and needs nothing. -->
     <Compile Include="..\Gonogo.KSP\ExperimentDeployRule.cs" />
+    <!-- What TimeWarp actually settled on against what the command asked for.
+         The read is live; the comparison is not. -->
+    <Compile Include="..\Gonogo.KSP\WarpRateOutcome.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum

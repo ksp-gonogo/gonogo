@@ -749,8 +749,17 @@ namespace Gonogo.KSP
         /// (<c>TimeWarp.fetch.warpRates.Length</c> -- the live rate table,
         /// which differs between on-rails and physics warp and isn't a fixed
         /// contract-side constant), so the design table's <c>CommandResult | CommandErrorCode.Range</c>
-        /// (§3) is enforced here rather than silently clamped/passed to
-        /// <c>TimeWarp.SetRate</c>, which does no bounds checking of its own.
+        /// (§3) is enforced here rather than passed to <c>TimeWarp.SetRate</c>.
+        ///
+        /// <para><b>And the rate the game settled on is read back.</b> The old
+        /// comment here said <c>SetRate</c> "does no bounds checking of its
+        /// own"; it does two. It clamps the index, and then <c>setRate</c> runs
+        /// <c>getMaxOnRailsRateIdx</c> against the body's altitude limit (and a
+        /// kerbal on a ladder, and the physics ceiling) and posts its own screen
+        /// message. Returning <c>Ok()</c> regardless reported 100,000x at 20 km
+        /// over Kerbin as a success while the game warped at 1x. See
+        /// <see cref="WarpRateOutcome"/> for why the answer is read after rather
+        /// than asked before.</para>
         /// </summary>
         public CommandResult SetWarp(int index)
         {
@@ -760,7 +769,13 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
             TimeWarp.SetRate(index, instant: true);
-            return CommandResult.Ok();
+
+            var settled = TimeWarp.CurrentRateIndex;
+            var settledRate = settled >= 0 && settled < warpRates.Length
+                ? warpRates[settled]
+                : TimeWarp.CurrentRate;
+            return WarpRateOutcome.Refusal(index, settled, warpRates[index], settledRate)
+                ?? CommandResult.Ok();
         }
 
         /// <summary>Sim-meta, not vessel-scoped -- <c>FlightDriver.SetPause</c> is a static call.</summary>
