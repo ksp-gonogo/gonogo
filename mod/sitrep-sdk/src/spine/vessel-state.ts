@@ -960,8 +960,29 @@ function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
 }
 
 /**
- * Build the internal-radian `OrbitElements` (`kepler.ts`) from a wire
- * `VesselOrbitPayload`: the ONE place the wire's degree/radian unit mix is
+ * The elements as they arrive on the wire, and nothing else: the subset
+ * {@link buildElements} normalizes.
+ *
+ * Structural rather than `VesselOrbitPayload` so a caller holding any orbit in
+ * wire units can pass one, a vessel's own, a target's, or a patch's, without
+ * having to construct the rest of a payload it does not have. Widening the
+ * parameter rather than copying the conversion is what keeps this the ONE
+ * place, which is the whole point of the function.
+ */
+export interface WireOrbitElements {
+  sma: { magnitude: number };
+  ecc: { magnitude: number };
+  inc: { magnitude: number };
+  lan?: { magnitude: number } | null;
+  argPe?: { magnitude: number } | null;
+  meanAnomalyAtEpoch: { magnitude: number };
+  epoch: { magnitude: number };
+  mu: { magnitude: number };
+}
+
+/**
+ * Build the internal-radian `OrbitElements` (`kepler.ts`) from wire elements:
+ * the ONE place the wire's degree/radian unit mix is
  * normalized (inc/lan/argPe degrees→radians; `meanAnomalyAtEpoch` already
  * radians, the documented KSP quirk) and a `null` `lan`/`argPe` (undefined
  * node/apsis on a near-equatorial/near-circular orbit) is substituted with 0,
@@ -969,7 +990,7 @@ function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
  * OnRails branch and the target-orbit derivation (`tar.o.*`), so both
  * propagate through the identical conversion.
  */
-export function buildElements(o: VesselOrbitPayload): OrbitElements {
+export function buildElements(o: WireOrbitElements): OrbitElements {
   return {
     sma: mag(o.sma),
     ecc: mag(o.ecc),

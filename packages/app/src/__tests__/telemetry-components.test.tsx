@@ -20,10 +20,12 @@ import {
 } from "@ksp-gonogo/core";
 import {
   createFakeWallClock,
+  PropagationHorizonKindLike,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
+  TrajectoryKindLike,
   ViewClock,
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
@@ -304,9 +306,12 @@ describe("OrbitViewComponent", () => {
   it("renders SVG diagram when orbital data arrives", async () => {
     // P1 de-Telemachus: OrbitView reads exclusively off the canonical
     // `useTelemetry("vessel.orbit")` stream overload now: no legacy
-    // DataSource fallback (see OrbitView's own `stream.test.tsx`). Apoapsis/
-    // periapsis radii are derived in-widget from `sma`/`ecc`, so emitting
-    // just those two (plus `argPe`) is enough to satisfy `hasOrbit`.
+    // DataSource fallback (see OrbitView's own `stream.test.tsx`).
+    //
+    // The `horizon` is not optional decoration: the widget asks the
+    // propagation seam what shape this trajectory is before drawing one, and a
+    // sample with no stated shape gets no conic. This is what the stock
+    // analytic producer sends (`AnalyticHorizon()` in `VesselViewProvider.cs`).
     const stream = setupTelemetryStream(["vessel.orbit"]);
     renderWidget(
       <stream.Provider>
@@ -318,6 +323,10 @@ describe("OrbitViewComponent", () => {
         sma: 700_000,
         ecc: 0.1,
         argPe: 0,
+        horizon: {
+          kind: PropagationHorizonKindLike.Unbounded,
+          trajectoryKind: TrajectoryKindLike.Analytic,
+        },
       });
     });
     await waitFor(() =>
