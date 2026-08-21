@@ -1037,7 +1037,25 @@ namespace Sitrep.Contract
         /// <c>GameVariables.GetEVALockedReason</c> and every
         /// <c>IPreFlightTest.GetWarningTitle()</c> already return a sentence, and
         /// a <c>[Description]</c>-tagged state member already names itself.</para>
+        /// <para><b>Bumped 19 -&gt; 20: robotics reports the servo kind it was
+        /// dropping.</b> <see cref="ServoEntry.Type"/> gains
+        /// <c>"rotationServo"</c> and <c>"servo"</c>. No member is added,
+        /// removed or retyped: this widens the VALUE domain of a field that
+        /// already existed, the same shape of change as the three
+        /// <c>CommandErrorCode</c> values in 17 -&gt; 18 and the ten in 18 -&gt; 19,
+        /// and an older consumer simply does not match the new strings.</para>
+        ///
+        /// <para><c>ModuleRoboticRotationServo</c> is a SIBLING of
+        /// <c>ModuleRoboticServoHinge</c> under <c>BaseServo</c>, not a
+        /// subclass, so a capture that scanned for the three kinds it had
+        /// written down never saw one: every rotation servo on every craft was
+        /// lost before the wire, while <c>robotics.available</c> and the
+        /// actuator - which both asked for <c>BaseServo</c> - said the craft
+        /// had robotics and would move a servo the operator could not see. The
+        /// capture now derives the kinds from <c>BaseServo</c>, and
+        /// <c>"servo"</c> is what an unrecognised subclass reports rather than
+        /// being dropped, so the same failure cannot recur silently.</para>
         /// </remarks>
-        public const int Minor = 19;
+        public const int Minor = 20;
     }
 }

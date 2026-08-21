@@ -263,6 +263,25 @@ describe("parseServos", () => {
     expect(parsed[0]?.current).toBe(10);
   });
 
+  it("lists a rotation servo alongside the hinges, in degrees", () => {
+    const parsed = parseServos([
+      { partId: "5", partName: "Hinge A", type: "hinge", currentAngle: 10 },
+      {
+        partId: "6",
+        partName: "Rotation Servo M-06",
+        type: "rotationServo",
+        currentAngle: 135,
+        targetAngle: 180,
+      },
+    ]);
+    const rotation = parsed.find((s) => s.type === "rotationServo");
+    expect(parsed).toHaveLength(2);
+    expect(rotation?.name).toBe("Rotation Servo M-06");
+    expect(rotation?.current).toBe(135);
+    expect(rotation?.target).toBe(180);
+    expect(rotation?.atTarget).toBe(false);
+  });
+
   it("derives atTarget from current/target proximity", () => {
     const [atTarget, moving] = parseServos([
       {

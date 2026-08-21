@@ -54,17 +54,13 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                var entry = BuildServoEntry(servo, partName, partId);
-                if (entry != null)
-                {
-                    entries.Add(entry);
-                }
+                entries.Add(BuildServoEntry(servo, partName, partId));
             }
 
             return entries;
         }
 
-        private static Dictionary<string, object?>? BuildServoEntry(BaseServo servo, string partName, string? partId)
+        private static Dictionary<string, object?> BuildServoEntry(BaseServo servo, string partName, string? partId)
         {
             var entry = new Dictionary<string, object?>
             {
@@ -110,6 +106,21 @@ namespace Gonogo.KSP
                 return entry;
             }
 
+            // A SIBLING of the hinge under BaseServo, not a subclass of it,
+            // which is how every rotation servo on every craft went missing:
+            // a scan for hinges never sees one. It drives to an angle exactly
+            // as a hinge does, so it reports the same readings under its own
+            // kind - a hinge and a rotation servo are different parts and an
+            // operator picking one to move has to be able to tell them apart.
+            if (servo is ModuleRoboticRotationServo rotation)
+            {
+                entry["type"] = "rotationServo";
+                entry["currentAngle"] = (double)rotation.currentAngle;
+                entry["targetAngle"] = (double)rotation.targetAngle;
+                entry["traverseVelocity"] = (double)rotation.traverseVelocity;
+                return entry;
+            }
+
             if (servo is ModuleRoboticServoPiston piston)
             {
                 entry["type"] = "piston";
@@ -119,10 +130,13 @@ namespace Gonogo.KSP
                 return entry;
             }
 
-            // Any other BaseServo subclass is dropped, which is what the three
-            // per-kind GetModules<T> calls this was extracted from did between
-            // them.
-            return null;
+            // A BaseServo of some kind this build has never heard of: a part
+            // pack's own, or one a later KSP adds. It reaches the operator
+            // with the readings BaseServo itself carries rather than being
+            // dropped, because a servo nobody can see is the worse failure and
+            // the one this file exists to have stopped.
+            entry["type"] = UnnamedKind;
+            return entry;
         }
     }
 }

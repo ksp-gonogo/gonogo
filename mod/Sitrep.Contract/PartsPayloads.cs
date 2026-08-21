@@ -144,14 +144,25 @@ public class PartsPower
 
 /// <summary>
 /// One entry in the <c>robotics.servos</c> channel payload, a single Breaking
-/// Ground robotic servo (rotor / hinge / piston) on the active vessel. The
-/// channel payload is a BARE ARRAY of these (<c>ServoEntry[]</c>) or
-/// <c>null</c> (never a wrapper object) so the Topic tag sits on this
-/// element type with <c>IsArray = true</c>.
+/// Ground robotic servo on the active vessel. The channel payload is a BARE
+/// ARRAY of these (<c>ServoEntry[]</c>) or <c>null</c> (never a wrapper
+/// object) so the Topic tag sits on this element type with
+/// <c>IsArray = true</c>.
 ///
-/// <para><see cref="Type"/> is the servo kind as a plain string on the wire
-/// (<c>"rotor"</c> / <c>"hinge"</c> / <c>"piston"</c>), NOT an enum, mirroring
-/// what the provider emits today; the enum cleanup is a later phase.</para>
+/// <para><see cref="Type"/> is the servo kind as a plain string on the wire,
+/// NOT an enum, mirroring what the provider emits today; the enum cleanup is
+/// a later phase. The kinds are <c>"rotor"</c>, <c>"hinge"</c>,
+/// <c>"rotationServo"</c> and <c>"piston"</c>, plus <c>"servo"</c> for a
+/// <c>BaseServo</c> subclass the capture does not recognise (a part pack's
+/// own, or one a later KSP adds), which carries only the readings every servo
+/// has.</para>
+///
+/// <para><b>This list is a description, not a rule.</b> The capture derives
+/// the kinds from <c>BaseServo</c> itself rather than from any written-down
+/// set, which is the whole point: the set used to be written down, rotation
+/// servos were left out of it, and every one on every craft was dropped
+/// before it reached the wire. A consumer should switch on the kinds it can
+/// draw and ignore the rest, never assume this sentence is exhaustive.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
 /// <c>Sitrep.Host.BreakingGroundViewProvider.BuildServoEntry</c>: see
@@ -217,7 +228,7 @@ public class ServoEntry
     public double? TargetExtension { get; set; }
 
     /// <summary>
-    /// Rotor spin direction (rotor entries only: <c>null</c> for hinge/piston).
+    /// Rotor spin direction (rotor entries only: <c>null</c> for every other kind).
     /// Mirrors <c>ModuleRoboticServoRotor.rotateCounterClockwise</c>: <c>true</c>
     /// means the rotor spins counter-clockwise.
     /// </summary>
@@ -225,8 +236,8 @@ public class ServoEntry
     public bool? CounterClockwise { get; set; }
 
     /// <summary>
-    /// Rotor torque ceiling in kN (rotor entries only, <c>null</c> for
-    /// hinge/piston). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c>: the
+    /// Rotor torque ceiling in kN (rotor entries only, <c>null</c> for every
+    /// other kind). Mirrors <c>ModuleRoboticServoRotor.maxTorque</c>: the
     /// scale <c>ServoMotorLimit</c> (a percentage) is a fraction of.
     ///
     /// <para>The unit is kN, per KSP's own editor UI: <c>maxTorque</c> feeds

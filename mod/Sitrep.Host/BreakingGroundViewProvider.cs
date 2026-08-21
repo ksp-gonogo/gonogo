@@ -26,7 +26,7 @@ namespace Sitrep.Host
     /// <see cref="ScienceViewProvider"/>'s other <c>science.*</c> sub-groups).</para>
     ///
     /// <code>
-    /// snapshot.Values["parts"]["robotics"] = [ { "partName", "partId", "type" ("rotor"|"hinge"|"piston"),
+    /// snapshot.Values["parts"]["robotics"] = [ { "partName", "partId", "type" ("rotor"|"hinge"|"rotationServo"|"piston"|"servo"),
     ///     "servoIsLocked", "servoIsMotorized", "servoMotorIsEngaged",
     ///     "servoMotorLimit", "motorState", "currentAngle", "targetAngle",
     ///     "traverseVelocity", "currentRPM", "rpmLimit", "normalizedOutput",

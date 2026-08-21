@@ -13,8 +13,9 @@ namespace Gonogo.KSP
     /// <c>FlightGlobals.ActiveVessel.parts</c> (the same join key the read side
     /// stamps on each <c>parts.robotics</c> entry), dispatches on the concrete
     /// Breaking Ground servo subtype (<see cref="ModuleRoboticServoRotor"/>/
-    /// <see cref="ModuleRoboticServoHinge"/>/<see cref="ModuleRoboticServoPiston"/>,
-    /// all subclasses of <see cref="BaseServo"/>), and applies the change.
+    /// <see cref="ModuleRoboticServoHinge"/>/<see cref="ModuleRoboticRotationServo"/>/
+    /// <see cref="ModuleRoboticServoPiston"/>, all subclasses of
+    /// <see cref="BaseServo"/>), and applies the change.
     ///
     /// <para><b>Field writes go through <c>BaseField.SetValue</c>, never a bare
     /// assignment.</b> Every actuating servo field (<c>rpmLimit</c>,
@@ -60,6 +61,18 @@ namespace Gonogo.KSP
             if (servo is ModuleRoboticServoHinge hinge)
             {
                 hinge.Fields["targetAngle"].SetValue((float)value, hinge);
+                return CommandResult.Ok();
+            }
+            // A rotation servo is a sibling of the hinge, not a subclass, so it
+            // fell past both branches and every attempt to drive one came back
+            // ModeUnavailable - while the lock and motor commands below, which
+            // resolve through BaseServo, worked on it all along. Its targetAngle
+            // wires OnValueModified -> ModifyTargetAngle exactly as the hinge's
+            // does; KSP's own SetMinimumAngle/SetMaximumAngle drive it through
+            // the same field.
+            if (servo is ModuleRoboticRotationServo rotation)
+            {
+                rotation.Fields["targetAngle"].SetValue((float)value, rotation);
                 return CommandResult.Ok();
             }
             if (servo is ModuleRoboticServoPiston piston)

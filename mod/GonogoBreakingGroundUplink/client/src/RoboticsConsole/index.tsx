@@ -32,12 +32,12 @@ import { BREAKING_GROUND } from "../uplink";
 
 /**
  * Robotics Console (Breaking Ground). Lists the active vessel's robotic
- * hinges and pistons with current-vs-target position, an at-target
- * indicator, and motor / lock controls. The selected joint (first by
+ * hinges, rotation servos and pistons with current-vs-target position, an
+ * at-target indicator, and motor / lock controls. The selected joint (first by
  * default) gets a target stepper and is the target of the serial actions.
  * Rotors live in the separate Rotor Tachometer widget.
  *
- * Reads `robotics.servos` (the hinge/piston identity list, filtered by
+ * Reads `robotics.servos` (the positioned-servo identity list, filtered by
  * `type`) + `robotics.available`; degrades to a muted empty state without
  * Breaking Ground or when no servo is present.
  */
@@ -52,6 +52,7 @@ type RoboticsConsoleConfig = Record<string, never>;
  */
 const TARGET_STEP: Record<ServoType, number> = {
   hinge: 5,
+  rotationServo: 5,
   piston: 0.05,
 };
 
@@ -79,10 +80,17 @@ const formatPos = (type: ServoType, v: number): string =>
  */
 const AT_TARGET_EPSILON: Record<ServoType, number> = {
   hinge: 0.5,
+  rotationServo: 0.5,
   piston: 0.01,
 };
 
-export type ServoType = "hinge" | "piston";
+/**
+ * The angle-driven kinds share a step and a tolerance because they share a
+ * unit: a rotation servo is a hinge as far as this widget is concerned, and
+ * they are separate names only because they are separate parts and the
+ * operator picking one has to know which they picked.
+ */
+export type ServoType = "hinge" | "rotationServo" | "piston";
 
 export interface ServoInfo {
   partId: string;
@@ -144,8 +152,10 @@ const unitFor = (type: ServoType) => (type === "piston" ? "m" : "°");
 
 /**
  * Parses the `robotics.servos` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
- * down to the hinge/piston entries this widget drives (`type ∈ {"hinge",
- * "piston"}`; rotors are Rotor Tachometer's domain). `partId` is
+ * down to the positioned entries this widget drives (`type ∈ {"hinge",
+ * "rotationServo", "piston"}`; rotors are Rotor Tachometer's domain, and a
+ * `"servo"` of a kind the mod could not name has no position to drive).
+ * `partId` is
  * `Part.flightID` stringified: stable per-part for the life of the flight
  * and, unlike `partName`, unique even among symmetric same-named parts (e.g.
  * a multirotor's N identical arms). Entries with no string `partId` are
@@ -161,7 +171,8 @@ export function parseServos(raw: unknown): ServoInfo[] {
   for (const entry of raw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    if (e.type !== "hinge" && e.type !== "piston") continue;
+    if (e.type !== "hinge" && e.type !== "rotationServo" && e.type !== "piston")
+      continue;
     if (typeof e.partId !== "string") continue;
     const type: ServoType = e.type;
     const current = num(
