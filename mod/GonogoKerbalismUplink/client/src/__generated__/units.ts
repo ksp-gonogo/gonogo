@@ -185,6 +185,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     density: "kg/m³",
     displayName: "text",
     flowMode: "text",
+    flowModeOrdinal: "enum",
     isSupply: "flag",
     lowThreshold: "ratio",
   },

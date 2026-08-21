@@ -396,6 +396,7 @@ describe("kerbalism structured Topics (relocated out of Sitrep.Contract)", () =>
       resources: {
         Water: {
           flowMode: "ALL_VESSEL",
+          flowModeOrdinal: 1,
           density: 1.0,
           isSupply: true,
           lowThreshold: 0.15,

@@ -30,19 +30,27 @@ const PROFILE = {
   resources: {
     Water: {
       flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
       displayName: "Water",
       isSupply: true,
       lowThreshold: 0.15,
     },
     ElectricCharge: {
       flowMode: "ALL_VESSEL_BALANCE",
+      flowModeOrdinal: 4,
       displayName: "Electric Charge",
       isSupply: true,
       lowThreshold: 0.15,
     },
-    Oxygen: { flowMode: "ALL_VESSEL", displayName: "Oxygen", isSupply: true },
+    Oxygen: {
+      flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
+      displayName: "Oxygen",
+      isSupply: true,
+    },
     WasteWater: {
       flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
       displayName: "Waste Water",
       isSupply: false,
     },

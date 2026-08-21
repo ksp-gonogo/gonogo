@@ -26,17 +26,20 @@ const PROFILE = {
   resources: {
     Water: {
       flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
       displayName: "Water",
       isSupply: true,
       lowThreshold: 0.15,
     },
     WasteWater: {
       flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
       displayName: "Waste Water",
       isSupply: false,
     },
     ElectricCharge: {
       flowMode: "ALL_VESSEL_BALANCE",
+      flowModeOrdinal: 4,
       displayName: "Electric Charge",
       // Stock declares EC as a Supply (Default.cfg's first Supply block), which
       // is easy to assume otherwise: it is the most common root cause AND a
@@ -44,14 +47,21 @@ const PROFILE = {
       isSupply: true,
       lowThreshold: 0.15,
     },
-    Oxygen: { flowMode: "ALL_VESSEL", displayName: "Oxygen", isSupply: true },
+    Oxygen: {
+      flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
+      displayName: "Oxygen",
+      isSupply: true,
+    },
     Hydrogen: {
       flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
       displayName: "Hydrogen",
       isSupply: false,
     },
     Ammonia: {
       flowMode: "ALL_VESSEL",
+      flowModeOrdinal: 1,
       displayName: "Ammonia",
       isSupply: false,
     },
@@ -151,6 +161,49 @@ describe("resourceFacts", () => {
     // of a vessel-wide pool, mode unknown", and a per-part meter drawn on a
     // false `false` would be a confident lie.
     expect(resourceFacts(PROFILE).get("CarbonDioxide")?.pooled).toBeUndefined();
+  });
+
+  /**
+   * The defect. The verdict compared KSP's `ResourceFlowMode` NAME against a
+   * two-entry set, so a renamed member produced `false` - a confident "not
+   * pooled" - and `false` is the one answer this field's own doc rules out. A
+   * resource that pools across the whole vessel would then be given a per-part
+   * meter presented as a reading rather than as bookkeeping, which is precisely
+   * what the field exists to prevent.
+   *
+   * Both rows carry an ordinal with a name this build has never seen.
+   */
+  it("reads pooling from the ordinal, not from the flow-mode name", () => {
+    const facts = resourceFacts({
+      name: "Renamed",
+      resources: {
+        // What a future KSP might call ALL_VESSEL.
+        Water: { flowMode: "WHOLE_VESSEL", flowModeOrdinal: 1 },
+        // And STACK_PRIORITY_SEARCH, which does NOT pool.
+        Ore: { flowMode: "STACK_SEARCH", flowModeOrdinal: 3 },
+      },
+    } as unknown as KerbalismProfile);
+
+    expect(facts.get("Water")?.pooled).toBe(true);
+    expect(facts.get("Ore")?.pooled).toBe(false);
+    // The game's own word survives as the label.
+    expect(facts.get("Water")?.flowMode).toBe("WHOLE_VESSEL");
+  });
+
+  /**
+   * An ordinal KSP does not declare - a mod adding a flow mode - is UNKNOWN, not
+   * "not pooled". Same rule as a missing ordinal, and for the same reason: we
+   * cannot say the resource is per-part.
+   */
+  it("leaves pooling unknown for an ordinal this build does not recognise", () => {
+    const facts = resourceFacts({
+      name: "Modded",
+      resources: {
+        Unobtainium: { flowMode: "SOME_NEW_MODE", flowModeOrdinal: 99 },
+      },
+    } as unknown as KerbalismProfile);
+
+    expect(facts.get("Unobtainium")?.pooled).toBeUndefined();
   });
 });
 

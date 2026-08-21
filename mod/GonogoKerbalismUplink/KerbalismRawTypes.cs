@@ -134,6 +134,11 @@ namespace Gonogo.KerbalismUplink
         public string Name = "";
         public string DisplayName = "";
         public string FlowMode = "";
+        /// <summary><c>(int)ResourceDefinition.resourceFlowMode</c>: what the
+        /// client's pooled verdict reads. <c>FlowMode</c> beside it is the
+        /// display label. Nullable so "not read" stays distinct from
+        /// <c>NO_FLOW</c>, which is ordinal 0.</summary>
+        public int? FlowModeOrdinal;
         public double Density;
     }
 

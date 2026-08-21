@@ -396,6 +396,9 @@ namespace Gonogo.KerbalismUplink
                     Name = name,
                     DisplayName = string.IsNullOrEmpty(def.displayName) ? name : def.displayName,
                     FlowMode = def.resourceFlowMode.ToString(),
+                    // The ordinal is what the client's pooled verdict reads; the
+                    // name is its display label.
+                    FlowModeOrdinal = (int)def.resourceFlowMode,
                     Density = def.density,
                 };
             }

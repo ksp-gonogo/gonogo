@@ -35,6 +35,7 @@ const SUPPLY_PROFILE: KerbalismProfile = {
   resources: {
     Water: {
       flowMode: "STACK_PRIORITY_SEARCH",
+      flowModeOrdinal: 3,
       displayName: "Water",
       isSupply: true,
       lowThreshold: 0.2,
@@ -43,12 +44,14 @@ const SUPPLY_PROFILE: KerbalismProfile = {
     // NEVER earn a per-part meter even though it IS a declared Supply.
     ElectricCharge: {
       flowMode: "ALL_VESSEL_BALANCE",
+      flowModeOrdinal: 4,
       displayName: "Electric Charge",
       isSupply: true,
     },
     // Not a Supply at all (a propellant/feedstock the profile merely touches).
     Ammonia: {
       flowMode: "STACK_PRIORITY_SEARCH",
+      flowModeOrdinal: 3,
       displayName: "Ammonia",
       isSupply: false,
     },

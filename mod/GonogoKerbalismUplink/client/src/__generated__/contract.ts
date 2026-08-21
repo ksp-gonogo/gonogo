@@ -90,6 +90,7 @@ export interface KerbalismProcessEntry
 export interface KerbalismResourceDef
 {
 	flowMode?: string;
+	flowModeOrdinal?: number;
 	displayName?: string;
 	density?: Value<"kg/m³">;
 	isSupply?: boolean;

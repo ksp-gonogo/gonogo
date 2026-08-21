@@ -125,6 +125,7 @@ namespace Gonogo.KerbalismUplink
                 resources[name] = new Dictionary<string, object?>
                 {
                     ["flowMode"] = def?.FlowMode ?? "",
+                    ["flowModeOrdinal"] = def?.FlowModeOrdinal,
                     ["displayName"] = def?.DisplayName ?? name,
                     ["density"] = def?.Density ?? 0,
                     ["isSupply"] = isSupply,

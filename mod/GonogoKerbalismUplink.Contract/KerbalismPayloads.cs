@@ -332,6 +332,25 @@ public class KerbalismResourceDef
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? FlowMode { get; set; }
+
+    /// <summary>
+    /// <see cref="FlowMode"/>'s KSP ORDINAL, typed to
+    /// <c>Sitrep.Contract.KspResourceFlowMode</c>. The enum is stock KSP's, not
+    /// Kerbalism's, which is why the mirror lives in the core contract.
+    ///
+    /// <para>The pooled/not-pooled verdict is derived from this, not from the
+    /// name. It used to compare the name against a two-entry set, and the failure
+    /// was the ONE answer the field's own doc rules out: an unrecognised name
+    /// yielded <c>false</c>, a confident "not pooled", rather than the
+    /// <c>undefined</c> that means "vessel-wide pool, mode unknown". A resource
+    /// that pools across the whole vessel would have got a per-part meter
+    /// presented as a reading.</para>
+    ///
+    /// <para><c>null</c> when the resource definition could not be read at all,
+    /// the same case that already leaves <see cref="FlowMode"/> null.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public Sitrep.Contract.KspResourceFlowMode? FlowModeOrdinal { get; set; }
     /// <summary>Localised display name from the KSP resource definition, when it differs from the key.</summary>
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }

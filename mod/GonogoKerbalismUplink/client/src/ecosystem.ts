@@ -1,3 +1,7 @@
+import {
+  KSP_RESOURCE_FLOW_MODE_NAMES,
+  KspResourceFlowMode,
+} from "@ksp-gonogo/sitrep-sdk";
 import type {
   KerbalismLifeSupport,
   KerbalismProcessDef,
@@ -32,7 +36,8 @@ export function mag(q: Quantityish, fallback = 0): number {
 export interface ResourceFacts {
   name: string;
   displayName: string;
-  /** KSP ResourceFlowMode name, or "" when the mod could not read one. */
+  /** KSP ResourceFlowMode name as a DISPLAY LABEL, or "" when the mod could not
+   *  read one. {@link pooled} is derived from the ordinal, never from this. */
   flowMode: string;
   /**
    * True when the profile declares a Supply for it, i.e. it is life support
@@ -49,20 +54,45 @@ export interface ResourceFacts {
   pooled: boolean | undefined;
 }
 
-const POOLED_MODES = new Set(["ALL_VESSEL", "ALL_VESSEL_BALANCE"]);
+/**
+ * The flow modes that pool across the whole vessel, by ORDINAL.
+ *
+ * This compared KSP's `ResourceFlowMode` NAME against a two-entry set until
+ * 2026-08-21, and the failure was the one answer this field's own doc rules out.
+ * A renamed member missed the set and produced `false` - a confident "not
+ * pooled" - rather than the `undefined` that means "vessel-wide pool, mode
+ * unknown". So a resource that pools vessel-wide would have been given a
+ * per-part meter presented as a reading rather than as bookkeeping, which is
+ * precisely what the field exists to prevent.
+ */
+const POOLED_MODES: ReadonlySet<number> = new Set([
+  KspResourceFlowMode.ALL_VESSEL,
+  KspResourceFlowMode.ALL_VESSEL_BALANCE,
+]);
+
+/**
+ * Whether a resource pools vessel-wide. `undefined` when we cannot tell, which
+ * is a THIRD answer and not a soft no: no ordinal arrived, or the ordinal is one
+ * this build does not recognise. A mod adding a flow mode lands here, and
+ * "unknown" is the honest verdict for it.
+ */
+function pooledFrom(ordinal: number | null | undefined): boolean | undefined {
+  if (ordinal == null) return undefined;
+  if (POOLED_MODES.has(ordinal)) return true;
+  return KSP_RESOURCE_FLOW_MODE_NAMES.has(ordinal) ? false : undefined;
+}
 
 export function resourceFacts(
   profile: KerbalismProfile | undefined,
 ): Map<string, ResourceFacts> {
   const out = new Map<string, ResourceFacts>();
   for (const [name, def] of Object.entries(profile?.resources ?? {})) {
-    const flowMode = def.flowMode ?? "";
     out.set(name, {
       name,
       displayName: def.displayName || name,
-      flowMode,
+      flowMode: def.flowMode ?? "",
       isSupply: def.isSupply === true,
-      pooled: flowMode ? POOLED_MODES.has(flowMode) : undefined,
+      pooled: pooledFrom(def.flowModeOrdinal),
     });
   }
   return out;
