@@ -186,6 +186,7 @@ export {
   solveAnomalies,
   solveEccentricAnomaly,
   TrajectoryKindLike,
+  useOrbitTrajectory,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
 export type {
