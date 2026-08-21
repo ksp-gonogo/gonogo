@@ -119,6 +119,61 @@ namespace Gonogo.KSP
         private CommandErrorCode? PlanWriteRefusal() =>
             ManeuverPlanWriteRule.RefusalFor(_planOwner?.Invoke() ?? PlanOwner.None);
 
+        /// <summary>
+        /// Reads the facts <see cref="ManeuverWriteAuthority"/> decides on off
+        /// the live game: whether there is a vessel, whether the Tracking
+        /// Station's tier attached a solver to it, whether Mission Control has
+        /// unlocked flight planning, and whether the node editor is locked right
+        /// now. The rule itself carries no KSP type and is exercised directly by
+        /// <c>ManeuverWriteAuthorityTests</c>.
+        ///
+        /// <para><paramref name="plans"/> false is a delete, which needs no
+        /// flight-planning unlock and asks <c>MANNODE_DELETE</c> instead of
+        /// <c>MANNODE_ADDEDIT</c>: the two locks are separate members of
+        /// <c>ControlTypes</c> and stock's own delete path checks the second
+        /// one.</para>
+        /// </summary>
+        private static Refusal? ManeuverWriteRefusal(bool plans)
+        {
+            var vessel = FlightGlobals.ActiveVessel;
+
+            // A career gate with no career scenario to read is OPEN: sandbox has
+            // no ScenarioUpgradeableFacilities at all, and no facility tiers to
+            // be short of. See ManeuverWriteAuthority's own note.
+            var flightPlanningUnlocked = true;
+            var missionControlName = "";
+            var gameVariables = GameVariables.Instance;
+            if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
+            {
+                var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.MissionControl);
+                flightPlanningUnlocked = gameVariables.UnlockedFlightPlanning(norm);
+                missionControlName = FacilityName(SpaceCenterFacility.MissionControl);
+            }
+
+            return ManeuverWriteAuthority.RefusalFor(
+                hasVessel: vessel != null,
+                solverAttached: vessel?.patchedConicSolver != null,
+                flightPlanningUnlocked: flightPlanningUnlocked,
+                nodeEditingUnlocked: InputLockManager.IsUnlocked(
+                    plans ? ControlTypes.MANNODE_ADDEDIT : ControlTypes.MANNODE_DELETE),
+                plans: plans,
+                trackingStationName: FacilityName(SpaceCenterFacility.TrackingStation),
+                missionControlName: missionControlName);
+        }
+
+        /// <summary>The facility as the GAME names it, through <c>Localizer</c>.</summary>
+        private static string FacilityName(SpaceCenterFacility facility)
+        {
+            try
+            {
+                return ScenarioUpgradeableFacilities.GetFacilityName(facility) ?? "";
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
         // ---- persistent fly-by-wire override (main-thread-only, no lock) ------
         // Command handlers and Vessel.OnFlyByWire both run on the Unity main
         // thread (see the class doc comment's F2 marshaling note), so this
@@ -402,14 +457,34 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>
+        /// The same event pressing the space bar is, which this used to be only
+        /// half of. See <see cref="StageRule"/> for stock's own three lines and
+        /// what each of them is for.
+        ///
+        /// <para>The Stage action group fires whether or not the stack advances
+        /// and only inside the staging lock, which is exactly where
+        /// <c>FlightInputHandler</c> puts it. Without it, part actions the
+        /// player assigned to Stage did not run on a console-issued stage: a
+        /// silent behavioural difference from the key, not a missing
+        /// refusal.</para>
+        /// </summary>
         public CommandResult<int> Stage()
         {
             var vessel = FlightGlobals.ActiveVessel;
-            if (vessel == null)
+            var refusal = StageRule.RefusalFor(
+                hasVessel: vessel != null,
+                stagingUnlocked: InputLockManager.IsUnlocked(ControlTypes.STAGING));
+            if (refusal != null)
             {
-                return CommandResult<int>.Fail(CommandErrorCode.NoVessel);
+                return CommandResult<int>.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
-            StageManager.ActivateNextStage();
+
+            if (StageRule.AdvancesTheStack(vessel!.ActionControlBlocked(KSPActionGroup.Stage)))
+            {
+                StageManager.ActivateNextStage();
+            }
+            vessel.ActionGroups?.ToggleGroup(KSPActionGroup.Stage);
             return CommandResult<int>.Ok(vessel.currentStage);
         }
 
@@ -463,12 +538,13 @@ namespace Gonogo.KSP
                 return CommandResult<string>.Fail(refusal.Value);
             }
 
-            var solver = FlightGlobals.ActiveVessel?.patchedConicSolver;
-            if (solver == null)
+            var gate = ManeuverWriteRefusal(plans: true);
+            if (gate != null)
             {
-                return CommandResult<string>.Fail(CommandErrorCode.NoVessel);
+                return CommandResult<string>.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
+            var solver = FlightGlobals.ActiveVessel!.patchedConicSolver;
             var node = solver.AddManeuverNode(ut);
             node.DeltaV = new Vector3d(radialOut, normal, prograde);
             solver.UpdateFlightPlan();
@@ -483,6 +559,12 @@ namespace Gonogo.KSP
             if (refusal != null)
             {
                 return CommandResult.Fail(refusal.Value);
+            }
+
+            var gate = ManeuverWriteRefusal(plans: true);
+            if (gate != null)
+            {
+                return CommandResult.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
             if (!TryResolveNode(nodeId, out var node) || node?.solver == null)
@@ -502,6 +584,12 @@ namespace Gonogo.KSP
             if (refusal != null)
             {
                 return CommandResult.Fail(refusal.Value);
+            }
+
+            var gate = ManeuverWriteRefusal(plans: false);
+            if (gate != null)
+            {
+                return CommandResult.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
             if (!TryResolveNode(nodeId, out var node))
@@ -681,8 +769,17 @@ namespace Gonogo.KSP
         /// (<c>TimeWarp.fetch.warpRates.Length</c> -- the live rate table,
         /// which differs between on-rails and physics warp and isn't a fixed
         /// contract-side constant), so the design table's <c>CommandResult | CommandErrorCode.Range</c>
-        /// (§3) is enforced here rather than silently clamped/passed to
-        /// <c>TimeWarp.SetRate</c>, which does no bounds checking of its own.
+        /// (§3) is enforced here rather than passed to <c>TimeWarp.SetRate</c>.
+        ///
+        /// <para><b>And the rate the game settled on is read back.</b> The old
+        /// comment here said <c>SetRate</c> "does no bounds checking of its
+        /// own"; it does two. It clamps the index, and then <c>setRate</c> runs
+        /// <c>getMaxOnRailsRateIdx</c> against the body's altitude limit (and a
+        /// kerbal on a ladder, and the physics ceiling) and posts its own screen
+        /// message. Returning <c>Ok()</c> regardless reported 100,000x at 20 km
+        /// over Kerbin as a success while the game warped at 1x. See
+        /// <see cref="WarpRateOutcome"/> for why the answer is read after rather
+        /// than asked before.</para>
         /// </summary>
         public CommandResult SetWarp(int index)
         {
@@ -692,7 +789,13 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.Range);
             }
             TimeWarp.SetRate(index, instant: true);
-            return CommandResult.Ok();
+
+            var settled = TimeWarp.CurrentRateIndex;
+            var settledRate = settled >= 0 && settled < warpRates.Length
+                ? warpRates[settled]
+                : TimeWarp.CurrentRate;
+            return WarpRateOutcome.Refusal(index, settled, warpRates[index], settledRate)
+                ?? CommandResult.Ok();
         }
 
         /// <summary>Sim-meta, not vessel-scoped -- <c>FlightDriver.SetPause</c> is a static call.</summary>

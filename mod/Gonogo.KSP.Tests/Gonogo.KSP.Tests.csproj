@@ -51,6 +51,20 @@
          Unity assemblies the reference set does not ship, so a headless test
          cannot enter them at all. -->
     <Compile Include="..\Gonogo.KSP\PlanOwner.cs" />
+    <!-- The code+sentence pair every carved-out refusal rule returns. -->
+    <Compile Include="..\Gonogo.KSP\Refusal.cs" />
+    <!-- Which FACILITY authorises a maneuver write, carved out beside it and for
+         the same reason. Sitrep.Contract only, no KSP type. -->
+    <Compile Include="..\Gonogo.KSP\ManeuverWriteAuthority.cs" />
+    <!-- The three refusals ModuleScienceExperiment.DeployExperiment makes, and
+         the order it makes them in. The module is a PartModule and needs a live
+         part; the rule takes the three facts and needs nothing. -->
+    <Compile Include="..\Gonogo.KSP\ExperimentDeployRule.cs" />
+    <!-- What TimeWarp actually settled on against what the command asked for.
+         The read is live; the comparison is not. -->
+    <Compile Include="..\Gonogo.KSP\WarpRateOutcome.cs" />
+    <!-- What stock's own space bar checks before it stages. -->
+    <Compile Include="..\Gonogo.KSP\StageRule.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
@@ -209,6 +223,15 @@
          above. CareerRefusals.cs takes numbers and needs no KSP types at all;
          it sits under this gate only to keep the career pair together. -->
     <Compile Include="..\Gonogo.KSP\Career\CareerRefusals.cs" />
+    <!-- The strategy commitment ORDER, carved out for a sharper reason than the
+         rest: Strategy.CanBeActivated dereferences Administration.Instance and
+         Strategy.Activate calls CanBeActivated, so neither runs anywhere but the
+         Administration screen. The sequence takes an interface instead. -->
+    <Compile Include="..\Gonogo.KSP\Career\StrategyCommit.cs" />
+    <!-- What a facility's obstructing-vessel walk becomes as a refusal. The walk
+         itself is two public SpaceCenterBuilding methods over live scene
+         objects; only its answer is decided here. -->
+    <Compile Include="..\Gonogo.KSP\Career\FacilityObstruction.cs" />
     <!-- CareerAffordability.cs genuinely needs the reference DLL: it runs
          stock's own CurrencyModifierQuery, a plain class that loads and prices
          a spend headlessly (its RunQuery half fires a GameEvent, whose static
@@ -227,6 +250,12 @@
     <Compile Include="..\Gonogo.KSP\Gates\GateDeclarations.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\KspGateEvaluators.cs" />
     <Compile Include="..\Gonogo.KSP\GameWords.cs" />
+    <!-- The launch pre-flight WALK: which of KSP's own launch tests refuses,
+         which code that becomes, and what the refusal quotes. The tests
+         themselves reach PSystemSetup / Funding / PartLoader and cannot run
+         headlessly, but PreFlightTests.IPreFlightTest is an interface, so the
+         walk over a faked set is enterable while the bodies are not. -->
+    <Compile Include="..\Gonogo.KSP\LaunchPreflight.cs" />
     <Compile Include="Career\**\*.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.

@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using Contracts;
 using Gonogo.KSP.Career;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Strategies;
-using UnityEngine;
+using Upgradeables;
+using KSP.UI.Screens;
 
 namespace Gonogo.KSP
 {
@@ -33,26 +35,46 @@ namespace Gonogo.KSP
     /// <c>Deactivate</c> and <c>Contract.Accept</c>/<c>Decline</c>/<c>Cancel</c>,
     /// are self-gating and self-deducting, so a <c>false</c> return from them
     /// means "not valid in the current state" with no partial spend, surfaced as
-    /// <see cref="CommandErrorCode.ModeUnavailable"/>.</para>
+    /// <see cref="CommandErrorCode.ModeUnavailable"/>. A crew hire is bundled
+    /// too, but through a <c>GameEvents</c> hop rather than inside the call:
+    /// see <see cref="HireApplicant"/>.</para>
     /// </summary>
     public sealed class KspCareerActuator : ICareerActuator
     {
         /// <summary>
-        /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>,
-        /// administration-level cap, conflicting-strategy groups, funds on hand)
-        /// and self-deducting (its up-front funds/science/reputation cost, each
+        /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>) and
+        /// self-deducting (its up-front funds/science/reputation cost, each
         /// scaled by <c>Factor</c>), so a <c>false</c> return is a clean
-        /// "not eligible" with no partial spend. <c>Factor</c> is set BEFORE
-        /// activation because the cost scales with it, and only for strategies
-        /// that actually expose a slider (<c>HasFactorSlider</c>): best-effort,
-        /// per the command's contract; others activate at their fixed factor.
+        /// "not eligible" with no partial spend.
         ///
-        /// <para>Its reason-returning precheck, <c>CanBeActivated(out string)</c>,
-        /// is deliberately NOT called: it dereferences
-        /// <c>Administration.Instance</c>, a UI MonoBehaviour that is null
-        /// anywhere but the Administration screen, so asking the game for its own
-        /// words here would throw rather than answer. The state the console CAN
-        /// read is reported instead, and the rest stays a bare "not eligible".</para>
+        /// <para><b>Only from the Administration Building, and that is KSP's
+        /// rule rather than ours.</b> <c>CanBeActivated</c>'s first three arms
+        /// dereference <c>Administration.Instance</c>. The active-strategy count, the
+        /// concurrent cap and the commit-level ceiling all live on that
+        /// component and nowhere else. It is
+        /// <c>KSP.UI.Screens.Administration</c>, a UI <c>MonoBehaviour</c> whose
+        /// canvas <c>AdministrationSceneSpawner</c> adds on
+        /// <c>onGUIAdministrationFacilitySpawn</c> and removes again on despawn,
+        /// so <c>Instance</c> is null everywhere except while the player has
+        /// that screen open. <c>Activate()</c> calls <c>CanBeActivated</c>
+        /// itself, so with the screen closed BOTH throw: this command used to
+        /// raise a <c>NullReferenceException</c> from inside the game, which
+        /// <c>ChannelEngine</c> rethrew on the Courier thread as an opaque
+        /// error, and the caps the old comment here claimed we honoured were
+        /// never reached at all.</para>
+        ///
+        /// <para>That authority is not substituted for. Nothing here reproduces
+        /// the three Administration arms from numbers of our own: with the
+        /// screen open the game answers every one of them and the refusal is
+        /// quoted verbatim; with it closed the console says so and refuses.
+        /// (The concurrent-strategy cap is separately DECLARED on this command
+        /// as a gate over <c>GameVariables.GetActiveStrategyLimit</c>, which is
+        /// the same method <c>Administration.Start</c> reads it from, so the
+        /// control is dark on a full slate either way.)</para>
+        ///
+        /// <para>The commitment itself is <see cref="StrategyCommit"/>'s: the
+        /// factor is written before the gate because the cost scales with it,
+        /// and put back if the game refuses.</para>
         /// </summary>
         public CommandResult ActivateStrategy(string strategyId, double factor)
         {
@@ -72,14 +94,38 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is already active");
             }
 
-            if (strategy.HasFactorSlider && factor > 0.0)
+            if (Administration.Instance == null)
             {
-                strategy.Factor = Mathf.Clamp01((float)factor);
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "KSP commits a strategy only from the Administration Building, and it is not open");
             }
 
-            return strategy.Activate()
-                ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is not eligible");
+            return StrategyCommit.Activate(new LiveStrategy(strategy), factor);
+        }
+
+        /// <summary>
+        /// The real <c>Strategies.Strategy</c> behind
+        /// <see cref="IStrategyCommitTarget"/>. Four one-line members, so the
+        /// commitment ORDER is testable without one.
+        /// </summary>
+        private sealed class LiveStrategy : IStrategyCommitTarget
+        {
+            private readonly Strategy _strategy;
+
+            public LiveStrategy(Strategy strategy) => _strategy = strategy;
+
+            public bool HasFactorSlider => _strategy.HasFactorSlider;
+
+            public float Factor
+            {
+                get => _strategy.Factor;
+                set => _strategy.Factor = value;
+            }
+
+            public bool CanBeActivated(out string reason) => _strategy.CanBeActivated(out reason);
+
+            public bool Activate() => _strategy.Activate();
         }
 
         /// <summary><c>Strategy.Deactivate()</c> is self-gating (<c>CanBeDeactivated</c>, which includes a minimum elapsed commitment), a <c>false</c> return means it wasn't deactivatable right now.</summary>
@@ -247,6 +293,85 @@ namespace Gonogo.KSP
                 : CommandResult.Fail(CommandErrorCode.WrongState, ContractStateName(contract)));
 
         /// <summary>
+        /// Craft parked on the facility, which stock hard-blocks an upgrade on,
+        /// or null when it is clear.
+        ///
+        /// <para><c>KSCFacilityContextMenu</c>'s Upgrade arm is
+        /// <c>if (WarnOfObstructingVessels(includeGrounds: true, onlyDestroyed: false)) break;</c>
+        /// with no proceed option, and the console had no equivalent: a craft on
+        /// the pad and we upgraded under it. That method is private and spawns a
+        /// dialog, but the walk it does is public on the same component:
+        /// <c>FindVesselsAtFacility</c> over the building's own
+        /// <c>destructibles</c> and <c>FindVesselsAtGrounds</c> over its parent
+        /// transform are the same two halves, so this asks rather than
+        /// reimplements.</para>
+        ///
+        /// <para>Fails OPEN when the <c>SpaceCenterBuilding</c> cannot be found:
+        /// a gate we cannot evaluate must not refuse something stock allows,
+        /// the same direction as the contract cap below.</para>
+        /// </summary>
+        private static CommandResult? ObstructionRefusal(UpgradeableFacility facility)
+        {
+            try
+            {
+                var building = FindBuilding(facility);
+                var flightState = HighLogic.CurrentGame?.flightState;
+                if (building == null || flightState == null) return null;
+
+                var obstructing = new List<string>();
+                AddVesselNames(obstructing, building.FindVesselsAtFacility(flightState, building.destructibles));
+                if (building.BuildingTransform != null)
+                {
+                    AddVesselNames(
+                        obstructing,
+                        building.FindVesselsAtGrounds(flightState, building.BuildingTransform.parent));
+                }
+
+                return FacilityObstruction.Refusal(
+                    obstructing,
+                    GameWords.Sentence(
+                        "#autoLOC_6002252",
+                        "vessels are on this facility: ",
+                        building.buildingInfoName ?? ""),
+                    GameWords.Sentence("#autoLOC_6002253", ""));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The <c>SpaceCenterBuilding</c> that owns this facility.
+        /// <c>SpaceCenterBuilding</c> reads its own
+        /// <c>upgradeableFacility = buildingTransform.GetComponent&lt;UpgradeableFacility&gt;()</c>,
+        /// so the facility sits on a child of the building and the walk is
+        /// upward. The scene sweep is the fallback for a hierarchy that does not
+        /// match that assumption.
+        /// </summary>
+        private static SpaceCenterBuilding? FindBuilding(UpgradeableFacility facility)
+        {
+            var direct = facility.GetComponentInParent<SpaceCenterBuilding>();
+            if (direct != null) return direct;
+
+            foreach (var candidate in UnityEngine.Object.FindObjectsOfType<SpaceCenterBuilding>())
+            {
+                if (candidate != null && ReferenceEquals(candidate.Facility, facility)) return candidate;
+            }
+            return null;
+        }
+
+        private static void AddVesselNames(List<string> into, List<ProtoVessel>? found)
+        {
+            if (found == null) return;
+            foreach (var proto in found)
+            {
+                if (proto == null || string.IsNullOrEmpty(proto.vesselName)) continue;
+                if (!into.Contains(proto.vesselName)) into.Add(proto.vesselName);
+            }
+        }
+
+        /// <summary>
         /// Mission Control's cap on simultaneously accepted contracts, or null
         /// when there is room (or nothing to read it from, which fails OPEN: a
         /// gate we cannot evaluate must not refuse something stock allows).
@@ -301,6 +426,12 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.AlreadyAtMaximum, maxTier);
             }
 
+            var obstructed = ObstructionRefusal(live);
+            if (obstructed != null)
+            {
+                return obstructed;
+            }
+
             var funding = Funding.Instance;
             if (funding == null)
             {
@@ -333,12 +464,30 @@ namespace Gonogo.KSP
         /// <see cref="CommandErrorCode.NotFound"/>. Guards the Astronaut Complex
         /// active-crew cap (<c>GameVariables.GetActiveCrewLimit</c> over the
         /// facility's normalised level) before spending, since a hire adds an
-        /// active crew member. <c>KerbalRoster.HireApplicant</c> does NOT debit
-        /// funds (decompile-confirmed: it only moves the applicant into the crew
-        /// list), so this reproduces the stock spend explicitly, checks
-        /// affordability, deducts the recruit cost, then hires, returning before
-        /// any spend on an unaffordable request. Outside career (no
-        /// <c>Funding</c>) it fails <see cref="CommandErrorCode.CareerModeRequired"/>.
+        /// active crew member. Outside career (no <c>Funding</c>) it fails
+        /// <see cref="CommandErrorCode.CareerModeRequired"/>.
+        ///
+        /// <para><b>The hire pays for itself, so this must not.</b>
+        /// <c>KerbalRoster.HireApplicant</c> fires
+        /// <c>GameEvents.OnCrewmemberHired.Fire(ap, GetActiveCrewCount())</c>,
+        /// <c>Funding.OnAwake</c> subscribed <c>onCrewHired</c> to that event,
+        /// and <c>onCrewHired</c> is
+        /// <c>AddFunds(-GameVariables.Instance.GetRecruitHireCost(crewCount), CrewRecruited)</c>.
+        /// Stock's own Astronaut Complex calls <c>HireApplicant</c> and nothing
+        /// else, for exactly this reason. The event fires BEFORE the applicant
+        /// becomes crew, so the count it carries is the same pre-hire count the
+        /// price below was quoted at, and a console hire that also debited was
+        /// charged precisely double.</para>
+        ///
+        /// <para>This comment used to assert the opposite, citing a decompile
+        /// that only moved the applicant into the crew list. That read was of
+        /// the direct call alone: the debit is one <c>GameEvents</c> hop past
+        /// the end of the method, and stopping at the call boundary is how a
+        /// confirmed-by-decompile note came to say the reverse of what the game
+        /// does. The affordability check above stays: it is what stock's own
+        /// Vbutton asks, and it is the only thing standing between an operator
+        /// and a negative balance, since <c>Funding.OnCurrenciesModified</c> has
+        /// no floor at zero.</para>
         /// </summary>
         public CommandResult HireApplicant(string applicantName)
         {
@@ -396,7 +545,8 @@ namespace Gonogo.KSP
                         funding.Funds, Units.Funds));
             }
 
-            funding.AddFunds(-cost, TransactionReasons.CrewRecruited);
+            // No debit here: the hire fires OnCrewmemberHired and Funding's own
+            // handler pays the recruit cost. See this method's doc comment.
             roster.HireApplicant(applicant);
             return CommandResult.Ok();
         }

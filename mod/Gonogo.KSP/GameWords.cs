@@ -1,4 +1,5 @@
 using System;
+using KSP.Localization;
 
 namespace Gonogo.KSP
 {
@@ -78,6 +79,39 @@ namespace Gonogo.KSP
             // that alone, it is already prose and already localised.
             if (word != member.ToString()) return word;
             return word.Replace('_', ' ').ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// One of KSP's own refusal sentences by its localisation key, or
+        /// <paramref name="fallback"/> when the Localizer had nothing for it.
+        ///
+        /// <para>Naming an <c>#autoLOC_</c> number by hand is the risk
+        /// <see cref="Phrase"/>'s own comment names: KSP renumbers them, and a
+        /// key that no longer resolves comes back as the key itself, which in
+        /// front of an operator is worse than a plain sentence. So the result is
+        /// CHECKED, and the fallback is what a caller supplies for the case the
+        /// check catches. Use this only where the sentence exists nowhere but
+        /// the table (a <c>void</c> method that posts a
+        /// <c>ScreenMessage</c>), never where the game hands one back.</para>
+        /// </summary>
+        public static string Sentence(string key, string fallback, params object[] args)
+        {
+            try
+            {
+                var formatted = args == null || args.Length == 0
+                    ? Localizer.Format(key)
+                    : Localizer.Format(key, args);
+                if (string.IsNullOrWhiteSpace(formatted) ||
+                    formatted.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return fallback;
+                }
+                return formatted;
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
         }
     }
 }
