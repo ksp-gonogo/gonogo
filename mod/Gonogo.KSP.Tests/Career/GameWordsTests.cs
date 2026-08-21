@@ -39,22 +39,25 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         /// <summary>
-        /// The restriction in the doc comment, made executable: a CONTRACT enum
-        /// must not go through here.
+        /// A contract enum passes through without throwing.
         ///
-        /// <para>Reading a member's attributes forces the runtime to resolve
-        /// every attribute on it, and the contract's netstandard build carries
-        /// <c>[TsEnum]</c> from Reinforced.Typings, which is deliberately absent
-        /// at runtime. Asking for <c>DescriptionAttribute</c> does not filter
-        /// that out. The shipped net472 contract has no such attribute, so the
-        /// call would have looked fine in game: this pins the reason it is not
-        /// there, since the next person to move a type between those builds would
-        /// otherwise find out the hard way.</para>
+        /// <para>This test used to assert the opposite, and was right to: the
+        /// contract's shipped build carried <c>[TsEnum]</c> from
+        /// Reinforced.Typings, an assembly deliberately never deployed, and
+        /// reading a member's attributes resolves every attribute on it, so this
+        /// threw <c>FileNotFoundException</c> — out of <c>member.ToString()</c>,
+        /// upstream of the try/catch meant to absorb it. Asking for
+        /// <c>DescriptionAttribute</c> specifically did not filter it out.</para>
+        ///
+        /// <para>The attributes now exist only in Sitrep.Contract.Codegen, so
+        /// the throw is gone. Kept, inverted, because a test that pins a bug in
+        /// place is worth exactly as much as one that pins the fix.</para>
         /// </summary>
         [Fact]
-        public void AContractEnumsAttributesCannotBeReadHere()
+        public void AContractEnumPassesThroughWithoutThrowing()
         {
-            Assert.ThrowsAny<System.Exception>(() => GameWords.Phrase(SasMode.Antinormal));
+            Assert.Equal("antinormal", GameWords.Phrase(SasMode.Antinormal));
+            Assert.Equal("Antinormal", GameWords.Of(SasMode.Antinormal));
         }
 
         [Fact]
