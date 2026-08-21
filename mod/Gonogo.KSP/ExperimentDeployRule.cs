@@ -2,20 +2,6 @@ using Sitrep.Contract;
 
 namespace Gonogo.KSP
 {
-    /// <summary>A refusal on the experiment deploy path: the code, and the game's own words for it.</summary>
-    internal readonly struct ExperimentRefusal
-    {
-        public ExperimentRefusal(CommandErrorCode code, string detail)
-        {
-            Code = code;
-            Detail = detail;
-        }
-
-        public CommandErrorCode Code { get; }
-
-        public string Detail { get; }
-    }
-
     /// <summary>
     /// The three refusals <c>ModuleScienceExperiment.DeployExperiment()</c>
     /// makes, in stock's own order.
@@ -46,7 +32,7 @@ namespace Gonogo.KSP
         /// (<paramref name="usageRequirementMessage"/>) is written by
         /// <c>ScienceUtil</c> itself.</para>
         /// </summary>
-        public static ExperimentRefusal? RefusalFor(
+        public static Refusal? RefusalFor(
             bool shielded,
             bool usageRequirementsMet,
             string usageRequirementMessage,
@@ -58,20 +44,20 @@ namespace Gonogo.KSP
             {
                 // Opening the bay or staging the fairing changes this, which is
                 // what makes it a moment rather than a capability.
-                return new ExperimentRefusal(CommandErrorCode.NotClearToProceed, shieldedMessage);
+                return new Refusal(CommandErrorCode.NotClearToProceed, shieldedMessage);
             }
 
             if (!usageRequirementsMet)
             {
                 // ExperimentUsageReqs: vessel control, crew aboard, crew in this
                 // part, a Scientist. What the craft is, not when.
-                return new ExperimentRefusal(
+                return new Refusal(
                     CommandErrorCode.CapabilityMismatch, usageRequirementMessage);
             }
 
             if (coolingDown)
             {
-                return new ExperimentRefusal(CommandErrorCode.NotClearToProceed, cooldownMessage);
+                return new Refusal(CommandErrorCode.NotClearToProceed, cooldownMessage);
             }
 
             return null;

@@ -51,6 +51,8 @@
          Unity assemblies the reference set does not ship, so a headless test
          cannot enter them at all. -->
     <Compile Include="..\Gonogo.KSP\PlanOwner.cs" />
+    <!-- The code+sentence pair every carved-out refusal rule returns. -->
+    <Compile Include="..\Gonogo.KSP\Refusal.cs" />
     <!-- Which FACILITY authorises a maneuver write, carved out beside it and for
          the same reason. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\ManeuverWriteAuthority.cs" />

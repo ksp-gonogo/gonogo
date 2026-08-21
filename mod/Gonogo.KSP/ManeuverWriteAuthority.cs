@@ -2,20 +2,6 @@ using Sitrep.Contract;
 
 namespace Gonogo.KSP
 {
-    /// <summary>A refusal on the maneuver write path: the code, and the game's own words for it.</summary>
-    internal readonly struct ManeuverRefusal
-    {
-        public ManeuverRefusal(CommandErrorCode code, string detail)
-        {
-            Code = code;
-            Detail = detail;
-        }
-
-        public CommandErrorCode Code { get; }
-
-        public string Detail { get; }
-    }
-
     /// <summary>
     /// Which authority lets a maneuver node be written, carved out of
     /// <c>KspVesselActuator</c> so it carries no KSP or Unity type and can be
@@ -70,7 +56,7 @@ namespace Gonogo.KSP
         /// open, and it does so because the closed direction would refuse
         /// something no save has ever gated.</para>
         /// </summary>
-        public static ManeuverRefusal? RefusalFor(
+        public static Refusal? RefusalFor(
             bool hasVessel,
             bool solverAttached,
             bool flightPlanningUnlocked,
@@ -81,26 +67,26 @@ namespace Gonogo.KSP
         {
             if (!hasVessel)
             {
-                return new ManeuverRefusal(CommandErrorCode.NoVessel, "");
+                return new Refusal(CommandErrorCode.NoVessel, "");
             }
 
             if (!solverAttached)
             {
-                return new ManeuverRefusal(
+                return new Refusal(
                     CommandErrorCode.NotUnlocked,
                     $"the {Named(trackingStationName, "Tracking Station")} does not plot patched conics yet");
             }
 
             if (plans && !flightPlanningUnlocked)
             {
-                return new ManeuverRefusal(
+                return new Refusal(
                     CommandErrorCode.NotUnlocked,
                     $"the {Named(missionControlName, "Mission Control")} has not unlocked flight planning yet");
             }
 
             if (!nodeEditingUnlocked)
             {
-                return new ManeuverRefusal(
+                return new Refusal(
                     CommandErrorCode.NotClearToProceed, "maneuver node editing is locked right now");
             }
 

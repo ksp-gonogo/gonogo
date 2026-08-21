@@ -55,7 +55,7 @@ namespace Gonogo.KSP
             }
 
             var anyInoperable = false;
-            ExperimentRefusal? firstRefusal = null;
+            Refusal? firstRefusal = null;
             foreach (var exp in experiments)
             {
                 if (exp == null)
@@ -104,7 +104,7 @@ namespace Gonogo.KSP
         /// <c>GameWords.Sentence</c> checks the Localizer actually resolved it
         /// and falls back rather than printing the key.</para>
         /// </summary>
-        private static ExperimentRefusal? DeployRefusal(ModuleScienceExperiment exp)
+        private static Refusal? DeployRefusal(ModuleScienceExperiment exp)
         {
             try
             {

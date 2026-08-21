@@ -23,13 +23,13 @@ namespace Gonogo.KSP.Tests.Science
         [Fact]
         public void AnExperimentTheGameWouldRunIsNotRefused()
         {
-            Assert.Null(Refusal());
+            Assert.Null(Deploy());
         }
 
         [Fact]
         public void AShieldedPartIsRefusedRatherThanReportedAsRun()
         {
-            var refusal = Refusal(shielded: true);
+            var refusal = Deploy(shielded: true);
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.NotClearToProceed, refusal!.Value.Code);
@@ -43,7 +43,7 @@ namespace Gonogo.KSP.Tests.Science
         [Fact]
         public void AnUnmetUsageRequirementCarriesTheGamesOwnMessage()
         {
-            var refusal = Refusal(
+            var refusal = Deploy(
                 usageRequirementsMet: false,
                 usageRequirementMessage: "Requires a crewed vessel");
 
@@ -54,7 +54,7 @@ namespace Gonogo.KSP.Tests.Science
         [Fact]
         public void AnExperimentStillCoolingDownIsRefused()
         {
-            var refusal = Refusal(coolingDown: true);
+            var refusal = Deploy(coolingDown: true);
 
             Assert.Equal(CommandErrorCode.NotClearToProceed, refusal!.Value.Code);
             Assert.Equal("Experiment on cooldown: 12s", refusal.Value.Detail);
@@ -68,7 +68,7 @@ namespace Gonogo.KSP.Tests.Science
         [Fact]
         public void ShieldingIsReportedAheadOfEverythingElse()
         {
-            var refusal = Refusal(
+            var refusal = Deploy(
                 shielded: true, usageRequirementsMet: false, coolingDown: true);
 
             Assert.Equal("Cannot deploy experiment while shielded", refusal!.Value.Detail);
@@ -77,7 +77,7 @@ namespace Gonogo.KSP.Tests.Science
         [Fact]
         public void UsageRequirementsAreReportedAheadOfTheCooldown()
         {
-            var refusal = Refusal(
+            var refusal = Deploy(
                 usageRequirementsMet: false,
                 usageRequirementMessage: "Requires a Scientist",
                 coolingDown: true);
@@ -93,13 +93,13 @@ namespace Gonogo.KSP.Tests.Science
         [Fact]
         public void ARefusalWithNoSentenceIsStillARefusal()
         {
-            var refusal = Refusal(usageRequirementsMet: false, usageRequirementMessage: "");
+            var refusal = Deploy(usageRequirementsMet: false, usageRequirementMessage: "");
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.CapabilityMismatch, refusal!.Value.Code);
         }
 
-        private static ExperimentRefusal? Refusal(
+        private static Refusal? Deploy(
             bool shielded = false,
             bool usageRequirementsMet = true,
             string usageRequirementMessage = "",

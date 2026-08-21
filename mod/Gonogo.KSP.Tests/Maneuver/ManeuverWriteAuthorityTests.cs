@@ -27,7 +27,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [Fact]
         public void EveryAuthoritySatisfiedPlantsTheNode()
         {
-            Assert.Null(Refusal(plans: true));
+            Assert.Null(Write(plans: true));
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [Fact]
         public void ASolverWithoutMissionControlsFlightPlanningStillRefuses()
         {
-            var refusal = Refusal(plans: true, flightPlanningUnlocked: false);
+            var refusal = Write(plans: true, flightPlanningUnlocked: false);
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.NotUnlocked, refusal!.Value.Code);
@@ -54,7 +54,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [Fact]
         public void RemovingANodeDoesNotNeedFlightPlanning()
         {
-            Assert.Null(Refusal(plans: false, flightPlanningUnlocked: false));
+            Assert.Null(Write(plans: false, flightPlanningUnlocked: false));
         }
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [Fact]
         public void NoSolverIsAFacilityTierAndNotAMissingVessel()
         {
-            var refusal = Refusal(plans: true, solverAttached: false);
+            var refusal = Write(plans: true, solverAttached: false);
 
             Assert.Equal(CommandErrorCode.NotUnlocked, refusal!.Value.Code);
             Assert.Contains("Tracking Station", refusal.Value.Detail);
@@ -74,7 +74,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [Fact]
         public void NoVesselIsStillNoVessel()
         {
-            var refusal = Refusal(plans: true, hasVessel: false);
+            var refusal = Write(plans: true, hasVessel: false);
 
             Assert.Equal(CommandErrorCode.NoVessel, refusal!.Value.Code);
         }
@@ -90,7 +90,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [InlineData(false)]
         public void ALockedNodeEditorRefusesBothPlansAndDeletes(bool plans)
         {
-            var refusal = Refusal(plans, nodeEditingUnlocked: false);
+            var refusal = Write(plans, nodeEditingUnlocked: false);
 
             Assert.Equal(CommandErrorCode.NotClearToProceed, refusal!.Value.Code);
         }
@@ -104,7 +104,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         [Fact]
         public void AnUnreadableFacilityTierReadsAsUnlocked()
         {
-            Assert.Null(Refusal(plans: true, flightPlanningUnlocked: true));
+            Assert.Null(Write(plans: true, flightPlanningUnlocked: true));
         }
 
         /// <summary>
@@ -145,7 +145,7 @@ namespace Gonogo.KSP.Tests.Maneuver
             Assert.Contains("ManeuverWriteRefusal(", body);
         }
 
-        private static ManeuverRefusal? Refusal(
+        private static Refusal? Write(
             bool plans,
             bool hasVessel = true,
             bool solverAttached = true,

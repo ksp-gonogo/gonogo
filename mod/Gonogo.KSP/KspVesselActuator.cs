@@ -133,7 +133,7 @@ namespace Gonogo.KSP
         /// <c>ControlTypes</c> and stock's own delete path checks the second
         /// one.</para>
         /// </summary>
-        private static ManeuverRefusal? ManeuverWriteRefusal(bool plans)
+        private static Refusal? ManeuverWriteRefusal(bool plans)
         {
             var vessel = FlightGlobals.ActiveVessel;
 
