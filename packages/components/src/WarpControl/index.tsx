@@ -53,9 +53,6 @@ declare module "@ksp-gonogo/core" {
     // Footer action row: an Uplink contributes a warp-target action
     // ("Warp to <mod-event>") alongside the widget's own warp buttons.
     "warp-control.actions": Record<string, never>;
-    // Header badges: broad integration escape hatch for an inline indicator
-    // next to the WARP title.
-    "warp-control.badges": Record<string, never>;
   }
 }
 
@@ -253,13 +250,7 @@ function WarpControlComponent({
   const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
 
   return (
-    <Panel
-      panelTitle="WARP"
-      /* Broad-escape-hatch badges slot: an Uplink surfaces an inline indicator
-         next to the title, beside the panel's own stream-status badge. Empty
-         (renders nothing) until an augment binds `warp-control.badges`. */
-      panelAside={<AugmentSlot name="warp-control.badges" props={{}} />}
-    >
+    <Panel panelTitle="WARP">
       <DimmedOverlay
         show={dimBody}
         message="No active save"
@@ -486,7 +477,7 @@ registerComponent<WarpControlConfig>({
   ],
   defaultConfig: {},
   actions: warpActions,
-  augmentSlots: ["warp-control.actions", "warp-control.badges"],
+  augmentSlots: ["warp-control.actions"],
   pushable: true,
 });
 

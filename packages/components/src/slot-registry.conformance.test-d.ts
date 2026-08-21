@@ -85,9 +85,6 @@ type _TargetPickerBadges = Expect<
 type _WarpActions = Expect<
   Assignable<SdkSlotProps<"warp-control.actions">, Record<string, never>>
 >;
-type _WarpBadges = Expect<
-  Assignable<SdkSlotProps<"warp-control.badges">, Record<string, never>>
->;
 type _CommSections = Expect<
   Assignable<SdkSlotProps<"comm-signal.sections">, Record<string, never>>
 >;
@@ -102,9 +99,6 @@ type _NavballBadges = Expect<
 >;
 type _DeployedBadges = Expect<
   Assignable<SdkSlotProps<"deployed-science.badges">, Record<string, never>>
->;
-type _ThermalBadges = Expect<
-  Assignable<SdkSlotProps<"thermal-status.badges">, Record<string, never>>
 >;
 type _FuelSections = Expect<
   Assignable<SdkSlotProps<"fuel-status.sections">, Record<string, never>>
@@ -361,13 +355,11 @@ export type _SlotRegistryConformance = [
   _TargetPickerSections,
   _TargetPickerBadges,
   _WarpActions,
-  _WarpBadges,
   _CommSections,
   _CommBadges,
   _SystemActions,
   _NavballBadges,
   _DeployedBadges,
-  _ThermalBadges,
   _FuelSections,
   _FuelBadges,
   _D2tCamera,

@@ -1,10 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  clampSafe,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { clampSafe, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -22,18 +17,6 @@ import { magnitudeOr } from "../shared/magnitude";
 
 // Empty config: room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
-
-// The `thermal-status.badges` slot (augment-slot-map "thermal-status" row):
-// whole-widget context, no slot props: a header quick-glance badge (e.g. a
-// future Kerbalism Reliability "N parts at risk" indicator) sits alongside the
-// stream-status badge. Declaration-merge the slot id → props type into core's
-// `SlotRegistry`, co-located here so parallel slot work doesn't collide on a
-// shared central file. No props ⇒ empty object contract.
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "thermal-status.badges": Record<string, never>;
-  }
-}
 
 // Readings near absolute zero (~2 K) stand in for "no real value", typically
 // when the corresponding part isn't fitted (e.g. early-career rocket with no
@@ -284,14 +267,7 @@ function ThermalStatusComponent({
   const showInlineAlert = anyHotOrAbove && cols >= 6;
 
   return (
-    <Panel
-      panelTitle="THERMAL"
-      /* Uplink badges (e.g. Kerbalism Reliability "N parts at risk") compose
-         into the header next to the panel's own stream-status badge.
-         AugmentSlot renders a fragment, nothing in the DOM, until an augment
-         registers, so the unfilled slot leaves the header untouched. */
-      panelAside={<AugmentSlot name="thermal-status.badges" props={{}} />}
-    >
+    <Panel panelTitle="THERMAL">
       {thermalNotCurrent ? (
         // Distinct from "No thermal data", which says the vessel reports none.
         // This says the vessel reported some and we can no longer vouch for it,
@@ -581,7 +557,6 @@ registerComponent<ThermalStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  augmentSlots: ["thermal-status.badges"],
   pushable: true,
   requires: ["flight"],
 });

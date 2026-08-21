@@ -1347,7 +1347,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/ShipMap/index.tsx",
       "packages/components/src/ShipMap/partMetersContribution.ts",
       "packages/components/src/ShipMap/shipTopology.ts",
-      "packages/components/src/ThermalStatus/index.tsx",
       // DivergingBar.tsx: the kit primitive credits the HTML prototype its
       // design was ported from, which happens to be named after the Domain it
       // was mocked for. A provenance citation.

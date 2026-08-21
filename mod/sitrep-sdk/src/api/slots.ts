@@ -59,7 +59,7 @@
 
 // --- WarpControl (packages/components/src/WarpControl) ---------------------
 
-// "warp-control.actions" / ".badges" carry no props today.
+// "warp-control.actions" carries no props today.
 
 // --- DistanceToTarget (packages/components/src/DistanceToTarget) -----------
 
@@ -573,10 +573,6 @@ export interface DeployedExperimentContext {
 
 // "deployed-science.badges" carries no props today.
 
-// --- ThermalStatus (packages/components/src/ThermalStatus) -----------------
-
-// "thermal-status.badges" carries no props today.
-
 // --- FuelStatus (packages/components/src/FuelStatus) -----------------------
 
 // "fuel-status.sections" / ".badges" carry no props today.
@@ -624,7 +620,6 @@ declare module "./types" {
     "target-picker.badges": Record<string, never>;
 
     "warp-control.actions": Record<string, never>;
-    "warp-control.badges": Record<string, never>;
 
     "distance-to-target.camera": DistanceToTargetHudContext;
     "distance-to-target.overlay": DistanceToTargetHudContext;
@@ -677,8 +672,6 @@ declare module "./types" {
 
     "deployed-science.sections": DeployedExperimentContext;
     "deployed-science.badges": Record<string, never>;
-
-    "thermal-status.badges": Record<string, never>;
 
     "fuel-status.sections": Record<string, never>;
     "fuel-status.badges": Record<string, never>;

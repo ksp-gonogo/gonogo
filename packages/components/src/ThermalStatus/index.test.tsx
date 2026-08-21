@@ -1,8 +1,4 @@
-import {
-  clearAugments,
-  DashboardItemContext,
-  registerAugment,
-} from "@ksp-gonogo/core";
+import { clearAugments, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -178,59 +174,5 @@ describe("ThermalStatusComponent", () => {
       expect(screen.getByText("Hottest engine")).toBeInTheDocument(),
     );
     expect(screen.queryByText("Heat shield")).toBeNull();
-  });
-
-  describe("thermal-status.badges augment slot", () => {
-    it("renders with the slot empty when no augment is registered", () => {
-      const fixture = setupStreamFixture({
-        carriedChannels: CARRIED_CHANNELS,
-        pinnedUt: 10,
-      });
-      renderThermal(fixture);
-      act(() => {
-        fixture.emit("vessel.thermal", {
-          hottestPart: {
-            name: "LV-T30 'Reliant'",
-            skinTemp: 640,
-            skinMaxTemp: 2273,
-          },
-          maxInternalTempRatio: 0.33,
-        });
-      });
-
-      // Header renders; no augment badge present.
-      expect(screen.getByText("THERMAL")).toBeInTheDocument();
-      expect(screen.queryByTestId("reliability-badge")).toBeNull();
-    });
-
-    it("renders an augment registered into thermal-status.badges", async () => {
-      registerAugment({
-        id: "test-reliability-badge",
-        augments: "thermal-status.badges",
-        component: () => <span data-testid="reliability-badge">3 at risk</span>,
-      });
-
-      const fixture = setupStreamFixture({
-        carriedChannels: CARRIED_CHANNELS,
-        pinnedUt: 10,
-      });
-      renderThermal(fixture);
-      act(() => {
-        fixture.emit("vessel.thermal", {
-          hottestPart: {
-            name: "LV-T30 'Reliant'",
-            skinTemp: 640,
-            skinMaxTemp: 2273,
-          },
-          maxInternalTempRatio: 0.33,
-        });
-      });
-
-      await waitFor(() =>
-        expect(screen.getByTestId("reliability-badge")).toHaveTextContent(
-          "3 at risk",
-        ),
-      );
-    });
   });
 });

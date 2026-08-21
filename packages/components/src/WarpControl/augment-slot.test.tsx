@@ -11,12 +11,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl exposes two augment slots (Uplink architecture, locked in
- * `augment-slot-map.md` Feedback round 1): `warp-control.actions` (footer
- * action row: an Uplink contributes a "Warp to <mod-event>" action alongside
- * the widget's own warp buttons) and `warp-control.badges` (header escape
- * hatch). This only EXPOSES the slots; no built-in augment fills them, so an
- * unaugmented widget renders exactly as before, the slots compose nothing.
+ * WarpControl exposes one augment slot, `warp-control.actions`: an Uplink
+ * contributes a "Warp to <mod-event>" action alongside the widget's own warp
+ * buttons. This only EXPOSES the slot; no built-in augment fills it, so an
+ * unaugmented widget renders exactly as before and the slot composes nothing.
+ * Header badges are not an augment slot: every widget gets an automatic
+ * `warp-control.badges` CONTRIBUTION slot instead.
  */
 // Reset the action-handler + augment registries at the START of each test,
 // the prior test's tree is already unmounted (RTL auto-cleanup) by then, so
@@ -59,7 +59,6 @@ describe("WarpControl: augment slots", () => {
       ).toBeTruthy(),
     );
     expect(screen.queryByTestId("warp-actions-augment")).toBeNull();
-    expect(screen.queryByTestId("warp-badges-augment")).toBeNull();
   });
 
   it("composes an augment registered into warp-control.actions", async () => {
@@ -81,18 +80,5 @@ describe("WarpControl: augment slots", () => {
       expect(screen.getByTestId("warp-actions-augment")).toBeTruthy(),
     );
     expect(screen.getByText("Warp to periapsis")).toBeTruthy();
-  });
-
-  it("composes an augment registered into warp-control.badges", async () => {
-    registerAugment({
-      id: "test-warp-badge",
-      augments: "warp-control.badges",
-      component: () => <span data-testid="warp-badges-augment">SOI</span>,
-    });
-
-    renderWarp();
-    await waitFor(() =>
-      expect(screen.getByTestId("warp-badges-augment")).toBeTruthy(),
-    );
   });
 });
