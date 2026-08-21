@@ -109,6 +109,140 @@ public enum CommandErrorCode
     /// how short and in the operator's own currency rendering.</para>
     /// </summary>
     InsufficientFunds = 10,
+
+    /// <summary>
+    /// The command costs more science than is banked.
+    /// <see cref="InsufficientFunds"/>'s twin, and separate for the same reason
+    /// the game keeps <c>Currency</c> as three members: an operator short of
+    /// science does something entirely different about it from one short of
+    /// funds.
+    ///
+    /// <para>Authority: <c>CurrencyModifierQuery.RunQuery(reason, …).CanAfford(Currency.Science)</c>,
+    /// which is what <c>RDTech.ResearchTech</c> asks. NOT
+    /// <c>ResearchAndDevelopment.CanAfford</c>, which skips the modifier chain
+    /// and so answers a different question from the one the game acts on.</para>
+    /// </summary>
+    InsufficientScience = 11,
+
+    /// <summary>
+    /// The save is not a career save, so this command's whole subsystem does not
+    /// exist here.
+    ///
+    /// <para>Authority: <c>HighLogic.CurrentGame.Mode</c>, and in practice the
+    /// null <c>Instance</c> of the <c>ScenarioModule</c> that would have
+    /// answered (<c>Funding</c>, <c>ContractSystem</c>, <c>StrategySystem</c>,
+    /// <c>ResearchAndDevelopment</c>, <c>ScenarioUpgradeableFacilities</c>).</para>
+    ///
+    /// <para>This is a PERMANENT property of the save, not a state that may
+    /// change, which is exactly what <see cref="ModeUnavailable"/> could not
+    /// say. An operator should see the control absent rather than refused; a
+    /// client that can tell this arm from the others can do that.</para>
+    /// </summary>
+    CareerModeRequired = 12,
+
+    /// <summary>
+    /// The game is in a scene this command cannot run from.
+    ///
+    /// <para>Authority: <c>HighLogic.LoadedScene</c> (<c>GameScenes</c>).
+    /// <see cref="CommandResult.Detail"/> names the scene when the producer had
+    /// one.</para>
+    /// </summary>
+    WrongScene = 13,
+
+    /// <summary>
+    /// The entity is not in a state this transition applies to: an already-active
+    /// strategy asked to activate, an already-researched node asked to unlock, a
+    /// contract asked to accept when it is not offered, an assigned kerbal asked
+    /// to be sacked, a spent experiment asked to deploy.
+    ///
+    /// <para>Authority: the entity's own state enum. <c>Strategy.IsActive</c>,
+    /// <c>RDTech.State</c>, <c>Contract.State</c>,
+    /// <c>ProtoCrewMember.RosterStatus</c>,
+    /// <c>ModuleScienceExperiment.Deployed</c>/<c>Inoperable</c>. Every one of
+    /// those is <c>[Description]</c>-tagged or otherwise nameable, so
+    /// <see cref="CommandResult.Detail"/> can carry the state in the game's own
+    /// words.</para>
+    /// </summary>
+    WrongState = 14,
+
+    /// <summary>
+    /// Right command, wrong moment: the flight is not in a state that permits it
+    /// yet, and will be later.
+    ///
+    /// <para>Authority: <c>FlightGlobals.ClearToSave()</c>, whose
+    /// <c>ClearToSaveStatus</c> has seven named arms (in atmosphere, under
+    /// acceleration, moving over the surface, about to crash, on a ladder,
+    /// throttled up, orbit event imminent), plus
+    /// <c>FlightDriver.CanRevertToPostInit</c>/<c>CanRevertToPrelaunch</c> and
+    /// <c>GameParameters.Flight.CanLeaveToSpaceCenter</c>. The arm rides on
+    /// <see cref="CommandResult.Detail"/>.</para>
+    ///
+    /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
+    /// and does not resolve by waiting.</para>
+    /// </summary>
+    NotClearToProceed = 15,
+
+    /// <summary>
+    /// The part or vessel does not have the capability this command needs: a
+    /// rotor asked for a target angle, an unmotorised servo asked to drive, a
+    /// part with no such action, an action present but inert, an autopilot mode
+    /// this craft cannot hold.
+    ///
+    /// <para>Authority: the part's own module list and fields
+    /// (<c>ModuleRoboticServoRotor</c>/<c>Hinge</c>/<c>Piston</c>,
+    /// <c>servoIsMotorized</c>, <c>BaseEvent.active</c>,
+    /// <c>BaseEvent.EventIsDisabledByVariant</c>) and
+    /// <c>VesselAutopilot.CanSetMode</c>.</para>
+    ///
+    /// <para>Nothing an operator waits for. The craft would have to be different
+    /// for this to work, which is why it is not <see cref="NotClearToProceed"/>
+    /// and not <see cref="WrongState"/>.</para>
+    /// </summary>
+    CapabilityMismatch = 16,
+
+    /// <summary>
+    /// There is no usable link for what this command needs to send.
+    ///
+    /// <para>Authority: <c>ScienceUtil.GetBestTransmitter(Vessel)</c> and
+    /// <c>IScienceDataTransmitter.CanTransmit()</c>. Deliberately NOT the
+    /// Courier's own comms-loss gate, which refuses the dispatch before a
+    /// handler ever runs; this is the vessel finding it has no antenna that can
+    /// carry the payload.</para>
+    /// </summary>
+    NoConnection = 17,
+
+    /// <summary>
+    /// The capability exists in the game but this save has not unlocked it: fuel
+    /// transfer, custom action groups, flight planning, EVA, the maneuver tool.
+    ///
+    /// <para>Authority: <c>GameVariables.UnlockedFuelTransfer</c>,
+    /// <c>UnlockedActionGroupsStock</c>/<c>Custom</c>,
+    /// <c>UnlockedFlightPlanning</c>, <c>UnlockedEVA</c>/<c>Flags</c>/<c>Clamber</c>,
+    /// <c>ManeuverToolAvailable</c>, each read at the owning facility's
+    /// normalised level.</para>
+    ///
+    /// <para>Distinct from <see cref="LimitReached"/>, which is a number against
+    /// a number. This is a switch that is off, and the fix is an upgrade rather
+    /// than freeing a slot.</para>
+    /// </summary>
+    NotUnlocked = 18,
+
+    /// <summary>
+    /// Another vessel is on the launch site.
+    ///
+    /// <para>Authority: <c>PreFlightTests.LaunchSiteClear</c>, whose
+    /// <c>GetWarningTitle()</c>/<c>GetWarningDescription()</c> are the game's own
+    /// words for it and ride on <see cref="CommandResult.Detail"/>.</para>
+    /// </summary>
+    SiteOccupied = 19,
+
+    /// <summary>
+    /// The facility this command needs is destroyed or damaged.
+    ///
+    /// <para>Authority: <c>PreFlightTests.FacilityOperational</c>, over
+    /// <c>PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()</c>.</para>
+    /// </summary>
+    FacilityDamaged = 20,
 }
 
 /// <summary>
@@ -157,10 +291,47 @@ public class CommandResult
     /// </summary>
     public LimitBreach? Breach { get; set; }
 
+    /// <summary>
+    /// The refusal in the GAME's own words, when the game had any: the arm of
+    /// <c>ClearToSaveStatus</c> it came back with,
+    /// <c>Strategy.CanBeActivated(out string reason)</c>'s reason,
+    /// <c>GameVariables.GetEVALockedReason</c>'s sentence, a
+    /// <c>PreFlightTests.IPreFlightTest</c>'s <c>GetWarningTitle()</c>, a
+    /// <c>[Description]</c>-tagged state member's name. Empty when the refusal
+    /// had nothing to quote.
+    ///
+    /// <para>Interpolating what the game says beats inferring a cause from the
+    /// mechanism that produced it, and it means this mod does not maintain an
+    /// English table of KSP's own vocabulary that goes stale on every update and
+    /// is wrong in every other language.</para>
+    ///
+    /// <para>Prose for a human, never parsed: <see cref="ErrorCode"/> is the
+    /// machine-readable half and this is the readable one. The same split, and
+    /// the same field name, as <see cref="GateVerdict.Detail"/>.</para>
+    ///
+    /// <para>Nullable rather than empty-defaulted, so it lands on the wire as an
+    /// OPTIONAL property: an existing consumer that builds a
+    /// <c>CommandResult</c> is not made to supply a field it has nothing to put
+    /// in, which is what makes this additive rather than a Major.</para>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Detail { get; set; }
+
     public static CommandResult Ok() => new CommandResult { Success = true };
 
     public static CommandResult Fail(CommandErrorCode errorCode) =>
         new CommandResult { Success = false, ErrorCode = errorCode };
+
+    /// <summary>A refusal that quotes the game. See <see cref="Detail"/>.</summary>
+    public static CommandResult Fail(CommandErrorCode errorCode, string? detail) =>
+        new CommandResult
+        {
+            Success = false,
+            ErrorCode = errorCode,
+            // Whitespace is not a sentence. An empty Detail on the wire would
+            // render as a refusal that quoted the game and got nothing.
+            Detail = string.IsNullOrWhiteSpace(detail) ? null : detail,
+        };
 
     /// <summary>A refusal that carries its comparison. See <see cref="Breach"/>.</summary>
     public static CommandResult Fail(CommandErrorCode errorCode, LimitBreach breach) =>
@@ -191,6 +362,15 @@ public class CommandResult<T> : CommandResult
 
     public static new CommandResult<T> Fail(CommandErrorCode errorCode) =>
         new CommandResult<T> { Success = false, ErrorCode = errorCode };
+
+    /// <summary>A refusal that quotes the game. See <see cref="CommandResult.Detail"/>.</summary>
+    public static new CommandResult<T> Fail(CommandErrorCode errorCode, string? detail) =>
+        new CommandResult<T>
+        {
+            Success = false,
+            ErrorCode = errorCode,
+            Detail = string.IsNullOrWhiteSpace(detail) ? null : detail,
+        };
 
     /// <summary>A refusal that carries its comparison. See <see cref="CommandResult.Breach"/>.</summary>
     public static new CommandResult<T> Fail(CommandErrorCode errorCode, LimitBreach breach) =>

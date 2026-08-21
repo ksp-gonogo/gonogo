@@ -113,14 +113,17 @@ interface PendingCommand {
  * and inventing a success out of a missing reason is the bug this whole path
  * exists to stop.
  */
-function refusalOf(
-  result: unknown,
-): { errorCode: CommandErrorCode; breach?: LimitBreach } | null {
+function refusalOf(result: unknown): {
+  errorCode: CommandErrorCode;
+  breach?: LimitBreach;
+  detail?: string;
+} | null {
   if (typeof result !== "object" || result === null) return null;
   const candidate = result as {
     success?: unknown;
     errorCode?: unknown;
     breach?: unknown;
+    detail?: unknown;
   };
   if (candidate.success !== false) return null;
   return {
@@ -134,6 +137,13 @@ function refusalOf(
     breach:
       typeof candidate.breach === "object" && candidate.breach !== null
         ? (candidate.breach as LimitBreach)
+        : undefined,
+    // The game's own words, when it gave any. Empty is treated as absent for
+    // the same reason: a refusal that quotes nothing must not render an empty
+    // clause where a sentence was expected.
+    detail:
+      typeof candidate.detail === "string" && candidate.detail.length > 0
+        ? candidate.detail
         : undefined,
   };
 }
@@ -574,7 +584,7 @@ export class TelemetryClient {
     // refused command had worked.
     const refusal = refusalOf(result);
     if (refusal !== null) {
-      const { errorCode, breach } = refusal;
+      const { errorCode, breach, detail } = refusal;
       pending.status = {
         phase: "refused",
         requestId,
@@ -583,6 +593,7 @@ export class TelemetryClient {
         args: pending.args,
         label: pending.label,
         breach,
+        detail,
       };
       reject?.(
         new CommandError(
@@ -599,6 +610,7 @@ export class TelemetryClient {
             args: pending.args,
             label: pending.label,
             breach,
+            detail,
           },
         ),
       );

@@ -156,13 +156,24 @@ export enum CommandErrorCode {
 	PlanNotOwned = 7,
 	LimitReached = 8,
 	AlreadyAtMaximum = 9,
-	InsufficientFunds = 10
+	InsufficientFunds = 10,
+	InsufficientScience = 11,
+	CareerModeRequired = 12,
+	WrongScene = 13,
+	WrongState = 14,
+	NotClearToProceed = 15,
+	CapabilityMismatch = 16,
+	NoConnection = 17,
+	NotUnlocked = 18,
+	SiteOccupied = 19,
+	FacilityDamaged = 20
 }
 export interface CommandResult
 {
 	success: boolean;
 	errorCode: CommandErrorCode;
 	breach?: LimitBreach;
+	detail?: string;
 }
 export interface CommandResultOf<T> extends CommandResult
 {
@@ -1017,6 +1028,7 @@ export interface LimitBreach
 export interface GateVerdict
 {
 	outcome: GateOutcome;
+	errorCode: CommandErrorCode;
 	breach?: LimitBreach;
 	detail: string;
 }

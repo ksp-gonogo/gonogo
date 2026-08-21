@@ -480,6 +480,7 @@ export function useCommand(
             args: rejection.args ?? args,
             label: rejection.label ?? opts?.label ?? "",
             breach: rejection.breach,
+            detail: rejection.detail,
           },
         ]);
       });

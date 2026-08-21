@@ -21,6 +21,16 @@ export interface CommandRefusalDetail {
   label: string;
   /** The limit and the actual behind the refusal, when there is one. */
   breach?: LimitBreach;
+  /**
+   * The refusal in the GAME's own words, when the game had any to give: the arm
+   * of `ClearToSaveStatus`, a strategy's own `CanBeActivated` reason, a
+   * pre-flight test's warning title, a state member's `[Description]` name.
+   *
+   * Quoted rather than inferred, so no client keeps an English table of KSP's
+   * vocabulary that is wrong in every other language. `errorCode` stays the
+   * machine-readable half; this is never parsed.
+   */
+  detail?: string;
 }
 
 /**
@@ -109,20 +119,22 @@ export class CommandError extends Error {
   readonly args?: unknown;
   readonly label?: string;
   readonly breach?: LimitBreach;
+  readonly detail?: string;
 
   constructor(
     code: string,
     message: string,
     errorCode?: CommandErrorCode,
-    detail?: CommandRefusalDetail,
+    refusal?: CommandRefusalDetail,
   ) {
     super(message);
     this.name = "CommandError";
     this.code = code;
     this.errorCode = errorCode;
-    this.command = detail?.command;
-    this.args = detail?.args;
-    this.label = detail?.label;
-    this.breach = detail?.breach;
+    this.command = refusal?.command;
+    this.args = refusal?.args;
+    this.label = refusal?.label;
+    this.breach = refusal?.breach;
+    this.detail = refusal?.detail;
   }
 }

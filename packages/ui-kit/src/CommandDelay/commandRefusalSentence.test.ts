@@ -129,11 +129,72 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("falls back to the reason's own name for an arm it has no sentence for", () => {
+    // Only `Unknown` and `None` get here now: every arm the mod actually
+    // refuses with has prose. The fallback stays because a NEWER mod can send
+    // an arm this client has never heard of, and the enum member is still the
+    // mod's own word for what happened.
     expect(
       commandRefusalSentence({
-        errorCode: CommandErrorCode.NoVessel,
+        errorCode: CommandErrorCode.Unknown,
         command: "vessel.control.stage",
       }),
-    ).toBe("Stage refused: NoVessel.");
+    ).toBe("Stage refused: Unknown.");
+  });
+
+  it("quotes the game rather than the sentence written here", () => {
+    // ClearToSaveStatus has seven arms and KSP words each of them. Inferring
+    // "not clear" from the mechanism throws away which one, and the arm is the
+    // whole of what an operator does about it.
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.NotClearToProceed,
+        command: "ksp.recover",
+        detail: "the vessel is moving over the surface",
+      }),
+    ).toBe("Recover refused: the vessel is moving over the surface.");
+  });
+
+  it("does not double the full stop when the game supplied one", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.SiteOccupied,
+        command: "ksp.launch",
+        detail: "Launch Site Occupied.",
+      }),
+    ).toBe("Launch refused: Launch Site Occupied.");
+  });
+
+  it("says the general thing for an arm the game gave no words for", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.CareerModeRequired,
+        command: "career.crew.hire",
+        args: { applicantName: "Jebediah Kerman" },
+      }),
+    ).toBe("Hire Jebediah Kerman refused: this save is not a career game.");
+  });
+
+  it("prefers the comparison over the game's words when it has both", () => {
+    // The numbers are the actionable half. A breach that also carried prose
+    // must not lose the numbers to it.
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.InsufficientScience,
+        command: "career.tech.unlock",
+        args: { techId: "electrics" },
+        detail: "Not enough Science to research this node",
+        breach: {
+          facility: "ResearchAndDevelopment",
+          facilityName: "R&D",
+          facilityLevel: { magnitude: 0, unit: "ratio" },
+          quantity: "science",
+          limit: 45,
+          actual: 90,
+          unit: "science",
+        },
+      }),
+    ).toBe(
+      "Unlock electrics refused: it costs 90.0sci and science is 45.0sci.",
+    );
   });
 });

@@ -2068,17 +2068,22 @@ namespace Sitrep.Host
         /// </summary>
         ///
         /// <remarks>
-        /// A gate that failed with numbers is a limit reached, and it carries
-        /// them: the code chooses the sentence, the breach fills it in. A gate
-        /// that failed with only prose has no comparison to offer, so it falls
-        /// back to <see cref="CommandErrorCode.ModeUnavailable"/> and the client
-        /// says the general thing rather than inventing numbers.
+        /// The evaluator names the arm, because only it knows which authority it
+        /// asked: a full pad and an un-upgraded Tracking Station are both a gate
+        /// saying no, and they are not the same refusal. Both halves it produced
+        /// travel with it, the comparison and the game's own words, so the same
+        /// client sentence serves a declared gate and an actuator that got far
+        /// enough to look.
         /// </remarks>
         private static CommandResult GateRefusalResult(GateVerdict verdict)
         {
-            return verdict.Breach != null
-                ? CommandResult.Fail(CommandErrorCode.LimitReached, verdict.Breach)
-                : CommandResult.Fail(CommandErrorCode.ModeUnavailable);
+            return new CommandResult
+            {
+                Success = false,
+                ErrorCode = verdict.ErrorCode,
+                Breach = verdict.Breach,
+                Detail = string.IsNullOrWhiteSpace(verdict.Detail) ? null : verdict.Detail,
+            };
         }
 
         private string RefusalReason(string command)

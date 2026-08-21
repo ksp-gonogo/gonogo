@@ -1004,7 +1004,40 @@ namespace Sitrep.Contract
         /// and they are one change rather than two because neither is worth
         /// sending alone: a code with no numbers cannot say "16 of 16", and
         /// numbers with no code do not say which sentence they belong in.</para>
+        ///
+        /// <para><b>Bumped 18 -&gt; 19: the refusal names the authority that
+        /// refused.</b> <see cref="CommandErrorCode"/> gains ten members
+        /// (<c>InsufficientScience</c>, <c>CareerModeRequired</c>,
+        /// <c>WrongScene</c>, <c>WrongState</c>, <c>NotClearToProceed</c>,
+        /// <c>CapabilityMismatch</c>, <c>NoConnection</c>, <c>NotUnlocked</c>,
+        /// <c>SiteOccupied</c>, <c>FacilityDamaged</c>);
+        /// <see cref="CommandResult"/> gains <c>Detail</c>;
+        /// <see cref="GateVerdict"/> gains <c>ErrorCode</c>. All additive: an
+        /// older consumer reads any new code as its own <c>Unknown</c> fallback,
+        /// does not see <c>Detail</c>, and a <c>GateVerdict</c> with no
+        /// <c>ErrorCode</c> set reads <c>ModeUnavailable</c>, which is what the
+        /// gate path returned before.</para>
+        ///
+        /// <para>Not a taxonomy we invented. KSP has no single refusal enum, it
+        /// has about a dozen domain-scoped authorities, and each member above
+        /// names one: <c>HighLogic.CurrentGame.Mode</c>,
+        /// <c>HighLogic.LoadedScene</c>, <c>ClearToSaveStatus</c>'s seven arms,
+        /// <c>Contract.State</c> / <c>RDTech.State</c> /
+        /// <c>ProtoCrewMember.RosterStatus</c>, <c>GameVariables.Unlocked*</c>,
+        /// <c>PreFlightTests.LaunchSiteClear</c> and <c>FacilityOperational</c>,
+        /// <c>CurrencyModifierQuery</c>. Of the forty
+        /// <c>Fail(ModeUnavailable)</c> sites in <c>Gonogo.KSP</c>, thirty-nine
+        /// had a specific reason the game already knew and was discarding; the
+        /// one that does not is the craft-file parse, which is genuinely
+        /// attempt-and-see and keeps <c>ModeUnavailable</c>.</para>
+        ///
+        /// <para><c>Detail</c> exists so the game can supply the wording rather
+        /// than this mod keeping an English table of KSP's own vocabulary:
+        /// <c>Strategy.CanBeActivated(out string reason)</c>,
+        /// <c>GameVariables.GetEVALockedReason</c> and every
+        /// <c>IPreFlightTest.GetWarningTitle()</c> already return a sentence, and
+        /// a <c>[Description]</c>-tagged state member already names itself.</para>
         /// </remarks>
-        public const int Minor = 18;
+        public const int Minor = 19;
     }
 }

@@ -23,6 +23,17 @@ export interface CommandRefusalLike {
   label?: string;
   /** The limit and the actual behind the reason, when the mod sent them. */
   breach?: LimitBreach;
+  /**
+   * The refusal in the GAME's own words, when the game had any to give: the arm
+   * of `ClearToSaveStatus` it came back with, a strategy's own `CanBeActivated`
+   * reason, a pre-flight test's warning title, a `[Description]`-tagged state
+   * member's name.
+   *
+   * Preferred over every sentence written below, because the game's wording is
+   * the game's to write: quoting it is how this stays right when KSP changes and
+   * how it reads in the operator's own language.
+   */
+  detail?: string;
 }
 
 /**
@@ -76,6 +87,8 @@ function comparison(
       // Actual is the price and Limit is the balance: what was asked for
       // against what was allowed, the same way round as every other breach.
       return `it costs ${quantity(actual, unit)} and funds are ${quantity(limit, unit)}`;
+    case CommandErrorCode.InsufficientScience:
+      return `it costs ${quantity(actual, unit)} and science is ${quantity(limit, unit)}`;
     default:
       return null;
   }
@@ -90,6 +103,22 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   [CommandErrorCode.LimitReached]: "a limit has been reached",
   [CommandErrorCode.AlreadyAtMaximum]: "it is already at its maximum",
   [CommandErrorCode.InsufficientFunds]: "there are not enough funds",
+  [CommandErrorCode.InsufficientScience]: "there is not enough science",
+  [CommandErrorCode.CareerModeRequired]: "this save is not a career game",
+  [CommandErrorCode.WrongScene]: "the game is not in a scene that allows it",
+  [CommandErrorCode.WrongState]: "it is not in a state that allows it",
+  [CommandErrorCode.NotClearToProceed]: "the flight is not clear for it yet",
+  [CommandErrorCode.CapabilityMismatch]: "this craft cannot do it",
+  [CommandErrorCode.NoConnection]: "there is no usable link to send it on",
+  [CommandErrorCode.NotUnlocked]: "it has not been unlocked yet",
+  [CommandErrorCode.SiteOccupied]: "another vessel is on the launch site",
+  [CommandErrorCode.FacilityDamaged]: "the building is out of action",
+  [CommandErrorCode.NoVessel]: "there is no vessel to act on",
+  [CommandErrorCode.NotFound]: "nothing here answers to that",
+  [CommandErrorCode.Range]: "an argument was outside its valid range",
+  [CommandErrorCode.PlanNotOwned]: "another planner owns the flight plan",
+  [CommandErrorCode.Timeout]: "the game did not get to it in time",
+  [CommandErrorCode.ModeUnavailable]: "the game would not say why",
 };
 
 /**
@@ -99,6 +128,19 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
  */
 function readableQuantity(quantityId: string): string {
   return quantityId.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+}
+
+/**
+ * The game's own words as a mid-sentence clause: trimmed, and with the trailing
+ * full stop dropped because the caller adds one.
+ *
+ * Lower-casing is NOT done here. KSP's strings are titles and sentences of its
+ * own ("Craft is over the mass limit", a kerbal's name), and folding case would
+ * damage the proper nouns in them.
+ */
+function said(detail: string | undefined): string | null {
+  const trimmed = detail?.trim().replace(/\.$/, "");
+  return trimmed ? trimmed : null;
 }
 
 /**
@@ -129,6 +171,13 @@ export function commandRefusalSentence(refusal: CommandRefusalLike): string {
   const subject = commandRefusalSubject(refusal);
   const clause =
     (refusal.breach ? comparison(refusal.errorCode, refusal.breach) : null) ??
+    // What the game itself said, ahead of anything written here. KSP already
+    // words most of these (`ClearToSaveStatus`'s arms,
+    // `Strategy.CanBeActivated(out reason)`, every `IPreFlightTest`'s warning
+    // title, a `[Description]`-tagged state member), and quoting it beats
+    // inferring the cause from the mechanism: it stays right when KSP changes,
+    // and it arrives already localised.
+    said(refusal.detail) ??
     GENERAL_REASON[refusal.errorCode] ??
     // An arm with no sentence of its own still has to say something true. The
     // enum member is not prose, but it is the mod's own word for what happened
