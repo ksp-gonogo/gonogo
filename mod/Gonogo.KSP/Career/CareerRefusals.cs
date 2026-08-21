@@ -126,6 +126,32 @@ namespace Gonogo.KSP.Career
         }
 
         /// <summary>
+        /// The Administration Building's cap on simultaneously active
+        /// strategies (<c>GameVariables.GetActiveStrategyLimit</c>), the first
+        /// arm of <c>Strategy.CanBeActivated</c>.
+        /// </summary>
+        public static LimitBreach? ActiveStrategiesBreach(
+            string facilityId,
+            string facilityName,
+            double facilityLevel,
+            int activeStrategies,
+            double strategyLimit)
+        {
+            var limit = RealLimit(strategyLimit);
+            if (limit == null || activeStrategies < limit.Value) return null;
+            return new LimitBreach
+            {
+                Facility = facilityId,
+                FacilityName = facilityName,
+                FacilityLevel = facilityLevel,
+                Quantity = "activeStrategies",
+                Limit = limit,
+                Actual = activeStrategies,
+                Unit = Units.Count,
+            };
+        }
+
+        /// <summary>
         /// A facility that has nothing above it
         /// (<c>UpgradeableFacility.FacilityLevel</c> against <c>MaxLevel</c>).
         ///

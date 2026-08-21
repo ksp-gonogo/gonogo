@@ -204,6 +204,18 @@
          ctor wants UnityEngine.UI and does not, so a test builds the query
          directly). -->
     <Compile Include="..\Gonogo.KSP\Career\CareerAffordability.cs" />
+    <!-- The command-gate declarations and their evaluators, paired at build time
+         rather than only by ChannelEngine.ValidateGateDeclarations inside a
+         running KSP. GateDeclarations is a table of plain contract objects, and
+         the evaluators are only CONSTRUCTED here, never evaluated: their live
+         reads (GameVariables, ContractSystem, PreFlightTests) need a scene, and
+         .NET resolves a type per method body, so they load without one. The
+         Uplinks that consume the table are NOT here: their discovery
+         constructors build the real actuators, which do need a scene. -->
+    <Compile Include="..\Gonogo.KSP\Gates\CareerGates.cs" />
+    <Compile Include="..\Gonogo.KSP\Gates\GateDeclarations.cs" />
+    <Compile Include="..\Gonogo.KSP\Gates\KspGateEvaluators.cs" />
+    <Compile Include="..\Gonogo.KSP\GameWords.cs" />
     <Compile Include="Career\**\*.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.

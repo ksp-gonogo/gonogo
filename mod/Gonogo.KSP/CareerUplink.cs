@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
@@ -94,6 +95,14 @@ namespace Gonogo.KSP
             // signal to a craft, so all nine are delayed: false, they take
             // effect immediately rather than at UT + uplink light-time. Only
             // commands sent to a vessel ride light-time.
+            //
+            // Each also carries its declared gates, from GateDeclarations: at
+            // minimum "this is a career save", which is a permanent property of
+            // the game rather than a state that changes and used to arrive as
+            // the same ModeUnavailable as "the crew cap is full". Declared
+            // rather than checked in the handler because the engine can then
+            // answer it with no arguments at all, which is what lets a control
+            // be dark with a reason instead of live and doomed.
             Commands = new List<CommandDeclaration>
             {
                 Command(CareerCommandProvider.ActivateStrategyCommand, delayed: false),
@@ -128,10 +137,12 @@ namespace Gonogo.KSP
             host.AddCommandHandler<FireCrewArgs, CommandResult>(CareerCommandProvider.FireCrewCommand, args => CareerCommandProvider.HandleFireCrew(_actuator, args));
         }
 
-        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
-        {
-            Command = command,
-            Delayed = delayed,
-        };
+        private static CommandDeclaration Command(string command, bool delayed) =>
+            new CommandDeclaration
+            {
+                Command = command,
+                Delayed = delayed,
+                Requires = GateDeclarations.For(command),
+            };
     }
 }
