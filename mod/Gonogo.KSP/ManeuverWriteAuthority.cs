@@ -48,13 +48,15 @@ namespace Gonogo.KSP
         /// the building it was planned from has since been downgraded would
         /// strand a node with no way to clear it.</para>
         ///
-        /// <para>Every flag is read by the caller off the game, and a career
-        /// gate that cannot be read reads as OPEN: <c>ScenarioUpgradeableFacilities</c>
-        /// is a career/mission scenario (<c>KSPScenario((ScenarioCreationOptions)1056, …)</c>)
-        /// and is simply absent from a sandbox save, where there are no facility
-        /// tiers to be short of. That is the one gate in this mod that fails
-        /// open, and it does so because the closed direction would refuse
-        /// something no save has ever gated.</para>
+        /// <para>Every flag is read by the caller off the game, and a facility
+        /// tier that is ABSENT rather than unread reads as its ceiling:
+        /// <c>ScenarioUpgradeableFacilities</c> is a career/mission scenario
+        /// (<c>KSPScenario((ScenarioCreationOptions)1056, …)</c>) and is simply
+        /// not in a sandbox save, where there are no facility tiers to be short
+        /// of. That is not this rule being lenient, it is what the save means,
+        /// and the facility GATES answer the same way off the same shared
+        /// reading (<c>FacilityGateHelp.ReadFacilityTiers</c>) so a control and
+        /// the dispatch behind it cannot disagree.</para>
         /// </summary>
         public static Refusal? RefusalFor(
             bool hasVessel,

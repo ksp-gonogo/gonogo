@@ -32,6 +32,15 @@ namespace Gonogo.KSP.Gates
     /// Pass: treating an unreadable limit as no limit is how a gate fails open,
     /// and the contract says so. Unknown also refuses the dispatch, so the
     /// direction of the mistake is the safe one.</para>
+    ///
+    /// <para><b>An authority that does not exist is not an authority that could
+    /// not be read.</b> The facility gates are the one place the two used to be
+    /// confused: <c>ScenarioUpgradeableFacilities</c> is absent from a sandbox
+    /// save because sandbox HAS no facility tiers, and answering Unknown there
+    /// refused capabilities that are maximally available. That is decided by
+    /// <see cref="FacilityGateHelp.ReadFacilityTiers"/>, from the game mode, and
+    /// it narrows Unknown rather than widening Pass: a career save whose scenario
+    /// has not woken up yet still answers Unknown.</para>
     /// </summary>
     internal static class KspGateEvaluators
     {
@@ -68,6 +77,23 @@ namespace Gonogo.KSP.Gates
             public const string ManeuverTool = "maneuverTool";
             public const string LaunchSiteClear = "launchSiteClear";
             public const string FacilityOperational = "facilityOperational";
+
+            /// <summary>
+            /// Whether <see cref="FacilityLimitGate"/> knows this quantity.
+            ///
+            /// <para>Asked BEFORE the gate decides anything about facility tiers,
+            /// so a declaration naming a limit that does not exist answers
+            /// Unknown in every mode rather than passing in the modes where the
+            /// tiers happen not to matter. A typo must not be answered
+            /// confidently by the one save shape that never reads it.</para>
+            /// </summary>
+            public static bool IsFacilityLimit(string quantity) =>
+                quantity == ActiveCrew || quantity == ActiveContracts || quantity == ActiveStrategies;
+
+            /// <summary>Whether <see cref="FacilityUnlockedGate"/> knows this quantity, and why it is asked first.</summary>
+            public static bool IsUnlockable(string quantity) =>
+                quantity == FlightPlanning || quantity == FuelTransfer
+                    || quantity == Eva || quantity == ManeuverTool;
         }
     }
 
@@ -159,21 +185,55 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal sealed class FacilityLimitGate : ICommandGateEvaluator
     {
+        private readonly Func<bool> _scenarioLoaded;
+        private readonly Func<Game.Modes?> _gameMode;
+
+        /// <summary>
+        /// The two live reads that decide whether the tiers exist arrive as
+        /// delegates so a headless test can enter this method at all. Nothing
+        /// else in <see cref="Evaluate"/> is reachable outside a running KSP -
+        /// <c>GameVariables</c> and <c>ContractSystem</c> are MonoBehaviours and
+        /// <c>HighLogic.CurrentGame</c>'s setter is a no-op without one - so an
+        /// evaluator written only against the statics has a
+        /// <see cref="FacilityTierRead"/> branch nothing can execute, which is
+        /// how the sandbox refusal survived being written down twice.
+        /// </summary>
+        public FacilityLimitGate(
+            Func<bool>? scenarioLoaded = null, Func<Game.Modes?>? gameMode = null)
+        {
+            _scenarioLoaded = scenarioLoaded ?? FacilityGateHelp.FacilitiesScenarioLoaded;
+            _gameMode = gameMode ?? FacilityGateHelp.CurrentGameMode;
+        }
+
         public string Kind => KspGateEvaluators.Kinds.FacilityLimit;
 
         public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
         {
-            var gameVariables = GameVariables.Instance;
-            if (gameVariables == null) return GateVerdict.Unknown("GameVariables is not loaded");
-            if (ScenarioUpgradeableFacilities.Instance == null)
-            {
-                return GateVerdict.Unknown("the facilities scenario is not loaded");
-            }
-
+            // Both first, because a declaration naming a facility or a limit KSP
+            // does not have is wrong in every mode and must not be answered by
+            // any of them.
             if (!FacilityGateHelp.TryParseFacility(requirement.Facility, out var facility))
             {
                 return GateVerdict.Unknown($"KSP has no facility called \"{requirement.Facility}\"");
             }
+            if (!KspGateEvaluators.Quantities.IsFacilityLimit(requirement.Quantity))
+            {
+                return GateVerdict.Unknown($"no facility limit is named \"{requirement.Quantity}\"");
+            }
+
+            var tiers = FacilityGateHelp.ReadFacilityTiers(_scenarioLoaded(), _gameMode());
+            if (tiers == FacilityTierRead.Unreadable)
+            {
+                return GateVerdict.Unknown("the facilities scenario is not loaded");
+            }
+            // No tiers means no tier-imposed cap: GameVariables answers every one
+            // of these limits with its unlimited sentinel at the top level, so
+            // this is the same verdict a live read would give, reached without
+            // needing the career systems that hold the counts.
+            if (tiers == FacilityTierRead.AlwaysMax) return GateVerdict.Pass();
+
+            var gameVariables = GameVariables.Instance;
+            if (gameVariables == null) return GateVerdict.Unknown("GameVariables is not loaded");
 
             try
             {
@@ -204,6 +264,9 @@ namespace Gonogo.KSP.Gates
                             gameVariables.GetActiveStrategyLimit(norm));
                         break;
                     default:
+                        // Unreachable past the guard above, and kept as the arm
+                        // that catches a quantity added to one list and not the
+                        // other. Unknown is the safe way for that to be wrong.
                         return GateVerdict.Unknown(
                             $"no facility limit is named \"{requirement.Quantity}\"");
                 }
@@ -223,23 +286,52 @@ namespace Gonogo.KSP.Gates
     /// Authority: <c>GameVariables</c>'s <c>Unlocked*</c> switches, each read at
     /// the owning facility's normalised level. A capability that exists in the
     /// game but not yet in this save.
+    ///
+    /// <para>"Not yet in this save" is what makes the sandbox answer obvious
+    /// once it is said out loud: there is no yet. Flight planning is Mission
+    /// Control's, patched conics is the Tracking Station's, and a save with no
+    /// facility tiers has both at their ceiling from the first second. Refusing
+    /// there refused a capability in the one mode where it is maximally
+    /// available, which is the worst direction for the mistake to run.</para>
     /// </summary>
     internal sealed class FacilityUnlockedGate : ICommandGateEvaluator
     {
+        private readonly Func<bool> _scenarioLoaded;
+        private readonly Func<Game.Modes?> _gameMode;
+
+        /// <summary>Same test seam, and for the same reason, as <see cref="FacilityLimitGate"/>'s.</summary>
+        public FacilityUnlockedGate(
+            Func<bool>? scenarioLoaded = null, Func<Game.Modes?>? gameMode = null)
+        {
+            _scenarioLoaded = scenarioLoaded ?? FacilityGateHelp.FacilitiesScenarioLoaded;
+            _gameMode = gameMode ?? FacilityGateHelp.CurrentGameMode;
+        }
+
         public string Kind => KspGateEvaluators.Kinds.FacilityUnlocked;
 
         public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
         {
-            var gameVariables = GameVariables.Instance;
-            if (gameVariables == null) return GateVerdict.Unknown("GameVariables is not loaded");
-            if (ScenarioUpgradeableFacilities.Instance == null)
-            {
-                return GateVerdict.Unknown("the facilities scenario is not loaded");
-            }
+            // Both first, for the same reason as in FacilityLimitGate above.
             if (!FacilityGateHelp.TryParseFacility(requirement.Facility, out var facility))
             {
                 return GateVerdict.Unknown($"KSP has no facility called \"{requirement.Facility}\"");
             }
+            if (!KspGateEvaluators.Quantities.IsUnlockable(requirement.Quantity))
+            {
+                return GateVerdict.Unknown($"no unlockable capability is named \"{requirement.Quantity}\"");
+            }
+
+            var tiers = FacilityGateHelp.ReadFacilityTiers(_scenarioLoaded(), _gameMode());
+            if (tiers == FacilityTierRead.Unreadable)
+            {
+                return GateVerdict.Unknown("the facilities scenario is not loaded");
+            }
+            // Every facility at its ceiling unlocks every switch read off one, so
+            // the answer is yes without asking GameVariables which yes it is.
+            if (tiers == FacilityTierRead.AlwaysMax) return GateVerdict.Pass();
+
+            var gameVariables = GameVariables.Instance;
+            if (gameVariables == null) return GateVerdict.Unknown("GameVariables is not loaded");
 
             try
             {
@@ -260,6 +352,8 @@ namespace Gonogo.KSP.Gates
                         unlocked = gameVariables.ManeuverToolAvailable(norm);
                         break;
                     default:
+                        // Unreachable past the guard above; same backstop, same
+                        // reason, as FacilityLimitGate's.
                         return GateVerdict.Unknown(
                             $"no unlockable capability is named \"{requirement.Quantity}\"");
                 }
@@ -389,9 +483,106 @@ namespace Gonogo.KSP.Gates
         }
     }
 
+    /// <summary>
+    /// What a facility gate can learn about this save's facility tiers.
+    /// </summary>
+    internal enum FacilityTierRead
+    {
+        /// <summary><c>ScenarioUpgradeableFacilities</c> is there; read it.</summary>
+        Live,
+
+        /// <summary>
+        /// This save has no facility tiers at all, so every one of them is at
+        /// its ceiling and nothing tier-gated is short.
+        /// </summary>
+        AlwaysMax,
+
+        /// <summary>
+        /// The scenario should be there and is not, which is a scene mid-load,
+        /// not a fact about the save.
+        /// </summary>
+        Unreadable,
+    }
+
     /// <summary>Shared reads the facility gates both need.</summary>
     internal static class FacilityGateHelp
     {
+        /// <summary>
+        /// Whether the facility tiers are readable, absent because the save has
+        /// none, or merely missing.
+        ///
+        /// <para><b>Both of the last two present identically</b> - a null
+        /// <c>ScenarioUpgradeableFacilities.Instance</c> - and they want opposite
+        /// answers, so the discriminator has to come from somewhere else. It is
+        /// the game MODE, which is what KSP itself decides scenario existence
+        /// from: <c>Game.CreateNew</c> and <c>Game.UpdateScenarioModules</c> both
+        /// switch on <c>Game.Mode</c> and add a scenario only when its
+        /// <c>[KSPScenario]</c> options name that mode.
+        /// <c>ScenarioUpgradeableFacilities</c> is declared
+        /// <c>(ScenarioCreationOptions)1056</c>, which is
+        /// <c>AddToNewMissionGames | AddToNewCareerGames</c> and names neither
+        /// sandbox. So in <c>SANDBOX</c> and <c>SCIENCE_SANDBOX</c> the scenario
+        /// is never created and a null Instance is permanent; in <c>CAREER</c> it
+        /// is created, so a null Instance is a load that has not finished and
+        /// Unknown is still the honest answer. <c>Game.Mode</c> is a plain field
+        /// on the save, set before any scenario module exists, so it is readable
+        /// in exactly the window where the scenario is not.</para>
+        ///
+        /// <para><b>Max is not a fail-open guess, it is what stock already
+        /// answers.</b> <c>ScenarioUpgradeableFacilities.GetFacilityLevel(string)</c>
+        /// is a STATIC that starts its result at <c>1f</c> and only lowers it
+        /// when <c>protoUpgradeables</c> has an entry for the facility, so a
+        /// sandbox save already reads every facility at its top tier through
+        /// KSP's own code path, with or without an Instance. The refusal came
+        /// from our null-Instance guard, never from anything the game declined
+        /// to tell us.</para>
+        ///
+        /// <para>The training-scenario modes are deliberately NOT in the max
+        /// list. <c>SCENARIO</c>, <c>SCENARIO_NON_RESUMABLE</c> and
+        /// <c>MISSION_BUILDER</c> get neither arm of KSP's own dispatch, so
+        /// whether they carry the scenario depends on the file they were built
+        /// from and we genuinely do not know.</para>
+        /// </summary>
+        public static FacilityTierRead ReadFacilityTiers(bool scenarioLoaded, Game.Modes? mode)
+        {
+            if (scenarioLoaded) return FacilityTierRead.Live;
+            if (mode == Game.Modes.SANDBOX || mode == Game.Modes.SCIENCE_SANDBOX)
+            {
+                return FacilityTierRead.AlwaysMax;
+            }
+            return FacilityTierRead.Unreadable;
+        }
+
+        /// <summary>Whether the facilities scenario is in this game.</summary>
+        public static bool FacilitiesScenarioLoaded()
+        {
+            try
+            {
+                return ScenarioUpgradeableFacilities.Instance != null;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// This save's mode, or null when there is no game to ask. Null lands on
+        /// <see cref="FacilityTierRead.Unreadable"/>, which is right: no game
+        /// loaded is not a sandbox game.
+        /// </summary>
+        public static Game.Modes? CurrentGameMode()
+        {
+            try
+            {
+                return HighLogic.CurrentGame?.Mode;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public static bool TryParseFacility(string name, out SpaceCenterFacility facility)
         {
             foreach (SpaceCenterFacility candidate in Enum.GetValues(typeof(SpaceCenterFacility)))

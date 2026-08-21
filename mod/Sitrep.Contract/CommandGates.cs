@@ -62,13 +62,20 @@ namespace Sitrep.Contract
         /// teaches a false belief and never corrects it.</description></item>
         /// </list>
         ///
-        /// <para>The case that makes this concrete:
-        /// <c>ScenarioUpgradeableFacilities</c> is a
-        /// <c>[KSPScenario]</c> of career and mission only, so its
-        /// <c>Instance</c> is NULL in a sandbox save and every facility gate
-        /// there answers Unknown. Collapsing Unknown into Fail would black out
-        /// working controls in every sandbox game and explain it in the game's
-        /// own voice.</para>
+        /// <para>The case that makes this concrete: a career save is still
+        /// loading and <c>ScenarioUpgradeableFacilities.Instance</c> is not there
+        /// yet, so every facility gate answers Unknown for as long as that takes.
+        /// Collapsing Unknown into Fail would black those controls out and
+        /// explain it in the game's own voice, and the explanation would be
+        /// about a building rather than about a scene that had not finished
+        /// loading.</para>
+        ///
+        /// <para>That example used to be the sandbox save, where the scenario is
+        /// absent for good. It is not any more, and the reason is worth keeping:
+        /// sandbox HAS no facility tiers, so "cannot read the tier" was the wrong
+        /// question there and the gates now answer max instead of Unknown. An
+        /// authority that does not exist is not an authority that could not be
+        /// read, and only the second one is this.</para>
         /// </summary>
         public GateVerdict Verdict { get; set; } = new GateVerdict();
     }

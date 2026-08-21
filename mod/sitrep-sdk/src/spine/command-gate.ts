@@ -34,12 +34,18 @@ export interface CommandGateStatus {
    *
    * <p><b>This is not a refusal and must never be drawn as one.</b> The reasons
    * are mostly structural or transient and none of them is the game's judgement
-   * about the command: `ScenarioUpgradeableFacilities.Instance` is null in a
-   * SANDBOX save (the scenario is career/mission only), `FlightGlobals` is not
-   * ready mid scene-load, an Uplink declared a gate kind and forgot its
-   * evaluator. Rendering any of those as a dark control with a confident
-   * sentence teaches the operator a false belief about their own save, and does
-   * it permanently, which is worse than saying nothing.</p>
+   * about the command: `ScenarioUpgradeableFacilities.Instance` is not there yet
+   * in a career save that is still loading, `FlightGlobals` is not ready mid
+   * scene-load, an Uplink declared a gate kind and forgot its evaluator.
+   * Rendering any of those as a dark control with a confident sentence teaches
+   * the operator a false belief about their own save, and does it permanently,
+   * which is worse than saying nothing.</p>
+   *
+   * <p>A SANDBOX save is deliberately NOT on that list any more. The same
+   * `Instance` is null there too, but permanently and because sandbox has no
+   * facility tiers at all, so the gates answer max rather than Unknown and the
+   * control is live because it PASSED. An authority that does not exist is not
+   * an authority that could not be read.</p>
    *
    * <p>So a control with an undetermined gate renders exactly as an ungated one:
    * live, pressable, claiming nothing. The dispatch is the authority, and a
