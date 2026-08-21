@@ -221,6 +221,10 @@
          Strategy.Activate calls CanBeActivated, so neither runs anywhere but the
          Administration screen. The sequence takes an interface instead. -->
     <Compile Include="..\Gonogo.KSP\Career\StrategyCommit.cs" />
+    <!-- What a facility's obstructing-vessel walk becomes as a refusal. The walk
+         itself is two public SpaceCenterBuilding methods over live scene
+         objects; only its answer is decided here. -->
+    <Compile Include="..\Gonogo.KSP\Career\FacilityObstruction.cs" />
     <!-- CareerAffordability.cs genuinely needs the reference DLL: it runs
          stock's own CurrencyModifierQuery, a plain class that loads and prices
          a spend headlessly (its RunQuery half fires a GameEvent, whose static

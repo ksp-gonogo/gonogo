@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using Contracts;
 using Gonogo.KSP.Career;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Strategies;
+using Upgradeables;
 using KSP.UI.Screens;
 
 namespace Gonogo.KSP
@@ -291,6 +293,85 @@ namespace Gonogo.KSP
                 : CommandResult.Fail(CommandErrorCode.WrongState, ContractStateName(contract)));
 
         /// <summary>
+        /// Craft parked on the facility, which stock hard-blocks an upgrade on,
+        /// or null when it is clear.
+        ///
+        /// <para><c>KSCFacilityContextMenu</c>'s Upgrade arm is
+        /// <c>if (WarnOfObstructingVessels(includeGrounds: true, onlyDestroyed: false)) break;</c>
+        /// with no proceed option, and the console had no equivalent: a craft on
+        /// the pad and we upgraded under it. That method is private and spawns a
+        /// dialog, but the walk it does is public on the same component:
+        /// <c>FindVesselsAtFacility</c> over the building's own
+        /// <c>destructibles</c> and <c>FindVesselsAtGrounds</c> over its parent
+        /// transform are the same two halves, so this asks rather than
+        /// reimplements.</para>
+        ///
+        /// <para>Fails OPEN when the <c>SpaceCenterBuilding</c> cannot be found:
+        /// a gate we cannot evaluate must not refuse something stock allows,
+        /// the same direction as the contract cap below.</para>
+        /// </summary>
+        private static CommandResult? ObstructionRefusal(UpgradeableFacility facility)
+        {
+            try
+            {
+                var building = FindBuilding(facility);
+                var flightState = HighLogic.CurrentGame?.flightState;
+                if (building == null || flightState == null) return null;
+
+                var obstructing = new List<string>();
+                AddVesselNames(obstructing, building.FindVesselsAtFacility(flightState, building.destructibles));
+                if (building.BuildingTransform != null)
+                {
+                    AddVesselNames(
+                        obstructing,
+                        building.FindVesselsAtGrounds(flightState, building.BuildingTransform.parent));
+                }
+
+                return FacilityObstruction.Refusal(
+                    obstructing,
+                    GameWords.Sentence(
+                        "#autoLOC_6002252",
+                        "vessels are on this facility: ",
+                        building.buildingInfoName ?? ""),
+                    GameWords.Sentence("#autoLOC_6002253", ""));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The <c>SpaceCenterBuilding</c> that owns this facility.
+        /// <c>SpaceCenterBuilding</c> reads its own
+        /// <c>upgradeableFacility = buildingTransform.GetComponent&lt;UpgradeableFacility&gt;()</c>,
+        /// so the facility sits on a child of the building and the walk is
+        /// upward. The scene sweep is the fallback for a hierarchy that does not
+        /// match that assumption.
+        /// </summary>
+        private static SpaceCenterBuilding? FindBuilding(UpgradeableFacility facility)
+        {
+            var direct = facility.GetComponentInParent<SpaceCenterBuilding>();
+            if (direct != null) return direct;
+
+            foreach (var candidate in UnityEngine.Object.FindObjectsOfType<SpaceCenterBuilding>())
+            {
+                if (candidate != null && ReferenceEquals(candidate.Facility, facility)) return candidate;
+            }
+            return null;
+        }
+
+        private static void AddVesselNames(List<string> into, List<ProtoVessel>? found)
+        {
+            if (found == null) return;
+            foreach (var proto in found)
+            {
+                if (proto == null || string.IsNullOrEmpty(proto.vesselName)) continue;
+                if (!into.Contains(proto.vesselName)) into.Add(proto.vesselName);
+            }
+        }
+
+        /// <summary>
         /// Mission Control's cap on simultaneously accepted contracts, or null
         /// when there is room (or nothing to read it from, which fails OPEN: a
         /// gate we cannot evaluate must not refuse something stock allows).
@@ -343,6 +424,12 @@ namespace Gonogo.KSP
             if (maxTier != null)
             {
                 return CommandResult.Fail(CommandErrorCode.AlreadyAtMaximum, maxTier);
+            }
+
+            var obstructed = ObstructionRefusal(live);
+            if (obstructed != null)
+            {
+                return obstructed;
             }
 
             var funding = Funding.Instance;

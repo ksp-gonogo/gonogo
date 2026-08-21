@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using KSP.Localization;
 using Sitrep.Contract;
 using Sitrep.Host;
 
@@ -102,7 +101,7 @@ namespace Gonogo.KSP
         /// KSP's localisation table under opaque <c>#autoLOC_</c> numbers and
         /// are formatted here: a number the game renumbers would otherwise put a
         /// confidently wrong sentence in front of an operator, so
-        /// <see cref="GameSentence"/> checks the Localizer actually resolved it
+        /// <c>GameWords.Sentence</c> checks the Localizer actually resolved it
         /// and falls back rather than printing the key.</para>
         /// </summary>
         private static ExperimentRefusal? DeployRefusal(ModuleScienceExperiment exp)
@@ -127,8 +126,8 @@ namespace Gonogo.KSP
                     usageMet,
                     exp.usageReqMessage ?? "",
                     exp.useCooldown && exp.cooldownTimer > 0.0,
-                    GameSentence("#autoLOC_238290", "the part is shielded from the airstream"),
-                    GameSentence(
+                    GameWords.Sentence("#autoLOC_238290", "the part is shielded from the airstream"),
+                    GameWords.Sentence(
                         "#autoLOC_238298",
                         "the experiment is still cooling down",
                         KSPUtil.PrintTimeCompact(exp.cooldownToGo, explicitPositive: false)));
@@ -140,32 +139,6 @@ namespace Gonogo.KSP
                 // behaviour as before this gate existed, and the game still has
                 // its own three arms behind it.
                 return null;
-            }
-        }
-
-        /// <summary>
-        /// One of KSP's own sentences, or <paramref name="fallback"/> when the
-        /// Localizer had nothing for the key. An unresolved
-        /// <c>#autoLOC_</c> comes back as the key itself, which is worse in
-        /// front of an operator than a plain English sentence.
-        /// </summary>
-        private static string GameSentence(string key, string fallback, params object[] args)
-        {
-            try
-            {
-                var formatted = args.Length == 0
-                    ? Localizer.Format(key)
-                    : Localizer.Format(key, args);
-                if (string.IsNullOrWhiteSpace(formatted) ||
-                    formatted.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return fallback;
-                }
-                return formatted;
-            }
-            catch (Exception)
-            {
-                return fallback;
             }
         }
 
