@@ -25,8 +25,13 @@ describe("Tier A discrete-topic events", () => {
   });
 
   it("shapes a flight-ended event", () => {
-    const ev = fromFlightEnded({ ut: 200, reason: "recovered" });
+    // `reason` is a FlightEndReason ORDINAL on the wire. This passed a string
+    // no mod has ever sent, and asserted only the kind and the UT, so it
+    // agreed with the bug that left `detail` permanently absent. See
+    // flightEndReason.test.ts.
+    const ev = fromFlightEnded({ ut: 200, reason: 0 });
     expect(ev).toMatchObject({ kind: "flight-ended", ut: 200 });
+    expect(ev?.detail).toBe("Recovered");
   });
 
   it("shapes a vessel-changed event", () => {
