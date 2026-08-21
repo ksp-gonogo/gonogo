@@ -115,6 +115,23 @@ describe("OrbitView draws the shape the provider states", () => {
     expect(closedConics(container)).toBe(0);
   });
 
+  it("keeps the status pill in a tiny cell rather than the refusal text", async () => {
+    // The pill reports the craft's state at this instant, which the osculating
+    // elements carry whoever computed them. Only the PATH is in question, and a
+    // 3x3 cell has no room for a two-line refusal.
+    const { container } = renderOrbitViewStream(
+      { w: 3, h: 3 },
+      { ...LKO, horizon: integratedHorizon(500) },
+    );
+    await waitFor(() => {
+      if (!/orbit|orbital|escape/i.test(visibleText(container))) {
+        throw new Error("status pill has not resolved yet");
+      }
+    });
+    expect(visibleText(container)).not.toContain("BEYOND INTEGRATION");
+    expect(container.querySelector("svg")).toBeNull();
+  });
+
   it("announces a refusal rather than leaving the panel silently empty", async () => {
     const { container } = renderOrbitViewStream(
       { w: 9, h: 18 },

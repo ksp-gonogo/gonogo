@@ -493,14 +493,19 @@ function OrbitViewComponent({
             ? "No osculating orbit (packed)"
             : "No orbital data"}
         </NoData>
-      ) : withheld ? (
-        <TrajectoryWithheld withheld={withheld} />
-      ) : showDiagram ? (
-        diagramWithOverlay
-      ) : (
+      ) : !showDiagram ? (
+        // Tiny mode, and the refusal does NOT displace the pill here. The pill
+        // reports the craft's state at this instant, which is a fact the
+        // osculating elements do carry whoever computed them; only the PATH is
+        // in question. A ~104 px cell has no room for both, and the one that
+        // survives should be the one still true.
         <PillFill>
           <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
         </PillFill>
+      ) : withheld ? (
+        <TrajectoryWithheld withheld={withheld} />
+      ) : (
+        diagramWithOverlay
       )}
     </Panel>
   );
