@@ -1,41 +1,48 @@
+import { DeployedPowerState } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { parseBases } from "./index";
 
 /**
- * What a deployed base's POWER readout does with the strings KSP actually sends.
+ * A deployed base's power readout, against what the mod actually sends.
  *
- * This one is not the enum-ordinal defect the rest of the 2026-08-21 sweep is
- * about, and the difference matters. `ModuleGroundSciencePart.PowerState` and
- * `.ConnectionState` are not enums at all: they are `public string` fields that
- * `UpdateModuleUI()` assigns LOCALISED PROSE to, straight out of
- * `Localizer.Format`. Decompiled from the installed build:
+ * This is the one item in the 2026-08-21 KSP-enum sweep that was NOT an enum
+ * problem, and the distinction is the whole fix.
+ * `ModuleGroundSciencePart.PowerState` and `.ConnectionState` are `public string`
+ * fields that `UpdateModuleUI()` assigns LOCALISED PROSE to, out of
+ * `Localizer`. Decompiled from the installed build:
  *
  * ```
- * PowerState      #autoLOC_7003285 "N/A"      | 8002241 "Powered"
- *                 8002242 "Unpowered"         | 8002253 "Controller Disabled"
+ * PowerState      #autoLOC_7003285 "N/A"       | 8002241 "Powered"
+ *                 8002242 "Unpowered"          | 8002253 "Controller Disabled"
  *                 8002243 "Disabled"
  * ConnectionState #autoLOC_8002240 "Connected" | 8002244 "Not Connected"
  * ```
  *
- * So there is no ordinal to put on the wire, and the value depends on the
- * player's KSP language. `powerFromState` reads:
+ * So there was no ordinal to put on the wire, and no comparison against those
+ * strings could be made correct. The old client tested `=== "Powered"` and
+ * `=== "NoPower"` - a string KSP has never emitted - so `Unpowered`,
+ * `Disabled`, `Controller Disabled` and `N/A` all fell off the end into
+ * `powered: true`, and an unpowered cluster painted as a working one on a
+ * reduced supply. In English. The localised half was worse: a translated
+ * "Powered" also read partially-powered, and a translated "Connected" read
+ * not-connected.
  *
- * ```ts
- * if (powerState === "Powered") return { powered: true,  partialPower: false };
- * if (!powerState || powerState === "NoPower") return { powered: false, ... };
- * return { powered: true, partialPower: true };
- * ```
- *
- * `"NoPower"` is a string KSP has never emitted, so the middle arm only ever
- * catches an ABSENT value, and every real not-powered state falls off the end
- * into `powered: true`. That is a live bug in English, before any question of
- * localisation.
- *
- * These tests pin the CURRENT behaviour so the fix has something to break. Each
- * one names what the operator sees today and what they should see.
+ * The mod now derives `power` (our own `DeployedPowerState` ordinal) and
+ * `controllerConnected` from the four booleans stock's own readout branches on,
+ * and the prose rides along as the display label it always was. These tests feed
+ * the derived fields and, crucially, feed them ALONGSIDE prose that disagrees:
+ * every case below would pass by accident if the widget were still reading the
+ * strings, so each one sets the prose to something that would give the wrong
+ * answer.
  */
 
-function baseWith(powerState: string, connectionState = "Connected") {
+function baseWith(opts: {
+  power: DeployedPowerState | null;
+  controllerConnected?: boolean | null;
+  /** Deliberately misleading prose, to prove nothing reads it. */
+  powerState?: string;
+  connectionState?: string;
+}) {
   return parseBases([
     {
       vesselName: "Mun Base",
@@ -48,80 +55,91 @@ function baseWith(powerState: string, connectionState = "Connected") {
       scienceTransmittedPercentage: 0.5,
       scienceValue: 10,
       scienceLimit: 20,
-      powerState,
-      connectionState,
+      powerState: opts.powerState ?? "N/A",
+      connectionState: opts.connectionState ?? "Not Connected",
+      power: opts.power,
+      controllerConnected: opts.controllerConnected ?? true,
       deployedOnGround: true,
     },
   ]);
 }
 
-describe("deployed-science power state, as KSP actually reports it", () => {
-  it("reads 'Powered' as powered", () => {
-    const [base] = baseWith("Powered");
+describe("deployed-science power state", () => {
+  it("reads Powered as powered, even when the prose says otherwise", () => {
+    const [base] = baseWith({
+      power: DeployedPowerState.Powered,
+      // A translated "Powered": the old code read this as partially powered.
+      powerState: "Alimentado",
+    });
     expect(base?.powered).toBe(true);
     expect(base?.partialPower).toBe(false);
   });
 
   /**
-   * The three states that mean NOT POWERED. Every one of them currently reads
-   * `powered: true` with a partial-power flag, so an unpowered cluster paints as
-   * a working one on a partial supply. `Unpowered` is the plain case;
-   * `Controller Disabled` and `Disabled` are the operator having switched it off
-   * or the controller being off.
+   * The four states that mean NOT POWERED. Every one of them used to read
+   * `powered: true`. Each carries the prose "Powered" here, so the only way to
+   * get the right answer is to ignore it.
    */
   it.each([
-    "Unpowered",
-    "Disabled",
-    "Controller Disabled",
-  ])("currently reads %s as POWERED, which is the bug", (state) => {
-    const [base] = baseWith(state);
-    expect(base?.powered).toBe(true);
-    expect(base?.partialPower).toBe(true);
-  });
-
-  /**
-   * `N/A` is what `UpdateModuleUI` assigns before it works anything out, so it
-   * is the "no reading" case and reads as powered too.
-   */
-  it("currently reads N/A as POWERED", () => {
-    const [base] = baseWith("N/A");
-    expect(base?.powered).toBe(true);
-  });
-
-  /**
-   * The only arm that behaves: an empty value is treated as unpowered. Note this
-   * is the arm the `"NoPower"` literal was written for, and the literal
-   * contributes nothing, because KSP never sends it.
-   */
-  it("reads an empty power state as not powered", () => {
-    const [base] = baseWith("");
+    ["Unpowered", DeployedPowerState.Unpowered],
+    ["ControllerDisabled", DeployedPowerState.ControllerDisabled],
+    ["Disabled", DeployedPowerState.Disabled],
+    ["NotConnected", DeployedPowerState.NotConnected],
+  ])("reads %s as NOT powered", (_name, power) => {
+    const [base] = baseWith({ power, powerState: "Powered" });
     expect(base?.powered).toBe(false);
     expect(base?.partialPower).toBe(false);
   });
 
   /**
-   * The localisation half. In any non-English KSP, `Powered` arrives as its
-   * translation, misses the first arm, and falls to the last one: powered with a
-   * partial flag. So a fully-powered base is reported as partially powered for
-   * every player not running English.
+   * No derived state at all - an older mod build, or a cluster the capture could
+   * not read. Not powered, because we cannot claim it is; and NOT partially
+   * powered, which is the invented middle state the old fall-through produced.
    */
-  it("currently mis-reads a localised 'Powered' as only partially powered", () => {
-    const [base] = baseWith("Alimentado");
-    expect(base?.powered).toBe(true);
-    expect(base?.partialPower).toBe(true);
+  it("reads an absent power state as not powered, and never as partial", () => {
+    const [base] = baseWith({ power: null, powerState: "Powered" });
+    expect(base?.powered).toBe(false);
+    expect(base?.partialPower).toBe(false);
   });
 
   /**
-   * `controllerEnabled` is `connectionState === "Connected"`, so the English
-   * `Not Connected` is correctly false - by accident, since ANY string that is
-   * not exactly `"Connected"` is false. The same accident makes a localised
-   * `Connected` read as disconnected.
+   * `partialPower` has no producer and never did: stock distinguishes powered
+   * from not, with no partial state, so the flag was only ever set by the
+   * fall-through that was the bug. Pinned at false across every state so a
+   * future change cannot quietly reintroduce a middle reading nothing supplies.
    */
-  it("currently mis-reads a localised 'Connected' as not connected", () => {
-    expect(baseWith("Powered", "Connected")[0]?.controllerEnabled).toBe(true);
-    expect(baseWith("Powered", "Not Connected")[0]?.controllerEnabled).toBe(
-      false,
-    );
-    expect(baseWith("Powered", "Conectado")[0]?.controllerEnabled).toBe(false);
+  it("never reports partial power, for any state", () => {
+    for (const power of [
+      DeployedPowerState.Powered,
+      DeployedPowerState.Unpowered,
+      DeployedPowerState.ControllerDisabled,
+      DeployedPowerState.Disabled,
+      DeployedPowerState.NotConnected,
+      null,
+    ]) {
+      expect(baseWith({ power })[0]?.partialPower).toBe(false);
+    }
+  });
+
+  /**
+   * The connection half. The old test was `connectionState === "Connected"`, so
+   * a localised "Connected" read as disconnected; here the prose says
+   * "Not Connected" while the derived boolean says otherwise.
+   */
+  it("reads controller attachment from the derived boolean, not the prose", () => {
+    expect(
+      baseWith({
+        power: DeployedPowerState.Powered,
+        controllerConnected: true,
+        connectionState: "Not Connected",
+      })[0]?.controllerEnabled,
+    ).toBe(true);
+    expect(
+      baseWith({
+        power: DeployedPowerState.NotConnected,
+        controllerConnected: false,
+        connectionState: "Connected",
+      })[0]?.controllerEnabled,
+    ).toBe(false);
   });
 });

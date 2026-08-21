@@ -418,6 +418,7 @@ public static class RtConfig
                 typeof(PhysicsMode),
                 typeof(FlightEndReason),
                 typeof(RosterCommsControlSource),
+                typeof(DeployedPowerState),
                 // KSP's own enums (KspEnums.cs), exported so the client's
                 // ordinal→name tables and closed unions are DERIVED from the
                 // same declaration the mirror test holds to KSP's.

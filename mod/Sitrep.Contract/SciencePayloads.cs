@@ -331,14 +331,92 @@ public class DeployedEntry
     [SitrepUnit(Units.Science)]
     public double? ScienceLimit { get; set; }
 
+    /// <summary>
+    /// <c>ModuleGroundSciencePart.PowerState</c> verbatim: KSP's own words for
+    /// the power state, for display. DO NOT BRANCH ON THIS.
+    ///
+    /// <para>It is not an enum name, it is LOCALISED PROSE. The module assigns
+    /// it from <c>Localizer</c> in <c>UpdateModuleUI()</c>, so the value is
+    /// whatever language the player runs KSP in, and it is only written when the
+    /// part-action window refreshes, so it can also be stale.
+    /// <see cref="Power"/> is the field to read.</para>
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? PowerState { get; set; }
 
+    /// <summary>
+    /// <c>ModuleGroundSciencePart.ConnectionState</c> verbatim, for display.
+    /// Localised prose on the same terms as <see cref="PowerState"/>; read
+    /// <see cref="ControllerConnected"/> instead.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? ConnectionState { get; set; }
 
+    /// <summary>
+    /// The cluster's power state, DERIVED from the same facts
+    /// <c>UpdateModuleUI()</c> itself branches on
+    /// (<c>DeployedScienceCluster.IsPowered</c>/<c>.ControllerPartEnabled</c>,
+    /// the module's <c>Enabled</c> and <c>DeployedOnGround</c>) rather than
+    /// parsed back out of the sentence that method writes.
+    ///
+    /// <para>This exists because branching on <see cref="PowerState"/> could not
+    /// be made correct. The client compared it against <c>"Powered"</c> and
+    /// against <c>"NoPower"</c>, a string KSP has never emitted, so
+    /// <c>Unpowered</c>, <c>Disabled</c>, <c>Controller Disabled</c> and
+    /// <c>N/A</c> all fell through to POWERED: an unpowered cluster painted as a
+    /// working one, in English, before any question of translation.</para>
+    ///
+    /// <para><c>null</c> when the cluster could not be read at all, which is a
+    /// third answer and must not be read as either powered or unpowered.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public DeployedPowerState? Power { get; set; }
+
+    /// <summary>
+    /// Whether the experiment is attached to a controller cluster at all, the
+    /// fact behind <see cref="ConnectionState"/>'s "Connected"/"Not Connected".
+    /// <c>null</c> when it could not be determined.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? ControllerConnected { get; set; }
+
     [SitrepUnit(Units.Flag)]
     public bool? DeployedOnGround { get; set; }
+}
+
+/// <summary>
+/// A deployed-science cluster's power state: OUR enum, not KSP's.
+///
+/// <para>KSP has no enum for this. <c>ModuleGroundSciencePart</c> carries the
+/// answer as a localised sentence, so this reproduces the five outcomes
+/// <c>UpdateModuleUI()</c> distinguishes, derived from the booleans it reads
+/// rather than from the sentence it writes. Being ours, it is an ordinal on the
+/// wire and a closed union on the client like every other enum in this contract,
+/// and it needs no mirror test: nobody else owns its numbering.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum DeployedPowerState
+{
+    /// <summary>Powered and working: the cluster reports <c>IsPowered</c>.</summary>
+    Powered,
+
+    /// <summary>Deployed and switched on, but the cluster has no power.</summary>
+    Unpowered,
+
+    /// <summary>The cluster's CONTROLLER is switched off, so nothing is powered.</summary>
+    ControllerDisabled,
+
+    /// <summary>This experiment is switched off, or is not deployed on the ground.</summary>
+    Disabled,
+
+    /// <summary>
+    /// Attached to no cluster at all. Distinct from <see cref="Unpowered"/>:
+    /// there is nothing to supply power, rather than a supply that is empty.
+    /// </summary>
+    NotConnected,
 }
 
 /// <summary>

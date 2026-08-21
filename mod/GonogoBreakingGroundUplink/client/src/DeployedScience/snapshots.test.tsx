@@ -1,4 +1,7 @@
-import { registerStockBodies } from "@ksp-gonogo/sitrep-sdk";
+import {
+  DeployedPowerState,
+  registerStockBodies,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -42,6 +45,10 @@ const flatEntry = (
   scienceLimit: 40,
   powerState: "Powered",
   connectionState: "Connected",
+  // The DERIVED fields, which is what the widget reads; the two prose fields
+  // above are display labels only.
+  power: DeployedPowerState.Powered,
+  controllerConnected: true,
   deployedOnGround: true,
   ...over,
 });
@@ -80,7 +87,11 @@ const SCENARIOS: Record<string, Scenario> = {
         scienceCompletedPercentage: 50,
         scienceValue: 20,
         scienceLimit: 40,
-        powerState: "NoPower",
+        // "NoPower" was here, a string KSP has never emitted; the scenario's own
+        // comment says this base is meant to be unpowered, and under the old
+        // string comparison it rendered as a brownout instead.
+        powerState: "Unpowered",
+        power: DeployedPowerState.Unpowered,
       }),
     ],
   },

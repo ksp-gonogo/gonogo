@@ -890,7 +890,16 @@ export interface DeployedEntry
 	scienceLimit?: Value<"science">;
 	powerState?: string;
 	connectionState?: string;
+	power?: DeployedPowerState;
+	controllerConnected?: boolean;
 	deployedOnGround?: boolean;
+}
+export enum DeployedPowerState {
+	Powered = 0,
+	Unpowered = 1,
+	ControllerDisabled = 2,
+	Disabled = 3,
+	NotConnected = 4
 }
 export interface SensorEntry
 {

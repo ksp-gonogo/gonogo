@@ -1,6 +1,7 @@
 import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  DeployedPowerState,
   registerComponent,
   useTelemetry,
   value,
@@ -134,8 +135,15 @@ interface FlatDeployedEntry {
   scienceTransmittedPercentage: number;
   scienceValue: number;
   scienceLimit: number;
+  /** Localised prose, display only. {@link power} is the field to branch on. */
   powerState: string | null;
+  /** Localised prose, display only. See {@link controllerConnected}. */
   connectionState: string | null;
+  /** The mod's derived power state. Null when it could not be determined, which
+   *  is a third answer and not "unpowered". */
+  power: DeployedPowerState | null;
+  /** The mod's derived controller-attachment fact. */
+  controllerConnected: boolean | null;
 }
 
 function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
@@ -154,27 +162,40 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
     powerState: typeof e.powerState === "string" ? e.powerState : null,
     connectionState:
       typeof e.connectionState === "string" ? e.connectionState : null,
+    power: typeof e.power === "number" ? (e.power as DeployedPowerState) : null,
+    controllerConnected:
+      typeof e.controllerConnected === "boolean" ? e.controllerConnected : null,
   };
 }
 
 /**
- * Coarse `powerState` enum ("Powered" | "NoPower", decompile-confirmed,
- * or any other non-empty string a future KSP version might add, e.g. a
- * hypothetical "PartiallyPowered") -> the widget's existing
- * `powered`/`partialPower` boolean pair. `ModuleGroundSciencePart.PowerState`
- * is a free string field, not a closed enum this codebase controls, so an
- * unrecognized non-empty value is treated as "some power, but not full"
- * rather than dropped.
+ * The mod's derived `DeployedPowerState` -> this widget's
+ * `powered`/`partialPower` pair.
+ *
+ * This read `ModuleGroundSciencePart.PowerState`, and that field is not an enum
+ * name: it is LOCALISED PROSE that `UpdateModuleUI()` writes from `Localizer`.
+ * The old comparison tested it against `"Powered"` and against `"NoPower"`, a
+ * string KSP has never emitted, so `Unpowered`, `Disabled`,
+ * `Controller Disabled` and `N/A` all fell off the end into powered-with-a-
+ * partial-flag. An unpowered cluster painted as a working one on a reduced
+ * supply, in English, and in any other language a fully powered one did too.
+ *
+ * `DeployedPowerState` is OUR enum, derived mod-side from the four booleans
+ * stock's own readout branches on, so it is an ordinal and it survives
+ * translation. `powerState` is still on the wire and still shown, as the label
+ * it always was.
+ *
+ * `partialPower` has no producer and never did: stock distinguishes powered from
+ * not, with no partial state, and the flag only ever got set by the fall-through
+ * that was the bug. It stays in the display shape (the render reads it) and is
+ * now always false, rather than being removed in the same change as a behaviour
+ * fix.
  */
-function powerFromState(powerState: string | null): {
+function powerFromState(power: DeployedPowerState | null | undefined): {
   powered: boolean;
   partialPower: boolean;
 } {
-  if (powerState === "Powered") return { powered: true, partialPower: false };
-  if (!powerState || powerState === "NoPower") {
-    return { powered: false, partialPower: false };
-  }
-  return { powered: true, partialPower: true };
+  return { powered: power === DeployedPowerState.Powered, partialPower: false };
 }
 
 /**
@@ -186,8 +207,7 @@ function powerFromState(powerState: string | null): {
  * new-wire equivalent degrade explicitly:
  * - `powerAvailable`/`powerRequired` -> `0`/`0` (only the coarse
  *   `powerState` enum exists, no EC numbers).
- * - `controllerEnabled` -> derived from `connectionState === "Connected"`
- *   (closest available proxy; unused in the current render either way).
+ * - `controllerEnabled` -> the mod's derived `controllerConnected` boolean.
  * - `id`/`partId` -> synthesized indices (stable within one payload, and
  *   never rendered as text: only used as React list keys).
  */
@@ -209,7 +229,7 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
   return order.map((vesselName, baseIndex) => {
     const entries = groups.get(vesselName) ?? [];
     const first = entries[0];
-    const { powered, partialPower } = powerFromState(first?.powerState ?? null);
+    const { powered, partialPower } = powerFromState(first?.power);
     const experiments: DeployedExperiment[] = entries.map((e, i) => {
       const progress = clamp01(e.scienceCompletedPercentage / 100);
       const transmitted =
@@ -233,7 +253,10 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
       partialPower,
       powerAvailable: 0,
       powerRequired: 0,
-      controllerEnabled: first?.connectionState === "Connected",
+      // The mod's derived boolean, not `connectionState === "Connected"`: that
+      // compared against the English rendering of a localised sentence, so a
+      // connected controller read as disconnected in every other language.
+      controllerEnabled: first?.controllerConnected ?? false,
       experimentCount: experiments.length,
       experiments,
     };

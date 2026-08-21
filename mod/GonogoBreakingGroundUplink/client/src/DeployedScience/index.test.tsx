@@ -1,4 +1,4 @@
-import { registerAugment } from "@ksp-gonogo/sitrep-sdk";
+import { DeployedPowerState, registerAugment } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   clearAugments,
@@ -30,6 +30,10 @@ const flatEntry = (
   scienceLimit: 60,
   powerState: "Powered",
   connectionState: "Connected",
+  // The DERIVED fields, which is what the widget reads; the two prose fields
+  // above are display labels only.
+  power: DeployedPowerState.Powered,
+  controllerConnected: true,
   deployedOnGround: true,
   ...over,
 });
@@ -106,7 +110,23 @@ describe("DeployedScienceComponent", () => {
     expect(visibleText()).toContain("50 %");
   });
 
-  it("labels an unpowered base and a brownout base distinctly", async () => {
+  /**
+   * Every state stock actually distinguishes reads as either powered or
+   * unpowered, and there is no third.
+   *
+   * This test used to assert a "Brownout" label, driven by `powerState:
+   * "NoPower"` and `powerState: "PartiallyPowered"` - two strings KSP has never
+   * emitted. Brownout was only ever reachable through the fall-through arm that
+   * was the bug: any prose the client did not recognise became
+   * powered-with-a-partial-flag, so an unpowered cluster painted as a working
+   * one and the label documented the defect as if it were a feature.
+   *
+   * `partialPower` has no producer, so the Brownout branch in the render is now
+   * unreachable. It is left in place rather than removed here: taking display
+   * code out belongs in its own change, not in a correctness fix. This test is
+   * the note saying why nothing reaches it.
+   */
+  it("labels each of KSP's real power states, and produces no brownout", async () => {
     const fixture = newFixture();
     renderDeployed(fixture);
     act(() => {
@@ -115,20 +135,22 @@ describe("DeployedScienceComponent", () => {
         flatEntry({
           vesselName: "Mun Base",
           body: "Mun",
-          powerState: "NoPower",
+          power: DeployedPowerState.Unpowered,
+          // The prose says the opposite, and is ignored.
+          powerState: "Powered",
         }),
         flatEntry({
           vesselName: "Minmus Base",
           body: "Minmus",
-          // Any non-empty, non-"Powered"/"NoPower" value maps to Brownout.
-          powerState: "PartiallyPowered",
+          power: DeployedPowerState.ControllerDisabled,
+          powerState: "Powered",
         }),
       ]);
     });
     await waitFor(() =>
-      expect(screen.getByText(/Unpowered/i)).toBeInTheDocument(),
+      expect(screen.getAllByText(/Unpowered/i).length).toBe(2),
     );
-    expect(screen.getByText(/Brownout/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Brownout/i)).toBeNull();
   });
 
   it("renders the augment slots with no bound augment (empty is fine)", async () => {

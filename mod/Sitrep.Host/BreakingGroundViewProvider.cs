@@ -36,7 +36,9 @@ namespace Sitrep.Host
     /// snapshot.Values["science"]["deployed"] = [ { "vesselName", "partName", "body", "situation",
     ///     "biome", "experimentId", "scienceCompletedPercentage",
     ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",
-    ///     "powerState", "connectionState", "deployedOnGround" }, ... ] | null
+    ///     "powerState", "connectionState" (localised PROSE, display only),
+    ///     "power" (int? DeployedPowerState, what a client branches on),
+    ///     "controllerConnected" (bool?), "deployedOnGround" }, ... ] | null
     /// </code>
     ///
     /// <para><b>partId</b> is Gonogo.KSP's <c>Part.flightID</c>, stringified,
@@ -181,6 +183,8 @@ namespace Sitrep.Host
             ["scienceValue"] = SnapshotDict.GetDouble(raw, "scienceValue"),
             ["scienceLimit"] = SnapshotDict.GetDouble(raw, "scienceLimit"),
             ["powerState"] = SnapshotDict.GetString(raw, "powerState"),
+            ["power"] = SnapshotDict.GetInt(raw, "power"),
+            ["controllerConnected"] = SnapshotDict.GetBool(raw, "controllerConnected"),
             ["connectionState"] = SnapshotDict.GetString(raw, "connectionState"),
             ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
         };

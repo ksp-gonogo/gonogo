@@ -4461,8 +4461,12 @@ namespace Gonogo.KSP
                             ["scienceTransmittedPercentage"] = ReflectDouble(type, module, "ScienceTransmittedPercentage"),
                             ["scienceValue"] = ReflectDouble(type, module, "ScienceValue"),
                             ["scienceLimit"] = ReflectDouble(type, module, "ScienceLimit"),
+                            // Localised prose, kept for display only. The two
+                            // derived fields below are what a client branches on.
                             ["powerState"] = ReflectString(type, module, "PowerState"),
                             ["connectionState"] = ReflectString(type, module, "ConnectionState"),
+                            ["power"] = (int?)DerivePowerState(type, module),
+                            ["controllerConnected"] = ReflectMemberValue(type, module, "ScienceClusterData") != null,
                             ["deployedOnGround"] = ReflectBool(type, module, "DeployedOnGround"),
                         });
                     }
@@ -4470,6 +4474,58 @@ namespace Gonogo.KSP
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// A deployed experiment's power state, derived from the same four facts
+        /// <c>ModuleGroundSciencePart.UpdateModuleUI()</c> branches on rather
+        /// than parsed back out of the sentence that method writes.
+        ///
+        /// <para>The reason this is not simply <c>PowerState</c> forwarded:
+        /// <c>UpdateModuleUI</c> assigns that field from <c>Localizer</c>, so it
+        /// is prose in the player's language, and it only assigns it when the
+        /// part-action window refreshes, so it can be stale. A client that
+        /// compared it against <c>"Powered"</c> read every not-powered state as
+        /// powered. Reading the booleans removes both problems at once.</para>
+        ///
+        /// <para>The branch order mirrors stock's exactly - no cluster, then not
+        /// enabled or not deployed, then powered, then controller off, then
+        /// unpowered - so this reports what the game's own readout would say,
+        /// in a form that survives translation.</para>
+        /// </summary>
+        private static DeployedPowerState? DerivePowerState(Type type, object module)
+        {
+            var cluster = ReflectMemberValue(type, module, "ScienceClusterData");
+            if (cluster == null)
+            {
+                return DeployedPowerState.NotConnected;
+            }
+
+            var enabled = ReflectBool(type, module, "Enabled");
+            var deployed = ReflectBool(type, module, "DeployedOnGround");
+            if (enabled == false || deployed == false)
+            {
+                return DeployedPowerState.Disabled;
+            }
+
+            var clusterType = cluster.GetType();
+            var isPowered = ReflectBool(clusterType, cluster, "IsPowered");
+            var controllerEnabled = ReflectBool(clusterType, cluster, "ControllerPartEnabled");
+            if (isPowered == true)
+            {
+                return DeployedPowerState.Powered;
+            }
+
+            // Neither read answered: the cluster is there but says nothing, which
+            // is not a claim that it is unpowered.
+            if (isPowered == null && controllerEnabled == null)
+            {
+                return null;
+            }
+
+            return controllerEnabled == true
+                ? DeployedPowerState.Unpowered
+                : DeployedPowerState.ControllerDisabled;
         }
 
         /// <summary>
