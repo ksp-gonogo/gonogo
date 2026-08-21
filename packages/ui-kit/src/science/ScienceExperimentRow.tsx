@@ -37,11 +37,10 @@ export interface ScienceExperimentRowProps {
   instrument: ScienceInstrument;
   /**
    * The deploy command. Omit for a READ-ONLY listing: the control is then not
-   * rendered at all, rather than rendered inert. It used to be an optional
-   * callback, and a caller that passed none (the SCANsat science dropdown) got
-   * a Deploy button that armed, spun for five seconds and did nothing, which
-   * is the same lie about a command landing that this row's pending state
-   * exists to avoid telling.
+   * rendered at all, rather than rendered inert. This used to be an optional
+   * callback, so a listing that passed none still got a Deploy button that
+   * armed, spun for five seconds and did nothing, which is the same lie about
+   * a command landing that this row's in-flight state exists to avoid telling.
    */
   deployCmd?: CommandButtonHandle;
   /** The transmit command. Omit for a read-only listing; see `deployCmd`. */

@@ -203,6 +203,7 @@ function ScienceDataAboardRowAugment({
               confirmTone="nogo"
               pendingLabel="Deleting..."
               aria-label="Delete file"
+              confirmAriaLabel="Confirm delete file"
             />
           </Cluster>
         </Stack>
@@ -257,6 +258,7 @@ function ScienceDataAboardRowAugment({
               confirmTone="nogo"
               pendingLabel="Dumping..."
               aria-label="Dump sample"
+              confirmAriaLabel="Confirm dump sample"
             />
           </Cluster>
         </Stack>
