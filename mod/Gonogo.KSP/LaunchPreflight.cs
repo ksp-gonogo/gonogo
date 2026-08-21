@@ -42,12 +42,12 @@ namespace Gonogo.KSP
     /// floor at zero. So the money left regardless and only the check was
     /// missing: an operator could put a craft on the pad that the game's own
     /// button refuses to place there, and go negative paying for it.
-    /// <c>CraftWithinMassLimits.GetProceedOption()</c> returns null — stock
+    /// <c>CraftWithinMassLimits.GetProceedOption()</c> returns null: stock
     /// offers no "launch anyway" for the mass, size and part-count tests, so
     /// these are refusals rather than warnings.</para>
     ///
-    /// <para><b>What runs where.</b> The two tests that need no craft —
-    /// <c>LaunchSiteClear</c> and <c>FacilityOperational</c> at the launch site —
+    /// <para><b>What runs where.</b> The two tests that need no craft
+    /// (<c>LaunchSiteClear</c> and <c>FacilityOperational</c> at the launch site)
     /// are DECLARED requirements on <c>ksp.launch</c> (see
     /// <c>GateDeclarations</c>), evaluated by the engine before this handler is
     /// entered, so an occupied pad darkens the control instead of failing the
@@ -115,7 +115,7 @@ namespace Gonogo.KSP
         /// <para><paramref name="editorFacility"/> is where the craft was BUILT,
         /// which is the tier the part-count limit is read at.
         /// <paramref name="site"/> is where it is going, which is the tier the
-        /// mass and size limits are read at — and those two only exist for the
+        /// mass and size limits are read at, and those two only exist for the
         /// two KSC sites, exactly as stock guards them with
         /// <c>if (launchSiteName == "LaunchPad")</c>.</para>
         /// </summary>

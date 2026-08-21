@@ -30,8 +30,8 @@ namespace Gonogo.KSP.Tests.Career
     ///
     /// <para><b>The scan proves it can see a debit.</b> A source scan that
     /// silently matches nothing reports no violations, which is
-    /// indistinguishable from success. So the upgrade path — which genuinely
-    /// must debit — is asserted to still contain the call this looks for. If
+    /// indistinguishable from success. So the upgrade path, which genuinely
+    /// must debit, is asserted to still contain the call this looks for. If
     /// the extraction breaks, that test fails first and says so, rather than
     /// the hire test passing on an empty string.</para>
     /// </summary>

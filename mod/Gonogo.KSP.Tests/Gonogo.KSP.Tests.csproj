@@ -212,6 +212,11 @@
          above. CareerRefusals.cs takes numbers and needs no KSP types at all;
          it sits under this gate only to keep the career pair together. -->
     <Compile Include="..\Gonogo.KSP\Career\CareerRefusals.cs" />
+    <!-- The strategy commitment ORDER, carved out for a sharper reason than the
+         rest: Strategy.CanBeActivated dereferences Administration.Instance and
+         Strategy.Activate calls CanBeActivated, so neither runs anywhere but the
+         Administration screen. The sequence takes an interface instead. -->
+    <Compile Include="..\Gonogo.KSP\Career\StrategyCommit.cs" />
     <!-- CareerAffordability.cs genuinely needs the reference DLL: it runs
          stock's own CurrencyModifierQuery, a plain class that loads and prices
          a spend headlessly (its RunQuery half fires a GameEvent, whose static

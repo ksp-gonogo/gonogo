@@ -12,8 +12,8 @@ namespace Gonogo.KSP.Tests.Maneuver
     /// <para>It used to ask <c>patchedConicSolver != null</c>, which derives
     /// from the <b>Tracking Station</b>, and called that flight planning, which
     /// is <b>Mission Control</b>. The two buildings upgrade independently, so
-    /// Tracking Station 2 with Mission Control 1 — an ordinary early-career
-    /// save — plotted burns the player had not bought, and the craft flew them.
+    /// Tracking Station 2 with Mission Control 1, an ordinary early-career
+    /// save, plotted burns the player had not bought, and the craft flew them.
     /// See <see cref="Gonogo.KSP.ManeuverWriteAuthority"/> for the decompiled
     /// bodies of both.</para>
     ///

@@ -11,7 +11,7 @@ namespace Gonogo.KSP.Tests.Career
     /// <para><c>PreFlightTests.IPreFlightTest</c> is the game's launch refusal
     /// vocabulary and it is designed to be enumerated: <c>Test()</c> is a pure
     /// query and the four string members are the game's own words for the
-    /// answer. What this exercises is the WALK over that set — that a failing
+    /// answer. What this exercises is the WALK over that set: that a failing
     /// test stops the launch, that the first failure in stock's order is the one
     /// reported, and that the refusal carries the game's sentence rather than
     /// one composed here.</para>

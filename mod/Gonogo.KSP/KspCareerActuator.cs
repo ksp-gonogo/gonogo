@@ -4,7 +4,7 @@ using Gonogo.KSP.Career;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Strategies;
-using UnityEngine;
+using KSP.UI.Screens;
 
 namespace Gonogo.KSP
 {
@@ -40,21 +40,39 @@ namespace Gonogo.KSP
     public sealed class KspCareerActuator : ICareerActuator
     {
         /// <summary>
-        /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>,
-        /// administration-level cap, conflicting-strategy groups, funds on hand)
-        /// and self-deducting (its up-front funds/science/reputation cost, each
+        /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>) and
+        /// self-deducting (its up-front funds/science/reputation cost, each
         /// scaled by <c>Factor</c>), so a <c>false</c> return is a clean
-        /// "not eligible" with no partial spend. <c>Factor</c> is set BEFORE
-        /// activation because the cost scales with it, and only for strategies
-        /// that actually expose a slider (<c>HasFactorSlider</c>): best-effort,
-        /// per the command's contract; others activate at their fixed factor.
+        /// "not eligible" with no partial spend.
         ///
-        /// <para>Its reason-returning precheck, <c>CanBeActivated(out string)</c>,
-        /// is deliberately NOT called: it dereferences
-        /// <c>Administration.Instance</c>, a UI MonoBehaviour that is null
-        /// anywhere but the Administration screen, so asking the game for its own
-        /// words here would throw rather than answer. The state the console CAN
-        /// read is reported instead, and the rest stays a bare "not eligible".</para>
+        /// <para><b>Only from the Administration Building, and that is KSP's
+        /// rule rather than ours.</b> <c>CanBeActivated</c>'s first three arms
+        /// dereference <c>Administration.Instance</c>. The active-strategy count, the
+        /// concurrent cap and the commit-level ceiling all live on that
+        /// component and nowhere else. It is
+        /// <c>KSP.UI.Screens.Administration</c>, a UI <c>MonoBehaviour</c> whose
+        /// canvas <c>AdministrationSceneSpawner</c> adds on
+        /// <c>onGUIAdministrationFacilitySpawn</c> and removes again on despawn,
+        /// so <c>Instance</c> is null everywhere except while the player has
+        /// that screen open. <c>Activate()</c> calls <c>CanBeActivated</c>
+        /// itself, so with the screen closed BOTH throw: this command used to
+        /// raise a <c>NullReferenceException</c> from inside the game, which
+        /// <c>ChannelEngine</c> rethrew on the Courier thread as an opaque
+        /// error, and the caps the old comment here claimed we honoured were
+        /// never reached at all.</para>
+        ///
+        /// <para>That authority is not substituted for. Nothing here reproduces
+        /// the three Administration arms from numbers of our own: with the
+        /// screen open the game answers every one of them and the refusal is
+        /// quoted verbatim; with it closed the console says so and refuses.
+        /// (The concurrent-strategy cap is separately DECLARED on this command
+        /// as a gate over <c>GameVariables.GetActiveStrategyLimit</c>, which is
+        /// the same method <c>Administration.Start</c> reads it from, so the
+        /// control is dark on a full slate either way.)</para>
+        ///
+        /// <para>The commitment itself is <see cref="StrategyCommit"/>'s: the
+        /// factor is written before the gate because the cost scales with it,
+        /// and put back if the game refuses.</para>
         /// </summary>
         public CommandResult ActivateStrategy(string strategyId, double factor)
         {
@@ -74,14 +92,38 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is already active");
             }
 
-            if (strategy.HasFactorSlider && factor > 0.0)
+            if (Administration.Instance == null)
             {
-                strategy.Factor = Mathf.Clamp01((float)factor);
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "KSP commits a strategy only from the Administration Building, and it is not open");
             }
 
-            return strategy.Activate()
-                ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is not eligible");
+            return StrategyCommit.Activate(new LiveStrategy(strategy), factor);
+        }
+
+        /// <summary>
+        /// The real <c>Strategies.Strategy</c> behind
+        /// <see cref="IStrategyCommitTarget"/>. Four one-line members, so the
+        /// commitment ORDER is testable without one.
+        /// </summary>
+        private sealed class LiveStrategy : IStrategyCommitTarget
+        {
+            private readonly Strategy _strategy;
+
+            public LiveStrategy(Strategy strategy) => _strategy = strategy;
+
+            public bool HasFactorSlider => _strategy.HasFactorSlider;
+
+            public float Factor
+            {
+                get => _strategy.Factor;
+                set => _strategy.Factor = value;
+            }
+
+            public bool CanBeActivated(out string reason) => _strategy.CanBeActivated(out reason);
+
+            public bool Activate() => _strategy.Activate();
         }
 
         /// <summary><c>Strategy.Deactivate()</c> is self-gating (<c>CanBeDeactivated</c>, which includes a minimum elapsed commitment), a <c>false</c> return means it wasn't deactivatable right now.</summary>
