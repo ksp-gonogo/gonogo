@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { FlightEndReason, value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 /**
@@ -109,16 +109,35 @@ export function fromFlightStarted(raw: unknown): MissionEvent | null {
   };
 }
 
+/**
+ * Why the flight ended, off the `FlightEndReason` ORDINAL `flight.ended`
+ * actually carries (`JsonWriter.AppendFlightEnded` writes
+ * `AppendInteger(sb, (long)f.Reason)`).
+ *
+ * This used to be `typeof p.reason === "string" ? p.reason : undefined`, and no
+ * ordinal is ever a string, so the detail was permanently absent: the log read
+ * "Flight ended" for a recovery and for a crash alike, and had done since the
+ * channel landed.
+ *
+ * An ordinal the generated enum cannot name is a mod newer than this build.
+ * Nothing is the honest answer there: inventing a cause would put a reason on
+ * the log that no build reported.
+ */
+function flightEndReasonName(reason: unknown): string | undefined {
+  if (typeof reason !== "number" || !Number.isInteger(reason)) return undefined;
+  const name = (FlightEndReason as Record<number, string | undefined>)[reason];
+  return typeof name === "string" ? name : undefined;
+}
+
 export function fromFlightEnded(raw: unknown): MissionEvent | null {
   const p = asObj(raw);
   const ut = num(p?.ut);
   if (!p || ut === null) return null;
-  const reason = typeof p.reason === "string" ? p.reason : undefined;
   return {
     ut,
     kind: "flight-ended",
     label: "Flight ended",
-    detail: reason,
+    detail: flightEndReasonName(p.reason),
     id: makeId("flight-ended", ut),
   };
 }

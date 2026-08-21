@@ -91,7 +91,7 @@ const KNOWN_MODES: ReadonlySet<CareerMode> = new Set<CareerMode>([
  * Sandbox 0 / Career 1 / Science 2 / Unknown 3), index-matched so the
  * mapped `career.mode.mode` ordinal resolves via a plain array lookup.
  */
-const GAME_MODE_ORDINAL: readonly CareerMode[] = [
+export const GAME_MODE_ORDINAL: readonly CareerMode[] = [
   "SANDBOX",
   "CAREER",
   "SCIENCE",

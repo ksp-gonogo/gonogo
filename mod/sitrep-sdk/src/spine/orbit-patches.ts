@@ -13,7 +13,9 @@
  * OrbitPatch.cs`). Hand-mirrored, same convention as `VesselOrbitPayload`
  * in `vessel-state.ts`: not (yet) generated into this package.
  */
+import { TransitionType } from "../__generated__/contract";
 import type { Value } from "../value";
+import { namesOf } from "./enum-names";
 import { solveEccentricAnomaly } from "./kepler";
 
 export interface OrbitPatchWirePayload {
@@ -61,8 +63,8 @@ export interface OrbitPatchWirePayload {
 export interface LegacyOrbitPatch {
   startUT: number;
   endUT: number;
-  patchStartTransition: string;
-  patchEndTransition: string;
+  patchStartTransition: TransitionName;
+  patchEndTransition: TransitionName;
   PeA: number;
   ApA: number;
   inclination: number;
@@ -91,18 +93,24 @@ export interface LegacyOrbitPatch {
  * that to "COLLISION" before it reaches the wire, so this table only ever
  * needs the `TransitionType` spelling.
  */
-const TRANSITION_TYPE_NAMES: readonly string[] = [
-  "INITIAL",
-  "FINAL",
-  "ENCOUNTER",
-  "ESCAPE",
-  "MANEUVER",
-  "COLLISION",
-  "UNKNOWN",
-];
+export const TRANSITION_TYPE_NAMES: readonly string[] = namesOf(
+  TransitionType,
+).map((name) => name.toUpperCase());
 
-function transitionName(ordinal: number): string {
-  return TRANSITION_TYPE_NAMES[ordinal] ?? "UNKNOWN";
+/**
+ * The closed set of names {@link TRANSITION_TYPE_NAMES} can produce, derived
+ * from the generated enum rather than written out.
+ *
+ * Derived so that a member appended in C# widens this union on the next
+ * codegen, which turns any exhaustive `switch` over a transition into a compile
+ * error until somebody rules on the new member. A hand-written union would do
+ * the opposite: it would stay closed around the old members and let the new one
+ * fall through whichever default arm happened to be there.
+ */
+export type TransitionName = Uppercase<keyof typeof TransitionType>;
+
+function transitionName(ordinal: number): TransitionName {
+  return (TRANSITION_TYPE_NAMES[ordinal] ?? "UNKNOWN") as TransitionName;
 }
 
 /**

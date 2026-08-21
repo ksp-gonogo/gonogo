@@ -247,14 +247,14 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, { quality: Quality.OnRails }),
       "vessel.identity": identityPoint({ ...IDENTITY, situation: 3 }), // Orbiting
       "vessel.control": controlPoint({ sasMode: 1 }), // Prograde
-      "vessel.target": targetPoint({ kind: 1 }), // Body → CelestialBody
+      "vessel.target": targetPoint({ kind: 1 }), // Body
       "vessel.comms": commsPoint({ controlState: 4 }), // Full
     });
 
     const state = deriveVesselState(get, 0);
     expect(state?.situationName).toBe("Orbiting");
     expect(state?.sasModeName).toBe("Prograde");
-    expect(state?.targetKind).toBe("CelestialBody");
+    expect(state?.targetKind).toBe("Body");
     expect(state?.commsControlStateName).toBe("Full");
     expect(state?.commsControlStateOrdinal).toBe(2);
   });

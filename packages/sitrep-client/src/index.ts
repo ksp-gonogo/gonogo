@@ -224,6 +224,7 @@ export type {
   LegacyOrbitPatch,
   OrbitPatchWirePayload,
   PredictionRef,
+  TransitionName,
 } from "./orbit-patches";
 export {
   findImpactPoint,
@@ -375,6 +376,10 @@ export { useTimelineStream } from "./use-timeline-stream";
 export { CLIENT_VERSION } from "./version.generated";
 export type {
   ActionGroupStatePayload,
+  ControlStateName,
+  SasModeName,
+  SituationName,
+  TargetKindName,
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselPropulsionPayload,

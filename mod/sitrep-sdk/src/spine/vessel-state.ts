@@ -1,6 +1,13 @@
-import { Quality } from "../__generated__/contract";
+import {
+  ControlState,
+  Quality,
+  SasMode,
+  Situation,
+  TargetKind,
+} from "../__generated__/contract";
 import type { Value } from "../value";
 import type { ReckoningBasis } from "./client-reading";
+import { namesOf } from "./enum-names";
 import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
 import {
@@ -502,7 +509,7 @@ export interface VesselState {
    * a confirmed tombstone. `Situation.Unknown` (ordinal 8) is a DEFINED value
    * and resolves to the literal name "Unknown", not `undefined`.
    */
-  situationName: string | null | undefined;
+  situationName: SituationName | null | undefined;
   /**
    * SAS-mode NAME: the display-map resolution of `vessel.control.sasMode` (a
    * numeric `Sitrep.Contract.SasMode` enum ordinal) to its enum name string,
@@ -516,23 +523,25 @@ export interface VesselState {
    * 10) resolves to "Unknown" (not in `SAS_MODES`, so no button highlights,
    * the same benign outcome as the legacy path).
    */
-  sasModeName: string | null | undefined;
+  sasModeName: SasModeName | null | undefined;
   /**
-   * Target KIND string: the display-map resolution of `vessel.target.kind` (a
-   * numeric `Sitrep.Contract.TargetKind` enum ordinal: Vessel/Body/Other) to
-   * the string set TargetPicker/DistanceToTarget were written against. NOTE
-   * the deliberate NORMALIZATION: TargetKind's `Body` is mapped to the literal
-   * `"CelestialBody"` (not the C# name "Body"), because DistanceToTarget's
-   * dockable gate is a literal `tarType !== "CelestialBody"` compare against
-   * the legacy string: emitting "Body" would silently misclassify every
-   * body as dockable. `Vessel`→"Vessel", `Other`→"Other". (Coarser than what
-   * this replaced, which returned the specific VesselType name e.g. "Station"
-   * for a vessel target: an inherent, documented coarsening of the
-   * `TargetKind` contract; the dockable gate is unaffected.) `undefined` when
-   * `vessel.target` is absent (nothing targeted, the common case) or the
-   * ordinal is out of range; `null` on a confirmed tombstone.
+   * Target KIND NAME: the display-map resolution of `vessel.target.kind` (a
+   * numeric `Sitrep.Contract.TargetKind` enum ordinal) to its enum name.
+   *
+   * This is a LABEL. Nothing branches on it, and nothing should: the ordinal is
+   * on the wire beside it and every gate reads that instead, `DistanceToTarget`'s
+   * dockable test being `tarKind !== TargetKind.Body`. It used to normalize
+   * `Body` to the literal `"CelestialBody"` for a dockable gate that compared
+   * against that string, and it outlived the gate by long enough that the
+   * justification was still written here after the gate went ordinal.
+   *
+   * Coarser than what it replaced, which returned the specific VesselType name
+   * (e.g. "Station") for a vessel target: an inherent coarsening of the
+   * `TargetKind` contract. `undefined` when `vessel.target` is absent (nothing
+   * targeted, the common case) or the ordinal is out of range; `null` on a
+   * confirmed tombstone.
    */
-  targetKind: string | null | undefined;
+  targetKind: TargetKindName | null | undefined;
   /**
    * Comms control-state NAME: the display-map resolution of
    * `vessel.comms.controlState` (a numeric `Sitrep.Contract.ControlState` enum
@@ -542,7 +551,7 @@ export interface VesselState {
    * hasn't arrived or the ordinal is out of range; `null` on a confirmed
    * tombstone. `ControlState.Unknown` (ordinal 11) resolves to "Unknown".
    */
-  commsControlStateName: string | null | undefined;
+  commsControlStateName: ControlStateName | null | undefined;
   /**
    * Comms control-state ORDINAL in CommSignal's 0/1/2 LEVEL scheme
    * (0=none, 1=partial, 2=full), DERIVED from `vessel.comms.controlState`'s
@@ -1136,72 +1145,61 @@ function deriveNextApsis(
 }
 
 /**
- * `Sitrep.Contract.Situation` names in C# declaration order (VesselEnums.cs).
- * The wire carries `(int)id.Situation`; this is the ordinal→name table behind
- * `vessel.state.situationName`.
+ * The closed set of names each of these display maps can produce, DERIVED from
+ * the generated enum rather than written out.
+ *
+ * A field typed `string` accepts a comparison against any literal at all, which
+ * is what let `CommSignal` decide a vessel's link tone by substring-matching
+ * `"no signal"` against a `ControlState` name: no member is spelled that, so
+ * every craft read healthy, including one with no control. Typed as the union,
+ * that line is a compile error, because a closed union and a non-member literal
+ * have no overlap.
+ *
+ * Derived, not transcribed, so a member appended in C# widens the union on the
+ * next codegen and any exhaustive `switch` over it stops compiling until
+ * somebody rules on it. A hand-written union would stay closed around the old
+ * members and let the new one fall through whatever default arm was there.
  */
-const SITUATION_NAMES: readonly string[] = [
-  "Landed", // 0
-  "Splashed", // 1
-  "PreLaunch", // 2
-  "Orbiting", // 3
-  "Escaping", // 4
-  "Flying", // 5
-  "SubOrbital", // 6
-  "Docked", // 7
-  "Unknown", // 8
-];
+export type SituationName = keyof typeof Situation;
+export type SasModeName = keyof typeof SasMode;
+export type TargetKindName = keyof typeof TargetKind;
+export type ControlStateName = keyof typeof ControlState;
+
+/** `Sitrep.Contract.Situation`, behind `vessel.state.situationName`. */
+const SITUATION_NAMES = namesOf(Situation);
 
 /**
- * `Sitrep.Contract.SasMode` names in C# declaration order (VesselControl.cs),
- * identical to Navball's `SAS_MODES` union (both mirror KSP's
- * `VesselAutopilot.AutopilotMode`), with `Unknown` (10) the graceful fallback
- * not present in `SAS_MODES`. Behind `vessel.state.sasModeName` (old `f.sasMode`).
+ * `Sitrep.Contract.SasMode`, behind `vessel.state.sasModeName`. Identical to
+ * Navball's `SAS_MODES` union (both mirror KSP's `VesselAutopilot.AutopilotMode`),
+ * with `Unknown` the graceful fallback not present in `SAS_MODES`.
  */
-const SAS_MODE_NAMES: readonly string[] = [
-  "StabilityAssist", // 0
-  "Prograde", // 1
-  "Retrograde", // 2
-  "Normal", // 3
-  "Antinormal", // 4
-  "RadialIn", // 5
-  "RadialOut", // 6
-  "Target", // 7
-  "AntiTarget", // 8
-  "Maneuver", // 9
-  "Unknown", // 10
-];
+const SAS_MODE_NAMES = namesOf(SasMode);
+
+/** `Sitrep.Contract.TargetKind`, behind `vessel.state.targetKind`. */
+const TARGET_KIND_NAMES = namesOf(TargetKind);
+
+/** `Sitrep.Contract.ControlState`, behind `vessel.state.commsControlStateName`. */
+const CONTROL_STATE_NAMES = namesOf(ControlState);
 
 /**
- * `Sitrep.Contract.TargetKind` (VesselTarget.cs) → the string set the widgets
- * were written against. Index = the C# enum ordinal (Vessel 0 / Body 1 /
- * Other 2). Body is deliberately NORMALIZED to "CelestialBody", the literal
- * string DistanceToTarget's dockable gate compares against; see
- * `VesselState.targetKind`'s doc. Behind `vessel.state.targetKind`.
+ * Every derived table above, paired with the enum it must cover.
+ *
+ * Exported for `enum-name-tables.test.ts`, which is the check that these stay
+ * derived: a table rebuilt by hand fails against its enum there.
  */
-const TARGET_KIND_NAMES: readonly string[] = [
-  "Vessel", // 0
-  "CelestialBody", // 1  (C# name is "Body", normalized for the widgets)
-  "Other", // 2
-];
-
-/**
- * `Sitrep.Contract.ControlState` names in C# declaration order (VesselComms.cs).
- * Behind `vessel.state.commsControlStateName` (old `comm.controlStateName`).
- */
-const CONTROL_STATE_NAMES: readonly string[] = [
-  "None", // 0
-  "Probe", // 1
-  "Kerbal", // 2
-  "Partial", // 3
-  "Full", // 4
-  "ProbeNone", // 5
-  "ProbePartial", // 6
-  "ProbeFull", // 7
-  "KerbalNone", // 8
-  "KerbalPartial", // 9
-  "KerbalFull", // 10
-  "Unknown", // 11
+export const ENUM_NAME_TABLES: ReadonlyArray<{
+  label: string;
+  members: object;
+  names: readonly string[];
+}> = [
+  { label: "SITUATION_NAMES", members: Situation, names: SITUATION_NAMES },
+  { label: "SAS_MODE_NAMES", members: SasMode, names: SAS_MODE_NAMES },
+  { label: "TARGET_KIND_NAMES", members: TargetKind, names: TARGET_KIND_NAMES },
+  {
+    label: "CONTROL_STATE_NAMES",
+    members: ControlState,
+    names: CONTROL_STATE_NAMES,
+  },
 ];
 
 /**
@@ -1212,7 +1210,7 @@ const CONTROL_STATE_NAMES: readonly string[] = [
  * `*None`/`None` → 0. `Unknown` (11) → `undefined` (unrecognized). Index-aligned
  * with `CONTROL_STATE_NAMES`.
  */
-const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
+export const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
   0, // None
   2, // Probe (has probe control → full)
   2, // Kerbal (has crew control → full)
@@ -1252,18 +1250,18 @@ export function collapseControlStateLevel(
  * (mapped to `undefined`, never `null`, since it isn't a whole-channel
  * absence). Never throws on a missing channel / missing field.
  */
-function resolveEnumName<T>(
+function resolveEnumName<T, N extends string>(
   get: DerivedGet,
   topic: string,
   ordinalOf: (payload: T) => number | null | undefined,
   names: readonly string[],
-): string | null | undefined {
+): N | null | undefined {
   const point = get<T>(topic);
   if (!point) return undefined;
   if (point.payload === null) return null;
   const ordinal = ordinalOf(point.payload);
   if (ordinal == null) return undefined;
-  return names[ordinal] ?? undefined;
+  return (names[ordinal] as N | undefined) ?? undefined;
 }
 
 /**
@@ -1292,37 +1290,35 @@ function resolveCommsControlStateOrdinal(
  * same as the body-name display maps.
  */
 function deriveEnumDisplayMaps(get: DerivedGet): {
-  situationName: string | null | undefined;
-  sasModeName: string | null | undefined;
-  targetKind: string | null | undefined;
-  commsControlStateName: string | null | undefined;
+  situationName: SituationName | null | undefined;
+  sasModeName: SasModeName | null | undefined;
+  targetKind: TargetKindName | null | undefined;
+  commsControlStateName: ControlStateName | null | undefined;
   commsControlStateOrdinal: number | null | undefined;
 } {
   return {
-    situationName: resolveEnumName<VesselIdentityPayload>(
+    situationName: resolveEnumName<VesselIdentityPayload, SituationName>(
       get,
       "vessel.identity",
       (p) => p.situation,
       SITUATION_NAMES,
     ),
-    sasModeName: resolveEnumName<VesselControlPayload>(
+    sasModeName: resolveEnumName<VesselControlPayload, SasModeName>(
       get,
       "vessel.control",
       (p) => p.sasMode,
       SAS_MODE_NAMES,
     ),
-    targetKind: resolveEnumName<VesselTargetPayload>(
+    targetKind: resolveEnumName<VesselTargetPayload, TargetKindName>(
       get,
       "vessel.target",
       (p) => p.kind,
       TARGET_KIND_NAMES,
     ),
-    commsControlStateName: resolveEnumName<VesselCommsPayload>(
-      get,
-      "vessel.comms",
-      (p) => p.controlState,
-      CONTROL_STATE_NAMES,
-    ),
+    commsControlStateName: resolveEnumName<
+      VesselCommsPayload,
+      ControlStateName
+    >(get, "vessel.comms", (p) => p.controlState, CONTROL_STATE_NAMES),
     commsControlStateOrdinal: resolveCommsControlStateOrdinal(get),
   };
 }

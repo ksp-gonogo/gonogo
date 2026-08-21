@@ -73,17 +73,50 @@ export type ContactPhase =
   | "overdue"
   | "lost";
 
+/**
+ * `silence.<guid>.state` carries `Sitrep.Host.Comms.SilenceState` as its NAME,
+ * so there is no ordinal to branch on and the branch has to be exhaustive
+ * instead. Every declared state is named here, and the `never` binding in the
+ * last arm makes a member added to {@link FleetVesselSilence} a compile error
+ * until somebody rules on it. `silence-state-exhaustive.test.ts` is the other
+ * half: it fails when that union stops covering the C# enum.
+ *
+ * This used to test for `Lost` and `Nominal` and let everything else fall into
+ * the Silent treatment, which made Silent the DEFAULT rather than a case. A
+ * member appended to the C# enum, however grave, would have been reported as a
+ * vessel waiting quietly to come back, and FleetRoster renders that as no badge
+ * at all.
+ *
+ * A state that reaches the last arm at runtime yields NO phase. That is not the
+ * same as {@link FleetVesselSilence} never arriving, which yields no phase for
+ * the honest reason that nothing was reckoned; here something was reckoned and
+ * we cannot read it. Both render nothing, and nothing is the only answer that
+ * is not a claim: `nominal` would assert contact and `waiting` would assert
+ * routine silence, and a state we do not recognize supports neither.
+ */
 export function contactPhase(
   silence: FleetVesselSilence | undefined,
   nowUt: number,
 ): ContactPhase | undefined {
   if (!silence) return undefined;
-  if (silence.state === "Lost") return "lost";
-  if (silence.state === "Nominal") return "nominal";
-
-  const predicted = silence.predictedReacquisitionUt;
-  if (predicted == null) return "waiting";
-  return nowUt > predicted ? "overdue" : "expected";
+  switch (silence.state) {
+    case "Nominal":
+      return "nominal";
+    case "Lost":
+      return "lost";
+    case "Silent": {
+      const predicted = silence.predictedReacquisitionUt;
+      if (predicted == null) return "waiting";
+      return nowUt > predicted ? "overdue" : "expected";
+    }
+    default: {
+      // Compile-time: `never` once every declared state is cased above, so
+      // widening the union without widening this switch stops the build.
+      const unruled: never = silence.state;
+      void unruled;
+      return undefined;
+    }
+  }
 }
 
 /**

@@ -10,7 +10,7 @@ import {
   useActionInput,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { ControlStream } from "@ksp-gonogo/sitrep-client";
+import type { ControlStream, SasModeName } from "@ksp-gonogo/sitrep-client";
 import {
   observedAt,
   type Reading,
@@ -20,7 +20,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { SasMode as SasModeEnum, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
@@ -83,7 +83,18 @@ const CONTROL_STREAM_BUDGET = new PerfBudget({
   unit: "dispatches",
 });
 
-const SAS_MODES = [
+/**
+ * The SAS modes the grid offers a button for: every `Sitrep.Contract.SasMode`
+ * member except `Unknown`, which is the contract's graceful fallback for a mode
+ * this build cannot name and never something an operator asks for.
+ *
+ * Typed as member names rather than as bare strings, so an entry that is not a
+ * real member does not compile, and `sasModeOrdinal.test.ts` fails if the list
+ * stops covering the enum. The ORDER here is the grid's layout and nothing
+ * else: it used to double as the wire ordinal via `indexOf`, which made a
+ * member inserted into the C# enum a mis-command rather than a missing button.
+ */
+const SAS_MODES: readonly Exclude<SasModeName, "Unknown">[] = [
   "StabilityAssist",
   "Prograde",
   "Retrograde",
@@ -94,8 +105,19 @@ const SAS_MODES = [
   "Target",
   "AntiTarget",
   "Maneuver",
-] as const;
+];
 type SasMode = (typeof SAS_MODES)[number];
+
+/**
+ * The wire ordinal for one SAS mode, read off the generated enum itself rather
+ * than counted out of {@link SAS_MODES}. The button list is a layout; the
+ * contract is the authority on which integer means which mode.
+ */
+export function sasModeOrdinal(mode: SasMode): number {
+  return SasModeEnum[mode];
+}
+
+export { SAS_MODES };
 
 interface NavballConfig {
   /** When true, read the CoM-referenced attitude frame (n.heading/pitch/roll). Default false reads the root-part-referenced frame (n.heading2/pitch2/roll2); see the component body's ternary comment for which raw key backs which frame. */
@@ -483,11 +505,8 @@ function NavballComponent({
     void rcsCmd.send({ enabled: !rcsRaw }, { label: "Toggle RCS" });
   };
   const setSasMode = (mode: SasMode) => {
-    // SAS_MODES is hand-ordered to match the SasMode C# enum ordinal
-    // exactly (see map-command.ts's SAS_MODE_ORDINALS doc comment), so the
-    // array index IS the ordinal, no separate lookup table needed here.
     void sasModeCmd.send(
-      { mode: SAS_MODES.indexOf(mode) },
+      { mode: sasModeOrdinal(mode) },
       { label: `SAS mode: ${mode}` },
     );
   };

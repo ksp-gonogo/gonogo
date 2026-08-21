@@ -20,6 +20,7 @@
  * the SOI-crossing point: surfaced separately as an encounter marker.
  */
 import { type OrbitPatch, patchStateAt } from "@ksp-gonogo/core";
+import type { TransitionName } from "@ksp-gonogo/sitrep-client";
 
 /** A point on a predicted arc, in diagram-local px (origin = frame parent). */
 export interface ProjectedPoint {
@@ -27,10 +28,54 @@ export interface ProjectedPoint {
   y: number;
 }
 
-/** Patch transition kinds we treat as visible SOI events. */
-const ENCOUNTER_TRANSITIONS = new Set(["ENCOUNTER", "ESCAPE"]);
-
 export type EncounterKind = "encounter" | "escape";
+
+/**
+ * Which way a patch transition crosses an SOI boundary, or `null` when it does
+ * not cross one at all.
+ *
+ * The single place this diagram decides what an SOI event is. It used to be a
+ * two-entry `Set` plus an `=== "ESCAPE"` ternary, written out twice: any
+ * transition outside the set was silently not an event, so a member appended to
+ * `TransitionType` would have drawn no marker on the diagram and listed no row
+ * in the almanac, and an operator cannot tell that from a trajectory that
+ * genuinely stays in one SOI.
+ *
+ * `TransitionName` is derived from the generated enum, so the `never` binding
+ * below stops compiling the moment C# grows a member, and whoever adds it has
+ * to say whether it crosses. That is the whole guarantee: the decision is on a
+ * string because `patchStartTransition` reaches the diagram as a name, and a
+ * string branch is only safe while it is exhaustive.
+ *
+ * A name that is not a transition at all yields `null` rather than a guess.
+ * Marking a crossing would put a body's name and a UT on the diagram off a
+ * value that was never read.
+ */
+export function soiEventKind(transition: string): EncounterKind | null {
+  // Widened at the boundary rather than inside the switch, so the `default`
+  // arm narrows this binding and not a fresh cast: casting there would assert
+  // exhaustiveness instead of checking it.
+  const named = transition as TransitionName;
+  switch (named) {
+    case "ENCOUNTER":
+      return "encounter";
+    case "ESCAPE":
+      return "escape";
+    case "INITIAL":
+    case "FINAL":
+    // A burn, not a crossing: same SOI on both sides of it.
+    case "MANEUVER":
+    // An impact ends the trajectory rather than moving it to another body.
+    case "COLLISION":
+    case "UNKNOWN":
+      return null;
+    default: {
+      const unruled: never = named;
+      void unruled;
+      return null;
+    }
+  }
+}
 
 export interface ProjectedPatch {
   /** Index into the source `orbitPatches` array. */
@@ -192,13 +237,7 @@ export function predictTrajectory({
       points.push(projectAt(patch, t, scale, offset));
     }
 
-    const startEncounter: EncounterKind | null = ENCOUNTER_TRANSITIONS.has(
-      patch.patchStartTransition,
-    )
-      ? patch.patchStartTransition === "ESCAPE"
-        ? "escape"
-        : "encounter"
-      : null;
+    const startEncounter = soiEventKind(patch.patchStartTransition);
 
     out.push({
       patchIndex: i,
@@ -262,13 +301,10 @@ export function scanEncounters(
 ): PatchEncounter[] {
   const out: PatchEncounter[] = [];
   for (const patch of patches) {
-    if (!ENCOUNTER_TRANSITIONS.has(patch.patchStartTransition)) continue;
+    const kind = soiEventKind(patch.patchStartTransition);
+    if (kind === null) continue;
     if (patch.startUT < ut) continue;
-    out.push({
-      kind: patch.patchStartTransition === "ESCAPE" ? "escape" : "encounter",
-      body: patch.referenceBody,
-      ut: patch.startUT,
-    });
+    out.push({ kind, body: patch.referenceBody, ut: patch.startUT });
   }
   out.sort((a, b) => a.ut - b.ut);
   return out;

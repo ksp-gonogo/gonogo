@@ -13,6 +13,7 @@ import {
 import {
   CommsDelaySource,
   type Value as Quantity,
+  Situation,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
@@ -345,6 +346,32 @@ const NEGLIGIBLE_DENSITY = 0.001; // kg/m³, the base unit a bare operand takes
 const RETICLE_SPAN_MIN_M = 300;
 const RETICLE_SPAN_MAX_M = 6000;
 
+/**
+ * Whether the vessel is on the ground, and so has no descent left to evaluate.
+ *
+ * Taken off the `Situation` ORDINAL. This used to compare the enum NAME against
+ * the single literal "Landed", which a craft on the pad fails: every vessel is
+ * `PreLaunch` until the clamps release, and a stationary craft whose centre of
+ * mass sits a few metres above the terrain datum still solves to a finite
+ * free-fall time-to-impact. The pad therefore ran a live descent evaluation,
+ * counting down to a commit point and a blind moment for a rocket that had not
+ * moved. `Splashed` is here for the same reason, and matches the ordinal-derived
+ * `isSplashed` this verdict sits beside.
+ *
+ * An absent or unrecognized situation is not a verdict either way: it yields
+ * false, and the caller falls back to its other grounded signals rather than
+ * asserting a descent nothing reported.
+ */
+export function isGroundedSituation(
+  situation: number | null | undefined,
+): boolean {
+  return (
+    situation === Situation.Landed ||
+    situation === Situation.Splashed ||
+    situation === Situation.PreLaunch
+  );
+}
+
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
@@ -355,6 +382,7 @@ function LandingStatusComponent({
   const body = bodyName ? getBody(bodyName) : undefined;
   const atmospheric = body?.hasAtmosphere ?? false;
 
+  const identityReading = useTelemetry("vessel.identity");
   const flightReading = useTelemetry("vessel.flight");
   const surfaceReading = useTelemetry("vessel.surface");
   const propulsionReading = useTelemetry("vessel.propulsion");
@@ -392,6 +420,10 @@ function LandingStatusComponent({
           ? r.value
           : undefined;
 
+  // Which situation the vessel is in does not decay the way a velocity does: a
+  // craft that was on the pad when the last frame arrived has not since taken
+  // off down a link that stopped delivering, so `describe` is the right read.
+  const identity = describe(identityReading);
   const flight = describe(flightReading);
   const surface = describe(surfaceReading);
   const propulsion = describe(propulsionReading);
@@ -460,14 +492,14 @@ function LandingStatusComponent({
     burnoutMass,
   });
 
-  // Touched down: a landed (or splashed) vessel can still report a residual
-  // altitude + a stale time-to-impact, so gate the descent clocks on the landed
-  // STATE rather than on the impact figure. `vessel.surface.landedAt` (the UT of
-  // touchdown) is the direct, reliable signal; the situation-name / splashed
-  // flags back it up where a source populates those instead.
+  // On the ground: a grounded vessel can still report a residual altitude and a
+  // stale time-to-impact, so gate the descent clocks on the SITUATION rather
+  // than on the impact figure. `vessel.surface.landedAt` (the site KSP records
+  // a vessel as being down at) is the direct signal; the situation ordinal and
+  // the splashed flag back it up where a source populates those instead.
   const landed =
     surface?.landedAt != null ||
-    vs?.situationName === "Landed" ||
+    isGroundedSituation(identity?.situation) ||
     vs?.isSplashed === true;
 
   const oneWaySeconds = readOneWaySeconds(commsDelay);
