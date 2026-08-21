@@ -1,5 +1,8 @@
 import { waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import {
   ANALYTIC_UNBOUNDED_HORIZON,
@@ -110,5 +113,18 @@ describe("OrbitView draws the shape the provider states", () => {
       }
     });
     expect(closedConics(container)).toBe(0);
+  });
+
+  it("announces a refusal rather than leaving the panel silently empty", async () => {
+    const { container } = renderOrbitViewStream(
+      { w: 9, h: 18 },
+      { ...LKO, horizon: UNBOUNDED_HORIZON },
+    );
+    await waitFor(() => {
+      if (container.querySelector('[role="status"]') === null) {
+        throw new Error("refusal has not rendered yet");
+      }
+    });
+    await expectNoA11yViolations(container);
   });
 });
