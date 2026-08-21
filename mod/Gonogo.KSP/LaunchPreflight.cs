@@ -118,6 +118,14 @@ namespace Gonogo.KSP
         /// mass and size limits are read at, and those two only exist for the
         /// two KSC sites, exactly as stock guards them with
         /// <c>if (launchSiteName == "LaunchPad")</c>.</para>
+        ///
+        /// <para>Each check is built through <see cref="Add"/> because several
+        /// of these CONSTRUCTORS do live reads of their own
+        /// (<c>FacilityOperational</c> resolves through <c>PSystemSetup</c>,
+        /// <c>ExperimentalPartsAvailable</c> walks the manifest against
+        /// <c>ResearchAndDevelopment</c>). A constructor that throws must lose
+        /// its own check and not the other seven, and must never take the launch
+        /// command down with it.</para>
         /// </summary>
         public static List<LaunchCheck> CraftChecks(
             ShipTemplate template,
@@ -139,7 +147,7 @@ namespace Gonogo.KSP
             {
                 var editorNorm = ScenarioUpgradeableFacilities.GetFacilityLevel(editorSCFacility);
                 var partLimit = gameVariables.GetPartCountLimit(editorNorm, isVab);
-                checks.Add(new LaunchCheck(
+                Add(checks, () => new LaunchCheck(
                     new PreFlightTests.CraftWithinPartCountLimit(template, editorSCFacility, partLimit),
                     CommandErrorCode.LimitReached,
                     Breach(editorSCFacility, editorNorm, "partCount", template.partCount, partLimit, Units.Count)));
@@ -149,7 +157,7 @@ namespace Gonogo.KSP
                     var siteNorm = ScenarioUpgradeableFacilities.GetFacilityLevel(siteFacility);
 
                     var sizeLimit = gameVariables.GetCraftSizeLimit(siteNorm, isPad);
-                    checks.Add(new LaunchCheck(
+                    Add(checks, () => new LaunchCheck(
                         new PreFlightTests.CraftWithinSizeLimits(template, siteFacility, sizeLimit),
                         // No breach: the comparison is three-dimensional and
                         // LimitBreach is one number against one number. The
@@ -158,7 +166,7 @@ namespace Gonogo.KSP
                         CommandErrorCode.LimitReached));
 
                     var massLimit = gameVariables.GetCraftMassLimit(siteNorm, isPad);
-                    checks.Add(new LaunchCheck(
+                    Add(checks, () => new LaunchCheck(
                         new PreFlightTests.CraftWithinMassLimits(template, siteFacility, massLimit),
                         CommandErrorCode.LimitReached,
                         Breach(siteFacility, siteNorm, "mass", template.totalMass, massLimit, Units.Tonnes)));
@@ -167,7 +175,7 @@ namespace Gonogo.KSP
 
             if (manifest != null)
             {
-                checks.Add(new LaunchCheck(
+                Add(checks, () => new LaunchCheck(
                     new PreFlightTests.ExperimentalPartsAvailable(manifest),
                     CommandErrorCode.NotUnlocked));
             }
@@ -177,7 +185,7 @@ namespace Gonogo.KSP
                 // Funding.Instance is null outside career, and the test's own
                 // constructor reads that as an unlimited balance, so this is
                 // safe to build in any save.
-                checks.Add(new LaunchCheck(
+                Add(checks, () => new LaunchCheck(
                     new PreFlightTests.CanAffordLaunchTest(template, Funding.Instance),
                     CommandErrorCode.InsufficientFunds));
             }
@@ -189,27 +197,45 @@ namespace Gonogo.KSP
             // construction facilities as "VAB"/"SPH", not by their
             // SpaceCenterFacility member names.
             var constructionFacility = isVab ? "VAB" : "SPH";
-            checks.Add(new LaunchCheck(
+            Add(checks, () => new LaunchCheck(
                 new PreFlightTests.FacilityOperational(
                     constructionFacility, FacilityGateName(editorSCFacility)),
                 CommandErrorCode.FacilityDamaged));
 
             if (manifest != null)
             {
-                checks.Add(new LaunchCheck(
+                Add(checks, () => new LaunchCheck(
                     new PreFlightTests.NoControlSources(manifest),
                     CommandErrorCode.CapabilityMismatch));
             }
 
             if (!string.IsNullOrEmpty(craftPath) && TryLaunchSiteEditor(site, out var expectedEditor))
             {
-                checks.Add(new LaunchCheck(
+                Add(checks, () => new LaunchCheck(
                     new PreFlightTests.WrongVesselTypeForLaunchSite(
                         expectedEditor, craftPath, template?.shipName ?? "", site),
                     CommandErrorCode.CapabilityMismatch));
             }
 
             return checks;
+        }
+
+        /// <summary>
+        /// Builds one check into <paramref name="checks"/>, or drops it if its
+        /// constructor threw. Several of these read live scene state as they are
+        /// constructed, and losing one of eight is a great deal better than
+        /// losing the launch command to an exception. The game still runs its
+        /// own copy of every one of them behind us.
+        /// </summary>
+        private static void Add(List<LaunchCheck> checks, Func<LaunchCheck> make)
+        {
+            try
+            {
+                checks.Add(make());
+            }
+            catch (Exception)
+            {
+            }
         }
 
         /// <summary>
