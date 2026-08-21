@@ -475,12 +475,27 @@ function FuelStatusComponent({
    */
   const budget = useProcessor(DELTA_V_BUDGET);
   const budgetNotCurrent = budget?.budget.state === "stale";
+  /**
+   * The stock ΔV sim has answered about this craft, whatever it answered.
+   *
+   * Gates the totals row, which used to be gated on a total being `!== undefined`
+   * and so hung on a wire detail: a craft with no engines reports every total as
+   * `null`, and `null !== undefined` happened to be true, so the row rendered a
+   * labelled pair of em-dashes. That is the right thing to show, and saying so
+   * out loud keeps it from turning back into a void the day a total starts
+   * arriving absent instead of null.
+   */
+  const budgetReported =
+    budget !== undefined && budget.budget.state !== "pending";
   const stageCount = budget?.stageCount ?? undefined;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
   const totalDVVac = budget?.totalVac?.magnitude;
   const totalDVASL = budget?.totalAsl?.magnitude;
   const totalDVActual = budget?.totalActual?.magnitude;
-  const totalBurnTime = budget?.totalBurnTime ?? undefined;
+  // `null` when the sim reported no figure, which `Unit` renders as the em-dash:
+  // NOT collapsed to `undefined`, which would take the bare-string branch below
+  // and bypass the one unit renderer.
+  const totalBurnTime = budget?.totalBurnTime;
 
   // Hooks unrolled explicitly: Rules of Hooks forbids hook calls inside any
   // loop or `.map` callback (even ones that happen to iterate a constant
@@ -610,7 +625,7 @@ function FuelStatusComponent({
         <BigReadout>{NULL_DISPLAY}</BigReadout>
       )}
 
-      {showTotals && (totalDv !== undefined || totalBurnTime !== undefined) && (
+      {showTotals && budgetReported && (
         <Box
           surface="panel"
           bordered

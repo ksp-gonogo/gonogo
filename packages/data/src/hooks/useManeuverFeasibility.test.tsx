@@ -1,4 +1,3 @@
-import type { StageInfo } from "@ksp-gonogo/core";
 import {
   type ManeuverNodeWirePayload,
   StubTransport,
@@ -13,27 +12,20 @@ function wireNode(id: string, ut: number, dv: number): ManeuverNodeWirePayload {
   return { id, ut, dvRadial: dv, dvNormal: 0, dvPrograde: 0, patches: [] };
 }
 
-function stage(deltaVVac: number): StageInfo {
+/**
+ * The wire's own vessel total, which is where the available ΔV comes from.
+ *
+ * These cases used to emit `dv.stages` and let the client add the rows up. It no
+ * longer does: `dv.stages` is `OperatingStageInfo` and this is accumulated over
+ * `WorkingStageInfo`, so the sum was a second, quieter answer to a question the
+ * game had already answered.
+ */
+function budget(totalDvVac: number) {
   return {
-    stage: 0,
-    stageMass: 0,
-    dryMass: 0,
-    fuelMass: 0,
-    startMass: 0,
-    endMass: 0,
-    burnTime: 0,
-    deltaVVac,
-    deltaVASL: deltaVVac,
-    deltaVActual: 0,
-    TWRVac: 0,
-    TWRASL: 0,
-    TWRActual: 0,
-    ispVac: 0,
-    ispASL: 0,
-    ispActual: 0,
-    thrustVac: 0,
-    thrustASL: 0,
-    thrustActual: 0,
+    stageCount: 1,
+    totalDvVac,
+    totalDvAsl: totalDvVac,
+    totalDvActual: totalDvVac,
   };
 }
 
@@ -49,10 +41,10 @@ function Probe({
 
 /**
  * `useManeuverFeasibility` composes `useManeuverNodes` (`vessel.maneuver.legacy`)
- * and `useVesselDeltaV` (`dv.stages`): both now real stream reads, so these
- * tests emit the raw `vessel.maneuver`/`dv.stages` wire topics through a real
- * `TelemetryProvider`/`TelemetryClient` instead of a `MockDataSource` under id
- * `"data"` (which never backed either read in production).
+ * and the shared `DELTA_V_BUDGET` processor (`dv.summary`): both real stream
+ * reads, so these tests emit the raw `vessel.maneuver`/`dv.summary` wire topics
+ * through a real `TelemetryProvider`/`TelemetryClient` instead of a
+ * `MockDataSource` under id `"data"` (which never backed either read).
  */
 describe("useManeuverFeasibility", () => {
   function renderProbe() {
@@ -71,7 +63,7 @@ describe("useManeuverFeasibility", () => {
     const { transport, renders } = renderProbe();
     act(() => {
       transport.emit("vessel.maneuver", { nodes: [] });
-      transport.emit("dv.stages", [stage(2000)]);
+      transport.emit("dv.summary", budget(2000));
     });
     await waitFor(() => expect(renders.at(-1)?.available).toBe(2000));
     const last = renders.at(-1);
@@ -82,7 +74,7 @@ describe("useManeuverFeasibility", () => {
   it("two feasible nodes → allOk and remaining decreases", async () => {
     const { transport, renders } = renderProbe();
     act(() => {
-      transport.emit("dv.stages", [stage(2000)]);
+      transport.emit("dv.summary", budget(2000));
       transport.emit("vessel.maneuver", {
         nodes: [wireNode("a", 100, 500), wireNode("b", 200, 500)],
       });
@@ -97,7 +89,7 @@ describe("useManeuverFeasibility", () => {
   it("last node goes short when cumulative ΔV exceeds available", async () => {
     const { transport, renders } = renderProbe();
     act(() => {
-      transport.emit("dv.stages", [stage(800)]);
+      transport.emit("dv.summary", budget(800));
       transport.emit("vessel.maneuver", {
         nodes: [wireNode("a", 100, 500), wireNode("b", 200, 500)],
       });
@@ -111,7 +103,7 @@ describe("useManeuverFeasibility", () => {
   it("sorts by UT so feasibility reflects execution order", async () => {
     const { transport, renders } = renderProbe();
     act(() => {
-      transport.emit("dv.stages", [stage(800)]);
+      transport.emit("dv.summary", budget(800));
       // Emit out of UT order: the hook should sort.
       transport.emit("vessel.maneuver", {
         nodes: [wireNode("b", 200, 500), wireNode("a", 100, 500)],
@@ -128,7 +120,7 @@ describe("useManeuverFeasibility", () => {
       transport.emit("vessel.maneuver", {
         nodes: [wireNode("a", 100, 500)],
       });
-      // Never emit dv.stages: useVesselDeltaV returns totalVac=0.
+      // Never emit dv.summary: the budget has no total, which is not zero.
     });
     await waitFor(() => expect(renders.at(-1)?.nodes).toHaveLength(1));
     const last = renders.at(-1);

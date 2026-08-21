@@ -347,7 +347,7 @@ describe("DELTA_V_BUDGET", () => {
     expect(budget?.totalVac).toEqual(value("m/s", 3500));
     expect(budget?.totalAsl).toEqual(value("m/s", 2900));
     expect(budget?.totalActual).toEqual(value("m/s", 3100));
-    expect(budget?.stageCount).toBe(3);
+    expect(budget?.stageCount).toEqual(value("count", 3));
 
     off();
   });

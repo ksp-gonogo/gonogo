@@ -171,6 +171,7 @@ const KEYS: DataKey[] = [
   { key: "tar.o.inclination" },
   { key: "tar.o.lan" },
   { key: "dv.stages" },
+  { key: "dv.summary" },
 ];
 
 /**
@@ -422,6 +423,15 @@ describe("ManeuverPlannerComponent", () => {
           thrustActual: 1,
         },
       ]);
+      // The vessel total is the wire's own figure, not the sum of the rows
+      // above: `dv.stages` is OperatingStageInfo and this is accumulated over
+      // WorkingStageInfo, so the client never adds the rows up.
+      utFixture.emit("dv.summary", {
+        stageCount: 1,
+        totalDvVac: 25,
+        totalDvAsl: 25,
+        totalDvActual: 25,
+      });
     });
     await flushViewUt();
 
@@ -444,18 +454,19 @@ describe("ManeuverPlannerComponent", () => {
   /*
    * A SPENT craft, and the case the zero sentinel hid.
    *
-   * `useVesselDeltaV` returned `totalVac: 0` for four different situations: nothing
+   * The ΔV total used to be reported as `0` for four different situations: nothing
    * arrived, the sim confirmed no figure, the reading went stale, and the vessel
    * genuinely has no ΔV left. The planner read that 0 as "unknown" and set
    * `feasible = null`, which is RIGHT for the first three and disarms the fourth: null
    * shows no SHORT chip, and `feasible === false` is the only thing that disables the
    * commit, so an out-of-fuel craft would accept a plan it cannot fly and say nothing.
+   * `DELTA_V_BUDGET` keeps the two apart with `null` versus a real `0`.
    *
    * Its OWN fixture, deliberately. The module-level `utFixture` is shared across this
-   * file and topic values are sticky, so emitting a zero-ΔV stage list on it poisons
+   * file and topic values are sticky, so emitting a zero-ΔV budget on it poisons
    * every later test that expects a dispatchable plan (it did, once).
    */
-  it("refuses the commit for a craft whose stages report genuinely zero delta-v", async () => {
+  it("refuses the commit for a craft whose budget reports genuinely zero delta-v", async () => {
     const spent = setupStreamFixture({
       carriedChannels: [],
       pinnedUt: UT_FIXTURE_VALUE,
@@ -498,6 +509,14 @@ describe("ManeuverPlannerComponent", () => {
           thrustActual: 0,
         },
       ]);
+      // A real total that is really zero, which is telemetry about the vessel,
+      // and rather emphatic telemetry.
+      spent.emit("dv.summary", {
+        stageCount: 1,
+        totalDvVac: 0,
+        totalDvAsl: 0,
+        totalDvActual: 0,
+      });
     });
     await flushViewUt();
 

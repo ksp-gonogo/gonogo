@@ -43,8 +43,21 @@ describe("DELTA_V_BUDGET over a live stream", () => {
    * site: the maneuver planner read 0 as "unknown", showed no shortfall, and
    * left the commit enabled for a craft with nothing left to burn.
    */
-  it("reports null totals when there is no usable reading, not zero", () => {
-    const { renders } = renderProbe();
+  it("has no budget at all before a frame, which is not a budget of zeros", () => {
+    // `useProcessor`'s disconnected contract, and the shape every consumer
+    // branches on: nothing has arrived, so there is nothing to be wrong about.
+    expect(renderProbe().renders.at(-1)).toBeUndefined();
+  });
+
+  it("reports null totals for an EMPTY stage list, not zero", async () => {
+    // An empty `dv.stages` is not a zero-ΔV vessel: the stock sim sends
+    // null-not-empty when it has nothing (StageDeltaVViewProvider.BuildStages),
+    // and a spent craft's real 0 is a different fact from an absent figure.
+    const { transport, renders } = renderProbe();
+    act(() => {
+      transport.emit("dv.stages", []);
+    });
+    await waitFor(() => expect(renders.at(-1)).toBeDefined());
     const last = renders.at(-1);
     expect(last?.totalVac).toBeNull();
     expect(last?.totalAsl).toBeNull();

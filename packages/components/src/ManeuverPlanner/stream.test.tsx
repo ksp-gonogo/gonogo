@@ -291,21 +291,25 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
 });
 
 /**
- * Proof separate from the node-id round-trip above: `dv.stages` is mapped
- * on the wire (map-topic.ts's LEGACY_KEY_HOMES, whole-topic identity
- * read) and rides the stream once carried, with zero change to the
- * `useVesselDeltaV()` call site in index.tsx. The two transports disagree
- * on field names though: legacy `StageInfo` (`deltaVVac`/`deltaVASL`) vs.
- * the new mod's `StageDeltaVEntry` (`dvVac`/`dvAsl`): so this proves
- * `useVesselDeltaV`'s `normalizeStage` reconciliation actually feeds the
- * widget's rendered "Available" ΔV figure. The ΔV total only renders once
- * `!waiting` (`telemetryStatus` all-clear), so `emitOrbitReady` feeds the
- * rest of the widget's telemetry too.
+ * The planner's "Available" figure comes off the wire's own `dv.summary` total,
+ * through the shared `DELTA_V_BUDGET` processor, and NOT from adding up
+ * `dv.stages`.
+ *
+ * That is the whole of the ruling, so the case emits three stage rows adding to
+ * 1800 alongside a summary that says 1900, and demands 1900 on screen. It used
+ * to demand 1800, which was the client's own arithmetic over
+ * `OperatingStageInfo` presented as the vessel total that KSP accumulates over
+ * `WorkingStageInfo`: a different list, and a figure the game never agreed with.
+ *
+ * The processor also has to SUBSCRIBE its own deps, since the widget no longer
+ * reads either topic itself; `isSubscribed` below is what says so. The ΔV total
+ * only renders once `!waiting` (`telemetryStatus` all-clear), so
+ * `emitOrbitReady` feeds the rest of the widget's telemetry too.
  */
-describe("ManeuverPlanner: dv.stages read rides the stream (P4a shared-map batch)", () => {
-  it("sums the ΔV available total off dv.stages using the new mod StageDeltaVEntry field names", async () => {
+describe("ManeuverPlanner: the ΔV budget rides the stream", () => {
+  it("shows the wire's own dv.summary total, not the sum of the stage rows", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [...CARRIED_ORBIT, "dv.stages"],
+      carriedChannels: [...CARRIED_ORBIT, "dv.stages", "dv.summary"],
       pinnedUt: 1_000_000,
     });
 
@@ -317,20 +321,31 @@ describe("ManeuverPlanner: dv.stages read rides the stream (P4a shared-map batch
       </fixture.Provider>,
     );
 
+    // Subscribed by the processor's own dep walk, not by the widget: nothing in
+    // ManeuverPlanner reads either topic directly any more.
     expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
+    expect(fixture.transport.isSubscribed("dv.summary")).toBe(true);
 
     act(() => {
       emitOrbitReady(fixture);
       // The mod's real StageDeltaVEntry field names (contract.ts:491),
-      // `dvVac`/`dvAsl`, NOT the legacy `deltaVVac`/`deltaVASL`.
+      // `dvVac`/`dvAsl`, NOT the legacy `deltaVVac`/`deltaVASL`. These add to
+      // 1800, which must NOT be what the widget shows.
       fixture.emit("dv.stages", [
         { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },
         { stage: 0, dvVac: 600, dvAsl: 500, dvActual: 550 },
       ]);
+      fixture.emit("dv.summary", {
+        stageCount: 2,
+        totalDvVac: 1900,
+        totalDvAsl: 1500,
+        totalDvActual: 1650,
+      });
     });
 
     await waitFor(() => {
-      expect(visibleText()).toContain("1800 m/s");
+      expect(visibleText()).toContain("1900 m/s");
     });
+    expect(visibleText()).not.toContain("1800 m/s");
   });
 });
