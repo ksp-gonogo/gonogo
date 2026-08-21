@@ -80,13 +80,32 @@ export type {
 // component-led `<AugmentSlot segment>` form. A reusable component writes only
 // the SEGMENT and `<AugmentSlot>` completes `${componentId}.${segment}` from
 // `useWidgetMeta()`; this maps a SEGMENT -> the props that augment slot passes
-// down. Empty for v1: only the CONTRIBUTION `filters` segment is exercised, so
-// no augment segment needs precise props yet, and an undeclared segment falls
-// back to the same loose record `SlotProps` uses. Declare a line here (or via
-// `declare module "@ksp-gonogo/core"`) if and when an augment segment lands.
+// down. An undeclared segment falls back to the same loose record `SlotProps`
+// uses. Declare a line here (or via `declare module "@ksp-gonogo/core"`) when
+// an augment segment lands.
+//
+// The two framework-universal augment segments below are `Panel`'s (see
+// `FRAMEWORK_AUGMENT_SEGMENTS` in Panel.tsx), and they are PROPLESS by
+// construction. A universal segment can only pass what the framework knows,
+// and the framework knows nothing about any one widget's state; a segment
+// whose props were `Record<string, unknown>` would be a slot whose contract is
+// "some object", which is not a contract. What a widget knows and an augment
+// wants reaches it through `WidgetScopeContext` instead, where the widget
+// names the type.
 // ---------------------------------------------------------------------------
-// biome-ignore lint/suspicious/noEmptyInterface: parallel segment seam to SlotRegistry, empty until an augment segment lands
-export interface AugmentSegmentRegistry {}
+export interface AugmentSegmentRegistry {
+  /**
+   * Body sections appended below everything the host widget renders. The
+   * augment reads its own Topics and needs nothing from the host.
+   */
+  sections: Record<string, never>;
+  /**
+   * Header controls, rendered in the panel header's aside alongside the
+   * widget's badges and status. Same position the universal `badges`
+   * contribution lands in.
+   */
+  actions: Record<string, never>;
+}
 
 /**
  * The props a component-led augment SEGMENT passes to its augments, resolved

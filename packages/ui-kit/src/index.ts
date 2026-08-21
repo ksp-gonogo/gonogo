@@ -40,7 +40,11 @@ export {
   AugmentSettingsPanel,
   type AugmentSettingsPanelProps,
 } from "./AugmentSettingsPanel";
-export { AugmentSlot, useAugmentAvailable } from "./AugmentSlot";
+export {
+  AugmentSlot,
+  useAugmentAvailable,
+  useWidgetSegmentBound,
+} from "./AugmentSlot";
 export {
   AutoEmptyState,
   type AutoEmptyStateProps,
@@ -355,6 +359,7 @@ export { NULL_DISPLAY, NullValue } from "./NullValue";
 // objects, kept for widgets that render them as children; prefer
 // `<Panel panelTitle="…">` in new code. See README.md's Panel section.
 export {
+  FRAMEWORK_AUGMENT_SEGMENTS,
   Panel,
   PanelBody,
   PanelContainer,
@@ -373,6 +378,7 @@ export {
   PanelToolbar,
   ScrollArea,
   usePanelStreamStatus,
+  WidgetSections,
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";

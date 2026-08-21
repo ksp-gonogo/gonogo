@@ -50,13 +50,7 @@ export function AugmentSlot<S extends string>(
   const slotName =
     args.name ?? (meta ? `${meta.componentId}.${args.segment}` : undefined);
 
-  // Re-render when augments register/unregister so a slot mounted before an
-  // augment's module loads still picks it up (mirrors onDataSourcesChange).
-  const augments = useSyncExternalStore(
-    onAugmentsChange,
-    () => (slotName ? getAugmentsForSlotCached(slotName) : EMPTY_AUGMENTS),
-    () => (slotName ? getAugmentsForSlotCached(slotName) : EMPTY_AUGMENTS),
-  );
+  const augments = useAugmentsFor(slotName);
 
   return (
     <>
@@ -74,6 +68,37 @@ export function AugmentSlot<S extends string>(
 // Stable empty snapshot for a `segment` slot mounted outside a widget context:
 // `useSyncExternalStore` needs a referentially-stable value between changes.
 const EMPTY_AUGMENTS: AnyAugment[] = [];
+
+/**
+ * The augments currently bound to `slotName`, re-read whenever the registry
+ * changes so a slot mounted before an augment's module loads still picks it up
+ * (mirrors `onDataSourcesChange`). `undefined` for a slot that has no name yet
+ * (a `segment` form outside a widget context) reads as empty.
+ */
+function useAugmentsFor(slotName: string | undefined): AnyAugment[] {
+  return useSyncExternalStore(
+    onAugmentsChange,
+    () => (slotName ? getAugmentsForSlotCached(slotName) : EMPTY_AUGMENTS),
+    () => (slotName ? getAugmentsForSlotCached(slotName) : EMPTY_AUGMENTS),
+  );
+}
+
+/**
+ * Whether anything is bound to the mounting widget's `${componentId}.${segment}`
+ * slot. For a host that must decide whether to render CHROME around a segment
+ * at all: `<AugmentSlot>` renders no DOM when nothing is bound, but a wrapper
+ * the host puts around it does, and an empty bordered box on every panel in the
+ * app is not "renders nothing until an augment binds".
+ *
+ * Registration alone, NOT the Domain presence gate: each augment's `requires`
+ * is evaluated inside its own entry at render, so this answers "is this
+ * extension point claimed", which is what a chrome decision turns on.
+ */
+export function useWidgetSegmentBound(segment: string): boolean {
+  const meta = useWidgetMeta();
+  const slotName = meta ? `${meta.componentId}.${segment}` : undefined;
+  return useAugmentsFor(slotName).length > 0;
+}
 
 // useSyncExternalStore requires a referentially-stable snapshot between changes,
 // else it loops. getAugmentsForSlot builds a fresh array each call, so memoise

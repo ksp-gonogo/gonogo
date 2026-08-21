@@ -3,6 +3,7 @@ import {
   type ComponentPropsWithoutRef,
   createContext,
   forwardRef,
+  type ReactElement,
   type ReactNode,
   useCallback,
   useContext,
@@ -14,6 +15,7 @@ import {
   useState,
 } from "react";
 import styled, { css } from "styled-components";
+import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
@@ -1469,6 +1471,46 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * when it sits under it. Defaults to `14rem` and `40%` respectively.
    */
   sidebarSize?: string;
+  /**
+   * Whether this panel hosts the universal `sections` augment segment at the
+   * end of its body. Defaults to true, which is what makes the extension point
+   * universal: an author binds `${componentId}.sections` for any widget without
+   * that widget having declared, named, or positioned a slot.
+   *
+   * Set false ONLY when the widget renders `<WidgetSections>` itself because
+   * end-of-body is the wrong place for it (inside a tab, inside a named
+   * section, as a column of a landscape split). Both mounts firing would render
+   * every bound augment twice, silently, so a widget that places its own must
+   * say so here.
+   */
+  panelSections?: boolean;
+}
+
+// The augment segments `Panel` mounts for EVERY widget, the augment-side
+// counterpart of `contributionsRuntime`'s `FRAMEWORK_SEGMENTS`. Recorded as a
+// list so the two universal segments are greppable from one place even though
+// they mount in two different parts of the panel.
+export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
+
+// Frozen so the empty props object handed to both segment slots is one stable
+// reference rather than a fresh literal per render.
+const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
+
+/**
+ * The universal `${componentId}.sections` augment slot: body sections an Uplink
+ * appends below what the host widget renders, needing nothing from the host.
+ *
+ * `Panel` mounts one at the end of its body already, so a widget renders this
+ * itself only to put the seam somewhere else, and must then pass
+ * `panelSections={false}` so the two mounts do not both fire. Outside a widget
+ * context it renders nothing, same as any segment slot.
+ *
+ * A component owning its own extension point, rather than the orchestrator
+ * owning it on the component's behalf: the shape `FilterList` established for
+ * the `filters` contribution segment.
+ */
+export function WidgetSections(): ReactElement {
+  return <AugmentSlot segment="sections" props={NO_SEGMENT_PROPS} />;
 }
 
 /**
@@ -1588,6 +1630,7 @@ function PanelRoot({
   panelSidebar,
   sidebarSide,
   sidebarSize,
+  panelSections = true,
   children,
   ...rest
 }: PanelProps) {
@@ -1603,6 +1646,11 @@ function PanelRoot({
   // share one vocabulary. Computed before `hasHeader` because badges alone are
   // enough to give an otherwise-headerless panel a header.
   const contextBadges = usePanelBadgesContext();
+  // The universal `${componentId}.actions` augment segment renders in the
+  // header aside. Asked as a boolean first because an aside that exists at all
+  // is a box with padding: splicing an always-mounted slot in would give every
+  // headed panel in the app an empty one.
+  const hasActionAugments = useWidgetSegmentBound("actions");
   const badges = panelBadges ?? contextBadges ?? [];
   const badgePills =
     badges.length === 0 ? null : (
@@ -1618,7 +1666,8 @@ function PanelRoot({
     panelTitle !== undefined ||
     panelAside !== undefined ||
     panelToolbar !== undefined ||
-    badgePills !== null;
+    badgePills !== null ||
+    hasActionAugments;
 
   // The panel's header status now comes from the per-item PanelStatusStore, so
   // stream staleness, active alarms, and any `report` badge merge into one
@@ -1669,9 +1718,18 @@ function PanelRoot({
   const aside =
     panelAside === undefined &&
     statusBadge === null &&
-    badgePills === null ? undefined : (
+    badgePills === null &&
+    !hasActionAugments ? undefined : (
       <>
         {panelAside}
+        {/* The universal `actions` segment: header controls an Uplink adds to
+            ANY widget, in the same place the universal `badges` contribution
+            lands. Ahead of the badges and the status badge, which are readouts;
+            a control the operator can press should not be the last thing to
+            find. */}
+        {hasActionAugments && (
+          <AugmentSlot segment="actions" props={NO_SEGMENT_PROPS} />
+        )}
         {badgePills}
         {statusBadge}
       </>
@@ -1681,6 +1739,11 @@ function PanelRoot({
     return (
       <PanelContainer {...rest}>
         {children}
+        {/* Same universal seam as the headed path below: an unmigrated widget
+            (its own title row inside its children) is still a widget, and an
+            author binding `${componentId}.sections` has no way to know which
+            panel shape it renders. */}
+        {panelSections && <WidgetSections />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
       </PanelContainer>
     );
@@ -1720,6 +1783,12 @@ function PanelRoot({
           header lives outside the scroller. */}
       {!floatingHeader && header}
       {fitToSize ? <PanelFitBody>{children}</PanelFitBody> : children}
+      {/* The universal `${componentId}.sections` augment segment: body sections
+          an Uplink appends to ANY widget, with the widget declaring, naming and
+          positioning nothing. Renders no DOM until something binds. A widget
+          that needs the seam elsewhere renders `<WidgetSections>` itself and
+          turns this off, so the two mounts never both fire. */}
+      {panelSections && <WidgetSections />}
     </PanelBody>
   );
 
