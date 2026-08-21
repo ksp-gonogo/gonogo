@@ -457,14 +457,34 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>
+        /// The same event pressing the space bar is, which this used to be only
+        /// half of. See <see cref="StageRule"/> for stock's own three lines and
+        /// what each of them is for.
+        ///
+        /// <para>The Stage action group fires whether or not the stack advances
+        /// and only inside the staging lock, which is exactly where
+        /// <c>FlightInputHandler</c> puts it. Without it, part actions the
+        /// player assigned to Stage did not run on a console-issued stage: a
+        /// silent behavioural difference from the key, not a missing
+        /// refusal.</para>
+        /// </summary>
         public CommandResult<int> Stage()
         {
             var vessel = FlightGlobals.ActiveVessel;
-            if (vessel == null)
+            var refusal = StageRule.RefusalFor(
+                hasVessel: vessel != null,
+                stagingUnlocked: InputLockManager.IsUnlocked(ControlTypes.STAGING));
+            if (refusal != null)
             {
-                return CommandResult<int>.Fail(CommandErrorCode.NoVessel);
+                return CommandResult<int>.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
-            StageManager.ActivateNextStage();
+
+            if (StageRule.AdvancesTheStack(vessel!.ActionControlBlocked(KSPActionGroup.Stage)))
+            {
+                StageManager.ActivateNextStage();
+            }
+            vessel.ActionGroups?.ToggleGroup(KSPActionGroup.Stage);
             return CommandResult<int>.Ok(vessel.currentStage);
         }
 

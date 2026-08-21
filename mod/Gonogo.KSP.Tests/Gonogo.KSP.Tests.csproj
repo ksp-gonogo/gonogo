@@ -63,6 +63,8 @@
     <!-- What TimeWarp actually settled on against what the command asked for.
          The read is live; the comparison is not. -->
     <Compile Include="..\Gonogo.KSP\WarpRateOutcome.cs" />
+    <!-- What stock's own space bar checks before it stages. -->
+    <Compile Include="..\Gonogo.KSP\StageRule.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
