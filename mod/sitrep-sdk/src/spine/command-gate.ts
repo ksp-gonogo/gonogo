@@ -18,19 +18,40 @@ import { GateOutcome } from "../__generated__/contract";
  */
 export interface CommandGateStatus {
   /**
-   * The game will refuse this command right now, so the control should say so
-   * rather than wait to be pressed.
+   * The game EVALUATED this command's requirements and said no. The control
+   * should say so rather than wait to be pressed.
    *
-   * True for a Fail AND for an Unknown. Unknown is not "we don't know, try it":
-   * an unevaluable gate REFUSES server-side (`ChannelEngine.EvaluateGates`), by
-   * design, because a gate that cannot be read must not read as no gate. A
-   * control that stayed live on an Unknown would promise something the dispatch
-   * is guaranteed to deny.
+   * Fail ONLY. Never an Unknown, and the distinction is load-bearing rather than
+   * pedantic: see {@link undetermined}.
    *
-   * False for an Abstain, which means the answer genuinely depends on what you
-   * ask the command to do. There is nothing honest to say in advance there.
+   * Never an Abstain either, which means the answer genuinely depends on what
+   * you ask the command to do. There is nothing honest to say in advance there.
    */
   blocked: boolean;
+  /**
+   * The mod could not evaluate this command's gates at all: an authority that
+   * was not there to ask.
+   *
+   * <p><b>This is not a refusal and must never be drawn as one.</b> The reasons
+   * are mostly structural or transient and none of them is the game's judgement
+   * about the command: `ScenarioUpgradeableFacilities.Instance` is null in a
+   * SANDBOX save (the scenario is career/mission only), `FlightGlobals` is not
+   * ready mid scene-load, an Uplink declared a gate kind and forgot its
+   * evaluator. Rendering any of those as a dark control with a confident
+   * sentence teaches the operator a false belief about their own save, and does
+   * it permanently, which is worse than saying nothing.</p>
+   *
+   * <p>So a control with an undetermined gate renders exactly as an ungated one:
+   * live, pressable, claiming nothing. The dispatch is the authority, and a
+   * refusal that arrives then at least names itself as one at the moment it
+   * happens.</p>
+   *
+   * <p>Kept as its OWN flag rather than folded into `blocked` because the wire
+   * has always told the two apart (`GateOutcome.Unknown` vs `GateOutcome.Fail`)
+   * and the client is where the distinction was at risk of being lost. `detail`
+   * carries why, for a diagnostic surface.</p>
+   */
+  undetermined: boolean;
   /**
    * The command this is about. Carried because the reason has to be a SENTENCE
    * and a sentence needs a subject: without it "Unavailable: Launch Pad is
@@ -78,9 +99,8 @@ export function toGateStatus(
 ): CommandGateStatus {
   return {
     command,
-    blocked:
-      verdict.outcome === GateOutcome.Fail ||
-      verdict.outcome === GateOutcome.Unknown,
+    blocked: verdict.outcome === GateOutcome.Fail,
+    undetermined: verdict.outcome === GateOutcome.Unknown,
     errorCode: verdict.errorCode,
     breach: verdict.breach ?? undefined,
     detail: verdict.detail || undefined,

@@ -932,6 +932,58 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A gate whose AUTHORITY was not there to ask arrives on the wire as
+        /// something a client can tell apart from a gate that evaluated and said
+        /// no. Same channel, same shape, different <see cref="GateOutcome"/>.
+        ///
+        /// <para>Load-bearing rather than pedantic.
+        /// <c>ScenarioUpgradeableFacilities</c> is declared
+        /// <c>[KSPScenario]</c> for career and mission only, so its
+        /// <c>Instance</c> is NULL in a sandbox save and every facility gate
+        /// answers Unknown there. Unknown REFUSES at dispatch, on purpose, so a
+        /// consumer that collapsed the two would black out working controls in
+        /// every sandbox game and explain it in the game's own voice, for ever.
+        /// The wire has always carried the distinction; this pins it, because
+        /// the same class of bug has already been shipped once in this feature
+        /// (a cross-thread exception caught as Unknown, refusing two commands
+        /// permanently while looking deliberate).</para>
+        /// </summary>
+        [Fact]
+        public async Task AnUnevaluableGateIsDistinguishableOnTheWireFromAnEvaluatedNo()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new GateSampleProbeUplink { GateOutcomeToReport = GateOutcome.Unknown };
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
+
+                engine.SampleCommandGates();
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+                var gates = Assert.IsType<List<object?>>(payload["gates"]);
+                var entry = Assert.Single(
+                    gates.Cast<Dictionary<string, object?>>(),
+                    g => (string?)g["command"] == GateSampleProbeUplink.GatedCommand);
+                var verdict = Assert.IsType<Dictionary<string, object?>>(entry["verdict"]);
+
+                Assert.Equal((double)(int)GateOutcome.Unknown, verdict["outcome"]);
+                Assert.NotEqual((double)(int)GateOutcome.Fail, verdict["outcome"]);
+                // And it says WHICH authority was missing, so a diagnostic
+                // surface can name the sandbox scenario rather than guessing.
+                Assert.Equal(GateSampleProbeUplink.UnknownDetail, verdict["detail"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The sampler's cadence is its OWN, not the caller's: <c>GonogoAddon</c>
         /// calls it once per frame and must not thereby re-read live game state
         /// on the main thread once per frame. Two calls back to back produce one
@@ -1314,6 +1366,7 @@ namespace Sitrep.Host.IntegrationTests
             public const string CourierProbeTopic = "probe.courier-thread";
             public const string GateKind = "probe-sample-thread";
             public const string RefusalDetail = "the pad has a rocket on it";
+            public const string UnknownDetail = "the facilities scenario is not loaded";
 
             /// <summary>What the evaluator answers. Fail exercises the reason-carrying half.</summary>
             public GateOutcome GateOutcomeToReport { get; set; } = GateOutcome.Pass;
@@ -1401,9 +1454,18 @@ namespace Sitrep.Host.IntegrationTests
                         _owner._gateThreadIds.Add(Thread.CurrentThread.ManagedThreadId);
                     }
                     Interlocked.Increment(ref _owner._gateEvaluationCount);
-                    return _owner.GateOutcomeToReport == GateOutcome.Pass
-                        ? GateVerdict.Pass()
-                        : GateVerdict.Fail(CommandErrorCode.SiteOccupied, RefusalDetail);
+                    switch (_owner.GateOutcomeToReport)
+                    {
+                        case GateOutcome.Fail:
+                            return GateVerdict.Fail(CommandErrorCode.SiteOccupied, RefusalDetail);
+                        case GateOutcome.Unknown:
+                            // What a facility gate answers in a sandbox save,
+                            // where ScenarioUpgradeableFacilities.Instance is
+                            // null because the scenario is career/mission only.
+                            return GateVerdict.Unknown(UnknownDetail);
+                        default:
+                            return GateVerdict.Pass();
+                    }
                 }
             }
         }

@@ -38,6 +38,7 @@ describe("selectCommandGate", () => {
     expect(gate).toEqual({
       command: "flight.launch",
       blocked: true,
+      undetermined: false,
       errorCode: CommandErrorCode.SiteOccupied,
       breach: undefined,
       detail: "Launch Pad is occupied",
@@ -53,10 +54,14 @@ describe("selectCommandGate", () => {
     expect(gate?.blocked).toBe(false);
   });
 
-  it("blocks on an Unknown, because Unknown REFUSES server-side", () => {
-    // Not a hedge. `ChannelEngine.EvaluateGates` returns Unknown when a gate
-    // cannot be read, and Unknown refuses the dispatch by design, so a control
-    // that stayed live here would promise something the mod is certain to deny.
+  it("does NOT block on an Unknown: an absent authority is not the game saying no", () => {
+    // The case that forces the distinction. `ScenarioUpgradeableFacilities` is
+    // a career/mission-only [KSPScenario], so its Instance is null in a SANDBOX
+    // save and every facility gate answers Unknown there. Collapsing that into
+    // `blocked` would black out working controls in every sandbox game and
+    // explain it in the game's own voice, permanently. Unknown still refuses at
+    // DISPATCH, which is a rule about acting, not a licence to render a false
+    // certainty in advance.
     const gate = selectCommandGate(
       report({
         command: "career.tech.unlock",
@@ -66,8 +71,35 @@ describe("selectCommandGate", () => {
       "career.tech.unlock",
     );
 
-    expect(gate?.blocked).toBe(true);
+    expect(gate?.blocked).toBe(false);
+    expect(gate?.undetermined).toBe(true);
+    // Still says why, for a diagnostic surface: the point is not to lose the
+    // information, it is not to draw it as a refusal.
     expect(gate?.detail).toBe("the facilities scenario is not loaded");
+  });
+
+  it("tells an evaluated no apart from an unevaluable gate", () => {
+    const both = report(
+      {
+        command: "a.fail",
+        outcome: GateOutcome.Fail,
+        detail: "Launch Pad is occupied",
+      },
+      {
+        command: "b.unknown",
+        outcome: GateOutcome.Unknown,
+        detail: "the facilities scenario is not loaded",
+      },
+    );
+
+    expect(selectCommandGate(both, "a.fail")).toMatchObject({
+      blocked: true,
+      undetermined: false,
+    });
+    expect(selectCommandGate(both, "b.unknown")).toMatchObject({
+      blocked: false,
+      undetermined: true,
+    });
   });
 
   it("does not block on an Abstain: the answer depends on the arguments", () => {
@@ -77,6 +109,7 @@ describe("selectCommandGate", () => {
     );
 
     expect(gate?.blocked).toBe(false);
+    expect(gate?.undetermined).toBe(false);
   });
 
   it("answers undefined for a command with no entry, so an ungated control is untouched", () => {

@@ -707,6 +707,40 @@ describe("CommandButton: the blocked phase", () => {
     });
   });
 
+  it("leaves a control the mod could not judge alone, since sandbox nulls one authority", async () => {
+    // ScenarioUpgradeableFacilities is a career/mission-only [KSPScenario], so
+    // its Instance is null in a sandbox save and every facility gate answers
+    // Unknown. Darkening on that would black out a working control in every
+    // sandbox game, with a sentence that reads like the game's own.
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(undefined));
+    render(
+      <CommandButton
+        handle={makeHandle(send, {
+          gate: {
+            blocked: false,
+            undetermined: true,
+            command: "career.tech.unlock",
+            errorCode: 1,
+            detail: "the facilities scenario is not loaded",
+          },
+        })}
+        label="Unlock"
+      />,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).not.toHaveAttribute("aria-disabled");
+    expect(button).toHaveTextContent("Unlock");
+    // Reports itself for a diagnostic surface without saying anything to the
+    // operator that it cannot back up.
+    expect(button).toHaveAttribute("data-gate", "undetermined");
+
+    await user.click(button);
+    // The dispatch is the authority when the console could not tell.
+    expect(send).toHaveBeenCalledOnce();
+  });
+
   it("has no axe violations while blocked", async () => {
     const { container } = render(
       <CommandButton

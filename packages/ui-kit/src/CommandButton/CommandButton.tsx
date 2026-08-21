@@ -46,8 +46,18 @@ export const PENDING_BACKSTOP_MS = 30_000;
  * `useCommand`'s `gate` satisfies this shape.
  */
 export interface CommandGateLike extends CommandRefusalLike {
-  /** The game will refuse this right now. */
+  /** The game EVALUATED this and said no. */
   blocked: boolean;
+  /**
+   * The mod could not evaluate this command's gates at all, so it knows nothing
+   * about them. Deliberately NOT a reason to darken the control: an absent
+   * authority is not the game's judgement, and in a sandbox save
+   * `ScenarioUpgradeableFacilities.Instance` is null by design, so treating this
+   * as a refusal would permanently dark a working control with an
+   * authoritative-looking sentence. Renders as ordinary, and reports itself
+   * through `data-gate` for a diagnostic surface.
+   */
+  undetermined?: boolean;
 }
 
 /**
@@ -178,6 +188,8 @@ export function useCommandButton({
   const [reasonShown, setReasonShown] = useState(false);
 
   const gate = handle.gate;
+  // `blocked` only. An undetermined gate is NOT a refusal: see
+  // CommandGateLike.undetermined for why it must not darken anything.
   const gateBlocks = gate?.blocked === true;
 
   // A dispatch that settles after this control unmounted must not set state, and
@@ -518,6 +530,17 @@ export function CommandButton({
       disabled={disabled || isPending}
       data-failed={hasFailure ? "true" : undefined}
       data-command-phase={phase}
+      // Reports itself without changing how it renders: the operator sees an
+      // ordinary control, and a diagnostic surface can still find every command
+      // the mod could not judge. `undetermined` never wins over `blocked`,
+      // because a verdict is one or the other.
+      data-gate={
+        isBlocked
+          ? "blocked"
+          : handle.gate?.undetermined
+            ? "undetermined"
+            : undefined
+      }
       // The accessible name TRACKS THE PHASE. A refusal sentence names the
       // command and the numbers behind the no, so it is the name while it
       // stands: a screen-reader user landing on a button reading "Refused"
