@@ -133,7 +133,7 @@ namespace GonogoPrincipiaUplink.Tests
 
             Assert.Equal("principia", manifest.Id);
             Assert.Equal(
-                new[] { "principia.flightPlan", "principia.provenance" },
+                new[] { "principia.flightPlan", "principia.settings" },
                 manifest.Channels.Select(c => c.Topic).ToArray());
 
             // Presence still rides `system.uplinks` rather than a dedicated
@@ -160,16 +160,16 @@ namespace GonogoPrincipiaUplink.Tests
         /// The two channels carry OPPOSITE delay roles, and the difference is the
         /// design rather than an oversight. A flight plan is an observation of a
         /// craft's future and rides the light-time delay like any other; the
-        /// provenance settings are ground-side facts about how the numbers are being
+        /// settings are ground-side facts about how the numbers are being
         /// computed, on the operator's own machine. Delaying those would mean someone
         /// adjusting a tolerance could not see the new basis for their readouts until
         /// light-time had passed.
         /// </summary>
         [Fact]
-        public void TheFlightPlanIsDelayedAndTheProvenanceIsNot()
+        public void TheFlightPlanIsDelayedAndTheSettingsAreNot()
         {
             Assert.Equal(DelayRole.Delayed, Channel("principia.flightPlan").Delay);
-            Assert.Equal(DelayRole.TrueNow, Channel("principia.provenance").Delay);
+            Assert.Equal(DelayRole.TrueNow, Channel("principia.settings").Delay);
         }
 
         private static ChannelDeclaration Channel(string topic) =>

@@ -53,21 +53,22 @@ namespace GonogoPrincipiaUplink
             _observer = observer;
         }
 
-        /// <summary>Test seam for the provenance half, same reasoning.</summary>
-        internal PrincipiaUplink(PrincipiaGuardResult guard, IProvenanceSource provenance)
+        /// <summary>Test seam for the settings half, same reasoning.</summary>
+        internal PrincipiaUplink(PrincipiaGuardResult guard, ISettingsSource settings)
             : this(guard)
         {
-            _provenance = provenance;
+            _settings = settings;
         }
 
         public const string FlightPlanTopic = "principia.flightPlan";
-        public const string ProvenanceTopic = "principia.provenance";
+        public const string SettingsTopic = "principia.settings";
 
         private IFlightPlanObserver? _observer;
-        private IProvenanceSource? _provenance;
-        private readonly ProvenanceReflection _provenanceReader = new ProvenanceReflection();
+        private ISettingsSource? _settings;
+        private readonly SettingsReflection _settingsReader = new SettingsReflection();
+        private readonly NativeSettingsReader _nativeSettingsReader = new NativeSettingsReader();
         private IChannelPublisher? _flightPlan;
-        private IChannelPublisher? _provenancePublisher;
+        private IChannelPublisher? _settingsPublisher;
         private double _publishedAtUt = double.NegativeInfinity;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -93,7 +94,7 @@ namespace GonogoPrincipiaUplink
                 // setting they just changed on the same machine.
                 new ChannelDeclaration
                 {
-                    Topic = ProvenanceTopic,
+                    Topic = SettingsTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -134,11 +135,11 @@ namespace GonogoPrincipiaUplink
 
             AttachObserver();
             _observer?.TryAttach();
-            _provenance?.TryAttach();
+            _settings?.TryAttach();
             _flightPlan = host.Publisher(FlightPlanTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, FlightPlanTopic);
-            _provenancePublisher = host.Publisher(ProvenanceTopic);
-            host.AddSampledSource(CaptureProvenanceOnMain, HandleProvenanceOnCourier, ProvenanceTopic);
+            _settingsPublisher = host.Publisher(SettingsTopic);
+            host.AddSampledSource(CaptureSettingsOnMain, HandleSettingsOnCourier, SettingsTopic);
         }
 
         /// <summary>
@@ -185,44 +186,72 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
+        /// MAIN-THREAD capture: reads every setting this tick, or says why it did
+        /// not.
+        ///
+        /// <para>Published every tick rather than on change, unlike the flight plan.
+        /// The difference is what the payload CLAIMS: a flight-plan sample asserts a
+        /// past observation, so re-stamping it would move that observation forward in
+        /// time, while these settings are true now and saying so repeatedly is
+        /// honest.</para>
+        ///
+        /// <para><b>The journal check comes first, and it decides whether we read at
+        /// all.</b> With a recorder running, the producer writes every call made
+        /// through its plugin interface into the player's replay journal, ours
+        /// included, and that journal is the artefact one of its bug reports is made
+        /// of. So the managed half is read, the actual journaling state is taken from
+        /// it, and if a recorder is active the whole reading is thrown away and
+        /// replaced by a stated outage before the plugin is touched at all. It gates
+        /// on the ACTUAL state rather than the requested one deliberately: the
+        /// request only takes effect on load, so gating on it would stop us a session
+        /// early and then fail to stop us at all in the case that matters.</para>
+        /// </summary>
+        internal object? CaptureSettingsOnMain(KspSnapshot? snapshot)
+        {
+            if (_settings == null)
+            {
+                return null;
+            }
+            var ut = snapshot?.Ut ?? 0.0;
+            var version = _settings.Session?.Version;
+            var observation = new SettingsObservation { SampledAtUt = ut, PluginVersion = version };
+            _settingsReader.Read(_settings, observation);
+
+            if (observation.Journaling == true)
+            {
+                return SettingsObservation.Suspended(ut, version, JournalSuspensionReason);
+            }
+
+            observation.TargetCelestialBody = _settings.TargetCelestialBody;
+            _nativeSettingsReader.Read(_settings, observation);
+            return observation;
+        }
+
+        /// <summary>What an operator is told while we have stopped reading, and the
+        /// one action that resumes it.</summary>
+        internal const string JournalSuspensionReason =
+            "Principia is recording a journal, so Gonogo has stopped reading from it. A journal "
+            + "with our polling interleaved is no longer a replay of your session, and it is the "
+            + "file a Principia bug report is made of. Turn off Record journal in Principia's "
+            + "logging settings to resume.";
+
+        internal void HandleSettingsOnCourier(object? captured)
+        {
+            if (captured is not SettingsObservation observation)
+            {
+                return;
+            }
+            _settingsPublisher?.Publish(
+                SettingsBuilder.Build(observation), observation.SampledAtUt);
+        }
+
+        /// <summary>
         /// Unavailable is the ORDINARY answer, not a fault: Principia is optional
         /// and the stock two-body provider stays correct without it. The reason
         /// string is carried so the roster can say which of "not installed" and
         /// "installed but not a version we know" it is, because those want
         /// different actions from an operator.
         /// </summary>
-        /// <summary>
-        /// MAIN-THREAD capture: reads the cold-readable provenance every tick and
-        /// folds in the prediction observation if there is one.
-        ///
-        /// <para>Published every tick rather than on change, unlike the flight plan.
-        /// The difference is what the payload CLAIMS: a flight-plan sample asserts a
-        /// past observation, so re-stamping it would move that observation forward in
-        /// time, while these settings are true now and saying so repeatedly is
-        /// honest. The prediction half carries its own instant inside the payload for
-        /// exactly that reason: it is the one part that is not a statement about
-        /// now.</para>
-        /// </summary>
-        internal object? CaptureProvenanceOnMain(KspSnapshot? snapshot)
-        {
-            if (_provenance == null)
-            {
-                return null;
-            }
-            var observation = _provenanceReader.Read(_provenance.MainWindow, _provenance.FrameSelector);
-            observation.Prediction = _provenance.Prediction;
-            observation.SampledAtUt = snapshot?.Ut ?? 0.0;
-            return observation;
-        }
-
-        internal void HandleProvenanceOnCourier(object? captured)
-        {
-            if (captured is not ProvenanceObservation observation)
-            {
-                return;
-            }
-            _provenancePublisher?.Publish(ProvenanceBuilder.Build(observation), observation.SampledAtUt);
-        }
 
         /// <summary>Sets <c>_observer</c> to the real hook. Implemented only in the
         /// game-facing partial, so a headless build has no observer and says so by

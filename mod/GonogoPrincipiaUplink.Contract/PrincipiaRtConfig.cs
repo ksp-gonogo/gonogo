@@ -8,9 +8,11 @@ namespace GonogoPrincipiaUplink;
 /// This Uplink's OWN codegen configuration, the same shape every sibling
 /// Uplink's <c>*RtConfig.Configure</c> has, scoped to this assembly's types.
 ///
-/// <para>Both wire types go in the <c>ExportAsInterfaces</c> set, not just the
-/// topic-carrying one. <see cref="PrincipiaFlightPlanBurn"/> is a nested payload
-/// reached only through <see cref="PrincipiaFlightPlan.Burns"/>, and a type left
+/// <para>Every wire type goes in the <c>ExportAsInterfaces</c> set, not just the
+/// topic-carrying ones. <see cref="PrincipiaFlightPlanBurn"/> is a nested payload
+/// reached only through <see cref="PrincipiaFlightPlan.Burns"/>, and
+/// <see cref="PrincipiaReferenceFrame"/> only through <see cref="PrincipiaSettings"/>;
+/// a type left
 /// out of this set is not registered with rtcli, so
 /// <c>ApplyUnitValueTypes</c> cannot retype its properties: the burn rows would
 /// generate as bare <c>number</c> where the plan's own fields generate as
@@ -38,7 +40,8 @@ public static class PrincipiaRtConfig
         {
             typeof(PrincipiaFlightPlan),
             typeof(PrincipiaFlightPlanBurn),
-            typeof(PrincipiaProvenance),
+            typeof(PrincipiaSettings),
+            typeof(PrincipiaReferenceFrame),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());

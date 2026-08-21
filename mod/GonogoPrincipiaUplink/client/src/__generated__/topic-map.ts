@@ -11,15 +11,15 @@
 
 import type {
   PrincipiaFlightPlan,
-  PrincipiaProvenance,
+  PrincipiaSettings,
 } from "./contract";
 
 export interface GeneratedTopicPayloadMap {
   "principia.flightPlan": PrincipiaFlightPlan;
-  "principia.provenance": PrincipiaProvenance;
+  "principia.settings": PrincipiaSettings;
 }
 
 export const GENERATED_TOPIC_IDS = [
   "principia.flightPlan",
-  "principia.provenance",
+  "principia.settings",
 ] as const;

@@ -188,7 +188,7 @@ async function renderPrincipia(scene: Scene): Promise<void> {
 
   const carried = [
     "principia.flightPlan",
-    "principia.provenance",
+    "principia.settings",
     "vessel.identity",
   ];
   const stream = setupStreamFixture({
