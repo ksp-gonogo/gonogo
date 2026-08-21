@@ -10,20 +10,21 @@ namespace Sitrep.Core.Tests;
 /// Guards the shipped contract assembly against carrying a codegen-only
 /// dependency into consumers' runtimes.
 ///
-/// <para>Reinforced.Typings is referenced with <c>PrivateAssets="all"</c>, so
-/// <c>Reinforced.Typings.dll</c> is deliberately never copied beside anything
-/// that references Sitrep.Contract. If the shipped assembly's metadata still
-/// carried <c>[TsEnum]</c>/<c>[TsInterface]</c>, the CLR would have to resolve
-/// that missing assembly the moment anything asked a contract type for its
-/// custom attributes — and <c>Enum.ToString()</c> asks, because enum formatting
-/// checks for <c>[Flags]</c>. The result was a <c>FileNotFoundException</c> from
-/// the most innocuous line a test can write, including from inside xunit's own
+/// <para><c>Reinforced.Typings.dll</c> is a codegen tool and is deliberately
+/// never deployed beside anything that references Sitrep.Contract. While the
+/// shipped assembly's metadata still carried <c>[TsEnum]</c>/<c>[TsInterface]</c>
+/// it also carried a hard reference to that absent assembly, so the CLR had to
+/// resolve it the moment anything asked a contract type for its custom
+/// attributes, and <c>Enum.ToString()</c> asks, because enum formatting checks
+/// for <c>[Flags]</c>. The result was a <c>FileNotFoundException</c> from the
+/// most innocuous line a test can write, including from inside xunit's own
 /// assertion-failure message rendering, so the failure reported itself as its
 /// own cause.</para>
 ///
-/// <para>These tests fail loudly if that regresses, so nobody has to rediscover
-/// the <c>(int)</c>-cast and hand-rolled-switch workarounds that grew up around
-/// it.</para>
+/// <para>The attributes now exist only in the <c>*.Contract.Codegen</c> twins
+/// (see <c>mod/CodegenTwin.props</c>). These tests fail loudly if that
+/// regresses, so nobody has to rediscover the <c>(int)</c>-cast and
+/// hand-rolled-switch workarounds that grew up around it.</para>
 /// </summary>
 public class ContractEnumRenderingTests
 {
@@ -40,7 +41,7 @@ public class ContractEnumRenderingTests
     public void InterpolatingAContractEnumRendersTheMemberName()
     {
         // The shape an assertion message takes when a test formats an actual
-        // value — the exact path that threw instead of reporting.
+        // value: the exact path that threw instead of reporting.
         Assert.Equal("mode=Science", $"mode={GameMode.Science}");
     }
 
@@ -77,7 +78,7 @@ public class ContractEnumRenderingTests
     /// <see cref="FieldInfo"/> instead of calling <see cref="Enum.Parse(Type, string, bool)"/>:
     /// the reflective parse path materialises every custom attribute on the
     /// enum type, so it threw for exactly the same reason
-    /// <c>ToString()</c> did — in the net10.0 test host AND in the live KSP
+    /// <c>ToString()</c> did, in the net10.0 test host AND in the live KSP
     /// deploy, where a string-form enum command argument would have dead-softed
     /// the command in-game.
     /// </summary>
@@ -113,6 +114,22 @@ public class ContractEnumRenderingTests
         }
     }
 
+    /// <summary>
+    /// The load-bearing assertion, and NOT redundant with the behavioural ones
+    /// above however much it looks it.
+    ///
+    /// <para>Measured by reintroducing the leak deliberately: with a stray
+    /// <c>Reinforced.Typings.dll</c> sitting in this project's output, the
+    /// rendering and parsing tests above all PASS (1 failed, 5 passed) while the
+    /// contract is genuinely broken, because a resolvable assembly is all those
+    /// tests need. Delete that one file and the same build fails 6 of 6.</para>
+    ///
+    /// <para>This test is the one that fails either way, because it reads the
+    /// assembly's reference table rather than exercising behaviour that a stray
+    /// file can satisfy. A stray copy in a bin is exactly what made 13 failing
+    /// tests pass on 2026-08-20 and hid a dispatch bug for a month, so the check
+    /// that cannot be fooled by one has to stay.</para>
+    /// </summary>
     [Fact]
     public void ContractAssemblyDoesNotReferenceReinforcedTypings()
     {

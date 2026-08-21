@@ -382,7 +382,7 @@ namespace Sitrep.Contract
         /// absent. This used to bite: the netstandard2.0 build carried
         /// <c>RtConfig</c> and the Reinforced.Typings attributes, so any
         /// consumer of it needed a codegen DLL that is deliberately never
-        /// deployed. No build of this assembly carries them now — they are
+        /// deployed. No build of this assembly carries them now, they are
         /// compiled only into Sitrep.Contract.Codegen (see
         /// Sitrep.Contract.csproj).</para>
         ///

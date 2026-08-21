@@ -45,7 +45,7 @@ namespace Gonogo.KSP.Tests.Career
         /// contract's shipped build carried <c>[TsEnum]</c> from
         /// Reinforced.Typings, an assembly deliberately never deployed, and
         /// reading a member's attributes resolves every attribute on it, so this
-        /// threw <c>FileNotFoundException</c> — out of <c>member.ToString()</c>,
+        /// threw <c>FileNotFoundException</c>, out of <c>member.ToString()</c>,
         /// upstream of the try/catch meant to absorb it. Asking for
         /// <c>DescriptionAttribute</c> specifically did not filter it out.</para>
         ///

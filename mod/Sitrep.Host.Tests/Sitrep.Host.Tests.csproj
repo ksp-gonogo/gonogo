@@ -32,22 +32,22 @@
     <Compile Include="../Gonogo.KSP/CommNetOcclusion.cs" />
     <Compile Include="../GonogoRealAntennasUplink/RaOcclusion.cs" />
   </ItemGroup>
-  <!-- Reinforced.Typings at RUNTIME, for this test host only.
-       Sitrep.Contract deliberately keeps RT out of its runtime closure
-       (PrivateAssets="all"), because in KSP anything scanning assemblies
-       would try to resolve Reinforced.Typings.dll, which is never deployed.
-       That is still right and this does not change it.
-       These tests are the one consumer that loads the netstandard2.0 build
-       on a full runtime, and that build DOES carry the [TsEnum]/[TsInterface]
-       attributes (they are compiled under #if NETSTANDARD2_0; the net472
-       build KSP loads has none). Resolving a custom attribute is not
-       optional there: Enum.TryParse<TargetKind> walks the enum's attributes
-       to find FlagsAttribute, so it threw FileNotFoundException on a type
-       nothing in the test even mentions. A test project is never deployed to
-       GameData, so satisfying it here cannot leak into the game. -->
-  <ItemGroup>
-    <PackageReference Include="Reinforced.Typings" Version="1.6.7" />
-  </ItemGroup>
+  <!-- NO Reinforced.Typings reference. There was one, added so this test host
+       could resolve the [TsEnum]/[TsInterface] attributes the shipped contract
+       used to carry: Enum.TryParse<TargetKind> walks an enum's attributes
+       looking for FlagsAttribute, so it threw FileNotFoundException on a type
+       nothing in the test even mentioned.
+
+       Supplying the missing DLL treated the symptom and re-armed the trap. A
+       resolvable copy beside a test binary is all a behavioural test needs to
+       go green, so the leak became invisible exactly where it should have been
+       loudest. Measured: with the leak present and a copy in bin, the contract
+       enum tests pass 5 of 6; delete the one file and the same build fails 6
+       of 6. That is the 2026-08-20 incident's mechanism.
+
+       The attributes now live only in the *.Contract.Codegen twins, so nothing
+       here needs the DLL. Do not add it back to make a test pass; a test that
+       needs it is telling you the leak is back. -->
   <ItemGroup>
     <!-- The CI "lying minor" contract-shape gate's baseline; see
          ContractShapeGateTests's doc comment. Wired in the same

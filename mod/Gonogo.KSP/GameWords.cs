@@ -21,7 +21,7 @@ namespace Gonogo.KSP
     /// build carried <c>[TsEnum]</c> from Reinforced.Typings, an assembly
     /// deliberately never deployed, and reading a member's attributes resolves
     /// EVERY attribute on it, so passing a contract enum threw
-    /// <c>FileNotFoundException</c> — from <c>member.ToString()</c>, before the
+    /// <c>FileNotFoundException</c>, from <c>member.ToString()</c>, before the
     /// try below could catch anything. Those attributes now exist only in
     /// Sitrep.Contract.Codegen, so it is a style point again rather than a
     /// trap.</para>

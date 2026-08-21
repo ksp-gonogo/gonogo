@@ -164,7 +164,7 @@ jobs:
   # dotnet test takes a single project, so we iterate the test-project list.
   # The shape-gate (ContractShapeGateTests) lives in Sitrep.Host.Tests and is
   # CI-safe: it reads PE metadata and the contract's own [SitrepContract]
-  # marker. Reinforced.Typings is not a runtime dependency of anything here —
+  # marker. Reinforced.Typings is not a runtime dependency of anything here,
   # it is confined to Sitrep.Contract.Codegen, which only mod/codegen.sh builds.
   mod:
     runs-on: ubuntu-latest
@@ -381,7 +381,7 @@ jobs:
       # Sitrep.Contract.Codegen is built by nothing else in CI: it exists only
       # to feed rtcli, so a contract change that breaks it would otherwise stay
       # invisible until someone ran codegen.sh by hand. Running the real
-      # generator and diffing its output checks both halves at once — that the
+      # generator and diffing its output checks both halves at once: that the
       # codegen project still compiles, and that the committed SDK actually
       # matches the contract it claims to be generated from.
       - name: Contract codegen is buildable and its committed output is current
