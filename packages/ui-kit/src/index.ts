@@ -37,6 +37,12 @@ export {
   type ActionMenuProps,
 } from "./ActionMenu";
 export {
+  type AugmentSettingsContextValue,
+  AugmentSettingsProvider,
+  useAllAugmentSettings,
+  useAugmentSettings,
+} from "./AugmentSettings";
+export {
   AugmentSettingsPanel,
   type AugmentSettingsPanelProps,
 } from "./AugmentSettingsPanel";
@@ -523,3 +529,9 @@ export { VisuallyHidden } from "./VisuallyHidden";
 export { UI_KIT_VERSION } from "./version";
 export { WidgetHeader, type WidgetHeaderProps } from "./WidgetHeader";
 export * from "./WidgetMetaContext";
+export {
+  useWidgetScope,
+  type WidgetScope,
+  WidgetScopeProvider,
+  type WidgetScopeRegistry,
+} from "./WidgetScope";

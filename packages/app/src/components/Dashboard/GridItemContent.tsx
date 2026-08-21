@@ -11,6 +11,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import {
+  AugmentSettingsProvider,
   DelayRailProvider,
   PanelBadgesProvider,
   PanelStatusProvider,
@@ -78,6 +79,31 @@ export const GridItemContent = memo(function GridItemContent({
 
   const itemContext = useMemo(() => ({ instanceId: item.i }), [item.i]);
 
+  // The augment-settings loop, closed here rather than per widget. Any augment
+  // on any widget may declare `settings`; the values belong to the HOST WIDGET
+  // INSTANCE's saved config, which is a thing only the dashboard holds. Widgets
+  // used to thread this down as slot props, which stopped the capability at
+  // whichever widget had bothered to do it.
+  const augmentSettings = item.config?.augmentSettings as
+    | Record<string, Record<string, unknown>>
+    | undefined;
+  const setAugmentSetting = useCallback(
+    (augmentId: string, key: string, value: unknown) => {
+      const current = (item.config?.augmentSettings ?? {}) as Record<
+        string,
+        Record<string, unknown>
+      >;
+      updateItemConfig(item.i, {
+        ...item.config,
+        augmentSettings: {
+          ...current,
+          [augmentId]: { ...current[augmentId], [key]: value },
+        },
+      });
+    },
+    [item.i, item.config, updateItemConfig],
+  );
+
   if (!def) return null;
   const Comp = def.component;
   const hasConfig = Boolean(def.configComponent);
@@ -131,26 +157,31 @@ export const GridItemContent = memo(function GridItemContent({
         </CellHeader>
         <ComponentWrapper>
           <DashboardItemContext.Provider value={itemContext}>
-            <WidgetContributions def={def}>
-              <WidgetBadges>
-                <WidgetStreamStatus def={def}>
-                  <ErrorBoundary fallback={renderErrorFallback}>
-                    <RequiresGuard
-                      requires={def.requires}
-                      channels={def.channels}
-                    >
-                      <Comp
-                        id={item.i}
-                        config={item.config}
-                        w={w}
-                        h={h}
-                        onConfigChange={onSaveConfig}
-                      />
-                    </RequiresGuard>
-                  </ErrorBoundary>
-                </WidgetStreamStatus>
-              </WidgetBadges>
-            </WidgetContributions>
+            <AugmentSettingsProvider
+              settings={augmentSettings}
+              setAugmentSetting={setAugmentSetting}
+            >
+              <WidgetContributions def={def}>
+                <WidgetBadges>
+                  <WidgetStreamStatus def={def}>
+                    <ErrorBoundary fallback={renderErrorFallback}>
+                      <RequiresGuard
+                        requires={def.requires}
+                        channels={def.channels}
+                      >
+                        <Comp
+                          id={item.i}
+                          config={item.config}
+                          w={w}
+                          h={h}
+                          onConfigChange={onSaveConfig}
+                        />
+                      </RequiresGuard>
+                    </ErrorBoundary>
+                  </WidgetStreamStatus>
+                </WidgetBadges>
+              </WidgetContributions>
+            </AugmentSettingsProvider>
           </DashboardItemContext.Provider>
         </ComponentWrapper>
       </PanelStatusStoreProvider>
