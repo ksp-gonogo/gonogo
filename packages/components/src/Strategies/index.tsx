@@ -12,18 +12,17 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
-  GhostButton,
+  CommandButton,
+  type CommandButtonHandle,
   NULL_DISPLAY,
   Panel,
-  PrimaryButton,
   ScrollArea,
   Stack,
   speakQuantity,
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   magnitudeOf,
@@ -56,8 +55,6 @@ export interface Strategy {
   deactivateBlockedReason: string;
   effect: string;
 }
-
-const COMMIT_TIMEOUT_MS = 5_000;
 
 /**
  * Accepts BOTH the legacy `strategies.all` shape (`departmentName`) and
@@ -235,41 +232,6 @@ function StrategiesComponent({
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [factorById, setFactorById] = useState<Record<string, number>>({});
-  const [armedActivateId, setArmedActivateId] = useState<string | null>(null);
-  const [armedDeactivateId, setArmedDeactivateId] = useState<string | null>(
-    null,
-  );
-  const [pendingId, setPendingId] = useState<string | null>(null);
-
-  // Drop arm/pending state if the user walks away or things change.
-  useEffect(() => {
-    if (armedActivateId === null) return;
-    const id = setTimeout(() => setArmedActivateId(null), COMMIT_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armedActivateId]);
-  useEffect(() => {
-    if (armedDeactivateId === null) return;
-    const id = setTimeout(() => setArmedDeactivateId(null), COMMIT_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armedDeactivateId]);
-  useEffect(() => {
-    if (pendingId === null) return;
-    const id = setTimeout(() => setPendingId(null), COMMIT_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [pendingId]);
-
-  // Clear pending once the live data confirms the new state.
-  useEffect(() => {
-    if (pendingId === null || strategies === null) return;
-    const target = strategies.find((s) => s.id === pendingId);
-    if (target === undefined) {
-      setPendingId(null);
-      return;
-    }
-    // Either side of the transition counts as "settled", the action
-    // mutates isActive in either direction.
-    setPendingId(null);
-  }, [pendingId, strategies]);
 
   const bucket = getSizeBucket(w, h);
   const showSubtitle = (h ?? 8) >= 4;
@@ -443,40 +405,22 @@ function StrategiesComponent({
                     factor{" "}
                     <Unit value={value("%", s.factor * 100)} decimals={0} />
                   </FactorTag>
-                  {armedDeactivateId === s.id ? (
-                    <ConfirmRow>
-                      <PrimaryButton
-                        type="button"
-                        onClick={() => {
-                          setArmedDeactivateId(null);
-                          setPendingId(s.id);
-                          void deactivateCmd.send({ strategyId: s.id });
-                        }}
-                        disabled={pendingId === s.id}
-                      >
-                        Confirm deactivate
-                      </PrimaryButton>
-                      <GhostButton
-                        type="button"
-                        onClick={() => setArmedDeactivateId(null)}
-                      >
-                        Cancel
-                      </GhostButton>
-                    </ConfirmRow>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => setArmedDeactivateId(s.id)}
-                      disabled={!s.canDeactivate || pendingId === s.id}
-                      title={
-                        s.canDeactivate
-                          ? "Deactivate this strategy"
-                          : s.deactivateBlockedReason || "Cannot deactivate"
-                      }
-                    >
-                      {pendingId === s.id ? "Deactivating..." : "Deactivate"}
-                    </Button>
-                  )}
+                  <CommandButton
+                    handle={deactivateCmd}
+                    args={{ strategyId: s.id }}
+                    commandLabel={`Deactivate ${s.title}`}
+                    label="Deactivate"
+                    confirmLabel="Confirm deactivate"
+                    pendingLabel="Deactivating..."
+                    active
+                    tone="go"
+                    disabled={!s.canDeactivate}
+                    title={
+                      s.canDeactivate
+                        ? "Deactivate this strategy"
+                        : s.deactivateBlockedReason || "Cannot deactivate"
+                    }
+                  />
                 </CardFooter>
               </StrategyCard>
             ))
@@ -501,15 +445,7 @@ function StrategiesComponent({
                   onFactorChange={(v) =>
                     setFactorById((prev) => ({ ...prev, [s.id]: v }))
                   }
-                  armed={armedActivateId === s.id}
-                  onArm={() => setArmedActivateId(s.id)}
-                  onCancel={() => setArmedActivateId(null)}
-                  onConfirm={(factor) => {
-                    setArmedActivateId(null);
-                    setPendingId(s.id);
-                    void activateCmd.send({ strategyId: s.id, factor });
-                  }}
-                  pending={pendingId === s.id}
+                  activateCmd={activateCmd}
                   expanded={expandedId === s.id}
                   onToggleExpanded={() =>
                     setExpandedId(expandedId === s.id ? null : s.id)
@@ -558,11 +494,7 @@ function AvailableRow({
   balancesNotCurrent,
   factor,
   onFactorChange,
-  armed,
-  onArm,
-  onCancel,
-  onConfirm,
-  pending,
+  activateCmd,
   expanded,
   onToggleExpanded,
 }: {
@@ -574,11 +506,11 @@ function AvailableRow({
   balancesNotCurrent: boolean;
   factor: number;
   onFactorChange: (v: number) => void;
-  armed: boolean;
-  onArm: () => void;
-  onCancel: () => void;
-  onConfirm: (factor: number) => void;
-  pending: boolean;
+  /**
+   * The shared activate handle. Each row's `CommandButton` holds its OWN arm and
+   * in-flight state off it, which is why the widget keeps no `pendingId`.
+   */
+  activateCmd: CommandButtonHandle;
   expanded: boolean;
   onToggleExpanded: () => void;
 }) {
@@ -686,41 +618,28 @@ function AvailableRow({
         </FactorRow>
       )}
       <CardFooter>
-        {armed ? (
-          <ConfirmRow>
-            <PrimaryButton
-              type="button"
-              onClick={() => onConfirm(factor)}
-              disabled={pending || cantAfford}
-            >
-              Confirm activate
-            </PrimaryButton>
-            <GhostButton type="button" onClick={onCancel}>
-              Cancel
-            </GhostButton>
-          </ConfirmRow>
-        ) : (
-          <PrimaryButton
-            type="button"
-            onClick={onArm}
-            disabled={!s.canActivate || pending || cantAfford}
-            /* A stale balance and a short one both refuse, and the operator does
-               something different about each: top up the treasury, or find out
-               why the link stopped. So the refusal names which it is rather than
-               calling a career it cannot see insufficient. */
-            title={
-              !s.canActivate
-                ? s.activateBlockedReason || "Cannot activate"
-                : balancesNotCurrent
-                  ? "Career balances are no longer current, so affordability cannot be checked"
-                  : cantAfford
-                    ? "Insufficient funds / science / reputation at this factor"
-                    : "Set the factor, then confirm"
-            }
-          >
-            {pending ? "Activating..." : "Activate"}
-          </PrimaryButton>
-        )}
+        <CommandButton
+          handle={activateCmd}
+          args={{ strategyId: s.id, factor }}
+          commandLabel={`Activate ${s.title}`}
+          label="Activate"
+          confirmLabel="Confirm activate"
+          pendingLabel="Activating..."
+          disabled={!s.canActivate || cantAfford}
+          /* A stale balance and a short one both refuse, and the operator does
+             something different about each: top up the treasury, or find out
+             why the link stopped. So the refusal names which it is rather than
+             calling a career it cannot see insufficient. */
+          title={
+            !s.canActivate
+              ? s.activateBlockedReason || "Cannot activate"
+              : balancesNotCurrent
+                ? "Career balances are no longer current, so affordability cannot be checked"
+                : cantAfford
+                  ? "Insufficient funds / science / reputation at this factor"
+                  : "Set the factor, then confirm"
+          }
+        />
       </CardFooter>
     </StrategyCard>
   );
@@ -1023,14 +942,6 @@ const CardFooter = styled.div`
      can't sit side by side, wrap the button onto its own line instead of
      letting it overflow the card's right edge (was clipping "DEACTIVATE"
      to "DEACTIVAT"). */
-  flex-wrap: wrap;
-`;
-
-const ConfirmRow = styled.div`
-  display: flex;
-  gap: var(--space-6);
-  /* Confirm + Cancel are wider than a single action button; let them stack
-     rather than overflow the card at narrow widths. */
   flex-wrap: wrap;
 `;
 

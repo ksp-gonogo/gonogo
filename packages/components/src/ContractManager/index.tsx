@@ -17,13 +17,13 @@ import {
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
+  CommandButton,
   formatDuration,
-  GhostButton,
   Panel,
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 import {
@@ -514,8 +514,19 @@ function ContractManagerComponent({
               </Parameters>
             )}
             <ActiveActions>
-              <CancelButton
-                onConfirm={() => void cancelCmd.send({ contractId: c.id })}
+              <CommandButton
+                handle={cancelCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Cancel ${c.title}`}
+                size="sm"
+                label="Cancel"
+                /* Cancel forfeits any work in progress, so the confirm copy is
+                   stronger than Decline's: the loss is bigger, funds may
+                   already be spent and parameters part-achieved. */
+                confirmLabel="Forfeit contract"
+                confirmTone="nogo"
+                pendingLabel="Cancelling..."
+                title="Cancel this contract: forfeits all progress"
               />
             </ActiveActions>
           </ContractCard>
@@ -567,92 +578,30 @@ function ContractManagerComponent({
               )}
             </Rewards>
             <OfferedActions>
-              <AcceptButton
-                type="button"
-                onClick={() => {
-                  void acceptCmd.send({ contractId: c.id });
-                }}
-              >
-                Accept
-              </AcceptButton>
-              <DeclineButton
-                onConfirm={() => void declineCmd.send({ contractId: c.id })}
+              <CommandButton
+                handle={acceptCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Accept ${c.title}`}
+                size="sm"
+                tone="go"
+                label="Accept"
+                pendingLabel="Accepting..."
+              />
+              <CommandButton
+                handle={declineCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Decline ${c.title}`}
+                size="sm"
+                label="Decline"
+                confirmLabel="Confirm decline"
+                confirmTone="nogo"
+                pendingLabel="Declining..."
               />
             </OfferedActions>
           </ContractCard>
         ))}
       </CardList>
     </Panel>
-  );
-}
-
-const ARM_TIMEOUT_MS = 4000;
-
-function DeclineButton({ onConfirm }: { onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-
-  // Auto-disarm so a forgotten armed-decline doesn't sit waiting for a
-  // misclick. Matches the maneuver-trigger pattern.
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <DeclineButtonStyled type="button" onClick={() => setArmed(true)}>
-        Decline
-      </DeclineButtonStyled>
-    );
-  }
-  return (
-    <ConfirmDeclineButton
-      type="button"
-      onClick={() => {
-        setArmed(false);
-        onConfirm();
-      }}
-    >
-      Confirm decline
-    </ConfirmDeclineButton>
-  );
-}
-
-function CancelButton({ onConfirm }: { onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-
-  // Cancel forfeits any work in progress on the contract, same arm-then-
-  // confirm pattern as Decline but stronger framing in the confirm copy
-  // because the loss is bigger (you may have already spent funds /
-  // achieved partial parameters).
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <CancelButtonStyled
-        type="button"
-        onClick={() => setArmed(true)}
-        title="Cancel this contract: forfeits all progress"
-      >
-        Cancel
-      </CancelButtonStyled>
-    );
-  }
-  return (
-    <ConfirmCancelButton
-      type="button"
-      onClick={() => {
-        setArmed(false);
-        onConfirm();
-      }}
-    >
-      Forfeit contract
-    </ConfirmCancelButton>
   );
 }
 
@@ -712,81 +661,6 @@ const ActiveActions = styled.div`
   justify-content: flex-end;
   gap: var(--space-6);
   margin-top: var(--space-4);
-`;
-
-// The ghost treatment, its documented AA-passing colour and its hover come
-// from the kit; only the compact type and padding are this widget's.
-const CompactGhostButton = styled(GhostButton)`
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: var(--space-4) var(--space-10);
-`;
-
-const AcceptButton = styled(CompactGhostButton)`
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
-  border-color: transparent;
-
-  &:hover {
-    filter: brightness(1.1);
-  }
-`;
-
-const DeclineButtonStyled = styled(CompactGhostButton)`
-  background: transparent;
-  color: var(--color-text-muted);
-
-  &:hover {
-    color: var(--color-status-nogo-fg);
-    border-color: var(--color-status-nogo-bg);
-  }
-`;
-
-const ConfirmDeclineButton = styled(CompactGhostButton)`
-  background: var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-on-bg);
-  border-color: transparent;
-  /* The animation property must live inside the same media guard as
-     the keyframes: wrapping only the keyframes leaves the animation
-     active for reduced-motion users (CLAUDE.md a11y rule). */
-  @media (prefers-reduced-motion: no-preference) {
-    animation: declinePulse 1s var(--ease-emphasis) infinite;
-    @keyframes declinePulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.6;
-      }
-    }
-  }
-`;
-
-const CancelButtonStyled = styled(CompactGhostButton)`
-  background: transparent;
-  color: var(--color-text-faint);
-  font-size: var(--font-size-2xs);
-  padding: var(--space-2) var(--space-8);
-
-  &:hover {
-    color: var(--color-status-nogo-fg);
-    border-color: var(--color-status-nogo-bg);
-  }
-`;
-
-const ConfirmCancelButton = styled(CompactGhostButton)`
-  background: var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-on-bg);
-  border-color: transparent;
-  font-size: var(--font-size-2xs);
-  padding: var(--space-2) var(--space-8);
-  /* Reuses the declinePulse @keyframes from ConfirmDeclineButton above
-     (declared inside the same media guard). */
-  @media (prefers-reduced-motion: no-preference) {
-    animation: declinePulse 1s var(--ease-emphasis) infinite;
-  }
 `;
 
 const ContractCard = styled.div`

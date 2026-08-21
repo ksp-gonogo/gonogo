@@ -21,13 +21,15 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  type CommandButtonHandle,
   NULL_DISPLAY,
   Panel,
   Spinner,
   Unit,
+  useCommandButton,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   magnitudeOf,
@@ -254,8 +256,6 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
   return out;
 }
 
-const ARM_TIMEOUT_MS = 4000;
-
 function LaunchDirectorComponent({
   h,
   w,
@@ -440,33 +440,7 @@ function LaunchDirectorComponent({
   const selectedSiteLabel =
     (launchSites ?? []).find((s) => s.name === selectedSite)?.displayName ??
     selectedSite;
-  const [armed, setArmed] = useState<
-    "launch" | "recover" | "revert" | "revert-vab" | "tracking-station" | null
-  >(null);
-  // While the launch RPC is in flight (and until the scene flips to Flight
-  // or a 10s safety timeout elapses), suppress the launch button so an
-  // impatient double-click doesn't fire two `ksp.launch` actions.
-  const [launching, setLaunching] = useState(false);
   const scene = sceneRecord?.scene;
-
-  // Auto-disarm so a forgotten arm doesn't sit live indefinitely.
-  useEffect(() => {
-    if (armed === null) return;
-    const id = setTimeout(() => setArmed(null), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  // Clear the launching guard when the scene flips to Flight (the success
-  // signal we actually care about) or after 10s either way.
-  useEffect(() => {
-    if (!launching) return;
-    if (scene === "Flight") {
-      setLaunching(false);
-      return;
-    }
-    const id = setTimeout(() => setLaunching(false), 10_000);
-    return () => clearTimeout(id);
-  }, [launching, scene]);
 
   const ship = useMemo(
     () => (selectedShip ? ships?.find((s) => s.name === selectedShip) : null),
@@ -604,57 +578,34 @@ function LaunchDirectorComponent({
             canRevertToLaunch={canRevertToLaunch ?? false}
             canRevertToEditor={canRevertToEditor ?? false}
             crashBlocked={crashBlocked}
-            armed={armed}
-            onArm={setArmed}
             availableVessels={availableVessels}
-            onRecover={() => {
-              setArmed(null);
-              void recoverCmd.send();
-            }}
-            onRevertToLaunch={() => {
-              setArmed(null);
-              void revertLaunchCmd.send();
-            }}
-            onRevertToVAB={() => {
-              setArmed(null);
-              void revertEditorCmd.send({ editor: "vab" });
-            }}
-            onToTrackingStation={() => {
-              setArmed(null);
-              void toTrackingCmd.send();
-            }}
-            onSwitchVessel={(vesselId) => {
-              setArmed(null);
-              void switchCmd.send({ vesselId });
-            }}
+            recoverCmd={recoverCmd}
+            revertLaunchCmd={revertLaunchCmd}
+            revertEditorCmd={revertEditorCmd}
+            toTrackingCmd={toTrackingCmd}
+            switchCmd={switchCmd}
           />
         ) : padOccupied ? (
           <PadActions>
             <ArmedButton
               kind="recover"
-              armed={armed === "recover"}
-              onArm={() => setArmed("recover")}
-              onConfirm={() => {
-                setArmed(null);
-                void recoverCmd.send();
-              }}
+              handle={recoverCmd}
+              commandLabel="Recover"
               label="Recover"
               confirmLabel="Confirm recover"
+              pendingLabel="Recovering..."
             />
+            {/* Revert always to VAB by default; the mod's revertToEditor
+                command accepts vab|sph but the widget cannot tell which editor
+                the original craft came from from flight state alone. */}
             <ArmedButton
               kind="revert"
-              armed={armed === "revert"}
-              onArm={() => setArmed("revert")}
-              onConfirm={() => {
-                setArmed(null);
-                // Revert always to VAB by default; the mod's revertToEditor
-                // command accepts vab|sph but the widget doesn't know which
-                // editor the original craft came from from flight state
-                // alone. Prefer the explicit choice when we have it.
-                void revertEditorCmd.send({ editor: "vab" });
-              }}
+              handle={revertEditorCmd}
+              args={{ editor: "vab" }}
+              commandLabel="Revert to VAB"
               label="Revert to VAB"
               confirmLabel="Confirm revert"
+              pendingLabel="Reverting..."
             />
           </PadActions>
         ) : (
@@ -780,21 +731,14 @@ function LaunchDirectorComponent({
                 <LaunchControls>
                   <ArmedButton
                     kind="launch"
-                    armed={armed === "launch"}
-                    disabled={launching}
-                    pending={launching}
-                    onArm={() => setArmed("launch")}
-                    onConfirm={() => {
-                      if (launching) return;
-                      setArmed(null);
-                      setLaunching(true);
-                      void launchCmd.send({
-                        shipName: ship.name,
-                        facility: ship.facility,
-                        site: selectedSite,
-                        crew: Array.from(selectedCrew),
-                      });
+                    handle={launchCmd}
+                    args={{
+                      shipName: ship.name,
+                      facility: ship.facility,
+                      site: selectedSite,
+                      crew: Array.from(selectedCrew),
                     }}
+                    commandLabel={`Launch ${ship.name}`}
                     label={
                       selectedCrew.size > 0
                         ? `Launch ${ship.name} (${selectedCrew.size} crew)`
@@ -823,38 +767,38 @@ function InFlightPanel({
   canRevertToLaunch,
   canRevertToEditor,
   crashBlocked,
-  armed,
-  onArm,
   availableVessels,
-  onRecover,
-  onRevertToLaunch,
-  onRevertToVAB,
-  onToTrackingStation,
-  onSwitchVessel,
+  recoverCmd,
+  revertLaunchCmd,
+  revertEditorCmd,
+  toTrackingCmd,
+  switchCmd,
 }: {
   missionTime: number | null;
   altitudeMeters: number | null;
   canRevertToLaunch: boolean;
   canRevertToEditor: boolean;
   crashBlocked: boolean;
-  armed:
-    | "launch"
-    | "recover"
-    | "revert"
-    | "revert-vab"
-    | "tracking-station"
-    | null;
-  onArm: (
-    k: "recover" | "revert" | "revert-vab" | "tracking-station" | null,
-  ) => void;
   availableVessels: TargetListEntry[] | undefined;
-  onRecover: () => void;
-  onRevertToLaunch: () => void;
-  onRevertToVAB: () => void;
-  onToTrackingStation: () => void;
-  onSwitchVessel: (vesselId: string) => void;
+  /**
+   * The handles, not callbacks: each control below holds its own arm and
+   * in-flight state off the handle it is given, so no armed-kind enum travels
+   * down from the widget any more.
+   */
+  recoverCmd: CommandButtonHandle;
+  revertLaunchCmd: CommandButtonHandle;
+  revertEditorCmd: CommandButtonHandle;
+  toTrackingCmd: CommandButtonHandle;
+  switchCmd: CommandButtonHandle;
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
+  // The Tracking Station control keeps its own warning-worded chrome (leaving
+  // may cost the flight), so it takes the behaviour hook rather than the
+  // default rendering.
+  const trackingStation = useCommandButton({
+    handle: toTrackingCmd,
+    commandLabel: "Go to Tracking Station",
+  });
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
   const totalAvailable = availableVessels?.length ?? 0;
   const spaceObjectCount = useMemo(
@@ -898,48 +842,56 @@ function InFlightPanel({
       <PadActions>
         <ArmedButton
           kind="recover"
-          armed={armed === "recover"}
-          onArm={() => onArm("recover")}
-          onConfirm={onRecover}
+          handle={recoverCmd}
+          commandLabel="Recover"
           label="Recover"
           confirmLabel="Confirm recover"
+          pendingLabel="Recovering..."
           disabled={crashBlocked}
         />
         <ArmedButton
           kind="revert"
-          armed={armed === "revert"}
-          onArm={() => onArm("revert")}
-          onConfirm={onRevertToLaunch}
+          handle={revertLaunchCmd}
+          commandLabel="Revert to launch"
           label={
             canRevertToLaunch ? "Revert to launch" : "Revert to launch (n/a)"
           }
           confirmLabel="Confirm revert to launch"
+          pendingLabel="Reverting..."
           disabled={!canRevertToLaunch}
         />
         <ArmedButton
           kind="revert"
-          armed={armed === "revert-vab"}
-          onArm={() => onArm("revert-vab")}
-          onConfirm={onRevertToVAB}
+          handle={revertEditorCmd}
+          args={{ editor: "vab" }}
+          commandLabel="Revert to VAB"
           label={canRevertToEditor ? "Revert to VAB" : "Revert to VAB (n/a)"}
           confirmLabel="Confirm revert to VAB"
+          pendingLabel="Reverting..."
           disabled={!canRevertToEditor}
         />
-        {armed === "tracking-station" ? (
+        {trackingStation.isPending ? (
+          <TrackingStationConfirm type="button" disabled aria-busy="true">
+            <Spinner size={12} /> Leaving...
+          </TrackingStationConfirm>
+        ) : trackingStation.isArmed || trackingStation.isRefused ? (
           <TrackingStationConfirm
             type="button"
-            onClick={() => {
-              onArm(null);
-              onToTrackingStation();
-            }}
-            title="KSP may revert this flight to its last save if it can't save here (the in-game warning dialog has no equivalent on the wire)."
+            onClick={() => trackingStation.press(true)}
+            title={
+              trackingStation.refusalText ??
+              "KSP may revert this flight to its last save if it can't save here (the in-game warning dialog has no equivalent on the wire)."
+            }
+            aria-label={trackingStation.refusalText ?? undefined}
           >
-            Confirm: flight may revert
+            {trackingStation.isRefused
+              ? "Refused"
+              : "Confirm: flight may revert"}
           </TrackingStationConfirm>
         ) : (
           <TrackingStationButton
             type="button"
-            onClick={() => onArm("tracking-station")}
+            onClick={() => trackingStation.press(true)}
             title="Tracking Station: KSP may revert this flight if it can't save here"
           >
             Tracking Station
@@ -988,7 +940,7 @@ function InFlightPanel({
                 onClick={() => {
                   if (!entry.vesselId) return;
                   setSwitchOpen(false);
-                  onSwitchVessel(entry.vesselId);
+                  void switchCmd.send({ vesselId: entry.vesselId });
                 }}
               >
                 <VesselSwitchName>
@@ -1029,39 +981,65 @@ function Altitude({ m }: { m: number | null }) {
   return <Unit value={value("m", m)} />;
 }
 
+/**
+ * The pad/flight action button. Behaviour is the shared `useCommandButton`; the
+ * chrome stays local because each verb carries its own colour (`$kind`), which
+ * is how the operator tells a recover from a revert at a glance in a stack of
+ * four, and the default `CommandButton` rendering has no such axis.
+ *
+ * The pending state is what the local `launching` flag used to be for the launch
+ * button alone. That flag's stated purpose was idempotency, suppressing a double
+ * dispatch, and the same state answers honesty too, which is why every button
+ * here has one now rather than only that one.
+ */
 function ArmedButton({
-  armed,
-  onArm,
-  onConfirm,
+  handle,
+  args,
+  commandLabel,
   label,
   confirmLabel,
   kind,
   disabled,
-  pending,
   pendingLabel,
 }: {
-  armed: boolean;
-  onArm: () => void;
-  onConfirm: () => void;
+  handle: CommandButtonHandle;
+  args?: unknown;
+  commandLabel?: string;
   label: string;
   confirmLabel: string;
   kind: "launch" | "recover" | "revert";
   disabled?: boolean;
-  pending?: boolean;
   pendingLabel?: string;
 }) {
-  if (pending) {
+  const { isArmed, isPending, isRefused, refusalText, hasFailure, press } =
+    useCommandButton({ handle, args, commandLabel });
+
+  if (isPending) {
     return (
       <ConfirmButton type="button" $kind={kind} disabled aria-busy="true">
         <Spinner size={12} /> {pendingLabel ?? "Working..."}
       </ConfirmButton>
     );
   }
-  if (armed) {
+  if (isRefused) {
     return (
       <ConfirmButton
         type="button"
-        onClick={onConfirm}
+        $kind={kind}
+        onClick={() => press(true)}
+        title={refusalText ?? undefined}
+        aria-label={refusalText ?? undefined}
+        data-launch-action={`refused-${kind}`}
+      >
+        Refused
+      </ConfirmButton>
+    );
+  }
+  if (isArmed) {
+    return (
+      <ConfirmButton
+        type="button"
+        onClick={() => press(true)}
         $kind={kind}
         disabled={disabled}
         data-launch-action={`confirm-${kind}`}
@@ -1073,9 +1051,10 @@ function ArmedButton({
   return (
     <ArmButton
       type="button"
-      onClick={onArm}
+      onClick={() => press(true)}
       $kind={kind}
       disabled={disabled}
+      data-failed={hasFailure ? "true" : undefined}
       data-launch-action={`arm-${kind}`}
     >
       {label}

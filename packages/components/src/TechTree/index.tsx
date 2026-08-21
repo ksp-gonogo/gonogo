@@ -13,13 +13,15 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CommandButton,
+  type CommandButtonHandle,
   Panel,
   ScrollArea,
   Unit,
   usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   magnitudeOf,
@@ -182,8 +184,6 @@ function parsePart(raw: unknown): TechPart | null {
 function notNull<T>(x: T | null): x is T {
   return x !== null;
 }
-
-const ARM_TIMEOUT_MS = 4000;
 
 // Switch to the tiered dependency graph only once the widget is wide enough
 // for columns + connectors to be legible. The KSP R&D tree is inherently
@@ -407,31 +407,8 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     "all",
   );
   const [query, setQuery] = useState("");
-  const [armed, setArmed] = useState<string | null>(null);
-  const [pendingUnlock, setPendingUnlock] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Drop the arm after the user-facing timeout so a half-committed Unlock
-  // doesn't sit there indefinitely.
-  useEffect(() => {
-    if (armed === null) return;
-    const id = setTimeout(() => setArmed(null), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  // Clear pending-unlock once the optimistic state appears in tech.nodes
-  // (the node flips to Available) or after a 5s safety timeout.
-  useEffect(() => {
-    if (pendingUnlock === null) return;
-    const target = allNodes?.find((n) => n.id === pendingUnlock);
-    if (target?.state === "Available") {
-      setPendingUnlock(null);
-      return;
-    }
-    const id = setTimeout(() => setPendingUnlock(null), 5_000);
-    return () => clearTimeout(id);
-  }, [pendingUnlock, allNodes]);
 
   const bucket = getSizeBucket(w, h);
   const rows = h ?? 8;
@@ -508,7 +485,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       isResearchable,
       canAfford,
       canUnlock,
-      isPending: pendingUnlock === n.id,
       affordTooltip: !canAfford
         ? sciAvailable === null
           ? careerNotCurrent
@@ -518,12 +494,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
         : !upgradesEnabled
           ? "Unlock from the Space Center scene"
           : undefined,
-      onArm: () => setArmed(n.id),
-      onConfirm: () => {
-        setArmed(null);
-        setPendingUnlock(n.id);
-        void unlockCmd.send({ techId: n.id });
-      },
     };
   };
 
@@ -601,7 +571,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           <DetailPanel
             node={allNodes.find((n) => n.id === selectedId) ?? null}
             onClose={() => setSelectedId(null)}
-            armed={armed === selectedId}
+            unlockCmd={unlockCmd}
             unlock={(() => {
               const n = allNodes.find((x) => x.id === selectedId);
               return n ? unlockHandlersFor(n) : null;
@@ -682,12 +652,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
                   onToggleExpand={() =>
                     setExpandedId((current) => (current === n.id ? null : n.id))
                   }
-                  armed={armed === n.id}
-                  onArm={u.onArm}
-                  onConfirm={u.onConfirm}
+                  unlockCmd={unlockCmd}
                   canUnlock={u.canUnlock}
                   canAfford={u.canAfford}
-                  isPending={u.isPending}
                   affordTooltip={u.affordTooltip}
                 />
               );
@@ -841,23 +808,24 @@ interface UnlockHandlers {
   isResearchable: boolean;
   canAfford: boolean;
   canUnlock: boolean;
-  isPending: boolean;
   affordTooltip?: string;
-  onArm: () => void;
-  onConfirm: () => void;
 }
 
 interface DetailPanelProps {
   node: TechNode | null;
   onClose: () => void;
-  armed: boolean;
+  /**
+   * The shared unlock handle. The control's own `CommandButton` holds its arm
+   * and in-flight state, so no armed-id or pending-id travels down here.
+   */
+  unlockCmd: CommandButtonHandle;
   unlock: UnlockHandlers | null;
 }
 
 function DetailPanel({
   node,
   onClose,
-  armed,
+  unlockCmd,
   unlock,
 }: Readonly<DetailPanelProps>) {
   if (!node) return null;
@@ -921,25 +889,22 @@ function DetailPanel({
       )}
       {unlock?.isResearchable && (
         <UnlockRow>
-          {unlock.isPending ? (
-            <PendingBtn type="button" disabled aria-busy="true">
-              Unlocking...
-            </PendingBtn>
-          ) : armed ? (
-            <ConfirmBtn type="button" onClick={unlock.onConfirm}>
-              Confirm unlock: {node.scienceCost}
-              <Unit>science</Unit>
-            </ConfirmBtn>
-          ) : (
-            <ArmBtn
-              type="button"
-              onClick={unlock.onArm}
-              disabled={!unlock.canUnlock}
-              title={unlock.affordTooltip}
-            >
-              Unlock
-            </ArmBtn>
-          )}
+          <CommandButton
+            handle={unlockCmd}
+            args={{ techId: node.id }}
+            commandLabel={`Unlock ${node.title}`}
+            size="sm"
+            label="Unlock"
+            confirmLabel={
+              <>
+                Confirm unlock: {node.scienceCost}
+                <Unit>science</Unit>
+              </>
+            }
+            pendingLabel="Unlocking..."
+            disabled={!unlock.canUnlock}
+            title={unlock.affordTooltip}
+          />
         </UnlockRow>
       )}
     </Detail>
@@ -953,12 +918,10 @@ interface NodeRowProps {
   display: DisplayState;
   expanded: boolean;
   onToggleExpand: () => void;
-  armed: boolean;
-  onArm: () => void;
-  onConfirm: () => void;
+  /** See `DetailPanelProps.unlockCmd`. */
+  unlockCmd: CommandButtonHandle;
   canUnlock: boolean;
   canAfford: boolean;
-  isPending: boolean;
   affordTooltip?: string;
 }
 
@@ -967,12 +930,9 @@ function NodeRow({
   display,
   expanded,
   onToggleExpand,
-  armed,
-  onArm,
-  onConfirm,
+  unlockCmd,
   canUnlock,
   canAfford,
-  isPending,
   affordTooltip,
 }: Readonly<NodeRowProps>) {
   const stateBadgeTone =
@@ -1054,25 +1014,22 @@ function NodeRow({
           )}
           {display === "researchable" && (
             <UnlockRow>
-              {isPending ? (
-                <PendingBtn type="button" disabled aria-busy="true">
-                  Unlocking...
-                </PendingBtn>
-              ) : armed ? (
-                <ConfirmBtn type="button" onClick={onConfirm}>
-                  Confirm unlock: {node.scienceCost}
-                  <Unit>science</Unit>
-                </ConfirmBtn>
-              ) : (
-                <ArmBtn
-                  type="button"
-                  onClick={onArm}
-                  disabled={!canUnlock}
-                  title={affordTooltip}
-                >
-                  Unlock
-                </ArmBtn>
-              )}
+              <CommandButton
+                handle={unlockCmd}
+                args={{ techId: node.id }}
+                commandLabel={`Unlock ${node.title}`}
+                size="sm"
+                label="Unlock"
+                confirmLabel={
+                  <>
+                    Confirm unlock: {node.scienceCost}
+                    <Unit>science</Unit>
+                  </>
+                }
+                pendingLabel="Unlocking..."
+                disabled={!canUnlock}
+                title={affordTooltip}
+              />
             </UnlockRow>
           )}
         </NodeBody>
@@ -1385,72 +1342,6 @@ const PartPurchased = styled.span`
 const UnlockRow = styled.div`
   display: flex;
   justify-content: flex-end;
-`;
-
-const armButtonBase = `
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: var(--space-4) var(--space-12);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  font-family: inherit;
-  border: 1px solid var(--color-surface-raised);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-6);
-  justify-content: center;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
-const ArmBtn = styled.button`
-  ${armButtonBase}
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
-  border-color: transparent;
-
-  &:hover:not(:disabled) {
-    filter: brightness(1.1);
-  }
-`;
-
-const ConfirmBtn = styled.button`
-  ${armButtonBase}
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
-  border-color: transparent;
-  /* The animation property must live inside the same media guard as the
-     keyframes: the bare property outside the guard fires for reduced-motion
-     users (CLAUDE.md a11y rule). 1s stays literal, it is an attention pulse
-     rather than a UI transition. */
-  @media (prefers-reduced-motion: no-preference) {
-    animation: techPulse 1s var(--ease-emphasis) infinite;
-    @keyframes techPulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.6;
-      }
-    }
-  }
-`;
-
-const PendingBtn = styled.button`
-  ${armButtonBase}
-  background: var(--color-surface-raised);
-  color: var(--color-text-muted);
-  border-color: transparent;
 `;
 
 const Empty = styled.div`

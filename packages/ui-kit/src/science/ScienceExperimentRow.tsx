@@ -1,10 +1,11 @@
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
-import { useEffect, useState } from "react";
-import { ActionButton } from "../ActionButton";
 import { Badge } from "../Badge";
+import {
+  CommandButton,
+  type CommandButtonHandle,
+} from "../CommandButton/CommandButton";
 import { Inline } from "../Inline";
 import { Row, RowName } from "../Row";
-import { Spinner } from "../Spinner";
 
 /**
  * The row's data contract. Presentational and already-normalised (plain
@@ -34,60 +35,40 @@ export type WireInstrument = TopicPayload<"science.instruments">[number];
 export interface ScienceExperimentRowProps {
   /** The instrument this row renders. */
   instrument: ScienceInstrument;
-  /** Called with `instrument.partId` when the operator confirms Deploy. */
-  onDeploy?: (partId: string) => void;
   /**
-   * Called with `instrument.partId` after the arm→confirm handshake; never
-   * fired directly off a bare click.
+   * The deploy command. Omit for a READ-ONLY listing: the control is then not
+   * rendered at all, rather than rendered inert. It used to be an optional
+   * callback, and a caller that passed none (the SCANsat science dropdown) got
+   * a Deploy button that armed, spun for five seconds and did nothing, which
+   * is the same lie about a command landing that this row's pending state
+   * exists to avoid telling.
    */
-  onTransmit?: (partId: string) => void;
+  deployCmd?: CommandButtonHandle;
+  /** The transmit command. Omit for a read-only listing; see `deployCmd`. */
+  transmitCmd?: CommandButtonHandle;
 }
 
-const ARM_TIMEOUT_MS = 4000;
-
 /**
- * A single science-instrument row: name, state badges, and the
- * Deploy/Transmit action cluster. Extracted verbatim from ScienceOfficer's
- * per-instrument `<Row>` + `InstrumentActions`: same arm→confirm→pending
- * behaviour, same badge tones, now composed entirely from kit primitives.
+ * A single science-instrument row: name, state badges, and the Deploy/Transmit
+ * action cluster.
  *
  * Data/framework-free by design (§1 export-safety boundary): this component
- * never dispatches a command or reads telemetry itself. The arm/pending
- * control state is presentational UI state and stays local; the actual
- * command dispatch is the caller's job via `onDeploy`/`onTransmit`.
+ * reads no telemetry. It does now DISPATCH, through the structural
+ * `CommandButtonHandle` the caller hands it, which is a plain object and no
+ * more of a framework edge than the callback it replaced. What that buys is the
+ * shared command lifecycle: arm, in-flight and refused all behave here exactly
+ * as they do on every other command control.
+ *
+ * The pending state used to be reconciled against `deployed`/`hasData`
+ * flipping, with a 5s timeout behind it. That predicate is per-command and
+ * cannot be shared; the dispatch promise settles for any command, so it is what
+ * clears the control now.
  */
 export function ScienceExperimentRow({
   instrument,
-  onDeploy,
-  onTransmit,
+  deployCmd,
+  transmitCmd,
 }: Readonly<ScienceExperimentRowProps>) {
-  const [armed, setArmed] = useState(false);
-  const [pending, setPending] = useState<"deploy" | "transmit" | null>(null);
-
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  // Clear the pending state once telemetry reports the new instrument state,
-  // `deployed`/`hasData` transitions are the success signal. Fall back to
-  // a 5s safety timeout so an action that never lands doesn't leave the
-  // button forever-busy.
-  useEffect(() => {
-    if (pending === null) return;
-    if (pending === "deploy" && (instrument.deployed || instrument.hasData)) {
-      setPending(null);
-      return;
-    }
-    if (pending === "transmit" && !instrument.hasData) {
-      setPending(null);
-      return;
-    }
-    const id = setTimeout(() => setPending(null), 5_000);
-    return () => clearTimeout(id);
-  }, [pending, instrument.deployed, instrument.hasData]);
-
   return (
     <Row>
       <RowName>{instrument.partTitle}</RowName>
@@ -102,53 +83,27 @@ export function ScienceExperimentRow({
           already tells the operator why nothing's available. */}
       {!instrument.inoperable && (
         <Inline inset>
-          {!instrument.deployed && !instrument.hasData && (
-            <ActionButton
-              type="button"
-              disabled={pending === "deploy"}
-              aria-busy={pending === "deploy"}
-              onClick={() => {
-                if (pending !== null) return;
-                setPending("deploy");
-                onDeploy?.(instrument.partId);
-              }}
-            >
-              {pending === "deploy" ? (
-                <>
-                  <Spinner size={10} /> Deploying...
-                </>
-              ) : (
-                "Deploy"
-              )}
-            </ActionButton>
+          {!instrument.deployed && !instrument.hasData && deployCmd && (
+            <CommandButton
+              size="sm"
+              handle={deployCmd}
+              args={{ partId: instrument.partId }}
+              commandLabel={`Deploy ${instrument.partTitle}`}
+              label="Deploy"
+              pendingLabel="Deploying..."
+            />
           )}
-          {instrument.hasData &&
-            (armed ? (
-              <ActionButton
-                type="button"
-                tone="go"
-                disabled={pending === "transmit"}
-                aria-busy={pending === "transmit"}
-                onClick={() => {
-                  if (pending !== null) return;
-                  setArmed(false);
-                  setPending("transmit");
-                  onTransmit?.(instrument.partId);
-                }}
-              >
-                {pending === "transmit" ? (
-                  <>
-                    <Spinner size={10} /> Transmitting...
-                  </>
-                ) : (
-                  "Confirm transmit"
-                )}
-              </ActionButton>
-            ) : (
-              <ActionButton type="button" onClick={() => setArmed(true)}>
-                Transmit
-              </ActionButton>
-            ))}
+          {instrument.hasData && transmitCmd && (
+            <CommandButton
+              size="sm"
+              handle={transmitCmd}
+              args={{ partId: instrument.partId }}
+              commandLabel={`Transmit ${instrument.partTitle}`}
+              label="Transmit"
+              confirmLabel="Confirm transmit"
+              pendingLabel="Transmitting..."
+            />
+          )}
         </Inline>
       )}
     </Row>
