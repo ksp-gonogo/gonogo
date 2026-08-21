@@ -19,6 +19,8 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  type OrbitTrajectory,
+  useOrbitTrajectory,
   useStream,
   useViewUt,
   type VesselManeuverLegacyState,
@@ -35,6 +37,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
+import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
 import {
   cameraTransform,
   fitCamera,
@@ -437,6 +440,25 @@ function MapViewComponent({
   const speed = flight?.surfaceSpeed?.magnitude;
   const vSpeed = flight?.verticalSpeed;
   const orbitPatches = vesselState?.orbitPatches;
+  // The patch chain is the provider's own, reshaped off `vessel.orbit.patches`,
+  // so projecting it is not invention. What a patch does NOT carry is a shape:
+  // the statement covering it is the `trajectoryKind` on the horizon riding the
+  // same `vessel.orbit` sample the chain came off, so that is what decides
+  // whether a Kepler solve is the right way to sample it.
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbitSample =
+    orbitReading.state === "observed"
+      ? orbitReading.value
+      : orbitReading.state === "reckonable"
+        ? orbitReading.reckoned.value
+        : undefined;
+  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbitSample);
+  const trajectoryWithheld =
+    trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
+  // Whether there was a track to refuse. A refusal caption on a widget still
+  // waiting for its first elements would report a decision nobody had asked
+  // for, and read as a fault while the stream is simply cold.
+  const hasPatchChain = (orbitPatches?.length ?? 0) > 0;
   const maneuverNodes = useStream<VesselManeuverLegacyState>(
     "vessel.maneuver.legacy",
   )?.nodes;
@@ -853,6 +875,14 @@ function MapViewComponent({
   // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket; see comment above
   const predictionSegments = useMemo<TrackSample[][]>(() => {
     if (!predictionEnabled) return [];
+    // Only on the conic answer. `predictGroundTrack` solves Kepler per step and
+    // will not run past a patch's own `endUT`, so the REACH half was always
+    // honoured; shape was not asked at all, and an integrating provider got a
+    // route laid over real terrain that the craft will not fly. There is no arc
+    // arm to fall back to: the seam's sampled path is in the orbit's own plane
+    // and a ground track needs lat/lon, which nothing on the wire carries for
+    // an integrated path. Saying so beats drawing a two-body guess.
+    if (trajectory?.shape !== "conic") return [];
     if (
       !orbitPatches ||
       orbitPatches.length === 0 ||
@@ -884,7 +914,14 @@ function MapViewComponent({
       10,
     );
     return splitOnLongitudeWrap(samples);
-  }, [predictionEnabled, orbitPatches, targetBodyId, body, utBucket]);
+  }, [
+    predictionEnabled,
+    orbitPatches,
+    trajectory,
+    targetBodyId,
+    body,
+    utBucket,
+  ]);
 
   // Planned maneuvers: each node's `orbitPatches` is the post-burn trajectory.
   // We calibrate from the current orbit patches (they contain ref.ut) and
@@ -1312,7 +1349,15 @@ function MapViewComponent({
               <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
               <OverlayCanvas ref={overlayRef} />
               <PersistentDataCanvas ref={persistentDataRef} />
-              <PredictionCanvas ref={predictionRef} />
+              {/* The sampled-segment count, on the layer that draws it. A
+                  canvas has no inspectable content, so without this the only
+                  observable difference between a drawn track and a refused one
+                  is pixels nothing can read, and a gate whose effect cannot be
+                  seen reports success either way. */}
+              <PredictionCanvas
+                ref={predictionRef}
+                data-prediction-segments={predictionSegments.length}
+              />
               <DataCanvas ref={dataRef} />
               {(lat === undefined || lon === undefined) && (
                 <NoSignal>
@@ -1352,6 +1397,16 @@ function MapViewComponent({
           </MapOuter>
         </MapFrame>
       </MapBody>
+
+      {/* Under the map rather than over it: the terrain, the base layers and the
+          craft's own marker are all still correct, and only the forward track is
+          missing, so covering the map would overstate what was refused. */}
+      {trajectoryWithheld && predictionEnabled && hasPatchChain && (
+        <ReadoutCaption role="status">
+          {trajectoryWithheldCopy(trajectoryWithheld).heading}: no predicted
+          ground track
+        </ReadoutCaption>
+      )}
 
       <MapSections>
         <AugmentSlot name="map-view.sections" props={sectionsContext} />
