@@ -303,6 +303,7 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Pilot",
                                 ["experienceLevel"] = 5,
                                 ["rosterStatus"] = "Available",
+                                ["rosterStatusOrdinal"] = 0,
                                 ["courage"] = 0.9,
                                 ["stupidity"] = 0.1,
                                 ["experience"] = 64.0,
@@ -316,6 +317,7 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Engineer",
                                 ["experienceLevel"] = 3,
                                 ["rosterStatus"] = "Assigned",
+                                ["rosterStatusOrdinal"] = 1,
                             },
                             new Dictionary<string, object?>
                             {
@@ -323,6 +325,7 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Scientist",
                                 ["experienceLevel"] = 2,
                                 ["rosterStatus"] = "Missing",
+                                ["rosterStatusOrdinal"] = 3,
                             },
                         },
                     },
@@ -357,6 +360,131 @@ namespace Sitrep.Host.Tests
             // Situation is RAW, not folded: Dead and Missing stay distinct so a
             // client can auto-derive one tab per situation present.
             Assert.Equal("Missing", bob["situation"]);
+
+            // The ordinal rides beside the name, and it is what the client
+            // branches on.
+            Assert.Equal(0, jeb["situationOrdinal"]);
+            Assert.Equal(1, bill["situationOrdinal"]);
+            Assert.Equal(3, bob["situationOrdinal"]);
+            Assert.Equal(false, jeb["isApplicant"]);
+        }
+
+        /// <summary>
+        /// The defect this channel's ordinal exists to end. Whether a kerbal is
+        /// AVAILABLE - which decides whether the client offers to fire them, and
+        /// which crew a mission can draw on - was decided by
+        /// <c>rosterStatus == "Available"</c>. KSP owns that spelling. Rename the
+        /// member and every kerbal in the game reads as unavailable, with the
+        /// reason "whatever KSP now calls being free to fly", and nothing throws.
+        ///
+        /// <para>Here the ordinal says <c>Available</c> and the name is a
+        /// spelling this build has never seen. The kerbal is available.</para>
+        /// </summary>
+        [Fact]
+        public void BuildCrewRosterReadsAvailabilityFromTheOrdinalNotTheName()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Valentina Kerman",
+                                ["rosterStatus"] = "Ready",
+                                ["rosterStatusOrdinal"] = 0,
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var val = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal(true, val["available"]);
+            Assert.Equal("", val["unavailableReason"]);
+            Assert.Equal(0, val["situationOrdinal"]);
+            // The label is still the game's own word for it, because a label is
+            // all it is.
+            Assert.Equal("Ready", val["situation"]);
+        }
+
+        /// <summary>
+        /// A status this build has never heard of - a mod appending to
+        /// <c>RosterStatus</c>, RP-1's "Retired" being the standing example - is
+        /// an UNKNOWN state. Unknown is not available, because we cannot promise
+        /// the kerbal can fly; it is also not folded onto Dead or Missing, because
+        /// we do not know that either. The ordinal reaches the client intact so
+        /// the client can say so.
+        /// </summary>
+        [Fact]
+        public void BuildCrewRosterCarriesAnUnrecognisedStatusThroughRatherThanGuessing()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Gene Kerman",
+                                ["rosterStatus"] = "Retired",
+                                ["rosterStatusOrdinal"] = 4,
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var gene = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal(false, gene["available"]);
+            Assert.Equal(4, gene["situationOrdinal"]);
+            Assert.Equal("Retired", gene["situation"]);
+            Assert.Equal("Retired", gene["unavailableReason"]);
+        }
+
+        /// <summary>
+        /// An applicant has no <c>RosterStatus</c> at all: it is not in the
+        /// roster. So the ordinal is null, which is a fact rather than an
+        /// absence, and <c>isApplicant</c> carries the distinction so no client
+        /// has to recognise the <c>"Applicant"</c> spelling to find it.
+        /// </summary>
+        [Fact]
+        public void BuildApplicantsCarriesNoRosterOrdinalAndSaysWhy()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["crewRoster"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Dilsby Kerman",
+                                ["rosterStatus"] = "Available",
+                                ["rosterStatusOrdinal"] = 0,
+                                ["isApplicant"] = true,
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var dilsby = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("Applicant", dilsby["situation"]);
+            Assert.Null(dilsby["situationOrdinal"]);
+            Assert.Equal(true, dilsby["isApplicant"]);
+            Assert.Equal(true, dilsby["available"]);
         }
 
         [Fact]
@@ -396,6 +524,7 @@ namespace Sitrep.Host.Tests
                                 ["trait"] = "Pilot",
                                 ["experienceLevel"] = 4,
                                 ["rosterStatus"] = "Available",
+                                ["rosterStatusOrdinal"] = 0,
                             },
                         },
                     },
@@ -702,6 +831,7 @@ namespace Sitrep.Host.Tests
                                     ["trait"] = "Scientist",
                                     ["experienceLevel"] = 0,
                                     ["rosterStatus"] = "Available",
+                                    ["rosterStatusOrdinal"] = 0,
                                     ["isApplicant"] = true,
                                 },
                                 new Dictionary<string, object?>
@@ -710,6 +840,7 @@ namespace Sitrep.Host.Tests
                                     ["trait"] = "Pilot",
                                     ["experienceLevel"] = 0,
                                     ["rosterStatus"] = "Available",
+                                    ["rosterStatusOrdinal"] = 0,
                                     ["isApplicant"] = true,
                                 },
                             },
@@ -796,6 +927,7 @@ namespace Sitrep.Host.Tests
                                     ["trait"] = "Pilot",
                                     ["experienceLevel"] = 0,
                                     ["rosterStatus"] = "Available",
+                                    ["rosterStatusOrdinal"] = 0,
                                     ["isApplicant"] = true,
                                 },
                             },

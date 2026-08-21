@@ -948,6 +948,8 @@ export interface CrewRosterEntry
 	available?: boolean;
 	unavailableReason?: string;
 	situation?: string;
+	situationOrdinal?: KspRosterStatus;
+	isApplicant?: boolean;
 	courage?: Value<"ratio">;
 	stupidity?: Value<"ratio">;
 	experience?: Value<"1">;

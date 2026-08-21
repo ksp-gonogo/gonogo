@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { KspRosterStatus, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   NULL_DISPLAY,
@@ -35,11 +35,15 @@ export interface KerbalStatFields {
   careerFlights: number;
   available: boolean;
   unavailableReason: string;
-  /** Raw roster standing (`Available`/`Assigned`/`Dead`/`Missing`, plus any
-   *  mod value). Drives the unavailable badge's severity: `Dead`/`Missing`
-   *  are genuinely alarming, everything else (an applicant, or a kerbal
-   *  `Assigned` to a mission) is a normal state and never renders critical. */
+  /** Roster standing as a DISPLAY LABEL: KSP's own word for it, plus
+   *  `Applicant` for a candidate and whatever a mod calls a status of its own.
+   *  Shown, never compared. {@link situationOrdinal} is the field that decides
+   *  anything. */
   situation: string;
+  /** KSP's `RosterStatus` ORDINAL (`KspRosterStatus`), driving the unavailable
+   *  badge's severity. `null` for an applicant, which has no roster standing at
+   *  all, and `undefined` for a caller that carries no roster status. */
+  situationOrdinal?: number | null;
   currentVesselName: string;
   /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(…, 0)`),
    *  so presence alone can't gate the chips: a caller must opt in with
@@ -64,14 +68,24 @@ export interface KerbalStatFields {
  *  redundant 100%. */
 const MAX_EXPERIENCE_LEVEL = 5;
 
-/** Severity for the unavailable badge. `Dead`/`Missing` are the only
- *  situations worth alarming an operator over; `Assigned` ("on mission") is
- *  the expected, healthy state for a crewed vessel, and an unrecognised
- *  situation (a mod value this list has never heard of) defaults to the same
- *  neutral read rather than crying wolf. Undefined renders Badge's
- *  decorative grey, the same "just busy" chip the career-flights count uses. */
-function unavailableSeverity(situation: string): Severity | undefined {
-  return situation === "Dead" || situation === "Missing"
+/**
+ * Severity for the unavailable badge. `Dead`/`Missing` are the only situations
+ * worth alarming an operator over; `Assigned` ("on mission") is the expected,
+ * healthy state for a crewed vessel, and an unrecognised situation (a mod value
+ * this list has never heard of, or an applicant with no roster standing at all)
+ * stays neutral rather than crying wolf. Undefined renders Badge's decorative
+ * grey, the same "just busy" chip the career-flights count uses.
+ *
+ * Reads the ORDINAL. This used to compare the situation NAME against `"Dead"`
+ * and `"Missing"`, which is KSP's spelling to change: rename either member and a
+ * dead kerbal's badge quietly goes grey. Failing toward "nothing to see" is the
+ * worst available direction for the one badge whose whole job is to be alarming.
+ */
+function unavailableSeverity(
+  situationOrdinal: number | null | undefined,
+): Severity | undefined {
+  return situationOrdinal === KspRosterStatus.Dead ||
+    situationOrdinal === KspRosterStatus.Missing
     ? "critical"
     : undefined;
 }
@@ -190,7 +204,7 @@ export function KerbalStats({
         )}
         {!kerbal.available && (
           <Badge
-            severity={unavailableSeverity(kerbal.situation)}
+            severity={unavailableSeverity(kerbal.situationOrdinal)}
             size="sm"
             title={
               kerbal.currentVesselName

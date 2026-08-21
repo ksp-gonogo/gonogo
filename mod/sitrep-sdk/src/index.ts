@@ -49,6 +49,14 @@ export {
   DEFAULT_SITREP_CARRIED_TOPICS,
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
 } from "./default-carried-topics";
+// Ordinal->name tables and closed name unions for the contract's enums. On the
+// root barrel rather than in the spine because an Uplink needs them as much as
+// the app does: KSP's ResourceFlowMode reaches the Kerbalism Uplink and its
+// PartCategories reach ShipMap, and an Uplink that had to transcribe the member
+// set beside its own switch is back to the defect these tables exist to end.
+// Derived from the generated contract and nothing else, so they carry no spine
+// weight into the SDK.
+export { namesByValue, namesOf } from "./enum-names";
 export * from "./envelope";
 // The discrete-occurrence timeline. It lives here rather than in the spine
 // because an Uplink that PRODUCES an event topic needs the same primitive the
@@ -126,6 +134,7 @@ export type {
   SeriesRange,
   UnitHint,
 } from "./flight/types";
+export * from "./ksp-enum-names";
 // The curated author-facing barrel (registration + hook shims + author types).
 // PROPOSAL surface pending operator sign-off (design D-D) before first external
 // publish. See ./api for why these are host-injected shims, not core re-exports.

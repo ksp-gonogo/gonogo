@@ -305,9 +305,11 @@
       "experience": "1",
       "experienceLevel": "count",
       "experienceLevelDelta": "ratio",
+      "isApplicant": "flag",
       "name": "text",
       "roleDescription": "text",
       "situation": "text",
+      "situationOrdinal": "enum",
       "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"
@@ -1394,9 +1396,11 @@
       "experience": "1",
       "experienceLevel": "count",
       "experienceLevelDelta": "ratio",
+      "isApplicant": "flag",
       "name": "text",
       "roleDescription": "text",
       "situation": "text",
+      "situationOrdinal": "enum",
       "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"

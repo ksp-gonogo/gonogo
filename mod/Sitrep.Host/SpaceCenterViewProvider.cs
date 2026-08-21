@@ -239,6 +239,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> BuildCrewEntryPayload(IDictionary<string, object?> raw)
         {
             var status = SnapshotDict.GetString(raw, "rosterStatus");
+            var ordinal = SnapshotDict.GetInt(raw, "rosterStatusOrdinal");
             var isApplicant = SnapshotDict.GetBool(raw, "isApplicant") == true;
 
             return new Dictionary<string, object?>
@@ -246,9 +247,13 @@ namespace Sitrep.Host
                 ["name"] = SnapshotDict.GetString(raw, "name"),
                 ["trait"] = SnapshotDict.GetString(raw, "trait"),
                 ["experienceLevel"] = SnapshotDict.GetInt(raw, "experienceLevel"),
-                ["available"] = isApplicant || status == "Available",
-                ["unavailableReason"] = isApplicant ? "" : MapUnavailableReason(status),
+                ["available"] = isApplicant || ordinal == (int)KspRosterStatus.Available,
+                ["unavailableReason"] = isApplicant ? "" : MapUnavailableReason(ordinal, status),
                 ["situation"] = isApplicant ? "Applicant" : status,
+                // An applicant is not in the roster, so it has no RosterStatus
+                // to report - a real distinction, not a missing value.
+                ["situationOrdinal"] = isApplicant ? null : ordinal,
+                ["isApplicant"] = isApplicant,
                 ["courage"] = SnapshotDict.GetDouble(raw, "courage"),
                 ["stupidity"] = SnapshotDict.GetDouble(raw, "stupidity"),
                 ["experience"] = SnapshotDict.GetDouble(raw, "experience"),
@@ -344,22 +349,37 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Folds a raw <c>ProtoCrewMember.RosterStatus</c> enum name onto the
-        /// human reason a kerbal can't fly. <c>Available</c> → empty string (the
-        /// kerbal IS free), <c>Assigned</c> → "On mission", and every other
-        /// status (<c>Dead</c>/<c>Missing</c>, or an unrecognised value) passes
-        /// through as its own name. Kept internal-static so the provider test can
-        /// assert the mapping without a KSP reference.
+        /// Folds a <c>ProtoCrewMember.RosterStatus</c> onto the human reason a
+        /// kerbal can't fly. <c>Available</c> → empty string (the kerbal IS
+        /// free), <c>Assigned</c> → "On mission", and anything else passes
+        /// through as its own name, which is the right answer for
+        /// <c>Dead</c>/<c>Missing</c> and the only honest one for a status this
+        /// build has never heard of.
+        ///
+        /// <para>Branches on <paramref name="ordinal"/>, not on
+        /// <paramref name="statusName"/>. The two arms that mean something here
+        /// used to be string comparisons, so a renamed member would have made
+        /// every kerbal read as unavailable-for-reason-"Available" while an
+        /// assigned one lost its "On mission" wording. The name is still taken,
+        /// because the pass-through arm is a LABEL and the game's own spelling is
+        /// the best label available.</para>
+        ///
+        /// <para>Kept internal-static so the provider test can assert the
+        /// mapping without a KSP reference.</para>
         /// </summary>
-        internal static string MapUnavailableReason(string? status)
+        internal static string MapUnavailableReason(int? ordinal, string? statusName)
         {
-            return status switch
+            if (ordinal == (int)KspRosterStatus.Available)
             {
-                "Available" => "",
-                "Assigned" => "On mission",
-                null => "",
-                _ => status,
-            };
+                return "";
+            }
+
+            if (ordinal == (int)KspRosterStatus.Assigned)
+            {
+                return "On mission";
+            }
+
+            return statusName ?? "";
         }
 
         /// <summary>

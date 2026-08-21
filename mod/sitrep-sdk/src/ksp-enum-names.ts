@@ -6,7 +6,7 @@ import {
   KspResourceFlowMode,
   KspRosterStatus,
   KspSpaceCenterFacility,
-} from "../__generated__/contract";
+} from "./__generated__/contract";
 import { namesByValue } from "./enum-names";
 
 /**

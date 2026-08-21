@@ -66,6 +66,8 @@ function emitCrewRoster(
     trait: string;
     experienceLevel: number;
     situation: string;
+    situationOrdinal?: number;
+    isApplicant?: boolean;
     available?: boolean;
     unavailableReason?: string;
     courage?: number;
@@ -134,6 +136,7 @@ const CREW_ROSTER = [
     trait: "Engineer",
     experienceLevel: 2,
     situation: "Available",
+    situationOrdinal: 0,
     available: true,
     unavailableReason: "",
     courage: 0.5,
@@ -149,6 +152,7 @@ const CREW_ROSTER = [
     trait: "Pilot",
     experienceLevel: 3,
     situation: "Assigned",
+    situationOrdinal: 1,
     available: false,
     unavailableReason: "On mission",
     courage: 0.9,
@@ -160,6 +164,7 @@ const CREW_ROSTER = [
     trait: "Pilot",
     experienceLevel: 1,
     situation: "Dead",
+    situationOrdinal: 2,
     available: false,
     unavailableReason: "Dead",
     courage: 0.6,
@@ -171,6 +176,7 @@ const CREW_ROSTER = [
     trait: "Scientist",
     experienceLevel: 5,
     situation: "Missing",
+    situationOrdinal: 3,
     available: false,
     unavailableReason: "Missing",
     courage: 0.7,
@@ -182,6 +188,7 @@ const CREW_ROSTER = [
     trait: "Pilot",
     experienceLevel: 4,
     situation: "Retired",
+    situationOrdinal: 4,
     available: true,
     unavailableReason: "",
     courage: 0.55,
@@ -483,6 +490,82 @@ describe("AstronautComplexComponent", () => {
         screen.queryByRole("button", { name: /^Fire / }),
       ).not.toBeInTheDocument();
     }
+  });
+
+  /**
+   * The two decisions on this panel that used to read a KSP enum's SPELLING.
+   * `RosterStatus` is KSP's to rename, and both failures are silent and in the
+   * wrong direction: the Fire control disappears from every eligible kerbal, and
+   * a dead one's badge goes from critical to decorative grey.
+   *
+   * Both rows below carry a `situation` label this build has never seen, with
+   * the ordinal saying what it actually is. The ordinal wins.
+   */
+  it("takes the Fire control and the critical badge from the ordinal, not the situation name", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: [],
+        activeCrew: 3,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, [
+        {
+          name: "Ludsy Kerman",
+          trait: "Pilot",
+          experienceLevel: 1,
+          // What KSP might rename RosterStatus.Available to.
+          situation: "Ready",
+          situationOrdinal: 0,
+          available: true,
+          unavailableReason: "",
+        },
+        {
+          name: "Sherbald Kerman",
+          trait: "Engineer",
+          experienceLevel: 1,
+          // And RosterStatus.Dead.
+          situation: "Deceased",
+          situationOrdinal: 2,
+          available: false,
+          unavailableReason: "Deceased",
+        },
+        // The neutral yardstick the critical badge has to differ from. Under
+        // the old name comparison "Deceased" matched neither "Dead" nor
+        // "Missing", so it read neutral and these two classes were equal.
+        {
+          name: "Jeb Kerman",
+          trait: "Pilot",
+          experienceLevel: 3,
+          situation: "Assigned",
+          situationOrdinal: 1,
+          available: false,
+          unavailableReason: "On mission",
+        },
+      ]);
+    });
+    await user.click(await screen.findByRole("tab", { name: "Active" }));
+
+    // The tab LABELS are the unrecognised names, because a label is a label.
+    await user.click(await screen.findByRole("tab", { name: "Ready (1)" }));
+    await screen.findByText("Ludsy Kerman");
+    expect(
+      await screen.findByRole("button", { name: /^Fire / }),
+    ).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("tab", { name: "Deceased (1)" }));
+    await screen.findByText("Sherbald Kerman");
+    expect(
+      screen.queryByRole("button", { name: /^Fire / }),
+    ).not.toBeInTheDocument();
+    const deceasedClass = (await screen.findByText("Deceased")).className;
+
+    await user.click(await screen.findByRole("tab", { name: "Assigned (1)" }));
+    const onMissionClass = (await screen.findByText("On mission")).className;
+    expect(deceasedClass).not.toBe(onMissionClass);
   });
 
   it("badges an Assigned kerbal's 'On mission' as a neutral chip, and Dead/Missing as critical", async () => {

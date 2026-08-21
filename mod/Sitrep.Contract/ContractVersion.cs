@@ -1080,7 +1080,46 @@ namespace Sitrep.Contract
         /// permission: the sample is up to half a second old and the dispatch
         /// re-evaluates the same gates against live state, so a stale Pass can
         /// never let a command through.</para>
+        ///
+        /// <para><b>Bumped 21 -&gt; 22: KSP's own enums cross the wire as
+        /// ordinals, not only as names.</b> A new <c>KspEnums.cs</c> declares
+        /// seven mirrors of KSP's enums (<see cref="KspRosterStatus"/>,
+        /// <see cref="KspParameterState"/>, <see cref="KspPartCategory"/>,
+        /// <see cref="KspActionGroup"/>, <see cref="KspEditorFacility"/>,
+        /// <see cref="KspSpaceCenterFacility"/>,
+        /// <see cref="KspResourceFlowMode"/>), and the payloads carrying those
+        /// enums gain an ordinal field beside the name they already carried.
+        /// Additive throughout: every existing name field keeps its type and its
+        /// value, so a consumer that does not read the new fields behaves exactly
+        /// as it did.</para>
+        ///
+        /// <para>Every other enum in this contract is ours, and its ordinal has
+        /// crossed the wire since it existed. KSP's did not: they crossed as a
+        /// bare <c>.ToString()</c>, which left a consumer no way to act on one
+        /// except by comparing its spelling. That is the defect class the sweep
+        /// immediately before this contract version fixed eight instances of,
+        /// two of them live player-facing bugs (a picker that could dispatch a
+        /// real staging command, a navball that could send the wrong SAS
+        /// ordinal). It fails silently and in the "everything is fine"
+        /// direction, at the moment somebody appends a member.</para>
+        ///
+        /// <para>The name fields STAY, and stay non-deprecated: an enum member's
+        /// own spelling is the best display label available, and it is the only
+        /// thing that can name a value this build has never heard of. What
+        /// changes is that a name is now a label and an ordinal is now the thing
+        /// to branch on. <c>ActionBinding</c> is the one entry whose new field is
+        /// not a single ordinal: <c>KSPActionGroup</c> is a <c>[Flags]</c> enum,
+        /// so it gains the whole bitmask as one integer, which cannot lose a
+        /// group the way intersecting against a hand-written table of groups
+        /// could.</para>
+        ///
+        /// <para>KSP owns these numberings, so a mirror is a transcription of
+        /// somebody else's declaration and drifts the moment they append to it.
+        /// <c>Gonogo.KSP.Tests/KspEnumMirrorTests.cs</c> reflects over the real
+        /// enums in <c>Assembly-CSharp.dll</c> and fails on a member, name or
+        /// value that disagrees. Without it these seven types would be the same
+        /// unguarded transcription the ordinals were introduced to replace.</para>
         /// </remarks>
-        public const int Minor = 21;
+        public const int Minor = 22;
     }
 }

@@ -5,9 +5,9 @@ import {
   Situation,
   TargetKind,
 } from "../__generated__/contract";
+import { namesOf } from "../enum-names";
 import type { Value } from "../value";
 import type { ReckoningBasis } from "./client-reading";
-import { namesOf } from "./enum-names";
 import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
 import {

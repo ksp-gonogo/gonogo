@@ -177,6 +177,37 @@ public class CrewRosterEntry
     [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 
+    /// <summary>
+    /// <see cref="Situation"/>'s KSP ORDINAL: <c>(int)ProtoCrewMember.
+    /// rosterStatus</c>, typed to <see cref="KspRosterStatus"/>, whose members
+    /// mirror KSP's own numbering.
+    ///
+    /// <para>This is the field to BRANCH on. <see cref="Situation"/> is a
+    /// display label and nothing more: it is the enum's spelling, so a
+    /// comparison against it is a comparison against a string KSP is free to
+    /// change, and the failure is silent and in the "everything is fine"
+    /// direction. Before this field existed, whether a kerbal could be FIRED
+    /// was decided by <c>situation === "Available"</c>.</para>
+    ///
+    /// <para><c>null</c> for an APPLICANT, and that is a real distinction
+    /// rather than a missing value: an applicant is not in the roster, so it
+    /// has no <c>RosterStatus</c> at all and <see cref="Situation"/> carries
+    /// our own <c>"Applicant"</c> sentinel instead. Use
+    /// <see cref="IsApplicant"/> to tell the two apart rather than comparing
+    /// that sentinel. Also <c>null</c> when the capture carried no status.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspRosterStatus? SituationOrdinal { get; set; }
+
+    /// <summary>
+    /// Whether this entry is a hireable candidate
+    /// (<c>ProtoCrewMember.type == KerbalType.Applicant</c>) rather than owned
+    /// crew. Carried so a client never has to recognise the <c>"Applicant"</c>
+    /// spelling of <see cref="Situation"/> to know which channel it is reading.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? IsApplicant { get; set; }
+
     /// <summary>Courage, 0–1 (<c>ProtoCrewMember.courage</c>).</summary>
     [SitrepUnit(Units.Ratio)]
     public double? Courage { get; set; }

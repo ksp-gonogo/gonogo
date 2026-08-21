@@ -44,6 +44,7 @@ const CREW = [
     trait: "Pilot",
     experienceLevel: 3,
     situation: "Available",
+    situationOrdinal: 0,
     available: true,
   },
 ];

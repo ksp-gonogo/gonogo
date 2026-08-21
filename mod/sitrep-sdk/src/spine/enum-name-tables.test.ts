@@ -11,12 +11,12 @@ import {
   TargetKind,
   TransitionType,
 } from "../__generated__/contract";
-import { namesOf } from "./enum-names";
+import { namesOf } from "../enum-names";
 import {
   actionGroupNames,
   KSP_ENUM_NAME_TABLES,
   KSP_PART_CATEGORY_NAMES,
-} from "./ksp-enum-names";
+} from "../ksp-enum-names";
 import { TRANSITION_TYPE_NAMES } from "./orbit-patches";
 import { HEALTH_STATE_NAMES } from "./uplink-health";
 import { CONTROL_STATE_LEVEL, ENUM_NAME_TABLES } from "./vessel-state";

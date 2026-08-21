@@ -14,8 +14,8 @@
  * in `vessel-state.ts`: not (yet) generated into this package.
  */
 import { TransitionType } from "../__generated__/contract";
+import { namesOf } from "../enum-names";
 import type { Value } from "../value";
-import { namesOf } from "./enum-names";
 import { solveEccentricAnomaly } from "./kepler";
 
 export interface OrbitPatchWirePayload {

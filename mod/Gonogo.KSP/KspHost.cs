@@ -2869,6 +2869,9 @@ namespace Gonogo.KSP
                 ["trait"] = pcm.trait,
                 ["experienceLevel"] = pcm.experienceLevel,
                 ["rosterStatus"] = pcm.rosterStatus.ToString(),
+                // The ordinal is what the client branches on; the name above is
+                // its display label. See Sitrep.Contract/KspEnums.cs.
+                ["rosterStatusOrdinal"] = (int)pcm.rosterStatus,
                 ["isApplicant"] = isApplicant,
                 ["courage"] = (double)pcm.courage,
                 ["stupidity"] = (double)pcm.stupidity,

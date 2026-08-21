@@ -9,7 +9,11 @@ import {
   type Reading,
   useCommand,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  KSP_ROSTER_STATUS_NAMES,
+  KspRosterStatus,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandButton,
   type CommandButtonHandle,
@@ -138,6 +142,9 @@ function applicantStats(a: Applicant): KerbalStatFields {
     // never feeds the severity derivation; kept as the applicant pool's
     // implicit standing rather than left undefined.
     situation: "Applicant",
+    // An applicant is not in the roster, so it has no RosterStatus. Null is
+    // the fact, not a missing read.
+    situationOrdinal: null,
     currentVesselName: "",
     courage: a.courage,
     stupidity: a.stupidity,
@@ -209,7 +216,10 @@ function AstronautComplexComponent(
   usePanelDelay(fireCmd);
 
   const availableCrew = useMemo(
-    () => crewRoster.filter((c) => c.situation === "Available"),
+    () =>
+      crewRoster.filter(
+        (c) => c.situationOrdinal === KspRosterStatus.Available,
+      ),
     [crewRoster],
   );
   const [highlightedFireIndex, setHighlightedFireIndex] = useState(0);
@@ -450,10 +460,13 @@ function ActivePanel({
   highlightedFireIndex: number;
 }) {
   // Defensive, not load-bearing: spaceCenter.crewRoster never actually
-  // carries situation "Applicant" (that value only appears in the
-  // astronautComplex applicant pool), but filtering it out here keeps this
-  // panel correct even if a future producer ever merges the two channels.
-  const active = crew.filter((c) => c.situation !== "Applicant");
+  // carries an applicant (that only appears in the astronautComplex pool),
+  // but filtering them out here keeps this panel correct even if a future
+  // producer ever merges the two channels. Reads the `isApplicant` FLAG rather
+  // than the "Applicant" label, and rather than a null roster ordinal: an
+  // absent ordinal is a field that did not arrive, which is not the same fact
+  // and must not empty the panel.
+  const active = crew.filter((c) => !c.isApplicant);
   if (active.length === 0) {
     return <Empty>No active crew</Empty>;
   }
@@ -466,7 +479,11 @@ function ActivePanel({
     // KerbalRoster.SackAvailable only ever accepts an Available crew member
     // (see FireCrew's mod-side doc comment), so the Fire control renders on
     // this situation's rows alone; Assigned/Dead/Missing never get one.
-    const fireable = situation === "Available";
+    // Read off the rows rather than the tab LABEL: the label is a display
+    // string, and this decides whether a Fire control appears at all.
+    const fireable =
+      members.length > 0 &&
+      members.every((m) => m.situationOrdinal === KspRosterStatus.Available);
     return {
       // The tab set is built dynamically from whatever situations are
       // present, so each id is the raw situation string itself, never the
@@ -596,7 +613,17 @@ interface CrewRosterRow {
   name: string;
   trait: string;
   experienceLevel: number;
+  /** Display label only: KSP's own word for the standing, or `Applicant`.
+   *  Also the Active tab's grouping key, which is legitimate - a tab per
+   *  distinct label is exactly what an operator wants to read. */
   situation: string;
+  /** KSP's `RosterStatus` ordinal, the field every DECISION here reads.
+   *  `null` for an applicant (no roster standing) and also for a producer that
+   *  did not send it, which is why the applicant test below reads
+   *  {@link isApplicant} instead of this. */
+  situationOrdinal: number | null;
+  /** Whether the row is a hireable candidate rather than owned crew. */
+  isApplicant: boolean;
   available: boolean;
   unavailableReason: string;
   courage: number | null;
@@ -621,6 +648,7 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
     available: c.available,
     unavailableReason: c.unavailableReason,
     situation: c.situation,
+    situationOrdinal: c.situationOrdinal,
     currentVesselName: "",
     courage: c.courage,
     stupidity: c.stupidity,
@@ -630,11 +658,17 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
   };
 }
 
-// Dead/Missing/Available/Assigned is the situation set the fetchability audit
-// confirmed `RosterStatus` actually emits; any other value (e.g. a mod's RO/
-// RP-1 "Retired") is a situation this list has never heard of, so it sorts
-// after the known ones, alphabetically, rather than being dropped.
-const KNOWN_SITUATION_ORDER = ["Available", "Assigned", "Dead", "Missing"];
+// The tab order, DERIVED from KSP's own RosterStatus rather than transcribed:
+// a member appended in a future KSP reaches this list with the generated enum.
+// Written out, it was a list of four that would have kept its four. Any label
+// not in it (a mod's RP-1 "Retired", or our own "Applicant") is a situation this
+// build has never heard of, so it sorts after the known ones, alphabetically,
+// rather than being dropped.
+const KNOWN_SITUATION_ORDER: readonly string[] = [
+  ...KSP_ROSTER_STATUS_NAMES.entries(),
+]
+  .sort(([a], [b]) => a - b)
+  .map(([, name]) => name);
 
 function orderSituations(situations: Iterable<string>): string[] {
   const present = new Set(situations);
@@ -684,6 +718,9 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
       trait: typeof e.trait === "string" ? e.trait : "",
       experienceLevel: magnitudeOf(e.experienceLevel as Quantityish) ?? 0,
       situation: typeof e.situation === "string" ? e.situation : "",
+      situationOrdinal:
+        typeof e.situationOrdinal === "number" ? e.situationOrdinal : null,
+      isApplicant: e.isApplicant === true,
       available: e.available === true,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",
