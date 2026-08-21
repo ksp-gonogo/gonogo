@@ -31,6 +31,19 @@ export function setProcessorEvaluationRecorder(fn: () => void): void {
   recordEvaluation = fn;
 }
 
+// The fan-out counterpart, and the number a dashboard actually pays: an
+// evaluation is one `compute` call however many consumers a processor has, a
+// notification is one consumer woken. The two used to be indistinguishable
+// because the fan-out was ungated, so the evaluation budget could not see the
+// churn at all: the evaluations were correct and wanted, and only their
+// audience was wrong.
+let recordNotification: () => void = () => {};
+
+/** Wire the notification-rate PerfBudget recorder (called once per listener told). */
+export function setProcessorNotificationRecorder(fn: () => void): void {
+  recordNotification = fn;
+}
+
 let activeStore: TimelineStore | undefined;
 
 // One shared frame subscription for the whole evaluator (evaluateAllActive
@@ -244,6 +257,83 @@ function isReadingDep(dep: Dep): dep is ReadingDep {
   return typeof dep === "object" && dep !== null && "reading" in dep;
 }
 
+/**
+ * Ceiling on the nodes one comparison may visit. Reaching it answers "not
+ * equal", so an oversized result degrades to exactly the previous behaviour
+ * (notify every frame) rather than spending unbounded time proving a thing it
+ * is about to notify about anyway.
+ */
+const EQUALITY_NODE_BUDGET = 2048;
+
+/**
+ * Structural equality over the shapes a `compute` actually returns: plain
+ * objects, arrays, and primitives, recursively. Anything else (a `Date`, a
+ * `Map`, a class instance, a thunk) is compared by identity, so a processor
+ * returning one keeps today's notify-every-frame behaviour instead of being
+ * silently declared equal on a comparison this does not understand.
+ *
+ * The comparison is on the RESULT rather than on the inputs, which is where
+ * this parts company with `sampleReading`'s input-identity gate one layer over.
+ * Two cases in `processorEvaluator.test.ts` force it: a processor with NO deps
+ * whose answer is a function of `frame.viewUt` (a countdown) has no input to
+ * compare and would freeze forever, and a processor that clamps or buckets a
+ * moving upstream has a moving input and a still answer. Comparing the result
+ * needs no declaration of which inputs a `compute` really reads.
+ */
+function resultsEqual(previous: unknown, next: unknown): boolean {
+  let budget = EQUALITY_NODE_BUDGET;
+
+  function walk(a: unknown, b: unknown): boolean {
+    // Also the NaN case: `Object.is(NaN, NaN)` is true, and a telemetry
+    // derivation that yields NaN twice running has not changed its answer.
+    if (Object.is(a, b)) return true;
+    if (budget-- <= 0) return false;
+    if (
+      typeof a !== "object" ||
+      typeof b !== "object" ||
+      a === null ||
+      b === null
+    ) {
+      return false;
+    }
+
+    const aIsArray = Array.isArray(a);
+    if (aIsArray !== Array.isArray(b)) return false;
+    if (aIsArray) {
+      const aItems = a as unknown[];
+      const bItems = b as unknown[];
+      if (aItems.length !== bItems.length) return false;
+      for (let i = 0; i < aItems.length; i++) {
+        if (!walk(aItems[i], bItems[i])) return false;
+      }
+      return true;
+    }
+
+    // Plain objects only. A class instance can carry meaning in a prototype
+    // getter that own-key enumeration never sees.
+    const aProto = Object.getPrototypeOf(a);
+    if (aProto !== Object.getPrototypeOf(b)) return false;
+    if (aProto !== Object.prototype && aProto !== null) return false;
+
+    const aKeys = Object.keys(a);
+    if (aKeys.length !== Object.keys(b).length) return false;
+    for (const key of aKeys) {
+      if (!Object.hasOwn(b, key)) return false;
+      if (
+        !walk(
+          (a as Record<string, unknown>)[key],
+          (b as Record<string, unknown>)[key],
+        )
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return walk(previous, next);
+}
+
 function evaluate(id: string, token: { generation: number }): void {
   const entry = entryFor(id);
   if (entry.lastFrameGeneration === token.generation) return; // already fresh this frame
@@ -259,9 +349,18 @@ function evaluate(id: string, token: { generation: number }): void {
   });
   recordEvaluation();
   entry.lastFrameGeneration = token.generation;
-  if (!Object.is(entry.value, next)) {
-    entry.value = next;
-    for (const cb of entry.listeners) cb();
+  // Gated on the RESULT, and on equality rather than identity. Evaluation
+  // semantics are untouched (memoised within a frame, re-run across frames);
+  // only the fan-out is gated. The previous result's identity is KEPT when the
+  // new one is equal, which is the load-bearing half: `useProcessor` hands the
+  // value to `useSyncExternalStore`, which re-reads `getSnapshot` outside any
+  // notification and compares with `Object.is`, so a silenced listener over a
+  // fresh identity is still an infinite render loop.
+  if (resultsEqual(entry.value, next)) return;
+  entry.value = next;
+  for (const cb of entry.listeners) {
+    recordNotification();
+    cb();
   }
 }
 
@@ -334,6 +433,7 @@ export function clearProcessorRuntime(): void {
   activeProcessorCount = 0;
   activeStore = undefined;
   recordEvaluation = () => {};
+  recordNotification = () => {};
   subscribeInputTopic = () => () => {};
   hasTopicSubscriber = false;
 }
