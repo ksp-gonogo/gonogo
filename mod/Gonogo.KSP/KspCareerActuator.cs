@@ -33,7 +33,9 @@ namespace Gonogo.KSP
     /// <c>Deactivate</c> and <c>Contract.Accept</c>/<c>Decline</c>/<c>Cancel</c>,
     /// are self-gating and self-deducting, so a <c>false</c> return from them
     /// means "not valid in the current state" with no partial spend, surfaced as
-    /// <see cref="CommandErrorCode.ModeUnavailable"/>.</para>
+    /// <see cref="CommandErrorCode.ModeUnavailable"/>. A crew hire is bundled
+    /// too, but through a <c>GameEvents</c> hop rather than inside the call:
+    /// see <see cref="HireApplicant"/>.</para>
     /// </summary>
     public sealed class KspCareerActuator : ICareerActuator
     {
@@ -333,12 +335,30 @@ namespace Gonogo.KSP
         /// <see cref="CommandErrorCode.NotFound"/>. Guards the Astronaut Complex
         /// active-crew cap (<c>GameVariables.GetActiveCrewLimit</c> over the
         /// facility's normalised level) before spending, since a hire adds an
-        /// active crew member. <c>KerbalRoster.HireApplicant</c> does NOT debit
-        /// funds (decompile-confirmed: it only moves the applicant into the crew
-        /// list), so this reproduces the stock spend explicitly, checks
-        /// affordability, deducts the recruit cost, then hires, returning before
-        /// any spend on an unaffordable request. Outside career (no
-        /// <c>Funding</c>) it fails <see cref="CommandErrorCode.CareerModeRequired"/>.
+        /// active crew member. Outside career (no <c>Funding</c>) it fails
+        /// <see cref="CommandErrorCode.CareerModeRequired"/>.
+        ///
+        /// <para><b>The hire pays for itself, so this must not.</b>
+        /// <c>KerbalRoster.HireApplicant</c> fires
+        /// <c>GameEvents.OnCrewmemberHired.Fire(ap, GetActiveCrewCount())</c>,
+        /// <c>Funding.OnAwake</c> subscribed <c>onCrewHired</c> to that event,
+        /// and <c>onCrewHired</c> is
+        /// <c>AddFunds(-GameVariables.Instance.GetRecruitHireCost(crewCount), CrewRecruited)</c>.
+        /// Stock's own Astronaut Complex calls <c>HireApplicant</c> and nothing
+        /// else, for exactly this reason. The event fires BEFORE the applicant
+        /// becomes crew, so the count it carries is the same pre-hire count the
+        /// price below was quoted at, and a console hire that also debited was
+        /// charged precisely double.</para>
+        ///
+        /// <para>This comment used to assert the opposite, citing a decompile
+        /// that only moved the applicant into the crew list. That read was of
+        /// the direct call alone: the debit is one <c>GameEvents</c> hop past
+        /// the end of the method, and stopping at the call boundary is how a
+        /// confirmed-by-decompile note came to say the reverse of what the game
+        /// does. The affordability check above stays: it is what stock's own
+        /// Vbutton asks, and it is the only thing standing between an operator
+        /// and a negative balance, since <c>Funding.OnCurrenciesModified</c> has
+        /// no floor at zero.</para>
         /// </summary>
         public CommandResult HireApplicant(string applicantName)
         {
@@ -396,7 +416,8 @@ namespace Gonogo.KSP
                         funding.Funds, Units.Funds));
             }
 
-            funding.AddFunds(-cost, TransactionReasons.CrewRecruited);
+            // No debit here: the hire fires OnCrewmemberHired and Funding's own
+            // handler pays the recruit cost. See this method's doc comment.
             roster.HireApplicant(applicant);
             return CommandResult.Ok();
         }
