@@ -97,6 +97,8 @@ export function targetKindLabel(
       return "CelestialBody";
     case TargetKind.Part:
       return "Docking Port";
+    case TargetKind.Position:
+      return "Position";
     case TargetKind.Other:
       return "Other";
     default:

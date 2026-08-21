@@ -13,7 +13,9 @@
  * OrbitPatch.cs`). Hand-mirrored, same convention as `VesselOrbitPayload`
  * in `vessel-state.ts`: not (yet) generated into this package.
  */
+import { TransitionType } from "../__generated__/contract";
 import type { Value } from "../value";
+import { namesOf } from "./enum-names";
 import { solveEccentricAnomaly } from "./kepler";
 
 export interface OrbitPatchWirePayload {
@@ -91,15 +93,9 @@ export interface LegacyOrbitPatch {
  * that to "COLLISION" before it reaches the wire, so this table only ever
  * needs the `TransitionType` spelling.
  */
-const TRANSITION_TYPE_NAMES: readonly string[] = [
-  "INITIAL",
-  "FINAL",
-  "ENCOUNTER",
-  "ESCAPE",
-  "MANEUVER",
-  "COLLISION",
-  "UNKNOWN",
-];
+export const TRANSITION_TYPE_NAMES: readonly string[] = namesOf(
+  TransitionType,
+).map((name) => name.toUpperCase());
 
 function transitionName(ordinal: number): string {
   return TRANSITION_TYPE_NAMES[ordinal] ?? "UNKNOWN";

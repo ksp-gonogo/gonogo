@@ -55,7 +55,11 @@ interface RawSystemUplinksPayload {
  * its name: `CareerViewProvider.ToWire(CareerMode)` is the canonical
  * example).
  */
-const HEALTH_STATE_NAMES = ["healthy", "degraded", "unavailable"] as const;
+export const HEALTH_STATE_NAMES = [
+  "healthy",
+  "degraded",
+  "unavailable",
+] as const;
 
 /** Decoded, widget-facing form of `UplinkHealthState`. */
 export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
