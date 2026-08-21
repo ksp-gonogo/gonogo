@@ -30,10 +30,10 @@ registerComponent<CameraFeedConfig>({
   // for signal strength / connection status / one-way signal delay (the
   // always-on delay + quality badges in the feed header).
   dataRequirements: ["vessel.comms", "comms.link", "comms.delay"],
-  // Exposes an overlay slot (drawn over the video, passed the feed's pixel
-  // dimensions + displayed camera id) and a broad badges escape-hatch slot in
-  // the feed header. No first-party augment fills either yet (Uplink spec §4).
-  augmentSlots: ["camera-feed.overlay", "camera-feed.badges"],
+  // Exposes an overlay slot, drawn over the video and passed the feed's pixel
+  // dimensions + displayed camera id. No first-party augment fills it yet
+  // (Uplink spec §4).
+  augmentSlots: ["camera-feed.overlay"],
   defaultConfig: {
     flightId: null,
     showDebugInfo: false,

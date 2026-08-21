@@ -165,16 +165,6 @@ export interface MapOverlayContext {
 }
 
 /**
- * Props for `map-view.badges`: the widget's BROAD escape-hatch slot
- * for composable badges, rendered in the header next to the title. Badge
- * augments read their own Topics via hooks, so the only context passed down is
- * the mapped body name for labelling.
- */
-export interface MapBadgesContext {
-  bodyName: string | undefined;
-}
-
-/**
  * Props for `map-view.sections`: a below-content panel slot, composed
  * additively by priority exactly like `map-view.overlay` and the
  * already-established `objectives.sections`/`power-systems.sections`
@@ -272,7 +262,6 @@ export interface MapActionsContext {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "map-view.overlay": MapOverlayContext;
-    "map-view.badges": MapBadgesContext;
     "map-view.sections": MapSectionsContext;
     "map-view.base": MapBaseLayerContext;
     "map-view.actions": MapActionsContext;
@@ -1133,13 +1122,11 @@ function MapViewComponent({
   const showFollowToggle = showMap && cols >= 9;
   const showBodyLabel = cols >= 5;
 
-  // Slot props. `badges` carries just the mapped body name for
-  // labelling; `overlay` carries the live equirectangular projection so an
+  // Slot props. `overlay` carries the live equirectangular projection so an
   // augment can draw in the map's own pixel space, plus the vessel's raw
   // position, so an augment can do its own distance/bearing ranking
   // against it. `overlay` is null until the container has measured, the
   // layer only mounts once there's a pixel-sized map beneath it.
-  const badgesContext: MapBadgesContext = { bodyName: displayName };
   const sectionsContext: MapSectionsContext = {
     bodyName: displayName,
     augmentSettings,
@@ -1287,10 +1274,7 @@ function MapViewComponent({
     <Panel
       panelTitle="MAP VIEW"
       panelAside={
-        <>
-          <AugmentSlot name="map-view.badges" props={badgesContext} />
-          <AugmentSlot name="map-view.actions" props={actionsContext} />
-        </>
+        <AugmentSlot name="map-view.actions" props={actionsContext} />
       }
       panelToolbar={toolbar}
     >
@@ -1401,7 +1385,6 @@ registerComponent<MapViewConfig>({
   actions: mapViewActions,
   augmentSlots: [
     "map-view.overlay",
-    "map-view.badges",
     "map-view.sections",
     "map-view.base",
     "map-view.actions",

@@ -226,24 +226,18 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // Augment slots (Uplink architecture §4): the widget exposes
-  // `space-center-status.badges` (header) and `space-center-status.sections`
-  // (body, appended to the facility list). With no augment registered the
-  // slots render nothing and the widget is unchanged; once an augment binds a
-  // slot its component appears in the widget's space.
-  it("renders with empty augment slots when nothing is registered", () => {
+  // Augment slot (Uplink architecture §4): the widget exposes
+  // `space-center-status.sections` (body, appended to the facility list). With
+  // no augment registered the slot renders nothing and the widget is
+  // unchanged; once an augment binds it its component appears in the widget's
+  // space.
+  it("renders with an empty augment slot when nothing is registered", () => {
     const { container } = renderWidget();
     expect(screen.getByText(/SPACE CENTER/i)).toBeInTheDocument();
     expect(container.textContent).not.toContain("LS DEPOT");
-    expect(container.textContent).not.toContain("EXPANSION READY");
   });
 
-  it("renders augments bound to the badges and sections slots", () => {
-    registerAugment({
-      id: "test-ksc-badge",
-      augments: "space-center-status.badges",
-      component: () => <span>EXPANSION READY</span>,
-    });
+  it("renders an augment bound to the sections slot", () => {
     registerAugment({
       id: "test-ksc-section",
       augments: "space-center-status.sections",
@@ -252,7 +246,6 @@ describe("SpaceCenterStatusComponent", () => {
 
     const { container } = renderWidget();
 
-    expect(visibleText(container)).toContain("EXPANSION READY");
     expect(visibleText(container)).toContain("LS DEPOT tier 1 of 3");
   });
 });

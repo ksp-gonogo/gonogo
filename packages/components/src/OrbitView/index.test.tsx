@@ -2,7 +2,7 @@ import { clearAugments, registerAugment } from "@ksp-gonogo/core";
 import { waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import type { OrbitBadgesContext, OrbitOverlayContext } from "./index";
+import type { OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
@@ -123,28 +123,6 @@ describe("OrbitView augment slots", () => {
     expect(
       container.querySelector('[data-testid="overlay-probe"]')?.textContent,
     ).toMatch(/apo=\d+/);
-  });
-
-  it("renders a badges augment in the header, passed the body name", async () => {
-    registerAugment({
-      id: "test-orbit-badge",
-      augments: "orbit-view.badges",
-      component: (ctx: OrbitBadgesContext) => (
-        <span>badge:{ctx.bodyName ?? "?"}</span>
-      ),
-    });
-
-    const { container, unmount } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
-    trees.push(unmount);
-
-    await waitFor(() => {
-      if (!visibleText(container).includes("badge:Kerbin")) {
-        throw new Error(
-          "badge augment has not rendered with the body name yet",
-        );
-      }
-    });
-    expect(visibleText(container)).toContain("badge:Kerbin");
   });
 
   it("renders the diagram with both slots empty when no augment is registered", async () => {

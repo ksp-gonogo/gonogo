@@ -1,10 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  getBody,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { getBody, registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
   type Reading,
   useStream,
@@ -19,7 +14,6 @@ import {
 import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
-  Cluster,
   Countdown,
   EmptyState,
   FramedDisplay,
@@ -50,24 +44,6 @@ import { TouchdownReticle } from "./TouchdownReticle";
 
 // Empty config: kept for forward-compat with the old widget's config slot.
 type LandingStatusConfig = Record<string, never>;
-
-/**
- * Props for `landing-status.badges`: the widget's BROAD escape-hatch slot,
- * rendered in the header row next to the title. Preserved verbatim from the
- * predecessor so existing augment bindings keep working across the reboot.
- */
-export interface LandingStatusBadgesContext {
-  /** Body being landed on (`vessel.state.parentBodyName`), when known. */
-  bodyName: string | null;
-  /** Whether that body has an atmosphere (drives the vacuum/atmospheric split). */
-  atmospheric: boolean;
-}
-
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "landing-status.badges": LandingStatusBadgesContext;
-  }
-}
 
 // ── Readouts ─────────────────────────────────────────────────────────────────
 //
@@ -581,11 +557,6 @@ function LandingStatusComponent({
     prevPredictedRef.current = { lat: predLat, lon: predLon };
   }, [predLat, predLon, bodyRadius]);
 
-  const badgesContext: LandingStatusBadgesContext = {
-    bodyName: bodyName ?? null,
-    atmospheric,
-  };
-
   // `no-path` is deliberately NOT folded in here. `classifyRegime` goes out of
   // its way to refuse to call an unknown link live, and this used to throw that
   // away one line later: with no comms telemetry at all the hero read
@@ -1097,7 +1068,6 @@ function LandingStatusComponent({
             <StatusPill $tone={REGIME_TONE[clocks.regime]}>
               {REGIME_LABEL[clocks.regime]}
             </StatusPill>
-            <AugmentSlot name="landing-status.badges" props={badgesContext} />
           </span>
         </div>
       }
@@ -1270,7 +1240,6 @@ registerComponent<LandingStatusConfig>({
     "comms.delay",
   ],
   defaultConfig: {},
-  augmentSlots: ["landing-status.badges"],
   pushable: true,
   requires: ["flight"],
 });

@@ -23,11 +23,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ScanningComponent, type ScanningSlotContext } from "./index";
 
 /**
- * Scanning augment-slot exposure: SCANsat-OWNED widget exposing slots
- * OTHER Uplinks fill. The slots (`scanning.sections`, `scanning.badges`)
- * are exposed but ship no filler here (that's an Uplink augment): an empty
- * slot must render cleanly, and a test augment registered into it must
- * appear, receiving the widget's body focus as typed slot props.
+ * Scanning augment-slot exposure: SCANsat-OWNED widget exposing a slot OTHER
+ * Uplinks fill. `scanning.sections` is exposed but ships no filler here (that
+ * is an Uplink augment): an empty slot must render cleanly, and a test augment
+ * registered into it must appear, receiving the widget's body focus as typed
+ * slot props.
  */
 
 // `scansat.available`, `vessel.identity`, and `system.bodies` ride the
@@ -100,16 +100,14 @@ describe("Scanning: augment slots (spec §4)", () => {
     await screen.findByText(/Coverage: Kerbin/);
   }
 
-  it("exposes both slots with no augments bound by default", () => {
+  it("exposes the slot with no augment bound by default", () => {
     expect(getAugmentsForSlot("scanning.sections")).toEqual([]);
-    expect(getAugmentsForSlot("scanning.badges")).toEqual([]);
   });
 
-  it("renders the layout with empty slots inert (stock readout unchanged)", async () => {
+  it("renders the layout with the empty slot inert (stock readout unchanged)", async () => {
     await renderPresent();
     expect(screen.getByText(/Coverage: Kerbin/)).toBeInTheDocument();
     expect(screen.queryByTestId("scan-section-augment")).toBeNull();
-    expect(screen.queryByTestId("scan-badge-augment")).toBeNull();
   });
 
   it("renders a test augment bound to the sections slot, passing the focused body as slot props", async () => {
@@ -130,23 +128,5 @@ describe("Scanning: augment slots (spec §4)", () => {
 
     const augment = await screen.findByTestId("scan-section-augment");
     expect(augment.textContent).toBe("RESOURCE-SCAN: Kerbin");
-  });
-
-  it("renders a test augment bound to the badges slot in the header", async () => {
-    function BadgeAugment({ bodyName }: ScanningSlotContext) {
-      return <span data-testid="scan-badge-augment">{bodyName}!</span>;
-    }
-    await renderPresent();
-
-    act(() => {
-      registerAugment({
-        id: "test-scan-badge",
-        augments: "scanning.badges",
-        component: BadgeAugment,
-      });
-    });
-
-    const badge = await screen.findByTestId("scan-badge-augment");
-    expect(badge.textContent).toBe("Kerbin!");
   });
 });

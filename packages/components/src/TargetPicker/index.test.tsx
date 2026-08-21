@@ -504,14 +504,12 @@ describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
     fixture = setupStreamFixture({ carriedChannels: [], pinnedUt: 0 });
   });
 
-  it("exposes the two host slots empty by default (no augment DOM)", () => {
+  it("exposes the host slot empty by default (no augment DOM)", () => {
     renderPicker(fixture);
-    // Neither slot has a bound augment, so nothing extra renders, the frame is
-    // unchanged from before the slots existed. Registry-side, both are exposable.
+    // The slot has no bound augment, so nothing extra renders, the frame is
+    // unchanged from before the slot existed. Registry-side, it is exposable.
     expect(getAugmentsForSlot("target-picker.sections")).toHaveLength(0);
-    expect(getAugmentsForSlot("target-picker.badges")).toHaveLength(0);
     expect(screen.queryByText("FLEET FILTER")).toBeNull();
-    expect(screen.queryByText("LINK")).toBeNull();
   });
 
   it("renders an augment bound to the body sections slot", () => {
@@ -525,18 +523,5 @@ describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
       getAugmentsForSlot("target-picker.sections").map((a) => a.id),
     ).toEqual(["test-fleet-filter"]);
     expect(screen.getByText("FLEET FILTER")).toBeInTheDocument();
-  });
-
-  it("renders an augment bound to the header badges slot", () => {
-    registerAugment({
-      id: "test-badge",
-      augments: "target-picker.badges",
-      component: () => <span>LINK</span>,
-    });
-    renderPicker(fixture);
-    expect(getAugmentsForSlot("target-picker.badges").map((a) => a.id)).toEqual(
-      ["test-badge"],
-    );
-    expect(screen.getByText("LINK")).toBeInTheDocument();
   });
 });

@@ -93,16 +93,6 @@ export interface DistanceToTargetHudContext {
   cameraFlightId: number | null | undefined;
 }
 
-/** Mirrors `DistanceToTargetBadgeContext` (DistanceToTarget/index.tsx). */
-export interface DistanceToTargetBadgeContext {
-  /** Current target name, or undefined when no target is set. */
-  targetName: string | undefined;
-  /** KSP target type (`Vessel`, `CelestialBody`, a docking-port type, ...). */
-  targetType: string | undefined;
-  /** Range to the target in metres; undefined until the stream reports position. */
-  distance: number | undefined;
-}
-
 // --- CommSignal (packages/components/src/CommSignal) -----------------------
 
 // "comm-signal.sections" / ".badges" carry no props today.
@@ -189,28 +179,6 @@ export interface ShipMapOverlayContext {
   baseScale: number;
   /** Screen-space margin (px) reserved around the fit-scaled diagram. */
   padding: number;
-}
-
-/** Mirrors `ShipMapBadgesContext` (ShipMap/index.tsx). */
-export interface ShipMapBadgesContext {
-  /** Number of parts currently rendered. */
-  partCount: number;
-  /** Hottest part name (`therm.hottestPartName`), when known. */
-  hottestPartName: string | null;
-}
-
-// --- ContractManager (packages/components/src/ContractManager) -------------
-
-/** Mirrors `ContractBadgeContext` (ContractManager/index.tsx). */
-export interface ContractBadgeContext {
-  /** Contract id as a string (KSP long-safe). Identity for the augment. */
-  contractId: string;
-  /** Contract title, as shown in the card header. */
-  title: string;
-  /** Sponsoring agency: the natural key for contract-pack iconography. */
-  agency: string;
-  /** Which list the row sits in. */
-  section: "active" | "offered";
 }
 
 // --- CrewStatus (packages/components/src/CrewStatus) -------------------
@@ -377,11 +345,6 @@ export interface MapOverlayContext {
   vesselLon: number | undefined;
 }
 
-/** Mirrors `MapBadgesContext` (MapView/index.tsx). */
-export interface MapBadgesContext {
-  bodyName: string | undefined;
-}
-
 /** Mirrors `MapSectionsContext` (MapView/index.tsx). */
 export interface MapSectionsContext {
   /** The mapped body (may diverge from the active vessel under a pin). */
@@ -458,12 +421,6 @@ export interface TechSlotNode {
   parts: TechSlotPart[];
 }
 
-/** Mirrors `TechNodeBadgeContext` (TechTree/index.tsx). */
-export interface TechNodeBadgeContext {
-  /** The node this badge belongs to: its full identity for the augment. */
-  node: TechSlotNode;
-}
-
 // --- ScienceData (packages/components/src/ScienceData) ----------------------
 
 /** Mirrors `ScienceDataAboardRowContext` (ScienceData/index.tsx). */
@@ -472,16 +429,6 @@ export interface ScienceDataAboardRowContext {
    *  `science.experiments` read against this id to find the file and/or
    *  sample backing it. */
   subjectId: string;
-}
-
-// --- LandingStatus (packages/components/src/LandingStatus) -----------------
-
-/** Mirrors `LandingStatusBadgesContext` (LandingStatus/index.tsx). */
-export interface LandingStatusBadgesContext {
-  /** Body being landed on (`vessel.state.parentBodyName`), when known. */
-  bodyName: string | null;
-  /** Whether that body has an atmosphere (drives the vacuum/atmospheric split). */
-  atmospheric: boolean;
 }
 
 // --- OrbitView (packages/components/src/OrbitView) --------------------------
@@ -510,11 +457,6 @@ export interface OrbitOverlayContext {
   center: { x: number; y: number };
   /** Visible half-extent of the frame, distance units (apoapsis-driven). */
   scale: number;
-}
-
-/** Mirrors `OrbitBadgesContext` (OrbitView/index.tsx). */
-export interface OrbitBadgesContext {
-  bodyName: string | undefined;
 }
 
 // --- Navball (packages/components/src/Navball) ------------------------------
@@ -611,39 +553,29 @@ export interface PowerSystemsSlotContext {
 declare module "./types" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
-    "space-center-status.badges": Record<string, never>;
 
     "maneuver-planner.sections": Record<string, never>;
-    "maneuver-planner.badges": Record<string, never>;
 
     "target-picker.sections": Record<string, never>;
-    "target-picker.badges": Record<string, never>;
 
     "warp-control.actions": Record<string, never>;
 
     "distance-to-target.camera": DistanceToTargetHudContext;
     "distance-to-target.overlay": DistanceToTargetHudContext;
-    "distance-to-target.badges": DistanceToTargetBadgeContext;
 
     "comm-signal.sections": Record<string, never>;
-    "comm-signal.badges": Record<string, never>;
 
     "ship-map.overlay": ShipMapOverlayContext;
-    "ship-map.badges": ShipMapBadgesContext;
-
-    "contract-manager.badges": ContractBadgeContext;
 
     "crew-status.badges": CrewBadgeContext;
     "crew-status.avatar": CrewAvatarContext;
     "crew-status.survival": CrewSurvivalSlotContext;
     "crew-status.summary": Record<string, never>;
 
-    "launch-director.badges": LaunchDirectorSlotContext;
     "launch-director.sections": LaunchDirectorSlotContext;
 
     "objectives.sections": ObjectiveSourceContext;
 
-    "action-group.badges": ActionGroupSlotContext;
     "action-group.sections": ActionGroupSlotContext;
 
     "system-view.actions": Record<string, never>;
@@ -651,32 +583,21 @@ declare module "./types" {
     "system-view.badges": SystemBadgesContext;
 
     "map-view.overlay": MapOverlayContext;
-    "map-view.badges": MapBadgesContext;
     "map-view.sections": MapSectionsContext;
     "map-view.base": MapBaseLayerContext;
     "map-view.actions": MapActionsContext;
 
-    "tech-tree.badges": TechNodeBadgeContext;
-
     "science-data.aboard-row": ScienceDataAboardRowContext;
 
-    "landing-status.badges": LandingStatusBadgesContext;
-
     "orbit-view.overlay": OrbitOverlayContext;
-    "orbit-view.badges": OrbitBadgesContext;
-
-    "navball.badges": Record<string, never>;
 
     "science-officer.sections": ExperimentsInstrumentSlotContext;
     "science-officer.badges": ExperimentsSlotContext;
 
     "deployed-science.sections": DeployedExperimentContext;
-    "deployed-science.badges": Record<string, never>;
 
     "fuel-status.sections": Record<string, never>;
-    "fuel-status.badges": Record<string, never>;
 
     "power-systems.sections": PowerSystemsSlotContext;
-    "power-systems.badges": PowerSystemsSlotContext;
   }
 }

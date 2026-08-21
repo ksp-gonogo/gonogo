@@ -1004,10 +1004,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // ActionGroup's own doc-comment lists sibling vessel command widgets
       // sharing its pattern, MechJeb among them.
       "packages/components/src/ActionGroup/stream.test.tsx",
-      // Navball's doc-comments describe a FUTURE "autopilot Uplink
-      // (MechJeb-alike)" as the proposed filler for an open badge slot:
-      // aspirational prose, no MechJeb import.
-      "packages/components/src/Navball/index.tsx",
       // RoboticsConsole/RotorTachometer doc-comments cite MechJeb as a
       // precedent for this widget's shape; no MechJeb import or coupling.
       "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx",

@@ -3,7 +3,7 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -775,31 +775,6 @@ describe("LaunchDirectorComponent augment slots", () => {
     // ... but nothing composes into either slot.
     expect(screen.queryByTestId("ld-badge")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ld-section")).not.toBeInTheDocument();
-  });
-
-  it("renders a bound header-badge augment carrying the slot context", async () => {
-    registerAugment<"launch-director.badges">({
-      id: "test-ld-badge",
-      augments: "launch-director.badges",
-      component: ({ selectedSite, inFlight }: LaunchDirectorSlotContext) => (
-        <span data-testid="ld-badge">
-          {selectedSite}/{String(inFlight)}
-        </span>
-      ),
-    });
-
-    renderWidget();
-    primePreLaunch();
-
-    const badge = await screen.findByTestId("ld-badge");
-    // Default site is "LaunchPad" and the pre-launch scene is not flight.
-    expect(badge).toHaveTextContent("LaunchPad/false");
-    // The badge sits in the header, beside the title.
-    const header = screen
-      .getByText("LAUNCH & RECOVERY")
-      .closest("[data-panel-header]");
-    expect(header).not.toBeNull();
-    expect(within(header as HTMLElement).getByTestId("ld-badge")).toBeTruthy();
   });
 
   it("appends a bound checklist-section augment carrying the selection", async () => {

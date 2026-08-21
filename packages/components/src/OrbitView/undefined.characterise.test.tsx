@@ -4,7 +4,6 @@ import { screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import type { OrbitBadgesContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
@@ -78,18 +77,11 @@ describe("OrbitView: absence gates on the augment slots", () => {
     clearAugments();
   });
 
-  it("does not mount the overlay slot while the elements are absent, but does mount badges", () => {
+  it("does not mount the overlay slot while the elements are absent", () => {
     registerAugment({
       id: "characterise-orbit-overlay",
       augments: "orbit-view.overlay",
       component: () => <div data-testid="overlay-probe">overlay</div>,
-    });
-    registerAugment({
-      id: "characterise-orbit-badges",
-      augments: "orbit-view.badges",
-      component: (ctx: OrbitBadgesContext) => (
-        <div data-testid="badges-probe">body={String(ctx.bodyName)}</div>
-      ),
     });
 
     const { container, unmount } = renderOrbitViewStream({ w: 9, h: 18 });
@@ -100,12 +92,6 @@ describe("OrbitView: absence gates on the augment slots", () => {
     // overlay augment is not rendered at all, rather than rendered with
     // zeroed elements.
     expect(container.querySelector('[data-testid="overlay-probe"]')).toBeNull();
-    // The badges slot is UNgated: it mounts with `bodyName: undefined`, so an
-    // augment there sees the absence itself.
-    expect(
-      container.querySelector('[data-testid="badges-probe"]'),
-    ).not.toBeNull();
-    expect(visibleText(container)).toContain("body=undefined");
   });
 });
 

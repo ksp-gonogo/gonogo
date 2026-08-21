@@ -2,25 +2,16 @@ import {
   clearActionHandlers,
   clearAugments,
   DashboardItemContext,
-  registerAugment,
 } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
-import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import {
-  parseTechNodes,
-  type TechNodeBadgeContext,
-  TechTreeComponent,
-} from "./index";
+import { parseTechNodes, TechTreeComponent } from "./index";
 
 /**
  * Stream-migrated widget test (mirrors `stream.test.tsx`/`dual-run.test.tsx`
@@ -283,46 +274,6 @@ describe("TechTreeComponent", () => {
     await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     expect(screen.queryByTestId("tech-badge")).not.toBeInTheDocument();
-  });
-
-  it("renders a bound augment once per node row, carrying each node's identity", async () => {
-    // A test Uplink binds `tech-tree.badges` and echoes the slot props back.
-    // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
-    // the per-node props carry the right node so the badge lands on the right
-    // row. `requires` is omitted so no Domain presence gate applies.
-    registerAugment<"tech-tree.badges">({
-      id: "test-tech-badge",
-      augments: "tech-tree.badges",
-      component: ({ node }: TechNodeBadgeContext) => (
-        <span data-testid="tech-badge" data-node={node.id}>
-          {node.id} ✓
-        </span>
-      ),
-    });
-
-    const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
-      pinnedUt: 10,
-    });
-    renderTree(fixture);
-    act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
-    });
-
-    // One badge per node in the (default) list view.
-    const badges = await waitFor(() => {
-      const rows = screen.getAllByTestId("tech-badge");
-      expect(rows).toHaveLength(SAMPLE_NODES.length);
-      return rows;
-    });
-    // The badge sits inside its own node's row (props identity is correct).
-    const basicRow = screen.getByText("Basic Rocketry").closest("li");
-    expect(basicRow).not.toBeNull();
-    expect(
-      within(basicRow as HTMLElement).getByTestId("tech-badge"),
-    ).toHaveTextContent("basicRocketry ✓");
-    expect(badges.length).toBe(SAMPLE_NODES.length);
   });
 });
 

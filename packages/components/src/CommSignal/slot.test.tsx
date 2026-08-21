@@ -35,12 +35,11 @@ function unmountAll() {
 }
 
 /**
- * CommSignal exposes two augment slots (locked map: comm-signal):
- *  - `comm-signal.sections`: body, below the signal-bars readout
- *  - `comm-signal.badges`  : header, next to the title
+ * CommSignal exposes one augment slot (locked map: comm-signal):
+ * `comm-signal.sections`, in the body below the signal-bars readout.
  *
- * These tests prove the seats exist and compose an augment WITHOUT CommSignal
- * importing any backend-aware code. Only the slots are exposed here; a real
+ * These tests prove the seat exists and composes an augment WITHOUT CommSignal
+ * importing any backend-aware code. Only the slot is exposed here; a real
  * filler (e.g. a RealAntennas per-antenna breakdown) is a separate concern.
  * So an empty slot rendering nothing is the correct steady state here.
  */
@@ -99,9 +98,8 @@ afterEach(() => {
 });
 
 describe("CommSignal: augment slots (Uplink spec §4)", () => {
-  it("declares both slots empty by default and renders its own readout unchanged", async () => {
+  it("declares the slot empty by default and renders its own readout unchanged", async () => {
     expect(getAugmentsForSlot("comm-signal.sections")).toHaveLength(0);
-    expect(getAugmentsForSlot("comm-signal.badges")).toHaveLength(0);
 
     renderWithSignal();
 
@@ -124,19 +122,5 @@ describe("CommSignal: augment slots (Uplink spec §4)", () => {
       expect(screen.getByTestId("ra-breakdown")).toBeInTheDocument(),
     );
     expect(screen.getByText("RA breakdown")).toBeInTheDocument();
-  });
-
-  it("composes a registered augment into the header badges slot", async () => {
-    registerAugment({
-      id: "test-comm-badge",
-      augments: "comm-signal.badges",
-      component: () => <span data-testid="comm-badge">RA</span>,
-    });
-
-    renderWithSignal();
-
-    await waitFor(() =>
-      expect(screen.getByTestId("comm-badge")).toBeInTheDocument(),
-    );
   });
 });

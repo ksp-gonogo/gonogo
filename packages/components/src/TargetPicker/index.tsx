@@ -60,15 +60,13 @@ import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 type TargetPickerConfig = Record<string, never>;
 
 // ── Augment slots (Uplink architecture) ─────────────────────────────
-// Two host-owned slots any Uplink may compose into. Neither carries slot props:
-// they are not overlay or typed-contract slots, a bound augment
-// reads its OWN Topics via hooks and fires its own actions, so both pass `{}`.
+// One host-owned slot any Uplink may compose into. It carries no slot props:
+// it is not an overlay or typed-contract slot, a bound augment reads its OWN
+// Topics via hooks and fires its own actions, so it passes `{}`.
 //
 //  - `target-picker.sections`: a body slot for a fleet-management Uplink (mission
 //    tagging / constellation grouping) to add a filter/grouping view alongside
 //    the stock Suggested / Bodies / Vessels / Parts sections. No confirmed filler yet.
-//  - `target-picker.badges`: the broad inline-indicator escape hatch (slot-map
-//    "Feedback round 1"), sitting in the header next to the title.
 //
 // Typed here via co-located `SlotRegistry` declaration-merging so
 // the ids type-check at the `AugmentSlot` / `registerAugment` sites rather than
@@ -76,7 +74,6 @@ type TargetPickerConfig = Record<string, never>;
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "target-picker.sections": Record<string, never>;
-    "target-picker.badges": Record<string, never>;
   }
 }
 
@@ -451,10 +448,7 @@ function TargetPickerComponent({
 
   if (!showFull) {
     return (
-      <Panel
-        panelTitle="TARGET"
-        panelAside={<AugmentSlot name="target-picker.badges" props={{}} />}
-      >
+      <Panel panelTitle="TARGET">
         <CompactCurrent>
           {tarName ? (
             <>
@@ -504,10 +498,7 @@ function TargetPickerComponent({
   };
 
   return (
-    <Panel
-      panelTitle="TARGET PICKER"
-      panelAside={<AugmentSlot name="target-picker.badges" props={{}} />}
-    >
+    <Panel panelTitle="TARGET PICKER">
       <OrbitalEventChipsRow>
         <OrbitalEventChips />
       </OrbitalEventChipsRow>
@@ -941,10 +932,9 @@ registerComponent<TargetPickerConfig>({
   minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
-  // Two host-owned augment slots: a body `.sections` slot for a
-  // fleet-management Uplink's filter/grouping view, and the broad `.badges`
-  // escape hatch in the header. Unfilled until an Uplink binds them.
-  augmentSlots: ["target-picker.sections", "target-picker.badges"],
+  // One host-owned augment slot: a body `.sections` slot for a fleet-management
+  // Uplink's filter/grouping view. Unfilled until an Uplink binds it.
+  augmentSlots: ["target-picker.sections"],
   dataRequirements: ["target.available", "vessel.target"],
   defaultConfig: {},
   actions: targetPickerActions,

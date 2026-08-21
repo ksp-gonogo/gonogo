@@ -107,24 +107,12 @@ export interface OrbitOverlayContext {
   scale: number;
 }
 
-/**
- * Props for `orbit-view.badges`: the widget's BROAD escape-hatch slot,
- * rendered in the header next to the title. Meant for
- * small status chips an Uplink wants beside the orbit heading; badge augments
- * read their own Topics via hooks, so the only context passed down is the
- * parent body name for labelling.
- */
-export interface OrbitBadgesContext {
-  bodyName: string | undefined;
-}
-
 // Co-located declaration-merge of this widget's slot ids → their props.
 // Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "orbit-view.overlay": OrbitOverlayContext;
-    "orbit-view.badges": OrbitBadgesContext;
   }
 }
 
@@ -362,11 +350,10 @@ function OrbitViewComponent({
     />
   ) : null;
 
-  // Slot props. `badges` carries just the body name for labelling;
-  // `overlay` carries the diagram's body-centric projection so an augment can
-  // draw in the SVG's coordinate space. `overlay` is null until the elements
-  // resolve: the wrapper only mounts the slot once there's a diagram beneath.
-  const badgesContext: OrbitBadgesContext = { bodyName };
+  // Slot props. `overlay` carries the diagram's body-centric projection so an
+  // augment can draw in the SVG's coordinate space. It is null until the
+  // elements resolve: the wrapper only mounts the slot once there's a diagram
+  // beneath.
   // Mirrors `OrbitDiagram`'s own `HYPERBOLIC_SCALE` constant so the overlay
   // slot's declared `scale` matches the diagram's ACTUAL bounds on a
   // hyperbolic trajectory, where apoapsis is meaningless and the diagram
@@ -416,13 +403,6 @@ function OrbitViewComponent({
     return (
       <Panel
         panelTitle="ORBIT VIEW"
-        // No manual stream badge here: the composed header renders the
-        // host-derived status, which watches every topic this widget
-        // declares rather than the one this hook picked by hand (same as
-        // the non-landscape branch below).
-        panelAside={
-          <AugmentSlot name="orbit-view.badges" props={badgesContext} />
-        }
         panelSidebar={
           <LandscapeChrome>
             {bodyName !== undefined && (
@@ -452,8 +432,8 @@ function OrbitViewComponent({
   // The body name used to be `panelSubtitle`, which the floating-header case
   // rendered for free (no body row, it floated in the header alongside the
   // title). Now that subtitles are gone entirely, the two cases split:
-  // floating keeps that free placement by riding along in the aside next to
-  // the badges slot (still zero body cost); the non-floating case moves it
+  // floating keeps that free placement by riding along in the aside (still
+  // zero body cost); the non-floating case moves it
   // into the body as a caption, same as everywhere else the subtitle sweep
   // touched, gated on the same height tier (`showSubtitle`) the caption used
   // to gate on.
@@ -467,14 +447,11 @@ function OrbitViewComponent({
       // renders the host-derived status, which watches every topic this widget
       // declares rather than the one this hook picked by hand.
       panelAside={
-        <>
-          {showBodyNameInAside && (
-            <Text tone="muted" size="xs">
-              {bodyName}
-            </Text>
-          )}
-          <AugmentSlot name="orbit-view.badges" props={badgesContext} />
-        </>
+        showBodyNameInAside ? (
+          <Text tone="muted" size="xs">
+            {bodyName}
+          </Text>
+        ) : undefined
       }
       floatingHeader={drawingFillsPanel}
     >
@@ -520,10 +497,9 @@ registerComponent<OrbitViewConfig>({
   defaultSize: { w: 9, h: 18 },
   minSize: { w: 3, h: 3 },
   component: OrbitViewComponent,
-  // Exposes an overlay slot (drawn over the SVG diagram, passed the diagram's
-  // projection) and a broad badges escape-hatch slot in the header. No
-  // first-party augment fills either yet.
-  augmentSlots: ["orbit-view.overlay", "orbit-view.badges"],
+  // Exposes an overlay slot, drawn over the SVG diagram and passed the
+  // diagram's projection. No first-party augment fills it yet.
+  augmentSlots: ["orbit-view.overlay"],
   // Legacy `dataRequirements` kept during migration (rename/removal still
   // pending); the reads themselves are stream-native (`vessel.orbit` + the
   // `vessel.state` derived channel).

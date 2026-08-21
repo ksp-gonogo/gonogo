@@ -306,37 +306,18 @@ describe("ActionGroupComponent", () => {
 
     // Renders the slot props so the test proves the parent's group context
     // flows through to the augment, not merely that it mounted.
-    function TestBadge({ groupId, stateLabel }: ActionGroupSlotContext) {
-      return (
-        <span>
-          badge:{groupId}:{stateLabel}
-        </span>
-      );
-    }
     function TestSection({ groupId }: ActionGroupSlotContext) {
       return <span>section:{groupId}</span>;
     }
 
-    it("renders the widget with both slots empty when no augment is bound", async () => {
+    it("renders the widget with the sections slot empty when no augment is bound", async () => {
       renderGroup({ actionGroupId: "SAS" });
       emitControl({ sas: false });
-      // Widget renders normally; the empty slots contribute nothing.
+      // Widget renders normally; the empty slot contributes nothing.
       expect(
         screen.getByRole("button", { name: /toggle sas/i }),
       ).toBeInTheDocument();
-      expect(screen.queryByText(/^badge:/)).not.toBeInTheDocument();
       expect(screen.queryByText(/^section:/)).not.toBeInTheDocument();
-    });
-
-    it("renders a badge augment inline, passing the live group context", async () => {
-      registerAugment<"action-group.badges">({
-        id: "test-ag-badge",
-        augments: "action-group.badges",
-        component: TestBadge,
-      });
-      renderGroup({ actionGroupId: "SAS" });
-      emitControl({ sas: true });
-      expect(await screen.findByText("badge:SAS:ON")).toBeInTheDocument();
     });
 
     it("renders a sections augment in the body with the group id", async () => {

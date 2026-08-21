@@ -121,16 +121,6 @@ export interface CameraOverlayContext {
   height: number;
 }
 
-/**
- * Props for `camera-feed.badges`: the widget's BROAD escape-hatch slot (spec
- * §4.8 composable badges), rendered as a small chip strip in the feed header.
- * Badge augments read their own Topics via hooks, so the only context passed
- * down is the displayed camera's flightID for labelling.
- */
-export interface CameraBadgesContext {
-  flightId: number | null;
-}
-
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not a central registry file) so parallel slot
 // work on other widgets never collides on this seam. Targets the sitrep-sdk
@@ -145,7 +135,6 @@ export interface CameraBadgesContext {
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "camera-feed.overlay": CameraOverlayContext;
-    "camera-feed.badges": CameraBadgesContext;
   }
 }
 
@@ -392,11 +381,8 @@ export function CameraFeed({
     width: feedSize.width,
     height: feedSize.height,
   };
-  const badgesContext: CameraBadgesContext = { flightId: effectiveFlightId };
-
   // Always-on status chips, intrinsic to a delayed downlink feed (not a
-  // cross-mod augment): every camera feed shows both, unobtrusively, next to
-  // whatever a `camera-feed.badges` augment contributes.
+  // cross-mod augment): every camera feed shows both, unobtrusively.
   const delayBadge = describeSignalDelay(signalDelay);
   const qualityBadge = describeSignalQuality(commConnected, signalStrength);
 
@@ -496,7 +482,6 @@ export function CameraFeed({
               {qualityBadge.label}
             </Badge>
           )}
-          <AugmentSlot name="camera-feed.badges" props={badgesContext} />
         </div>
         {showSetpointSurface && (
           <div style={FEED_SETPOINT_STYLE}>

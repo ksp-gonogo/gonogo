@@ -28,7 +28,6 @@ import {
   useCommandButton,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useState } from "react";
 import styled from "styled-components";
 import {
   magnitudeOf,
@@ -40,14 +39,12 @@ type SpaceCenterStatusConfig = Record<string, never>;
 
 // Augment slots (Uplink architecture §4 / augment-slot-map: space-center-status).
 // `.sections` appends extra facility-level rows to the body (e.g. a KSC-expansion
-// Uplink's custom facilities / ground-based life-support depot); `.badges` is the
-// broad header escape-hatch that drops an inline badge next to the title. Both are
-// plain markers with no slot props. Co-located `SlotRegistry` declaration-merge
-// so parallel slot work doesn't collide on a shared central file.
+// Uplink's custom facilities / ground-based life-support depot). A plain marker
+// with no slot props. Co-located `SlotRegistry` declaration-merge so parallel slot
+// work doesn't collide on a shared central file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
-    "space-center-status.badges": Record<string, never>;
   }
 }
 
@@ -393,13 +390,7 @@ function SpaceCenterStatusComponent({
   }
 
   return (
-    <Panel
-      panelTitle="SPACE CENTER"
-      /* Header escape-hatch slot (augment-slot-map ".badges broad
-         escape-hatch"): any Uplink can drop an inline badge next to the title.
-         Renders nothing until an augment binds it. */
-      panelAside={<AugmentSlot name="space-center-status.badges" props={{}} />}
-    >
+    <Panel panelTitle="SPACE CENTER">
       <Body>
         {showSubtitle && (
           <PadStatusLine role="status" aria-live="polite">
@@ -957,7 +948,7 @@ registerComponent<SpaceCenterStatusConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  augmentSlots: ["space-center-status.sections", "space-center-status.badges"],
+  augmentSlots: ["space-center-status.sections"],
   pushable: true,
 });
 

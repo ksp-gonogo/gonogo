@@ -69,11 +69,10 @@ const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 // ---------------------------------------------------------------------------
 // Augment slots (Uplink architecture §4: locked in augment-slot-map.md)
 //
-// Two whole-widget append slots, both broad escape hatches: neither carries a
-// per-item datum, so their props are empty. `maneuver-planner.sections` sits
-// below the live preview + feasibility check for alternate transfer-strategy
-// comparisons (e.g. a porkchop / optimal-transfer Uplink); `maneuver-planner
-// .badges` rides in the header next to the title. Typed here via co-located
+// One whole-widget append slot, a broad escape hatch: it carries no per-item
+// datum, so its props are empty. `maneuver-planner.sections` sits below the
+// live preview + feasibility check for alternate transfer-strategy comparisons
+// (e.g. a porkchop / optimal-transfer Uplink). Typed here via co-located
 // declaration-merging into core's `SlotRegistry` so `<AugmentSlot>` and
 // `registerAugment` see the precise (empty) prop shape rather than the loose
 // `Record<string, unknown>` fallback an unmerged slot id gets.
@@ -81,13 +80,10 @@ const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 
 /** No slot props: whole-widget append escape hatch (no per-item datum). */
 export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
-/** No slot props: header badge escape hatch (no per-item datum). */
-export type ManeuverPlannerBadgesSlotProps = Record<string, never>;
 
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "maneuver-planner.sections": ManeuverPlannerSectionsSlotProps;
-    "maneuver-planner.badges": ManeuverPlannerBadgesSlotProps;
   }
 }
 
@@ -872,12 +868,7 @@ function ManeuverPlannerComponent({
   }
 
   return (
-    <Panel
-      panelTitle="MANEUVER PLANNER"
-      panelAside={
-        <AugmentSlot name="maneuver-planner.badges" props={EMPTY_SLOT_PROPS} />
-      }
-    >
+    <Panel panelTitle="MANEUVER PLANNER">
       <ScrollBody>
         {refBody !== undefined && (
           <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
@@ -982,10 +973,10 @@ registerComponent<ManeuverPlannerConfig>({
   defaultSize: { w: 10, h: 18 },
   minSize: { w: 6, h: 9 },
   component: ManeuverPlannerComponent,
-  // Two whole-widget append slots (broad escape hatches): a body `sections`
-  // slot for alternate-transfer-strategy comparisons and a header `badges`
-  // slot. Empty until an augment binds (Uplink §4 / augment-slot-map.md).
-  augmentSlots: ["maneuver-planner.sections", "maneuver-planner.badges"],
+  // One whole-widget append slot (a broad escape hatch): a body `sections`
+  // slot for alternate-transfer-strategy comparisons. Empty until an augment
+  // binds (Uplink §4 / augment-slot-map.md).
+  augmentSlots: ["maneuver-planner.sections"],
   // `dv.stages` and `o.maneuverNodes` are mapped on the wire and ride the
   // stream transparently (see the `useVesselDeltaV` / `useManeuverNodes`
   // read call sites above), no change needed to this list, it already

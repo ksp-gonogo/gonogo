@@ -25,35 +25,28 @@
 
 import type { SlotProps as SdkSlotProps } from "@ksp-gonogo/sitrep-sdk";
 import type { ActionGroupSlotContext } from "./ActionGroup";
-import type { ContractBadgeContext } from "./ContractManager";
 import type {
   CrewAvatarContext,
   CrewBadgeContext,
   CrewSurvivalSlotContext,
 } from "./CrewStatus";
-import type {
-  DistanceToTargetBadgeContext,
-  DistanceToTargetHudContext,
-} from "./DistanceToTarget";
+import type { DistanceToTargetHudContext } from "./DistanceToTarget";
 import type {
   ExperimentsInstrumentSlotContext,
   ExperimentsSlotContext,
 } from "./Experiments";
-import type { LandingStatusBadgesContext } from "./LandingStatus";
 import type { LaunchDirectorSlotContext } from "./LaunchDirector";
 import type {
   MapActionsContext,
-  MapBadgesContext,
   MapBaseLayerContext,
   MapOverlayContext,
   MapSectionsContext,
 } from "./MapView";
-import type { OrbitBadgesContext, OrbitOverlayContext } from "./OrbitView";
+import type { OrbitOverlayContext } from "./OrbitView";
 import type { PowerSystemsSlotContext } from "./PowerSystems";
 import type { ScienceDataAboardRowContext } from "./ScienceData";
-import type { ShipMapBadgesContext, ShipMapOverlayContext } from "./ShipMap";
+import type { ShipMapOverlayContext } from "./ShipMap";
 import type { SystemBadgesContext, SystemOverlayContext } from "./SystemView";
-import type { TechNodeBadgeContext } from "./TechTree";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
@@ -67,20 +60,11 @@ type _SpaceCenterSections = Expect<
     Record<string, never>
   >
 >;
-type _SpaceCenterBadges = Expect<
-  Assignable<SdkSlotProps<"space-center-status.badges">, Record<string, never>>
->;
 type _ManeuverSections = Expect<
   Assignable<SdkSlotProps<"maneuver-planner.sections">, Record<string, never>>
 >;
-type _ManeuverBadges = Expect<
-  Assignable<SdkSlotProps<"maneuver-planner.badges">, Record<string, never>>
->;
 type _TargetPickerSections = Expect<
   Assignable<SdkSlotProps<"target-picker.sections">, Record<string, never>>
->;
-type _TargetPickerBadges = Expect<
-  Assignable<SdkSlotProps<"target-picker.badges">, Record<string, never>>
 >;
 type _WarpActions = Expect<
   Assignable<SdkSlotProps<"warp-control.actions">, Record<string, never>>
@@ -88,23 +72,11 @@ type _WarpActions = Expect<
 type _CommSections = Expect<
   Assignable<SdkSlotProps<"comm-signal.sections">, Record<string, never>>
 >;
-type _CommBadges = Expect<
-  Assignable<SdkSlotProps<"comm-signal.badges">, Record<string, never>>
->;
 type _SystemActions = Expect<
   Assignable<SdkSlotProps<"system-view.actions">, Record<string, never>>
 >;
-type _NavballBadges = Expect<
-  Assignable<SdkSlotProps<"navball.badges">, Record<string, never>>
->;
-type _DeployedBadges = Expect<
-  Assignable<SdkSlotProps<"deployed-science.badges">, Record<string, never>>
->;
 type _FuelSections = Expect<
   Assignable<SdkSlotProps<"fuel-status.sections">, Record<string, never>>
->;
-type _FuelBadges = Expect<
-  Assignable<SdkSlotProps<"fuel-status.badges">, Record<string, never>>
 >;
 
 // --- Named-context slots: checked both directions --------------------------
@@ -127,37 +99,12 @@ type _D2tOverlay = Expect<
     DistanceToTargetHudContext
   >
 >;
-type _D2tBadges = Expect<
-  Assignable<
-    SdkSlotProps<"distance-to-target.badges">,
-    DistanceToTargetBadgeContext
-  >
->;
-type _D2tBadgesBack = Expect<
-  Assignable<
-    DistanceToTargetBadgeContext,
-    SdkSlotProps<"distance-to-target.badges">
-  >
->;
 
 type _ShipMapOverlay = Expect<
   Assignable<SdkSlotProps<"ship-map.overlay">, ShipMapOverlayContext>
 >;
 type _ShipMapOverlayBack = Expect<
   Assignable<ShipMapOverlayContext, SdkSlotProps<"ship-map.overlay">>
->;
-type _ShipMapBadges = Expect<
-  Assignable<SdkSlotProps<"ship-map.badges">, ShipMapBadgesContext>
->;
-type _ShipMapBadgesBack = Expect<
-  Assignable<ShipMapBadgesContext, SdkSlotProps<"ship-map.badges">>
->;
-
-type _ContractBadges = Expect<
-  Assignable<SdkSlotProps<"contract-manager.badges">, ContractBadgeContext>
->;
-type _ContractBadgesBack = Expect<
-  Assignable<ContractBadgeContext, SdkSlotProps<"contract-manager.badges">>
 >;
 
 type _CrewBadges = Expect<
@@ -182,15 +129,12 @@ type _CrewSurvivalBack = Expect<
 >;
 
 // crew-status.summary carries no widget-owned context type (whole-widget,
-// empty-props contract, same as ThermalStatus's `.badges` slot), so there is
-// nothing to mirror-check beyond the sdk's own `Record<string, never>`.
+// empty-props contract), so there is nothing to mirror-check beyond the sdk's
+// own `Record<string, never>`.
 type _CrewSummary = Expect<
   Assignable<SdkSlotProps<"crew-status.summary">, Record<string, never>>
 >;
 
-type _LaunchBadges = Expect<
-  Assignable<SdkSlotProps<"launch-director.badges">, LaunchDirectorSlotContext>
->;
 type _LaunchSections = Expect<
   Assignable<
     SdkSlotProps<"launch-director.sections">,
@@ -198,7 +142,10 @@ type _LaunchSections = Expect<
   >
 >;
 type _LaunchBack = Expect<
-  Assignable<LaunchDirectorSlotContext, SdkSlotProps<"launch-director.badges">>
+  Assignable<
+    LaunchDirectorSlotContext,
+    SdkSlotProps<"launch-director.sections">
+  >
 >;
 
 // "objectives.sections" is deliberately NOT bidirectionally checked here.
@@ -216,14 +163,11 @@ type _LaunchBack = Expect<
 // mirrored type in `mod/sitrep-sdk/src/api/types.ts` that predates this
 // conformance file.
 
-type _ActionGroupBadges = Expect<
-  Assignable<SdkSlotProps<"action-group.badges">, ActionGroupSlotContext>
->;
 type _ActionGroupSections = Expect<
   Assignable<SdkSlotProps<"action-group.sections">, ActionGroupSlotContext>
 >;
 type _ActionGroupBack = Expect<
-  Assignable<ActionGroupSlotContext, SdkSlotProps<"action-group.badges">>
+  Assignable<ActionGroupSlotContext, SdkSlotProps<"action-group.sections">>
 >;
 
 type _SystemOverlay = Expect<
@@ -245,12 +189,6 @@ type _MapOverlay = Expect<
 type _MapOverlayBack = Expect<
   Assignable<MapOverlayContext, SdkSlotProps<"map-view.overlay">>
 >;
-type _MapBadges = Expect<
-  Assignable<SdkSlotProps<"map-view.badges">, MapBadgesContext>
->;
-type _MapBadgesBack = Expect<
-  Assignable<MapBadgesContext, SdkSlotProps<"map-view.badges">>
->;
 type _MapSections = Expect<
   Assignable<SdkSlotProps<"map-view.sections">, MapSectionsContext>
 >;
@@ -270,31 +208,11 @@ type _MapActionsBack = Expect<
   Assignable<MapActionsContext, SdkSlotProps<"map-view.actions">>
 >;
 
-type _TechBadges = Expect<
-  Assignable<SdkSlotProps<"tech-tree.badges">, TechNodeBadgeContext>
->;
-type _TechBadgesBack = Expect<
-  Assignable<TechNodeBadgeContext, SdkSlotProps<"tech-tree.badges">>
->;
-
-type _LandingBadges = Expect<
-  Assignable<SdkSlotProps<"landing-status.badges">, LandingStatusBadgesContext>
->;
-type _LandingBadgesBack = Expect<
-  Assignable<LandingStatusBadgesContext, SdkSlotProps<"landing-status.badges">>
->;
-
 type _OrbitOverlay = Expect<
   Assignable<SdkSlotProps<"orbit-view.overlay">, OrbitOverlayContext>
 >;
 type _OrbitOverlayBack = Expect<
   Assignable<OrbitOverlayContext, SdkSlotProps<"orbit-view.overlay">>
->;
-type _OrbitBadges = Expect<
-  Assignable<SdkSlotProps<"orbit-view.badges">, OrbitBadgesContext>
->;
-type _OrbitBadgesBack = Expect<
-  Assignable<OrbitBadgesContext, SdkSlotProps<"orbit-view.badges">>
 >;
 
 type _ExperimentsSections = Expect<
@@ -329,9 +247,6 @@ type _PowerSections = Expect<
 type _PowerSectionsBack = Expect<
   Assignable<PowerSystemsSlotContext, SdkSlotProps<"power-systems.sections">>
 >;
-type _PowerBadges = Expect<
-  Assignable<SdkSlotProps<"power-systems.badges">, PowerSystemsSlotContext>
->;
 
 type _ScienceDataAboardRow = Expect<
   Assignable<
@@ -349,38 +264,23 @@ type _ScienceDataAboardRowBack = Expect<
 // Keep every alias "used" under noUnusedLocals.
 export type _SlotRegistryConformance = [
   _SpaceCenterSections,
-  _SpaceCenterBadges,
   _ManeuverSections,
-  _ManeuverBadges,
   _TargetPickerSections,
-  _TargetPickerBadges,
   _WarpActions,
   _CommSections,
-  _CommBadges,
   _SystemActions,
-  _NavballBadges,
-  _DeployedBadges,
   _FuelSections,
-  _FuelBadges,
   _D2tCamera,
   _D2tCameraBack,
   _D2tOverlay,
-  _D2tBadges,
-  _D2tBadgesBack,
   _ShipMapOverlay,
   _ShipMapOverlayBack,
-  _ShipMapBadges,
-  _ShipMapBadgesBack,
-  _ContractBadges,
-  _ContractBadgesBack,
   _CrewBadges,
   _CrewBadgesBack,
   _CrewSurvival,
   _CrewSurvivalBack,
-  _LaunchBadges,
   _LaunchSections,
   _LaunchBack,
-  _ActionGroupBadges,
   _ActionGroupSections,
   _ActionGroupBack,
   _SystemOverlay,
@@ -389,27 +289,18 @@ export type _SlotRegistryConformance = [
   _SystemBadgesBack,
   _MapOverlay,
   _MapOverlayBack,
-  _MapBadges,
-  _MapBadgesBack,
   _MapSections,
   _MapSectionsBack,
   _MapBase,
   _MapBaseBack,
-  _TechBadges,
-  _TechBadgesBack,
-  _LandingBadges,
-  _LandingBadgesBack,
   _OrbitOverlay,
   _OrbitOverlayBack,
-  _OrbitBadges,
-  _OrbitBadgesBack,
   _ExperimentsSections,
   _ExperimentsSectionsBack,
   _ExperimentsBadges,
   _ExperimentsBadgesBack,
   _PowerSections,
   _PowerSectionsBack,
-  _PowerBadges,
   _ScienceDataAboardRow,
   _ScienceDataAboardRowBack,
 ];

@@ -318,24 +318,18 @@ describe("FuelStatusComponent", () => {
     expect(stageValueTexts).toContain("1700 m/s");
   });
 
-  // Augment slots (Uplink architecture §4): the widget exposes
-  // `fuel-status.badges` (header) and `fuel-status.sections` (body). With no
-  // augment registered the slots render nothing and the widget is unchanged.
-  it("renders with empty augment slots when nothing is registered", async () => {
+  // Augment slot (Uplink architecture §4): the widget exposes
+  // `fuel-status.sections` (body). With no augment registered the slot renders
+  // nothing and the widget is unchanged.
+  it("renders with an empty augment slot when nothing is registered", async () => {
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
     await waitFor(() => expect(visibleText(container)).toContain("FUEL · ΔV"));
     expect(container.textContent).not.toContain("BOIL-OFF");
-    expect(container.textContent).not.toContain("RELIABILITY OK");
   });
 
-  it("renders augments bound to the badges and sections slots", async () => {
-    registerAugment({
-      id: "test-fuel-badge",
-      augments: "fuel-status.badges",
-      component: () => <span>RELIABILITY OK</span>,
-    });
+  it("renders an augment bound to the sections slot", async () => {
     registerAugment({
       id: "test-fuel-section",
       augments: "fuel-status.sections",
@@ -346,8 +340,7 @@ describe("FuelStatusComponent", () => {
     const { container } = renderFuel(fixture);
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("RELIABILITY OK"),
+      expect(visibleText(container)).toContain("BOIL-OFF 0.02/s"),
     );
-    expect(visibleText(container)).toContain("BOIL-OFF 0.02/s");
   });
 });

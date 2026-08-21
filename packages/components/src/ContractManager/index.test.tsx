@@ -1,11 +1,10 @@
-import { clearAugments, registerAugment } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { clearAugments } from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
-  type ContractBadgeContext,
   ContractManagerComponent,
   formatDeadline,
   parseContracts,
@@ -140,57 +139,6 @@ describe("ContractManagerComponent", () => {
     );
     expect(screen.getByText(/Survey the Mun/i)).toBeInTheDocument();
     expect(screen.queryByTestId("contract-badge")).not.toBeInTheDocument();
-  });
-
-  it("renders a bound augment once per contract row, carrying each contract's identity", async () => {
-    // A test Uplink binds `contract-manager.badges` and echoes the slot props
-    // back. Proves (a) the slot is exposed, (b) an augment composes into it,
-    // and (c) the per-row props carry the right contract identity + section.
-    // `requires` is omitted so no Domain presence gate applies.
-    registerAugment<"contract-manager.badges">({
-      id: "test-contract-badge",
-      augments: "contract-manager.badges",
-      component: ({ contractId, section }: ContractBadgeContext) => (
-        <span
-          data-testid="contract-badge"
-          data-contract-id={contractId}
-          data-section={section}
-        >
-          ★
-        </span>
-      ),
-    });
-
-    const fixture = newFixture();
-    renderContract(fixture);
-    act(() => {
-      emitContracts(fixture, {
-        active: [{ id: 42, title: "Plant a flag on the Mun", parameters: [] }],
-        offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
-      });
-    });
-
-    // One badge per contract row: one active (42), one offered (7).
-    const badges = await screen.findAllByTestId("contract-badge");
-    expect(badges).toHaveLength(2);
-
-    const activeBadge = badges.find(
-      (b) => b.getAttribute("data-contract-id") === "42",
-    );
-    const offeredBadge = badges.find(
-      (b) => b.getAttribute("data-contract-id") === "7",
-    );
-    expect(activeBadge?.getAttribute("data-section")).toBe("active");
-    expect(offeredBadge?.getAttribute("data-section")).toBe("offered");
-
-    // Each badge sits inside its own contract's card (props identity correct).
-    const activeCard = screen
-      .getByText("Plant a flag on the Mun")
-      .closest("div");
-    expect(activeCard).not.toBeNull();
-    expect(
-      within(activeCard as HTMLElement).getByTestId("contract-badge"),
-    ).toHaveAttribute("data-contract-id", "42");
   });
 
   it("dispatches career.contract.accept at the meta-vantage when Accept is clicked", async () => {

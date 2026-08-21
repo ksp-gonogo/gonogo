@@ -35,11 +35,10 @@ function render(ui: ReactElement) {
 
 /**
  * PowerSystems augment-slot exposure (this widget
- * is THE worked example). The slots (`power-systems.sections`,
- * `power-systems.badges`) are exposed but ship no filler here (that's an Uplink
- * augment's job): an empty slot must render cleanly, and a test augment
- * registered into it must appear, receiving the widget's resource focus as
- * typed slot props.
+ * is THE worked example). The `power-systems.sections` slot is exposed but
+ * ships no filler here (that is an Uplink augment's job): an empty slot must
+ * render cleanly, and a test augment registered into it must appear, receiving
+ * the widget's resource focus as typed slot props.
  */
 
 const KEYS: DataKey[] = [
@@ -71,7 +70,7 @@ const VESSEL_PARTS_WIRE = {
 };
 
 // Drive the widget to its full-list layout (topology present + a live EC flow),
-// where both the `badges` header slot and the `sections` body slot render.
+// where the `sections` body slot renders.
 // Everything (topology AND per-part resources) streams off the single
 // `vessel.parts` payload now (`useTopology`/`usePartsLive` both read it
 // canonically); the legacy AUX source only still carries the vessel-wide
@@ -110,21 +109,19 @@ describe("PowerSystems: augment slots (spec §4)", () => {
     clearAugments();
   });
 
-  it("exposes both slots on its component definition", () => {
+  it("exposes its slot on the component definition", () => {
     // The registry entry is asserted indirectly: the widget's own module-load
-    // registration declared the two slots as its extension points.
+    // registration declared the slot as its extension point.
     // (See registerComponent `augmentSlots` in ./index.tsx.)
     expect(getAugmentsForSlot("power-systems.sections")).toEqual([]);
-    expect(getAugmentsForSlot("power-systems.badges")).toEqual([]);
   });
 
-  it("renders the full list with no augments bound (empty slots are inert)", async () => {
+  it("renders the full list with no augment bound (an empty slot is inert)", async () => {
     const fixture = await renderFullList();
-    // Empty slots add nothing: the stock readout renders exactly as before.
+    // An empty slot adds nothing: the stock readout renders exactly as before.
     expect(screen.getByText("Producers")).toBeTruthy();
     expect(screen.getByText("Consumers")).toBeTruthy();
     expect(screen.queryByTestId("ps-section-augment")).toBeNull();
-    expect(screen.queryByTestId("ps-badge-augment")).toBeNull();
     teardownMockDataSource(fixture);
   });
 
@@ -146,25 +143,6 @@ describe("PowerSystems: augment slots (spec §4)", () => {
     expect(augment).toBeTruthy();
     // The slot passed the widget's current resource focus down.
     expect(augment.textContent).toBe("EC-BROKER: ElectricCharge");
-    teardownMockDataSource(fixture);
-  });
-
-  it("renders a test augment bound to the badges slot in the header", async () => {
-    function BadgeAugment({ resource }: PowerSystemsSlotContext) {
-      return <span data-testid="ps-badge-augment">{resource}!</span>;
-    }
-    const fixture = await renderFullList();
-
-    act(() => {
-      registerAugment({
-        id: "test-ps-badge",
-        augments: "power-systems.badges",
-        component: BadgeAugment,
-      });
-    });
-
-    const badge = await screen.findByTestId("ps-badge-augment");
-    expect(badge.textContent).toBe("ElectricCharge!");
     teardownMockDataSource(fixture);
   });
 });

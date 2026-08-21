@@ -31,7 +31,6 @@ import {
 } from "../test/setupStreamFixture";
 import type {
   MapActionsContext,
-  MapBadgesContext,
   MapBaseLayerContext,
   MapOverlayContext,
   MapSectionsContext,
@@ -370,27 +369,7 @@ describe("MapViewComponent", () => {
       expect(visibleText(probe)).toContain("vesselLon=undefined");
     });
 
-    it("renders a badges augment in the header, passed the body name", async () => {
-      registerAugment({
-        id: "test-map-badge",
-        augments: "map-view.badges",
-        component: (ctx: MapBadgesContext) => (
-          <span>badge:{ctx.bodyName ?? "?"}</span>
-        ),
-      });
-
-      const { container, fixture } = renderMap();
-      await emitVessel(fixture, { body: "Kerbin" });
-
-      await waitFor(() => {
-        if (!visibleText(container).includes("badge:Kerbin")) {
-          throw new Error("badge augment has not rendered with the body name");
-        }
-      });
-      expect(visibleText(container)).toContain("badge:Kerbin");
-    });
-
-    it("renders the map with both slots empty when no augment is registered", async () => {
+    it("renders the map with the overlay slot empty when no augment is registered", async () => {
       const { container, fixture } = renderMap();
       await emitVessel(fixture, { body: "Kerbin" });
 
@@ -403,7 +382,6 @@ describe("MapViewComponent", () => {
       expect(
         container.querySelector('[data-testid="overlay-probe"]'),
       ).toBeNull();
-      expect(container.textContent).not.toContain("badge:");
     });
 
     it("composes a fake map-view.sections augment below the map", async () => {

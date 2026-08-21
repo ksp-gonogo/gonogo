@@ -343,48 +343,6 @@ describe("DistanceToTarget: augment slots (spec §4)", () => {
     clearAugments();
   });
 
-  it("exposes the header .badges slot empty, then composes a registered augment with target context", async () => {
-    // No augment registered yet: the slot renders nothing and the header is
-    // otherwise unchanged.
-    const firstFixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
-    });
-    const first = renderWidget(firstFixture);
-    expect(first.container.textContent).toContain(
-      "Waiting for target telemetry",
-    );
-    expect(screen.queryByTestId("badge")).toBeNull();
-    first.unmount();
-
-    registerAugment<"distance-to-target.badges">({
-      id: "test-badge",
-      augments: "distance-to-target.badges",
-      component: ({ targetName }) => (
-        <span data-testid="badge">badge:{targetName ?? "none"}</span>
-      ),
-    });
-
-    const secondFixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
-    });
-    renderWidget(secondFixture);
-    // Header renders even with no target; the badge composes with undefined name.
-    expect(screen.getByTestId("badge").textContent).toBe("badge:none");
-
-    act(() => {
-      secondFixture.emit("vessel.target", {
-        name: "Minmus",
-        kind: KIND.CelestialBody,
-        relativePosition: atRange(1_000),
-        relativeVelocity: null,
-      });
-    });
-    // Slot-props flow live target data to the badge.
-    await waitFor(() =>
-      expect(screen.getByTestId("badge").textContent).toBe("badge:Minmus"),
-    );
-  });
-
   it("exposes the docking-HUD .overlay + .camera slots and passes the reticle/camera context", async () => {
     registerAugment<"distance-to-target.overlay">({
       id: "test-overlay",

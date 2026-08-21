@@ -67,7 +67,6 @@ export interface LaunchDirectorSlotContext {
 // `LaunchDirectorSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "launch-director.badges": LaunchDirectorSlotContext;
     "launch-director.sections": LaunchDirectorSlotContext;
   }
 }
@@ -523,15 +522,7 @@ function LaunchDirectorComponent({
         lastCrash.vesselName === vesselName);
 
   return (
-    <Panel
-      panelTitle="LAUNCH & RECOVERY"
-      /* Inline header badges: an Uplink (e.g. a life-support summary) can
-         surface an indicator beside the title without a bespoke slot (spec
-         §4.8). Renders nothing until an augment binds. */
-      panelAside={
-        <AugmentSlot name="launch-director.badges" props={slotContext} />
-      }
-    >
+    <Panel panelTitle="LAUNCH & RECOVERY">
       <Body>
         {showSubtitle && (
           <div
@@ -1501,10 +1492,10 @@ registerComponent<LaunchDirectorConfig>({
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
-  // Header badges + a pre-launch checklist section (augment-slot-map:
-  // launch-director.badges / .sections). Unfilled until a life-support /
-  // logistics Uplink binds: the launch flow renders exactly as before.
-  augmentSlots: ["launch-director.badges", "launch-director.sections"],
+  // A pre-launch checklist section (augment-slot-map:
+  // launch-director.sections). Unfilled until a life-support / logistics
+  // Uplink binds: the launch flow renders exactly as before.
+  augmentSlots: ["launch-director.sections"],
   dataRequirements: [
     "spaceCenter.savedShips",
     "spaceCenter.crewRoster",

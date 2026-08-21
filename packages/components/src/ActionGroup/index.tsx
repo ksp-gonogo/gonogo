@@ -68,9 +68,7 @@ export type ActionGroupActions = typeof actionGroupActions;
 // and live readout of the *one* group this instance drives. An augment binds a
 // Kerbalism/mod-subsystem status describing WHAT that group toggles, e.g.
 // "AG3 → radiators": using the group id/datum to scope itself.
-//   • `action-group.badges`  : inline in the header row; per-group indicators.
-//   • `action-group.sections`: richer whole-widget status block in the body.
-// Both receive the same context; the placement differs.
+//   • `action-group.sections`: a richer whole-widget status block in the body.
 // ---------------------------------------------------------------------------
 
 /**
@@ -92,11 +90,10 @@ export interface ActionGroupSlotContext {
 // Declaration-merge the slot ids → props type into core's `SlotRegistry`.
 // Co-located here (not a central file) so
 // parallel slot work on other widgets can't collide. This makes
-// `registerAugment` and `<AugmentSlot name="action-group.badges" ...>` type-check
+// `registerAugment` and `<AugmentSlot name="action-group.sections" ...>` type-check
 // against `ActionGroupSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "action-group.badges": ActionGroupSlotContext;
     "action-group.sections": ActionGroupSlotContext;
   }
 }
@@ -531,16 +528,7 @@ function ActionGroupView({
     // passing it through would nest a button and an input in a heading and
     // uppercase the operator's own label into the bargain. It reads as the
     // first line of the body instead, which is where a control belongs.
-    <Panel
-      panelTitle="ACTION GROUP"
-      panelAside={
-        /* Badges only. The bell and the toggle act on the group NAME, so they
-           belong on its line in the body: in the aside they wrapped onto their
-           own row ABOVE the label, which read as chrome for the panel rather
-           than controls for the group. */
-        <AugmentSlot name="action-group.badges" props={slotContext} />
-      }
-    >
+    <Panel panelTitle="ACTION GROUP">
       <Cluster justify="between" align="start" gap="md" wrap>
         {editing ? (
           <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
@@ -629,9 +617,8 @@ function ActionGroupView({
           {unavailableReason}
         </Badge>
       )}
-      {/* Richer whole-widget status block: the section-level counterpart to the
-          inline badges. An Uplink describing what this group toggles
-          (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
+      {/* Whole-widget status block. An Uplink describing what this group
+          toggles (e.g. a Kerbalism subsystem) renders here. Empty until bound. */}
       <AugmentSlot name="action-group.sections" props={slotContext} />
     </Panel>
   );
@@ -717,7 +704,7 @@ registerComponent<ActionGroupConfig>({
   dataRequirements: [],
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
-  augmentSlots: ["action-group.badges", "action-group.sections"],
+  augmentSlots: ["action-group.sections"],
   requires: ["flight"],
 });
 

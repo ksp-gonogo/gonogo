@@ -35,7 +35,6 @@ import {
   bare,
   deriveDockAngles,
   radialSpeed,
-  targetKindLabel,
   vecMagnitude,
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
@@ -87,9 +86,6 @@ interface DistanceToTargetConfig {
 //     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
 //     into the reticle box using the passed context. Composable by priority
 //     so several rangefinder/marker augments coexist.
-//
-// The third is the broad `.badges` escape hatch, an inline header indicator
-// (e.g. an autopilot Uplink's active docking-mode chip).
 
 /**
  * Coordinate/context the docking-HUD overlay slots pass down so an augment
@@ -126,19 +122,6 @@ export interface DistanceToTargetHudContext {
   cameraFlightId: number | null | undefined;
 }
 
-/**
- * Context the `distance-to-target.badges` header slot passes to inline-indicator
- * augments so a badge can describe the current target without its own reads.
- */
-export interface DistanceToTargetBadgeContext {
-  /** Current target name, or undefined when no target is set. */
-  targetName: string | undefined;
-  /** KSP target type (`Vessel`, `CelestialBody`, a docking-port type, ...). */
-  targetType: string | undefined;
-  /** Range to the target in metres; undefined until the stream reports position. */
-  distance: number | undefined;
-}
-
 // Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
 // hybrid, declaration-merging approach). Co-located here per-widget: no shared
 // central registry file: so parallel slot work in other widgets never collides.
@@ -149,7 +132,6 @@ declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "distance-to-target.camera": DistanceToTargetHudContext;
     "distance-to-target.overlay": DistanceToTargetHudContext;
-    "distance-to-target.badges": DistanceToTargetBadgeContext;
   }
 }
 
@@ -269,7 +251,6 @@ function DistanceToTargetComponent({
 
   const tarName = target?.name;
   const tarKind = target?.kind;
-  const tarType = targetKindLabel(tarKind);
   // Closest approach is now MOD-side (the elected IPropagationProvider),
   // carried on `vessel.target.closestApproach`: replaces the former SDK-side
   // two-body solve (o.closestTgtApprUT / vessel.state.closestApproachUt).
@@ -327,16 +308,6 @@ function DistanceToTargetComponent({
   // accurate at close range) over the general vessel-to-vessel figure.
   const dockingRelVel = derivedDockRelVel ?? relVel;
   const dockingDistance = dockDistanceStream ?? tarDistance;
-
-  // Header `.badges` slot context: a fresh object each render so the indicator
-  // tracks live target data. Passed as the tracking panel's `panelAside`, so it
-  // renders next to the widget title; the specialised approach/docking modes
-  // keep their own bespoke headers.
-  const badgeContext: DistanceToTargetBadgeContext = {
-    targetName: tarName,
-    targetType: tarType,
-    distance: tarDistance,
-  };
 
   // Mode hysteresis: sticky so we don't strobe near a threshold, and the
   // upgrade direction is asymmetric (smaller window to enter than to exit).
@@ -429,7 +400,7 @@ function DistanceToTargetComponent({
 
   if (targetReading.state === "pending") {
     return (
-      <TargetPanel badgeContext={badgeContext}>
+      <TargetPanel>
         <EmptyState>Waiting for target telemetry</EmptyState>
       </TargetPanel>
     );
@@ -458,7 +429,7 @@ function DistanceToTargetComponent({
         ? "confirmed"
         : "last seen";
     return (
-      <TargetPanel badgeContext={badgeContext}>
+      <TargetPanel>
         <EmptyState>
           {/* Stacked, not inline: `ReadoutCaption` is a span, so as a sibling
               of the bare text it ran together into one accessible string
@@ -549,7 +520,7 @@ function DistanceToTargetComponent({
     : undefined;
 
   return (
-    <TargetPanel badgeContext={badgeContext}>
+    <TargetPanel>
       <Stack
         gap="sm"
         style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
@@ -606,23 +577,8 @@ function DistanceToTargetComponent({
  * ordinary body, and duplicating the header four times was how the copy would
  * have gone out of step.
  */
-function TargetPanel({
-  badgeContext,
-  children,
-}: {
-  badgeContext: DistanceToTargetBadgeContext;
-  children: ReactNode;
-}) {
-  return (
-    <Panel
-      panelTitle="TARGET"
-      panelAside={
-        <AugmentSlot name="distance-to-target.badges" props={badgeContext} />
-      }
-    >
-      {children}
-    </Panel>
-  );
+function TargetPanel({ children }: { children: ReactNode }) {
+  return <Panel panelTitle="TARGET">{children}</Panel>;
 }
 
 /* Display tier. The type scale deliberately stops at --font-size-lg (16px);
@@ -1364,11 +1320,7 @@ registerComponent<DistanceToTargetConfig>({
   configComponent: DistanceToTargetConfigComponent,
   dataRequirements: ["vessel.target", "vessel.dock"],
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
-  augmentSlots: [
-    "distance-to-target.camera",
-    "distance-to-target.overlay",
-    "distance-to-target.badges",
-  ],
+  augmentSlots: ["distance-to-target.camera", "distance-to-target.overlay"],
   pushable: true,
   requires: ["flight"],
 });

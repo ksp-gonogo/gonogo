@@ -627,13 +627,7 @@ function FuelStatusComponent({
   });
 
   return (
-    // `panelAside` is the header escape-hatch slot (augment-slot-map "Feedback
-    // round 1"): any Uplink can drop an inline badge next to the title. Renders
-    // nothing until an augment binds `fuel-status.badges`.
-    <Panel
-      panelTitle="FUEL · ΔV"
-      panelAside={<AugmentSlot name="fuel-status.badges" props={{}} />}
-    >
+    <Panel panelTitle="FUEL · ΔV">
       {/* Stage caption relocated out of the panel subtitle into the body
           (staging change), carried by ui-kit's ReadoutCaption. */}
       {showSubtitle && currentStage !== undefined && (
@@ -819,7 +813,6 @@ function FuelStatusConfigComponent({
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "fuel-status.sections": Record<string, never>;
-    "fuel-status.badges": Record<string, never>;
   }
 }
 
@@ -854,7 +847,7 @@ registerComponent<FuelStatusConfig>({
   ],
   defaultConfig: { deltaVMode: "actual" },
   actions: [],
-  augmentSlots: ["fuel-status.sections", "fuel-status.badges"],
+  augmentSlots: ["fuel-status.sections"],
   pushable: true,
   requires: ["flight"],
 });

@@ -4,7 +4,6 @@ import {
   clearRegistry,
   DashboardItemContext,
   MockDataSource,
-  registerAugment,
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
@@ -408,20 +407,5 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
     expect(await screen.findByText("SAS: Prograde")).toBeInTheDocument();
     expect(screen.getByText("RCS")).toBeInTheDocument();
     expect(screen.queryByTestId("autopilot-badge")).toBeNull();
-  });
-
-  it("renders an augment bound to navball.badges alongside the SAS/RCS badges", async () => {
-    registerAugment({
-      id: "test-autopilot-badge",
-      augments: "navball.badges",
-      component: () => <span data-testid="autopilot-badge">AP: ASCENT</span>,
-    });
-    const { fixture } = renderNavball();
-    emitReads(fixture, { control: { sas: true, sasMode: 1 } });
-    // The augment composed into the header alongside the stock badges.
-    expect(await screen.findByText("SAS: Prograde")).toBeInTheDocument();
-    expect(screen.getByTestId("autopilot-badge")).toHaveTextContent(
-      "AP: ASCENT",
-    );
   });
 });

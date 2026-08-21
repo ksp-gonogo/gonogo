@@ -10,18 +10,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
-import {
-  type ShipMapBadgesContext,
-  ShipMapComponent,
-  type ShipMapOverlayContext,
-} from "./index";
+import { ShipMapComponent, type ShipMapOverlayContext } from "./index";
 
 /**
- * ShipMap augment-slot exposure (Uplink architecture). The slots
- * (`ship-map.overlay`, `ship-map.badges`) are exposed but ship no filler here
- * (that's an Uplink augment's job): an empty slot must render cleanly, and a
- * test augment registered into it must appear, receiving the widget's projection
- * / labelling context as typed slot props.
+ * ShipMap augment-slot exposure (Uplink architecture). The `ship-map.overlay`
+ * slot is exposed but ships no filler here (that is an Uplink augment's job):
+ * an empty slot must render cleanly, and a test augment registered into it must
+ * appear, receiving the widget's projection context as typed slot props.
  */
 
 const TOPOLOGY = fuellinePostStage2["v.topology"];
@@ -34,7 +29,7 @@ const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 const renderedTrees: Array<() => void> = [];
 
 // Drive the widget to its diagram layout (topology present with parts), where
-// both the `badges` header slot and the `overlay` diagram slot render.
+// the `overlay` diagram slot renders.
 async function renderDiagram() {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
@@ -64,20 +59,18 @@ describe("ShipMap: augment slots (spec §4)", () => {
     clearAugments();
   });
 
-  it("exposes both slots (empty until an augment binds)", () => {
+  it("exposes the slot (empty until an augment binds)", () => {
     // The registry entry is asserted indirectly: the widget's own module-load
-    // registration declared the two slots as its extension points.
+    // registration declared the slot as its extension point.
     // (See registerComponent `augmentSlots` in ./index.tsx.)
     expect(getAugmentsForSlot("ship-map.overlay")).toEqual([]);
-    expect(getAugmentsForSlot("ship-map.badges")).toEqual([]);
   });
 
-  it("renders the diagram with no augments bound (empty slots are inert)", async () => {
+  it("renders the diagram with no augment bound (an empty slot is inert)", async () => {
     await renderDiagram();
-    // Empty slots add nothing: the stock diagram renders exactly as before.
+    // An empty slot adds nothing: the stock diagram renders exactly as before.
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
     expect(screen.queryByTestId("ship-map-overlay-augment")).toBeNull();
-    expect(screen.queryByTestId("ship-map-badge-augment")).toBeNull();
   });
 
   it("renders a test augment bound to the overlay slot, passing the diagram projection as slot props", async () => {
@@ -108,23 +101,5 @@ describe("ShipMap: augment slots (spec §4)", () => {
     // the fixture's part count, the measured canvas size, a positive scale.
     expect(visibleText(overlay)).toContain(`${TOPOLOGY.parts.length}|`);
     expect(visibleText(overlay)).toContain("scaled");
-  });
-
-  it("renders a test augment bound to the badges slot in the header", async () => {
-    function BadgeAugment({ partCount }: ShipMapBadgesContext) {
-      return <span data-testid="ship-map-badge-augment">{partCount}p</span>;
-    }
-    await renderDiagram();
-
-    act(() => {
-      registerAugment({
-        id: "test-ship-map-badge",
-        augments: "ship-map.badges",
-        component: BadgeAugment,
-      });
-    });
-
-    const badge = await screen.findByTestId("ship-map-badge-augment");
-    expect(badge.textContent).toBe(`${TOPOLOGY.parts.length}p`);
   });
 });

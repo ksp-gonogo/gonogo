@@ -332,14 +332,7 @@ function DeployedScienceComponent(
 
   if (bases.length === 0) {
     return (
-      <Panel
-        panelTitle="DEPLOYED SCIENCE"
-        /* Header escape-hatch badges slot (augment-slot-map: broad escape-hatch).
-           Any Uplink can drop an inline badge next to the title, beside the
-           panel's own stream-status badge. Renders nothing until an augment
-           binds `deployed-science.badges`. */
-        panelAside={<AugmentSlot name="deployed-science.badges" props={{}} />}
-      >
+      <Panel panelTitle="DEPLOYED SCIENCE">
         <EmptyState role="status">
           {available === false
             ? "Breaking Ground not installed"
@@ -350,14 +343,7 @@ function DeployedScienceComponent(
   }
 
   return (
-    <Panel
-      panelTitle="DEPLOYED SCIENCE"
-      /* Header escape-hatch badges slot (augment-slot-map: broad escape-hatch).
-         Any Uplink can drop an inline badge next to the title, beside the
-         panel's own stream-status badge. Renders nothing until an augment
-         binds `deployed-science.badges`. */
-      panelAside={<AugmentSlot name="deployed-science.badges" props={{}} />}
-    >
+    <Panel panelTitle="DEPLOYED SCIENCE">
       <Stack
         gap="md"
         style={{ padding: "var(--space-4) var(--space-8) var(--space-8)" }}
@@ -480,8 +466,8 @@ export interface DeployedExperimentContext {
 // Declaration-merge this widget's slot ids → their props types into the sdk's
 // `SlotRegistry` (Uplink architecture §4.6). Kept co-located here, not in a
 // shared central registry file, so parallel per-widget slot work never
-// collides. `.sections` is a typed-contract per-card slot (carries the
-// experiment); `.badges` is a plain header escape-hatch (no props).
+// collides. `.sections` is a typed-contract per-card slot, carrying the
+// experiment.
 //
 // The target is `@ksp-gonogo/sitrep-sdk`, as it is for every other slot-owning
 // widget in the mod tree. This one named `@ksp-gonogo/core` until 2026-08-18,
@@ -491,7 +477,6 @@ export interface DeployedExperimentContext {
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "deployed-science.sections": DeployedExperimentContext;
-    "deployed-science.badges": Record<string, never>;
   }
 }
 
@@ -509,7 +494,7 @@ registerComponent<DeployedScienceConfig>({
   dataRequirements: ["deployed.bases", "game.dlc.breakingGround"],
   defaultConfig: {},
   actions: [],
-  augmentSlots: ["deployed-science.sections", "deployed-science.badges"],
+  augmentSlots: ["deployed-science.sections"],
   pushable: true,
   owner: BREAKING_GROUND,
 });

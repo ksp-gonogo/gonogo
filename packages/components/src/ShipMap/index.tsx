@@ -74,26 +74,12 @@ export interface ShipMapOverlayContext {
   padding: number;
 }
 
-/**
- * Props for `ship-map.badges`: the widget's BROAD escape-hatch slot (spec
- * §4.8 composable badges), rendered in the header meta row. Meant for small
- * inline status chips an Uplink wants beside the part count; badge augments
- * read their own Topics via hooks, so only labelling context is passed down.
- */
-export interface ShipMapBadgesContext {
-  /** Number of parts currently rendered. */
-  partCount: number;
-  /** Hottest part name (`therm.hottestPartName`), when known. */
-  hottestPartName: string | null;
-}
-
 // Co-located declaration-merge of this widget's slot ids → their props (spec
 // §4.6). Kept next to the widget (not in a central registry file) so parallel
 // slot work on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "ship-map.overlay": ShipMapOverlayContext;
-    "ship-map.badges": ShipMapBadgesContext;
   }
 
   // The framework's first widget-authored `ContributionRegistry` slots
@@ -297,14 +283,9 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [externalTemperature],
   );
 
-  // Slot props. `badges` carries labelling context; `overlay`
-  // carries the diagram's base-frame projection so an augment can draw in the
-  // diagram's coordinate space. `overlay` is null until parts resolve, the
-  // overlay layer only mounts once there's a diagram beneath it.
-  const badgesContext: ShipMapBadgesContext = {
-    partCount: parts.length,
-    hottestPartName: highlight,
-  };
+  // Slot props. `overlay` carries the diagram's base-frame projection so an
+  // augment can draw in the diagram's coordinate space. It is null until parts
+  // resolve, the overlay layer only mounts once there's a diagram beneath it.
   const overlayContext: ShipMapOverlayContext | null = useMemo(() => {
     if (parts.length === 0) return null;
     const { bounds, baseScale, padding } = computeShipLayout(
@@ -333,7 +314,6 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         setWrapEl,
         ambientTint,
         throttle,
-        badgesContext,
         overlayContext,
         partMeters,
         partMeta,
@@ -408,7 +388,6 @@ function renderBody(
   setWrapEl: (el: HTMLDivElement | null) => void,
   ambientTint: string | null,
   throttle: number,
-  badgesContext: ShipMapBadgesContext,
   overlayContext: ShipMapOverlayContext | null,
   partMeters: Map<string, ShipMapPartMeterEntry[]>,
   partMeta: Map<string, ShipMapPartMetaEntry[]>,
@@ -442,7 +421,6 @@ function renderBody(
         {hottestNotCurrent && (
           <span style={META_TAG}>· hot: no longer current</span>
         )}
-        <AugmentSlot name="ship-map.badges" props={badgesContext} />
       </div>
       <div ref={setWrapEl} style={DIAGRAM_WRAP}>
         {/* Ambient external-temperature tint. Was a DiagramWrap `::before`
@@ -565,10 +543,9 @@ registerComponent<ShipMapConfig>({
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },
   component: ShipMapComponent,
-  // Exposes an overlay slot (drawn over the part diagram, passed the diagram's
-  // base-frame projection) and a broad badges escape-hatch slot in the header
-  // meta row. No first-party augment fills either yet.
-  augmentSlots: ["ship-map.overlay", "ship-map.badges"],
+  // Exposes an overlay slot, drawn over the part diagram and passed the
+  // diagram's base-frame projection. No first-party augment fills it yet.
+  augmentSlots: ["ship-map.overlay"],
   // The self-contribution slots (spec §13.4): per-part resource meters and
   // per-part status/meta rows. The built-in `core` contribution
   // (./partMetersContribution.ts) always fills the first; a Kerbalism-style

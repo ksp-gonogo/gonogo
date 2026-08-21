@@ -921,14 +921,13 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
     buffered.disconnect();
   });
 
-  it("declares both whole-widget append slots on its component definition", () => {
+  it("declares its whole-widget append slot on its component definition", () => {
     expect(maneuverPlannerDef?.augmentSlots).toEqual([
       "maneuver-planner.sections",
-      "maneuver-planner.badges",
     ]);
   });
 
-  it("renders with both slots empty when no augment is registered", () => {
+  it("renders with the slot empty when no augment is registered", () => {
     render(
       <utFixture.Provider>
         <ManeuverPlannerComponent id="mnv" config={{}} />
@@ -940,7 +939,6 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
     // The frame still renders normally, an unfilled slot contributes no DOM.
     expect(screen.getByText("MANEUVER PLANNER")).toBeInTheDocument();
     expect(screen.queryByText(/from-sections-augment/i)).toBeNull();
-    expect(screen.queryByText(/from-badges-augment/i)).toBeNull();
   });
 
   it("renders an augment registered into the body sections slot", () => {
@@ -958,20 +956,5 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
       emitFullOrbit(source);
     });
     expect(screen.getByText("from-sections-augment")).toBeInTheDocument();
-  });
-
-  it("renders an augment registered into the header badges slot", () => {
-    registerAugment({
-      id: "test-header-badge",
-      augments: "maneuver-planner.badges",
-      component: () => <span>from-badges-augment</span>,
-    });
-    render(
-      <utFixture.Provider>
-        <ManeuverPlannerComponent id="mnv" config={{}} />
-      </utFixture.Provider>,
-    );
-    // Badges ride the title row, present regardless of telemetry readiness.
-    expect(screen.getByText("from-badges-augment")).toBeInTheDocument();
   });
 });

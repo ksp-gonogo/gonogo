@@ -95,17 +95,13 @@ interface Contribution {
 // reads ONLY Kerbalism's own Topics. Core never references it, the host
 // composes whatever is registered.
 //
-// `power-systems.badges`: a broad escape-hatch badge slot in the header, next
-// to the title, for a small status/indicator an Uplink wants to surface (e.g. a
-// Kerbalism warning glyph).
-//
-// Both carry the widget's current resource focus as slot props so an augment
+// It carries the widget's current resource focus as slot props so an augment
 // renders against the resource the operator is actually looking at,
 // slot-parameterised augments; the parent's context passed down. No augment
-// ships here yet: the slots render nothing until one registers.
+// ships here yet: the slot renders nothing until one registers.
 // ---------------------------------------------------------------------------
 
-/** Props both PowerSystems slots pass to their augments. */
+/** Props the PowerSystems `sections` slot passes to its augments. */
 export interface PowerSystemsSlotContext {
   /**
    * The resource the widget is currently focused on (the picker/action-cycle
@@ -125,7 +121,6 @@ export interface PowerSystemsSlotContext {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "power-systems.sections": PowerSystemsSlotContext;
-    "power-systems.badges": PowerSystemsSlotContext;
   }
 }
 
@@ -427,7 +422,6 @@ function PowerSystemsComponent({
       panelTitle="POWER SYSTEMS"
       panelAside={
         <>
-          <AugmentSlot name="power-systems.badges" props={slotProps} />
           <Select
             style={RESOURCE_SELECT}
             value={resource}
@@ -962,10 +956,10 @@ registerComponent<PowerSystemsConfig>({
   ],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
-  // Augment slots. `sections`: body table/section below the stock
-  // readout (Kerbalism EC-broker breakdown is the canonical filler); `badges`,
-  // broad header escape-hatch. Both render nothing until an Uplink registers.
-  augmentSlots: ["power-systems.sections", "power-systems.badges"],
+  // Augment slot. `sections`: body table/section below the stock readout
+  // (Kerbalism EC-broker breakdown is the canonical filler). Renders nothing
+  // until an Uplink registers.
+  augmentSlots: ["power-systems.sections"],
   pushable: true,
   requires: ["flight"],
 });

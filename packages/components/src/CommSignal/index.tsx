@@ -36,17 +36,14 @@ type CommSignalConfig = Record<string, never>;
 //    HIGH-value seat. A RealAntennas Uplink elected via capability contributes a
 //    per-antenna breakdown table (which antenna carries the link, its SNR) here,
 //    reading only its OWN RA Topics. CommSignal stays RA-agnostic.
-//  - `comm-signal.badges` (header, next to the title): the broad escape hatch
-//    for small at-a-glance chips a comms Uplink wants beside the COMMNET title.
 //
-// Neither slot passes parent coordinates/projection (they aren't overlay slots),
-// so the props contract is empty, augments render from their own Topics. The
-// declaration-merge below keeps the slot ids co-located here rather
+// The slot passes no parent coordinates/projection (it is not an overlay slot),
+// so the props contract is empty and an augment renders from its own Topics. The
+// declaration-merge below keeps the slot id co-located here rather
 // than in a shared central registry, so parallel widget work never collides.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "comm-signal.sections": Record<string, never>;
-    "comm-signal.badges": Record<string, never>;
   }
 }
 
@@ -153,10 +150,7 @@ function CommSignalComponent({
 
   if (!hasData) {
     return (
-      <Panel
-        panelTitle="COMMNET"
-        panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
-      >
+      <Panel panelTitle="COMMNET">
         <EmptyState>
           {linkNotCurrent ? "Link state no longer current" : "No signal data"}
         </EmptyState>
@@ -234,10 +228,7 @@ function CommSignalComponent({
         ? "Signal connected"
         : "";
   return (
-    <Panel
-      panelTitle="COMMNET"
-      panelAside={<AugmentSlot name="comm-signal.badges" props={{}} />}
-    >
+    <Panel panelTitle="COMMNET">
       <VisuallyHidden role="status" aria-live="polite">
         {liveAnnouncement}
       </VisuallyHidden>
@@ -454,7 +445,7 @@ registerComponent<CommSignalConfig>({
   // Two seats for a comms Uplink to extend the readout without CommSignal ever
   // importing backend-aware code (locked map: comm-signal). See the
   // `SlotRegistry` declaration-merge above for the slot props contracts.
-  augmentSlots: ["comm-signal.sections", "comm-signal.badges"],
+  augmentSlots: ["comm-signal.sections"],
   // Four Topics, not one: connectivity is the freeze-exempt `comms.link`,
   // the observation is the frozen `vessel.comms` struct, the two control-state
   // shapes are derived off `vessel.state`, and the delay is gonogo's own

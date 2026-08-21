@@ -47,22 +47,18 @@ import { MinimapForActiveVessel } from "./Minimap";
 // custom map LAYERS route to `map-view.overlay`, NOT here, this slot is for
 // extra COVERAGE ROWS only.
 //
-// `scanning.badges`: a broad escape-hatch badge slot in the header, next to
-// the title, for a small status/indicator an Uplink wants to surface.
-//
-// Both carry the widget's current body focus as slot props so an augment scopes
-// its coverage rows / badge to the body the operator is actually looking at.
-// No augment ships here yet: the slots render nothing until one
-// registers.
+// It carries the widget's current body focus as slot props so an augment scopes
+// its coverage rows to the body the operator is actually looking at. No augment
+// ships here yet: the slot renders nothing until one registers.
 // ---------------------------------------------------------------------------
 
-/** Props both Scanning slots pass to their augments. */
+/** Props the Scanning `sections` slot passes to its augments. */
 export interface ScanningSlotContext {
   /**
    * The body the widget's body-scoped sections (coverage, anomalies) are
    * currently following: the config override when set, else the active
    * vessel's body. `undefined` before any active body is known. Lets an
-   * augment scope its coverage row / badge to the same body.
+   * augment scope its coverage row to the same body.
    */
   bodyName: string | undefined;
 }
@@ -81,7 +77,6 @@ export interface ScanningSlotContext {
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "scanning.sections": ScanningSlotContext;
-    "scanning.badges": ScanningSlotContext;
   }
 }
 
@@ -201,7 +196,6 @@ function ScanningComponent({
     <Panel>
       <Cluster>
         <PanelTitle>Scanning</PanelTitle>
-        <AugmentSlot name="scanning.badges" props={slotProps} />
       </Cluster>
 
       <ScrollArea>
@@ -406,11 +400,11 @@ registerComponent<ScanningConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  // Augment slots. `sections`: extra coverage rows appended to the
+  // Augment slot. `sections`: extra coverage rows appended to the
   // per-scan-type coverage list (a resource-scanning Uplink's own coverage is
-  // the canonical filler); `badges`: broad header escape-hatch. Both render
-  // nothing until an Uplink registers. Custom map LAYERS go to map-view.overlay.
-  augmentSlots: ["scanning.sections", "scanning.badges"],
+  // the canonical filler). Renders nothing until an Uplink registers. Custom
+  // map LAYERS go to map-view.overlay.
+  augmentSlots: ["scanning.sections"],
   pushable: true,
   owner: SCANSAT,
 });

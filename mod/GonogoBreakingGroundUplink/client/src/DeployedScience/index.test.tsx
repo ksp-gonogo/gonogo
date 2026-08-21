@@ -147,25 +147,6 @@ describe("DeployedScienceComponent", () => {
     expect(screen.queryByTestId("deployed-section")).not.toBeInTheDocument();
   });
 
-  it("renders a bound header-badges augment next to the title", async () => {
-    registerAugment<"deployed-science.badges">({
-      id: "test-deployed-badge",
-      augments: "deployed-science.badges",
-      component: () => <span data-testid="deployed-badge">RAD</span>,
-    });
-
-    const fixture = newFixture();
-    renderDeployed(fixture);
-    act(() => {
-      fixture.emit("game.dlc", { breakingGround: true });
-      fixture.emit("deployed.bases", [flatEntry()]);
-    });
-
-    await waitFor(() =>
-      expect(screen.getByTestId("deployed-badge")).toHaveTextContent("RAD"),
-    );
-  });
-
   it("renders a bound sections augment per experiment card, carrying its datum", async () => {
     // A test Uplink binds `deployed-science.sections` and echoes back the
     // per-card experiment props. Proves (a) the slot is exposed, (b) an
