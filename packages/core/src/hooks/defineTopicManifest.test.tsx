@@ -4,6 +4,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
   type VesselOrbitPayload,
+  type WireOf,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -28,7 +29,7 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
-const ORBIT: VesselOrbitPayload = {
+const ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,

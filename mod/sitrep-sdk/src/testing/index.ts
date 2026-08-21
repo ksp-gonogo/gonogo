@@ -111,5 +111,6 @@ export {
   makeMeta,
   type SentCommand,
   StubTransport,
+  type WireOf,
 } from "./stub-transport";
 export { harnessTheme } from "./theme";

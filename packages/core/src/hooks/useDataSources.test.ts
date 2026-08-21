@@ -17,6 +17,10 @@ function makeMockSource(
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
+    execute: async () => {},
+    configSchema: () => [],
+    configure: () => {},
+    getConfig: () => ({}),
     onStatusChange(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);

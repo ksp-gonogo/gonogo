@@ -779,17 +779,17 @@ async function loadAllowlistAt(
  */
 function findDomainDebtGrowth(
   previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
-  current: Record<ModToken, ModAllowlist>,
+  current: Partial<Record<ModToken, ModAllowlist>>,
 ): Array<{ token: ModToken; added: string[] }> {
   const growth: Array<{ token: ModToken; added: string[] }> = [];
-  for (const token of Object.keys(current) as ModToken[]) {
+  for (const [token, entry] of Object.entries(current) as Array<
+    [ModToken, ModAllowlist]
+  >) {
     const prevEntry = previous[token];
     const oldDomainDebt = new Set(
       Array.isArray(prevEntry) ? prevEntry : (prevEntry?.domainDebt ?? []),
     );
-    const added = current[token].domainDebt.filter(
-      (f) => !oldDomainDebt.has(f),
-    );
+    const added = entry.domainDebt.filter((f) => !oldDomainDebt.has(f));
     if (added.length > 0) growth.push({ token, added });
   }
   return growth;
@@ -805,14 +805,14 @@ describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures
   };
 
   it("flags a token whose domainDebt set gained an entry", () => {
-    const previous: Record<ModToken, ModAllowlist> = {
+    const previous: Partial<Record<ModToken, ModAllowlist>> = {
       kerbcast: base,
       scansat: base,
       kos: base,
       realantennas: base,
       agx: base,
     };
-    const current: Record<ModToken, ModAllowlist> = {
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
       ...previous,
       // Synthetic leak: a new file lands in scansat's domainDebt without
       // having been there before: exactly the case the shrink-only gate
@@ -829,14 +829,14 @@ describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures
   });
 
   it("does not flag a shrink (entry removed) or an unchanged set", () => {
-    const previous: Record<ModToken, ModAllowlist> = {
+    const previous: Partial<Record<ModToken, ModAllowlist>> = {
       kerbcast: base,
       scansat: base,
       kos: base,
       realantennas: base,
       agx: base,
     };
-    const current: Record<ModToken, ModAllowlist> = {
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
       ...previous,
       // Ratcheted off: "a.ts" removed, nothing added.
       kerbcast: { permanent: ["p.ts"], domainDebt: ["b.ts"] },
@@ -850,7 +850,7 @@ describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures
     const previous: Partial<Record<ModToken, string[]>> = {
       scansat: ["a.ts", "b.ts"],
     };
-    const current: Record<ModToken, ModAllowlist> = {
+    const current: Partial<Record<ModToken, ModAllowlist>> = {
       kerbcast: empty,
       scansat: { permanent: [], domainDebt: ["a.ts", "b.ts"] },
       kos: empty,
