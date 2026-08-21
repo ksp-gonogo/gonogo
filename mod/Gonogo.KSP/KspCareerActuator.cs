@@ -1,5 +1,6 @@
 using System;
 using Contracts;
+using Gonogo.KSP.Career;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Strategies;
@@ -197,24 +198,11 @@ namespace Gonogo.KSP
             }
 
             var live = proto.facilityRefs[0];
-            if (live.FacilityLevel >= live.MaxLevel)
+            var maxTier = CareerRefusals.MaxTierBreach(
+                facilityId, FacilityDisplayName(facilityId), live.GetNormLevel(), live.FacilityLevel, live.MaxLevel);
+            if (maxTier != null)
             {
-                // Tiers are 0-based internally and 1-based to an operator, who
-                // reads "tier 3 of 3" off the same building the game labels
-                // "Level 3". Both sides are shifted here so the pair stays
-                // consistent rather than one of them being off by one.
-                return CommandResult.Fail(
-                    CommandErrorCode.AlreadyAtMaximum,
-                    new LimitBreach
-                    {
-                        Facility = facilityId,
-                        FacilityName = FacilityDisplayName(facilityId),
-                        FacilityLevel = live.GetNormLevel(),
-                        Quantity = "tier",
-                        Limit = live.MaxLevel + 1,
-                        Actual = live.FacilityLevel + 1,
-                        Unit = Units.Count,
-                    });
+                return CommandResult.Fail(CommandErrorCode.AlreadyAtMaximum, maxTier);
             }
 
             var funding = Funding.Instance;
@@ -226,21 +214,11 @@ namespace Gonogo.KSP
             var cost = live.GetUpgradeCost();
             if (funding.Funds < cost)
             {
-                // Limit is the balance and Actual is the price, which is the
-                // right way round for the comparison the breach models: what the
-                // call asked for against what was allowed.
                 return CommandResult.Fail(
                     CommandErrorCode.InsufficientFunds,
-                    new LimitBreach
-                    {
-                        Facility = facilityId,
-                        FacilityName = FacilityDisplayName(facilityId),
-                        FacilityLevel = live.GetNormLevel(),
-                        Quantity = "funds",
-                        Limit = funding.Funds,
-                        Actual = cost,
-                        Unit = Units.Funds,
-                    });
+                    CareerRefusals.ShortfallBreach(
+                        facilityId, FacilityDisplayName(facilityId), live.GetNormLevel(),
+                        "funds", cost, funding.Funds, Units.Funds));
             }
 
             funding.AddFunds(-cost, TransactionReasons.StructureConstruction);
@@ -288,24 +266,19 @@ namespace Gonogo.KSP
 
             var gameVariables = GameVariables.Instance;
             var activeCrew = roster.GetActiveCrewCount();
+            var complexNorm = 0f;
             if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
             {
-                var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
-                var crewLimit = gameVariables.GetActiveCrewLimit(norm);
-                if (activeCrew >= crewLimit)
+                complexNorm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
+                var crewCap = CareerRefusals.CrewCapBreach(
+                    SpaceCenterFacility.AstronautComplex.ToString(),
+                    FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
+                    complexNorm,
+                    activeCrew,
+                    gameVariables.GetActiveCrewLimit(complexNorm));
+                if (crewCap != null)
                 {
-                    return CommandResult.Fail(
-                        CommandErrorCode.LimitReached,
-                        new LimitBreach
-                        {
-                            Facility = SpaceCenterFacility.AstronautComplex.ToString(),
-                            FacilityName = FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
-                            FacilityLevel = norm,
-                            Quantity = "activeCrew",
-                            Limit = crewLimit,
-                            Actual = activeCrew,
-                            Unit = Units.Count,
-                        });
+                    return CommandResult.Fail(CommandErrorCode.LimitReached, crewCap);
                 }
             }
 
@@ -314,15 +287,10 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(
                     CommandErrorCode.InsufficientFunds,
-                    new LimitBreach
-                    {
-                        Facility = SpaceCenterFacility.AstronautComplex.ToString(),
-                        FacilityName = FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
-                        Quantity = "funds",
-                        Limit = funding.Funds,
-                        Actual = cost,
-                        Unit = Units.Funds,
-                    });
+                    CareerRefusals.ShortfallBreach(
+                        SpaceCenterFacility.AstronautComplex.ToString(),
+                        FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
+                        complexNorm, "funds", cost, funding.Funds, Units.Funds));
             }
 
             funding.AddFunds(-cost, TransactionReasons.CrewRecruited);

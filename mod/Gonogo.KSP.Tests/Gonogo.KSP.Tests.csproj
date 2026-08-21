@@ -100,14 +100,15 @@
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
   </PropertyGroup>
 
-  <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/** and
-       CommandCentres/**; drop them all unless Assembly-CSharp.dll is present,
-       then re-add them (and the KSP-touching sources) below. -->
+  <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/**,
+       CommandCentres/** and Career/**; drop them all unless Assembly-CSharp.dll
+       is present, then re-add them (and the KSP-touching sources) below. -->
   <ItemGroup>
     <Compile Remove="CurrencyDelay\**\*.cs" />
     <Compile Remove="SilenceTracking\**\*.cs" />
     <Compile Remove="Comms\**\*.cs" />
     <Compile Remove="CommandCentres\**\*.cs" />
+    <Compile Remove="Career\**\*.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -189,6 +190,15 @@
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreDelayUplink.cs" />
     <Compile Include="CommandCentres\**\*.cs" />
     <Compile Include="Comms\**\*.cs" />
+    <!-- The career refusal RULES, carved out of KspCareerActuator so a headless
+         test can enter them at all: the actuator's own bodies reach Funding /
+         ScenarioUpgradeableFacilities / ContractSystem, every one a MonoBehaviour
+         whose Instance is null outside a live scene, so not one line of them
+         runs headlessly. Same discipline as PlanOwner.cs and CommNetOcclusion.cs
+         above. CareerRefusals.cs takes numbers and needs no KSP types at all;
+         it sits under this gate only to keep the career pair together. -->
+    <Compile Include="..\Gonogo.KSP\Career\CareerRefusals.cs" />
+    <Compile Include="Career\**\*.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->
