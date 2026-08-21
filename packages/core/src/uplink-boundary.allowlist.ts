@@ -88,6 +88,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
@@ -263,6 +268,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // -- Kerbalism's own SCANsat bridge --
       // Kerbalism ships a `KerbalismScansat` PartModule and a config patch that
       // DELETES the part's `SCANexperiment` module to make room for it. So with
@@ -482,6 +492,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // budget is keyed by file path, so it names every Uplink that unwraps a
       // Value. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/styleguide-magnitude-budget.test.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
       // example Uplinks the Hub can load. Copy, not code coupling.
       "packages/app/src/wizard/steps/WelcomeStep.tsx",
@@ -738,6 +753,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // -- Judgment calls, all resolved clean (audit §4) --
       "mod/Gonogo.KSP/CommNetBackend.cs",
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
@@ -956,6 +976,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // -- Uplink loader: the sanctioned self-registration import, same
       // pattern as kerbcast/kos/scansat's main.tsx entries above.
       "packages/app/src/main.tsx",
@@ -1056,6 +1081,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // -- Uplink loader: the sanctioned self-registration import, same
       // pattern as kerbcast/kos/scansat/mechjeb's main.tsx entries above.
       "packages/app/src/main.tsx",
@@ -1216,6 +1246,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // debt list is keyed by file path, so it necessarily names every Uplink
       // directory. Ratchet-inventory file, the case this bucket documents.
       "packages/core/src/uplink-isolation.allowlist.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
+      // of packages whose `typecheck` does not yet cover their own test files
+      // is keyed by package directory, so it names every Uplink client.
+      // Ratchet-inventory file, the case this bucket documents.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // FleetReliability's characterisation test emits `reliability.summary`
       // payloads carrying real `source` values. A wire-value reference: the widget
       // only branches on `source === "none"`, never on the vendor.
@@ -1461,6 +1496,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // a usable comment. Text-only mention in a ratchet-inventory file, the
       // case this bucket documents.
       "packages/core/src/ci-test-project-coverage.test.ts",
+      // -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): its debt list is
+      // keyed by package directory, and `mod/GonogoPrincipiaUplink/client` is
+      // one of the directories whose tests are not yet typechecked. Text-only
+      // mention in a ratchet-inventory file, same case as the entry above.
+      "packages/core/src/typecheck-coverage.allowlist.ts",
       // Everything below is a HISTORICAL RECORD of a decision that removed
       // Principia awareness from core, or documentation of an external format
       // that named it. You cannot record "we deliberately deleted detection of
