@@ -64,10 +64,27 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
   // `DistanceToTarget/no-target` renders the tombstone's own age. All three are
   // fed renders, so allowlisting them would have granted a permission none of
   // them needed.
+  //
+  // `ThermalStatus/no-thermal-data` is BACK, and the reversal is worth stating
+  // because the first reading was drawn from a signal that could not mean what
+  // it was taken to mean. Its spec then hand-built its stream and settled on
+  // `waitFor(store.sample("vessel.thermal") !== undefined)`. Starve that and the
+  // wait TIMES OUT, so the test failed for want of a sample rather than because
+  // the render differed, and the gate read "fails when starved" as "renders its
+  // data". The shared harness waits on subscriptions with a bounded frame budget
+  // and then captures whatever is on screen, so the comparison is now between
+  // two renders and the answer is honest: the 2.05 K sentinel readings ARE this
+  // fixture's subject, and the widget is right to call them no data.
   "ActionGroup/unknown-state":
     "the configured group has not been reported, which is the scenario: its own fixture asks for the faint em dash",
   "CommSignal/no-signal-data":
     "loss of signal is the scenario; the widget's subject is the absence",
+  "ThermalStatus/no-thermal-data":
+    "every reading is the 2.05 K deep-space sentinel under an empty part name, which is the vessel reporting no thermal data rather than a read that failed",
+  "Strategies/feature-unavailable":
+    "the Administration Building is not unlocked, so `strategies` is null on the wire and there is no roster to draw; the absence is the scenario",
+  "FuelStatus/no-engine-data":
+    "no engines, no stages and every tank 0/0, and at tiny-3x3 the widget is the stage readout alone, so that one mode has nothing left to show; the other seven modes DO render this fixture and fail when starved",
   "KeplerPeriod/no-body-data":
     "no body resolved, so there is no gravitational parameter and no curve to plot; the fixture asks for the empty GraphView by name",
   "ContractManager/awaiting-telemetry":

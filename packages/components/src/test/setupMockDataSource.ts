@@ -2,8 +2,12 @@ import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearRegistry,
+  getComponents,
+  getThemes,
   MockDataSource,
+  registerComponent,
   registerDataSource,
+  registerTheme,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { cleanup } from "@ksp-gonogo/test-utils";
@@ -70,10 +74,37 @@ export interface MockDataSourceFixture {
  * The buffered wrapper is registered (not the raw source), components read
  * through the buffered layer in production, so tests must too.
  */
+/**
+ * Reset the data-source registry and put back the two registries this helper
+ * does not own.
+ *
+ * `clearRegistry` empties components, data sources and themes together, and
+ * this helper wants only the middle one. Widget modules register their
+ * component ONCE, at import, so from the second `setupMockDataSource` call in a
+ * file onward the component registry was empty for the rest of the run:
+ * `widgetDomSnapshot` had to cache each widget's registered `defaultConfig` by
+ * component identity to survive it, and any test reaching the registry after
+ * its first render saw nothing there.
+ *
+ * Restoring is a stand-in for the narrower clear. The registries live in
+ * `@ksp-gonogo/sitrep-sdk`, which publishes `clearRegistry` and no per-registry
+ * equivalent, and a leaf package every Uplink depends on is not somewhere to
+ * add an export in passing.
+ */
+function clearOnlyDataSources(): void {
+  const components = getComponents();
+  const themes = getThemes();
+  clearRegistry();
+  for (const def of components) {
+    registerComponent(def as Parameters<typeof registerComponent>[0]);
+  }
+  for (const theme of themes) registerTheme(theme);
+}
+
 export async function setupMockDataSource(
   opts: SetupMockOptions,
 ): Promise<MockDataSourceFixture> {
-  clearRegistry();
+  clearOnlyDataSources();
   const source = new MockDataSource({
     id: opts.id,
     keys: opts.keys,

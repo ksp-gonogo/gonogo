@@ -540,7 +540,8 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
  * appear: those live in the playwright PNGs.
  */
 /**
- * The `defaultConfig` each widget registered, remembered by component identity.
+ * Caller's override, else the `defaultConfig` the widget registered, else
+ * nothing.
  *
  * A widget whose behaviour depends on its registered default renders NOTHING
  * without one: ActionGroup answers "No action group configured" for every mode
@@ -549,35 +550,18 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
  * def.defaultConfig ?? {}` in probe-entry.tsx); this harness only ever used a
  * `defaultConfig` the CALLER passed, and almost no caller passes one.
  *
- * Cached rather than looked up per render because `setupMockDataSource` opens
- * with `clearRegistry()`, which empties the component registry along with the
- * data sources. The widget modules registered at import, so the registry is
- * intact for the first render in a file and empty from the second on; caching
- * what was there keeps every render in the file agreeing with the first.
+ * This used to memoise the answer by component identity, because
+ * `setupMockDataSource` opened with `clearRegistry()` and that empties the
+ * component registry alongside the data sources: the registry was intact for
+ * the first render in a file and gone from the second on. It clears only what
+ * it owns now, so the registry is simply there to be read.
  */
-const registeredDefaults = new WeakMap<object, Record<string, unknown>>();
-
-function rememberRegisteredDefaults(): void {
-  for (const def of getComponents()) {
-    const component = def.component as unknown as object | undefined;
-    if (!component || def.defaultConfig === undefined) continue;
-    if (!registeredDefaults.has(component)) {
-      registeredDefaults.set(
-        component,
-        def.defaultConfig as Record<string, unknown>,
-      );
-    }
-  }
-}
-
-/** Caller's override, else whatever the widget registered, else nothing. */
 function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
   if (opts.defaultConfig !== undefined) return opts.defaultConfig;
-  rememberRegisteredDefaults();
-  const remembered = registeredDefaults.get(opts.Widget as unknown as object) as
-    | Cfg
-    | undefined;
-  return remembered ?? ({} as Cfg);
+  const registered = getComponents().find(
+    (def) => (def.component as unknown as object) === opts.Widget,
+  )?.defaultConfig;
+  return (registered as Cfg | undefined) ?? ({} as Cfg);
 }
 
 /**
@@ -685,7 +669,6 @@ export async function snapshotWidgetMode<
   // does the same so body-aware widgets see resolved BodyDefinitions
   // for `Kerbin`, `Mun`, etc.
   registerStockBodies();
-  rememberRegisteredDefaults();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
   );
@@ -788,7 +771,6 @@ export async function renderWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<RenderedWidget> {
   registerStockBodies();
-  rememberRegisteredDefaults();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
   );
