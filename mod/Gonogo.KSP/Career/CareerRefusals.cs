@@ -69,6 +69,45 @@ namespace Gonogo.KSP.Career
         }
 
         /// <summary>
+        /// The R&amp;D tier's ceiling on a researchable node's science cost
+        /// (<c>GameVariables.GetScienceCostLimit</c>), which stock's own
+        /// <c>RDTech.ResearchTech</c> refuses past with
+        /// <c>OperationResult.ScienceCostLimitExceeded</c>.
+        /// </summary>
+        public static LimitBreach? ScienceCostBreach(
+            string facilityId,
+            string facilityName,
+            double facilityLevel,
+            double scienceCost,
+            double scienceCostLimit)
+        {
+            // As shipped: UnlockTech never reads the limit, so no cost is ever
+            // over it and we unlock nodes stock refuses at this R&D tier.
+            return null;
+        }
+
+        /// <summary>
+        /// Mission Control's cap on simultaneously accepted contracts
+        /// (<c>GameVariables.GetActiveContractsLimit</c>).
+        ///
+        /// <para>Stock enforces this ONLY in <c>MissionControl.RefreshUIControls</c>,
+        /// which greys its own Accept button. <c>Contract.Accept()</c> itself
+        /// gates on state alone, so a caller that is not that UI walks straight
+        /// past the cap. We are that caller, so we have to ask it ourselves.</para>
+        /// </summary>
+        public static LimitBreach? ActiveContractsBreach(
+            string facilityId,
+            string facilityName,
+            double facilityLevel,
+            int activeContracts,
+            double contractsLimit)
+        {
+            // As shipped: AcceptContract asks Contract.Accept() and nothing
+            // else, so it accepts past a cap the game would have stopped at.
+            return null;
+        }
+
+        /// <summary>
         /// A facility that has nothing above it
         /// (<c>UpgradeableFacility.FacilityLevel</c> against <c>MaxLevel</c>).
         ///

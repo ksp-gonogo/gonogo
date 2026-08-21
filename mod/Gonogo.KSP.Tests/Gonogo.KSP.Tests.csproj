@@ -198,6 +198,12 @@
          above. CareerRefusals.cs takes numbers and needs no KSP types at all;
          it sits under this gate only to keep the career pair together. -->
     <Compile Include="..\Gonogo.KSP\Career\CareerRefusals.cs" />
+    <!-- CareerAffordability.cs genuinely needs the reference DLL: it runs
+         stock's own CurrencyModifierQuery, a plain class that loads and prices
+         a spend headlessly (its RunQuery half fires a GameEvent, whose static
+         ctor wants UnityEngine.UI and does not, so a test builds the query
+         directly). -->
+    <Compile Include="..\Gonogo.KSP\Career\CareerAffordability.cs" />
     <Compile Include="Career\**\*.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
