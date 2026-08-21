@@ -43,7 +43,7 @@ import {
 } from "../ecosystem";
 import { SHIP_SYSTEMS, type ShipSystems } from "../processor";
 import { KERBALISM } from "../uplink";
-// Side-effect import: registers the `life-support.sections` augment filler
+// Side-effect import: registers the `ship-systems.life-support` augment filler
 // (the Greenhouse section) and the SlotRegistry declaration merge for that
 // slot id, see that file's own doc comment. Life support is a Kerbalism
 // concept, so this augment lives here in the Uplink (not
@@ -213,7 +213,7 @@ function processSeverity(state: ProcessRunState): Severity | undefined {
 }
 
 /** Mirrors GreenhouseSection's own `GreenhouseRow`, ported field-for-field so
- *  the existing `life-support.sections` augment (see the slot render site's
+ *  the existing `ship-systems.life-support` augment (see the slot render site's
  *  own doc comment below) keeps rendering unchanged. */
 interface GreenhouseRow {
   cropResource: string;
@@ -573,10 +573,10 @@ function ShipSystemsBody({
         {/* The built-in Greenhouse readout (this package's own
             GreenhouseSection, moved here alongside the Ship Systems rebuild
             when the old LifeSupportSystems widget was deleted) fills this
-            slot: it self-registers into `life-support.sections` via the
+            slot: it self-registers into `ship-systems.life-support` via the
             side-effect import above. */}
         <AugmentSlot
-          name="life-support.sections"
+          name="ship-systems.life-support"
           props={{ greenhouses, ambientRadiationRadPerSecond }}
         />
       </Stack>
@@ -862,10 +862,11 @@ registerComponent<ShipSystemsConfig>({
   defaultConfig: {},
   actions: [],
   requires: ["flight"],
-  // Reuses the `life-support.sections` slot id the deleted LifeSupportSystems
-  // widget used to own (see the render-site comment above): the Greenhouse
-  // augment, now living alongside this widget, fills it out of the box.
-  augmentSlots: ["life-support.sections"],
+  // The slot the Greenhouse augment fills, now named for the widget that
+  // actually hosts it. It carried the deleted LifeSupportSystems widget's
+  // `life-support.` prefix until the rename, which matched no registered
+  // component id, so `${componentId}.${segment}` could never derive it.
+  augmentSlots: ["ship-systems.life-support"],
   owner: KERBALISM,
 });
 

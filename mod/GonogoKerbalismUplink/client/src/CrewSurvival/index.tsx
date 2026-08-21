@@ -154,7 +154,7 @@ function warningFor(
 }
 
 /**
- * CrewStatus's `crew-status.badges` augment: the name-adjacent per-row
+ * CrewStatus's `crew-status.row-badges` augment: the name-adjacent per-row
  * slot (renders inline in the roster row's `Cluster`, right next to the
  * kerbal's name, per `CrewBadgeContext`'s own doc comment: "a future
  * Kerbalism Habitat/Radiation Uplink can badge each kerbal"). Fed by the
@@ -165,7 +165,7 @@ function warningFor(
 function CrewSurvivalBadgeAugment({
   crewName,
   crewIndex,
-}: SlotProps<"crew-status.badges">) {
+}: SlotProps<"crew-status.row-badges">) {
   const survival = useProcessor(CREW_SURVIVAL);
   if (!survival) return null;
   const kerbal = findKerbal(survival, crewName, crewIndex);
@@ -189,7 +189,7 @@ registerAugment({
 
 registerAugment({
   id: "crew-status-survival-badge",
-  augments: "crew-status.badges",
+  augments: "crew-status.row-badges",
   component: CrewSurvivalBadgeAugment,
   requires: "kerbalism",
   owner: KERBALISM,

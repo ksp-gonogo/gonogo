@@ -16,8 +16,8 @@ import {
 } from "./index";
 
 /**
- * Experiments augment-slot exposure. The slots (`science-officer.sections`,
- * the per-instrument row slot, and `science-officer.badges`: the header
+ * Experiments augment-slot exposure. The slots (`experiments.instrument`,
+ * the per-instrument row slot, and `experiments.actions`: the header
  * escape-hatch) are exposed but ship no filler here (that's an Uplink
  * augment): an empty slot must render cleanly, and a test augment registered
  * into it must appear, receiving the widget's focus as typed slot props.
@@ -87,8 +87,8 @@ describe("Experiments: augment slots (spec §4)", () => {
   });
 
   it("exposes both slots with no augments bound (registry starts empty)", () => {
-    expect(getAugmentsForSlot("science-officer.sections")).toEqual([]);
-    expect(getAugmentsForSlot("science-officer.badges")).toEqual([]);
+    expect(getAugmentsForSlot("experiments.instrument")).toEqual([]);
+    expect(getAugmentsForSlot("experiments.actions")).toEqual([]);
   });
 
   it("renders the full list with no augments bound (empty slots are inert)", async () => {
@@ -110,7 +110,7 @@ describe("Experiments: augment slots (spec §4)", () => {
     act(() => {
       registerAugment({
         id: "test-sci-section",
-        augments: "science-officer.sections",
+        augments: "experiments.instrument",
         component: SectionAugment,
       });
     });
@@ -133,7 +133,7 @@ describe("Experiments: augment slots (spec §4)", () => {
     act(() => {
       registerAugment({
         id: "test-sci-badge",
-        augments: "science-officer.badges",
+        augments: "experiments.actions",
         component: BadgeAugment,
       });
     });

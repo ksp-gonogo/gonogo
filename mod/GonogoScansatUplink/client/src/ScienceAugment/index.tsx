@@ -1,14 +1,16 @@
 // SCANsat science augment for Experiments.
 //
-// Fills Experiments's `science-officer.badges` header slot with the
+// Fills Experiments's `experiments.actions` header slot with the
 // vessel's SCANsat map-scanner experiments: parts SCANsat manages via
 // `SCANexperiment`/`IScienceDataContainer`, which never appear in
 // `sci.instruments` (the stock-experiment topic Experiments itself
-// reads), so there is no per-instrument row to hang off. `badges` is the
-// widget's broad, once-per-widget escape-hatch slot (its own doc comment:
-// "badges-as-broad-escape-hatch"): the right shape for a whole extra
-// section, unlike `science-officer.sections` (per-instrument, wrong shape
-// here).
+// reads), so there is no per-instrument row to hang off. `actions` is the
+// once-per-widget header slot: the right shape for a whole extra section,
+// unlike `experiments.instrument` (per-instrument, wrong shape here).
+//
+// It bound `science-officer.badges` until the slot was renamed. That name
+// matched no registered component id, so nothing could derive it, and it
+// collided with the framework's own `.badges` contribution segment.
 //
 // Presence-gated on `requires: "scansat"`: `AugmentSlot` renders this only
 // while `scansat.available` is live, so an install without the SCANsat mod
@@ -87,16 +89,16 @@ export function parseScanScience(raw: unknown): ScienceInstrument[] | null {
  * Transmit in particular is blocked mod-side (a private SCANsat method)
  * until that lands.
  *
- * Layout tension flagged, not solved: `science-officer.badges`
+ * Layout tension flagged, not solved: `experiments.actions`
  * renders inline in the header's flex `Cluster` next to the panel title, so
  * a full row list can't just sit there, it would crush the title. This
  * ships a collapsed count badge that expands a floating row list on click,
  * leaving the header's stock layout untouched either way (collapsed or
- * expanded). The clean long-term fix is a dedicated body-level
- * `science-officer.sections-append` slot on Experiments:
- * flagged for live review, not built here.
+ * expanded). The clean long-term fix is to bind the universal body-level
+ * `experiments.sections` segment instead: flagged for live review, not
+ * built here.
  */
-function ScansatScienceAugment(_props: SlotProps<"science-officer.badges">) {
+function ScansatScienceAugment(_props: SlotProps<"experiments.actions">) {
   // Accumulated science is a fact: it changes when a scan completes.
   const raw = stillTrue(useTelemetry("scansat.science"), undefined);
   const experiments = parseScanScience(raw);
@@ -191,7 +193,7 @@ const ROW_LIST: CSSProperties = {
 
 registerAugment({
   id: "scansat-science",
-  augments: "science-officer.badges",
+  augments: "experiments.actions",
   requires: "scansat",
   channels: ["scansat.science"],
   component: ScansatScienceAugment,

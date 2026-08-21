@@ -3,9 +3,9 @@
  * critical" / "N crew critical"), a CONTRIBUTION the Kerbalism Uplink drops
  * into the auto-wired `crew-status.badges` CONTRIBUTION slot
  * (`mod/GonogoKerbalismUplink/client/src/CrewSurvival/badge.ts`). This is a
- * different registry from the per-row `crew-status.badges` AugmentSlot the
- * base widget itself declares in `index.tsx`: same slot NAME, two different
- * mechanisms (contributions vs. augments), see `badge.ts`'s own doc comment.
+ * different registry from the per-row `crew-status.row-badges` AugmentSlot the
+ * base widget itself declares in `index.tsx`, which carried this exact name
+ * until the two were told apart, see `badge.ts`'s own doc comment.
  *
  * The shared `scripts/probe/probe-entry.tsx` (used by every other widget's
  * review render AND the visual-gate baselines) deliberately never mounts

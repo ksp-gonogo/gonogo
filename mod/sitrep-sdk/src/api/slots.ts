@@ -562,7 +562,7 @@ declare module "./types" {
 
     "ship-map.overlay": ShipMapOverlayContext;
 
-    "crew-status.badges": CrewBadgeContext;
+    "crew-status.row-badges": CrewBadgeContext;
     "crew-status.avatar": CrewAvatarContext;
     "crew-status.survival": CrewSurvivalSlotContext;
     "crew-status.summary": Record<string, never>;
@@ -585,8 +585,8 @@ declare module "./types" {
 
     "orbit-view.overlay": OrbitOverlayContext;
 
-    "science-officer.sections": ExperimentsInstrumentSlotContext;
-    "science-officer.badges": ExperimentsSlotContext;
+    "experiments.instrument": ExperimentsInstrumentSlotContext;
+    "experiments.actions": ExperimentsSlotContext;
 
     "deployed-science.sections": DeployedExperimentContext;
 

@@ -11,7 +11,7 @@ import {
 import { KERBALISM } from "../uplink";
 
 /**
- * Greenhouse section, the built-in filler for the `life-support.sections`
+ * Greenhouse section, the built-in filler for the `ship-systems.life-support`
  * augment slot (see `ShipSystems/index.tsx`'s slot doc comment). Registered as
  * an ordinary augment rather than baked into the host body so a future
  * non-Kerbalism life-support source can leave the slot empty with no code
@@ -89,12 +89,12 @@ export interface LifeSupportSlotContext {
 // part of Kerbalism's own compiled program, so there is no cross-package
 // reachability problem for the slot's OWNER (see slots.ts's own header for
 // the full reasoning, and Scanning/index.tsx for the matching pattern). This
-// is what types `registerAugment({ augments: "life-support.sections", ... })`
-// and `<AugmentSlot name="life-support.sections" props={...} />` against
+// is what types `registerAugment({ augments: "ship-systems.life-support", ... })`
+// and `<AugmentSlot name="ship-systems.life-support" props={...} />` against
 // `LifeSupportSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
-    "life-support.sections": LifeSupportSlotContext;
+    "ship-systems.life-support": LifeSupportSlotContext;
   }
 }
 
@@ -294,7 +294,7 @@ function GreenhouseSection({
 
 registerAugment({
   id: "life-support-greenhouse",
-  augments: "life-support.sections",
+  augments: "ship-systems.life-support",
   component: GreenhouseSection,
   owner: KERBALISM,
 });

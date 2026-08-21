@@ -40,7 +40,7 @@ function renderSlot(ui: ReactElement) {
   return render(ui);
 }
 
-describe("SCANsat science augment: science-officer.badges slot", () => {
+describe("SCANsat science augment: experiments.actions slot", () => {
   beforeEach(() => {
     clearRegistry();
   });
@@ -53,7 +53,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
           <AugmentSlot
-            name="science-officer.badges"
+            name="experiments.actions"
             props={{ instruments: null, dataAmount: 0 }}
           />
         </WithScansatAvailability>
@@ -77,7 +77,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
           <AugmentSlot
-            name="science-officer.badges"
+            name="experiments.actions"
             props={{ instruments: null, dataAmount: 0 }}
           />
         </WithScansatAvailability>
@@ -137,7 +137,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
           <AugmentSlot
-            name="science-officer.badges"
+            name="experiments.actions"
             props={{ instruments: null, dataAmount: 0 }}
           />
         </WithScansatAvailability>
@@ -164,7 +164,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
     // no store mounted, the `scansat.science` read never resolves either).
     renderSlot(
       <AugmentSlot
-        name="science-officer.badges"
+        name="experiments.actions"
         props={{ instruments: null, dataAmount: 0 }}
       />,
     );
@@ -180,7 +180,7 @@ describe("SCANsat science augment: science-officer.badges slot", () => {
       <TelemetryProvider client={client}>
         <WithScansatAvailability>
           <AugmentSlot
-            name="science-officer.badges"
+            name="experiments.actions"
             props={{ instruments: null, dataAmount: 0 }}
           />
         </WithScansatAvailability>

@@ -6,14 +6,12 @@ import { CREW_SURVIVAL, type CrewSurvival } from "./processor";
 // CrewStatus's panel badge (mirrors `ShipSystems/badge.ts`'s
 // `ship-systems-badge`): a pure contribution to the widget's auto-wired
 // `crew-status.badges` slot (the collapsed-header badge the panel-header
-// redesign surfaces, contribution-slots-spec §13.2 `panelBadges`, DISTINCT
-// from the widget-authored per-row `crew-status.badges` AugmentSlot the
-// CrewStatus base widget itself declares for `CrewSurvivalBadgeAugment` in
-// `index.tsx`: same slot NAME, two different registries, `augments.ts`'s
-// SlotRegistry for the per-row one and `contributions.ts`'s
-// ContributionRegistry for this one). Fed by the SAME `CREW_SURVIVAL`
-// Processor `index.tsx`'s per-row augment reads: one per-frame evaluation,
-// two consumers.
+// redesign surfaces, contribution-slots-spec §13.2 `panelBadges`). The
+// widget-authored per-row AugmentSlot that used to share this exact string is
+// now `crew-status.row-badges`: one name across two registries rendered in two
+// places on screen and gave an author no way to tell which they were binding.
+// Fed by the SAME `CREW_SURVIVAL` Processor `index.tsx`'s per-row augment
+// reads: one per-frame evaluation, two consumers.
 //
 // States the condition at VESSEL level ("Crew critical" / "2 crew
 // critical"), never a specific kerbal's name: the header has room for one

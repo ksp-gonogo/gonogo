@@ -108,10 +108,10 @@ type _ShipMapOverlayBack = Expect<
 >;
 
 type _CrewBadges = Expect<
-  Assignable<SdkSlotProps<"crew-status.badges">, CrewBadgeContext>
+  Assignable<SdkSlotProps<"crew-status.row-badges">, CrewBadgeContext>
 >;
 type _CrewBadgesBack = Expect<
-  Assignable<CrewBadgeContext, SdkSlotProps<"crew-status.badges">>
+  Assignable<CrewBadgeContext, SdkSlotProps<"crew-status.row-badges">>
 >;
 
 type _CrewAvatar = Expect<
@@ -210,21 +210,21 @@ type _OrbitOverlayBack = Expect<
 
 type _ExperimentsSections = Expect<
   Assignable<
-    SdkSlotProps<"science-officer.sections">,
+    SdkSlotProps<"experiments.instrument">,
     ExperimentsInstrumentSlotContext
   >
 >;
 type _ExperimentsSectionsBack = Expect<
   Assignable<
     ExperimentsInstrumentSlotContext,
-    SdkSlotProps<"science-officer.sections">
+    SdkSlotProps<"experiments.instrument">
   >
 >;
 type _ExperimentsBadges = Expect<
-  Assignable<SdkSlotProps<"science-officer.badges">, ExperimentsSlotContext>
+  Assignable<SdkSlotProps<"experiments.actions">, ExperimentsSlotContext>
 >;
 type _ExperimentsBadgesBack = Expect<
-  Assignable<ExperimentsSlotContext, SdkSlotProps<"science-officer.badges">>
+  Assignable<ExperimentsSlotContext, SdkSlotProps<"experiments.actions">>
 >;
 
 // _DeployedSections/_DeployedSectionsBack (deployed-science.sections vs

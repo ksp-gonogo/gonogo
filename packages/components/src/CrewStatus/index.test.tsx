@@ -193,13 +193,13 @@ describe("CrewStatusComponent", () => {
   });
 
   it("renders a bound augment once per crew row, carrying each kerbal's identity", async () => {
-    // A test Uplink binds `crew-status.badges` and echoes the slot props back.
+    // A test Uplink binds `crew-status.row-badges` and echoes the slot props back.
     // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
     // the per-row props carry the right kerbal so the badge lands on the right
     // one. `requires` is omitted so no Domain presence gate applies.
-    registerAugment<"crew-status.badges">({
+    registerAugment<"crew-status.row-badges">({
       id: "test-crew-badge",
-      augments: "crew-status.badges",
+      augments: "crew-status.row-badges",
       component: ({ crewName, crewIndex }: CrewBadgeContext) => (
         <span data-testid="crew-badge" data-index={crewIndex}>
           {crewName} ✓

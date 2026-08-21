@@ -14,7 +14,7 @@
 //     is placeable from the dashboard widget picker.
 //   - `ScansatScienceAugment` → registerAugment({ id: "scansat-science", ... })
 //     so it fills @ksp-gonogo/components's Experiments widget's
-//     `science-officer.badges` slot (design brief:
+//     `experiments.actions` slot (design brief:
 //     local_docs/telemetry-mod/scansat-sci-brief-augment.md).
 //   - `AnomalyOverlay/index.ts` → registerMapPoiProvider({ id:
 //     "scansat:anomalies", requires: "scansat", ... }) so discovered

@@ -386,7 +386,7 @@ describe("ShipSystemsComponent: radiation", () => {
     expect(screen.getByText("Outer belt")).toBeInTheDocument();
 
     // The greenhouse's own instantaneous threshold flag, fed the SAME
-    // ambient reading via the life-support.sections augment slot.
+    // ambient reading via the ship-systems.life-support augment slot.
     expect(screen.getByText("Radiation too high")).toBeInTheDocument();
 
     // No second "System halted" pill: the halt folds into the single header

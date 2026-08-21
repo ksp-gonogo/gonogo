@@ -42,7 +42,10 @@ export interface Instrument {
 }
 
 /**
- * Slot context for `science-officer.sections`: the per-instrument-row slot.
+ * Slot context for `experiments.instrument`: the per-instrument-row slot.
+ * Named for the row it addresses, not for a segment: a once-per-widget
+ * segment (`sections`, `actions`) cannot express "once per instrument", so
+ * this stays a widget-authored slot and must not borrow a segment's name.
  * The row slot passes down the `Instrument` it sits beside so an augment
  * (e.g. an on-vessel-lab Kerbalism experiment table, the locked alternate to
  * `deployed-science`) can render a per-instrument extension scoped to
@@ -54,8 +57,12 @@ export interface ExperimentsInstrumentSlotContext {
 }
 
 /**
- * Slot context for `science-officer.badges`: the header escape-hatch slot next
- * to the title. Deliberately broad: it carries the whole instrument list
+ * Slot context for `experiments.actions`: the header escape-hatch slot next
+ * to the title. It was `science-officer.badges`, a name that matched neither
+ * the widget's registered id (`experiments`) nor the registry it lived in:
+ * `.badges` is the framework's CONTRIBUTION segment, auto-completed for every
+ * widget, so an augment wearing that name sat on a string a second registry
+ * already owned. Deliberately broad: it carries the whole instrument list
  * (`null` while awaiting telemetry, `[]` for a vessel with no instruments)
  * plus the total stored science so a header augment can summarise
  * vessel-wide science state without re-reading the topics itself.
@@ -70,14 +77,14 @@ export interface ExperimentsSlotContext {
 // Declaration-merge the slot ids → props types into core's `SlotRegistry`.
 // Co-located here so parallel slot work on other widgets never collides on
 // a shared central file. This is what types
-// `registerAugment({ augments: "science-officer.sections", ... })` and
-// `<AugmentSlot name="science-officer.sections" props={...} />` against the
+// `registerAugment({ augments: "experiments.instrument", ... })` and
+// `<AugmentSlot name="experiments.instrument" props={...} />` against the
 // widget's own context types rather than the loose `Record<string, unknown>`
 // fallback an unmerged slot id would receive.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    "science-officer.sections": ExperimentsInstrumentSlotContext;
-    "science-officer.badges": ExperimentsSlotContext;
+    "experiments.instrument": ExperimentsInstrumentSlotContext;
+    "experiments.actions": ExperimentsSlotContext;
   }
 }
 
@@ -352,7 +359,7 @@ function ExperimentsComponent({
                 a framework concern and the row stays
                 data/framework-free. */}
             <AugmentSlot
-              name="science-officer.sections"
+              name="experiments.instrument"
               props={{ instrument: inst }}
             />
           </Fragment>
@@ -368,7 +375,7 @@ function ExperimentsComponent({
          to the title. Empty (renders nothing) until an Uplink registers. */
       panelAside={
         <AugmentSlot
-          name="science-officer.badges"
+          name="experiments.actions"
           props={{ instruments, dataAmount: totalDataMits }}
         />
       }
@@ -501,7 +508,7 @@ registerComponent<ExperimentsConfig>({
   ],
   defaultConfig: {},
   actions: [],
-  augmentSlots: ["science-officer.sections", "science-officer.badges"],
+  augmentSlots: ["experiments.instrument", "experiments.actions"],
   pushable: true,
   requires: ["flight"],
 });
