@@ -11,20 +11,18 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import {
-  type SystemBadgesContext,
-  type SystemOverlayContext,
-  SystemViewComponent,
-} from "./index";
+import { type SystemOverlayContext, SystemViewComponent } from "./index";
 
 /**
  * SystemView augment-slot exposure (Uplink architecture). The widget is a
- * HOST exposing three slots: `system-view.actions` (header control row),
+ * HOST exposing two slots: `system-view.actions` (header control row) and
  * `system-view.overlay` (layered over the body diagram, passed the diagram's
- * projection as typed slot props), and `system-view.badges` (broad header
- * escape-hatch). No first-party augment fills them here (that's an Uplink
- * augment): an empty slot must render cleanly, and a test augment registered
- * into one must appear, the overlay augment receiving the diagram projection.
+ * projection as typed slot props). No first-party augment fills them here
+ * (that's an Uplink augment): an empty slot must render cleanly, and a test
+ * augment registered into one must appear, the overlay augment receiving the
+ * diagram projection. Header BADGES are not an augment slot on this widget:
+ * they arrive through the automatic `system-view.badges` CONTRIBUTION slot,
+ * covered by `../FleetComms/panel-badge.test.tsx`.
  *
  * Everything (the body tree included) rides the stream, `useCelestialBodies`
  * reads `system.bodies`, no legacy `MockDataSource` leg.
@@ -127,39 +125,18 @@ describe("SystemView: augment slots (spec §4)", () => {
     );
   }
 
-  it("exposes all three slots on its component definition", () => {
+  it("exposes both slots on its component definition", () => {
     // The registry entries are asserted indirectly: the widget's own module-load
-    // registration declared the three slots as its extension points.
+    // registration declared the two slots as its extension points.
     // (See registerComponent `augmentSlots` in ./index.tsx.)
     expect(getAugmentsForSlot("system-view.actions")).toEqual([]);
     expect(getAugmentsForSlot("system-view.overlay")).toEqual([]);
-    expect(getAugmentsForSlot("system-view.badges")).toEqual([]);
   });
 
   it("renders the diagram with no augments bound (empty slots are inert)", async () => {
     await renderDiagram();
     expect(screen.queryByTestId("sv-actions-augment")).toBeNull();
     expect(screen.queryByTestId("sv-overlay-augment")).toBeNull();
-    expect(screen.queryByTestId("sv-badge-augment")).toBeNull();
-  });
-
-  it("renders a test augment bound to the badges slot in the header", async () => {
-    function BadgeAugment({ frameName }: SystemBadgesContext) {
-      return <span data-testid="sv-badge-augment">frame:{frameName}</span>;
-    }
-    await renderDiagram();
-
-    act(() => {
-      registerAugment({
-        id: "test-sv-badge",
-        augments: "system-view.badges",
-        component: BadgeAugment,
-      });
-    });
-
-    const badge = await screen.findByTestId("sv-badge-augment");
-    // The slot passed the current frame name down.
-    expect(badge.textContent).toBe("frame:Kerbin");
   });
 
   it("renders a test augment bound to the actions slot in the header", async () => {

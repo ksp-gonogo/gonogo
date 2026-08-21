@@ -310,11 +310,6 @@ export interface SystemOverlayContext {
   center: { x: number; y: number };
 }
 
-/** Mirrors `SystemBadgesContext` (SystemView/index.tsx). */
-export interface SystemBadgesContext {
-  frameName: string | null;
-}
-
 // "system-view.actions" carries no props today.
 
 // --- MapView (packages/components/src/MapView) ------------------------------
@@ -580,7 +575,6 @@ declare module "./types" {
 
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
-    "system-view.badges": SystemBadgesContext;
 
     "map-view.overlay": MapOverlayContext;
     "map-view.sections": MapSectionsContext;

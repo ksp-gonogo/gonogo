@@ -20,7 +20,11 @@ import {
   type Severity,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
-import type { SystemBadgesContext, SystemOverlayContext } from "../SystemView";
+import type { SystemOverlayContext } from "../SystemView";
+// The header link badge is not an augment: it is a CONTRIBUTION to
+// SystemView's automatic `system-view.badges` slot. Side-effect imported so
+// registering this augment set registers the badge with it.
+import "./badge";
 import { describeCommsPath } from "./commsPathSummary";
 import { computeUplinkPulse } from "./pendingPulse";
 import { projectOrbitPosition } from "./projection";
@@ -368,56 +372,6 @@ function FleetCommsActions() {
   );
 }
 
-/**
- * `system-view.badges`: a compact link-status indicator, the design doc's
- * "comms/link status indicator" fill this augment always intended (see this
- * file's class doc) but never registered until now. Reads the exact same
- * `comms.link` topic the overlay's commlink line colour derives from, so the
- * header badge and the diagram line can never disagree.
- *
- * Three states, never collapsed into each other: `connected` (a real link
- * home right now), `no link` (a real, confirmed absence: a genuine ops
- * fact), and `NULL_DISPLAY` (`comms.link` has never delivered a sample: no
- * Uplink mounted, or nothing received yet: an honest "unknown", not a
- * fabricated "no link"). Ignores `frameName`: link state isn't a function of
- * which body the diagram is framed on.
- */
-function FleetCommsBadge(_props: Readonly<SystemBadgesContext>) {
-  const linkReading = useTelemetry("comms.link");
-  // Same rule as the diagram's own read above, and the same reason: a stale
-  // link reads as UNKNOWN (`null`), never as its last value, because silence is
-  // evidence about a link in a way it is not about an altitude. `null` is
-  // already this badge's honest-unknown state, so nothing else changes.
-  const connected =
-    linkReading.state === "observed"
-      ? (linkReading.value.connected ?? null)
-      : null;
-  // `Badge` (ui-kit): the codebase's one canonical state-pill, already
-  // carrying the vetted go/nogo/neutral fg-on-bg contrast pairing, so this
-  // badge composes it rather than hand-rolling a styled dot (the widget
-  // library's own convention: no bespoke CSS where a ui-kit primitive
-  // already fits, see local_docs/telemetry-mod/ui-kit-design.md). The label
-  // text IS the accessible name; no `aria-label` needed on top of it.
-  const severity: Severity | undefined =
-    connected === true
-      ? "nominal"
-      : connected === false
-        ? "critical"
-        : undefined;
-  const label =
-    connected === true ? "LINK" : connected === false ? "NO LINK" : null;
-  // `data-testid`: the label text alone isn't a safe query target for the
-  // unknown state (`NULL_DISPLAY`, the shared null-placeholder glyph, also
-  // appears elsewhere in the diagram/almanac), so tests scope to this
-  // instead of risking an ambiguous `getByText` match, per the KCD
-  // role>label>text>testid fallback order.
-  return (
-    <Badge severity={severity} data-testid="fleet-comms-badge">
-      {label ?? NULL_DISPLAY}
-    </Badge>
-  );
-}
-
 // ── Registration ──────────────────────────────────────────────────────────────
 
 registerAugment({
@@ -440,11 +394,4 @@ registerAugment({
   component: FleetCommsActions,
 });
 
-registerAugment({
-  id: "fleet-comms-badge",
-  augments: "system-view.badges",
-  component: FleetCommsBadge,
-  channels: ["comms.link"],
-});
-
-export { FleetCommsActions, FleetCommsBadge, FleetCommsOverlay };
+export { FleetCommsActions, FleetCommsOverlay };

@@ -1,5 +1,12 @@
+import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
+import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import {
+  NULL_DISPLAY,
+  Panel,
+  PanelBadgesProvider,
+  useWidgetBadges,
+} from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { SystemOverlayContext } from "../SystemView";
 import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
@@ -7,7 +14,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { FleetCommsBadge, FleetCommsOverlay } from "./index";
+import { FleetCommsOverlay } from "./index";
 import { __resetFleetCommsTogglesForTests } from "./toggles";
 
 /**
@@ -80,6 +87,8 @@ const teardowns: Array<() => void> = [];
 
 beforeEach(() => {
   __resetFleetCommsTogglesForTests();
+  // The badge rides a Processor now; its per-frame cache is a module global.
+  clearProcessorRuntime();
   fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
@@ -101,14 +110,43 @@ function renderOverlay() {
   return rendered;
 }
 
+/**
+ * SystemView's header badge row, wired the way the dashboard wires it: the
+ * badge is a CONTRIBUTION now (`./badge.ts`), so there is no component to
+ * render on its own and the assertions below read the pill Panel draws.
+ */
+function BadgeHeader() {
+  const badges = useWidgetBadges();
+  return (
+    <PanelBadgesProvider badges={badges}>
+      <Panel panelTitle="SYSTEM">diagram</Panel>
+    </PanelBadgesProvider>
+  );
+}
+
 function renderBadge() {
   const rendered = render(
     <fixture.Provider>
-      <FleetCommsBadge frameName="Kerbin" />
+      <WidgetMetaContext.Provider
+        value={{ componentId: "system-view", contributionSlots: [] }}
+      >
+        <ContributionsProvider>
+          <BadgeHeader />
+        </ContributionsProvider>
+      </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
   teardowns.push(rendered.unmount);
   return rendered;
+}
+
+/** The one pill in the rendered header, whatever it currently says. */
+function badgeText(): string | null {
+  const pill =
+    screen.queryByText("LINK") ??
+    screen.queryByText("NO LINK") ??
+    screen.queryByText(NULL_DISPLAY);
+  return pill?.textContent ?? null;
 }
 
 /**
@@ -153,17 +191,16 @@ function emitGeometry() {
 }
 
 describe("FleetComms badge: what undefined means today", () => {
-  it("renders the placeholder glyph, not a link state, when comms.link has never arrived", () => {
+  it("renders the placeholder glyph, not a link state, when comms.link has never arrived", async () => {
     renderBadge();
 
-    // `link?.connected ?? null` resolving to `null` picks the third, honest
-    // state: neither LINK nor NO LINK. The badge is the ONE read in this file
-    // that draws unknown distinctly, which is why the overlay's identical read
+    // An unobserved reading resolving to `null` picks the third, honest state:
+    // neither LINK nor NO LINK. The badge is the ONE read in this file that
+    // draws unknown distinctly, which is why the overlay's identical read
     // drawing it as connected (below) is worth pinning separately.
-    const badge = screen.getByTestId("fleet-comms-badge");
-    expect(badge.textContent).toBe(NULL_DISPLAY);
-    expect(badge.textContent).not.toBe("LINK");
-    expect(badge.textContent).not.toBe("NO LINK");
+    await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
+    expect(badgeText()).not.toBe("LINK");
+    expect(badgeText()).not.toBe("NO LINK");
   });
 
   it("renders that same placeholder for a confirmed comms.link tombstone", async () => {
@@ -186,9 +223,7 @@ describe("FleetComms badge: what undefined means today", () => {
     // `null` to `undefined`, then `?? null` lands on the same branch as
     // never-arrived. "Confirmed no comms record" and "nothing has come through"
     // render identically.
-    expect(screen.getByTestId("fleet-comms-badge").textContent).toBe(
-      NULL_DISPLAY,
-    );
+    await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
   });
 
   it("renders that same placeholder when the record arrives without a connected field", async () => {
@@ -204,9 +239,7 @@ describe("FleetComms badge: what undefined means today", () => {
 
     // Third meaning collapsed onto the same render: a live comms Uplink that
     // simply omitted `connected` is indistinguishable from no Uplink at all.
-    expect(screen.getByTestId("fleet-comms-badge").textContent).toBe(
-      NULL_DISPLAY,
-    );
+    await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
   });
 });
 

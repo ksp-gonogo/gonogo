@@ -1,10 +1,9 @@
-import { getAugmentsForSlot } from "@ksp-gonogo/core";
+import { getAugmentsForSlot, getContributionsForSlot } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SystemViewComponent } from "../SystemView";
-import { axe } from "../test/axe";
 import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
@@ -25,15 +24,16 @@ const KERBIN_MU = 3.5316e12;
 /**
  * Integration coverage for the Fleet/Comms augment (Phase 1 spine,
  * local_docs/design/specs/2026-07-15-system-view-fleet-comms-design.md):
- * registers into SystemView's real `system-view.overlay`/`system-view.actions`/
- * `system-view.badges` slots and renders through the real host, same pattern
+ * registers into SystemView's real `system-view.overlay`/`system-view.actions`
+ * slots and renders through the real host, same pattern
  * as `SystemView/slot.test.tsx`'s own test-augment cases. Pure projection/timing
  * math is covered by `projection.test.ts`/`pendingPulse.test.ts`; this file
  * proves the WIRING: the augment reads the right topics, anchors the
  * commlink line/pulses on the vessel's projected position without drawing a
- * second copy of `SystemDiagram`'s own vessel marker, the two action
- * toggles actually gate what's drawn, and the header badge tracks the same
- * `comms.link` read the overlay's line colour uses.
+ * second copy of `SystemDiagram`'s own vessel marker, and the two action
+ * toggles actually gate what's drawn. The header link badge left this file
+ * with the augment it used to be: it is a contribution now, covered end to
+ * end by `./panel-badge.test.tsx`.
  */
 describe("FleetComms: Phase 1 spine augment on SystemView", () => {
   let fixture: StreamFixture;
@@ -115,13 +115,28 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     return result;
   }
 
-  it("registers all three slot fills at module load", () => {
+  it("registers both slot fills at module load", () => {
     const overlay = getAugmentsForSlot("system-view.overlay");
     const actions = getAugmentsForSlot("system-view.actions");
-    const badges = getAugmentsForSlot("system-view.badges");
     expect(overlay.map((a) => a.id)).toContain("fleet-comms-overlay");
     expect(actions.map((a) => a.id)).toContain("fleet-comms-actions");
-    expect(badges.map((a) => a.id)).toContain("fleet-comms-badge");
+  });
+
+  // The badge is no longer one of them, and this is what would catch a
+  // half-done migration that left the augment registered as well.
+  it("no longer registers a badges augment", () => {
+    expect(getAugmentsForSlot("system-view.badges")).toEqual([]);
+  });
+
+  // The contribution IS registered, by importing `./index` above (which
+  // side-effect imports `./badge`). Proves the two halves stay wired together
+  // without this file having to import the badge module itself.
+  it("registers the badge as a contribution on the same slot id", () => {
+    // `core:`-prefixed: a contribution id is stamped with its owning client,
+    // and the built-in half registers through `CORE_UPLINK_CLIENT`.
+    expect(
+      getContributionsForSlot("system-view.badges").map((c) => c.id),
+    ).toContain("core:fleet-comms-badge");
   });
 
   it("does not draw a second vessel dot on top of SystemDiagram's own marker (regression: 'green dots stacked in the centre')", async () => {
@@ -322,51 +337,30 @@ describe("FleetComms: Phase 1 spine augment on SystemView", () => {
     ).toBeNull();
   });
 
-  it("badge shows the unknown state before comms.link has ever delivered a sample", async () => {
-    await renderDiagram();
-    expect(screen.getByTestId("fleet-comms-badge").textContent).toBe(
-      NULL_DISPLAY,
-    );
-  });
-
-  it("badge tracks comms.link connected/disconnected, matching the overlay's own line colour", async () => {
-    await renderDiagram();
-
-    act(() => {
-      fixture.emit("comms.link", { connected: true });
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId("fleet-comms-badge").textContent).toBe("LINK");
-    });
-
-    act(() => {
-      fixture.emit("comms.link", { connected: false });
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId("fleet-comms-badge").textContent).toBe(
-        "NO LINK",
-      );
-    });
-  });
-
-  it("has no axe violations with all three slots filled", async () => {
-    // `renderDiagram()` already mounts the diagram with all three slots
-    // filled and its data emitted: a second mount of the same widget added
-    // nothing to scan, and left a tree that was still mid-first-frame while
-    // axe's long async traversal ran.
+  it("has no axe violations with both slots filled", async () => {
+    // `renderDiagram()` already mounts the diagram with both slots filled and
+    // its data emitted: a second mount of the same widget added nothing to
+    // scan, and left a tree that was still mid-first-frame while axe's long
+    // async traversal ran.
     const { container } = await renderDiagram();
     act(() => {
       fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.path", {
+        hops: [{ from: "Test Ship", to: "KSC", kind: 0 }],
+      });
     });
-    // `comms.link` rides `useTelemetry` (the delayed `TimelineStore` frame),
-    // so unlike `useLatestValue`'s synchronous update the badge/overlay's
-    // re-render can land a tick after `act()` returns. Settle it via
-    // `waitFor` (itself act-wrapped) BEFORE the async `axe()` scan starts:
-    // otherwise that pending re-render can land mid-scan, outside any act()
-    // boundary, and React logs a spurious "not wrapped in act" warning.
+    // Settle the geometry first so the scan sees the drawn overlay rather than
+    // a half-built one.
     await waitFor(() => {
-      expect(screen.getByTestId("fleet-comms-badge").textContent).toBe("LINK");
+      expect(
+        document.querySelector('[aria-label="Fleet and comms overlay"] line'),
+      ).toBeTruthy();
     });
-    expect(await axe(container)).toHaveNoViolations();
+    // The helper, not a bare `await axe(...)`: `comms.link` rides `useTelemetry`
+    // (the delayed `TimelineStore` frame), so the overlay keeps updating while
+    // axe walks the DOM, and awaited bare those updates land outside act. The
+    // badge used to be a later settle target that hid this; it is a contribution
+    // now and no longer in this tree.
+    await expectNoA11yViolations(container);
   });
 });

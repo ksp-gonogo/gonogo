@@ -46,7 +46,7 @@ import type { OrbitOverlayContext } from "./OrbitView";
 import type { PowerSystemsSlotContext } from "./PowerSystems";
 import type { ScienceDataAboardRowContext } from "./ScienceData";
 import type { ShipMapOverlayContext } from "./ShipMap";
-import type { SystemBadgesContext, SystemOverlayContext } from "./SystemView";
+import type { SystemOverlayContext } from "./SystemView";
 
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
@@ -176,13 +176,6 @@ type _SystemOverlay = Expect<
 type _SystemOverlayBack = Expect<
   Assignable<SystemOverlayContext, SdkSlotProps<"system-view.overlay">>
 >;
-type _SystemBadges = Expect<
-  Assignable<SdkSlotProps<"system-view.badges">, SystemBadgesContext>
->;
-type _SystemBadgesBack = Expect<
-  Assignable<SystemBadgesContext, SdkSlotProps<"system-view.badges">>
->;
-
 type _MapOverlay = Expect<
   Assignable<SdkSlotProps<"map-view.overlay">, MapOverlayContext>
 >;
@@ -285,8 +278,6 @@ export type _SlotRegistryConformance = [
   _ActionGroupBack,
   _SystemOverlay,
   _SystemOverlayBack,
-  _SystemBadges,
-  _SystemBadgesBack,
   _MapOverlay,
   _MapOverlayBack,
   _MapSections,

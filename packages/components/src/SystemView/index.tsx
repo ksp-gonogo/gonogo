@@ -93,16 +93,6 @@ export interface SystemOverlayContext {
   center: { x: number; y: number };
 }
 
-/**
- * Props for `system-view.badges`: the widget's BROAD escape-hatch slot for
- * inline indicators, rendered in the header next to the title. Badge augments
- * read their own Topics via hooks, so the only context passed down is the
- * frame body name for labelling.
- */
-export interface SystemBadgesContext {
-  frameName: string | null;
-}
-
 // Co-located declaration-merge of this widget's slot ids → their props. Kept
 // next to the widget (not in a central registry file) so parallel slot work
 // on other widgets never collides on this seam. `.actions` takes no
@@ -111,7 +101,6 @@ declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
-    "system-view.badges": SystemBadgesContext;
   }
 
   /**
@@ -635,13 +624,11 @@ function SystemViewComponent({
   // which.
   const showAlmanac = showDiagram && (cols >= 9 || rows >= 12);
 
-  // Slot props. `badges` carries just the frame name for labelling.
-  // `overlay` carries the diagram's parent-centric projection so an augment can
-  // draw in the SVG's coordinate space: the metres → px `plotScale` is
-  // reconstructed exactly as `SystemDiagram` derives it (auto-fit over the drawn
-  // children + the vessel's own orbit when it shares the frame). It is null until
-  // there is a frame and a measured diagram to overlay.
-  const badgesContext: SystemBadgesContext = { frameName: parentName };
+  // Slot props. `overlay` carries the diagram's parent-centric projection so an
+  // augment can draw in the SVG's coordinate space: the metres → px `plotScale`
+  // is reconstructed exactly as `SystemDiagram` derives it (auto-fit over the
+  // drawn children + the vessel's own orbit when it shares the frame). It is
+  // null until there is a frame and a measured diagram to overlay.
   const overlayContext = useMemo<SystemOverlayContext | null>(() => {
     if (parentName === null || size.w <= 0 || size.h <= 0) return null;
     let maxRadius = 0;
@@ -709,13 +696,11 @@ function SystemViewComponent({
     <Panel
       panelTitle="SYSTEM"
       panelAside={
-        // Header slots: an inline `.badges` escape-hatch and an `.actions`
-        // control row, both beside the panel's own title. Empty until an
-        // Uplink binds: an empty slot renders nothing.
-        <>
-          <AugmentSlot name="system-view.badges" props={badgesContext} />
-          <AugmentSlot name="system-view.actions" props={{}} />
-        </>
+        // Header slot: an `.actions` control row beside the panel's own title.
+        // Empty until an Uplink binds: an empty slot renders nothing. Header
+        // BADGES arrive separately, through the automatic `system-view.badges`
+        // contribution slot Panel draws itself.
+        <AugmentSlot name="system-view.actions" props={{}} />
       }
       // The almanac is a second scrolling region, not more body content:
       // reading it must not scroll the diagram it describes off the tile.
@@ -945,15 +930,10 @@ registerComponent<SystemViewConfig>({
   minSize: { w: 3, h: 4 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
-  // Exposes a coordinated `.actions` + `.overlay` pair (one augment can drive an
-  // overlay from a header control, sharing its own context) plus a broad
-  // `.badges` header escape-hatch. No first-party augment fills any yet;
-  // the overlay slot passes the diagram's projection as typed slot props.
-  augmentSlots: [
-    "system-view.actions",
-    "system-view.overlay",
-    "system-view.badges",
-  ],
+  // Exposes a coordinated `.actions` + `.overlay` pair: one augment can drive
+  // an overlay from a header control, sharing its own context. The overlay slot
+  // passes the diagram's projection as typed slot props.
+  augmentSlots: ["system-view.actions", "system-view.overlay"],
   // The plotted vessel's node decoration: fed by the built-in comms-derived
   // contribution (`./vesselStatusContribution.ts`) and open to any other
   // Uplink contributing SEMANTIC status for the same vessel.
