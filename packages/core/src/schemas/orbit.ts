@@ -3,6 +3,7 @@
  * calculator, the maneuver planner, and both the legacy Telemachus schema
  * and the current stream-derived data paths.
  */
+import type { TransitionName } from "@ksp-gonogo/sitrep-client";
 
 /**
  * One entry of the `dv.stages` complex-object response. Note the JSON field
@@ -48,9 +49,16 @@ export interface StageInfo {
 export interface OrbitPatch {
   startUT: number;
   endUT: number;
-  /** `"INITIAL" | "ESCAPE" | "ENCOUNTER" | "MANEUVER" | "FINAL"` (enum varies by KSP version). */
-  patchStartTransition: string;
-  patchEndTransition: string;
+  /**
+   * `Sitrep.Contract.TransitionType`'s name, uppercased. The union is DERIVED
+   * from the generated enum, so a member appended in C# widens it and any
+   * exhaustive branch over it stops compiling until somebody rules on the new
+   * member. It was a bare `string` here, which is what let a two-entry `Set` in
+   * SystemView decide which transitions are SOI crossings with nothing to say
+   * so when the enum grew past it.
+   */
+  patchStartTransition: TransitionName;
+  patchEndTransition: TransitionName;
   PeA: number;
   ApA: number;
   inclination: number;

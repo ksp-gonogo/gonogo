@@ -224,6 +224,7 @@ export type {
   LegacyOrbitPatch,
   OrbitPatchWirePayload,
   PredictionRef,
+  TransitionName,
 } from "./orbit-patches";
 export {
   findImpactPoint,

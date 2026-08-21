@@ -47,13 +47,17 @@ interface RawSystemUplinksPayload {
 }
 
 /**
- * `Sitrep.Contract.UplinkHealthState`'s enum declaration order (Healthy 0 /
- * Degraded 1 / Unavailable 2): index-matched so the wire ordinal resolves
- * via a plain array lookup, same convention `useGameContext`'s
- * `GameMode`/`career.mode.mode` decode already uses (see that hook's doc
- * comment for why: the mod serializes every enum as its integer ordinal, not
- * its name: `CareerViewProvider.ToWire(CareerMode)` is the canonical
- * example).
+ * `Sitrep.Contract.UplinkHealthState` in declaration order (Healthy 0 /
+ * Degraded 1 / Unavailable 2), lowercased. The mod serializes every enum as
+ * its integer ordinal rather than its name, so the wire value resolves here by
+ * a plain array index.
+ *
+ * The one ordinal→name table in this package still written out by hand: its
+ * literal tuple type is what gives {@link UplinkHealthStateName} a closed
+ * union for callers to key a `Record` on, which deriving it would lose. That
+ * also makes it the one table a C# member can be appended to without,
+ * so `enum-name-tables.test.ts` reads the declaration out of the contract
+ * source and fails when the two drift.
  */
 export const HEALTH_STATE_NAMES = [
   "healthy",
