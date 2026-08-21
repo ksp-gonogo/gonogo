@@ -119,6 +119,61 @@ namespace Gonogo.KSP
         private CommandErrorCode? PlanWriteRefusal() =>
             ManeuverPlanWriteRule.RefusalFor(_planOwner?.Invoke() ?? PlanOwner.None);
 
+        /// <summary>
+        /// Reads the facts <see cref="ManeuverWriteAuthority"/> decides on off
+        /// the live game: whether there is a vessel, whether the Tracking
+        /// Station's tier attached a solver to it, whether Mission Control has
+        /// unlocked flight planning, and whether the node editor is locked right
+        /// now. The rule itself carries no KSP type and is exercised directly by
+        /// <c>ManeuverWriteAuthorityTests</c>.
+        ///
+        /// <para><paramref name="plans"/> false is a delete, which needs no
+        /// flight-planning unlock and asks <c>MANNODE_DELETE</c> instead of
+        /// <c>MANNODE_ADDEDIT</c>: the two locks are separate members of
+        /// <c>ControlTypes</c> and stock's own delete path checks the second
+        /// one.</para>
+        /// </summary>
+        private static ManeuverRefusal? ManeuverWriteRefusal(bool plans)
+        {
+            var vessel = FlightGlobals.ActiveVessel;
+
+            // A career gate with no career scenario to read is OPEN: sandbox has
+            // no ScenarioUpgradeableFacilities at all, and no facility tiers to
+            // be short of. See ManeuverWriteAuthority's own note.
+            var flightPlanningUnlocked = true;
+            var missionControlName = "";
+            var gameVariables = GameVariables.Instance;
+            if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
+            {
+                var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.MissionControl);
+                flightPlanningUnlocked = gameVariables.UnlockedFlightPlanning(norm);
+                missionControlName = FacilityName(SpaceCenterFacility.MissionControl);
+            }
+
+            return ManeuverWriteAuthority.RefusalFor(
+                hasVessel: vessel != null,
+                solverAttached: vessel?.patchedConicSolver != null,
+                flightPlanningUnlocked: flightPlanningUnlocked,
+                nodeEditingUnlocked: InputLockManager.IsUnlocked(
+                    plans ? ControlTypes.MANNODE_ADDEDIT : ControlTypes.MANNODE_DELETE),
+                plans: plans,
+                trackingStationName: FacilityName(SpaceCenterFacility.TrackingStation),
+                missionControlName: missionControlName);
+        }
+
+        /// <summary>The facility as the GAME names it, through <c>Localizer</c>.</summary>
+        private static string FacilityName(SpaceCenterFacility facility)
+        {
+            try
+            {
+                return ScenarioUpgradeableFacilities.GetFacilityName(facility) ?? "";
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
         // ---- persistent fly-by-wire override (main-thread-only, no lock) ------
         // Command handlers and Vessel.OnFlyByWire both run on the Unity main
         // thread (see the class doc comment's F2 marshaling note), so this
@@ -463,12 +518,13 @@ namespace Gonogo.KSP
                 return CommandResult<string>.Fail(refusal.Value);
             }
 
-            var solver = FlightGlobals.ActiveVessel?.patchedConicSolver;
-            if (solver == null)
+            var gate = ManeuverWriteRefusal(plans: true);
+            if (gate != null)
             {
-                return CommandResult<string>.Fail(CommandErrorCode.NoVessel);
+                return CommandResult<string>.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
+            var solver = FlightGlobals.ActiveVessel!.patchedConicSolver;
             var node = solver.AddManeuverNode(ut);
             node.DeltaV = new Vector3d(radialOut, normal, prograde);
             solver.UpdateFlightPlan();
@@ -483,6 +539,12 @@ namespace Gonogo.KSP
             if (refusal != null)
             {
                 return CommandResult.Fail(refusal.Value);
+            }
+
+            var gate = ManeuverWriteRefusal(plans: true);
+            if (gate != null)
+            {
+                return CommandResult.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
             if (!TryResolveNode(nodeId, out var node) || node?.solver == null)
@@ -502,6 +564,12 @@ namespace Gonogo.KSP
             if (refusal != null)
             {
                 return CommandResult.Fail(refusal.Value);
+            }
+
+            var gate = ManeuverWriteRefusal(plans: false);
+            if (gate != null)
+            {
+                return CommandResult.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
             if (!TryResolveNode(nodeId, out var node))
