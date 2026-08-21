@@ -54,6 +54,10 @@
     <!-- Which FACILITY authorises a maneuver write, carved out beside it and for
          the same reason. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\ManeuverWriteAuthority.cs" />
+    <!-- The three refusals ModuleScienceExperiment.DeployExperiment makes, and
+         the order it makes them in. The module is a PartModule and needs a live
+         part; the rule takes the three facts and needs nothing. -->
+    <Compile Include="..\Gonogo.KSP\ExperimentDeployRule.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KSP.Localization;
 using Sitrep.Contract;
 using Sitrep.Host;
 
@@ -29,12 +30,23 @@ namespace Gonogo.KSP
     {
         /// <summary>
         /// Deploys (runs) the first experiment module on the addressed part
-        /// that is neither already <c>Deployed</c> nor <c>Inoperable</c>,
-        /// guarded so a deploy on an already-run/spent experiment returns
-        /// <see cref="CommandErrorCode.WrongState"/> rather than
-        /// re-triggering. <c>ModuleScienceExperiment.DeployExperiment()</c>,
-        /// <c>Deployed</c>, and <c>Inoperable</c> are decompile-confirmed public
-        /// members.
+        /// that is neither already <c>Deployed</c> nor <c>Inoperable</c> AND
+        /// that the game would actually run.
+        ///
+        /// <para><b>Three refusals used to come back green.</b>
+        /// <c>ModuleScienceExperiment.DeployExperiment()</c> returns
+        /// <c>void</c> and refuses through <c>ScreenMessages</c>: shielded from
+        /// the airstream, an unmet <c>ExperimentUsageReqs</c>, or a live
+        /// cooldown. Calling it and returning <c>Ok()</c> reported a run that
+        /// never happened, and the message the player would have seen is on the
+        /// KSP window rather than the console. All three are asked first now,
+        /// through <see cref="ExperimentDeployRule"/>, in stock's order.</para>
+        ///
+        /// <para>The walk continues past a refused module rather than stopping
+        /// at it. Refusing the WHOLE part because its first module is shielded,
+        /// when a second module on the same part would have run, was the same
+        /// bug in the other direction: it returned Ok having deployed
+        /// nothing.</para>
         /// </summary>
         public CommandResult DeployExperiment(string partId)
         {
@@ -44,6 +56,7 @@ namespace Gonogo.KSP
             }
 
             var anyInoperable = false;
+            ExperimentRefusal? firstRefusal = null;
             foreach (var exp in experiments)
             {
                 if (exp == null)
@@ -52,10 +65,21 @@ namespace Gonogo.KSP
                 }
                 if (!exp.Deployed && !exp.Inoperable)
                 {
-                    exp.DeployExperiment();
-                    return CommandResult.Ok();
+                    var refusal = DeployRefusal(exp);
+                    if (refusal == null)
+                    {
+                        exp.DeployExperiment();
+                        return CommandResult.Ok();
+                    }
+                    firstRefusal ??= refusal;
+                    continue;
                 }
                 anyInoperable |= exp.Inoperable;
+            }
+
+            if (firstRefusal != null)
+            {
+                return CommandResult.Fail(firstRefusal.Value.Code, firstRefusal.Value.Detail);
             }
 
             // Every experiment module on the part is already deployed or spent.
@@ -66,6 +90,83 @@ namespace Gonogo.KSP
                 anyInoperable
                     ? "the experiment is spent and needs resetting"
                     : "the experiment has already been run");
+        }
+
+        /// <summary>
+        /// Reads the three facts <see cref="ExperimentDeployRule"/> decides on
+        /// off one live module, exactly as
+        /// <c>ModuleScienceExperiment.DeployExperiment</c> reads them.
+        ///
+        /// <para><c>usageReqMessage</c> is a public field the game writes into,
+        /// so that arm's sentence needs no table of ours. The other two live in
+        /// KSP's localisation table under opaque <c>#autoLOC_</c> numbers and
+        /// are formatted here: a number the game renumbers would otherwise put a
+        /// confidently wrong sentence in front of an operator, so
+        /// <see cref="GameSentence"/> checks the Localizer actually resolved it
+        /// and falls back rather than printing the key.</para>
+        /// </summary>
+        private static ExperimentRefusal? DeployRefusal(ModuleScienceExperiment exp)
+        {
+            try
+            {
+                var shielded = !exp.availableShielded && exp.part != null && exp.part.ShieldedFromAirstream;
+
+                var usageMet = true;
+                if (!shielded && exp.experiment != null && exp.part != null && exp.vessel != null)
+                {
+                    usageMet = ScienceUtil.RequiredUsageInternalAvailable(
+                        exp.vessel,
+                        exp.part,
+                        (ExperimentUsageReqs)exp.usageReqMaskInternal,
+                        exp.experiment,
+                        ref exp.usageReqMessage);
+                }
+
+                return ExperimentDeployRule.RefusalFor(
+                    shielded,
+                    usageMet,
+                    exp.usageReqMessage ?? "",
+                    exp.useCooldown && exp.cooldownTimer > 0.0,
+                    GameSentence("#autoLOC_238290", "the part is shielded from the airstream"),
+                    GameSentence(
+                        "#autoLOC_238298",
+                        "the experiment is still cooling down",
+                        KSPUtil.PrintTimeCompact(exp.cooldownToGo, explicitPositive: false)));
+            }
+            catch (Exception)
+            {
+                // A precheck that cannot be read must not report the deploy as
+                // refused OR as run. Falling through to the deploy is the same
+                // behaviour as before this gate existed, and the game still has
+                // its own three arms behind it.
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// One of KSP's own sentences, or <paramref name="fallback"/> when the
+        /// Localizer had nothing for the key. An unresolved
+        /// <c>#autoLOC_</c> comes back as the key itself, which is worse in
+        /// front of an operator than a plain English sentence.
+        /// </summary>
+        private static string GameSentence(string key, string fallback, params object[] args)
+        {
+            try
+            {
+                var formatted = args.Length == 0
+                    ? Localizer.Format(key)
+                    : Localizer.Format(key, args);
+                if (string.IsNullOrWhiteSpace(formatted) ||
+                    formatted.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return fallback;
+                }
+                return formatted;
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
         }
 
         /// <summary>
