@@ -64,8 +64,12 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
   // `DistanceToTarget/no-target` renders the tombstone's own age. All three are
   // fed renders, so allowlisting them would have granted a permission none of
   // them needed.
+  "ActionGroup/unknown-state":
+    "the configured group has not been reported, which is the scenario: its own fixture asks for the faint em dash",
   "CommSignal/no-signal-data":
     "loss of signal is the scenario; the widget's subject is the absence",
+  "KeplerPeriod/no-body-data":
+    "no body resolved, so there is no gravitational parameter and no curve to plot; the fixture asks for the empty GraphView by name",
   "ContractManager/awaiting-telemetry":
     "depicts the pre-telemetry placeholder deliberately, as its own case",
   "LaunchDirector/awaiting":
@@ -74,6 +78,8 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "no vessel position to plot, so the map draws its ground state only",
   "Objectives/empty":
     "no active objectives, which is a real state and not a missing read",
+  "OrbitView/no-data":
+    "no orbit to draw; the fixture exists to check that the empty state lays out cleanly at every size",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",
   "Twr/engine-off-empty":

@@ -35,12 +35,13 @@
  * Do NOT add an entry to make the gate green. An entry is an admission that a
  * committed baseline is wrong, and the only correct way to remove one is to fix the
  * harness so the render contains its data.
+ *
+ * ## The list is EMPTY
+ *
+ * All six AtmosphereProfile entries came out when its spec stopped hand-building
+ * a stream and started reading the fixture's own `_stream` block, which every one
+ * of those fixtures already carried. The 48 renders are 48 distinct atmospheres
+ * now, and the debt is at zero. Keep it there: an entry added back is a committed
+ * baseline someone has agreed is wrong.
  */
-export const KNOWN_UNFED: Record<string, number> = {
-  "AtmosphereProfile/duna-thin-atmosphere": 8,
-  "AtmosphereProfile/eve-thick-atmosphere": 8,
-  "AtmosphereProfile/kerbin-reentry": 8,
-  "AtmosphereProfile/kerbin-sea-level": 8,
-  "AtmosphereProfile/kerbin-upper-atmosphere": 8,
-  "AtmosphereProfile/mun-vacuum": 8,
-};
+export const KNOWN_UNFED: Record<string, number> = {};
