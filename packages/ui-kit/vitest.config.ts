@@ -2,6 +2,11 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    // 30s, the repo-wide jsdom budget (see vitest-timeout-convention.test.ts): under
+    // a parallel `turbo test` the 5s default times out whichever test is slowest
+    // rather than whichever is wrong. Doubly so here, where fileParallelism is off
+    // below, so every file in the largest suite in the workspace waits its turn.
+    testTimeout: 30_000,
     pool: "threads",
     // Several test files spinning up jsdom worker threads at once (68 files,
     // default thread count) races the same shared node_modules/.pnpm deps
