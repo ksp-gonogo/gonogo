@@ -1221,6 +1221,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/main.tsx",
     ],
     permanent: [
+      // -- KSP's OWN enums (2026-08-21). KspEnums.cs mirrors seven stock KSP
+      // enums so their ordinals can cross the wire, and one of them,
+      // ResourceFlowMode, is read by this Uplink and by nothing else. The enum
+      // is STOCK KSP's, not Kerbalism's, so declaring it in the Uplink's slice
+      // would mean a second Uplink reading the same stock enum got a second copy
+      // of the same transcription, which is the drift this whole mechanism
+      // exists to remove. What names the mod is the doc comment saying which
+      // channel the ordinal rides (`kerbalism.resourceDefs[].flowModeOrdinal`)
+      // and why the type is here rather than there. A channel path in a contract
+      // doc comment is the text-only wire mention this bucket documents; the
+      // SDK's two files carry the same sentence for the same reason.
+      "mod/Sitrep.Contract/KspEnums.cs",
+      "mod/sitrep-sdk/src/index.ts",
+      "mod/sitrep-sdk/src/ksp-enum-names.ts",
       // The mod-side Uplink isolation ratchet, same case as the magnitude budget
       // below: its shrink-only debt lists are keyed by Uplink project name, so
       // an Uplink that still reaches a private assembly has to be named in one.
