@@ -12,7 +12,7 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "./setupMockDataSource";
-import { setupStreamFixture } from "./setupStreamFixture";
+import { fixtureEmitsMuted, setupStreamFixture } from "./setupStreamFixture";
 import {
   extractLegacyPartLiveFromFixture,
   topologyToVesselPartsWire,
@@ -486,8 +486,10 @@ export async function snapshotWidgetMode<
     // ordering. Without the act() wrapper React batches updates and the
     // snapshot races the commit.
     act(() => {
-      for (const key of fixtureKeys) {
-        source?.emit(key, opts.fixture[key]);
+      if (!fixtureEmitsMuted()) {
+        for (const key of fixtureKeys) {
+          source?.emit(key, opts.fixture[key]);
+        }
       }
       emitVesselParts();
       emitVesselControl();
@@ -565,8 +567,10 @@ export async function renderWidgetMode<
   );
 
   act(() => {
-    for (const key of fixtureKeys) {
-      source.emit(key, opts.fixture[key]);
+    if (!fixtureEmitsMuted()) {
+      for (const key of fixtureKeys) {
+        source.emit(key, opts.fixture[key]);
+      }
     }
     emitVesselParts();
     emitVesselControl();
