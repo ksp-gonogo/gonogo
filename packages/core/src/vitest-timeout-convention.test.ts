@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
  * That is not a hypothetical. `test` was red on staging for seven consecutive
  * runs in August 2026 and the timing-out test was DIFFERENT nearly every run
  * (`ManeuverPlanner` armed triggers, a `ThermalStatus` characterisation, an
- * `AtmosphereProfile` snapshot, a `kerbalism` axe assertion), which is the
+ * `AtmosphereProfile` snapshot, an Uplink's axe assertion), which is the
  * signature of a budget being missed rather than a defect being found. Worse, a
  * timed-out test does not stop: its in-flight `userEvent` work keeps running into
  * the tests after it, so ONE timeout reported ten failures, nine of them
