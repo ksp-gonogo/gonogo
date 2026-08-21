@@ -509,7 +509,7 @@ export interface VesselState {
    * a confirmed tombstone. `Situation.Unknown` (ordinal 8) is a DEFINED value
    * and resolves to the literal name "Unknown", not `undefined`.
    */
-  situationName: string | null | undefined;
+  situationName: SituationName | null | undefined;
   /**
    * SAS-mode NAME: the display-map resolution of `vessel.control.sasMode` (a
    * numeric `Sitrep.Contract.SasMode` enum ordinal) to its enum name string,
@@ -523,7 +523,7 @@ export interface VesselState {
    * 10) resolves to "Unknown" (not in `SAS_MODES`, so no button highlights,
    * the same benign outcome as the legacy path).
    */
-  sasModeName: string | null | undefined;
+  sasModeName: SasModeName | null | undefined;
   /**
    * Target KIND NAME: the display-map resolution of `vessel.target.kind` (a
    * numeric `Sitrep.Contract.TargetKind` enum ordinal) to its enum name.
@@ -541,7 +541,7 @@ export interface VesselState {
    * targeted, the common case) or the ordinal is out of range; `null` on a
    * confirmed tombstone.
    */
-  targetKind: string | null | undefined;
+  targetKind: TargetKindName | null | undefined;
   /**
    * Comms control-state NAME: the display-map resolution of
    * `vessel.comms.controlState` (a numeric `Sitrep.Contract.ControlState` enum
@@ -551,7 +551,7 @@ export interface VesselState {
    * hasn't arrived or the ordinal is out of range; `null` on a confirmed
    * tombstone. `ControlState.Unknown` (ordinal 11) resolves to "Unknown".
    */
-  commsControlStateName: string | null | undefined;
+  commsControlStateName: ControlStateName | null | undefined;
   /**
    * Comms control-state ORDINAL in CommSignal's 0/1/2 LEVEL scheme
    * (0=none, 1=partial, 2=full), DERIVED from `vessel.comms.controlState`'s
@@ -1144,6 +1144,27 @@ function deriveNextApsis(
   return { nextApsisType: null, timeToNextApsis: null };
 }
 
+/**
+ * The closed set of names each of these display maps can produce, DERIVED from
+ * the generated enum rather than written out.
+ *
+ * A field typed `string` accepts a comparison against any literal at all, which
+ * is what let `CommSignal` decide a vessel's link tone by substring-matching
+ * `"no signal"` against a `ControlState` name: no member is spelled that, so
+ * every craft read healthy, including one with no control. Typed as the union,
+ * that line is a compile error, because a closed union and a non-member literal
+ * have no overlap.
+ *
+ * Derived, not transcribed, so a member appended in C# widens the union on the
+ * next codegen and any exhaustive `switch` over it stops compiling until
+ * somebody rules on it. A hand-written union would stay closed around the old
+ * members and let the new one fall through whatever default arm was there.
+ */
+export type SituationName = keyof typeof Situation;
+export type SasModeName = keyof typeof SasMode;
+export type TargetKindName = keyof typeof TargetKind;
+export type ControlStateName = keyof typeof ControlState;
+
 /** `Sitrep.Contract.Situation`, behind `vessel.state.situationName`. */
 const SITUATION_NAMES = namesOf(Situation);
 
@@ -1229,18 +1250,18 @@ export function collapseControlStateLevel(
  * (mapped to `undefined`, never `null`, since it isn't a whole-channel
  * absence). Never throws on a missing channel / missing field.
  */
-function resolveEnumName<T>(
+function resolveEnumName<T, N extends string>(
   get: DerivedGet,
   topic: string,
   ordinalOf: (payload: T) => number | null | undefined,
   names: readonly string[],
-): string | null | undefined {
+): N | null | undefined {
   const point = get<T>(topic);
   if (!point) return undefined;
   if (point.payload === null) return null;
   const ordinal = ordinalOf(point.payload);
   if (ordinal == null) return undefined;
-  return names[ordinal] ?? undefined;
+  return (names[ordinal] as N | undefined) ?? undefined;
 }
 
 /**
@@ -1269,37 +1290,35 @@ function resolveCommsControlStateOrdinal(
  * same as the body-name display maps.
  */
 function deriveEnumDisplayMaps(get: DerivedGet): {
-  situationName: string | null | undefined;
-  sasModeName: string | null | undefined;
-  targetKind: string | null | undefined;
-  commsControlStateName: string | null | undefined;
+  situationName: SituationName | null | undefined;
+  sasModeName: SasModeName | null | undefined;
+  targetKind: TargetKindName | null | undefined;
+  commsControlStateName: ControlStateName | null | undefined;
   commsControlStateOrdinal: number | null | undefined;
 } {
   return {
-    situationName: resolveEnumName<VesselIdentityPayload>(
+    situationName: resolveEnumName<VesselIdentityPayload, SituationName>(
       get,
       "vessel.identity",
       (p) => p.situation,
       SITUATION_NAMES,
     ),
-    sasModeName: resolveEnumName<VesselControlPayload>(
+    sasModeName: resolveEnumName<VesselControlPayload, SasModeName>(
       get,
       "vessel.control",
       (p) => p.sasMode,
       SAS_MODE_NAMES,
     ),
-    targetKind: resolveEnumName<VesselTargetPayload>(
+    targetKind: resolveEnumName<VesselTargetPayload, TargetKindName>(
       get,
       "vessel.target",
       (p) => p.kind,
       TARGET_KIND_NAMES,
     ),
-    commsControlStateName: resolveEnumName<VesselCommsPayload>(
-      get,
-      "vessel.comms",
-      (p) => p.controlState,
-      CONTROL_STATE_NAMES,
-    ),
+    commsControlStateName: resolveEnumName<
+      VesselCommsPayload,
+      ControlStateName
+    >(get, "vessel.comms", (p) => p.controlState, CONTROL_STATE_NAMES),
     commsControlStateOrdinal: resolveCommsControlStateOrdinal(get),
   };
 }
