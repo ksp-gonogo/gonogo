@@ -1513,8 +1513,46 @@ namespace Sitrep.Host
         /// Pass. First rather than all: a caller acts on one reason, and
         /// evaluating the rest after a Fail costs live game reads for an answer
         /// nobody reads.</para>
+        ///
+        /// <para><b>Runs where the handler runs.</b> An evaluator reads LIVE game
+        /// state, which is the same Unity main-thread constraint every command
+        /// handler is under, so it is marshaled through the same pump when the
+        /// engine is configured for it. Without that a gate reading
+        /// <c>FlightGlobals</c> or <c>PSystemSetup</c> off the Courier thread
+        /// raises Unity's cross-thread exception, which this method catches as
+        /// <see cref="GateOutcome.Unknown"/>, and Unknown refuses: a gate that
+        /// cannot be evaluated would have refused its command for ever, and
+        /// looked deliberate doing it.</para>
         /// </summary>
         internal GateVerdict EvaluateGates(string command, IGateArguments arguments)
+        {
+            if (!_commandDeclarations.TryGetValue(command, out var declaration)) return GateVerdict.Pass();
+            var declared = declaration.Requires;
+            if (declared == null || declared.Length == 0) return GateVerdict.Pass();
+
+            if (!_executeCommandsOnMainThread) return EvaluateGatesHere(command, arguments);
+
+            try
+            {
+                return RunOnMainThread(_ => EvaluateGatesHere(command, arguments), null) as GateVerdict
+                    ?? GateVerdict.Unknown("the gate evaluation returned nothing");
+            }
+            catch (Exception ex)
+            {
+                // The marshaling itself failed (the engine is stopping, or the
+                // main-thread pump stalled). Fail-closed, same as an evaluator
+                // that threw, and say which so it does not read as a refusal the
+                // game made.
+                return GateVerdict.Unknown(
+                    "could not reach the main thread to evaluate the gate: " + SafeExceptionMessage(ex));
+            }
+        }
+
+        /// <summary>
+        /// <see cref="EvaluateGates"/>'s body, on whichever thread the caller has
+        /// arranged to be the right one.
+        /// </summary>
+        private GateVerdict EvaluateGatesHere(string command, IGateArguments arguments)
         {
             if (!_commandDeclarations.TryGetValue(command, out var declaration)) return GateVerdict.Pass();
             var requirements = declaration.Requires;

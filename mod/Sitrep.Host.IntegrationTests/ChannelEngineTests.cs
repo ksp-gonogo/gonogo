@@ -746,6 +746,60 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A declared gate's evaluator runs on the main-thread pump too, not on
+        /// the Courier thread that dispatched.
+        ///
+        /// <para>An evaluator reads LIVE game state, which is the same
+        /// constraint the handler is under, and it runs one layer earlier. Off
+        /// the main thread a gate touching Unity raises a cross-thread
+        /// exception, the engine catches it as Unknown, and Unknown refuses: the
+        /// command would be permanently refused and look like the game had said
+        /// no. Same probe as the handler test above, one layer up.</para>
+        /// </summary>
+        [Fact]
+        public void GateEvaluatorRunsOnTheMainThreadPumpNotTheCourierThread()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new MainThreadGateProbeUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+
+            using var stop = new ManualResetEventSlim(false);
+            using var pumpReady = new ManualResetEventSlim(false);
+            var pumpThreadId = 0;
+            var pump = new Thread(() =>
+            {
+                pumpThreadId = Thread.CurrentThread.ManagedThreadId;
+                pumpReady.Set();
+                while (!stop.IsSet)
+                {
+                    engine.RunPendingCommands();
+                    Thread.Sleep(2);
+                }
+                engine.RunPendingCommands();
+            })
+            { IsBackground = true, Name = "test-main-thread-pump" };
+            pump.Start();
+            Assert.True(pumpReady.Wait(Timeout));
+
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                engine.DispatchCommand(MainThreadGateProbeUplink.Command, null, "vantage-1", _ => resolved.Set());
+                Assert.True(resolved.Wait(Timeout), "a passing gate should let the command resolve");
+
+                Assert.Equal(pumpThreadId, uplink.LastGateThreadId);
+                Assert.NotEqual(Thread.CurrentThread.ManagedThreadId, uplink.LastGateThreadId);
+            }
+            finally
+            {
+                stop.Set();
+                pump.Join(Timeout);
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// F2 Part 1: the flag genuinely GATES the marshaling. Without it (the
         /// default), a command resolves even though
         /// <see cref="ChannelEngine.RunPendingCommands"/> is never called,
@@ -1020,6 +1074,65 @@ namespace Sitrep.Host.IntegrationTests
                     Volatile.Write(ref _lastHandlerThreadId, Thread.CurrentThread.ManagedThreadId);
                     return CommandResult.Ok();
                 });
+            }
+        }
+
+        /// <summary>
+        /// The same probe, one layer earlier: a GATE EVALUATOR reads live game
+        /// state, so it is under the same Unity main-thread constraint the
+        /// handler is, and it runs BEFORE the handler.
+        ///
+        /// <para>Off the main thread a gate reading <c>FlightGlobals</c> or
+        /// <c>PSystemSetup</c> raises Unity's cross-thread exception, which the
+        /// engine catches as <c>Unknown</c>, and Unknown REFUSES. So the failure
+        /// mode is a command refused for ever, looking deliberate. That is worth
+        /// a thread-identity assertion of its own rather than inheriting the
+        /// handler's.</para>
+        /// </summary>
+        private sealed class MainThreadGateProbeUplink : ISitrepUplink
+        {
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public const string Command = "probe.capture-gate-thread";
+            public const string GateKind = "probe-thread";
+
+            private int _lastGateThreadId = -1;
+            public int LastGateThreadId => Volatile.Read(ref _lastGateThreadId);
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "main-thread-gate-probe",
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration
+                    {
+                        Command = Command,
+                        Delayed = false,
+                        Requires = new[] { new CommandRequirement { Kind = GateKind } },
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddGateEvaluator(new ThreadRecordingGate(this));
+                host.AddCommandHandler<object?, CommandResult>(Command, _ => CommandResult.Ok());
+            }
+
+            private sealed class ThreadRecordingGate : ICommandGateEvaluator
+            {
+                private readonly MainThreadGateProbeUplink _owner;
+
+                public ThreadRecordingGate(MainThreadGateProbeUplink owner) => _owner = owner;
+
+                public string Kind => GateKind;
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+                {
+                    Volatile.Write(ref _owner._lastGateThreadId, Thread.CurrentThread.ManagedThreadId);
+                    return GateVerdict.Pass();
+                }
             }
         }
 
