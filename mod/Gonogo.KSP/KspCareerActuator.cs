@@ -69,7 +69,7 @@ namespace Gonogo.KSP
             }
             if (strategy.IsActive)
             {
-                return CommandResult.Fail(CommandErrorCode.WrongState, "already active");
+                return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is already active");
             }
 
             if (strategy.HasFactorSlider && factor > 0.0)
@@ -98,7 +98,7 @@ namespace Gonogo.KSP
             }
             if (!strategy.IsActive)
             {
-                return CommandResult.Fail(CommandErrorCode.WrongState, "not active");
+                return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is not active");
             }
 
             return strategy.Deactivate()
@@ -136,7 +136,7 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(
                     CommandErrorCode.WrongState,
-                    RDTech.State.Available.ToString());
+                    $"the node is already {GameWords.Phrase(RDTech.State.Available)}");
             }
 
             ProtoTechNode? node = null;
@@ -266,7 +266,7 @@ namespace Gonogo.KSP
 
         /// <summary>The contract's state as the GAME names it: <c>Contract.State</c>'s ten members are each <c>[Description]</c>-tagged.</summary>
         private static string ContractStateName(Contract contract) =>
-            GameWords.Of(contract.ContractState);
+            $"the contract is {GameWords.Phrase(contract.ContractState)}";
 
         /// <summary>
         /// Reproduces the stock <c>UpgradeFacilityDialog</c> spend: resolve the
@@ -443,7 +443,8 @@ namespace Gonogo.KSP
                 // standing itself and an operator reads "Assigned" rather than
                 // an arm that could have meant five things.
                 return CommandResult.Fail(
-                    CommandErrorCode.WrongState, GameWords.Of(kerbal.rosterStatus));
+                    CommandErrorCode.WrongState,
+                    $"the kerbal is {GameWords.Phrase(kerbal.rosterStatus)}");
             }
 
             roster.SackAvailable(kerbal);

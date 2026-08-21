@@ -201,7 +201,11 @@ namespace Gonogo.KSP
                 ? CommandResult.Ok()
                 : CommandResult.Fail(
                     CommandErrorCode.CapabilityMismatch,
-                    $"this craft cannot hold {GameWords.Of(mode)}");
+                    // The contract's own name for the mode, NOT through GameWords:
+                    // that reads attributes, and a contract enum carries
+                    // Reinforced.Typings' [TsEnum] on the netstandard build. See
+                    // GameWords' own doc comment. This name is ours anyway.
+                    $"this craft cannot hold {mode}");
         }
 
         public CommandResult SetRcs(bool enabled) => WithActionGroups(actionGroups =>

@@ -107,7 +107,7 @@ namespace Gonogo.KSP.Gates
             // and the mode names say which.
             return GateVerdict.Fail(
                 CommandErrorCode.CareerModeRequired,
-                $"this save is a {GameWords.Of(actual)} game");
+                $"this save is a {GameWords.Phrase(actual)} game");
         }
     }
 
@@ -143,7 +143,7 @@ namespace Gonogo.KSP.Gates
                 }
             }
             return GateVerdict.Fail(
-                CommandErrorCode.WrongScene, $"the game is in {GameWords.Of(actual)}");
+                CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(actual)} scene");
         }
     }
 
@@ -298,7 +298,7 @@ namespace Gonogo.KSP.Gates
                 var status = FlightGlobals.ClearToSave();
                 return status == ClearToSaveStatus.CLEAR
                     ? GateVerdict.Pass()
-                    : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, GameWords.Of(status));
+                    : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, GameWords.Phrase(status));
             }
             catch (Exception ex)
             {

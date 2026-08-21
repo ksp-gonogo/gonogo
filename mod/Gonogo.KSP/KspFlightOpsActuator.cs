@@ -155,7 +155,7 @@ namespace Gonogo.KSP
                     return "the vessel is not tracked as ours";
                 }
                 var clear = FlightGlobals.ClearToSave();
-                return clear == ClearToSaveStatus.CLEAR ? "" : GameWords.Of(clear);
+                return clear == ClearToSaveStatus.CLEAR ? "" : GameWords.Phrase(clear);
             }
             catch (Exception)
             {
@@ -189,7 +189,7 @@ namespace Gonogo.KSP
             var clear = FlightGlobals.ClearToSave();
             if (clear != ClearToSaveStatus.CLEAR)
             {
-                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, GameWords.Of(clear));
+                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, GameWords.Phrase(clear));
             }
 
             var game = HighLogic.CurrentGame;
@@ -235,7 +235,7 @@ namespace Gonogo.KSP
                 HighLogic.LoadedScene != GameScenes.EDITOR)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.WrongScene, GameWords.Of(HighLogic.LoadedScene));
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
             }
 
             // A leftover ActiveVessel from an un-recovered prior flight wedges
