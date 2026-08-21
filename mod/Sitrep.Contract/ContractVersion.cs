@@ -1055,7 +1055,32 @@ namespace Sitrep.Contract
         /// capture now derives the kinds from <c>BaseServo</c>, and
         /// <c>"servo"</c> is what an unrecognised subclass reports rather than
         /// being dropped, so the same failure cannot recur silently.</para>
+        ///
+        /// <para><b>Bumped 20 -&gt; 21: the console can say no before the
+        /// operator presses.</b> Two new wire types, <c>CommandGate</c> and
+        /// <c>CommandGateReport</c>, carried on a new engine-declared channel
+        /// <c>system.uplink.gates</c>. Additive: no existing type gains,
+        /// loses or retypes a member, and a consumer that does not subscribe to
+        /// the channel behaves exactly as it did.</para>
+        ///
+        /// <para>Gating was already complete on the DISPATCH path as of 17 and
+        /// 19: eleven commands declare requirements, six evaluators wrap real
+        /// KSP authorities, and the engine refuses before the handler runs.
+        /// Nothing carried the answer to the client, so the console still said
+        /// "press it and find out", which is the one thing the whole mechanism
+        /// existed to stop. This channel is the same evaluation with an EMPTY
+        /// argument bag: the addressability half the gate framework was shaped
+        /// to publish from the start (see <c>CommandRequirement.Needs</c>, whose
+        /// abstention rule only means anything if somebody asks with nothing).</para>
+        ///
+        /// <para>The verdict is <see cref="GateVerdict"/> itself rather than a
+        /// parallel shape, deliberately: one client sentence then serves "the
+        /// game will refuse this" and "the game refused this", and the two
+        /// cannot drift on how a reason is worded. Nothing on the channel is a
+        /// permission: the sample is up to half a second old and the dispatch
+        /// re-evaluates the same gates against live state, so a stale Pass can
+        /// never let a command through.</para>
         /// </remarks>
-        public const int Minor = 20;
+        public const int Minor = 21;
     }
 }

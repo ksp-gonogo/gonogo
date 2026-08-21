@@ -800,6 +800,164 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The same seam again, one layer FURTHER out: publishing every gated
+        /// command's standing verdict to <c>system.uplink.gates</c> must
+        /// evaluate on the main-thread pump, never on the Courier thread that
+        /// samples the channel.
+        ///
+        /// <para>This is the trap the channel exists inside. Channel mappers run
+        /// on the Courier thread; a gate evaluator reads live KSP state; a Unity
+        /// read off the main thread raises a cross-thread exception that
+        /// <c>EvaluateGatesHere</c> catches as <c>Unknown</c>, and Unknown
+        /// REFUSES. Doing the reads in the mapper would therefore publish every
+        /// gated control as permanently unavailable, with a reason that reads
+        /// exactly like the game's own, which is the worst possible direction to
+        /// fail in. The same bug has already been shipped and fixed once on the
+        /// dispatch path.</para>
+        ///
+        /// <para>Two independent assertions, because one of them alone could
+        /// pass while the bug is present. First: the Courier samples and emits
+        /// the channel with no pump running at all, and the evaluator must not
+        /// have run. Second: once a pump thread calls
+        /// <see cref="ChannelEngine.SampleCommandGates"/>, the evaluator runs on
+        /// THAT thread and not the Courier's, proven by thread ids the Courier
+        /// recorded for itself through an ordinary channel mapper on the same
+        /// engine.</para>
+        /// </summary>
+        [Fact]
+        public async Task GateSamplingRunsOnTheMainThreadPumpNotTheCourierThread()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new GateSampleProbeUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, GateSampleProbeUplink.CourierProbeTopic, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
+
+                // One Courier tick: it samples every subscribed channel,
+                // system.uplink.gates included, with no main-thread pump in
+                // existence.
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var topics = new List<string>
+                {
+                    (await ReceiveStreamDataAsync(client, Timeout)).Topic,
+                    (await ReceiveStreamDataAsync(client, Timeout)).Topic,
+                };
+                Assert.Contains(ChannelEngine.UplinkGatesTopic, topics);
+                Assert.Contains(GateSampleProbeUplink.CourierProbeTopic, topics);
+
+                var courierThreadId = uplink.LastMapperThreadId;
+                Assert.NotEqual(-1, courierThreadId);
+
+                // The channel was sampled and delivered, and the gate was not
+                // evaluated to do it. This is the assertion that fails the
+                // moment the evaluation moves into the mapper.
+                Assert.Equal(-1, uplink.LastGateThreadId);
+
+                // Now the pump, standing in for GonogoAddon.Update.
+                var pumpThreadId = 0;
+                var pump = new Thread(() =>
+                {
+                    pumpThreadId = Thread.CurrentThread.ManagedThreadId;
+                    engine.SampleCommandGates();
+                })
+                { IsBackground = true, Name = "test-main-thread-pump" };
+                pump.Start();
+                Assert.True(pump.Join(Timeout), "the gate sample should return promptly on the pump thread");
+
+                Assert.Equal(pumpThreadId, uplink.LastGateThreadId);
+                // Over the WHOLE run, not just the last call: see
+                // GateSampleProbeUplink.GateThreadIds for why the last-one-wins
+                // field cannot see this violation on its own.
+                Assert.DoesNotContain(courierThreadId, uplink.GateThreadIds);
+                Assert.Equal(new[] { pumpThreadId }, uplink.GateThreadIds);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The channel carries, per gated command, whether it passes and if not
+        /// why: the verdict's typed <see cref="CommandErrorCode"/> and the
+        /// game's own words, not a bare boolean. An UNGATED command is absent
+        /// rather than present-and-passing, because "nothing to say" and "fine"
+        /// are different answers and a control should not be drawn from the
+        /// wrong one.
+        /// </summary>
+        [Fact]
+        public async Task SystemUplinkGatesCarriesEachGatedCommandsVerdictAndReason()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new GateSampleProbeUplink { GateOutcomeToReport = GateOutcome.Fail };
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
+
+                engine.SampleCommandGates();
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Equal(ChannelEngine.UplinkGatesTopic, delivered.Topic);
+
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+                var gates = Assert.IsType<List<object?>>(payload["gates"]);
+
+                var entry = Assert.Single(
+                    gates.Cast<Dictionary<string, object?>>(),
+                    g => (string?)g["command"] == GateSampleProbeUplink.GatedCommand);
+                var verdict = Assert.IsType<Dictionary<string, object?>>(entry["verdict"]);
+                Assert.Equal((double)(int)GateOutcome.Fail, verdict["outcome"]);
+                Assert.Equal((double)(int)CommandErrorCode.SiteOccupied, verdict["errorCode"]);
+                Assert.Equal(GateSampleProbeUplink.RefusalDetail, verdict["detail"]);
+
+                // The ungated command the same uplink declares is not on the
+                // channel at all.
+                Assert.DoesNotContain(
+                    gates.Cast<Dictionary<string, object?>>(),
+                    g => (string?)g["command"] == GateSampleProbeUplink.UngatedCommand);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The sampler's cadence is its OWN, not the caller's: <c>GonogoAddon</c>
+        /// calls it once per frame and must not thereby re-read live game state
+        /// on the main thread once per frame. Two calls back to back produce one
+        /// evaluation.
+        /// </summary>
+        [Fact]
+        public void SamplingCommandGatesTwiceInAFrameEvaluatesOnce()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new GateSampleProbeUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                engine.SampleCommandGates();
+                engine.SampleCommandGates();
+                engine.SampleCommandGates();
+                Assert.Equal(1, uplink.GateEvaluationCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// F2 Part 1: the flag genuinely GATES the marshaling. Without it (the
         /// default), a command resolves even though
         /// <see cref="ChannelEngine.RunPendingCommands"/> is never called,
@@ -1132,6 +1290,120 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Volatile.Write(ref _owner._lastGateThreadId, Thread.CurrentThread.ManagedThreadId);
                     return GateVerdict.Pass();
+                }
+            }
+        }
+
+        /// <summary>
+        /// The probe for the <c>system.uplink.gates</c> tests: one GATED command
+        /// whose evaluator records the thread it ran on and how often, one
+        /// UNGATED command beside it, and an ordinary channel whose mapper
+        /// records the thread the Courier samples on.
+        ///
+        /// <para>The mapper is what makes the thread assertion an identity
+        /// rather than a guess about names: it is a perfectly normal channel
+        /// source on the same engine, so the id it records IS the Courier
+        /// thread's, and the gate evaluator's must differ from it.</para>
+        /// </summary>
+        private sealed class GateSampleProbeUplink : ISitrepUplink
+        {
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public const string GatedCommand = "probe.gated";
+            public const string UngatedCommand = "probe.ungated";
+            public const string CourierProbeTopic = "probe.courier-thread";
+            public const string GateKind = "probe-sample-thread";
+            public const string RefusalDetail = "the pad has a rocket on it";
+
+            /// <summary>What the evaluator answers. Fail exercises the reason-carrying half.</summary>
+            public GateOutcome GateOutcomeToReport { get; set; } = GateOutcome.Pass;
+
+            private int _lastGateThreadId = -1;
+            public int LastGateThreadId => Volatile.Read(ref _lastGateThreadId);
+
+            private readonly HashSet<int> _gateThreadIds = new HashSet<int>();
+
+            /// <summary>
+            /// EVERY thread the evaluator has ever run on, not only the last.
+            ///
+            /// <para>The set exists because the last-one-wins field CANNOT SEE
+            /// the failure this probe is for, which was measured rather than
+            /// assumed: with the evaluation planted back into the channel mapper,
+            /// an honest pump sample afterwards overwrites
+            /// <see cref="LastGateThreadId"/> with the pump's id and the
+            /// thread-identity assertion goes green while the bug is present.
+            /// The set never forgets, so it stays a second, independent way for
+            /// the same violation to show itself.</para>
+            /// </summary>
+            public IReadOnlyCollection<int> GateThreadIds
+            {
+                get { lock (_gateThreadIds) return _gateThreadIds.ToArray(); }
+            }
+
+            private int _gateEvaluationCount;
+            public int GateEvaluationCount => Volatile.Read(ref _gateEvaluationCount);
+
+            private int _lastMapperThreadId = -1;
+            public int LastMapperThreadId => Volatile.Read(ref _lastMapperThreadId);
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "gate-sample-probe",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = CourierProbeTopic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1, quantum: EmissionQuantum.Absolute(0)),
+                    },
+                },
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration
+                    {
+                        Command = GatedCommand,
+                        Delayed = false,
+                        Requires = new[] { new CommandRequirement { Kind = GateKind } },
+                    },
+                    new CommandDeclaration { Command = UngatedCommand, Delayed = false },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddGateEvaluator(new ThreadRecordingSampleGate(this));
+                host.AddCommandHandler<object?, CommandResult>(GatedCommand, _ => CommandResult.Ok());
+                host.AddCommandHandler<object?, CommandResult>(UngatedCommand, _ => CommandResult.Ok());
+                host.AddChannelSource(CourierProbeTopic, _ =>
+                {
+                    Volatile.Write(ref _lastMapperThreadId, Thread.CurrentThread.ManagedThreadId);
+                    // A fresh value every sample so the emitter never suppresses
+                    // this channel as unchanged and the mapper genuinely runs.
+                    return Guid.NewGuid().ToString();
+                });
+            }
+
+            private sealed class ThreadRecordingSampleGate : ICommandGateEvaluator
+            {
+                private readonly GateSampleProbeUplink _owner;
+
+                public ThreadRecordingSampleGate(GateSampleProbeUplink owner) => _owner = owner;
+
+                public string Kind => GateKind;
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+                {
+                    Volatile.Write(ref _owner._lastGateThreadId, Thread.CurrentThread.ManagedThreadId);
+                    lock (_owner._gateThreadIds)
+                    {
+                        _owner._gateThreadIds.Add(Thread.CurrentThread.ManagedThreadId);
+                    }
+                    Interlocked.Increment(ref _owner._gateEvaluationCount);
+                    return _owner.GateOutcomeToReport == GateOutcome.Pass
+                        ? GateVerdict.Pass()
+                        : GateVerdict.Fail(CommandErrorCode.SiteOccupied, RefusalDetail);
                 }
             }
         }
