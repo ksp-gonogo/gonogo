@@ -279,4 +279,55 @@ describe("StrategiesComponent", () => {
       expect(args.factor).toBeCloseTo(0.05, 2);
     });
   });
+
+  it("keeps the activate button pending across a sample that has not flipped isActive", async () => {
+    const user = userEvent.setup();
+    const inactive = { ...SAMPLE_BLOCKED, canActivate: true };
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [inactive], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+
+    // The command travels: nothing answers it until this test says so, which is
+    // the only condition under which a pending state means anything.
+    stream.transport.holdCommands();
+
+    await user.click(
+      await screen.findByRole("button", { name: /^Activate$/i }),
+    );
+    await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
+
+    expect(
+      await screen.findByRole("button", { name: /Activating/i }),
+    ).toBeInTheDocument();
+
+    // A fresh career sample carrying the SAME strategy, still inactive. The
+    // command has not landed, so the control must not say it has. The old
+    // `pendingId` effect cleared unconditionally on any change of the
+    // strategies list's identity, never once reading `isActive`, so the
+    // "Activating..." label reverted while the command was still in flight,
+    // which reads to the operator as the command having landed.
+    act(() => {
+      emitCareer(stream, [{ ...inactive }], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+
+    expect(
+      screen.getByRole("button", { name: /Activating/i }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      stream.transport.answerHeldCommands();
+    });
+    expect(
+      await screen.findByRole("button", { name: /^Activate$/i }),
+    ).toBeInTheDocument();
+  });
 });

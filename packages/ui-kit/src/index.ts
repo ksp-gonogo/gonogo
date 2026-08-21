@@ -92,6 +92,20 @@ export {
   moveComboboxActiveIndex,
 } from "./Combobox";
 export {
+  ARM_TIMEOUT_MS,
+  CommandButton,
+  type CommandButtonHandle,
+  type CommandButtonPhase,
+  type CommandButtonProps,
+  type CommandButtonSize,
+  type CommandButtonState,
+  type CommandButtonTone,
+  PENDING_BACKSTOP_MS,
+  REFUSAL_TIMEOUT_MS,
+  type UseCommandButtonOptions,
+  useCommandButton,
+} from "./CommandButton/CommandButton";
+export {
   type CameraSetpoint,
   type CameraSetpointBounds,
   CameraSetpointInput,

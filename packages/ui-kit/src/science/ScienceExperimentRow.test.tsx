@@ -2,10 +2,16 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
+import type { CommandButtonHandle } from "../CommandButton/CommandButton";
 import {
   ScienceExperimentRow,
   type ScienceInstrument,
 } from "./ScienceExperimentRow";
+
+/** A structural command handle, the shape `useCommand` returns. */
+function handle(send: CommandButtonHandle["send"]): CommandButtonHandle {
+  return { send, inFlight: [], shape: "discrete", effectiveDelaySeconds: 0 };
+}
 
 // Rows read `theme.space` (via the kit's `Inline`), so every render needs a
 // theme in scope: the shared `render` mounts one by default. The `<ul>` is
@@ -56,33 +62,46 @@ describe("ScienceExperimentRow", () => {
     expect(screen.getByText("INOPERABLE")).toBeInTheDocument();
   });
 
-  it("calls onDeploy with the partId when Deploy is clicked", async () => {
+  it("dispatches deploy with the partId when Deploy is clicked", async () => {
     const user = userEvent.setup();
-    const onDeploy = vi.fn();
+    const send = vi.fn(() => Promise.resolve(undefined));
     renderRow(
       <ScienceExperimentRow
         instrument={instrument({ partId: "42" })}
-        onDeploy={onDeploy}
+        deployCmd={handle(send)}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Deploy" }));
-    expect(onDeploy).toHaveBeenCalledWith("42");
+    expect(send).toHaveBeenCalledWith(
+      { partId: "42" },
+      { label: "Deploy Mystery Goo" },
+    );
   });
 
-  it("requires arm-then-confirm before calling onTransmit", async () => {
+  it("requires arm-then-confirm before dispatching transmit", async () => {
     const user = userEvent.setup();
-    const onTransmit = vi.fn();
+    const send = vi.fn(() => Promise.resolve(undefined));
     renderRow(
       <ScienceExperimentRow
         instrument={instrument({ partId: "99", hasData: true })}
-        onTransmit={onTransmit}
+        transmitCmd={handle(send)}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Transmit" }));
-    expect(onTransmit).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: /Confirm transmit/i }));
-    expect(onTransmit).toHaveBeenCalledWith("99");
+    expect(send).toHaveBeenCalledWith(
+      { partId: "99" },
+      { label: "Transmit Mystery Goo" },
+    );
+  });
+
+  it("renders no controls at all for a read-only listing", () => {
+    renderRow(
+      <ScienceExperimentRow instrument={instrument({ hasData: true })} />,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("hides the action cluster for an inoperable instrument", () => {

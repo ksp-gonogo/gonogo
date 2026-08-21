@@ -11,7 +11,8 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  ActionButton,
+  CommandButton,
+  type CommandButtonHandle,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -21,7 +22,7 @@ import {
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { type KerbalStatFields, KerbalStats } from "../shared/KerbalStats";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
@@ -37,8 +38,6 @@ type AstronautComplexConfig = Record<string, never>;
  * unlimited.
  */
 const UNLIMITED_CREW_CAP = 2_147_483_647;
-
-const ARM_TIMEOUT_MS = 4000;
 
 /**
  * Said on screen whenever the balance is withheld for going stale, so the blank
@@ -349,9 +348,7 @@ function AstronautComplexComponent(
                   canHire={canHire}
                   rosterFull={rosterFull}
                   hireCost={nextHireCost}
-                  onHire={(applicantName) =>
-                    void hireCmd.send({ applicantName })
-                  }
+                  hireCmd={hireCmd}
                 />
               ),
             },
@@ -361,7 +358,7 @@ function AstronautComplexComponent(
               content: (
                 <ActivePanel
                   crew={crewRoster}
-                  onFire={(kerbalName) => void fireCmd.send({ kerbalName })}
+                  fireCmd={fireCmd}
                   highlightedFireIndex={highlightedFireIndex}
                 />
               ),
@@ -379,14 +376,19 @@ function ApplicantsPanel({
   canHire,
   rosterFull,
   hireCost,
-  onHire,
+  hireCmd,
 }: {
   applicants: Applicant[];
   affordable: boolean;
   canHire: boolean;
   rosterFull: boolean;
   hireCost: number | null;
-  onHire: (applicantName: string) => void;
+  /**
+   * The shared hire handle. Each row's own `CommandButton` holds the arm and
+   * in-flight state for THAT applicant, so a hire in flight shows on the row it
+   * was issued from rather than on all of them.
+   */
+  hireCmd: CommandButtonHandle;
 }) {
   if (applicants.length === 0) {
     return <Empty>No applicants right now</Empty>;
@@ -416,7 +418,7 @@ function ApplicantsPanel({
                   ? "Insufficient funds"
                   : undefined
             }
-            onConfirm={() => onHire(a.name)}
+            hireCmd={hireCmd}
           />
         </Applicant__Row>
       ))}
@@ -439,11 +441,12 @@ function ApplicantsPanel({
  */
 function ActivePanel({
   crew,
-  onFire,
+  fireCmd,
   highlightedFireIndex,
 }: {
   crew: CrewRosterRow[];
-  onFire: (kerbalName: string) => void;
+  /** The shared fire handle; see `ApplicantsPanel`'s `hireCmd`. */
+  fireCmd: CommandButtonHandle;
   highlightedFireIndex: number;
 }) {
   // Defensive, not load-bearing: spaceCenter.crewRoster never actually
@@ -491,12 +494,7 @@ function ActivePanel({
                   showInfo
                 />
               </Who>
-              {fireable && (
-                <FireButton
-                  kerbalName={m.name}
-                  onConfirm={() => onFire(m.name)}
-                />
-              )}
+              {fireable && <FireButton kerbalName={m.name} fireCmd={fireCmd} />}
             </Applicant__Row>
           ))}
         </List>
@@ -508,33 +506,23 @@ function ActivePanel({
 }
 
 /**
- * Arm-then-confirm hire button (a funds SPEND, so it never fires on a single
- * click): first click arms a go-toned "Confirm" that auto-disarms after
- * {@link ARM_TIMEOUT_MS}. Reuses the ui-kit {@link ActionButton} primitive
- * (`ghost` -> `go`), the same spend-confirm pattern SpaceCenterStatus uses for
- * facility upgrades.
+ * Hire: a funds SPEND, so it never fires on a single click. Arm, confirm and
+ * in-flight all come from the shared {@link CommandButton}; this wrapper exists
+ * only for the accessible name, which has to say what hiring costs.
  */
 function HireButton({
   applicantName,
   hireCost,
   enabled,
   disabledReason,
-  onConfirm,
+  hireCmd,
 }: {
   applicantName: string;
   hireCost: number | null;
   enabled: boolean;
   disabledReason?: string;
-  onConfirm: () => void;
+  hireCmd: CommandButtonHandle;
 }) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
   // The cost moved to the header (one figure for the whole pool), so a
   // screen-reader user tabbing straight to the button still needs to hear
   // what hiring costs; speakQuantity (word form) rather than <Unit> because
@@ -543,91 +531,60 @@ function HireButton({
     hireCost !== null
       ? ` for ${speakQuantity(value("funds", hireCost), { decimals: 0 })}`
       : "";
+  const who = applicantName || "applicant";
 
-  if (!enabled) {
-    return (
-      <ActionButton
-        type="button"
-        disabled
-        title={disabledReason}
-        aria-label={`Hire ${applicantName || "applicant"}${costText} (${disabledReason ?? "unavailable"})`}
-      >
-        Hire
-      </ActionButton>
-    );
-  }
-  if (!armed) {
-    return (
-      <ActionButton
-        type="button"
-        onClick={() => setArmed(true)}
-        aria-label={`Hire ${applicantName || "applicant"}${costText}`}
-      >
-        Hire
-      </ActionButton>
-    );
-  }
   return (
-    <ActionButton
-      type="button"
-      tone="go"
-      onClick={() => {
-        setArmed(false);
-        onConfirm();
-      }}
-      aria-label={`Confirm hire of ${applicantName || "applicant"}${costText}`}
-    >
-      Confirm
-    </ActionButton>
+    <CommandButton
+      handle={hireCmd}
+      args={{ applicantName }}
+      commandLabel={`Hire ${who}`}
+      size="sm"
+      label="Hire"
+      confirmLabel="Confirm"
+      pendingLabel="Hiring..."
+      disabled={!enabled}
+      title={enabled ? undefined : disabledReason}
+      aria-label={
+        enabled
+          ? `Hire ${who}${costText}`
+          : `Hire ${who}${costText} (${disabledReason ?? "unavailable"})`
+      }
+      confirmAriaLabel={`Confirm hire of ${who}${costText}`}
+      pendingAriaLabel={`Hiring ${who}`}
+    />
   );
 }
 
 /**
- * Arm-then-confirm fire button, the inverse of {@link HireButton}: no cost
- * (so no header readout to speak in the accessible name) but the same
- * two-step click pattern, a fire is destructive enough to warrant it even
- * though it's reversible (a re-hire brings the kerbal back with their stats
- * intact). Always enabled, it only ever renders on an Available row, the
- * one roster standing `career.crew.fire` accepts.
+ * Fire: the inverse of {@link HireButton}, no cost (so no figure to speak in
+ * the accessible name) but the same two-step commit, because a fire is
+ * destructive enough to warrant one even though it is reversible (a re-hire
+ * brings the kerbal back with their stats intact). Always enabled: it only ever
+ * renders on an Available row, the one roster standing `career.crew.fire`
+ * accepts.
  */
 function FireButton({
   kerbalName,
-  onConfirm,
+  fireCmd,
 }: {
   kerbalName: string;
-  onConfirm: () => void;
+  fireCmd: CommandButtonHandle;
 }) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <ActionButton
-        type="button"
-        onClick={() => setArmed(true)}
-        aria-label={`Fire ${kerbalName || "crew member"}`}
-      >
-        Fire
-      </ActionButton>
-    );
-  }
+  const who = kerbalName || "crew member";
   return (
-    <ActionButton
-      type="button"
-      tone="go"
-      onClick={() => {
-        setArmed(false);
-        onConfirm();
-      }}
-      aria-label={`Confirm fire of ${kerbalName || "crew member"}`}
-    >
-      Confirm
-    </ActionButton>
+    <CommandButton
+      handle={fireCmd}
+      args={{ kerbalName }}
+      commandLabel={`Fire ${who}`}
+      size="sm"
+      label="Fire"
+      confirmLabel="Confirm"
+      confirmTone="nogo"
+      pendingLabel="Firing..."
+      aria-label={`Fire ${who}`}
+      confirmAriaLabel={`Confirm fire of ${who}`}
+      pendingAriaLabel={`Firing ${who}`}
+    />
   );
 }
 

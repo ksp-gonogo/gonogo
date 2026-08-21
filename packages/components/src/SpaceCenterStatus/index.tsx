@@ -18,14 +18,17 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   CheckIcon,
   ChevronUpIcon,
+  type CommandButtonHandle,
   FitLabelButton,
   NULL_DISPLAY,
   Panel,
+  Spinner,
   speakQuantity,
   Unit,
+  useCommandButton,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import {
   magnitudeOf,
@@ -220,8 +223,6 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
   }
   return out;
 }
-
-const ARM_TIMEOUT_MS = 4000;
 
 function SpaceCenterStatusComponent({
   w,
@@ -504,11 +505,9 @@ function SpaceCenterStatusComponent({
                     </UpgradeCost>
                     <UpgradeButton
                       enabled={canUpgrade}
-                      onConfirm={() =>
-                        void upgradeCmd.send({
-                          facilityId: KEY_TO_ENUM_FACILITY[key],
-                        })
-                      }
+                      upgradeCmd={upgradeCmd}
+                      facilityId={KEY_TO_ENUM_FACILITY[key]}
+                      facilityLabel={label}
                       titleOverride={
                         f.nextLevelText
                           ? `Upgrade to tier ${displayLevel + 1}:\n${f.nextLevelText}`
@@ -556,52 +555,73 @@ function SpaceCenterStatusComponent({
   );
 }
 
+/**
+ * The facility cell's upgrade control. Behaviour (arm, confirm, in-flight,
+ * refused) is the shared `useCommandButton`; the CHROME stays local because a
+ * facility cell is roughly two grid columns wide and the label has to collapse
+ * to an icon, which is `FitLabelButton`'s measured job and not something the
+ * default `CommandButton` rendering does.
+ */
 function UpgradeButton({
   enabled,
-  onConfirm,
+  upgradeCmd,
+  facilityId,
+  facilityLabel,
   titleOverride,
 }: {
   enabled: boolean;
-  onConfirm: () => void;
+  upgradeCmd: CommandButtonHandle;
+  facilityId: string;
+  facilityLabel: string;
   titleOverride?: string;
 }) {
-  const [armed, setArmed] = useState(false);
+  const { isArmed, isPending, isRefused, refusalText, hasFailure, press } =
+    useCommandButton({
+      handle: upgradeCmd,
+      args: { facilityId },
+      commandLabel: `Upgrade ${facilityLabel}`,
+    });
 
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  if (!enabled) {
+  if (isPending) {
     return (
       <UpgradeButtonStyled
         disabled
+        aria-busy="true"
         title={titleOverride}
-        label="Upgrade"
+        label="Upgrading"
+        icon={<Spinner size={12} />}
+      />
+    );
+  }
+  if (isRefused) {
+    return (
+      <ConfirmUpgradeButton
+        onClick={() => press(true)}
+        title={refusalText ?? titleOverride}
+        aria-label={refusalText ?? undefined}
+        label="Refused"
         icon={<ChevronUpIcon size={12} />}
       />
     );
   }
-  if (!armed) {
+  if (isArmed) {
     return (
-      <UpgradeButtonStyled
-        onClick={() => setArmed(true)}
+      <ConfirmUpgradeButton
+        onClick={() => press(true)}
         title={titleOverride}
-        label="Upgrade"
-        icon={<ChevronUpIcon size={12} />}
+        label="Confirm"
+        icon={<CheckIcon size={12} />}
       />
     );
   }
   return (
-    <ConfirmUpgradeButton
-      onClick={() => {
-        setArmed(false);
-        onConfirm();
-      }}
+    <UpgradeButtonStyled
+      disabled={!enabled}
+      data-failed={hasFailure ? "true" : undefined}
+      onClick={() => press(true)}
       title={titleOverride}
-      label="Confirm"
-      icon={<CheckIcon size={12} />}
+      label="Upgrade"
+      icon={<ChevronUpIcon size={12} />}
     />
   );
 }

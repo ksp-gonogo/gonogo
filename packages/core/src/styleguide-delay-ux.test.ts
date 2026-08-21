@@ -141,3 +141,58 @@ describe("delay-ux: useExecuteAction stays deleted", () => {
     expect(barrel).not.toContain("useExecuteAction");
   });
 });
+
+// --- Invariant 3: the arm-then-confirm behaviour has ONE definition ---------
+
+/**
+ * The arm window was written out independently in eight widgets, all four
+ * seconds, none of them sharing a line. That is one behaviour spelled eight
+ * times, so it could drift eight ways, and it did drift in an adjacent
+ * dimension: five of those widgets grew a pending state and the other three
+ * did not, on no rule at all. `Strategies` also grew a reconciliation effect
+ * that cleared its pending state unconditionally, without ever reading the
+ * field it claimed to be waiting on, so "Activating..." lasted a single frame
+ * and read to the operator as the command having landed.
+ *
+ * `@ksp-gonogo/ui-kit`'s `CommandButton` / `useCommandButton` owns arm,
+ * confirm, in-flight and refused now. ui-kit rather than ui because it is the
+ * published package, so an Uplink can reach it: `ScienceFileManager`'s local
+ * copy was one a third party could not have shared.
+ *
+ * A widget that needs its own CHROME is expected and fine, and several have one
+ * (a measured collapsing label, a colour per verb). Those take the hook. What
+ * must not come back is a second copy of the STATE MACHINE.
+ */
+const ARM_TIMEOUT_OWNER = "packages/ui-kit/src/CommandButton/CommandButton.tsx";
+
+describe("delay-ux: arm-then-confirm has one definition", () => {
+  it("declares the arm window in ui-kit's CommandButton and nowhere else", () => {
+    // The DECLARATION, not the identifier: a caller importing `ARM_TIMEOUT_MS`
+    // from ui-kit to assert against is reading the one definition, which is the
+    // point, and must not be flagged.
+    const offenders = productionFilesReferencing("const ARM_TIMEOUT_MS").filter(
+      (f) => f !== ARM_TIMEOUT_OWNER,
+    );
+    if (offenders.length > 0) {
+      throw new Error(
+        `${offenders.length} file(s) declare their own arm window. Arm, ` +
+          "confirm, in-flight and refused are one state machine and it lives " +
+          `in ${ARM_TIMEOUT_OWNER}. Render <CommandButton> for the standard ` +
+          "control, or call useCommandButton() when the chrome genuinely " +
+          "differs. Offenders:\n" +
+          offenders.map((f) => `  ${f}`).join("\n"),
+      );
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("still has an owner, so the scan above cannot pass by having nothing to find", () => {
+    // Without this, deleting the primitive turns the check above green: an
+    // empty offender list reads identically whether the rule is being upheld or
+    // the thing it protects is gone.
+    expect(existsSync(join(root, ARM_TIMEOUT_OWNER))).toBe(true);
+    expect(readFileSync(join(root, ARM_TIMEOUT_OWNER), "utf8")).toContain(
+      "const ARM_TIMEOUT_MS",
+    );
+  });
+});

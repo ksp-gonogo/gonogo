@@ -9,28 +9,20 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  ActionButton,
   Badge,
   Cluster,
+  CommandButton,
   Section,
   Stack,
   Text,
-  ToggleButton,
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
 import {
   type KerbalismScienceExperimentExt,
   readKerbalismScienceExperimentExt,
 } from "../science";
 import { KERBALISM } from "../uplink";
-
-/**
- * How long an armed destructive control (Delete/Dump) stays armed before it
- * quietly disarms, same window AstronautComplex's Hire/Fire buttons use.
- */
-const ARM_TIMEOUT_MS = 4000;
 
 /** The file and/or sample entry a subject holds, joined out of the raw
  *  `science.experiments` array. Either may be absent; a subject that has
@@ -77,59 +69,6 @@ function findDriveEntries(
     else if (ext.kind === "sample") out.sample = ext;
   }
   return out;
-}
-
-/**
- * Arm-then-confirm button for an irreversible verb (Delete/Dump): first
- * click arms a go-toned "Confirm" that auto-disarms after
- * {@link ARM_TIMEOUT_MS}, mirroring AstronautComplex's Fire button. Shared
- * by both destructive controls below rather than duplicated per verb.
- */
-function DestructiveButton({
-  label,
-  armedLabel,
-  ariaLabel,
-  confirmAriaLabel,
-  onConfirm,
-}: {
-  label: string;
-  armedLabel: string;
-  ariaLabel: string;
-  confirmAriaLabel: string;
-  onConfirm: () => void;
-}) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  if (!armed) {
-    return (
-      <ActionButton
-        type="button"
-        onClick={() => setArmed(true)}
-        aria-label={ariaLabel}
-      >
-        {label}
-      </ActionButton>
-    );
-  }
-  return (
-    <ActionButton
-      type="button"
-      tone="go"
-      onClick={() => {
-        setArmed(false);
-        onConfirm();
-      }}
-      aria-label={confirmAriaLabel}
-    >
-      {armedLabel}
-    </ActionButton>
-  );
 }
 
 /** Per-drive capacity/slots readout: the stock model has no concept of
@@ -241,30 +180,30 @@ function ScienceDataAboardRowAugment({
             )}
           </Cluster>
           <Cluster gap="xs" wrap justify="start">
-            <ToggleButton
+            <CommandButton
               size="sm"
               tone="go"
+              handle={sendCmd}
+              args={{ subjectId, flag: !file.sendFlagged }}
+              commandLabel={file.sendFlagged ? "Cancel send" : "Send"}
               active={file.sendFlagged === true}
-              onClick={() =>
-                void sendCmd.send(
-                  { subjectId, flag: !file.sendFlagged },
-                  { label: file.sendFlagged ? "Cancel send" : "Send" },
-                )
-              }
+              label={file.sendFlagged ? "Queued" : "Send"}
+              pendingLabel={file.sendFlagged ? "Cancelling..." : "Queueing..."}
               aria-label={
                 file.sendFlagged ? "Cancel send for file" : "Send file"
               }
-            >
-              {file.sendFlagged ? "Queued" : "Send"}
-            </ToggleButton>
-            <DestructiveButton
+            />
+            <CommandButton
+              size="sm"
+              handle={deleteCmd}
+              args={{ subjectId }}
+              commandLabel="Delete file"
               label="Delete"
-              armedLabel="Confirm"
-              ariaLabel="Delete file"
+              confirmLabel="Confirm"
+              confirmTone="nogo"
+              pendingLabel="Deleting..."
+              aria-label="Delete file"
               confirmAriaLabel="Confirm delete file"
-              onConfirm={() =>
-                void deleteCmd.send({ subjectId }, { label: "Delete file" })
-              }
             />
           </Cluster>
         </Stack>
@@ -279,47 +218,47 @@ function ScienceDataAboardRowAugment({
             )}
           </Cluster>
           <Cluster gap="xs" wrap justify="start">
-            <ToggleButton
+            <CommandButton
               size="sm"
               tone="go"
+              handle={analyzeCmd}
+              args={{ subjectId, flag: !sample.analyze }}
+              commandLabel={sample.analyze ? "Cancel analyze" : "Analyze"}
               active={sample.analyze === true}
-              onClick={() =>
-                void analyzeCmd.send(
-                  { subjectId, flag: !sample.analyze },
-                  { label: sample.analyze ? "Cancel analyze" : "Analyze" },
-                )
-              }
+              label={sample.analyze ? "Analyzing" : "Analyze"}
+              pendingLabel={sample.analyze ? "Cancelling..." : "Flagging..."}
               aria-label={
                 sample.analyze
                   ? "Cancel analyze for sample"
                   : "Flag sample for analysis"
               }
-            >
-              {sample.analyze ? "Analyzing" : "Analyze"}
-            </ToggleButton>
-            <ActionButton
-              type="button"
+            />
+            <CommandButton
+              size="sm"
+              handle={moveCmd}
+              args={{ subjectId }}
+              commandLabel="Move to lab"
+              label="Move to lab"
+              pendingLabel="Moving..."
               disabled={!hasLab}
               title={hasLab ? undefined : "No lab part aboard this vessel"}
-              onClick={() =>
-                void moveCmd.send({ subjectId }, { label: "Move to lab" })
-              }
               aria-label={
                 hasLab
                   ? "Move sample to lab"
                   : "Move sample to lab (no lab part aboard this vessel)"
               }
-            >
-              Move to lab
-            </ActionButton>
-            <DestructiveButton
+            />
+            <CommandButton
+              size="sm"
+              handle={dumpCmd}
+              args={{ subjectId }}
+              commandLabel="Dump sample"
               label="Dump"
-              armedLabel="Confirm"
-              ariaLabel="Dump sample"
+              confirmLabel="Confirm"
+              confirmTone="nogo"
+              pendingLabel="Dumping..."
+              aria-label="Dump sample"
               confirmAriaLabel="Confirm dump sample"
-              onConfirm={() =>
-                void dumpCmd.send({ subjectId }, { label: "Dump sample" })
-              }
             />
           </Cluster>
         </Stack>
@@ -337,4 +276,4 @@ registerAugment({
   owner: KERBALISM,
 });
 
-export { DestructiveButton, findDriveEntries, ScienceDataAboardRowAugment };
+export { findDriveEntries, ScienceDataAboardRowAugment };

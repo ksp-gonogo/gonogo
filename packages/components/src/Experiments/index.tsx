@@ -336,18 +336,8 @@ function ExperimentsComponent({
           <Fragment key={inst.partId}>
             <ScienceExperimentRow
               instrument={inst}
-              onDeploy={(partId) =>
-                void deployCmd.send(
-                  { partId },
-                  { label: `Deploy ${inst.partTitle}` },
-                )
-              }
-              onTransmit={(partId) =>
-                void transmitCmd.send(
-                  { partId },
-                  { label: `Transmit ${inst.partTitle}` },
-                )
-              }
+              deployCmd={deployCmd}
+              transmitCmd={transmitCmd}
             />
             {/* Per-instrument section slot: passes this instrument
                 down so an on-vessel-lab augment can extend the row.

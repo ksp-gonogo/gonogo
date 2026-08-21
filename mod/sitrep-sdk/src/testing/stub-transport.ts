@@ -51,6 +51,9 @@ export class StubTransport implements Transport {
   >();
   private readonly subscribedTopics = new Set<string>();
   private commandHandler: CommandHandler | undefined;
+  /** See `holdCommands`. */
+  private holdingCommands = false;
+  private readonly heldCommands: (() => void)[] = [];
 
   /**
    * Every `command-request` envelope this transport has been asked to send,
@@ -88,7 +91,7 @@ export class StubTransport implements Transport {
         // would let it race ahead of the caller's own `dispatch()` return,
         // skipping the observable `in-flight` phase. A real transport never
         // resolves in the same tick as the send, so the stub shouldn't either.
-        queueMicrotask(() => {
+        const answer = () => {
           try {
             const result = this.commandHandler?.(message.command, message.args);
             this.deliver({
@@ -109,7 +112,9 @@ export class StubTransport implements Transport {
               message: errMessage,
             });
           }
-        });
+        };
+        if (this.holdingCommands) this.heldCommands.push(answer);
+        else queueMicrotask(answer);
         break;
       }
     }
@@ -164,6 +169,31 @@ export class StubTransport implements Transport {
   /** Test helper: install the handler that answers command-request messages. */
   setCommandHandler(handler: CommandHandler): void {
     this.commandHandler = handler;
+  }
+
+  /**
+   * Test helper: stop answering commands, and hold every request sent from now
+   * on until {@link answerHeldCommands}.
+   *
+   * The in-flight window is what signal delay MAKES OF a command, and it is the
+   * thing a control's pending state exists to show. Without this the stub
+   * answers on the next microtask, which `userEvent.click` flushes before it
+   * returns, so a test can watch a control go from rest to settled and never see
+   * the phase in between: the state it was written to prove is the one it cannot
+   * observe. Holding is what a travelling command actually looks like.
+   */
+  holdCommands(): void {
+    this.holdingCommands = true;
+  }
+
+  /**
+   * Test helper: answer everything held, in send order, and resume answering
+   * normally.
+   */
+  answerHeldCommands(): void {
+    this.holdingCommands = false;
+    const held = this.heldCommands.splice(0, this.heldCommands.length);
+    for (const answer of held) answer();
   }
 
   /** Test helper: whether `topic` currently has an active `subscribe` on this transport. */
