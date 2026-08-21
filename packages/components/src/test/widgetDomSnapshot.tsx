@@ -538,6 +538,104 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
  * content, ResizeObserver-driven layout, and CSS-paint visuals don't
  * appear: those live in the playwright PNGs.
  */
+/**
+ * Grid-unit to pixel conversion, the same arithmetic
+ * `scripts/widgetRenderHarness.ts` sizes the playwright iframe with, so a mode
+ * means the same shape in both harnesses.
+ */
+const COL_WIDTH = 32;
+const ROW_HEIGHT = 25;
+const GRID_MARGIN = 8;
+
+function modePixels(mode: WidgetSnapshotMode): { w: number; h: number } {
+  return {
+    w: mode.w * COL_WIDTH + (mode.w - 1) * GRID_MARGIN,
+    h: mode.h * ROW_HEIGHT + (mode.h - 1) * GRID_MARGIN,
+  };
+}
+
+/**
+ * Install a `ResizeObserver` that actually reports a size, for the length of
+ * one render.
+ *
+ * The shared jsdom shim (`installDomStubs`) is a no-op in all three methods:
+ * it exists to stop a mount crashing, and it never calls its callback. Any
+ * widget that gates content on a measured box therefore renders that content
+ * NEVER under this harness, whatever its fixture says. `Graph` is the big one
+ * (`{size && <LineChart …>}`), and it is the whole body of six widgets: 90
+ * committed baselines across KeplerPeriod and EscapeProfile were one
+ * byte-identical title bar over two empty divs, repeated across every scenario
+ * and every size, and the accessibility sweep was scanning those same blank
+ * containers and reporting no violations.
+ *
+ * The reported box is the mode's own pixel size rather than a constant, so the
+ * modes stay distinguishable and a size-gated branch is exercised at the size
+ * it is gated on. It is the WIDGET's box, not the observed element's, which
+ * overstates a chart area nested inside panel chrome; jsdom lays nothing out,
+ * so there is no truer number available, and a chart drawn slightly large still
+ * exercises the axis, label and ARIA code that a chart never drawn does not.
+ *
+ * Restored afterwards so a test file that renders something else is unaffected.
+ * Already-constructed observers keep working, which is what the widget mounted
+ * during this render needs.
+ */
+function installSizedResizeObserver(size: {
+  w: number;
+  h: number;
+}): () => void {
+  const previous = globalThis.ResizeObserver;
+  class SizedResizeObserver {
+    private readonly callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element): void {
+      // Asynchronous, like the real one: a synchronous callback would run
+      // inside the observing effect and set state during render.
+      setTimeout(() => {
+        this.callback(
+          [
+            {
+              target,
+              contentRect: {
+                width: size.w,
+                height: size.h,
+                x: 0,
+                y: 0,
+                top: 0,
+                left: 0,
+                right: size.w,
+                bottom: size.h,
+              } as DOMRectReadOnly,
+            } as ResizeObserverEntry,
+          ],
+          this as unknown as ResizeObserver,
+        );
+      }, 0);
+    }
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver =
+    SizedResizeObserver as unknown as typeof ResizeObserver;
+  return () => {
+    globalThis.ResizeObserver = previous;
+  };
+}
+
+/**
+ * Let the sized-observer callbacks above land and the resulting re-render
+ * commit. Two macrotask turns: the first drains the `setTimeout(0)` queue, the
+ * second covers an observer a re-render only then attached (Graph re-binds its
+ * observer when the chart/readout variant flips).
+ */
+async function flushResizeObservers(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  });
+}
+
 export async function snapshotWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<string> {
@@ -554,6 +652,9 @@ export async function snapshotWidgetMode<
     connectSource: opts.connectSource,
   });
   let source: MockDataSource | null = fixture.source;
+  const restoreResizeObserver = installSizedResizeObserver(
+    modePixels(opts.mode),
+  );
 
   try {
     const config: Cfg = {
@@ -610,9 +711,11 @@ export async function snapshotWidgetMode<
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
     });
+    await flushResizeObservers();
 
     return stripVolatile(container.innerHTML);
   } finally {
+    restoreResizeObserver();
     teardownMockDataSource(fixture);
     source = null;
   }
@@ -651,6 +754,9 @@ export async function renderWidgetMode<
     connectSource: opts.connectSource,
   });
   const source: MockDataSource = fixture.source;
+  const restoreResizeObserver = installSizedResizeObserver(
+    modePixels(opts.mode),
+  );
 
   const config: Cfg = {
     ...(opts.defaultConfig ?? ({} as Cfg)),
@@ -700,6 +806,8 @@ export async function renderWidgetMode<
   await waitFor(() => {
     if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
   });
+  await flushResizeObservers();
+  restoreResizeObserver();
 
   return { container, teardown: () => teardownMockDataSource(fixture) };
 }
