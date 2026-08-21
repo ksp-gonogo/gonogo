@@ -12,11 +12,11 @@ import {
   TrajectoryKindLike,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-  useViewUt,
+  useViewClockOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
-import { magnitudeOf, NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -254,9 +254,17 @@ function OrbitViewComponent({
   // trajectories are integrated would then change nothing the operator sees.
   // `orbitTrajectory` reads the horizon riding on this same sample and answers
   // conic, arc, or a refusal, and the render below does as it is told.
-  const viewUt = magnitudeOf(useViewUt());
+  //
+  // The clock is read NON-reactively at render, the same way `useBodyRotation`
+  // beside it reads one and for the same reasons: this widget already
+  // re-renders on its own telemetry cadence, and a per-frame `onFrame`
+  // subscription would add a 60 Hz re-render of a 128-point path plus state
+  // updates outside React's `act`. Every input to the question moves on the
+  // store frame anyway, the elements, the horizon, and a scrub.
+  const clock = useViewClockOptional();
+  const viewUt = clock?.viewUt();
   const trajectory: OrbitTrajectory | null =
-    orbit === undefined || viewUt === null
+    orbit === undefined || viewUt === undefined || !Number.isFinite(viewUt)
       ? null
       : orbitTrajectory({ orbit, viewUt });
 
