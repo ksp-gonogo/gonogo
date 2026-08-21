@@ -50,10 +50,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The legacy `comm.controlState` is an enum:
-//   0 = none, 1 = partial (unmanned probe with crew nearby etc.), 2 = full
-// The name accessor `comm.controlStateName` mirrors the stock KSP string so
-// we prefer it when present and fall back to the integer for legacy.
 /**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
  * A stale reading gives nothing, because a judgement cannot be dated: the operator
@@ -70,14 +66,30 @@ function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
 }
 
+/**
+ * What to call the control state, and how to paint it.
+ *
+ * The TONE comes off the ordinal, never off the name. `CONTROL_STATE_LEVEL`
+ * (vessel-state.ts) has already collapsed all twelve `ControlState` enum
+ * members onto this 0/1/2 level scheme by the time the widget reads them, and
+ * that collapse is the verdict. This used to substring-match the English enum
+ * name instead, which read `ProbeNone` and `KerbalNone` as healthy links,
+ * because neither is the literal string "None". A vessel with no control
+ * painted green in both the Control row and the signal bars. The name is a
+ * display label and nothing else.
+ *
+ * `undefined` is not a link failure: `Unknown` (11) carries no level by design,
+ * and neither does a channel that has yet to arrive. Painting either `lost`
+ * would assert a failure the wire never reported.
+ */
 function describeControl(
   name: string | undefined,
   state: number | undefined,
 ): {
   label: string;
-  tone: "ok" | "warn" | "lost";
+  tone: Tone;
 } {
-  const resolved =
+  const label =
     name && name.length > 0
       ? name
       : state === 2
@@ -87,12 +99,15 @@ function describeControl(
           : state === 0
             ? "None"
             : NULL_DISPLAY;
-  const lower = resolved.toLowerCase();
-  if (lower === "none" || lower.includes("no signal"))
-    return { label: resolved, tone: "lost" };
-  if (lower === "partial" || lower.includes("partial"))
-    return { label: resolved, tone: "warn" };
-  return { label: resolved, tone: "ok" };
+  const tone: Tone =
+    state === 0
+      ? "lost"
+      : state === 1
+        ? "warn"
+        : state === 2
+          ? "ok"
+          : "neutral";
+  return { label, tone };
 }
 
 function CommSignalComponent({
@@ -297,12 +312,16 @@ function CommSignalComponent({
 
 // ── Signal-bar chart + detail grid rows ──────────────────────────────────────
 
-type Tone = "ok" | "warn" | "lost";
+// `neutral` is the no-verdict tone: the control channel said nothing this tick,
+// so the readout says nothing either. It is deliberately not a fourth severity
+// between ok and warn, and deliberately not lost.
+type Tone = "ok" | "warn" | "lost" | "neutral";
 // Bright fills for the signal bars (non-text UI, full-brightness chips).
 const TONE_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-bg)",
   lost: "var(--color-status-nogo-bg)",
+  neutral: "var(--color-text-muted)",
 };
 
 // Foreground text variants for the same tones, legible on the dark panel.
@@ -312,6 +331,7 @@ const TONE_TEXT_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-fg-muted)",
   lost: "var(--color-status-nogo-fg)",
+  neutral: "var(--color-text-primary)",
 };
 
 // Staircase heights (short to tall), sat at the bottom of the bar chart.
