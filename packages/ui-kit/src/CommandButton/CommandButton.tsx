@@ -5,6 +5,7 @@ import styled, { css, keyframes } from "styled-components";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
 import {
   type CommandRefusalLike,
+  commandGateSentence,
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
 import { useCommandFailures } from "../CommandDelay/useCommandFailures";
@@ -37,6 +38,29 @@ export const REFUSAL_TIMEOUT_MS = 8000;
 export const PENDING_BACKSTOP_MS = 30_000;
 
 /**
+ * What the mod says about this command before it is pressed, as much of it as
+ * this control needs.
+ *
+ * Declared structurally, exactly as {@link CommandButtonHandle} and
+ * `CommandDelayHandle` are: ui-kit stays the vanilla design system, and
+ * `useCommand`'s `gate` satisfies this shape.
+ */
+export interface CommandGateLike extends CommandRefusalLike {
+  /** The game EVALUATED this and said no. */
+  blocked: boolean;
+  /**
+   * The mod could not evaluate this command's gates at all, so it knows nothing
+   * about them. Deliberately NOT a reason to darken the control: an absent
+   * authority is not the game's judgement, and in a sandbox save
+   * `ScenarioUpgradeableFacilities.Instance` is null by design, so treating this
+   * as a refusal would permanently dark a working control with an
+   * authoritative-looking sentence. Renders as ordinary, and reports itself
+   * through `data-gate` for a diagnostic surface.
+   */
+  undetermined?: boolean;
+}
+
+/**
  * The command handle this control dispatches on: the delay-rail handle plus the
  * one thing a rail never needed, a way to actually send.
  *
@@ -56,6 +80,12 @@ export interface CommandButtonHandle extends CommandDelayHandle {
     args?: unknown,
     opts?: { label?: string; topic?: string },
   ) => Promise<unknown>;
+  /**
+   * The standing gate verdict, when the mod publishes one for this command.
+   * Absent means nothing is known in advance, which is where every control was
+   * before the gate channel existed, so a handle without it behaves as before.
+   */
+  gate?: CommandGateLike;
 }
 
 /**
@@ -68,8 +98,21 @@ export interface CommandButtonHandle extends CommandDelayHandle {
  *   and the phase a command button without one cannot express
  * - `refused`: the game evaluated it and said no. A retry changes nothing until
  *   the situation does, so this is a reason rather than a try-again
+ * - `blocked`: the game will refuse this, and said so before anyone pressed.
+ *   The control is dark and NOT `disabled`, for two reasons. A `disabled`
+ *   button is skipped by some screen readers, so a dimmed dead control tells a
+ *   screen-reader user that nothing is there at all, which is the same ruling
+ *   this repo already made about read-only settings rows. And a gate verdict is
+ *   advice, not permission: it is sampled, so it can be a beat stale, and the
+ *   dispatch re-evaluates anyway. So it carries `aria-disabled` instead, stays
+ *   focusable, and answers a press by SAYING WHY rather than by doing nothing
  */
-export type CommandButtonPhase = "idle" | "armed" | "pending" | "refused";
+export type CommandButtonPhase =
+  | "idle"
+  | "armed"
+  | "pending"
+  | "refused"
+  | "blocked";
 
 export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
 export type CommandButtonSize = "sm" | "md";
@@ -89,13 +132,30 @@ export interface CommandButtonState {
   isArmed: boolean;
   /** The game said no, and `refusalText` says what it said. */
   isRefused: boolean;
-  /** The composed refusal sentence, or `null` when nothing has been refused. */
+  /**
+   * The game will refuse this if it is pressed, and said so in advance.
+   * `refusalText` carries the reason here too, so a caller renders one string
+   * whichever side of the press it is on.
+   */
+  isBlocked: boolean;
+  /**
+   * The operator pressed a blocked control and is being told why. The FACT is
+   * always on the control (it is dark, and `aria-disabled`); this is the reason
+   * made visible on demand, for the sighted keyboard user that a `title` never
+   * reaches.
+   */
+  isShowingReason: boolean;
+  /**
+   * The composed sentence, or `null` when there is nothing to say: a refusal
+   * once one has happened, else the standing gate reason.
+   */
   refusalText: string | null;
   /** This handle has a dead (overdue/lost) dispatch, for the `data-failed` tint. */
   hasFailure: boolean;
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
-   * while pending is ignored; a press while refused clears the refusal.
+   * while pending is ignored; a press while refused clears the refusal; a press
+   * while BLOCKED dispatches nothing and shows the reason instead.
    *
    * `armable` says whether there is a confirm step, which is the caller's
    * decision (it owns the confirm copy), not something this hook can infer.
@@ -123,6 +183,14 @@ export function useCommandButton({
 }: UseCommandButtonOptions): CommandButtonState {
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
+  // A press on a blocked control shows its reason. Local, and cleared on the
+  // same window a refusal gets, because it is the same act of reading.
+  const [reasonShown, setReasonShown] = useState(false);
+
+  const gate = handle.gate;
+  // `blocked` only. An undetermined gate is NOT a refusal: see
+  // CommandGateLike.undetermined for why it must not darken anything.
+  const gateBlocks = gate?.blocked === true;
 
   // A dispatch that settles after this control unmounted must not set state, and
   // a SECOND dispatch has to invalidate the first one's answer rather than let a
@@ -152,6 +220,21 @@ export function useCommandButton({
     }, REFUSAL_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [phase]);
+
+  // Same window as a refusal: the operator is reading it, and the condition the
+  // game named can change, so the reason must not sit there claiming a present
+  // that has moved on.
+  useEffect(() => {
+    if (!reasonShown) return;
+    const id = setTimeout(() => setReasonShown(false), REFUSAL_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [reasonShown]);
+
+  // The gate reopening takes the reason down with it: a control that lit up
+  // again while still explaining why it was dark would be describing the past.
+  useEffect(() => {
+    if (!gateBlocks) setReasonShown(false);
+  }, [gateBlocks]);
 
   // Backstop only. See PENDING_BACKSTOP_MS.
   useEffect(() => {
@@ -207,6 +290,15 @@ export function useCommandButton({
   const press = useCallback(
     (armable: boolean) => {
       if (phase === "pending") return;
+      // The game has already said it will refuse this. Dispatching anyway would
+      // spend a signal-delay round trip to be told what the control already
+      // knows, so the press SAYS WHY instead. Not a dead press: it is the only
+      // route to the reason that a sighted keyboard user has, since `title`
+      // wants a pointer and `aria-label` wants a screen reader.
+      if (gateBlocks) {
+        setReasonShown(true);
+        return;
+      }
       // A refused control is not inert: the operator may well be pressing it
       // again because the situation changed. The press clears the refusal and
       // starts the handshake over rather than dispatching straight back into
@@ -222,15 +314,40 @@ export function useCommandButton({
       }
       dispatch();
     },
-    [phase, dispatch],
+    [phase, gateBlocks, dispatch],
   );
 
+  // A REAL refusal outranks a standing gate: it is the more specific answer, and
+  // it is about a command the operator actually sent. Pending outranks both,
+  // because a command already travelling has not been stopped by a gate that
+  // shut behind it.
+  const effectivePhase: CommandButtonPhase =
+    phase === "pending" || phase === "refused"
+      ? phase
+      : gateBlocks
+        ? "blocked"
+        : phase;
+
   return {
-    phase,
-    isPending: phase === "pending",
-    isArmed: phase === "armed",
-    isRefused: phase === "refused",
-    refusalText: refusal ? commandRefusalSentence(refusal) : null,
+    phase: effectivePhase,
+    isPending: effectivePhase === "pending",
+    isArmed: effectivePhase === "armed",
+    isRefused: effectivePhase === "refused",
+    isBlocked: effectivePhase === "blocked",
+    isShowingReason: effectivePhase === "blocked" && reasonShown,
+    refusalText: refusal
+      ? commandRefusalSentence(refusal)
+      : effectivePhase === "blocked" && gate
+        ? // The caller's own words for this dispatch, layered on exactly as the
+          // refusal path layers them: the mod publishes the gate per COMMAND
+          // and has never seen "Hire Valentina Kerman", which is the half that
+          // says which row went dark.
+          commandGateSentence({
+            ...gate,
+            label: gate.label ?? commandLabel,
+            args: gate.args ?? args,
+          })
+        : null,
     hasFailure,
     press,
   };
@@ -266,6 +383,16 @@ export interface CommandButtonProps extends NativeButtonProps {
   pendingLabel?: ReactNode;
   /** The refused label. Defaults to "Refused". */
   refusedLabel?: ReactNode;
+  /**
+   * The blocked phase's accessible name, for a control whose gate reason is
+   * already spelled out beside it (a row that renders the same sentence itself).
+   *
+   * Omit it and the accessible name becomes the composed gate sentence, which is
+   * the deliberate default: a screen-reader user landing on a dark button with
+   * its resting name learns that it exists and nothing about why it will not
+   * work, and "why" is the whole of what this phase has to give.
+   */
+  blockedAriaLabel?: string;
   /**
    * The armed phase's accessible name, for a control whose resting
    * `aria-label` says more than its visible word ("Hire Desdin Kerman for
@@ -339,6 +466,7 @@ export function CommandButton({
   refusedLabel = "Refused",
   confirmAriaLabel,
   pendingAriaLabel,
+  blockedAriaLabel,
   active,
   tone = "neutral",
   size = "md",
@@ -354,6 +482,8 @@ export function CommandButton({
     isPending,
     isArmed,
     isRefused,
+    isBlocked,
+    isShowingReason,
     refusalText,
     hasFailure,
     press,
@@ -368,6 +498,12 @@ export function CommandButton({
     );
   } else if (isRefused) {
     body = refusedLabel;
+  } else if (isShowingReason) {
+    // The reason IN the control, not only in its title and its accessible name.
+    // A gate sentence runs to about a hundred characters and the numbers are at
+    // the end, so whatever lays this out has to wrap rather than truncate: see
+    // commandRefusalSentence's own note.
+    body = refusalText;
   } else if (isArmed) {
     body = confirmLabel;
   }
@@ -379,13 +515,32 @@ export function CommandButton({
       $size={size}
       $filled={active === true || isArmed || isRefused}
       $armed={isArmed}
+      $blocked={isBlocked}
       aria-pressed={active}
       // Only while it IS busy: a permanent `aria-busy="false"` on every command
       // button in the tree is noise a screen reader has to step over.
       aria-busy={isPending || undefined}
+      // aria-disabled, NOT disabled. A `disabled` button is dropped from some
+      // screen readers' walk entirely, so an operator using one would find no
+      // control at all where a sighted operator sees a dark one with a reason on
+      // it: the same reasoning that stopped a read-only settings row being a
+      // disabled input. It also keeps the control focusable, which is what lets
+      // a press surface the reason.
+      aria-disabled={isBlocked || undefined}
       disabled={disabled || isPending}
       data-failed={hasFailure ? "true" : undefined}
       data-command-phase={phase}
+      // Reports itself without changing how it renders: the operator sees an
+      // ordinary control, and a diagnostic surface can still find every command
+      // the mod could not judge. `undetermined` never wins over `blocked`,
+      // because a verdict is one or the other.
+      data-gate={
+        isBlocked
+          ? "blocked"
+          : handle.gate?.undetermined
+            ? "undetermined"
+            : undefined
+      }
       // The accessible name TRACKS THE PHASE. A refusal sentence names the
       // command and the numbers behind the no, so it is the name while it
       // stands: a screen-reader user landing on a button reading "Refused"
@@ -395,11 +550,15 @@ export function CommandButton({
       aria-label={
         isRefused
           ? (refusalText ?? undefined)
-          : isPending
-            ? pendingAriaLabel
-            : isArmed
-              ? confirmAriaLabel
-              : ariaLabel
+          : isBlocked
+            ? // Same rule as a refusal: the sentence names the command and the
+              // numbers behind the no, and the resting name says none of that.
+              (blockedAriaLabel ?? refusalText ?? ariaLabel)
+            : isPending
+              ? pendingAriaLabel
+              : isArmed
+                ? confirmAriaLabel
+                : ariaLabel
       }
       title={refusalText ?? title}
       onClick={() => press(confirmLabel !== undefined)}
@@ -454,6 +613,7 @@ const CommandButton__Body = styled.button<{
   $size: CommandButtonSize;
   $filled: boolean;
   $armed: boolean;
+  $blocked: boolean;
 }>`
   display: inline-flex;
   align-items: center;
@@ -503,6 +663,28 @@ const CommandButton__Body = styled.button<{
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  /* Dark, and readable while dark. The gate has said no, so the control must
+     not read as available, but it is still the thing carrying the reason: at
+     0.5 opacity the sentence it shows on a press would fail contrast, so this
+     dims toward the muted text token instead of fading the whole control out.
+     The warn border is what separates "the game says no" from "there is nothing
+     here", which a plain grey-out cannot say. */
+  ${({ $blocked }) =>
+    $blocked &&
+    css`
+      border-style: dashed;
+      border-color: var(--color-status-warning-bg);
+      color: var(--color-text-muted);
+      cursor: help;
+
+      @media (hover: hover) {
+        &:hover:not(:disabled) {
+          border-color: var(--color-status-warning-bg);
+          color: var(--color-status-warning-fg);
+        }
+      }
+    `}
 
   /* The command is IN FLIGHT, not unavailable: it reads at full strength with a
      spinner rather than as the greyed-out "you cannot do this" that a plain

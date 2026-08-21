@@ -806,8 +806,10 @@ export interface PerfBudgetHandle {
 // this package and the copy immediately became what a copy always becomes: the
 // `refused` arm gained the fields that let a refusal be SAID and this one did
 // not, so the two disagreed about what a refusal carries.
+import type { CommandGateStatus } from "../spine/command-gate";
 import type { CommandRefusal, CommandStatus } from "../spine/lifecycle";
 
+export type { CommandGateStatus } from "../spine/command-gate";
 export type {
   CommandRefusal,
   CommandRefusalDetail,
@@ -876,6 +878,9 @@ export interface UseCommandResult {
   /** Dispatches from this hook the game REFUSED, until dismissed. See the
    *  spine's `UseCommandResult.refusals`. */
   refusals: CommandRefusal[];
+  /** What the mod says about this command in ADVANCE, off `system.uplink.gates`;
+   *  `undefined` when nothing is known. See the spine's `CommandGateStatus`. */
+  gate?: CommandGateStatus;
   /** Dev-only must-consume token (absent in production). See `CommandOutputToken`. */
   _output?: CommandOutputToken;
 }

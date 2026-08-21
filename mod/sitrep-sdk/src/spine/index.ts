@@ -46,6 +46,7 @@ export * from "./client";
 export * from "./client-reading";
 export * from "./client-timeline";
 export * from "./clock";
+export * from "./command-gate";
 export * from "./connectivity-history";
 export * from "./context";
 export * from "./contributed-channels";

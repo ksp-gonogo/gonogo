@@ -226,6 +226,53 @@ namespace Sitrep.Host
         private readonly Dictionary<string, ICommandGateEvaluator> _gateEvaluators =
             new Dictionary<string, ICommandGateEvaluator>(StringComparer.Ordinal);
 
+        // The last main-thread gate sample, published to system.uplink.gates by
+        // the Courier-thread mapper. See SampleCommandGates.
+        private CommandGateReport _commandGateReport = new CommandGateReport();
+
+        // Wall clock for the gate cadence, not UT: GonogoAddon drives the sample
+        // from Update(), which keeps running while the game is paused, and a
+        // paused game is exactly when an operator has time to read the console.
+        // A UT-keyed throttle would stall the whole channel there.
+        private readonly System.Diagnostics.Stopwatch _gateSampleClock = System.Diagnostics.Stopwatch.StartNew();
+        private double _lastGateSampleAtSec = double.NegativeInfinity;
+        private PerfBudget? _commandGateBudget;
+
+        /// <summary>
+        /// How often <see cref="SampleCommandGates"/> actually re-reads the
+        /// game, however often it is called.
+        ///
+        /// <para>2 Hz, and the number is set by the FASTEST-moving gate rather
+        /// than the average one. Almost every requirement in the tree changes on
+        /// a discrete career event: a facility upgrade, a hire, a contract
+        /// accepted, a scene load. Those would be happy at 0.2 Hz.
+        /// <c>ClearToSaveStatus</c> is the exception: its arms include
+        /// "throttled up" and "under acceleration", which an operator changes
+        /// with a keypress, so a recovery control has to go dark within about a
+        /// beat of the throttle moving or the console is lying about the
+        /// present.</para>
+        ///
+        /// <para>Not faster, because this runs on the Unity main thread inside
+        /// the frame budget and there is nothing to buy above a beat: the
+        /// verdict is advisory, and the DISPATCH re-evaluates the same gates
+        /// against live state anyway, so a stale Pass can never actually let a
+        /// command through.</para>
+        /// </summary>
+        internal const double GateSampleIntervalSec = 0.5;
+
+        /// <summary>
+        /// Soft cap on evaluator calls per second from the gate sampler.
+        ///
+        /// <para>Steady state is roughly a dozen: eleven gated commands sharing
+        /// six or so DISTINCT requirements (nine of them declare the same
+        /// career-mode gate), memoised per pass, sampled at
+        /// <see cref="GateSampleIntervalSec"/>. A hundred is about 8x that, so it
+        /// tolerates the gated set tripling without noise and trips when
+        /// something has either lost the memo or started sampling per frame,
+        /// which are the two ways this becomes a main-thread cost.</para>
+        /// </summary>
+        internal const double GateEvaluationBudget = 100;
+
         private readonly ConcurrentQueue<IEngineJob> _jobs = new ConcurrentQueue<IEngineJob>();
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
@@ -353,6 +400,24 @@ namespace Sitrep.Host
         // KeyNotFounds: the real pending list is wired up in a follow-on
         // task once dispatch bookkeeping exists to populate it.
         internal const string UplinkPendingTopic = "system.uplink.pending";
+
+        // Every gated command's CURRENT verdict, evaluated with no arguments:
+        // the addressability answer, published so a control can be drawn dark
+        // before the operator presses it. Same "engine declares and sources it
+        // directly" treatment as the two topics above, and for the same reason:
+        // only the engine sees every CommandDeclaration and every registered
+        // ICommandGateEvaluator at once, so no single ISitrepUplink could own
+        // this.
+        //
+        // SAMPLED ON THE MAIN THREAD, unlike every other channel source here.
+        // See SampleCommandGates: an evaluator reads live game state, channel
+        // mappers run on the Courier thread, and a Unity read from there raises
+        // a cross-thread exception that EvaluateGates catches as Unknown. Unknown
+        // refuses, so a gate sampled off the main thread would publish every
+        // gated command as permanently unavailable and look entirely deliberate
+        // doing it. So the mapper below only hands back what the main-thread
+        // sampler last wrote.
+        internal const string UplinkGatesTopic = "system.uplink.gates";
 
         // The contract's unit knowledge, served so the stream describes
         // itself. Everything else the unit system knows is a TypeScript
@@ -767,6 +832,40 @@ namespace Sitrep.Host
             // ProcessDispatchCommand appends on, so no synchronization is
             // needed here either.
             _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.ToList() };
+
+            // Built-in system.uplink.gates declaration + source: see
+            // UplinkGatesTopic's doc comment. Declared before Start(), same
+            // single-writer-before-start rule as the two above.
+            _channelDeclarations[UplinkGatesTopic] = new ChannelDeclaration
+            {
+                Topic = UplinkGatesTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                // Whether the game will accept a command is a fact about the
+                // GAME as the mod sees it, not something that travelled up a
+                // vessel's comms link, same class as UplinksTopic and
+                // UplinkPendingTopic. TrueNow.
+                //
+                // Worth being explicit about why this is not Delayed even though
+                // it describes commands that ARE: the gate says what the ground
+                // knows about the game right now, and holding it behind the
+                // light-time horizon would tell an operator the pad was clear
+                // minutes after a rocket rolled out onto it. The DISPATCH still
+                // takes its delay; knowing in advance does not.
+                Delay = DelayRole.TrueNow,
+            };
+            // The mapper hands back the last MAIN-THREAD sample and reads
+            // nothing live. Volatile because the sampler writes from the Unity
+            // main thread and this runs on the Courier thread; the reference
+            // swap is the whole synchronisation, since each report is built
+            // fresh and never mutated after publication.
+            _channelSources[UplinkGatesTopic] = _ => Volatile.Read(ref _commandGateReport);
+            _commandGateBudget = new PerfBudget(
+                "ChannelEngine gate evaluations/sec",
+                threshold: GateEvaluationBudget,
+                windowSec: 1.0,
+                unit: "evaluations",
+                warn: LogHost);
 
             // Built-in system.units declaration + source: see UnitsTopic's
             // doc comment. The payload is a STRING holding the descriptor
@@ -1552,7 +1651,21 @@ namespace Sitrep.Host
         /// <see cref="EvaluateGates"/>'s body, on whichever thread the caller has
         /// arranged to be the right one.
         /// </summary>
-        private GateVerdict EvaluateGatesHere(string command, IGateArguments arguments)
+        private GateVerdict EvaluateGatesHere(string command, IGateArguments arguments) =>
+            EvaluateGatesHere(command, arguments, null);
+
+        /// <summary>
+        /// <paramref name="memo"/> caches one evaluator answer per distinct
+        /// requirement WITHIN A SINGLE PASS OVER ONE ARGUMENT BAG, and is only
+        /// ever supplied by <see cref="SampleCommandGates"/>. Nine of the eleven
+        /// gated commands declare the same career-mode requirement, so without
+        /// it a sample asks the same question of the same authority nine times
+        /// per tick on the main thread. Keyed on the requirement's whole
+        /// identity, never carried between passes: the point of sampling is that
+        /// the answer changes.
+        /// </summary>
+        private GateVerdict EvaluateGatesHere(
+            string command, IGateArguments arguments, Dictionary<string, GateVerdict>? memo)
         {
             if (!_commandDeclarations.TryGetValue(command, out var declaration)) return GateVerdict.Pass();
             var requirements = declaration.Requires;
@@ -1577,6 +1690,13 @@ namespace Sitrep.Host
                     // deliberately Unknown rather than Pass if it ever is: an
                     // unevaluable gate must not read as no gate.
                     return GateVerdict.Unknown($"no evaluator registered for gate kind \"{requirement.Kind}\"");
+                }
+
+                var memoKey = memo == null ? null : RequirementKey(requirement);
+                if (memoKey != null && memo!.TryGetValue(memoKey, out var remembered))
+                {
+                    if (remembered.Outcome != GateOutcome.Pass) return remembered;
+                    continue;
                 }
 
                 GateVerdict verdict;
@@ -1604,10 +1724,93 @@ namespace Sitrep.Host
                             + "abstention is the host's decision, not an evaluator's");
                 }
 
+                if (memoKey != null) memo![memoKey] = verdict;
+
                 if (verdict.Outcome != GateOutcome.Pass) return verdict;
             }
 
             return GateVerdict.Pass();
+        }
+
+        /// <summary>
+        /// A requirement's whole identity, for the sampler's per-pass memo. The
+        /// separator is a unit separator rather than a dot or a slash because
+        /// every part is free text an Uplink chose, and a separator that can
+        /// appear inside a part would make two different requirements share one
+        /// answer.
+        /// </summary>
+        private static string RequirementKey(CommandRequirement requirement) =>
+            (requirement.Kind ?? "") + "\u001f" + (requirement.Facility ?? "")
+                + "\u001f" + (requirement.Quantity ?? "");
+
+        /// <summary>
+        /// Re-read every gated command's requirements with an EMPTY argument bag
+        /// and publish the answers to <c>system.uplink.gates</c>, so a control
+        /// can be drawn dark before the operator presses it.
+        ///
+        /// <para><b>MUST be called from the Unity main thread</b>, once per frame
+        /// from <c>GonogoAddon.Update</c> beside
+        /// <see cref="RunPendingCommands"/>. This is the whole reason the channel
+        /// has a sampler at all rather than doing its reads in the mapper like
+        /// every other channel here: mappers run on the Courier thread, an
+        /// evaluator reads live game state, and a Unity read from the wrong
+        /// thread raises a cross-thread exception that
+        /// <see cref="EvaluateGatesHere"/> catches as
+        /// <see cref="GateOutcome.Unknown"/>. Unknown REFUSES, so the failure
+        /// mode is every gated control published as permanently unavailable,
+        /// with a reason that reads like the game's. That exact bug has already
+        /// been shipped and fixed once on the dispatch path; this is the same
+        /// trap one layer out, and
+        /// <c>GateSamplingRunsOnTheMainThreadPumpNotTheCourierThread</c> is what
+        /// stops it recurring.</para>
+        ///
+        /// <para>Called every frame, samples at
+        /// <see cref="GateSampleIntervalSec"/>. The caller does not own the
+        /// cadence: putting the throttle here rather than at the call site means
+        /// a second caller cannot double the main-thread cost by accident.</para>
+        ///
+        /// <para>Never throws. A sampler that could break the frame would be a
+        /// worse bargain than a stale verdict.</para>
+        /// </summary>
+        public void SampleCommandGates()
+        {
+            var nowSec = _gateSampleClock.Elapsed.TotalSeconds;
+            if (nowSec - _lastGateSampleAtSec < GateSampleIntervalSec) return;
+            _lastGateSampleAtSec = nowSec;
+
+            var gates = new List<CommandGate>();
+            var memo = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
+            try
+            {
+                foreach (var pair in _commandDeclarations)
+                {
+                    var requires = pair.Value.Requires;
+                    if (requires == null || requires.Length == 0) continue;
+                    gates.Add(new CommandGate
+                    {
+                        Command = pair.Key,
+                        // Deliberately GateArguments.None: this is the
+                        // addressability question, so an argument-dependent
+                        // requirement abstains rather than guessing, and the
+                        // client renders an Abstain as "no answer in advance".
+                        Verdict = EvaluateGatesHere(pair.Key, GateArguments.None, memo),
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // EvaluateGatesHere already fail-softs a throwing evaluator, so
+                // reaching here means the walk itself broke. Keep the previous
+                // report rather than publishing a half-built one: a partial set
+                // would read as "these commands are no longer gated".
+                LogHost("gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
+                return;
+            }
+
+            // memo.Count is exactly the number of evaluator calls this pass made:
+            // a repeated requirement is answered from the memo without one.
+            _commandGateBudget?.Record(memo.Count, nowSec);
+            Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates });
         }
 
         private static bool HasAllNeeds(CommandRequirement requirement, IGateArguments arguments)

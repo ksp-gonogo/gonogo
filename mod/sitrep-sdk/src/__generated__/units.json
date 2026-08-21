@@ -189,6 +189,9 @@
       "latitude": "°",
       "longitude": "°"
     },
+    "CommandGate": {
+      "command": "id"
+    },
     "CommandRequirement": {
       "facility": "id",
       "kind": "id",
@@ -1648,6 +1651,12 @@
     },
     "CommandDeclaration": {
       "requires": "CommandRequirement"
+    },
+    "CommandGate": {
+      "verdict": "GateVerdict"
+    },
+    "CommandGateReport": {
+      "gates": "CommandGate"
     },
     "CommandResponse`1": {
       "meta": "Meta"

@@ -322,6 +322,19 @@ namespace Sitrep.Core.Serialization
                     // subscriber got zero stream-data for this topic.
                     AppendPendingUplinkQueue(sb, pendingUplinkQueue);
                     break;
+                case Sitrep.Contract.CommandGateReport commandGateReport:
+                    // Same "producer owns the flatten" boundary again:
+                    // system.uplink.gates' channel source (ChannelEngine's
+                    // UplinkGatesTopic mapper) hands back a CommandGateReport
+                    // POCO directly. Without these two cases the whole channel
+                    // threw NotSupportedException at the wire boundary and every
+                    // subscriber got zero stream-data for it, which is the exact
+                    // failure PendingUplinkQueue's case above was added for.
+                    AppendCommandGateReport(sb, commandGateReport);
+                    break;
+                case Sitrep.Contract.CommandGate commandGate:
+                    AppendCommandGate(sb, commandGate);
+                    break;
                 case Sitrep.Contract.ReliabilitySummary reliabilitySummary:
                     // Same "producer owns the flatten" boundary as CommsDelay
                     // above: reliability.summary's producer
@@ -961,6 +974,49 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "ut");
             sb.Append(':');
             AppendNumber(sb, f.Ut);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.CommandGateReport"/> to the
+        /// wire object <c>{ gates: [...] }</c>. See the <c>case</c> in
+        /// <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendCommandGateReport(
+            StringBuilder sb, Sitrep.Contract.CommandGateReport report)
+        {
+            sb.Append('{');
+            AppendString(sb, "gates");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; i < report.Gates.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendCommandGate(sb, report.Gates[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens one <see cref="Sitrep.Contract.CommandGate"/> to
+        /// <c>{ command, verdict }</c>, the verdict through the same
+        /// <see cref="AppendGateVerdict"/> a refused dispatch uses, so a client
+        /// reads one shape whether the gate answered in advance or at dispatch.
+        /// </summary>
+        private static void AppendCommandGate(StringBuilder sb, Sitrep.Contract.CommandGate gate)
+        {
+            sb.Append('{');
+            AppendString(sb, "command");
+            sb.Append(':');
+            AppendString(sb, gate.Command ?? "");
+            sb.Append(',');
+            AppendString(sb, "verdict");
+            sb.Append(':');
+            AppendGateVerdict(sb, gate.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
             sb.Append('}');
         }
 

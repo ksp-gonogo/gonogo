@@ -225,6 +225,13 @@ public static class RtConfig
                 // sees one. It sees the verdict.
                 typeof(GateVerdict),
                 typeof(LimitBreach),
+                // system.uplink.gates, the standing addressability set: every
+                // gated command's verdict evaluated with no arguments, so a
+                // control knows it is gated without dispatching. Same
+                // engine-declared, hand-mapped-in-topics.ts treatment as
+                // system.uplink.pending above.
+                typeof(CommandGate),
+                typeof(CommandGateReport),
                 typeof(SystemBodies),
                 typeof(BodyEntry),
                 typeof(OrbitEntry),

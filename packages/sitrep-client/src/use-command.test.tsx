@@ -172,7 +172,11 @@ function setupFixture() {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  const carriedChannels = ["comms.link", "system.uplink.pending"];
+  const carriedChannels = [
+    "comms.link",
+    "system.uplink.pending",
+    "system.uplink.gates",
+  ];
 
   function Provider({ children }: { children: React.ReactNode }) {
     return (
@@ -694,5 +698,111 @@ describe("useCommand refusals", () => {
       dismiss?.("c0");
     });
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});
+
+// ── gate: what the mod says BEFORE anything is dispatched ────────────────
+
+function DeployWithGate() {
+  const cmd = useCommand("deploy");
+  return (
+    <div>
+      <span>blocked:{String(cmd.gate?.blocked ?? "none")}</span>
+      <span>detail:{cmd.gate?.detail ?? "none"}</span>
+      <span>command:{cmd.gate?.command ?? "none"}</span>
+      <CommandDelay handle={cmd} />
+    </div>
+  );
+}
+
+describe("useCommand gate", () => {
+  it("carries the mod's standing verdict for THIS command off system.uplink.gates", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithGate />
+      </fixture.Provider>,
+    );
+
+    // Nothing published yet: the hook knows nothing in advance, which is where
+    // every control was before the channel existed.
+    expect(screen.getByText("blocked:none")).toBeTruthy();
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "stow",
+              verdict: { outcome: 0, errorCode: 0, detail: "" },
+            },
+            {
+              command: "deploy",
+              verdict: {
+                // GateOutcome.Fail / CommandErrorCode.NotClearToProceed
+                outcome: 1,
+                errorCode: 13,
+                detail: "the craft is throttled up",
+              },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("blocked:true")).toBeTruthy();
+    });
+    expect(screen.getByText("detail:the craft is throttled up")).toBeTruthy();
+    // The subject the mod never sends: without it the sentence names no control.
+    expect(screen.getByText("command:deploy")).toBeTruthy();
+  });
+
+  it("lets the control back up when the next sample says the gate opened", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithGate />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "deploy",
+              verdict: { outcome: 1, errorCode: 13, detail: "throttled up" },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("blocked:true")).toBeTruthy();
+    });
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "deploy",
+              verdict: { outcome: 0, errorCode: 0, detail: "" },
+            },
+          ],
+        },
+        { validAt: 1, deliveredAt: 1 },
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("blocked:false")).toBeTruthy();
+    });
   });
 });

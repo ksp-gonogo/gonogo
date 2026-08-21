@@ -1,10 +1,12 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
+import type { CommandGateReport } from "../__generated__/contract";
 import { classifyCommandRejection } from "../api/command-rejection";
 import type { CommandRefusal, CommandStatus } from "../api/types";
 import {
@@ -14,6 +16,7 @@ import {
   type PathConnectedDuring,
   type PendingEntry,
 } from "../command-delay";
+import { type CommandGateStatus, selectCommandGate } from "./command-gate";
 import {
   type CommsLinkLike,
   ConnectivityHistory,
@@ -142,6 +145,20 @@ export interface UseCommandResult {
    */
   refusals: CommandRefusal[];
   /**
+   * What the mod says about this command BEFORE anyone presses anything: the
+   * standing verdict of its declared gates, off `system.uplink.gates`.
+   *
+   * `undefined` when the command declares no gates, or the stream is not
+   * carrying the channel, or nothing is connected. All three mean the same
+   * thing to a control (nothing is known in advance), which is where every
+   * control was before the channel existed, so a control that ignores this
+   * field behaves exactly as it did.
+   *
+   * A `blocked` gate is a reason to draw the control dark and SAY WHY. It is
+   * not a reason to make it unpressable and silent: see `CommandButton`.
+   */
+  gate?: CommandGateStatus;
+  /**
    * Dev-only must-consume token (absent in production). Set the moment a
    * `<CommandDelay handle={cmd}>` mounts; `send()` throws if it is dispatched
    * without one, so a delayed command can never ship without its delay UX.
@@ -264,6 +281,14 @@ export function useCommand(
   );
 
   const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");
+  // Memoised on the report identity so a control does not re-render on every
+  // unrelated render of its widget: the report is republished whole at the
+  // engine's gate cadence, and every `useCommand` in the tree reads the same one.
+  const gateReport = useLatestValue<CommandGateReport>("system.uplink.gates");
+  const gate = useMemo(
+    () => selectCommandGate(gateReport, command),
+    [gateReport, command],
+  );
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
 
@@ -497,6 +522,7 @@ export function useCommand(
     shape,
     effectiveDelaySeconds,
     dismiss,
+    gate,
     _output: outputRef.current,
   };
 }

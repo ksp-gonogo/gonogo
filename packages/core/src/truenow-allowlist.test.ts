@@ -177,9 +177,16 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // (the contract's own unit descriptor, reflected off assembly metadata: it
   // describes the WIRE FORMAT rather than anything happening in space, so
   // there is no light-time for it to travel and delaying it would leave a
-  // consumer unable to read the very frames the delay applies to). 3 explicit
+  // consumer unable to read the very frames the delay applies to)
+  // + system.uplink.gates (every gated command's standing verdict: what the
+  // GROUND knows about the game right now, sampled on the main thread and
+  // published so a control can be drawn dark before it is pressed). The last
+  // one is worth spelling out because it describes commands that ARE delayed:
+  // the DISPATCH still takes its light-time, but knowing in advance does not,
+  // and holding the verdict behind the reveal horizon would tell an operator
+  // the pad was clear minutes after a rocket rolled out onto it. 4 explicit
   // declarations.
-  "mod/Sitrep.Host/ChannelEngine.cs": 3,
+  "mod/Sitrep.Host/ChannelEngine.cs": 4,
 
   // principia.settings (the plotting frame, the prediction and flight-plan
   // integrator bounds, the analysis window, the declutter and drawing toggles,

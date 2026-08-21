@@ -354,6 +354,19 @@ namespace Gonogo.KSP
             // queue (see ChannelEngine.RunPendingCommands). The Courier thread
             // blocks (bounded) waiting on exactly this drain. Never throws.
             _engine?.RunPendingCommands();
+            // Re-read every gated command's requirements and publish them to
+            // system.uplink.gates, so a control can be drawn dark before it is
+            // pressed. HERE rather than in a channel mapper because a gate
+            // evaluator reads live KSP state and mappers run on the Courier
+            // thread; see ChannelEngine.SampleCommandGates. Self-throttling
+            // (GateSampleIntervalSec), so calling it per frame is not a per-frame
+            // cost, and never throws.
+            //
+            // Update() rather than FixedUpdate() for the same reason the command
+            // drain is here: FixedUpdate stops while the game is paused, and a
+            // paused game is exactly when an operator has time to read which
+            // controls are live.
+            _engine?.SampleCommandGates();
         }
 
         private void FixedUpdate()
