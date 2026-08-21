@@ -706,48 +706,32 @@ export interface SettingsTabDefinition {
 // --- Declarative settings ---------------------------------------------------
 
 /**
- * Mirrors `packages/core/src/settings/registry.ts`'s `SettingDefinition`: same
- * leaf constraint (the sdk cannot import core). `registerSetting` is the
- * PREFERRED way an Uplink surfaces a setting: a declarative row the app renders
- * and (for client-pref) persists, without a bespoke tab. Reach for
- * `registerSettingsTab` only when a setting's UI genuinely can't be a row.
+ * `registerSetting` is the PREFERRED way an Uplink surfaces a setting: a
+ * declarative row the app renders and (for client-pref) persists, without a
+ * bespoke tab. Reach for `registerSettingsTab` only when a setting's UI
+ * genuinely can't be a row.
+ *
+ * These used to be a hand-copied MIRROR of the registry's own declarations,
+ * from the era when the registry lived in `@ksp-gonogo/core` and this leaf
+ * could not name it. It lives in `../spine/settings-registry` now, inside this
+ * package, so the copy has no reason to exist and every reason not to: a
+ * second union meaning the same thing is exactly what the `readOnly` /
+ * `"number"` / `group` work had to unpick. Re-exported, not restated.
  */
-export type SettingType = "boolean";
-
-export interface SettingDefinitionBase {
-  id: string;
-  label: string;
-  description?: string;
-  category: string;
-  /** Which screens this setting is relevant on. Omit for both. */
-  screens?: readonly Screen[];
-  /** Id of a parent boolean setting this one nests under (rendering hint). */
-  dependsOn?: string;
-}
-
-/** localStorage-backed preference: pure gonogo-side, no mod round-trip. */
-export interface ClientPrefSetting extends SettingDefinitionBase {
-  backing?: "client-pref";
-  type: "boolean";
-  defaultValue: boolean;
-}
-
-/**
- * Source-backed setting: value lives on the Uplink's `DataSource` (by
- * `sourceId`), read/written through the client-supplied binding closures, never
- * localStorage. The registry stores them type-erased (`source: unknown`); the
- * client casts to the concrete source type it owns.
- */
-export interface SourceBackedSetting extends SettingDefinitionBase {
-  backing: "source-backed";
-  type: "boolean";
-  sourceId: string;
-  read: (source: unknown) => boolean;
-  write: (source: unknown, value: boolean) => void;
-  subscribe: (source: unknown, cb: () => void) => () => void;
-}
-
-export type SettingDefinition = ClientPrefSetting | SourceBackedSetting;
+export type {
+  ClientPrefSetting,
+  ClientPrefSettingOf,
+  SettingDefinition,
+  SettingDefinitionBase,
+  SettingDefinitionOf,
+  SettingType,
+  SettingValue,
+  SettingValueByType,
+  SourceBackedSetting,
+  SourceBackedSettingOf,
+  StreamBackedSetting,
+  StreamBackedSettingOf,
+} from "../spine/settings-registry";
 
 // --- Telemetry client (sitrep-client) SPI ------------------------------------
 //

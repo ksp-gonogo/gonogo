@@ -67,6 +67,11 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "getUplinkHandle",
   "hasHost",
   "imagingQuality",
+  // The settings registry's own two predicates. An Uplink that declares a
+  // read-only row has to be able to ask the same question the renderer asks,
+  // and a second copy of "is this writable" written per Uplink is how the two
+  // answers drift apart.
+  "isReadOnlySetting",
   "logger",
   "onContributionsChange",
   "onFogRevealSourcesChange",
@@ -87,6 +92,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "safeRandomUuid",
   "seedSetting",
   "setSetting",
+  "settingTypeOf",
   "subscribeSetting",
   "unregisterActionHandler",
   "unregisterDataSource",

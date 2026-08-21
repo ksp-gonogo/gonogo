@@ -375,6 +375,12 @@ export {
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
 export {
+  ReadOnlyField,
+  ReadOnlyFieldContent,
+  type ReadOnlyFieldProps,
+  type ReadOnlyFieldValue,
+} from "./ReadOnlyField";
+export {
   BigReadout,
   Readout,
   ReadoutCaption,
