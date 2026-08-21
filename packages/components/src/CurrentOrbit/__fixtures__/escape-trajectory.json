@@ -11,8 +11,8 @@
   "o.PeR": 685000,
   "o.sma": -2400000,
   "o.eccentricity": 1.283,
-  "o.trueAnomaly": 35.0,
-  "o.argumentOfPeriapsis": 20.0,
+  "o.trueAnomaly": 35,
+  "o.argumentOfPeriapsis": 20,
   "o.inclination": 4.7,
   "o.period": 0,
   "o.timeToAp": 0,
@@ -37,10 +37,14 @@
           "ecc": 1.283,
           "inc": 4.7,
           "lan": 0,
-          "argPe": 20.0,
+          "argPe": 20,
           "meanAnomalyAtEpoch": 0,
           "epoch": 10,
-          "mu": 3531600000000.0
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
         }
       },
       {

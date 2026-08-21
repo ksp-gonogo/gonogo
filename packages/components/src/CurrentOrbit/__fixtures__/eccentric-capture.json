@@ -11,11 +11,11 @@
   "o.PeR": 680000,
   "o.sma": 1890000,
   "o.eccentricity": 0.6402,
-  "o.trueAnomaly": 12.0,
-  "o.argumentOfPeriapsis": 270.0,
+  "o.trueAnomaly": 12,
+  "o.argumentOfPeriapsis": 270,
   "o.inclination": 5.2,
   "o.period": 20140.7,
-  "o.timeToAp": 18900.0,
+  "o.timeToAp": 18900,
   "o.timeToPe": 880.5,
   "_stream": {
     "carriedChannels": [
@@ -37,10 +37,14 @@
           "ecc": 0.6402,
           "inc": 5.2,
           "lan": 0,
-          "argPe": 270.0,
+          "argPe": 270,
           "meanAnomalyAtEpoch": 0,
           "epoch": 10,
-          "mu": 3531600000000.0
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
         }
       },
       {

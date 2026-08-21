@@ -1,118 +1,55 @@
-/**
- * DOM-snapshot regression tests for the SemiMajorAxis widget.
- *
- * Catches structural drift (rendered text, element order, attribute
- * changes) across every scenario × mode combination registered for the
- * widget. The matching PNG renders live in
- * `local_docs/renders/semi-major-axis-widget/` and cover the visual
- * layer that DOM snapshots can't (styled-components CSS, fonts, etc).
- *
- * SemiMajorAxis reads exclusively off the SDK stream now (`vessel.orbit.sma`
- * for the headline value, the derived `vessel.state.referenceBodyName` for the
- * subtitle), so these render through a real `TelemetryProvider` via
- * `setupStreamFixture` rather than the legacy `MockDataSource`
- * `snapshotWidgetMode` harness. Scenarios mirror the former Telemachus fixtures
- * as `vessel.orbit` element sets + a `system.bodies` entry the reference-body
- * name resolves against; the view clock is pinned so the freshly-emitted sample
- * reads "live" (no status badge), matching the legacy fixtures' connected
- * depiction.
- *
- * If the widget output intentionally changes, regenerate with
- * `pnpm --filter @ksp-gonogo/components exec vitest run src/SemiMajorAxis/snapshots -u`.
- */
-import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
-import { setupStreamFixture } from "../test/setupStreamFixture";
-import { stripVolatile } from "../test/widgetDomSnapshot";
+import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
+import escapeKerbin from "./__fixtures__/escape-kerbin.json";
+import jool from "./__fixtures__/jool-system.json";
+import ksync from "./__fixtures__/ksync-kerbin.json";
+import lko from "./__fixtures__/lko-kerbin.json";
+import mun from "./__fixtures__/mun-orbit.json";
+import noData from "./__fixtures__/no-data.json";
 import { SemiMajorAxisComponent } from "./index";
 
-interface SmaScenario {
-  sma: number;
-  ecc: number;
-  bodyName: string;
-}
+/**
+ * DOM snapshots off the stream pipeline, driven by each fixture's own
+ * `_stream` block.
+ *
+ * This spec used to declare its five orbits inline as `{sma, ecc, bodyName}`
+ * and build the stream around them. The five fixtures next door say the same
+ * thing, are what the playwright probe renders, and additionally carry the
+ * `vessel.identity` that resolves the reference body, so the inline copy is
+ * gone.
+ *
+ * The sparkline is size-gated, and the hand-built render never installed a
+ * `ResizeObserver` that reports one; the shared harness does, at the mode's own
+ * pixel box.
+ *
+ * `no-data` carries no `_stream` block: no orbit to report is its subject, and
+ * the un-fed gate lists it as empty by design.
+ */
 
-const SCENARIOS: Record<string, SmaScenario | null> = {
-  "lko-kerbin": { sma: 680_000, ecc: 0.01, bodyName: "Kerbin" },
-  "ksync-kerbin": { sma: 2_868_750, ecc: 0.01, bodyName: "Kerbin" },
-  // Hyperbolic escape trajectory: SMA is negative; exercises formatDistance
-  // with a negative value and the derived body-name read on an escape orbit.
-  "escape-kerbin": { sma: -5_000_000, ecc: 1.5, bodyName: "Kerbin" },
-  "mun-orbit": { sma: 215_000, ecc: 0.01, bodyName: "Mun" },
-  "jool-system": { sma: 26_000_000, ecc: 0.01, bodyName: "Jool" },
-  "no-data": null,
+const FIXTURES: Record<string, Record<string, unknown>> = {
+  "lko-kerbin": lko,
+  "ksync-kerbin": ksync,
+  "escape-kerbin": escapeKerbin,
+  "mun-orbit": mun,
+  "jool-system": jool,
+  "no-data": noData,
 };
-
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
 
 const config = getWidget("semi-major-axis");
 if (!config) throw new Error("semi-major-axis missing from widgets.ts");
 
-registerStockBodies();
-
-function renderSmaSnapshot(
-  scenario: SmaScenario | null,
-  mode: { w: number; h: number },
-): HTMLElement {
-  const fixture = setupStreamFixture({
-    carriedChannels: VESSEL_STATE_INPUTS,
-    pinnedUt: 0,
-  });
-  const { container } = render(
-    <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: "sma-snap" }}>
-        <SemiMajorAxisComponent id="sma-snap" w={mode.w} h={mode.h} />
-      </DashboardItemContext.Provider>
-    </fixture.Provider>,
-  );
-  if (scenario) {
-    act(() => {
-      fixture.emit("vessel.orbit", {
-        sma: scenario.sma,
-        ecc: scenario.ecc,
-        referenceBodyIndex: 1,
-      });
-      fixture.emit("system.bodies", {
-        bodies: [
-          {
-            name: scenario.bodyName,
-            index: 1,
-            parentIndex: 0,
-            radius: 600000,
-            orbit: null,
-          },
-        ],
-      });
-    });
-  }
-  return container;
-}
-
 describe("SemiMajorAxis DOM snapshots", () => {
-  for (const [name, scenario] of Object.entries(SCENARIOS)) {
+  for (const [name, fixture] of Object.entries(FIXTURES)) {
     for (const mode of config.modes) {
       it(`${name} @ ${mode.name}`, async () => {
-        const container = renderSmaSnapshot(scenario, mode);
-        if (scenario) {
-          await waitFor(() => {
-            if (visibleText(container).includes("No orbit data")) {
-              throw new Error("sma has not settled off the stream yet");
-            }
-          });
-        }
-        expect(stripVolatile(container.innerHTML)).toMatchSnapshot();
+        const html = await snapshotWidgetMode({
+          Widget: SemiMajorAxisComponent,
+          fixture,
+          mode,
+          instanceId: "sma-snap",
+        });
+        expect(html).toMatchSnapshot();
       });
     }
   }
