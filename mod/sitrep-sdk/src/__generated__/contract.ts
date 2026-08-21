@@ -513,6 +513,85 @@ export interface IsruConverterEntry
 	outputs: IsruResourceFlow[];
 	extensions?: ProviderExtensions;
 }
+export enum KspRosterStatus {
+	Available = 0,
+	Assigned = 1,
+	Dead = 2,
+	Missing = 3
+}
+export enum KspParameterState {
+	Incomplete = 0,
+	Complete = 1,
+	Failed = 2
+}
+export enum KspPartCategory {
+	Propulsion = 0,
+	Control = 1,
+	Structural = 2,
+	Aero = 3,
+	Utility = 4,
+	Science = 5,
+	Pods = 6,
+	FuelTank = 7,
+	Engine = 8,
+	Communication = 9,
+	Electrical = 10,
+	Ground = 11,
+	Thermal = 12,
+	Payload = 13,
+	Coupling = 14,
+	Cargo = 15,
+	Robotics = 16,
+	none = -1
+}
+export enum KspActionGroup {
+	None = 0,
+	Stage = 1,
+	Gear = 2,
+	Light = 4,
+	RCS = 8,
+	SAS = 16,
+	Brakes = 32,
+	Abort = 64,
+	Custom01 = 128,
+	Custom02 = 256,
+	Custom03 = 512,
+	Custom04 = 1024,
+	Custom05 = 2048,
+	Custom06 = 4096,
+	Custom07 = 8192,
+	Custom08 = 16384,
+	Custom09 = 32768,
+	Custom10 = 65536,
+	REPLACEWITHDEFAULT = -1
+}
+export enum KspEditorFacility {
+	None = 0,
+	VAB = 1,
+	SPH = 2
+}
+export enum KspSpaceCenterFacility {
+	Administration = 0,
+	AstronautComplex = 1,
+	LaunchPad = 2,
+	MissionControl = 3,
+	ResearchAndDevelopment = 4,
+	Runway = 5,
+	TrackingStation = 6,
+	SpaceplaneHangar = 7,
+	VehicleAssemblyBuilding = 8
+}
+export enum KspResourceFlowMode {
+	NO_FLOW = 0,
+	ALL_VESSEL = 1,
+	STAGE_PRIORITY_FLOW = 2,
+	STACK_PRIORITY_SEARCH = 3,
+	ALL_VESSEL_BALANCE = 4,
+	STAGE_PRIORITY_FLOW_BALANCE = 5,
+	STAGE_STACK_FLOW = 6,
+	STAGE_STACK_FLOW_BALANCE = 7,
+	NULL = 8
+}
 export enum Quality {
 	OnRails = 0,
 	Loaded = 1

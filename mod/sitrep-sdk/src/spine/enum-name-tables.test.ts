@@ -2,12 +2,21 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import * as generated from "../__generated__/contract";
 import {
   ControlState,
+  KspActionGroup,
+  KspPartCategory,
   Situation,
   TargetKind,
   TransitionType,
 } from "../__generated__/contract";
+import { namesOf } from "./enum-names";
+import {
+  actionGroupNames,
+  KSP_ENUM_NAME_TABLES,
+  KSP_PART_CATEGORY_NAMES,
+} from "./ksp-enum-names";
 import { TRANSITION_TYPE_NAMES } from "./orbit-patches";
 import { HEALTH_STATE_NAMES } from "./uplink-health";
 import { CONTROL_STATE_LEVEL, ENUM_NAME_TABLES } from "./vessel-state";
@@ -39,6 +48,20 @@ function declaredNames(members: object): string[] {
     .filter(([key]) => Number.isInteger(Number(key)))
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([, name]) => String(name));
+}
+
+/**
+ * Value→name pairs a generated numeric enum declares, in value order.
+ *
+ * The value-aware twin of `declaredNames`, for the KSP mirrors: those carry
+ * KSP's own numbering, which includes a negative member and a bitmask, so
+ * position in the declaration is not the fact being checked.
+ */
+function declaredValues(members: object): [number, string][] {
+  return Object.entries(members)
+    .filter(([key]) => Number.isInteger(Number(key)))
+    .map(([key, name]): [number, string] => [Number(key), String(name)])
+    .sort(([a], [b]) => a - b);
 }
 
 // mod/sitrep-sdk/src/spine -> mod
@@ -147,6 +170,85 @@ describe("enum name tables cover their enums", () => {
     expect(CONTROL_STATE_LEVEL).toHaveLength(
       declaredNames(ControlState).length,
     );
+  });
+
+  /**
+   * KSP's own enums, the half that had no declaration to derive from until
+   * `Sitrep.Contract/KspEnums.cs` existed. Same property as the tables above,
+   * checked on a `Map` rather than an array because two of these are not dense
+   * from zero.
+   */
+  for (const { label, members, names } of KSP_ENUM_NAME_TABLES) {
+    it(`${label} matches its enum`, () => {
+      expect([...names].sort(([a], [b]) => a - b)).toEqual(
+        declaredValues(members),
+      );
+    });
+  }
+
+  /**
+   * The mistake `ksp-enum-names.ts` invites: declare an eighth mirror in C# and
+   * never give the client a table for it. Derived from the generated module, so
+   * a mirror added in the contract fails here until it is registered, rather
+   * than being noticed by whoever eventually hits the missing name.
+   */
+  it("has a table registered for every Ksp* enum the contract exports", () => {
+    const exported = Object.entries(generated)
+      .filter(
+        ([name, value]) =>
+          name.startsWith("Ksp") &&
+          typeof value === "object" &&
+          value !== null &&
+          Object.keys(value).some((k) => Number.isInteger(Number(k))),
+      )
+      .map(([name]) => name)
+      .sort();
+    // Guards this reader: a filter that matched nothing would make an empty
+    // registry pass, so the count is pinned rather than only compared.
+    expect(exported.length).toBeGreaterThanOrEqual(7);
+    // Compared as sets: the registry reads in declaration order and the scan
+    // reads alphabetically, and which order either is in is not the point.
+    const registered = new Set(KSP_ENUM_NAME_TABLES.map((t) => t.members));
+    const missing = exported.filter(
+      (name) => !registered.has((generated as Record<string, object>)[name]),
+    );
+    expect(missing).toEqual([]);
+    expect(registered.size).toBe(exported.length);
+  });
+
+  /**
+   * `PartCategories.none` is `-1`, and a table built by the ordinal-walking
+   * `namesOf` would resolve every member EXCEPT it, silently. Pinned because it
+   * is the reason these tables are maps at all.
+   */
+  it("resolves the negative member of a sparse KSP enum", () => {
+    expect(KSP_PART_CATEGORY_NAMES.get(-1)).toBe("none");
+    expect(KSP_PART_CATEGORY_NAMES.get(KspPartCategory.Robotics)).toBe(
+      "Robotics",
+    );
+    expect(namesOf(KspPartCategory)).not.toContain("none");
+  });
+
+  /**
+   * The bitmask half. `namesOf` stops at the first gap in the value run, and on
+   * this enum the run happens to reach 2 before it breaks, so it resolves
+   * None/Stage/Gear and silently loses everything from `RCS` (8) upward -
+   * including every Custom group, which is most of what an operator binds.
+   * A table that covers the first three of eighteen members is worse than one
+   * that covers none, because it looks like it works.
+   */
+  it("decodes a KSPActionGroup bitmask to every group set in it", () => {
+    expect(namesOf(KspActionGroup)).toEqual(["None", "Stage", "Gear"]);
+    expect(
+      actionGroupNames(KspActionGroup.SAS | KspActionGroup.Custom01),
+    ).toEqual(["SAS", "Custom01"]);
+    expect(actionGroupNames(0)).toEqual([]);
+    expect(actionGroupNames(null)).toEqual([]);
+    // -1 has every bit set. Excluding REPLACEWITHDEFAULT and None keeps it from
+    // reporting itself as a group, but the real groups it covers are genuine.
+    expect(actionGroupNames(-1)).not.toContain("REPLACEWITHDEFAULT");
+    expect(actionGroupNames(-1)).not.toContain("None");
+    expect(actionGroupNames(-1)).toContain("Custom10");
   });
 
   /** The original defect, pinned by name so a regression reads as itself. */
