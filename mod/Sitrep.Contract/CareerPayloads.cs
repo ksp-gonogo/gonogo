@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ namespace Sitrep.Contract;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("career.status")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerStatus
@@ -55,7 +55,7 @@ public class CareerStatus
 
 /// <summary>Economy sub-group of <see cref="CareerStatus"/>: funds/reputation/science, each null when absent.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerEconomy
@@ -76,7 +76,7 @@ public class CareerEconomy
 /// together when the facility isn't queryable in the current scene.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerFacility
@@ -93,7 +93,7 @@ public class CareerFacility
 
 /// <summary>Contracts sub-group of <see cref="CareerStatus"/>. All three lists are always present (empty, never null).</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerContracts
@@ -117,7 +117,7 @@ public class CareerContracts
 
 /// <summary>One contract in <see cref="CareerContracts.Active"/> / <see cref="CareerContracts.Offered"/>.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerContract
@@ -166,7 +166,7 @@ public class CareerContract
 
 /// <summary>One parameter (objective) of a <see cref="CareerContract"/>.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerContractParameter
@@ -184,7 +184,7 @@ public class CareerContractParameter
 /// <c>Active.Count</c> when the raw value is absent.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerStrategies
@@ -199,7 +199,7 @@ public class CareerStrategies
 
 /// <summary>One strategy in <see cref="CareerStrategies.Active"/> / <see cref="CareerStrategies.All"/>.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerStrategy
@@ -268,7 +268,7 @@ public class CareerStrategy
 /// <c>UnlockedIds.Count</c> when the raw value is absent.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerTech
@@ -284,7 +284,7 @@ public class CareerTech
 
 /// <summary>One node in <see cref="CareerTech.Nodes"/>.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerTechNode

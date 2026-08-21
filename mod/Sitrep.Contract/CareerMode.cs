@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 /// future KSP addition) into <see cref="Unknown"/> rather than the mapper
 /// throwing. <c>SCIENCE_SANDBOX</c> maps to <see cref="Science"/>.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -51,7 +51,7 @@ public enum GameMode
 /// </summary>
 [SitrepContract]
 [SitrepTopic("career.mode")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CareerMode

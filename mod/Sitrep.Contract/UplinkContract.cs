@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -229,7 +229,7 @@ namespace Sitrep.Contract
 
     /// <summary>What an evaluator concluded. Three-valued, and the third value is load-bearing.</summary>
     [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsEnum]
 #endif
     public enum GateOutcome
@@ -268,7 +268,7 @@ namespace Sitrep.Contract
     /// baking an English sentence in one unit system.</para>
     /// </summary>
     [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsInterface]
 #endif
     public class LimitBreach
@@ -337,7 +337,7 @@ namespace Sitrep.Contract
     /// A verdict plus its evidence.
     /// </summary>
     [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     // AutoExportMethods=false for the same reason CommandResult sets it: the
     // static Pass/Fail/Unknown factories are C#-side ergonomics, not wire shape,
     // and without this rtcli emits them as bogus interface members on the

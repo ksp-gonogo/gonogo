@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -23,7 +23,7 @@ namespace Sitrep.Contract;
 /// allowlist for exactly that reason).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("crash.lastCrash")]
@@ -97,7 +97,7 @@ public class CrashReport
 /// See <c>crash-payloads.ts</c> for the wire shape.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CrashPartLost
@@ -125,7 +125,7 @@ public class CrashPartLost
 /// the wire shape.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CrashFlightStats

@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -13,7 +13,7 @@ namespace Sitrep.Contract;
 /// command is set-semantics only, so that footgun doesn't exist here at all.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetEnabledArgs
@@ -23,7 +23,7 @@ public class SetEnabledArgs
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetSasModeArgs
@@ -33,7 +33,7 @@ public class SetSasModeArgs
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetThrottleArgs
@@ -58,7 +58,7 @@ public class SetThrottleArgs
 /// a group name to flip the landing gear.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetActionGroupArgs
@@ -82,7 +82,7 @@ public class SetActionGroupArgs
 /// reordering it.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class AddManeuverNodeArgs
@@ -109,7 +109,7 @@ public class AddManeuverNodeArgs
 /// later sibling's index by one).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class UpdateManeuverNodeArgs
@@ -131,7 +131,7 @@ public class UpdateManeuverNodeArgs
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RemoveManeuverNodeArgs
@@ -152,7 +152,7 @@ public class RemoveManeuverNodeArgs
 /// confused for one another.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetTargetArgs
@@ -193,7 +193,7 @@ public class SetTargetArgs
 /// fiction doesn't apply to a ground-side simulation control).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetWarpIndexArgs
@@ -203,7 +203,7 @@ public class SetWarpIndexArgs
 }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SetPausedArgs

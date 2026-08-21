@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 /// its fixed factor.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ActivateStrategyArgs
@@ -31,7 +31,7 @@ public class ActivateStrategyArgs
 
 /// <summary><c>career.strategy.deactivate</c>'s args: the strategy's stable <c>StrategyConfig.Name</c> id (see <see cref="ActivateStrategyArgs.StrategyId"/>).</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class DeactivateStrategyArgs
@@ -46,7 +46,7 @@ public class DeactivateStrategyArgs
 /// <c>tech.nodes[].id</c>). Unlocking deducts the node's science cost.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class UnlockTechArgs
@@ -64,7 +64,7 @@ public class UnlockTechArgs
 /// out-of-state request comes back <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ContractActionArgs
@@ -81,7 +81,7 @@ public class ContractActionArgs
 /// facility one tier and deducts its upgrade cost from funds.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class UpgradeFacilityArgs
@@ -102,7 +102,7 @@ public class UpgradeFacilityArgs
 /// or a non-career save <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class HireApplicantArgs
@@ -124,7 +124,7 @@ public class HireApplicantArgs
 /// <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class FireCrewArgs

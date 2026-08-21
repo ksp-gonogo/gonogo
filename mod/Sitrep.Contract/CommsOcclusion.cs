@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -155,7 +155,7 @@ public static class CommsOcclusionModels
 /// derivable) without asking any consumer to apply one.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CommsOcclusionBody
@@ -196,7 +196,7 @@ public class CommsOcclusionBody
 /// suppresses, so the channel costs a keyframe and nothing else.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.occlusion")]

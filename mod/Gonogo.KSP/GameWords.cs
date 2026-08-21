@@ -13,16 +13,18 @@ namespace Gonogo.KSP
     /// this mod keeping a table of KSP's vocabulary that goes stale on every
     /// update and is wrong everywhere but English.</para>
     ///
-    /// <para><b>KSP's enums only.</b> Do not pass a <c>Sitrep.Contract</c> enum
-    /// through this. Reading a member's attributes forces the runtime to resolve
-    /// EVERY attribute on it, and the contract's netstandard build carries
-    /// <c>[TsEnum]</c> from Reinforced.Typings, which is deliberately absent at
-    /// runtime; a headless test proved the resolution throws
-    /// <c>FileNotFoundException</c> rather than being filtered out by the
-    /// attribute type we asked for. The shipped net472 contract has no such
-    /// attribute, so this would have looked fine in game and been a trap for
-    /// whoever changed that next. A contract enum's own name is already ours to
-    /// write, so it needs none of this.</para>
+    /// <para><b>Meant for KSP's enums.</b> A <c>Sitrep.Contract</c> enum gains
+    /// nothing here: its members carry no <c>[Description]</c>, its name is
+    /// already ours to write, and this would only lower-case it.</para>
+    ///
+    /// <para>It used to be far worse than pointless. The contract's shipped
+    /// build carried <c>[TsEnum]</c> from Reinforced.Typings, an assembly
+    /// deliberately never deployed, and reading a member's attributes resolves
+    /// EVERY attribute on it, so passing a contract enum threw
+    /// <c>FileNotFoundException</c>, from <c>member.ToString()</c>, before the
+    /// try below could catch anything. Those attributes now exist only in
+    /// Sitrep.Contract.Codegen, so it is a style point again rather than a
+    /// trap.</para>
     /// </summary>
     internal static class GameWords
     {

@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -32,7 +32,7 @@ namespace Sitrep.Contract;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.launchSites", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class LaunchSiteEntry
@@ -93,7 +93,7 @@ public class LaunchSiteEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.scene")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SpaceCenterScene
@@ -139,7 +139,7 @@ public class SpaceCenterScene
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.crewRoster", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class CrewRosterEntry
@@ -216,7 +216,7 @@ public class CrewRosterEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.savedShips", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SavedShipEntry
@@ -259,7 +259,7 @@ public class SavedShipEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.partsAvailable")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SpaceCenterPartsAvailable
@@ -292,7 +292,7 @@ public class SpaceCenterPartsAvailable
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.astronautComplex")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class AstronautComplexInfo
@@ -333,7 +333,7 @@ public class AstronautComplexInfo
 /// </summary>
 [SitrepContract]
 [SitrepTopic("spaceCenter.pois", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SpaceCenterPoiEntry

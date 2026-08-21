@@ -1,23 +1,23 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
 namespace Sitrep.Contract;
 
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
 public enum Quality { OnRails, Loaded }
 
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
 public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
 
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class Meta
@@ -73,7 +73,7 @@ public class Meta
 /// and deliberately has no home here either.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PayloadMeta

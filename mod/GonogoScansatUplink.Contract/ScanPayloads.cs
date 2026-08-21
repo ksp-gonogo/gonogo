@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -68,7 +68,7 @@ namespace GonogoScansatUplink;
 /// values.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ScanSensorEntry
@@ -111,7 +111,7 @@ public class ScanSensorEntry
 /// the counts they are is the honest, non-breaking statement.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ScanTrackColor
@@ -155,7 +155,7 @@ public class ScanTrackColor
 /// </summary>
 [SitrepContract]
 [SitrepTopic("scansat.scanningVessels", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ScanningVesselEntry
@@ -220,7 +220,7 @@ public class ScanningVesselEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("scansat.science", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ScanScienceEntry
@@ -281,7 +281,7 @@ public class ScanScienceEntry
 /// fields nullable" rationale.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ScanAnomalyEntry

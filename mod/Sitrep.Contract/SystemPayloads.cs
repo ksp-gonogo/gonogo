@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -24,7 +24,7 @@ namespace Sitrep.Contract;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("system.bodies")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SystemBodies
@@ -42,7 +42,7 @@ public class SystemBodies
 /// body's eccentricity: a confirmed copy-paste bug).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class BodyEntry
@@ -112,7 +112,7 @@ public class BodyEntry
 /// <c>SystemViewProvider.BuildAtmosphere</c> emits.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class AtmosphereEntry
@@ -146,7 +146,7 @@ public class AtmosphereEntry
 /// field (see <see cref="BodyEntry"/>).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class OrbitEntry
@@ -194,7 +194,7 @@ public class OrbitEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("system.vessels")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SystemVessels
@@ -211,7 +211,7 @@ public class SystemVessels
 /// The three tiers happen to mirror stock <c>Vessel.ControlLevel</c>'s
 /// none/partial/full shape, which is coincidence, not a shared contract.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -229,7 +229,7 @@ public enum RosterCommsControlSource
 /// so <see cref="VesselId"/> is always present.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class VesselRosterEntry

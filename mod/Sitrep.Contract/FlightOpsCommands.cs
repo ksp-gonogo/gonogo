@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 /// active vessel), so they have no arg type here.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RevertToEditorArgs
@@ -38,7 +38,7 @@ public class RevertToEditorArgs
 /// game is ever touched.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SwitchVesselArgs
@@ -64,7 +64,7 @@ public class SwitchVesselArgs
 /// host assigns each name into a free craft seat.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class LaunchArgs

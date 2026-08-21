@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -25,7 +25,7 @@ namespace Sitrep.Contract;
 /// KSP reference and the recorder's own raw values).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.orbit")]
@@ -112,7 +112,7 @@ public class VesselOrbit
 /// it.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PropagationHorizon
@@ -170,7 +170,7 @@ public class PropagationHorizon
 /// its own arm rather than an infinite <see cref="PropagationHorizon.UntilUt"/>
 /// so that "forever" never has to be recognised as an extreme number.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -196,7 +196,7 @@ public enum PropagationHorizonKind
 /// Had <see cref="Analytic"/> been zero, a provider that failed to populate it
 /// would have every client treating an integrated trajectory as an ellipse.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -222,7 +222,7 @@ public enum TrajectoryKind
 
 /// <summary>One upcoming SOI patch transition: see <see cref="VesselOrbit.Encounter"/>.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class OrbitEncounter

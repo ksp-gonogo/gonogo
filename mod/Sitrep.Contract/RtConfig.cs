@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using System;
 using System.Collections.Generic;
 using System.IO;

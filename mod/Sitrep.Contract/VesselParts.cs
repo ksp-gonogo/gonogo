@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -32,7 +32,7 @@ namespace Sitrep.Contract;
 /// dictionary: so adding it changes no bytes.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.parts")]
@@ -64,7 +64,7 @@ public class VesselParts
 /// KSP-side caveat carried forward from the design's open questions.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class VesselPart
@@ -177,7 +177,7 @@ public class VesselPart
 /// <c>Custom01</c>…) the action's Flags bitmask decodes to (<c>None</c> excluded).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ActionBinding
@@ -212,7 +212,7 @@ public class ActionBinding
 /// whenever it would equal <see cref="Flow"/>, per the SDK contract.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PartResourceFlow
@@ -240,7 +240,7 @@ public class PartResourceFlow
 /// interface's doc comment for the full state vocabulary per <see cref="Type"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PartModuleState
@@ -271,7 +271,7 @@ public class PartModuleState
 /// carried-forward KSP quirk the consumer handles, not this capture.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PartBounds

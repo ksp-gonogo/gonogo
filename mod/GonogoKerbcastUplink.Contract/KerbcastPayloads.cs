@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -65,7 +65,7 @@ namespace GonogoKerbcastUplink;
 /// would read as a real "centred, no travel" limit.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kerbcast.cameras", isArray: true)]
@@ -197,7 +197,7 @@ public class KerbcastCameraEntry
 /// on the vessel, so it rides the signal-delay Courier.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbcastSetFieldOfViewArgs
@@ -216,7 +216,7 @@ public class KerbcastSetFieldOfViewArgs
 /// degrees, matching kerbcast's own <c>SetPan</c> facade (not a rate).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbcastSetPanArgs

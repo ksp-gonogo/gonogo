@@ -27,13 +27,14 @@
     <None Include="../golden-fixtures/serialization.json" Link="golden-fixtures/serialization.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Sitrep.Contract/unit-coverage.baseline.json" Link="golden-fixtures/unit-coverage.baseline.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <!-- Sitrep.Contract's netstandard2.0 build compiles RtConfig, which
-       references Reinforced.Typings. `Assembly.GetTypes()` over that build
-       (UnitDescriptorTests) resolves every type including that one, so the
-       DLL has to be beside the test assembly. It is a CODEGEN dependency and
-       goes no further than this test project: the deployed mod loads the
-       net472 build, where every RT usage is compiled out. -->
-  <ItemGroup>
-    <PackageReference Include="Reinforced.Typings" Version="1.6.7" PrivateAssets="all" />
-  </ItemGroup>
+  <!-- NO Reinforced.Typings reference. There was one, because the shipped
+       contract used to compile RtConfig and the RT attributes, so
+       Assembly.GetTypes() over it (UnitDescriptorTests) had to resolve an
+       assembly that is deliberately never deployed.
+
+       Putting the DLL beside the test binary answered that, and in doing so
+       made ContractEnumRenderingTests unable to see the very defect it exists
+       to catch: with the leak present and a copy in bin it passes 5 of 6,
+       without the copy it fails 6 of 6. The attributes now live only in the
+       *.Contract.Codegen twins. Do not add it back. -->
 </Project>

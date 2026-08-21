@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -53,7 +53,7 @@ namespace GonogoKerbalismUplink;
 /// subject, and it is the Sun.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kerbalism.spaceweather")]
@@ -121,7 +121,7 @@ public class KerbalismSpaceWeather
 /// <c>CelestialBody.bodyName</c>).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismStarInfo
@@ -163,7 +163,7 @@ public class KerbalismStarInfo
 /// otherwise "capture everything knowable" field, and it must stay that way.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismStormEntry
@@ -195,7 +195,7 @@ public class KerbalismStormEntry
 
 /// <summary>One life-support consumable: amount, capacity, signed net rate (units/s, negative = draining).</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismResource
@@ -210,7 +210,7 @@ public class KerbalismResource
 
 /// <summary>Habitat scalars from <c>KERBALISM.API</c> (all 0..1 factors except Volume/Surface).</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismHabitat
@@ -233,7 +233,7 @@ public class KerbalismHabitat
 
 /// <summary>One ProcessController process (scrubber / recycler / fuel cell).</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismProcessEntry
@@ -314,7 +314,7 @@ public class KerbalismProcessEntry
 /// resource definition plus the profile's Supply declarations.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismResourceDef
@@ -353,7 +353,7 @@ public class KerbalismResourceDef
 /// process. Crew rules scale with head count; processes scale with part capacity.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismRuleDef
@@ -407,7 +407,7 @@ public class KerbalismRuleDef
 /// <see cref="KerbalismProcessEntry.Capacity"/> for that instance's real contribution.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismProcessDef
@@ -451,7 +451,7 @@ public class KerbalismProcessDef
 /// low-cadence and built once.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kerbalism.profile")]
@@ -485,7 +485,7 @@ public class KerbalismProfile
 /// the shortfall, not double the total, present both, never a combined figure.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismGreenhouseEntry
@@ -527,7 +527,7 @@ public class KerbalismGreenhouseEntry
 
 /// <summary>Vessel life-support ledger: consumables, habitat, and the process list.</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kerbalism.lifesupport")]
@@ -635,7 +635,7 @@ public class KerbalismLifeSupport
 /// <c>Profile.rules[]</c>) the two-stage death-clock needs.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismCrewRule
@@ -665,7 +665,7 @@ public class KerbalismCrewRule
 
 /// <summary>Per-kerbal survival state (dose is the rule named "radiation").</summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kerbalism.crew", isArray: true)]
@@ -747,7 +747,7 @@ public class KerbalismCrewEntry
 /// per-domain "unmodeled vs healthy" gate, under RO, <c>Reliability</c> is false.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kerbalism.features")]

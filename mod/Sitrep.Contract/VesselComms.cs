@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -12,7 +12,7 @@ namespace Sitrep.Contract;
 /// <see cref="Unknown"/> is the graceful fallback for an unrecognized raw
 /// value.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -48,7 +48,7 @@ public enum ControlState
 /// <c>comms.delay</c>, a different provider entirely.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.comms")]

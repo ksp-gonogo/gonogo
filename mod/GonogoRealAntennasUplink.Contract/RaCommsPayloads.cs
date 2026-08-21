@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -36,7 +36,7 @@ namespace Gonogo.RealAntennasUplink;
 /// RA). Link margin normalised to 0..1 (comms-uplink-design.md §2.2/§4.3).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.linkQuality")]
@@ -53,7 +53,7 @@ public class CommsLinkQuality
 /// (comms-uplink-design.md §4.3: "reachable cleanly").
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.dataRate")]
@@ -73,7 +73,7 @@ public class CommsDataRate
 /// inside RA's internal Precompute job and not stored anywhere public).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("comms.linkMargin")]

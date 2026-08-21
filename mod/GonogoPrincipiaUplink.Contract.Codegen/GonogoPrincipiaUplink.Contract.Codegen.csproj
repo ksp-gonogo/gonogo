@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Codegen-only twin of GonogoPrincipiaUplink.Contract. See ..\CodegenTwin.props. -->
+  <PropertyGroup>
+    <CodegenTwinSource>..\GonogoPrincipiaUplink.Contract</CodegenTwinSource>
+    <AssemblyName>GonogoPrincipiaUplink.Contract</AssemblyName>
+    <RootNamespace>GonogoPrincipiaUplink</RootNamespace>
+  </PropertyGroup>
+  <Import Project="..\CodegenTwin.props" />
+  <!-- The Sitrep.Contract TWIN, not the shipped contract: rtcli reads this
+       assembly's metadata and resolves the core types it references, and it
+       must see the same core assembly it always did, attributes included.
+       The twin's AssemblyName is Sitrep.Contract, so identity is unchanged.
+       Copied local (unlike the shipped slice's Private="false" reference)
+       so rtcli finds it beside the assembly it is loading, which is what
+       codegen.sh used to hand-copy. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract.Codegen\Sitrep.Contract.Codegen.csproj" />
+  </ItemGroup>
+</Project>

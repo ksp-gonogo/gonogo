@@ -1834,13 +1834,16 @@ namespace Sitrep.Host
 
         private static VesselType ParseVesselType(string? raw) => SharedMappers.ParseVesselType(raw);
 
-        // The Contract enums carry compile-time-only Reinforced.Typings
-        // attributes whose assembly is PrivateAssets="all" (not in bin at
-        // runtime). Reflective enum parsing (Enum.TryParse/Parse) eagerly
-        // resolves EVERY custom-attribute type on the enum → FileNotFoundException
-        // on net10.0 (and a real crash risk on KSP's Mono). So these parsers are
-        // hand-rolled switches: case-insensitive as the originals were, Unknown
-        // fallback: and NO code path resolves a Contract enum's attributes.
+        /* Hand-rolled switches: case-insensitive as the originals were, Unknown
+           fallback. Reflective parsing (Enum.TryParse/Parse) used to be
+           impossible here, because the Contract enums carried Reinforced.Typings
+           attributes whose assembly is never deployed, and the reflective path
+           materialises every custom-attribute type on the enum, so it threw
+           FileNotFoundException. The attributes now live only in
+           Sitrep.Contract.Codegen and reflective parsing works again (proved by
+           Sitrep.Core.Tests.ContractEnumRenderingTests). These stay as switches
+           on their own merit: explicit, allocation-light, and reflection-free on
+           KSP's Mono. */
 
         private static TransitionType ParseTransitionType(string? raw)
         {

@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -15,7 +15,7 @@ namespace Sitrep.Contract;
 /// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §0.2.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.identity")]

@@ -1,5 +1,5 @@
 using Sitrep.Contract;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -63,7 +63,7 @@ namespace GonogoKerbalismUplink;
 /// backend.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismScienceExperimentExt
@@ -176,7 +176,7 @@ public class KerbalismScienceExperimentExt
 /// row).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismScienceInstrumentExt
@@ -284,7 +284,7 @@ public class KerbalismScienceInstrumentExt
 /// "idle", and carries the real rate here.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismScienceLabExt
@@ -322,7 +322,7 @@ public class KerbalismScienceLabExt
 /// "should I run this again" from a guess into a reading.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KerbalismScienceBreakdownExt

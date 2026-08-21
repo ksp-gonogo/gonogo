@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Codegen-only twin of Sitrep.Contract. See ../CodegenTwin.props. -->
+  <PropertyGroup>
+    <CodegenTwinSource>..\Sitrep.Contract</CodegenTwinSource>
+    <AssemblyName>Sitrep.Contract</AssemblyName>
+  </PropertyGroup>
+  <Import Project="..\CodegenTwin.props" />
+</Project>

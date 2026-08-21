@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using System;
 using Reinforced.Typings.Fluent;
 

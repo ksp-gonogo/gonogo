@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -35,7 +35,7 @@ namespace Sitrep.Contract;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("dv.stages", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class StageDeltaVEntry
@@ -130,7 +130,7 @@ public class StageDeltaVEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("dv.summary")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class StageDeltaVSummary

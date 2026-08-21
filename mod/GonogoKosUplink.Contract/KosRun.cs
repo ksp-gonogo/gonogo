@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ namespace Gonogo.KosUplink;
 /// queue) is expected to serialize calls to the same CPU client-side.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosRunArgs
@@ -76,7 +76,7 @@ public class KosRunArgs
 /// path already produces: no re-typing on the wire.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosRunResult

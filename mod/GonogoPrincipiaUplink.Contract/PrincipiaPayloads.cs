@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -33,7 +33,7 @@ namespace GonogoPrincipiaUplink;
 /// </summary>
 [SitrepContract]
 [SitrepTopic("principia.flightPlan")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public sealed class PrincipiaFlightPlan
@@ -118,7 +118,7 @@ public sealed class PrincipiaFlightPlan
 /// Nothing here is computed by asking the integrator at read time, which is what
 /// keeps the observation a pure read of state the game had already decided.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public sealed class PrincipiaFlightPlanBurn
@@ -198,7 +198,7 @@ public sealed class PrincipiaFlightPlanBurn
 /// through a default branch and aborts the KSP process. The naming table is on
 /// the client side, in <c>plottingFrame.ts</c>.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public sealed class PrincipiaReferenceFrame
@@ -285,7 +285,7 @@ public sealed class PrincipiaReferenceFrame
 /// </summary>
 [SitrepContract]
 [SitrepTopic("principia.settings")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public sealed class PrincipiaSettings

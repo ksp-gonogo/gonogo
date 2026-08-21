@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -60,7 +60,7 @@ public static class ScienceValueModels
 /// </summary>
 [SitrepContract]
 [SitrepTopic("science.experiments", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ExperimentEntry
@@ -162,7 +162,7 @@ public class ExperimentEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("science.instruments", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class InstrumentEntry
@@ -221,7 +221,7 @@ public class InstrumentEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("science.lab", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class LabEntry
@@ -296,7 +296,7 @@ public class LabEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("deployed.bases", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class DeployedEntry
@@ -362,7 +362,7 @@ public class DeployedEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("science.sensors", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SensorEntry
@@ -417,7 +417,7 @@ public class SensorEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("science.experimentBreakdown", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ExperimentBreakdownEntry
@@ -492,7 +492,7 @@ public class ExperimentBreakdownEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("science.archive", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ArchiveEntry

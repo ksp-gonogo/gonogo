@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -10,7 +10,7 @@ namespace Sitrep.Contract;
 /// <see cref="Unknown"/> is the graceful fallback for a future/unrecognized
 /// raw value.
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -49,7 +49,7 @@ public enum WarpMode
 /// <c>Values["time"]</c> itself is present, nothing else).</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("time.warp")]

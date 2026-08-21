@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -25,7 +25,7 @@ namespace Sitrep.Contract;
 /// risk to the existing detail streams.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 public enum FlightEndReason
@@ -47,7 +47,7 @@ public enum FlightEndReason
 /// <c>Sitrep.Host.Flight</c> for the exact phase source.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("flight.current")]
@@ -77,7 +77,7 @@ public class FlightCurrent
 /// vesselChanged distinction).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("flight.started")]
@@ -107,7 +107,7 @@ public class FlightStarted
 /// commit <c>82132a08</c>) for free: no new reveal-gate work needed.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("flight.ended")]
@@ -139,7 +139,7 @@ public class FlightEnded
 /// switching focus away from a still-flying vessel does not end its flight.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("flight.vesselChanged")]

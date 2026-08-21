@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -50,7 +50,7 @@ namespace Sitrep.Contract;
 /// <see cref="Extensions"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("isru.drills", isArray: true)]
@@ -120,7 +120,7 @@ public class IsruDrillEntry
 /// actually moving rather than what the config asked for.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class IsruResourceFlow
@@ -137,7 +137,7 @@ public class IsruResourceFlow
 /// surface: whether it is running, and the recipe it is running, at live rates.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("isru.converters", isArray: true)]

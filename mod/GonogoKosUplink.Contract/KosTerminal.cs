@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -47,7 +47,7 @@ namespace Gonogo.KosUplink;
 /// disambiguate without parsing the topic string.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosTerminalFrame
@@ -77,7 +77,7 @@ public class KosTerminalFrame
 /// delivery on the KSP main thread.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosTerminalOpenArgs
@@ -110,7 +110,7 @@ public class KosTerminalOpenArgs
 /// input path is immediate, so there is no double-counting).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosKeystrokeArgs
@@ -136,7 +136,7 @@ public class KosKeystrokeArgs
 /// DELAYED.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosTerminalResizeArgs
@@ -166,7 +166,7 @@ public class KosTerminalResizeArgs
 /// Delivered DELAYED.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosTerminalCloseArgs

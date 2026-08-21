@@ -379,17 +379,12 @@ namespace Sitrep.Contract
         /// <remarks>
         /// <para><c>GetTypes()</c> resolves EVERY type in the assembly and
         /// throws the whole call away if one of them references something
-        /// absent. The netstandard2.0 build of this assembly contains
-        /// <c>RtConfig</c>, which references Reinforced.Typings, so a
-        /// consumer of THAT build needs the codegen DLL resolvable or this
-        /// throws.</para>
-        ///
-        /// <para>The deployed mod is not affected: KSP loads the net472
-        /// build, where every RT usage is compiled out by
-        /// <c>#if NETSTANDARD2_0</c> for exactly this class of reason (see
-        /// Sitrep.Contract.csproj, where Kopernicus reflecting over a
-        /// dangling RT reference is the precedent). It is the netstandard2.0
-        /// build, which the test suite loads, that carries the type.</para>
+        /// absent. This used to bite: the netstandard2.0 build carried
+        /// <c>RtConfig</c> and the Reinforced.Typings attributes, so any
+        /// consumer of it needed a codegen DLL that is deliberately never
+        /// deployed. No build of this assembly carries them now, they are
+        /// compiled only into Sitrep.Contract.Codegen (see
+        /// Sitrep.Contract.csproj).</para>
         ///
         /// <para>Keeping the tolerant path anyway: a contract assembly may
         /// always hold a type whose dependencies are not deployed, and a

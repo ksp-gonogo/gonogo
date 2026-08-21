@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 using Sitrep.Contract;
@@ -22,7 +22,7 @@ namespace Gonogo.KosUplink;
 /// consumer could mistake for a real (empty) tag.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("kos.processors", isArray: true)]
@@ -70,7 +70,7 @@ public class KosProcessorInfo
 /// no error, never an empty string.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosComputeStatus
@@ -105,7 +105,7 @@ public class KosComputeStatus
 /// on the KSP main thread.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosExecArgs
@@ -125,7 +125,7 @@ public class KosExecArgs
 /// the app-side <c>reEnable</c> path).
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class KosReEnableArgs

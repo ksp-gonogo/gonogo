@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 /// as a zero-delay direct link.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class FleetVesselLink
@@ -54,7 +54,7 @@ public class FleetVesselLink
 /// fire, the same reasoning as <c>comms.link</c>.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class FleetVesselContact
@@ -91,7 +91,7 @@ public class FleetVesselContact
 /// doc's scope note. Nothing here is a control input.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class FleetVesselSilence

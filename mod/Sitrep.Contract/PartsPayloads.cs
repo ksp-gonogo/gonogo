@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -13,7 +13,7 @@ namespace Sitrep.Contract;
 /// <see cref="PartsPower"/> for the "no wire change" rationale.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class SolarPanelEntry
@@ -42,7 +42,7 @@ public class SolarPanelEntry
 /// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildBatteryEntry</c>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class BatteryEntry
@@ -65,7 +65,7 @@ public class BatteryEntry
 /// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildFuelCellEntry</c>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class FuelCellEntry
@@ -89,7 +89,7 @@ public class FuelCellEntry
 /// <c>Sitrep.Host.PartsViewProvider.BuildAlternatorEntry</c>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class AlternatorEntry
@@ -125,7 +125,7 @@ public class AlternatorEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("parts.power")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PartsPower
@@ -171,7 +171,7 @@ public class PartsPower
 /// </summary>
 [SitrepContract]
 [SitrepTopic("robotics.servos", isArray: true)]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ServoEntry
@@ -280,7 +280,7 @@ public class ServoEntry
 /// </summary>
 [SitrepContract]
 [SitrepTopic("robotics.available")]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class RoboticsAvailability

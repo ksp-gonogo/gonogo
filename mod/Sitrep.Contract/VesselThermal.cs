@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -9,7 +9,7 @@ namespace Sitrep.Contract;
 /// see <see cref="VesselThermal.HottestPart"/>.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ThermalHottestPart
@@ -47,7 +47,7 @@ public class ThermalHottestPart
 /// coarser absence than an individual null ratio.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.thermal")]

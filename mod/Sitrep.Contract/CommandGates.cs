@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -24,7 +24,7 @@ namespace Sitrep.Contract
     /// presses it, which is the whole point of asking the game in advance.</para>
     /// </summary>
     [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsInterface]
 #endif
     public class CommandGate
@@ -91,7 +91,7 @@ namespace Sitrep.Contract
     /// it is fine. Nothing here is a permission; see <see cref="CommandGate"/>.</para>
     /// </summary>
     [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
     [TsInterface]
 #endif
     public class CommandGateReport

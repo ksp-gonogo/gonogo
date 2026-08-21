@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 /// into <c>vessel.target.set</c> with no lookup.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class TargetListEntry
@@ -76,7 +76,7 @@ public class TargetListEntry
 /// deliberately NOT the change-gate.
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("target.available")]

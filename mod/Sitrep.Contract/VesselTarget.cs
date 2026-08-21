@@ -1,4 +1,4 @@
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
 
@@ -25,7 +25,7 @@ namespace Sitrep.Contract;
 /// backed by any live KSP target object, so it never appears as
 /// <c>vessel.target</c>'s own reported <see cref="Kind"/>.</para>
 /// </summary>
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
@@ -63,7 +63,7 @@ public enum TargetKind
 /// window it was asked about.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class ClosestApproach
@@ -102,7 +102,7 @@ public class ClosestApproach
 /// zero-distance/zero-vector record.</para>
 /// </summary>
 [SitrepContract]
-#if NETSTANDARD2_0
+#if SITREP_CODEGEN
 [TsInterface]
 #endif
 [SitrepTopic("vessel.target")]
