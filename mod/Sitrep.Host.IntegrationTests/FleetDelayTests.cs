@@ -119,32 +119,35 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, "fleet.near.orbit", Timeout);
                 await SubscribeAsync(client, "fleet.far.orbit", Timeout);
 
-                // near light-time 2 s, far light-time 6 s. Emit at UT 0; the
+                // near light-time 2 s, far light-time 6 s. Emit from UT 0; the
                 // capture calls SetVesselDelay per vessel, so each fleet.<id>
                 // node carries its own DelayTo.
-                for (var ut = 0.0; ut <= 6.0; ut += 1.0)
+                //
+                // The proof is drained in two halves, at each vessel's own
+                // light-time, rather than once at the end and compared by
+                // DeliveredAt. LossyLatest may coalesce a burst of samples down
+                // to the latest, so a single end-of-run drain can leave both
+                // vessels' surviving frames sitting on the SAME delivery UT and
+                // fail an ordering assertion for a reason that is correct
+                // behaviour. Presence and absence survive coalescing intact:
+                // it drops superseded frames, it never invents one and never
+                // empties a stream that had something to reveal.
+                for (var ut = 0.0; ut <= 2.0; ut += 1.0)
                 {
                     engine.TickAndWait(ut, FleetFixture(ut, ("near", 2.0), ("far", 6.0)), Timeout);
                 }
 
-                var frames = await DrainAllStreamDataAsync(client, Quiet);
-                var near = frames.Where(f => f.Topic == "fleet.near.orbit").ToList();
-                var far = frames.Where(f => f.Topic == "fleet.far.orbit").ToList();
-                // Both eventually arrive, but "near" (delay 2) reveals its UT-0 sample
-                // by UT 2, while "far" (delay 6) only reveals it by UT 6 -- proving each
-                // vessel is delayed by its OWN light-time, not a shared one.
-                Assert.NotEmpty(near);
-                Assert.NotEmpty(far);
-                // near (delay 2) delivers its FIRST sample strictly earlier than
-                // far (delay 6) -- the robust per-vessel-delay proof. (The exact
-                // validAt of the first delivered sample is not asserted: under
-                // LossyLatest a UT-0 sample can be coalesced past by the time its
-                // scheduled delivery reads the archive, which is correct, not a
-                // delay error.)
-                var nearArrival = near.Min(f => f.Meta.DeliveredAt);
-                var farArrival = far.Min(f => f.Meta.DeliveredAt);
-                Assert.True(nearArrival < farArrival,
-                    $"near arrived at {nearArrival}, far at {farArrival} -- expected near strictly earlier");
+                var byNearLightTime = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(byNearLightTime, f => f.Topic == "fleet.near.orbit");
+                Assert.DoesNotContain(byNearLightTime, f => f.Topic == "fleet.far.orbit");
+
+                for (var ut = 3.0; ut <= 6.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FleetFixture(ut, ("near", 2.0), ("far", 6.0)), Timeout);
+                }
+
+                var byFarLightTime = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(byFarLightTime, f => f.Topic == "fleet.far.orbit");
             }
             finally
             {
@@ -169,20 +172,29 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, FleetDelayTestUplink.ExtensionPrefix + "near.field", Timeout);
                 await SubscribeAsync(client, FleetDelayTestUplink.ExtensionPrefix + "far.field", Timeout);
 
-                for (var ut = 0.0; ut <= 6.0; ut += 1.0)
+                var nearTopic = FleetDelayTestUplink.ExtensionPrefix + "near.field";
+                var farTopic = FleetDelayTestUplink.ExtensionPrefix + "far.field";
+
+                // Drained at each vessel's own light-time rather than once at
+                // the end: see EachFleetVesselIsDelayedByItsOwnLightTime for why
+                // a DeliveredAt comparison is not safe against LossyLatest
+                // coalescing, and presence/absence is.
+                for (var ut = 0.0; ut <= 2.0; ut += 1.0)
                 {
                     engine.TickAndWait(ut, FleetFixture(ut, ("near", 2.0), ("far", 6.0)), Timeout);
                 }
 
-                var frames = await DrainAllStreamDataAsync(client, Quiet);
-                var near = frames.Where(f => f.Topic == FleetDelayTestUplink.ExtensionPrefix + "near.field").ToList();
-                var far = frames.Where(f => f.Topic == FleetDelayTestUplink.ExtensionPrefix + "far.field").ToList();
-                Assert.NotEmpty(near);
-                Assert.NotEmpty(far);
-                var nearArrival = near.Min(f => f.Meta.DeliveredAt);
-                var farArrival = far.Min(f => f.Meta.DeliveredAt);
-                Assert.True(nearArrival < farArrival,
-                    $"near arrived at {nearArrival}, far at {farArrival} -- an Uplink-owned per-vessel namespace is riding one shared delay");
+                var byNearLightTime = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(byNearLightTime, f => f.Topic == nearTopic);
+                Assert.DoesNotContain(byNearLightTime, f => f.Topic == farTopic);
+
+                for (var ut = 3.0; ut <= 6.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, FleetFixture(ut, ("near", 2.0), ("far", 6.0)), Timeout);
+                }
+
+                var byFarLightTime = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(byFarLightTime, f => f.Topic == farTopic);
             }
             finally
             {
