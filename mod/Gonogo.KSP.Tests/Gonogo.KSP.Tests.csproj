@@ -227,6 +227,12 @@
     <Compile Include="..\Gonogo.KSP\Gates\GateDeclarations.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\KspGateEvaluators.cs" />
     <Compile Include="..\Gonogo.KSP\GameWords.cs" />
+    <!-- The launch pre-flight WALK: which of KSP's own launch tests refuses,
+         which code that becomes, and what the refusal quotes. The tests
+         themselves reach PSystemSetup / Funding / PartLoader and cannot run
+         headlessly, but PreFlightTests.IPreFlightTest is an interface, so the
+         walk over a faked set is enterable while the bodies are not. -->
+    <Compile Include="..\Gonogo.KSP\LaunchPreflight.cs" />
     <Compile Include="Career\**\*.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.

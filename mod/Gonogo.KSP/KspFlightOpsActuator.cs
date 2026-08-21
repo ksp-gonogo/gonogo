@@ -228,6 +228,13 @@ namespace Gonogo.KSP
         /// <c>FlightDriver.setStartupNewVessel</c>, leaving a half-initialised
         /// Flight scene that spams NREs every frame); seats are populated only
         /// when crew names are supplied.</para>
+        ///
+        /// <para>Then KSP's own launch tests run, through
+        /// <see cref="LaunchPreflight"/>, BEFORE the craft is placed. They used
+        /// not to run at all, while the rollout cost was charged either way
+        /// (<c>Funding.onVesselRollout</c>, with no floor at zero), so the
+        /// console could put a craft on the pad the game's own button refuses
+        /// and take the money for it.</para>
         /// </summary>
         public CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew)
         {
@@ -278,6 +285,7 @@ namespace Gonogo.KSP
             }
 
             VesselCrewManifest manifest;
+            ShipTemplate template;
             try
             {
                 var craftNode = ConfigNode.Load(craftPath);
@@ -290,6 +298,12 @@ namespace Gonogo.KSP
                 {
                     AssignCrew(manifest, crew);
                 }
+                // The same ShipTemplate stock's own launch builds from the same
+                // node (KSCFacilityContextMenu.launchChecks): it is what carries
+                // the mass, part count, size and cost the pre-flight tests
+                // measure, and it needs no editor scene to compute them.
+                template = new ShipTemplate();
+                template.LoadShip(craftNode);
             }
             catch (Exception)
             {
@@ -301,6 +315,20 @@ namespace Gonogo.KSP
                 // precheck, so ModeUnavailable means what it says only here.
                 return CommandResult.Fail(
                     CommandErrorCode.ModeUnavailable, "the craft file could not be read");
+            }
+
+            // KSP's own launch tests, run before the craft is placed and before
+            // the rollout cost is charged. See LaunchPreflight for the set, its
+            // order, and which two of the ten are declared gates instead.
+            var refusal = LaunchPreflight.FirstRefusal(LaunchPreflight.CraftChecks(
+                template,
+                manifest,
+                facility == EditorFacilityKind.Vab ? EditorFacility.VAB : EditorFacility.SPH,
+                craftPath,
+                site));
+            if (refusal != null)
+            {
+                return refusal;
             }
 
             var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";
