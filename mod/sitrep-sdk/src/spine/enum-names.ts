@@ -27,3 +27,35 @@ export function namesOf(members: object): readonly string[] {
   }
   return names;
 }
+
+/**
+ * The value→name map for a generated enum whose values are NOT a dense run
+ * from zero, taken FROM the enum the same way `namesOf` takes its array.
+ *
+ * `namesOf` walks 0, 1, 2… and stops at the first gap, which is exactly right
+ * for an enum this contract declares: the wire carries declaration order, so
+ * our own enums are dense by convention and an array indexed by ordinal is the
+ * natural shape. KSP's enums are not ours. `PartCategories` opens at `none =
+ * -1`, and `KSPActionGroup` is a `[Flags]` bitmask, so `namesOf` would resolve
+ * no name for `none` at all and would stop dead after `None = 0` on the
+ * bitmask, in both cases handing every consumer an `undefined` that reads as
+ * "the field has not arrived". That is the `TARGET_KIND_NAMES` defect with a
+ * different cause, so it gets a table that cannot have it rather than a
+ * transcription that promises not to.
+ *
+ * Reads the same reverse map every TypeScript numeric enum carries, but off
+ * `Object.entries` rather than by counting, so a negative, sparse or
+ * power-of-two value set survives intact.
+ */
+export function namesByValue(members: object): ReadonlyMap<number, string> {
+  const byValue = new Map<number, string>();
+  for (const [key, value] of Object.entries(members)) {
+    // The reverse map's keys are the numeric values, stringified; the forward
+    // half (name → value) is what the Number() guard drops.
+    const numeric = Number(key);
+    if (Number.isInteger(numeric) && typeof value === "string") {
+      byValue.set(numeric, value);
+    }
+  }
+  return byValue;
+}

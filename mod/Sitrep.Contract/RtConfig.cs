@@ -418,6 +418,16 @@ public static class RtConfig
                 typeof(PhysicsMode),
                 typeof(FlightEndReason),
                 typeof(RosterCommsControlSource),
+                // KSP's own enums (KspEnums.cs), exported so the client's
+                // ordinal→name tables and closed unions are DERIVED from the
+                // same declaration the mirror test holds to KSP's.
+                typeof(KspRosterStatus),
+                typeof(KspParameterState),
+                typeof(KspPartCategory),
+                typeof(KspActionGroup),
+                typeof(KspEditorFacility),
+                typeof(KspSpaceCenterFacility),
+                typeof(KspResourceFlowMode),
             });
 
         // --- Topic -> payload map (single source of truth for the SDK registry) ---

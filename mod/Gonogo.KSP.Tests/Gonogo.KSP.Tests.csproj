@@ -134,6 +134,11 @@
     <Compile Remove="CommandCentres\**\*.cs" />
     <Compile Remove="Career\**\*.cs" />
     <Compile Remove="Robotics\**\*.cs" />
+    <!-- KspEnumMirrorTests.cs sits at the project root rather than in a folder,
+         so the blanket folder Removes above do not reach it and it needs its own.
+         It compares Sitrep.Contract's KSP-enum mirrors against the real enums in
+         Assembly-CSharp, so it is gated like every other KspManaged suite here. -->
+    <Compile Remove="KspEnumMirrorTests.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -257,6 +262,12 @@
          walk over a faked set is enterable while the bodies are not. -->
     <Compile Include="..\Gonogo.KSP\LaunchPreflight.cs" />
     <Compile Include="Career\**\*.cs" />
+    <!-- The KSP-enum mirrors. Nothing of Gonogo.KSP is compiled in for these:
+         an enum is a plain value type, so the suite reflects straight over
+         Assembly-CSharp's own declarations and compares them to
+         Sitrep.Contract's (reached transitively through the Sitrep.Host
+         ProjectReference above). -->
+    <Compile Include="KspEnumMirrorTests.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->
@@ -281,7 +292,7 @@
   </Target>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
-    <Warning Text="Assembly-CSharp.dll not found under KspManaged=$(KspManaged): PendingCreditLedgerTests SKIPPED (soft-degrade). Pass /p:KspManaged=&lt;dir containing Assembly-CSharp.dll&gt; to compile and run it." />
+    <Warning Text="Assembly-CSharp.dll not found under KspManaged=$(KspManaged): PendingCreditLedgerTests and KspEnumMirrorTests SKIPPED (soft-degrade), so nothing is checking that Sitrep.Contract's KSP-enum mirrors still match KSP's own declarations - a member KSP appended would reach the wire as an ordinal no client can name. Pass /p:KspManaged=&lt;dir containing Assembly-CSharp.dll&gt; to compile and run them." />
   </Target>
 
 </Project>
