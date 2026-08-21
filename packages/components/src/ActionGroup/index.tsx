@@ -7,6 +7,7 @@ import type {
 } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
+  actionGroupIdOf,
   getSizeBucket,
   registerComponent,
   useActionGroupFrom,
@@ -154,13 +155,16 @@ function resolveGroupValue(
   payload: VesselControl | VesselStructure | undefined,
 ): unknown {
   if (!group) return undefined;
+  const control = payload as VesselControl | undefined;
+  // The INDEX is asked before any name, here and in every other decider below.
+  // A group carrying one is a custom group whatever the player called it, and
+  // a name test that runs first hands "Stage" to the staging branch.
+  if (group.index !== undefined) {
+    return control?.actionGroups?.find((g) => g.index === group.index)?.state;
+  }
   // Stage reads the OTHER topic; see ActionGroupComponent.
   if (group.name === "Stage") {
     return (payload as VesselStructure | undefined)?.currentStage;
-  }
-  const control = payload as VesselControl | undefined;
-  if (group.index !== undefined) {
-    return control?.actionGroups?.find((g) => g.index === group.index)?.state;
   }
   switch (group.name) {
     case "SAS":
@@ -211,8 +215,8 @@ const TOGGLE_INVALID: unique symbol = Symbol("action-group-toggle-invalid");
  * have a dedicated absolute-set command.
  */
 export function toggleCommandFor(group: ActionGroup): string | null {
-  if (group.name === "Stage") return "vessel.control.stage";
   if (group.index !== undefined) return "vessel.control.setActionGroup";
+  if (group.name === "Stage") return "vessel.control.stage";
   switch (group.name) {
     case "SAS":
       return "vessel.control.setSas";
@@ -242,13 +246,13 @@ export function buildToggleArgs(
   group: ActionGroup,
   value: unknown,
 ): unknown | typeof TOGGLE_INVALID {
+  if (group.index !== undefined) {
+    if (typeof value !== "boolean") return TOGGLE_INVALID;
+    return { group: group.index, state: !value };
+  }
   if (group.name === "Stage") return null;
   if (typeof value !== "boolean") return TOGGLE_INVALID;
-  const nextState = !value;
-  if (group.index !== undefined) {
-    return { group: group.index, state: nextState };
-  }
-  return { enabled: nextState };
+  return { enabled: !value };
 }
 
 // ---------------------------------------------------------------------------
@@ -294,7 +298,9 @@ function ActionGroupComponent(
     props.config?.actionGroupId,
   );
 
-  if (group?.name === "Stage") {
+  // Index before name again: only the stock singleton, which carries no index,
+  // reads its value off `vessel.structure`.
+  if (group && group.index === undefined && group.name === "Stage") {
     return <StageActionGroup {...props} group={group} />;
   }
   /**
@@ -496,7 +502,10 @@ function ActionGroupView({
     if (editing && onConfigChange) {
       onConfigChange({
         ...config,
-        actionGroupId: group.name,
+        // Renaming changes the LABEL, so the saved identity must survive it
+        // untouched: writing `group.name` here would re-point a custom group's
+        // config at whatever singleton shares its name.
+        actionGroupId: actionGroupIdOf(group),
         label: draft || undefined,
       });
     }
@@ -664,8 +673,11 @@ function ActionGroupConfigComponent({
           value={actionGroupId}
           onChange={(e) => setActionGroupId(e.target.value as ActionGroupId)}
         >
+          {/* Labelled by name, VALUED by identity: a custom group a player
+              named after a stock singleton would otherwise save the stock
+              singleton's id, and resolve to it. */}
           {groups.map((g) => (
-            <option key={g.name} value={g.name}>
+            <option key={actionGroupIdOf(g)} value={actionGroupIdOf(g)}>
               {g.name}
             </option>
           ))}

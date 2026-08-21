@@ -103,6 +103,21 @@ export type StockActionGroupId = (typeof STOCK_ACTION_GROUPS)[number]["name"];
 export type ActionGroupId = StockActionGroupId | (string & {});
 
 /**
+ * The id a saved config addresses one group by: its INDEX for a custom group,
+ * its name for a stock singleton.
+ *
+ * A display name cannot serve as an identity on the custom half. Two AGX groups
+ * may share one, and nothing stops a player naming theirs after a stock
+ * singleton. Because the stock half is listed first, a name-keyed save for a
+ * custom group called "Stage" resolves to the stock Stage, whose pill does not
+ * toggle anything: it fires `vessel.control.stage` and drops a stage off the
+ * vessel. Anything that WRITES `actionGroupId` goes through here.
+ */
+export function actionGroupIdOf(group: ActionGroup): ActionGroupId {
+  return group.index !== undefined ? `AG${group.index}` : group.name;
+}
+
+/**
  * The live registry: the stock singletons above, then every CUSTOM group the
  * elected backend reported: NAMED by the backend rather than by us.
  *
@@ -242,10 +257,20 @@ function resolveActionGroup(
   id: string | undefined,
 ): ActionGroup | undefined {
   if (!id) return undefined;
+  // `AG{n}` addresses a custom group by INDEX, and the index is the identity,
+  // so it is matched against the index rather than the name and is asked FIRST.
+  // Both matter: a name lookup would let a player who called some other group
+  // "AG5" answer for index 5, and asking it second would let the eight stock
+  // singletons shadow any custom group a player named after one of them.
+  const match = /^AG(\d+)$/.exec(id);
+  if (match) {
+    const index = Number(match[1]);
+    return (
+      groups.find((g) => g.index === index) ??
+      customActionGroup(index, undefined, "assumed")
+    );
+  }
   const found = groups.find((g) => g.name === id);
   if (found) return found;
-  const match = /^AG(\d+)$/.exec(id);
-  return match
-    ? customActionGroup(Number(match[1]), undefined, "assumed")
-    : { name: id, toggle: null, description: id, provenance: "assumed" };
+  return { name: id, toggle: null, description: id, provenance: "assumed" };
 }
