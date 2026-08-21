@@ -21,7 +21,14 @@
           "brakes": null,
           "lights": null,
           "abort": null,
-          "precisionControl": null
+          "precisionControl": null,
+          "actionGroups": [
+            {
+              "index": 1,
+              "name": "AG1",
+              "state": false
+            }
+          ]
         }
       },
       {
@@ -37,5 +44,6 @@
         }
       }
     ]
-  }
+  },
+  "v.ag1Value": false
 }

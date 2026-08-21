@@ -1,10 +1,10 @@
 /**
- * Un-fed snapshot gate: fails when a DOM snapshot test passes with every stream
- * emit suppressed.
+ * Un-fed snapshot gate: fails when a DOM snapshot test passes with every
+ * fixture emit suppressed, stream and legacy data-source alike.
  *
- * A stream-fed snapshot test that still passes when the fixture feeds it NOTHING is
+ * A fixture-fed snapshot test that still passes when the fixture feeds it NOTHING is
  * capturing a render that contains none of that data, whatever its scenario is
- * called. Within the stream-fed set (see `isStreamFed`, which is what earns the
+ * called. Within the fixture-fed set (see `isFixtureFed`, which is what earns the
  * word) that is exact rather than heuristic: no copy to pattern-match, and nothing
  * for a widget's choice of placeholder to hide behind.
  *
@@ -64,8 +64,12 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
   // `DistanceToTarget/no-target` renders the tombstone's own age. All three are
   // fed renders, so allowlisting them would have granted a permission none of
   // them needed.
+  "ActionGroup/unknown-state":
+    "the configured group has not been reported, which is the scenario: its own fixture asks for the faint em dash",
   "CommSignal/no-signal-data":
     "loss of signal is the scenario; the widget's subject is the absence",
+  "KeplerPeriod/no-body-data":
+    "no body resolved, so there is no gravitational parameter and no curve to plot; the fixture asks for the empty GraphView by name",
   "ContractManager/awaiting-telemetry":
     "depicts the pre-telemetry placeholder deliberately, as its own case",
   "LaunchDirector/awaiting":
@@ -74,6 +78,8 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "no vessel position to plot, so the map draws its ground state only",
   "Objectives/empty":
     "no active objectives, which is a real state and not a missing read",
+  "OrbitView/no-data":
+    "no orbit to draw; the fixture exists to check that the empty state lays out cleanly at every size",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",
   "Twr/engine-off-empty":
@@ -99,25 +105,42 @@ function keyFor(file: string, fullName: string): string | undefined {
 }
 
 /**
- * Snapshot specs the gate can speak about: the ones fed through
- * `setupStreamFixture`.
+ * Snapshot specs the gate can speak about: the ones whose data reaches the
+ * widget through a path the mute actually covers.
  *
- * This restriction is what keeps the check EXACT. Several widgets render real
- * content with no stream at all, because their content does not come from the
- * stream: `KeplerPeriod` plots a curve from a static body table, `ActionGroup`
- * renders from its own config, others drive a legacy `setupMockDataSource`.
- * Starving the stream cannot change those renders, so "passed while starved" says
- * nothing about them, and flagging them would be a heuristic wearing a gate's
- * clothes. An earlier draft of this script did exactly that and reported 264
- * findings, nearly all of them fine.
+ * That is `setupStreamFixture` (a hand-rolled stream) OR `snapshotWidgetMode` /
+ * `renderWidgetMode` (the shared DOM harness, whose `MockDataSource` seeding
+ * and legacy-key reshapes are both muted alongside the stream). A spec matching
+ * none of the three feeds its subject some other way, so starving proves
+ * nothing about it: `Navball/snapshots.test.ts` and `ShipMap/snapshots.test.ts`
+ * serialise an SVG from props with no data source in the picture at all, and
+ * they are the reason this is a predicate rather than "every spec".
  *
- * Inside the stream-fed set the inference holds with no judgement in the middle:
- * the fixture declares emits, the harness delivers them, and if suppressing them
+ * Naming the harness here as well as the stream is a widening, and the
+ * measurement that prompted it is the argument for it. The earlier version
+ * asked only about `setupStreamFixture` and so declined to speak about 220 of
+ * the suite's 1052 snapshot assertions, on the reasoning that "several widgets
+ * render real content with no stream at all, because their content does not
+ * come from the stream: `KeplerPeriod` plots a curve from a static body table,
+ * `ActionGroup` renders from its own config". Starved of BOTH halves, 88 of
+ * those 220 still passed, and `KeplerPeriod`'s 48 committed baselines turned
+ * out to be one byte-identical blank panel repeated across six scenarios and
+ * eight sizes. The exemption was reasoning about what the widgets would draw
+ * rather than measuring it, which is the same mistake one level up as the
+ * blank baselines it was written to catch.
+ *
+ * Inside this set the inference holds with no judgement in the middle: the
+ * fixture declares its data, the harness delivers it, and if suppressing it
  * changes nothing then the committed baseline contains none of that data.
  */
-function isStreamFed(file: string): boolean {
+function isFixtureFed(file: string): boolean {
   try {
-    return readFileSync(file, "utf8").includes("setupStreamFixture");
+    const src = readFileSync(file, "utf8");
+    return (
+      src.includes("setupStreamFixture") ||
+      src.includes("snapshotWidgetMode") ||
+      src.includes("renderWidgetMode")
+    );
   } catch {
     return false;
   }
@@ -167,7 +190,7 @@ function main(): void {
     for (const file of report.testResults ?? []) {
       for (const test of file.assertionResults ?? []) {
         if (!/snapshot/i.test(file.name)) continue;
-        if (!isStreamFed(file.name)) continue;
+        if (!isFixtureFed(file.name)) continue;
         checked += 1;
         if (test.status !== "passed") continue;
         const key = keyFor(file.name, test.fullName);
@@ -264,7 +287,7 @@ function main(): void {
 
     const owedTotal = Object.values(KNOWN_UNFED).reduce((a, b) => a + b, 0);
     console.log(
-      `unfed-snapshot-gate: ${checked} stream-fed snapshot test(s) checked. ` +
+      `unfed-snapshot-gate: ${checked} fixture-fed snapshot test(s) checked. ` +
         `Every one that renders data fails when starved of it, except ${owedTotal} ` +
         `recorded as known un-fed debt (unfed-snapshot-debt.ts, shrink-only).`,
     );

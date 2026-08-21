@@ -164,3 +164,17 @@ let emitsMuted = false;
 export function muteFixtureEmits(): void {
   emitsMuted = true;
 }
+
+/**
+ * Whether {@link muteFixtureEmits} is in force, for the OTHER feed path a
+ * snapshot render can arrive through: `widgetDomSnapshot`'s `MockDataSource`
+ * emits and the legacy-key reshapes it derives from them. Muting only the
+ * stream left that half fed, so a widget still reading legacy keys passed the
+ * starve trivially and the gate had to exclude those specs from its scope
+ * entirely. Reading the same flag through here starves both halves, which is
+ * what lets the gate speak about every snapshot test rather than the
+ * stream-fed subset.
+ */
+export function fixtureEmitsMuted(): boolean {
+  return emitsMuted;
+}

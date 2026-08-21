@@ -1,10 +1,11 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
 import {
   DashboardItemContext,
+  getComponents,
   type MockDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import type React from "react";
 import { Fragment } from "react";
@@ -12,7 +13,7 @@ import {
   setupMockDataSource,
   teardownMockDataSource,
 } from "./setupMockDataSource";
-import { setupStreamFixture } from "./setupStreamFixture";
+import { fixtureEmitsMuted, setupStreamFixture } from "./setupStreamFixture";
 import {
   extractLegacyPartLiveFromFixture,
   topologyToVesselPartsWire,
@@ -279,7 +280,39 @@ export interface WidgetSnapshotMode {
 
 interface Fixture {
   _meta?: unknown;
+  _stream?: StreamFixtureBlock;
   [key: string]: unknown;
+}
+
+/**
+ * A fixture's own declaration of what it puts on the wire, and the ONLY
+ * authority for a fixture that carries one.
+ *
+ * Structurally identical to the probe's `StreamFixtureBlock`
+ * (`scripts/probe/probe-entry.tsx`), which is the point: one fixture format,
+ * read the same way by both harnesses. Declared here rather than imported
+ * because the probe entry is browser-bundled and pulls in a React root, a
+ * registry install and a `createRoot` call that a vitest run has no business
+ * loading; the shared thing is the fixture JSON, not the module.
+ */
+interface StreamFixtureBlock {
+  /** Topics this fixture carries, forwarded to `setupStreamFixture`. */
+  carriedChannels: string[];
+  /** UT to pin the view clock at. */
+  pinnedUt?: number;
+  /** Fixed network/display delay in seconds. */
+  delaySeconds?: number;
+  /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
+  emits: Array<{ channel: string; value: unknown; meta?: Partial<Meta> }>;
+}
+
+/** Extracts and narrows the optional `_stream` block off a fixture. */
+function resolveStreamBlock(fixture: Fixture): StreamFixtureBlock | undefined {
+  const raw = fixture._stream;
+  if (!raw || typeof raw !== "object") return undefined;
+  return Array.isArray(raw.emits) && Array.isArray(raw.carriedChannels)
+    ? raw
+    : undefined;
 }
 
 interface SnapshotOpts<Cfg> {
@@ -315,6 +348,34 @@ interface StreamWrap {
   emitVesselControl: () => void;
   /** Emits the fixture's `sw.*`/`ls.*` keys (reshaped) onto `kerbalism.spaceweather`/`kerbalism.lifesupport` (+ `vessel.orbit`), or a no-op when it carries none. Same `act()` block as the other emits. */
   emitKerbalism: () => void;
+  /**
+   * Replays the fixture's own `_stream.emits`, one topic at a time, each
+   * gated on that topic having a live subscription. Awaited AFTER the
+   * synchronous emit block rather than inside it, because the gating needs
+   * frames to pass. A no-op for a fixture with no `_stream` block.
+   */
+  replayStreamBlock: () => Promise<void>;
+}
+
+/**
+ * `StubTransport.emit` silently DROPS a sample for a topic nothing has
+ * subscribed to yet, and a widget subscribes inside React *passive* effects
+ * that no single flush is guaranteed to have run. Poll until the subscription
+ * lands, exactly as the probe does, so the replay is deterministic instead of
+ * a race the fixture loses on some runs. A topic the widget never reads simply
+ * times out, and is then emitted-and-dropped, which is what the probe does too.
+ */
+async function waitForSubscription(
+  transport: { isSubscribed(topic: string): boolean },
+  topic: string,
+  maxFrames = 30,
+): Promise<void> {
+  for (let i = 0; i < maxFrames; i++) {
+    if (transport.isSubscribed(topic)) return;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
 }
 
 /**
@@ -327,6 +388,44 @@ interface StreamWrap {
  * neither is needed, matching every widget that touches neither key.
  */
 function buildStreamWrap(fixture: Fixture): StreamWrap {
+  // A fixture that declares its own wire wins outright, and the legacy
+  // reshapes below are skipped entirely for it.
+  //
+  // This is the one place the two harnesses used to disagree about one file:
+  // the playwright probe has honoured `_stream` since it was introduced, while
+  // this one read only the flat legacy keys. A widget migrated to canonical
+  // stream reads therefore rendered its EMPTY state here, and `toMatchSnapshot`
+  // wrote that emptiness down as the expected result. The probe is the correct
+  // reader of the format, so this follows it rather than the reverse.
+  //
+  // Deliberately exclusive rather than additive: a legacy reshape emitting onto
+  // a channel the block already emits would overwrite the fixture's own,
+  // more-complete payload with one derived from a handful of `v.*` mirrors, and
+  // which of the two survived would come down to emit order.
+  const streamBlock = resolveStreamBlock(fixture);
+  if (streamBlock !== undefined) {
+    const stream = setupStreamFixture({
+      carriedChannels: streamBlock.carriedChannels,
+      pinnedUt: streamBlock.pinnedUt ?? resolvePinnedUt(fixture),
+      delaySeconds: streamBlock.delaySeconds,
+    });
+    return {
+      Wrap: stream.Provider,
+      providerMounted: true,
+      emitVesselParts: () => {},
+      emitVesselControl: () => {},
+      emitKerbalism: () => {},
+      replayStreamBlock: async () => {
+        for (const e of streamBlock.emits) {
+          await waitForSubscription(stream.transport, e.channel);
+          stream.emit(e.channel, e.value, e.meta);
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+          });
+        }
+      },
+    };
+  }
   const pinnedUt = resolvePinnedUt(fixture);
   const vesselPartsWire = resolveVesselPartsWire(fixture);
   const vesselControlWire = resolveVesselControlWire(fixture);
@@ -353,6 +452,7 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
       emitVesselParts: () => {},
       emitVesselControl: () => {},
       emitKerbalism: () => {},
+      replayStreamBlock: async () => {},
     };
   }
   // `time.warp`/`comms.link` must be CARRIED, not merely emitted: the pause and
@@ -401,6 +501,7 @@ function buildStreamWrap(fixture: Fixture): StreamWrap {
         stream.emit("vessel.resources", lifeSupportLevelsWire);
       }
     },
+    replayStreamBlock: async () => {},
   };
 }
 
@@ -438,6 +539,145 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
  * content, ResizeObserver-driven layout, and CSS-paint visuals don't
  * appear: those live in the playwright PNGs.
  */
+/**
+ * The `defaultConfig` each widget registered, remembered by component identity.
+ *
+ * A widget whose behaviour depends on its registered default renders NOTHING
+ * without one: ActionGroup answers "No action group configured" for every mode
+ * that carries no config overlay, which is four of its eight, across all six
+ * scenarios. The probe has always applied it (`payload.config ??
+ * def.defaultConfig ?? {}` in probe-entry.tsx); this harness only ever used a
+ * `defaultConfig` the CALLER passed, and almost no caller passes one.
+ *
+ * Cached rather than looked up per render because `setupMockDataSource` opens
+ * with `clearRegistry()`, which empties the component registry along with the
+ * data sources. The widget modules registered at import, so the registry is
+ * intact for the first render in a file and empty from the second on; caching
+ * what was there keeps every render in the file agreeing with the first.
+ */
+const registeredDefaults = new WeakMap<object, Record<string, unknown>>();
+
+function rememberRegisteredDefaults(): void {
+  for (const def of getComponents()) {
+    const component = def.component as unknown as object | undefined;
+    if (!component || def.defaultConfig === undefined) continue;
+    if (!registeredDefaults.has(component)) {
+      registeredDefaults.set(
+        component,
+        def.defaultConfig as Record<string, unknown>,
+      );
+    }
+  }
+}
+
+/** Caller's override, else whatever the widget registered, else nothing. */
+function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
+  if (opts.defaultConfig !== undefined) return opts.defaultConfig;
+  rememberRegisteredDefaults();
+  const remembered = registeredDefaults.get(opts.Widget as unknown as object) as
+    | Cfg
+    | undefined;
+  return remembered ?? ({} as Cfg);
+}
+
+/**
+ * Grid-unit to pixel conversion, the same arithmetic
+ * `scripts/widgetRenderHarness.ts` sizes the playwright iframe with, so a mode
+ * means the same shape in both harnesses.
+ */
+const COL_WIDTH = 32;
+const ROW_HEIGHT = 25;
+const GRID_MARGIN = 8;
+
+function modePixels(mode: WidgetSnapshotMode): { w: number; h: number } {
+  return {
+    w: mode.w * COL_WIDTH + (mode.w - 1) * GRID_MARGIN,
+    h: mode.h * ROW_HEIGHT + (mode.h - 1) * GRID_MARGIN,
+  };
+}
+
+/**
+ * Install a `ResizeObserver` that actually reports a size, for the length of
+ * one render.
+ *
+ * The shared jsdom shim (`installDomStubs`) is a no-op in all three methods:
+ * it exists to stop a mount crashing, and it never calls its callback. Any
+ * widget that gates content on a measured box therefore renders that content
+ * NEVER under this harness, whatever its fixture says. `Graph` is the big one
+ * (`{size && <LineChart …>}`), and it is the whole body of six widgets: 90
+ * committed baselines across KeplerPeriod and EscapeProfile were one
+ * byte-identical title bar over two empty divs, repeated across every scenario
+ * and every size, and the accessibility sweep was scanning those same blank
+ * containers and reporting no violations.
+ *
+ * The reported box is the mode's own pixel size rather than a constant, so the
+ * modes stay distinguishable and a size-gated branch is exercised at the size
+ * it is gated on. It is the WIDGET's box, not the observed element's, which
+ * overstates a chart area nested inside panel chrome; jsdom lays nothing out,
+ * so there is no truer number available, and a chart drawn slightly large still
+ * exercises the axis, label and ARIA code that a chart never drawn does not.
+ *
+ * Restored afterwards so a test file that renders something else is unaffected.
+ * Already-constructed observers keep working, which is what the widget mounted
+ * during this render needs.
+ */
+function installSizedResizeObserver(size: {
+  w: number;
+  h: number;
+}): () => void {
+  const previous = globalThis.ResizeObserver;
+  class SizedResizeObserver {
+    private readonly callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element): void {
+      // Asynchronous, like the real one: a synchronous callback would run
+      // inside the observing effect and set state during render.
+      setTimeout(() => {
+        this.callback(
+          [
+            {
+              target,
+              contentRect: {
+                width: size.w,
+                height: size.h,
+                x: 0,
+                y: 0,
+                top: 0,
+                left: 0,
+                right: size.w,
+                bottom: size.h,
+              } as DOMRectReadOnly,
+            } as ResizeObserverEntry,
+          ],
+          this as unknown as ResizeObserver,
+        );
+      }, 0);
+    }
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver =
+    SizedResizeObserver as unknown as typeof ResizeObserver;
+  return () => {
+    globalThis.ResizeObserver = previous;
+  };
+}
+
+/**
+ * Let the sized-observer callbacks above land and the resulting re-render
+ * commit. Two macrotask turns: the first drains the `setTimeout(0)` queue, the
+ * second covers an observer a re-render only then attached (Graph re-binds its
+ * observer when the chart/readout variant flips).
+ */
+async function flushResizeObservers(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  });
+}
+
 export async function snapshotWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<string> {
@@ -445,6 +685,7 @@ export async function snapshotWidgetMode<
   // does the same so body-aware widgets see resolved BodyDefinitions
   // for `Kerbin`, `Mun`, etc.
   registerStockBodies();
+  rememberRegisteredDefaults();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
   );
@@ -454,10 +695,13 @@ export async function snapshotWidgetMode<
     connectSource: opts.connectSource,
   });
   let source: MockDataSource | null = fixture.source;
+  const restoreResizeObserver = installSizedResizeObserver(
+    modePixels(opts.mode),
+  );
 
   try {
     const config: Cfg = {
-      ...(opts.defaultConfig ?? ({} as Cfg)),
+      ...baselineConfig(opts),
       ...((opts.mode.config ?? {}) as Cfg),
     };
     const instanceId = opts.instanceId ?? "snap";
@@ -467,6 +711,7 @@ export async function snapshotWidgetMode<
       emitVesselParts,
       emitVesselControl,
       emitKerbalism,
+      replayStreamBlock,
     } = buildStreamWrap(opts.fixture);
     const { container } = render(
       <Wrap>
@@ -486,12 +731,19 @@ export async function snapshotWidgetMode<
     // ordering. Without the act() wrapper React batches updates and the
     // snapshot races the commit.
     act(() => {
-      for (const key of fixtureKeys) {
-        source?.emit(key, opts.fixture[key]);
+      if (!fixtureEmitsMuted()) {
+        for (const key of fixtureKeys) {
+          source?.emit(key, opts.fixture[key]);
+        }
       }
       emitVesselParts();
       emitVesselControl();
       emitKerbalism();
+    });
+    // Outside the synchronous block above: each entry waits for its topic's
+    // subscription, which only lands once frames have run.
+    await act(async () => {
+      await replayStreamBlock();
     });
     await flushProviderFrame(providerMounted);
 
@@ -502,9 +754,11 @@ export async function snapshotWidgetMode<
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
     });
+    await flushResizeObservers();
 
     return stripVolatile(container.innerHTML);
   } finally {
+    restoreResizeObserver();
     teardownMockDataSource(fixture);
     source = null;
   }
@@ -534,6 +788,7 @@ export async function renderWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<RenderedWidget> {
   registerStockBodies();
+  rememberRegisteredDefaults();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
   );
@@ -543,14 +798,23 @@ export async function renderWidgetMode<
     connectSource: opts.connectSource,
   });
   const source: MockDataSource = fixture.source;
+  const restoreResizeObserver = installSizedResizeObserver(
+    modePixels(opts.mode),
+  );
 
   const config: Cfg = {
-    ...(opts.defaultConfig ?? ({} as Cfg)),
+    ...baselineConfig(opts),
     ...((opts.mode.config ?? {}) as Cfg),
   };
   const instanceId = opts.instanceId ?? "snap";
-  const { Wrap, providerMounted, emitVesselParts, emitVesselControl } =
-    buildStreamWrap(opts.fixture);
+  const {
+    Wrap,
+    providerMounted,
+    emitVesselParts,
+    emitVesselControl,
+    emitKerbalism,
+    replayStreamBlock,
+  } = buildStreamWrap(opts.fixture);
   const { container } = render(
     <Wrap>
       <DashboardItemContext.Provider value={{ instanceId }}>
@@ -565,11 +829,19 @@ export async function renderWidgetMode<
   );
 
   act(() => {
-    for (const key of fixtureKeys) {
-      source.emit(key, opts.fixture[key]);
+    if (!fixtureEmitsMuted()) {
+      for (const key of fixtureKeys) {
+        source.emit(key, opts.fixture[key]);
+      }
     }
     emitVesselParts();
     emitVesselControl();
+    // Was missing here while `snapshotWidgetMode` called it, so a Kerbalism
+    // fixture's a11y render was a blank board even when its snapshot was fed.
+    emitKerbalism();
+  });
+  await act(async () => {
+    await replayStreamBlock();
   });
   await flushProviderFrame(providerMounted);
 
@@ -578,6 +850,8 @@ export async function renderWidgetMode<
   await waitFor(() => {
     if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
   });
+  await flushResizeObservers();
+  restoreResizeObserver();
 
   return { container, teardown: () => teardownMockDataSource(fixture) };
 }
