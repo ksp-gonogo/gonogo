@@ -187,6 +187,16 @@ describe("CurrentOrbitComponent", () => {
           meanAnomalyAtEpoch: 0,
           epoch: 0,
           mu: 3.5316e12,
+          // The apoapsis figure is read off the mini diagram's apsis marker, so
+          // this needs a drawable trajectory as well as the derived value: the
+          // widget asks the propagation seam what shape the orbit is before
+          // drawing one, and a sample with no stated shape gets no conic and no
+          // markers on it. Same horizon the sibling OrbitView case states, and
+          // the same one the stock analytic producer sends.
+          horizon: {
+            kind: PropagationHorizonKindLike.Unbounded,
+            trajectoryKind: TrajectoryKindLike.Analytic,
+          },
         },
         { quality: Quality.OnRails },
       );
