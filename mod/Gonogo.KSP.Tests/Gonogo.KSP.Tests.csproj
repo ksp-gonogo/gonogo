@@ -98,6 +98,16 @@
   <PropertyGroup>
     <AssemblyCSharpDll>$(KspManaged)\Assembly-CSharp.dll</AssemblyCSharpDll>
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
+    <!-- The robotics suite constructs real Expansions.Serenity servo modules,
+         and BaseServo declares ConfigurableJoint/Rigidbody FIELDS, so the CLR
+         resolves UnityEngine.PhysicsModule the moment one of those types
+         loads - before any constructor runs, and regardless of the fact that
+         nothing here touches physics and no servo ever joins a scene. It is
+         the one DLL beyond the four-file reference set those tests need; a
+         Managed/ directory copied out of a real install has it, the trimmed
+         local_docs reference sets may not. -->
+    <PhysicsModuleDll>$(KspManaged)\UnityEngine.PhysicsModule.dll</PhysicsModuleDll>
+    <ServoModulesAvailable Condition="'$(KspManagedAvailable)' == 'true' And Exists('$(PhysicsModuleDll)')">true</ServoModulesAvailable>
   </PropertyGroup>
 
   <!-- The SDK auto-globs CurrencyDelay/**, SilenceTracking/**, Comms/**,
@@ -109,6 +119,7 @@
     <Compile Remove="Comms\**\*.cs" />
     <Compile Remove="CommandCentres\**\*.cs" />
     <Compile Remove="Career\**\*.cs" />
+    <Compile Remove="Robotics\**\*.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -222,6 +233,23 @@
          Gated because both touch KSP types. -->
     <Compile Include="CurrencyDelay\**\*.cs" Exclude="CurrencyDelay\KscLightTimeTests.cs;CurrencyDelay\VesselScienceAggregatorTests.cs;CurrencyDelay\StockCurrencyDecisionTests.cs;CurrencyDelay\StockCurrencyStateMachineTests.cs;CurrencyDelay\CurrencyDelayGuardTests.cs;CurrencyDelay\RevealDecisionTests.cs;CurrencyDelay\ScienceChunkCreditTests.cs" />
   </ItemGroup>
+
+  <!-- ServoCapture.cs is the robotics capture's kind-NAMING rule, carved out of
+       KspHost so it carries only Expansions.Serenity's BaseServo and its
+       subclasses - same discipline as CommNetOcclusion.cs and PlanOwner.cs
+       above, and for the same reason: KspHost's own robotics walk reaches a
+       live Vessel and cannot be entered headlessly at all. -->
+  <ItemGroup Condition="'$(ServoModulesAvailable)' == 'true'">
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(PhysicsModuleDll)</HintPath>
+    </Reference>
+    <Compile Include="..\Gonogo.KSP\ServoCapture.cs" />
+    <Compile Include="Robotics\**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="WarnIfServoModulesMissing" BeforeTargets="Build" Condition="'$(ServoModulesAvailable)' != 'true'">
+    <Warning Text="UnityEngine.PhysicsModule.dll not found under KspManaged=$(KspManaged): ServoCaptureTests SKIPPED (soft-degrade), so nothing is checking that every Breaking Ground servo kind reaches the wire. Point KspManaged at a full KSP_Data/Managed directory to run them." />
+  </Target>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
     <Warning Text="Assembly-CSharp.dll not found under KspManaged=$(KspManaged): PendingCreditLedgerTests SKIPPED (soft-degrade). Pass /p:KspManaged=&lt;dir containing Assembly-CSharp.dll&gt; to compile and run it." />

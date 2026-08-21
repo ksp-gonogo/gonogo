@@ -4861,19 +4861,32 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Breaking Ground robotics - rotors (<see cref="ModuleRoboticServoRotor"/>),
-        /// hinges (<see cref="ModuleRoboticServoHinge"/>), and pistons
-        /// (<see cref="ModuleRoboticServoPiston"/>), all confirmed via
-        /// decompile to subclass the shared <see cref="BaseServo"/> (common
-        /// lock/motor/engaged/limit/state fields - all public). Unlike
-        /// <see cref="BuildDeployedScience"/>'s reflection guard, these
-        /// three types decompiled cleanly with stable namespaces
-        /// (<c>Expansions.Serenity</c>) baked into the SAME Assembly-CSharp.dll
-        /// this project already references, so a direct static reference is
-        /// safe - "DLC absent" here just means no part on the vessel uses
-        /// these modules, which the empty-list -&gt; null fallback already
-        /// covers without any special-casing. Null when the vessel has no
-        /// robotic parts at all.
+        /// Breaking Ground robotics. Discovery goes through the shared
+        /// <see cref="BaseServo"/> (<c>Expansions.Serenity</c>) rather than a
+        /// list of concrete subclasses: <c>BaseServo</c> is what "a robotic
+        /// servo" MEANS, and asking the game for it cannot fall behind the
+        /// game the way a written-down list of kinds does. It already had:
+        /// <see cref="ModuleRoboticRotationServo"/> is a SIBLING of
+        /// <see cref="ModuleRoboticServoHinge"/>, not a subclass, so a
+        /// per-kind scan for hinges never saw one and every rotation servo on
+        /// the vessel was dropped before it reached the wire - while
+        /// <see cref="BuildRoboticsAvailable"/> and
+        /// <c>KspRoboticsActuator</c>, which both already asked for
+        /// <c>BaseServo</c>, reported the craft as having robotics and would
+        /// lock or unlock a servo this list never showed.
+        ///
+        /// <para>Per-kind DETAIL still varies by kind (a rotor has RPM, a
+        /// hinge an angle, a piston an extension), and that mapping lives in
+        /// <see cref="ServoCapture"/>. This method's job is only to find every
+        /// servo and stamp the part identity on it.</para>
+        ///
+        /// <para>The <c>Expansions.Serenity</c> types are baked into the SAME
+        /// Assembly-CSharp.dll this project already references, so the direct
+        /// static reference is safe without <see cref="BuildDeployedScience"/>'s
+        /// reflection guard - "DLC absent" here just means no part on the
+        /// vessel reports a <c>BaseServo</c>, which the empty-list -&gt; null
+        /// fallback already covers. Null when the vessel has no robotic parts
+        /// at all.</para>
         /// </summary>
         private static List<object?>? BuildPartsRobotics(Vessel vessel)
         {
@@ -4900,62 +4913,12 @@ namespace Gonogo.KSP
 
                 try
                 {
-                    var rotors = part.Modules.GetModules<ModuleRoboticServoRotor>();
-                    if (rotors != null)
+                    var entries = ServoCapture.BuildEntries(
+                        part.Modules.GetModules<BaseServo>(), partName, partId);
+                    if (entries.Count > 0)
                     {
-                        foreach (var rotor in rotors)
-                        {
-                            if (rotor == null)
-                            {
-                                continue;
-                            }
-                            list ??= new List<object?>();
-                            list.Add(BuildServoEntry(
-                                rotor, partName, partId, "rotor",
-                                currentAngle: null, targetAngle: null, traverseVelocity: null,
-                                currentRpm: rotor.currentRPM, rpmLimit: rotor.rpmLimit,
-                                normalizedOutput: rotor.normalizedOutput, brakePercentage: rotor.brakePercentage,
-                                currentExtension: null, targetExtension: null,
-                                counterClockwise: rotor.rotateCounterClockwise, maxTorque: rotor.maxTorque));
-                        }
-                    }
-
-                    var hinges = part.Modules.GetModules<ModuleRoboticServoHinge>();
-                    if (hinges != null)
-                    {
-                        foreach (var hinge in hinges)
-                        {
-                            if (hinge == null)
-                            {
-                                continue;
-                            }
-                            list ??= new List<object?>();
-                            list.Add(BuildServoEntry(
-                                hinge, partName, partId, "hinge",
-                                currentAngle: hinge.currentAngle, targetAngle: hinge.targetAngle, traverseVelocity: hinge.traverseVelocity,
-                                currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
-                                currentExtension: null, targetExtension: null,
-                                counterClockwise: null, maxTorque: null));
-                        }
-                    }
-
-                    var pistons = part.Modules.GetModules<ModuleRoboticServoPiston>();
-                    if (pistons != null)
-                    {
-                        foreach (var piston in pistons)
-                        {
-                            if (piston == null)
-                            {
-                                continue;
-                            }
-                            list ??= new List<object?>();
-                            list.Add(BuildServoEntry(
-                                piston, partName, partId, "piston",
-                                currentAngle: null, targetAngle: null, traverseVelocity: piston.traverseVelocity,
-                                currentRpm: null, rpmLimit: null, normalizedOutput: null, brakePercentage: null,
-                                currentExtension: piston.currentExtension, targetExtension: piston.targetExtension,
-                                counterClockwise: null, maxTorque: null));
-                        }
+                        list ??= new List<object?>();
+                        list.AddRange(entries);
                     }
                 }
                 catch (Exception ex)
@@ -4965,37 +4928,6 @@ namespace Gonogo.KSP
             }
 
             return list;
-        }
-
-        private static Dictionary<string, object?> BuildServoEntry(
-            BaseServo servo, string partName, string? partId, string type,
-            float? currentAngle, float? targetAngle, float? traverseVelocity,
-            float? currentRpm, float? rpmLimit, float? normalizedOutput, float? brakePercentage,
-            float? currentExtension, float? targetExtension,
-            bool? counterClockwise, float? maxTorque)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["partName"] = partName,
-                ["partId"] = partId,
-                ["type"] = type,
-                ["servoIsLocked"] = servo.servoIsLocked,
-                ["servoIsMotorized"] = servo.servoIsMotorized,
-                ["servoMotorIsEngaged"] = servo.servoMotorIsEngaged,
-                ["servoMotorLimit"] = (double)servo.servoMotorLimit,
-                ["motorState"] = servo.motorState,
-                ["currentAngle"] = currentAngle.HasValue ? (double?)currentAngle.Value : null,
-                ["targetAngle"] = targetAngle.HasValue ? (double?)targetAngle.Value : null,
-                ["traverseVelocity"] = traverseVelocity.HasValue ? (double?)traverseVelocity.Value : null,
-                ["currentRPM"] = currentRpm.HasValue ? (double?)currentRpm.Value : null,
-                ["rpmLimit"] = rpmLimit.HasValue ? (double?)rpmLimit.Value : null,
-                ["normalizedOutput"] = normalizedOutput.HasValue ? (double?)normalizedOutput.Value : null,
-                ["brakePercentage"] = brakePercentage.HasValue ? (double?)brakePercentage.Value : null,
-                ["currentExtension"] = currentExtension.HasValue ? (double?)currentExtension.Value : null,
-                ["targetExtension"] = targetExtension.HasValue ? (double?)targetExtension.Value : null,
-                ["counterClockwise"] = counterClockwise,
-                ["maxTorque"] = maxTorque.HasValue ? (double?)maxTorque.Value : null,
-            };
         }
 
         // ----------------------------------------------------------------
