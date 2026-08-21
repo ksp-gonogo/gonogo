@@ -14,8 +14,10 @@ import {
   useVesselDeltaV,
 } from "@ksp-gonogo/data";
 import {
+  type OrbitTrajectory,
   type Reading,
   useCommand,
+  useOrbitTrajectory,
   useStream,
   useViewUt,
   type VesselState,
@@ -233,6 +235,11 @@ function ManeuverPlannerComponent({
         lastThrustEndUt: magnitudeOf(propulsion.lastThrustEndUt),
       }
     : undefined;
+  // What the CURRENT orbit's curve is, asked of the propagation seam rather than
+  // decided by whichever of this widget's two diagrams is drawing it. Both put
+  // the live orbit on screen as a conic and neither asked, so electing a
+  // provider that integrates changed nothing an operator saw in either.
+  const currentTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
   const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
   const {
@@ -763,6 +770,7 @@ function ManeuverPlannerComponent({
                         }
                       : null
                   }
+                  currentTrajectory={currentTrajectory}
                   // Patches[0] ONLY, the immediate post-burn conic. See the
                   // component's own doc for why a downstream patch cannot be
                   // compared at all.
@@ -915,6 +923,7 @@ function ManeuverPlannerComponent({
           <ManeuverPreview
             plan={plan}
             currentOrbit={currentOrbit}
+            currentTrajectory={currentTrajectory}
             body={body}
             preset={preset}
             burnTrueAnomaly={burnTrueAnomaly}

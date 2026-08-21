@@ -3,6 +3,7 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -62,6 +63,7 @@ describe("CurrentOrbit: O1, t-Pe shows the null-display placeholder on a hyperbo
           meanAnomalyAtEpoch: 0,
           epoch: 0,
           mu: 3.5316e12,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
         },
         { quality: Quality.OnRails },
       );

@@ -3,6 +3,7 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -65,6 +66,7 @@ describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
           meanAnomalyAtEpoch: 0,
           epoch: 0,
           mu: KERBIN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
         },
         { quality: Quality.OnRails },
       );
@@ -115,6 +117,7 @@ describe("CurrentOrbit: O4: 'measured' basis suppresses the diagram, not the gri
           meanAnomalyAtEpoch: 0,
           epoch: 0,
           mu: KERBIN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
         },
         { quality: Quality.Loaded },
       );

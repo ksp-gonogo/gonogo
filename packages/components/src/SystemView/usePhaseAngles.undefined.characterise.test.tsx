@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import type { CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
@@ -60,7 +61,13 @@ function makeBody(
   };
 }
 
-/** A circular vessel orbit whose true longitude is exactly `lonDeg` at UT 0. */
+/**
+ * A circular vessel orbit whose true longitude is exactly `lonDeg` at UT 0,
+ * carrying the horizon the stock analytic producer sends. Absence of the field
+ * is its own case (a producer that dropped it) and the hook refuses it, so a
+ * fixture about MISSING ELEMENTS has to state one or it would be testing two
+ * absences at once.
+ */
 function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
   return {
     referenceBodyIndex: 0,
@@ -72,6 +79,7 @@ function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
     meanAnomalyAtEpoch: 0,
     epoch: 0,
     mu: KERBIN_MU,
+    horizon: ANALYTIC_UNBOUNDED_HORIZON,
   };
 }
 
@@ -191,6 +199,7 @@ describe("usePhaseAngles: what undefined means today", () => {
       meanAnomalyAtEpoch: 0,
       epoch: 0,
       mu: KERBIN_MU,
+      horizon: ANALYTIC_UNBOUNDED_HORIZON,
     };
     const { fixture, result } = renderPhaseAngles([bodyAt90()]);
     act(() => {

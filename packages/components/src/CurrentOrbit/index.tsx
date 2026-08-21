@@ -6,7 +6,12 @@ import {
   useOrbitElements,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  type OrbitTrajectory,
+  useOrbitTrajectory,
+  useStream,
+  type VesselState,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
@@ -19,6 +24,7 @@ import {
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 
 interface CurrentOrbitConfig {
@@ -96,6 +102,15 @@ function CurrentOrbitComponent({
   const bodyName = vesselState?.parentBodyName ?? undefined;
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
+
+  // What the mini diagram's curve IS, asked of the propagation seam rather than
+  // decided here. The numbers in the grid above are a different question and go
+  // on rendering either way: `sma`, `ecc` and the apsides were measured at the
+  // sample instant and are true whoever computed them. Only the CURVE claims
+  // what the craft will fly, so only the curve is refusable.
+  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const withheld =
+    trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
 
   const body =
     (bodyName ?? refBody) === undefined
@@ -306,22 +321,32 @@ function CurrentOrbitComponent({
                 : { marginTop: "var(--space-4)" }),
             }}
           >
-            <OrbitDiagram
-              variant="mini"
-              sma={sma.magnitude}
-              ecc={eccentricity.magnitude}
-              // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
-              // already detects that itself (`ecc >= 1 || sma <= 0`) and
-              // ignores this value in that branch, so the fallback below is
-              // never actually rendered from.
-              apoapsis={apoapsisR ?? 0}
-              periapsis={periapsisR}
-              trueAnomaly={trueAnomaly ?? 0}
-              argPe={argPe?.magnitude ?? 0}
-              bodyColor={body?.color}
-              bodyRadius={body?.radius}
-              isOrbiting={isOrbiting}
-            />
+            {withheld ? (
+              <TrajectoryWithheldNote withheld={withheld} compact />
+            ) : (
+              <OrbitDiagram
+                variant="mini"
+                // The seam's answer, drawn as given. `null` on the conic arm,
+                // where the diagram's own conic renderer is what the provider
+                // said is right.
+                trajectoryPath={
+                  trajectory?.shape === "arc" ? trajectory.points : null
+                }
+                sma={sma.magnitude}
+                ecc={eccentricity.magnitude}
+                // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
+                // already detects that itself (`ecc >= 1 || sma <= 0`) and
+                // ignores this value in that branch, so the fallback below is
+                // never actually rendered from.
+                apoapsis={apoapsisR ?? 0}
+                periapsis={periapsisR}
+                trueAnomaly={trueAnomaly ?? 0}
+                argPe={argPe?.magnitude ?? 0}
+                bodyColor={body?.color}
+                bodyRadius={body?.radius}
+                isOrbiting={isOrbiting}
+              />
+            )}
           </Stack>
         )}
       </div>

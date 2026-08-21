@@ -6,6 +6,7 @@ import type {
   ManeuverSequence,
 } from "@ksp-gonogo/core";
 import type { VesselDeltaV } from "@ksp-gonogo/data";
+import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { isSequence, type PlanResult } from "./planning";
 import {
   FeasibilityBanner,
@@ -32,6 +34,12 @@ interface ManeuverPreviewProps {
   body: BodyDefinition | undefined;
   preset: string;
   burnTrueAnomaly: number | null;
+  /**
+   * The propagation seam's answer for the vessel's CURRENT orbit, which is the
+   * base curve everything here is drawn on top of. `null` means the question
+   * could not be put (no elements, no clock).
+   */
+  currentTrajectory: OrbitTrajectory | null;
   /** Live orbit scalars used by the diagram. */
   diagram: {
     sma: number | undefined;
@@ -299,6 +307,7 @@ function ProjectedRows({
 function ManeuverDiagram({
   plan,
   currentOrbit,
+  currentTrajectory,
   body,
   preset,
   burnTrueAnomaly,
@@ -309,6 +318,18 @@ function ManeuverDiagram({
   setRadial,
 }: ManeuverPreviewProps) {
   if (!plan || !currentOrbit || !diagram.ApR || !diagram.PeR) return null;
+  // Every curve on this drawing rests on the current orbit: the base conic IS
+  // it, and the projected ellipses are patched-conic extrapolations of the same
+  // elements. So a refusal takes the whole drawing rather than one line of it.
+  // Leaving the projections behind would put the strongest claim on screen, a
+  // post-burn orbit, on top of elements nothing authorised a curve through.
+  if (currentTrajectory?.shape === "withheld") {
+    return (
+      <DiagramWrap>
+        <TrajectoryWithheldNote withheld={currentTrajectory} />
+      </DiagramWrap>
+    );
+  }
   const customWithHandles =
     preset === "custom-apo" ||
     preset === "custom-peri" ||
@@ -322,6 +343,11 @@ function ManeuverDiagram({
     <DiagramWrap>
       <OrbitDiagram
         variant="mini"
+        // The seam's answer, drawn as given. `null` on the conic arm, where the
+        // diagram's own conic renderer is what the provider said is right.
+        trajectoryPath={
+          currentTrajectory?.shape === "arc" ? currentTrajectory.points : null
+        }
         sma={diagram.sma ?? 0}
         ecc={diagram.ecc ?? 0}
         apoapsis={diagram.ApR}

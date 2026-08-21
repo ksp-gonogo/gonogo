@@ -1,3 +1,4 @@
+import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
@@ -8,6 +9,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { OrbitDiagram, type ProjectedOrbit } from "../shared/OrbitDiagram";
+import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import {
   type ConformanceRegime,
   devianceIsAttributable,
@@ -96,6 +98,16 @@ export interface ConformancePlotProps {
     trueAnomaly: number;
     argPe: number;
   } | null;
+  /**
+   * The propagation seam's answer for the CURRENT orbit: whether a conic is the
+   * right renderer for it at all, or a sampled arc is, or nothing may be drawn.
+   * `null` means the question could not be put (no elements, no clock).
+   *
+   * The planned conic beside it is never gated this way. It arrives as the
+   * planner's own `Patches[0]`, so it is a statement rather than this client's
+   * extrapolation, and the seam was never asked about it.
+   */
+  currentTrajectory: OrbitTrajectory | null;
   /** The planned post-burn conic, from the burn's own `Patches[0]`. */
   planned: ProjectedOrbit | null;
   regime: ConformanceRegime;
@@ -114,6 +126,7 @@ export interface ConformancePlotProps {
 
 export function ConformancePlot({
   current,
+  currentTrajectory,
   planned,
   regime,
   residual,
@@ -122,6 +135,10 @@ export function ConformancePlot({
 }: ConformancePlotProps) {
   const r = REGIME[regime];
   const attributable = devianceIsAttributable(residual);
+  const withheld =
+    currentTrajectory !== null && currentTrajectory.shape === "withheld"
+      ? currentTrajectory
+      : null;
   return (
     <Stack gap="xs" data-conformance-plot="">
       {/* The chip alone, with what the gap means carried as its title rather
@@ -131,7 +148,13 @@ export function ConformancePlot({
       <span style={{ ...REGIME_CHIP, color: r.colour }} title={r.gap}>
         {r.chip}
       </span>
-      {current ? (
+      {withheld ? (
+        // The plot's whole content is a comparison against where the vessel is.
+        // Drawing the planned conic on its own would put a single line on screen
+        // with nothing to read it against, which is what "on plan" looks like,
+        // so the drawing goes and the reason takes its place.
+        <TrajectoryWithheldNote withheld={withheld} compact />
+      ) : current ? (
         <div
           // Dimmed, not hidden, when the current orbit is a description rather
           // than an observation: the shape is still the best picture available.
@@ -139,6 +162,14 @@ export function ConformancePlot({
           style={{ opacity: currentIsObserved ? 1 : 0.55 }}
         >
           <OrbitDiagram
+            // The seam's answer, drawn as given. `null` on the conic arm, where
+            // the diagram's own conic renderer is what the provider said is
+            // right.
+            trajectoryPath={
+              currentTrajectory?.shape === "arc"
+                ? currentTrajectory.points
+                : null
+            }
             sma={current.sma}
             ecc={current.ecc}
             apoapsis={current.apoapsis}

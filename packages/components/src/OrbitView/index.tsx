@@ -8,11 +8,9 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type OrbitTrajectory,
-  orbitTrajectory,
-  TrajectoryKindLike,
+  useOrbitTrajectory,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-  useViewClockOptional,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
@@ -21,6 +19,10 @@ import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import {
+  trajectoryWithheldCopy,
+  type WithheldTrajectory,
+} from "../shared/trajectoryWithheld";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 
 /**
@@ -130,41 +132,15 @@ export type OrbitViewActions = typeof orbitViewActions;
 /**
  * What the panel says when the propagation seam declines to authorise a curve.
  *
- * A heading in the same vocabulary `TrajectoryCurrencyBridge` badges with, so
- * an operator reading both sees one word for one fact, plus a line saying what
- * it means for this particular drawing. The four reasons stay four sentences:
- * "nobody stated a horizon" and "you have outrun a stated one" have different
- * remedies, and an integrator that has not computed this far yet resolves on
- * its own where a producer that dropped a field does not.
+ * The sentences come from the one shared table, so this panel and the five
+ * other drawings that can now be refused name the same refusal the same way.
+ * Only the container is local: OrbitView's refusal takes over the whole panel
+ * body, where CurrentOrbit's takes over a strip beside the numbers.
  */
 function TrajectoryWithheld({
   withheld,
-}: Readonly<{ withheld: Extract<OrbitTrajectory, { shape: "withheld" }> }>) {
-  let heading: string;
-  let detail: string;
-  switch (withheld.reason) {
-    case "no-horizon-stated":
-      heading = "NO HORIZON STATED";
-      detail = "Nothing has said how far these elements answer for.";
-      break;
-    case "past-horizon":
-      if (withheld.trajectoryKind === TrajectoryKindLike.Integrated) {
-        heading = "BEYOND INTEGRATION";
-        detail = "The trajectory is not computed this far ahead yet.";
-      } else {
-        heading = "PAST HORIZON";
-        detail = "These elements do not answer for the instant on screen.";
-      }
-      break;
-    case "shape-not-stated":
-      heading = "SHAPE NOT STATED";
-      detail = "Nothing has said whether this trajectory is a conic.";
-      break;
-    default:
-      heading = "NO PATH AVAILABLE";
-      detail = "The integrated trajectory could not be sampled.";
-      break;
-  }
+}: Readonly<{ withheld: WithheldTrajectory }>) {
+  const { heading, detail } = trajectoryWithheldCopy(withheld);
   return (
     <NoData role="status">
       <Text size="xs">{heading}</Text>
@@ -240,21 +216,9 @@ function OrbitViewComponent({
   // here. The widget holds `sma` and `ecc` and could draw an ellipse from them
   // without asking anything, which is exactly why it must not: a provider whose
   // trajectories are integrated would then change nothing the operator sees.
-  // `orbitTrajectory` reads the horizon riding on this same sample and answers
-  // conic, arc, or a refusal, and the render below does as it is told.
-  //
-  // The clock is read NON-reactively at render, the same way `useBodyRotation`
-  // beside it reads one and for the same reasons: this widget already
-  // re-renders on its own telemetry cadence, and a per-frame `onFrame`
-  // subscription would add a 60 Hz re-render of a 128-point path plus state
-  // updates outside React's `act`. Every input to the question moves on the
-  // store frame anyway, the elements, the horizon, and a scrub.
-  const clock = useViewClockOptional();
-  const viewUt = clock?.viewUt();
-  const trajectory: OrbitTrajectory | null =
-    orbit === undefined || viewUt === undefined || !Number.isFinite(viewUt)
-      ? null
-      : orbitTrajectory({ orbit, viewUt });
+  // `useOrbitTrajectory` reads the horizon riding on this same sample and
+  // answers conic, arc, or a refusal, and the render below does as it is told.
+  const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
 
   const body = bodyName === undefined ? undefined : getBody(bodyName);
   const { isOrbiting } = useIsOrbiting();

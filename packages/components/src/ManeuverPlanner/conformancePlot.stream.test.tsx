@@ -3,6 +3,7 @@ import { vesselManeuverLegacyChannel } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -50,6 +51,11 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
     mu: 3.5316e12,
     meanAnomalyAtEpoch: 0,
     epoch: 1_000_000,
+    // What the stock producer sends. Without it the sample is one from a
+    // producer that dropped the field, the seam refuses the current orbit, and
+    // the plot this file is about never draws: see `provider-shape.test.tsx`
+    // for that case, which is its subject rather than a side effect.
+    horizon: ANALYTIC_UNBOUNDED_HORIZON,
     patches: [],
   });
 }

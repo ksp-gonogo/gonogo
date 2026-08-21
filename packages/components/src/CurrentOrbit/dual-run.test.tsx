@@ -3,6 +3,7 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import circularLko from "./__fixtures__/circular-lko.json";
 
@@ -76,6 +77,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
           inc: circularLko["o.inclination"],
           argPe: circularLko["o.argumentOfPeriapsis"],
           mu: MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
           meanAnomalyAtEpoch: 0,
           epoch: PINNED_UT,
         },

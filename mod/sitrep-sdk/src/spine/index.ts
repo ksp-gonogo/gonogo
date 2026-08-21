@@ -86,6 +86,7 @@ export * from "./use-command";
 export * from "./use-data-source-subscription";
 export * from "./use-data-sources";
 export * from "./use-late-telemetry-subscribe";
+export * from "./use-orbit-trajectory";
 export * from "./use-processor";
 export * from "./use-route-commands";
 export * from "./use-stream";

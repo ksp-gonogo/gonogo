@@ -1,4 +1,5 @@
 import { getBody, type OrbitPatch } from "@ksp-gonogo/core";
+import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, TextButton, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
@@ -66,6 +67,18 @@ export interface SystemDiagramProps {
   /** If set and `parentName` matches, plot the vessel on its orbit. */
   vessel?: VesselOrbit | null;
   /**
+   * What the propagation seam says the vessel's trajectory IS: a conic the
+   * elements themselves draw, a sampled arc to draw as given, or a refusal.
+   *
+   * No default, and `null`/absent draws NO curve, which is the only honest
+   * reading: `sma` and `ecc` are enough to emit an ellipse without asking
+   * anything, so a permissive default here would be the whole defect restored
+   * one layer down, in the place nobody would look for it. The vessel's MARKER
+   * is unaffected: where the craft is comes from the elements at the sample
+   * instant and is true whoever computed them.
+   */
+  vesselTrajectory?: OrbitTrajectory | null;
+  /**
    * How the vessel's plotted position is KNOWN. Defaults to `observed`, which
    * is the only honest default for a diagram that has not been told otherwise:
    * a caller that omits it is drawing a live craft.
@@ -112,6 +125,7 @@ export function SystemDiagram({
   highlightNames,
   targetName,
   vessel,
+  vesselTrajectory = null,
   vesselPlotState = "observed",
   phaseAngles,
   transferStatuses,
@@ -387,10 +401,12 @@ export function SystemDiagram({
           />
         ))}
 
-        {/* Vessel orbit (if any): same focus-correct geometry. */}
+        {/* Vessel orbit (if any): same focus-correct geometry, in whichever
+            form the propagation seam authorised. */}
         {showVessel && (
           <VesselOrbitPath
             vessel={vessel}
+            trajectory={vesselTrajectory}
             plotScale={plotScale}
             gradId={`${tiltGradId}-vessel`}
             zoom={zoom}
@@ -645,38 +661,85 @@ function InclinationGradient({
   );
 }
 
+/**
+ * The vessel's own trajectory, drawn as the propagation seam authorised it.
+ *
+ * Both arms sit inside the SAME `rotate(lan + argPe)` group, because both are
+ * expressed in the orbit's own plane with periapsis on +x: the conic puts the
+ * focus at the origin via `cx = -ae`, and the sampled points are already
+ * measured from the focus. Nothing here decides which arm applies, it only
+ * draws, which is the whole point of the split.
+ *
+ * A refusal renders nothing at all rather than an empty path: "here is a
+ * trajectory with no points in it" and "there is no trajectory to draw" look
+ * identical on a diagram and mean opposite things. The reason is on screen
+ * beside the frame caption, where the widget puts it.
+ */
 function VesselOrbitPath({
   vessel,
+  trajectory,
   plotScale,
   gradId,
   zoom,
 }: Readonly<{
   vessel: VesselOrbit;
+  trajectory: OrbitTrajectory | null;
   plotScale: number;
   gradId: string;
   zoom: number;
 }>) {
+  if (trajectory === null || trajectory.shape === "withheld") return null;
   const a = vessel.sma * plotScale;
   const e = Math.min(Math.max(vessel.ecc, 0), 0.999);
   const b = a * Math.sqrt(1 - e * e);
   const phi = vessel.lan + vessel.argPe;
   const focusOffset = a * e;
+  // Screen-constant stroke + dashes (see the child-orbit ellipse note):
+  // user-unit line metrics would balloon with the viewBox at SOI zoom.
+  const strokeW = 1.4 / zoom;
+  const dashes = `${4 / zoom} ${3 / zoom}`;
   return (
     <g transform={`rotate(${phi})`} pointerEvents="none">
-      <ellipse
-        cx={-focusOffset}
-        cy={0}
-        rx={a}
-        ry={b}
-        fill="none"
-        stroke={`url(#${gradId})`}
-        // Screen-constant stroke + dashes (see the child-orbit ellipse note):
-        // user-unit line metrics would balloon with the viewBox at SOI zoom.
-        strokeWidth={1.4 / zoom}
-        strokeDasharray={`${4 / zoom} ${3 / zoom}`}
-      />
+      {trajectory.shape === "arc" ? (
+        <path
+          data-vessel-trajectory="arc"
+          d={perifocalPath(trajectory.points, plotScale)}
+          fill="none"
+          stroke={`url(#${gradId})`}
+          strokeWidth={strokeW}
+          strokeDasharray={dashes}
+        />
+      ) : (
+        <ellipse
+          data-vessel-trajectory="conic"
+          cx={-focusOffset}
+          cy={0}
+          rx={a}
+          ry={b}
+          fill="none"
+          stroke={`url(#${gradId})`}
+          strokeWidth={strokeW}
+          strokeDasharray={dashes}
+        />
+      )}
     </g>
   );
+}
+
+/**
+ * A sampled arc, in the orbit's own plane, as an OPEN polyline in plot units.
+ * No `Z`: it stops where the provider stopped, and closing it would assert the
+ * one thing a bounded arc cannot promise.
+ */
+function perifocalPath(
+  points: readonly { x: number; y: number }[],
+  plotScale: number,
+): string {
+  return points
+    .map(
+      (p, i) => `${i === 0 ? "M" : "L"}${p.x * plotScale},${p.y * plotScale}`,
+    )
+    .join(" ");
 }
 
 /**

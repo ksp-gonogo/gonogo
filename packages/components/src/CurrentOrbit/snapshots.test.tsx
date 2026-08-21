@@ -19,6 +19,7 @@ import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import { CurrentOrbitComponent } from "./index";
@@ -96,6 +97,7 @@ function renderOrbitSnapshot(
         meanAnomalyAtEpoch: 0,
         epoch: 0,
         mu: KERBIN_MU,
+        horizon: ANALYTIC_UNBOUNDED_HORIZON,
       },
       { quality: Quality.OnRails },
     );
