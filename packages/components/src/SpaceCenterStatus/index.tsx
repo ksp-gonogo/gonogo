@@ -14,7 +14,7 @@ import {
   useCommand,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { KspSpaceCenterFacility, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   CheckIcon,
   ChevronUpIcon,
@@ -90,6 +90,32 @@ const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
   ResearchAndDevelopment: "rd",
   AstronautComplex: "astronaut",
 };
+
+/**
+ * `SpaceCenterFacility` ORDINAL to this widget's short {@link FacilityKey}, the
+ * route the wire's map key no longer has to serve.
+ *
+ * The abbreviations are ours, so the pairing has to be written down somewhere:
+ * nothing derives `vab` from `VehicleAssemblyBuilding`. What is NOT written down
+ * is the enum side of it, which comes from {@link KspSpaceCenterFacility}, so a
+ * renamed or added member shows up as a compile-time gap here rather than as a
+ * facility that silently stops being displayed. `facilityOrdinalTableIsComplete`
+ * in this widget's test is the check on that.
+ */
+const ORDINAL_TO_FACILITY_KEY: ReadonlyMap<number, FacilityKey> = new Map([
+  [KspSpaceCenterFacility.LaunchPad, "launchPad"],
+  [KspSpaceCenterFacility.Runway, "runway"],
+  [KspSpaceCenterFacility.VehicleAssemblyBuilding, "vab"],
+  [KspSpaceCenterFacility.SpaceplaneHangar, "sph"],
+  [KspSpaceCenterFacility.MissionControl, "mission"],
+  [KspSpaceCenterFacility.TrackingStation, "tracking"],
+  [KspSpaceCenterFacility.Administration, "admin"],
+  [KspSpaceCenterFacility.ResearchAndDevelopment, "rd"],
+  [KspSpaceCenterFacility.AstronautComplex, "astronaut"],
+] as const);
+
+/** Exported for the completeness test; see {@link ORDINAL_TO_FACILITY_KEY}. */
+export const FACILITY_ORDINAL_KEYS = ORDINAL_TO_FACILITY_KEY;
 
 /**
  * Reverse of {@link ENUM_FACILITY_TO_KEY}: this widget's short `FacilityKey`
@@ -182,11 +208,18 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
     if (!v || typeof v !== "object") continue;
     const entry = v as Record<string, unknown>;
 
-    const key: FacilityKey | undefined = FACILITIES.some(
-      (f) => f.key === rawKey,
-    )
-      ? (rawKey as FacilityKey)
-      : ENUM_FACILITY_TO_KEY[rawKey];
+    // The ORDINAL first, when the entry carries one: it identifies the facility
+    // without trusting the key it arrived under. The key is then only a legacy
+    // route, for this widget's own short codes (the pre-mod wire shape) and for a
+    // producer that predates `facilityOrdinal`. Before the ordinal existed, a
+    // facility whose enum NAME missed the nine-entry table was skipped outright,
+    // so it vanished from the display with nothing said.
+    const ordinal = magnitudeOf(entry.facilityOrdinal as Quantityish);
+    const key: FacilityKey | undefined =
+      (ordinal !== null ? ORDINAL_TO_FACILITY_KEY.get(ordinal) : undefined) ??
+      (FACILITIES.some((f) => f.key === rawKey)
+        ? (rawKey as FacilityKey)
+        : ENUM_FACILITY_TO_KEY[rawKey]);
     if (key === undefined) continue;
 
     const level = magnitudeOf(entry.level as Quantityish);

@@ -3140,23 +3140,19 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The <c>SpaceCenterFacility</c> ids <see cref="BuildCareerFacilities"/>
-        /// walks - every facility <c>ScenarioUpgradeableFacilities</c> knows
-        /// about (confirmed via decompile: the enum has exactly these nine
-        /// members - no "AdministrationFacility"/"SPH" aliases, the real
-        /// names are <c>Administration</c> and <c>SpaceplaneHangar</c>).
+        /// walks: EVERY member of the enum, derived rather than written out.
+        ///
+        /// <para>This was a hand-written list of nine. It was complete, which is
+        /// the problem with a list like it: nothing says so, and nothing would
+        /// say otherwise the day KSP adds a tenth facility. The walk would simply
+        /// not visit it, the client would show eight buildings out of nine, and
+        /// no test in the tree would notice. Same shape as the action-group
+        /// table beside it, so the same fix.</para>
         /// </summary>
         private static readonly SpaceCenterFacility[] TrackedFacilities =
-        {
-            SpaceCenterFacility.SpaceplaneHangar,
-            SpaceCenterFacility.VehicleAssemblyBuilding,
-            SpaceCenterFacility.LaunchPad,
-            SpaceCenterFacility.Runway,
-            SpaceCenterFacility.TrackingStation,
-            SpaceCenterFacility.AstronautComplex,
-            SpaceCenterFacility.MissionControl,
-            SpaceCenterFacility.Administration,
-            SpaceCenterFacility.ResearchAndDevelopment,
-        };
+            ((SpaceCenterFacility[])Enum.GetValues(typeof(SpaceCenterFacility)))
+            .OrderBy(f => (int)f)
+            .ToArray();
 
         /// <summary>
         /// Primitives-only snapshot of KSP's career-mode state - the
@@ -3303,6 +3299,11 @@ namespace Gonogo.KSP
 
                 result[facilityName] = new Dictionary<string, object?>
                 {
+                    // The map stays keyed by NAME: rekeying it to a number would
+                    // be a breaking retype and would change every consumer's key
+                    // walk. The ordinal rides inside the entry so a client can
+                    // identify the facility without trusting the key.
+                    ["facilityOrdinal"] = (int)facility,
                     ["currentTier"] = currentTier,
                     ["maxTier"] = maxTier,
                     ["upgradeCost"] = upgradeCost,

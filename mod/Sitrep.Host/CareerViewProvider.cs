@@ -182,6 +182,7 @@ namespace Sitrep.Host
 
                 result[pair.Key] = new Dictionary<string, object?>
                 {
+                    ["facilityOrdinal"] = GetInt(facility, "facilityOrdinal"),
                     ["currentTier"] = GetInt(facility, "currentTier"),
                     ["maxTier"] = GetInt(facility, "maxTier"),
                     ["upgradeCost"] = GetDouble(facility, "upgradeCost"),

@@ -16,7 +16,9 @@ import {
   actionGroupNames,
   KSP_ENUM_NAME_TABLES,
   KSP_PART_CATEGORY_NAMES,
+  KSP_SPACE_CENTER_FACILITY_NAMES,
 } from "../ksp-enum-names";
+import { FACILITY_KEY_TO_ENUM } from "./map-command";
 import { TRANSITION_TYPE_NAMES } from "./orbit-patches";
 import { HEALTH_STATE_NAMES } from "./uplink-health";
 import { CONTROL_STATE_LEVEL, ENUM_NAME_TABLES } from "./vessel-state";
@@ -249,6 +251,25 @@ describe("enum name tables cover their enums", () => {
     expect(actionGroupNames(-1)).not.toContain("REPLACEWITHDEFAULT");
     expect(actionGroupNames(-1)).not.toContain("None");
     expect(actionGroupNames(-1)).toContain("Custom10");
+  });
+
+  /**
+   * The legacy-key bridge's facility table, against KSP's own enum.
+   *
+   * `FACILITY_KEY_TO_ENUM` turns a short facility code into the enum NAME the
+   * `career.facility.upgrade` command takes, and the mod re-resolves that name
+   * server-side. The short codes are ours and have to be written down; the enum
+   * names are KSP's and do not, so this is what catches one of them going stale.
+   * A stale name reaches the mod as an id it cannot resolve, so the upgrade is
+   * refused for a facility the operator can see and select.
+   */
+  it("FACILITY_KEY_TO_ENUM names only real SpaceCenterFacility members, and all of them", () => {
+    const declared = new Set(KSP_SPACE_CENTER_FACILITY_NAMES.values());
+    // Guards this reader: an empty set would make any table pass.
+    expect(declared.size).toBe(9);
+    const values = Object.values(FACILITY_KEY_TO_ENUM);
+    expect(values.filter((v) => !declared.has(v))).toEqual([]);
+    expect([...declared].filter((d) => !values.includes(d))).toEqual([]);
   });
 
   /** The original defect, pinned by name so a regression reads as itself. */

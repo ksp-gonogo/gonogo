@@ -55,6 +55,7 @@ namespace Sitrep.Host.Tests
                         {
                             ["LaunchPad"] = new Dictionary<string, object?>
                             {
+                                ["facilityOrdinal"] = 2,
                                 ["currentTier"] = 1,
                                 ["maxTier"] = 2,
                                 ["upgradeCost"] = 74_000.0,
@@ -65,6 +66,7 @@ namespace Sitrep.Host.Tests
                             // gate - see KspHost.BuildCareerFacilities).
                             ["VehicleAssemblyBuilding"] = new Dictionary<string, object?>
                             {
+                                ["facilityOrdinal"] = 8,
                                 ["currentTier"] = null,
                                 ["maxTier"] = null,
                                 ["upgradeCost"] = null,
@@ -277,6 +279,10 @@ namespace Sitrep.Host.Tests
             Assert.Null(vab["currentTier"]); // scene-gated field, genuinely unavailable
             Assert.Null(vab["maxTier"]);
             Assert.Null(vab["upgradeCost"]);
+            // The facility's identity rides INSIDE the entry, so a client never
+            // has to recognise the key it arrived under.
+            Assert.Equal(2, launchPad["facilityOrdinal"]);
+            Assert.Equal(8, vab["facilityOrdinal"]);
 
             var contracts = Assert.IsType<Dictionary<string, object?>>(root["contracts"]);
             var active = Assert.IsType<List<object?>>(contracts["active"]);

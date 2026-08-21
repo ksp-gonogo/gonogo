@@ -170,6 +170,36 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
+        /// The facilities <c>KspHost.TrackedFacilities</c> walks: every
+        /// <see cref="SpaceCenterFacility"/> member.
+        ///
+        /// <para>Also a hand-written list until now, also complete, and that is
+        /// the trouble with a complete hand-written list: nothing says it is, and
+        /// nothing would say otherwise the day KSP adds a tenth building. The
+        /// walk would not visit it, the client would show eight facilities out of
+        /// nine, and no test in the tree would notice. Unlike the action groups,
+        /// there is no member to exclude here: all nine are real facilities.</para>
+        /// </summary>
+        [Fact]
+        public void TrackedFacilitiesAreEveryMemberOfTheEnum()
+        {
+            var derived = ((SpaceCenterFacility[])Enum.GetValues(typeof(SpaceCenterFacility)))
+                .OrderBy(f => (int)f)
+                .Select(f => f.ToString())
+                .ToList();
+
+            Assert.Equal(
+                new[]
+                {
+                    "Administration", "AstronautComplex", "LaunchPad",
+                    "MissionControl", "ResearchAndDevelopment", "Runway",
+                    "TrackingStation", "SpaceplaneHangar",
+                    "VehicleAssemblyBuilding",
+                },
+                derived);
+        }
+
+        /// <summary>
         /// The names on the wire are KSP's own <c>.ToString()</c>, and the
         /// client's closed union is derived from the mirror's member names, so a
         /// mirror that renamed a member to something tidier would make the union

@@ -247,7 +247,7 @@ const TARGET_KIND_POSITION_ORDINAL = 3;
  * onto via `ENUM_FACILITY_TO_KEY`: this is that table's inverse. An
  * unrecognized short code is `INVALID`.
  */
-const FACILITY_KEY_TO_ENUM: Readonly<Record<string, string>> = {
+export const FACILITY_KEY_TO_ENUM: Readonly<Record<string, string>> = {
   launchPad: "LaunchPad",
   runway: "Runway",
   vab: "VehicleAssemblyBuilding",

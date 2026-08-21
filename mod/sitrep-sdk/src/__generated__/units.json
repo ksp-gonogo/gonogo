@@ -136,6 +136,7 @@
     },
     "CareerFacility": {
       "currentTier": "count",
+      "facilityOrdinal": "enum",
       "maxTier": "count",
       "upgradeCost": "funds"
     },

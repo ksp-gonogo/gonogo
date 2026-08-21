@@ -60,6 +60,7 @@ export interface CareerEconomy
 }
 export interface CareerFacility
 {
+	facilityOrdinal?: KspSpaceCenterFacility;
 	currentTier?: Value<"count">;
 	maxTier?: Value<"count">;
 	upgradeCost?: Value<"funds">;

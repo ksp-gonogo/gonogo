@@ -81,6 +81,23 @@ public class CareerEconomy
 #endif
 public class CareerFacility
 {
+    /// <summary>
+    /// Which facility this entry is, as KSP's <c>SpaceCenterFacility</c>
+    /// ORDINAL, typed to <see cref="KspSpaceCenterFacility"/>.
+    ///
+    /// <para><c>career.status.facilities</c> is keyed by the enum NAME and stays
+    /// that way: rekeying the map to a number would be a breaking retype and
+    /// would change the shape of every consumer's key walk. So the identity
+    /// rides INSIDE the entry instead, and a client no longer has to recognise
+    /// the key it arrived under. It used to have to: the key was matched against
+    /// a hand-written nine-entry name table, and a facility whose name missed
+    /// was skipped outright, so it simply vanished from the display.</para>
+    ///
+    /// <para><c>null</c> from a producer that predates this field.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspSpaceCenterFacility? FacilityOrdinal { get; set; }
+
     [SitrepUnit(Units.Count)]
     public int? CurrentTier { get; set; }
 

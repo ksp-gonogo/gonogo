@@ -3,6 +3,10 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
+import {
+  KSP_SPACE_CENTER_FACILITY_NAMES,
+  KspSpaceCenterFacility,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -13,7 +17,11 @@ import {
   teardownMockDataSource,
 } from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { parseFacilityLevels, SpaceCenterStatusComponent } from "./index";
+import {
+  FACILITY_ORDINAL_KEYS,
+  parseFacilityLevels,
+  SpaceCenterStatusComponent,
+} from "./index";
 
 /**
  * Every value this widget reads is canonical now, `career.status`
@@ -251,6 +259,56 @@ describe("SpaceCenterStatusComponent", () => {
 });
 
 describe("parseFacilityLevels", () => {
+  /**
+   * The short-code table has to cover KSP's whole `SpaceCenterFacility` enum.
+   *
+   * The abbreviations are ours, so the pairing is written down; the enum side is
+   * not, so this is what catches a rename or an addition. Before the ordinal
+   * existed the wire's map KEY was matched against a nine-entry name table and a
+   * key that missed was `continue`d past, so a renamed facility did not error,
+   * did not warn, and simply stopped being displayed. Nothing in the tree would
+   * have caught that.
+   */
+  it("facilityOrdinalTableIsComplete: every SpaceCenterFacility member has a short code", () => {
+    const members = [...KSP_SPACE_CENTER_FACILITY_NAMES.keys()].sort(
+      (a, b) => a - b,
+    );
+    // Guards this reader: an empty names table would make any short-code table
+    // pass, including an empty one.
+    expect(members).toHaveLength(9);
+    const missing = members.filter((m) => !FACILITY_ORDINAL_KEYS.has(m));
+    expect(missing).toEqual([]);
+    // And no short code invented for an ordinal KSP does not declare.
+    const extra = [...FACILITY_ORDINAL_KEYS.keys()].filter(
+      (k) => !KSP_SPACE_CENTER_FACILITY_NAMES.has(k),
+    );
+    expect(extra).toEqual([]);
+  });
+
+  /**
+   * A facility identified by its ORDINAL, arriving under a map key this build
+   * has never seen. It is still displayed, under the right short code.
+   */
+  it("resolves a facility from its ordinal, not from the map key", () => {
+    const parsed = parseFacilityLevels({
+      // What a future KSP might rename VehicleAssemblyBuilding to.
+      AssemblyBuilding: {
+        facilityOrdinal: KspSpaceCenterFacility.VehicleAssemblyBuilding,
+        currentTier: 1,
+        maxTier: 3,
+      },
+    });
+    expect(parsed.vab?.level).toBe(1);
+    expect(parsed.vab?.max).toBe(3);
+  });
+
+  it("still reads the enum-name key when no ordinal arrived", () => {
+    const parsed = parseFacilityLevels({
+      VehicleAssemblyBuilding: { currentTier: 2, maxTier: 3 },
+    });
+    expect(parsed.vab?.level).toBe(2);
+  });
+
   it("returns an empty object for non-object input", () => {
     expect(parseFacilityLevels(null)).toEqual({});
     expect(parseFacilityLevels(undefined)).toEqual({});

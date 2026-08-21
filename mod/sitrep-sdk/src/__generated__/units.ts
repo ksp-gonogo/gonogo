@@ -170,6 +170,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerFacility": {
     currentTier: "count",
+    facilityOrdinal: "enum",
     maxTier: "count",
     upgradeCost: "funds",
   },
