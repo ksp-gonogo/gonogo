@@ -15,6 +15,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  KSP_EDITOR_FACILITY_NAMES,
   TargetKind,
   type TargetListEntry,
   VesselType,
@@ -75,7 +76,14 @@ export interface SavedShip {
   name: string;
   partCount: number;
   totalMass: number;
-  facility: "VAB" | "SPH" | string;
+  /** KSP's own `EditorFacility` name, verbatim: the label shown on the row. */
+  facility: string;
+  /**
+   * KSP's `EditorFacility` ORDINAL (`KspEditorFacility`), `null` when the
+   * producer sent none. This is what decides which editor the craft launches
+   * from; {@link facility} is only ever displayed.
+   */
+  facilityOrdinal: number | null;
   requiresFunds: number;
   missingParts: string[];
 }
@@ -97,7 +105,34 @@ export interface LaunchSiteEntry {
   unlocked: boolean;
 }
 
-const KNOWN_FACILITIES = new Set(["VAB", "SPH"]);
+/**
+ * The editor a saved craft launches from, as the `ksp.launch` command spells it.
+ *
+ * Derived from the ORDINAL, not from KSP's name. The name used to be checked
+ * against a hand-written `{"VAB", "SPH"}` set and REPLACED WITH `"VAB"` when it
+ * missed, and that value was then dispatched as the command's `facility`
+ * argument. A substituted default that becomes a dispatched argument is not a
+ * fallback: it launches a spaceplane from the launchpad. The set also omitted
+ * `None`, which KSP declares, so a craft reporting `None` already dispatched as
+ * a VAB craft today.
+ *
+ * The mod refuses an unrecognised facility outright (`CommandErrorCode.Range`,
+ * see `FlightOpsCommandProvider.ParseEditorFacility`), so passing the raw name
+ * through on an unknown ordinal gets the operator a visible refusal, which is
+ * the correct outcome and the one the substitution was hiding. Resolving from
+ * the ordinal also means a craft KSP has RENAMED still launches from the right
+ * editor, because the ordinal is the fact and the mirror knows what it means.
+ */
+function launchFacilityArg(ship: SavedShip): string {
+  const resolved =
+    ship.facilityOrdinal === null
+      ? undefined
+      : KSP_EDITOR_FACILITY_NAMES.get(ship.facilityOrdinal);
+  // `None` is a declared member and not an editor, so it is not launchable; let
+  // the mod say so rather than choosing an editor on the player's behalf.
+  if (resolved === undefined || resolved === "None") return ship.facility;
+  return resolved;
+}
 
 /** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs): the
  * ordinal -> display-label bridge for the `target.available` roster. Same
@@ -221,10 +256,9 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
       name,
       partCount: magnitudeOr(e.partCount as Quantityish, 0),
       totalMass: magnitudeOr(e.totalMass as Quantityish, 0),
-      facility:
-        typeof e.facility === "string" && KNOWN_FACILITIES.has(e.facility)
-          ? e.facility
-          : "VAB",
+      facility: typeof e.facility === "string" ? e.facility : "",
+      facilityOrdinal:
+        typeof e.facilityOrdinal === "number" ? e.facilityOrdinal : null,
       requiresFunds: magnitudeOr(e.requiresFunds as Quantityish, 0),
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
@@ -725,7 +759,7 @@ function LaunchDirectorComponent({
                     handle={launchCmd}
                     args={{
                       shipName: ship.name,
-                      facility: ship.facility,
+                      facility: launchFacilityArg(ship),
                       site: selectedSite,
                       crew: Array.from(selectedCrew),
                     }}

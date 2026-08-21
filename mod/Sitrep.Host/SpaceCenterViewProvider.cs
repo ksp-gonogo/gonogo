@@ -66,14 +66,18 @@ namespace Sitrep.Host
     ///       "name":            string  : ProtoCrewMember.name
     ///       "trait":           string  : ProtoCrewMember.trait
     ///       "experienceLevel": int     : ProtoCrewMember.experienceLevel
-    ///       "rosterStatus":    string  : RAW RosterStatus enum name (provider folds to available/reason)
+    ///       "rosterStatus":    string  : RAW RosterStatus enum name (a DISPLAY LABEL only)
+    ///       "rosterStatusOrdinal": int? : (int)RosterStatus, what the provider BRANCHES on
+    ///       "isApplicant":     bool?   : a hireable candidate rather than owned crew
     ///     }
     ///   "savedShips": List&lt;object?&gt;   // one entry per .craft file
     ///     each entry = Dictionary {
     ///       "name":          string  : CraftProfileInfo.shipName
     ///       "partCount":     int     : CraftProfileInfo.partCount
     ///       "totalMass":     double  : CraftProfileInfo.totalMass
-    ///       "facility":      string  : EditorFacility enum name ("VAB"/"SPH")
+    ///       "facility":      string  : EditorFacility enum name (a DISPLAY LABEL only)
+    ///       "facilityOrdinal": int?   : (int)EditorFacility, what the client branches on
+    ///                                    and sends back as ksp.launch's facility arg
     ///       "requiresFunds": double  : CraftProfileInfo.totalCost
     ///       "missingParts":  List&lt;object?&gt; of string: UnavailableShipParts
     ///     }
@@ -415,6 +419,7 @@ namespace Sitrep.Host
                     ["partCount"] = SnapshotDict.GetInt(raw, "partCount"),
                     ["totalMass"] = SnapshotDict.GetDouble(raw, "totalMass"),
                     ["facility"] = SnapshotDict.GetString(raw, "facility"),
+                ["facilityOrdinal"] = SnapshotDict.GetInt(raw, "facilityOrdinal"),
                     ["requiresFunds"] = SnapshotDict.GetDouble(raw, "requiresFunds"),
                     ["missingParts"] = GetStringList(raw, "missingParts"),
                 });

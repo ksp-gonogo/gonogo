@@ -964,6 +964,7 @@ export interface SavedShipEntry
 	partCount?: Value<"count">;
 	totalMass?: Value<"t">;
 	facility?: string;
+	facilityOrdinal?: KspEditorFacility;
 	requiresFunds?: Value<"funds">;
 	missingParts?: string[];
 }

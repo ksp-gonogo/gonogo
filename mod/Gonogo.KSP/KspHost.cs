@@ -3065,6 +3065,9 @@ namespace Gonogo.KSP
                             ["partCount"] = info.partCount,
                             ["totalMass"] = info.totalMass,
                             ["facility"] = info.shipFacility.ToString(),
+                            // The ordinal is what the client branches on and
+                            // sends back; the name is its display label.
+                            ["facilityOrdinal"] = (int)info.shipFacility,
                             ["requiresFunds"] = info.totalCost,
                             ["missingParts"] = missing,
                         });

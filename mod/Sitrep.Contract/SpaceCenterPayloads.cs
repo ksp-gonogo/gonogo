@@ -264,9 +264,27 @@ public class SavedShipEntry
     [SitrepUnit(Units.Tonnes)]
     public double? TotalMass { get; set; }
 
-    /// <summary>Which editor built it: the <c>EditorFacility</c> enum name, <c>"VAB"</c> or <c>"SPH"</c> (<c>CraftProfileInfo.shipFacility</c>).</summary>
+    /// <summary>Which editor built it: the <c>EditorFacility</c> enum name, <c>"VAB"</c> or <c>"SPH"</c> (<c>CraftProfileInfo.shipFacility</c>). A display label; see <see cref="FacilityOrdinal"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Facility { get; set; }
+
+    /// <summary>
+    /// <see cref="Facility"/>'s KSP ORDINAL, typed to
+    /// <see cref="KspEditorFacility"/>.
+    ///
+    /// <para>This one is not a display concern. The client sends the facility
+    /// straight back as the <c>ksp.launch</c> command's <c>facility</c>
+    /// argument, and it used to accept the name only if it matched a
+    /// hand-written <c>{"VAB", "SPH"}</c> set and otherwise substituted
+    /// <c>"VAB"</c>. A substituted default that becomes a dispatched argument
+    /// is not a fallback: it launches a spaceplane from the launchpad. The set
+    /// also omitted <c>None</c>, which KSP declares.</para>
+    ///
+    /// <para><c>null</c> when the capture carried no facility, which is a
+    /// third answer and must not be read as either editor.</para>
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspEditorFacility? FacilityOrdinal { get; set; }
 
     /// <summary>Funds needed before this can launch, the full craft cost (<c>CraftProfileInfo.totalCost</c>).</summary>
     [SitrepUnit(Units.Funds)]

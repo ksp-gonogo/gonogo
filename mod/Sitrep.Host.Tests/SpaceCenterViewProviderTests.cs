@@ -567,6 +567,7 @@ namespace Sitrep.Host.Tests
                                 ["partCount"] = 42,
                                 ["totalMass"] = 18.5,
                                 ["facility"] = "VAB",
+                                ["facilityOrdinal"] = 1,
                                 ["requiresFunds"] = 12345.0,
                                 ["missingParts"] = new List<object?> { "partA", "partB" },
                             },
@@ -576,6 +577,7 @@ namespace Sitrep.Host.Tests
                                 ["partCount"] = 30,
                                 ["totalMass"] = 12.0,
                                 ["facility"] = "SPH",
+                                ["facilityOrdinal"] = 2,
                                 ["requiresFunds"] = 6000.0,
                                 ["missingParts"] = new List<object?>(),
                             },
@@ -599,6 +601,45 @@ namespace Sitrep.Host.Tests
             var plane = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal("SPH", plane["facility"]);
             Assert.Empty(Assert.IsType<List<object?>>(plane["missingParts"]));
+
+            // The ordinal rides beside the name. It is what the client resolves
+            // the launch's editor from, so the name is a row label only.
+            Assert.Equal(1, kx["facilityOrdinal"]);
+            Assert.Equal(2, plane["facilityOrdinal"]);
+        }
+
+        /// <summary>
+        /// A saved craft the capture reported with no facility ordinal carries
+        /// <c>null</c>, not a guessed editor. The client passes the raw name
+        /// through in that case so the mod can refuse it, which is the whole
+        /// point: the substitution this replaced turned a refusal into a launch
+        /// from the wrong editor.
+        /// </summary>
+        [Fact]
+        public void BuildSavedShipsCarriesNoFacilityOrdinalRatherThanGuessingOne()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildSavedShips(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["savedShips"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Mystery Craft",
+                                ["facility"] = "Foundry",
+                            },
+                        },
+                    },
+                },
+            }));
+
+            var craft = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal("Foundry", craft["facility"]);
+            Assert.Null(craft["facilityOrdinal"]);
         }
 
         [Fact]
@@ -631,6 +672,7 @@ namespace Sitrep.Host.Tests
                                 ["partCount"] = 42,
                                 ["totalMass"] = 18.5,
                                 ["facility"] = "VAB",
+                                ["facilityOrdinal"] = 1,
                                 ["requiresFunds"] = 12345.0,
                                 ["missingParts"] = new List<object?> { "partA" },
                             },

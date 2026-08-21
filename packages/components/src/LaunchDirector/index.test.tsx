@@ -210,6 +210,7 @@ describe("LaunchDirectorComponent", () => {
           partCount: 12,
           totalMass: 5.5,
           facility: "VAB",
+          facilityOrdinal: 1,
           requiresFunds: 8000,
           missingParts: [],
         },
@@ -240,6 +241,91 @@ describe("LaunchDirectorComponent", () => {
           site: "LaunchPad",
           crew: ["Jebediah Kerman"],
         },
+      }),
+    );
+  });
+
+  /**
+   * The dispatched argument, on a facility name this build has never seen.
+   *
+   * `facility` is not a caption here: it is sent verbatim as the `ksp.launch`
+   * command's own argument. The old parser replaced any unrecognised name with
+   * `"VAB"`, so a spaceplane whose facility KSP had renamed launched from the
+   * LAUNCHPAD - and because the mod refuses an unknown facility outright, the
+   * substitution was not covering a gap, it was replacing a visible refusal with
+   * a wrong launch.
+   *
+   * Ordinal 2 is the SPH whatever KSP calls it, so that is what gets dispatched.
+   */
+  it("dispatches the editor the ORDINAL names, not the unrecognised facility label", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(stream, 100_000);
+      emitScene(stream, "SpaceCenter", "LaunchPad");
+      stream.emit("spaceCenter.launchSites", []);
+      stream.emit("spaceCenter.savedShips", [
+        {
+          name: "Spaceplane",
+          partCount: 20,
+          totalMass: 9,
+          // What a future KSP, or a mod adding an editor, might call the SPH.
+          facility: "Hangar",
+          facilityOrdinal: 2,
+          requiresFunds: 12000,
+          missingParts: [],
+        },
+      ]);
+      // The launch controls are gated on the crew roster having ARRIVED, so an
+      // empty roster is needed even for an unmanned launch.
+      stream.emit("spaceCenter.crewRoster", []);
+    });
+
+    await user.click(await screen.findByText(/Spaceplane/));
+    await user.click(screen.getByText(/Launch Spaceplane unmanned/i));
+    await user.click(screen.getByText(/Confirm launch/i));
+
+    await waitFor(() =>
+      expect(sentLaunches(stream)[0]).toMatchObject({
+        args: { shipName: "Spaceplane", facility: "SPH" },
+      }),
+    );
+  });
+
+  /**
+   * With no ordinal to resolve, the raw name goes through untouched so the mod
+   * can refuse it. Choosing an editor on the player's behalf is the one thing
+   * this must not do.
+   */
+  it("passes an unresolvable facility through rather than picking an editor", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(stream, 100_000);
+      emitScene(stream, "SpaceCenter", "LaunchPad");
+      stream.emit("spaceCenter.launchSites", []);
+      stream.emit("spaceCenter.savedShips", [
+        {
+          name: "Mystery Craft",
+          partCount: 3,
+          totalMass: 1,
+          facility: "Foundry",
+          requiresFunds: 100,
+          missingParts: [],
+        },
+      ]);
+      // The launch controls are gated on the crew roster having ARRIVED, so an
+      // empty roster is needed even for an unmanned launch.
+      stream.emit("spaceCenter.crewRoster", []);
+    });
+
+    await user.click(await screen.findByText(/Mystery Craft/));
+    await user.click(screen.getByText(/Launch Mystery Craft unmanned/i));
+    await user.click(screen.getByText(/Confirm launch/i));
+
+    await waitFor(() =>
+      expect(sentLaunches(stream)[0]).toMatchObject({
+        args: { shipName: "Mystery Craft", facility: "Foundry" },
       }),
     );
   });
@@ -696,9 +782,31 @@ describe("parseSavedShips", () => {
     expect(parsed).toHaveLength(1);
   });
 
-  it("falls back to VAB for unknown facility values", () => {
-    const parsed = parseSavedShips([{ name: "x", facility: "ModdedFacility" }]);
-    expect(parsed?.[0]?.facility).toBe("VAB");
+  /**
+   * The defect this channel's ordinal exists to end, and the most consequential
+   * one in the KSP-enum sweep, because the value is DISPATCHED.
+   *
+   * An unrecognised `EditorFacility` name used to be silently replaced with
+   * `"VAB"`, and `facility` is then sent as the `ksp.launch` command's own
+   * argument. So a spaceplane whose facility name this build did not recognise
+   * launched from the LAUNCHPAD. The mod refuses an unknown facility outright
+   * (`CommandErrorCode.Range`), so the substitution was not covering a gap: it
+   * was converting a clean, visible refusal into a wrong launch.
+   *
+   * The name is now carried verbatim as a label, and the ordinal decides.
+   */
+  it("keeps KSP's own facility name and carries the ordinal beside it", () => {
+    const parsed = parseSavedShips([
+      { name: "x", facility: "ModdedFacility", facilityOrdinal: 9 },
+    ]);
+    expect(parsed?.[0]?.facility).toBe("ModdedFacility");
+    expect(parsed?.[0]?.facilityOrdinal).toBe(9);
+  });
+
+  it("carries a null ordinal when the producer sent none, without inventing one", () => {
+    const parsed = parseSavedShips([{ name: "x", facility: "SPH" }]);
+    expect(parsed?.[0]?.facility).toBe("SPH");
+    expect(parsed?.[0]?.facilityOrdinal).toBeNull();
   });
 });
 
