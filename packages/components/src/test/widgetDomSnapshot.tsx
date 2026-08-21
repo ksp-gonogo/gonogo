@@ -1,6 +1,7 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
 import {
   DashboardItemContext,
+  getComponents,
   type MockDataSource,
   registerStockBodies,
 } from "@ksp-gonogo/core";
@@ -539,6 +540,47 @@ async function flushProviderFrame(providerMounted: boolean): Promise<void> {
  * appear: those live in the playwright PNGs.
  */
 /**
+ * The `defaultConfig` each widget registered, remembered by component identity.
+ *
+ * A widget whose behaviour depends on its registered default renders NOTHING
+ * without one: ActionGroup answers "No action group configured" for every mode
+ * that carries no config overlay, which is four of its eight, across all six
+ * scenarios. The probe has always applied it (`payload.config ??
+ * def.defaultConfig ?? {}` in probe-entry.tsx); this harness only ever used a
+ * `defaultConfig` the CALLER passed, and almost no caller passes one.
+ *
+ * Cached rather than looked up per render because `setupMockDataSource` opens
+ * with `clearRegistry()`, which empties the component registry along with the
+ * data sources. The widget modules registered at import, so the registry is
+ * intact for the first render in a file and empty from the second on; caching
+ * what was there keeps every render in the file agreeing with the first.
+ */
+const registeredDefaults = new WeakMap<object, Record<string, unknown>>();
+
+function rememberRegisteredDefaults(): void {
+  for (const def of getComponents()) {
+    const component = def.component as unknown as object | undefined;
+    if (!component || def.defaultConfig === undefined) continue;
+    if (!registeredDefaults.has(component)) {
+      registeredDefaults.set(
+        component,
+        def.defaultConfig as Record<string, unknown>,
+      );
+    }
+  }
+}
+
+/** Caller's override, else whatever the widget registered, else nothing. */
+function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
+  if (opts.defaultConfig !== undefined) return opts.defaultConfig;
+  rememberRegisteredDefaults();
+  const remembered = registeredDefaults.get(opts.Widget as unknown as object) as
+    | Cfg
+    | undefined;
+  return remembered ?? ({} as Cfg);
+}
+
+/**
  * Grid-unit to pixel conversion, the same arithmetic
  * `scripts/widgetRenderHarness.ts` sizes the playwright iframe with, so a mode
  * means the same shape in both harnesses.
@@ -643,6 +685,7 @@ export async function snapshotWidgetMode<
   // does the same so body-aware widgets see resolved BodyDefinitions
   // for `Kerbin`, `Mun`, etc.
   registerStockBodies();
+  rememberRegisteredDefaults();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
   );
@@ -658,7 +701,7 @@ export async function snapshotWidgetMode<
 
   try {
     const config: Cfg = {
-      ...(opts.defaultConfig ?? ({} as Cfg)),
+      ...baselineConfig(opts),
       ...((opts.mode.config ?? {}) as Cfg),
     };
     const instanceId = opts.instanceId ?? "snap";
@@ -745,6 +788,7 @@ export async function renderWidgetMode<
   Cfg extends Record<string, unknown> = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<RenderedWidget> {
   registerStockBodies();
+  rememberRegisteredDefaults();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
   );
@@ -759,7 +803,7 @@ export async function renderWidgetMode<
   );
 
   const config: Cfg = {
-    ...(opts.defaultConfig ?? ({} as Cfg)),
+    ...baselineConfig(opts),
     ...((opts.mode.config ?? {}) as Cfg),
   };
   const instanceId = opts.instanceId ?? "snap";
