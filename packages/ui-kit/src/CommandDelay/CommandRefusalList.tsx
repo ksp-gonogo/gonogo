@@ -146,7 +146,7 @@ const CommandRefusalList__Text = styled.span`
   flex: 1 1 auto;
   min-width: 0;
   font-size: var(--font-size-xs);
-  line-height: 1.4;
+  line-height: var(--line-height-body);
   /* Wraps, never truncates: the numbers are at the end of the sentence. */
   overflow-wrap: anywhere;
 `;
